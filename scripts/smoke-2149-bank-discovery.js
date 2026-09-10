@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict'),vm=require('vm');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.16');
-assert.equal(version.dashboardVersion,'2.14.16');
-assert.match(bot,/var VERSION = ['"]2\.14\.16['"]/);
+assert.equal(version.version,'2.14.17');
+assert.equal(version.dashboardVersion,'2.14.17');
+assert.match(bot,/var VERSION = ['"]2\.14\.17['"]/);
 assert.doesNotThrow(()=>new vm.Script(bot), 'bot syntax');
 assert.ok(bot.includes("V2149_BANK_KEY='merchantBankSnapshot2149'"),'persistent bank snapshot missing');
 assert.ok(bot.includes('function v2149RefreshBankSnapshot'),'bank snapshot refresh missing');
@@ -13,7 +13,7 @@ assert.ok(bot.includes('v278AggregateMaterials=function()')&&bot.includes('agg.b
 assert.ok(bot.includes('v273OwnedCount=function(name)')&&bot.includes('v2149SnapshotRows().forEach'),'owned count must include bank');
 assert.ok(bot.includes('merchantBankRetrieve2149'),'bounded concrete bank retrieve state missing');
 assert.ok(bot.includes("reason:String(reason||'logistics')")&&bot.includes('knownSnapshot:known'),'bank travel must be tied to a concrete downstream reason');
-assert.ok(bot.includes("now-Number(st.startedAt||now)>20000")&&bot.includes('Number(st.attempts||0)>=12'),'bank retrieve lease missing');
+assert.ok(bot.includes("st.leaseAt=0")&&bot.includes("if(!Number(st.leaseAt||0))st.leaseAt=now")&&bot.includes("now-Number(st.leaseAt||now)>20000")&&bot.includes('Number(st.attempts||0)>=12'),'bank retrieve arrival-relative lease missing');
 assert.ok(bot.includes("v2149RequestBank('craft'")&&bot.includes("v2149RequestBank('upgrade'")&&bot.includes("v2149RequestBank('compound'")&&bot.includes("v2149RequestBank('exchange'")&&bot.includes("v2149RequestBank('gear'"),'bank warehouse not integrated across Merchant logistics');
 assert.ok(bot.includes("['bank','sell','exchange'].indexOf(v2147ItemPolicy"),'bank staging must respect explicit bank/sell/exchange disposition');
 assert.ok(bot.includes('merchant_bank_cleanup_deferred')&&bot.includes('v2149CanStartBankWork'),'bank cleanup must yield to higher-priority routes');
@@ -27,7 +27,7 @@ assert.ok(bot.includes('(m.npcs||[])')&&bot.includes('(m.quirks||[])')&&bot.incl
 assert.ok(bot.includes('afterGameUpdate:v2149Discovery.gameVersion!==gv'),'game-update-triggered discovery missing');
 assert.ok(bot.includes('function v2149NpcClass')&&bot.includes('function v2149ObjectClass'),'deterministic world-function classifier missing');
 assert.ok(bot.includes("interact('newyear_tree')")&&bot.includes("mainframe_command('hello')"),'safe documented probes missing');
-const block=bot.slice(bot.indexOf('2.14.16 Merchant bank warehouse + active discovery'),bot.indexOf("audit('feature_contract','2.14.16"));
+const block=bot.slice(bot.indexOf('2.14.17 Merchant bank warehouse + active discovery'),bot.indexOf("audit('feature_contract','2.14.17"));
 assert.ok(!block.includes('destroy('),'Discovery must never perform destructive experiments');
 assert.ok(!block.includes("interact('the_lever')"),'Discovery must not trigger disruptive lever travel');
 assert.ok(!block.includes("interact('monsterhunt')"),'Discovery must not mutate hunts just to learn');
@@ -38,4 +38,4 @@ assert.ok(bot.includes('worldDiscovery={gameVersion:')&&bot.includes('bankWareho
 assert.ok(bot.includes("S.explorer.recentSamples=(S.explorer.recentSamples||[]).concat([sample]).slice(-20)"),'novel discovery must flow through existing cloud observation path');
 assert.ok(bot.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"),'2.14.8 bank loot guard regressed');
 assert.ok(bot.includes("bankCleanupRetry2148=now+12000"),'2.14.8 bank cleanup safety backoff regressed');
-console.log('2.14.16 Merchant warehouse / discovery / productive-idle smoke OK');
+console.log('2.14.17 Merchant warehouse / arrival-relative bank lease / discovery smoke OK');

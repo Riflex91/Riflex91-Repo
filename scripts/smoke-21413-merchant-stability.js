@@ -6,11 +6,11 @@ const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
 const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
-assert.equal(version.version,'2.14.16');
-assert.equal(version.dashboardVersion,'2.14.16');
-assert(bot.includes("var VERSION = '2.14.16';"));
-assert(dash.includes('AiO Bot Dashboard 2.14.16'));
-assert(worker.includes('AiO Bot Dashboard 2.14.16'));
+assert.equal(version.version,'2.14.17');
+assert.equal(version.dashboardVersion,'2.14.17');
+assert(bot.includes("var VERSION = '2.14.17';"));
+assert(dash.includes('AiO Bot Dashboard 2.14.17'));
+assert(worker.includes('AiO Bot Dashboard 2.14.17'));
 assert(!bot.includes('v2144AuditEconomy('),'undefined v2144AuditEconomy reference must be gone');
 
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
@@ -59,4 +59,4 @@ assert.strictEqual(ctx.finish,'merchant_bank_cleanup_sync_wait');
 assert.strictEqual(stalled.stores,0,'stalled state must not be falsely confirmed');
 assert.strictEqual(ctx.S.times.bankCleanupRetry2148,22001);
 
-console.log('2.14.16 merchant stability smoke OK');
+console.log('2.14.17 merchant stability smoke OK');

@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.16 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.17 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.16';
+  var VERSION = '2.14.17';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -52,8 +52,14 @@
     try{for(var i=0;i<P.localStorage.length;i++){var k=P.localStorage.key(i);if(!k||k.indexOf('ALBOT27:')!==0||k.indexOf(me)<0||k.slice(-19)!==':updateConfigBackup')continue;var raw=P.localStorage.getItem(k);if(raw)take(JSON.parse(raw));}}catch(e){}
     return best;
   }
+  function v21417StableConfigBox(){try{var raw=readRaw(V21416_STABLE_CONFIG_KEY),box=raw?JSON.parse(raw):null;return box&&box.config&&typeof box.config==='object'?box:null;}catch(e){return null;}}
+  function v21417PickConfig(candidates){
+    var rows=(candidates||[]).filter(function(x){return x&&x.config&&typeof x.config==='object';});
+    rows.sort(function(a,b){var d=Number(b.at||0)-Number(a.at||0);if(d)return d;d=Number(b.priority||0)-Number(a.priority||0);if(d)return d;return String(a.source||'').localeCompare(String(b.source||''));});
+    return rows[0]||null;
+  }
   function read(k, fallback) { try { var raw = readRaw(KEY + k); return raw == null ? fallback : JSON.parse(raw); } catch (e) { return fallback; } }
-  function write(k, value) { try { var ok=writeRaw(KEY + k, JSON.stringify(value)); if(k==='config')writeRaw(V21416_STABLE_CONFIG_KEY,JSON.stringify({schema:1,version:VERSION,at:clock(),config:value})); return ok; } catch (e) { return false; } }
+  function write(k, value) { try { var ok=writeRaw(KEY + k, JSON.stringify(value)); if(k==='config'){var at=clock();writeRaw(KEY+'configAt',JSON.stringify(at));writeRaw(V21416_STABLE_CONFIG_KEY,JSON.stringify({schema:1,version:VERSION,at:at,config:value}));} return ok; } catch (e) { return false; } }
   function readLegacy(k, fallback) { try { var raw = readRaw(LEGACY_KEY + k); return raw == null ? fallback : JSON.parse(raw); } catch (e) { return fallback; } }
   function clamp(n, a, b) { n = Number(n); return isFinite(n) ? Math.max(a, Math.min(b, n)) : a; }
   function ratio(o, key) { var max = Number(o && o['max_' + key]) || Number(o && o['max' + key.charAt(0).toUpperCase() + key.slice(1)]) || 1; return (Number(o && o[key]) || 0) / Math.max(1, max); }
@@ -179,10 +185,15 @@
 
 
   // Migrate useful 2.6 settings once, but intentionally replace its dashboard endpoint/token pair with the 2.7 connection URL model.
-  var v21416ConfigRecoverySource='';
-  var C = read('config', null);
-  if(!C){var stable21416=v21416ReadStableConfig();if(stable21416){C=stable21416;v21416ConfigRecoverySource='stable-mirror';}}
-  if(!C){var backup21416=v21416FindUpdateBackup();if(backup21416&&backup21416.config){C=backup21416.config;v21416ConfigRecoverySource='update-backup';}}
+  // 2.14.17: a stale current namespace must not mask a newer stable/update copy after hot reload.
+  var v21416ConfigRecoverySource='',current21417=read('config',null),stable21417=v21417StableConfigBox(),backup21417=v21416FindUpdateBackup();
+  var chosen21417=v21417PickConfig([
+    {source:'current',priority:3,at:Number(read('configAt',0))||0,config:current21417},
+    stable21417?{source:'stable-mirror',priority:2,at:Number(stable21417.at)||0,config:stable21417.config}:null,
+    backup21417?{source:'update-backup',priority:1,at:Number(backup21417.at)||0,config:backup21417.config}:null
+  ]);
+  var C=chosen21417?chosen21417.config:null;
+  if(chosen21417&&chosen21417.source!=='current')v21416ConfigRecoverySource=chosen21417.source;
   if (!C) {
     var legacy = readLegacy('config', null);
     if (legacy) C = Object.assign({}, defaults, legacy, {
@@ -1799,7 +1810,7 @@
   }
   function v277MerchantRestockSelfTick(target){
     if(character.ctype!=='merchant'||!C.merchantSupply)return false;var needH=target&&target.req&&target.req.hp?Number(C.merchantDeliveryHPQty)||0:0,needM=target&&target.req&&target.req.mp?Number(C.merchantDeliveryMPQty)||0:0,haveH=qty(C.hpot),haveM=qty(C.mpot);if(haveH>=needH+80&&haveM>=needM+80)return false;
-    if(character.map!=='main'||Math.hypot((Number(character.x)||0)+56,(Number(character.y)||0)-402)>500){S.status='Zulieferung vorbereiten · Tränke kaufen';S.mode='Merchant · Versorgung';return moveToGoal({map:'main',x:-56,y:402},'Zum Trankhändler',{kind:'supply-buy',tolerance:120,forceAfter:7000});}
+    if(character.map!=='main'||Math.hypot((Number(character.x)||0)+56,(Number(character.y)||0)-402)>90||character.moving||S.moveInFlight){S.status='Zulieferung vorbereiten · Tränke kaufen';S.mode='Merchant · Versorgung';return moveToGoal({map:'main',x:-56,y:402},'Zum Trankhändler',{kind:'supply-buy',tolerance:60,forceAfter:7000});}
     if(haveH<Math.max(needH+80,Number(C.merchantBuyHPTo)||0)&&typeof buy==='function')return action('HP-Tränke für Farmer kaufen',function(){return buy(C.hpot,Math.max(1,Math.max(needH+80,Number(C.merchantBuyHPTo)||0)-haveH));},'merchant-buy-hp',1800);
     if(haveM<Math.max(needM+80,Number(C.merchantBuyMPTo)||0)&&typeof buy==='function')return action('MP-Tränke für Farmer kaufen',function(){return buy(C.mpot,Math.max(1,Math.max(needM+80,Number(C.merchantBuyMPTo)||0)-haveM));},'merchant-buy-mp',1800);return false;
   }
@@ -2173,8 +2184,11 @@
     'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed',
     'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle',
     'merchant-bank-progress-lease','merchant-bank-sync-diagnostics',
-    'config-stable-mirror','config-update-namespace-recovery','merchant-compound-flight-guard','merchant-bank-unlock-affordability','merchant-audit-memory-cap'
-  ];
+    'config-stable-mirror','config-update-namespace-recovery','merchant-compound-flight-guard','merchant-bank-unlock-affordability','merchant-audit-memory-cap',
+    'config-newest-valid-source',
+    'merchant-economic-action-flight-guard',
+    'merchant-bank-retrieve-travel-lease',
+    'merchant-vendor-range-guard'];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
   S.auditSeq = Number(read('auditSeq:' + me, 0)) || 0;
@@ -2825,7 +2839,7 @@
   v273UpgradeTick=function(){
     if(character.ctype!=='merchant'||!C.merchantAutoUpgrade||typeof upgrade!=='function')return false;var best=v2144UpgradeCandidate();if(!best)return false;
     if(v2144InBank()){S.status=(C.language==='de'?'Bank verlassen vor Upgrade: ':'Leave bank before upgrade: ')+v273Name(best.it.name);S.mode='Merchant · Upgrade';return moveToGoal({map:'main',x:0,y:0},C.language==='de'?'Bank vor Upgrade verlassen':'Leave bank before upgrade',{kind:'upgrade-bank-exit',forceAfter:9000});}
-    var sc=v273EnsureScroll('scroll',best.it);if(sc<0)return true;S.status='Verbessere '+v273Name(best.it.name)+' auf +'+(best.lv+1);S.mode='Merchant · Upgrade';audit('merchant_economy_decision','Upgrade nach Nutzen/Kosten/Drop-Prüfung',{action:'upgrade',item:best.it.name,level:best.lv,utility:Math.round(best.utility),economics:best.econ});return action('Item verbessern '+best.it.name,function(){return upgrade(best.i,sc);},'merchant-upgrade',2600);
+    var sc=v273EnsureScroll('scroll',best.it);if(sc<0)return true;var vendor=v282VendorForScroll(v273ScrollName('scroll',best.it));if(vendor&&!v2145VendorReady(vendor)){S.status=(C.language==='de'?'Zum Upgrade-Händler für ':'Go to upgrade vendor for ')+v273Name(best.it.name);S.mode='Merchant · Upgrade';if(!character.moving&&!S.moveInFlight)moveToGoal(vendor,C.language==='de'?'Upgrade-Händler':'Upgrade vendor',{kind:'merchant-upgrade-vendor',tolerance:60,forceAfter:9000});return true;}S.status='Verbessere '+v273Name(best.it.name)+' auf +'+(best.lv+1);S.mode='Merchant · Upgrade';audit('merchant_economy_decision','Upgrade nach Nutzen/Kosten/Drop-Prüfung',{action:'upgrade',item:best.it.name,level:best.lv,utility:Math.round(best.utility),economics:best.econ});return action('Item verbessern '+best.it.name,function(){return upgrade(best.i,sc);},'merchant-upgrade',2600);
   };
 
   function v2144CompoundCandidate(){
@@ -3201,6 +3215,7 @@
       S.status=C.language==='de'?'Bank verlassen, bevor Belohnungs-Item eingetauscht wird':'Leave bank before exchanging reward item';S.mode='Merchant · Exchange';
       return moveToGoal({map:'main',x:0,y:0},C.language==='de'?'Bank für Eintausch verlassen':'Leave bank for exchange',{kind:'exchange-exit',forceAfter:9000});
     }
+    if(v21417ExchangeRouteTick())return true;
     S.status=(C.language==='de'?'Belohnungs-Item eintauschen: ':'Exchange reward item: ')+v273Name(row.it.name);S.mode='Merchant · Exchange';
     return action('Item eintauschen '+row.it.name,function(){return exchange(row.i);},'merchant-exchange:'+row.it.name,5000);
   };
@@ -3432,12 +3447,13 @@
   function v2149BankRetrieveFinish(kind,message,level){var st=S.merchantBankRetrieve2149;if(!st)return false;if(st.meta&&st.meta.recipient&&st.reason==='gear'){S.pendingBankGear2149={recipient:st.meta.recipient,name:st.wants[0].name,level:st.wants[0].level,at:clock()};}audit(kind,message,{reason:st.reason,wants:st.wants,attempts:Number(st.attempts)||0,durationMs:clock()-Number(st.startedAt||clock())},level||'info');S.merchantBankRetrieve2149=null;S.times.merchantPlan=0;return false;}
   function v2149BankRetrieveTick(){
     var st=S.merchantBankRetrieve2149;if(!st)return false;var now=clock();
-    if(v2149HigherRoute(90)){st.startedAt=now;return false;}
-    if(now-Number(st.startedAt||now)>20000||Number(st.attempts||0)>=12){S.times.bankRetrieveRetry2149=now+15000;return v2149BankRetrieveFinish('merchant_bank_retrieve_timeout','Bankentnahme kontrolliert freigegeben; späterer Neuversuch','warning');}
+    if(v2149HigherRoute(90)){st.leaseAt=0;return false;}
     if(v2149BankWantMissing(st.wants[0])<=0&&st.wants.every(function(w){return v2149BankWantMissing(w)<=0;}))return v2149BankRetrieveFinish('merchant_bank_retrieve_done','Geplante Bankentnahme abgeschlossen');
     if(!v2149BankMap()){
-      if(!v2149CanStartBankWork())return false;S.status=(C.language==='de'?'Bankentnahme · ':'Bank retrieve · ')+st.reason;S.mode='Merchant · Bank';return moveToGoal({map:'bank',x:0,y:0},C.language==='de'?'Geplante Bankentnahme':'Planned bank retrieve',{kind:'merchant-bank-retrieve',forceAfter:9000});
+      st.leaseAt=0;if(!v2149CanStartBankWork())return false;S.status=(C.language==='de'?'Bankentnahme · ':'Bank retrieve · ')+st.reason;S.mode='Merchant · Bank';return moveToGoal({map:'bank',x:0,y:0},C.language==='de'?'Geplante Bankentnahme':'Planned bank retrieve',{kind:'merchant-bank-retrieve',forceAfter:9000});
     }
+    if(!Number(st.leaseAt||0))st.leaseAt=now;
+    if(now-Number(st.leaseAt||now)>20000||Number(st.attempts||0)>=12){S.times.bankRetrieveRetry2149=now+15000;return v2149BankRetrieveFinish('merchant_bank_retrieve_timeout','Bankentnahme kontrolliert freigegeben; späterer Neuversuch','warning');}
     if(character.moving||S.moveInFlight||v2147BankExitActive())return true;if(now<Number(st.waitUntil||0))return true;
     v2149RefreshBankSnapshot(true);
     var want=null;for(var wi=0;wi<st.wants.length;wi++)if(v2149BankWantMissing(st.wants[wi])>0){want=st.wants[wi];break;}if(!want)return v2149BankRetrieveFinish('merchant_bank_retrieve_done','Geplante Bankentnahme abgeschlossen');
@@ -3446,7 +3462,7 @@
     if(freeSlots()<1)return v2149BankRetrieveFinish('merchant_bank_retrieve_no_space','Bankentnahme gestoppt: kein freier Inventarplatz','warning');
     if(typeof bank_retrieve!=='function')return v2149BankRetrieveFinish('merchant_bank_retrieve_unavailable','bank_retrieve ist nicht verfügbar','warning');
     var started=action('Geplante Bankentnahme '+row.name,function(){if(!v2149BankMap()||character.moving||S.moveInFlight||v2147BankExitActive())throw Error('bank_location_changed');return bank_retrieve(row.pack,row.index);},'bank-retrieve-2149:'+v278MaterialKey(row.name,row.level),1000);
-    if(started){st.attempts=Number(st.attempts||0)+1;st.waitUntil=now+2700;S.status=(C.language==='de'?'Hole ':'Retrieve ')+v273Name(row.name)+(row.level?' +'+row.level:'')+(C.language==='de'?' aus dem Warehouse':' from warehouse');S.mode='Merchant · Bank';}
+    if(started){st.attempts=Number(st.attempts||0)+1;st.leaseAt=now;st.waitUntil=now+2700;S.status=(C.language==='de'?'Hole ':'Retrieve ')+v273Name(row.name)+(row.level?' +'+row.level:'')+(C.language==='de'?' aus dem Warehouse':' from warehouse');S.mode='Merchant · Bank';}
     return true;
   }
   function v2149RequestBank(reason,wants,meta,allowUnknown){
@@ -3455,7 +3471,7 @@
     if(!v2149CanStartBankWork())return false;
     var known=true,needSlots=0;wants.forEach(function(w){var missing=v2149BankWantMissing(w),bank=v2149BankCount(w.name,w.level),slots=v2149BankSlotsFor(w.name,w.level,missing);if(bank<missing)known=false;if(isFinite(slots))needSlots+=slots;});
     if(!known&&!allowUnknown)return false;if(known&&freeSlots()<Math.max(1,needSlots))return false;if(!known&&freeSlots()<1)return false;
-    S.merchantBankRetrieve2149={reason:String(reason||'logistics'),wants:wants,meta:meta||{},startedAt:clock(),attempts:0,waitUntil:0,allowUnknown:!!allowUnknown};audit('merchant_bank_retrieve_plan','Konkrete Bankentnahme geplant',{reason:reason,wants:wants,knownSnapshot:known,snapshotAt:Number(v2149BankSnapshot.at)||0});return v2149BankRetrieveTick();
+    S.merchantBankRetrieve2149={reason:String(reason||'logistics'),wants:wants,meta:meta||{},startedAt:clock(),leaseAt:0,attempts:0,waitUntil:0,allowUnknown:!!allowUnknown};audit('merchant_bank_retrieve_plan','Konkrete Bankentnahme geplant',{reason:reason,wants:wants,knownSnapshot:known,snapshotAt:Number(v2149BankSnapshot.at)||0});return v2149BankRetrieveTick();
   }
 
   v273RetrieveMaterialFromBankTick=function(recipe){if(character.ctype!=='merchant'||!C.merchantManageBank||!recipe)return false;var wants=(recipe.items||[]).filter(function(x){return v2149LocalCount(x.name,x.level)<Number(x.q||1);});if(!wants.length)return false;return v2149RequestBank('craft',wants,{recipe:recipe.id||recipe.output||''},true);};
@@ -3960,9 +3976,16 @@
     }
   };
 
+  function v21417EconomicFlightKind(q){q=q||{};return q.upgrade?'upgrade':q.compound?'compound':q.exchange?'exchange':q.craft?'craft':'';}
+  function v21417ExchangeReady(){var p=S.exchangeReady21417;return !!(p&&p.map===character.map&&!character.moving&&!S.moveInFlight&&dist(character,p)<=120);}
+  function v21417ExchangeRouteTick(){
+    if(v21417ExchangeReady())return false;if(character.moving||S.moveInFlight)return true;if(typeof smart_move!=='function')return false;
+    S.status=C.language==='de'?'Zum Eintausch-NPC':'Go to exchange NPC';S.mode='Merchant · Exchange';
+    return action('Zum Eintausch-NPC',function(){return Promise.resolve(smart_move('exchange')).then(function(v){var p=pos(character);if(p)S.exchangeReady21417={map:p.map,x:p.x,y:p.y,at:clock()};return v;});},'merchant-exchange-route',8000);
+  }
   var v21416MerchantTickBase=merchantTick;
   merchantTick=function(){
-    if(character.ctype==='merchant'&&character.q&&character.q.compound){S.status='Combine läuft · warte auf Abschluss';S.mode='Merchant · Combine';S.times['merchant-compound']=Math.max(Number(S.times['merchant-compound'])||0,clock()+1200);return true;}
+    if(character.ctype==='merchant'){var flight=v21417EconomicFlightKind(character.q);if(flight){S.status=(C.language==='de'?'Warte auf laufende Merchant-Aktion: ':'Waiting for active merchant action: ')+flight;S.mode=flight==='compound'?'Merchant · Combine':flight==='upgrade'?'Merchant · Upgrade':flight==='exchange'?'Merchant · Exchange':'Merchant · Crafting';return true;}}
     return v21416MerchantTickBase();
   };
   var v21416SelfUpdateBase=selfUpdate;
@@ -3971,7 +3994,7 @@
 
   audit('feature_contract','2.14.14 Merchant-Performancebudget + Laufzeittelemetrie + Dashboard-Terrain-Pipeline geprüft',{features:FEATURE_CONTRACT,cloudConfigured:v21414CloudConfigured()});
   audit('feature_contract','2.14.15 Bank-Fortschrittslease + Sync-Wait-Diagnostik geprüft',{features:FEATURE_CONTRACT});
-  audit('feature_contract','2.14.16 Update-Konfiguration + Merchant-Compound/Bank/Memory-Guards geprüft',{features:FEATURE_CONTRACT});
+  audit('feature_contract','2.14.17 neueste Config-Quelle + Merchant-Aktionsserialisierung + Bank-/Vendor-Leases geprüft',{features:FEATURE_CONTRACT});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
