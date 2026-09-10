@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.9 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.10 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.9';
+  var VERSION = '2.14.10';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -3520,6 +3520,68 @@
   };
 
   audit('feature_contract','2.14.9 Merchant-Warehouse + Active Learning/Discovery + produktive Merchant-Idle-Arbeit geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C),bankSnapshotAt:Number(v2149BankSnapshot.at)||0,worldKnowledge:Object.keys(v2149Discovery.knowledge||{}).length});
+
+
+  // ---------------------------------------------------------------------------
+  // 2.14.10 Active discovery route safety + full static world catalog caching.
+  // ---------------------------------------------------------------------------
+  if(FEATURE_CONTRACT.indexOf('merchant-discovery-safety')<0)FEATURE_CONTRACT.push('merchant-discovery-safety');
+
+  function v21410CloneDiscoveryRows(rows){return (rows||[]).map(function(x){return Object.assign({},x,{definition:x&&x.definition?Object.assign({},x.definition):x&&x.definition,discoveryDanger:x&&x.discoveryDanger?Object.assign({},x.discoveryDanger,{hostile:(x.discoveryDanger.hostile||[]).slice()}):x&&x.discoveryDanger});});}
+  function v21410TargetDanger(entry){
+    var map=entry&&entry.map,m=GD.maps&&GD.maps[map]||{};
+    if(!map||!GD.maps||!GD.maps[map])return {safe:false,reason:'unknown-map',hostile:[]};
+    if(m.pvp===true)return {safe:false,reason:'pvp-map',hostile:[]};
+    if(m.instance===true)return {safe:false,reason:'instance-map',hostile:[]};
+    var ex=Number(entry&&entry.x),ey=Number(entry&&entry.y);if(!isFinite(ex)||!isFinite(ey))return {safe:false,reason:'no-safe-coordinate',hostile:[]};
+    var hostile=[];
+    (m.monsters||[]).forEach(function(sp){
+      var type=String(sp&&sp.type||((Array.isArray(sp)&&typeof sp[0]==='string')?sp[0]:'')||''),md=GD.monsters&&GD.monsters[type]||{};
+      if(!type||(Number(md.aggro)||0)<=0&&(Number(md.rage)||0)<=0)return;
+      var b=sp&&sp.boundary,near=false,known=false,margin=Math.max(140,(Number(md.range)||0)+90);
+      if(Array.isArray(b)&&b.length>=4&&[b[0],b[1],b[2],b[3]].every(function(n){return isFinite(Number(n));})){
+        known=true;var x1=Math.min(Number(b[0]),Number(b[2]))-margin,x2=Math.max(Number(b[0]),Number(b[2]))+margin,y1=Math.min(Number(b[1]),Number(b[3]))-margin,y2=Math.max(Number(b[1]),Number(b[3]))+margin;near=ex>=x1&&ex<=x2&&ey>=y1&&ey<=y2;
+      }else{
+        var p=v2149Point(sp&&sp.position);if(p){known=true;near=Math.hypot(ex-p.x,ey-p.y)<=Math.max(320,margin*2);}
+      }
+      if(near||!known)hostile.push(type);
+    });
+    hostile=hostile.filter(function(x,i,a){return a.indexOf(x)===i;}).slice(0,12);
+    return {safe:hostile.length===0,reason:hostile.length?'aggressive-monsters-near-target':'safe-target-area',hostile:hostile};
+  }
+
+  function v21410AdditionalDiscoveryRows(){
+    var out=[];
+    Object.keys(GD.maps||{}).sort().forEach(function(map){
+      var m=GD.maps[map]||{},staticMap=m.pvp===true||m.instance===true;
+      if(staticMap){
+        (m.npcs||[]).forEach(function(n,ix){var id=String(n&&n.id||n&&n.npc||'');if(!id)return;var p=v2149Point(n.position)||v2149Point(n.positions&&n.positions[0]),def=v2149NpcDefinition(id);out.push({key:'npc|'+map+'|'+id,kind:'npc',id:id,map:map,x:p&&p.x,y:p&&p.y,definition:def,definitionHash:v2149TinyHash(def)});});
+        (m.quirks||[]).forEach(function(q,ix){var p=Array.isArray(q)?v2149Point(q):v2149Point(q&&q.position),type=Array.isArray(q)?String(q[4]||'quirk'):String(q&&q.type||'quirk'),label=Array.isArray(q)?safeString(q[5]||'',120):safeString(q&&q.label||q&&q.name||'',120);if(p)out.push({key:'quirk|'+map+'|'+type+'|'+ix,kind:'quirk',id:type+':'+ix,type:type,label:label,map:map,x:p.x,y:p.y,definitionHash:v2149TinyHash([type,label])});});
+        (m.machines||[]).forEach(function(q,ix){var p=v2149Point(q&&q.position)||v2149Point(q),type=String(q&&q.type||'machine');if(p)out.push({key:'machine|'+map+'|'+type+'|'+ix,kind:'machine',id:type+':'+ix,type:type,map:map,x:p.x,y:p.y,definitionHash:v2149TinyHash(q)});});
+        (m.zones||[]).forEach(function(z,ix){var type=String(z&&z.type||''),p=v2149PolygonCenter(z&&z.polygon)||v2149Point(z&&z.position)||v2149Point(z);if(p&&type)out.push({key:'zone|'+map+'|'+type+'|'+ix,kind:'zone',id:type+':'+ix,type:type,map:map,x:p.x,y:p.y,drop:safeString(z&&z.drop||'',80),definitionHash:v2149TinyHash(z)});});
+      }
+      (m.doors||[]).forEach(function(d,ix){var p=v2149Point(d),dtype=String(Array.isArray(d)&&d[7]||'ordinary'),target=String(Array.isArray(d)&&d[4]||'');if(p)out.push({key:'door|'+map+'|'+ix,kind:'door',id:dtype+':'+ix,type:'door:'+dtype,label:target?('to:'+target):'',map:map,x:p.x,y:p.y,definitionHash:v2149TinyHash(d)});});
+    });
+    return out;
+  }
+
+  var v21410DiscoveryCatalogBase=v2149DiscoveryCatalog;
+  v2149DiscoveryCatalog=function(){
+    var gv=String(v273GameVersion()||''),now=clock(),cache=S.discoveryCatalogCache21410;
+    if(cache&&cache.gameVersion===gv&&now-Number(cache.at||0)<60000&&Array.isArray(cache.rows))return v21410CloneDiscoveryRows(cache.rows);
+    var rows=v21410DiscoveryCatalogBase().concat(v21410AdditionalDiscoveryRows()),seen={},out=[];
+    rows.forEach(function(e){if(!e||!e.key||seen[e.key])return;seen[e.key]=1;var x=Object.assign({},e),danger=v21410TargetDanger(x);x.discoveryDanger=danger;if(!danger.safe){x.staticOnly=true;x.sourceX=isFinite(Number(x.x))?Number(x.x):null;x.sourceY=isFinite(Number(x.y))?Number(x.y):null;delete x.x;delete x.y;}out.push(x);});
+    out=out.slice(0,480);S.discoveryCatalogCache21410={gameVersion:gv,at:now,rows:v21410CloneDiscoveryRows(out)};return v21410CloneDiscoveryRows(out);
+  };
+
+  var v21410RecordDiscoveryBase=v2149RecordDiscovery;
+  v2149RecordDiscovery=function(entry,probe){if(entry&&entry.staticOnly&&!probe){var d=entry.discoveryDanger||{};probe={safe:true,ok:true,staticOnly:true,reason:d.reason||'travel-not-approved',hostile:(d.hostile||[]).slice(0,12),sourceX:entry.sourceX,sourceY:entry.sourceY};}return v21410RecordDiscoveryBase(entry,probe);};
+
+  v2149GatherZones=function(){return v2149DiscoveryCatalog().filter(function(x){return x&&x.kind==='zone'&&(x.type==='fishing'||x.type==='mining')&&!x.staticOnly&&isFinite(Number(x.x))&&isFinite(Number(x.y));});};
+  var v21410NpcSellerBase=v2149NpcSeller;
+  v2149NpcSeller=function(itemName){var p=v21410NpcSellerBase(itemName);if(!p||!isFinite(Number(p.x))||!isFinite(Number(p.y)))return null;var d=v21410TargetDanger({map:p.map,x:p.x,y:p.y});return d.safe?p:null;};
+
+  audit('feature_contract','2.14.10 Discovery-Sicherheitszonen + vollständiger statischer Weltkatalog + 60s Katalog-Cache geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.

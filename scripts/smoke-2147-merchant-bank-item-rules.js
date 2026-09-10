@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.9');
+assert.equal(version.version,'2.14.10');
 assert.equal(version.dashboardVersion,'2.14.5');
-assert.match(bot,/var VERSION = ['"]2\.14\.9['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.10['"]/);
 assert.ok(bot.includes("merchantItemActions: {}"),'item action default must be empty so legacy automation stays default');
 assert.ok(bot.includes("function v2147ItemPolicy"),'per-item policy helper missing');
 assert.ok(bot.includes("return V2147_ITEM_POLICIES.indexOf(p)>=0?p:'auto'"),'unknown/missing item policy must fall back to auto');
