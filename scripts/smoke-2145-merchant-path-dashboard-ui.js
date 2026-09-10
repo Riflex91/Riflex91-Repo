@@ -5,7 +5,7 @@ const bot=fs.readFileSync("bot.js","utf8");
 const dash=fs.readFileSync("cloudflare-dashboard/dashboard.html","utf8");
 const worker=fs.readFileSync("cloudflare-dashboard/src/worker.js","utf8");
 
-assert.match(bot,/var VERSION\s*=\s*['"]2\.14\.14['"]/);
+assert.match(bot,/var VERSION\s*=\s*['"]2\.14\.15['"]/);
 assert.ok(bot.includes("function v2145MovePriority"),"move priority missing");
 assert.ok(bot.includes("priority<Number(lock.priority||0)"),"lower priority moves must be deferred");
 assert.ok(bot.includes("v2145MovePriority(lock.kind)>v2145MovePriority('explore')"),"Explorer must respect active Merchant routes");

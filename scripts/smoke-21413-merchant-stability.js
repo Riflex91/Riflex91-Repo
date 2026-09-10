@@ -6,11 +6,11 @@ const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
 const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
-assert.equal(version.version,'2.14.14');
-assert.equal(version.dashboardVersion,'2.14.14');
-assert(bot.includes("var VERSION = '2.14.14';"));
-assert(dash.includes('AiO Bot Dashboard 2.14.14'));
-assert(worker.includes('AiO Bot Dashboard 2.14.14'));
+assert.equal(version.version,'2.14.15');
+assert.equal(version.dashboardVersion,'2.14.15');
+assert(bot.includes("var VERSION = '2.14.15';"));
+assert(dash.includes('AiO Bot Dashboard 2.14.15'));
+assert(worker.includes('AiO Bot Dashboard 2.14.15'));
 assert(!bot.includes('v2144AuditEconomy('),'undefined v2144AuditEconomy reference must be gone');
 
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
@@ -21,7 +21,7 @@ for(const feature of ['merchant-bank-cleanup-confirmation','brain-teaching-hints
 assert(bot.includes('function v21413LiveBankCount'));
 assert(bot.includes('beforeBank:v21413LiveBankCount(name,lv)'));
 const start=bot.indexOf('  function v21413LiveBankCount');
-const end=bot.indexOf('\n\n  v2148BankCleanupTick=function',start);
+const end=bot.indexOf('\n  function v21415BankCleanupLeaseExpired',start);
 assert(start>=0&&end>start,'bank confirmation functions not extractable');
 const source=bot.slice(start,end);
 const ctx={
@@ -59,4 +59,4 @@ assert.strictEqual(ctx.finish,'merchant_bank_cleanup_sync_wait');
 assert.strictEqual(stalled.stores,0,'stalled state must not be falsely confirmed');
 assert.strictEqual(ctx.S.times.bankCleanupRetry2148,22001);
 
-console.log('2.14.14 merchant stability smoke OK');
+console.log('2.14.15 merchant stability smoke OK');

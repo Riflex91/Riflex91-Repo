@@ -1,0 +1,17 @@
+const fs=require('fs');
+const assert=require('assert');
+const vm=require('vm');
+const bot=fs.readFileSync('bot.js','utf8');
+const version=JSON.parse(fs.readFileSync('version.json','utf8'));
+assert.equal(version.version,'2.14.15');
+const cm=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);assert(cm);
+const contract=JSON.parse(cm[1].replace(/'/g,'"'));
+for(const f of ['merchant-bank-progress-lease','merchant-bank-sync-diagnostics'])assert(contract.includes(f),f);
+const m=bot.match(/function v21415BankCleanupLeaseExpired\(st,now\)\{[\s\S]*?\n  \}/);assert(m,'lease helper missing');
+const ctx={Number};vm.createContext(ctx);vm.runInContext(m[0],ctx);
+assert.strictEqual(ctx.v21415BankCleanupLeaseExpired({startedAt:1000,lastProgressAt:29000},31000),false,'recent confirmed progress must extend cleanup lease');
+assert.strictEqual(ctx.v21415BankCleanupLeaseExpired({startedAt:1000,lastProgressAt:1000},31001),true,'30s without progress must expire cleanup lease');
+assert(bot.includes("v2148BankCleanupFinish('merchant_bank_cleanup_sync_wait'"));
+for(const k of ['beforeExact','afterExact','beforeFree','afterFree','beforeBank','afterBank','waitedMs'])assert(bot.includes(k+':')||bot.includes(k+':Number'),k+' diagnostic missing');
+assert(bot.includes('function v2148BankCleanupFinish(kind,detail,level,extra)'));
+console.log('2.14.15 bank progress lease / sync diagnostics smoke OK');

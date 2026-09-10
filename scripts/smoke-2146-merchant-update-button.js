@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.14');
-assert.equal(version.dashboardVersion,'2.14.14');
-assert.match(bot,/var VERSION = ['"]2\.14\.14['"]/);
+assert.equal(version.version,'2.14.15');
+assert.equal(version.dashboardVersion,'2.14.15');
+assert.match(bot,/var VERSION = ['"]2\.14\.15['"]/);
 assert.ok(!bot.includes('v2144NpcValue(it)'),'undefined v2144NpcValue reference must be gone');
 assert.ok(bot.includes('itemValueSafe(it)'),'sell decision must use existing safe item value helper');
 assert.ok(bot.includes("C.language==='de'?'Auf Updates prüfen & installieren':'Check & install update'"),'German manual check-and-install label missing');

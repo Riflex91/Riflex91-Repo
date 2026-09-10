@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.14 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.15 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.14';
+  var VERSION = '2.14.15';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2156,7 +2156,8 @@
     'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety',
     'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites',
     'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed',
-    'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle'
+    'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle',
+    'merchant-bank-progress-lease','merchant-bank-sync-diagnostics'
   ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
@@ -3270,9 +3271,10 @@
     if(!c||!c.item)return '';
     return [c.index,c.item.name,Number(c.item.level)||0,Number(c.item.q)||1,c.explicit?'E':'A'].join('|');
   }
-  function v2148BankCleanupFinish(kind,detail,level){
+  function v2148BankCleanupFinish(kind,detail,level,extra){
     var st=S.merchantBankCleanup2148;if(!st)return;
-    audit(kind,detail,{durationMs:clock()-Number(st.startedAt||clock()),stores:Number(st.stores)||0,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)},level||'info');
+    var data=Object.assign({durationMs:clock()-Number(st.startedAt||clock()),stores:Number(st.stores)||0,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)},extra||{});
+    audit(kind,detail,data,level||'info');
     S.merchantBankCleanup2148=null;
   }
   function v2148BankCleanupTick(){
@@ -3680,12 +3682,16 @@
     if(now-Number(a.startedAt||now)>5000){
       S.times.bankCleanupRetry2148=now+15000;
       st.awaiting=null;
-      v2148BankCleanupFinish('merchant_bank_cleanup_sync_wait','Bankantwort erhalten, aber Inventar-/Bankzustand wurde nicht rechtzeitig bestätigt; kein erneutes Senden desselben Slots','warning');
+      v2148BankCleanupFinish('merchant_bank_cleanup_sync_wait','Bankantwort erhalten, aber Inventar-/Bankzustand wurde nicht rechtzeitig bestätigt; kein erneutes Senden desselben Slots','warning',{item:a.name,level:Number(a.level)||0,waitedMs:now-Number(a.startedAt||now),beforeExact:Number(a.beforeExact)||0,afterExact:local,beforeFree:Number(a.beforeFree)||0,afterFree:free,beforeBank:Number(a.beforeBank)||0,afterBank:bank});
       return false;
     }
     return true;
   }
 
+  function v21415BankCleanupLeaseExpired(st,now){
+    var anchor=Number(st&&st.lastProgressAt)||Number(st&&st.startedAt)||Number(now)||0;
+    return Number(now)-anchor>30000;
+  }
   v2148BankCleanupTick=function(){
     var now=clock(),st=S.merchantBankCleanup2148,cand;
     if(!st){
@@ -3695,7 +3701,7 @@
       audit('merchant_bank_cleanup_start','Bestätigte Bankbereinigung gestartet',{item:cand.item.name,explicit:!!cand.explicit,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)});
     }
     if(st.awaiting){v21412BankCleanupAwaiting(st,now);return !!S.merchantBankCleanup2148;}
-    if(now-Number(st.startedAt||now)>30000||Number(st.stores||0)>=10){
+    if(v21415BankCleanupLeaseExpired(st,now)||Number(st.stores||0)>=10){
       S.times.bankCleanupRetry2148=now+15000;
       v2148BankCleanupFinish('merchant_bank_cleanup_timeout','Bankbereinigung nach bestätigten Fortschritten kontrolliert freigegeben; späterer Neuversuch','warning');
       return false;
@@ -3939,6 +3945,7 @@
   };
 
   audit('feature_contract','2.14.14 Merchant-Performancebudget + Laufzeittelemetrie + Dashboard-Terrain-Pipeline geprüft',{features:FEATURE_CONTRACT,cloudConfigured:v21414CloudConfigured()});
+  audit('feature_contract','2.14.15 Bank-Fortschrittslease + Sync-Wait-Diagnostik geprüft',{features:FEATURE_CONTRACT});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.

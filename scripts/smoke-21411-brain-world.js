@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const s=fs.readFileSync('bot.js','utf8'),d=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
-assert(s.includes("var VERSION = '2.14.14';"));
+assert(s.includes("var VERSION = '2.14.15';"));
 for(const f of ['merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety','brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites']) assert(s.includes("'"+f+"'"),f);
 assert(/var FEATURE_CONTRACT[\s\S]*merchant-bank-warehouse[\s\S]*merchant-discovery-safety/.test(s),'protected markers must be in updater-visible base contract');
 for(const k of ['brainWorldModelEnabled','brainDiscoveryModuleEnabled','brainExperimentModuleEnabled','brainPlannerModuleEnabled','brainTeachingKeywords'])assert(s.includes(k),k);
