@@ -14,7 +14,9 @@ jobs:
           ref: feature/2.14.11-brain-world-model
           fetch-depth: 0
       - name: Apply 2.14.11 patch
-        run: python3 patch21411.py
+        run: |
+          python3 patch21411.py
+          python3 patch21411_fix.py
       - name: Syntax check bot
         run: node --check bot.js
       - name: Syntax check worker
@@ -35,7 +37,6 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add bot.js version.json cloudflare-dashboard scripts
-          git rm -f patch21411.py .github/workflows/release-21411.yml
+          git rm -f patch21411.py patch21411_fix.py .github/workflows/release-21411.yml
           git commit -m "Release 2.14.11: Layered Bot Brain and game sprites [release-21411]"
           git push origin HEAD:feature/2.14.11-brain-world-model
-# validation trigger
