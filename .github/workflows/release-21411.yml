@@ -38,3 +38,4 @@ jobs:
           git rm -f patch21411.py .github/workflows/release-21411.yml
           git commit -m "Release 2.14.11: Layered Bot Brain and game sprites [release-21411]"
           git push origin HEAD:feature/2.14.11-brain-world-model
+# validation trigger
