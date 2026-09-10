@@ -40,11 +40,10 @@ jobs:
               t=t.replace("assert.equal(version.dashboardVersion,'2.14.17');","assert.equal(version.dashboardVersion,version.version);")
               lines=[]
               for line in t.splitlines(True):
-                  if 'assert' in line and '2.14.17' in line:
-                      if 'var VERSION' in line or 'AiO Bot Dashboard' in line:
-                          line=line.replace('2.14.17','2.14.18')
                   if 'assert.match(bot,/var VERSION' in line:
-                      line=line.replace(r'2\.14\.18',r'2\.14\.\d+')
+                      line=line.replace(r'2\.14\.17',r'2\.14\.\d+').replace(r'2\.14\.18',r'2\.14\.\d+')
+                  elif 'assert' in line and '2.14.17' in line and ('var VERSION' in line or 'AiO Bot Dashboard' in line):
+                      line=line.replace('2.14.17','2.14.18')
                   lines.append(line)
               p.write_text(''.join(lines))
           PY
