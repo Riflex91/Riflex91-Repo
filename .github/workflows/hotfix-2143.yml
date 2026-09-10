@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/hotfix-2143.yml"
+      - "scripts/apply-2.14.3-scroll-bank-fix.py"
 
 permissions:
   contents: write
