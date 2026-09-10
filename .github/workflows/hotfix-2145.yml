@@ -31,6 +31,19 @@ jobs:
           s=s.replace('2\\.14\\.4','2\\.14\\.5').replace('2.14.4','2.14.5')
           p.write_text(s,encoding='utf-8')
           PY
+      - name: Correct generated party-vitals assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/verify-release.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('bot.includes("partybar hp") && bot.includes("partybar mp") && bot.includes("v2145VitalFlow")', 'bot.includes("vital(\'HP\',r.hp,r.max_hp,\'hp\')") && bot.includes("vital(\'MP\',r.mp,r.max_mp,\'mp\')") && bot.includes("v2145VitalFlow")')
+          p.write_text(s,encoding='utf-8')
+          p=Path('scripts/smoke-2145-merchant-path-dashboard-ui.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('bot.includes("v2145VitalFlow")&&bot.includes("partybar hp")&&bot.includes("partybar mp")', 'bot.includes("v2145VitalFlow")&&bot.includes("vital(\'HP\',r.hp,r.max_hp,\'hp\')")&&bot.includes("vital(\'MP\',r.mp,r.max_mp,\'mp\')")')
+          p.write_text(s,encoding='utf-8')
+          PY
       - name: JavaScript syntax
         run: node --check bot.js
       - name: Release contract
