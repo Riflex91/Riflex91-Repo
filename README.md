@@ -1,4 +1,4 @@
-# Adventure Land – AiO Bot 2.14.5
+# Adventure Land – AiO Bot 2.14.6
 
 Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
@@ -153,3 +153,8 @@ Eine laufende Bot-Kopie kann eine neuere `main/bot.js` laden und den Adventure-L
 ## Sicherheit
 
 Das selbstlernende Netz darf ausschließlich strategische Whitelist-Aktionen empfehlen. Der Bot behält lokale Schutzmechanismen, die Inventar-/Gruppenreserve und die bestehenden Release-Regressionstests. Das Inventarfenster ruft weiterhin niemals `preview_item()` auf. Vor einem produktiven 24/7-Einsatz sollte eine längere Live-Soak-Phase durchgeführt und die Gehirn-Telemetrie beobachtet werden.
+
+### 2.14.6 Merchant-/Update-Button-Hotfix
+- Behebt den Merchant-Absturz `v2144NpcValue is not defined`; die 2.14.5-Verkaufslogik nutzt jetzt den vorhandenen sicheren `itemValueSafe()`-Helfer.
+- Der manuelle Update-Button zeigt auf Deutsch **„Auf Updates prüfen“**, während der Prüfung **„Prüfe auf Updates …“**, und zeigt den letzten Prüfstatus direkt in den Einstellungen.
+- Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.

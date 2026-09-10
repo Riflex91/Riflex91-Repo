@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.5", "prepared release must be 2.14.5");
-  ok(version.dashboardVersion === "2.14.5", "dashboard version must be 2.14.5 for dashboard release");
+  ok(version.version === "2.14.6", "prepared release must be 2.14.6");
+  ok(version.dashboardVersion === "2.14.5", "dashboard version must be 2.14.6 for dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -186,18 +186,26 @@ ok(bot.includes("r.realm={region:realm.region,id:realm.id,pvp:!!realm.pvp}"), "2
 ok(bot.includes("party_realm_mismatch") && bot.includes("party_realm_switch"), "2.14.4 party realm repair missing");
 ok(bot.includes(".mainbox.collapsed .body{display:none!important}") && bot.includes("min-height:0!important"), "2.14.4 collapsed GUI must show title only");
 
-ok(bot.includes("function v2145MovePriority"), "2.14.5 Merchant move arbitration missing");
-ok(bot.includes("move_deferred") && bot.includes("requestedPriority"), "2.14.5 route deferral diagnostics missing");
-ok(bot.includes("function v2145VendorReady") && bot.includes("dist(character,dest)<=75"), "2.14.5 settled vendor guard missing");
-ok(bot.includes("maxed-upgrade-surplus") && bot.includes("safe-trash-surplus"), "2.14.5 safe surplus selling missing");
-ok(bot.includes("function v2145EconomyMaintenanceTick"), "2.14.5 economy maintenance priority missing");
-ok(bot.includes(".mainbox .maincontent{overflow-y:auto"), "2.14.5 main GUI scrolling missing");
-ok(bot.includes("vital('HP',r.hp,r.max_hp,'hp')") && bot.includes("vital('MP',r.mp,r.max_mp,'mp')") && bot.includes("v2145VitalFlow"), "2.14.5 animated party HP/MP bars missing");
-ok(dash.includes('data-section="characters"') && dash.includes('data-section="group"'), "2.14.5 dashboard collapsible sections missing");
+ok(bot.includes("function v2145MovePriority"), "2.14.6 Merchant move arbitration missing");
+ok(bot.includes("move_deferred") && bot.includes("requestedPriority"), "2.14.6 route deferral diagnostics missing");
+ok(bot.includes("function v2145VendorReady") && bot.includes("dist(character,dest)<=75"), "2.14.6 settled vendor guard missing");
+ok(bot.includes("maxed-upgrade-surplus") && bot.includes("safe-trash-surplus"), "2.14.6 safe surplus selling missing");
+ok(bot.includes("function v2145EconomyMaintenanceTick"), "2.14.6 economy maintenance priority missing");
+ok(bot.includes(".mainbox .maincontent{overflow-y:auto"), "2.14.6 main GUI scrolling missing");
+ok(bot.includes("vital('HP',r.hp,r.max_hp,'hp')") && bot.includes("vital('MP',r.mp,r.max_mp,'mp')") && bot.includes("v2145VitalFlow"), "2.14.6 animated party HP/MP bars missing");
+ok(dash.includes('data-section="characters"') && dash.includes('data-section="group"'), "2.14.6 dashboard collapsible sections missing");
 ok(dash.indexOf('data-section="characters"') < dash.indexOf('data-section="brain"'), "characters must be first dashboard category");
 ok(dash.indexOf('data-section="group"') > dash.indexOf('data-section="research"'), "group information must be last dashboard category");
 ok(dash.includes("function miniMapMarkup") && dash.includes("mini-live-map"), "character mini live maps missing");
 ok(!dash.includes('<span>Gebiet</span>'), "character Gebiet text must be removed");
 ok(worker.includes("const DASHBOARD_HTML = ") && worker.includes("miniMapMarkup"), "worker embedded dashboard is not synchronized");
+
+
+ok(!bot.includes("v2144NpcValue(it)"), "2.14.6 undefined Merchant NPC value helper reference remains");
+ok(bot.includes("itemValueSafe(it)"), "2.14.6 Merchant sell decision must use itemValueSafe");
+ok(bot.includes("function v2146UpdateLabel"), "2.14.6 localized update label helper missing");
+ok(bot.includes("Auf Updates prüfen") && bot.includes("Prüfe auf Updates"), "2.14.6 German manual update labels missing");
+ok(bot.includes("update_manual_check") && bot.includes("updateCheckTick(true)"), "2.14.6 manual update click wiring missing");
+ok(bot.includes("update-manual-status"), "2.14.6 visible manual update status missing");
 
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);

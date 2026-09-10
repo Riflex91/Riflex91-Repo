@@ -1,4 +1,4 @@
-# Adventure Land – AiO Bot 2.14.5 · technische Notizen
+# Adventure Land – AiO Bot 2.14.6 · technische Notizen
 
 
 ## 2.14.5 Merchant-Reliability / Dashboard / GUI
@@ -188,3 +188,8 @@ Gespeicherte Altwerte sollen den kanonischen Update-Pfad nicht zurück auf ein a
 ## Testgrenze
 
 Syntax- und Mock-Tests können die Release- und API-Logik prüfen. Sie ersetzen keinen Adventure-Land-Live-Test. Vor einer 24/7-Freigabe sollte das Brain mehrere Stunden zunächst überwacht bzw. im Shadow-Modus laufen und die Reward-/Loss-Telemetrie kontrolliert werden.
+
+### 2.14.6 Merchant-/Update-Button-Hotfix
+- Behebt den Merchant-Absturz `v2144NpcValue is not defined`; die 2.14.5-Verkaufslogik nutzt jetzt den vorhandenen sicheren `itemValueSafe()`-Helfer.
+- Der manuelle Update-Button zeigt auf Deutsch **„Auf Updates prüfen“**, während der Prüfung **„Prüfe auf Updates …“**, und zeigt den letzten Prüfstatus direkt in den Einstellungen.
+- Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.

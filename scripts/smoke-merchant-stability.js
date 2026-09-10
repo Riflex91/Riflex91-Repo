@@ -2,7 +2,7 @@
 "use strict";
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
-assert.match(bot,/var VERSION = ['"]2\.14\.5['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.6['"]/);
 assert.ok(bot.includes('gold>=trigger'));
 assert.ok(bot.includes('serviceTrigger:trigger'));
 assert.ok(bot.includes("'loot-gold',5000"));
@@ -18,7 +18,7 @@ assert.ok(bot.includes("/^c?scroll[0-4]$/.test(String(it.name||''))"),'operation
 assert.ok(bot.includes('dist(character,dest)>180'),'scroll buys must wait for conservative vendor range');
 assert.ok(bot.includes('function v2144SellDecision'),'economic sell policy missing');
 const sellOverridePos=bot.lastIndexOf("v273SellTrashTick=function(){");
-assert.ok(sellOverridePos>=0,'2.14.5 NPC sell override missing');
+assert.ok(sellOverridePos>=0,'2.14.6 NPC sell override missing');
 const sellOverride=bot.slice(sellOverridePos,bot.indexOf("\n  };",sellOverridePos)+5);
 assert.ok(!sellOverride.includes('!S.bankFull'),'latest NPC sell override must not require a full bank');
 assert.ok(bot.includes("upgrade-bank-exit")&&bot.includes("compound-bank-exit"),'bank guards for upgrade/compound missing');

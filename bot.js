@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.5 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.6 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.5';
+  var VERSION = '2.14.6';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2931,7 +2931,7 @@
     if(!it||!it.name||base.protected)return base;
     if(base.sell)return base;
     var level=Number(it.level)||0,owned=v273OwnedCount(it.name),keep=Number(base.keep||v273DesiredGroupCopies(it.name)||1),surplus=Math.max(0,owned-keep);
-    var db=v273BuildKnowledgeDB(false),recipeUses=v2144RecipeUseCount(it.name,db),drop=v2144DropEconomics(it.name),value=v2144NpcValue(it);
+    var db=v273BuildKnowledgeDB(false),recipeUses=v2144RecipeUseCount(it.name,db),drop=v2144DropEconomics(it.name),value=itemValueSafe(it);
     var maxedUpgrade=!!d.upgrade&&!d.compound&&level>=Number(C.merchantUpgradeMax||4);
     var safeRarity=!drop.rare&&(drop.bestChance==null||drop.bestChance>=0.005||drop.learnedRate>=0.003||owned>=keep+3);
     if(maxedUpgrade&&surplus>0&&recipeUses===0&&value>0&&safeRarity){
@@ -3014,6 +3014,51 @@
 
   CSS+=' .mainbox .maincontent{overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 118px);overscroll-behavior:contain;padding-bottom:8px}.mainbox .launcher{padding-bottom:8px}.party-live-card{overflow:hidden}.party-vital{margin-top:8px}.party-vital .line{font-size:9px;margin-bottom:4px}.partybar{height:9px;border-radius:999px;background:var(--surface);overflow:hidden;position:relative}.partybar i{height:100%;display:block;position:relative;transition:width .45s ease;border-radius:inherit}.partybar.hp i{background:#e5484d}.partybar.mp i{background:#3b82f6}.partybar i:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);transform:translateX(-100%);animation:v2145VitalFlow 1.6s linear infinite}@keyframes v2145VitalFlow{to{transform:translateX(100%)}}@media(prefers-reduced-motion:reduce){.partybar i,.partybar i:after{animation:none!important;transition:none!important}} ';
   audit('feature_contract','2.14.5 Merchant-Routenpriorität + Vendor-Settling + Verkaufsfairness + Dashboard/GUI geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
+
+  // ---------------------------------------------------------------------------
+  // 2.14.6 Merchant crash + manual update UX hotfix.
+  // ---------------------------------------------------------------------------
+  function v2146UpdateLabel(){
+    if(S.update.applying)return C.language==='de'?'Update wird installiert …':'Installing update …';
+    if(S.update.checking)return C.language==='de'?'Prüfe auf Updates …':'Checking for updates …';
+    return C.language==='de'?'Auf Updates prüfen':'Check for update';
+  }
+  function v2146UpdateStatusHTML(){
+    var checked=Number(S.update.checkedAt)||0,label=C.language==='de'?'Update-Status':'Update status';
+    var value=S.update.applying?(C.language==='de'?'Update wird installiert …':'Installing update …'):
+      S.update.checking?(C.language==='de'?'Prüfung läuft …':'Check in progress …'):
+      S.update.error?(C.language==='de'?'Fehler: ':'Error: ')+esc(S.update.error):
+      checked?(C.language==='de'?'Letzte Prüfung: ':'Last check: ')+new Date(checked).toLocaleTimeString():(C.language==='de'?'Noch nicht geprüft':'Not checked yet');
+    var cls=S.update.error?'bad':(S.update.checking||S.update.applying?'warn':'good');
+    return '<div class="card update-manual-status"><div class="line"><span>'+esc(label)+'</span><strong class="'+cls+'">'+value+'</strong></div></div>';
+  }
+  var v2146SettingsHTMLBase=settingsHTML;
+  settingsHTML=function(){
+    var html=v2146SettingsHTMLBase();
+    var re=/(<button class="btn primary" data-action="update-check"[^>]*>)[\s\S]*?(<\/button>)/;
+    html=html.replace(re,function(_m,a,b){return a+esc(v2146UpdateLabel())+b;});
+    if(html.indexOf('update-manual-status')<0){
+      var p=html.indexOf('<div class="card"><div class="line"><span>'+esc(T('current_version'))+'</span>');
+      if(p>=0)html=html.slice(0,p)+v2146UpdateStatusHTML()+html.slice(p);
+      else html+=v2146UpdateStatusHTML();
+    }
+    if(S.update.checking||S.update.applying)html=html.replace('data-action="update-check"','data-action="update-check" disabled');
+    return html;
+  };
+  var v2146UiClickBase=uiClick;
+  uiClick=function(e){
+    var t=e&&e.target&&e.target.closest?e.target.closest('button'):null;
+    if(t&&t.dataset&&t.dataset.action==='update-check'){
+      if(S.update.checking||S.update.applying){if(S.toolWindows.settings)renderTool('settings');return;}
+      S.update.checkedAt=0;S.update.error='';
+      audit('update_manual_check',C.language==='de'?'Manuelle Update-Prüfung gestartet':'Manual update check started',{version:VERSION,repo:defaults.updateRepositoryUrl});
+      var started=updateCheckTick(true);
+      if(!started)audit('update_manual_check_blocked',C.language==='de'?'Manuelle Update-Prüfung konnte nicht gestartet werden':'Manual update check could not start',{checking:S.update.checking,applying:S.update.applying},'warning');
+      if(S.toolWindows.settings)renderTool('settings');
+      return;
+    }
+    return v2146UiClickBase(e);
+  };
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
   var receive27=on_cm;
