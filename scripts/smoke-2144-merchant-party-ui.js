@@ -2,7 +2,7 @@
 "use strict";
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
-assert.match(bot,/var VERSION = ['"]2\.14\.16['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.17['"]/);
 assert.ok(bot.includes('netNpcDelta'),'upgrade/compound economics must compare projected NPC value with input + scroll cost');
 assert.ok(bot.includes('empiricalDropRate'),'Merchant economy must consider learned drop frequency');
 assert.ok(bot.includes('recipeUses'),'Merchant economy must reserve crafting inputs');
