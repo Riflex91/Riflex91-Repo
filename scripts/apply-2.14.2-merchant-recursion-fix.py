@@ -105,10 +105,10 @@ m = mp.read_text(encoding='utf-8')
 m = m.replace("assert.match(bot,/var VERSION = ['\"]2\\.14\\.1['\"]/);", "assert.match(bot,/var VERSION = ['\"]2\\.14\\.2['\"]/);", 1)
 if 'recursive inventory-pressure call must be removed' not in m:
     insert = '''assert.ok(bot.includes('S.inventoryPressureBusy'),'inventory-pressure re-entry guard missing');\nassert.ok(!bot.includes("S.mode='Merchant · Inventar';v290InventoryPressureTick();return -1;"),'recursive inventory-pressure call must be removed');\nassert.ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"),'inventory pressure must run before compound');\n'''
-    marker = "assert.ok(bot.includes(\"/^partyRequest:/.test(String(key))\")&&bot.includes('clock()+15000'),'invalid party requests must back off');\n"
+    marker = 'function goldTransfer'
     if marker not in m:
-        raise RuntimeError('merchant smoke insertion marker not found')
-    m = m.replace(marker, marker + insert, 1)
+        raise RuntimeError('merchant smoke goldTransfer marker not found')
+    m = m.replace(marker, insert + marker, 1)
 mp.write_text(m, encoding='utf-8')
 
 print('2.14.2 merchant recursion fix prepared')
