@@ -6,9 +6,9 @@ const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
 const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
-assert.equal(version.version,'2.14.15');
-assert.equal(version.dashboardVersion,'2.14.15');
-assert(bot.includes("var VERSION = '2.14.15';"));
+assert.equal(version.version,'2.14.16');
+assert.equal(version.dashboardVersion,'2.14.16');
+assert(bot.includes("var VERSION = '2.14.16';"));
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
 assert(contractMatch);
 const contract=JSON.parse(contractMatch[1].replace(/'/g,'"'));
@@ -33,7 +33,7 @@ const ctx={text:(v,max)=>String(v==null?'':v).slice(0,max||500),number:(v,d=0)=>
 vm.createContext(ctx);
 vm.runInContext(worker.slice(helperStart,helperEnd),ctx);
 const cleaned=ctx.cleanStatus({
-  type:'aio-bot-status',version:6,botVersion:'2.14.15',name:'Ranger1',ctype:'ranger',role:'dps',
+  type:'aio-bot-status',version:6,botVersion:'2.14.16',name:'Ranger1',ctype:'ranger',role:'dps',
   map:'main',x:10,y:20,updatedAt:123,
   terrain:{map:'main',d:0,t:[['forest',0,0,32,32]],p:[[0,0,0,64,64]],g:[],a:[],s:{forest:'/images/tiles/map/forest.png'},source:'Adventure Land G.geometry/G.tilesets',bytes:1234},
   learningFeed:[{icon:'x',title:'seen',text:'fact',detail:'data',confidence:'high',confidencePct:90,at:1}],
@@ -47,10 +47,10 @@ assert.equal(cleaned.learningFeed.length,1,'learning feed stripped');
 assert(cleaned.sprite&&cleaned.sprite.file.includes('ranger.png'),'sprite stripped');
 assert(cleaned.brainExplanation&&cleaned.brainExplanation.current==='work','brain explanation stripped');
 
-assert(dash.includes('AiO Bot Dashboard 2.14.15'));
+assert(dash.includes('AiO Bot Dashboard 2.14.16'));
 assert(dash.includes('function terrainMeta'));
 assert(dash.includes('function terrainVectorMarkup'));
 assert(dash.includes('function terrainGridMarkup'));
 assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));
-assert(worker.includes('AiO Bot Dashboard 2.14.15'));
-console.log('2.14.15 Merchant performance / dashboard terrain smoke OK');
+assert(worker.includes('AiO Bot Dashboard 2.14.16'));
+console.log('2.14.16 Merchant performance / dashboard terrain smoke OK');

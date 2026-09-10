@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.15", "prepared release must be 2.14.15");
-  ok(version.dashboardVersion === "2.14.15", "dashboard version must be 2.14.15 for layered brain/dashboard release");
+  ok(version.version === "2.14.16", "prepared release must be 2.14.16");
+  ok(version.dashboardVersion === "2.14.16", "dashboard version must be 2.14.16 for layered brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -71,7 +71,8 @@ const requiredFeatures = [
   "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard",
   "merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed",
   "merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle",
-  "merchant-bank-progress-lease","merchant-bank-sync-diagnostics"
+  "merchant-bank-progress-lease","merchant-bank-sync-diagnostics",
+  "config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap"
 ];
 for (const feature of requiredFeatures) ok(contract.includes(feature), `protected feature missing: ${feature}`);
 ok(contract.length >= 42, `expected at least 42 protected features, got ${contract.length}`);
@@ -234,20 +235,20 @@ ok(bot.includes("function v2148ManualUpdateInstall"), "2.14.8 dedicated manual u
 ok(bot.includes("return selfUpdate(false)"), "2.14.8 manual updater must explicitly install as manual");
 ok(bot.includes("Auf Updates prüfen & installieren"), "2.14.8 manual update button label missing");
 
-for (const feature of ["merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed"]) ok(contract.includes(feature), `2.14.15 static protected feature missing: ${feature}`);
-ok(!bot.includes("v2144AuditEconomy("), "2.14.15 undefined Merchant economy audit helper reference remains");
-ok(bot.includes("function v21413LiveBankCount"), "2.14.15 live bank confirmation helper missing");
-ok(bot.includes("beforeBank:v21413LiveBankCount(name,lv)"), "2.14.15 bank cleanup baseline must use live bank state");
-ok(bot.includes("confirmation:confirmation"), "2.14.15 bank cleanup confirmation source diagnostic missing");
+for (const feature of ["merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed"]) ok(contract.includes(feature), `2.14.16 static protected feature missing: ${feature}`);
+ok(!bot.includes("v2144AuditEconomy("), "2.14.16 undefined Merchant economy audit helper reference remains");
+ok(bot.includes("function v21413LiveBankCount"), "2.14.16 live bank confirmation helper missing");
+ok(bot.includes("beforeBank:v21413LiveBankCount(name,lv)"), "2.14.16 bank cleanup baseline must use live bank state");
+ok(bot.includes("confirmation:confirmation"), "2.14.16 bank cleanup confirmation source diagnostic missing");
 
-for (const feature of ["merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle"]) ok(contract.includes(feature), `2.14.15 protected feature missing: ${feature}`);
-ok(bot.includes("function v21414CloudConfigured"), "2.14.15 cloud configuration guard missing");
-ok(bot.includes("now-Number(c.at||0)<1400"), "2.14.15 sell candidate cache missing");
-ok(bot.includes("now-Number(c.at||0)<850"), "2.14.15 service candidate cache missing");
-ok(bot.includes("now-Number(S.recipeAnalysis.at||0)<8000"), "2.14.15 recipe analysis budget missing");
-ok(bot.includes("lootCadence=character.ctype==='merchant'"), "2.14.15 Merchant loot cadence missing");
-ok(bot.includes("merchant_performance_sample"), "2.14.15 Merchant performance telemetry missing");
-ok(bot.includes("v21414CompactMoveTarget"), "2.14.15 move audit compaction missing");
+for (const feature of ["merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle"]) ok(contract.includes(feature), `2.14.16 protected feature missing: ${feature}`);
+ok(bot.includes("function v21414CloudConfigured"), "2.14.16 cloud configuration guard missing");
+ok(bot.includes("now-Number(c.at||0)<1400"), "2.14.16 sell candidate cache missing");
+ok(bot.includes("now-Number(c.at||0)<850"), "2.14.16 service candidate cache missing");
+ok(bot.includes("now-Number(S.recipeAnalysis.at||0)<8000"), "2.14.16 recipe analysis budget missing");
+ok(bot.includes("lootCadence=character.ctype==='merchant'"), "2.14.16 Merchant loot cadence missing");
+ok(bot.includes("merchant_performance_sample"), "2.14.16 Merchant performance telemetry missing");
+ok(bot.includes("v21414CompactMoveTarget"), "2.14.16 move audit compaction missing");
 ok(worker.includes("terrain:cleanTerrain(input.terrain)"), "Worker strips terrain telemetry");
 ok(worker.includes("learningFeed:cleanLearningFeed(input.learningFeed)"), "Worker strips learning feed");
 ok(worker.includes("sprite:cleanSprite(input.sprite)"), "Worker strips sprite metadata");
@@ -255,10 +256,19 @@ ok(worker.includes("brainExplanation:cleanBrainExplanation(input.brainExplanatio
 ok(dash.includes("function terrainVectorMarkup"), "dashboard vector terrain fallback missing");
 ok(dash.includes("function terrainMeta"), "dashboard terrain metadata selection missing");
 
-for (const feature of ["merchant-bank-progress-lease","merchant-bank-sync-diagnostics"]) ok(contract.includes(feature), `2.14.15 protected feature missing: ${feature}`);
-ok(bot.includes("function v21415BankCleanupLeaseExpired"), "2.14.15 bank progress lease helper missing");
-ok(bot.includes("v21415BankCleanupLeaseExpired(st,now)"), "2.14.15 bank timeout is not progress-relative");
-ok(bot.includes("beforeExact:Number(a.beforeExact)||0") && bot.includes("afterBank:bank"), "2.14.15 sync-wait before/after diagnostics missing");
-ok(bot.includes("function v2148BankCleanupFinish(kind,detail,level,extra)"), "2.14.15 cleanup finish extra diagnostics channel missing");
+for (const feature of ["merchant-bank-progress-lease","merchant-bank-sync-diagnostics"]) ok(contract.includes(feature), `2.14.16 protected feature missing: ${feature}`);
+ok(bot.includes("function v21415BankCleanupLeaseExpired"), "2.14.16 bank progress lease helper missing");
+ok(bot.includes("v21415BankCleanupLeaseExpired(st,now)"), "2.14.16 bank timeout is not progress-relative");
+ok(bot.includes("beforeExact:Number(a.beforeExact)||0") && bot.includes("afterBank:bank"), "2.14.16 sync-wait before/after diagnostics missing");
+ok(bot.includes("function v2148BankCleanupFinish(kind,detail,level,extra)"), "2.14.16 cleanup finish extra diagnostics channel missing");
 
-if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant performance + terrain + bank lease`);
+for (const feature of ["config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap"]) ok(contract.includes(feature), `2.14.16 protected feature missing: ${feature}`);
+ok(bot.includes("V21416_STABLE_CONFIG_KEY") && bot.includes("v21416FindUpdateBackup"), "2.14.16 stable config recovery missing");
+ok(bot.includes("if(k==='config')writeRaw(V21416_STABLE_CONFIG_KEY"), "2.14.16 config writes do not refresh stable mirror");
+ok(bot.includes("v21416ConfigRecoverySource='update-backup'"), "2.14.16 prior namespace update backup recovery missing");
+ok(bot.includes("character.q&&character.q.compound") && bot.includes("Combine läuft · warte auf Abschluss"), "2.14.16 compound flight guard missing");
+ok(bot.includes("function v21416BankPackCost") && bot.includes("merchant_bank_unlock_deferred"), "2.14.16 bank unlock affordability guard missing");
+ok(bot.includes("character.ctype==='merchant'?1200:3000"), "2.14.16 Merchant audit memory cap missing");
+ok(bot.includes("auditRecentCap:1200"), "2.14.16 Merchant performance memory-cap telemetry missing");
+
+if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant config + performance + bank/compound guards`);
