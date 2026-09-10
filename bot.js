@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.2 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.3 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.2';
+  var VERSION = '2.14.3';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -1489,7 +1489,7 @@
   }
   function v273StoreTrashBankTick(){
     if(character.ctype!=='merchant'||!C.merchantManageBank||freeSlots()>C.merchantInventoryReserve)return false;if(!character.bank){S.status='Inventar organisieren · zur Bank';S.mode='Merchant · Bank';return moveToGoal({map:'bank',x:0,y:0},'Bank organisieren',{kind:'bank',forceAfter:7000});}
-    var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;return v273OpenBankPackTick();}var idx=(character.items||[]).findIndex(function(it){if(!it||it.l||it.p||isElixir(it)||it.name===C.hpot||it.name===C.mpot)return false;var d=GD.items&&GD.items[it.name]||{};var required=S.merchantPlan&&S.merchantPlan.farmOrder&&S.merchantPlan.farmOrder.item===it.name;if(required)return false;return v273GroupUtility(it)<0||(!d.upgrade&&!d.compound&&!d.e&&!d.exchange&&!d.exchanges);});if(idx>=0&&typeof bank_store==='function')return action('Item in Bank lagern '+character.items[idx].name,function(){return bank_store(idx);},'bank-store',1300);return false;
+    var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;return v273OpenBankPackTick();}var idx=(character.items||[]).findIndex(function(it){if(!it||it.l||it.p||isElixir(it)||it.name===C.hpot||it.name===C.mpot||/^c?scroll[0-4]$/.test(String(it.name||'')))return false;var d=GD.items&&GD.items[it.name]||{};var required=S.merchantPlan&&S.merchantPlan.farmOrder&&S.merchantPlan.farmOrder.item===it.name;if(required)return false;return v273GroupUtility(it)<0||(!d.upgrade&&!d.compound&&!d.e&&!d.exchange&&!d.exchanges);});if(idx>=0&&typeof bank_store==='function')return action('Item in Bank lagern '+character.items[idx].name,function(){return bank_store(idx);},'bank-store',1300);return false;
   }
   function v273SellTrashTick(){
     if(character.ctype!=='merchant'||!C.merchantSellTrashToNpc||!S.bankFull||typeof sell!=='function')return false;var idx=-1,best=Infinity;(character.items||[]).forEach(function(it,i){if(!it||it.l||it.p||protectedStandItem(it)||isElixir(it)||it.name===C.hpot||it.name===C.mpot)return;var id=GD.items&&GD.items[it.name]||{},surplusNonCompound=(Number(it.level)||0)>=4&&!id.compound&&v273OwnedCount(it.name)>v273DesiredGroupCopies(it.name);if(v273GroupUtility(it)>=0&&!surplusNonCompound)return;var v=itemValueSafe(it);if(v<best){best=v;idx=i;}});if(idx<0)return false;S.status='Bank voll · minderwertiges Item verkaufen';S.mode='Merchant · NPC';return action('Minderwertiges Item verkaufen '+character.items[idx].name,function(){return sell(idx,character.items[idx].q||1);},'merchant-trash-sell',1800);
@@ -2437,7 +2437,7 @@
     }finally{S.inventoryPressureBusy=false;}
   }
   var v290EnsureScrollBase=v273EnsureScroll;
-  v273EnsureScroll=function(prefix,item){var name=v273ScrollName(prefix,item),idx=slot(name);if(idx>=0)return idx;if(freeSlots()<1){S.times['buy-scroll:'+name]=clock()+15000;S.status='Kein Platz für Scroll · Inventar zuerst bereinigen';S.mode='Merchant · Inventar';return -1;}if(!(typeof buy==='function'&&GD.items&&GD.items[name]))return -1;var price=Number(GD.items[name].g||0);if(character.gold-price<=C.merchantBankGoldReserve)return -1;var dest=v282VendorForScroll(name);if(dest&&(character.map!==dest.map||dist(character,dest)>260)){S.status='Zum Scroll-Händler für '+name;S.mode='Merchant · Einkauf';moveToGoal(dest,'Scroll-Händler '+name,{kind:'merchant-scroll-vendor',forceAfter:9000});return -1;}action('Scroll kaufen '+name,function(){return buy(name,1);},'buy-scroll:'+name,1800);return -1;
+  v273EnsureScroll=function(prefix,item){var name=v273ScrollName(prefix,item),idx=slot(name);if(idx>=0)return idx;if(freeSlots()<1){S.times['buy-scroll:'+name]=clock()+15000;S.status='Kein Platz für Scroll · Inventar zuerst bereinigen';S.mode='Merchant · Inventar';return -1;}if(!(typeof buy==='function'&&GD.items&&GD.items[name]))return -1;var price=Number(GD.items[name].g||0);if(character.gold-price<=C.merchantBankGoldReserve)return -1;var dest=v282VendorForScroll(name);if(dest&&(character.map!==dest.map||dist(character,dest)>180)){S.status='Zum Scroll-Händler für '+name;S.mode='Merchant · Einkauf';moveToGoal(dest,'Scroll-Händler '+name,{kind:'merchant-scroll-vendor',forceAfter:9000});return -1;}action('Scroll kaufen '+name,function(){return buy(name,1);},'buy-scroll:'+name,1800);return -1;
   };
 
   function v290ExplorerPoints(){var out=[];try{Object.keys(GD.maps||{}).forEach(function(map){var m=GD.maps[map]||{};(m.monsters||[]).forEach(function(sp){var b=sp&&sp.boundary;if(Array.isArray(b)&&b.length>=4)out.push({map:map,x:(Number(b[0])+Number(b[2]))/2,y:(Number(b[1])+Number(b[3]))/2,kind:'spawn',id:sp.type||''});});});}catch(e){}SPAWNS.forEach(function(sp){out.push({map:sp.map,x:sp.x,y:sp.y,kind:'spawn',id:sp.monster});});var seen={};return out.filter(function(x){var k=x.map+'|'+Math.round(x.x/100)+'|'+Math.round(x.y/100);if(seen[k])return false;seen[k]=1;return isFinite(x.x)&&isFinite(x.y);}).slice(0,220);}
@@ -2725,7 +2725,7 @@
 
   var v210DashboardBase=dashboardPayload;
   dashboardPayload=function(){var d=v210DashboardBase();d.version=10;d.brain=v210BrainTelemetry();return d;};
-  audit('feature_contract','2.14.2 Merchant-Rekursionsschutz + Brain-v2 + Research Bridge Kernfunktionen geprüft',{features:FEATURE_CONTRACT,student:{inputs:V210_INPUTS,hidden:V210_HIDDEN,outputs:V210_OUTPUTS},configHash:v282ConfigHash(C)});
+  audit('feature_contract','2.14.3 Scroll-/Bank-Loop-Schutz + Brain-v2 + Research Bridge Kernfunktionen geprüft',{features:FEATURE_CONTRACT,student:{inputs:V210_INPUTS,hidden:V210_HIDDEN,outputs:V210_OUTPUTS},configHash:v282ConfigHash(C)});
 
   var v2141MerchantTickBase=merchantTick;
   merchantTick=function(){var now=clock(),w=S.merchantWatchdog||(S.merchantWatchdog={windowAt:now,actions:0,suspendUntil:0,lastActionAt:Number(S.lastActionAt)||0});if(now-w.windowAt>=60000){w.windowAt=now;w.actions=0;}if(now<w.suspendUntil){S.status='Merchant-Schutzpause · Logistik kurz gedrosselt';S.mode='Merchant · Watchdog';return;}var before=Number(S.lastActionAt)||0,r=v2141MerchantTickBase();if((Number(S.lastActionAt)||0)!==before)w.actions++;if(w.actions>90){w.suspendUntil=now+10000;w.actions=0;audit('merchant_watchdog','Merchant-Logistik wegen ungewöhnlich hoher Aktionsrate kurz gedrosselt',{pauseMs:10000,thresholdPerMinute:90},'warning');}return r;};

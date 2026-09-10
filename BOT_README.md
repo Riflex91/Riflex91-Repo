@@ -1,4 +1,10 @@
-# Adventure Land – AiO Bot 2.14.2 · technische Notizen
+# Adventure Land – AiO Bot 2.14.3 · technische Notizen
+
+## 2.14.3 Scroll-/Bank-Loop-Hotfix
+
+- `scroll0`–`scroll4` und `cscroll0`–`cscroll4` sind für die Bankbereinigung geschützt.
+- Ein für Upgrade/Compound gekaufter Scroll darf dadurch nicht mehr unmittelbar als entbehrliches Bank-Item verschwinden.
+- Der Merchant wartet mit `buy()` bis er höchstens 180 Einheiten vom Scroll-Händler entfernt ist, um Range-Races während `smart_move` zu reduzieren.
 
 ## 2.14.2 Merchant-Freeze-Hotfix
 
