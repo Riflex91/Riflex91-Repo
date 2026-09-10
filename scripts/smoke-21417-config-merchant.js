@@ -3,8 +3,8 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.17');
-assert.equal(version.dashboardVersion,'2.14.17');
+assert.ok(/^2\.14\.\d+$/.test(version.version));
+assert.equal(version.dashboardVersion,version.version);
 for(const f of ['config-newest-valid-source','merchant-economic-action-flight-guard','merchant-bank-retrieve-travel-lease','merchant-vendor-range-guard'])assert.ok(bot.includes("'"+f+"'"),'missing feature '+f);
 function extract(name){const start=bot.indexOf('function '+name+'(');assert.ok(start>=0,'missing '+name);let i=bot.indexOf('{',start),depth=0;for(;i<bot.length;i++){if(bot[i]==='{')depth++;else if(bot[i]==='}'&&--depth===0)return bot.slice(start,i+1);}throw Error('unterminated '+name);}
 const ctx={};vm.createContext(ctx);vm.runInContext(extract('v21417PickConfig')+';this.pick=v21417PickConfig;',ctx);

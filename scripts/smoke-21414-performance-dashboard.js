@@ -6,9 +6,9 @@ const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
 const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
-assert.equal(version.version,'2.14.17');
-assert.equal(version.dashboardVersion,'2.14.17');
-assert(bot.includes("var VERSION = '2.14.17';"));
+assert.ok(/^2\.14\.\d+$/.test(version.version));
+assert.equal(version.dashboardVersion,version.version);
+assert(bot.includes("var VERSION = '2.14.18';"));
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
 assert(contractMatch);
 const contract=JSON.parse(contractMatch[1].replace(/'/g,'"'));
@@ -47,10 +47,10 @@ assert.equal(cleaned.learningFeed.length,1,'learning feed stripped');
 assert(cleaned.sprite&&cleaned.sprite.file.includes('ranger.png'),'sprite stripped');
 assert(cleaned.brainExplanation&&cleaned.brainExplanation.current==='work','brain explanation stripped');
 
-assert(dash.includes('AiO Bot Dashboard 2.14.17'));
+assert(dash.includes('AiO Bot Dashboard 2.14.18'));
 assert(dash.includes('function terrainMeta'));
 assert(dash.includes('function terrainVectorMarkup'));
 assert(dash.includes('function terrainGridMarkup'));
 assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));
-assert(worker.includes('AiO Bot Dashboard 2.14.17'));
+assert(worker.includes('AiO Bot Dashboard 2.14.18'));
 console.log('2.14.17 Merchant performance / dashboard terrain smoke OK');
