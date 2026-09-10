@@ -1,4 +1,14 @@
-# Adventure Land – AiO Bot 2.14.4 · technische Notizen
+# Adventure Land – AiO Bot 2.14.5 · technische Notizen
+
+
+## 2.14.5 Merchant-Reliability / Dashboard / GUI
+
+- Merchant-Routen besitzen Prioritäten; Explorer darf Service, Bank, Scroll-/NPC-Wege und Upgrade-/Compound-Exits nicht mehr verdrängen.
+- `buy()` und `sell()` werden erst bei <= 75 Einheiten NPC-Distanz und nach vollständigem Bewegungsstopp ausgelöst.
+- Sicherer Max-Level-Upgrade-Überschuss darf verkauft werden, sobald Gruppenreserve, Rezeptschutz und Drop-Seltenheit dies zulassen.
+- Unter Inventardruck erhält sicherer NPC-Verkauf eine echte Ausführungschance vor weiteren Bank-/Compound-Schleifen.
+- Dashboard-Kategorien sind einklappbar; Charaktere stehen oben, Gruppeninformationen unten; jede Charakterkarte besitzt eine Mini-Live-Map.
+- Das Ingame-Hauptfenster ist viewport-sicher scrollbar; Gruppeneinstellungen zeigen animierte HP-/MP-Balken.
 
 ## 2.14.4 Merchant-Ökonomie, Party-Realm und GUI-Collapse
 

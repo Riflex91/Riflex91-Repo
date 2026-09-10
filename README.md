@@ -1,4 +1,4 @@
-# Adventure Land – AiO Bot 2.14.4
+# Adventure Land – AiO Bot 2.14.5
 
 Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
@@ -8,9 +8,11 @@ Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.1
 
 > **2.14.4 Merchant-Ökonomie/Party/UI-Hotfix:** Der Merchant verkauft sicheren normalen Überschuss jetzt auch ohne volle Bank und bewertet dafür NPC-Wert, Drop-Häufigkeit, Gruppenreserve, Rezeptbedarf sowie Upgrade-/Compound-Scrollkosten. Upgrade und Compound verlassen die Bank deterministisch vor der Aktion. Peer-Reports enthalten den Server-Realm; bei EU1/EU2-Mismatch wird die Party nicht mehr mit ungültigen Einladungen gespammt, sondern auf den Mehrheitsserver der eigenen Bot-Gruppe angeglichen (PvP nur nach vorhandener Bestätigung). Die eingeklappte Bot-GUI zeigt nur noch die Titelleiste. Brain/Teacher und Cloudflare-Dashboard bleiben unverändert.
 
+> **2.14.5 Merchant-Reliability/Dashboard-Hotfix:** verhindert konkurrierende Explorer-/Service-Routen durch Bewegungsprioritäten, wartet vor Kauf/Verkauf auf einen vollständig erreichten NPC, verkauft sicheren +4-/Max-Level-Überschuss nach Gruppenreserve und macht die Merchant-Ökonomie unter Inventardruck handlungsfähig. Dashboard 2.14.5 ordnet Charaktere nach oben, Gruppeninfos nach unten, ergänzt Mini-Live-Maps und einklappbare Kategorien. Die Ingame-GUI erhält eine scrollbar sichtbare Headless-Zeile sowie animierte HP-/MP-Balken in den Gruppeneinstellungen.
+
 > **2.14.1 Stabilitäts-Hotfix:** bündelt Farmer→Merchant-Goldtransfers erst ab dem konfigurierten Schwellwert, verhindert sofortige Wiederholungs-Services, drosselt übermäßige Merchant-Aktionsraten und reduziert CM-Auditlast. Brain/Teacher-Gewichte und Cloudflare-Dashboard bleiben unverändert.
 
-> Aktueller Stand: **2.14.4** · Build **2026-09-10**
+> Aktueller Stand: **2.14.5** · Build **2026-09-10**
 
 ## Release-Dateien
 

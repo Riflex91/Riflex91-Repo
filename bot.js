@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.4 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.5 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.4';
+  var VERSION = '2.14.5';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2853,6 +2853,167 @@
     try{if(S.globalTypingGuard&&P.removeEventListener)['keydown','keyup','keypress'].forEach(function(ev){P.removeEventListener(ev,S.globalTypingGuard,true);});}catch(e){}try{if(uiHost)uiHost.remove();}catch(e){}
     audit('shutdown','AiO Bot '+VERSION+' beendet');
   }
+
+
+  // ---------------------------------------------------------------------------
+  // 2.14.5 Merchant reliability: route arbitration, settled vendor actions,
+  // fair economic selling and UI visibility/vitals.
+  // ---------------------------------------------------------------------------
+  function v2145MovePriority(kind){
+    kind=String(kind||'').toLowerCase();
+    if(/scroll|vendor|npc|sell|upgrade-bank-exit|compound-bank-exit/.test(kind))return 100;
+    if(/bank/.test(kind))return 90;
+    if(/merchant-service|service|collect|loot/.test(kind))return 80;
+    if(/supply|deliver|distribution/.test(kind))return 70;
+    if(/follow|farm/.test(kind))return 40;
+    if(/explore/.test(kind))return 10;
+    return 50;
+  }
+  function v2145MoveLockActive(lock){
+    if(!lock)return false;
+    var now=clock(),p=lock.target||{},sameMap=!p.map||p.map===character.map,near=sameMap&&isFinite(Number(p.x))&&isFinite(Number(p.y))&&dist(character,p)<=Number(lock.tolerance||85);
+    if(near&&!character.moving&&!S.moveInFlight)return false;
+    if(now-Number(lock.at||0)>45000&&!S.moveInFlight&&!character.moving)return false;
+    return !!(S.moveInFlight||character.moving||now-Number(lock.at||0)<2500);
+  }
+  var v2145MoveBase=moveToGoal;
+  moveToGoal=function(g,why,opts){
+    opts=opts||{};if(!g)return false;
+    var kind=opts.kind||String(why||'move'),priority=v2145MovePriority(kind),now=clock(),target={map:g.map||character.map,x:Math.round(Number(g.x)||0),y:Math.round(Number(g.y)||0)},lock=S.moveArbiter2145;
+    if(lock&&!v2145MoveLockActive(lock)){S.moveArbiter2145=null;lock=null;}
+    if(lock&&v2145MoveLockActive(lock)){
+      var same=lock.target&&lock.target.map===target.map&&Math.hypot(Number(lock.target.x||0)-target.x,Number(lock.target.y||0)-target.y)<=Number(opts.tolerance||90);
+      if(!same&&priority<Number(lock.priority||0)){
+        if(clock()>Number(S.times.moveDeferred2145||0)){
+          S.times.moveDeferred2145=clock()+5000;
+          audit('move_deferred','Niedriger priorisierte Route wartet auf laufenden Merchant-Weg',{activeKind:lock.kind,activePriority:lock.priority,requestedKind:kind,requestedPriority:priority,target:target},'info');
+        }
+        return true;
+      }
+    }
+    S.moveArbiter2145={kind:kind,priority:priority,target:target,tolerance:Number(opts.tolerance)||85,at:now};
+    S.moveKind=kind;
+    return v2145MoveBase(g,why,opts);
+  };
+
+  var v2145ExploreBase=v290ExploreTick;
+  v290ExploreTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantExploreWhenIdle)return false;
+    var lock=S.moveArbiter2145,mode=String(S.mode||'');
+    if(S.merchantServiceTarget)return false;
+    if(lock&&v2145MoveLockActive(lock)&&v2145MovePriority(lock.kind)>v2145MovePriority('explore'))return false;
+    if(/Merchant · (Bank|Einkauf|NPC|Combine|Upgrade|Craft|Exchange|Versorgung|Service|Inventar)/.test(mode))return false;
+    if(clock()-Math.max(Number(S.lastActionAt||0),Number(S.moveRequestedAt||0))<4500)return false;
+    return v2145ExploreBase();
+  };
+
+  function v2145VendorReady(dest){
+    return !!(dest&&dest.map===character.map&&!character.moving&&!S.moveInFlight&&dist(character,dest)<=75);
+  }
+  v273EnsureScroll=function(prefix,item){
+    var name=v273ScrollName(prefix,item),idx=slot(name);if(idx>=0)return idx;
+    if(freeSlots()<1){S.times['buy-scroll:'+name]=clock()+15000;S.status='Kein Platz für Scroll · Inventar zuerst bereinigen';S.mode='Merchant · Inventar';return -1;}
+    if(!(typeof buy==='function'&&GD.items&&GD.items[name]))return -1;
+    var price=Number(GD.items[name].g||0);if(character.gold-price<=C.merchantBankGoldReserve)return -1;
+    var dest=v282VendorForScroll(name);
+    if(dest&&!v2145VendorReady(dest)){
+      S.status='Zum Scroll-Händler für '+name;S.mode='Merchant · Einkauf';
+      moveToGoal(dest,'Scroll-Händler '+name,{kind:'merchant-scroll-vendor',tolerance:45,forceAfter:15000});
+      return -1;
+    }
+    action('Scroll kaufen '+name,function(){return buy(name,1);},'buy-scroll:'+name,2200);
+    return -1;
+  };
+
+  var v2145SellDecisionBase=v2144SellDecision;
+  function v2145SellDecision(it){
+    var base=v2145SellDecisionBase(it),d=it&&GD.items&&GD.items[it.name]||{};
+    if(!it||!it.name||base.protected)return base;
+    if(base.sell)return base;
+    var level=Number(it.level)||0,owned=v273OwnedCount(it.name),keep=Number(base.keep||v273DesiredGroupCopies(it.name)||1),surplus=Math.max(0,owned-keep);
+    var db=v273BuildKnowledgeDB(false),recipeUses=v2144RecipeUseCount(it.name,db),drop=v2144DropEconomics(it.name),value=v2144NpcValue(it);
+    var maxedUpgrade=!!d.upgrade&&!d.compound&&level>=Number(C.merchantUpgradeMax||4);
+    var safeRarity=!drop.rare&&(drop.bestChance==null||drop.bestChance>=0.005||drop.learnedRate>=0.003||owned>=keep+3);
+    if(maxedUpgrade&&surplus>0&&recipeUses===0&&value>0&&safeRarity){
+      return Object.assign({},base,{sell:true,reason:'maxed-upgrade-surplus',owned:owned,keep:keep,surplus:surplus,npcValue:value,drop:drop,recipeUses:recipeUses,level:level});
+    }
+    var pureTrash=!d.upgrade&&!d.compound&&recipeUses===0&&Number(base.utility)<0&&surplus>0;
+    if(pureTrash&&value>0&&(safeRarity||owned>=keep+2)){
+      return Object.assign({},base,{sell:true,reason:'safe-trash-surplus',owned:owned,keep:keep,surplus:surplus,npcValue:value,drop:drop,recipeUses:recipeUses,level:level});
+    }
+    return base;
+  }
+  v2144SellDecision=v2145SellDecision;
+  v2144FindSellCandidate=function(){
+    var best=null;
+    (character.items||[]).forEach(function(it,i){
+      if(!it)return;
+      var dec=v2145SellDecision(it);if(!dec.sell)return;
+      var q=Number(it.q)||1,surplus=Math.max(1,Number(dec.surplus)||1),sellQty=Math.max(1,Math.min(q,surplus));
+      var score=(dec.reason==='maxed-upgrade-surplus'?1000000:0)+(dec.reason==='safe-trash-surplus'?600000:0)+Number(dec.npcValue||0)+Math.min(100000,Number(dec.owned||0)*50);
+      if(!best||score>best.score)best={index:i,item:it,decision:dec,qty:sellQty,score:score};
+    });
+    return best;
+  };
+
+  v273SellTrashTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantSellTrashToNpc||typeof sell!=='function')return false;
+    var cand=v2144FindSellCandidate();
+    if(!cand){
+      if(clock()>Number(S.times.sellNoCandidate2145||0)){
+        S.times.sellNoCandidate2145=clock()+30000;
+        audit('merchant_sell_scan','Kein sicherer NPC-Verkaufskandidat',{free:freeSlots(),reserve:C.merchantInventoryReserve,inventory:(character.items||[]).filter(Boolean).length},'info');
+      }
+      return false;
+    }
+    var dest=v2144SellVendor();
+    v2144AuditEconomy('sell',cand.item,cand.decision,{quantity:cand.qty});
+    if(dest&&!v2145VendorReady(dest)){
+      S.status='Zum NPC für Verkauf: '+v273Name(cand.item.name);S.mode='Merchant · NPC-Verkauf';
+      return moveToGoal(dest,'NPC-Verkauf '+cand.item.name,{kind:'merchant-npc-sell',tolerance:45,forceAfter:15000});
+    }
+    S.status='NPC-Verkauf: '+v273Name(cand.item.name)+' ×'+cand.qty;S.mode='Merchant · NPC-Verkauf';
+    return action('NPC-Verkauf '+cand.item.name,function(){return sell(cand.index,cand.qty);},'merchant-trash-sell:'+cand.item.name,2200);
+  };
+
+  function v2145EconomyMaintenanceTick(){
+    if(character.ctype!=='merchant'||!C.merchantSellTrashToNpc)return false;
+    var cand=v2144FindSellCandidate();if(!cand)return false;
+    var pressured=freeSlots()<=Math.max(2,Number(C.merchantInventoryReserve||5)+1);
+    var urgent=false;try{urgent=(v277MerchantServiceCandidates()||[]).some(function(x){return x&&x.urgent;});}catch(e){}
+    if(!pressured&&urgent)return false;
+    if(!pressured&&clock()<Number(S.times.economy2145||0))return false;
+    S.times.economy2145=clock()+10000;
+    return v273SellTrashTick();
+  }
+  var v2145MerchantTickBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype==='merchant'&&v2145EconomyMaintenanceTick())return true;
+    return v2145MerchantTickBase();
+  };
+
+  var v2145LayoutMainBase=layoutMain;
+  layoutMain=function(){
+    v2145LayoutMainBase();
+    if(!S.mainBox)return;
+    var vh=P.innerHeight||900;
+    S.mainBox.style.maxHeight=Math.max(260,vh-16)+'px';
+  };
+
+  partyHTML=function(){
+    var ps=partyState(),rows=peers(true),gs=v280GroupStrengthSnapshot();
+    function rr(n){if(n===me)return report();return rows.find(function(x){return x.name===n;})||peerReport(n);}
+    function vital(label,cur,max,type){
+      cur=Number(cur)||0;max=Math.max(1,Number(max)||1);var pc=Math.round(clamp(cur/max*100,0,100));
+      return '<div class="party-vital"><div class="line"><span>'+label+'</span><strong>'+Math.round(cur)+' / '+Math.round(max)+' · '+pc+'%</strong></div><div class="partybar '+type+'"><i style="width:'+pc+'%"></i></div></div>';
+    }
+    return '<h2>'+esc(T('party'))+'</h2><div class="card"><div class="line"><span>'+esc(v281L('groupStrength'))+'</span><strong>'+v280FmtCompact(gs.score)+'</strong></div><div class="line"><span>'+esc(v281L('groupDps'))+'</span><strong>'+v280FmtCompact(gs.totalDps)+'</strong></div></div>'+
+      C.roster.map(function(n){var r=rr(n),role=roleForName(n),ic=v280RoleIcon(role);if(!r)return '<div class="card"><div class="line"><strong>'+ic+' '+esc(n)+'</strong><span class="tag">'+esc(roleLabel(role))+'</span></div><div class="muted">'+esc(v281L('noReport'))+'</div></div>';return '<div class="card party-live-card"><div class="line"><strong>'+ic+' '+esc(n)+'</strong><span class="tag">'+esc(roleLabel(role))+'</span></div><div class="muted">Lv. '+r.level+' · '+esc(r.map||'—')+' · '+v280FmtCompact(r.xpPerHour||0)+' EXP/h</div>'+vital('HP',r.hp,r.max_hp,'hp')+vital('MP',r.mp,r.max_mp,'mp')+'</div>';}).join('')+
+      '<div class="notice '+(ps.complete?'':'bad')+'">'+(ps.complete?esc(v281L('complete')):esc(v281L('missing'))+': '+esc((ps.missing||[]).join(', ')))+'</div>';
+  };
+
+  CSS+=' .mainbox .maincontent{overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 118px);overscroll-behavior:contain;padding-bottom:8px}.mainbox .launcher{padding-bottom:8px}.party-live-card{overflow:hidden}.party-vital{margin-top:8px}.party-vital .line{font-size:9px;margin-bottom:4px}.partybar{height:9px;border-radius:999px;background:var(--surface);overflow:hidden;position:relative}.partybar i{height:100%;display:block;position:relative;transition:width .45s ease;border-radius:inherit}.partybar.hp i{background:#e5484d}.partybar.mp i{background:#3b82f6}.partybar i:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);transform:translateX(-100%);animation:v2145VitalFlow 1.6s linear infinite}@keyframes v2145VitalFlow{to{transform:translateX(100%)}}@media(prefers-reduced-motion:reduce){.partybar i,.partybar i:after{animation:none!important;transition:none!important}} ';
+  audit('feature_contract','2.14.5 Merchant-Routenpriorität + Vendor-Settling + Verkaufsfairness + Dashboard/GUI geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
   var receive27=on_cm;
