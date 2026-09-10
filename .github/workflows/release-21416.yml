@@ -1,0 +1,62 @@
+name: release-21416
+on:
+  push:
+    branches: ["hotfix/2.14.16-config-merchant-stability"]
+permissions:
+  contents: write
+jobs:
+  verify-and-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[release-21416]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/2.14.16-config-merchant-stability
+          fetch-depth: 0
+      - name: Verify exact 2.14.15 base
+        run: |
+          set -euo pipefail
+          BASE=4db07f493671acebdb9598bb4c25f490092dcd80
+          git merge-base --is-ancestor "$BASE" HEAD
+          test "$(git hash-object bot.js)" = "c27eef3624d3ba89b6e166601223c654fcfe3a19"
+          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21416\.py|\.github/workflows/release-21416\.yml)$' || true)"
+          if [ -n "$unexpected" ]; then echo "$unexpected"; exit 1; fi
+      - name: Apply 2.14.16 patch
+        run: python3 scripts/patch-21416.py
+      - name: Syntax check bot and worker
+        run: |
+          node --check bot.js
+          node --check cloudflare-dashboard/src/worker.js
+      - name: Syntax check dashboard JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('cloudflare-dashboard/dashboard.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not blocks: raise SystemExit('dashboard script missing')
+          Path('/tmp/dashboard.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard.js
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Run all smoke tests
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js scripts/smoke*.mjs; do
+            [ -f "$f" ] || continue
+            echo "==> $f"
+            node "$f"
+          done
+      - name: Whitespace check
+        run: git diff --check
+      - name: Commit tested release
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot.js version.json cloudflare-dashboard scripts
+          git rm -f scripts/patch-21416.py .github/workflows/release-21416.yml
+          git diff --cached --check
+          git commit -m "Release 2.14.16: Config preservation and Merchant guards [release-21416]"
+          git push origin HEAD:hotfix/2.14.16-config-merchant-stability
