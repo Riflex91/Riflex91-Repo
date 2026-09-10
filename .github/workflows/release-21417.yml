@@ -19,10 +19,12 @@ jobs:
           BASE=98bf067446c5aae713dd73466b31336c7e0f20fd
           git merge-base --is-ancestor "$BASE" HEAD
           test "$(git hash-object bot.js)" = "ccd2dc251c75eb9cf3d4cf465d3d65e589985207"
-          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21417\.py|\.github/workflows/release-21417\.yml)$' || true)"
+          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21417\.py|scripts/patch-21417-verify\.py|\.github/workflows/release-21417\.yml)$' || true)"
           if [ -n "$unexpected" ]; then echo "$unexpected"; exit 1; fi
       - name: Apply 2.14.17 patch
-        run: python3 scripts/patch-21417.py
+        run: |
+          python3 scripts/patch-21417.py
+          python3 scripts/patch-21417-verify.py
       - name: Syntax check bot and worker
         run: |
           node --check bot.js
@@ -56,7 +58,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bot.js version.json cloudflare-dashboard scripts
-          git rm -f scripts/patch-21417.py .github/workflows/release-21417.yml
+          git rm -f scripts/patch-21417.py scripts/patch-21417-verify.py .github/workflows/release-21417.yml
           git diff --cached --check
           git commit -m "Release 2.14.17: Config precedence and Merchant serialization [release-21417]"
           git push origin HEAD:hotfix/2.14.17-config-merchant-serialization
