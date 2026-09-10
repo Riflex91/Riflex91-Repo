@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.10", "prepared release must be 2.14.10");
-  ok(version.dashboardVersion === "2.14.5", "dashboard version must remain 2.14.5 for bot-only release");
+  ok(version.version === "2.14.11", "prepared release must be 2.14.11");
+  ok(version.dashboardVersion === "2.14.11", "dashboard version must be 2.14.11 for layered brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -156,7 +156,7 @@ ok(worker.includes("/api/research-brief") && worker.includes("handleResearchBrie
 ok(worker.includes("function researchSummary") && worker.includes("function researchMapObject"), "Research Worker sanitization missing");
 ok(schema.includes("brain_usage") && schema.includes("brain_decisions") && schema.includes("aio_state"), "Brain D1 schema incomplete");
 
-ok(dash.includes("🧠 Gehirn"), "web dashboard Brain overview missing");
+ok(dash.includes("🧠 Bot-Gehirn"), "web dashboard Brain overview missing");
 ok(dash.includes("Neurons heute") && dash.includes("Teacher-Aufrufe") && dash.includes("Samples / Replay"), "Brain dashboard core telemetry missing");
 ok(dash.includes("Reward EMA") && dash.includes("Teacher-Übereinstimmung") && dash.includes("Policy-Freigabe"), "Brain dashboard learning telemetry missing");
 ok(dash.includes("Champion / Challenger") && dash.includes("Canary Reward C / Ch") && dash.includes("Promotions / Rollbacks"), "Brain League dashboard telemetry missing");

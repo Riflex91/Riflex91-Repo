@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.10';
+  var VERSION = '2.14.11';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -107,7 +107,7 @@
     merchantBuyHPTo: 2200, merchantBuyMPTo: 1800, merchantCollectGoldOver: 25000, merchantInventoryReserve: 5,
     merchantItemActions: {},
     showSettingHelp: true, uiTransparencyPct: 0, fastTravelEnabled: true, inventoryProtectedItems: '', standLocation: null,
-    brainEnabled: true, brainDailyNeuronLimit: 10000, brainBudgetTargetPct: 99.5, brainWorkPct: 100, brainPriorityPct: 55, brainMinConfidencePct: 70, brainModel: '@cf/qwen/qwen3-30b-a3b-fp8',
+    brainEnabled: true, brainWorldModelEnabled: true, brainDiscoveryModuleEnabled: true, brainExperimentModuleEnabled: true, brainPlannerModuleEnabled: true, brainExplainModuleEnabled: true, brainGatheringModuleEnabled: true, brainStandModuleEnabled: true, brainTeachingKeywords: '', brainDailyNeuronLimit: 10000, brainBudgetTargetPct: 99.5, brainWorkPct: 100, brainPriorityPct: 55, brainMinConfidencePct: 70, brainModel: '@cf/qwen/qwen3-30b-a3b-fp8',
     brainStudentEnabled: true, brainStudentConfidencePct: 82, brainOutcomeSeconds: 180, brainReplaySize: 512, brainStudentLearningRate: 0.012, brainTeacherMinIntervalSeconds: 30, brainTeacherMaxIntervalSeconds: 600,
     brainLeagueEnabled: true, brainChallengerTrafficPct: 20, brainChallengeMinOutcomes: 8, brainRollbackRewardDropPct: 12,
     brainDiaryEnabled: true, brainDiaryMaxEntries: 80,
@@ -2152,7 +2152,9 @@
     'auto-update','config-preservation','fast-travel','task-reason','aio-brain','cloud-state-sync',
     'farmer-auto-equip','merchant-explorer','inventory-pressure-guard','gui-window-toggle',
     'self-training-brain','teacher-student-learning','experience-replay','prioritized-replay','brain-dashboard',
-    'champion-challenger','brain-auto-rollback','brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard','brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard'
+    'champion-challenger','brain-auto-rollback','brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard','brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard',
+    'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety',
+    'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites'
   ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
@@ -2250,7 +2252,7 @@
     ['inventory','book',C.language==='de'?'Inventar':'Inventory',C.language==='de'?'Items und Merchant-Regeln · ohne preview_item':'Items and merchant rules · no preview_item'],
     ['party','users',T('party'),'4/4 detection and repair'],['farm','target',C.language==='de'?'Farmmodus':T('farm'),'Automatic or manual target selection'],
     ['bestiary','book',T('bestiary'),'All monsters, items and event items'],['skills','spark',T('skills'),'Mana, cooldown and damage efficiency'],
-    ['brain','spark',(C.language==='de'?'Gehirn':'Brain'),'Lebendiges Lernsystem · Teacher, Champion & Challenger'],['merchant','flask',T('merchant'),C.language==='de'?'Merchant-Verhalten und Elixiere':'Merchant behavior and elixirs'],['stand','store',T('stand'),'Explicit opt-in and precise limits'],
+    ['brain','spark',(C.language==='de'?'Bot-Gehirn':'Bot Brain'),'Versteht, plant, lernt und erklärt Entscheidungen'],['merchant','flask',T('merchant'),C.language==='de'?'Merchant-Verhalten und Elixiere':'Merchant behavior and elixirs'],['stand','store',T('stand'),'Explicit opt-in and precise limits'],
     ['meters','chart',T('meters'),'Session combat meters'],['dashboard','globe',T('dashboard'),'Dashboard connection'],['logs','log',T('logs'),'Detailed audit and exports'],
     ['settings','settings',T('settings'),'Themes, help, transparency and updates'],['headless','terminal',T('headless'),'Guided Windows/Linux/macOS setup']
   ];};
@@ -3582,6 +3584,68 @@
   v2149NpcSeller=function(itemName){var p=v21410NpcSellerBase(itemName);if(!p||!isFinite(Number(p.x))||!isFinite(Number(p.y)))return null;var d=v21410TargetDanger({map:p.map,x:p.x,y:p.y});return d.safe?p:null;};
 
   audit('feature_contract','2.14.10 Discovery-Sicherheitszonen + vollständiger statischer Weltkatalog + 60s Katalog-Cache geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
+
+
+  // ---------------------------------------------------------------------------
+  // 2.14.11 Layered world model, safe experiments, planner and explainability.
+  // ---------------------------------------------------------------------------
+  ['brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+  var V21411_WORLD_KEY='brainWorldModel21411',V21411_HYP_KEY='brainHypotheses21411';
+  var v21411World=read(V21411_WORLD_KEY,{schema:1,gameVersion:'',updatedAt:0,entries:{}})||{schema:1,gameVersion:'',updatedAt:0,entries:{}};
+  if(!v21411World.entries||typeof v21411World.entries!=='object')v21411World.entries={};
+  var v21411Hyp=read(V21411_HYP_KEY,[]);if(!Array.isArray(v21411Hyp))v21411Hyp=[];
+  function v21411Hash(v){try{return v2149TinyHash(v);}catch(e){try{return JSON.stringify(v).length+':'+safeString(JSON.stringify(v),120);}catch(x){return String(v);}}}
+  function v21411Words(){return csv(C.brainTeachingKeywords).map(function(x){return String(x).toLowerCase();}).slice(0,20);}
+  function v21411CompactReq(obj){var out=[];if(!obj)return out;[['level','Level'],['mp','MP'],['gold','Gold'],['cooldown','Cooldown'],['class','Klasse'],['type','Typ']].forEach(function(p){if(obj[p[0]]!=null&&obj[p[0]]!=='')out.push(p[1]+': '+safeString(obj[p[0]],50));});return out.slice(0,6);}
+  function v21411Upsert(kind,id,name,definition,actions,requirements,outcomes,source){
+    var key=kind+'|'+id,gv=String(v273GameVersion()||''),hash=v21411Hash(definition),old=v21411World.entries[key]||{},same=old.definitionHash===hash,conf=same?Math.max(.62,Number(old.confidence)||.62):Math.min(.58,Number(old.confidence)||.58),changed=!!old.definitionHash&&!same;
+    if(same&&old.lastConfirmedVersion&&old.lastConfirmedVersion!==gv)conf=Math.max(conf,.72);
+    v21411World.entries[key]={key:key,kind:kind,id:String(id),name:safeString(name||id,100),what:safeString((definition&&definition.description)||(definition&&definition.role)||(definition&&definition.type)||kind,160),actions:(actions||[]).slice(0,8),requirements:(requirements||[]).slice(0,8),outcomes:(outcomes||[]).slice(0,8),confidence:Math.max(.05,Math.min(.99,conf)),confirmations:Number(old.confirmations)||0,lastObservedAt:Number(old.lastObservedAt)||0,lastConfirmedVersion:same?gv:String(old.lastConfirmedVersion||''),gameVersion:gv,definitionHash:hash,stale:changed,source:source||'G'};
+    return v21411World.entries[key];
+  }
+  function v21411RefreshWorld(force){
+    if(!C.brainWorldModelEnabled)return false;var now=clock();if(!force&&now-Number(v21411World.updatedAt||0)<300000)return false;var gv=String(v273GameVersion()||''),seen={};
+    Object.keys(GD.items||{}).forEach(function(id){var d=GD.items[id]||{},a=['inventory','trade'];if(d.type==='pot'||d.type==='elixir')a.push('use');if(d.upgrade)a.push('upgrade');if(d.compound)a.push('compound');if(d.e)a.push('exchange');var r=v21411Upsert('item',id,d.name||id,d,a,v21411CompactReq(d),[], 'G.items');seen[r.key]=1;});
+    Object.keys(GD.skills||{}).forEach(function(id){var d=GD.skills[id]||{},r=v21411Upsert('skill',id,d.name||id,d,['use_skill'],v21411CompactReq(d),d.condition?['Condition: '+d.condition]:[], 'G.skills');seen[r.key]=1;});
+    Object.keys(GD.monsters||{}).forEach(function(id){var d=GD.monsters[id]||{},req=[];if(Number(d.aggro)>0)req.push('Aggressiv');if(Number(d.rage)>0)req.push('Rage');var r=v21411Upsert('monster',id,d.name||id,d,['observe','attack','loot'],req,d.xp!=null?['XP: '+d.xp]:[], 'G.monsters');seen[r.key]=1;});
+    Object.keys(GD.maps||{}).forEach(function(id){var d=GD.maps[id]||{},req=[];if(d.pvp)req.push('PvP');if(d.instance)req.push('Instanz');var r=v21411Upsert('map',id,d.name||id,d,['travel','explore'],req,[], 'G.maps');seen[r.key]=1;});
+    v2149DiscoveryCatalog().forEach(function(e){var def=e.definition||{kind:e.kind,type:e.type,label:e.label,map:e.map},acts=['observe'];if(e.kind==='npc')acts.push('interact');if(e.kind==='door')acts.push('travel');if(e.kind==='zone'&&(e.type==='fishing'||e.type==='mining'))acts.push(e.type);if(e.kind==='machine')acts.push('interact');var req=[];if(e.staticOnly)req.push('Nur statisch: '+safeString(e.discoveryDanger&&e.discoveryDanger.reason||'unsicher',70));var r=v21411Upsert(e.kind,e.key,e.label||e.id||e.type||e.key,def,acts,req,[], 'discovery-catalog');seen[r.key]=1;});
+    Object.keys(v21411World.entries).forEach(function(k){if(!seen[k])v21411World.entries[k].stale=true;});v21411World.schema=1;v21411World.gameVersion=gv;v21411World.updatedAt=now;write(V21411_WORLD_KEY,v21411World);return true;
+  }
+  function v21411Confirm(entry,probe){if(!entry)return;var key=entry.kind+'|'+entry.key,r=v21411World.entries[key];if(!r){v21411RefreshWorld(true);r=v21411World.entries[key];}if(!r)return;var ok=!probe||probe.ok!==false;r.confirmations=Math.min(999,Number(r.confirmations||0)+(ok?1:0));r.lastObservedAt=clock();r.lastConfirmedVersion=String(v273GameVersion()||'');r.stale=false;r.confidence=Math.min(.99,Math.max(Number(r.confidence)||.55,.58)+(.07*Math.min(5,r.confirmations)));if(probe&&probe.error)r.outcomes=(r.outcomes||[]).concat(['Fehler: '+safeString(probe.error,100)]).slice(-8);write(V21411_WORLD_KEY,v21411World);}
+  var v21411RecordBase=v2149RecordDiscovery;
+  v2149RecordDiscovery=function(entry,probe){var x=v21411RecordBase(entry,probe);try{v21411Confirm(entry,probe);v21411UpdateHypothesis(entry,probe);}catch(e){}return x;};
+  function v21411HypothesisFor(entry){if(!entry)return null;var id=entry.key,type='definition',text='Prüfen, ob '+safeString(entry.label||entry.id||entry.type||entry.key,90)+' seit dem letzten Spielupdate unverändert funktioniert.';if(entry.kind==='npc')type='npc-service';if(entry.kind==='machine'||entry.kind==='quirk')type='interaction';if(entry.kind==='door')type='travel';if(entry.kind==='zone')type='gathering';return {id:type+'|'+id,type:type,target:id,text:text,status:'open',confidence:.35,attempts:0,successes:0,lastAt:0,gameVersion:String(v273GameVersion()||'')};}
+  function v21411UpdateHypothesis(entry,probe){if(!C.brainExperimentModuleEnabled||!entry)return;var id=(entry.kind==='npc'?'npc-service':entry.kind==='door'?'travel':entry.kind==='zone'?'gathering':'interaction')+'|'+entry.key,h=v21411Hyp.find(function(x){return x.id===id;});if(!h){h=v21411HypothesisFor(entry);if(!h)return;v21411Hyp.push(h);}h.attempts=Number(h.attempts||0)+1;if(!probe||probe.ok!==false)h.successes=Number(h.successes||0)+1;h.lastAt=clock();var ratio=h.successes/Math.max(1,h.attempts);h.confidence=Math.min(.98,.35+.12*Math.min(5,h.attempts)+.15*ratio);h.status=h.attempts>=2&&ratio>=.66?'supported':h.attempts>=3&&ratio<.34?'uncertain':'open';v21411Hyp=v21411Hyp.slice(-120);write(V21411_HYP_KEY,v21411Hyp);}
+  function v21411WorldStats(){var a=Object.keys(v21411World.entries||{}).map(function(k){return v21411World.entries[k];}),stale=a.filter(function(x){return x.stale;}).length,low=a.filter(function(x){return Number(x.confidence)<.6;}).length;return {total:a.length,stale:stale,lowConfidence:low,gameVersion:v21411World.gameVersion||String(v273GameVersion()||''),updatedAt:Number(v21411World.updatedAt)||0,hypotheses:v21411Hyp.length,supported:v21411Hyp.filter(function(x){return x.status==='supported';}).length};}
+  function v21411Planner(){
+    var options=[],urgent=(typeof v277MerchantServiceCandidates==='function'?v277MerchantServiceCandidates():[]).filter(function(x){return x&&x.urgent;})[0],ws=v21411WorldStats();
+    if(urgent)options.push({id:'supply',score:1000,label:'Gruppenversorgung',reason:(urgent.name||'Farmer')+' hat dringenden Versorgungsbedarf.'});
+    if(S.merchantBankRetrieve2149||S.merchantBankCleanup2148)options.push({id:'bank',score:900,label:'Banklogistik',reason:'Eine laufende Bankaufgabe wird sicher abgeschlossen.'});
+    if(C.brainDiscoveryModuleEnabled&&(ws.stale||ws.lowConfidence))options.push({id:'discovery',score:220+Math.min(120,ws.stale*4+ws.lowConfidence),label:'Discovery',reason:ws.stale+' veraltete und '+ws.lowConfidence+' unsichere Weltmodell-Einträge.'});
+    if(C.brainGatheringModuleEnabled&&character.level>=16&&v2149GatherDue())options.push({id:'gathering',score:150,label:'Fishing / Mining',reason:'Merchant ist frei; Gathering ist als produktive Nebenarbeit möglich.'});
+    if(C.brainStandModuleEnabled)options.push({id:'stand',score:120,label:'Merchant-Stand',reason:'Keine höhere Gruppenpriorität; Handel kann Merchant-XP und Gold erzeugen.'});
+    options.push({id:'wait',score:20,label:'Beobachten',reason:'Keine sichere höherwertige Aktion erkannt.'});options.sort(function(a,b){return b.score-a.score;});return {chosen:options[0],alternatives:options.slice(1,4),all:options,at:clock()};
+  }
+  function v21411LatestLearning(){var rows=(v2149Discovery.recent||[]).slice(-30),last=rows[rows.length-1];if(!last)return {text:'Noch keine neue Discovery-Beobachtung.',repetitions:0,confidencePct:0};var same=rows.filter(function(x){return x&&x.key===last.key;}),r=v21411World.entries[(last.kind||'unknown')+'|'+last.key],n=r?Number(r.confirmations)||same.length:same.length,p=r?Math.round(Number(r.confidence||0)*100):Math.min(95,45+n*12);return {text:safeString((last.label||last.id||last.type||last.key)+' wurde '+n+'× beobachtet'+(last.probe&&last.probe.ok===false?' (letzter Test ohne Erfolg)':''),180),repetitions:n,confidencePct:p};}
+  function v21411Explain(){var p=v21411Planner(),learn=v21411LatestLearning(),cur=safeString(S.status||S.mode||'Beobachtet den Spielzustand',180),why=safeString(S.taskReason||p.chosen.reason||'Die lokale Sicherheits- und Prioritätslogik hat diese Aufgabe gewählt.',260),next=p.alternatives[0]?p.alternatives[0].label+': '+p.alternatives[0].reason:'Weiter beobachten.',cl=learn.confidencePct>=85?'Sehr sicher':learn.confidencePct>=65?'Ziemlich sicher':learn.confidencePct>=40?'Noch unsicher':'Noch keine belastbare Aussage';return {short:safeString(cur,55),current:cur,why:why,next:safeString(next,220),learned:learn.text,confidenceLabel:cl,confidencePct:learn.confidencePct,repetitions:learn.repetitions,planner:p,world:v21411WorldStats(),modules:{worldModel:!!C.brainWorldModelEnabled,discovery:!!C.brainDiscoveryModuleEnabled,experiments:!!C.brainExperimentModuleEnabled,planner:!!C.brainPlannerModuleEnabled,explain:!!C.brainExplainModuleEnabled,gathering:!!C.brainGatheringModuleEnabled,stand:!!C.brainStandModuleEnabled},teachingKeywords:v21411Words()};}
+  function v21411PlannerTick(){if(character.ctype!=='merchant'||!C.brainPlannerModuleEnabled)return false;v21411RefreshWorld(false);var p=v21411Planner();S.brainPlanner21411=p;if(p.chosen&&p.chosen.id==='discovery'&&C.brainDiscoveryModuleEnabled&&!S.moveInFlight&&!character.moving)S.explorer.force=true;return false;}
+  var v21411MerchantTickBase=merchantTick;
+  merchantTick=function(){if(character.ctype==='merchant')v21411PlannerTick();return v21411MerchantTickBase();};
+  var v21411CatalogBase=v2149DiscoveryCatalog;
+  v2149DiscoveryCatalog=function(){var rows=v21411CatalogBase(),words=v21411Words();rows.sort(function(a,b){function score(e){var r=v21411World.entries[e.kind+'|'+e.key],s=!r?80:(r.stale?70:0)+(Number(r.confidence)<.6?40:0);if(words.length&&words.some(function(w){return (String(e.id||'')+' '+String(e.label||'')+' '+String(e.type||'')+' '+String(e.map||'')).toLowerCase().indexOf(w)>=0;}))s+=60;return s;}return score(b)-score(a);});return rows;};
+  function v21411SpriteMeta(skin){skin=String(skin||'');if(!skin)return null;var defs=GD.sprites||P.sprites||{};for(var k in defs){var d=defs[k]||{},mx=d.matrix||[];for(var r=0;r<mx.length;r++){for(var c=0;c<(mx[r]||[]).length;c++){if(mx[r][c]===skin&&d.file)return {skin:skin,file:String(d.file),row:r,column:c,rows:Math.max(1,Number(d.rows)||mx.length||1),columns:Math.max(1,Number(d.columns)||(mx[r]||[]).length||1)};}}}return null;}
+  var v21411DashboardBase=dashboardPayload;
+  dashboardPayload=function(){var x=v21411DashboardBase();try{x.brainExplanation=v21411Explain();x.sprite=v21411SpriteMeta(character.skin);x.skin=String(character.skin||'');}catch(e){}return x;};
+  var v21411BrainStateBase=v290BrainState;
+  v290BrainState=function(trigger){var st=v21411BrainStateBase(trigger);st.worldModel=v21411WorldStats();st.explanation=v21411Explain();st.hypotheses=v21411Hyp.slice(-8);return st;};
+  var v21411TelemetryBase=v210BrainTelemetry;
+  v210BrainTelemetry=function(){var x=v21411TelemetryBase();x.explanation=v21411Explain();x.worldModel=v21411WorldStats();x.hypotheses=v21411Hyp.slice(-8);return x;};
+  function v21411ModulesHTML(){return '<div class="card"><h3>🧩 Module · was das Bot-Gehirn darf</h3><div class="muted">Sicherheitsreflexe, Kampf- und Versorgungsregeln bleiben deterministisch. Diese Schalter begrenzen nur Lernen und strategische Autonomie.</div>'+cfgField('brainWorldModelEnabled','Wissensbasis / Weltmodell','check','Speichert Bedeutung, Aktionen, Voraussetzungen, Folgen, Sicherheit und zuletzt bestätigte G.version.')+cfgField('brainDiscoveryModuleEnabled','Discovery priorisieren','check','Darf unbekannte/veraltete sichere Ziele für den Merchant priorisieren.')+cfgField('brainExperimentModuleEnabled','Sichere Experimente','check','Formuliert Hypothesen und wertet nur reversible/kostenfreie, bereits erlaubte Probes aus. Keine zerstörerischen Tests.')+cfgField('brainPlannerModuleEnabled','Strategischer Planner','check','Gewichtet Ziele, Nutzen, Risiko, Zeit und Unsicherheit; dringende Gruppenversorgung bleibt höher priorisiert.')+cfgField('brainGatheringModuleEnabled','Gathering als freie Arbeit einplanen','check')+cfgField('brainStandModuleEnabled','Merchant-Stand als freie Arbeit einplanen','check')+cfgField('brainExplainModuleEnabled','Erklärungen anzeigen','check')+cfgField('brainTeachingKeywords','Lernhinweise / Stichworte','text','Beispiele: seashell, winterland, exchange. Stichworte priorisieren passende Weltmodell-Einträge; sie führen niemals fremden Code aus.')+'</div>';}
+  v290BrainHTML=function(){var e=v21411Explain(),w=e.world,p=e.planner||{alternatives:[]},alts=(p.alternatives||[]).map(function(x){return '<li><b>'+esc(x.label)+'</b> · '+esc(x.reason)+'</li>';}).join('')||'<li>Keine weitere sichere Aufgabe erkannt.</li>',hy=v21411Hyp.slice(-6).reverse().map(function(h){return '<div class="line"><span>'+esc(h.text)+'</span><strong>'+Math.round(Number(h.confidence||0)*100)+'%</strong></div>';}).join('');return '<h2>🧠 '+(C.language==='de'?'Bot-Gehirn':'Bot Brain')+'</h2><div class="notice"><b>Wofür ist das gut?</b> Das Bot-Gehirn merkt sich die Spielwelt, prüft unsichere Annahmen, plant freie Merchant-Zeit und erklärt seine Entscheidungen. Sicherheitskritische Aktionen bleiben feste Bot-Regeln.</div><div class="card brain-explain"><h3>Was mache ich gerade?</h3><b>'+esc(e.current)+'</b><h3>Warum?</h3><div>'+esc(e.why)+'</div><h3>Was würde ich sonst tun?</h3><div>'+esc(e.next)+'</div><h3>Was habe ich gelernt?</h3><div>'+esc(e.learned)+'</div><h3>Wie sicher bin ich?</h3><div><b>'+esc(e.confidenceLabel)+'</b> · '+Number(e.confidencePct||0)+'% · '+Number(e.repetitions||0)+' Bestätigung(en)</div></div>'+v21411ModulesHTML()+'<div class="card"><h3>🌍 Weltmodell</h3><div class="line"><span>Bekannte Einträge</span><strong>'+w.total+'</strong></div><div class="line"><span>Nach Spielupdate veraltet</span><strong>'+w.stale+'</strong></div><div class="line"><span>Noch unsicher</span><strong>'+w.lowConfidence+'</strong></div><div class="line"><span>Bestätigte Hypothesen</span><strong>'+w.supported+' / '+w.hypotheses+'</strong></div><div class="line"><span>G.version</span><strong>'+esc(w.gameVersion||'—')+'</strong></div></div><div class="card"><h3>🧭 Planner · nächste Optionen</h3><ul>'+alts+'</ul></div><div class="card"><h3>🧪 Letzte Hypothesen</h3>'+(hy||'<div class="muted">Noch keine Hypothesen ausgewertet.</div>')+'</div>';};
+  CSS+=' .brain-explain h3{font-size:11px;margin:10px 0 3px;color:var(--accent)}.brain-explain>div{font-size:10px;line-height:1.45}.brain-explain>b{font-size:13px} ';
+  v21411RefreshWorld(true);
+  audit('feature_contract','2.14.11 Weltmodell + sichere Hypothesen + Planner + verständliche Bot-Gehirn-Erklärungen + Sprite-Telemetrie geprüft',{features:FEATURE_CONTRACT,world:v21411WorldStats()});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.

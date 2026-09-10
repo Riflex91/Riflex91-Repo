@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict'),vm=require('vm');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.10');
-assert.equal(version.dashboardVersion,'2.14.5');
-assert.match(bot,/var VERSION = ['"]2\.14\.10['"]/);
+assert.equal(version.version,'2.14.11');
+assert.equal(version.dashboardVersion,'2.14.11');
+assert.match(bot,/var VERSION = ['"]2\.14\.11['"]/);
 assert.doesNotThrow(()=>new vm.Script(bot), 'bot syntax');
 assert.ok(bot.includes("FEATURE_CONTRACT.indexOf('merchant-discovery-safety')"),'discovery safety feature marker missing');
 assert.ok(bot.includes('function v21410TargetDanger'),'target danger classifier missing');
@@ -27,5 +27,5 @@ assert.ok(bot.includes('v2149NpcSeller=function(itemName)')&&bot.includes('v2141
 assert.ok(bot.includes("V2149_BANK_KEY='merchantBankSnapshot2149'"),'2.14.9 bank warehouse regressed');
 assert.ok(bot.includes("v2149RequestBank('craft'")&&bot.includes("v2149RequestBank('compound'")&&bot.includes("v2149RequestBank('gear'"),'2.14.9 bank integration regressed');
 assert.ok(bot.includes("interact('newyear_tree')")&&bot.includes("mainframe_command('hello')"),'safe discovery probes regressed');
-assert.ok(!bot.slice(bot.indexOf('2.14.9 Merchant bank warehouse + active discovery'),bot.indexOf("audit('feature_contract','2.14.10")).includes("interact('the_lever')"),'disruptive lever probing must remain disabled');
-console.log('2.14.10 discovery safety / full static catalog smoke OK');
+assert.ok(!bot.slice(bot.indexOf('2.14.9 Merchant bank warehouse + active discovery'),bot.indexOf("audit('feature_contract','2.14.11")).includes("interact('the_lever')"),'disruptive lever probing must remain disabled');
+console.log('2.14.11 discovery safety / full static catalog smoke OK');
