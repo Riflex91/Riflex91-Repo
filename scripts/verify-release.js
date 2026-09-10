@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.10", "prepared release must be 2.14.10");
-  ok(version.dashboardVersion === "2.14.5", "dashboard version must remain 2.14.5 for bot-only release");
+  ok(version.version === "2.15.0", "prepared release must be 2.15.0");
+  ok(version.dashboardVersion === "2.15.0", "dashboard version must be 2.15.0 for Brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -71,7 +71,8 @@ const requiredFeatures = [
   "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard"
 ];
 for (const feature of requiredFeatures) ok(contract.includes(feature), `protected feature missing: ${feature}`);
-ok(contract.length >= 42, `expected at least 42 protected features, got ${contract.length}`);
+ok(contract.length >= 52, `expected at least 52 protected features, got ${contract.length}`);
+for (const feature of ["merchant-bank-warehouse","merchant-active-discovery","merchant-gathering","merchant-discovery-safety","brain-world-model","brain-safe-experiments","brain-goal-planner","brain-explainability","brain-keyword-learning","dashboard-game-sprites"]) ok(contract.includes(feature), `2.15 protected feature missing: ${feature}`);
 
 const mustContain = [
   ["Inventar tool", "['inventory'"], ["inventory right-click policy", "data-inv-rule"],
@@ -156,7 +157,7 @@ ok(worker.includes("/api/research-brief") && worker.includes("handleResearchBrie
 ok(worker.includes("function researchSummary") && worker.includes("function researchMapObject"), "Research Worker sanitization missing");
 ok(schema.includes("brain_usage") && schema.includes("brain_decisions") && schema.includes("aio_state"), "Brain D1 schema incomplete");
 
-ok(dash.includes("🧠 Gehirn"), "web dashboard Brain overview missing");
+ok(dash.includes("🧠 Bot-Gehirn"), "web dashboard Bot-Gehirn overview missing");
 ok(dash.includes("Neurons heute") && dash.includes("Teacher-Aufrufe") && dash.includes("Samples / Replay"), "Brain dashboard core telemetry missing");
 ok(dash.includes("Reward EMA") && dash.includes("Teacher-Übereinstimmung") && dash.includes("Policy-Freigabe"), "Brain dashboard learning telemetry missing");
 ok(dash.includes("Champion / Challenger") && dash.includes("Canary Reward C / Ch") && dash.includes("Promotions / Rollbacks"), "Brain League dashboard telemetry missing");
@@ -232,3 +233,9 @@ ok(bot.includes("return selfUpdate(false)"), "2.14.8 manual updater must explici
 ok(bot.includes("Auf Updates prüfen & installieren"), "2.14.8 manual update button label missing");
 
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);
+
+// 2.15.0 layered Brain / dashboard contract
+ok(bot.includes("function v215SeedWorld") && bot.includes("function v215PlannerCandidates") && bot.includes("function v215BrainExplain"), "2.15 layered Brain core missing");
+ok(bot.includes("brainLearningKeywords") && bot.includes("brainModuleExperiments"), "2.15 Brain permissions/learning tasks missing");
+ok(dash.includes("function spriteMarkup") && dash.includes("Was das Bot-Gehirn gerade versteht"), "2.15 dashboard explainability/sprites missing");
+ok(worker.includes("brainExplain,sprite"), "2.15 Worker status sanitization missing");
