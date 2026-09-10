@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.6 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.7 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.6';
+  var VERSION = '2.14.7';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -105,6 +105,7 @@
     merchantDeliveryHPQty: 500, merchantDeliveryMPQty: 500, merchantRestockHPAt: 0, merchantRestockMPAt: 0, merchantServiceIntervalSeconds: 90, merchantPickupFreeSlotsAt: 12,
     merchantBankRecheckSeconds: 180, merchantUpgradeCadenceMinutes: 20,
     merchantBuyHPTo: 2200, merchantBuyMPTo: 1800, merchantCollectGoldOver: 25000, merchantInventoryReserve: 5,
+    merchantItemActions: {},
     showSettingHelp: true, uiTransparencyPct: 0, fastTravelEnabled: true, inventoryProtectedItems: '', standLocation: null,
     brainEnabled: true, brainDailyNeuronLimit: 10000, brainBudgetTargetPct: 99.5, brainWorkPct: 100, brainPriorityPct: 55, brainMinConfidencePct: 70, brainModel: '@cf/qwen/qwen3-30b-a3b-fp8',
     brainStudentEnabled: true, brainStudentConfidencePct: 82, brainOutcomeSeconds: 180, brainReplaySize: 512, brainStudentLearningRate: 0.012, brainTeacherMinIntervalSeconds: 30, brainTeacherMaxIntervalSeconds: 600,
@@ -146,6 +147,8 @@
     out.merchantRestockHPAt = clamp(out.merchantRestockHPAt, 0, 99999); out.merchantRestockMPAt = clamp(out.merchantRestockMPAt, 0, 99999);
     out.merchantBuyHPTo = clamp(out.merchantBuyHPTo, 0, 99999); out.merchantBuyMPTo = clamp(out.merchantBuyMPTo, 0, 99999); out.merchantInventoryReserve = clamp(out.merchantInventoryReserve, 2, 20);
     out.merchantCraftTargets = safeString(out.merchantCraftTargets || '', 1200);
+    if(!out.merchantItemActions||typeof out.merchantItemActions!=='object'||Array.isArray(out.merchantItemActions))out.merchantItemActions={};
+    else{var itemActions2147={};Object.keys(out.merchantItemActions).slice(0,2000).forEach(function(name){var p=String(out.merchantItemActions[name]||'auto');if(['keep','bank','sell','exchange'].indexOf(p)>=0)itemActions2147[safeString(name,120)]=p;});out.merchantItemActions=itemActions2147;}
     out.showSettingHelp = out.showSettingHelp !== false; out.uiTransparencyPct = clamp(out.uiTransparencyPct, 0, 85); out.fastTravelEnabled = out.fastTravelEnabled !== false; out.inventoryProtectedItems = safeString(out.inventoryProtectedItems || '', 2400);
     out.brainEnabled=out.brainEnabled!==false; out.brainDailyNeuronLimit=clamp(out.brainDailyNeuronLimit,100,10000); out.brainBudgetTargetPct=clamp(out.brainBudgetTargetPct,80,99.5); out.brainWorkPct=clamp(out.brainWorkPct,0,100); out.brainPriorityPct=clamp(out.brainPriorityPct,0,100); out.brainMinConfidencePct=clamp(out.brainMinConfidencePct,50,99); out.brainModel='@cf/qwen/qwen3-30b-a3b-fp8'; out.brainStudentEnabled=out.brainStudentEnabled!==false; out.brainStudentConfidencePct=clamp(out.brainStudentConfidencePct,55,99); out.brainOutcomeSeconds=clamp(out.brainOutcomeSeconds,60,900); out.brainReplaySize=clamp(out.brainReplaySize,64,1024); out.brainStudentLearningRate=clamp(out.brainStudentLearningRate,0.001,0.05); out.brainTeacherMinIntervalSeconds=clamp(out.brainTeacherMinIntervalSeconds,20,600); out.brainTeacherMaxIntervalSeconds=clamp(out.brainTeacherMaxIntervalSeconds,60,3600); if(out.brainTeacherMaxIntervalSeconds<out.brainTeacherMinIntervalSeconds)out.brainTeacherMaxIntervalSeconds=out.brainTeacherMinIntervalSeconds; out.brainLeagueEnabled=out.brainLeagueEnabled!==false; out.brainChallengerTrafficPct=clamp(out.brainChallengerTrafficPct,5,35); out.brainChallengeMinOutcomes=clamp(out.brainChallengeMinOutcomes,4,24); out.brainRollbackRewardDropPct=clamp(out.brainRollbackRewardDropPct,5,35); out.brainDiaryEnabled=out.brainDiaryEnabled!==false; out.brainDiaryMaxEntries=clamp(out.brainDiaryMaxEntries,20,200); out.brainQualityMonitorEnabled=out.brainQualityMonitorEnabled!==false; out.brainQualityWindow=clamp(out.brainQualityWindow,12,64); out.brainQualityMinOutcomes=clamp(out.brainQualityMinOutcomes,8,32); if(out.brainQualityMinOutcomes>out.brainQualityWindow)out.brainQualityMinOutcomes=out.brainQualityWindow; out.brainQualityOverconfidencePct=clamp(out.brainQualityOverconfidencePct,70,99); out.brainQualityRewardDropPct=clamp(out.brainQualityRewardDropPct,5,40); out.brainQualityCooldownMinutes=clamp(out.brainQualityCooldownMinutes,5,120); out.brainResearchBridgeEnabled=out.brainResearchBridgeEnabled!==false; out.brainResearchProfile=['overall','errors','learning','farm','merchant','development'].indexOf(String(out.brainResearchProfile))>=0?String(out.brainResearchProfile):'development'; out.brainResearchHours=clamp(out.brainResearchHours,1,168); out.brainResearchMaxHighlights=clamp(out.brainResearchMaxHighlights,5,40); out.brainResearchAnonymize=out.brainResearchAnonymize!==false; out.cloudSyncEnabled=out.cloudSyncEnabled!==false; out.cloudSyncSeconds=clamp(out.cloudSyncSeconds,15,600); out.farmerUpgradeCheckSeconds=clamp(out.farmerUpgradeCheckSeconds,30,1800); out.merchantExploreWhenIdle=out.merchantExploreWhenIdle!==false;
     if (!out.standLocation || typeof out.standLocation !== 'object' || !out.standLocation.map || !isFinite(Number(out.standLocation.x)) || !isFinite(Number(out.standLocation.y))) out.standLocation = null; else out.standLocation = { map:safeString(out.standLocation.map,80), x:Math.round(Number(out.standLocation.x)), y:Math.round(Number(out.standLocation.y)) };
@@ -1218,7 +1221,7 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   var I18N_KEYS=['character','party','farm','bestiary','skills','merchant','stand','meters','dashboard','logs','settings','headless','start','pause','active','paused','search','all','monsters','items','language','theme','back','next','close','online','offline','detect','leader','repair','assemble','verify','no_data','update','current_version','found_version','settings_updates','headless_title','bestiary_items','skill_manager'];
   var I18N={
-    en:['Character info','Group settings','Farm targets','Bestiary / Items','Skill manager','Merchant & Elixirs','Merchant stand automation','Damage / Heal','Web dashboard','Event log','Settings & Updates','Headless step by step','Start','Pause','Active','Paused','Search','All','Monsters','Items','Language','GUI theme','Back','Next','Close','online','offline','Detect bot characters','Choose common leader','Repair split parties','Assemble 4/4 party','Verify and continue','No data','Update','Current version','Found version','Settings & Updates','Headless setup','Bestiary / Items','Skill manager'],
+    en:['Character info','Group settings','Farm targets','Bestiary / Items','Skill manager','Merchant settings','Merchant stand automation','Damage / Heal','Web dashboard','Event log','Settings & Updates','Headless step by step','Start','Pause','Active','Paused','Search','All','Monsters','Items','Language','GUI theme','Back','Next','Close','online','offline','Detect bot characters','Choose common leader','Repair split parties','Assemble 4/4 party','Verify and continue','No data','Update','Current version','Found version','Settings & Updates','Headless setup','Bestiary / Items','Skill manager'],
     zh:['角色信息','队伍设置','刷怪目标','怪物图鉴 / 物品','技能管理','商人与药剂','商店自动化','伤害 / 治疗','网页仪表板','事件日志','设置与更新','无界面逐步设置','开始','暂停','运行中','已暂停','搜索','全部','怪物','物品','语言','界面主题','返回','下一步','关闭','在线','离线','检测机器人角色','选择共同队长','修复分裂队伍','组成 4/4 队伍','验证并继续','无数据','更新','当前版本','发现版本','设置与更新','无界面设置','怪物图鉴 / 物品','技能管理'],
     hi:['चरित्र जानकारी','समूह सेटिंग','फार्म लक्ष्य','बेस्टियरी / आइटम','स्किल मैनेजर','मर्चेंट और एलिक्सिर','मर्चेंट स्टैंड ऑटोमेशन','डैमेज / हील','वेब डैशबोर्ड','इवेंट लॉग','सेटिंग और अपडेट','हेडलेस चरण-दर-चरण','शुरू','रोकें','सक्रिय','रुका हुआ','खोज','सभी','मॉन्स्टर','आइटम','भाषा','GUI थीम','वापस','आगे','बंद करें','ऑनलाइन','ऑफलाइन','बॉट चरित्र पहचानें','साझा लीडर चुनें','टूटी पार्टियां ठीक करें','4/4 पार्टी बनाएं','जांचें और आगे बढ़ें','कोई डेटा नहीं','अपडेट','वर्तमान संस्करण','मिला संस्करण','सेटिंग और अपडेट','हेडलेस सेटअप','बेस्टियरी / आइटम','स्किल मैनेजर'],
     es:['Información del personaje','Ajustes de grupo','Objetivos de farmeo','Bestiario / Objetos','Gestor de habilidades','Mercader y elixires','Automatización del puesto','Daño / Curación','Panel web','Registro de eventos','Ajustes y actualizaciones','Headless paso a paso','Iniciar','Pausar','Activo','Pausado','Buscar','Todo','Monstruos','Objetos','Idioma','Tema de interfaz','Atrás','Siguiente','Cerrar','en línea','sin conexión','Detectar personajes del bot','Elegir líder común','Reparar grupos divididos','Formar grupo 4/4','Verificar y continuar','Sin datos','Actualizar','Versión actual','Versión encontrada','Ajustes y actualizaciones','Configuración headless','Bestiario / Objetos','Gestor de habilidades'],
@@ -1229,7 +1232,7 @@
     ru:['Информация о персонаже','Настройки группы','Цели фарма','Бестиарий / Предметы','Менеджер навыков','Торговец и эликсиры','Автоматизация лавки','Урон / Лечение','Веб-панель','Журнал событий','Настройки и обновления','Headless пошагово','Старт','Пауза','Активен','Пауза','Поиск','Все','Монстры','Предметы','Язык','Тема GUI','Назад','Далее','Закрыть','онлайн','офлайн','Найти персонажей бота','Выбрать общего лидера','Исправить разделённые группы','Собрать группу 4/4','Проверить и продолжить','Нет данных','Обновление','Текущая версия','Найденная версия','Настройки и обновления','Headless настройка','Бестиарий / Предметы','Менеджер навыков'],
     id:['Info karakter','Pengaturan grup','Target farming','Bestiary / Item','Pengelola skill','Merchant & Elixir','Otomasi stand merchant','Damage / Heal','Dashboard web','Log peristiwa','Pengaturan & Pembaruan','Headless langkah demi langkah','Mulai','Jeda','Aktif','Dijeda','Cari','Semua','Monster','Item','Bahasa','Tema GUI','Kembali','Berikutnya','Tutup','online','offline','Deteksi karakter bot','Pilih pemimpin bersama','Perbaiki party terpisah','Susun party 4/4','Verifikasi dan lanjut','Tidak ada data','Pembaruan','Versi saat ini','Versi ditemukan','Pengaturan & Pembaruan','Pengaturan headless','Bestiary / Item','Pengelola skill'],
     ur:['کردار کی معلومات','گروپ سیٹنگز','فارم اہداف','بیسٹیری / آئٹمز','اسکل مینیجر','مرچنٹ اور ایلکسر','مرچنٹ اسٹینڈ آٹومیشن','ڈیمیج / ہیل','ویب ڈیش بورڈ','ایونٹ لاگ','سیٹنگز اور اپڈیٹس','ہیڈ لیس مرحلہ وار','شروع','وقفہ','فعال','روکا ہوا','تلاش','سب','مونسٹر','آئٹمز','زبان','GUI تھیم','واپس','اگلا','بند','آن لائن','آف لائن','بوٹ کردار شناخت کریں','مشترکہ لیڈر منتخب کریں','تقسیم پارٹی درست کریں','4/4 پارٹی بنائیں','تصدیق اور جاری','کوئی ڈیٹا نہیں','اپڈیٹ','موجودہ ورژن','ملا ہوا ورژن','سیٹنگز اور اپڈیٹس','ہیڈ لیس سیٹ اپ','بیسٹیری / آئٹمز','اسکل مینیجر'],
-    de:['Charakterinfo','Gruppeneinstellungen','Farmziele','Bestiarium / Items','Skillmanager','Merchant & Elixiere','Merchant-Stand-Automatisierung','Schaden / Heilung','Web-Dashboard','Ereignisprotokoll','Einstellungen & Updates','Headless Schritt für Schritt','Start','Pause','Aktiv','Pausiert','Suchen','Alle','Monster','Items','Sprache','GUI-Theme','Zurück','Weiter','Schließen','online','offline','Bot-Charaktere erkennen','Gemeinsamen Anführer wählen','Geteilte Gruppen reparieren','4/4-Gruppe zusammensetzen','Prüfen und fortfahren','Keine Daten','Update','Aktuelle Version','Gefundene Version','Einstellungen & Updates','Headless-Einrichtung','Bestiarium / Items','Skillmanager'],
+    de:['Charakterinfo','Gruppeneinstellungen','Farmziele','Bestiarium / Items','Skillmanager','Merchant-Einstellungen','Merchant-Stand-Automatisierung','Schaden / Heilung','Web-Dashboard','Ereignisprotokoll','Einstellungen & Updates','Headless Schritt für Schritt','Start','Pause','Aktiv','Pausiert','Suchen','Alle','Monster','Items','Sprache','GUI-Theme','Zurück','Weiter','Schließen','online','offline','Bot-Charaktere erkennen','Gemeinsamen Anführer wählen','Geteilte Gruppen reparieren','4/4-Gruppe zusammensetzen','Prüfen und fortfahren','Keine Daten','Update','Aktuelle Version','Gefundene Version','Einstellungen & Updates','Headless-Einrichtung','Bestiarium / Items','Skillmanager'],
     ja:['キャラクター情報','グループ設定','狩り目標','モンスター図鑑 / アイテム','スキル管理','商人とエリクサー','商店自動化','ダメージ / 回復','Webダッシュボード','イベントログ','設定と更新','ヘッドレス手順','開始','一時停止','稼働中','一時停止中','検索','すべて','モンスター','アイテム','言語','GUIテーマ','戻る','次へ','閉じる','オンライン','オフライン','Botキャラクターを検出','共通リーダーを選択','分裂パーティーを修復','4/4パーティーを構成','確認して続行','データなし','更新','現在のバージョン','検出バージョン','設定と更新','ヘッドレス設定','モンスター図鑑 / アイテム','スキル管理'],
     pcm:['Character info','Group settings','Farm target','Bestiary / Items','Skill manager','Merchant & Elixir','Merchant stand automation','Damage / Heal','Web dashboard','Event log','Settings & Update','Headless step by step','Start','Pause','Active','Pause','Search','All','Monsters','Items','Language','GUI theme','Back','Next','Close','online','offline','Find bot characters','Choose one leader','Fix split party','Gather 4/4 party','Check and continue','No data','Update','Current version','Version we find','Settings & Update','Headless setup','Bestiary / Items','Skill manager'],
     arz:['معلومات الشخصية','إعدادات الجروب','أهداف الفارم','دليل الوحوش / الأدوات','مدير المهارات','التاجر والإكسير','أوتوماتيك ستاند التاجر','الضرر / العلاج','داشبورد الويب','سجل الأحداث','الإعدادات والتحديثات','هيدلس خطوة بخطوة','تشغيل','إيقاف','شغال','متوقف','بحث','الكل','وحوش','أدوات','اللغة','شكل الواجهة','رجوع','التالي','قفل','أونلاين','أوفلاين','اكتشف شخصيات البوت','اختار ليدر واحد','صلّح الجروبات المتقسمة','كوّن جروب 4/4','راجع وكمل','مفيش بيانات','تحديث','الإصدار الحالي','الإصدار الموجود','الإعدادات والتحديثات','إعداد هيدلس','دليل الوحوش / الأدوات','مدير المهارات']
@@ -1944,7 +1947,7 @@
       if(connectionTick()||deathTick())return;
       if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}
       sustainTick();if(supportTick())return;
-      if(typeof loot==='function'&&clock()>(S.times.loot||0)){S.times.loot=clock()+900;action('Loot einsammeln',function(){return loot();},'loot',850);}
+      if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){S.times.loot=clock()+900;action('Loot einsammeln',function(){return loot();},'loot',850);}
       if(character.ctype==='merchant')merchantTick();else {v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}
       if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}
     } catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}
@@ -3059,6 +3062,198 @@
     }
     return v2146UiClickBase(e);
   };
+
+  // ---------------------------------------------------------------------------
+  // 2.14.7 Merchant bank-race guard + optional per-item disposition overrides.
+  // ---------------------------------------------------------------------------
+  var V2147_ITEM_POLICIES=['auto','keep','bank','sell','exchange'];
+
+  function v2147ItemPolicy(name){
+    var map=C.merchantItemActions;
+    if(!name||!map||typeof map!=='object')return 'auto';
+    var p=String(map[name]||'auto');
+    return V2147_ITEM_POLICIES.indexOf(p)>=0?p:'auto';
+  }
+  function v2147SetItemPolicy(name,policy){
+    name=String(name||'').trim();policy=String(policy||'auto');
+    if(!name)return false;
+    if(V2147_ITEM_POLICIES.indexOf(policy)<0)policy='auto';
+    var map=Object.assign({},C.merchantItemActions||{});
+    if(policy==='auto')delete map[name];else map[name]=policy;
+    C.merchantItemActions=map;C=cleanConfig(C);write('config',C);S.cloudConfigDirty=true;
+    audit('merchant_item_rule',(C.language==='de'?'Item-Regel geändert: ':'Item rule changed: ')+name,{item:name,policy:policy});
+    return true;
+  }
+  function v2147BankExitActive(){
+    var lock=S.moveArbiter2145;
+    return !!(lock&&v2145MoveLockActive(lock)&&/bank-exit/i.test(String(lock.kind||'')));
+  }
+  function v2147BankReady(){
+    return String(character.map||'').indexOf('bank')===0&&!character.moving&&!S.moveInFlight&&!v2147BankExitActive();
+  }
+  function v2147ItemIds(){
+    var ids=Object.keys(GD.items||{});
+    ids.sort(function(a,b){
+      var an=String((GD.items[a]||{}).name||a),bn=String((GD.items[b]||{}).name||b);
+      return an.localeCompare(bn)||a.localeCompare(b);
+    });
+    return ids;
+  }
+  function v2147PolicyLabel(policy){
+    var de=C.language==='de';
+    if(policy==='keep')return de?'Im Inventar behalten':'Keep in inventory';
+    if(policy==='bank')return de?'In Bank lagern':'Store in bank';
+    if(policy==='sell')return de?'An NPC verkaufen':'Sell to NPC';
+    if(policy==='exchange')return de?'Exchange-Item eintauschen':'Exchange item';
+    return de?'Automatisch (bestehende Botlogik)':'Automatic (existing bot logic)';
+  }
+  function v2147RulesHTML(){
+    var de=C.language==='de',configured=Object.keys(C.merchantItemActions||{}).filter(function(id){return v2147ItemPolicy(id)!=='auto';});
+    var ids=v2147ItemIds(),selected=String(S.merchantItemRuleSelected||'');
+    if(!selected||ids.indexOf(selected)<0){
+      selected=configured[0]||((character.items||[]).filter(Boolean)[0]||{}).name||ids[0]||'';
+      S.merchantItemRuleSelected=selected;
+    }
+    var opts=ids.map(function(id){var d=GD.items[id]||{};return '<option value="'+esc(id)+'"'+(id===selected?' selected':'')+'>'+esc((d.name||id)+' · '+id)+'</option>';}).join('');
+    var policy=v2147ItemPolicy(selected);
+    var policies=V2147_ITEM_POLICIES.map(function(p){return '<option value="'+p+'"'+(p===policy?' selected':'')+'>'+esc(v2147PolicyLabel(p))+'</option>';}).join('');
+    var rows=configured.sort(function(a,b){return a.localeCompare(b);}).map(function(id){var d=GD.items[id]||{};return '<div class="line"><span>'+esc((d.name||id)+' · '+id)+'</span><strong>'+esc(v2147PolicyLabel(v2147ItemPolicy(id)))+'</strong><button class="btn" data-action="merchant-item-rule-clear" data-item="'+esc(id)+'">'+(de?'Automatik':'Auto')+'</button></div>';}).join('');
+    return '<div class="card merchant-item-rules"><h3>'+(de?'Item-Verhalten (optional)':'Item behavior (optional)')+'</h3>'+
+      '<div class="notice">'+(de?'Ohne Eintrag bleibt für jedes Item exakt die bestehende Botlogik aktiv. Eine Einzelregel überschreibt nur Lagerung, NPC-Verkauf oder Exchange; Crafting-, Upgrade- und Compound-Planer bleiben unverändert.':'Without an entry, every item keeps the existing bot logic exactly. A per-item rule overrides only storage, NPC selling or exchange; crafting, upgrade and compound planners stay unchanged.')+'</div>'+
+      '<div class="setting"><label>'+(de?'Item':'Item')+'</label><select data-merchant-item-picker="1">'+opts+'</select></div>'+
+      '<div class="setting"><label>'+(de?'Aktion des Merchants':'Merchant action')+'</label><select data-merchant-item-action="1" data-item="'+esc(selected)+'">'+policies+'</select></div>'+
+      (rows?'<div class="card"><h3>'+(de?'Aktive Einzelregeln':'Active item rules')+'</h3>'+rows+'</div>':'<div class="muted">'+(de?'Keine Einzelregeln gesetzt.':'No item rules configured.')+'</div>')+
+      '</div>';
+  }
+
+  var v2147MerchantHTMLBase=merchantHTML;
+  merchantHTML=function(){
+    var html=v2147MerchantHTMLBase(),title=C.language==='de'?'Merchant-Einstellungen':'Merchant settings';
+    return html.replace(/^<h2>[\s\S]*?<\/h2>/,'<h2>'+esc(title)+'</h2>'+v2147RulesHTML());
+  };
+
+  var v2147SellDecisionBase=v2145SellDecision;
+  v2145SellDecision=function(it){
+    var base=v2147SellDecisionBase(it),policy=v2147ItemPolicy(it&&it.name);
+    if(policy!=='auto')return Object.assign({},base,{sell:false,protected:true,reason:'item-policy-'+policy});
+    return base;
+  };
+  v2144SellDecision=v2145SellDecision;
+
+  v273StoreTrashBankTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank||freeSlots()>C.merchantInventoryReserve)return false;
+    if(!v2147BankReady()||!character.bank){
+      S.status=C.language==='de'?'Inventar organisieren · zur Bank':'Organize inventory · to bank';S.mode='Merchant · Bank';
+      if(v2147BankExitActive())return true;
+      return moveToGoal({map:'bank',x:0,y:0},C.language==='de'?'Bank organisieren':'Organize bank',{kind:'bank',forceAfter:7000});
+    }
+    var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;return v273OpenBankPackTick();}
+    var idx=(character.items||[]).findIndex(function(it){
+      if(!it||v2147ItemPolicy(it.name)!=='auto'||it.l||it.p||isElixir(it)||it.name===C.hpot||it.name===C.mpot||/^c?scroll[0-4]$/.test(String(it.name||'')))return false;
+      var d=GD.items&&GD.items[it.name]||{},required=S.merchantPlan&&S.merchantPlan.farmOrder&&S.merchantPlan.farmOrder.item===it.name;
+      if(required)return false;
+      return v273GroupUtility(it)<0||(!d.upgrade&&!d.compound&&!d.e&&!d.exchange&&!d.exchanges);
+    });
+    if(idx>=0&&typeof bank_store==='function'){
+      var item=character.items[idx];
+      return action('Item in Bank lagern '+item.name,function(){
+        if(!v2147BankReady())throw Error('bank_location_changed');
+        return bank_store(idx);
+      },'bank-store',1300);
+    }
+    return false;
+  };
+
+  v273ExchangeTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantAutoExchange||typeof exchange!=='function')return false;
+    var rows=[];
+    (character.items||[]).forEach(function(it,i){
+      if(!it||it.l||it.p)return;
+      var p=v2147ItemPolicy(it.name),d=GD.items&&GD.items[it.name]||{};
+      if((p==='auto'||p==='exchange')&&(d.e||d.exchange||d.exchanges))rows.push({i:i,it:it,explicit:p==='exchange'});
+    });
+    rows.sort(function(a,b){return (b.explicit?1:0)-(a.explicit?1:0)||a.i-b.i;});
+    if(!rows.length)return false;
+    var row=rows[0],d=GD.items[row.it.name]||{},need=Number(d.e)||Number(d.exchange)||1;
+    if((Number(row.it.q)||1)<need)return false;
+    if(String(character.map||'').indexOf('bank')===0){
+      S.status=C.language==='de'?'Bank verlassen, bevor Belohnungs-Item eingetauscht wird':'Leave bank before exchanging reward item';S.mode='Merchant · Exchange';
+      return moveToGoal({map:'main',x:0,y:0},C.language==='de'?'Bank für Eintausch verlassen':'Leave bank for exchange',{kind:'exchange-exit',forceAfter:9000});
+    }
+    S.status=(C.language==='de'?'Belohnungs-Item eintauschen: ':'Exchange reward item: ')+v273Name(row.it.name);S.mode='Merchant · Exchange';
+    return action('Item eintauschen '+row.it.name,function(){return exchange(row.i);},'merchant-exchange:'+row.it.name,5000);
+  };
+
+  function v2147ExplicitItemTick(){
+    if(character.ctype!=='merchant')return false;
+    var items=character.items||[];
+    for(var i=0;i<items.length;i++){
+      var it=items[i];if(!it||it.l||it.p)continue;
+      var policy=v2147ItemPolicy(it.name);
+      if(policy==='bank'){
+        if(!C.merchantManageBank)return false;
+        if(!v2147BankReady()||!character.bank){
+          S.status=(C.language==='de'?'Item-Regel: zur Bank · ':'Item rule: to bank · ')+v273Name(it.name);S.mode='Merchant · Bank';
+          if(v2147BankExitActive())return true;
+          return moveToGoal({map:'bank',x:0,y:0},'Item-Regel Bank '+it.name,{kind:'merchant-item-bank',forceAfter:9000});
+        }
+        var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;return v273OpenBankPackTick()||true;}
+        if(typeof bank_store!=='function')return false;
+        return action('Item-Regel Bank '+it.name,function(){
+          if(!v2147BankReady())throw Error('bank_location_changed');
+          return bank_store(i);
+        },'merchant-item-bank:'+it.name,1500);
+      }
+      if(policy==='sell'){
+        if(!C.merchantSellTrashToNpc||typeof sell!=='function')return false;
+        var dest=v2144SellVendor();
+        if(!dest)return false;
+        if(!v2145VendorReady(dest)){
+          S.status=(C.language==='de'?'Item-Regel: NPC-Verkauf · ':'Item rule: NPC sale · ')+v273Name(it.name);S.mode='Merchant · NPC-Verkauf';
+          return moveToGoal(dest,'Item-Regel NPC-Verkauf '+it.name,{kind:'merchant-item-npc-sell',tolerance:45,forceAfter:15000});
+        }
+        var q=Number(it.q)||1;
+        audit('merchant_economy_decision','Explizite Item-Regel: NPC-Verkauf',{item:it.name,quantity:q,policy:'sell',npcValue:itemValueSafe(it)});
+        return action('Item-Regel NPC-Verkauf '+it.name,function(){return sell(i,q);},'merchant-item-sell:'+it.name,2200);
+      }
+      if(policy==='exchange'){
+        if(!C.merchantAutoExchange)return false;
+        return v273ExchangeTick();
+      }
+    }
+    return false;
+  }
+
+  var v2147MerchantTickBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype==='merchant'&&v2147ExplicitItemTick())return true;
+    return v2147MerchantTickBase();
+  };
+
+  var v2147UiChangeBase=uiChange;
+  uiChange=function(e){
+    var el=e&&e.target;
+    if(el&&el.dataset&&el.dataset.merchantItemPicker!==undefined){
+      S.merchantItemRuleSelected=String(el.value||'');write('merchantItemRuleSelected:'+me,S.merchantItemRuleSelected);renderTool('merchant');return;
+    }
+    if(el&&el.dataset&&el.dataset.merchantItemAction!==undefined){
+      var item=String(el.dataset.item||S.merchantItemRuleSelected||'');
+      v2147SetItemPolicy(item,el.value);S.merchantItemRuleSelected=item;renderTool('merchant');return;
+    }
+    return v2147UiChangeBase(e);
+  };
+  var v2147UiClickBase=uiClick;
+  uiClick=function(e){
+    var t=e&&e.target&&e.target.closest?e.target.closest('button'):null;
+    if(t&&t.dataset&&t.dataset.action==='merchant-item-rule-clear'){
+      var item=String(t.dataset.item||'');v2147SetItemPolicy(item,'auto');
+      renderTool('merchant');return;
+    }
+    return v2147UiClickBase(e);
+  };
+
+  try{S.merchantItemRuleSelected=read('merchantItemRuleSelected:'+me,S.merchantItemRuleSelected||'');}catch(e){}
+  audit('feature_contract','2.14.7 Merchant-Bank-Race-Schutz + optionale Item-Einzelregeln geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
   var receive27=on_cm;

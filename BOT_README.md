@@ -1,4 +1,4 @@
-# Adventure Land – AiO Bot 2.14.6 · technische Notizen
+# Adventure Land – AiO Bot 2.14.7 · technische Notizen
 
 
 ## 2.14.5 Merchant-Reliability / Dashboard / GUI
@@ -192,4 +192,11 @@ Syntax- und Mock-Tests können die Release- und API-Logik prüfen. Sie ersetzen 
 ### 2.14.6 Merchant-/Update-Button-Hotfix
 - Behebt den Merchant-Absturz `v2144NpcValue is not defined`; die 2.14.5-Verkaufslogik nutzt jetzt den vorhandenen sicheren `itemValueSafe()`-Helfer.
 - Der manuelle Update-Button zeigt auf Deutsch **„Auf Updates prüfen“**, während der Prüfung **„Prüfe auf Updates …“**, und zeigt den letzten Prüfstatus direkt in den Einstellungen.
+- Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.
+
+### 2.14.7 Merchant-Bank-Race + Item-Einzelregeln
+- Behebt den beobachteten Bank-Race: `bank_store` läuft nur noch tatsächlich auf einer Bank-Map, im Stillstand und ohne aktiven Bank-Exit. Dadurch kann die höher priorisierte `compound-bank-exit`-Route keine nachlaufende Bankablage mehr in `main` auslösen.
+- Der Merchant ruft `loot()` nicht mehr innerhalb der Bank auf; die normalen Loot-Aufrufe außerhalb der Bank bleiben unverändert.
+- Das Fenster heißt auf Deutsch **„Merchant-Einstellungen“**. Ganz oben gibt es optionale Einzelregeln pro Item: **Automatisch**, **Im Inventar behalten**, **In Bank lagern**, **An NPC verkaufen** oder **Exchange-Item eintauschen**.
+- Ohne gesetzte Einzelregel bleibt die bisherige Botlogik exakt der Standard. Die Einzelregeln steuern Lagerung/NPC-Verkauf/Exchange; Crafting-, Upgrade- und Compound-Planer bleiben unverändert.
 - Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.

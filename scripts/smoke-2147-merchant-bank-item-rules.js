@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+"use strict";
+const fs=require('fs'),assert=require('assert/strict');
+const bot=fs.readFileSync('bot.js','utf8');
+const version=JSON.parse(fs.readFileSync('version.json','utf8'));
+assert.equal(version.version,'2.14.7');
+assert.equal(version.dashboardVersion,'2.14.5');
+assert.match(bot,/var VERSION = ['"]2\.14\.7['"]/);
+assert.ok(bot.includes("merchantItemActions: {}"),'item action default must be empty so legacy automation stays default');
+assert.ok(bot.includes("function v2147ItemPolicy"),'per-item policy helper missing');
+assert.ok(bot.includes("return V2147_ITEM_POLICIES.indexOf(p)>=0?p:'auto'"),'unknown/missing item policy must fall back to auto');
+assert.ok(bot.includes("Merchant-Einstellungen"),'German Merchant window title missing');
+assert.ok(bot.includes("Automatisch (bestehende Botlogik)"),'German automatic item behavior label missing');
+assert.ok(bot.includes("Eine Einzelregel überschreibt nur Lagerung, NPC-Verkauf oder Exchange"),'scope disclosure missing');
+assert.ok(bot.includes("function v2147BankExitActive"),'bank-exit guard missing');
+assert.ok(bot.includes("function v2147BankReady"),'bank readiness guard missing');
+assert.ok(bot.includes("String(character.map||'').indexOf('bank')===0&&!character.moving&&!S.moveInFlight&&!v2147BankExitActive()"),'bank readiness must require bank map, settled movement and no bank-exit');
+assert.ok(bot.includes("if(!v2147BankReady())throw Error('bank_location_changed')"),'bank_store must recheck location at action execution');
+assert.ok(bot.includes("v2147ItemPolicy(it.name)!=='auto'"),'automatic bank cleanup must skip explicit item rules');
+assert.ok(bot.includes("policy!=='auto')return Object.assign({},base,{sell:false,protected:true"),'automatic NPC seller must skip explicit item rules');
+assert.ok(bot.includes("p==='auto'||p==='exchange'"),'automatic exchange must respect explicit non-exchange rules');
+assert.ok(bot.includes("function v2147ExplicitItemTick"),'explicit item behavior tick missing');
+assert.ok(bot.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"),'Merchant loot() must be suppressed while in bank');
+console.log('2.14.7 Merchant bank race / item rules smoke OK');

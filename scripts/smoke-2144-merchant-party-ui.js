@@ -2,7 +2,7 @@
 "use strict";
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
-assert.match(bot,/var VERSION = ['"]2\.14\.6['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.7['"]/);
 assert.ok(bot.includes('netNpcDelta'),'upgrade/compound economics must compare projected NPC value with input + scroll cost');
 assert.ok(bot.includes('empiricalDropRate'),'Merchant economy must consider learned drop frequency');
 assert.ok(bot.includes('recipeUses'),'Merchant economy must reserve crafting inputs');
@@ -18,4 +18,4 @@ assert.ok(bot.includes(".mainbox.collapsed{height:auto!important;min-height:0!im
 function consensus(rows,leader){const counts={};for(const r of rows)counts[r.key]=(counts[r.key]||0)+1;const lk=(rows.find(r=>r.name===leader)||{}).key||'';return Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||(a===lk?-1:b===lk?1:a.localeCompare(b)))[0];}
 assert.equal(consensus([{name:'Farmer1',key:'EU|I'},{name:'Farmer2',key:'EU|I'},{name:'Farmer3',key:'EU|I'},{name:'Merchant',key:'EU|II'}],'Merchant'),'EU|I','3-vs-1 split must choose the farmers majority realm');
 assert.equal(consensus([{name:'Farmer1',key:'EU|I'},{name:'Farmer2',key:'EU|I'},{name:'Farmer3',key:'EU|II'},{name:'Merchant',key:'EU|II'}],'Merchant'),'EU|II','2-vs-2 tie must prefer canonical leader realm');
-console.log('2.14.6 Merchant economy / party realm / GUI smoke OK');
+console.log('2.14.7 Merchant economy / party realm / GUI smoke OK');

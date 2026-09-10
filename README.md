@@ -1,4 +1,4 @@
-# Adventure Land – AiO Bot 2.14.6
+# Adventure Land – AiO Bot 2.14.7
 
 Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
@@ -157,4 +157,11 @@ Das selbstlernende Netz darf ausschließlich strategische Whitelist-Aktionen emp
 ### 2.14.6 Merchant-/Update-Button-Hotfix
 - Behebt den Merchant-Absturz `v2144NpcValue is not defined`; die 2.14.5-Verkaufslogik nutzt jetzt den vorhandenen sicheren `itemValueSafe()`-Helfer.
 - Der manuelle Update-Button zeigt auf Deutsch **„Auf Updates prüfen“**, während der Prüfung **„Prüfe auf Updates …“**, und zeigt den letzten Prüfstatus direkt in den Einstellungen.
+- Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.
+
+### 2.14.7 Merchant-Bank-Race + Item-Einzelregeln
+- Behebt den beobachteten Bank-Race: `bank_store` läuft nur noch tatsächlich auf einer Bank-Map, im Stillstand und ohne aktiven Bank-Exit. Dadurch kann die höher priorisierte `compound-bank-exit`-Route keine nachlaufende Bankablage mehr in `main` auslösen.
+- Der Merchant ruft `loot()` nicht mehr innerhalb der Bank auf; die normalen Loot-Aufrufe außerhalb der Bank bleiben unverändert.
+- Das Fenster heißt auf Deutsch **„Merchant-Einstellungen“**. Ganz oben gibt es optionale Einzelregeln pro Item: **Automatisch**, **Im Inventar behalten**, **In Bank lagern**, **An NPC verkaufen** oder **Exchange-Item eintauschen**.
+- Ohne gesetzte Einzelregel bleibt die bisherige Botlogik exakt der Standard. Die Einzelregeln steuern Lagerung/NPC-Verkauf/Exchange; Crafting-, Upgrade- und Compound-Planer bleiben unverändert.
 - Dashboard/Worker und Brain bleiben unverändert auf dem 2.14.5-Stand.
