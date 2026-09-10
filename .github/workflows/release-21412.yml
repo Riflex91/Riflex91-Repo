@@ -14,7 +14,7 @@ jobs:
           fetch-depth: 0
       - name: Apply deterministic 2.14.12 patch
         run: python3 scripts/patch-21412.py
-      - name: Align dashboard package, terrain overlay and worker metadata
+      - name: Align dashboard package, terrain overlay, worker and retained smoke metadata
         shell: bash
         run: |
           python3 - <<'PY'
@@ -43,6 +43,11 @@ jobs:
           pkg=json.loads(pkg_path.read_text(encoding='utf-8'))
           pkg['version']='2.14.12'
           pkg_path.write_text(json.dumps(pkg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          for p in Path('scripts').glob('smoke*'):
+              if not p.is_file() or p.suffix not in ('.js','.mjs'): continue
+              s=p.read_text(encoding='utf-8')
+              s=s.replace(r'2\.14\.11',r'2\.14\.12')
+              p.write_text(s,encoding='utf-8')
           PY
       - name: Syntax check bot and worker
         run: |
