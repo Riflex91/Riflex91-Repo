@@ -25,6 +25,15 @@ jobs:
           p.write_text(s)
           PY
           python3 .github/patch2150.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for p in Path('scripts').glob('*.js'):
+              s=p.read_text()
+              s=re.sub(r"(dashboardVersion\s*,\s*['\"])2\.14\.5(['\"])",r"\g<1>2.15.0\2",s)
+              s=re.sub(r"(dashboardVersion\s*={2,3}\s*['\"])2\.14\.5(['\"])",r"\g<1>2.15.0\2",s)
+              p.write_text(s)
+          PY
       - name: Bot syntax
         run: node --check bot.js
       - name: Release verifier
