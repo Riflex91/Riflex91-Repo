@@ -22,6 +22,18 @@ jobs:
           node-version: 22
       - name: Apply 2.14.4 Merchant economy / party realm / GUI fix
         run: python scripts/apply-2.14.4-merchant-economy-party-ui.py
+      - name: Correct generated Merchant smoke selector
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/smoke-merchant-stability.js')
+          s=p.read_text(encoding='utf-8')
+          old="assert.ok(!bot.includes(\"if(character.ctype!=='merchant'||!C.merchantSellTrashToNpc||!S.bankFull||typeof sell!=='function')\"),'NPC selling must not require a full bank');"
+          new="const sellOverridePos=bot.lastIndexOf(\"v273SellTrashTick=function(){\");\nassert.ok(sellOverridePos>=0,'2.14.4 NPC sell override missing');\nconst sellOverride=bot.slice(sellOverridePos,bot.indexOf(\"\\n  };\",sellOverridePos)+5);\nassert.ok(!sellOverride.includes('!S.bankFull'),'latest NPC sell override must not require a full bank');"
+          if old not in s:
+              raise SystemExit('generated Merchant smoke selector marker not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
       - name: JavaScript syntax
         run: node --check bot.js
       - name: Release contract
