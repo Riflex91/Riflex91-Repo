@@ -159,7 +159,7 @@ for p in (ROOT / 'scripts').glob('smoke*'):
     if not p.is_file() or p.suffix not in ('.js', '.mjs'):
         continue
     s = p.read_text(encoding='utf-8')
-    s = s.replace(r'2\\.14\\.12', r'2\\.14\\.13')
+    s = s.replace(r'2\.14\.12', r'2\.14\.13')
     s = s.replace('2.14.12', '2.14.13')
     p.write_text(s, encoding='utf-8')
 
