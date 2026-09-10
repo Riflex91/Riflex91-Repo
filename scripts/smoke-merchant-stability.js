@@ -2,7 +2,7 @@
 "use strict";
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
-assert.match(bot,/var VERSION = ['"]2\.14\.8['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.9['"]/);
 assert.ok(bot.includes('gold>=trigger'));
 assert.ok(bot.includes('serviceTrigger:trigger'));
 assert.ok(bot.includes("'loot-gold',5000"));

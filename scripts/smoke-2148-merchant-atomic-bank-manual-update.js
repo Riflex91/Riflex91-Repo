@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.8');
+assert.equal(version.version,'2.14.9');
 assert.equal(version.dashboardVersion,'2.14.5');
-assert.match(bot,/var VERSION = ['"]2\.14\.8['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.9['"]/);
 assert.ok(bot.includes('function v2148BankCleanupCandidate'),'bank candidate preflight missing');
 assert.ok(bot.includes('function v2148BankCleanupTick'),'atomic bank cleanup state machine missing');
 assert.ok(bot.includes("policy==='bank')continue"),'legacy explicit bank route must yield to atomic cleanup');
