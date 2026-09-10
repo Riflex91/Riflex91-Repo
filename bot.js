@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.13 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.14 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.13';
+  var VERSION = '2.14.14';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -1939,7 +1939,7 @@
     if(S.disposed)return;
     try {
       flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}
-      if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+1000;v273UpdateSessionRates();stateAuditTick();}
+      if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+(character.ctype==='merchant'?2000:1000);v273UpdateSessionRates();stateAuditTick();}
       if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}
       syncAutoRoster(false);partyReconcileTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();
       if(!S.running){S.status='Pausiert';S.mode='Pause';return;}
@@ -2155,7 +2155,8 @@
     'champion-challenger','brain-auto-rollback','brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard','brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard',
     'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety',
     'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites',
-    'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed'
+    'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed',
+    'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle'
   ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
@@ -2522,7 +2523,7 @@
   var v210CloudBase=v290CloudSyncTick;
   v290CloudSyncTick=function(force){if(!C.cloudSyncEnabled||S.cloudSyncBusy)return false;var now=clock(),gap=C.cloudSyncSeconds*1000;if(!force&&now-Math.max(S.cloudSync.pullAt||0,S.cloudSync.pushAt||0)<gap)return false;S.cloudSyncBusy=true;var initialized=!!read('cloudSyncInitialized',false),pushConfig=initialized&&(character.ctype==='merchant'||!!S.cloudConfigDirty),payload={op:'sync',config:pushConfig?v290CloudConfig():null,learning:v290CompactLearning(),observations:{explorer:{index:S.explorer.index||0,visited:S.explorer.visited||{},recent:(S.explorer.recentSamples||[]).slice(-20)}},student:character.ctype==='merchant'?v210StudentExport():null,configHash:pushConfig?v282ConfigHash(v290CloudConfig()):'',clientAt:now};S.cloudSync.pushAt=now;v290Fetch('/api/state',payload).then(function(j){if(j&&j.config&&j.configHash&&j.configHash!==v282ConfigHash(v290CloudConfig())&&Number(j.updatedAt||0)>Number(read('cloudConfigAt',0)||0)){var keepKey=C.webDashboardWriteKey;C=cleanConfig(Object.assign({},C,j.config));C.webDashboardWriteKey=keepKey;write('config',C);write('cloudConfigAt',Number(j.updatedAt)||clock());applyAppearance();audit('cloud_config_pull','Cloud-Einstellungen übernommen',{updatedAt:j.updatedAt,hash:j.configHash});}if(j&&j.learning&&j.learning.updatedAt>Number((v280LearningDB()||{}).updatedAt||0)){write('learningDB',j.learning);S.knowledgeDB=null;audit('cloud_learning_pull','Lernstand aus Cloud übernommen',{updatedAt:j.learning.updatedAt});}if(j&&j.observations&&j.observations.explorer){var ex=j.observations.explorer;S.explorer.index=Math.max(Number(S.explorer.index)||0,Number(ex.index)||0);S.explorer.visited=Object.assign({},ex.visited||{},S.explorer.visited||{});}if(character.ctype==='merchant'&&j&&j.student)v210StudentImport(j.student);if(pushConfig)S.cloudConfigDirty=false;if(!initialized){write('cloudSyncInitialized',true);S.cloudSync.pushAt=0;}S.cloudSync.lastOK=clock();S.cloudSync.lastError='';S.cloudSync.pullAt=clock();}).catch(function(e){S.cloudSync.lastError=reason(e);audit('cloud_sync_error','Cloud-Sync fehlgeschlagen',{error:S.cloudSync.lastError},'warning');}).finally(function(){S.cloudSyncBusy=false;});return true;};
 
-  v290BrainTick=function(trigger,force){if(character.ctype!=='merchant'||!C.brainEnabled||C.brainWorkPct<=0||S.brainBusy)return false;v210SyncUtcDay();v210OutcomeTick();if(clock()-(S.brain.lastTrainAt||0)>30000){S.brain.lastTrainAt=clock();v210ReplayTrain(1);}var pred=v210Predict(),now=clock(),interval=v210TeacherInterval(pred),hardForce=!!force&&now-(S.brain.lastAt||0)>=Math.max(15000,C.brainTeacherMinIntervalSeconds*500);if(!hardForce&&now-(S.brain.lastAt||0)<interval){v211MaybeApplyPolicy(pred);return false;}if(Number(S.brain.usedToday)>=v210BudgetTarget())return false;S.brainBusy=true;S.brain.lastAt=now;var st=v290BrainState(trigger);st.student={action:pred.action,confidence:v210Round(pred.confidence,5),entropy:v210Round(pred.entropy,5),novelty:v210Round(S.brain.novelty,5),scores:pred.scores,samples:Number(S.brainStudent.samples)||0,updates:Number(S.brainStudent.updates)||0,lossEma:v210Round(S.brainStudent.lossEma,5),rewardEma:v210Round(S.brainStudent.rewardEma,5),agreementEma:v210Round(S.brainStudent.agreementEma,5)};st.budget={used:v210Round(S.brain.usedToday,2),hardLimit:Number(C.brainDailyNeuronLimit)||10000,target:v210BudgetTarget(),resetMs:v210ResetMs(),avgNeurons:v210Round(S.brain.avgNeurons,2)};st.quality=v213QualitySummary();var req={dailyLimit:Math.min(10000,Number(C.brainDailyNeuronLimit)||10000),targetPct:Number(C.brainBudgetTargetPct)||99.5,workPct:Number(C.brainWorkPct)||0,priorityPct:Number(C.brainPriorityPct)||0,minConfidencePct:Number(C.brainMinConfidencePct)||70,model:C.brainModel,state:st};v290Fetch('/api/brain',req).then(function(j){S.brain.usedToday=Number(j.usedToday)||0;S.brain.limit=Number(j.limit)||req.dailyLimit;if(j.blocked){S.brain.blocked++;S.brain.lastError=j.error||'Budget erreicht';audit('brain_budget','Brain-Aufruf blockiert',{used:S.brain.usedToday,limit:S.brain.limit,target:v210BudgetTarget(),reason:j.error},'warning');return;}S.brain.requests++;S.brain.lastError='';if(Number(j.neurons)>0)S.brain.avgNeurons=.88*Number(S.brain.avgNeurons||j.neurons)+.12*Number(j.neurons);if(j.decision){j.decision.source='teacher';j.decision._features=pred.features;j.decision._target=v210TargetFromDecision(j.decision);S.brain.lastDecision=j.decision;var teacherIx=V210_ACTIONS.indexOf(j.decision.action),studentIx=V210_ACTIONS.indexOf(pred.action),agree=teacherIx===studentIx?1:0,m=S.brainStudent;m.agreementEma=Number(m.samples)?(.94*Number(m.agreementEma||0)+.06*agree):agree;m.lastTeacherAt=clock();m.updatedAt=clock();v210ReplayAdd({x:pred.features,target:j.decision._target,reward:0,weight:1+Number(S.brain.novelty||0)*.4,source:'teacher',action:j.decision.action});v210ReplayTrain(6);v290ApplyBrainDecision(j.decision);}audit('brain_decision','AiO Brain Teacher-Entscheidung',{used:S.brain.usedToday,limit:S.brain.limit,target:v210BudgetTarget(),neurons:j.neurons,intervalMs:interval,student:{action:pred.action,confidence:pred.confidence,entropy:pred.entropy,novelty:S.brain.novelty},decision:j.decision});}).catch(function(e){S.brain.lastError=reason(e);audit('brain_error','AiO Brain Teacher nicht verfügbar; Student + lokale Logik laufen weiter',{error:S.brain.lastError},'warning');}).finally(function(){S.brainBusy=false;});return true;};
+  v290BrainTick=function(trigger,force){if(character.ctype!=='merchant'||!C.brainEnabled||C.brainWorkPct<=0||S.brainBusy)return false;v210SyncUtcDay();v210OutcomeTick();if(clock()-(S.brain.lastTrainAt||0)>30000){S.brain.lastTrainAt=clock();v210ReplayTrain(1);}var pred=v210Predict(),now=clock(),interval=v210TeacherInterval(pred),hardForce=!!force&&now-(S.brain.lastAt||0)>=Math.max(15000,C.brainTeacherMinIntervalSeconds*500);if(!hardForce&&now-(S.brain.lastAt||0)<interval){v211MaybeApplyPolicy(pred);return false;}if(Number(S.brain.usedToday)>=v210BudgetTarget())return false;if(!v21414CloudConfigured()){S.brain.lastAt=now;S.brain.lastError='';v211MaybeApplyPolicy(pred);return false;}S.brainBusy=true;S.brain.lastAt=now;var st=v290BrainState(trigger);st.student={action:pred.action,confidence:v210Round(pred.confidence,5),entropy:v210Round(pred.entropy,5),novelty:v210Round(S.brain.novelty,5),scores:pred.scores,samples:Number(S.brainStudent.samples)||0,updates:Number(S.brainStudent.updates)||0,lossEma:v210Round(S.brainStudent.lossEma,5),rewardEma:v210Round(S.brainStudent.rewardEma,5),agreementEma:v210Round(S.brainStudent.agreementEma,5)};st.budget={used:v210Round(S.brain.usedToday,2),hardLimit:Number(C.brainDailyNeuronLimit)||10000,target:v210BudgetTarget(),resetMs:v210ResetMs(),avgNeurons:v210Round(S.brain.avgNeurons,2)};st.quality=v213QualitySummary();var req={dailyLimit:Math.min(10000,Number(C.brainDailyNeuronLimit)||10000),targetPct:Number(C.brainBudgetTargetPct)||99.5,workPct:Number(C.brainWorkPct)||0,priorityPct:Number(C.brainPriorityPct)||0,minConfidencePct:Number(C.brainMinConfidencePct)||70,model:C.brainModel,state:st};v290Fetch('/api/brain',req).then(function(j){S.brain.usedToday=Number(j.usedToday)||0;S.brain.limit=Number(j.limit)||req.dailyLimit;if(j.blocked){S.brain.blocked++;S.brain.lastError=j.error||'Budget erreicht';audit('brain_budget','Brain-Aufruf blockiert',{used:S.brain.usedToday,limit:S.brain.limit,target:v210BudgetTarget(),reason:j.error},'warning');return;}S.brain.requests++;S.brain.lastError='';if(Number(j.neurons)>0)S.brain.avgNeurons=.88*Number(S.brain.avgNeurons||j.neurons)+.12*Number(j.neurons);if(j.decision){j.decision.source='teacher';j.decision._features=pred.features;j.decision._target=v210TargetFromDecision(j.decision);S.brain.lastDecision=j.decision;var teacherIx=V210_ACTIONS.indexOf(j.decision.action),studentIx=V210_ACTIONS.indexOf(pred.action),agree=teacherIx===studentIx?1:0,m=S.brainStudent;m.agreementEma=Number(m.samples)?(.94*Number(m.agreementEma||0)+.06*agree):agree;m.lastTeacherAt=clock();m.updatedAt=clock();v210ReplayAdd({x:pred.features,target:j.decision._target,reward:0,weight:1+Number(S.brain.novelty||0)*.4,source:'teacher',action:j.decision.action});v210ReplayTrain(6);v290ApplyBrainDecision(j.decision);}audit('brain_decision','AiO Brain Teacher-Entscheidung',{used:S.brain.usedToday,limit:S.brain.limit,target:v210BudgetTarget(),neurons:j.neurons,intervalMs:interval,student:{action:pred.action,confidence:pred.confidence,entropy:pred.entropy,novelty:S.brain.novelty},decision:j.decision});}).catch(function(e){S.brain.lastError=reason(e);audit('brain_error','AiO Brain Teacher nicht verfügbar; Student + lokale Logik laufen weiter',{error:S.brain.lastError},'warning');}).finally(function(){S.brainBusy=false;});return true;};
 
   v290BrainHTML=function(){var b=S.brain||{},m=S.brainStudent||{},t=v210BrainTelemetry(),pct=t.limit?Math.min(100,100*t.usedToday/t.limit):0,targetPct=t.limit?Math.min(100,100*t.target/t.limit):0,p=t.student||{};return '<h2>🧠 '+(C.language==='de'?'Gehirn · Teacher/Student':'Brain · Teacher/Student')+'</h2><div class="notice"><b>Selbstlernendes Brain v2.</b> Qwen ist der Lehrer; ein kleines lokales neuronales Netz lernt aus Lehrerentscheidungen und den später gemessenen Ergebnissen. Kampf/Heilung/Sicherheitsreflexe bleiben deterministisch.</div>'+cfgField('brainEnabled','AiO Brain aktiv','check')+cfgField('brainDailyNeuronLimit','Harte Tagesgrenze Neurons','number','Maximal 10.000. Der Budget-Pacer überschreitet diese Grenze nicht.')+cfgField('brainBudgetTargetPct','Kostenloses Budget nutzen (%)','number','Standard 99,5 % = Ziel 9.950 von 10.000 Neurons; kleiner Sicherheitsabstand für Mess-/Tokenabweichungen.')+cfgField('brainWorkPct','Teacher-Arbeit (%)','number','100 % nutzt das konfigurierte Tagesziel; kleinere Werte reduzieren den täglichen Teacher-Verbrauch proportional.')+cfgField('brainPriorityPct','Brain-Priorität (%)','number')+cfgField('brainMinConfidencePct','Teacher Mindest-Vertrauen (%)','number')+cfgField('brainStudentEnabled','Lernendes Student-Netz aktiv','check')+cfgField('brainStudentConfidencePct','Student Mindest-Vertrauen (%)','number','Erst oberhalb dieses Werts darf das Student-Netz eigenständig strategische Aktionen anwenden.')+cfgField('brainOutcomeSeconds','Ergebnis nach (Sek.) bewerten','number','Zeitfenster zwischen Strategie und Reward-Messung.')+cfgField('brainReplaySize','Experience-Replay Größe','number')+cfgField('brainStudentLearningRate','Student Lernrate','number')+cfgField('brainTeacherMinIntervalSeconds','Teacher Mindestabstand (Sek.)','number')+cfgField('brainTeacherMaxIntervalSeconds','Teacher Maximalabstand (Sek.)','number')+cfgField('brainModel','Workers-AI-Modell','select','Qwen bleibt als budgetierbarer Teacher fest vorgegeben.',[['@cf/qwen/qwen3-30b-a3b-fp8','Qwen3 30B A3B FP8 · Teacher']])+cfgField('cloudSyncEnabled','Settings & Lernstand extern synchronisieren','check')+cfgField('cloudSyncSeconds','Cloud-Sync alle (Sek.)','number')+'<div class="card"><h3>Cloudflare Teacher</h3><div class="line"><span>Heute</span><strong>'+Math.round(t.usedToday)+' / '+Math.round(t.limit)+' Neurons</strong></div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="line"><span>Tagesziel</span><strong>'+Math.round(t.target)+' · '+targetPct.toFixed(1)+'%</strong></div><div class="line"><span>Teacher-Anfragen</span><strong>'+t.teacherRequests+'</strong></div><div class="line"><span>Ø Neurons / Anfrage</span><strong>'+t.avgNeurons+'</strong></div><div class="line"><span>Letzte Teacher-Entscheidung</span><strong>'+esc(t.lastDecision?String(t.lastDecision.action||'—'):'—')+'</strong></div>'+(b.lastError?'<div class="notice warn">'+esc(b.lastError)+'</div>':'')+'</div><div class="card"><h3>Lokales Student-Netz</h3><div class="line"><span>Aktuelle Entscheidung</span><strong>'+esc(p.action||'—')+'</strong></div><div class="line"><span>Confidence</span><strong>'+Math.round(Number(p.confidence||0)*1000)/10+'%</strong></div><div class="line"><span>Unsicherheit / Neuigkeit</span><strong>'+Math.round(Number(p.entropy||0)*100)+'% / '+Math.round(Number(p.novelty||0)*100)+'%</strong></div><div class="line"><span>Lernbeispiele / Replay</span><strong>'+Number(p.samples||0)+' / '+Number(p.replay||0)+'</strong></div><div class="line"><span>Trainingsschritte</span><strong>'+Number(p.updates||0)+'</strong></div><div class="line"><span>Loss EMA</span><strong>'+Number(p.lossEma||0).toFixed(4)+'</strong></div><div class="line"><span>Reward EMA</span><strong>'+Number(p.rewardEma||0).toFixed(3)+'</strong></div><div class="line"><span>Teacher-Übereinstimmung</span><strong>'+Math.round(Number(p.agreementEma||0)*1000)/10+'%</strong></div><div class="line"><span>Student-Freigabe</span><strong>'+(p.promoted?'Champion aktiv':'Shadow-Lernen')+'</strong></div><div class="line"><span>Offene Outcome-Messungen</span><strong>'+Number(t.pendingOutcomes||0)+'</strong></div></div>';};
 
@@ -2849,7 +2850,7 @@
   var v281PartyReconcileBase=partyReconcileTick;
   partyReconcileTick=function(){var r=v281PartyReconcileBase();if(C.language==='de'){S.status=String(S.status||'').replace(/^Detecting same-bot characters/,'Erkenne Bot-Charaktere');if(S.mode==='Group discovery')S.mode='Gruppenerkennung';}return r;};
   CSS+=' .party-vitals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}.party-vitals span{background:color-mix(in srgb,var(--panel) 75%,transparent);border:1px solid var(--line);border-radius:7px;padding:5px;text-align:center;font-size:11px}.metersection{margin:10px 0 16px;padding:10px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 88%,transparent)}.meterhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.meterhead strong{font-size:16px}.meterhead span{font-size:11px;color:var(--muted)}.meterrow{margin:7px 0}.meterlabel{display:grid;grid-template-columns:24px minmax(100px,1fr) auto;gap:6px;align-items:center;font-size:11px}.meterlabel b{text-align:right}.meterrank{color:var(--muted);text-align:center}.metertrack{height:12px;background:color-mix(in srgb,var(--panel2) 75%,#000);border-radius:4px;overflow:hidden;margin-top:3px}.metertrack i{height:100%;display:block;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#fff));border-radius:4px;min-width:1px} ';
-  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+1000;v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){S.times.loot=clock()+900;action('Loot einsammeln',function(){return loot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
+  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+(character.ctype==='merchant'?2000:1000);v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){var lootCadence=character.ctype==='merchant'?(S.moveInFlight||character.moving?2600:1600):900;S.times.loot=clock()+lootCadence;action('Loot einsammeln',function(){return loot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
   function pause(value){S.running=value==null?!S.running:!!value;write('run:'+me,S.running);audit('run_state',S.running?'Bot gestartet':'Bot pausiert');renderAll(true);}
   function dispose() {
     if(S.disposed)return;S.disposed=true;try{clearInterval(timer);}catch(e){}try{clearInterval(uiTimer);}catch(e){}flushAuditQueue();write('report:'+me,Object.assign(report(),{active:false}));
@@ -3783,6 +3784,163 @@
   audit('feature_contract','2.14.12 bestätigte Merchant-Bankbereinigung + sichere Lernhinweise + Adventure-Land-Terrain + Lernfeed geprüft',{features:FEATURE_CONTRACT,hints:v21412HintLines().length});
 
 
+  // ---------------------------------------------------------------------------
+  // 2.14.14 Merchant performance budget + resilient dashboard terrain pipeline.
+  // ---------------------------------------------------------------------------
+  ['merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+
+  function v21414CloudConfigured(){
+    return !!(String(C.webDashboardConnectionUrl||'').trim()&&String(C.webDashboardWriteKey||'').trim()&&v290Endpoint('/api/state'));
+  }
+  var v21414CloudSyncBase=v290CloudSyncTick;
+  v290CloudSyncTick=function(force){
+    if(!v21414CloudConfigured()){if(S.cloudSync)S.cloudSync.lastError='';return false;}
+    return v21414CloudSyncBase(force);
+  };
+
+  function v21414SellSignature(){
+    return freeSlots()+'|'+(character.items||[]).map(function(it){return it?[it.name,Number(it.level)||0,Number(it.q)||1,it.l?1:0,it.p||''].join(':'):'-';}).join(',');
+  }
+  var v21414SellCandidateBase=v2144FindSellCandidate;
+  v2144FindSellCandidate=function(){
+    var now=clock(),sig=v21414SellSignature(),c=S.sellCandidate21414;
+    if(c&&c.sig===sig&&now-Number(c.at||0)<1400)return c.value;
+    var value=v21414SellCandidateBase();
+    S.sellCandidate21414={at:now,sig:sig,value:value};
+    return value;
+  };
+
+  var v21414ServiceCandidatesBase=v277MerchantServiceCandidates;
+  v277MerchantServiceCandidates=function(){
+    var now=clock(),c=S.serviceCandidates21414;
+    if(c&&now-Number(c.at||0)<850)return c.rows;
+    var rows=v21414ServiceCandidatesBase();
+    S.serviceCandidates21414={at:now,rows:rows};
+    return rows;
+  };
+
+  var v21414AnalyzeRecipesBase=v278AnalyzeRecipes;
+  v278AnalyzeRecipes=function(force){
+    var now=clock();
+    if(!force&&S.recipeAnalysis&&now-Number(S.recipeAnalysis.at||0)<8000)return S.recipeAnalysis;
+    return v21414AnalyzeRecipesBase(force);
+  };
+
+  function v21414CompactMerchantPlan(p){
+    if(!p||typeof p!=='object')return null;
+    var j=p.job||{},r=j.recipe||{},m=j.material||null;
+    return {
+      at:Number(p.at)||0,
+      output:j.rootOutput||r.output||r.id||'',
+      recipient:j.targetRecipient||'',
+      material:m?{name:m.name,level:Number(m.level)||0,required:Number(m.required)||0,have:Number(m.have)||0}:null,
+      farmOrder:p.farmOrder?{item:p.farmOrder.item,required:Number(p.farmOrder.required)||0,have:Number(p.farmOrder.have)||0,monster:p.farmOrder.monster||''}:null,
+      farmGoal:p.farmGoal?{map:p.farmGoal.map||'',monster:p.farmGoal.monster||''}:null,
+      steps:(p.steps||[]).slice(0,4).map(function(x){return safeString(x,180);})
+    };
+  }
+  function v21414CompactMoveTarget(t){
+    if(typeof t==='string')return t;
+    if(!t||typeof t!=='object')return t;
+    return {map:t.map||'',x:isFinite(Number(t.x))?Math.round(Number(t.x)):null,y:isFinite(Number(t.y))?Math.round(Number(t.y)):null,name:t.name||'',npc:t.npc||'',source:t.source||'',type:t.type||''};
+  }
+
+  var v21414AuditBase=audit;
+  audit=function(kind,message,data,level){
+    var now=clock(),d=data;
+    if(kind==='merchant_economy_decision'){
+      var item=d&&d.item||'',dec=d&&d.decision||{},sig=[item,d&&d.level,d&&d.quantity,dec.reason,dec.sell].join('|');
+      if(S.economyAudit21414&&S.economyAudit21414.sig===sig&&now-S.economyAudit21414.at<5000)return null;
+      S.economyAudit21414={sig:sig,at:now};
+    }
+    if(kind==='diag_update'){
+      var usig=JSON.stringify([d&&d.version,d&&d.latest,d&&d.available,d&&d.checking,d&&d.applying,d&&d.error]);
+      if(S.updateAudit21414&&S.updateAudit21414.sig===usig&&now-S.updateAudit21414.at<30000)return null;
+      S.updateAudit21414={sig:usig,at:now};
+    }
+    if(kind==='state_change'&&d&&typeof d==='object'){
+      var keys=Object.keys(d),noisy=keys.length&&keys.every(function(k){return k==='x'||k==='y'||k==='conditions'||k==='ping'||k==='q'||k==='moving';});
+      if(noisy&&S.stateAudit21414&&now-S.stateAudit21414<2500)return null;
+      if(noisy)S.stateAudit21414=now;
+    }
+    if(kind==='diag_merchant'&&d&&d.plan)d=Object.assign({},d,{plan:v21414CompactMerchantPlan(d.plan)});
+    if(kind==='move'&&d&&d.smartDestination&&typeof d.smartDestination==='object')d=Object.assign({},d,{smartDestination:v21414CompactMoveTarget(d.smartDestination)});
+    return v21414AuditBase(kind,message,d,level);
+  };
+
+  v2145EconomyMaintenanceTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantSellTrashToNpc)return false;
+    var now=clock(),lock=S.moveArbiter2145;
+    if(lock&&String(lock.kind||'').indexOf('merchant-npc-sell')>=0&&v2145MoveLockActive(lock))return true;
+    var pressured=freeSlots()<=Math.max(2,Number(C.merchantInventoryReserve||5)+1),gap=pressured?1400:10000;
+    if(now<Number(S.times.economy2145||0))return false;
+    S.times.economy2145=now+gap;
+    var cand=v2144FindSellCandidate();if(!cand)return false;
+    var urgent=false;try{urgent=(v277MerchantServiceCandidates()||[]).some(function(x){return x&&x.urgent;});}catch(e){}
+    if(!pressured&&urgent)return false;
+    var acted=v273SellTrashTick();
+    return !!acted||pressured;
+  };
+
+  function v21414CompactLines(rows,limit){
+    if(!Array.isArray(rows)||!rows.length)return [];
+    var step=Math.max(1,Math.ceil(rows.length/Math.max(1,limit))),out=[];
+    for(var i=0;i<rows.length&&out.length<limit;i+=step){
+      var r=rows[i];if(!Array.isArray(r)||r.length<3)continue;
+      var a=Number(r[0]),b=Number(r[1]),c=Number(r[2]);if(isFinite(a)&&isFinite(b)&&isFinite(c))out.push([a,b,c]);
+    }
+    return out;
+  }
+  var v21414TerrainBase=v21412TerrainPayload;
+  v21412TerrainPayload=function(){
+    var out=v21414TerrainBase(),mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];
+    if(out&&out.omitted&&geo){
+      out.v={x:v21414CompactLines(geo.x_lines,420),y:v21414CompactLines(geo.y_lines,420)};
+      out.fallback='collision-lines';
+    }
+    return out;
+  };
+  function v21414TerrainOwner(mapId){
+    var now=clock(),names=[];
+    C.roster.forEach(function(name){
+      if(name===me){if(character.map===mapId)names.push(name);return;}
+      var r=peerReport(name);if(r&&r.active!==false&&!r.rip&&r.map===mapId&&now-Number(r.at||0)<45000)names.push(name);
+    });
+    if(names.indexOf(me)<0&&character.map===mapId)names.push(me);
+    names.sort();
+    return names[0]||me;
+  }
+  var v21414DashboardBase=dashboardPayload;
+  dashboardPayload=function(){
+    var x=v21414DashboardBase();
+    if(x&&x.terrain&&v21414TerrainOwner(String(x.map||character.map))!==me)x.terrain=null;
+    return x;
+  };
+
+  function v21414PerfNow(){try{return P.performance&&typeof P.performance.now==='function'?P.performance.now():clock();}catch(e){return clock();}}
+  var v21414RenderBase=renderAll;
+  renderAll=function(force){
+    if(character.ctype!=='merchant')return v21414RenderBase(force);
+    var p=S.performance21414||(S.performance21414={tickN:0,tickSum:0,tickMax:0,tickSlow:0,renderN:0,renderSum:0,renderMax:0,lastAt:clock()}),t=v21414PerfNow();
+    try{return v21414RenderBase(force);}finally{var ms=Math.max(0,v21414PerfNow()-t);p.renderN++;p.renderSum+=ms;p.renderMax=Math.max(p.renderMax,ms);}
+  };
+  var v21414TickBase=tick;
+  tick=function(){
+    if(character.ctype!=='merchant')return v21414TickBase();
+    var p=S.performance21414||(S.performance21414={tickN:0,tickSum:0,tickMax:0,tickSlow:0,renderN:0,renderSum:0,renderMax:0,lastAt:clock()}),t=v21414PerfNow();
+    try{return v21414TickBase();}finally{
+      var ms=Math.max(0,v21414PerfNow()-t);p.tickN++;p.tickSum+=ms;p.tickMax=Math.max(p.tickMax,ms);if(ms>=16)p.tickSlow++;
+      var now=clock();if(now-p.lastAt>=15000){
+        var mem=null;try{var pm=P.performance&&P.performance.memory;if(pm)mem={usedMB:Math.round(Number(pm.usedJSHeapSize||0)/1048576*10)/10,totalMB:Math.round(Number(pm.totalJSHeapSize||0)/1048576*10)/10,limitMB:Math.round(Number(pm.jsHeapSizeLimit||0)/1048576)};}catch(e){}
+        audit('merchant_performance_sample','Merchant-Laufzeitprofil',{windowMs:now-p.lastAt,tickCount:p.tickN,tickAvgMs:Math.round((p.tickSum/Math.max(1,p.tickN))*100)/100,tickMaxMs:Math.round(p.tickMax*100)/100,ticksOver16Ms:p.tickSlow,renderCount:p.renderN,renderAvgMs:Math.round((p.renderSum/Math.max(1,p.renderN))*100)/100,renderMaxMs:Math.round(p.renderMax*100)/100,heap:mem,auditRecent:S.auditRecent.length,auditQueue:S.auditQueue.length,free:freeSlots(),moving:!!(character.moving||S.moveInFlight)});
+        S.performance21414={tickN:0,tickSum:0,tickMax:0,tickSlow:0,renderN:0,renderSum:0,renderMax:0,lastAt:now};
+      }
+    }
+  };
+
+  audit('feature_contract','2.14.14 Merchant-Performancebudget + Laufzeittelemetrie + Dashboard-Terrain-Pipeline geprüft',{features:FEATURE_CONTRACT,cloudConfigured:v21414CloudConfigured()});
+
+
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
   var receive27=on_cm;
   function apiSnapshot(){return {version:VERSION,build:BUILD,config:C,state:S,party:partyState(),dashboard:dashboardPayload(),update:S.update};}
@@ -3794,6 +3952,6 @@
   if(HEADLESS){gameMessage('AiO Bot '+VERSION+' headless gestartet','#63e1bd');}
   else initUI();
   publishReport();syncAutoRoster(true);updateCheckTick(true);partyReconcileTick();dashboardPublishTick(true);stateAuditTick();
-  var timer=P.setInterval(tick,350),uiTimer=P.setInterval(function(){renderAll(false);},1500);
+  var timer=P.setInterval(tick,350),uiCadence=character.ctype==='merchant'?2500:1500,uiTimer=P.setInterval(function(){renderAll(false);},uiCadence);
   try { if (typeof on_destroy !== 'undefined') { var previousDestroy=on_destroy; on_destroy=function(){dispose();if(previousDestroy&&previousDestroy!==on_destroy)try{previousDestroy();}catch(e){}}; } } catch(e){}
 })();
