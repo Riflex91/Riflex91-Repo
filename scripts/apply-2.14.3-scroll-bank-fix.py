@@ -59,18 +59,19 @@ p.write_text(b, encoding='utf-8')
 p = root / 'scripts' / 'verify-release.js'
 t = p.read_text(encoding='utf-8')
 t = replace_once(t, 'ok(version.version === "2.14.2", "prepared release must be 2.14.2");', 'ok(version.version === "2.14.3", "prepared release must be 2.14.3");', 'verify release version')
-needle = 'ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"), "2.14.2 inventory pressure must run before compound");\n'
-extra_checks = 'ok(bot.includes("/^c?scroll[0-4]$/.test(String(it.name||\'\'))"), "2.14.3 operational scrolls must be protected from bank cleanup");\nok(bot.includes("dist(character,dest)>180"), "2.14.3 scroll vendor proximity guard missing");\n'
-t = replace_once(t, needle, needle + extra_checks, 'verify 2.14.2 guard block')
+verify_marker = 'ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"), "2.14.2 inventory pressure must run before compound");\n'
+verify_extra = 'ok(bot.includes("/^c?scroll[0-4]$/.test(String(it.name||\'\'))"), "2.14.3 operational scrolls must be protected from bank cleanup");\nok(bot.includes("dist(character,dest)>180"), "2.14.3 scroll vendor proximity guard missing");\n'
+t = replace_once(t, verify_marker, verify_marker + verify_extra, 'verify 2.14.2 guard block')
 p.write_text(t, encoding='utf-8')
 
-# Merchant smoke
+# Merchant smoke. Insert after the stable inventory-pressure assertion instead of
+# relying on older party-backoff wording, which differs between prepared copies.
 p = root / 'scripts' / 'smoke-merchant-stability.js'
 m = p.read_text(encoding='utf-8')
 m = replace_once(m, "assert.match(bot,/var VERSION = ['\"]2\\.14\\.2['\"]/);", "assert.match(bot,/var VERSION = ['\"]2\\.14\\.3['\"]/);", 'merchant smoke version')
-needle = "assert.ok(bot.includes(\"/^partyRequest:/.test(String(key))\")&&bot.includes('clock()+15000'),'invalid party requests must back off');\n"
-extra_checks = "assert.ok(bot.includes(\"/^c?scroll[0-4]$/.test(String(it.name||''))\"),'operational scrolls must never be bank-cleanup trash');\nassert.ok(bot.includes('dist(character,dest)>180'),'scroll buys must wait for conservative vendor range');\n"
-m = replace_once(m, needle, needle + extra_checks, 'merchant smoke guard insertion')
+smoke_marker = "assert.ok(bot.includes(\"merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;\"),'inventory pressure must run before compound');\n"
+smoke_extra = "assert.ok(bot.includes(\"/^c?scroll[0-4]$/.test(String(it.name||''))\"),'operational scrolls must never be bank-cleanup trash');\nassert.ok(bot.includes('dist(character,dest)>180'),'scroll buys must wait for conservative vendor range');\n"
+m = replace_once(m, smoke_marker, smoke_marker + smoke_extra, 'merchant smoke guard insertion')
 p.write_text(m, encoding='utf-8')
 
 print('2.14.3 scroll/bank loop hotfix prepared')
