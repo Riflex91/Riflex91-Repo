@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.17", "prepared release must be 2.14.17");
-  ok(version.dashboardVersion === "2.14.17", "dashboard version must be 2.14.17 for layered brain/dashboard release");
+  ok(version.version === "2.14.18", "prepared release must be 2.14.18");
+  ok(version.dashboardVersion === "2.14.18", "dashboard version must be 2.14.18 for layered brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -73,6 +73,7 @@ const requiredFeatures = [
   "merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle",
   "merchant-bank-progress-lease","merchant-bank-sync-diagnostics",
   "config-newest-valid-source","merchant-economic-action-flight-guard","merchant-bank-retrieve-travel-lease","merchant-vendor-range-guard",
+  "merchant-exchange-route-flight-lock","merchant-loot-flight-gate","merchant-capacity-blocked-state","config-control-write-dedupe","merchant-phase-profiler",
   "config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap"
 ];
 for (const feature of requiredFeatures) ok(contract.includes(feature), `protected feature missing: ${feature}`);
@@ -83,6 +84,13 @@ ok(bot.includes("source:'current',priority:3") && bot.includes("source:'stable-m
 ok(bot.includes('st.leaseAt=0') && bot.includes('if(!Number(st.leaseAt||0))st.leaseAt=now') && bot.includes('st.leaseAt=now;st.waitUntil'), '2.14.17 bank retrieve travel lease missing');
 ok(bot.includes('function v21417EconomicFlightKind') && bot.includes("q.upgrade?'upgrade':q.compound?'compound':q.exchange?'exchange':q.craft?'craft'"), '2.14.17 economic action serialization missing');
 ok(bot.includes('function v21417ExchangeRouteTick') && bot.includes("smart_move('exchange')") && bot.includes("kind:'merchant-upgrade-vendor'") && bot.includes("tolerance:60"), '2.14.17 vendor range guards missing');
+ok(bot.includes('S.exchangeRouteFlight21418') && bot.includes("Eintausch-Anreise läuft") && bot.includes("merchant_exchange_route_timeout"), '2.14.18 exchange route flight lock missing');
+ok(bot.includes('function v21418MerchantLootBlocked') && bot.includes('function v21418GuardedLoot') && bot.includes('if(S.lootFlight21418)return true') && bot.includes('!v21418MerchantLootBlocked()'), '2.14.18 merchant loot flight gate missing');
+ok(bot.includes('merchant_capacity_blocked') && bot.includes('blocked.retryAt=now+15000') && bot.includes("S.mode='Merchant · Kapazität'") && !bot.slice(bot.lastIndexOf('v290InventoryPressureTick=function(){'),bot.indexOf('function v21418ConfigProvenance')).includes('v273CompoundTick()'), '2.14.18 capacity blocked state missing');
+ok(bot.includes('S.inputSaveTimers21418') && bot.includes('},450)') && bot.includes('if(sameJSON(before,C[key]))return false'), '2.14.18 config write debounce/dedupe missing');
+ok(bot.includes("audit('config_source_selected'") && bot.includes('function v21418ConfigProvenance'), '2.14.18 config provenance missing');
+ok(bot.includes('function v21418ProfileCall') && bot.includes("audit('merchant_phase_profile'") && bot.includes("v21418ProfileWrap('inventory'") && bot.includes("v21418ProfileWrap('dashboard'"), '2.14.18 Merchant phase profiler missing');
+
 
 const mustContain = [
   ["Inventar tool", "['inventory'"], ["inventory right-click policy", "data-inv-rule"],

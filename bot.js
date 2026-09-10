@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.17 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.18 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.17';
+  var VERSION = '2.14.18';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -1370,9 +1370,9 @@
   function showHeadlessGuide(step){if(HEADLESS)return;S.headlessGuideOpen=true;S.headlessStep=step==null?0:step;var old=uiRoot.querySelector('.headless-guide');if(old)old.remove();var steps=headlessSteps(S.headlessOS),content=steps[S.headlessStep];if(S.headlessStep===0)content+='<div class="osgrid"><button class="osbtn '+(S.headlessOS==='windows'?'on':'')+'" data-os="windows">Windows</button><button class="osbtn '+(S.headlessOS==='linux'?'on':'')+'" data-os="linux">Linux</button><button class="osbtn '+(S.headlessOS==='mac'?'on':'')+'" data-os="mac">macOS</button></div>';var el=D.createElement('div');el.className='wizard headless-guide';el.innerHTML='<div class="modal"><div class="modaltop"><h2>'+esc(T('headless_title'))+'</h2><button class="close" data-action="head-close">×</button></div><div class="steps">Step '+(S.headlessStep+1)+' / '+steps.length+'</div>'+content+'<div class="navrow"><button class="btn" data-action="head-prev"'+(S.headlessStep===0?' disabled':'')+'>'+esc(T('back'))+'</button><button class="btn primary" data-action="'+(S.headlessStep===steps.length-1?'head-done':'head-next')+'">'+esc(S.headlessStep===steps.length-1?T('close'):T('next'))+'</button></div></div>';uiRoot.appendChild(el);}
   function uiClick(e){var t=e.target.closest('button');if(!t)return;if(t.dataset.open){openTool(t.dataset.open);return;}if(t.dataset.closeTool){closeTool(t.dataset.closeTool);return;}if(t.dataset.os){S.headlessOS=t.dataset.os;showHeadlessGuide(S.headlessStep);return;}if(t.dataset.log){exportLog(Number(t.dataset.start),Number(t.dataset.end),t.dataset.log);return;}var a=t.dataset.action;if(!a)return;if(a==='toggle-run'){pause();return;}if(a==='goal-now'){S.lastGoalCheck=0;chooseGoal();renderAll(true);return;}if(a==='dashboard-test'){S.lastDashboardPublish=0;dashboardPublishTick(true);return;}if(a==='dashboard-tutorial'){showDashboardTutorial(0);return;}if(a==='update-check'){S.update.checkedAt=0;updateCheckTick(true);return;}if(a==='update-apply'){selfUpdate();return;}if(a==='modal-close'){var ov=t.closest('.overlay');if(ov)ov.remove();return;}if(a==='dash-close'){var dg0=t.closest('.dashboard-guide');if(dg0)dg0.remove();S.dashboardTutorialOpen=false;return;}if(a==='dash-prev'){showDashboardTutorial(Math.max(0,S.dashboardTutorialStep-1));return;}if(a==='dash-next'){showDashboardTutorial(S.dashboardTutorialStep+1);return;}if(a==='dash-done'){var dg=t.closest('.dashboard-guide');if(dg)dg.remove();S.dashboardTutorialOpen=false;C.webDashboardTutorialSeen=true;saveConfig();return;}if(a==='head-close'){var hg0=t.closest('.headless-guide');if(hg0)hg0.remove();S.headlessGuideOpen=false;return;}if(a==='head-prev'){showHeadlessGuide(Math.max(0,S.headlessStep-1));return;}if(a==='head-next'){showHeadlessGuide(S.headlessStep+1);return;}if(a==='head-done'){var hg=t.closest('.headless-guide');if(hg)hg.remove();S.headlessGuideOpen=false;return;}}
   function parseControlValue(el){if(el.type==='checkbox')return !!el.checked;if(el.type==='number')return Number(el.value);return el.value;}
-  function applyCfgControl(el){var key=el.dataset.cfg;if(!key)return;var before=C[key],v=parseControlValue(el);C[key]=v;C=cleanConfig(C);write('config',C);audit('config_change',key+' changed',{from:before,to:C[key]});if(key==='webDashboardEnabled'&&C[key]&&!before&&!C.webDashboardTutorialSeen)showDashboardTutorial(0);if(key==='language'||key==='theme'){applyAppearance();renderAll(true);}else renderMain();}
-  function uiChange(e){var el=e.target;if(el.dataset&&el.dataset.cfg){applyCfgControl(el);return;}if(el.dataset&&el.dataset.skill){var id=el.dataset.skill;C.skills[me]=C.skills[me]||{};C.skills[me][id]=Object.assign({},C.skills[me][id]||{},{enabled:!!el.checked});write('config',C);audit('skill_config',id+' '+(el.checked?'enabled':'disabled'));return;}if(el.dataset&&el.dataset.bestMode!==undefined){S.bestiaryMode=el.value;renderTool('bestiary');}}
-  function uiInput(e){var el=e.target;if(el.dataset&&el.dataset.bestSearch!==undefined){S.bestiarySearch=el.value;clearTimeout(S.bestSearchTimer);S.bestSearchTimer=P.setTimeout(function(){renderTool('bestiary');},120);return;}if(el.dataset&&el.dataset.cfg&&['text','url','number'].indexOf(el.type)>=0){clearTimeout(S.inputSaveTimer);S.inputSaveTimer=P.setTimeout(function(){applyCfgControl(el);},350);}}
+  function applyCfgControl(el){var key=el.dataset.cfg;if(!key)return false;var before=C[key],v=parseControlValue(el);C[key]=v;C=cleanConfig(C);if(sameJSON(before,C[key]))return false;write('config',C);audit('config_change',key+' changed',{from:before,to:C[key]});if(key==='webDashboardEnabled'&&C[key]&&!before&&!C.webDashboardTutorialSeen)showDashboardTutorial(0);if(key==='language'||key==='theme'){applyAppearance();renderAll(true);}else renderMain();return true;}
+  function uiChange(e){var el=e.target;if(el.dataset&&el.dataset.cfg){var ck=el.dataset.cfg;if(S.inputSaveTimers21418&&S.inputSaveTimers21418[ck]){clearTimeout(S.inputSaveTimers21418[ck]);delete S.inputSaveTimers21418[ck];}applyCfgControl(el);return;}if(el.dataset&&el.dataset.skill){var id=el.dataset.skill;C.skills[me]=C.skills[me]||{};C.skills[me][id]=Object.assign({},C.skills[me][id]||{},{enabled:!!el.checked});write('config',C);audit('skill_config',id+' '+(el.checked?'enabled':'disabled'));return;}if(el.dataset&&el.dataset.bestMode!==undefined){S.bestiaryMode=el.value;renderTool('bestiary');}}
+  function uiInput(e){var el=e.target;if(el.dataset&&el.dataset.bestSearch!==undefined){S.bestiarySearch=el.value;clearTimeout(S.bestSearchTimer);S.bestSearchTimer=P.setTimeout(function(){renderTool('bestiary');},120);return;}if(el.dataset&&el.dataset.cfg&&['text','url','number'].indexOf(el.type)>=0){var ck=el.dataset.cfg;S.inputSaveTimers21418=S.inputSaveTimers21418||{};clearTimeout(S.inputSaveTimers21418[ck]);S.inputSaveTimers21418[ck]=P.setTimeout(function(){delete S.inputSaveTimers21418[ck];applyCfgControl(el);},450);}}
 
 
   // ---------------------------------------------------------------------------
@@ -2188,7 +2188,8 @@
     'config-newest-valid-source',
     'merchant-economic-action-flight-guard',
     'merchant-bank-retrieve-travel-lease',
-    'merchant-vendor-range-guard'];
+    'merchant-vendor-range-guard',
+    'merchant-exchange-route-flight-lock','merchant-loot-flight-gate','merchant-capacity-blocked-state','config-control-write-dedupe','merchant-phase-profiler'];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
   S.auditSeq = Number(read('auditSeq:' + me, 0)) || 0;
@@ -2881,7 +2882,7 @@
   var v281PartyReconcileBase=partyReconcileTick;
   partyReconcileTick=function(){var r=v281PartyReconcileBase();if(C.language==='de'){S.status=String(S.status||'').replace(/^Detecting same-bot characters/,'Erkenne Bot-Charaktere');if(S.mode==='Group discovery')S.mode='Gruppenerkennung';}return r;};
   CSS+=' .party-vitals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}.party-vitals span{background:color-mix(in srgb,var(--panel) 75%,transparent);border:1px solid var(--line);border-radius:7px;padding:5px;text-align:center;font-size:11px}.metersection{margin:10px 0 16px;padding:10px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 88%,transparent)}.meterhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.meterhead strong{font-size:16px}.meterhead span{font-size:11px;color:var(--muted)}.meterrow{margin:7px 0}.meterlabel{display:grid;grid-template-columns:24px minmax(100px,1fr) auto;gap:6px;align-items:center;font-size:11px}.meterlabel b{text-align:right}.meterrank{color:var(--muted);text-align:center}.metertrack{height:12px;background:color-mix(in srgb,var(--panel2) 75%,#000);border-radius:4px;overflow:hidden;margin-top:3px}.metertrack i{height:100%;display:block;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#fff));border-radius:4px;min-width:1px} ';
-  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+(character.ctype==='merchant'?2000:1000);v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){var lootCadence=character.ctype==='merchant'?(S.moveInFlight||character.moving?2600:1600):900;S.times.loot=clock()+lootCadence;action('Loot einsammeln',function(){return loot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
+  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+(character.ctype==='merchant'?2000:1000);v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!v21418MerchantLootBlocked()&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){var lootCadence=character.ctype==='merchant'?(S.moveInFlight||character.moving?2600:1600):900;S.times.loot=clock()+lootCadence;action('Loot einsammeln',function(){return v21418GuardedLoot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
   function pause(value){S.running=value==null?!S.running:!!value;write('run:'+me,S.running);audit('run_state',S.running?'Bot gestartet':'Bot pausiert');renderAll(true);}
   function dispose() {
     if(S.disposed)return;S.disposed=true;try{clearInterval(timer);}catch(e){}try{clearInterval(uiTimer);}catch(e){}flushAuditQueue();write('report:'+me,Object.assign(report(),{active:false}));
@@ -3988,13 +3989,77 @@
     if(character.ctype==='merchant'){var flight=v21417EconomicFlightKind(character.q);if(flight){S.status=(C.language==='de'?'Warte auf laufende Merchant-Aktion: ':'Waiting for active merchant action: ')+flight;S.mode=flight==='compound'?'Merchant · Combine':flight==='upgrade'?'Merchant · Upgrade':flight==='exchange'?'Merchant · Exchange':'Merchant · Crafting';return true;}}
     return v21416MerchantTickBase();
   };
+
+  function v21418MerchantLootBlocked(){
+    if(character.ctype!=='merchant')return false;
+    if(S.lootFlight21418)return true;
+    if(v21417EconomicFlightKind(character.q))return true;
+    var route=S.exchangeRouteFlight21418;if(route&&route.active)return true;
+    var cap=S.capacityBlocked21418;if(cap&&clock()<Number(cap.retryAt||0))return true;
+    return false;
+  }
+  function v21418GuardedLoot(){
+    if(v21418MerchantLootBlocked())return Promise.resolve({success:false,skipped:true,reason:'merchant_loot_gate'});
+    S.lootFlight21418=true;
+    try{var r=loot();if(r&&typeof r.then==='function')return Promise.resolve(r).then(function(v){S.lootFlight21418=false;return v;},function(e){S.lootFlight21418=false;throw e;});S.lootFlight21418=false;return r;}catch(e){S.lootFlight21418=false;throw e;}
+  }
+  v21417ExchangeRouteTick=function(){
+    if(v21417ExchangeReady()){S.exchangeRouteFlight21418=null;return false;}
+    var now=clock(),flight=S.exchangeRouteFlight21418;
+    if(flight&&flight.active){if(now-Number(flight.startedAt||now)<20000){S.status=C.language==='de'?'Eintausch-Anreise läuft':'Exchange route in progress';S.mode='Merchant · Exchange';return true;}audit('merchant_exchange_route_timeout','Eintausch-Anreise ohne Abschluss verworfen',{durationMs:now-Number(flight.startedAt||now)},'warning');S.exchangeRouteFlight21418=null;}
+    if(character.moving||S.moveInFlight)return true;if(typeof smart_move!=='function')return false;
+    var state={active:true,startedAt:now};S.exchangeRouteFlight21418=state;S.status=C.language==='de'?'Zum Eintausch-NPC':'Go to exchange NPC';S.mode='Merchant · Exchange';
+    var started=action('Zum Eintausch-NPC',function(){return Promise.resolve(smart_move('exchange')).then(function(v){var p=pos(character);if(p)S.exchangeReady21417={map:p.map,x:p.x,y:p.y,at:clock()};state.active=false;return v;},function(e){state.active=false;throw e;});},'merchant-exchange-route',8000);
+    if(!started){state.active=false;S.exchangeRouteFlight21418=null;}return true;
+  };
+
+  v290InventoryPressureTick=function(){
+    if(character.ctype!=='merchant'||freeSlots()>Math.max(1,C.merchantInventoryReserve)){if(S.capacityBlocked21418){audit('merchant_capacity_recovered','Merchant-Kapazität wieder verfügbar',{durationMs:clock()-Number(S.capacityBlocked21418.since||clock()),free:freeSlots(),reserve:Number(C.merchantInventoryReserve)||0});S.capacityBlocked21418=null;}return false;}
+    var reserve=Math.max(1,Number(C.merchantInventoryReserve)||0),now=clock(),free=freeSlots(),blocked=S.capacityBlocked21418;
+    if(blocked&&now<Number(blocked.retryAt||0)){S.status=C.language==='de'?'Kapazität blockiert · sichere Freigabe später erneut prüfen':'Capacity blocked · safe recovery will retry later';S.mode='Merchant · Kapazität';return true;}
+    if(S.inventoryPressureBusy){S.status=C.language==='de'?'Inventarbereinigung läuft · Re-Entry blockiert':'Inventory cleanup running · re-entry blocked';S.mode='Merchant · Inventar';return true;}
+    S.inventoryPressureBusy=true;
+    try{
+      if(v273StoreTrashBankTick())return true;
+      if(S.bankFull&&v273SellTrashTick())return true;
+      if(C.merchantAutoExchange&&v273ExchangeTick())return true;
+      if(C.merchantStandAutomation&&merchantStandTick())return true;
+      blocked=blocked||{since:now};blocked.retryAt=now+15000;blocked.free=freeSlots();blocked.reserve=reserve;blocked.bankFull=!!S.bankFull;S.capacityBlocked21418=blocked;
+      S.status=C.language==='de'?'Kapazität blockiert · sichere Freigabe nicht möglich':'Capacity blocked · no safe release available';S.mode='Merchant · Kapazität';
+      if(now>Number(S.times.capacityBlockedWarn21418||0)){S.times.capacityBlockedWarn21418=now+60000;audit('merchant_capacity_blocked','Merchant-Kapazität sicher blockiert; langsamer Retry aktiv',{free:blocked.free,reserve:reserve,bankFull:blocked.bankFull,retryMs:15000},'warning');}
+      return true;
+    }finally{S.inventoryPressureBusy=false;}
+  };
+
+  function v21418ConfigProvenance(){return {source:chosen21417?chosen21417.source:'defaults-or-legacy',sourceAt:chosen21417?Number(chosen21417.at||0):0,configHash:v282ConfigHash(C),settings:{language:C.language,autoFarmSwitchEnabled:!!C.autoFarmSwitchEnabled,merchantAllowShellBankUnlock:!!C.merchantAllowShellBankUnlock,standItemMode:C.standItemMode,merchantCollectGoldOver:Number(C.merchantCollectGoldOver)||0,merchantInventoryReserve:Number(C.merchantInventoryReserve)||0,merchantAutoExchange:!!C.merchantAutoExchange}};}
+
+  function v21418PhaseState(){return S.phaseProfiler21418||(S.phaseProfiler21418={windowAt:clock(),phases:{},calls:0});}
+  function v21418PhaseAdd(name,ms){var p=v21418PhaseState(),x=p.phases[name]||(p.phases[name]={n:0,sum:0,max:0});x.n++;x.sum+=ms;x.max=Math.max(x.max,ms);p.calls++;}
+  function v21418ProfileCall(name,fn,ctx,args){if(character.ctype!=='merchant')return fn.apply(ctx,args);var t=v21414PerfNow();try{return fn.apply(ctx,args);}finally{v21418PhaseAdd(name,Math.max(0,v21414PerfNow()-t));}}
+  function v21418ProfileWrap(name,fn){return function(){return v21418ProfileCall(name,fn,this,arguments);};}
+  function v21418PhaseSnapshot(){var p=v21418PhaseState(),out={};Object.keys(p.phases).sort().forEach(function(k){var x=p.phases[k];out[k]={calls:x.n,avgMs:Math.round((x.sum/Math.max(1,x.n))*100)/100,maxMs:Math.round(x.max*100)/100,totalMs:Math.round(x.sum*100)/100};});return out;}
+  function v21418PhaseSizes(){return {auditRecent:S.auditRecent.length,auditQueue:S.auditQueue.length,actionFailures:Object.keys(S.actionFailures||{}).length,inventoryUsed:(character.items||[]).filter(Boolean).length,inventoryFree:freeSlots(),bankPacks:Object.keys(character.bank||{}).filter(function(k){return /^items\d+$/.test(k);}).length};}
+
+  v290InventoryPressureTick=v21418ProfileWrap('inventory',v290InventoryPressureTick);
+  v273MerchantPlannerTick=v21418ProfileWrap('plannerRecipe',v273MerchantPlannerTick);v273CraftTick=v21418ProfileWrap('plannerRecipe',v273CraftTick);
+  v277MerchantServiceCandidates=v21418ProfileWrap('service',v277MerchantServiceCandidates);v277MerchantServiceTick=v21418ProfileWrap('service',v277MerchantServiceTick);
+  moveToGoal=v21418ProfileWrap('movement',moveToGoal);v21417ExchangeRouteTick=v21418ProfileWrap('movement',v21417ExchangeRouteTick);
+  v2149BankRetrieveTick=v21418ProfileWrap('bank',v2149BankRetrieveTick);v273StoreTrashBankTick=v21418ProfileWrap('bank',v273StoreTrashBankTick);
+  v273SellTrashTick=v21418ProfileWrap('economy',v273SellTrashTick);v273UpgradeTick=v21418ProfileWrap('economy',v273UpgradeTick);v273CompoundTick=v21418ProfileWrap('economy',v273CompoundTick);v273ExchangeTick=v21418ProfileWrap('economy',v273ExchangeTick);
+  dashboardPayload=v21418ProfileWrap('dashboard',dashboardPayload);dashboardPublishTick=v21418ProfileWrap('dashboard',dashboardPublishTick);
+  var v21418AuditBase=audit;audit=v21418ProfileWrap('audit',v21418AuditBase);
+  var v21418TickBase=tick;
+  tick=function(){var r=v21418TickBase();if(character.ctype==='merchant'){var now=clock(),p=v21418PhaseState();if(now-Number(p.windowAt||now)>=15000){var phases=v21418PhaseSnapshot(),sizes=v21418PhaseSizes(),windowMs=now-Number(p.windowAt||now),calls=p.calls;S.phaseProfiler21418={windowAt:now,phases:{},calls:0};audit('merchant_phase_profile','Merchant-Phasenprofil',{windowMs:windowMs,calls:calls,phases:phases,sizes:sizes});}}return r;};
+
   var v21416SelfUpdateBase=selfUpdate;
   selfUpdate=function(auto){try{v21416WriteStableUpdateBackup({version:VERSION,at:clock(),config:C,ui:S.ui||null,mainCollapsed:!!S.mainCollapsed});}catch(e){}return v21416SelfUpdateBase(auto);};
   if(v21416ConfigRecoverySource)audit('config_namespace_recovery','Gespeicherte Einstellungen aus stabilem Update-Speicher wiederhergestellt',{source:v21416ConfigRecoverySource,configHash:v282ConfigHash(C)});
+  audit('config_source_selected','Konfigurationsquelle gewählt',v21418ConfigProvenance());
 
   audit('feature_contract','2.14.14 Merchant-Performancebudget + Laufzeittelemetrie + Dashboard-Terrain-Pipeline geprüft',{features:FEATURE_CONTRACT,cloudConfigured:v21414CloudConfigured()});
   audit('feature_contract','2.14.15 Bank-Fortschrittslease + Sync-Wait-Diagnostik geprüft',{features:FEATURE_CONTRACT});
   audit('feature_contract','2.14.17 neueste Config-Quelle + Merchant-Aktionsserialisierung + Bank-/Vendor-Leases geprüft',{features:FEATURE_CONTRACT});
+  audit('feature_contract','2.14.18 Exchange-/Loot-/Capacity-Guards + Config-Dedupe + Merchant-Phasenprofil geprüft',{features:FEATURE_CONTRACT});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.

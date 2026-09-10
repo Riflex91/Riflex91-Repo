@@ -6,11 +6,11 @@ const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
 const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
-assert.equal(version.version,'2.14.17');
-assert.equal(version.dashboardVersion,'2.14.17');
-assert(bot.includes("var VERSION = '2.14.17';"));
-assert(dash.includes('AiO Bot Dashboard 2.14.17'));
-assert(worker.includes('AiO Bot Dashboard 2.14.17'));
+assert.ok(/^2\.14\.\d+$/.test(version.version));
+assert.equal(version.dashboardVersion,version.version);
+assert(bot.includes("var VERSION = '2.14.18';"));
+assert(dash.includes('AiO Bot Dashboard 2.14.18'));
+assert(worker.includes('AiO Bot Dashboard 2.14.18'));
 assert(!bot.includes('v2144AuditEconomy('),'undefined v2144AuditEconomy reference must be gone');
 
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);

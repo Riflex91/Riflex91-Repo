@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict'),vm=require('vm');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.17');
-assert.equal(version.dashboardVersion,'2.14.17');
-assert.match(bot,/var VERSION = ['"]2\.14\.17['"]/);
+assert.ok(/^2\.14\.\d+$/.test(version.version));
+assert.equal(version.dashboardVersion,version.version);
+assert.match(bot,/var VERSION = ['"]2\.14\.\d+['"]/);
 assert.doesNotThrow(()=>new vm.Script(bot), 'bot syntax');
 assert.ok(bot.includes("FEATURE_CONTRACT.indexOf('merchant-discovery-safety')"),'discovery safety feature marker missing');
 assert.ok(bot.includes('function v21410TargetDanger'),'target danger classifier missing');
