@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.15 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.16 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.15';
+  var VERSION = '2.14.16';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -38,11 +38,22 @@
   var ACCOUNT = ACCOUNT_CHARS.map(function (c) { return c.name; }).join('|');
   var KEY = 'ALBOT27:' + ACCOUNT + ':';
   var LEGACY_KEY = 'ALBOT2:' + ACCOUNT + ':';
+  var V21416_STABLE_CONFIG_KEY = 'ALBOT27:stable-config:' + me;
+  var V21416_STABLE_UPDATE_KEY = 'ALBOT27:stable-update-backup:' + me;
 
   function readRaw(key) { try { return P.localStorage.getItem(key); } catch (e) { return null; } }
   function writeRaw(key, value) { try { P.localStorage.setItem(key, value); return true; } catch (e) { return false; } }
+  function v21416ReadStableConfig(){try{var raw=readRaw(V21416_STABLE_CONFIG_KEY),box=raw?JSON.parse(raw):null;return box&&box.config&&typeof box.config==='object'?box.config:null;}catch(e){return null;}}
+  function v21416WriteStableUpdateBackup(value){try{return writeRaw(V21416_STABLE_UPDATE_KEY,JSON.stringify(value));}catch(e){return false;}}
+  function v21416FindUpdateBackup(){
+    var best=null;
+    function take(v){if(v&&v.config&&typeof v.config==='object'&&Number(v.at||0)>Number(best&&best.at||0))best=v;}
+    try{var direct=readRaw(V21416_STABLE_UPDATE_KEY);if(direct)take(JSON.parse(direct));}catch(e){}
+    try{for(var i=0;i<P.localStorage.length;i++){var k=P.localStorage.key(i);if(!k||k.indexOf('ALBOT27:')!==0||k.indexOf(me)<0||k.slice(-19)!==':updateConfigBackup')continue;var raw=P.localStorage.getItem(k);if(raw)take(JSON.parse(raw));}}catch(e){}
+    return best;
+  }
   function read(k, fallback) { try { var raw = readRaw(KEY + k); return raw == null ? fallback : JSON.parse(raw); } catch (e) { return fallback; } }
-  function write(k, value) { try { return writeRaw(KEY + k, JSON.stringify(value)); } catch (e) { return false; } }
+  function write(k, value) { try { var ok=writeRaw(KEY + k, JSON.stringify(value)); if(k==='config')writeRaw(V21416_STABLE_CONFIG_KEY,JSON.stringify({schema:1,version:VERSION,at:clock(),config:value})); return ok; } catch (e) { return false; } }
   function readLegacy(k, fallback) { try { var raw = readRaw(LEGACY_KEY + k); return raw == null ? fallback : JSON.parse(raw); } catch (e) { return fallback; } }
   function clamp(n, a, b) { n = Number(n); return isFinite(n) ? Math.max(a, Math.min(b, n)) : a; }
   function ratio(o, key) { var max = Number(o && o['max_' + key]) || Number(o && o['max' + key.charAt(0).toUpperCase() + key.slice(1)]) || 1; return (Number(o && o[key]) || 0) / Math.max(1, max); }
@@ -119,13 +130,13 @@
 
   function cleanConfig(c) {
     var out = Object.assign({}, defaults, c || {});
-    out.roster = Array.isArray(out.roster) ? out.roster.filter(function (n, i, a) { return ACCOUNT_CHARS.some(function (x) { return x.name === n; }) && a.indexOf(n) === i; }).slice(0, 4) : defaults.roster.slice();
+    out.roster = Array.isArray(out.roster) ? out.roster.map(function(n){return safeString(n,80).trim();}).filter(function (n, i, a) { return !!n && a.indexOf(n) === i; }).slice(0, 4) : defaults.roster.slice();
     if (!out.roster.length) out.roster = [me];
     out.autoRoster = out.autoRoster !== false;
     out.rosterDiscoverySeconds = clamp(out.rosterDiscoverySeconds, 3, 30);
     out.peerReportSeconds = clamp(out.peerReportSeconds, 15, 180);
     if (out.leader !== 'auto' && out.roster.indexOf(out.leader) < 0) out.leader = 'auto';
-    if (out.fallbackTank !== 'none' && (!ACCOUNT_CHARS.some(function(x){return x.name===out.fallbackTank;}) || characterTypeForConfig(out.fallbackTank) === 'merchant')) out.fallbackTank = 'none';
+    if (out.fallbackTank !== 'none' && (out.roster.indexOf(out.fallbackTank)<0 || characterTypeForConfig(out.fallbackTank) === 'merchant')) out.fallbackTank = 'none';
     ['hp','mp','retreatHP','resumeHP','healAt','risk','manaReserve','healerHealStartPct','healerEmergencyPct','healerSafeDamagePct','healerManaReservePct','kiteSafetyPct'].forEach(function (k) { out[k] = clamp(out[k], 1, 99); });
     out.tankAggroRadius = clamp(out.tankAggroRadius, 80, 800); out.tankMaxAggroTargets = clamp(out.tankMaxAggroTargets, 1, 8); out.kiteExtraDistance = clamp(out.kiteExtraDistance, 0, 150);
     out.maxTargets = clamp(out.maxTargets, 1, 5); out.searchRadius = clamp(out.searchRadius, 250, 3500); out.followDistance = clamp(out.followDistance, 60, 500); out.autoFarmMinSpawnCount = clamp(out.autoFarmMinSpawnCount, 2, 20); out.goalEmptyReplanSeconds = clamp(out.goalEmptyReplanSeconds, 3, 60);
@@ -168,7 +179,10 @@
 
 
   // Migrate useful 2.6 settings once, but intentionally replace its dashboard endpoint/token pair with the 2.7 connection URL model.
+  var v21416ConfigRecoverySource='';
   var C = read('config', null);
+  if(!C){var stable21416=v21416ReadStableConfig();if(stable21416){C=stable21416;v21416ConfigRecoverySource='stable-mirror';}}
+  if(!C){var backup21416=v21416FindUpdateBackup();if(backup21416&&backup21416.config){C=backup21416.config;v21416ConfigRecoverySource='update-backup';}}
   if (!C) {
     var legacy = readLegacy('config', null);
     if (legacy) C = Object.assign({}, defaults, legacy, {
@@ -238,7 +252,7 @@
     if (!C.auditEnabled) return;
     var p = pos(character) || {};
     var ev = { at: clock(), iso: new Date().toISOString(), version: VERSION, build: BUILD, char: me, ctype: character.ctype, server: currentRealm(), map: character.map, x: Math.round(p.x || 0), y: Math.round(p.y || 0), kind: String(kind || 'event'), level: String(level || 'info'), message: safeString(message, 700), data: compactData(data) };
-    S.auditRecent.push(ev); if (S.auditRecent.length > 3000) S.auditRecent.splice(0, S.auditRecent.length - 3000);
+    S.auditRecent.push(ev); var recentCap=character.ctype==='merchant'?1200:3000; if (S.auditRecent.length > recentCap) S.auditRecent.splice(0, S.auditRecent.length - recentCap);
     // In caracAL/headless, mirror structured events to its persistent logger when available.
     try { if (HEADLESS && P.caracAL && P.caracAL.log && typeof P.caracAL.log.info === 'function') P.caracAL.log.info({ aio: ev }, ev.message); } catch (e) {}
     S.auditQueue.push(ev); if (S.auditQueue.length > 1000) flushAuditQueue();
@@ -1487,8 +1501,9 @@
     return false;
   }
   function v273BankCapacity(){if(!character.bank)return null;var free=0,total=0;Object.keys(character.bank).forEach(function(k){if(!/^items\d+$/.test(k)||!Array.isArray(character.bank[k]))return;character.bank[k].forEach(function(i){total++;if(!i)free++;});});return {free:free,total:total};}
+  function v21416BankPackCost(pack,currency){try{var table=(typeof bank_packs!=='undefined'&&bank_packs)||(P&&P.bank_packs)||null,row=table&&table[pack];if(!row)return 0;return Math.max(0,Number(row[currency==='shells'?2:1])||0);}catch(e){return 0;}}
   function v273OpenBankPackTick(){
-    if(character.ctype!=='merchant'||!C.merchantAutoUnlockBank||!character.bank||typeof open_bank_pack!=='function')return false;var cap=v273BankCapacity();if(!cap||cap.free>0)return false;var candidates=Object.keys(GD.npcs||{}).filter(function(k){return /^items\d+$/.test(k)&&!character.bank[k];}).sort(function(a,b){return Number(a.slice(5))-Number(b.slice(5));});if(!candidates.length){S.bankFull=true;return false;}var pack=candidates[0];S.status='Bankplatz freischalten: '+pack;S.mode='Merchant · Bank';if(S.bankUnlockReady!==pack){if(S.bankUnlockTarget===pack&&clock()-(S.bankUnlockTravelAt||0)<12000)return true;S.bankUnlockTarget=pack;S.bankUnlockTravelAt=clock();if(typeof smart_move==='function'){action('Zum Bank-Schalter '+pack,function(){return Promise.resolve(smart_move(pack)).then(function(v){S.bankUnlockReady=pack;return v;});},'bank-teller:'+pack,7000);return true;}return false;}var currency=(C.merchantAllowShellBankUnlock&&character.gold<=C.merchantBankGoldReserve)?'shells':'gold';return action('Bankpack öffnen '+pack+' ('+currency+')',function(){return Promise.resolve(open_bank_pack(pack,currency)).then(function(v){S.bankUnlockReady=null;S.bankUnlockTarget=null;return v;});},'bank-open:'+pack,15000);
+    if(character.ctype!=='merchant'||!C.merchantAutoUnlockBank||!character.bank||typeof open_bank_pack!=='function')return false;var cap=v273BankCapacity();if(!cap||cap.free>0)return false;var candidates=Object.keys(GD.npcs||{}).filter(function(k){return /^items\d+$/.test(k)&&!character.bank[k];}).sort(function(a,b){return Number(a.slice(5))-Number(b.slice(5));});if(!candidates.length){S.bankFull=true;return false;}var pack=candidates[0];S.status='Bankplatz freischalten: '+pack;S.mode='Merchant · Bank';if(S.bankUnlockReady!==pack){if(S.bankUnlockTarget===pack&&clock()-(S.bankUnlockTravelAt||0)<12000)return true;S.bankUnlockTarget=pack;S.bankUnlockTravelAt=clock();if(typeof smart_move==='function'){action('Zum Bank-Schalter '+pack,function(){return Promise.resolve(smart_move(pack)).then(function(v){S.bankUnlockReady=pack;return v;});},'bank-teller:'+pack,7000);return true;}return false;}var currency=(C.merchantAllowShellBankUnlock&&character.gold<=C.merchantBankGoldReserve)?'shells':'gold',cost=v21416BankPackCost(pack,currency),reserve=Math.max(0,Number(C.merchantBankGoldReserve)||0);if(currency==='gold'&&cost>0&&Number(character.gold||0)<cost+reserve){S.bankFull=true;S.times.bankCleanupRetry2148=clock()+60000;S.status='Bank voll · '+pack+' derzeit nicht bezahlbar';S.mode='Merchant · Bank';if(clock()>Number(S.times.bankUnlockDeferred21416||0)){S.times.bankUnlockDeferred21416=clock()+60000;audit('merchant_bank_unlock_deferred','Bankpack wird erst bei ausreichendem Gold geöffnet',{pack:pack,cost:cost,gold:Number(character.gold)||0,reserve:reserve,required:cost+reserve},'warning');}if(S.merchantBankCleanup2148&&typeof v2148BankCleanupFinish==='function')v2148BankCleanupFinish('merchant_bank_cleanup_deferred','Bankbereinigung pausiert: nächstes Bankpack derzeit nicht bezahlbar','warning',{pack:pack,cost:cost,gold:Number(character.gold)||0,required:cost+reserve});return false;}return action('Bankpack öffnen '+pack+' ('+currency+')',function(){return Promise.resolve(open_bank_pack(pack,currency)).then(function(v){S.bankUnlockReady=null;S.bankUnlockTarget=null;return v;});},'bank-open:'+pack,15000);
   }
   function v273StoreTrashBankTick(){
     if(character.ctype!=='merchant'||!C.merchantManageBank||freeSlots()>C.merchantInventoryReserve)return false;if(!character.bank){S.status='Inventar organisieren · zur Bank';S.mode='Merchant · Bank';return moveToGoal({map:'bank',x:0,y:0},'Bank organisieren',{kind:'bank',forceAfter:7000});}
@@ -2157,7 +2172,8 @@
     'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites',
     'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed',
     'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle',
-    'merchant-bank-progress-lease','merchant-bank-sync-diagnostics'
+    'merchant-bank-progress-lease','merchant-bank-sync-diagnostics',
+    'config-stable-mirror','config-update-namespace-recovery','merchant-compound-flight-guard','merchant-bank-unlock-affordability','merchant-audit-memory-cap'
   ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
@@ -3938,14 +3954,24 @@
       var ms=Math.max(0,v21414PerfNow()-t);p.tickN++;p.tickSum+=ms;p.tickMax=Math.max(p.tickMax,ms);if(ms>=16)p.tickSlow++;
       var now=clock();if(now-p.lastAt>=15000){
         var mem=null;try{var pm=P.performance&&P.performance.memory;if(pm)mem={usedMB:Math.round(Number(pm.usedJSHeapSize||0)/1048576*10)/10,totalMB:Math.round(Number(pm.totalJSHeapSize||0)/1048576*10)/10,limitMB:Math.round(Number(pm.jsHeapSizeLimit||0)/1048576)};}catch(e){}
-        audit('merchant_performance_sample','Merchant-Laufzeitprofil',{windowMs:now-p.lastAt,tickCount:p.tickN,tickAvgMs:Math.round((p.tickSum/Math.max(1,p.tickN))*100)/100,tickMaxMs:Math.round(p.tickMax*100)/100,ticksOver16Ms:p.tickSlow,renderCount:p.renderN,renderAvgMs:Math.round((p.renderSum/Math.max(1,p.renderN))*100)/100,renderMaxMs:Math.round(p.renderMax*100)/100,heap:mem,auditRecent:S.auditRecent.length,auditQueue:S.auditQueue.length,free:freeSlots(),moving:!!(character.moving||S.moveInFlight)});
+        audit('merchant_performance_sample','Merchant-Laufzeitprofil',{windowMs:now-p.lastAt,tickCount:p.tickN,tickAvgMs:Math.round((p.tickSum/Math.max(1,p.tickN))*100)/100,tickMaxMs:Math.round(p.tickMax*100)/100,ticksOver16Ms:p.tickSlow,renderCount:p.renderN,renderAvgMs:Math.round((p.renderSum/Math.max(1,p.renderN))*100)/100,renderMaxMs:Math.round(p.renderMax*100)/100,heap:mem,auditRecent:S.auditRecent.length,auditRecentCap:1200,auditQueue:S.auditQueue.length,free:freeSlots(),moving:!!(character.moving||S.moveInFlight)});
         S.performance21414={tickN:0,tickSum:0,tickMax:0,tickSlow:0,renderN:0,renderSum:0,renderMax:0,lastAt:now};
       }
     }
   };
 
+  var v21416MerchantTickBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype==='merchant'&&character.q&&character.q.compound){S.status='Combine läuft · warte auf Abschluss';S.mode='Merchant · Combine';S.times['merchant-compound']=Math.max(Number(S.times['merchant-compound'])||0,clock()+1200);return true;}
+    return v21416MerchantTickBase();
+  };
+  var v21416SelfUpdateBase=selfUpdate;
+  selfUpdate=function(auto){try{v21416WriteStableUpdateBackup({version:VERSION,at:clock(),config:C,ui:S.ui||null,mainCollapsed:!!S.mainCollapsed});}catch(e){}return v21416SelfUpdateBase(auto);};
+  if(v21416ConfigRecoverySource)audit('config_namespace_recovery','Gespeicherte Einstellungen aus stabilem Update-Speicher wiederhergestellt',{source:v21416ConfigRecoverySource,configHash:v282ConfigHash(C)});
+
   audit('feature_contract','2.14.14 Merchant-Performancebudget + Laufzeittelemetrie + Dashboard-Terrain-Pipeline geprüft',{features:FEATURE_CONTRACT,cloudConfigured:v21414CloudConfigured()});
   audit('feature_contract','2.14.15 Bank-Fortschrittslease + Sync-Wait-Diagnostik geprüft',{features:FEATURE_CONTRACT});
+  audit('feature_contract','2.14.16 Update-Konfiguration + Merchant-Compound/Bank/Memory-Guards geprüft',{features:FEATURE_CONTRACT});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
