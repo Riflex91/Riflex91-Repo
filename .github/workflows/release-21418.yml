@@ -29,7 +29,7 @@ jobs:
       - name: Apply 2.14.18 patch
         run: python3 scripts/prepare-21418.py
 
-      - name: Normalize retained version smoke pins
+      - name: Normalize retained current-release pins
         shell: bash
         run: |
           python3 - <<'PY'
@@ -40,8 +40,11 @@ jobs:
               t=t.replace("assert.equal(version.dashboardVersion,'2.14.17');","assert.equal(version.dashboardVersion,version.version);")
               lines=[]
               for line in t.splitlines(True):
+                  if 'assert' in line and '2.14.17' in line:
+                      if 'var VERSION' in line or 'AiO Bot Dashboard' in line:
+                          line=line.replace('2.14.17','2.14.18')
                   if 'assert.match(bot,/var VERSION' in line:
-                      line=line.replace(r'2\.14\.17',r'2\.14\.\d+')
+                      line=line.replace(r'2\.14\.18',r'2\.14\.\d+')
                   lines.append(line)
               p.write_text(''.join(lines))
           PY
