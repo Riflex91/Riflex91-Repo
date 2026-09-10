@@ -44,13 +44,14 @@ anchor = "  var v21416SelfUpdateBase=selfUpdate;"
 block = r'''
   function v21418MerchantLootBlocked(){
     if(character.ctype!=='merchant')return false;
+    if(S.lootFlight21418)return true;
     if(v21417EconomicFlightKind(character.q))return true;
     var route=S.exchangeRouteFlight21418;if(route&&route.active)return true;
     var cap=S.capacityBlocked21418;if(cap&&clock()<Number(cap.retryAt||0))return true;
     return false;
   }
   function v21418GuardedLoot(){
-    if(v21418MerchantLootBlocked()||S.lootFlight21418)return Promise.resolve({success:false,skipped:true,reason:'merchant_loot_gate'});
+    if(v21418MerchantLootBlocked())return Promise.resolve({success:false,skipped:true,reason:'merchant_loot_gate'});
     S.lootFlight21418=true;
     try{var r=loot();if(r&&typeof r.then==='function')return Promise.resolve(r).then(function(v){S.lootFlight21418=false;return v;},function(e){S.lootFlight21418=false;throw e;});S.lootFlight21418=false;return r;}catch(e){S.lootFlight21418=false;throw e;}
   }
@@ -64,23 +65,22 @@ block = r'''
     if(!started){state.active=false;S.exchangeRouteFlight21418=null;}return true;
   };
 
-  var v21418InventoryPressureBase=v290InventoryPressureTick;
   v290InventoryPressureTick=function(){
-    if(character.ctype!=='merchant')return v21418InventoryPressureBase();
+    if(character.ctype!=='merchant'||freeSlots()>Math.max(1,C.merchantInventoryReserve)){if(S.capacityBlocked21418){audit('merchant_capacity_recovered','Merchant-Kapazität wieder verfügbar',{durationMs:clock()-Number(S.capacityBlocked21418.since||clock()),free:freeSlots(),reserve:Number(C.merchantInventoryReserve)||0});S.capacityBlocked21418=null;}return false;}
     var reserve=Math.max(1,Number(C.merchantInventoryReserve)||0),now=clock(),free=freeSlots(),blocked=S.capacityBlocked21418;
-    if(free>reserve){if(blocked)audit('merchant_capacity_recovered','Merchant-Kapazität wieder verfügbar',{durationMs:now-Number(blocked.since||now),free:free,reserve:reserve});S.capacityBlocked21418=null;return false;}
     if(blocked&&now<Number(blocked.retryAt||0)){S.status=C.language==='de'?'Kapazität blockiert · sichere Freigabe später erneut prüfen':'Capacity blocked · safe recovery will retry later';S.mode='Merchant · Kapazität';return true;}
-    var r=v21418InventoryPressureBase();
-    if(freeSlots()>reserve){S.capacityBlocked21418=null;return r;}
-    if(r&&S.status==='Inventar voll · sichere Bereinigung nötig'){
-      if(C.merchantAutoExchange&&v273ExchangeTick()){S.capacityBlocked21418=null;return true;}
-      if(C.merchantStandAutomation&&merchantStandTick()){S.capacityBlocked21418=null;return true;}
+    if(S.inventoryPressureBusy){S.status=C.language==='de'?'Inventarbereinigung läuft · Re-Entry blockiert':'Inventory cleanup running · re-entry blocked';S.mode='Merchant · Inventar';return true;}
+    S.inventoryPressureBusy=true;
+    try{
+      if(v273StoreTrashBankTick())return true;
+      if(S.bankFull&&v273SellTrashTick())return true;
+      if(C.merchantAutoExchange&&v273ExchangeTick())return true;
+      if(C.merchantStandAutomation&&merchantStandTick())return true;
       blocked=blocked||{since:now};blocked.retryAt=now+15000;blocked.free=freeSlots();blocked.reserve=reserve;blocked.bankFull=!!S.bankFull;S.capacityBlocked21418=blocked;
       S.status=C.language==='de'?'Kapazität blockiert · sichere Freigabe nicht möglich':'Capacity blocked · no safe release available';S.mode='Merchant · Kapazität';
       if(now>Number(S.times.capacityBlockedWarn21418||0)){S.times.capacityBlockedWarn21418=now+60000;audit('merchant_capacity_blocked','Merchant-Kapazität sicher blockiert; langsamer Retry aktiv',{free:blocked.free,reserve:reserve,bankFull:blocked.bankFull,retryMs:15000},'warning');}
       return true;
-    }
-    if(!r)S.capacityBlocked21418=null;return r;
+    }finally{S.inventoryPressureBusy=false;}
   };
 
   function v21418ConfigProvenance(){return {source:chosen21417?chosen21417.source:'defaults-or-legacy',sourceAt:chosen21417?Number(chosen21417.at||0):0,configHash:v282ConfigHash(C),settings:{language:C.language,autoFarmSwitchEnabled:!!C.autoFarmSwitchEnabled,merchantAllowShellBankUnlock:!!C.merchantAllowShellBankUnlock,standItemMode:C.standItemMode,merchantCollectGoldOver:Number(C.merchantCollectGoldOver)||0,merchantInventoryReserve:Number(C.merchantInventoryReserve)||0,merchantAutoExchange:!!C.merchantAutoExchange}};}
@@ -130,7 +130,6 @@ for filename in ["cloudflare-dashboard/dashboard.html", "cloudflare-dashboard/sr
         raise SystemExit(f"{filename}: no 2.14.17 marker found")
     p.write_text(text.replace("2.14.17", "2.14.18"))
 
-# Retained smokes validate feature generations without pinning every future current version.
 for p in Path("scripts").glob("smoke*.js"):
     text = p.read_text()
     text = text.replace(
@@ -152,8 +151,8 @@ text = replace_once(
 marker = "ok(bot.includes('function v21417ExchangeRouteTick') && bot.includes(\"smart_move('exchange')\") && bot.includes(\"kind:'merchant-upgrade-vendor'\") && bot.includes(\"tolerance:60\"), '2.14.17 vendor range guards missing');"
 extra = """
 ok(bot.includes('S.exchangeRouteFlight21418') && bot.includes("Eintausch-Anreise läuft") && bot.includes("merchant_exchange_route_timeout"), '2.14.18 exchange route flight lock missing');
-ok(bot.includes('function v21418MerchantLootBlocked') && bot.includes('function v21418GuardedLoot') && bot.includes('!v21418MerchantLootBlocked()'), '2.14.18 merchant loot flight gate missing');
-ok(bot.includes('merchant_capacity_blocked') && bot.includes('blocked.retryAt=now+15000') && bot.includes("S.mode='Merchant · Kapazität'"), '2.14.18 capacity blocked state missing');
+ok(bot.includes('function v21418MerchantLootBlocked') && bot.includes('function v21418GuardedLoot') && bot.includes('if(S.lootFlight21418)return true') && bot.includes('!v21418MerchantLootBlocked()'), '2.14.18 merchant loot flight gate missing');
+ok(bot.includes('merchant_capacity_blocked') && bot.includes('blocked.retryAt=now+15000') && bot.includes("S.mode='Merchant · Kapazität'") && !bot.slice(bot.lastIndexOf('v290InventoryPressureTick=function(){'),bot.indexOf('function v21418ConfigProvenance')).includes('v273CompoundTick()'), '2.14.18 capacity blocked state missing');
 ok(bot.includes('S.inputSaveTimers21418') && bot.includes('},450)') && bot.includes('if(sameJSON(before,C[key]))return false'), '2.14.18 config write debounce/dedupe missing');
 ok(bot.includes("audit('config_source_selected'") && bot.includes('function v21418ConfigProvenance'), '2.14.18 config provenance missing');
 ok(bot.includes('function v21418ProfileCall') && bot.includes("audit('merchant_phase_profile'") && bot.includes("v21418ProfileWrap('inventory'") && bot.includes("v21418ProfileWrap('dashboard'"), '2.14.18 Merchant phase profiler missing');
@@ -170,8 +169,10 @@ assert.equal(version.version,'2.14.18');assert.equal(version.dashboardVersion,'2
 const cm=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);assert(cm);const contract=JSON.parse(cm[1].replace(/'/g,'"'));
 for(const f of ['merchant-exchange-route-flight-lock','merchant-loot-flight-gate','merchant-capacity-blocked-state','config-control-write-dedupe','merchant-phase-profiler'])assert.ok(contract.includes(f),'missing feature '+f);
 assert.ok(bot.includes('S.exchangeRouteFlight21418')&&bot.includes("smart_move('exchange')")&&bot.includes("if(flight&&flight.active)"),'exchange route lock missing');
-assert.ok(bot.includes('function v21418MerchantLootBlocked')&&bot.includes('function v21418GuardedLoot')&&bot.includes('!v21418MerchantLootBlocked()'),'loot flight gate missing');
-assert.ok(bot.includes('S.capacityBlocked21418')&&bot.includes('blocked.retryAt=now+15000')&&bot.includes('merchant_capacity_blocked'),'capacity retry state missing');
+assert.ok(bot.includes('function v21418MerchantLootBlocked')&&bot.includes('if(S.lootFlight21418)return true')&&bot.includes('function v21418GuardedLoot')&&bot.includes('!v21418MerchantLootBlocked()'),'loot flight gate missing');
+const cap=bot.slice(bot.lastIndexOf('v290InventoryPressureTick=function(){'),bot.indexOf('function v21418ConfigProvenance'));
+assert.ok(cap.includes('S.capacityBlocked21418')&&cap.includes('blocked.retryAt=now+15000')&&cap.includes('merchant_capacity_blocked'),'capacity retry state missing');
+assert.ok(!cap.includes('v273CompoundTick()'),'capacity mode must not compound recursively');
 assert.ok(bot.includes('S.inputSaveTimers21418')&&bot.includes('},450)')&&bot.includes('if(sameJSON(before,C[key]))return false'),'config debounce/dedupe missing');
 const prov=bot.slice(bot.indexOf('function v21418ConfigProvenance'),bot.indexOf('function v21418PhaseState'));
 assert.ok(prov.includes('sourceAt:chosen21417?Number(chosen21417.at||0):0'),'config provenance missing');
@@ -181,6 +182,5 @@ assert.ok(bot.includes("audit('merchant_phase_profile'")&&bot.includes('phases:p
 console.log('2.14.18 Merchant stability / performance smoke OK');
 ''')
 
-# The final tested tree contains neither temporary CI helper.
 Path(".github/workflows/release-21418.yml").unlink(missing_ok=True)
 Path("scripts/prepare-21418.py").unlink(missing_ok=True)
