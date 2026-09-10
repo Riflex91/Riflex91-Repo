@@ -1,4 +1,9 @@
-# Adventure Land – AiO Bot 2.14.0 · technische Notizen
+# Adventure Land – AiO Bot 2.14.1 · technische Notizen
+
+## 2.14.1 Stabilitäts-Hotfix
+
+Merchant-Fokus: Goldtransfers beachten `merchantCollectGoldOver`, Farmer-Service erhält Hysterese, Party-`invalid` erhält Backoff, Report-CM-Audits werden gedrosselt/komprimiert und ein Merchant-Watchdog begrenzt ungewöhnliche Aktionsspitzen. Das neuronale Brain bleibt unverändert.
+
 
 `bot.js` ist die gemeinsame Adventure-Land-CODE-Datei für Merchant und Farmer. 2.14.0 baut auf den Sicherheits-, Merchant-, Explorer-, Cloud-Sync- und GUI-Funktionen auf und ergänzt das selbsttrainierende Teacher/Student-Brain um Champion/Challenger, Lernqualitäts-Selbstkontrolle, Gehirn-Tagebuch und die **AiO Research Bridge** zur sicheren Übergabe verdichteter Erfahrung an ChatGPT.
 

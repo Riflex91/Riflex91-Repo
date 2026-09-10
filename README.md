@@ -1,8 +1,10 @@
-# Adventure Land – AiO Bot 2.14.0
+# Adventure Land – AiO Bot 2.14.1
 
 Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
-> Aktueller Stand: **2.14.0** · Build **2026-09-10**
+> **2.14.1 Stabilitäts-Hotfix:** bündelt Farmer→Merchant-Goldtransfers erst ab dem konfigurierten Schwellwert, verhindert sofortige Wiederholungs-Services, drosselt übermäßige Merchant-Aktionsraten und reduziert CM-Auditlast. Brain/Teacher-Gewichte und Cloudflare-Dashboard bleiben unverändert.
+
+> Aktueller Stand: **2.14.1** · Build **2026-09-10**
 
 ## Release-Dateien
 

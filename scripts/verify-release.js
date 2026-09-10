@@ -51,10 +51,11 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.0", "prepared release must be 2.14.0");
-  ok(dash.includes(`Dashboard ${versionMatch[1]}`), "dashboard version marker not aligned with bot");
-  ok(worker.includes(`version:\"${versionMatch[1]}\"`) || worker.includes(`version: \"${versionMatch[1]}\"`) || worker.includes(`version:"${versionMatch[1]}"`), "worker health version not aligned with bot");
-  ok(pkg.includes(`\"version\": \"${versionMatch[1]}\"`), "dashboard package version not aligned");
+  ok(version.version === "2.14.1", "prepared release must be 2.14.1");
+  ok(version.dashboardVersion === "2.14.0", "dashboard version must remain 2.14.0 for bot-only hotfix");
+  ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
+  ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
+  ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
 }
 
 const contractMatch = bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
@@ -120,6 +121,11 @@ ok(bot.includes("healthyChampion:v210StudentValid(q.healthyChampion)") && bot.in
 ok(bot.includes("brainResearchBridgeEnabled: true") && bot.includes("brainResearchProfile: 'development'"), "Research Bridge defaults missing");
 ok(bot.includes("WRITE_KEY|READ_KEY|API[_-]?KEY|TOKEN|SECRET|AUTHORIZATION") && bot.includes("[REDACTED]"), "Research secret redaction missing");
 ok(bot.includes("V214_RESEARCH_PROFILES") && bot.includes("development:{label:'Entwicklungsbrief'"), "Research prompt profiles missing");
+ok(bot.includes("serviceTrigger:trigger") && bot.includes("gold>=trigger"), "2.14.1 bundled gold threshold guard missing");
+ok(bot.includes("recentlyServiced=age<gap") && bot.includes("freeUrgent=freeNeed&&!recentlyServiced"), "2.14.1 Merchant service hysteresis missing");
+ok(bot.includes("cmAudit:") && bot.includes("clock()+15000"), "2.14.1 CM audit throttling missing");
+ok(bot.includes("merchant_watchdog") && bot.includes("thresholdPerMinute:90"), "2.14.1 Merchant watchdog missing");
+ok(bot.includes("/^partyRequest:/.test") && bot.includes("clock()+15000"), "2.14.1 party invalid backoff missing");
 
 const toolBlock = bot.slice(bot.lastIndexOf("toolDefs=function"), bot.indexOf("toolHTML=function", bot.lastIndexOf("toolDefs=function")));
 const charPos = toolBlock.indexOf("['character'"), invPos = toolBlock.indexOf("['inventory'");
@@ -167,4 +173,4 @@ ok(!dash.includes("Monster / Konkurrenz") && !dash.includes("Sicherheit</span>")
 ok(worker.includes("mapVisual") && worker.includes("taskReason") && worker.includes("brain:"), "worker status sanitization is missing current fields");
 
 ok(!fs.existsSync("tools"), "temporary tools directory must not ship");
-if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge`);
+if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);
