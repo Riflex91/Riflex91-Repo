@@ -12,8 +12,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply prepared patch
-        run: python3 .github/patch2150.py
+      - name: Repair replacement escaping and apply prepared patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/patch2150.py')
+          s=p.read_text()
+          s=s.replace('bot,n=parser_old.subn(parser_new,bot,count=1)','bot,n=parser_old.subn(lambda _m: parser_new,bot,count=1)')
+          s=s.replace("worker,n=re.subn(r'const DASHBOARD_HTML = [\\s\\S]*?;\\nfunction json\\(',const+'function json(',worker,count=1)","worker,n=re.subn(r'const DASHBOARD_HTML = [\\s\\S]*?;\\nfunction json\\(',lambda _m: const+'function json(',worker,count=1)")
+          p.write_text(s)
+          PY
+          python3 .github/patch2150.py
       - name: Bot syntax
         run: node --check bot.js
       - name: Release verifier
