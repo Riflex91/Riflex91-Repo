@@ -1,8 +1,8 @@
-# Adventure Land – AiO Bot 2.13.0
+# Adventure Land – AiO Bot 2.14.0
 
-Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.13.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch** und einer lebendig animierten Gehirn-Übersicht im Bot sowie im Web-Dashboard.
+Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
-> Aktueller Stand: **2.13.0** · Build **2026-09-10**
+> Aktueller Stand: **2.14.0** · Build **2026-09-10**
 
 ## Release-Dateien
 
@@ -33,7 +33,7 @@ Kampf, Heilung, Kiten, Retreats, Party-Sicherheit und andere zeitkritische Schut
 
 ## Gehirn-Tagebuch
 
-Das Brain führt ab 2.13.0 ein eigenes **deterministisches Lerntagebuch**. Dafür wird kein zusätzlicher Workers-AI-Aufruf ausgelöst. Stattdessen werden bereits vorhandene, überprüfbare Ereignisse in verständliche Einträge übersetzt:
+Das Brain führt ein eigenes **deterministisches Lerntagebuch**. Dafür wird kein zusätzlicher Workers-AI-Aufruf ausgelöst. Stattdessen werden bereits vorhandene, überprüfbare Ereignisse in verständliche Einträge übersetzt:
 
 - Teacher-Lektionen aus dem bereits zurückgegebenen `lesson`-Feld,
 - positive, neutrale und negative Outcome-Rewards mit EXP/h-, Gold/h-, Sicherheits- und Inventarvergleich,
@@ -47,13 +47,23 @@ Standardmäßig bleiben die letzten 80 Einträge erhalten (`brainDiaryMaxEntries
 
 ## Lernqualitäts-Wächter
 
-2.13.0 ergänzt eine zweite Meta-Ebene über dem Student-Netz. Der **Lernqualitäts-Wächter** bewertet nicht nur, wie sicher sich das Netz fühlt, sondern ob diese Sicherheit durch reale Outcomes gerechtfertigt ist. Dafür vergleicht er rollierend Reward, Confidence, Loss, Reward-Streuung und Sicherheitsfolgen. Er erkennt insbesondere **Overconfidence ohne Reward-Fortschritt**, Reward-Drift, instabile Lernphasen und Sicherheitsrückschritte.
+Die Lernqualitäts-Selbstkontrolle ergänzt eine zweite Meta-Ebene über dem Student-Netz. Der **Lernqualitäts-Wächter** bewertet nicht nur, wie sicher sich das Netz fühlt, sondern ob diese Sicherheit durch reale Outcomes gerechtfertigt ist. Dafür vergleicht er rollierend Reward, Confidence, Loss, Reward-Streuung und Sicherheitsfolgen. Er erkennt insbesondere **Overconfidence ohne Reward-Fortschritt**, Reward-Drift, instabile Lernphasen und Sicherheitsrückschritte.
 
 Der Wächter arbeitet in den Zuständen `warming`, `healthy`, `watch`, `degraded` und `quarantine`. Bei `watch` werden Challenger zurückgehalten, die Confidence-Schwelle angehoben, der Teacher häufiger konsultiert und vorsichtiger gelernt. Bei `degraded` oder `quarantine` werden autonome Brain-Strategien vorübergehend blockiert, die Lernrate deutlich reduziert und laufende Canary-/Bewährungsphasen gestoppt. Ein bestätigter gesunder Champion wird als zusätzlicher Rückfallpunkt gespeichert; ein frisch beförderter Champion darf diesen Snapshot erst nach genügend eigenen stabilen Outcomes ersetzen.
 
 Die Qualitätsüberwachung verbraucht selbst **keine zusätzlichen Workers-AI-Neurons**. Sie nutzt die ohnehin gemessenen Outcome-Daten und verändert lediglich, wann der vorhandene Teacher konsultiert wird. Die harte 10.000-Neuron-Grenze und der Budget-Pacer bleiben aktiv.
 
-`brainDailyNeuronLimit` ist in 2.13.0 auf maximal **10.000 Neurons/Tag** begrenzt. Standardmäßig plant der Budget-Pacer bis **99,5 %**, also 9.950 Neurons. Die verbleibenden 50 Neurons sind eine Sicherheitsreserve für Token-Schätzabweichungen.
+## AiO Research Bridge
+
+Die **AiO Research Bridge** macht aus gesammelter Bot-Erfahrung einen kompakten, direkt für ChatGPT nutzbaren Analysebrief. Sie ruft dafür **kein zusätzliches LLM** auf, sondern verdichtet vorhandene Audit-, Diary-, Outcome-, Qualitäts-, Farm-, Merchant- und Lerntelemetrie deterministisch. Dadurch bleiben die Inhalte nachvollziehbar und verbrauchen **0 zusätzliche Workers-AI-Neurons**.
+
+Es gibt sechs Profile: **Gesamtanalyse**, **Fehleranalyse**, **Lernanalyse**, **Farmanalyse**, **Merchant-Analyse** und **Entwicklungsbrief**. Ein Relevanzfilter priorisiert wiederkehrende Fehler, Rollbacks, starke positive/negative Rewards, Qualitätswarnungen, wichtige Teacher-Lektionen und auffällige Farm-/Merchant-Signale, statt komplette Rohlogs in den Prompt zu kopieren. Der Standardzeitraum beträgt 24 Stunden und kann auf 1–168 Stunden gestellt werden.
+
+Jeder Brief enthält zwei Ebenen: einen verständlichen Arbeitsauftrag für ChatGPT und einen strukturierten JSON-Datenblock. Der Prompt fordert ausdrücklich, nur die gelieferten Fakten zu verwenden, Unsicherheiten zu kennzeichnen und Empfehlungen nach **24/7-Stabilität und Sicherheit vor EXP/h und Gold/h** zu priorisieren. Codeänderungen an deterministischer Logik werden getrennt von Änderungen am neuronalen Brain betrachtet.
+
+Vor dem Export werden bekannte Secrets wie `WRITE_KEY`, `READ_KEY`, API-Keys, Tokens und Authorization-Werte entfernt. Standardmäßig werden Charakternamen außerdem in Rollen wie `Merchant`, `Farmer1`, `Farmer2` usw. umbenannt. Im Ingame-Gehirnfenster kann der Brief angezeigt oder kopiert werden. Das Web-Dashboard bietet dieselben Profile über den mit `READ_KEY` geschützten Endpunkt `/api/research-brief`. Der lokale Brief kann reichhaltiger sein, weil dort die aktuelle Audit-Historie verfügbar ist; der Web-Brief verwendet ausschließlich sicher synchronisierte D1-/Statusdaten und benennt fehlende Datenquellen ausdrücklich.
+
+`brainDailyNeuronLimit` ist auf maximal **10.000 Neurons/Tag** begrenzt. Standardmäßig plant der Budget-Pacer bis **99,5 %**, also 9.950 Neurons. Die verbleibenden 50 Neurons sind eine Sicherheitsreserve für Token-Schätzabweichungen.
 
 Der Teacher wird nicht einfach in einem starren Intervall aufgerufen. Der Bot berücksichtigt:
 

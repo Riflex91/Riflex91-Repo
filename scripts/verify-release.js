@@ -51,7 +51,7 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.13.0", "prepared release must be 2.13.0");
+  ok(version.version === "2.14.0", "prepared release must be 2.14.0");
   ok(dash.includes(`Dashboard ${versionMatch[1]}`), "dashboard version marker not aligned with bot");
   ok(worker.includes(`version:\"${versionMatch[1]}\"`) || worker.includes(`version: \"${versionMatch[1]}\"`) || worker.includes(`version:"${versionMatch[1]}"`), "worker health version not aligned with bot");
   ok(pkg.includes(`\"version\": \"${versionMatch[1]}\"`), "dashboard package version not aligned");
@@ -67,10 +67,10 @@ const requiredFeatures = [
   "auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync",
   "farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle",
   "self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard",
-  "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control"
+  "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard"
 ];
 for (const feature of requiredFeatures) ok(contract.includes(feature), `protected feature missing: ${feature}`);
-ok(contract.length >= 38, `expected at least 38 protected features, got ${contract.length}`);
+ok(contract.length >= 42, `expected at least 42 protected features, got ${contract.length}`);
 
 const mustContain = [
   ["Inventar tool", "['inventory'"], ["inventory right-click policy", "data-inv-rule"],
@@ -91,7 +91,9 @@ const mustContain = [
   ["brain diary cloud sync", "x.diary={schema:1"], ["brain diary UI", "Gehirn-Tagebuch"],
   ["learning quality monitor", "function v213QualityEvaluate"], ["overconfidence guard", "overconfidenceFailureRate"],
   ["quality quarantine", "status==='quarantine'"], ["adaptive learning rate", "v213QualityLearningRateScale"],
-  ["adaptive teacher cadence", "v213QualityTeacherBoost"], ["healthy champion snapshot", "v213QualityRestoreHealthy"]
+  ["adaptive teacher cadence", "v213QualityTeacherBoost"], ["healthy champion snapshot", "v213QualityRestoreHealthy"],
+  ["research bridge", "function v214ResearchData"], ["research prompt", "function v214ResearchPrompt"],
+  ["research relevance", "function v214ResearchHighlights"], ["research redaction", "function v214ResearchSafeText"]
 ];
 for (const [label, marker] of mustContain) ok(bot.includes(marker), `${label} marker missing`);
 
@@ -115,6 +117,9 @@ ok(bot.includes("Confidence steigt ohne Reward-Fortschritt"), "overconfidence-wi
 ok(bot.includes("q.teacherBoost=2.4") && bot.includes("q.learningRateScale=.18"), "quality quarantine adaptive controls missing");
 ok(bot.includes("v211RejectCandidate('Lernqualitäts-Wächter stoppte Canary: ") && bot.includes("v211Rollback('Lernqualitäts-Wächter stoppte Bewährung: "), "quality monitor does not stop unsafe league experiments");
 ok(bot.includes("healthyChampion:v210StudentValid(q.healthyChampion)") && bot.includes("brainQualityV213"), "healthy Champion snapshot/persistence missing");
+ok(bot.includes("brainResearchBridgeEnabled: true") && bot.includes("brainResearchProfile: 'development'"), "Research Bridge defaults missing");
+ok(bot.includes("WRITE_KEY|READ_KEY|API[_-]?KEY|TOKEN|SECRET|AUTHORIZATION") && bot.includes("[REDACTED]"), "Research secret redaction missing");
+ok(bot.includes("V214_RESEARCH_PROFILES") && bot.includes("development:{label:'Entwicklungsbrief'"), "Research prompt profiles missing");
 
 const toolBlock = bot.slice(bot.lastIndexOf("toolDefs=function"), bot.indexOf("toolHTML=function", bot.lastIndexOf("toolDefs=function")));
 const charPos = toolBlock.indexOf("['character'"), invPos = toolBlock.indexOf("['inventory'");
@@ -141,6 +146,8 @@ ok(worker.includes("league:{enabled:Boolean(l.enabled)") && worker.includes("lif
 ok(worker.includes("liveBrain") && worker.includes("character_status ORDER BY received_at DESC"), "live Brain pulse is not sourced from frequent status pushes");
 ok(worker.includes("function diarySummary") && worker.includes("diary:diarySummary(payload)"), "safe Brain Diary summary missing from Worker");
 ok(worker.includes("quality:{enabled:Boolean(q.enabled)") && worker.includes("overconfidenceFailureRate:number(q.overconfidenceFailureRate)"), "safe Learning Quality summary missing from Worker");
+ok(worker.includes("/api/research-brief") && worker.includes("handleResearchBrief"), "Research Bridge Worker endpoint missing");
+ok(worker.includes("function researchSummary") && worker.includes("function researchMapObject"), "Research Worker sanitization missing");
 ok(schema.includes("brain_usage") && schema.includes("brain_decisions") && schema.includes("aio_state"), "Brain D1 schema incomplete");
 
 ok(dash.includes("🧠 Gehirn"), "web dashboard Brain overview missing");
@@ -152,10 +159,12 @@ ok(dash.includes("prefers-reduced-motion:reduce"), "dashboard Brain animation mu
 ok(dash.includes("📖 Gehirn-Tagebuch") && dash.includes("diaryPayload") && dash.includes("latestDiary"), "web Brain Diary missing");
 ok(dash.includes("🩺 Lernqualität · Selbstkontrolle") && dash.includes("Overconfidence-Fehler") && dash.includes("Teacher-Verstärkung / Lernrate"), "web Learning Quality overview missing");
 ok(dash.includes("quality.autonomyAllowed") && dash.includes("quality.canaryAllowed"), "web quality safety state missing");
+ok(dash.includes("🔬 AiO Research Bridge") && dash.includes("researchProfile") && dash.includes("researchCopy"), "web Research Bridge controls missing");
+ok(dash.includes("/api/research-brief") && dash.includes("buildResearchBrief"), "web Research Bridge API integration missing");
 ok(dash.includes("/api/brain-status"), "dashboard does not load Brain status endpoint");
 ok(dash.includes("Live-Positionskarte") && dash.includes("wheel") && dash.includes("pointermove") && dash.includes("fitMap"), "dashboard live map/controls missing");
 ok(!dash.includes("Monster / Konkurrenz") && !dash.includes("Sicherheit</span>") && !dash.includes("Status vor ${c.ageSeconds}"), "removed dashboard regression fields returned");
 ok(worker.includes("mapVisual") && worker.includes("taskReason") && worker.includes("brain:"), "worker status sanitization is missing current fields");
 
 ok(!fs.existsSync("tools"), "temporary tools directory must not ship");
-if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.13`);
+if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge`);

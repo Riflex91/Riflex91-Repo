@@ -1,6 +1,6 @@
-# Adventure Land – AiO Bot 2.13.0 · technische Notizen
+# Adventure Land – AiO Bot 2.14.0 · technische Notizen
 
-`bot.js` ist die gemeinsame Adventure-Land-CODE-Datei für Merchant und Farmer. 2.13.0 baut auf den 2.9.x-Sicherheits-, Merchant-, Explorer-, Cloud-Sync- und GUI-Funktionen auf und ergänzt ein selbsttrainierendes strategisches Student-Netz, eine eingefrorene Champion/Challenger-Policy-Liga mit Auto-Rollback sowie eine sichtbare Brain-Aktivitätsanzeige und ein deterministisches Gehirn-Tagebuch.
+`bot.js` ist die gemeinsame Adventure-Land-CODE-Datei für Merchant und Farmer. 2.14.0 baut auf den Sicherheits-, Merchant-, Explorer-, Cloud-Sync- und GUI-Funktionen auf und ergänzt das selbsttrainierende Teacher/Student-Brain um Champion/Challenger, Lernqualitäts-Selbstkontrolle, Gehirn-Tagebuch und die **AiO Research Bridge** zur sicheren Übergabe verdichteter Erfahrung an ChatGPT.
 
 ## Architektur
 
@@ -55,6 +55,37 @@ Erfasste Klassen sind unter anderem `teacher`, `outcome`, `autonomy`, `challenge
 
 `brainDiaryEnabled` aktiviert/deaktiviert die Anzeige und `brainDiaryMaxEntries` begrenzt die lokale sowie synchronisierte Historie auf 20–200 Einträge (Standard 80). `v210StudentExport()` transportiert die längere Historie über `/api/state`; `v210BrainTelemetry()` gibt nur die letzten Einträge in den häufigeren Status-Push. Beim Import werden Einträge per ID zusammengeführt und chronologisch begrenzt.
 
+## AiO Research Bridge
+
+Die Research Bridge wird vollständig aus bereits vorhandenen Botdaten erzeugt und löst selbst **keinen Workers-AI-Aufruf** aus. Kernfunktionen sind `v214ResearchData()`, `v214ResearchPrompt()`, `v214ResearchSummary()`, `v214ResearchShow()` und `v214ResearchCopy()`.
+
+Profile:
+
+```text
+overall      Gesamtanalyse
+errors       Fehleranalyse
+learning     Lernanalyse
+farm         Farmanalyse
+merchant     Merchant-Analyse
+development  Entwicklungsbrief
+```
+
+Standardwerte:
+
+```text
+brainResearchBridgeEnabled = true
+brainResearchProfile       = development
+brainResearchHours         = 24
+brainResearchMaxHighlights = 20
+brainResearchAnonymize     = true
+```
+
+`v214ResearchData()` sammelt für das gewählte Zeitfenster gruppierte Audit-Fehler, relevanzgewichtete Diary-Highlights, Teacher-Lektionen, die stärksten Outcome-Rewards, Farm-/Merchant-Zustand, Student-/League-/Qualitätsmetriken und kompaktes Monster-/Zonenlernen. Vollständige Gewichtsmatrizen werden bewusst nicht exportiert. `v214ResearchPrompt()` kombiniert eine profilbezogene Analyseanweisung mit einem strukturierten JSON-Block.
+
+`v214ResearchSafeText()` entfernt den aktuell konfigurierten Dashboard-Schreibschlüssel sowie typische Schlüssel-/Token-/Authorization-Muster. Bei aktivierter Anonymisierung werden bekannte Account-Charaktere vor der Ausgabe in `Merchant` bzw. `FarmerN` umbenannt. Die kompakte `research.summary` wird zusammen mit dem Student-State synchronisiert; sie enthält keine Gewichte und keine Secrets.
+
+Der Web-Worker stellt zusätzlich `GET /api/research-brief` bereit. Dieser Endpunkt ist wie `/api/brain-status` mit `READ_KEY` geschützt und erzeugt den Brief ausschließlich aus D1-/Statusdaten. Er ruft `env.AI` nicht auf. Die Web-Variante weist explizit darauf hin, dass lokale Roh-Auditdaten dort nicht vollständig vorhanden sind.
+
 ## Budget-Pacer
 
 Standardwerte:
@@ -75,6 +106,11 @@ brainChallengeMinOutcomes    = 8
 brainRollbackRewardDropPct   = 12
 brainDiaryEnabled             = true
 brainDiaryMaxEntries          = 80
+brainResearchBridgeEnabled    = true
+brainResearchProfile          = development
+brainResearchHours            = 24
+brainResearchMaxHighlights    = 20
+brainResearchAnonymize        = true
 ```
 
 Das effektive Standard-Tagesziel beträgt 9.950 Neurons. Der adaptive Teacher-Abstand wird aus verbleibendem Budget, verbleibender UTC-Tageszeit, gemessenem Durchschnittsverbrauch, Student-Entropie und Novelty berechnet. Das lokale Tagesbudget wird bei einem neuen UTC-Tag zurückgesetzt.
@@ -83,7 +119,7 @@ Das effektive Standard-Tagesziel beträgt 9.950 Neurons. Der adaptive Teacher-Ab
 
 Über `/api/state` synchronisiert der Bot wichtige Einstellungen, Monster-/Zonenlernen, Explorer-Beobachtungen und beim Merchant zusätzlich das Student-Modell. Die Gewichte werden gerundet übertragen. Ein neueres oder weiter trainiertes Remote-Modell kann übernommen werden. Der `webDashboardWriteKey` wird nicht in der Cloud-Konfiguration gespeichert.
 
-Outcome-Feedback wird über `/api/brain-feedback` an D1 geschickt. `/api/brain-status` liefert dem Web-Dashboard zusammengefasste Brain-Telemetrie ohne die vollständigen Gewichtsmatrizen.
+Outcome-Feedback wird über `/api/brain-feedback` an D1 geschickt. `/api/brain-status` liefert dem Web-Dashboard zusammengefasste Brain-Telemetrie ohne die vollständigen Gewichtsmatrizen. Die Research Bridge legt zusätzlich eine bereinigte `research.summary` in den Student-State und kann daraus über `/api/research-brief` einen Analysebrief erzeugen.
 Das Gehirn-Tagebuch wird im Student-State mitgespeichert; die Dashboard-Antwort sanitisiert Titel, Detailtext, Typ, Reward und Metadaten und liefert weiterhin keine Gewichte aus.
 
 ## Gehirn-Dashboard und „Lebendig“-Effekt
