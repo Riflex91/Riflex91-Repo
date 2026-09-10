@@ -1,4 +1,13 @@
-# Adventure Land – AiO Bot 2.14.3 · technische Notizen
+# Adventure Land – AiO Bot 2.14.4 · technische Notizen
+
+## 2.14.4 Merchant-Ökonomie, Party-Realm und GUI-Collapse
+
+- NPC-Verkauf ist nicht mehr an `S.bankFull` gekoppelt. Vor einem Verkauf werden Schutzstatus, Gruppenreserve, aktueller Merchant-Plan, Rezeptnutzung, theoretische/empirische Drop-Häufigkeit und NPC-Wert geprüft. Upgrade-/Compound-Kandidaten protokollieren zusätzlich Scrollkosten und den über `item_value()` projizierten NPC-Wert der nächsten Stufe. Profit-only-Upgrades werden ohne echten Gruppennutzen nicht erzwungen.
+- Wirtschaftlich sicher verkäuflicher Überschuss wird nicht zuerst in die Bank verschoben; bei Bedarf fährt der Merchant kontrolliert zum NPC-Händler. Seltene Drops, aktuelle Craft-/Quest-/Exchange-Bedarfe, Scrolls, geschützte Items und benötigte Gruppenexemplare bleiben erhalten.
+- Upgrade und Compound besitzen einen harten Bank-Location-Guard. In `bank*` wird zuerst nach `main` gewechselt; erst danach darf `upgrade()` bzw. `compound()` aufgerufen werden.
+- Bot-Peer-Reports enthalten `realm.region`, `realm.id` und `realm.pvp`. Bei unterschiedlichen Servern unterdrückt die Party-Reparatur Einladungen und wählt den Mehrheitsserver der eigenen Bot-Gruppe; dadurch wechselt bei drei Farmern auf EU1 und einem Merchant auf EU2 nur der Merchant. Ein automatischer Wechsel zu PvP bleibt ohne bestehende PvP-Bestätigung blockiert.
+- Beim Einklappen der Haupt-GUI wird auch `.body` ausgeblendet und `min-height` aufgehoben. Sichtbar bleibt nur die Titelleiste.
+- Keine Änderung an Brain-Gewichten, Teacher-Strategie, D1-Schema oder Cloudflare-Worker/Dashboard (weiter 2.14.0).
 
 ## 2.14.3 Scroll-/Bank-Loop-Hotfix
 

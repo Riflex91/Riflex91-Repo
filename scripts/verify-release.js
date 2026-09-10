@@ -51,7 +51,7 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.3", "prepared release must be 2.14.3");
+  ok(version.version === "2.14.4", "prepared release must be 2.14.4");
   ok(version.dashboardVersion === "2.14.0", "dashboard version must remain 2.14.0 for bot-only hotfix");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
@@ -178,4 +178,11 @@ ok(!bot.includes("S.mode='Merchant · Inventar';v290InventoryPressureTick();retu
 ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"), "2.14.2 inventory pressure must run before compound");
 ok(bot.includes("/^c?scroll[0-4]$/.test(String(it.name||''))"), "2.14.3 operational scrolls must be protected from bank cleanup");
 ok(bot.includes("dist(character,dest)>180"), "2.14.3 scroll vendor proximity guard missing");
+ok(bot.includes("function v2144SellDecision"), "2.14.4 Merchant economic sell decision missing");
+ok(bot.includes("merchant_economy_decision"), "2.14.4 Merchant economic audit missing");
+ok(bot.includes("function v2144InBank"), "2.14.4 bank location guard missing");
+ok(bot.includes("upgrade-bank-exit") && bot.includes("compound-bank-exit"), "2.14.4 upgrade/compound bank exits missing");
+ok(bot.includes("r.realm={region:realm.region,id:realm.id,pvp:!!realm.pvp}"), "2.14.4 peer realm report missing");
+ok(bot.includes("party_realm_mismatch") && bot.includes("party_realm_switch"), "2.14.4 party realm repair missing");
+ok(bot.includes(".mainbox.collapsed .body{display:none!important}") && bot.includes("min-height:0!important"), "2.14.4 collapsed GUI must show title only");
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);
