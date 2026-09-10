@@ -47,6 +47,8 @@ jobs:
               if not p.is_file() or p.suffix not in ('.js','.mjs'): continue
               s=p.read_text(encoding='utf-8')
               s=s.replace(r'2\.14\.11',r'2\.14\.12')
+              if p.name=='smoke-21411-brain-world.js':
+                  s=s.replace("assert(s.includes('Lernhinweise / Stichworte')&&s.includes('sie führen niemals fremden Code aus'),'keyword teaching is non-executable');","assert(s.includes('Vermutungen & Lernhinweise')&&s.includes('niemals Code erzeugt oder ausgeführt'),'keyword teaching is non-executable');")
               p.write_text(s,encoding='utf-8')
           PY
       - name: Syntax check bot and worker
