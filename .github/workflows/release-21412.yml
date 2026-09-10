@@ -14,8 +14,52 @@ jobs:
           fetch-depth: 0
       - name: Apply deterministic 2.14.12 patch
         run: python3 scripts/patch-21412.py
-      - name: Syntax check bot
-        run: node --check bot.js
+      - name: Align dashboard package, terrain overlay and worker metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          dash_path=Path('cloudflare-dashboard/dashboard.html')
+          worker_path=Path('cloudflare-dashboard/src/worker.js')
+          pkg_path=Path('cloudflare-dashboard/package.json')
+          dash=dash_path.read_text(encoding='utf-8')
+          dash=dash.replace('<svg id="map" aria-label="Live Positionskarte">','<svg id="map" preserveAspectRatio="none" aria-label="Live Positionskarte">',1)
+          dash_path.write_text(dash,encoding='utf-8')
+          worker=worker_path.read_text(encoding='utf-8')
+          start=worker.index('const DASHBOARD_HTML = ')
+          q=worker.index('"',start)
+          i=q+1
+          while i<len(worker):
+              if worker[i]=='\\': i+=2; continue
+              if worker[i]=='"' and i+1<len(worker) and worker[i+1]==';':
+                  end=i+2; break
+              i+=1
+          else:
+              raise SystemExit('worker DASHBOARD_HTML terminator missing')
+          worker=worker[:start]+'const DASHBOARD_HTML = '+json.dumps(dash,ensure_ascii=False)+';'+worker[end:]
+          worker=worker.replace('2.14.11','2.14.12')
+          worker_path.write_text(worker,encoding='utf-8')
+          pkg=json.loads(pkg_path.read_text(encoding='utf-8'))
+          pkg['version']='2.14.12'
+          pkg_path.write_text(json.dumps(pkg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+      - name: Syntax check bot and worker
+        run: |
+          node --check bot.js
+          node --check cloudflare-dashboard/src/worker.js
+      - name: Syntax check dashboard script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('cloudflare-dashboard/dashboard.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not blocks: raise SystemExit('dashboard script missing')
+          Path('/tmp/dashboard.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard.js
       - name: Verify prepared release
         run: node scripts/verify-release.js
       - name: Run all smoke tests
