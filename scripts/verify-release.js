@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.12", "prepared release must be 2.14.12");
-  ok(version.dashboardVersion === "2.14.12", "dashboard version must be 2.14.12 for layered brain/dashboard release");
+  ok(version.version === "2.14.13", "prepared release must be 2.14.13");
+  ok(version.dashboardVersion === "2.14.13", "dashboard version must be 2.14.13 for layered brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -68,7 +68,8 @@ const requiredFeatures = [
   "auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync",
   "farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle",
   "self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard",
-  "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard"
+  "champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard",
+  "merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed"
 ];
 for (const feature of requiredFeatures) ok(contract.includes(feature), `protected feature missing: ${feature}`);
 ok(contract.length >= 42, `expected at least 42 protected features, got ${contract.length}`);
@@ -230,5 +231,11 @@ ok(bot.includes("'loot-action',800") && bot.includes("String(character.map||'').
 ok(bot.includes("function v2148ManualUpdateInstall"), "2.14.8 dedicated manual updater missing");
 ok(bot.includes("return selfUpdate(false)"), "2.14.8 manual updater must explicitly install as manual");
 ok(bot.includes("Auf Updates prüfen & installieren"), "2.14.8 manual update button label missing");
+
+for (const feature of ["merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed"]) ok(contract.includes(feature), `2.14.13 static protected feature missing: ${feature}`);
+ok(!bot.includes("v2144AuditEconomy("), "2.14.13 undefined Merchant economy audit helper reference remains");
+ok(bot.includes("function v21413LiveBankCount"), "2.14.13 live bank confirmation helper missing");
+ok(bot.includes("beforeBank:v21413LiveBankCount(name,lv)"), "2.14.13 bank cleanup baseline must use live bank state");
+ok(bot.includes("confirmation:confirmation"), "2.14.13 bank cleanup confirmation source diagnostic missing");
 
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);

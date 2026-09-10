@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.12 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.13 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.12';
+  var VERSION = '2.14.13';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2154,7 +2154,8 @@
     'self-training-brain','teacher-student-learning','experience-replay','prioritized-replay','brain-dashboard',
     'champion-challenger','brain-auto-rollback','brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard','brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard',
     'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety',
-    'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites'
+    'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites',
+    'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed'
   ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
@@ -2972,7 +2973,7 @@
       return false;
     }
     var dest=v2144SellVendor();
-    v2144AuditEconomy('sell',cand.item,cand.decision,{quantity:cand.qty});
+    audit('merchant_economy_decision','NPC-Verkauf nach Wert/Drop/Reserve-Prüfung',{item:cand.item.name,level:Number(cand.item.level)||0,quantity:cand.qty,decision:cand.decision});
     if(dest&&!v2145VendorReady(dest)){
       S.status='Zum NPC für Verkauf: '+v273Name(cand.item.name);S.mode='Merchant · NPC-Verkauf';
       return moveToGoal(dest,'NPC-Verkauf '+cand.item.name,{kind:'merchant-npc-sell',tolerance:45,forceAfter:15000});
@@ -3654,13 +3655,25 @@
   ['merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
 
   function v21412InventoryExact(name,level){var lv=Math.max(0,Number(level)||0),n=0;(character.items||[]).forEach(function(it){if(it&&it.name===name&&(Number(it.level)||0)===lv)n+=Number(it.q)||1;});return n;}
+  function v21413LiveBankCount(name,level){
+    var lv=Math.max(0,Number(level)||0),n=0,bank=character.bank||{};
+    Object.keys(bank).forEach(function(pack){
+      if(!/^items\d+$/.test(pack)||!Array.isArray(bank[pack]))return;
+      bank[pack].forEach(function(it){if(it&&it.name===name&&(Number(it.level)||0)===lv)n+=Number(it.q)||1;});
+    });
+    return n;
+  }
   function v21412BankCleanupAwaiting(st,now){
     var a=st&&st.awaiting;if(!a)return false;
-    var local=v21412InventoryExact(a.name,a.level),free=freeSlots(),bank=v2149BankMap()?v2149BankCount(a.name,a.level):Number(a.beforeBank)||0;
-    if(local<Number(a.beforeExact)||free>Number(a.beforeFree)||bank>Number(a.beforeBank)){
-      st.awaiting=null;st.stores=Number(st.stores||0)+1;st.lastProgressAt=now;
+    var local=v21412InventoryExact(a.name,a.level),free=freeSlots(),bank=Number(a.beforeBank)||0;
+    if(v2149BankMap()&&character.bank){
+      bank=v21413LiveBankCount(a.name,a.level);
       try{v2149RefreshBankSnapshot(true);}catch(e){}
-      audit('merchant_bank_cleanup_confirmed','Banklagerung durch aktualisierten Zustand bestätigt',{item:a.name,level:a.level,beforeExact:a.beforeExact,afterExact:local,beforeFree:a.beforeFree,afterFree:free,stores:st.stores});
+    }
+    if(local<Number(a.beforeExact)||free>Number(a.beforeFree)||bank>Number(a.beforeBank)){
+      var confirmation=local<Number(a.beforeExact)?'inventory-quantity':(free>Number(a.beforeFree)?'free-slot':'live-bank');
+      st.awaiting=null;st.stores=Number(st.stores||0)+1;st.lastProgressAt=now;
+      audit('merchant_bank_cleanup_confirmed','Banklagerung durch aktualisierten Zustand bestätigt',{item:a.name,level:a.level,beforeExact:a.beforeExact,afterExact:local,beforeFree:a.beforeFree,afterFree:free,beforeBank:a.beforeBank,afterBank:bank,confirmation:confirmation,stores:st.stores});
       return false;
     }
     if(now-Number(a.startedAt||now)>5000){
@@ -3699,7 +3712,7 @@
     var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;v273OpenBankPackTick();return true;}
     if(now<Number(S.times['bank-store-2148']||0)||typeof bank_store!=='function')return true;
     var idx=cand.index,name=cand.item.name,lv=Number(cand.item.level)||0,explicit=!!cand.explicit;
-    st.awaiting={index:idx,name:name,level:lv,beforeExact:v21412InventoryExact(name,lv),beforeFree:freeSlots(),beforeBank:v2149BankCount(name,lv),startedAt:now};
+    st.awaiting={index:idx,name:name,level:lv,beforeExact:v21412InventoryExact(name,lv),beforeFree:freeSlots(),beforeBank:v21413LiveBankCount(name,lv),startedAt:now};
     var started=action((explicit?'Item-Regel Bank ':'Item in Bank lagern ')+name,function(){
       if(String(character.map||'').indexOf('bank')!==0||character.moving||S.moveInFlight||v2147BankExitActive())throw Error('bank_location_changed');
       return Promise.resolve(bank_store(idx)).catch(function(e){S.times.bankCleanupRetry2148=clock()+15000;if(S.merchantBankCleanup2148){S.merchantBankCleanup2148.awaiting=null;v2148BankCleanupFinish('merchant_bank_cleanup_error','Banklagerung fehlgeschlagen; späterer Neuversuch','warning');}throw e;});
