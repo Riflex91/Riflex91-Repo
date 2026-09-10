@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.11", "prepared release must be 2.14.11");
-  ok(version.dashboardVersion === "2.14.11", "dashboard version must be 2.14.11 for layered brain/dashboard release");
+  ok(version.version === "2.14.12", "prepared release must be 2.14.12");
+  ok(version.dashboardVersion === "2.14.12", "dashboard version must be 2.14.12 for layered brain/dashboard release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");

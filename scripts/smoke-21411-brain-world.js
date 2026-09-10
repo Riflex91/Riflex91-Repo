@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const s=fs.readFileSync('bot.js','utf8'),d=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
-assert(s.includes("var VERSION = '2.14.11';"));
+assert(s.includes("var VERSION = '2.14.12';"));
 for(const f of ['merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety','brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites']) assert(s.includes("'"+f+"'"),f);
 assert(/var FEATURE_CONTRACT[\s\S]*merchant-bank-warehouse[\s\S]*merchant-discovery-safety/.test(s),'protected markers must be in updater-visible base contract');
 for(const k of ['brainWorldModelEnabled','brainDiscoveryModuleEnabled','brainExperimentModuleEnabled','brainPlannerModuleEnabled','brainTeachingKeywords'])assert(s.includes(k),k);
@@ -10,7 +10,7 @@ assert(s.includes("Nur statisch:"),'unsafe discovery remains static-only');
 assert(s.includes("S.explorer.force=true"),'planner may prioritize safe discovery');
 assert(s.includes('Gruppenversorgung')&&s.includes('score:1000'),'urgent group service outranks idle learning');
 assert(s.includes("C.language==='de'?'Bot-Gehirn':'Bot Brain'"),'button renamed');
-assert(s.includes('Lernhinweise / Stichworte')&&s.includes('sie führen niemals fremden Code aus'),'keyword teaching is non-executable');
+assert(s.includes('Vermutungen & Lernhinweise')&&s.includes('niemals Code erzeugt oder ausgeführt'),'keyword teaching is non-executable');
 assert(d.includes('🧠 Bot-Gehirn')&&d.includes('Was mache ich gerade?')&&d.includes('Wie sicher bin ich?'));
 assert(d.includes('https://adventure.land')&&d.includes('gameSprite(c')&&d.includes('foreignObject'),'dashboard uses real game sprite sheets');
 new vm.Script(s);console.log('smoke-21411-brain-world OK');

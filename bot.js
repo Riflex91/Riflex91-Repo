@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.10 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.12 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.11';
+  var VERSION = '2.14.12';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -3641,11 +3641,133 @@
   v290BrainState=function(trigger){var st=v21411BrainStateBase(trigger);st.worldModel=v21411WorldStats();st.explanation=v21411Explain();st.hypotheses=v21411Hyp.slice(-8);return st;};
   var v21411TelemetryBase=v210BrainTelemetry;
   v210BrainTelemetry=function(){var x=v21411TelemetryBase();x.explanation=v21411Explain();x.worldModel=v21411WorldStats();x.hypotheses=v21411Hyp.slice(-8);return x;};
-  function v21411ModulesHTML(){return '<div class="card"><h3>🧩 Module · was das Bot-Gehirn darf</h3><div class="muted">Sicherheitsreflexe, Kampf- und Versorgungsregeln bleiben deterministisch. Diese Schalter begrenzen nur Lernen und strategische Autonomie.</div>'+cfgField('brainWorldModelEnabled','Wissensbasis / Weltmodell','check','Speichert Bedeutung, Aktionen, Voraussetzungen, Folgen, Sicherheit und zuletzt bestätigte G.version.')+cfgField('brainDiscoveryModuleEnabled','Discovery priorisieren','check','Darf unbekannte/veraltete sichere Ziele für den Merchant priorisieren.')+cfgField('brainExperimentModuleEnabled','Sichere Experimente','check','Formuliert Hypothesen und wertet nur reversible/kostenfreie, bereits erlaubte Probes aus. Keine zerstörerischen Tests.')+cfgField('brainPlannerModuleEnabled','Strategischer Planner','check','Gewichtet Ziele, Nutzen, Risiko, Zeit und Unsicherheit; dringende Gruppenversorgung bleibt höher priorisiert.')+cfgField('brainGatheringModuleEnabled','Gathering als freie Arbeit einplanen','check')+cfgField('brainStandModuleEnabled','Merchant-Stand als freie Arbeit einplanen','check')+cfgField('brainExplainModuleEnabled','Erklärungen anzeigen','check')+cfgField('brainTeachingKeywords','Lernhinweise / Stichworte','text','Beispiele: seashell, winterland, exchange. Stichworte priorisieren passende Weltmodell-Einträge; sie führen niemals fremden Code aus.')+'</div>';}
+  function v21411ModulesHTML(){return '<div class="card"><h3>🧩 Module · was das Bot-Gehirn darf</h3><div class="muted">Sicherheitsreflexe, Kampf- und Versorgungsregeln bleiben deterministisch. Diese Schalter begrenzen nur Lernen und strategische Autonomie.</div>'+cfgField('brainWorldModelEnabled','Wissensbasis / Weltmodell','check','Speichert Bedeutung, Aktionen, Voraussetzungen, Folgen, Sicherheit und zuletzt bestätigte G.version.')+cfgField('brainDiscoveryModuleEnabled','Discovery priorisieren','check','Darf unbekannte/veraltete sichere Ziele für den Merchant priorisieren.')+cfgField('brainExperimentModuleEnabled','Sichere Experimente','check','Formuliert Hypothesen und wertet nur reversible/kostenfreie, bereits erlaubte Probes aus. Keine zerstörerischen Tests.')+cfgField('brainPlannerModuleEnabled','Strategischer Planner','check','Gewichtet Ziele, Nutzen, Risiko, Zeit und Unsicherheit; dringende Gruppenversorgung bleibt höher priorisiert.')+cfgField('brainGatheringModuleEnabled','Gathering als freie Arbeit einplanen','check')+cfgField('brainStandModuleEnabled','Merchant-Stand als freie Arbeit einplanen','check')+cfgField('brainExplainModuleEnabled','Erklärungen anzeigen','check')+'</div>';}
   v290BrainHTML=function(){var e=v21411Explain(),w=e.world,p=e.planner||{alternatives:[]},alts=(p.alternatives||[]).map(function(x){return '<li><b>'+esc(x.label)+'</b> · '+esc(x.reason)+'</li>';}).join('')||'<li>Keine weitere sichere Aufgabe erkannt.</li>',hy=v21411Hyp.slice(-6).reverse().map(function(h){return '<div class="line"><span>'+esc(h.text)+'</span><strong>'+Math.round(Number(h.confidence||0)*100)+'%</strong></div>';}).join('');return '<h2>🧠 '+(C.language==='de'?'Bot-Gehirn':'Bot Brain')+'</h2><div class="notice"><b>Wofür ist das gut?</b> Das Bot-Gehirn merkt sich die Spielwelt, prüft unsichere Annahmen, plant freie Merchant-Zeit und erklärt seine Entscheidungen. Sicherheitskritische Aktionen bleiben feste Bot-Regeln.</div><div class="card brain-explain"><h3>Was mache ich gerade?</h3><b>'+esc(e.current)+'</b><h3>Warum?</h3><div>'+esc(e.why)+'</div><h3>Was würde ich sonst tun?</h3><div>'+esc(e.next)+'</div><h3>Was habe ich gelernt?</h3><div>'+esc(e.learned)+'</div><h3>Wie sicher bin ich?</h3><div><b>'+esc(e.confidenceLabel)+'</b> · '+Number(e.confidencePct||0)+'% · '+Number(e.repetitions||0)+' Bestätigung(en)</div></div>'+v21411ModulesHTML()+'<div class="card"><h3>🌍 Weltmodell</h3><div class="line"><span>Bekannte Einträge</span><strong>'+w.total+'</strong></div><div class="line"><span>Nach Spielupdate veraltet</span><strong>'+w.stale+'</strong></div><div class="line"><span>Noch unsicher</span><strong>'+w.lowConfidence+'</strong></div><div class="line"><span>Bestätigte Hypothesen</span><strong>'+w.supported+' / '+w.hypotheses+'</strong></div><div class="line"><span>G.version</span><strong>'+esc(w.gameVersion||'—')+'</strong></div></div><div class="card"><h3>🧭 Planner · nächste Optionen</h3><ul>'+alts+'</ul></div><div class="card"><h3>🧪 Letzte Hypothesen</h3>'+(hy||'<div class="muted">Noch keine Hypothesen ausgewertet.</div>')+'</div>';};
   CSS+=' .brain-explain h3{font-size:11px;margin:10px 0 3px;color:var(--accent)}.brain-explain>div{font-size:10px;line-height:1.45}.brain-explain>b{font-size:13px} ';
   v21411RefreshWorld(true);
   audit('feature_contract','2.14.11 Weltmodell + sichere Hypothesen + Planner + verständliche Bot-Gehirn-Erklärungen + Sprite-Telemetrie geprüft',{features:FEATURE_CONTRACT,world:v21411WorldStats()});
+
+
+  // ---------------------------------------------------------------------------
+  // 2.14.12 Merchant bank confirmation + teaching hints + real terrain telemetry.
+  // ---------------------------------------------------------------------------
+  ['merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+
+  function v21412InventoryExact(name,level){var lv=Math.max(0,Number(level)||0),n=0;(character.items||[]).forEach(function(it){if(it&&it.name===name&&(Number(it.level)||0)===lv)n+=Number(it.q)||1;});return n;}
+  function v21412BankCleanupAwaiting(st,now){
+    var a=st&&st.awaiting;if(!a)return false;
+    var local=v21412InventoryExact(a.name,a.level),free=freeSlots(),bank=v2149BankMap()?v2149BankCount(a.name,a.level):Number(a.beforeBank)||0;
+    if(local<Number(a.beforeExact)||free>Number(a.beforeFree)||bank>Number(a.beforeBank)){
+      st.awaiting=null;st.stores=Number(st.stores||0)+1;st.lastProgressAt=now;
+      try{v2149RefreshBankSnapshot(true);}catch(e){}
+      audit('merchant_bank_cleanup_confirmed','Banklagerung durch aktualisierten Zustand bestätigt',{item:a.name,level:a.level,beforeExact:a.beforeExact,afterExact:local,beforeFree:a.beforeFree,afterFree:free,stores:st.stores});
+      return false;
+    }
+    if(now-Number(a.startedAt||now)>5000){
+      S.times.bankCleanupRetry2148=now+15000;
+      st.awaiting=null;
+      v2148BankCleanupFinish('merchant_bank_cleanup_sync_wait','Bankantwort erhalten, aber Inventar-/Bankzustand wurde nicht rechtzeitig bestätigt; kein erneutes Senden desselben Slots','warning');
+      return false;
+    }
+    return true;
+  }
+
+  v2148BankCleanupTick=function(){
+    var now=clock(),st=S.merchantBankCleanup2148,cand;
+    if(!st){
+      cand=v2148BankCleanupCandidate();
+      if(now<Number(S.times.bankCleanupRetry2148||0)||!cand)return false;
+      st=S.merchantBankCleanup2148={startedAt:now,stores:0,lastProgressAt:now,awaiting:null};
+      audit('merchant_bank_cleanup_start','Bestätigte Bankbereinigung gestartet',{item:cand.item.name,explicit:!!cand.explicit,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)});
+    }
+    if(st.awaiting){v21412BankCleanupAwaiting(st,now);return !!S.merchantBankCleanup2148;}
+    if(now-Number(st.startedAt||now)>30000||Number(st.stores||0)>=10){
+      S.times.bankCleanupRetry2148=now+15000;
+      v2148BankCleanupFinish('merchant_bank_cleanup_timeout','Bankbereinigung nach bestätigten Fortschritten kontrolliert freigegeben; späterer Neuversuch','warning');
+      return false;
+    }
+    cand=v2148BankCleanupCandidate();
+    if(!cand){v2148BankCleanupFinish('merchant_bank_cleanup_done','Bankbereinigung abgeschlossen');return false;}
+    if(String(character.map||'').indexOf('bank')!==0){
+      S.status='Bankbereinigung · zur Bank: '+v273Name(cand.item.name);S.mode='Merchant · Bank';
+      if(v2147BankExitActive())return true;
+      moveToGoal({map:'bank',x:0,y:0},'Bestätigte Bankbereinigung',{kind:'merchant-bank-cleanup',forceAfter:9000});return true;
+    }
+    S.status='Bankbereinigung · '+v273Name(cand.item.name);S.mode='Merchant · Bank';
+    if(character.moving||S.moveInFlight||v2147BankExitActive())return true;
+    if(!character.bank)return true;
+    var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;v273OpenBankPackTick();return true;}
+    if(now<Number(S.times['bank-store-2148']||0)||typeof bank_store!=='function')return true;
+    var idx=cand.index,name=cand.item.name,lv=Number(cand.item.level)||0,explicit=!!cand.explicit;
+    st.awaiting={index:idx,name:name,level:lv,beforeExact:v21412InventoryExact(name,lv),beforeFree:freeSlots(),beforeBank:v2149BankCount(name,lv),startedAt:now};
+    var started=action((explicit?'Item-Regel Bank ':'Item in Bank lagern ')+name,function(){
+      if(String(character.map||'').indexOf('bank')!==0||character.moving||S.moveInFlight||v2147BankExitActive())throw Error('bank_location_changed');
+      return Promise.resolve(bank_store(idx)).catch(function(e){S.times.bankCleanupRetry2148=clock()+15000;if(S.merchantBankCleanup2148){S.merchantBankCleanup2148.awaiting=null;v2148BankCleanupFinish('merchant_bank_cleanup_error','Banklagerung fehlgeschlagen; späterer Neuversuch','warning');}throw e;});
+    },'bank-store-2148',900);
+    if(!started)st.awaiting=null;
+    return true;
+  };
+
+  function v21412HintLines(){return String(C.brainTeachingKeywords||'').split(/[\n;]+/).map(function(x){return x.trim();}).filter(Boolean).slice(0,30);}
+  function v21412TeachingTokens(){
+    var stop={ich:1,glaube:1,der:1,die:1,das:1,ein:1,eine:1,npc:1,item:1,verkauft:1,tauscht:1,gibt:1,bei:1,in:1,auf:1,und:1,oder:1,von:1,zu:1,ist:1,sind:1,kann:1,koennte:1,könnte:1};
+    var out=[];String(C.brainTeachingKeywords||'').toLowerCase().replace(/[^a-z0-9_\-äöüß]+/g,' ').split(/\s+/).forEach(function(w){if(w.length<2||stop[w]||out.indexOf(w)>=0)return;out.push(w);});return out.slice(0,40);
+  }
+  v21411Words=v21412TeachingTokens;
+
+  function v21412HintHypothesis(line,index){
+    var clean=safeString(line,240),m=clean.match(/^(?:ich\s+glaube\s+)?(?:der\s+)?npc\s+([a-z0-9_\-]+)\s+(verkauft|tauscht|gibt)\s+(?:das\s+)?(?:item\s+)?([a-z0-9_\-]+)/i);
+    if(m){
+      var npc=m[1],verb=m[2].toLowerCase(),item=m[3],id='user:npc-'+verb+'|'+npc+'|'+item,def=GD.npcs&&GD.npcs[npc],supported=!!(def&&Array.isArray(def.items)&&def.items.indexOf(item)>=0&&verb==='verkauft');
+      return {id:id,type:'user-hint',target:'npc|'+npc,text:clean,status:supported?'supported':'open',confidence:supported?.94:.25,attempts:supported?1:0,successes:supported?1:0,lastAt:clock(),gameVersion:String(v273GameVersion()||''),source:'user',focus:[npc,item],evidence:supported?['G.npcs.items bestätigt den Verkauf']:[]};
+    }
+    return {id:'user:belief|'+v21411Hash(clean),type:'user-hint',target:'focus',text:clean,status:'open',confidence:.2,attempts:0,successes:0,lastAt:clock(),gameVersion:String(v273GameVersion()||''),source:'user',focus:v21412TeachingTokens().slice(0,8),evidence:[]};
+  }
+  function v21412ApplyTeachingHints(){
+    var lines=v21412HintLines(),changed=false;
+    lines.forEach(function(line,i){if(!/^ich\s+glaube\b/i.test(line)&&!/\bnpc\b/i.test(line))return;var h=v21412HintHypothesis(line,i),old=v21411Hyp.find(function(x){return x&&x.id===h.id;});if(old){old.text=h.text;old.gameVersion=h.gameVersion;old.focus=h.focus;if(h.status==='supported'){old.status='supported';old.confidence=Math.max(Number(old.confidence)||0,h.confidence);old.evidence=h.evidence;}}else{v21411Hyp.push(h);changed=true;}});
+    v21411Hyp=v21411Hyp.slice(-120);if(changed||lines.length)write(V21411_HYP_KEY,v21411Hyp);return lines.length;
+  }
+  v21412ApplyTeachingHints();
+
+  // Backfill/retain the discovery key in records; 2.14.11's recent record omitted it.
+  try{Object.keys(v2149Discovery.knowledge||{}).forEach(function(k){if(v2149Discovery.knowledge[k])v2149Discovery.knowledge[k].key=k;});write(V2149_DISCOVERY_KEY,v2149Discovery);}catch(e){}
+  var v21412RecordBase=v2149RecordDiscovery;
+  v2149RecordDiscovery=function(entry,probe){var result=v21412RecordBase(entry,probe);try{var r=v2149Discovery.knowledge&&v2149Discovery.knowledge[entry.key];if(r)r.key=entry.key;var recent=v2149Discovery.recent||[],last=recent[recent.length-1];if(last&&last.kind===entry.kind&&last.id===entry.id&&last.map===entry.map)last.key=entry.key;write(V2149_DISCOVERY_KEY,v2149Discovery);}catch(e){}return result;};
+
+  function v21412TeachingHTML(){
+    var hints=v21412HintLines(),userHyp=v21411Hyp.filter(function(h){return h&&h.source==='user';}).slice(-6).reverse();
+    var rows=userHyp.map(function(h){return '<div class="line"><span>'+esc(h.text)+'</span><strong>'+Math.round(Number(h.confidence||0)*100)+'% · '+esc(h.status||'open')+'</strong></div>';}).join('');
+    return '<div class="card brain-teaching-card"><h3>💬 Vermutungen & Lernhinweise</h3><div class="muted">Hier kannst du einzelne Stichworte oder kurze Sätze eintragen. Beispiele: <b>seashell</b>, <b>winterland</b>, <b>exchange</b> oder <b>Ich glaube NPC X verkauft Item Y</b>. Das Brain nutzt sie ausschließlich als Suchfokus bzw. prüfbare Hypothese. Daraus wird niemals Code erzeugt oder ausgeführt; es werden keine Käufe, zerstörerischen Aktionen oder neuen Berechtigungen freigeschaltet.</div><textarea class="brain-teaching-input" data-brain-hints placeholder="seashell; winterland; exchange\nIch glaube NPC X verkauft Item Y">'+esc(C.brainTeachingKeywords||'')+'</textarea><div class="buttons"><button class="btn primary" data-action="brain-hints-save">Lernhinweise übernehmen</button></div><div class="muted">Aktiv: '+hints.length+' Hinweis(e) · Fokusbegriffe: '+esc(v21412TeachingTokens().join(', ')||'—')+'</div>'+(rows?'<div class="brain-hint-list">'+rows+'</div>':'')+'</div>';
+  }
+  function v21412StripGeneralSettings(html){
+    var keys=['language','theme','showSettingHelp','uiTransparencyPct','fastTravelEnabled','auditEnabled','diagnosticMode','diagnosticSeconds','logSegmentHours','logRetentionDays'];
+    keys.forEach(function(k){var re=new RegExp('<div class="setting">(?:(?!<div class="setting">)[\\s\\S])*?data-cfg="'+k+'"(?:(?!<div class="setting">)[\\s\\S])*?<\\/div>','g');html=html.replace(re,'');});return html;
+  }
+  var v21412BrainHTMLBase=v290BrainHTML;
+  v290BrainHTML=function(){return v21412StripGeneralSettings(v21412BrainHTMLBase())+v21412TeachingHTML();};
+  var v21412UiClickBase=uiClick;
+  uiClick=function(e){var t=e&&e.target&&e.target.closest?e.target.closest('button'):null;if(t&&t.dataset&&t.dataset.action==='brain-hints-save'){var w=S.toolWindows&&S.toolWindows.brain,ta=w&&w.el&&w.el.querySelector('[data-brain-hints]');C.brainTeachingKeywords=safeString(ta?ta.value:'',2000);saveConfig();var n=v21412ApplyTeachingHints();if(character.ctype==='merchant'&&S.explorer)S.explorer.force=true;audit('brain_teaching_hints','Lernhinweise übernommen',{lines:n,tokens:v21412TeachingTokens(),safeFocusOnly:true});renderTool('brain');return;}return v21412UiClickBase(e);};
+  CSS+=' .brain-teaching-card{border-color:color-mix(in srgb,var(--accent) 48%,var(--border))!important}.brain-teaching-input{width:100%;min-height:110px;margin:10px 0;padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:10px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}.brain-hint-list{margin-top:9px;padding-top:7px;border-top:1px solid var(--line)} ';
+
+  function v21412TerrainPayload(){
+    var mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];if(!geo||!Array.isArray(geo.tiles)||!Array.isArray(geo.placements))return null;
+    var sets={},used={};geo.tiles.forEach(function(d){if(d&&d[0]!=null)used[String(d[0])]=1;});Object.keys(used).forEach(function(id){var t=GD.tilesets&&GD.tilesets[id];if(t&&t.file)sets[id]=String(t.file);});
+    var out={map:mapId,d:geo.default,t:geo.tiles,p:geo.placements,g:Array.isArray(geo.groups)?geo.groups:[],a:Array.isArray(geo.animations)?geo.animations:[],s:sets,source:'Adventure Land G.geometry/G.tilesets'};
+    var bytes=0;try{bytes=JSON.stringify(out).length;}catch(e){return null;}if(bytes>42000)return {map:mapId,omitted:true,bytes:bytes,source:out.source};out.bytes=bytes;return out;
+  }
+  function v21412ConfidenceName(n){n=Number(n)||0;return n>=.85?'Hoch':n>=.6?'Mittel':'Niedrig';}
+  function v21412LearningFeed(){
+    var out=[],seen={},recent=(v2149Discovery.recent||[]).slice().reverse();
+    recent.forEach(function(rec){if(out.length>=6||!rec)return;var key=rec.key||'',wm=key&&v21411World.entries[(rec.kind||'unknown')+'|'+key],conf=wm?Number(wm.confidence)||0:.35,n=wm?Number(wm.confirmations)||0:0,id=safeString(rec.label||rec.id||rec.type||key,100),service=rec.classification&&rec.classification.service||wm&&wm.what||rec.kind||'Weltobjekt',sig=(rec.kind||'')+'|'+id;if(seen[sig])return;seen[sig]=1;if(n>=2){out.push({icon:'🧠',title:'Neue Erkenntnis',text:'Ich habe bestätigt, dass '+id+' als '+safeString(service,100)+' eingeordnet werden kann.',detail:n+' Beobachtungen/Bestätigungen lieferten ein konsistentes Ergebnis.',confidence:v21412ConfidenceName(conf),confidencePct:Math.round(conf*100),at:Number(rec.at)||clock()});}else{out.push({icon:'🔎',title:'Ich untersuche gerade',text:id+' ist noch nicht ausreichend bestätigt.',detail:'Ich sammle sichere Beobachtungen, bevor daraus eine feste Regel wird.',confidence:v21412ConfidenceName(conf),confidencePct:Math.round(conf*100),at:Number(rec.at)||clock()});}});
+    var h=v21411Hyp.slice().reverse().find(function(x){return x&&x.status!=='supported';});if(h&&out.length<8)out.push({icon:'💭',title:'Offene Vermutung',text:safeString(h.text,200),detail:h.source==='user'?'Vom Benutzer als Lernhinweis vorgegeben; wird nur sicher geprüft.':'Automatisch erzeugte Hypothese.',confidence:v21412ConfidenceName(h.confidence),confidencePct:Math.round(Number(h.confidence||0)*100),at:Number(h.lastAt)||clock()});
+    var p=v21411Planner();if(p&&p.chosen&&p.chosen.id!=='wait'&&out.length<9)out.push({icon:'💡',title:'Aktuelle Strategie',text:'Momentan bevorzuge ich '+safeString(p.chosen.label,100)+'.',detail:safeString(p.chosen.reason,220),confidence:'Planer',confidencePct:null,at:Number(p.at)||clock()});
+    return out.slice(0,9);
+  }
+  var v21412DashboardBase=dashboardPayload;
+  dashboardPayload=function(){var x=v21412DashboardBase();try{x.terrain=v21412TerrainPayload();x.learningFeed=v21412LearningFeed();x.teachingHints={lines:v21412HintLines(),tokens:v21412TeachingTokens()};}catch(e){}return x;};
+
+  audit('feature_contract','2.14.12 bestätigte Merchant-Bankbereinigung + sichere Lernhinweise + Adventure-Land-Terrain + Lernfeed geprüft',{features:FEATURE_CONTRACT,hints:v21412HintLines().length});
 
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
