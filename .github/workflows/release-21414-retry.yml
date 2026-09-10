@@ -1,0 +1,78 @@
+name: release-21414-retry
+on:
+  push:
+    branches: ["perf/2.14.14-merchant-dashboard"]
+permissions:
+  contents: write
+jobs:
+  verify-and-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[release-21414]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/2.14.14-merchant-dashboard
+          fetch-depth: 0
+      - name: Verify exact release base
+        run: |
+          set -euo pipefail
+          BASE=fba17f49e0ce8883abb5c3e74fae0ecf07f261b8
+          git merge-base --is-ancestor "$BASE" HEAD
+          test "$(git hash-object bot.js)" = "41b6df5fc00c99a074f9dc399242f912531439d9"
+          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21414\.py|\.github/workflows/release-21414(-retry)?\.yml)$' || true)"
+          if [ -n "$unexpected" ]; then echo "Unexpected changes:"; echo "$unexpected"; exit 1; fi
+      - name: Repair patch match guards
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/patch-21414.py')
+          s=p.read_text(encoding='utf-8')
+          helper="""def replace_some(text, old, new, label, low=1, high=3):\n    count=text.count(old)\n    if count<low or count>high:\n        raise SystemExit(f'{label}: expected {low}..{high} matches, got {count}')\n    return text.replace(old,new)\n\n"""
+          marker="bot_path=ROOT/'bot.js'\n"
+          if 'def replace_some(' not in s: s=s.replace(marker,helper+marker,1)
+          for label in ['merchant state audit cadence','merchant loot cadence','merchant UI cadence']:
+              old=f"bot=replace_once(bot,needle,replacement,'{label}')"
+              new=f"bot=replace_some(bot,needle,replacement,'{label}')"
+              if old in s: s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Apply deterministic 2.14.14 patch
+        run: python3 scripts/patch-21414.py
+      - name: Syntax check bot and worker
+        run: |
+          node --check bot.js
+          node --check cloudflare-dashboard/src/worker.js
+      - name: Syntax check dashboard JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('cloudflare-dashboard/dashboard.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not blocks: raise SystemExit('dashboard script missing')
+          Path('/tmp/dashboard.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard.js
+      - name: Verify prepared release
+        run: node scripts/verify-release.js
+      - name: Run all smoke tests
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js scripts/smoke*.mjs; do
+            [ -f "$f" ] || continue
+            echo "==> $f"
+            node "$f"
+          done
+      - name: Whitespace check
+        run: git diff --check
+      - name: Commit tested release
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot.js version.json cloudflare-dashboard scripts
+          git rm -f scripts/patch-21414.py .github/workflows/release-21414.yml .github/workflows/release-21414-retry.yml
+          git diff --cached --check
+          git diff --cached --name-status
+          git commit -m "Release 2.14.14: Merchant performance and terrain pipeline [release-21414]"
+          git push origin HEAD:perf/2.14.14-merchant-dashboard
