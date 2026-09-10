@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/hotfix-2141.yml"
       - "scripts/apply-2.14.1-merchant-hotfix.py"
+  issues:
+    types: [opened]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +15,7 @@ permissions:
 
 jobs:
   apply-hotfix:
+    if: github.event_name != 'issues' || github.event.issue.title == 'RUN 2.14.1 MERCHANT HOTFIX'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
