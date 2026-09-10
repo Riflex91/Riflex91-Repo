@@ -51,7 +51,7 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.1", "prepared release must be 2.14.1");
+  ok(version.version === "2.14.2", "prepared release must be 2.14.2");
   ok(version.dashboardVersion === "2.14.0", "dashboard version must remain 2.14.0 for bot-only hotfix");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
@@ -139,7 +139,7 @@ ok(ensureScroll.indexOf("moveToGoal") < ensureScroll.indexOf("buy(name,1)"), "sc
 ok(bot.includes("buy_cant_space|inventory_full"), "inventory-full circuit breaker missing");
 ok(bot.includes("surplusNonCompound=(Number(it.level)||0)>=4&&!id.compound"), "+4 non-compound surplus sale guard missing");
 ok(bot.includes("v273OwnedCount(it.name)>v273DesiredGroupCopies(it.name)"), "group reserve guard for +4 sale missing");
-ok(bot.includes("merchantTick=function(){if(v273CompoundTick())return"), "compound priority missing");
+ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"), "inventory pressure must precede compound");
 
 ok(wrangler.includes('"ai": { "binding": "AI" }'), "Workers AI binding missing");
 ok(worker.includes("Math.min(10000"), "Worker Brain limit is not hard-capped to 10000");
@@ -173,4 +173,7 @@ ok(!dash.includes("Monster / Konkurrenz") && !dash.includes("Sicherheit</span>")
 ok(worker.includes("mapVisual") && worker.includes("taskReason") && worker.includes("brain:"), "worker status sanitization is missing current fields");
 
 ok(!fs.existsSync("tools"), "temporary tools directory must not ship");
+ok(bot.includes("S.inventoryPressureBusy") && bot.includes("Re-Entry blockiert"), "2.14.2 inventory-pressure re-entry guard missing");
+ok(!bot.includes("S.mode='Merchant · Inventar';v290InventoryPressureTick();return -1;"), "2.14.2 recursive ensure-scroll path still present");
+ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"), "2.14.2 inventory pressure must run before compound");
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);

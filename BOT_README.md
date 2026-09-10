@@ -1,4 +1,8 @@
-# Adventure Land – AiO Bot 2.14.1 · technische Notizen
+# Adventure Land – AiO Bot 2.14.2 · technische Notizen
+
+## 2.14.2 Merchant-Freeze-Hotfix
+
+Behebt einen synchronen Merchant-Freeze bei vollem Inventar: Inventardruck wird vor Compound behandelt, fehlende Combine-Scrolls lösen keine rekursive Inventarbereinigung mehr aus und ein Re-Entry-Guard verhindert Rückkopplungen. Brain/Teacher und Cloudflare bleiben unverändert.
 
 ## 2.14.1 Stabilitäts-Hotfix
 

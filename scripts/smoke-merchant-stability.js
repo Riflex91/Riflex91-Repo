@@ -2,7 +2,7 @@
 "use strict";
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
-assert.match(bot,/var VERSION = ['"]2\.14\.1['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.2['"]/);
 assert.ok(bot.includes('gold>=trigger'));
 assert.ok(bot.includes('serviceTrigger:trigger'));
 assert.ok(bot.includes("'loot-gold',5000"));
@@ -11,6 +11,9 @@ assert.ok(bot.includes('freeUrgent=freeNeed&&!recentlyServiced'));
 assert.ok(bot.includes("S.times['cmAudit:'+name]=clock()+15000"));
 assert.ok(bot.includes("audit('merchant_watchdog'"));
 assert.ok(bot.includes("/^partyRequest:/.test(String(key))")&&bot.includes('clock()+15000'));
+assert.ok(bot.includes('S.inventoryPressureBusy'),'inventory-pressure re-entry guard missing');
+assert.ok(!bot.includes("S.mode='Merchant · Inventar';v290InventoryPressureTick();return -1;"),'recursive inventory-pressure call must be removed');
+assert.ok(bot.includes("merchantTick=function(){if(v290InventoryPressureTick())return;if(v273CompoundTick())return;"),'inventory pressure must run before compound');
 function goldTransfer(gold,keep,threshold){const trigger=Math.max(keep,threshold);return gold>=trigger?Math.max(0,gold-keep):0;}
 assert.equal(goldTransfer(8814,5000,25000),0);
 assert.equal(goldTransfer(24999,5000,25000),0);

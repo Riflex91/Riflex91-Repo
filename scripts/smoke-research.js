@@ -20,7 +20,7 @@ const S={auditRecent:[
   brainStudent:{samples:200,updates:500,lossEma:.4,rewardEma:.2,agreementEma:.8},brain:{outcomes:30},brainLeague:{}
 };
 const learning={schema:1,updatedAt:now,monsters:{bee:{kills:120,lootEvents:10,gold:5000,lastAt:now}},zones:{'main|bee':{samples:45,xpPerHour:123456,goldPerHour:2222,safetyPct:88,lastAt:now}}};
-const context={console,Math,Date,isFinite,JSON,VERSION:'2.14.1',BUILD:'2026-09-10',
+const context={console,Math,Date,isFinite,JSON,VERSION:'2.14.2',BUILD:'2026-09-10',
   C,S,ACCOUNT_CHARS:[{name:'My_Merchant',ctype:'merchant'},{name:'My_Ranger1',ctype:'ranger'},{name:'My_Ranger2',ctype:'ranger'}],me:'My_Merchant',character:{ctype:'merchant',level:70,map:'main',items:Array(42).fill(null)},
   clock:()=>now,clamp:(n,a,b)=>Math.max(a,Math.min(b,Number(n))),safeString:(v,n)=>String(v==null?'':v).slice(0,n||500),
   v210Round:(n,p=5)=>Math.round((Number(n)||0)*10**p)/10**p,v290CompactLearning:()=>learning,
