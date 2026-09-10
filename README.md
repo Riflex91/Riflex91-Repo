@@ -1,5 +1,7 @@
-# Adventure Land – AiO Bot 2.14.7
+# Adventure Land – AiO Bot 2.14.8
 
+
+> **2.14.8 Merchant-State-/Updater-Hotfix:** Bankbereinigung ist jetzt eine atomare, zeitlich begrenzte Phase: Der Merchant fährt nur zur Bank, wenn vorab tatsächlich ein lagerbarer Kandidat existiert, bleibt während `bank_store`/Inventarsynchronisation in der Bank und gibt die Phase erst nach Abschluss oder Sicherheits-Timeout frei. Der tatsächlich aktive finale Tick unterdrückt `loot()` auf Bank-Maps. **„Auf Updates prüfen & installieren“** prüft manuell und installiert eine gefundene neuere Version unmittelbar über den manuellen Self-Update-Pfad, ohne auf den periodischen Auto-Updater zu warten. Dashboard/Worker und Brain bleiben unverändert auf 2.14.5.
 Ein gemeinsamer Adventure-Land-Bot für Farmer-Klassen und Merchant. Version 2.14.0 erweitert die bisherige deterministische 24/7-Logik um ein selbstlernendes **Teacher/Student Brain v2** mit Cloudflare Workers AI, Experience Replay, Outcome-Rewards, einer **Champion/Challenger-Liga mit Auto-Rollback**, einem überprüfbaren **Gehirn-Tagebuch**, Lernqualitäts-Selbstkontrolle und der **AiO Research Bridge**. Die Research Bridge verdichtet reale Bot-Erfahrung zu sicheren, kompakten Analyse-Prompts für ChatGPT, ohne dafür zusätzliche Workers-AI-Aufrufe zu erzeugen.
 
 > **2.14.2 Merchant-Freeze-Hotfix:** verhindert eine synchrone Rekursion zwischen Inventardruck, Compound-Prüfung und fehlendem Combine-Scroll. Inventarbereinigung läuft jetzt vor Compound, Scroll-Beschaffung ruft die Bereinigung nicht rekursiv auf und ein Re-Entry-Guard blockiert künftige Rückkopplungen.

@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+"use strict";
+const fs=require('fs'),assert=require('assert/strict');
+const bot=fs.readFileSync('bot.js','utf8');
+const version=JSON.parse(fs.readFileSync('version.json','utf8'));
+assert.equal(version.version,'2.14.8');
+assert.equal(version.dashboardVersion,'2.14.5');
+assert.match(bot,/var VERSION = ['"]2\.14\.8['"]/);
+assert.ok(bot.includes('function v2148BankCleanupCandidate'),'bank candidate preflight missing');
+assert.ok(bot.includes('function v2148BankCleanupTick'),'atomic bank cleanup state machine missing');
+assert.ok(bot.includes("policy==='bank')continue"),'legacy explicit bank route must yield to atomic cleanup');
+assert.ok(bot.includes("if(freeSlots()>Number(C.merchantInventoryReserve||5))return null"),'automatic bank route must require pressure before selecting automatic candidate');
+assert.ok(bot.includes("bankCleanupRetry2148=now+12000"),'bounded bank cleanup retry backoff missing');
+assert.ok(bot.includes("now-Number(st.startedAt||now)>15000")&&bot.includes("Number(st.stores||0)>=10"),'bank cleanup safety lease missing');
+assert.ok(bot.includes("if(st.lastSig===sig&&now-Number(st.lastStoreAt||0)<2600)return true"),'bank cleanup must hold while bank_store inventory sync settles');
+assert.ok(bot.includes("if(now<Number(S.times['bank-store-2148']||0))return true"),'bank cleanup must hold during store cooldown');
+assert.ok(bot.includes("v273StoreTrashBankTick=function()")&&bot.includes("if(S.merchantBankCleanup2148||v2148BankCleanupCandidate())return v2148BankCleanupTick()"),'legacy bank cleanup must not route without a candidate');
+assert.ok(bot.includes("if(character.ctype==='merchant'&&(S.merchantBankCleanup2148||v2148BankCleanupCandidate()))"),'atomic cleanup must precede legacy Merchant planner actions');
+const finalTick=bot.slice(bot.lastIndexOf("function tick()"),bot.lastIndexOf("function pause("));
+assert.ok(finalTick.includes("'loot-action',800"),'final tick loot action marker missing');
+assert.ok(finalTick.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"),'final tick must suppress Merchant loot while in bank');
+assert.ok(bot.includes('function v2148ManualUpdateInstall'),'dedicated manual updater missing');
+assert.ok(bot.includes("audit('update_manual_check'")&&bot.includes("audit('update_manual_found'"),'manual update audit trail missing');
+assert.ok(bot.includes('return selfUpdate(false);'),'manual check must directly invoke manual install');
+assert.ok(bot.includes("t.dataset.action==='update-check'){v2148ManualUpdateInstall();return;"),'final click wrapper must own update button');
+assert.ok(bot.includes("C.language==='de'?'Auf Updates prüfen & installieren':'Check & install update'"),'manual update button semantics missing');
+console.log('2.14.8 atomic Merchant bank cleanup / manual updater smoke OK');

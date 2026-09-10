@@ -3,9 +3,9 @@
 const fs=require('fs'),assert=require('assert/strict');
 const bot=fs.readFileSync('bot.js','utf8');
 const version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.7');
+assert.equal(version.version,'2.14.8');
 assert.equal(version.dashboardVersion,'2.14.5');
-assert.match(bot,/var VERSION = ['"]2\.14\.7['"]/);
+assert.match(bot,/var VERSION = ['"]2\.14\.8['"]/);
 assert.ok(bot.includes("merchantItemActions: {}"),'item action default must be empty so legacy automation stays default');
 assert.ok(bot.includes("function v2147ItemPolicy"),'per-item policy helper missing');
 assert.ok(bot.includes("return V2147_ITEM_POLICIES.indexOf(p)>=0?p:'auto'"),'unknown/missing item policy must fall back to auto');
@@ -21,4 +21,4 @@ assert.ok(bot.includes("policy!=='auto')return Object.assign({},base,{sell:false
 assert.ok(bot.includes("p==='auto'||p==='exchange'"),'automatic exchange must respect explicit non-exchange rules');
 assert.ok(bot.includes("function v2147ExplicitItemTick"),'explicit item behavior tick missing');
 assert.ok(bot.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"),'Merchant loot() must be suppressed while in bank');
-console.log('2.14.7 Merchant bank race / item rules smoke OK');
+console.log('2.14.8 Merchant bank race / item rules smoke OK');

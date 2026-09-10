@@ -51,8 +51,8 @@ const versionMatch = bot.match(/var VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/);
 ok(versionMatch, "bot VERSION marker missing");
 if (versionMatch) {
   ok(version.version === versionMatch[1], `version.json (${version.version}) != bot.js (${versionMatch[1]})`);
-  ok(version.version === "2.14.7", "prepared release must be 2.14.7");
-  ok(version.dashboardVersion === "2.14.5", "dashboard version must be 2.14.7 for dashboard release");
+  ok(version.version === "2.14.8", "prepared release must be 2.14.8");
+  ok(version.dashboardVersion === "2.14.5", "dashboard version must remain 2.14.5 for bot-only release");
   ok(dash.includes(`Dashboard ${version.dashboardVersion}`), "dashboard version marker not aligned with dashboardVersion");
   ok(worker.includes(`version:"${version.dashboardVersion}"`) || worker.includes(`version: "${version.dashboardVersion}"`) || worker.includes(`version:"${version.dashboardVersion}"`), "worker health version not aligned with dashboardVersion");
   ok(pkg.includes(`\"version\": \"${version.dashboardVersion}\"`), "dashboard package version not aligned with dashboardVersion");
@@ -186,14 +186,14 @@ ok(bot.includes("r.realm={region:realm.region,id:realm.id,pvp:!!realm.pvp}"), "2
 ok(bot.includes("party_realm_mismatch") && bot.includes("party_realm_switch"), "2.14.4 party realm repair missing");
 ok(bot.includes(".mainbox.collapsed .body{display:none!important}") && bot.includes("min-height:0!important"), "2.14.4 collapsed GUI must show title only");
 
-ok(bot.includes("function v2145MovePriority"), "2.14.7 Merchant move arbitration missing");
-ok(bot.includes("move_deferred") && bot.includes("requestedPriority"), "2.14.7 route deferral diagnostics missing");
-ok(bot.includes("function v2145VendorReady") && bot.includes("dist(character,dest)<=75"), "2.14.7 settled vendor guard missing");
-ok(bot.includes("maxed-upgrade-surplus") && bot.includes("safe-trash-surplus"), "2.14.7 safe surplus selling missing");
-ok(bot.includes("function v2145EconomyMaintenanceTick"), "2.14.7 economy maintenance priority missing");
-ok(bot.includes(".mainbox .maincontent{overflow-y:auto"), "2.14.7 main GUI scrolling missing");
-ok(bot.includes("vital('HP',r.hp,r.max_hp,'hp')") && bot.includes("vital('MP',r.mp,r.max_mp,'mp')") && bot.includes("v2145VitalFlow"), "2.14.7 animated party HP/MP bars missing");
-ok(dash.includes('data-section="characters"') && dash.includes('data-section="group"'), "2.14.7 dashboard collapsible sections missing");
+ok(bot.includes("function v2145MovePriority"), "2.14.8 Merchant move arbitration missing");
+ok(bot.includes("move_deferred") && bot.includes("requestedPriority"), "2.14.8 route deferral diagnostics missing");
+ok(bot.includes("function v2145VendorReady") && bot.includes("dist(character,dest)<=75"), "2.14.8 settled vendor guard missing");
+ok(bot.includes("maxed-upgrade-surplus") && bot.includes("safe-trash-surplus"), "2.14.8 safe surplus selling missing");
+ok(bot.includes("function v2145EconomyMaintenanceTick"), "2.14.8 economy maintenance priority missing");
+ok(bot.includes(".mainbox .maincontent{overflow-y:auto"), "2.14.8 main GUI scrolling missing");
+ok(bot.includes("vital('HP',r.hp,r.max_hp,'hp')") && bot.includes("vital('MP',r.mp,r.max_mp,'mp')") && bot.includes("v2145VitalFlow"), "2.14.8 animated party HP/MP bars missing");
+ok(dash.includes('data-section="characters"') && dash.includes('data-section="group"'), "2.14.8 dashboard collapsible sections missing");
 ok(dash.indexOf('data-section="characters"') < dash.indexOf('data-section="brain"'), "characters must be first dashboard category");
 ok(dash.indexOf('data-section="group"') > dash.indexOf('data-section="research"'), "group information must be last dashboard category");
 ok(dash.includes("function miniMapMarkup") && dash.includes("mini-live-map"), "character mini live maps missing");
@@ -201,23 +201,34 @@ ok(!dash.includes('<span>Gebiet</span>'), "character Gebiet text must be removed
 ok(worker.includes("const DASHBOARD_HTML = ") && worker.includes("miniMapMarkup"), "worker embedded dashboard is not synchronized");
 
 
-ok(!bot.includes("v2144NpcValue(it)"), "2.14.7 undefined Merchant NPC value helper reference remains");
-ok(bot.includes("itemValueSafe(it)"), "2.14.7 Merchant sell decision must use itemValueSafe");
-ok(bot.includes("function v2146UpdateLabel"), "2.14.7 localized update label helper missing");
-ok(bot.includes("Auf Updates prüfen") && bot.includes("Prüfe auf Updates"), "2.14.7 German manual update labels missing");
-ok(bot.includes("update_manual_check") && bot.includes("updateCheckTick(true)"), "2.14.7 manual update click wiring missing");
-ok(bot.includes("update-manual-status"), "2.14.7 visible manual update status missing");
+ok(!bot.includes("v2144NpcValue(it)"), "2.14.8 undefined Merchant NPC value helper reference remains");
+ok(bot.includes("itemValueSafe(it)"), "2.14.8 Merchant sell decision must use itemValueSafe");
+ok(bot.includes("function v2146UpdateLabel"), "2.14.8 localized update label helper missing");
+ok(bot.includes("Auf Updates prüfen") && bot.includes("Prüfe auf Updates"), "2.14.8 German manual update labels missing");
+ok(bot.includes("update_manual_check") && bot.includes("updateCheckTick(true)"), "2.14.8 manual update click wiring missing");
+ok(bot.includes("update-manual-status"), "2.14.8 visible manual update status missing");
 
 
-ok(bot.includes("merchantItemActions: {}"), "2.14.7 merchant item action defaults missing");
-ok(bot.includes("function v2147ItemPolicy"), "2.14.7 per-item policy helper missing");
-ok(bot.includes("Merchant-Einstellungen"), "2.14.7 German Merchant settings title missing");
-ok(bot.includes("Automatisch (bestehende Botlogik)"), "2.14.7 automatic/default item behavior label missing");
-ok(bot.includes("function v2147BankExitActive"), "2.14.7 bank-exit guard missing");
-ok(bot.includes("function v2147BankReady"), "2.14.7 bank readiness guard missing");
-ok(bot.includes("bank_location_changed"), "2.14.7 bank action recheck missing");
-ok(bot.includes("merchant_item_rule"), "2.14.7 item rule audit missing");
-ok(bot.includes("v2147ExplicitItemTick"), "2.14.7 explicit item action tick missing");
-ok(bot.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"), "2.14.7 Merchant bank loot suppression missing");
+ok(bot.includes("merchantItemActions: {}"), "2.14.8 merchant item action defaults missing");
+ok(bot.includes("function v2147ItemPolicy"), "2.14.8 per-item policy helper missing");
+ok(bot.includes("Merchant-Einstellungen"), "2.14.8 German Merchant settings title missing");
+ok(bot.includes("Automatisch (bestehende Botlogik)"), "2.14.8 automatic/default item behavior label missing");
+ok(bot.includes("function v2147BankExitActive"), "2.14.8 bank-exit guard missing");
+ok(bot.includes("function v2147BankReady"), "2.14.8 bank readiness guard missing");
+ok(bot.includes("bank_location_changed"), "2.14.8 bank action recheck missing");
+ok(bot.includes("merchant_item_rule"), "2.14.8 item rule audit missing");
+ok(bot.includes("v2147ExplicitItemTick"), "2.14.8 explicit item action tick missing");
+ok(bot.includes("!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)"), "2.14.8 Merchant bank loot suppression missing");
+
+
+ok(bot.includes("function v2148BankCleanupTick"), "2.14.8 atomic Merchant bank cleanup missing");
+ok(bot.includes("function v2148BankCleanupCandidate"), "2.14.8 bank candidate preflight missing");
+ok(bot.includes("S.merchantBankCleanup2148||v2148BankCleanupCandidate()"), "2.14.8 Merchant must hold atomic bank phase before legacy logic");
+ok(bot.includes("bankCleanupRetry2148=now+12000"), "2.14.8 bank cleanup safety lease/backoff missing");
+ok(bot.includes("'bank-store-2148',900"), "2.14.8 bank cleanup cooldown/hold missing");
+ok(bot.includes("'loot-action',800") && bot.includes("String(character.map||'').indexOf('bank')===0"), "2.14.8 final Merchant tick must suppress loot() in bank");
+ok(bot.includes("function v2148ManualUpdateInstall"), "2.14.8 dedicated manual updater missing");
+ok(bot.includes("return selfUpdate(false)"), "2.14.8 manual updater must explicitly install as manual");
+ok(bot.includes("Auf Updates prüfen & installieren"), "2.14.8 manual update button label missing");
 
 if (!process.exitCode) console.log(`Regression checks OK · ${requiredFeatures.length} protected features · version ${version.version} · Brain v2.14 · Research Bridge · Merchant stability hotfix`);

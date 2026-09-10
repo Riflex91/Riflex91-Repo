@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.7 | 2026-09-10
+/* Adventure Land • AiO Bot 2.14.8 | 2026-09-10
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.7';
+  var VERSION = '2.14.8';
   var BUILD = '2026-09-10';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2846,7 +2846,7 @@
   var v281PartyReconcileBase=partyReconcileTick;
   partyReconcileTick=function(){var r=v281PartyReconcileBase();if(C.language==='de'){S.status=String(S.status||'').replace(/^Detecting same-bot characters/,'Erkenne Bot-Charaktere');if(S.mode==='Group discovery')S.mode='Gruppenerkennung';}return r;};
   CSS+=' .party-vitals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}.party-vitals span{background:color-mix(in srgb,var(--panel) 75%,transparent);border:1px solid var(--line);border-radius:7px;padding:5px;text-align:center;font-size:11px}.metersection{margin:10px 0 16px;padding:10px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 88%,transparent)}.meterhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.meterhead strong{font-size:16px}.meterhead span{font-size:11px;color:var(--muted)}.meterrow{margin:7px 0}.meterlabel{display:grid;grid-template-columns:24px minmax(100px,1fr) auto;gap:6px;align-items:center;font-size:11px}.meterlabel b{text-align:right}.meterrank{color:var(--muted);text-align:center}.metertrack{height:12px;background:color-mix(in srgb,var(--panel2) 75%,#000);border-radius:4px;overflow:hidden;margin-top:3px}.metertrack i{height:100%;display:block;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#fff));border-radius:4px;min-width:1px} ';
-  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+1000;v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)){S.times.loot=clock()+900;action('Loot einsammeln',function(){return loot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
+  function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+1000;v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){S.times.loot=clock()+900;action('Loot einsammeln',function(){return loot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
   function pause(value){S.running=value==null?!S.running:!!value;write('run:'+me,S.running);audit('run_state',S.running?'Bot gestartet':'Bot pausiert');renderAll(true);}
   function dispose() {
     if(S.disposed)return;S.disposed=true;try{clearInterval(timer);}catch(e){}try{clearInterval(uiTimer);}catch(e){}flushAuditQueue();write('report:'+me,Object.assign(report(),{active:false}));
@@ -3024,7 +3024,7 @@
   function v2146UpdateLabel(){
     if(S.update.applying)return C.language==='de'?'Update wird installiert …':'Installing update …';
     if(S.update.checking)return C.language==='de'?'Prüfe auf Updates …':'Checking for updates …';
-    return C.language==='de'?'Auf Updates prüfen':'Check for update';
+    return C.language==='de'?'Auf Updates prüfen & installieren':'Check & install update';
   }
   function v2146UpdateStatusHTML(){
     var checked=Number(S.update.checkedAt)||0,label=C.language==='de'?'Update-Status':'Update status';
@@ -3190,20 +3190,7 @@
     for(var i=0;i<items.length;i++){
       var it=items[i];if(!it||it.l||it.p)continue;
       var policy=v2147ItemPolicy(it.name);
-      if(policy==='bank'){
-        if(!C.merchantManageBank)return false;
-        if(!v2147BankReady()||!character.bank){
-          S.status=(C.language==='de'?'Item-Regel: zur Bank · ':'Item rule: to bank · ')+v273Name(it.name);S.mode='Merchant · Bank';
-          if(v2147BankExitActive())return true;
-          return moveToGoal({map:'bank',x:0,y:0},'Item-Regel Bank '+it.name,{kind:'merchant-item-bank',forceAfter:9000});
-        }
-        var cap=v273BankCapacity();if(cap&&cap.free<=0){S.bankFull=true;return v273OpenBankPackTick()||true;}
-        if(typeof bank_store!=='function')return false;
-        return action('Item-Regel Bank '+it.name,function(){
-          if(!v2147BankReady())throw Error('bank_location_changed');
-          return bank_store(i);
-        },'merchant-item-bank:'+it.name,1500);
-      }
+      if(policy==='bank')continue;
       if(policy==='sell'){
         if(!C.merchantSellTrashToNpc||typeof sell!=='function')return false;
         var dest=v2144SellVendor();
@@ -3254,6 +3241,117 @@
 
   try{S.merchantItemRuleSelected=read('merchantItemRuleSelected:'+me,S.merchantItemRuleSelected||'');}catch(e){}
   audit('feature_contract','2.14.7 Merchant-Bank-Race-Schutz + optionale Item-Einzelregeln geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
+
+  // ---------------------------------------------------------------------------
+  // 2.14.8 Merchant atomic bank-cleanup + explicit manual update install.
+  // ---------------------------------------------------------------------------
+  function v2148BankCleanupCandidate(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return null;
+    var items=character.items||[],i,it,policy;
+    for(i=0;i<items.length;i++){
+      it=items[i];if(!it||it.l||it.p)continue;
+      policy=v2147ItemPolicy(it.name);
+      if(policy==='bank')return {index:i,item:it,explicit:true};
+    }
+    if(freeSlots()>Number(C.merchantInventoryReserve||5))return null;
+    for(i=0;i<items.length;i++){
+      it=items[i];if(!it||it.l||it.p||v2147ItemPolicy(it.name)!=='auto'||isElixir(it)||it.name===C.hpot||it.name===C.mpot||/^c?scroll[0-4]$/.test(String(it.name||'')))continue;
+      var d=GD.items&&GD.items[it.name]||{},required=S.merchantPlan&&S.merchantPlan.farmOrder&&S.merchantPlan.farmOrder.item===it.name;
+      if(required)continue;
+      if(v273GroupUtility(it)<0||(!d.upgrade&&!d.compound&&!d.e&&!d.exchange&&!d.exchanges))return {index:i,item:it,explicit:false};
+    }
+    return null;
+  }
+  function v2148BankCleanupSig(c){
+    if(!c||!c.item)return '';
+    return [c.index,c.item.name,Number(c.item.level)||0,Number(c.item.q)||1,c.explicit?'E':'A'].join('|');
+  }
+  function v2148BankCleanupFinish(kind,detail,level){
+    var st=S.merchantBankCleanup2148;if(!st)return;
+    audit(kind,detail,{durationMs:clock()-Number(st.startedAt||clock()),stores:Number(st.stores)||0,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)},level||'info');
+    S.merchantBankCleanup2148=null;
+  }
+  function v2148BankCleanupTick(){
+    var now=clock(),st=S.merchantBankCleanup2148,cand=v2148BankCleanupCandidate();
+    if(!st){
+      if(now<Number(S.times.bankCleanupRetry2148||0)||!cand)return false;
+      st=S.merchantBankCleanup2148={startedAt:now,stores:0,lastSig:'',lastStoreAt:0,lastProgressAt:now};
+      audit('merchant_bank_cleanup_start',C.language==='de'?'Atomare Bankbereinigung gestartet':'Atomic bank cleanup started',{item:cand.item.name,explicit:!!cand.explicit,free:freeSlots(),reserve:Number(C.merchantInventoryReserve||5)});
+    }
+    if(now-Number(st.startedAt||now)>15000||Number(st.stores||0)>=10){
+      S.times.bankCleanupRetry2148=now+12000;
+      v2148BankCleanupFinish('merchant_bank_cleanup_timeout',C.language==='de'?'Bankbereinigung kontrolliert freigegeben; späterer Neuversuch':'Bank cleanup released by safety lease; retry later','warning');
+      return false;
+    }
+    cand=v2148BankCleanupCandidate();
+    if(!cand){
+      v2148BankCleanupFinish('merchant_bank_cleanup_done',C.language==='de'?'Bankbereinigung abgeschlossen':'Bank cleanup completed');
+      return false;
+    }
+    if(String(character.map||'').indexOf('bank')!==0){
+      S.status=(C.language==='de'?'Bankbereinigung · zur Bank: ':'Bank cleanup · to bank: ')+v273Name(cand.item.name);S.mode='Merchant · Bank';
+      if(v2147BankExitActive())return true;
+      moveToGoal({map:'bank',x:0,y:0},C.language==='de'?'Atomare Bankbereinigung':'Atomic bank cleanup',{kind:'merchant-bank-cleanup',forceAfter:9000});
+      return true;
+    }
+    S.status=(C.language==='de'?'Bankbereinigung · ':'Bank cleanup · ')+v273Name(cand.item.name);S.mode='Merchant · Bank';
+    if(character.moving||S.moveInFlight||v2147BankExitActive())return true;
+    if(!character.bank)return true;
+    var cap=v273BankCapacity();
+    if(cap&&cap.free<=0){S.bankFull=true;v273OpenBankPackTick();return true;}
+    var sig=v2148BankCleanupSig(cand);
+    if(st.lastSig===sig&&now-Number(st.lastStoreAt||0)<2600)return true;
+    if(now<Number(S.times['bank-store-2148']||0))return true;
+    if(typeof bank_store!=='function')return true;
+    var idx=cand.index,name=cand.item.name,explicit=!!cand.explicit;
+    var started=action((explicit?'Item-Regel Bank ':'Item in Bank lagern ')+name,function(){
+      if(String(character.map||'').indexOf('bank')!==0||character.moving||S.moveInFlight||v2147BankExitActive())throw Error('bank_location_changed');
+      return bank_store(idx);
+    },'bank-store-2148',900);
+    if(started){st.lastSig=sig;st.lastStoreAt=now;st.lastProgressAt=now;st.stores=Number(st.stores||0)+1;}
+    return true;
+  }
+
+  // Never travel to the bank merely because inventory pressure is high. There must
+  // be a real bank candidate first; the atomic phase owns the route until it settles.
+  v273StoreTrashBankTick=function(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return false;
+    if(S.merchantBankCleanup2148||v2148BankCleanupCandidate())return v2148BankCleanupTick();
+    return false;
+  };
+  var v2148MerchantTickBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype==='merchant'&&(S.merchantBankCleanup2148||v2148BankCleanupCandidate())){
+      if(v2148BankCleanupTick())return true;
+    }
+    return v2148MerchantTickBase();
+  };
+
+  function v2148ManualUpdateInstall(){
+    if(S.update.checking||S.update.applying){if(S.toolWindows.settings)renderTool('settings');return false;}
+    S.update.checking=true;S.update.checkedAt=clock();S.update.error='';
+    var repo=defaults.updateRepositoryUrl;
+    audit('update_manual_check',C.language==='de'?'Manuelle Update-Prüfung und Installation gestartet':'Manual update check and install started',{version:VERSION,repo:repo});
+    checkRepo(repo).then(function(r){
+      S.update.checking=false;S.update.latest=r.version;S.update.repo=r.repo;S.update.raw=r.raw;S.update.available=newer(r.version,VERSION);S.update.error='';
+      if(!S.update.available){audit('update_manual_current',C.language==='de'?'Bot ist bereits aktuell':'Bot is already current',{version:VERSION,found:r.version});renderAll(true);return false;}
+      audit('update_manual_found',C.language==='de'?'Neue Version gefunden; manuelle Installation startet':'New version found; manual install starts',{from:VERSION,to:r.version,repo:r.repo},'warning');
+      renderAll(true);
+      return selfUpdate(false);
+    }).catch(function(e){
+      S.update.checking=false;S.update.error=reason(e);audit('update_manual_error',(C.language==='de'?'Manuelles Update fehlgeschlagen: ':'Manual update failed: ')+S.update.error,{repo:repo},'error');renderAll(true);
+    });
+    if(S.toolWindows.settings)renderTool('settings');
+    return true;
+  }
+  var v2148UiClickBase=uiClick;
+  uiClick=function(e){
+    var t=e&&e.target&&e.target.closest?e.target.closest('button'):null;
+    if(t&&t.dataset&&t.dataset.action==='update-check'){v2148ManualUpdateInstall();return;}
+    return v2148UiClickBase(e);
+  };
+
+  audit('feature_contract','2.14.8 Atomare Merchant-Bankbereinigung + finaler Bank-Loot-Guard + manueller Update-Installationspfad geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
 
   // Preserve references so dispose can distinguish our CM handler on engines that support function identity.
   var receive27=on_cm;

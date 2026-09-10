@@ -1,5 +1,7 @@
-# Adventure Land – AiO Bot 2.14.7 · technische Notizen
+# Adventure Land – AiO Bot 2.14.8 · technische Notizen
 
+
+> **2.14.8 Merchant-State-/Updater-Hotfix:** Bankbereinigung ist jetzt eine atomare, zeitlich begrenzte Phase: Der Merchant fährt nur zur Bank, wenn vorab tatsächlich ein lagerbarer Kandidat existiert, bleibt während `bank_store`/Inventarsynchronisation in der Bank und gibt die Phase erst nach Abschluss oder Sicherheits-Timeout frei. Der tatsächlich aktive finale Tick unterdrückt `loot()` auf Bank-Maps. **„Auf Updates prüfen & installieren“** prüft manuell und installiert eine gefundene neuere Version unmittelbar über den manuellen Self-Update-Pfad, ohne auf den periodischen Auto-Updater zu warten. Dashboard/Worker und Brain bleiben unverändert auf 2.14.5.
 
 ## 2.14.5 Merchant-Reliability / Dashboard / GUI
 
