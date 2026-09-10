@@ -1,0 +1,72 @@
+name: release-21413
+on:
+  push:
+    branches: [hotfix/2.14.13-merchant-stability]
+permissions:
+  contents: write
+jobs:
+  verify-and-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[release-21413]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/2.14.13-merchant-stability
+          fetch-depth: 0
+      - name: Verify exact release base
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=48bccc2a25f4e381eb65faea3b04333e6aff8d4d
+          git merge-base --is-ancestor "$BASE" HEAD
+          test "$(git hash-object bot.js)" = "ca39f930b7a422403c41bf9bcbded5deffb87b87"
+          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21413\.py|\.github/workflows/release-21413\.yml)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected changes since exact main base:"
+            echo "$unexpected"
+            exit 1
+          fi
+      - name: Apply deterministic 2.14.13 patch
+        run: python3 scripts/patch-21413.py
+      - name: Syntax check bot and worker
+        run: |
+          node --check bot.js
+          node --check cloudflare-dashboard/src/worker.js
+      - name: Syntax check dashboard JavaScript
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('cloudflare-dashboard/dashboard.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not blocks:
+              raise SystemExit('dashboard script missing')
+          Path('/tmp/dashboard.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard.js
+      - name: Verify prepared release
+        run: node scripts/verify-release.js
+      - name: Run all smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js scripts/smoke*.mjs; do
+            [ -f "$f" ] || continue
+            echo "==> $f"
+            node "$f"
+          done
+      - name: Whitespace check
+        run: git diff --check
+      - name: Commit tested release to hotfix branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot.js version.json cloudflare-dashboard scripts
+          git rm -f scripts/patch-21413.py .github/workflows/release-21413.yml
+          git diff --cached --check
+          git diff --cached --name-status
+          git commit -m "Release 2.14.13: Merchant stability hotfix [release-21413]"
+          git push origin HEAD:hotfix/2.14.13-merchant-stability
