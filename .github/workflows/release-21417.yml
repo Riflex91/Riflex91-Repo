@@ -1,0 +1,62 @@
+name: release-21417
+on:
+  push:
+    branches: ["hotfix/2.14.17-config-merchant-serialization"]
+permissions:
+  contents: write
+jobs:
+  verify-and-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[release-21417]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/2.14.17-config-merchant-serialization
+          fetch-depth: 0
+      - name: Verify exact 2.14.16 base
+        run: |
+          set -euo pipefail
+          BASE=98bf067446c5aae713dd73466b31336c7e0f20fd
+          git merge-base --is-ancestor "$BASE" HEAD
+          test "$(git hash-object bot.js)" = "ccd2dc251c75eb9cf3d4cf465d3d65e589985207"
+          unexpected="$(git diff --name-only "$BASE"..HEAD | grep -Ev '^(scripts/patch-21417\.py|\.github/workflows/release-21417\.yml)$' || true)"
+          if [ -n "$unexpected" ]; then echo "$unexpected"; exit 1; fi
+      - name: Apply 2.14.17 patch
+        run: python3 scripts/patch-21417.py
+      - name: Syntax check bot and worker
+        run: |
+          node --check bot.js
+          node --check cloudflare-dashboard/src/worker.js
+      - name: Syntax check dashboard JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('cloudflare-dashboard/dashboard.html').read_text(encoding='utf-8')
+          blocks=re.findall(r'<script[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not blocks: raise SystemExit('dashboard script missing')
+          Path('/tmp/dashboard.js').write_text('\n'.join(blocks),encoding='utf-8')
+          PY
+          node --check /tmp/dashboard.js
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Run all smoke tests
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js scripts/smoke*.mjs; do
+            [ -f "$f" ] || continue
+            echo "==> $f"
+            node "$f"
+          done
+      - name: Whitespace check
+        run: git diff --check
+      - name: Commit tested release
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot.js version.json cloudflare-dashboard scripts
+          git rm -f scripts/patch-21417.py .github/workflows/release-21417.yml
+          git diff --cached --check
+          git commit -m "Release 2.14.17: Config precedence and Merchant serialization [release-21417]"
+          git push origin HEAD:hotfix/2.14.17-config-merchant-serialization
