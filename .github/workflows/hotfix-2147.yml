@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/hotfix-2147.yml"
       - "scripts/apply-2.14.7-merchant-bank-item-rules.py"
+      - "scripts/apply-2.14.7-ui-followup.py"
 
 permissions:
   contents: write
@@ -22,6 +23,8 @@ jobs:
           node-version: 22
       - name: Apply 2.14.7 hotfix
         run: python scripts/apply-2.14.7-merchant-bank-item-rules.py
+      - name: Preserve static tool order while renaming Merchant window
+        run: python scripts/apply-2.14.7-ui-followup.py
       - name: JavaScript syntax
         run: node --check bot.js
       - name: Release contract
