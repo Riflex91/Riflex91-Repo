@@ -36,7 +36,17 @@ repls=[
  "console.log('2.14.17 retained config preservation / Merchant guards smoke OK');")
 ]
 for old,new in repls:
-    if old not in s: raise SystemExit('retained smoke marker missing: '+old[:90])
+    if old not in s: raise SystemExit('retained config smoke marker missing: '+old[:90])
     s=s.replace(old,new,1)
 p.write_text(s,encoding='utf-8')
-print('Aligned 2.14.17 verify + retained 2.14.16 smoke assertions')
+
+# The old warehouse smoke measured the lease from request creation. 2.14.17 intentionally starts it at bank arrival.
+p=Path('scripts/smoke-2149-bank-discovery.js')
+s=p.read_text(encoding='utf-8')
+old="assert.ok(bot.includes(\"now-Number(st.startedAt||now)>20000\")&&bot.includes('Number(st.attempts||0)>=12'),'bank retrieve lease missing');"
+new="assert.ok(bot.includes(\"st.leaseAt=0\")&&bot.includes(\"if(!Number(st.leaseAt||0))st.leaseAt=now\")&&bot.includes(\"now-Number(st.leaseAt||now)>20000\")&&bot.includes('Number(st.attempts||0)>=12'),'bank retrieve arrival-relative lease missing');"
+if old not in s: raise SystemExit('retained bank smoke lease marker missing')
+s=s.replace(old,new,1)
+s=s.replace("console.log('2.14.17 Merchant warehouse / discovery / productive-idle smoke OK');","console.log('2.14.17 Merchant warehouse / arrival-relative bank lease / discovery smoke OK');",1)
+p.write_text(s,encoding='utf-8')
+print('Aligned 2.14.17 verify + retained config/bank smoke assertions')
