@@ -22,6 +22,17 @@ jobs:
           node-version: 22
       - name: Apply 2.14.8 hotfix
         run: python scripts/apply-2.14.8-merchant-atomic-bank-manual-update.py
+      - name: Fix exact manual-click smoke marker
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/smoke-2148-merchant-atomic-bank-manual-update.js')
+          s=p.read_text(encoding='utf-8')
+          old='assert.ok(bot.includes("data-action===\'update-check\'){v2148ManualUpdateInstall();return;"),\'final click wrapper must own update button\');'
+          new='assert.ok(bot.includes("t.dataset.action===\'update-check\'){v2148ManualUpdateInstall();return;"),\'final click wrapper must own update button\');'
+          assert old in s
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
       - name: JavaScript syntax
         run: node --check bot.js
       - name: Release contract
