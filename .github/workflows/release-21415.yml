@@ -23,6 +23,17 @@ jobs:
           if [ -n "$unexpected" ]; then echo "$unexpected"; exit 1; fi
       - name: Apply 2.14.15 patch
         run: python3 scripts/patch-21415.py
+      - name: Adjust retained bank smoke extractor
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/smoke-21413-merchant-stability.js')
+          s=p.read_text(encoding='utf-8')
+          old="const end=bot.indexOf('\\n\\n  v2148BankCleanupTick=function',start);"
+          new="const end=bot.indexOf('\\n  function v21415BankCleanupLeaseExpired',start);"
+          if s.count(old)!=1: raise SystemExit(f'retained extractor marker count={s.count(old)}')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
       - name: Syntax check bot and worker
         run: |
           node --check bot.js
