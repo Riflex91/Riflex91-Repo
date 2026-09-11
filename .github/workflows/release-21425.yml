@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Apply v2.14.25
         run: node scripts/apply-21425-ui-merchant-map-liveness.mjs
+      - name: Apply v2.14.25 release hardening
+        run: node scripts/apply-21425-release-hardening.mjs
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
@@ -86,6 +88,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/dashboard.html cloudflare-dashboard/src/worker.js
+          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/dashboard.html cloudflare-dashboard/src/worker.js scripts/verify-release.js
           git commit -m 'Release AiO Bot 2.14.25 UI Merchant map liveness'
           git push origin HEAD:${GITHUB_REF_NAME}
