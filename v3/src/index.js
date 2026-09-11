@@ -22,6 +22,7 @@ function install(root = globalThis, options = {}) {
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
     status: () => runtime.status(),
+    showStatus: () => runtime.showStatus(),
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics: () => runtime.exportDiagnostics(),
     saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),

@@ -34,9 +34,52 @@ class Runtime {
     this.lastDiscovery = null;
     this.startedAt = null;
     this.worldLoaded = false;
+    this.visibleStatusEnabled = options.visibleStatus !== false;
+    this.readyAnnounced = false;
   }
 
   setMode(mode) { return this.adapter.setMode(mode); }
+
+  _gameLog(message) {
+    if (!this.visibleStatusEnabled) return false;
+    const fn = this.root && (this.root.game_log || (this.root.parent && this.root.parent.game_log));
+    if (typeof fn !== 'function') return false;
+    try {
+      fn.call(this.root, message);
+      return true;
+    } catch (error) {
+      this.log.emit({ component: 'runtime', event: 'VISIBLE_STATUS_FAILED', severity: 'warn', reason: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  _announce(message, event) {
+    if (!this._gameLog(message)) return false;
+    this.log.emit({ component: 'runtime', event, data: { message } });
+    return true;
+  }
+
+  _announceReady(snapshot) {
+    if (this.readyAnnounced || !snapshot || !snapshot.character) return false;
+    const c = snapshot.character;
+    const message = `[AIO v3 ${VERSION}] READY | ${c.name} | ${c.ctype} L${c.level} | map=${c.map || 'unknown'} | mode=${this.adapter.mode} | visible=${snapshot.entities.length}`;
+    if (!this._announce(message, 'VISIBLE_READY')) return false;
+    this.readyAnnounced = true;
+    return true;
+  }
+
+  showStatus() {
+    const status = this.status();
+    const c = status.character;
+    const character = c ? `${c.name} | ${c.ctype} L${c.level} | map=${c.map || 'unknown'}` : 'character=waiting';
+    const queued = status.scheduler && status.scheduler.queued ? status.scheduler.queued.length : 0;
+    const active = status.scheduler && status.scheduler.active ? status.scheduler.active.length : 0;
+    const entities = status.world && Number.isFinite(Number(status.world.entities)) ? Number(status.world.entities) : 0;
+    const modeNote = status.mode === 'shadow' ? 'observing only' : 'active commands enabled';
+    const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | world=${entities} | tasks=${active}/${queued}`;
+    this._announce(message, 'VISIBLE_STATUS');
+    return status;
+  }
 
   _restoreWorldOnce() {
     if (this.worldLoaded) return;
@@ -49,6 +92,8 @@ class Runtime {
     this._restoreWorldOnce();
     this.startedAt = this.startedAt || this.now();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
+    const modeNote = this.adapter.mode === 'shadow' ? 'observing only' : 'active commands enabled';
+    this._announce(`[AIO v3 ${VERSION}] STARTED | mode=${this.adapter.mode} | ${modeNote}`, 'VISIBLE_STARTUP');
     this.tick();
     this.timer = setInterval(() => this.tick(), this.tickMs);
     return true;
@@ -128,6 +173,7 @@ class Runtime {
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
+    this._announceReady(snapshot);
     this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
     this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
     this.persistence.maybeSave(this.world);

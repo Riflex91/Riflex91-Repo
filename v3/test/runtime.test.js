@@ -27,3 +27,34 @@ test('Runtime observes a fake Adventure Land character without issuing active co
   const economy = adapter.command('sell', [0]);
   assert.equal(economy.reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
 });
+
+test('Runtime emits visible Adventure Land startup/ready/status messages without changing shadow mode', () => {
+  let now = 20000;
+  const messages = [];
+  const root = {
+    game_log: (message) => messages.push(message),
+    character: { name: 'VisibleRanger', ctype: 'ranger', level: 42, map: 'main', x: 0, y: 0, real_x: 0, real_y: 0, hp: 900, max_hp: 900, mp: 400, max_mp: 400, xp: 100, gold: 50, items: [], moving: false, speed: 40 },
+    G: { monsters: {}, maps: { main: {} } },
+    parent: { entities: {}, party: {} }
+  };
+  const log = new EventLog({ now: () => now, runId: 'visible-status-test' });
+  const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow', now: () => now });
+  const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now, tickMs: 1000 });
+
+  assert.equal(runtime.start(), true);
+  assert.equal(runtime.status().mode, 'shadow');
+  assert.ok(messages.some((message) => message.includes('STARTED') && message.includes('mode=shadow')));
+  assert.equal(messages.filter((message) => message.includes('READY')).length, 1);
+  assert.ok(messages.some((message) => message.includes('VisibleRanger') && message.includes('map=main')));
+
+  runtime.tick();
+  assert.equal(messages.filter((message) => message.includes('READY')).length, 1);
+
+  const status = runtime.showStatus();
+  assert.equal(status.character.name, 'VisibleRanger');
+  assert.ok(messages.some((message) => message.includes('STATUS') && message.includes('observing only')));
+  assert.ok(log.events.some((event) => event.event === 'VISIBLE_STARTUP'));
+  assert.ok(log.events.some((event) => event.event === 'VISIBLE_READY'));
+  assert.ok(log.events.some((event) => event.event === 'VISIBLE_STATUS'));
+  runtime.stop();
+});
