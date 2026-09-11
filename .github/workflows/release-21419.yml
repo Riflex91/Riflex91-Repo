@@ -1,0 +1,53 @@
+name: release-21419-validation
+on:
+  push:
+    branches:
+      - release-21419
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release-21419
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare release tree
+        run: |
+          python3 scripts/prepare-21419.py
+          rm scripts/prepare-21419.py
+          rm .github/workflows/release-21419.yml
+      - name: Bot syntax
+        run: node --check bot.js
+      - name: Worker syntax
+        run: node --check cloudflare-dashboard/src/worker.js
+      - name: Dashboard script syntax
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+          const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+          if(!scripts.length) throw new Error('dashboard script block missing');
+          for(const [i,src] of scripts.entries()) new Function(src+'\n//# sourceURL=dashboard-'+i+'.js');
+          console.log('dashboard JS syntax OK');
+          NODE
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Smoke tests
+        run: |
+          set -e
+          for f in scripts/smoke*.js; do echo "== $f =="; node "$f"; done
+          for f in scripts/smoke*.mjs; do echo "== $f =="; node "$f"; done
+      - name: Diff check
+        run: git diff --check
+      - name: Commit tested release tree
+        run: |
+          git config user.name "Riflex91"
+          git config user.email "hansijuergenlul@gmail.com"
+          git add -A
+          git commit -m "Test 2.14.19 Merchant recovery and economics [tested-21419]"
+          git push origin HEAD:release-21419
