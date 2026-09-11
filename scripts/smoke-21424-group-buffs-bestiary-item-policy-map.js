@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs'),vm=require('vm');
+const bot=fs.readFileSync('bot.js','utf8');
+const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
+function ok(v,m){if(!v)throw new Error(m);}
+new vm.Script(bot,{filename:'bot.js'});
+ok(bot.includes("var VERSION = '2.14.24'"),'2.14.24 version missing');
+ok(bot.includes('/* 2.14.24 group buffs + catalog details + item permissions + terrain tiles */'),'2.14.24 marker missing');
+ok(bot.includes('group-class-buff-assignment'),'generic group buff feature missing');
+ok(bot.includes('function v21424ShareableBuffSkills'),'class-aware buff discovery missing');
+ok(bot.includes('data-group-buff-skill'),'group buff assignment UI missing');
+ok(bot.includes("type:'aio24-group-buff-request'"),'group buff request protocol missing');
+ok(bot.includes('group_buff_confirmed'),'group buff confirmation missing');
+ok(bot.includes('function v21424ShowPermissionMenu'),'item permission context menu missing');
+for(const k of ['sell','bank','compound','upgrade'])ok(bot.includes("'"+k+"'"),'permission '+k+' missing');
+ok(bot.includes('farmer-upgrade-recommendation'),'farmer recommendation override missing');
+ok(bot.includes('function v21424GearRecommendation'),'projected gear comparison missing');
+ok(bot.includes('function v21424OpenCatalogDetail'),'catalog detail windows missing');
+ok(bot.includes('function v21424MonsterLoot'),'monster loot table missing');
+ok(bot.includes('function v21424ItemDroppers'),'item reverse-drop table missing');
+ok(bot.includes('Sämtliche Live-Monsterdaten'),'full monster data detail missing');
+ok(bot.includes('Sämtliche Live-Itemdaten'),'full item data detail missing');
+ok(bot.includes("fallback:'tiles+collision-lines'"),'tile-first terrain payload missing');
+ok(bot.includes('out.a=[]'),'terrain size reduction missing');
+ok(worker.includes("img-src 'self' data: https://adventure.land https://www.adventure.land;"),'Adventure Land tile CSP allowance missing');
+ok(dash.includes('AiO Bot Dashboard 2.14.24'),'dashboard version missing');
+ok(bot.includes('update-contract-dynamic-push-parser'),'dynamic feature-contract parser feature missing');
+const m=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);ok(m,'static feature contract missing');const contract=JSON.parse(m[1]);
+for(const f of ['merchant-unified-auto-economy','merchant-central-item-policy','merchant-economic-compound-guard','merchant-bank-withdraw-sell-state-machine','group-class-buff-assignment','dashboard-adventure-land-tile-images'])ok(contract.includes(f),'static feature contract lacks '+f);
+console.log('v2.14.24 group buffs / catalog / permissions / terrain smoke OK');
