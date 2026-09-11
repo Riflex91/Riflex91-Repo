@@ -2,9 +2,48 @@
 
 const KnowledgeState = Object.freeze({ UNKNOWN: 'UNKNOWN', KNOWN_TRUE: 'KNOWN_TRUE', KNOWN_FALSE: 'KNOWN_FALSE' });
 const EvidenceKind = Object.freeze({ OBSERVED: 'OBSERVED', INFERRED: 'INFERRED', HYPOTHESIS: 'HYPOTHESIS' });
+const EVIDENCE_PRIORITY = Object.freeze([EvidenceKind.OBSERVED, EvidenceKind.INFERRED, EvidenceKind.HYPOTHESIS]);
 
 function key(type, id) { return `${type}:${id}`; }
 function perfKey(monster, fingerprint) { return `${monster}::${fingerprint || 'unknown-party'}`; }
+function knowledgeState(value) {
+  if (value === undefined || value === null) return KnowledgeState.UNKNOWN;
+  if (typeof value === 'boolean') return value ? KnowledgeState.KNOWN_TRUE : KnowledgeState.KNOWN_FALSE;
+  return KnowledgeState.KNOWN_TRUE;
+}
+function confidence(value) { return Math.max(0, Math.min(1, Number(value == null ? 1 : value))); }
+
+function existingEvidence(fact) {
+  if (!fact) return {};
+  if (fact.evidenceByKind && typeof fact.evidenceByKind === 'object') return { ...fact.evidenceByKind };
+  if (!fact.evidence) return {};
+  return {
+    [fact.evidence]: {
+      state: fact.state,
+      value: fact.value,
+      confidence: fact.confidence,
+      samples: fact.samples || 0,
+      updatedAt: fact.updatedAt || null
+    }
+  };
+}
+
+function resolveEvidence(evidenceByKind) {
+  for (const evidence of EVIDENCE_PRIORITY) {
+    const record = evidenceByKind[evidence];
+    if (!record) continue;
+    return { ...record, evidence, evidenceByKind };
+  }
+  return {
+    state: KnowledgeState.UNKNOWN,
+    value: null,
+    confidence: 0,
+    evidence: null,
+    samples: 0,
+    updatedAt: null,
+    evidenceByKind
+  };
+}
 
 class WorldModel {
   constructor(options = {}) {
@@ -43,16 +82,19 @@ class WorldModel {
     const k = key(type, id);
     const now = this.now();
     const current = this.entities.get(k) || { type, id: String(id), facts: {}, firstSeenAt: now, lastSeenAt: 0 };
+    const evidence = Object.values(EvidenceKind).includes(meta.evidence) ? meta.evidence : EvidenceKind.OBSERVED;
     current.lastSeenAt = now;
     for (const [name, value] of Object.entries(attributes)) {
-      current.facts[name] = {
-        state: value === undefined || value === null ? KnowledgeState.UNKNOWN : (typeof value === 'boolean' ? (value ? KnowledgeState.KNOWN_TRUE : KnowledgeState.KNOWN_FALSE) : KnowledgeState.KNOWN_TRUE),
+      const byEvidence = existingEvidence(current.facts[name]);
+      const previous = byEvidence[evidence];
+      byEvidence[evidence] = {
+        state: knowledgeState(value),
         value: value === undefined ? null : value,
-        confidence: Math.max(0, Math.min(1, Number(meta.confidence == null ? 1 : meta.confidence))),
-        evidence: meta.evidence || EvidenceKind.OBSERVED,
-        samples: (current.facts[name] && current.facts[name].samples || 0) + 1,
+        confidence: confidence(meta.confidence),
+        samples: (previous && previous.samples || 0) + 1,
         updatedAt: now
       };
+      current.facts[name] = resolveEvidence(byEvidence);
     }
     this.entities.set(k, current);
     this._touch();
@@ -60,13 +102,20 @@ class WorldModel {
     return current;
   }
 
-  hypothesis(type, id, fact, value, confidence = 0.25) {
-    return this.observeEntity(type, id, { [fact]: value }, { evidence: EvidenceKind.HYPOTHESIS, confidence });
+  hypothesis(type, id, fact, value, confidenceValue = 0.25) {
+    return this.observeEntity(type, id, { [fact]: value }, { evidence: EvidenceKind.HYPOTHESIS, confidence: confidenceValue });
   }
 
   fact(type, id, factName) {
     const entity = this.entities.get(key(type, id));
-    return entity && entity.facts[factName] || { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence: null, samples: 0, updatedAt: null };
+    return entity && entity.facts[factName] || { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence: null, samples: 0, updatedAt: null, evidenceByKind: {} };
+  }
+
+  evidenceFor(type, id, factName, evidence) {
+    const fact = this.fact(type, id, factName);
+    if (fact.evidenceByKind && fact.evidenceByKind[evidence]) return { ...fact.evidenceByKind[evidence], evidence };
+    if (fact.evidence === evidence) return { state: fact.state, value: fact.value, confidence: fact.confidence, evidence, samples: fact.samples, updatedAt: fact.updatedAt };
+    return { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence, samples: 0, updatedAt: null };
   }
 
   recordPerformance(monster, fingerprint, sample = {}) {
@@ -141,8 +190,13 @@ class WorldModel {
     for (const entity of this.entities.values()) {
       entityTypes[entity.type] = (entityTypes[entity.type] || 0) + 1;
       for (const fact of Object.values(entity.facts)) {
-        if (fact.state === KnowledgeState.UNKNOWN) evidence.UNKNOWN += 1;
-        else evidence[fact.evidence] = (evidence[fact.evidence] || 0) + 1;
+        const records = fact.evidenceByKind && Object.keys(fact.evidenceByKind).length
+          ? Object.entries(fact.evidenceByKind)
+          : [[fact.evidence, fact]];
+        for (const [kind, record] of records) {
+          if (!record || record.state === KnowledgeState.UNKNOWN || !kind) evidence.UNKNOWN += 1;
+          else evidence[kind] = (evidence[kind] || 0) + 1;
+        }
       }
     }
     return { entities: this.entities.size, entityTypes, performanceProfiles: this.performance.size, evidence, revision: this.revision };

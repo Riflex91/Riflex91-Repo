@@ -16,10 +16,11 @@ test('Discovery separates observed live knowledge from inferred current-map meta
     ],
     objects: [{ id: 'c1', name: 'chest', type: 'chest', map: 'main', x: 5, y: 6 }]
   }, {
-    maps: { main: { npcs: ['StaticNPC'], monsters: ['bee'], doors: [[10, 20]] } }
+    maps: { main: { npcs: ['StaticNPC'], monsters: ['goo', 'bee'], doors: [[10, 20]] } }
   });
 
   assert.equal(world.fact('monster', 'goo', 'lastSeenSource').evidence, EvidenceKind.OBSERVED);
+  assert.equal(world.evidenceFor('monster', 'goo', 'lastSeenSource', EvidenceKind.INFERRED).value, 'map-metadata-monster');
   assert.equal(world.fact('npc', 'StaticNPC', 'lastSeenSource').evidence, EvidenceKind.INFERRED);
   assert.equal(world.hasEntity('object', 'chest'), true);
   assert.equal(world.hasEntity('object', 'door:main:0'), true);
