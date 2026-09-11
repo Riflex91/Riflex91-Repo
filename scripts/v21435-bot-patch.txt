@@ -1,0 +1,132 @@
+
+  /* v2.14.35 city combat guard, committed bank routing and image-verified dashboard transport */
+  try{FEATURE_CONTRACT.push('farmer-city-combat-hard-guard','farmer-city-goal-rejection','merchant-bank-negative-snapshot-cache','merchant-bank-settlement-lease','dashboard-image-ack-verification');}catch(e){}
+
+  // Main-town is a service/safe zone for farmers. Never acquire, chase or attack monsters here,
+  // and never accept a farm goal whose center is inside the central town rectangle.
+  function v21435InMainCity(p){
+    if(!p||String(p.map||character.map||'')!=='main')return false;
+    var x=Number(p.x),y=Number(p.y);if(!isFinite(x)||!isFinite(y))return false;
+    return x>=-700&&x<=700&&y>=-550&&y<=500;
+  }
+  function v21435CityGoal(g){return !!(g&&v21435InMainCity({map:g.map,x:g.x,y:g.y}));}
+  var v21435SafeEnemyBase=safeEnemy;
+  safeEnemy=function(e){
+    if(character.ctype!=='merchant'&&(v21435InMainCity(character)||v21435InMainCity(e)))return false;
+    return v21435SafeEnemyBase(e);
+  };
+  var v21435TankAggroBase=tankAggroTick;
+  tankAggroTick=function(){if(character.ctype!=='merchant'&&v21435InMainCity(character))return false;return v21435TankAggroBase();};
+
+  // Filter city coordinates from all automatic/static spawn selection while preserving the original
+  // scoring code. This also prevents a bad live observation from becoming the Merchant group plan.
+  function v21435WithoutCitySpawns(fn){var old=SPAWNS;try{SPAWNS=old.filter(function(sp){return !v21435CityGoal(sp);});return fn();}finally{SPAWNS=old;}}
+  var v21435AutoGoalBase=autoGoal;
+  autoGoal=function(){return v21435WithoutCitySpawns(function(){return v21435AutoGoalBase();});};
+  var v21435GroupAutoGoalBase=v273GroupAutoGoal;
+  v273GroupAutoGoal=function(){return v21435WithoutCitySpawns(function(){return v21435GroupAutoGoalBase();});};
+  var v21435GoalForMonsterBase=v273GoalForMonster;
+  v273GoalForMonster=function(mon){return v21435WithoutCitySpawns(function(){var g=v21435GoalForMonsterBase(mon);return v21435CityGoal(g)?null:g;});};
+  var v21435GroupGoalBase=v273GroupGoal;
+  v273GroupGoal=function(){var g=v21435GroupGoalBase();return v21435CityGoal(g)?null:g;};
+  var v21435FallbackGoalBase=v277FallbackFarmGoal;
+  v277FallbackFarmGoal=function(){var g=v21435FallbackGoalBase();if(v21435CityGoal(g)){audit('farm_city_goal_rejected','Merchant-Live-Fallback in der Stadt verworfen',{goal:g},'warning');return null;}return g;};
+  var v21435ChooseGoalBase=chooseGoal;
+  chooseGoal=function(){var g=v21435ChooseGoalBase();if(character.ctype!=='merchant'&&v21435CityGoal(g)){S.goal=null;S.lastGoalCheck=0;audit('farm_city_goal_rejected','Farmer-Farmziel in der Stadt verworfen',{goal:g},'warning');return null;}return g;};
+  var v21435FarmerTickBase=farmerTick;
+  farmerTick=function(){
+    if(character.ctype!=='merchant'){
+      if(S.goal&&v21435CityGoal(S.goal)){audit('farm_city_goal_cleared','Aktives Stadt-Farmziel entfernt',{goal:S.goal},'warning');S.goal=null;S.lastGoalCheck=0;}
+      if(v21435InMainCity(character)){
+        S.target=null;try{var ct=typeof get_target==='function'?get_target():null;if(ct&&ct.type==='monster'&&typeof change_target==='function')change_target(null);}catch(e){}
+      }
+    }
+    return v21435FarmerTickBase();
+  };
+
+  // A fresh negative warehouse snapshot is authoritative. v2.14.34 accidentally reintroduced
+  // allowUnknown=true for craft material retrieval, which can send the Merchant back to a bank that
+  // was just confirmed not to contain the requested materials.
+  S.bankNegative21435=S.bankNegative21435||{};
+  function v21435BankKey(w){return v278MaterialKey(String(w&&w.name||''),Math.max(0,Number(w&&w.level)||0));}
+  function v21435BankMissing(w){var local=typeof v2149LocalCount==='function'?v2149LocalCount(w.name,w.level):v278LocalMaterialCount(w.name,w.level);return Math.max(0,(Number(w.q)||1)-Number(local||0));}
+  function v21435FreshBankSnapshot(){var age=clock()-Number(v2149BankSnapshot&&v2149BankSnapshot.at||0),maxAge=Math.max(300000,Number(C.merchantBankRecheckSeconds||180)*2000);return Number(v2149BankSnapshot&&v2149BankSnapshot.at||0)>0&&age<=maxAge;}
+  v273RetrieveMaterialFromBankTick=function(recipe){
+    if(character.ctype!=='merchant'||!C.merchantManageBank||!recipe)return false;
+    var now=clock(),wants=(recipe.items||[]).map(function(w){return {name:String(w&&w.name||''),level:Math.max(0,Number(w&&w.level)||0),q:Math.max(1,Number(w&&w.q)||1)};}).filter(function(w){return w.name&&v21435BankMissing(w)>0;});
+    if(!wants.length)return false;
+    var cool=Math.max(300000,Number(C.merchantBankRecheckSeconds||180)*1000),fresh=v21435FreshBankSnapshot(),eligible=[];
+    for(var i=0;i<wants.length;i++){
+      var w=wants[i],k=v21435BankKey(w),bank=Number(v2149BankCount(w.name,w.level))||0,missing=v21435BankMissing(w);
+      if(fresh&&bank<missing){S.bankNegative21435[k]=now+cool;continue;}
+      if(now<Number(S.bankNegative21435[k]||0)&&bank<=0)continue;
+      if(bank>0)delete S.bankNegative21435[k];eligible.push(w);
+    }
+    if(fresh&&!eligible.length){
+      if(now-Number(S.bankNegativeAudit21435||0)>60000){S.bankNegativeAudit21435=now;audit('merchant_bank_negative_cache','Frischer Bank-Snapshot enthält die fehlenden Crafting-Materialien nicht; Bankfahrt übersprungen',{wants:wants,snapshotAt:Number(v2149BankSnapshot.at)||0,cooldownMs:cool});}
+      return false;
+    }
+    if(!eligible.length)return false;
+    return v2149RequestBank('craft',eligible,{recipe:recipe.id||recipe.output||'',snapshotAt:Number(v2149BankSnapshot&&v2149BankSnapshot.at)||0},!fresh);
+  };
+
+  // Let one bank mutation settle before another capacity route can force a city trip. The server can
+  // acknowledge a swap before the local inventory/bank mirror has converged.
+  S.bankSettleUntil21435=Number(S.bankSettleUntil21435)||0;
+  if(typeof bank_store==='function'){
+    var v21435BankStoreBase=bank_store;
+    bank_store=function(){
+      S.bankSettleUntil21435=Math.max(Number(S.bankSettleUntil21435)||0,clock()+9000);
+      var r=v21435BankStoreBase.apply(this,arguments);
+      Promise.resolve(r).then(function(){S.bankSettleUntil21435=Math.max(Number(S.bankSettleUntil21435)||0,clock()+6000);},function(){S.bankSettleUntil21435=Math.min(Number(S.bankSettleUntil21435)||0,clock()+1200);});
+      return r;
+    };
+  }
+  function v21435BankSettling(){return character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0&&clock()<Number(S.bankSettleUntil21435||0);}
+  var v21435PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){if(v21435BankSettling()){S.status=C.language==='de'?'Bankstatus synchronisieren · nächste Route wartet':'Synchronizing bank state · next route waits';S.mode='Merchant · Bank';return true;}return v21435PressureBase();};
+  var v21435MerchantBase=merchantTick;
+  merchantTick=function(){if(v21435BankSettling()){S.status=C.language==='de'?'Bankstatus synchronisieren · nächste Route wartet':'Synchronizing bank state · next route waits';S.mode='Merchant · Bank';return true;}return v21435MerchantBase();};
+
+  // CORS remains the preferred path. If Adventure Land cannot read cross-origin fetch responses,
+  // submit a write-only POST and verify the actual D1 write through a 1x1 image acknowledgement.
+  function v21435DashboardAckUrl(endpoint,payload){try{var u=new URL(endpoint);u.pathname=u.pathname.replace(/\/api\/push\/?$/,'/api/push-ack.gif');u.search='';u.searchParams.set('name',me);u.searchParams.set('after',String(Number(payload.updatedAt)||0));u.searchParams.set('_',String(clock())+Math.random().toString(36).slice(2));return u.toString();}catch(e){return '';}}
+  function v21435DashboardImageAck(endpoint,payload,timeout){
+    return new Promise(function(resolve,reject){
+      if(!D||!D.body)return reject(Error('dashboard image acknowledgement unavailable'));
+      var deadline=clock()+(timeout||7500),done=false,img=null,timer=null;
+      function cleanup(){try{if(timer)P.clearTimeout(timer);}catch(e){}try{if(img)img.remove();}catch(e){}}
+      function finish(ok,msg){if(done)return;done=true;cleanup();if(ok)resolve({verified:true,transport:'cloudflare-worker/write+image-ack',ack:{name:me,receivedAt:clock()}});else reject(Error(msg||'dashboard image acknowledgement timeout'));}
+      function attempt(){
+        if(done)return;if(clock()>=deadline)return finish(false,'dashboard image acknowledgement timeout');
+        try{if(img)img.remove();}catch(e){}img=D.createElement('img');img.style.display='none';img.width=1;img.height=1;
+        img.onload=function(){finish(true);};img.onerror=function(){timer=P.setTimeout(attempt,650);};D.body.appendChild(img);img.src=v21435DashboardAckUrl(endpoint,payload);
+      }
+      attempt();
+    });
+  }
+  function v21435BlindFormPost(endpoint,payload,key){
+    try{
+      if(!D||!D.body)return false;var u=new URL(endpoint);u.pathname=u.pathname.replace(/\/api\/push\/?$/,'/api/pushframe');u.search='';
+      var frame=D.createElement('iframe'),form=D.createElement('form'),a=D.createElement('input'),b=D.createElement('input'),name='aio21435-'+clock()+'-'+Math.random().toString(36).slice(2,8);
+      frame.name=name;frame.style.display='none';form.method='POST';form.action=u.toString();form.target=name;form.style.display='none';a.type='hidden';a.name='writeKey';a.value=String(key||'');b.type='hidden';b.name='status';b.value=JSON.stringify(payload);form.appendChild(a);form.appendChild(b);D.body.appendChild(frame);D.body.appendChild(form);form.submit();P.setTimeout(function(){try{form.remove();frame.remove();}catch(e){}},9000);return true;
+    }catch(e){return false;}
+  }
+  function v21435DashboardWriteAndVerify(endpoint,payload,key){
+    var body=JSON.stringify({writeKey:key,status:payload}),f=typeof P.fetch==='function'?P.fetch.bind(P):((typeof fetch==='function')?fetch:null),sent=false;
+    try{var nav=(P&&P.navigator)||((typeof navigator!=='undefined')?navigator:null);if(nav&&typeof nav.sendBeacon==='function'){var BlobCtor=P.Blob||((typeof Blob!=='undefined')?Blob:null);if(BlobCtor)sent=!!nav.sendBeacon(endpoint,new BlobCtor([body],{type:'text/plain;charset=UTF-8'}));}}catch(e){}
+    var write=Promise.resolve();
+    if(!sent&&f)write=Promise.resolve(f(endpoint,{method:'POST',mode:'no-cors',credentials:'omit',cache:'no-store',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body})).catch(function(){if(!v21435BlindFormPost(endpoint,payload,key))throw Error('dashboard write fallback blocked');});
+    else if(!sent)write=Promise.resolve(v21435BlindFormPost(endpoint,payload,key));
+    return write.then(function(){if(!sent&&!f)v21435BlindFormPost(endpoint,payload,key);return new Promise(function(r){P.setTimeout(r,300);});}).then(function(){return v21435DashboardImageAck(endpoint,payload,8000);});
+  }
+  dashboardPublishTick=function(force){
+    if((!C.webDashboardEnabled&&!force)||S.dashboardSending)return false;
+    var raw=String(C.webDashboardConnectionUrl||'').trim(),endpoint=v280DashboardEndpoint(raw),key=String(C.webDashboardWriteKey||'').trim(),now=clock(),ds=S.dashboardTransport21432||(S.dashboardTransport21432={failures:0,retryAt:0,lastFallbackAuditAt:0});
+    if(!endpoint||!key){if(C.webDashboardEnabled||force){S.dashboardLastError=!endpoint?'Cloudflare-Dashboard-URL fehlt/ist nicht HTTPS':'Dashboard-Schreibschlüssel fehlt';S.dashboardFailAt=now;}return false;}
+    if(!force&&now<Number(ds.retryAt||0))return false;if(!force&&now-S.lastDashboardPublish<C.webDashboardIntervalSeconds*1000)return false;
+    S.lastDashboardPublish=now;var payload=dashboardPayload(),body=JSON.stringify({writeKey:key,status:payload});S.dashboardSending=true;S.dashboardTransportErrors=[];audit('dashboard_send','Cloudflare Worker dashboard status send',{endpoint:endpoint,payload:v276DashboardCompactPayload(payload)});
+    v21434DashboardCorsPost(endpoint,body).catch(function(first){S.dashboardTransportErrors.push(reason(first));audit('dashboard_image_ack_retry','CORS-POST nicht lesbar; Write-Fallback mit D1/Image-Bestätigung wird versucht',{error:reason(first)},'warning');return v21435DashboardWriteAndVerify(endpoint,payload,key);}).then(function(result){ds.failures=0;ds.retryAt=0;S.dashboardTransport=result.transport;S.dashboardLastOK=clock();S.dashboardLastAck=clock();S.dashboardFailAt=0;S.dashboardLastError='';S.dashboardProbe={ok:true,at:clock(),error:'',host:(new URL(endpoint)).host};audit('dashboard_ack','Cloudflare Worker/D1 hat Status bestätigt',{name:me,receivedAt:result.ack&&result.ack.receivedAt,transport:result.transport});}).catch(function(e){ds.failures=Math.min(8,Number(ds.failures||0)+1);ds.retryAt=clock()+(typeof v21432DashboardBackoffMs==='function'?v21432DashboardBackoffMs(ds.failures-1):Math.min(300000,5000*Math.pow(2,ds.failures-1)));S.dashboardProbe={ok:false,at:clock(),error:reason(e)};S.dashboardFailAt=clock();S.dashboardLastError=reason(e);audit('dashboard_error','Cloudflare-Dashboard nicht bestätigt: '+S.dashboardLastError,{endpoint:endpoint,retryAt:ds.retryAt,failures:ds.failures,transportErrors:S.dashboardTransportErrors.slice(-3)},'error');}).finally(function(){S.dashboardSending=false;renderAll(true);});return true;
+  };
+
+  audit('feature_contract','2.14.35 Stadt-Kampfguard + Bank-Routenbindung + D1/Image-Dashboardbestätigung aktiv',{cityCombatForbidden:true,cityGoalForbidden:true,bankSnapshotAuthoritative:true,bankSettleMs:9000,dashboardImageAck:true,brainPolicyChanged:false,features:FEATURE_CONTRACT});
