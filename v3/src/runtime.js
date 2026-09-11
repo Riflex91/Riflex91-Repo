@@ -13,8 +13,9 @@ const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
+const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8';
+const VERSION = '3.0.0-alpha.8.1';
 
 class Runtime {
   constructor(options = {}) {
@@ -39,6 +40,12 @@ class Runtime {
     this.lastRiskSkip = null;
     this.riskSkipLoggedAt = new Map();
     this.riskSkipLogCooldownMs = Math.max(5000, Number(options.riskSkipLogCooldownMs) || 30000);
+    this.combatEmergency = options.combatEmergency || new CombatEmergencyGate({
+      criticalHpRatio: options.combatEmergencyCriticalHpRatio,
+      multiAggroHpRatio: options.combatEmergencyMultiAggroHpRatio,
+      multiAggroCount: options.combatEmergencyMultiAggroCount
+    });
+    this.lastEmergencyDisengage = null;
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -119,7 +126,8 @@ class Runtime {
       ...this.farmer.status(),
       targetExclusions: this.targetSafety.list(),
       lastSafetySkip: this.lastSafetySkip,
-      lastRiskSkip: this.lastRiskSkip
+      lastRiskSkip: this.lastRiskSkip,
+      lastEmergencyDisengage: this.lastEmergencyDisengage
     };
   }
 
@@ -224,6 +232,27 @@ class Runtime {
     this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_RISK_REJECTED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: risk.reason, data: record });
   }
 
+  _noteEmergencyDisengage(entity, emergency) {
+    if (!entity || !emergency || !emergency.triggered) return;
+    const record = {
+      at: this.now(),
+      entityId: entity.id || null,
+      entityName: entity.name || null,
+      monsterType: entity.mtype || null,
+      reason: emergency.reason,
+      signals: emergency.signals || {}
+    };
+    this.lastEmergencyDisengage = record;
+    this.log.emit({
+      component: 'farmer',
+      event: 'FARMER_EMERGENCY_DISENGAGE',
+      severity: 'warn',
+      character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null,
+      reason: emergency.reason,
+      data: record
+    });
+  }
+
   _farmSnapshot(snapshot, gameData, profile) {
     if (!snapshot) return snapshot;
     const entities = [];
@@ -237,6 +266,14 @@ class Runtime {
       if (!risk.allowed) {
         this._noteRiskSkip(entity, risk);
         continue;
+      }
+      const isCurrentEngageTarget = this.farmer.state === 'ENGAGE' && this.farmer.targetId != null && String(entity.id) === String(this.farmer.targetId);
+      if (isCurrentEngageTarget) {
+        const emergency = this.combatEmergency.evaluate(snapshot, entity);
+        if (emergency.triggered) {
+          this._noteEmergencyDisengage(entity, emergency);
+          continue;
+        }
       }
       entities.push(entity);
     }
@@ -320,6 +357,7 @@ class Runtime {
           world: this.world.summary(),
           performance: this.performance.status().current,
           combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
           persistence: this.persistence.status()
         }
       });
@@ -337,6 +375,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -353,6 +392,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
