@@ -1,92 +1,79 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.2
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.3
 
-v3 remains isolated beside the v2 production bot. `bot.js` is not replaced, and this alpha remains **shadow/research-first**.
+v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
-## What alpha.2 adds
+## What alpha.3 adds
 
-- measured rolling performance windows for EXP, net Gold, kills, deaths, potion consumption, damage taken and observed monster HP loss
-- performance aggregation per monster and capability-based party fingerprint
-- persistent World Model storage with bounded size, periodic saves, safe restore and non-blocking failure handling
-- live discovery of monsters, NPCs and objects, plus clearly marked `INFERRED` knowledge from the current map's metadata
-- richer structured diagnostics with event filtering, component/severity/reason summaries and diagnostic snapshots
-- a Research Journal that records hypotheses and observation-only experiments without executing gameplay actions
-- continued planner use of measured EXP/h / Gold/h when enough evidence exists
-- generated Adventure Land browser bundle at `dist/aio-v3.js`
+- first scheduler-owned Farmer state machine: `ASSESS → SELECT_TARGET → TRAVEL → ENGAGE → RECOVER → REASSESS/BLOCKED`
+- one long-lived Farmer task per character; gameplay commands still originate through the Scheduler and Safe Game Adapter
+- target selection through the existing Farm Planner, measured World Model performance and capability-based party fingerprint
+- safe live-target selection that avoids monsters already claimed by unrelated players
+- range-aware local travel and basic attacks using observed character `range`, `speed` and `frequency` instead of hard-coded class assumptions
+- recovery thresholds with HP/MP potion handling and a `BLOCKED` state when combat would be unsafe
+- Shadow preview plans that rank/select targets without issuing gameplay commands
+- `AIO_V3.farmer.enable()`, `disable()` and `status()` plus Farmer state in `AIO_V3.showStatus()`
+- attack-target normalization in the Game Adapter so Adventure Land's `attack(target)` receives the live entity object
+- all alpha.2 measurement, persistence, discovery, research and diagnostics foundations
 
 ## Safety boundary
 
-`3.0.0-alpha.2` is still **not** the production replacement. Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` are not in the adapter allowlist.
+`3.0.0-alpha.3` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
-Research experiments are proposal/observation records only. Any experiment that requires an action is marked `BLOCKED` with `ALPHA_OBSERVATION_ONLY`. The Research layer has no command path to the Game Adapter.
+Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer currently performs only local combat/recovery primitives already allowed by the Safe Game Adapter.
 
-Telemetry and persistence failures are logged but do not block scheduler/gameplay execution.
+The Farmer is enabled by default as a **shadow preview task**. It does not move, attack or consume potions until the user explicitly switches the adapter to active mode.
 
-## Runtime API
+## Adventure Land runtime API
 
 ```js
+AIO_V3.showStatus()
 AIO_V3.status()
+AIO_V3.farmer.status()
+AIO_V3.farmer.disable()
+AIO_V3.farmer.enable()
 AIO_V3.getEvents(100)
-AIO_V3.getEvents({ component: "performance", limit: 50 })
+AIO_V3.getEvents({ component: "farmer", limit: 50 })
 AIO_V3.exportDiagnostics()
 AIO_V3.saveWorld()
-AIO_V3.setMode("shadow")
-AIO_V3.start()
-AIO_V3.stop()
 ```
 
-Research foundation:
+Shadow mode is the safe default:
 
 ```js
-AIO_V3.research.hypothesis({
-  type: "monster",
-  entityId: "goo",
-  fact: "profitable_at_current_level",
-  value: true,
-  confidence: 0.25,
-  rationale: "Needs measured windows"
-})
-
-AIO_V3.research.proposeExperiment({
-  kind: "MEASURE",
-  target: "goo",
-  method: "Observe several farming windows without changing economy behavior"
-})
+AIO_V3.setMode("shadow")
 ```
+
+After checking `AIO_V3.showStatus()` and the Farmer preview, active mode is an explicit opt-in:
+
+```js
+AIO_V3.setMode("active")
+```
+
+Switching back to shadow immediately stops future Farmer gameplay commands:
+
+```js
+AIO_V3.setMode("shadow")
+```
+
+To stop scheduling the Farmer task entirely:
+
+```js
+AIO_V3.farmer.disable()
+```
+
+## Current Farmer scope
+
+Alpha.3 intentionally starts small. It farms **safe live monsters on the current map that are already visible**. If a selected target is outside attack range, it walks toward a range-aware position, attacks when `can_attack(target)` permits, consumes HP/MP potions under configured thresholds, and re-evaluates after the target dies/disappears.
+
+It does not yet perform spawn routing, cross-map hunting, kiting paths, class-specific skills, loot/economy loops, buying potions or merchant logistics. Those remain later milestones so the first active controller stays observable and bounded.
 
 ## Performance measurement
 
-Performance is based on observed character/snapshot deltas. A window tracks:
-
-- EXP gained, including level-up handling when `G.levels` is available
-- net character Gold delta
-- observed monster death transitions
-- character death transitions
-- potion inventory consumption
-- character HP loss
-- observed monster HP loss
-
-A window is only written into a monster performance profile when one monster is dominant enough to attribute the window safely. Mixed/unknown-target windows remain in diagnostics but do not contaminate the learned farm profile.
+Performance remains based on observed character/snapshot deltas. Windows track EXP, net Gold, observed kills/deaths, potion consumption, character HP loss and observed monster HP loss. Mixed-target windows stay diagnostic and are not written into a monster profile.
 
 ## World knowledge and persistence
 
-The World Model keeps `OBSERVED`, `INFERRED` and `HYPOTHESIS` evidence distinct. Live entities/objects are `OBSERVED`; current-map metadata is `INFERRED`.
-
-When several evidence classes exist for the same fact, `fact(...)` resolves them with `OBSERVED > INFERRED > HYPOTHESIS` precedence. `evidenceFor(...)` exposes the provenance-specific records directly so weaker evidence remains inspectable instead of overwriting stronger observations.
-
-Persistence prefers Adventure Land's `get`/`set`, then browser `localStorage`, and can be replaced with a test/custom storage adapter. Reads/writes are defensive and never allowed to stop gameplay. World entities and performance profiles are bounded to prevent unbounded 24/7 growth.
-
-## Diagnostics
-
-`AIO_V3.exportDiagnostics()` returns JSON with:
-
-- runtime/scheduler state
-- current snapshot
-- World Model summary plus recent knowledge/performance profiles
-- current and recent performance windows
-- Research summary/experiments
-- structured event summary and ring buffer
-
-Secret-like keys continue to be redacted.
+The World Model keeps `OBSERVED`, `INFERRED` and `HYPOTHESIS` evidence distinct. Persistence prefers Adventure Land `get`/`set`, then browser `localStorage`, with bounded data and non-blocking failures.
 
 ## Development
 
@@ -94,5 +81,3 @@ Secret-like keys continue to be redacted.
 cd v3
 npm run check
 ```
-
-The next milestone can build the first real Farmer state machine on top of this measurement/discovery foundation instead of mixing learning logic into controller ticks.

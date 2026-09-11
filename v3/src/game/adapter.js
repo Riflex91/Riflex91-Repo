@@ -17,6 +17,11 @@ class GameAdapter {
   _character() { return this.root.character || this.parent.character || null; }
   _entities() { return this.root.parent && this.root.parent.entities || this.parent.entities || {}; }
   _G() { return this.root.G || this.parent.G || {}; }
+  _entityById(id) {
+    if (id == null) return null;
+    const wanted = String(id);
+    return Object.values(this._entities() || {}).find((entity) => entity && String(entity.id) === wanted) || null;
+  }
 
   _objects() {
     const collections = [
@@ -88,6 +93,7 @@ class GameAdapter {
         y: finite(c.real_y != null ? c.real_y : c.y),
         hp: finite(c.hp), max_hp: finite(c.max_hp),
         mp: finite(c.mp), max_mp: finite(c.max_mp),
+        range: finite(c.range), speed: finite(c.speed), frequency: finite(c.frequency),
         xp: finite(c.xp), gold: finite(c.gold),
         moving: !!c.moving,
         target: c.target || null,
@@ -114,6 +120,23 @@ class GameAdapter {
 
   getGameData() { return this._G(); }
 
+  canAttack(targetId) {
+    const target = this._entityById(targetId);
+    if (!target) return false;
+    const fn = this.root.can_attack || this.parent.can_attack;
+    if (typeof fn !== 'function') return true;
+    try { return fn.call(this.root, target) !== false; } catch (_) { return false; }
+  }
+
+  _prepareArgs(action, args) {
+    const out = Array.isArray(args) ? args.slice() : [];
+    if (action === 'attack' && typeof out[0] === 'string') {
+      const target = this._entityById(out[0]);
+      if (target) out[0] = target;
+    }
+    return out;
+  }
+
   command(action, args = []) {
     if (!ACTIVE_ALLOWED.has(action)) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'ACTION_NOT_ALLOWED_IN_ALPHA', data: { action } });
@@ -129,7 +152,8 @@ class GameAdapter {
       return { executed: false, reason: 'COMMAND_UNAVAILABLE' };
     }
     try {
-      const value = fn.apply(this.root, args);
+      const prepared = this._prepareArgs(action, args);
+      const value = fn.apply(this.root, prepared);
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action } });
       return { executed: true, value };
     } catch (error) {
