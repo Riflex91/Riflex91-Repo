@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.30 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.31 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.30';
+  var VERSION = '2.14.31';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -4943,5 +4943,458 @@
   try{v2148ManualUpdateInstall=v21430ManualUpdateInstall;}catch(e){}
 
   audit('feature_contract','2.14.30 Farmer-Servicevorbereitung + Update-Kompatibilität + Schutzregel-Popup geprüft',{servicePrep:['compound','upgrade','sell','potions','bank'],manualUpdateBackoffBypass:true,inventoryContextAutoClose:true});
+
+  /* v2.14.31 Farmer self-service, Bestiary item policy, Merchant liveness and Brain source separation */
+  // ---------------------------------------------------------------------------
+  // 2.14.31 unified item policy + Farmer self-service + merchant liveness
+  // ---------------------------------------------------------------------------
+  try{
+    [
+      'bestiary-item-policy-authority',
+      'merchant-capacity-relief-v2',
+      'merchant-bank-explicit-target',
+      'farmer-self-service-eta',
+      'farmer-self-service-failsafe',
+      'farmer-self-service-lease',
+      'brain-source-separation',
+      'permission-menu-auto-close'
+    ].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+  }catch(e){}
+
+  var V21431_MIN_SAVING_SECONDS=25;
+  var V21431_MIN_SAVING_PCT=30;
+  var V21431_MERCHANT_STALE_MS=60000;
+  var V21431_LEASE_MS=150000;
+  var V21431_CRITICAL_FREE=1;
+  var V21431_SERVICE_HUB={map:'main',x:-56,y:402};
+
+  S.farmerSelfService21431=S.farmerSelfService21431||null;
+  S.farmerSelfServiceLeases21431=S.farmerSelfServiceLeases21431||{};
+  S.merchantHealth21431=S.merchantHealth21431||{blockedSince:0,lastProgressAt:clock(),lastSig:''};
+
+  function v21431MigrateItemPolicy(){
+    var permissions=Object.assign({},C.merchantItemPermissions||{}),legacy=Object.assign({},C.merchantItemActions||{}),rules=Object.assign({},C.merchantItemRules||{}),changed=false;
+    function take(name,action){
+      if(['sell','bank','compound','upgrade'].indexOf(action)<0)return;
+      var row=Object.assign({},permissions[name]||{});
+      if(typeof row[action]!=='boolean')row[action]=true;
+      permissions[name]=row;changed=true;
+    }
+    Object.keys(legacy).forEach(function(name){
+      var action=String(legacy[name]||'').toLowerCase();
+      if(['sell','bank','compound','upgrade'].indexOf(action)>=0){take(name,action);delete legacy[name];}
+    });
+    Object.keys(rules).forEach(function(name){
+      var row=rules[name];if(!row||typeof row!=='object')return;
+      var action=String(row.action||'auto').toLowerCase();
+      if(['sell','bank','compound','upgrade'].indexOf(action)>=0){
+        take(name,action);rules[name]=Object.assign({},row,{action:'auto'});
+      }
+    });
+    if(!changed)return false;
+    C.merchantItemPermissions=permissions;C.merchantItemActions=legacy;C.merchantItemRules=rules;C=cleanConfig(C);write('config',C);S.cloudConfigDirty=true;
+    audit('merchant_item_policy_migrated','Merchant-Itemverhalten in Bestiarium/Items-Rechte überführt',{items:Object.keys(permissions).length});
+    return true;
+  }
+  v21431MigrateItemPolicy();
+
+  function v21431PermissionRow(name){var x=C.merchantItemPermissions&&C.merchantItemPermissions[name];return x&&typeof x==='object'?x:{};}
+  function v21431ExactCopies(it){return (character.items||[]).filter(function(x){return x&&x.name===it.name&&(Number(x.level)||0)===(Number(it.level)||0)&&!x.l&&!x.p;}).length;}
+  function v21431ForcedPermission(it,p){
+    if(!it||!p||p.protected)return null;
+    var r=v21431PermissionRow(it.name),d=GD.items&&GD.items[it.name]||{},lv=Number(it.level)||0;
+    if(r.compound===true&&d.compound&&v21431ExactCopies(it)>=3&&lv<v273EffectiveCompoundMax(it.name))return 'COMPOUND';
+    if(r.upgrade===true&&d.upgrade&&lv<Number(C.merchantUpgradeMax||4))return 'UPGRADE';
+    if(r.sell===true&&!d.quest&&!d.event&&!d.cash&&!d.rare&&!d.e&&!d.exchange&&!d.exchanges&&Number(p.surplus||0)>0)return 'SELL';
+    if(r.bank===true&&Number(p.surplus||0)>0)return 'BANK';
+    return null;
+  }
+  var v21431PolicyBase=v21422Policy;
+  v21422Policy=function(it,where){
+    var p=v21431PolicyBase(it,where);if(!it||!p||p.protected)return p;
+    var r=v21431PermissionRow(it.name),key=p.action==='SELL'?'sell':p.action==='BANK'?'bank':p.action==='COMPOUND'?'compound':p.action==='UPGRADE'?'upgrade':'';
+    if(key&&r[key]===false)return Object.assign({},p,{action:'KEEP',reason:'bestiary-'+key+'-denied'});
+    var forced=v21431ForcedPermission(it,p);
+    if(forced){
+      var forcedKey=forced.toLowerCase();
+      if(r[forcedKey]===false)return Object.assign({},p,{action:'KEEP',reason:'bestiary-'+forcedKey+'-denied'});
+      return Object.assign({},p,{action:forced,reason:'bestiary-'+forcedKey+'-selected',explicit:true});
+    }
+    return p;
+  };
+
+  function v21431ServicePlan(){
+    var out={compound:[],upgrade:[],sell:[],bank:[],exchange:[],keep:[],free:freeSlots(),used:(character.items||[]).filter(Boolean).length};
+    (character.items||[]).forEach(function(it,index){
+      if(!it)return;var p=v21422Policy(it,'inventory'),key=String(p&&p.action||'KEEP').toLowerCase(),row={index:index,item:it,policy:p};
+      if(out[key])out[key].push(row);else out.keep.push(row);
+    });
+    return out;
+  }
+
+  function v21431BankPackTable(){try{return (typeof bank_packs!=='undefined'&&bank_packs)||(P&&P.bank_packs)||{};}catch(e){return {};}}
+  function v21431BankTarget(it,preferCurrent){
+    if(!character.bank)return null;var table=v21431BankPackTable(),rows=[];
+    Object.keys(character.bank).forEach(function(pack){
+      if(!/^items\d+$/.test(pack)||!Array.isArray(character.bank[pack]))return;
+      var arr=character.bank[pack],map=table[pack]&&String(table[pack][0]||'bank')||'bank';
+      for(var i=0;i<arr.length;i++)if(!arr[i]){rows.push({pack:pack,slot:i,map:map});break;}
+    });
+    rows.sort(function(a,b){
+      var ac=a.map===character.map?0:1,bc=b.map===character.map?0:1;if(preferCurrent&&ac!==bc)return ac-bc;
+      return Number(a.pack.slice(5))-Number(b.pack.slice(5))||a.slot-b.slot;
+    });
+    return rows[0]||null;
+  }
+  var v21431BankStoreBase=typeof bank_store==='function'?bank_store:null;
+  if(v21431BankStoreBase){
+    bank_store=function(num,pack,pack_num){
+      if((pack==null||pack==='')&&character.items&&character.items[num]){
+        var autoTarget=v21431BankTarget(character.items[num],true);
+        if(autoTarget&&autoTarget.map===character.map)return v21431BankStoreBase(num,autoTarget.pack,autoTarget.slot);
+      }
+      return v21431BankStoreBase(num,pack,pack_num);
+    };
+  }
+
+  function v21431BankStore(row,kind){
+    if(!row||!row.item||typeof bank_store!=='function')return false;
+    var target=v21431BankTarget(row.item,true);
+    if(!target){S.bankFull=true;return false;}
+    if(character.map!==target.map){
+      S.status='Bankfach '+target.pack+' erreichen';S.mode=character.ctype==='merchant'?'Merchant · Bank':'Farmer · Selbstservice';
+      return moveToGoal({map:target.map,x:0,y:0},'Bankfach '+target.pack,{kind:(kind||'service')+'-bank-map',forceAfter:9000});
+    }
+    if(character.moving||S.moveInFlight)return true;
+    var before=freeSlots(),name=row.item.name,lv=Number(row.item.level)||0;
+    return action('Item gezielt in Bank lagern '+name,function(){
+      return Promise.resolve(bank_store(row.index,target.pack,target.slot)).then(function(res){
+        P.setTimeout(function(){
+          if(freeSlots()>before){
+            audit(character.ctype==='merchant'?'merchant_bank_store_confirmed_21431':'farmer_self_service_stage','Gezielte Banklagerung bestätigt',{item:name,level:lv,pack:target.pack,slot:target.slot,beforeFree:before,afterFree:freeSlots(),stage:'bank'});
+          }
+        },350);
+        return res;
+      });
+    },(kind||'service')+'-bank-store:'+target.pack+':'+target.slot,1600);
+  }
+
+  var v21431BankCandidateBase=v2148BankCleanupCandidate;
+  v2148BankCleanupCandidate=function(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return null;
+    var plan=v21431ServicePlan(),rows=plan.bank;
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i],it=r.item;if(!it||it.l||it.p||v21423StoreBlocked(it.name,it.level))continue;
+      return {index:r.index,item:it,explicit:String(r.policy&&r.policy.reason||'').indexOf('bestiary-bank-selected')===0,policy:r.policy,target:v21431BankTarget(it,true)};
+    }
+    return null;
+  };
+
+  var v21431BankCleanupBase=v2148BankCleanupTick;
+  v2148BankCleanupTick=function(){
+    if(character.ctype!=='merchant')return false;
+    var st=S.merchantBankCleanup2148,cand=v2148BankCleanupCandidate();
+    if(st&&st.awaiting)return v21431BankCleanupBase();
+    if(cand&&cand.target&&character.bank&&character.map!==cand.target.map){
+      S.status='Bankbereinigung · Bankfach '+cand.target.pack;S.mode='Merchant · Bank';
+      return moveToGoal({map:cand.target.map,x:0,y:0},'Bankfach '+cand.target.pack,{kind:'merchant-bank-cleanup-pack',forceAfter:9000});
+    }
+    return v21431BankCleanupBase();
+  };
+
+  function v21431VendorReady(dest){return dest&&character.map===dest.map&&dist(character,dest)<=85&&!character.moving&&!S.moveInFlight;}
+  function v21431UnifiedSellTick(kind){
+    var plan=v21431ServicePlan(),row=plan.sell[0];if(!row||typeof sell!=='function')return false;
+    var dest=v2144SellVendor&&v2144SellVendor();if(dest&&!v21431VendorReady(dest)){
+      S.status='Verkaufsitem zum NPC bringen: '+v273Name(row.item.name);S.mode=character.ctype==='merchant'?'Merchant · NPC':'Farmer · Selbstservice';
+      return moveToGoal(dest,'NPC-Verkauf '+row.item.name,{kind:(kind||'service')+'-sell-vendor',forceAfter:9000});
+    }
+    if(character.moving||S.moveInFlight)return true;
+    var q=Math.max(1,Math.min(Number(row.item.q)||1,Number(row.policy&&row.policy.surplus)||Number(row.item.q)||1));
+    return action('Klassifiziertes Item verkaufen '+row.item.name,function(){return sell(row.index,q);},(kind||'service')+'-sell:'+row.item.name,1800);
+  }
+  var v21431SellTrashBase=v273SellTrashTick;
+  v273SellTrashTick=function(){if(character.ctype!=='merchant')return false;return v21431UnifiedSellTick('merchant')||v21431SellTrashBase();};
+
+  function v21431EmergencySellCandidate(){
+    if(character.ctype!=='merchant')return null;var best=null;
+    (character.items||[]).forEach(function(it,index){
+      if(!it)return;var why=v21422Protected(it),d=GD.items&&GD.items[it.name]||{},lv=Number(it.level)||0;
+      if(why||d.quest||d.event||d.cash||d.rare||d.e||d.exchange||d.exchanges||v2144PlanNeeds(it))return;
+      var owned=v273OwnedCount(it.name),need=Math.max(v273DesiredGroupCopies(it.name),d.compound?3:1);
+      if(owned<=need)return;
+      if(d.upgrade&&lv<Number(C.merchantUpgradeMax||4))return;
+      if(d.compound&&lv<v273EffectiveCompoundMax(it.name)&&v21431ExactCopies(it)>=3)return;
+      var value=itemValueSafe(it);if(!best||value<best.value)best={index:index,item:it,value:value,owned:owned,need:need};
+    });
+    return best;
+  }
+  function v21431EmergencySellTick(){
+    var row=v21431EmergencySellCandidate();if(!row||typeof sell!=='function')return false;
+    var dest=v2144SellVendor&&v2144SellVendor();if(dest&&!v21431VendorReady(dest))return moveToGoal(dest,'Kapazitäts-Notverkauf '+row.item.name,{kind:'merchant-capacity-emergency-vendor',forceAfter:9000});
+    audit('merchant_capacity_emergency_sell','Bankpfad blockiert; sicherer Überschuss wird als Liveness-Fallback verkauft',{item:row.item.name,level:Number(row.item.level)||0,owned:row.owned,reserve:row.need,value:row.value},'warning');
+    return action('Kapazitäts-Notverkauf '+row.item.name,function(){return sell(row.index,1);},'merchant-capacity-emergency-sell',2000);
+  }
+
+  var v21431PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){
+    if(character.ctype!=='merchant'||freeSlots()>Math.max(1,C.merchantInventoryReserve))return v21431PressureBase();
+    var plan=v21431ServicePlan();
+    if(plan.sell.length&&v21431UnifiedSellTick('merchant-capacity'))return true;
+    if(plan.bank.length&&v273StoreTrashBankTick())return true;
+    var quarantined=Object.keys(S.bankStoreNoProgress21423||{}).some(function(k){return v21423StoreBlocked((S.bankStoreNoProgress21423[k]||{}).item,(S.bankStoreNoProgress21423[k]||{}).level);});
+    if(quarantined&&v21431EmergencySellTick())return true;
+    return v21431PressureBase();
+  };
+
+  // Merchant settings no longer expose the legacy "Item-Verhalten" editor.
+  merchantHTML=function(){
+    var html=v2147MerchantHTMLBase(),title=C.language==='de'?'Merchant-Einstellungen':'Merchant settings';
+    return html.replace(/^<h2>[\s\S]*?<\/h2>/,'<h2>'+esc(title)+'</h2>');
+  };
+
+  function v21431ClosePermissionContext(){
+    try{if(S.inventoryContext&&S.inventoryContext.remove)S.inventoryContext.remove();}catch(e){}
+    S.inventoryContext=null;
+    try{if(uiRoot)uiRoot.querySelectorAll('.invmenu.perm21424').forEach(function(x){x.remove();});}catch(e){}
+  }
+  var v21431PermissionMenuBase=v21424ShowPermissionMenu;
+  v21424ShowPermissionMenu=function(name,x,y){
+    v21431ClosePermissionContext();v21431PermissionMenuBase(name,x,y);
+    var el=S.inventoryContext;if(!el)return;
+    var close=D.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',C.language==='de'?'Schließen':'Close');
+    close.style.cssText='position:absolute;right:6px;top:4px;border:0;background:transparent;color:inherit;font-size:20px;cursor:pointer;padding:2px 6px;';
+    close.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();v21431ClosePermissionContext();});
+    el.style.position='fixed';el.appendChild(close);
+    el.addEventListener('mouseleave',function(){v21431ClosePermissionContext();},{once:true});
+  };
+
+  function v21431TownAvailable(){
+    if(!C.fastTravelEnabled||typeof town!=='function'||String(character.map||'')!=='main')return false;
+    try{if(typeof is_on_cooldown==='function'&&is_on_cooldown('use_town'))return false;}catch(e){}
+    try{if(typeof can_use==='function'&&!can_use('use_town'))return false;}catch(e){}
+    return true;
+  }
+  function v21431TravelEstimate(from,target,speed,allowTown){
+    speed=Math.max(20,Number(speed)||40);from=from||{};target=target||{};
+    if(String(from.map||'')!==String(target.map||''))return {seconds:35,route:'smart_move',credible:false};
+    var direct=Math.hypot((Number(from.x)||0)-(Number(target.x)||0),(Number(from.y)||0)-(Number(target.y)||0)),walk=direct/speed,best=walk,route='smart_move';
+    if(allowTown&&String(from.map)==='main'&&String(target.map)==='main'){
+      var spawn=v21429TownSpawn(),after=Math.hypot((Number(spawn.x)||0)-(Number(target.x)||0),(Number(spawn.y)||0)-(Number(target.y)||0))/speed+4;
+      if(direct>=500&&after+2<best){best=after;route='town';}
+    }
+    return {seconds:Number(best.toFixed(1)),route:route,credible:true,walkSeconds:Number(walk.toFixed(1))};
+  }
+  function v21431MerchantReport(){
+    var mn=merchantName&&merchantName();if(!mn||mn===me)return null;
+    var live=S.reports&&S.reports[mn],saved=read('report:'+mn,null),r=null;
+    if(live&&saved)r=Number(live.at||0)>=Number(saved.at||0)?live:saved;else r=live||saved;
+    return r&&r.ctype==='merchant'?r:null;
+  }
+  function v21431MerchantEta(){
+    var r=v21431MerchantReport(),now=clock();if(!r)return {seconds:Infinity,credible:false,blocked:true,reason:'merchant-report-missing'};
+    var age=now-Number(r.at||0),blocked=!r.active||r.rip||age>V21431_MERCHANT_STALE_MS,reason=blocked?(r.active===false?'merchant-inactive':age>V21431_MERCHANT_STALE_MS?'merchant-report-stale':'merchant-unavailable'):'';
+    var penalty=12,status=(String(r.status||'')+' '+String(r.mode||'')).toLowerCase();
+    if(/bank|bankentnahme/.test(status))penalty+=45;
+    if(/kapaz|inventar|freie plätze|scroll-kauf/.test(status))penalty+=60;
+    if(/craft|upgrade|compound|exchange|versorgung/.test(status))penalty+=25;
+    var q=0;try{q=v277MerchantServiceCandidates().filter(function(x){return x&&x.r&&x.r.name!==me&&x.urgent;}).length;}catch(e){}
+    penalty+=Math.min(75,q*20);
+    var travel=v21431TravelEstimate(r,{map:character.map,x:character.x,y:character.y},Number(r.speed)||55,false),seconds=blocked?Infinity:penalty+travel.seconds;
+    return {seconds:seconds,credible:!blocked&&travel.credible,blocked:blocked,reason:reason||'merchant-route-and-queue',reportAgeMs:age,travelSeconds:travel.seconds,queue:q,status:r.status||'',mode:r.mode||''};
+  }
+  function v21431FarmerServiceEta(plan){
+    var origin={map:character.map,x:character.x,y:character.y},to=v21431TravelEstimate(origin,V21431_SERVICE_HUB,character.speed,v21431TownAvailable()),back=v21431TravelEstimate(V21431_SERVICE_HUB,origin,character.speed,false);
+    var actionSeconds=4+plan.compound.length*5+plan.upgrade.length*4+plan.sell.length*2+plan.bank.length*4;
+    if(qty(C.hpot)<Number(C.stockHP||0)||qty(C.mpot)<Number(C.stockMP||0))actionSeconds+=4;
+    return {seconds:Number((to.seconds+back.seconds+actionSeconds).toFixed(1)),credible:to.credible&&back.credible,route:to.route,toSeconds:to.seconds,backSeconds:back.seconds,actionSeconds:actionSeconds};
+  }
+  function v21431SelfServiceDecision(m,f,coord){
+    var critical=!!(coord&&coord.critical),leaseBlocked=!!(coord&&coord.leaseBlocked);
+    if(critical&&(m.blocked||!m.credible||!isFinite(m.seconds)))return {selected:true,failsafe:true,reason:'critical-inventory-and-merchant-unavailable',savingSeconds:null,savingPct:null};
+    if(leaseBlocked&&!critical)return {selected:false,failsafe:false,reason:'peer-self-service-lease',savingSeconds:null,savingPct:null};
+    if(!m.credible||!f.credible||!isFinite(m.seconds)||!isFinite(f.seconds))return {selected:false,failsafe:false,reason:'eta-not-credible',savingSeconds:null,savingPct:null};
+    var saving=m.seconds-f.seconds,pct=m.seconds>0?saving/m.seconds*100:0,selected=saving>=V21431_MIN_SAVING_SECONDS&&pct>=V21431_MIN_SAVING_PCT;
+    return {selected:selected,failsafe:false,reason:selected?'farmer-roundtrip-faster':'merchant-faster-or-hysteresis',savingSeconds:Number(saving.toFixed(1)),savingPct:Number(pct.toFixed(1))};
+  }
+
+  function v21431PeerLease(){
+    var now=clock(),best=null;
+    Object.keys(S.farmerSelfServiceLeases21431||{}).forEach(function(name){var x=S.farmerSelfServiceLeases21431[name];if(!x||Number(x.expiresAt||0)<=now){delete S.farmerSelfServiceLeases21431[name];return;}if(name!==me&&(!best||Number(x.expiresAt)>Number(best.expiresAt)))best=x;});
+    try{farmerReports().forEach(function(r){var x=r&&r.selfService21431;if(!r||r.name===me||!x||!x.active||Number(x.expiresAt||0)<=now)return;if(!best||Number(x.expiresAt)>Number(best.expiresAt))best=Object.assign({holder:r.name},x);});}catch(e){}
+    return best;
+  }
+  function v21431BroadcastLease(active,critical){
+    var msg={type:'aio21431-self-service-lease',holder:me,active:!!active,critical:!!critical,expiresAt:active?clock()+V21431_LEASE_MS:clock(),at:clock()};
+    S.farmerSelfServiceLeases21431[me]=msg;
+    ACCOUNT_CHARS.forEach(function(c){if(c.name!==me)try{send_cm(c.name,msg);}catch(e){}});
+  }
+  var v21431CMBase=on_cm;
+  on_cm=function(name,data){
+    try{if(data&&data.type==='aio21431-self-service-lease'&&accountCharacterName(name)){S.farmerSelfServiceLeases21431[name]=Object.assign({},data,{holder:name});}}catch(e){}
+    return v21431CMBase(name,data);
+  };
+
+  function v21431SelfServiceNeeded(plan){
+    return !!(plan.sell.length||plan.bank.length||plan.upgrade.length||plan.compound.length);
+  }
+  function v21431StopSelfService(reasonText){
+    var st=S.farmerSelfService21431;if(!st)return false;v21431BroadcastLease(false,st.critical);
+    audit('farmer_self_service_done','Farmer-Selbstservice abgeschlossen',{reason:reasonText||'done',beforeFree:st.beforeFree,afterFree:freeSlots(),stages:st.stages||[],origin:st.origin});
+    S.farmerSelfService21431=null;return false;
+  }
+  function v21431FarmerMove(target,why,kind){
+    var estimate=v21431TravelEstimate({map:character.map,x:character.x,y:character.y},target,character.speed,v21431TownAvailable());
+    if(estimate.route==='town'&&v21431TownAvailable()&&!character.moving&&!S.moveInFlight){
+      S.times.fastTown=clock()+20000;audit('farmer_self_service_stage','Farmer nutzt Town, weil es schneller ist',{stage:'travel',route:'town',target:target,eta:estimate});
+      return action('Farmer-Selbstservice town()',function(){return town();},'farmer-self-service-town',18000);
+    }
+    return moveToGoal(target,why,{kind:kind||'farmer-self-service',forceAfter:9000});
+  }
+  function v21431AtServiceHub(){return character.map===V21431_SERVICE_HUB.map&&dist(character,V21431_SERVICE_HUB)<=100&&!character.moving&&!S.moveInFlight;}
+  function v21431FarmerCapacityPrep(plan,stage){
+    if(freeSlots()>=2)return false;
+    if(plan.sell.length){
+      audit('farmer_self_service_stage','Vor Scroll-Kauf wird sicherer Verkaufsplatz geschaffen',{stage:'capacity-prep',forStage:stage,method:'sell',free:freeSlots()});
+      return v21431UnifiedSellTick('farmer-self-service-capacity');
+    }
+    if(plan.bank.length){
+      audit('farmer_self_service_stage','Vor Scroll-Kauf wird sicherer Bankplatz geschaffen',{stage:'capacity-prep',forStage:stage,method:'bank',free:freeSlots()});
+      if(!character.bank)return v21431FarmerMove({map:'bank',x:0,y:0},'Kapazität vor Scroll-Kauf schaffen','farmer-self-service-capacity-bank');
+      return v21431BankStore(plan.bank[0],'farmer-self-service-capacity');
+    }
+    return false;
+  }
+  function v21431FarmerCompoundTick(plan){
+    var row=plan.compound[0];if(!row||typeof compound!=='function')return false;
+    var scrollName=v273ScrollName('cscroll',row.item);
+    if(slot(scrollName)<0&&freeSlots()<2){
+      if(v21431FarmerCapacityPrep(plan,'compound'))return true;
+      audit('farmer_self_service_deferred','Compound benötigt Scroll, aber kein sicher freigebbarer Inventarplatz vorhanden',{stage:'compound',item:row.item.name,free:freeSlots()},'warning');
+      return v21431StopSelfService('no-safe-capacity-for-compound-scroll');
+    }
+    if(!v21431AtServiceHub())return v21431FarmerMove(V21431_SERVICE_HUB,'Farmer zum Upgrade-/Compound-NPC','farmer-self-service-compound-vendor');
+    var same=[];
+    (character.items||[]).forEach(function(it,i){if(it&&it.name===row.item.name&&(Number(it.level)||0)===(Number(row.item.level)||0)&&!it.l&&!it.p)same.push(i);});
+    if(same.length<3)return false;var sc=v273EnsureScroll('cscroll',row.item);if(sc<0)return true;
+    return action('Farmer kombiniert '+row.item.name,function(){return compound(same[0],same[1],same[2],sc);},'farmer-self-service-compound',3000);
+  }
+  function v21431FarmerUpgradeTick(plan){
+    var row=plan.upgrade[0];if(!row||typeof upgrade!=='function')return false;
+    var scrollName=v273ScrollName('scroll',row.item);
+    if(slot(scrollName)<0&&freeSlots()<2){
+      if(v21431FarmerCapacityPrep(plan,'upgrade'))return true;
+      audit('farmer_self_service_deferred','Upgrade benötigt Scroll, aber kein sicher freigebbarer Inventarplatz vorhanden',{stage:'upgrade',item:row.item.name,free:freeSlots()},'warning');
+      return v21431StopSelfService('no-safe-capacity-for-upgrade-scroll');
+    }
+    if(!v21431AtServiceHub())return v21431FarmerMove(V21431_SERVICE_HUB,'Farmer zum Upgrade-/Compound-NPC','farmer-self-service-upgrade-vendor');
+    var sc=v273EnsureScroll('scroll',row.item);if(sc<0)return true;
+    return action('Farmer verbessert '+row.item.name,function(){return upgrade(row.index,sc);},'farmer-self-service-upgrade',2800);
+  }
+  function v21431FarmerPotionTick(){
+    if(typeof buy!=='function')return false;var needH=Math.max(0,Number(C.stockHP||0)-qty(C.hpot)),needM=Math.max(0,Number(C.stockMP||0)-qty(C.mpot));
+    if(!needH&&!needM)return false;
+    if(character.map!=='main'||dist(character,V21431_SERVICE_HUB)>100)return v21431FarmerMove(V21431_SERVICE_HUB,'Farmer-Tränke auffüllen','farmer-self-service-potions');
+    if(needH)return action('Farmer HP-Tränke auffüllen',function(){return buy(C.hpot,needH);},'farmer-self-service-buy-hp',1800);
+    return action('Farmer MP-Tränke auffüllen',function(){return buy(C.mpot,needM);},'farmer-self-service-buy-mp',1800);
+  }
+  function v21431FarmerServiceTick(){
+    var st=S.farmerSelfService21431;if(!st)return false;var plan=v21431ServicePlan();st.expiresAt=clock()+V21431_LEASE_MS;
+    if(clock()>Number(st.lastLeaseAt||0)+30000){st.lastLeaseAt=clock();v21431BroadcastLease(true,st.critical);}
+    if(st.stage==='service'){
+      if(plan.compound.length){if(st.stages.indexOf('compound')<0)st.stages.push('compound');audit('farmer_self_service_stage','Farmer-Selbstservice: kombinieren',{stage:'compound',count:plan.compound.length});return v21431FarmerCompoundTick(plan);}
+      if(plan.upgrade.length){if(st.stages.indexOf('upgrade')<0)st.stages.push('upgrade');audit('farmer_self_service_stage','Farmer-Selbstservice: verbessern',{stage:'upgrade',count:plan.upgrade.length});return v21431FarmerUpgradeTick(plan);}
+      if(plan.sell.length){if(st.stages.indexOf('sell')<0)st.stages.push('sell');audit('farmer_self_service_stage','Farmer-Selbstservice: verkaufen',{stage:'sell',count:plan.sell.length});return v21431UnifiedSellTick('farmer-self-service');}
+      if(plan.bank.length){
+        if(st.stages.indexOf('bank')<0)st.stages.push('bank');audit('farmer_self_service_stage','Farmer-Selbstservice: einlagern',{stage:'bank',count:plan.bank.length});
+        if(!character.bank){
+          var target=v21431BankTarget(plan.bank[0].item,true),map=target&&target.map||'bank';
+          return v21431FarmerMove({map:map,x:0,y:0},'Farmer zur Bank','farmer-self-service-bank');
+        }
+        return v21431BankStore(plan.bank[0],'farmer-self-service');
+      }
+      if(v21431FarmerPotionTick())return true;
+      st.stage='return';audit('farmer_self_service_return','Farmer-Selbstservice fertig; Rückkehr zum Farmspot',{origin:st.origin,afterFree:freeSlots(),stages:st.stages});
+    }
+    if(st.stage==='return'){
+      if(character.map===st.origin.map&&Math.hypot((Number(character.x)||0)-st.origin.x,(Number(character.y)||0)-st.origin.y)<=90){
+        if(st.origin.goal)S.goal=st.origin.goal;if(st.origin.targetMtype)S.targetMtype=st.origin.targetMtype;S.lastGoalCheck=0;return v21431StopSelfService('returned-to-farmspot');
+      }
+      S.status='Farmer-Selbstservice · zurück zum Farmspot';S.mode='Farmer · Selbstservice';
+      return v21431FarmerMove(st.origin,'Zurück zum Farmspot','farmer-self-service-return');
+    }
+    return true;
+  }
+  function v21431FarmerEvaluate(){
+    if(character.ctype==='merchant'||character.rip||S.farmerSelfService21431)return false;
+    var plan=v21431ServicePlan();if(!v21431SelfServiceNeeded(plan))return false;
+    var m=v21431MerchantEta(),f=v21431FarmerServiceEta(plan),critical=freeSlots()<=V21431_CRITICAL_FREE,lease=v21431PeerLease(),d=v21431SelfServiceDecision(m,f,{critical:critical,leaseBlocked:!!lease});
+    if(clock()>Number(S.times.farmerSelfServiceEval21431||0)){
+      S.times.farmerSelfServiceEval21431=clock()+15000;
+      audit('merchant_service_eta','Merchant-Service-ETA bewertet',{merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,credible:m.credible,blocked:m.blocked,reason:m.reason,reportAgeMs:m.reportAgeMs});
+      audit('farmer_service_eta','Farmer-Rundreise-ETA bewertet',{farmerRoundTripEtaSeconds:f.seconds,credible:f.credible,route:f.route,actionSeconds:f.actionSeconds});
+      audit('farmer_self_service_evaluated','Farmer-Selbstservice bewertet',{selected:d.selected,failsafe:d.failsafe,reason:d.reason,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,farmerRoundTripEtaSeconds:f.seconds,savingSeconds:d.savingSeconds,savingPct:d.savingPct,minSavingSeconds:V21431_MIN_SAVING_SECONDS,minSavingPct:V21431_MIN_SAVING_PCT,free:freeSlots(),lease:lease&&lease.holder||null});
+    }
+    if(!d.selected){if(lease&&clock()>Number(S.times.farmerSelfServiceDeferred21431||0)){S.times.farmerSelfServiceDeferred21431=clock()+30000;audit('farmer_self_service_deferred','Farmer-Selbstservice wegen Gruppenkoordination/ETA verschoben',{reason:d.reason,lease:lease.holder||null});}return false;}
+    var origin={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0,targetMtype:S.targetMtype||null,goal:S.goal?Object.assign({},S.goal):null,at:clock()};
+    S.farmerSelfService21431={active:true,stage:'service',critical:critical,failsafe:d.failsafe,origin:origin,beforeFree:freeSlots(),stages:[],startedAt:clock(),lastLeaseAt:0,expiresAt:clock()+V21431_LEASE_MS};
+    v21431BroadcastLease(true,critical);
+    audit(d.failsafe?'farmer_self_service_failsafe':'farmer_self_service_selected',d.failsafe?'Farmer-Selbstservice als Sicherheitsfallback gewählt':'Farmer-Selbstservice ist voraussichtlich schneller',{reason:d.reason,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,farmerRoundTripEtaSeconds:f.seconds,savingSeconds:d.savingSeconds,savingPct:d.savingPct,route:f.route,origin:origin,critical:critical});
+    audit('farmer_self_service_start','Farmer startet Selbstservice',{origin:origin,beforeFree:freeSlots(),route:f.route});
+    return true;
+  }
+
+  var v21431FarmerTickBase=farmerTick;
+  farmerTick=function(){
+    if(character.ctype!=='merchant'){
+      if(S.farmerSelfService21431)return v21431FarmerServiceTick();
+      if(clock()>Number(S.times.farmerSelfServiceCheck21431||0)){S.times.farmerSelfServiceCheck21431=clock()+5000;if(v21431FarmerEvaluate())return v21431FarmerServiceTick();}
+    }
+    return v21431FarmerTickBase();
+  };
+
+  var v21431ReportBase=report;
+  report=function(withRole){
+    var r=v21431ReportBase(withRole),st=S.farmerSelfService21431;
+    r.speed=Number(character.speed)||0;
+    r.selfService21431=st?{active:true,critical:!!st.critical,stage:st.stage,expiresAt:Number(st.expiresAt)||0,origin:st.origin}:null;
+    if(character.ctype==='merchant')r.merchantHealth21431={capacityBlocked:!!S.capacityBlocked21418,bankCleanup:!!S.merchantBankCleanup2148,bankRetrieve:!!S.merchantBankRetrieve2149,free:freeSlots(),mode:S.mode,status:S.status};
+    return r;
+  };
+
+  var v21431DashboardPayloadBase=dashboardPayload;
+  dashboardPayload=function(){
+    var x=v21431DashboardPayloadBase(),st=S.farmerSelfService21431;
+    x.selfService21431=st?{active:true,critical:!!st.critical,stage:st.stage,origin:st.origin,beforeFree:st.beforeFree,free:freeSlots(),expiresAt:st.expiresAt}:null;
+    return x;
+  };
+
+  var v21431BrainApplyBase=v290ApplyBrainDecision;
+  v290ApplyBrainDecision=function(d){
+    var applied=v21431BrainApplyBase(d);if(applied){S.brain.lastAppliedDecision21431={decision:d,at:clock()};}return applied;
+  };
+  var v21431ExplainBase=v21411Explain;
+  v21411Explain=function(){
+    var x=v21431ExplainBase(),a=S.brain&&S.brain.lastAppliedDecision21431,recent=a&&clock()-Number(a.at||0)<300000;
+    if(recent){
+      x.sourceKind='brain';x.sourceLabel='Aktive Brain-/Student-Entscheidung';x.brainDecision=a.decision;
+      x.current=safeString(a.decision.action+(a.decision.target?' · '+a.decision.target:''),180);
+      x.why=safeString(a.decision.reason||'Brain-Entscheidung mit ausreichender Sicherheit angewendet.',260);
+    }else{
+      x.sourceKind=character.ctype==='merchant'?'merchant-deterministic':'farmer-deterministic';
+      x.sourceLabel=character.ctype==='merchant'?'Deterministische Merchant-Automatik':'Deterministische Farmer-Automatik';
+      x.runtimeCurrent=safeString(S.status||S.mode||'Beobachten',180);
+      x.runtimeWhy=safeString(S.taskReason||'Lokale Sicherheits- und Prioritätslogik.',260);
+      x.current='Keine aktive neuronale Entscheidung';
+      x.why='Der aktuelle Laufzeitzustand wird von deterministischer Bot-Logik gesteuert; Merchant-Plan und Inventarstatus sind keine Brain-Entscheidung.';
+      x.next=x.planner&&x.planner.chosen?'Planner-Vorschlag: '+x.planner.chosen.label+' · '+x.planner.chosen.reason:x.next;
+    }
+    return x;
+  };
+
+  audit('feature_contract','2.14.31 Farmer-Selbstservice + Bestiarium-Itempolicy + Merchant-Liveness + Brain-Quellentrennung geprüft',{
+    minSavingSeconds:V21431_MIN_SAVING_SECONDS,minSavingPct:V21431_MIN_SAVING_PCT,leaseMs:V21431_LEASE_MS,
+    bankStoreTargeted:true,itemPolicySource:'bestiary-items',brainSourceSeparated:true
+  });
 
 })();
