@@ -1,0 +1,100 @@
+      return moveToGoal({map:target.map,x:0,y:0},'Bankfach '+target.pack,{kind:(kind||'service')+'-bank-map',forceAfter:9000});
+    }
+    if(character.moving||S.moveInFlight)return true;
+    var before=freeSlots(),name=row.item.name,lv=Number(row.item.level)||0;
+    return action('Item gezielt in Bank lagern '+name,function(){
+      return Promise.resolve(bank_store(row.index,target.pack,target.slot)).then(function(res){
+        P.setTimeout(function(){
+          if(freeSlots()>before){
+            audit(character.ctype==='merchant'?'merchant_bank_store_confirmed_21431':'farmer_self_service_stage','Gezielte Banklagerung bestätigt',{item:name,level:lv,pack:target.pack,slot:target.slot,beforeFree:before,afterFree:freeSlots(),stage:'bank'});
+          }
+        },350);
+        return res;
+      });
+    },(kind||'service')+'-bank-store:'+target.pack+':'+target.slot,1600);
+  }
+
+  var v21431BankCandidateBase=v2148BankCleanupCandidate;
+  v2148BankCleanupCandidate=function(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return null;
+    var plan=v21431ServicePlan(),rows=plan.bank;
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i],it=r.item;if(!it||it.l||it.p||v21423StoreBlocked(it.name,it.level))continue;
+      return {index:r.index,item:it,explicit:String(r.policy&&r.policy.reason||'').indexOf('bestiary-bank-selected')===0,policy:r.policy,target:v21431BankTarget(it,true)};
+    }
+    return null;
+  };
+
+  var v21431BankCleanupBase=v2148BankCleanupTick;
+  v2148BankCleanupTick=function(){
+    if(character.ctype!=='merchant')return false;
+    var st=S.merchantBankCleanup2148,cand=v2148BankCleanupCandidate();
+    if(st&&st.awaiting)return v21431BankCleanupBase();
+    if(cand&&cand.target&&character.bank&&character.map!==cand.target.map){
+      S.status='Bankbereinigung · Bankfach '+cand.target.pack;S.mode='Merchant · Bank';
+      return moveToGoal({map:cand.target.map,x:0,y:0},'Bankfach '+cand.target.pack,{kind:'merchant-bank-cleanup-pack',forceAfter:9000});
+    }
+    return v21431BankCleanupBase();
+  };
+
+  function v21431VendorReady(dest){return dest&&character.map===dest.map&&dist(character,dest)<=85&&!character.moving&&!S.moveInFlight;}
+  function v21431UnifiedSellTick(kind){
+    var plan=v21431ServicePlan(),row=plan.sell[0];if(!row||typeof sell!=='function')return false;
+    var dest=v2144SellVendor&&v2144SellVendor();if(dest&&!v21431VendorReady(dest)){
+      S.status='Verkaufsitem zum NPC bringen: '+v273Name(row.item.name);S.mode=character.ctype==='merchant'?'Merchant · NPC':'Farmer · Selbstservice';
+      return moveToGoal(dest,'NPC-Verkauf '+row.item.name,{kind:(kind||'service')+'-sell-vendor',forceAfter:9000});
+    }
+    if(character.moving||S.moveInFlight)return true;
+    var q=Math.max(1,Math.min(Number(row.item.q)||1,Number(row.policy&&row.policy.surplus)||Number(row.item.q)||1));
+    return action('Klassifiziertes Item verkaufen '+row.item.name,function(){return sell(row.index,q);},(kind||'service')+'-sell:'+row.item.name,1800);
+  }
+  var v21431SellTrashBase=v273SellTrashTick;
+  v273SellTrashTick=function(){if(character.ctype!=='merchant')return false;return v21431UnifiedSellTick('merchant')||v21431SellTrashBase();};
+
+  function v21431EmergencySellCandidate(){
+    if(character.ctype!=='merchant')return null;var best=null;
+    (character.items||[]).forEach(function(it,index){
+      if(!it)return;var why=v21422Protected(it),d=GD.items&&GD.items[it.name]||{},lv=Number(it.level)||0;
+      if(why||d.quest||d.event||d.cash||d.rare||d.e||d.exchange||d.exchanges||v2144PlanNeeds(it))return;
+      var owned=v273OwnedCount(it.name),need=Math.max(v273DesiredGroupCopies(it.name),d.compound?3:1);
+      if(owned<=need)return;
+      if(d.upgrade&&lv<Number(C.merchantUpgradeMax||4))return;
+      if(d.compound&&lv<v273EffectiveCompoundMax(it.name)&&v21431ExactCopies(it)>=3)return;
+      var value=itemValueSafe(it);if(!best||value<best.value)best={index:index,item:it,value:value,owned:owned,need:need};
+    });
+    return best;
+  }
+  function v21431EmergencySellTick(){
+    var row=v21431EmergencySellCandidate();if(!row||typeof sell!=='function')return false;
+    var dest=v2144SellVendor&&v2144SellVendor();if(dest&&!v21431VendorReady(dest))return moveToGoal(dest,'Kapazitäts-Notverkauf '+row.item.name,{kind:'merchant-capacity-emergency-vendor',forceAfter:9000});
+    audit('merchant_capacity_emergency_sell','Bankpfad blockiert; sicherer Überschuss wird als Liveness-Fallback verkauft',{item:row.item.name,level:Number(row.item.level)||0,owned:row.owned,reserve:row.need,value:row.value},'warning');
+    return action('Kapazitäts-Notverkauf '+row.item.name,function(){return sell(row.index,1);},'merchant-capacity-emergency-sell',2000);
+  }
+
+  var v21431PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){
+    if(character.ctype!=='merchant'||freeSlots()>Math.max(1,C.merchantInventoryReserve))return v21431PressureBase();
+    var plan=v21431ServicePlan();
+    if(plan.sell.length&&v21431UnifiedSellTick('merchant-capacity'))return true;
+    if(plan.bank.length&&v273StoreTrashBankTick())return true;
+    var quarantined=Object.keys(S.bankStoreNoProgress21423||{}).some(function(k){return v21423StoreBlocked((S.bankStoreNoProgress21423[k]||{}).item,(S.bankStoreNoProgress21423[k]||{}).level);});
+    if(quarantined&&v21431EmergencySellTick())return true;
+    return v21431PressureBase();
+  };
+
+  // Merchant settings no longer expose the legacy "Item-Verhalten" editor.
+  merchantHTML=function(){
+    var html=v2147MerchantHTMLBase(),title=C.language==='de'?'Merchant-Einstellungen':'Merchant settings';
+    return html.replace(/^<h2>[\s\S]*?<\/h2>/,'<h2>'+esc(title)+'</h2>');
+  };
+
+  function v21431ClosePermissionContext(){
+    try{if(S.inventoryContext&&S.inventoryContext.remove)S.inventoryContext.remove();}catch(e){}
+    S.inventoryContext=null;
+    try{if(uiRoot)uiRoot.querySelectorAll('.invmenu.perm21424').forEach(function(x){x.remove();});}catch(e){}
+  }
+  var v21431PermissionMenuBase=v21424ShowPermissionMenu;
+  v21424ShowPermissionMenu=function(name,x,y){
+    v21431ClosePermissionContext();v21431PermissionMenuBase(name,x,y);
+    var el=S.inventoryContext;if(!el)return;
+    var close=D.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',C.language==='de'?'Schließen':'Close');
