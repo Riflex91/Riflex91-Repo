@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.5 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.6 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -73,7 +73,7 @@ const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 
-const VERSION = '3.0.0-alpha.5';
+const VERSION = '3.0.0-alpha.6';
 
 class Runtime {
   constructor(options = {}) {
@@ -84,7 +84,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy });
+    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy, useHpRatio: options.farmerUseHpRatio || 0.75 });
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
