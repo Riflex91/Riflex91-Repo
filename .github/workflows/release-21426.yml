@@ -16,6 +16,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Escape nested dashboard template literals in patcher
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          p='scripts/apply-21426-merchant-brain-map-update.mjs'
+          s=open(p,encoding='utf-8').read()
+          start=s.index('  const patch=`')
+          end=s.index("`;\n  h=h.replace('</script>'",start)
+          segment=s[start:end]
+          segment=segment.replace('${','\\${')
+          s=s[:start]+segment+s[end:]
+          open(p,'w',encoding='utf-8').write(s)
+          PY
       - name: Prepare v2.14.26 release tree
         shell: bash
         run: |
@@ -65,8 +78,8 @@ jobs:
           for f in scripts/smoke*.js; do node "$f"; done
           shopt -s nullglob
           for f in scripts/smoke*.mjs; do node "$f"; done
-      - name: Restore historical smoke sources before diff
-        run: git checkout -- scripts/smoke*.js || true
+      - name: Restore temporary test edits before diff
+        run: git checkout -- scripts/smoke*.js scripts/apply-21426-merchant-brain-map-update.mjs || true
       - name: Diff check
         run: git diff --check
       - name: Commit verified release tree
