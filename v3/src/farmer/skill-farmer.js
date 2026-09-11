@@ -2,6 +2,7 @@
 
 const { KitingFarmerController } = require('./kiting-farmer');
 const { SkillUsagePolicy } = require('./skill-usage');
+const { TargetReassessmentPolicy } = require('./target-reassessment');
 
 class SkillFarmerController extends KitingFarmerController {
   constructor(options = {}) {
@@ -11,10 +12,19 @@ class SkillFarmerController extends KitingFarmerController {
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs
     });
+    this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
+      enabled: options.targetReassessmentEnabled !== false,
+      minIntervalMs: options.targetReassessmentMinIntervalMs,
+      switchCooldownMs: options.targetReassessmentSwitchCooldownMs
+    });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
     this.lastSkillUse = null;
     this.lastSkillDecision = null;
+    this.lastReassessmentAt = -Infinity;
+    this.lastTargetSwitchAt = -Infinity;
+    this.lastReassessmentDecision = null;
+    this.lastTargetSwitch = null;
   }
 
   _updateSelectedSkill(context) {
@@ -31,7 +41,71 @@ class SkillFarmerController extends KitingFarmerController {
     return super._shadowStep(context);
   }
 
+  _maybeReassessTarget(context, target) {
+    const now = this.now();
+    if (now - this.lastReassessmentAt < this.targetReassessment.minIntervalMs) return target;
+    this.lastReassessmentAt = now;
+
+    const decision = this.targetReassessment.evaluate(context && context.snapshot, target);
+    const baseRecord = {
+      at: now,
+      reason: decision.reason,
+      currentTargetId: target && target.id || null,
+      currentTargetType: target && target.mtype || null,
+      currentTargetOwner: decision.currentTargetOwner == null ? (target && target.target || null) : decision.currentTargetOwner,
+      candidateTargetId: decision.target && decision.target.id || null,
+      candidateTargetType: decision.target && decision.target.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+    };
+
+    if (!decision.switchTarget || !decision.target) {
+      this.lastReassessmentDecision = baseRecord;
+      return target;
+    }
+
+    const sinceSwitch = now - this.lastTargetSwitchAt;
+    if (sinceSwitch < this.targetReassessment.switchCooldownMs) {
+      this.lastReassessmentDecision = {
+        ...baseRecord,
+        reason: 'TARGET_SWITCH_COOLDOWN',
+        cooldownRemainingMs: Math.max(0, this.targetReassessment.switchCooldownMs - sinceSwitch)
+      };
+      return target;
+    }
+
+    const previousTargetId = target && target.id || null;
+    const previousTargetType = target && target.mtype || null;
+    const next = decision.target;
+    this.targetId = String(next.id);
+    this.targetType = next.mtype || null;
+    this.lastTargetSwitchAt = now;
+    this.lastReassessmentDecision = baseRecord;
+    this.lastTargetSwitch = {
+      at: now,
+      reason: decision.reason,
+      fromTargetId: previousTargetId,
+      fromTargetType: previousTargetType,
+      toTargetId: next.id || null,
+      toTargetType: next.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      distance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+    };
+
+    this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
+      previousTargetId,
+      previousTargetType,
+      nextTargetId: next.id || null,
+      nextTargetType: next.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      distance: this.lastTargetSwitch.distance
+    });
+
+    return next;
+  }
+
   _engage(context, target) {
+    target = this._maybeReassessTarget(context, target);
     const snapshot = context && context.snapshot;
     const character = snapshot && snapshot.character;
 
@@ -106,6 +180,11 @@ class SkillFarmerController extends KitingFarmerController {
         selectedSkill: this.selectedSkill,
         lastUse: this.lastSkillUse,
         lastDecision: this.lastSkillDecision
+      },
+      targetReassessment: {
+        ...this.targetReassessment.status(),
+        lastDecision: this.lastReassessmentDecision,
+        lastSwitch: this.lastTargetSwitch
       }
     };
   }
