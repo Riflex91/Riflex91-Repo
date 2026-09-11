@@ -997,11 +997,72 @@ class GameAdapter {
     try { return fn.call(this.root, target) !== false; } catch (_) { return false; }
   }
 
+  canUseSkill(skillName) {
+    const G = this._G();
+    const skill = G.skills && G.skills[skillName];
+    const c = this._character();
+    if (!skill || !c) return false;
+    if (Array.isArray(skill.class) && !skill.class.includes(c.ctype)) return false;
+    if (Number(skill.level) > 0 && Number(c.level) < Number(skill.level)) return false;
+    if (Number(skill.mp) > 0 && Number(c.mp) < Number(skill.mp)) return false;
+
+    if (Array.isArray(skill.wtype) && skill.wtype.length) {
+      const slots = c.slots || {};
+      const equippedTypes = ['mainhand', 'offhand']
+        .map((slot) => slots[slot] && slots[slot].name)
+        .filter(Boolean)
+        .map((name) => G.items && G.items[name] && G.items[name].wtype)
+        .filter(Boolean);
+      if (equippedTypes.length && !equippedTypes.some((wtype) => skill.wtype.includes(wtype))) return false;
+    }
+
+    const canUse = this.root.can_use || this.parent.can_use;
+    if (typeof canUse === 'function') {
+      try { return canUse.call(this.root, skillName) !== false; } catch (_) { return false; }
+    }
+    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
+    if (typeof onCooldown === 'function') {
+      try { return onCooldown.call(this.root, skillName) !== true; } catch (_) { return false; }
+    }
+    return true;
+  }
+
+  isSkillInRange(targetId, skillName) {
+    const target = this._entityById(targetId);
+    const c = this._character();
+    const G = this._G();
+    const skill = G.skills && G.skills[skillName];
+    if (!target || !c || !skill) return false;
+
+    const fn = this.root.is_in_range || this.parent.is_in_range;
+    if (typeof fn === 'function') {
+      try { return fn.call(this.root, target, skillName) !== false; } catch (_) { return false; }
+    }
+
+    const cx = finite(c.real_x != null ? c.real_x : c.x);
+    const cy = finite(c.real_y != null ? c.real_y : c.y);
+    const tx = finite(target.real_x != null ? target.real_x : target.x);
+    const ty = finite(target.real_y != null ? target.real_y : target.y);
+    if (cx == null || cy == null || tx == null || ty == null) return false;
+
+    let range = finite(skill.range);
+    if (range == null) {
+      const baseRange = finite(c.range);
+      if (baseRange == null) return false;
+      range = baseRange * (finite(skill.range_multiplier) || 1);
+    }
+    return Math.hypot(cx - tx, cy - ty) <= range;
+  }
+
   _prepareArgs(action, args) {
     const out = Array.isArray(args) ? args.slice() : [];
     if (action === 'attack' && typeof out[0] === 'string') {
       const target = this._entityById(out[0]);
       if (target) out[0] = target;
+    }
+    if (action === 'use_skill' && typeof out[1] === 'string') {
+      const target = this._entityById(out[1]);
+      if (target) out[1] = target;
     }
     return out;
   }
