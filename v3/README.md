@@ -1,8 +1,8 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.5
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.6
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
-## What alpha.5 includes
+## What alpha.6 includes
 
 - first scheduler-owned Farmer state machine: `ASSESS → SELECT_TARGET → TRAVEL → ENGAGE → RECOVER → REASSESS/BLOCKED`
 - one long-lived Farmer task per character; gameplay commands still originate through the Scheduler and Safe Game Adapter
@@ -18,7 +18,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 
 ## Safety boundary
 
-`3.0.0-alpha.5` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.6` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer currently performs only local combat/recovery primitives already allowed by the Safe Game Adapter.
 
@@ -81,7 +81,7 @@ A policy change clears the current Farmer target and forces a reassessment, so i
 
 ## Current Farmer scope
 
-Alpha.5 intentionally stays small. It farms **safe live monsters on the current map that are already visible**. If a selected target is outside attack range, it walks toward a range-aware position, attacks when `can_attack(target)` permits, consumes HP/MP potions under configured thresholds, and re-evaluates after the target dies/disappears.
+Alpha.6 intentionally stays small. It farms **safe live monsters on the current map that are already visible**. If a selected target is outside attack range, it walks toward a range-aware position, attacks when `can_attack(target)` permits, consumes HP/MP potions under configured thresholds, and re-evaluates after the target dies/disappears.
 
 It does not yet perform spawn routing, cross-map hunting, kiting paths, class-specific skills, loot/economy loops, buying potions or merchant logistics. Those remain later milestones so the first active controller stays observable and bounded.
 
@@ -100,6 +100,8 @@ cd v3
 npm run check
 ```
 
-### Alpha.5 recovery compatibility
+### Alpha.6 recovery compatibility
 
 Adventure Land exposes `use_hp_or_mp()` as the CODE potion helper. The adapter keeps the logical `use_hp` / `use_mp` actions for the Farmer, but transparently falls back to `use_hp_or_mp()` when direct helpers are unavailable. The adapter records the resolved command (`use_hp_or_mp`) in structured command telemetry, so Adventure Land recovery compatibility is visible in diagnostics.
+
+Recovery HP potion use now continues until the configured recovery threshold (75% by default), avoiding a gap where the Farmer could wait between the potion-use threshold and the recovery-complete threshold.
