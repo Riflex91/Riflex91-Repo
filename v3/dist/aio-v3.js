@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.3 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.4 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -15,7 +15,7 @@ const { DiscoveryService } = require('./world/discovery');
 const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { FarmerController, FarmerState } = require('./farmer/farmer-fsm');
+const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer-fsm');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
 function install(root = globalThis, options = {}) {
@@ -39,7 +39,8 @@ function install(root = globalThis, options = {}) {
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
-      status: () => runtime.farmer.status()
+      status: () => runtime.farmer.status(),
+      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy)
     },
     createTask,
     TaskState
@@ -53,7 +54,7 @@ module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, FarmerController, FarmerState, partyProfile, capabilitiesFor
+  FarmPlanner, FarmerController, FarmerState, TargetPolicy, partyProfile, capabilitiesFor
 };
 
 },
@@ -72,7 +73,7 @@ const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 
-const VERSION = '3.0.0-alpha.3';
+const VERSION = '3.0.0-alpha.4';
 
 class Runtime {
   constructor(options = {}) {
@@ -83,7 +84,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false });
+    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy });
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -110,6 +111,12 @@ class Runtime {
   setFarmerEnabled(enabled) {
     const resolved = this.farmer.setEnabled(enabled);
     this._announce(`[AIO v3 ${VERSION}] FARMER | ${resolved ? 'enabled' : 'disabled'} | mode=${this.adapter.mode}`, resolved ? 'VISIBLE_FARMER_ENABLED' : 'VISIBLE_FARMER_DISABLED');
+    return resolved;
+  }
+
+  setFarmerTargetPolicy(policy) {
+    const resolved = this.farmer.setTargetPolicy(policy);
+    this._announce(`[AIO v3 ${VERSION}] FARMER TARGET POLICY | ${resolved}`, 'VISIBLE_FARMER_TARGET_POLICY_CHANGED');
     return resolved;
   }
 
@@ -150,7 +157,7 @@ class Runtime {
     const entities = status.world && Number.isFinite(Number(status.world.entities)) ? Number(status.world.entities) : 0;
     const modeNote = status.mode === 'shadow' ? 'observing only' : 'active commands enabled';
     const farmer = status.farmer || {};
-    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''}`;
+    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''} | targetPolicy=${farmer.targetPolicy || 'party-only'}`;
     const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | ${farmerText} | world=${entities} | tasks=${active}/${queued}`;
     this._announce(message, 'VISIBLE_STATUS');
     return status;
@@ -1862,6 +1869,20 @@ const FarmerState = Object.freeze({
   BLOCKED: 'BLOCKED'
 });
 
+const TargetPolicy = Object.freeze({
+  AVOID: 'avoid',
+  PARTY_ONLY: 'party-only',
+  ALLOW: 'allow'
+});
+
+function normalizeTargetPolicy(policy) {
+  const resolved = String(policy || TargetPolicy.PARTY_ONLY).toLowerCase();
+  if (!Object.values(TargetPolicy).includes(resolved)) {
+    throw new Error(`target policy must be one of: ${Object.values(TargetPolicy).join(', ')}`);
+  }
+  return resolved;
+}
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
 }
@@ -1887,6 +1908,7 @@ class FarmerController {
     this.log = options.log || null;
     this.planner = options.planner || null;
     this.enabled = options.enabled !== false;
+    this.targetPolicy = normalizeTargetPolicy(options.targetPolicy || TargetPolicy.PARTY_ONLY);
     this.state = FarmerState.ASSESS;
     this.stateSince = this.now();
     this.stateReason = 'INITIAL';
@@ -1927,6 +1949,7 @@ class FarmerController {
         state: this.state,
         targetId: this.targetId,
         targetType: this.targetType,
+        targetPolicy: this.targetPolicy,
         ...data
       }
     });
@@ -1958,6 +1981,18 @@ class FarmerController {
     return this.enabled;
   }
 
+  setTargetPolicy(policy) {
+    const resolved = normalizeTargetPolicy(policy);
+    if (resolved === this.targetPolicy) return this.targetPolicy;
+    const previous = this.targetPolicy;
+    this.targetPolicy = resolved;
+    this.lastShadowPlanAt = -Infinity;
+    this._clearTarget('TARGET_POLICY_CHANGED');
+    this._transition(FarmerState.REASSESS, 'TARGET_POLICY_CHANGED', { previousTargetPolicy: previous, targetPolicy: resolved });
+    this._event('FARMER_TARGET_POLICY_CHANGED', 'info', 'TARGET_POLICY_CHANGED', { previousTargetPolicy: previous, targetPolicy: resolved });
+    return this.targetPolicy;
+  }
+
   _attackIntervalMs(snapshot) {
     const frequency = snapshot && snapshot.character && Number(snapshot.character.frequency);
     if (Number.isFinite(frequency) && frequency > 0) return Math.max(250, Math.ceil(1000 / frequency));
@@ -1975,16 +2010,30 @@ class FarmerController {
     return (snapshot.entities || []).find((entity) => entity && String(entity.id) === String(this.targetId)) || null;
   }
 
+  _friendlyNames(snapshot, party) {
+    const names = new Set();
+    const selfName = snapshot && snapshot.character && snapshot.character.name;
+    if (selfName) names.add(selfName);
+    for (const member of party && party.members || []) if (member && member.name) names.add(member.name);
+    return names;
+  }
+
+  _targetAllowed(entity, snapshot, party) {
+    if (!entity || !snapshot || !snapshot.character) return false;
+    if (!entity.target) return true;
+    if (entity.target === snapshot.character.name) return true;
+    if (this.targetPolicy === TargetPolicy.ALLOW) return true;
+    if (this.targetPolicy === TargetPolicy.AVOID) return false;
+    return this._friendlyNames(snapshot, party).has(entity.target);
+  }
+
   _safeLiveMonsters(snapshot, party) {
     if (!snapshot || !snapshot.character) return [];
     const c = snapshot.character;
-    const friendly = new Set([c.name]);
-    for (const member of party && party.members || []) if (member && member.name) friendly.add(member.name);
     return (snapshot.entities || []).filter((entity) => {
       if (!entity || !entity.mtype || entity.dead || (entity.hp != null && entity.hp <= 0)) return false;
       if (entity.map && c.map && entity.map !== c.map) return false;
-      if (entity.target && !friendly.has(entity.target)) return false;
-      return true;
+      return this._targetAllowed(entity, snapshot, party);
     });
   }
 
@@ -2115,6 +2164,11 @@ class FarmerController {
       this._transition(FarmerState.REASSESS, 'TARGET_GONE');
       return;
     }
+    if (!this._targetAllowed(target, snapshot, context.party)) {
+      this._clearTarget('TARGET_POLICY_REJECTED');
+      this._transition(FarmerState.REASSESS, 'TARGET_POLICY_REJECTED');
+      return;
+    }
     const engageRange = this._engagementRange(snapshot);
     const d = distance(c, target);
     if (d <= engageRange) {
@@ -2158,6 +2212,11 @@ class FarmerController {
     if (!target || target.dead || (target.hp != null && target.hp <= 0)) {
       this._clearTarget('TARGET_DEAD_OR_GONE');
       this._transition(FarmerState.REASSESS, 'TARGET_DEAD_OR_GONE');
+      return;
+    }
+    if (!this._targetAllowed(target, snapshot, context.party)) {
+      this._clearTarget('TARGET_POLICY_REJECTED');
+      this._transition(FarmerState.REASSESS, 'TARGET_POLICY_REJECTED');
       return;
     }
     const d = distance(snapshot.character, target);
@@ -2308,6 +2367,7 @@ class FarmerController {
       taskId: this.taskId,
       targetId: this.targetId,
       targetType: this.targetType,
+      targetPolicy: this.targetPolicy,
       shadowPlanRevision: this.shadowPlanRevision,
       lastSelection: this.lastSelection ? {
         id: this.lastSelection.id,
@@ -2320,7 +2380,7 @@ class FarmerController {
   }
 }
 
-module.exports = { FarmerController, FarmerState, ratio, distance, hasPotion };
+module.exports = { FarmerController, FarmerState, TargetPolicy, normalizeTargetPolicy, ratio, distance, hasPotion };
 
 }
 };

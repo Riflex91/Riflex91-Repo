@@ -12,6 +12,20 @@ const FarmerState = Object.freeze({
   BLOCKED: 'BLOCKED'
 });
 
+const TargetPolicy = Object.freeze({
+  AVOID: 'avoid',
+  PARTY_ONLY: 'party-only',
+  ALLOW: 'allow'
+});
+
+function normalizeTargetPolicy(policy) {
+  const resolved = String(policy || TargetPolicy.PARTY_ONLY).toLowerCase();
+  if (!Object.values(TargetPolicy).includes(resolved)) {
+    throw new Error(`target policy must be one of: ${Object.values(TargetPolicy).join(', ')}`);
+  }
+  return resolved;
+}
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
 }
@@ -37,6 +51,7 @@ class FarmerController {
     this.log = options.log || null;
     this.planner = options.planner || null;
     this.enabled = options.enabled !== false;
+    this.targetPolicy = normalizeTargetPolicy(options.targetPolicy || TargetPolicy.PARTY_ONLY);
     this.state = FarmerState.ASSESS;
     this.stateSince = this.now();
     this.stateReason = 'INITIAL';
@@ -77,6 +92,7 @@ class FarmerController {
         state: this.state,
         targetId: this.targetId,
         targetType: this.targetType,
+        targetPolicy: this.targetPolicy,
         ...data
       }
     });
@@ -108,6 +124,18 @@ class FarmerController {
     return this.enabled;
   }
 
+  setTargetPolicy(policy) {
+    const resolved = normalizeTargetPolicy(policy);
+    if (resolved === this.targetPolicy) return this.targetPolicy;
+    const previous = this.targetPolicy;
+    this.targetPolicy = resolved;
+    this.lastShadowPlanAt = -Infinity;
+    this._clearTarget('TARGET_POLICY_CHANGED');
+    this._transition(FarmerState.REASSESS, 'TARGET_POLICY_CHANGED', { previousTargetPolicy: previous, targetPolicy: resolved });
+    this._event('FARMER_TARGET_POLICY_CHANGED', 'info', 'TARGET_POLICY_CHANGED', { previousTargetPolicy: previous, targetPolicy: resolved });
+    return this.targetPolicy;
+  }
+
   _attackIntervalMs(snapshot) {
     const frequency = snapshot && snapshot.character && Number(snapshot.character.frequency);
     if (Number.isFinite(frequency) && frequency > 0) return Math.max(250, Math.ceil(1000 / frequency));
@@ -125,16 +153,30 @@ class FarmerController {
     return (snapshot.entities || []).find((entity) => entity && String(entity.id) === String(this.targetId)) || null;
   }
 
+  _friendlyNames(snapshot, party) {
+    const names = new Set();
+    const selfName = snapshot && snapshot.character && snapshot.character.name;
+    if (selfName) names.add(selfName);
+    for (const member of party && party.members || []) if (member && member.name) names.add(member.name);
+    return names;
+  }
+
+  _targetAllowed(entity, snapshot, party) {
+    if (!entity || !snapshot || !snapshot.character) return false;
+    if (!entity.target) return true;
+    if (entity.target === snapshot.character.name) return true;
+    if (this.targetPolicy === TargetPolicy.ALLOW) return true;
+    if (this.targetPolicy === TargetPolicy.AVOID) return false;
+    return this._friendlyNames(snapshot, party).has(entity.target);
+  }
+
   _safeLiveMonsters(snapshot, party) {
     if (!snapshot || !snapshot.character) return [];
     const c = snapshot.character;
-    const friendly = new Set([c.name]);
-    for (const member of party && party.members || []) if (member && member.name) friendly.add(member.name);
     return (snapshot.entities || []).filter((entity) => {
       if (!entity || !entity.mtype || entity.dead || (entity.hp != null && entity.hp <= 0)) return false;
       if (entity.map && c.map && entity.map !== c.map) return false;
-      if (entity.target && !friendly.has(entity.target)) return false;
-      return true;
+      return this._targetAllowed(entity, snapshot, party);
     });
   }
 
@@ -265,6 +307,11 @@ class FarmerController {
       this._transition(FarmerState.REASSESS, 'TARGET_GONE');
       return;
     }
+    if (!this._targetAllowed(target, snapshot, context.party)) {
+      this._clearTarget('TARGET_POLICY_REJECTED');
+      this._transition(FarmerState.REASSESS, 'TARGET_POLICY_REJECTED');
+      return;
+    }
     const engageRange = this._engagementRange(snapshot);
     const d = distance(c, target);
     if (d <= engageRange) {
@@ -308,6 +355,11 @@ class FarmerController {
     if (!target || target.dead || (target.hp != null && target.hp <= 0)) {
       this._clearTarget('TARGET_DEAD_OR_GONE');
       this._transition(FarmerState.REASSESS, 'TARGET_DEAD_OR_GONE');
+      return;
+    }
+    if (!this._targetAllowed(target, snapshot, context.party)) {
+      this._clearTarget('TARGET_POLICY_REJECTED');
+      this._transition(FarmerState.REASSESS, 'TARGET_POLICY_REJECTED');
       return;
     }
     const d = distance(snapshot.character, target);
@@ -458,6 +510,7 @@ class FarmerController {
       taskId: this.taskId,
       targetId: this.targetId,
       targetType: this.targetType,
+      targetPolicy: this.targetPolicy,
       shadowPlanRevision: this.shadowPlanRevision,
       lastSelection: this.lastSelection ? {
         id: this.lastSelection.id,
@@ -470,4 +523,4 @@ class FarmerController {
   }
 }
 
-module.exports = { FarmerController, FarmerState, ratio, distance, hasPotion };
+module.exports = { FarmerController, FarmerState, TargetPolicy, normalizeTargetPolicy, ratio, distance, hasPotion };
