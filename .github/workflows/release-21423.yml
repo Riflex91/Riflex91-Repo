@@ -38,7 +38,7 @@ jobs:
       - name: Normalize historical exact-version smoke assertions
         shell: bash
         run: |
-          sed -i -E 's/2\.14\.(21|22)/2.14.23/g' scripts/smoke*.js || true
+          sed -i 's/2\.14\.21/2.14.23/g' scripts/smoke*.js || true
       - name: Run complete smoke suite
         shell: bash
         run: |
