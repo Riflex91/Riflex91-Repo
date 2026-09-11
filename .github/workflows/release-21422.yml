@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Apply v2.14.22 economy manager
         run: node scripts/apply-21422-auto-economy.mjs
+      - name: Apply v2.14.22 economics hardening
+        run: node scripts/apply-21422-economics-hardening.mjs
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
