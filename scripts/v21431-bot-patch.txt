@@ -201,7 +201,7 @@
   function v21431FarmerDecision(){
     if(character.ctype==='merchant'||character.rip||!S.running)return null;
     var plan=v21431FarmerPlan(),pressure=freeSlots()<=Math.max(1,Number(C.merchantPickupFreeSlotsAt)||12);
-    if(!plan.total&&!pressure)return null;
+    if(!plan.total)return null;
     var mr=v21431MerchantReport(),self=v21431FarmerSelfEstimate(plan),meReport={name:me,map:character.map,x:character.x,y:character.y,speed:character.speed},mer=v21431MerchantEtaToReport(mr,meReport);
     var remoteEta=mr&&mr.logistics21431&&mr.logistics21431.etaByFarmer&&Number(mr.logistics21431.etaByFarmer[me]);
     if(isFinite(remoteEta)&&remoteEta>=0)mer.seconds=remoteEta;
