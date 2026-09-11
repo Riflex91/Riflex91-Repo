@@ -2319,7 +2319,8 @@ class SkillFarmerController extends KitingFarmerController {
       enabled: options.targetReassessmentEnabled !== false,
       minIntervalMs: options.targetReassessmentMinIntervalMs,
       switchCooldownMs: options.targetReassessmentSwitchCooldownMs,
-      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor
+      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor,
+      selfAggroThreatSwitchFactor: options.targetReassessmentSelfAggroThreatSwitchFactor
     });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
@@ -2350,7 +2351,9 @@ class SkillFarmerController extends KitingFarmerController {
     if (now - this.lastReassessmentAt < this.targetReassessment.minIntervalMs) return target;
     this.lastReassessmentAt = now;
 
-    const decision = this.targetReassessment.evaluate(context && context.snapshot, target);
+    const gameData = context && context.adapter && context.adapter.getGameData ? context.adapter.getGameData() || {} : {};
+    const decision = this.targetReassessment.evaluate(context && context.snapshot, target, gameData);
+    const round = (value) => Number.isFinite(Number(value)) ? Number(Number(value).toFixed(2)) : null;
     const baseRecord = {
       at: now,
       reason: decision.reason,
@@ -2360,9 +2363,12 @@ class SkillFarmerController extends KitingFarmerController {
       candidateTargetId: decision.target && decision.target.id || null,
       candidateTargetType: decision.target && decision.target.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      currentDistance: Number.isFinite(Number(decision.currentDistance)) ? Number(Number(decision.currentDistance).toFixed(2)) : null,
-      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null,
-      switchThresholdDistance: Number.isFinite(Number(decision.switchThresholdDistance)) ? Number(Number(decision.switchThresholdDistance).toFixed(2)) : null
+      currentDistance: round(decision.currentDistance),
+      candidateDistance: round(decision.targetDistance),
+      switchThresholdDistance: round(decision.switchThresholdDistance),
+      currentThreatScore: round(decision.currentThreatScore),
+      candidateThreatScore: round(decision.targetThreatScore),
+      threatSwitchThreshold: round(decision.threatSwitchThreshold)
     };
 
     if (!decision.switchTarget || !decision.target) {
@@ -2397,7 +2403,10 @@ class SkillFarmerController extends KitingFarmerController {
       attackerCount: Number(decision.attackerCount) || 0,
       currentDistance: baseRecord.currentDistance,
       distance: baseRecord.candidateDistance,
-      switchThresholdDistance: baseRecord.switchThresholdDistance
+      switchThresholdDistance: baseRecord.switchThresholdDistance,
+      currentThreatScore: baseRecord.currentThreatScore,
+      threatScore: baseRecord.candidateThreatScore,
+      threatSwitchThreshold: baseRecord.threatSwitchThreshold
     };
 
     this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
@@ -2408,7 +2417,10 @@ class SkillFarmerController extends KitingFarmerController {
       attackerCount: Number(decision.attackerCount) || 0,
       currentDistance: this.lastTargetSwitch.currentDistance,
       distance: this.lastTargetSwitch.distance,
-      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance
+      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance,
+      currentThreatScore: this.lastTargetSwitch.currentThreatScore,
+      threatScore: this.lastTargetSwitch.threatScore,
+      threatSwitchThreshold: this.lastTargetSwitch.threatSwitchThreshold
     });
 
     return next;
