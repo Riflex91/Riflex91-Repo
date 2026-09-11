@@ -24,4 +24,5 @@ assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.performance);
 assert.ok(sandbox.AIO_V3.research);
 assert.equal(typeof sandbox.AIO_V3.saveWorld, 'function');
+assert.equal(typeof sandbox.AIO_V3.showStatus, 'function');
 console.log('bundle smoke OK');
