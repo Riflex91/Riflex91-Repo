@@ -19,7 +19,7 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.5');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.6');
 assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.performance);
 assert.ok(sandbox.AIO_V3.research);

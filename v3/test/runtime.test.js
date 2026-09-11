@@ -28,6 +28,7 @@ test('Runtime observes a fake Adventure Land character without issuing active co
   assert.equal(economy.reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
 });
 
+
 test('Runtime emits visible Adventure Land startup/ready/status messages without changing shadow mode', () => {
   let now = 20000;
   const messages = [];
@@ -57,4 +58,11 @@ test('Runtime emits visible Adventure Land startup/ready/status messages without
   assert.ok(log.events.some((event) => event.event === 'VISIBLE_READY'));
   assert.ok(log.events.some((event) => event.event === 'VISIBLE_STATUS'));
   runtime.stop();
+});
+
+
+test('Runtime config keeps HP potion recovery active through the 75 percent recovery threshold', () => {
+  const runtime = new Runtime({ root: { parent: { entities: {}, party: {} }, G: { monsters: {}, maps: {} } } });
+  assert.equal(runtime.farmer.config.recoverHpRatio, 0.75);
+  assert.equal(runtime.farmer.config.useHpRatio, 0.75);
 });
