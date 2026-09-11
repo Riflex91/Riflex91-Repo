@@ -46,6 +46,7 @@ jobs:
             s=s.replace(/bot\.includes\("'"\+f\+"'"\)/g,'bot.includes(f)');
             s=s.replace(/version\.version\s*,\s*'2\.14\.(?:21|22|23)'/g,"version.version,'2.14.24'");
             s=s.replace(/version\.dashboardVersion\s*,\s*'2\.14\.(?:21|22|23)'/g,"version.dashboardVersion,'2.14.24'");
+            s=s.replace(/(assert\.(?:equal|strictEqual)\([^,\n]+,\s*)'2\.14\.(?:21|22|23)'/g,"$1'2.14.24'");
             fs.writeFileSync(p,s);
           }
           NODE
