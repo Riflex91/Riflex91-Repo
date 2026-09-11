@@ -66,3 +66,24 @@ test('Runtime config keeps HP potion recovery active through the 75 percent reco
   assert.equal(runtime.farmer.config.recoverHpRatio, 0.75);
   assert.equal(runtime.farmer.config.useHpRatio, 0.75);
 });
+
+test('Runtime planner and Farmer safety ignore Target Automatron', () => {
+  let now = 30000;
+  const root = {
+    character: { name: 'R1', ctype: 'ranger', level: 50, map: 'main', x: 0, y: 0, real_x: 0, real_y: 0, hp: 1000, max_hp: 1000, mp: 500, max_mp: 500, xp: 100, gold: 50, items: [], moving: false, speed: 40 },
+    G: { monsters: { target: { name: 'Target Automatron', xp: 0 }, goo: { xp: 100 } }, maps: { main: {} } },
+    parent: { entities: {
+      training: { id: 'training', type: 'monster', name: 'Target Automatron', mtype: 'target', map: 'main', x: 5, y: 0, hp: 999999, max_hp: 999999 },
+      m1: { id: 'm1', type: 'monster', mtype: 'goo', map: 'main', x: 40, y: 0, hp: 100, max_hp: 100 }
+    }, party: {} }
+  };
+  const log = new EventLog({ now: () => now, runId: 'automatron-safety-test' });
+  const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow', now: () => now });
+  const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now });
+  runtime.tick();
+  assert.equal(runtime.farmerStatus().targetType, 'goo');
+  assert.ok(runtime.farmerStatus().targetExclusions.includes('automatron'));
+  const ranked = log.events.filter((event) => event.event === 'FARM_TARGET_RANKED');
+  assert.ok(ranked.length > 0);
+  assert.ok(ranked.every((event) => event.data && event.data.monster !== 'target'));
+});
