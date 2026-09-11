@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.25 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.26 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.25';
+  var VERSION = '2.14.26';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2414,7 +2414,7 @@
   function v282ShowWhatsNew(){
     if(HEADLESS||!uiRoot||read('whatsNewSeen:'+VERSION,false))return;var el=D.createElement('div');el.className='overlay';el.dataset.whatsNew=VERSION;el.innerHTML='<div class="modal"><div class="modaltop"><h2>Was ist neu in Version '+VERSION+'?</h2><button class="close" data-action="modal-close">×</button></div><div class="card"><b>Brain v2 · sichtbar lebendig</b><p class="muted">Qwen lehrt ein lokales neuronales Netz. Ein neuronaler Puls zeigt sichtbar, ob das Brain beobachtet, denkt, lernt, bewertet oder einen Challenger prüft.</p><button class="btn primary" data-whats-open="brain">Gehirn öffnen</button></div><div class="card"><b>10.000-Neuron-Budget</b><p class="muted">Harte Obergrenze 10.000; der adaptive Pacer zielt standardmäßig auf 9.950 Neurons pro UTC-Tag und bevorzugt neue oder unsichere Situationen.</p><button class="btn primary" data-whats-open="brain">Budget ansehen</button></div><div class="card"><b>Champion ↔ Challenger + Auto-Rollback</b><p class="muted">Ein eingefrorener Champion steuert bekannte Situationen. Neue Challenger werden nur mit begrenztem Canary-Traffic getestet und bei schlechterem Reward oder Sicherheitsvorfällen automatisch verworfen bzw. zurückgerollt.</p><button class="btn primary" data-whats-open="brain">Brain League ansehen</button></div><div class="card"><b>Lernqualität & Selbstzweifel</b><p class="muted">Das Brain prüft jetzt, ob steigende Confidence wirklich zu besseren Rewards führt. Bei Overconfidence, Drift oder instabilen Lernphasen reduziert es die Lernrate, fragt den Teacher häufiger, stoppt Canary-Tests und kann Autonomie quarantänisieren.</p><button class="btn primary" data-whats-open="brain">Lernqualität ansehen</button></div><div class="card"><b>Web-Dashboard Gehirn</b><p class="muted">Teacher-Verbrauch, Confidence, Entropie, Novelty, Loss, Reward, Übereinstimmung und Outcomes werden über D1 sichtbar.</p><button class="btn primary" data-whats-open="dashboard">Dashboard öffnen</button></div><div class="card"><b>Gehirn-Tagebuch</b><p class="muted">Das Brain schreibt aus echten Teacher-Lektionen, Outcomes, Champion/Challenger-Ereignissen und Tageswechseln ein überprüfbares Lerntagebuch – ohne zusätzliche KI-Aufrufe.</p><button class="btn primary" data-whats-open="brain">Tagebuch ansehen</button></div><div class="card"><b>AiO Research Bridge</b><p class="muted">Verdichtet Lern-, Reward-, Fehler-, Farm- und Merchant-Erfahrung in sichere ChatGPT-Analysebriefe mit optional anonymisierten Namen und strukturiertem JSON – ohne zusätzliche Workers-AI-Neurons.</p><button class="btn primary" data-whats-open="brain">Research Bridge ansehen</button></div></div>';uiRoot.appendChild(el);
   }
-  initUI=function(){v282InitUIBase();if(!uiRoot)return;uiRoot.addEventListener('contextmenu',function(e){var it=e.target.closest('[data-inv-slot]');if(!it)return;e.preventDefault();v282ShowInventoryContext(Number(it.dataset.invSlot),e.clientX,e.clientY);});applyAppearance();P.setTimeout(v282ShowWhatsNew,400);};
+  initUI=function(){v282InitUIBase();if(!uiRoot)return;uiRoot.addEventListener('contextmenu',function(e){var it=e.target.closest('[data-inv-slot]');if(!it)return;e.preventDefault();v282ShowInventoryContext(Number(it.dataset.invSlot),e.clientX,e.clientY);});applyAppearance();};
 
   CSS+=' .mainbox,.tool,.modal{opacity:var(--ui-opacity,1)}.invgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:7px}.invitem{display:grid;grid-template-columns:52px 1fr;gap:8px;align-items:center;border:1px solid var(--border);background:var(--card);border-radius:9px;padding:7px;cursor:context-menu}.invitem:hover,.skillhover:hover{border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent)}.invtext{min-width:0}.invmenu{position:fixed;z-index:100500;width:240px;background:var(--bg);border:1px solid var(--accent);border-radius:10px;box-shadow:0 16px 50px var(--shadow);padding:8px;color:var(--text);opacity:var(--ui-opacity,1)}.invmenu b{display:block;padding:5px 7px}.invmenu button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--border);background:transparent;color:var(--text);padding:8px;cursor:pointer}.invmenu button:hover{background:var(--card);color:var(--accent)}.setting input[type=range]{width:190px;accent-color:var(--accent)}.rangevalue{min-width:36px;text-align:right;font-size:10px}.skillhover{position:relative}.skillhover[title]{cursor:help} ';
 
@@ -4547,6 +4547,76 @@
     return v21425PressureBase();
   };
   audit('feature_contract','2.14.25 UI-Events + Merchant-Bank-Liveness geprüft',{catalogDelegates:!!S.uiDelegates21425,bankEscapeWindowMs:120000});
+
+
+  /* v2.14.26 merchant terminal liveness + Brain module focus + large real terrain */
+  try{FEATURE_CONTRACT.push('merchant-terminal-bank-tx-release','brain-module-focus-ui','brain-user-priority-hypothesis','dashboard-large-real-terrain','dashboard-arrow-player-marker','manual-update-live-delegate','whats-new-removed');}catch(e){}
+
+  // A quarantined bank store is terminal evidence for that local transfer path. Release only
+  // stale local bookkeeping (never a live game queue), preserve the quarantine, then leave bank.
+  S.bankLiveness21426=S.bankLiveness21426||{startedAt:0,lastAttemptAt:0,lastSuccessAt:0,attempts:0,reason:''};
+  function v21426BankTerminalReason(){
+    if(character.ctype!=='merchant'||String(character.map||'')!=='bank'||freeSlots()>Math.max(1,Number(C.merchantInventoryReserve)||0)||character.q)return '';
+    if(typeof v21425ActiveBankQuarantine==='function'&&v21425ActiveBankQuarantine())return 'quarantined-bank-store';
+    var b=S.capacityBlocked21418,age=b?clock()-Number(b.since||clock()):0;return age>=20000?'capacity-no-progress':'';
+  }
+  function v21426ReleaseLocalBankTx(reason){
+    var released={autoEconomy:false,bankRetrieve:false};
+    if(S.autoEconomy21422&&S.autoEconomy21422.tx){S.autoEconomy21422.tx=null;S.autoEconomy21422.plan=null;S.autoEconomy21422.sig='';released.autoEconomy=true;}
+    // Retrieve leases are local orchestration state too. Only release them after terminal bank
+    // evidence and with no Adventure Land queue action in flight.
+    if(S.merchantBankRetrieve2149&&!character.q){S.merchantBankRetrieve2149=null;released.bankRetrieve=true;}
+    S.inventoryPressureBusy=false;S.capacityBlocked21418=null;S.merchantOptionalBlockedUntil21419=0;
+    try{v21419RouteRelease(v21419RouteState().owner);}catch(e){}
+    audit('merchant_bank_terminal_state_released','Terminaler lokaler Bankzustand freigegeben',{reason:reason,released:released,quarantinePreserved:true},'warning');
+    return released;
+  }
+  function v21426BankEscapeTick(){
+    var reason=v21426BankTerminalReason();if(!reason){if(character.ctype==='merchant'&&String(character.map||'')!=='bank'&&S.bankLiveness21426.startedAt){audit('merchant_bank_liveness_success','Merchant hat die Bank verlassen',{attempts:S.bankLiveness21426.attempts,reason:S.bankLiveness21426.reason});S.bankLiveness21426.lastSuccessAt=clock();S.bankLiveness21426.startedAt=0;S.bankLiveness21426.attempts=0;}return false;}
+    var now=clock(),st=S.bankLiveness21426;if(!st.startedAt){st.startedAt=now;st.reason=reason;v21426ReleaseLocalBankTx(reason);}
+    if(character.moving||S.moveInFlight)return true;
+    if(now-Number(st.lastAttemptAt||0)<8000)return true;st.lastAttemptAt=now;st.attempts++;
+    audit('merchant_bank_liveness_exit_attempt','Merchant verlässt terminal blockierte Bank',{reason:reason,attempt:st.attempts,free:freeSlots(),reserve:Number(C.merchantInventoryReserve)||0,quarantinePreserved:true},'warning');
+    if(st.attempts>=2&&typeof smart_move==='function'){
+      var a=action('Bank verlassen · direkter Fallback',function(){return smart_move('main');},'merchant-bank-liveness-direct-fallback',12000);
+      if(a)audit('merchant_bank_liveness_fallback','Direkter smart_move-Fallback aus Bank gestartet',{attempt:st.attempts},'warning');
+      return true;
+    }
+    moveToGoal({map:'main',x:0,y:0},'Bank verlassen · Service/Economy fortsetzen',{kind:'merchant-bank-liveness-exit-v21426',tolerance:120,forceAfter:7000});return true;
+  }
+  var v21426PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){if(character.ctype==='merchant'&&v21426BankEscapeTick())return true;return v21426PressureBase();};
+  var v21426MerchantBase=merchantTick;merchantTick=function(){if(character.ctype==='merchant'&&v21426BankEscapeTick())return true;return v21426MerchantBase();};
+
+  // Real terrain for every map. Large placement arrays are base36 packed instead of falling
+  // back to collision/vector maps. No collision lines are sent in this release.
+  function v21426PackRows(rows){return (rows||[]).map(function(r){return (r||[]).map(function(v){if(v==null)return '';var n=Number(v);return isFinite(n)?Math.round(n).toString(36):'';}).join(',');}).join(';');}
+  v21412TerrainPayload=function(){
+    var mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];if(!geo||!Array.isArray(geo.tiles)||!Array.isArray(geo.placements))return null;
+    var sets={},used={};geo.tiles.forEach(function(d){if(d&&d[0]!=null)used[String(d[0])]=1;});Object.keys(used).forEach(function(id){var t=GD.tilesets&&GD.tilesets[id];if(t&&t.file)sets[id]=String(t.file);});
+    var out={map:mapId,d:geo.default,t:geo.tiles,p:geo.placements,g:Array.isArray(geo.groups)?geo.groups:[],a:Array.isArray(geo.animations)?geo.animations:[],s:sets,source:'Adventure Land G.geometry/G.tilesets',encoding:'plain'};
+    function bytes(){try{return JSON.stringify(out).length;}catch(e){return 999999;}}
+    if(bytes()>60000)out.a=[];if(bytes()>70000)out.g=[];
+    if(bytes()>76000){out.pc=v21426PackRows(out.p);out.p=[];out.encoding='base36-rows-v1';}
+    var n=bytes();out.bytes=n;if(n>118000){audit('dashboard_terrain_too_large','Terrain bleibt trotz Kompaktformat zu groß',{map:mapId,bytes:n},'warning');return {map:mapId,omitted:true,bytes:n,source:out.source,reason:'payload-too-large'};}return out;
+  };
+
+  // Clean Brain UI: only real module permissions plus one user focus/hypothesis field. Internal
+  // model, confidence, budget, learning and safety parameters stay protected and unchanged.
+  function v21426BrainModuleRow(key,label,help){return '<label class="brainmodule21426"><input type="checkbox" data-brain-module="'+esc(key)+'" '+(C[key]?'checked':'')+'><span><b>'+esc(label)+'</b><small>'+esc(help||'')+'</small></span></label>';}
+  function v21426BrainModulesHTML(){var rows=[['brainWorldModelEnabled','Weltmodell & Wissen','Spielwelt, Items, Monster, Maps und bestätigte Fakten bearbeiten.'],['brainDiscoveryModuleEnabled','Discovery','Unbekannte oder veraltete sichere Inhalte untersuchen.'],['brainExperimentModuleEnabled','Hypothesen & sichere Experimente','Reversible, bereits erlaubte Hypothesen prüfen.'],['brainPlannerModuleEnabled','Strategische Planung','Ziele, Nutzen, Risiko, Zeit und Unsicherheit gewichten.'],['brainGatheringModuleEnabled','Gathering','Fishing/Mining als mögliche freie Arbeit bewerten.'],['brainStandModuleEnabled','Merchant-Stand','Handel als mögliche freie Arbeit bewerten.'],['brainExplainModuleEnabled','Erklärungen & Lernfeed','Entscheidungen und Erkenntnisse verständlich aufbereiten.']];return '<div class="card"><h3>🧩 Module auswählen</h3><div class="muted">Nur ausgewählte Module dürfen vom Bot-Gehirn strategisch bearbeitet werden. Kampf-, Heil-, Kiting-, Inventar- und Sicherheitsregeln bleiben deterministisch.</div><div class="brainmodules21426">'+rows.map(function(r){return v21426BrainModuleRow(r[0],r[1],r[2]);}).join('')+'</div></div>';}
+  v290BrainHTML=function(){var focus=safeString(C.brainTeachingKeywords||'',500);return '<h2>🧠 '+(C.language==='de'?'Bot-Gehirn':'Bot Brain')+'</h2>'+v21426BrainModulesHTML()+'<div class="card"><h3>🎯 Priorität / Hypothese</h3><div class="muted">Kurzes Stichwort oder ein Satz. Beispiel: <b>finde 100 bee wings</b>. Das ist ein strategischer Hinweis, kein Befehl zum Umgehen von Sicherheitsregeln.</div><textarea class="brainfocus21426" data-brain-focus maxlength="500" placeholder="z. B. finde 100 bee wings">'+esc(focus)+'</textarea></div>';}
+  var v21426BrainStateBase=v290BrainState;v290BrainState=function(trigger){var st=v21426BrainStateBase(trigger);st.userFocus=safeString(C.brainTeachingKeywords||'',500);st.moduleSelection={worldModel:!!C.brainWorldModelEnabled,discovery:!!C.brainDiscoveryModuleEnabled,experiments:!!C.brainExperimentModuleEnabled,planner:!!C.brainPlannerModuleEnabled,gathering:!!C.brainGatheringModuleEnabled,stand:!!C.brainStandModuleEnabled,explain:!!C.brainExplainModuleEnabled};return st;};
+  var v21426TelemetryBase=v210BrainTelemetry;v210BrainTelemetry=function(){var x=v21426TelemetryBase();x.userFocus=safeString(C.brainTeachingKeywords||'',500);return x;};
+  if(uiRoot&&!S.uiDelegates21426){S.uiDelegates21426=true;
+    uiRoot.addEventListener('change',function(e){var el=e.target,key=el&&el.dataset&&el.dataset.brainModule;if(!key)return;if(!/^brain(?:WorldModel|DiscoveryModule|ExperimentModule|PlannerModule|GatheringModule|StandModule|ExplainModule)Enabled$/.test(key))return;C[key]=!!el.checked;C=cleanConfig(C);write('config',C);S.cloudConfigDirty=true;audit('brain_module_selection','Bot-Gehirn-Modul geändert',{module:key,enabled:!!C[key]});e.stopPropagation();},true);
+    uiRoot.addEventListener('input',function(e){var el=e.target;if(!el||!el.dataset||el.dataset.brainFocus===undefined)return;clearTimeout(S.brainFocusSave21426);S.brainFocusSave21426=P.setTimeout(function(){C.brainTeachingKeywords=safeString(el.value||'',500);C=cleanConfig(C);write('config',C);S.cloudConfigDirty=true;audit('brain_user_focus','Brain-Priorität/Hypothese gespeichert',{focus:C.brainTeachingKeywords});},450);e.stopPropagation();},true);
+    // The live UI registered an early uiClick function. Capture the manual update button here
+    // so "check & install" always reaches the verified v2.14.8 installer.
+    uiRoot.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('button[data-action="update-check"]');if(!t)return;e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();if(typeof v2148ManualUpdateInstall==='function')v2148ManualUpdateInstall();else{S.update.checkedAt=0;updateCheckTick(true);}},true);
+  }
+  CSS+=' .brainmodules21426{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;margin-top:10px}.brainmodule21426{display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid var(--border);border-radius:9px;background:var(--card)}.brainmodule21426 input{margin-top:3px}.brainmodule21426 b,.brainmodule21426 small{display:block}.brainmodule21426 small{margin-top:3px;color:var(--muted);line-height:1.35}.brainfocus21426{width:100%;min-height:90px;margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);resize:vertical;font:inherit} ';
+  audit('feature_contract','2.14.26 Merchant terminal liveness + Brain module focus + large real terrain geprüft',{itemPermissionRules:Object.keys(C.merchantItemPermissions||{}).length,brainFocus:safeString(C.brainTeachingKeywords||'',120)});
 
   /* 2.14.24 config + buff telemetry hardening */
   function v21424ObservableBuffSkills(){
