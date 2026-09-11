@@ -2,95 +2,10 @@ name: release-21435
 on:
   push:
     branches: ["hotfix/2.14.35-city-bank-dashboard"]
-  pull_request:
-    branches: ["main"]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  patch-and-verify:
+  archived:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Prepare v2.14.35 release tree
-        run: node scripts/apply-21435-city-bank-dashboard.mjs
-      - name: Bot syntax
-        run: node --check bot.js
-      - name: Worker syntax
-        run: node --check cloudflare-dashboard/src/worker.js
-      - name: Dashboard JS syntax
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs=require('fs'),vm=require('vm');
-          const h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
-          for(const m of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)) new vm.Script(m[1]);
-          console.log('dashboard JS syntax OK');
-          NODE
-      - name: Verify release
-        run: node scripts/verify-release.js
-      - name: Verify v2.14.35 city/bank/dashboard hotfix
-        run: node scripts/verify-21435-city-bank-dashboard.mjs
-      - name: Normalize historical exact-version smoke assertions
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs=require('fs'),path=require('path');
-          for(const f of fs.readdirSync('scripts').filter(x=>/^smoke.*\.(?:js|mjs)$/.test(x))){
-            const p=path.join('scripts',f);let s=fs.readFileSync(p,'utf8');
-            s=s.replace(/\.includes\("'"\+([A-Za-z_$][\w$]*)\+"'"\)/g,'.includes($1)');
-            s=s.replace(/(assert\.(?:equal|strictEqual)\([^,\n]+,\s*)'2\.14\.\d+'/g,"$1'2.14.35'");
-            s=s.replace(/version\.version\s*,\s*'2\.14\.\d+'/g,"version.version,'2.14.35'");
-            s=s.replace(/version\.dashboardVersion\s*,\s*'2\.14\.\d+'/g,"version.dashboardVersion,'2.14.35'");
-            s=s.replace(/var VERSION = '2\.14\.\d+'/g,"var VERSION = '2.14.35'");
-            s=s.replace(/AiO Bot Dashboard 2\.14\.\d+/g,'AiO Bot Dashboard 2.14.35');
-            s=s.replace("assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));","assert(dash.includes('Adventure Land G.geometry/G.tilesets')); // real terrain only");
-            fs.writeFileSync(p,s);
-          }
-          NODE
-      - name: Smoke 2.14.4 through 2.14.9
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in scripts/smoke-2144-*.js scripts/smoke-2145-*.js scripts/smoke-2146-*.js scripts/smoke-2147-*.js scripts/smoke-2148-*.js scripts/smoke-2149-*.js; do echo "RUN $f"; node "$f"; done
-      - name: Smoke 2.14.10 through 2.14.15
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in scripts/smoke-21410-*.js scripts/smoke-21411-*.js scripts/smoke-21412-*.js scripts/smoke-21413-*.js scripts/smoke-21414-*.js scripts/smoke-21415-*.js; do echo "RUN $f"; node "$f"; done
-      - name: Smoke 2.14.16 through 2.14.21
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in scripts/smoke-21416-*.js scripts/smoke-21417-*.js scripts/smoke-21418-*.js scripts/smoke-21419-*.js scripts/smoke-21420-*.js scripts/smoke-21421-*.js; do echo "RUN $f"; node "$f"; done
-      - name: Smoke 2.14.22 through 2.14.24
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in scripts/smoke-21422-*.js scripts/smoke-21423-*.js scripts/smoke-21424-*.js; do echo "RUN $f"; node "$f"; done
-      - name: Smoke Brain and worker suites
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in scripts/smoke-diary.js scripts/smoke-league.js scripts/smoke-merchant-stability.js scripts/smoke-quality.js scripts/smoke-research.js scripts/smoke-student.js scripts/smoke-worker.mjs; do echo "RUN $f"; node "$f"; done
-      - name: Restore temporary smoke edits before diff
-        run: git checkout -- scripts/smoke*.js scripts/smoke*.mjs || true
-      - name: Diff check
-        run: git diff --check
-      - name: Commit verified release tree
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          if git diff --quiet; then
-            echo 'No generated changes to commit.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/dashboard.html cloudflare-dashboard/src/worker.js
-          git commit -m 'Release AiO Bot 2.14.35 city bank dashboard hotfix'
-          git push origin HEAD:${GITHUB_REF_NAME}
+      - run: echo "Archived release workflow for v2.14.35"
