@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const bot=fs.readFileSync('bot.js','utf8');
+const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
+new vm.Script(bot,{filename:'bot.js'});
+assert.ok(bot.includes("var VERSION = '2.14.23'"),'version missing');
+assert.ok(bot.includes('/* 2.14.23 merchant liveness + buff maintenance + terrain hardening */'),'marker missing');
+assert.ok(bot.includes("merchant_bank_cleanup_sync_wait")&&bot.includes('merchant_bank_store_quarantined'),'no-progress quarantine missing');
+assert.ok(bot.includes('v21423StoreBlocked(it.name,it.level)'),'blocked bank identity skip missing');
+assert.ok(bot.includes("merchantBuffSkills: 'mluck'"),'mluck default missing');
+assert.ok(bot.includes("type:'aio27-buff-request'"),'farmer buff request missing');
+assert.ok(bot.includes('function v21423BuffConfirmTick'),'buff confirmation missing');
+assert.ok(bot.includes("merchant_buff_cast")&&bot.includes("merchant_buff_confirmed")&&bot.includes("merchant_buff_unconfirmed"),'buff telemetry missing');
+assert.ok(bot.includes('useSkillSafe(q.skill,target,null,false)'),'buff must use existing safe skill API wrapper');
+assert.ok(bot.includes('r.buffs=v21423BuffSnapshot()'),'peer buff status missing');
+assert.ok(bot.includes("out.v=v")&&bot.includes("tiles+collision-lines"),'always-vector terrain fallback missing');
+assert.ok(bot.includes('d.terrain=')&&bot.includes('v21412TerrainPayload()'),'final dashboard terrain injection missing');
+assert.ok(worker.includes('function cleanTerrain(')&&worker.includes('v:vector'),'Worker terrain vector sanitizer missing');
+assert.ok(dash.includes('terrainVectorMarkup')&&dash.includes('terrain-wall'),'dashboard vector renderer missing');
+assert.ok(bot.includes('merchant-economic-compound-guard'),'2.14.22 economy protections must remain');
+assert.ok(bot.includes("brainMinConfidencePct: 70"),'Brain confidence changed');
+assert.ok(bot.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'Brain model changed');
+console.log('v2.14.23 Merchant liveness / buffs / map smoke OK');

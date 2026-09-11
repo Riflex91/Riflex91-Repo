@@ -4,7 +4,7 @@ const fs=require('fs'),vm=require('vm');
 const bot=fs.readFileSync('bot.js','utf8');
 function ok(v,m){if(!v)throw new Error(m);}
 new vm.Script(bot,{filename:'bot.js'});
-ok(bot.includes("var VERSION = '2.14.22'"),'version 2.14.22 missing');
+ok(/var VERSION = ['"]2\.14\.\d+['"]/.test(bot),'2.14.x version missing');
 ok(bot.includes('/* 2.14.22 unified auto-economy manager */'),'economy manager marker missing');
 ok(bot.includes("V21422_ACTIONS=['KEEP','SELL','BANK','UPGRADE','COMPOUND','EXCHANGE','RECYCLE','DISCARD','HOLD_FOR_MERCHANT']"),'central action policy missing');
 ok(bot.includes("unsupported-safe-fallback"),'unsupported destructive action safe fallback missing');
@@ -35,13 +35,8 @@ ok(bot.includes("[INVENTORY] "),'inventory summary logging missing');
 ok(bot.includes("[SELL] "),'sell logging missing');
 ok(bot.includes("[UPGRADE] "),'upgrade logging missing');
 ok(bot.includes("[COMPOUND] "),'compound logging missing');
-
-// Economic sanity: a target +5 needs 3^5 base items. If +0 is worth 20k each and
-// the +5 target only sells for 2k, it is massively inferior to selling the inputs.
 function pathProfit(baseEach,start,target,projected,scrollCosts){const steps=target-start,inputCopies=3**steps,opportunity=baseEach*inputCopies;let scroll=0;for(let lv=start;lv<target;lv++)scroll+=(3**(target-lv-1))*(scrollCosts[lv]||0);return {inputCopies,delta:projected-opportunity-scroll};}
 const bad=pathProfit(20000,0,5,2000,[0,0,0,0,0]);ok(bad.inputCopies===243,'+0 to +5 compound path must require 243 base copies');ok(bad.delta<0,'negative +0 to +5 example must be rejected');
 const good=pathProfit(1000,0,1,5000,[500]);ok(good.delta>0,'positive one-step compound should pass');
-
-// Destructive unsupported actions must never be executed by the new manager.
 ok(!/\b(?:recycle|destroy|discard)\s*\(/.test(bot.slice(bot.indexOf('/* 2.14.22 unified auto-economy manager */'))),'unsupported destructive game API call introduced');
-console.log('v2.14.22 auto-economy smoke OK');
+console.log('v2.14.22+ auto-economy smoke OK');
