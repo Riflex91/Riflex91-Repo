@@ -40,6 +40,8 @@ jobs:
           else
             node scripts/apply-21426-merchant-brain-map-update.mjs
           fi
+      - name: Preserve packed terrain through Worker sanitizer
+        run: node scripts/harden-21426-worker-terrain.mjs
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
@@ -57,6 +59,20 @@ jobs:
         run: node scripts/verify-release.js
       - name: Verify v2.14.26 invariants
         run: node scripts/verify-21426-merchant-brain-map-update.mjs
+      - name: Verify Worker packed terrain pass-through
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const w=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
+          const a=w.indexOf('function cleanTerrainTuple'),b=w.indexOf('\nfunction cleanLearningFeed',a);
+          const ctx={text:(v,max)=>String(v==null?'':v).slice(0,max||500),number:(v,d=0)=>Number.isFinite(Number(v))?Number(v):d};
+          vm.createContext(ctx);vm.runInContext(w.slice(a,b),ctx);
+          const pc='0,0,0,1s,1s;1,1s,0,3k,1s';
+          const t=ctx.cleanTerrain({map:'main',source:'Adventure Land G.geometry/G.tilesets',encoding:'base36-rows-v1',d:0,t:[['forest',0,0,32,32]],p:[],pc,s:{forest:'/images/tiles/map/forest.png'}});
+          if(!t||t.omitted||t.pc!==pc||t.encoding!=='base36-rows-v1')throw new Error('packed terrain stripped by Worker');
+          console.log('Worker packed terrain pass-through OK');
+          NODE
       - name: Normalize historical exact-version/dashboard assertions for smoke only
         shell: bash
         run: |
