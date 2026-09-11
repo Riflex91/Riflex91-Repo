@@ -1,0 +1,93 @@
+
+
+  /* v2.14.38 targeted capacity relief, rate-ranked fallback, autonomous farmer loot service and dashboard heartbeat */
+  // Deterministic operations only. Neural model/confidence policy intentionally unchanged.
+  ['merchant-capacity-targeted-bank-slot','farm-fallback-rate-score','farmer-unavailable-merchant-self-service','dashboard-simple-write-heartbeat'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+
+  // A full Merchant must never idle merely because the generic bank cleanup chose an occupied bank
+  // slot and the game answered with a swap. Reuse the Farmer service policy, but always resolve an
+  // actually empty bank slot and pass pack+slot explicitly to bank_store.
+  function v21438MerchantBankRow(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return null;
+    try{var p=v21431ServicePlan(),rows=p&&p.bank||[];for(var i=0;i<rows.length;i++){var r=rows[i],it=r&&r.item;if(it&&!it.l&&!it.p)return r;}}catch(e){}
+    return null;
+  }
+  function v21438MerchantTargetedBankReliefTick(){
+    if(character.ctype!=='merchant'||!C.merchantManageBank)return false;
+    var reserve=Math.max(1,Number(C.merchantInventoryReserve)||0);if(freeSlots()>reserve)return false;
+    var row=v21438MerchantBankRow();if(!row)return false;
+    if(character.q||character.moving||S.moveInFlight)return true;
+    if(!character.bank){S.status='Kapazität freigeben · gezielt zur Bank';S.mode='Merchant · Kapazität';return moveToGoal({map:'bank',x:0,y:0},'Gezielte Kapazitätsfreigabe',{kind:'merchant-capacity-bank-21438',forceAfter:8000})||true;}
+    var target=v21431BankTarget(row.item,true);
+    if(!target){try{if(typeof v273OpenBankPackTick==='function'&&v273OpenBankPackTick())return true;}catch(e){}return false;}
+    if(character.map!==target.map){S.status='Kapazität freigeben · leeres Bankfach '+target.pack;S.mode='Merchant · Kapazität';return moveToGoal({map:target.map,x:0,y:0},'Leeres Bankfach für Kapazität',{kind:'merchant-capacity-bank-pack-21438',forceAfter:8000})||true;}
+    var before=freeSlots(),name=row.item.name,level=Number(row.item.level)||0;
+    if(clock()-Number(S.capacityTargetAudit21438||0)>4000){S.capacityTargetAudit21438=clock();audit('merchant_capacity_targeted_bank_store','Kapazität wird über ein explizit leeres Bankfach freigegeben',{item:name,level:level,pack:target.pack,slot:target.slot,free:before,reserve:reserve});}
+    return v21431BankStore(row,'merchant-capacity-21438')||true;
+  }
+  var v21438MerchantTickBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype==='merchant'&&v21438MerchantTargetedBankReliefTick())return true;
+    return v21438MerchantTickBase();
+  };
+
+  // Fallback farming is ranked by productive rates, not proximity. Prefer measured zone rates when
+  // they exist; otherwise estimate EXP/h from combat throughput and Gold/h from learned gold/kill.
+  // Distance is only a deterministic tie-breaker after the rate score.
+  function v21438LearnedZoneFor(goal){
+    try{var db=v280LearningDB(),r=currentRealm(),key=r.region+'|'+r.id+'|'+goal.id;return db&&db.zones&&db.zones[key]||null;}catch(e){return null;}
+  }
+  function v21438ExpectedGoldPerHour(goal,xph){
+    try{var db=v280LearningDB(),lm=db&&db.monsters&&db.monsters[goal.monster],m=GD.monsters&&GD.monsters[goal.monster]||{};if(!lm||Number(lm.kills)<=0||Number(m.xp)<=0)return 0;var kills=Math.max(0,Number(xph)||0)/Math.max(1,Number(m.xp)||1),goldPerKill=Math.max(0,Number(lm.gold)||0)/Math.max(1,Number(lm.kills)||1);return Math.round(kills*goldPerKill);}catch(e){return 0;}
+  }
+  function v21438BestRateFarmGoal(){
+    var rows=[];(SPAWNS||[]).forEach(function(sp){
+      if(!sp||!v21437FarmGoalAllowed(sp))return;var m=GD.monsters&&GD.monsters[sp.monster]||{};if(!m.hp||!m.xp||m.boss||m.cooperative||m.event||m.special)return;
+      var safety=0;try{safety=v280MonsterSafety(sp.monster);}catch(e){}if(C.safety&&safety<Number(C.risk||0))return;
+      var expectedXp=0;try{expectedXp=v280ExpectedXpPerHour(sp);}catch(e){}var z=v21438LearnedZoneFor(sp),measuredXp=z&&Number(z.xpPerHourAvg)>0?Number(z.xpPerHourAvg):0,measuredGold=z&&Number(z.goldPerHourAvg)>0?Number(z.goldPerHourAvg):0;
+      var xp=measuredXp||expectedXp,gold=measuredGold||v21438ExpectedGoldPerHour(sp,xp),samples=z?Number(z.samples)||0:0;
+      rows.push({goal:sp,xp:Math.max(0,xp),gold:Math.max(0,gold),safety:safety,samples:samples,measured:!!(measuredXp||measuredGold)});
+    });
+    if(!rows.length)return null;var maxXp=Math.max.apply(Math,rows.map(function(r){return r.xp;}))||1,maxGold=Math.max.apply(Math,rows.map(function(r){return r.gold;}))||1;
+    rows.forEach(function(r){var xpN=r.xp/maxXp,goldN=maxGold>0?r.gold/maxGold:0,safeN=Math.max(0,Math.min(1,r.safety/100));r.score=(xpN*.68+goldN*.32)*(.75+.25*safeN);});
+    rows.sort(function(a,b){var d=b.score-a.score;if(Math.abs(d)>0.000001)return d;d=b.xp-a.xp;if(d)return d;d=b.gold-a.gold;if(d)return d;var da=a.goal.map===character.map?dist(character,a.goal):Infinity,db=b.goal.map===character.map?dist(character,b.goal):Infinity;return da-db||String(a.goal.id||'').localeCompare(String(b.goal.id||''));});
+    var best=rows[0],g=Object.assign({},best.goal,{rateScore:{score:Number(best.score.toFixed(4)),xpPerHour:Math.round(best.xp),goldPerHour:Math.round(best.gold),safetyPct:best.safety,samples:best.samples,measured:best.measured}});
+    if(clock()-Number(S.rateFallbackAudit21438||0)>15000){S.rateFallbackAudit21438=clock();audit('farm_fallback_rate_selected','Fallbackziel nach EXP/h und Gold/h gewählt',{goal:{id:g.id,map:g.map,monster:g.monster},score:g.rateScore,candidates:rows.slice(0,5).map(function(r){return {id:r.goal.id,map:r.goal.map,monster:r.goal.monster,xpPerHour:Math.round(r.xp),goldPerHour:Math.round(r.gold),score:Number(r.score.toFixed(4)),safetyPct:r.safety};})});}
+    return g;
+  }
+  v21437SafeFarmFallback=function(){return v21438BestRateFarmGoal();};
+
+  // If the Farmer has loot work and the Merchant remains unavailable/blocked long enough, stop waiting
+  // for an ETA that never becomes credible. The existing self-service executor already mirrors the
+  // service order compound -> upgrade -> sell -> potions -> bank and uses town() when its ETA wins.
+  S.merchantServiceNeedSince21438=Number(S.merchantServiceNeedSince21438)||0;
+  var v21438FarmerEvaluateBase=v21431FarmerEvaluate;
+  v21431FarmerEvaluate=function(){
+    if(character.ctype==='merchant'||character.rip||S.farmerSelfService21431)return false;
+    var plan=v21431ServicePlan(),needed=v21431SelfServiceNeeded(plan);if(!needed){S.merchantServiceNeedSince21438=0;return false;}
+    var now=clock();if(!S.merchantServiceNeedSince21438)S.merchantServiceNeedSince21438=now;
+    var m=v21431MerchantEta(),f=v21431FarmerServiceEta(plan),critical=freeSlots()<=V21431_CRITICAL_FREE,lease=v21431PeerLease(),waitMs=now-S.merchantServiceNeedSince21438,status=(String(m.status||'')+' '+String(m.mode||'')).toLowerCase();
+    var merchantStalled=!!(m.blocked||!m.credible||!isFinite(m.seconds)||m.seconds>120||/kapaz|inventar|bankstatus|bankentnahme/.test(status)),notComing=waitMs>=25000&&merchantStalled;
+    if(!notComing)return v21438FarmerEvaluateBase();
+    if(lease&&!critical){if(now>Number(S.times.farmerSelfServiceDeferred21438||0)){S.times.farmerSelfServiceDeferred21438=now+15000;audit('farmer_self_service_deferred','Merchant kommt nicht, aber ein anderer Farmer besitzt die Service-Lease',{reason:'peer-self-service-lease',holder:lease.holder||null,waitMs:waitMs},'info');}return false;}
+    var origin={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0,targetMtype:S.targetMtype||null,goal:S.goal?Object.assign({},S.goal):null,at:now};
+    S.farmerSelfService21431={active:true,stage:'service',critical:critical,failsafe:true,origin:origin,beforeFree:freeSlots(),stages:[],startedAt:now,lastLeaseAt:0,expiresAt:now+V21431_LEASE_MS};
+    v21431BroadcastLease(true,critical);audit('farmer_self_service_merchant_unavailable','Merchant kommt nicht rechtzeitig; Farmer startet identische Loot-Verarbeitung',{waitMs:waitMs,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,merchantReason:m.reason,merchantStatus:m.status||'',merchantMode:m.mode||'',free:freeSlots(),order:V21432_SERVICE_ORDER,plan:{compound:plan.compound.length,upgrade:plan.upgrade.length,sell:plan.sell.length,bank:plan.bank.length}},'warning');
+    return v21431FarmerServiceTick()||true;
+  };
+
+  // Prefer the dedicated simple write endpoint for the write-only path. URL-encoded POST is a simple
+  // request and keeps the write key in the body. A resolved opaque response means only "submitted";
+  // readable ACK remains the only server confirmation.
+  function v21438SimpleDashboardEndpoint(endpoint){try{var u=new URL(endpoint);u.pathname='/api/push-simple';u.search='';u.hash='';return u.toString();}catch(e){return '';}}
+  var v21438DashboardFallbackBase=v21437DashboardFallbackSubmit;
+  v21437DashboardFallbackSubmit=function(endpoint,payload,key){
+    var simple=v21438SimpleDashboardEndpoint(endpoint),lean=v21437LeanDashboardPayload(payload),f=typeof P.fetch==='function'?P.fetch.bind(P):((typeof fetch==='function')?fetch:null);
+    if(!simple||!f)return v21438DashboardFallbackBase(endpoint,payload,key);
+    var body='writeKey='+encodeURIComponent(key)+'&status='+encodeURIComponent(JSON.stringify(lean));
+    return Promise.resolve(f(simple,{method:'POST',mode:'no-cors',credentials:'omit',cache:'no-store',keepalive:true,body:body})).then(function(){
+      return new Promise(function(r){P.setTimeout(r,300);}).then(function(){return v21436DashboardAckFetch(endpoint,lean,1800).then(function(a){a.simpleWrite=true;return a;},function(e){return {verified:false,submitted:true,transport:'cloudflare-worker/simple-write-unverified',ack:null,leanBytes:body.length,writeTransports:{simpleNoCors:true},verificationError:reason(e)};});});
+    },function(){return v21438DashboardFallbackBase(endpoint,payload,key);});
+  };
+
+  audit('feature_contract','2.14.38 Explizite Merchant-Bankslots + EXP/Gold-Fallback + Farmer-Selbstservice bei Merchant-Ausfall + Simple-Dashboard-Write geprüft',{serviceOrder:V21432_SERVICE_ORDER,fallbackWeights:{xp:68,gold:32},brainPolicyChanged:false});
