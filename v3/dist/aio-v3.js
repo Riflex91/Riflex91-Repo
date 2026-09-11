@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.3 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.4 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.3';
+const VERSION = '3.0.0-alpha.8.4';
 
 class Runtime {
   constructor(options = {}) {
@@ -2085,6 +2085,7 @@ module.exports = { FarmPlanner };
 
 const { KitingFarmerController } = require('./kiting-farmer');
 const { SkillUsagePolicy } = require('./skill-usage');
+const { TargetReassessmentPolicy } = require('./target-reassessment');
 
 class SkillFarmerController extends KitingFarmerController {
   constructor(options = {}) {
@@ -2094,10 +2095,19 @@ class SkillFarmerController extends KitingFarmerController {
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs
     });
+    this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
+      enabled: options.targetReassessmentEnabled !== false,
+      minIntervalMs: options.targetReassessmentMinIntervalMs,
+      switchCooldownMs: options.targetReassessmentSwitchCooldownMs
+    });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
     this.lastSkillUse = null;
     this.lastSkillDecision = null;
+    this.lastReassessmentAt = -Infinity;
+    this.lastTargetSwitchAt = -Infinity;
+    this.lastReassessmentDecision = null;
+    this.lastTargetSwitch = null;
   }
 
   _updateSelectedSkill(context) {
@@ -2114,6 +2124,69 @@ class SkillFarmerController extends KitingFarmerController {
     return super._shadowStep(context);
   }
 
+  _maybeReassessTarget(context, target) {
+    const now = this.now();
+    if (now - this.lastReassessmentAt < this.targetReassessment.minIntervalMs) return target;
+    this.lastReassessmentAt = now;
+
+    const decision = this.targetReassessment.evaluate(context && context.snapshot, target);
+    const baseRecord = {
+      at: now,
+      reason: decision.reason,
+      currentTargetId: target && target.id || null,
+      currentTargetType: target && target.mtype || null,
+      currentTargetOwner: decision.currentTargetOwner == null ? (target && target.target || null) : decision.currentTargetOwner,
+      candidateTargetId: decision.target && decision.target.id || null,
+      candidateTargetType: decision.target && decision.target.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+    };
+
+    if (!decision.switchTarget || !decision.target) {
+      this.lastReassessmentDecision = baseRecord;
+      return target;
+    }
+
+    const sinceSwitch = now - this.lastTargetSwitchAt;
+    if (sinceSwitch < this.targetReassessment.switchCooldownMs) {
+      this.lastReassessmentDecision = {
+        ...baseRecord,
+        reason: 'TARGET_SWITCH_COOLDOWN',
+        cooldownRemainingMs: Math.max(0, this.targetReassessment.switchCooldownMs - sinceSwitch)
+      };
+      return target;
+    }
+
+    const previousTargetId = target && target.id || null;
+    const previousTargetType = target && target.mtype || null;
+    const next = decision.target;
+    this.targetId = String(next.id);
+    this.targetType = next.mtype || null;
+    this.lastTargetSwitchAt = now;
+    this.lastReassessmentDecision = baseRecord;
+    this.lastTargetSwitch = {
+      at: now,
+      reason: decision.reason,
+      fromTargetId: previousTargetId,
+      fromTargetType: previousTargetType,
+      toTargetId: next.id || null,
+      toTargetType: next.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      distance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+    };
+
+    this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
+      previousTargetId,
+      previousTargetType,
+      nextTargetId: next.id || null,
+      nextTargetType: next.mtype || null,
+      attackerCount: Number(decision.attackerCount) || 0,
+      distance: this.lastTargetSwitch.distance
+    });
+
+    return next;
+  }
+
   _engage(context, target) {
     const snapshot = context && context.snapshot;
     const character = snapshot && snapshot.character;
@@ -2123,56 +2196,61 @@ class SkillFarmerController extends KitingFarmerController {
       const targetAllowed = this._targetAllowed(target, snapshot, context.party);
 
       if (!character.rip && !recovery.hpUnsafe && targetAllowed) {
-        const kiteDecision = this.kiting.evaluate(character, target);
-        if (kiteDecision.shouldMove) return super._engage(context, target);
+        target = this._maybeReassessTarget(context, target);
+        const reassessedTargetAllowed = this._targetAllowed(target, snapshot, context.party);
 
-        const { gameData } = this._updateSelectedSkill(context);
-        const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
-        this.lastSkillDecision = {
-          at: this.now(),
-          reason: decision.reason,
-          skill: decision.skill ? decision.skill.id : null,
-          targetId: target.id || null,
-          targetType: target.mtype || null,
-          mp: decision.mp == null ? null : Number(decision.mp),
-          reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
-          mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2))
-        };
+        if (reassessedTargetAllowed) {
+          const kiteDecision = this.kiting.evaluate(character, target);
+          if (kiteDecision.shouldMove) return super._engage(context, target);
 
-        if (decision.useSkill && decision.skill) {
-          const now = this.now();
-          if (now - this.lastSkillAttemptAt >= this.skillUsage.minIntervalMs) {
-            this.lastSkillAttemptAt = now;
-            const result = context.adapter.command('use_skill', [decision.skill.id, String(target.id)]);
-            if (result.executed || result.shadow) {
-              this.lastActionAt = now;
-              this.lastSkillUse = {
-                at: now,
+          const { gameData } = this._updateSelectedSkill(context);
+          const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
+          this.lastSkillDecision = {
+            at: this.now(),
+            reason: decision.reason,
+            skill: decision.skill ? decision.skill.id : null,
+            targetId: target.id || null,
+            targetType: target.mtype || null,
+            mp: decision.mp == null ? null : Number(decision.mp),
+            reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
+            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2))
+          };
+
+          if (decision.useSkill && decision.skill) {
+            const now = this.now();
+            if (now - this.lastSkillAttemptAt >= this.skillUsage.minIntervalMs) {
+              this.lastSkillAttemptAt = now;
+              const result = context.adapter.command('use_skill', [decision.skill.id, String(target.id)]);
+              if (result.executed || result.shadow) {
+                this.lastActionAt = now;
+                this.lastSkillUse = {
+                  at: now,
+                  skill: decision.skill.id,
+                  skillName: decision.skill.name,
+                  targetId: target.id || null,
+                  targetType: target.mtype || null,
+                  mpCost: decision.skill.mp,
+                  damageMultiplier: decision.skill.damageMultiplier
+                };
+                this._event('FARMER_SKILL_USED', 'info', 'SAFE_DIRECT_DAMAGE_SKILL', {
+                  skill: decision.skill.id,
+                  skillName: decision.skill.name,
+                  targetId: target.id || null,
+                  targetType: target.mtype || null,
+                  mpCost: decision.skill.mp,
+                  damageMultiplier: decision.skill.damageMultiplier,
+                  mpAfter: Number(decision.mpAfter.toFixed(2)),
+                  reserveMp: Number(decision.reserveMp.toFixed(2))
+                });
+                return;
+              }
+
+              this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
                 skill: decision.skill.id,
-                skillName: decision.skill.name,
                 targetId: target.id || null,
-                targetType: target.mtype || null,
-                mpCost: decision.skill.mp,
-                damageMultiplier: decision.skill.damageMultiplier
-              };
-              this._event('FARMER_SKILL_USED', 'info', 'SAFE_DIRECT_DAMAGE_SKILL', {
-                skill: decision.skill.id,
-                skillName: decision.skill.name,
-                targetId: target.id || null,
-                targetType: target.mtype || null,
-                mpCost: decision.skill.mp,
-                damageMultiplier: decision.skill.damageMultiplier,
-                mpAfter: Number(decision.mpAfter.toFixed(2)),
-                reserveMp: Number(decision.reserveMp.toFixed(2))
+                targetType: target.mtype || null
               });
-              return;
             }
-
-            this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
-              skill: decision.skill.id,
-              targetId: target.id || null,
-              targetType: target.mtype || null
-            });
           }
         }
       }
@@ -2189,6 +2267,11 @@ class SkillFarmerController extends KitingFarmerController {
         selectedSkill: this.selectedSkill,
         lastUse: this.lastSkillUse,
         lastDecision: this.lastSkillDecision
+      },
+      targetReassessment: {
+        ...this.targetReassessment.status(),
+        lastDecision: this.lastReassessmentDecision,
+        lastSwitch: this.lastTargetSwitch
       }
     };
   }
@@ -3007,6 +3090,87 @@ class SkillUsagePolicy {
 }
 
 module.exports = { SkillUsagePolicy, isDirectDamageSkill };
+
+},
+"src/farmer/target-reassessment.js": function(require,module,exports){
+'use strict';
+
+function distance(a, b) {
+  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
+  return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
+}
+
+function liveMonster(entity, character) {
+  if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
+  if (entity.map && character && character.map && entity.map !== character.map) return false;
+  return true;
+}
+
+class TargetReassessmentPolicy {
+  constructor(options = {}) {
+    this.enabled = options.enabled !== false;
+    this.minIntervalMs = Math.max(250, Number(options.minIntervalMs) || 750);
+    this.switchCooldownMs = Math.max(1000, Number(options.switchCooldownMs) || 2500);
+  }
+
+  evaluate(snapshot, currentTarget) {
+    if (!this.enabled) return { switchTarget: false, reason: 'REASSESSMENT_DISABLED' };
+    if (!snapshot || !snapshot.character || !currentTarget) return { switchTarget: false, reason: 'REASSESSMENT_CONTEXT_MISSING' };
+
+    const character = snapshot.character;
+    const selfName = character.name;
+    if (!selfName) return { switchTarget: false, reason: 'CHARACTER_NAME_MISSING' };
+    if (!liveMonster(currentTarget, character)) return { switchTarget: false, reason: 'CURRENT_TARGET_NOT_LIVE' };
+
+    if (currentTarget.target === selfName) {
+      return {
+        switchTarget: false,
+        reason: 'CURRENT_TARGET_SELF_AGGRO',
+        attackerCount: (snapshot.entities || []).filter((entity) => liveMonster(entity, character) && entity.target === selfName).length
+      };
+    }
+
+    const attackers = (snapshot.entities || [])
+      .filter((entity) => liveMonster(entity, character))
+      .filter((entity) => String(entity.id) !== String(currentTarget.id))
+      .filter((entity) => entity.target === selfName)
+      .sort((a, b) => {
+        const delta = distance(character, a) - distance(character, b);
+        if (delta !== 0) return delta;
+        return String(a.id).localeCompare(String(b.id));
+      });
+
+    if (!attackers.length) {
+      return {
+        switchTarget: false,
+        reason: 'NO_SELF_AGGRO_ALTERNATIVE',
+        attackerCount: 0,
+        currentTargetOwner: currentTarget.target || null
+      };
+    }
+
+    const target = attackers[0];
+    return {
+      switchTarget: true,
+      reason: 'SELF_AGGRO_PRIORITY',
+      target,
+      attackerCount: attackers.length,
+      currentTargetOwner: currentTarget.target || null,
+      targetDistance: distance(character, target)
+    };
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      minIntervalMs: this.minIntervalMs,
+      switchCooldownMs: this.switchCooldownMs,
+      strategy: 'keep-self-aggro-current; otherwise nearest-self-attacker'
+    };
+  }
+}
+
+module.exports = { TargetReassessmentPolicy };
 
 },
 "src/farmer/target-safety.js": function(require,module,exports){
