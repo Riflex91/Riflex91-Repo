@@ -2,8 +2,6 @@ name: release-21433
 on:
   push:
     branches: ["hotfix/2.14.33-update-contract"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
