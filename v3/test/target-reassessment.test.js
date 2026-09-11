@@ -136,3 +136,24 @@ test('SkillFarmerController switch cooldown blocks a second immediate reassessme
   assert.equal(farmer.status().targetReassessment.lastDecision.reason, 'TARGET_SWITCH_COOLDOWN');
   assert.ok(farmer.status().targetReassessment.lastDecision.cooldownRemainingMs > 0);
 });
+
+test('SkillFarmerController keeps recovery ahead of target reassessment', () => {
+  const commands = [];
+  const current = monster('current', { target: null });
+  const attacker = monster('attacker', { x: 35, target: 'R1' });
+  const snap = snapshot([current, attacker], { character: { hp: 400, max_hp: 1000 } });
+  const farmer = new SkillFarmerController({
+    now: () => 10000,
+    kitingEnabled: false,
+    skillUsageEnabled: false,
+    targetReassessmentMinIntervalMs: 250
+  });
+  farmer.state = FarmerState.ENGAGE;
+  farmer.targetId = 'current';
+  farmer.targetType = 'goo';
+
+  farmer._engage(context(snap, commands), current);
+
+  assert.equal(farmer.targetId, 'current');
+  assert.equal(farmer.status().targetReassessment.lastSwitch, null);
+});
