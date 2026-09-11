@@ -11,7 +11,12 @@ ok(bot.includes("allZero=vals.every")&&bot.includes("measurementStatus='not_meas
 ok(/4006|daily free allocation|used up your daily free allocation/.test(bot),'quota classification');
 ok(bot.includes("S.teacherSuppressedReason21419='quota-exhausted'")&&bot.includes('v210ResetMs()'),'quota breaker');
 ok(bot.includes('v21420LocalStudentTick')&&bot.includes('v211MaybeApplyPolicy(pred)'),'local student continues');
+ok(bot.includes("m.lastErrorClass===cls&&m.lastErrorText===text&&now-Number(m.lastErrorAt||0)<5000"),'teacher error dedupe');
+ok(bot.includes("if(kind==='brain_decision'){var sm=v21420TeacherMetrics();sm.succeeded++"),'teacher success telemetry');
+ok(!bot.includes('var beforeReq=Number(S.brain&&S.brain.requests)||0,r=v21420TeacherBase'),'no delayed duplicate teacher classifier');
 ok(bot.includes('decisionOutcomeCoveragePct')&&bot.includes('errorClasses:Object.assign'),'learning observability');
 ok(bot.includes('minFreeSlots')&&bot.includes('routeOwner')&&bot.includes('eventCounts'),'merchant diagnostics');
+const merchantBlock=bot.slice(bot.indexOf('function v21420MerchantBlockedReason()'),bot.indexOf('function v21420MerchantTelemetry()'));
+ok(merchantBlock&&!merchantBlock.includes("'teacher-quota'")&&!merchantBlock.includes("'teacher-provider'"),'teacher outage is not merchant operational block');
 ok(bot.includes("brainStudentLearningRate: 0.012")&&bot.includes("brainStudentConfidencePct: 82")&&bot.includes("brainChallengerTrafficPct: 20"),'brain tuning unchanged');
 console.log('2.14.20 measurement/teacher reliability smoke OK');
