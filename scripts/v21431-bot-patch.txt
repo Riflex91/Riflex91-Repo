@@ -1,0 +1,353 @@
+
+
+  /* v2.14.31 Farmer self-service arbitration, sell preference and Brain character context */
+  try{
+    if(FEATURE_CONTRACT.indexOf('merchant-user-sell-preference')<0)FEATURE_CONTRACT.push('merchant-user-sell-preference');
+    if(FEATURE_CONTRACT.indexOf('farmer-self-service-fallback')<0)FEATURE_CONTRACT.push('farmer-self-service-fallback');
+    if(FEATURE_CONTRACT.indexOf('farmer-service-eta-arbitration')<0)FEATURE_CONTRACT.push('farmer-service-eta-arbitration');
+    if(FEATURE_CONTRACT.indexOf('farmer-town-route-estimator')<0)FEATURE_CONTRACT.push('farmer-town-route-estimator');
+    if(FEATURE_CONTRACT.indexOf('brain-character-context')<0)FEATURE_CONTRACT.push('brain-character-context');
+  }catch(e){}
+
+  function v21431Perm(name,action){
+    try{var r=C.merchantItemPermissions&&C.merchantItemPermissions[name];return r&&r[action]===true;}catch(e){return false;}
+  }
+  function v21431LocalCount(name,level){
+    return (character.items||[]).reduce(function(n,it){
+      return n+(it&&it.name===name&&(Number(it.level)||0)===(Number(level)||0)?(Number(it.q)||1):0);
+    },0);
+  }
+  function v21431ManualKeep(name){
+    try{var r=C.merchantItemRules&&C.merchantItemRules[name];return r&&typeof r==='object'?Math.max(0,Number(r.minKeep)||0):0;}catch(e){return 0;}
+  }
+
+  /* A positive protection-menu permission now also expresses a user preference.
+     Hard protection still wins; false still vetoes the corresponding action. */
+  var v21431PolicyBase=v21422Policy;
+  v21422Policy=function(it,where){
+    var p=v21431PolicyBase(it,where);
+    if(!it||p.protected)return p;
+    var name=it.name,d=GD.items&&GD.items[name]||{},lv=Number(it.level)||0,keep=v21431ManualKeep(name),local=v21431LocalCount(name,lv);
+    if(v21431Perm(name,'compound')&&d.compound){
+      var copies=(character.items||[]).filter(function(x){return x&&x.name===name&&(Number(x.level)||0)===lv&&!x.l&&!x.p;}).length;
+      if(copies>=3&&lv<v273EffectiveCompoundMax(name))return Object.assign({},p,{action:'COMPOUND',reason:'user-compound-preference'});
+    }
+    if(v21431Perm(name,'upgrade')&&d.upgrade&&lv<Math.max(1,Number((C.merchantItemRules&&C.merchantItemRules[name]&&C.merchantItemRules[name].targetLevel)||C.merchantUpgradeMax)||1))
+      return Object.assign({},p,{action:'UPGRADE',reason:'user-upgrade-preference'});
+    if(v21431Perm(name,'sell')&&local>keep)
+      return Object.assign({},p,{action:'SELL',reason:'user-sell-preference',reserve:keep,surplus:Math.max(0,local-keep)});
+    if(v21431Perm(name,'bank')&&local>keep)
+      return Object.assign({},p,{action:'BANK',reason:'user-bank-preference',reserve:keep,surplus:Math.max(0,local-keep)});
+    return p;
+  };
+
+  function v21431ForcedSellCandidate(){
+    var best=null;
+    (character.items||[]).forEach(function(it,i){
+      if(!it||!v21431Perm(it.name,'sell'))return;
+      var prot='';try{prot=v21422Protected(it);}catch(e){prot=protectedStandItem(it)?'protected':'';}
+      if(prot)return;
+      var lv=Number(it.level)||0,local=v21431LocalCount(it.name,lv),keep=v21431ManualKeep(it.name);
+      if(local<=keep)return;
+      var q=Math.max(1,Number(it.q)||1),sellQty=q;
+      if(q>1)sellQty=Math.max(0,Math.min(q,local-keep));
+      if(sellQty<1)return;
+      var value=Number(itemValueSafe(it))||0;
+      if(!best||value<best.value)best={index:i,item:it,qty:sellQty,value:value,keep:keep};
+    });
+    return best;
+  }
+  var v21431SellBase=v273SellTrashTick;
+  v273SellTrashTick=function(){
+    if(typeof sell==='function'){
+      var c=v21431ForcedSellCandidate();
+      if(c){
+        var dest=v2144SellVendor();
+        if(character.map!==dest.map||dist(character,dest)>90||character.moving||S.moveInFlight){
+          S.status=(C.language==='de'?'Benutzer-Verkaufsregel · zum NPC: ':'User sell rule · move to NPC: ')+v273Name(c.item.name);
+          S.mode=character.ctype==='merchant'?'Merchant · NPC':'Farmer · Selbst-Service';
+          return moveToGoal(dest,'NPC-Verkauf nach Benutzerregel',{kind:'user-npc-sell',forceAfter:9000,tolerance:65});
+        }
+        S.status=(C.language==='de'?'Verkaufe nach Benutzerregel: ':'Sell by user rule: ')+v273Name(c.item.name);
+        S.mode=character.ctype==='merchant'?'Merchant · NPC':'Farmer · Selbst-Service';
+        audit('merchant_user_sell_override','Positive SELL-Regel wird als Verkaufspriorität ausgeführt',{item:c.item.name,level:Number(c.item.level)||0,qty:c.qty,minKeep:c.keep,actor:character.ctype});
+        return action('NPC-Verkauf Benutzerregel '+c.item.name,function(){return sell(c.index,c.qty);},'user-sell:'+c.item.name,2600);
+      }
+    }
+    return v21431SellBase();
+  };
+
+  function v21431TownSpawn(){
+    try{
+      var m=GD.maps&&GD.maps.main||{},s=Array.isArray(m.spawns)&&m.spawns[0];
+      if(Array.isArray(s)&&isFinite(Number(s[0]))&&isFinite(Number(s[1])))return {map:'main',x:Number(s[0]),y:Number(s[1])};
+      if(s&&typeof s==='object'&&isFinite(Number(s.x))&&isFinite(Number(s.y)))return {map:'main',x:Number(s.x),y:Number(s.y)};
+    }catch(e){}
+    return {map:'main',x:0,y:0};
+  }
+  function v21431TravelEstimate(from,to,speed,allowTown){
+    speed=Math.max(20,Number(speed)||40);
+    if(!from||!to)return {seconds:45,method:'smart_move',walkSeconds:null,townSeconds:null};
+    var fm=String(from.map||''),tm=String(to.map||'');
+    if(fm===tm&&isFinite(Number(from.x))&&isFinite(Number(from.y))&&isFinite(Number(to.x))&&isFinite(Number(to.y))){
+      var dd=Math.hypot(Number(from.x)-Number(to.x),Number(from.y)-Number(to.y)),walk=dd/speed,best=walk,method='walk',townSec=null;
+      if(allowTown&&fm==='main'&&tm==='main'){
+        var sp=v21431TownSpawn(),after=Math.hypot(Number(sp.x)-Number(to.x),Number(sp.y)-Number(to.y)),ts=4+after/speed;
+        townSec=ts;if(dd>=500&&ts+2<walk){best=ts;method='town';}
+      }
+      return {seconds:best,method:method,walkSeconds:walk,townSeconds:townSec,distance:dd};
+    }
+    if(fm==='bank'&&tm==='main'){
+      var sp2=v21431TownSpawn(),d2=Math.hypot(Number(sp2.x)-Number(to.x||0),Number(sp2.y)-Number(to.y||0));
+      return {seconds:8+d2/speed,method:'bank-exit',walkSeconds:null,townSeconds:null,distance:d2};
+    }
+    return {seconds:45,method:'smart_move',walkSeconds:null,townSeconds:null};
+  }
+  function v21431RawReport(name){
+    if(!name)return null;
+    try{
+      var a=S.reports&&S.reports[name],b=read('report:'+name,null),r=a&&(!b||Number(a.at)>Number(b.at))?a:b;
+      if(!r||clock()-Number(r.at||0)>Math.max(20000,Number(C.peerReportSeconds||45)*1000))return null;
+      return r;
+    }catch(e){return null;}
+  }
+  function v21431MerchantReport(){
+    var n=merchantName();return n?v21431RawReport(n):null;
+  }
+  function v21431MerchantUnavailable(r){
+    if(!r||r.rip||r.active===false)return 'merchant-offline';
+    var text=(String(r.status||'')+' '+String(r.mode||'')).toLowerCase();
+    if(/kapazität blockiert|capacity blocked|terminal|quarant|sync-wait|sync wait/.test(text))return 'merchant-blocked';
+    if(r.logistics21431&&r.logistics21431.unavailable)return String(r.logistics21431.unavailable);
+    return '';
+  }
+  function v21431MerchantPrepPenalty(r){
+    var text=(String(r&&r.status||'')+' '+String(r&&r.mode||'')).toLowerCase(),pen=0;
+    if(/bank/.test(text))pen+=18;
+    if(/material|craft/.test(text))pen+=16;
+    if(/inventar|inventory/.test(text))pen+=10;
+    if(/upgrade|compound|combine|sell|npc|verkauf/.test(text))pen+=8;
+    var st=r&&r.logistics21431&&r.logistics21431.prepStage;
+    if(st==='compound')pen+=12;else if(st==='upgrade')pen+=10;else if(st==='sell')pen+=7;else if(st==='potions')pen+=9;else if(st==='bank')pen+=18;
+    return pen;
+  }
+  function v21431MerchantEtaToReport(mr,fr){
+    if(!mr||!fr)return {seconds:Infinity,available:false,reason:'missing-report'};
+    var unavailable=v21431MerchantUnavailable(mr);
+    if(unavailable)return {seconds:Infinity,available:false,reason:unavailable};
+    var tr=v21431TravelEstimate(mr,fr,mr.speed,true),pen=v21431MerchantPrepPenalty(mr);
+    if(mr.logistics21431&&mr.logistics21431.serviceTarget&&mr.logistics21431.serviceTarget!==fr.name)pen+=20;
+    return {seconds:tr.seconds+pen,available:true,reason:'estimated',travel:tr,delaySeconds:pen};
+  }
+  function v21431MerchantEtaMap(){
+    if(character.ctype!=='merchant')return {};
+    var out={},mr={name:me,map:character.map,x:character.x,y:character.y,speed:character.speed,status:S.status,mode:S.mode,active:!!S.running,rip:!!character.rip,logistics21431:{serviceTarget:S.merchantServiceTarget||'',prepStage:S.merchantServicePrep21430&&S.merchantServicePrep21430.stage||''}};
+    (C.roster||[]).forEach(function(n){
+      if(n===me||characterType(n)==='merchant')return;
+      var fr=v21431RawReport(n);if(!fr)return;var e=v21431MerchantEtaToReport(mr,fr);out[n]=isFinite(e.seconds)?Math.round(e.seconds*10)/10:null;
+    });
+    return out;
+  }
+
+  var v21431ReportBase=report;
+  report=function(withRole){
+    var r=v21431ReportBase(withRole);
+    if(character.ctype==='merchant'){
+      var un='';
+      if(S.capacityBlocked21418)un='capacity-blocked';
+      else if(!S.running||character.rip)un='inactive';
+      r.logistics21431={
+        serviceTarget:S.merchantServiceTarget||'',
+        prepStage:S.merchantServicePrep21430&&S.merchantServicePrep21430.stage||'',
+        capacityBlocked:!!S.capacityBlocked21418,
+        bankBusy:!!(S.merchantBankRetrieve2149||S.merchantBankCleanup2148),
+        unavailable:un,
+        etaByFarmer:v21431MerchantEtaMap()
+      };
+    }else{
+      var ss=S.farmerSelfService21431;
+      r.selfService21431=ss&&ss.active?{active:true,stage:ss.stage,startedAt:ss.startedAt,merchantEtaSeconds:ss.decision&&ss.decision.merchantEtaSeconds,selfEtaSeconds:ss.decision&&ss.decision.selfEtaSeconds}:null;
+    }
+    return r;
+  };
+
+  function v21431FarmerPlan(){
+    var plan={compound:[],upgrade:[],sell:[],bank:[],counts:{compound:0,upgrade:0,sell:0,bank:0},free:freeSlots()};
+    (character.items||[]).forEach(function(it,i){
+      if(!it)return;var p=v21422Policy(it,'inventory'),row={index:i,item:it,policy:p};
+      if(p.action==='COMPOUND')plan.compound.push(row);
+      else if(p.action==='UPGRADE')plan.upgrade.push(row);
+      else if(p.action==='SELL')plan.sell.push(row);
+      else if(p.action==='BANK')plan.bank.push(row);
+    });
+    var groups={};
+    plan.compound.forEach(function(r){var k=r.item.name+'|'+(Number(r.item.level)||0);(groups[k]||(groups[k]=[])).push(r);});
+    plan.compoundGroups=Object.keys(groups).map(function(k){return groups[k];}).filter(function(g){return g.length>=3;});
+    plan.counts={compound:plan.compoundGroups.length,upgrade:plan.upgrade.length,sell:plan.sell.length,bank:plan.bank.length};
+    plan.total=plan.counts.compound+plan.counts.upgrade+plan.counts.sell+plan.counts.bank;
+    return plan;
+  }
+  function v21431FarmerOrigin(){
+    var g=S.goal;
+    if(g&&g.map&&isFinite(Number(g.x))&&isFinite(Number(g.y)))return {map:g.map,x:Number(g.x),y:Number(g.y),monster:g.monster||''};
+    return {map:character.map,x:Number(character.x)||0,y:Number(character.y)||0};
+  }
+  function v21431FarmerSelfEstimate(plan){
+    var vendor=v2144SellVendor(),origin={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0},speed=Number(character.speed)||40;
+    var out=v21431TravelEstimate(origin,vendor,speed,true),back=v21431TravelEstimate(vendor,v21431FarmerOrigin(),speed,true);
+    var actions=5+plan.counts.compound*4+plan.counts.upgrade*4+plan.counts.sell*2+(plan.counts.bank?12+plan.counts.bank*2:0);
+    return {seconds:out.seconds+actions+back.seconds,outbound:out,returnTrip:back,actionSeconds:actions};
+  }
+  function v21431FarmerDecision(){
+    if(character.ctype==='merchant'||character.rip||!S.running)return null;
+    var plan=v21431FarmerPlan(),pressure=freeSlots()<=Math.max(1,Number(C.merchantPickupFreeSlotsAt)||12);
+    if(!plan.total&&!pressure)return null;
+    var mr=v21431MerchantReport(),self=v21431FarmerSelfEstimate(plan),meReport={name:me,map:character.map,x:character.x,y:character.y,speed:character.speed},mer=v21431MerchantEtaToReport(mr,meReport);
+    var remoteEta=mr&&mr.logistics21431&&mr.logistics21431.etaByFarmer&&Number(mr.logistics21431.etaByFarmer[me]);
+    if(isFinite(remoteEta)&&remoteEta>=0)mer.seconds=remoteEta;
+    var unavailable=!mer.available,margin=8,win=unavailable||self.seconds+margin<mer.seconds;
+    return {
+      start:!!win,
+      reason:unavailable?(mer.reason||'merchant-unavailable'):(win?'self-service-faster':'merchant-faster'),
+      pressure:pressure,free:freeSlots(),work:plan.counts,
+      merchantEtaSeconds:isFinite(mer.seconds)?Math.round(mer.seconds*10)/10:null,
+      selfEtaSeconds:Math.round(self.seconds*10)/10,
+      merchantStatus:mr&&mr.status||'',merchantMode:mr&&mr.mode||'',
+      outboundMethod:self.outbound.method,returnMethod:self.returnTrip.method
+    };
+  }
+  function v21431FarmerThreatened(){
+    try{return mobs().some(function(m){return m&&m.target===me&&!m.dead&&m.hp>0;});}catch(e){return false;}
+  }
+  function v21431FarmerMove(g,why,kind){
+    if(!g)return false;
+    var from={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0},e=v21431TravelEstimate(from,g,character.speed,true);
+    if(e.method==='town'&&C.fastTravelEnabled&&typeof town==='function'&&!character.moving&&!S.moveInFlight&&clock()>Number(S.times.farmerFastTown21431||0)){
+      try{if(typeof is_on_cooldown==='function'&&is_on_cooldown('use_town'))return moveToGoal(g,why,{kind:kind||'farmer-self-service',forceAfter:9000,tolerance:65});}catch(_){}
+      try{if(typeof can_use==='function'&&!can_use('use_town'))return moveToGoal(g,why,{kind:kind||'farmer-self-service',forceAfter:9000,tolerance:65});}catch(_){}
+      S.times.farmerFastTown21431=clock()+20000;
+      audit('farmer_town_shortcut','Farmer nutzt town(), weil der Stadtweg damit schneller ist',{target:g,walkSeconds:e.walkSeconds,townSeconds:e.townSeconds,savedSeconds:e.walkSeconds-e.townSeconds});
+      return action('Schnellreise town() · Farmer',function(){return town();},'farmer-fast-town-21431',18000);
+    }
+    return moveToGoal(g,why,{kind:kind||'farmer-self-service',forceAfter:9000,tolerance:65});
+  }
+  function v21431FarmerScroll(prefix,it){
+    var n=v273ScrollName(prefix,it),idx=slot(n);if(idx>=0)return idx;
+    var dest=v282VendorForScroll(n)||v2144SellVendor();
+    if(character.map!==dest.map||dist(character,dest)>90){
+      v21431FarmerMove(dest,'Farmer holt '+n+' für Selbst-Service','farmer-self-scroll');
+      return -2;
+    }
+    if(typeof buy!=='function')return -1;
+    action('Farmer kauft '+n,function(){return buy(n,1);},'farmer-buy-scroll:'+n,1800);
+    return -2;
+  }
+  function v21431FarmerStage(st,next){
+    var prev=st.stage;st.stage=next;st.stageAt=clock();
+    audit('farmer_self_service_stage','Farmer-Selbst-Service wechselt Phase',{from:prev,to:next,decision:st.decision,free:freeSlots()});
+  }
+  function v21431StartFarmerSelfService(decision){
+    var origin=v21431FarmerOrigin();
+    S.farmerSelfService21431={active:true,stage:'compound',startedAt:clock(),stageAt:clock(),origin:origin,decision:decision,initialFree:freeSlots()};
+    audit('farmer_self_service_start','Farmer übernimmt Loot-Service selbst',{decision:decision,origin:origin});
+  }
+  function v21431FarmerSelfServiceTick(){
+    if(character.ctype==='merchant')return false;
+    var st=S.farmerSelfService21431,now=clock();
+    if(!st||!st.active){
+      if(now<Number(S.times.farmerSelfServiceCooldown21431||0))return false;
+      if(v21431FarmerThreatened()||ratio(character,'hp')<Math.max(.5,Number(C.retreatHP||28)/100))return false;
+      if(now<Number(S.times.farmerSelfServiceDecision21431||0))return false;
+      S.times.farmerSelfServiceDecision21431=now+5000;
+      var d=v21431FarmerDecision();if(!d)return false;
+      audit('farmer_self_service_decision','Merchant-ETA mit Farmer-Selbst-Service verglichen',d,d.start?'warning':'info');
+      if(!d.start)return false;
+      v21431StartFarmerSelfService(d);st=S.farmerSelfService21431;
+    }
+    S.target=null;S.status='Selbst-Service · '+st.stage;S.mode='Farmer · Selbst-Service';
+    if(character.moving||S.moveInFlight)return true;
+
+    var plan=v21431FarmerPlan(),row,g,sc,dest;
+    if(st.stage==='compound'){
+      g=plan.compoundGroups[0];
+      if(g){
+        var base=g[0],ids=g.slice(0,3).map(function(x){return x.index;});sc=v21431FarmerScroll('cscroll',base.item);
+        if(sc===-2)return true;if(sc<0){audit('farmer_self_service_blocked','Kein Compound-Scroll verfügbar',{item:base.item.name},'warning');v21431FarmerStage(st,'upgrade');return true;}
+        if(typeof compound==='function'){
+          action('Farmer kombiniert '+base.item.name,function(){return compound(ids[0],ids[1],ids[2],sc);},'farmer-self-compound',3400);return true;
+        }
+      }
+      v21431FarmerStage(st,'upgrade');return true;
+    }
+    if(st.stage==='upgrade'){
+      row=plan.upgrade[0];
+      if(row){
+        sc=v21431FarmerScroll('scroll',row.item);
+        if(sc===-2)return true;if(sc<0){audit('farmer_self_service_blocked','Kein Upgrade-Scroll verfügbar',{item:row.item.name},'warning');v21431FarmerStage(st,'sell');return true;}
+        if(typeof upgrade==='function'){action('Farmer verbessert '+row.item.name,function(){return upgrade(row.index,sc);},'farmer-self-upgrade',3400);return true;}
+      }
+      v21431FarmerStage(st,'sell');return true;
+    }
+    if(st.stage==='sell'){
+      row=plan.sell[0]||null;
+      if(row){
+        dest=v2144SellVendor();
+        if(character.map!==dest.map||dist(character,dest)>90){v21431FarmerMove(dest,'Farmer verkauft Loot selbst','farmer-self-sell');return true;}
+        if(typeof sell==='function'){
+          var q=Math.max(1,Number(row.item.q)||1),keep=v21431ManualKeep(row.item.name),local=v21431LocalCount(row.item.name,Number(row.item.level)||0),qtySell=q>1?Math.max(1,Math.min(q,local-keep)):1;
+          action('Farmer verkauft '+row.item.name,function(){return sell(row.index,qtySell);},'farmer-self-sell:'+row.item.name,2600);return true;
+        }
+      }
+      v21431FarmerStage(st,'bank');return true;
+    }
+    if(st.stage==='bank'){
+      row=plan.bank[0]||null;
+      if(row){
+        if(!character.bank){v21431FarmerMove({map:'bank',x:0,y:0},'Farmer lagert Loot selbst ein','farmer-self-bank');return true;}
+        if(typeof bank_store==='function'){action('Farmer lagert '+row.item.name+' ein',function(){return bank_store(row.index);},'farmer-self-bank:'+row.item.name,2200);return true;}
+      }
+      v21431FarmerStage(st,'return');return true;
+    }
+    if(st.stage==='return'){
+      var home=st.origin;
+      if(home&&(character.map!==home.map||dist(character,home)>160)){v21431FarmerMove(home,'Farmer kehrt zum Farmspot zurück','farmer-self-return');return true;}
+      st.active=false;S.times.farmerSelfServiceCooldown21431=clock()+60000;
+      audit('farmer_self_service_done','Farmer-Selbst-Service abgeschlossen',{durationMs:clock()-st.startedAt,freeBefore:st.initialFree,freeAfter:freeSlots(),decision:st.decision});
+      S.farmerSelfService21431=null;return false;
+    }
+    return true;
+  }
+
+  var v21431FarmerBase=farmerTick;
+  farmerTick=function(){if(v21431FarmerSelfServiceTick())return;return v21431FarmerBase();};
+
+  /* Make the Brain window explicit about whose state is being explained.
+     Farmer explanations no longer present Merchant planner alternatives as their own. */
+  var v21431ExplainBase=v21411Explain;
+  v21411Explain=function(){
+    var e=v21431ExplainBase();e.sourceCharacter=me;e.sourceCtype=character.ctype;
+    if(character.ctype!=='merchant'){
+      var st=S.farmerSelfService21431,d=st&&st.decision,goal=S.goal;
+      e.current=safeString(S.status||S.mode||'Farmer arbeitet am Farmziel',180);
+      if(st&&st.active)e.why=safeString('Dieser Farmer führt Selbst-Service aus, weil '+(d&&d.reason==='merchant-faster'?'der Merchant schneller wäre':d&&d.reason==='self-service-faster'?'die eigene Stadt-Runde schneller ist':'der Merchant aktuell nicht rechtzeitig verfügbar ist')+'. Merchant-ETA: '+(d&&d.merchantEtaSeconds!=null?d.merchantEtaSeconds+' s':'nicht verfügbar')+' · Selbst-Service: '+(d&&d.selfEtaSeconds!=null?d.selfEtaSeconds+' s':'—')+'.',300);
+      else e.why=safeString(goal?'Dieser Farmer folgt seinem eigenen Farm-/Gruppenziel '+v273Name(goal.monster||goal.map||'')+'.':'Dieser Farmer folgt seinen eigenen Kampf-, Sicherheits- und Versorgungsregeln.',260);
+      var check=v21431FarmerDecision();
+      e.next=check?safeString('Logistikvergleich: Merchant '+(check.merchantEtaSeconds==null?'nicht verfügbar':check.merchantEtaSeconds+' s')+' · eigene Stadt-Runde '+check.selfEtaSeconds+' s.',220):'Weiter farmen; Selbst-Service wird bei Bedarf erneut geprüft.';
+      e.short=safeString(e.current,55);
+    }
+    return e;
+  };
+  var v21431BrainHTMLBase=v290BrainHTML;
+  v290BrainHTML=function(){
+    var h=v21431BrainHTMLBase(),tag='<div class="muted brain-source21431">Quelle: '+esc(me)+' · '+esc(character.ctype)+(character.ctype==='merchant'?' · zentrale Merchant-/Gruppenlogistik':' · Zustand dieses Farmers')+'</div>';
+    return h.replace(/(<h2>🧠[^<]*<\/h2>)/, '$1'+tag);
+  };
+  CSS+=' .brain-source21431{margin:-4px 0 9px;font-size:10px} ';
+
+  audit('feature_contract','2.14.31 Benutzer-Verkaufspriorität + Farmer-Selbst-Service + ETA-Arbitration + Brain-Quellenkontext geprüft',{
+    sellPreference:true,
+    farmerSelfService:['compound','upgrade','sell','bank','return'],
+    etaComparison:'merchant-arrival-vs-farmer-city-roundtrip',
+    farmerTownEstimator:true,
+    brainCharacterContext:true
+  });
