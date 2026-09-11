@@ -52,13 +52,31 @@ jobs:
             fs.writeFileSync(p,s);
           }
           NODE
-      - name: Run complete smoke suite
+      - name: Smoke 2.14.4 through 2.14.9
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          for f in scripts/smoke*.js; do node "$f"; done
-          for f in scripts/smoke*.mjs; do node "$f"; done
+          for f in scripts/smoke-2144-*.js scripts/smoke-2145-*.js scripts/smoke-2146-*.js scripts/smoke-2147-*.js scripts/smoke-2148-*.js scripts/smoke-2149-*.js; do echo "RUN $f"; node "$f"; done
+      - name: Smoke 2.14.10 through 2.14.15
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke-21410-*.js scripts/smoke-21411-*.js scripts/smoke-21412-*.js scripts/smoke-21413-*.js scripts/smoke-21414-*.js scripts/smoke-21415-*.js; do echo "RUN $f"; node "$f"; done
+      - name: Smoke 2.14.16 through 2.14.21
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke-21416-*.js scripts/smoke-21417-*.js scripts/smoke-21418-*.js scripts/smoke-21419-*.js scripts/smoke-21420-*.js scripts/smoke-21421-*.js; do echo "RUN $f"; node "$f"; done
+      - name: Smoke 2.14.22 through 2.14.24
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke-21422-*.js scripts/smoke-21423-*.js scripts/smoke-21424-*.js; do echo "RUN $f"; node "$f"; done
+      - name: Smoke Brain and worker suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke-diary.js scripts/smoke-league.js scripts/smoke-merchant-stability.js scripts/smoke-quality.js scripts/smoke-research.js scripts/smoke-student.js scripts/smoke-worker.mjs; do echo "RUN $f"; node "$f"; done
       - name: Restore temporary smoke edits before diff
         run: git checkout -- scripts/smoke*.js scripts/smoke*.mjs || true
       - name: Diff check
