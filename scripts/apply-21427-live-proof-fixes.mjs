@@ -33,6 +33,8 @@ const oldTerrain=`  const groups=Array.isArray(input.g)?input.g.slice(0,64).map(
 const newTerrain=`  const groups=Array.isArray(input.g)?input.g.slice(0,64).map(g=>cleanTerrainRows(g,240,6)).filter(g=>g.length):[];\n  const packed=typeof input.pc==="string"?input.pc.slice(0,480000):"";\n  const packedGroups=Array.isArray(input.gc)?input.gc.slice(0,96).map(x=>text(x,480000)):[];\n  const packedAnimations=typeof input.ac==="string"?input.ac.slice(0,480000):"";\n  const out=Object.assign({},base,{d:input.d==null?null:number(input.d),t:cleanTerrainRows(input.t,1600,8),p:cleanTerrainRows(input.p,6000,6),pc:packed,g:groups,gc:packedGroups,a:cleanTerrainRows(input.a,1200,8),ac:packedAnimations,s:sets});\n  try{if(JSON.stringify(out).length>480000)return Object.assign({},base,{omitted:true,fallback:base.fallback||"worker-size-guard-v21427"});}catch{}\n  return out;`;
 if(w.includes(oldTerrain))w=w.replace(oldTerrain,newTerrain);
 if(!w.includes('const packedGroups=Array.isArray(input.gc)'))throw new Error('worker packed terrain sanitizer missing');
+if(w.includes('version:"2.14.26",brain:'))w=w.replace('version:"2.14.26",brain:','version:"2.14.27",brain:');
+if(!w.includes('version:"2.14.27",brain:'))throw new Error('worker health version missing');
 // Re-embed the exact dashboard release in the Worker after dashboard modifications.
 w=w.replace(/const DASHBOARD_HTML = [\s\S]*?;\n\n(?=function )/,`const DASHBOARD_HTML = ${JSON.stringify(h)};\n\n`);
 fs.writeFileSync(workerPath,w);
