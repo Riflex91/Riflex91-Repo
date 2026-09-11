@@ -1,0 +1,64 @@
+
+  /* v2.14.27 live-proof Merchant, Brain UI and full-terrain payload */
+  try{FEATURE_CONTRACT.push('merchant-empty-q-liveness-fix','merchant-liveness-outermost-guard','brain-final-dispatch-ui','dashboard-packed-groups-terrain','dashboard-inline-arrow-marker');}catch(e){}
+
+  // Adventure Land exposes character.q as an object. An empty {} means there is no active
+  // queued game action; treating the object itself as a boolean permanently blocked v2.14.26.
+  function v21427HasActiveQueue(){
+    var q=character&&character.q;if(!q)return false;
+    if(Array.isArray(q))return q.length>0;
+    if(typeof q==='object')return Object.keys(q).some(function(k){var v=q[k];return v!==null&&v!==undefined&&v!==false&&v!==0&&v!=='';});
+    return !!q;
+  }
+  v21426BankTerminalReason=function(){
+    if(character.ctype!=='merchant'||String(character.map||'')!=='bank'||freeSlots()>Math.max(1,Number(C.merchantInventoryReserve)||0))return '';
+    if(v21427HasActiveQueue())return '';
+    if(typeof v21425ActiveBankQuarantine==='function'&&v21425ActiveBankQuarantine())return 'quarantined-bank-store';
+    var b=S.capacityBlocked21418,age=b?clock()-Number(b.since||clock()):0;return age>=20000?'capacity-no-progress':'';
+  };
+  v21426ReleaseLocalBankTx=function(reason){
+    var released={autoEconomy:false,bankRetrieve:false};
+    if(S.autoEconomy21422&&S.autoEconomy21422.tx){S.autoEconomy21422.tx=null;S.autoEconomy21422.plan=null;S.autoEconomy21422.sig='';released.autoEconomy=true;}
+    if(S.merchantBankRetrieve2149&&!v21427HasActiveQueue()){S.merchantBankRetrieve2149=null;released.bankRetrieve=true;}
+    S.inventoryPressureBusy=false;S.capacityBlocked21418=null;S.merchantOptionalBlockedUntil21419=0;
+    try{v21419RouteRelease(v21419RouteState().owner);}catch(e){}
+    audit('merchant_bank_terminal_state_released','Terminaler lokaler Bankzustand freigegeben',{reason:reason,released:released,quarantinePreserved:true,activeQueue:v21427HasActiveQueue()},'warning');
+    return released;
+  };
+  // Re-wrap at the actual end of the file so no later historical release wrapper can starve
+  // the bank escape path. Quarantine remains intact and no transfer is resent.
+  var v21427PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){if(character.ctype==='merchant'&&v21426BankEscapeTick())return true;return v21427PressureBase();};
+  var v21427MerchantBase=merchantTick;
+  merchantTick=function(){if(character.ctype==='merchant'&&v21426BankEscapeTick())return true;return v21427MerchantBase();};
+
+  // Preserve every visual placement family. v2.14.26 dropped groups on large maps, which can
+  // remove most of a map such as main. Pack placements, groups and animations instead.
+  function v21427PackRows(rows){return (rows||[]).map(function(r){return (r||[]).map(function(v){if(v==null)return '';var n=Number(v);return isFinite(n)?Math.round(n).toString(36):'';}).join(',');}).join(';');}
+  v21412TerrainPayload=function(){
+    var mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];if(!geo||!Array.isArray(geo.tiles)||!Array.isArray(geo.placements))return null;
+    var sets={},used={};geo.tiles.forEach(function(d){if(d&&d[0]!=null)used[String(d[0])]=1;});Object.keys(used).forEach(function(id){var t=GD.tilesets&&GD.tilesets[id];if(t&&t.file)sets[id]=String(t.file);});
+    var groups=Array.isArray(geo.groups)?geo.groups:[],animations=Array.isArray(geo.animations)?geo.animations:[];
+    var out={map:mapId,d:geo.default,t:geo.tiles,pc:v21427PackRows(geo.placements),gc:groups.map(v21427PackRows),ac:v21427PackRows(animations),s:sets,source:'Adventure Land G.geometry/G.tilesets',encoding:'base36-all-v2'};
+    var n;try{n=JSON.stringify(out).length;}catch(e){n=999999;}out.bytes=n;
+    if(!S.terrainPayload21427)S.terrainPayload21427={};if(!S.terrainPayload21427[mapId]){S.terrainPayload21427[mapId]=true;audit('dashboard_terrain_payload','Vollständiges Terrain-Paket vorbereitet',{map:mapId,bytes:n,tiles:geo.tiles.length,placements:geo.placements.length,groups:groups.length,groupRows:groups.reduce(function(a,g){return a+(Array.isArray(g)?g.length:0);},0),animations:animations.length,tilesets:Object.keys(sets).length,encoding:out.encoding});}
+    if(n>480000){audit('dashboard_terrain_too_large','Terrain ist auch im Voll-Kompaktformat zu groß',{map:mapId,bytes:n},'warning');return {map:mapId,omitted:true,bytes:n,source:out.source,reason:'payload-too-large-v21427',encoding:out.encoding};}
+    return out;
+  };
+
+  // Final immutable-looking dispatch point for the Brain tool. Previous release wrappers may
+  // still exist for telemetry, but the visible options page is exactly modules + one focus box.
+  function v21427BrainModuleRow(key,label,help){return '<label style="display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid var(--border);border-radius:9px;background:var(--card)"><input type="checkbox" data-brain-module="'+esc(key)+'" '+(C[key]?'checked':'')+' style="margin-top:3px"><span><b style="display:block">'+esc(label)+'</b><small style="display:block;margin-top:3px;color:var(--muted);line-height:1.35">'+esc(help||'')+'</small></span></label>';}
+  function v21427BrainHTML(){
+    var rows=[['brainWorldModelEnabled','Weltmodell & Wissen','Spielwelt, Items, Monster, Maps und bestätigte Fakten bearbeiten.'],['brainDiscoveryModuleEnabled','Discovery','Unbekannte oder veraltete sichere Inhalte untersuchen.'],['brainExperimentModuleEnabled','Hypothesen & sichere Experimente','Nur reversible, bereits erlaubte Hypothesen prüfen.'],['brainPlannerModuleEnabled','Strategische Planung','Ziele, Nutzen, Risiko, Zeit und Unsicherheit gewichten.'],['brainGatheringModuleEnabled','Gathering','Fishing/Mining als mögliche freie Arbeit bewerten.'],['brainStandModuleEnabled','Merchant-Stand','Handel als mögliche freie Arbeit bewerten.'],['brainExplainModuleEnabled','Erklärungen & Lernfeed','Entscheidungen und Erkenntnisse verständlich aufbereiten.']],focus=safeString(C.brainTeachingKeywords||'',500);
+    return '<h2>🧠 '+(C.language==='de'?'Bot-Gehirn':'Bot Brain')+'</h2><div class="card"><h3>🧩 Module auswählen</h3><div class="muted">Nur diese Module darf das Bot-Gehirn strategisch bearbeiten. Kampf, Heilung, Kiten, Inventar- und Sicherheitsregeln bleiben deterministisch.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;margin-top:10px">'+rows.map(function(r){return v21427BrainModuleRow(r[0],r[1],r[2]);}).join('')+'</div></div><div class="card"><h3>🎯 Priorität / Hypothese</h3><div class="muted">Kurzes Stichwort oder Satz, z. B. <b>finde 100 bee wings</b>. Dies ist ein strategischer Fokus und darf keine Schutzregel umgehen.</div><textarea data-brain-focus maxlength="500" style="width:100%;min-height:95px;margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);resize:vertical;font:inherit" placeholder="z. B. finde 100 bee wings">'+esc(focus)+'</textarea></div>';
+  }
+  v290BrainHTML=v21427BrainHTML;
+  var v21427ToolHTMLBase=toolHTML;
+  toolHTML=function(key){if(key==='brain')return v21427BrainHTML();return v21427ToolHTMLBase(key);};
+
+  // Expose the selected modules/focus to dashboard telemetry so deployment can be verified.
+  var v21427TelemetryBase=v210BrainTelemetry;
+  v210BrainTelemetry=function(){var x=v21427TelemetryBase();x.userFocus=safeString(C.brainTeachingKeywords||'',500);x.moduleSelection={worldModel:!!C.brainWorldModelEnabled,discovery:!!C.brainDiscoveryModuleEnabled,experiments:!!C.brainExperimentModuleEnabled,planner:!!C.brainPlannerModuleEnabled,gathering:!!C.brainGatheringModuleEnabled,stand:!!C.brainStandModuleEnabled,explain:!!C.brainExplainModuleEnabled};return x;};
+  try{P.setTimeout(function(){if(S.toolWindows&&S.toolWindows.brain)renderTool('brain');renderAll(true);},50);}catch(e){}
+  audit('feature_contract','2.14.27 Live-Fix: leere Queue, äußerster Bankausgang, Brain-Enddispatch und vollständige Terrain-Gruppen geprüft',{itemPermissionRules:Object.keys(C.merchantItemPermissions||{}).length,activeQueue:v21427HasActiveQueue(),brainFocus:safeString(C.brainTeachingKeywords||'',120)});
