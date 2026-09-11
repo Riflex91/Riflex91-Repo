@@ -6107,7 +6107,7 @@
     if(character.ctype!=='merchant'||!C.merchantManageBank)return false;
     var reserve=Math.max(1,Number(C.merchantInventoryReserve)||0);if(freeSlots()>reserve)return false;
     var row=v21438MerchantBankRow();if(!row)return false;
-    if(character.q||character.moving||S.moveInFlight)return true;
+    var qBusy=!!(character.q&&typeof character.q==='object'&&Object.keys(character.q).length);if(qBusy||character.moving||S.moveInFlight)return true;
     if(!character.bank){S.status='Kapazität freigeben · gezielt zur Bank';S.mode='Merchant · Kapazität';return moveToGoal({map:'bank',x:0,y:0},'Gezielte Kapazitätsfreigabe',{kind:'merchant-capacity-bank-21438',forceAfter:8000})||true;}
     var target=v21431BankTarget(row.item,true);
     if(!target){try{if(typeof v273OpenBankPackTick==='function'&&v273OpenBankPackTick())return true;}catch(e){}return false;}
@@ -6149,9 +6149,18 @@
   v21437SafeFarmFallback=function(){return v21438BestRateFarmGoal();};
 
   // If the Farmer has loot work and the Merchant remains unavailable/blocked long enough, stop waiting
-  // for an ETA that never becomes credible. The existing self-service executor already mirrors the
-  // service order compound -> upgrade -> sell -> potions -> bank and uses town() when its ETA wins.
+  // for an ETA that never becomes credible. The existing executor keeps the exact service order
+  // compound -> upgrade -> sell -> potions -> bank. v21431FarmerMove chooses town() when that route is faster.
   S.merchantServiceNeedSince21438=Number(S.merchantServiceNeedSince21438)||0;
+  var v21438FarmerServiceTickBase=v21431FarmerServiceTick;
+  v21431FarmerServiceTick=function(){
+    var st=S.farmerSelfService21431;if(st&&st.stage==='travel21438'){
+      st.expiresAt=clock()+V21431_LEASE_MS;
+      if(v21431AtServiceHub()){st.stage='service';if(st.stages.indexOf('travel')<0)st.stages.push('travel');audit('farmer_self_service_stage','Farmer hat Service-Stadt erreicht; Loot-Verarbeitung beginnt',{stage:'travel',order:V21432_SERVICE_ORDER});return v21438FarmerServiceTickBase()||true;}
+      S.status='Selbstservice · zur Stadt';S.mode='Farmer · Selbstservice';return v21431FarmerMove(V21431_SERVICE_HUB,'Farmer-Selbstservice zur Stadt','farmer-self-service-city-21438')||true;
+    }
+    return v21438FarmerServiceTickBase();
+  };
   var v21438FarmerEvaluateBase=v21431FarmerEvaluate;
   v21431FarmerEvaluate=function(){
     if(character.ctype==='merchant'||character.rip||S.farmerSelfService21431)return false;
@@ -6162,8 +6171,8 @@
     if(!notComing)return v21438FarmerEvaluateBase();
     if(lease&&!critical){if(now>Number(S.times.farmerSelfServiceDeferred21438||0)){S.times.farmerSelfServiceDeferred21438=now+15000;audit('farmer_self_service_deferred','Merchant kommt nicht, aber ein anderer Farmer besitzt die Service-Lease',{reason:'peer-self-service-lease',holder:lease.holder||null,waitMs:waitMs},'info');}return false;}
     var origin={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0,targetMtype:S.targetMtype||null,goal:S.goal?Object.assign({},S.goal):null,at:now};
-    S.farmerSelfService21431={active:true,stage:'service',critical:critical,failsafe:true,origin:origin,beforeFree:freeSlots(),stages:[],startedAt:now,lastLeaseAt:0,expiresAt:now+V21431_LEASE_MS};
-    v21431BroadcastLease(true,critical);audit('farmer_self_service_merchant_unavailable','Merchant kommt nicht rechtzeitig; Farmer startet identische Loot-Verarbeitung',{waitMs:waitMs,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,merchantReason:m.reason,merchantStatus:m.status||'',merchantMode:m.mode||'',free:freeSlots(),order:V21432_SERVICE_ORDER,plan:{compound:plan.compound.length,upgrade:plan.upgrade.length,sell:plan.sell.length,bank:plan.bank.length}},'warning');
+    S.farmerSelfService21431={active:true,stage:'travel21438',critical:critical,failsafe:true,origin:origin,beforeFree:freeSlots(),stages:[],startedAt:now,lastLeaseAt:0,expiresAt:now+V21431_LEASE_MS};
+    v21431BroadcastLease(true,critical);audit('farmer_self_service_merchant_unavailable','Merchant kommt nicht rechtzeitig; Farmer fährt für identische Loot-Verarbeitung in die Stadt',{waitMs:waitMs,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,merchantReason:m.reason,merchantStatus:m.status||'',merchantMode:m.mode||'',free:freeSlots(),route:f.route,order:V21432_SERVICE_ORDER,plan:{compound:plan.compound.length,upgrade:plan.upgrade.length,sell:plan.sell.length,bank:plan.bank.length}},'warning');
     return v21431FarmerServiceTick()||true;
   };
 
