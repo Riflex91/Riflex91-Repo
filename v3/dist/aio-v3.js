@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.6 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.7 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -16,6 +16,7 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer-fsm');
+const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
 function install(root = globalThis, options = {}) {
@@ -39,8 +40,10 @@ function install(root = globalThis, options = {}) {
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
-      status: () => runtime.farmer.status(),
-      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy)
+      status: () => runtime.farmerStatus(),
+      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy),
+      addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value),
+      removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value)
     },
     createTask,
     TaskState
@@ -54,7 +57,7 @@ module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, FarmerController, FarmerState, TargetPolicy, partyProfile, capabilitiesFor
+  FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS, partyProfile, capabilitiesFor
 };
 
 },
@@ -72,8 +75,9 @@ const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
+const { TargetSafety } = require('./farmer/target-safety');
 
-const VERSION = '3.0.0-alpha.6';
+const VERSION = '3.0.0-alpha.7';
 
 class Runtime {
   constructor(options = {}) {
@@ -85,6 +89,10 @@ class Runtime {
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
     this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy, useHpRatio: options.farmerUseHpRatio || 0.75 });
+    this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
+    this.lastSafetySkip = null;
+    this.safetySkipLoggedAt = new Map();
+    this.safetySkipLogCooldownMs = Math.max(5000, Number(options.safetySkipLogCooldownMs) || 30000);
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -120,6 +128,19 @@ class Runtime {
     return resolved;
   }
 
+
+  addFarmerTargetExclusion(value) {
+    const token = this.targetSafety.add(value);
+    this._announce(`[AIO v3 ${VERSION}] FARMER TARGET EXCLUSION | added=${token}`, 'VISIBLE_FARMER_TARGET_EXCLUSION_CHANGED');
+    return token;
+  }
+
+  removeFarmerTargetExclusion(value) {
+    const removed = this.targetSafety.remove(value);
+    this._announce(`[AIO v3 ${VERSION}] FARMER TARGET EXCLUSION | remove=${String(value || '').trim().toLowerCase()} | removed=${removed}`, 'VISIBLE_FARMER_TARGET_EXCLUSION_CHANGED');
+    return removed;
+  }
+
   _gameLog(message) {
     if (!this.visibleStatusEnabled) return false;
     const fn = this.root && (this.root.game_log || (this.root.parent && this.root.parent.game_log));
@@ -146,6 +167,10 @@ class Runtime {
     if (!this._announce(message, 'VISIBLE_READY')) return false;
     this.readyAnnounced = true;
     return true;
+  }
+
+  farmerStatus() {
+    return { ...this.farmer.status(), targetExclusions: this.targetSafety.list(), lastSafetySkip: this.lastSafetySkip };
   }
 
   showStatus() {
@@ -208,6 +233,40 @@ class Runtime {
     return partyProfile(members);
   }
 
+  _noteSafetySkip(entity, safety) {
+    if (!entity || !safety || safety.allowed) return;
+    const now = this.now();
+    const key = `${entity.id || entity.mtype || 'unknown'}:${safety.reason}:${safety.token || '-'}`;
+    const record = {
+      at: now,
+      entityId: entity.id || null,
+      entityName: entity.name || null,
+      monsterType: entity.mtype || null,
+      reason: safety.reason,
+      exclusion: safety.token || null,
+      source: safety.source || null
+    };
+    this.lastSafetySkip = record;
+    const last = this.safetySkipLoggedAt.get(key) || -Infinity;
+    if (now - last < this.safetySkipLogCooldownMs) return;
+    this.safetySkipLoggedAt.set(key, now);
+    this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_SKIPPED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: safety.reason, data: record });
+  }
+
+  _farmSnapshot(snapshot, gameData) {
+    if (!snapshot) return snapshot;
+    const entities = [];
+    for (const entity of snapshot.entities || []) {
+      const safety = this.targetSafety.evaluate(entity, gameData || {});
+      if (!safety.allowed) {
+        this._noteSafetySkip(entity, safety);
+        continue;
+      }
+      entities.push(entity);
+    }
+    return { ...snapshot, entities };
+  }
+
   _plannerCandidates(snapshot, profile) {
     const G = this.adapter.getGameData() || {};
     const seen = new Set();
@@ -254,16 +313,17 @@ class Runtime {
     this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
+    const farmSnapshot = this._farmSnapshot(snapshot, gameData);
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
     this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
     this.farmer.ensureScheduled(this.scheduler, snapshot.character.name);
-    this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
+    this.scheduler.tick({ snapshot: farmSnapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
     this.persistence.maybeSave(this.world);
 
     if (this.now() - this.lastPlannerAudit >= 15000) {
       this.lastPlannerAudit = this.now();
-      const candidates = this._plannerCandidates(snapshot, profile);
+      const candidates = this._plannerCandidates(farmSnapshot, profile);
       if (candidates.length) this.planner.rank(candidates, { character: snapshot.character.name, partyFingerprint: profile.fingerprint });
       else this.log.emit({ component: 'planner', event: 'NO_LIVE_FARM_CANDIDATES', character: snapshot.character.name, data: { partyFingerprint: profile.fingerprint } });
     }
@@ -298,7 +358,7 @@ class Runtime {
       startedAt: this.startedAt,
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
-      farmer: this.farmer.status(),
+      farmer: this.farmerStatus(),
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -313,7 +373,7 @@ class Runtime {
       runtime: this.status(),
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
-      farmer: this.farmer.status(),
+      farmer: this.farmerStatus(),
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
@@ -2386,6 +2446,74 @@ class FarmerController {
 }
 
 module.exports = { FarmerController, FarmerState, TargetPolicy, normalizeTargetPolicy, ratio, distance, hasPotion };
+
+},
+"src/farmer/target-safety.js": function(require,module,exports){
+'use strict';
+
+const BUILT_IN_TARGET_EXCLUSIONS = Object.freeze([
+  Object.freeze({ token: 'automatron', reason: 'TRAINING_TARGET_AUTOMATRON' })
+]);
+
+function normalizeTargetToken(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+class TargetSafety {
+  constructor(options = {}) {
+    this.custom = new Set();
+    for (const value of options.exclusions || []) this.add(value);
+  }
+
+  list() {
+    return [...new Set([
+      ...BUILT_IN_TARGET_EXCLUSIONS.map((rule) => rule.token),
+      ...this.custom
+    ])].sort();
+  }
+
+  add(value) {
+    const token = normalizeTargetToken(value);
+    if (!token) throw new Error('target exclusion must be a non-empty string');
+    this.custom.add(token);
+    return token;
+  }
+
+  remove(value) {
+    const token = normalizeTargetToken(value);
+    if (!token) return false;
+    if (BUILT_IN_TARGET_EXCLUSIONS.some((rule) => rule.token === token)) return false;
+    return this.custom.delete(token);
+  }
+
+  evaluate(entity, gameData = {}) {
+    if (!entity) return { allowed: false, reason: 'MISSING_ENTITY', token: null, source: null };
+    const monster = entity.mtype && gameData.monsters && gameData.monsters[entity.mtype] || null;
+    const identities = [
+      ['entity.name', entity.name],
+      ['entity.mtype', entity.mtype],
+      ['monster.name', monster && monster.name],
+      ['monster.skin', monster && monster.skin]
+    ];
+
+    const rules = [
+      ...BUILT_IN_TARGET_EXCLUSIONS,
+      ...[...this.custom].map((token) => ({ token, reason: 'CUSTOM_TARGET_EXCLUSION' }))
+    ];
+
+    for (const rule of rules) {
+      for (const [source, raw] of identities) {
+        const identity = normalizeTargetToken(raw);
+        if (identity && identity.includes(rule.token)) {
+          return { allowed: false, reason: rule.reason, token: rule.token, source };
+        }
+      }
+    }
+    return { allowed: true, reason: 'ALLOWED', token: null, source: null };
+  }
+}
+
+module.exports = { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS, normalizeTargetToken };
 
 }
 };

@@ -11,8 +11,9 @@ const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
+const { TargetSafety } = require('./farmer/target-safety');
 
-const VERSION = '3.0.0-alpha.6';
+const VERSION = '3.0.0-alpha.7';
 
 class Runtime {
   constructor(options = {}) {
@@ -24,6 +25,10 @@ class Runtime {
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
     this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy, useHpRatio: options.farmerUseHpRatio || 0.75 });
+    this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
+    this.lastSafetySkip = null;
+    this.safetySkipLoggedAt = new Map();
+    this.safetySkipLogCooldownMs = Math.max(5000, Number(options.safetySkipLogCooldownMs) || 30000);
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -59,6 +64,19 @@ class Runtime {
     return resolved;
   }
 
+
+  addFarmerTargetExclusion(value) {
+    const token = this.targetSafety.add(value);
+    this._announce(`[AIO v3 ${VERSION}] FARMER TARGET EXCLUSION | added=${token}`, 'VISIBLE_FARMER_TARGET_EXCLUSION_CHANGED');
+    return token;
+  }
+
+  removeFarmerTargetExclusion(value) {
+    const removed = this.targetSafety.remove(value);
+    this._announce(`[AIO v3 ${VERSION}] FARMER TARGET EXCLUSION | remove=${String(value || '').trim().toLowerCase()} | removed=${removed}`, 'VISIBLE_FARMER_TARGET_EXCLUSION_CHANGED');
+    return removed;
+  }
+
   _gameLog(message) {
     if (!this.visibleStatusEnabled) return false;
     const fn = this.root && (this.root.game_log || (this.root.parent && this.root.parent.game_log));
@@ -85,6 +103,10 @@ class Runtime {
     if (!this._announce(message, 'VISIBLE_READY')) return false;
     this.readyAnnounced = true;
     return true;
+  }
+
+  farmerStatus() {
+    return { ...this.farmer.status(), targetExclusions: this.targetSafety.list(), lastSafetySkip: this.lastSafetySkip };
   }
 
   showStatus() {
@@ -147,6 +169,40 @@ class Runtime {
     return partyProfile(members);
   }
 
+  _noteSafetySkip(entity, safety) {
+    if (!entity || !safety || safety.allowed) return;
+    const now = this.now();
+    const key = `${entity.id || entity.mtype || 'unknown'}:${safety.reason}:${safety.token || '-'}`;
+    const record = {
+      at: now,
+      entityId: entity.id || null,
+      entityName: entity.name || null,
+      monsterType: entity.mtype || null,
+      reason: safety.reason,
+      exclusion: safety.token || null,
+      source: safety.source || null
+    };
+    this.lastSafetySkip = record;
+    const last = this.safetySkipLoggedAt.get(key) || -Infinity;
+    if (now - last < this.safetySkipLogCooldownMs) return;
+    this.safetySkipLoggedAt.set(key, now);
+    this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_SKIPPED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: safety.reason, data: record });
+  }
+
+  _farmSnapshot(snapshot, gameData) {
+    if (!snapshot) return snapshot;
+    const entities = [];
+    for (const entity of snapshot.entities || []) {
+      const safety = this.targetSafety.evaluate(entity, gameData || {});
+      if (!safety.allowed) {
+        this._noteSafetySkip(entity, safety);
+        continue;
+      }
+      entities.push(entity);
+    }
+    return { ...snapshot, entities };
+  }
+
   _plannerCandidates(snapshot, profile) {
     const G = this.adapter.getGameData() || {};
     const seen = new Set();
@@ -193,16 +249,17 @@ class Runtime {
     this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
+    const farmSnapshot = this._farmSnapshot(snapshot, gameData);
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
     this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
     this.farmer.ensureScheduled(this.scheduler, snapshot.character.name);
-    this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
+    this.scheduler.tick({ snapshot: farmSnapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
     this.persistence.maybeSave(this.world);
 
     if (this.now() - this.lastPlannerAudit >= 15000) {
       this.lastPlannerAudit = this.now();
-      const candidates = this._plannerCandidates(snapshot, profile);
+      const candidates = this._plannerCandidates(farmSnapshot, profile);
       if (candidates.length) this.planner.rank(candidates, { character: snapshot.character.name, partyFingerprint: profile.fingerprint });
       else this.log.emit({ component: 'planner', event: 'NO_LIVE_FARM_CANDIDATES', character: snapshot.character.name, data: { partyFingerprint: profile.fingerprint } });
     }
@@ -237,7 +294,7 @@ class Runtime {
       startedAt: this.startedAt,
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
-      farmer: this.farmer.status(),
+      farmer: this.farmerStatus(),
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -252,7 +309,7 @@ class Runtime {
       runtime: this.status(),
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
-      farmer: this.farmer.status(),
+      farmer: this.farmerStatus(),
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },

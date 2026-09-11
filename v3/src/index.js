@@ -11,6 +11,7 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer-fsm');
+const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
 function install(root = globalThis, options = {}) {
@@ -34,8 +35,10 @@ function install(root = globalThis, options = {}) {
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
-      status: () => runtime.farmer.status(),
-      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy)
+      status: () => runtime.farmerStatus(),
+      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy),
+      addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value),
+      removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value)
     },
     createTask,
     TaskState
@@ -49,5 +52,5 @@ module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, FarmerController, FarmerState, TargetPolicy, partyProfile, capabilitiesFor
+  FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS, partyProfile, capabilitiesFor
 };
