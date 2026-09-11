@@ -16,10 +16,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply v2.14.25
-        run: node scripts/apply-21425-ui-merchant-map-liveness.mjs
-      - name: Apply v2.14.25 release hardening
-        run: node scripts/apply-21425-release-hardening.mjs
+      - name: Prepare v2.14.25 release tree
+        shell: bash
+        run: |
+          CURRENT="$(node -p "require('./version.json').version")"
+          if [ "$CURRENT" = "2.14.25" ]; then
+            echo 'v2.14.25 release tree already generated; verifying in place.'
+          else
+            node scripts/apply-21425-ui-merchant-map-liveness.mjs
+            node scripts/apply-21425-release-hardening.mjs
+          fi
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
