@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import vm from 'node:vm';
+function ok(x,m){if(!x)throw new Error(m)}
+const b=fs.readFileSync('bot.js','utf8'),h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8'),w=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8'),v=JSON.parse(fs.readFileSync('version.json','utf8')),p=JSON.parse(fs.readFileSync('cloudflare-dashboard/package.json','utf8'));
+ok(v.version==='2.14.29'&&v.dashboardVersion==='2.14.29'&&p.version==='2.14.29','version mismatch');
+ok(b.includes("var VERSION = '2.14.29';")&&b.includes('/* v2.14.29 Merchant town-route estimator */'),'bot release marker missing');
+const m=b.lastIndexOf('/* v2.14.29 Merchant town-route estimator */'),tail=b.slice(m);
+ok(tail.includes('function v21429TownSpawn()')&&tail.includes('Array.isArray(m.spawns)&&m.spawns[0]'),'town spawn lookup missing');
+ok(tail.includes('function v21429MainDoorFor(map,from)')&&tail.includes('Array.isArray(GD.maps.main.doors)')&&tail.includes("String(d[4]||'')!==String(map||'')"),'main-map door estimator missing');
+ok(tail.includes("character.ctype!=='merchant'")&&tail.includes("String(character.map||'')!=='main'")&&tail.includes('!C.fastTravelEnabled'),'town shortcut must be Merchant/main/setting gated');
+ok(tail.includes("is_on_cooldown('use_town')")&&tail.includes("can_use('use_town')"),'town availability guard missing');
+ok(tail.includes('townOverheadSeconds=4')&&tail.includes('directDistance<500||savedSeconds<2'),'conservative town-vs-walk comparison missing');
+ok(tail.includes("audit('merchant_town_shortcut'")&&tail.includes("action('Schnellreise town() · Merchant'")&&tail.includes('return town();'),'town shortcut execution/telemetry missing');
+ok(b.includes("audit('fast_travel','Schnellreise town() gewählt'")&&b.includes('return v282MoveBase(g,why,opts);'),'existing cross-map fast-travel path lost');
+ok(b.includes('function v2149RefreshBankSnapshot(force)')&&b.includes('Object.keys(character.bank||{}).sort().forEach')&&b.includes("if(!/^items\\d+$/.test(pack)"),'multi-pack bank snapshot awareness missing');
+ok(b.includes('function v273BankCapacity()')&&b.includes('Object.keys(character.bank).forEach')&&b.includes('function v273OpenBankPackTick()'),'multi-pack bank capacity/unlock logic missing');
+ok(b.includes("productive:['equipment','gold']")&&b.includes("id:'safety-bank',score:10000")&&b.includes("id:'safety-supply',score:9500"),'productive priority/safety preemption changed');
+ok(b.includes('bankStoreNoProgress21423')&&b.includes('quarantinePreserved:true'),'bank quarantine safety missing');
+ok(b.includes("brainMinConfidencePct: 70")&&b.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'Brain confidence/model invariant changed');
+ok(h.includes('v2.14.29 dashboard cleanup: group map name only; group information hidden'),'dashboard v2.14.29 marker missing');
+ok(h.includes('<title>AiO Bot Dashboard 2.14.29</title>')&&h.includes('<strong>AiO Bot Dashboard 2.14.29</strong>'),'dashboard version stale');
+ok(!h.includes('Gruppenstärke Ø')&&!h.includes('Gruppen-DPS')&&!h.includes('Gruppe unvollständig ·'),'group information still rendered in web dashboard');
+const dm=h.lastIndexOf('/* v2.14.28 class markers + reliable dashboard class icons */'),dt=h.slice(dm),renderStart=dt.indexOf('renderMap=function()'),render=dt.slice(renderStart,dt.indexOf('setTimeout',renderStart));
+ok(render.includes('player-name21428')&&render.includes('${esc(c.name)}'),'group-map character name missing');
+ok(!render.includes('<text class="player-class21428"')&&!render.includes('playerArrow21426'),'group-map secondary class label/arrow still rendered');
+ok(dt.includes('gameSprite=function(c,w=42,h=54)')&&dt.includes('classicon21428'),'character-card class icons unexpectedly removed');
+ok(w.includes('AiO Bot Dashboard 2.14.29')&&w.includes('version:"2.14.29",brain:'),'Worker embedded dashboard/version stale');
+ok(!w.includes('Gruppenstärke Ø')&&!w.includes('Gruppe unvollständig ·'),'Worker still embeds group information');
+new vm.Script(b,{filename:'bot.js'});for(const x of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(x[1],{filename:'dashboard-inline.js'});new vm.Script(w.replace(/\bexport\s+default\b/,'const __worker_default ='),{filename:'worker.js'});
+console.log('v2.14.29 dashboard/town/bank invariants OK');
