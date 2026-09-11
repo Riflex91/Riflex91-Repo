@@ -2,8 +2,6 @@ name: release-21424
 on:
   push:
     branches: ["release/2.14.24-group-buffs-bestiary-item-policy-map"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
