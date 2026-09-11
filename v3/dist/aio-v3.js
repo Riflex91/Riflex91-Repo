@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.7 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -76,8 +76,9 @@ const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 const { TargetSafety } = require('./farmer/target-safety');
+const { CombatRiskGate } = require('./farmer/combat-risk');
 
-const VERSION = '3.0.0-alpha.7';
+const VERSION = '3.0.0-alpha.8';
 
 class Runtime {
   constructor(options = {}) {
@@ -93,6 +94,15 @@ class Runtime {
     this.lastSafetySkip = null;
     this.safetySkipLoggedAt = new Map();
     this.safetySkipLogCooldownMs = Math.max(5000, Number(options.safetySkipLogCooldownMs) || 30000);
+    this.combatRisk = options.combatRisk || new CombatRiskGate({
+      threshold: options.combatRiskThreshold,
+      recoveryHpRatio: options.farmerRecoverHpRatio || this.farmer.config.recoverHpRatio,
+      minLearnedConfidence: options.combatRiskMinConfidence,
+      deathRateReference: options.combatRiskDeathRateReference
+    });
+    this.lastRiskSkip = null;
+    this.riskSkipLoggedAt = new Map();
+    this.riskSkipLogCooldownMs = Math.max(5000, Number(options.riskSkipLogCooldownMs) || 30000);
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -127,7 +137,6 @@ class Runtime {
     this._announce(`[AIO v3 ${VERSION}] FARMER TARGET POLICY | ${resolved}`, 'VISIBLE_FARMER_TARGET_POLICY_CHANGED');
     return resolved;
   }
-
 
   addFarmerTargetExclusion(value) {
     const token = this.targetSafety.add(value);
@@ -170,7 +179,12 @@ class Runtime {
   }
 
   farmerStatus() {
-    return { ...this.farmer.status(), targetExclusions: this.targetSafety.list(), lastSafetySkip: this.lastSafetySkip };
+    return {
+      ...this.farmer.status(),
+      targetExclusions: this.targetSafety.list(),
+      lastSafetySkip: this.lastSafetySkip,
+      lastRiskSkip: this.lastRiskSkip
+    };
   }
 
   showStatus() {
@@ -253,13 +267,39 @@ class Runtime {
     this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_SKIPPED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: safety.reason, data: record });
   }
 
-  _farmSnapshot(snapshot, gameData) {
+  _noteRiskSkip(entity, risk) {
+    if (!entity || !risk || risk.allowed) return;
+    const now = this.now();
+    const key = `${entity.id || entity.mtype || 'unknown'}:${risk.reason}`;
+    const record = {
+      at: now,
+      entityId: entity.id || null,
+      entityName: entity.name || null,
+      monsterType: entity.mtype || null,
+      reason: risk.reason,
+      score: risk.score,
+      threshold: risk.threshold,
+      signals: risk.signals || {}
+    };
+    this.lastRiskSkip = record;
+    const last = this.riskSkipLoggedAt.get(key) || -Infinity;
+    if (now - last < this.riskSkipLogCooldownMs) return;
+    this.riskSkipLoggedAt.set(key, now);
+    this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_RISK_REJECTED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: risk.reason, data: record });
+  }
+
+  _farmSnapshot(snapshot, gameData, profile) {
     if (!snapshot) return snapshot;
     const entities = [];
     for (const entity of snapshot.entities || []) {
       const safety = this.targetSafety.evaluate(entity, gameData || {});
       if (!safety.allowed) {
         this._noteSafetySkip(entity, safety);
+        continue;
+      }
+      const risk = this.combatRisk.evaluate(entity, snapshot, this.world, profile);
+      if (!risk.allowed) {
+        this._noteRiskSkip(entity, risk);
         continue;
       }
       entities.push(entity);
@@ -313,7 +353,7 @@ class Runtime {
     this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
-    const farmSnapshot = this._farmSnapshot(snapshot, gameData);
+    const farmSnapshot = this._farmSnapshot(snapshot, gameData, profile);
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
     this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
@@ -343,6 +383,7 @@ class Runtime {
           scheduler: { queued: this.scheduler.queue.length, active: this.scheduler.activeByOwner.size },
           world: this.world.summary(),
           performance: this.performance.status().current,
+          combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
           persistence: this.persistence.status()
         }
       });
@@ -359,6 +400,7 @@ class Runtime {
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
+      combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -374,6 +416,7 @@ class Runtime {
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
+      combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
@@ -2514,6 +2557,125 @@ class TargetSafety {
 }
 
 module.exports = { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS, normalizeTargetToken };
+
+},
+"src/farmer/combat-risk.js": function(require,module,exports){
+'use strict';
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function hpRatio(snapshot) {
+  const c = snapshot && snapshot.character;
+  if (!c) return 1;
+  const maxHp = Number(c.max_hp) || 0;
+  if (maxHp <= 0) return 1;
+  return clamp01((Number(c.hp) || 0) / maxHp);
+}
+
+class CombatRiskGate {
+  constructor(options = {}) {
+    this.threshold = Math.max(0.1, Math.min(1, Number(options.threshold) || 0.65));
+    this.recoveryHpRatio = Math.max(0.1, Math.min(1, Number(options.recoveryHpRatio) || 0.75));
+    this.lowHpWeight = Math.max(0, Math.min(1, Number(options.lowHpWeight) || 0.45));
+    this.additionalAggroWeight = Math.max(0, Math.min(1, Number(options.additionalAggroWeight) || 0.70));
+    this.deathRiskWeight = Math.max(0, Math.min(1, Number(options.deathRiskWeight) || 0.65));
+    this.deathRateReference = Math.max(0.1, Number(options.deathRateReference) || 2);
+    this.minLearnedConfidence = Math.max(0, Math.min(1, Number(options.minLearnedConfidence) || 0.25));
+  }
+
+  _additionalAggro(snapshot, entity) {
+    const c = snapshot && snapshot.character;
+    if (!c || !c.name) return 0;
+    const targetId = entity && entity.id != null ? String(entity.id) : null;
+    return (snapshot.entities || []).filter((other) => {
+      if (!other || !other.mtype || other.dead || (other.hp != null && Number(other.hp) <= 0)) return false;
+      if (targetId != null && String(other.id) === targetId) return false;
+      return other.target === c.name;
+    }).length;
+  }
+
+  evaluate(entity, snapshot, world, party) {
+    if (!entity || !entity.mtype || !snapshot || !snapshot.character) {
+      return { allowed: true, score: 0, reason: 'RISK_NOT_APPLICABLE', signals: {} };
+    }
+
+    // Alpha.8 step 1 only controls new pulls. Existing combat is never abandoned here.
+    if (entity.target) {
+      return {
+        allowed: true,
+        score: 0,
+        reason: 'ALREADY_ENGAGED',
+        signals: { claimedBy: entity.target }
+      };
+    }
+
+    const signals = {};
+    let score = 0;
+    let primaryReason = 'RISK_ACCEPTABLE';
+
+    const currentHpRatio = hpRatio(snapshot);
+    signals.hpRatio = Number(currentHpRatio.toFixed(3));
+    if (currentHpRatio < this.recoveryHpRatio) {
+      const deficit = clamp01((this.recoveryHpRatio - currentHpRatio) / this.recoveryHpRatio);
+      const contribution = deficit * this.lowHpWeight;
+      score += contribution;
+      signals.lowHpContribution = Number(contribution.toFixed(3));
+      if (contribution > 0) primaryReason = 'LOW_HP';
+    }
+
+    const additionalAggro = this._additionalAggro(snapshot, entity);
+    signals.additionalAggro = additionalAggro;
+    if (additionalAggro > 0) {
+      const contribution = Math.min(1, additionalAggro) * this.additionalAggroWeight;
+      score += contribution;
+      signals.additionalAggroContribution = Number(contribution.toFixed(3));
+      primaryReason = 'ADDITIONAL_AGGRO';
+    }
+
+    const fingerprint = party && party.fingerprint || null;
+    let learned = null;
+    if (world && typeof world.performanceFor === 'function') {
+      try { learned = world.performanceFor(entity.mtype, fingerprint); } catch (_) { learned = null; }
+    }
+    if (learned) {
+      const confidence = clamp01(learned.confidence);
+      const deathsPerHour = Math.max(0, Number(learned.deathsPerHour) || 0);
+      signals.learnedConfidence = Number(confidence.toFixed(3));
+      signals.deathsPerHour = Number(deathsPerHour.toFixed(3));
+      if (confidence >= this.minLearnedConfidence && deathsPerHour > 0) {
+        const scaled = clamp01(deathsPerHour / this.deathRateReference);
+        const contribution = scaled * this.deathRiskWeight * confidence;
+        score += contribution;
+        signals.deathRiskContribution = Number(contribution.toFixed(3));
+        if (contribution >= this.additionalAggroWeight * 0.5 && primaryReason === 'RISK_ACCEPTABLE') primaryReason = 'LEARNED_DEATH_RISK';
+      }
+    }
+
+    score = clamp01(score);
+    const allowed = score < this.threshold;
+    if (!allowed && primaryReason === 'RISK_ACCEPTABLE') primaryReason = 'RISK_THRESHOLD_EXCEEDED';
+    return {
+      allowed,
+      score: Number(score.toFixed(3)),
+      threshold: this.threshold,
+      reason: allowed ? 'RISK_ACCEPTABLE' : primaryReason,
+      signals
+    };
+  }
+
+  status() {
+    return {
+      threshold: this.threshold,
+      recoveryHpRatio: this.recoveryHpRatio,
+      minLearnedConfidence: this.minLearnedConfidence,
+      deathRateReference: this.deathRateReference
+    };
+  }
+}
+
+module.exports = { CombatRiskGate };
 
 }
 };
