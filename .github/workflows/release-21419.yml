@@ -20,6 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/apply-21419.mjs
+          node scripts/apply-21419-fixes.mjs
           sed -i 's/2\.14\.18/2.14.19/g' scripts/verify-release.js
           grep -rlZ '2\.14\.18' scripts --include='smoke*.js' --include='smoke*.mjs' | xargs -0 -r sed -i 's/2\.14\.18/2.14.19/g'
       - name: Bot syntax
