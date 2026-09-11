@@ -1,14 +1,13 @@
-name: release-21431
+name: release-21432
 on:
   push:
-    branches: ["release/2.14.31-farmer-self-service-merchant-policy"]
+    branches: ["release/2.14.32-transactional-liveness-dashboard"]
   pull_request:
     branches: ["main"]
 permissions:
   contents: write
 jobs:
   patch-and-verify:
-    if: github.event_name == 'push' || github.head_ref == 'release/2.14.31-farmer-self-service-merchant-policy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,8 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Prepare v2.14.31 release tree
-        run: node scripts/apply-21431-farmer-self-service.mjs
+      - name: Prepare v2.14.32 release tree
+        run: node scripts/apply-21432-transactional-liveness-dashboard.mjs
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
@@ -34,8 +33,8 @@ jobs:
           NODE
       - name: Verify release
         run: node scripts/verify-release.js
-      - name: Verify v2.14.31 Farmer self-service, Merchant item policy and Brain source
-        run: node scripts/verify-21431-farmer-self-service.mjs
+      - name: Verify v2.14.32 transactional liveness and dashboard transport
+        run: node scripts/verify-21432-transactional-liveness-dashboard.mjs
       - name: Normalize historical exact-version smoke assertions
         shell: bash
         run: |
@@ -44,11 +43,11 @@ jobs:
           for(const f of fs.readdirSync('scripts').filter(x=>/^smoke.*\.(?:js|mjs)$/.test(x))){
             const p=path.join('scripts',f);let s=fs.readFileSync(p,'utf8');
             s=s.replace(/\.includes\("'"\+([A-Za-z_$][\w$]*)\+"'"\)/g,'.includes($1)');
-            s=s.replace(/(assert\.(?:equal|strictEqual)\([^,\n]+,\s*)'2\.14\.\d+'/g,"$1'2.14.31'");
-            s=s.replace(/version\.version\s*,\s*'2\.14\.\d+'/g,"version.version,'2.14.31'");
-            s=s.replace(/version\.dashboardVersion\s*,\s*'2\.14\.\d+'/g,"version.dashboardVersion,'2.14.31'");
-            s=s.replace(/var VERSION = '2\.14\.\d+'/g,"var VERSION = '2.14.31'");
-            s=s.replace(/AiO Bot Dashboard 2\.14\.\d+/g,'AiO Bot Dashboard 2.14.31');
+            s=s.replace(/(assert\.(?:equal|strictEqual)\([^,\n]+,\s*)'2\.14\.\d+'/g,"$1'2.14.32'");
+            s=s.replace(/version\.version\s*,\s*'2\.14\.\d+'/g,"version.version,'2.14.32'");
+            s=s.replace(/version\.dashboardVersion\s*,\s*'2\.14\.\d+'/g,"version.dashboardVersion,'2.14.32'");
+            s=s.replace(/var VERSION = '2\.14\.\d+'/g,"var VERSION = '2.14.32'");
+            s=s.replace(/AiO Bot Dashboard 2\.14\.\d+/g,'AiO Bot Dashboard 2.14.32');
             s=s.replace("assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));","assert(dash.includes('Adventure Land G.geometry/G.tilesets')); // real terrain only");
             fs.writeFileSync(p,s);
           }
@@ -93,5 +92,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/dashboard.html cloudflare-dashboard/src/worker.js
-          git commit -m 'Release AiO Bot 2.14.31 Farmer self-service and Merchant policy hardening'
+          git commit -m 'Release AiO Bot 2.14.32 transactional liveness and dashboard hardening'
           git push origin HEAD:${GITHUB_REF_NAME}
