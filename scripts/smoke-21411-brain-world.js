@@ -1,6 +1,9 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const s=fs.readFileSync('bot.js','utf8'),d=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
-assert(s.includes("var VERSION = '2.14.21';"));
+const versionMatch=s.match(/var VERSION = '(\d+)\.(\d+)\.(\d+)';/);
+assert(versionMatch,'bot version marker missing');
+const versionNumber=Number(versionMatch[1])*1000000+Number(versionMatch[2])*1000+Number(versionMatch[3]);
+assert(versionNumber>=2014021,'smoke requires release >= 2.14.21');
 for(const f of ['merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety','brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites']) assert(s.includes("'"+f+"'"),f);
 assert(/var FEATURE_CONTRACT[\s\S]*merchant-bank-warehouse[\s\S]*merchant-discovery-safety/.test(s),'protected markers must be in updater-visible base contract');
 for(const k of ['brainWorldModelEnabled','brainDiscoveryModuleEnabled','brainExperimentModuleEnabled','brainPlannerModuleEnabled','brainTeachingKeywords'])assert(s.includes(k),k);
