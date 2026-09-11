@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import vm from 'node:vm';
+function ok(x,m){if(!x)throw new Error(m)}
+const b=fs.readFileSync('bot.js','utf8'),h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8'),w=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8'),v=JSON.parse(fs.readFileSync('version.json','utf8')),p=JSON.parse(fs.readFileSync('cloudflare-dashboard/package.json','utf8'));
+ok(v.version==='2.14.28'&&v.dashboardVersion==='2.14.28'&&p.version==='2.14.28','version mismatch');
+ok(b.includes("var VERSION = '2.14.28';")&&b.includes('/* v2.14.28 equipment-first economy, off-bank liveness and acquisition routing */'),'bot release marker missing');
+const m=b.lastIndexOf('/* v2.14.28 equipment-first economy, off-bank liveness and acquisition routing */'),tail=b.slice(m);
+ok(tail.includes("productive:['equipment','gold']")&&tail.includes("id:'equipment',score:3000")&&tail.includes("id:'gold',score:2000"),'equipment/gold priority order missing');
+ok(tail.includes("id:'safety-bank',score:10000")&&tail.includes("id:'safety-supply',score:9500")&&tail.includes('safetyPreempts:true'),'safety preemption missing');
+ok(tail.includes('function v21428AcquisitionPlan')&&tail.includes("kind:'npc'")&&tail.includes("kind:'player'")&&tail.includes("kind:'craft'")&&tail.includes("kind:'farm'")&&tail.includes("kind:'bank'"),'acquisition source router incomplete');
+ok(tail.includes('s.rid')&&tail.includes('live.rid!==off.rid')&&tail.includes('trade_buy(target,off.slot,q)'),'player-market rid anti-swap guard missing');
+ok(tail.includes("Number(character.gold||0)-cost<reserve")&&tail.includes("*.35"),'purchase budget/reserve guard missing');
+ok(tail.includes("a.kind==='farm'")&&tail.includes('plan.farmOrder={item:plan.job.material.name'),'farm acquisition does not create a targeted farm order');
+ok(tail.includes('function v21428NpcAcquireTick')&&tail.includes("kind:'merchant-equipment-npc'")&&tail.includes("equipment-npc-buy:"),'NPC equipment acquisition executor missing');
+ok(tail.includes('function v21428PlayerAcquireTick')&&tail.includes("kind:'merchant-equipment-player'")&&tail.includes("equipment-player-buy:"),'player equipment acquisition executor missing');
+ok(tail.includes('function v21428OffbankCapacityWork')&&tail.includes("String(character.map||'').indexOf('bank')===0")&&tail.includes('free<floor')&&tail.includes('v21427HasActiveQueue()'),'off-bank capacity work guard incomplete');
+ok(tail.includes('if(v21428OffbankCapacityWork())return false')&&tail.includes("audit('merchant_offbank_capacity_work'")&&tail.includes('lootGuardPreserved:true'),'off-bank liveness bypass/telemetry missing');
+ok(!tail.includes('bankStoreNoProgress21423={}')&&!tail.includes('bankStoreNoProgress21423 = {}'),'bank quarantine must not be cleared');
+const mbStart=tail.indexOf('var v21428MerchantBase=merchantTick'),mbEnd=tail.indexOf('// Deterministic strategic view',mbStart),mb=tail.slice(mbStart,mbEnd);
+ok(mb.includes('if(v21428PlayerAcquireTick())return true')&&mb.includes('if(v21428NpcAcquireTick())return true')&&mb.indexOf('if(v21428PlayerAcquireTick())return true')<mb.lastIndexOf('return v21428MerchantBase()'),'equipment acquisition must run before legacy productive service');
+ok(b.includes("brainMinConfidencePct: 70")&&b.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'Brain confidence/model invariant changed');
+ok(h.includes('v2.14.28 class markers + reliable dashboard class icons'),'dashboard v2.14.28 patch missing');
+const dm=h.lastIndexOf('/* v2.14.28 class markers + reliable dashboard class icons */'),dt=h.slice(dm);
+ok(dt.includes('gameSprite=function(c,w=42,h=54)')&&dt.includes('classicon21428')&&dt.includes("ranger:'🏹'")&&dt.includes("merchant:'◆'"),'reliable class icons missing');
+ok(dt.includes('player-pin21428')&&dt.includes('player-name21428')&&dt.includes('player-class21428')&&dt.includes('v21428ClassName(c)'),'group-map class label missing');
+const renderStart=dt.indexOf('renderMap=function()'),renderEnd=dt.indexOf('setTimeout',renderStart),render=dt.slice(renderStart,renderEnd);
+ok(render.includes('player-dot21428')&&!render.includes('playerArrow21426'),'group-map arrow still rendered');
+ok(dt.includes('.player-name21428{fill:#fff;font-size:10px')&&dt.includes('.player-class21428{fill:#9fc4d8;font-size:8px'),'group-map name/class sizes missing');
+ok(w.includes('AiO Bot Dashboard 2.14.28')&&w.includes('version:"2.14.28",brain:'),'Worker embedded dashboard/version stale');
+new vm.Script(b,{filename:'bot.js'});for(const x of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(x[1],{filename:'dashboard-inline.js'});new vm.Script(w.replace(/\bexport\s+default\b/,'const __worker_default ='),{filename:'worker.js'});
+console.log('v2.14.28 priority/liveness/dashboard invariants OK');

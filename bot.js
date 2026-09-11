@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.27 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.28 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.27';
+  var VERSION = '2.14.28';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -4689,5 +4689,81 @@
   v210BrainTelemetry=function(){var x=v21427TelemetryBase();x.userFocus=safeString(C.brainTeachingKeywords||'',500);x.moduleSelection={worldModel:!!C.brainWorldModelEnabled,discovery:!!C.brainDiscoveryModuleEnabled,experiments:!!C.brainExperimentModuleEnabled,planner:!!C.brainPlannerModuleEnabled,gathering:!!C.brainGatheringModuleEnabled,stand:!!C.brainStandModuleEnabled,explain:!!C.brainExplainModuleEnabled};return x;};
   try{P.setTimeout(function(){if(S.toolWindows&&S.toolWindows.brain)renderTool('brain');renderAll(true);},50);}catch(e){}
   audit('feature_contract','2.14.27 Live-Fix: leere Queue, äußerster Bankausgang, Brain-Enddispatch und vollständige Terrain-Gruppen geprüft',{itemPermissionRules:Object.keys(C.merchantItemPermissions||{}).length,activeQueue:v21427HasActiveQueue(),brainFocus:safeString(C.brainTeachingKeywords||'',120)});
+
+
+  /* v2.14.28 equipment-first economy, off-bank liveness and acquisition routing */
+  try{['merchant-equipment-first-priority','merchant-gold-second-priority','merchant-acquisition-source-router','merchant-player-market-buy','merchant-offbank-capacity-work-window','dashboard-class-markers'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});}catch(e){}
+
+  // Productive priority policy is deterministic. Safety/active transactions remain hard pre-emption.
+  // #1 Equipment improvement. #2 Gold. Neural weights/rewards/confidence are intentionally untouched.
+  function v21428EquipmentOpportunity(){
+    var p=S.merchantPlan||{},j=p.job||{},ra=S.recipeAnalysis&&S.recipeAnalysis.top||[],top=ra[0]||null;
+    var output=j.rootOutput||(j.recipe&&j.recipe.output)||(top&&top.output)||'';
+    if(!output)return null;
+    return {output:output,recipient:j.targetRecipient||(top&&top.recipient)||'',gainPerHour:Number(j.gainPerHour||(top&&top.gainPerHour)||0)||0,material:j.material||null,farmOrder:p.farmOrder||null};
+  }
+  function v21428GoldOpportunity(){
+    var keep=Math.max(0,Number(C.merchantFarmerGoldReserve)||0),rows=[];
+    try{farmerReports().forEach(function(r){var excess=Math.max(0,Number(r&&r.gold||0)-keep);if(excess>0)rows.push({name:r.name,excess:excess,map:r.map,x:r.x,y:r.y});});}catch(e){}
+    rows.sort(function(a,b){return b.excess-a.excess||a.name.localeCompare(b.name);});
+    return {available:rows.reduce(function(n,x){return n+x.excess;},0),farmers:rows.slice(0,4)};
+  }
+  function v21428PrioritySnapshot(){var gear=v21428EquipmentOpportunity(),gold=v21428GoldOpportunity();return {productive:['equipment','gold'],equipment:gear,gold:gold,hardPreemption:'safety-and-active-transactions'};}
+
+  // Evaluate only acquisition routes that are actually observable/executable now.
+  // Player-market buys require a visible SELL listing with a live rid, keeping trade_buy's anti-swap guard.
+  function v21428VisiblePlayerOffers(name,level){
+    var out=[],lv=Math.max(0,Number(level)||0);if(typeof trade_buy!=='function')return out;
+    entities().forEach(function(e){if(!e||e.type!=='character'||e.name===me||!e.slots)return;Object.keys(e.slots).filter(function(k){return /^trade\d+$/.test(k);}).forEach(function(k){var s=e.slots[k];if(!s||s.name!==name||s.b||!s.rid||!isFinite(Number(s.price))||Number(s.price)<=0)return;if((Number(s.level)||0)!==lv)return;out.push({seller:e.name,id:e.id,slot:k,rid:s.rid,price:Number(s.price),q:Math.max(1,Number(s.q)||1),x:Number(e.x)||0,y:Number(e.y)||0,map:e.map||character.map});});});
+    return out.sort(function(a,b){return a.price-b.price||a.seller.localeCompare(b.seller)||a.slot.localeCompare(b.slot);});
+  }
+  function v21428AcquisitionPlan(plan){
+    plan=plan||S.merchantPlan||{};var j=plan.job||{},m=j.material||null,name=m&&m.name,level=Math.max(0,Number(m&&m.level)||0),required=Math.max(1,Number(m&&m.required)||1),have=Math.max(0,Number(m&&m.have)||0),missing=Math.max(0,required-have);
+    if(!name||!missing)return j.recipe?{kind:'craft',item:j.recipe.output,level:0,missing:1,reason:'materials-ready'}:null;
+    var choices=[],reserve=Math.max(Number(C.merchantBankGoldReserve)||0,Number(C.autoEconomyGoldReserve)||0),liquid=Math.max(0,Number(character.gold||0)-reserve),budget=Math.floor(liquid*.35),def=GD.items&&GD.items[name]||{};
+    var local=v278LocalMaterialCount?Math.max(0,Number(v278LocalMaterialCount(name,level))||0):qty(name);if(local>=required)choices.push({kind:'owned',item:name,level:level,missing:missing,score:1000000,reason:'already-owned'});
+    var bank=0;try{bank=Math.max(0,Number(v2149BankCount(name,level))||0);}catch(e){}if(bank>0)choices.push({kind:'bank',item:name,level:level,missing:missing,score:900000,reason:'known-bank-stock'});
+    if(level===0){var seller=null;try{seller=v2149NpcSeller(name);}catch(e){}var npcCost=Math.max(0,Number(def.g)||0)*missing;if(seller&&npcCost>0&&npcCost<=budget)choices.push({kind:'npc',item:name,level:0,missing:missing,cost:npcCost,seller:seller,score:760000-Math.min(150000,npcCost/100),reason:'npc-known-and-affordable'});}
+    var offers=v21428VisiblePlayerOffers(name,level),off=offers.find(function(x){return x.price*Math.min(missing,x.q)<=budget;});if(off){var oq=Math.min(missing,off.q),oc=off.price*oq;choices.push({kind:'player',item:name,level:level,missing:missing,q:oq,cost:oc,offer:off,score:780000-Math.min(170000,oc/100),reason:'visible-player-sell-listing'});}
+    var recipe=null;try{recipe=v278FindRecipeForOutput(name,v278AggregateMaterials());}catch(e){}if(recipe)choices.push({kind:'craft',item:name,level:level,missing:missing,recipe:recipe,score:700000,reason:'craft-recipe-known'});
+    var dr=null,goal=null;try{dr=level===0?v273DropMonsterFor(name):null;goal=dr&&v273GoalForMonster(dr.monster);}catch(e){}if(dr&&goal)choices.push({kind:'farm',item:name,level:level,missing:missing,monster:dr.monster,goal:goal,score:680000,reason:'known-drop-and-spawn'});
+    choices.sort(function(a,b){return b.score-a.score||Number(a.cost||0)-Number(b.cost||0)||a.kind.localeCompare(b.kind);});var chosen=choices[0]||null;if(chosen)chosen.choices=choices.map(function(x){return {kind:x.kind,cost:x.cost==null?null:x.cost,reason:x.reason};});return chosen;
+  }
+  function v21428AcquisitionLabel(a){if(!a)return '';if(a.kind==='player')return 'Spieler kaufen · '+a.offer.seller+' · '+Math.round(a.cost)+' Gold';if(a.kind==='npc')return 'NPC kaufen · '+Math.round(a.cost)+' Gold';if(a.kind==='farm')return 'Gezielt farmen · '+v273Name(a.monster);if(a.kind==='craft')return 'Selbst craften';if(a.kind==='bank')return 'Aus Bank holen';if(a.kind==='owned')return 'Bereits vorhanden';return a.kind;}
+
+  var v21428PlanBase=v273MerchantPlannerTick;
+  v273MerchantPlannerTick=function(){
+    var plan=v21428PlanBase();if(!plan)return plan;var a=v21428AcquisitionPlan(plan);plan.acquisition=a||null;
+    if(a&&a.kind==='farm'&&plan.job&&plan.job.material&&!plan.farmOrder){plan.farmOrder={item:plan.job.material.name,itemLevel:Number(plan.job.material.level)||0,required:Number(plan.job.material.required)||1,have:Number(plan.job.material.have)||0,monster:a.monster};plan.farmGoal=a.goal;}
+    var gear=v21428EquipmentOpportunity(),lead=gear?('Priorität #1 Ausrüstung: '+v273Name(gear.output)+(gear.recipient?' → '+gear.recipient:'')):'Priorität #1 Ausrüstung: bestes sichere Upgrade suchen',steps=[lead];if(a)steps.push('Beschaffung: '+v21428AcquisitionLabel(a));steps.push('Priorität #2 Gold: Überschuss einsammeln / sichere Goldquelle nutzen');(plan.steps||[]).forEach(function(x){if(steps.indexOf(x)<0)steps.push(x);});plan.steps=steps.slice(0,5);v273SetMerchantPlan(plan);S.productivePriority21428=v21428PrioritySnapshot();return plan;
+  };
+
+  function v21428NpcAcquireTick(){var p=S.merchantPlan||{},a=p.acquisition;if(character.ctype!=='merchant'||!a||a.kind!=='npc'||typeof buy!=='function'||freeSlots()<1)return false;var need=Math.max(1,Number(a.missing)||1),cur=v278LocalMaterialCount?Number(v278LocalMaterialCount(a.item,a.level))||0:qty(a.item);if(p.job&&p.job.material&&cur>=Number(p.job.material.required||1))return false;var s=a.seller;if(!s)return false;if(character.map!==s.map||dist(character,s)>80){S.status='Ausrüstung #1 · Material beim NPC kaufen: '+v273Name(a.item);S.mode='Merchant · Ausrüstung';return moveToGoal(s,'Ausrüstungs-Material beim NPC kaufen',{kind:'merchant-equipment-npc',tolerance:65,forceAfter:9000})||true;}var q=Math.max(1,Math.min(need,20)),cost=Math.max(0,Number((GD.items[a.item]||{}).g)||0)*q,reserve=Math.max(Number(C.merchantBankGoldReserve)||0,Number(C.autoEconomyGoldReserve)||0);if(cost<=0||Number(character.gold||0)-cost<reserve)return false;return action('Ausrüstungs-Material beim NPC kaufen '+a.item,function(){return buy(a.item,q);},'equipment-npc-buy:'+a.item,3000);}
+  function v21428PlayerAcquireTick(){var p=S.merchantPlan||{},a=p.acquisition;if(character.ctype!=='merchant'||!a||a.kind!=='player'||typeof trade_buy!=='function'||freeSlots()<1)return false;var off=a.offer||{},target=entities().find(function(e){return e&&e.type==='character'&&e.id===off.id&&e.name===off.seller;});if(!target||!target.slots||!target.slots[off.slot]){p.acquisition=null;return false;}var live=target.slots[off.slot];if(live.rid!==off.rid||live.name!==a.item||live.b||Number(live.price)!==Number(off.price))return false;var q=Math.max(1,Math.min(Number(a.q)||1,Number(live.q)||1)),cost=Number(live.price)*q,reserve=Math.max(Number(C.merchantBankGoldReserve)||0,Number(C.autoEconomyGoldReserve)||0);if(Number(character.gold||0)-cost<reserve||cost>Math.max(0,(Number(character.gold||0)-reserve)*.35))return false;if(dist(character,target)>350){S.status='Ausrüstung #1 · Spielerangebot '+off.seller+' anfahren';S.mode='Merchant · Ausrüstung';return moveToGoal(target,'Spielerangebot für Ausrüstung',{kind:'merchant-equipment-player',tolerance:180,forceAfter:7000})||true;}return action('Ausrüstungs-Material von Spieler kaufen '+a.item,function(){return trade_buy(target,off.slot,q);},'equipment-player-buy:'+off.seller+':'+off.slot,3500);}
+
+  // The old capacity retry kept returning true after the Merchant had safely left the bank.
+  // With the configured emergency buffer still intact, let productive work continue outside bank.
+  // Loot remains guarded by the existing capacity-hard gate; quarantine is never cleared here.
+  S.offbankCapacity21428=S.offbankCapacity21428||{lastAuditAt:0};
+  function v21428OffbankCapacityWork(){if(character.ctype!=='merchant'||String(character.map||'').indexOf('bank')===0)return false;var reserve=Math.max(1,Number(C.merchantInventoryReserve)||0),free=freeSlots(),floor=Math.max(1,Math.min(reserve,Number(C.autoEconomyEmergencyFreeSlots)||2));if(free>reserve||free<floor)return false;if(v21427HasActiveQueue()||S.moveInFlight||character.moving)return false;var now=clock();if(now-Number(S.offbankCapacity21428.lastAuditAt||0)>60000){S.offbankCapacity21428.lastAuditAt=now;audit('merchant_offbank_capacity_work','Knappes Merchant-Inventar blockiert außerhalb der Bank nicht länger alle Arbeit',{free:free,reserve:reserve,emergencyFloor:floor,quarantinePreserved:!!v21425ActiveBankQuarantine(),lootGuardPreserved:true});}return true;}
+  var v21428PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){if(v21428OffbankCapacityWork())return false;return v21428PressureBase();};
+
+  // Run equipment acquisition before productive gold collection. True safety prerequisites still win.
+  var v21428MerchantBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype!=='merchant')return v21428MerchantBase();
+    if(v21426BankEscapeTick())return true;
+    var cands=[];try{cands=v277MerchantServiceCandidates();}catch(e){}var hardService=cands.some(function(x){return x&&x.potNeed;});var gear=v21428EquipmentOpportunity(),capacityPrereq=!!(gear&&gear.farmOrder&&cands.some(function(x){return x&&x.freeNeed;}));
+    if(!hardService&&!capacityPrereq){if(clock()>(S.times.merchantPlan||0)){S.times.merchantPlan=clock()+4000;v273MerchantPlannerTick();}if(v21428PlayerAcquireTick())return true;if(v21428NpcAcquireTick())return true;if(v273CollectFromFarmersTick())return true;if(v273CraftTick())return true;if(v273UpgradeTick())return true;if(v273CompoundTick())return true;if(v273DistributeGearTick())return true;}
+    return v21428MerchantBase();
+  };
+
+  // Deterministic strategic view: safety first, then productive goal #1 equipment, #2 gold.
+  var v21428BrainPlannerBase=v21411Planner;
+  v21411Planner=function(){var base=v21428BrainPlannerBase(),all=(base&&base.all?base.all.slice():[]),gear=v21428EquipmentOpportunity(),gold=v21428GoldOpportunity(),safe=[];all.forEach(function(x){if(x&&x.id!=='wait'&&x.id!=='discovery'&&x.id!=='gathering'&&x.id!=='stand')safe.push(x);});var options=[];var activeBank=!!(S.merchantBankRetrieve2149||S.merchantBankCleanup2148||(S.autoEconomy21422&&S.autoEconomy21422.tx));if(activeBank)options.push({id:'safety-bank',score:10000,label:'Sicherheits-/Transaktionsabschluss',reason:'Eine bereits gestartete Transaktion wird atomar beendet.'});var svc=[];try{svc=v277MerchantServiceCandidates();}catch(e){}if(svc.some(function(x){return x&&x.potNeed;}))options.push({id:'safety-supply',score:9500,label:'Sicherheitsversorgung',reason:'Dringende Versorgung bleibt ein harter Sicherheitsvorrang.'});if(gear)options.push({id:'equipment',score:3000,label:'Ausrüstung verbessern',reason:v273Name(gear.output)+(gear.recipient?' für '+gear.recipient:'')+' ist das stärkste bekannte Ausrüstungsziel.'});options.push({id:'gold',score:2000,label:'Gold erlangen',reason:gold.available>0?'Bekannter abholbarer Goldüberschuss: '+Math.round(gold.available):'Gold finanziert Ausrüstung, Bank, Verbrauchsgüter und weitere Freischaltungen.'});all.filter(function(x){return x&&['discovery','gathering','stand','wait'].indexOf(x.id)>=0;}).forEach(function(x){x=Object.assign({},x);x.score=Math.min(Number(x.score)||0,500);options.push(x);});options.sort(function(a,b){return b.score-a.score||a.id.localeCompare(b.id);});return {chosen:options[0],alternatives:options.slice(1,4),all:options,at:clock(),priorityPolicy:{productive:['equipment','gold'],safetyPreempts:true}};};
+
+  var v21428DashboardBase=dashboardPayload;dashboardPayload=function(){var d=v21428DashboardBase();d.productivePriority=v21428PrioritySnapshot();return d;};
+  audit('feature_contract','2.14.28 Ausrüstung #1, Gold #2, sichere Beschaffungswahl und Off-Bank-Liveness aktiv',{priority:['equipment','gold'],brainModel:C.brainModel,brainMinConfidencePct:C.brainMinConfidencePct});
 
 })();
