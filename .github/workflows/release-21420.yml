@@ -3,9 +3,9 @@ on:
   push:
     branches: ["release/2.14.20-measurement-reliability"]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  fix-and-validate:
+  validate-final-tree:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,20 +14,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply diagnostic fixes when needed
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');
-          const p='bot.js'; let s=fs.readFileSync(p,'utf8'), before=s;
-          s=s.replace("S.teacherMetrics21420||(S.teacherMetrics21420={attempted:0,succeeded:0,suppressed:0,errors:{},lastErrorClass:'',lastErrorAt:0,quotaUntil:0,providerUntil:0})","S.teacherMetrics21420||(S.teacherMetrics21420={attempted:0,succeeded:0,suppressed:0,errors:{},lastErrorClass:'',lastErrorText:'',lastErrorAt:0,quotaUntil:0,providerUntil:0})");
-          s=s.replace("function v21420ApplyTeacherError(err){var cls=v21420TeacherClass(err),m=v21420TeacherMetrics(),now=clock();if(cls==='none')return cls;m.errors[cls]=Number(m.errors[cls]||0)+1;m.lastErrorClass=cls;m.lastErrorAt=now;","function v21420ApplyTeacherError(err){var cls=v21420TeacherClass(err),m=v21420TeacherMetrics(),now=clock(),text=String(err||'');if(cls==='none')return cls;if(m.lastErrorClass===cls&&m.lastErrorText===text&&now-Number(m.lastErrorAt||0)<5000)return cls;m.errors[cls]=Number(m.errors[cls]||0)+1;m.lastErrorClass=cls;m.lastErrorText=text;m.lastErrorAt=now;");
-          s=s.replace("audit=function(kind,message,data,level){if(kind==='brain_error')v21420ApplyTeacherError(data&&(data.errorClass||data.error)||message);if(kind==='teacher_call_suppressed')","audit=function(kind,message,data,level){if(kind==='brain_error')v21420ApplyTeacherError(data&&(data.errorClass||data.error)||message);if(kind==='brain_decision'){var sm=v21420TeacherMetrics();sm.succeeded++;sm.lastErrorClass='';sm.lastErrorText='';sm.providerUntil=0;}if(kind==='teacher_call_suppressed')");
-          s=s.replace("var beforeReq=Number(S.brain&&S.brain.requests)||0,r=v21420TeacherBase(trigger,force);if(r)m.attempted++;P.setTimeout(function(){var err=String(S.brain&&S.brain.lastError||'');if(err)v21420ApplyTeacherError(err);else if(r&&Number(S.brain&&S.brain.requests)>beforeReq){m.succeeded++;m.lastErrorClass='';m.providerUntil=0;}},2500);return r;","var r=v21420TeacherBase(trigger,force);if(r)m.attempted++;return r;");
-          s=s.replace("var b=S.teacherBreaker21419,m=v21420TeacherMetrics();if(clock()<Number(m.quotaUntil||0))return 'teacher-quota';if(b&&clock()<Number(b.until||0))return 'teacher-provider';if(S.bankFull)return 'bank-full';","if(S.bankFull)return 'bank-full';");
-          if(s===before) throw new Error('Expected 2.14.20 diagnostic fix patterns not found');
-          fs.writeFileSync(p,s);
-          NODE
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
@@ -55,13 +41,4 @@ jobs:
           shopt -s nullglob
           for f in scripts/smoke*.mjs; do node "$f"; done
       - name: Diff check
-        run: git diff --check
-      - name: Commit tested fixes
-        shell: bash
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          if git diff --quiet; then echo 'No fixes needed'; exit 0; fi
-          git add bot.js
-          git commit -m "Fix 2.14.20 teacher and merchant diagnostics [21420-fixed]"
-          git push
+        run: git diff --check HEAD^ HEAD
