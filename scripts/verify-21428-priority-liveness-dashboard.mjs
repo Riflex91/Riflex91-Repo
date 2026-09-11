@@ -17,7 +17,8 @@ ok(tail.includes('function v21428PlayerAcquireTick')&&tail.includes("kind:'merch
 ok(tail.includes('function v21428OffbankCapacityWork')&&tail.includes("String(character.map||'').indexOf('bank')===0")&&tail.includes('free<floor')&&tail.includes('v21427HasActiveQueue()'),'off-bank capacity work guard incomplete');
 ok(tail.includes('if(v21428OffbankCapacityWork())return false')&&tail.includes("audit('merchant_offbank_capacity_work'")&&tail.includes('lootGuardPreserved:true'),'off-bank liveness bypass/telemetry missing');
 ok(!tail.includes('bankStoreNoProgress21423={}')&&!tail.includes('bankStoreNoProgress21423 = {}'),'bank quarantine must not be cleared');
-ok(tail.includes('v21428PlayerAcquireTick())return true')&&tail.includes('v21428NpcAcquireTick())return true')&&tail.indexOf('v21428PlayerAcquireTick())return true')<tail.indexOf('return v21428MerchantBase()'),'equipment acquisition must run before legacy productive service');
+const mbStart=tail.indexOf('var v21428MerchantBase=merchantTick'),mbEnd=tail.indexOf('// Deterministic strategic view',mbStart),mb=tail.slice(mbStart,mbEnd);
+ok(mb.includes('if(v21428PlayerAcquireTick())return true')&&mb.includes('if(v21428NpcAcquireTick())return true')&&mb.indexOf('if(v21428PlayerAcquireTick())return true')<mb.lastIndexOf('return v21428MerchantBase()'),'equipment acquisition must run before legacy productive service');
 ok(b.includes("brainMinConfidencePct: 70")&&b.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'Brain confidence/model invariant changed');
 ok(h.includes('v2.14.28 class markers + reliable dashboard class icons'),'dashboard v2.14.28 patch missing');
 const dm=h.lastIndexOf('/* v2.14.28 class markers + reliable dashboard class icons */'),dt=h.slice(dm);
