@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.4 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.5 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -74,12 +74,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { SkillFarmerController } = require('./farmer/skill-farmer');
+const { RetreatFarmerController } = require('./farmer/retreat-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.4';
+const VERSION = '3.0.0-alpha.8.5';
 
 class Runtime {
   constructor(options = {}) {
@@ -90,7 +90,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new SkillFarmerController({
+    this.farmer = options.farmer || new RetreatFarmerController({
       now: this.now,
       log: this.log,
       planner: this.planner,
@@ -106,7 +106,12 @@ class Runtime {
       kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
-      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs
+      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
+      safeRetreatEnabled: options.farmerSafeRetreatEnabled !== false,
+      safeRetreatStepSeconds: options.farmerSafeRetreatStepSeconds,
+      safeRetreatMinStep: options.farmerSafeRetreatMinStep,
+      safeRetreatMaxStep: options.farmerSafeRetreatMaxStep,
+      safeRetreatMaxThreats: options.farmerSafeRetreatMaxThreats
     });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
@@ -127,6 +132,7 @@ class Runtime {
       multiAggroCount: options.combatEmergencyMultiAggroCount
     });
     this.lastEmergencyDisengage = null;
+    this.pendingEmergencyRetreat = null;
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -313,10 +319,50 @@ class Runtime {
     this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_RISK_REJECTED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: risk.reason, data: record });
   }
 
-  _noteEmergencyDisengage(entity, emergency) {
+  _armEmergencyRetreat(snapshot, entity, emergency, at) {
+    if (this.adapter.mode !== 'active' || !snapshot || !snapshot.character) return;
+    const character = snapshot.character;
+    const threats = [];
+    const seen = new Set();
+    for (const candidate of snapshot.entities || []) {
+      if (!candidate || !candidate.id || !candidate.mtype || candidate.dead || (candidate.hp != null && Number(candidate.hp) <= 0)) continue;
+      const isCurrent = entity && String(candidate.id) === String(entity.id);
+      const isSelfAggro = candidate.target === character.name;
+      if (!isCurrent && !isSelfAggro) continue;
+      const key = String(candidate.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      threats.push({
+        id: key,
+        mtype: candidate.mtype || null,
+        x: candidate.x == null ? null : Number(candidate.x),
+        y: candidate.y == null ? null : Number(candidate.y),
+        target: candidate.target || null
+      });
+      if (threats.length >= 6) break;
+    }
+
+    this.pendingEmergencyRetreat = {
+      at,
+      reason: emergency.reason,
+      hpRatio: emergency.signals && emergency.signals.hpRatio != null ? Number(emergency.signals.hpRatio) : null,
+      sourceTargetId: entity && entity.id || null,
+      sourceTargetType: entity && entity.mtype || null,
+      threats
+    };
+  }
+
+  takeEmergencyRetreat() {
+    const pending = this.pendingEmergencyRetreat;
+    this.pendingEmergencyRetreat = null;
+    return pending;
+  }
+
+  _noteEmergencyDisengage(entity, emergency, snapshot) {
     if (!entity || !emergency || !emergency.triggered) return;
+    const at = this.now();
     const record = {
-      at: this.now(),
+      at,
       entityId: entity.id || null,
       entityName: entity.name || null,
       monsterType: entity.mtype || null,
@@ -324,6 +370,7 @@ class Runtime {
       signals: emergency.signals || {}
     };
     this.lastEmergencyDisengage = record;
+    this._armEmergencyRetreat(snapshot, entity, emergency, at);
     this.log.emit({
       component: 'farmer',
       event: 'FARMER_EMERGENCY_DISENGAGE',
@@ -352,7 +399,7 @@ class Runtime {
       if (isCurrentEngageTarget) {
         const emergency = this.combatEmergency.evaluate(snapshot, entity);
         if (emergency.triggered) {
-          this._noteEmergencyDisengage(entity, emergency);
+          this._noteEmergencyDisengage(entity, emergency, snapshot);
           continue;
         }
       }
@@ -438,7 +485,7 @@ class Runtime {
           world: this.world.summary(),
           performance: this.performance.status().current,
           combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
           persistence: this.persistence.status()
         }
       });
@@ -456,7 +503,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -473,7 +520,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
@@ -2080,6 +2127,132 @@ class FarmPlanner {
 module.exports = { FarmPlanner };
 
 },
+"src/farmer/retreat-farmer.js": function(require,module,exports){
+'use strict';
+
+const { SkillFarmerController } = require('./skill-farmer');
+const { SafeRetreatPolicy } = require('./safe-retreat');
+const { FarmerState } = require('./farmer-fsm');
+
+class RetreatFarmerController extends SkillFarmerController {
+  constructor(options = {}) {
+    super(options);
+    this.safeRetreat = options.safeRetreat || new SafeRetreatPolicy({
+      enabled: options.safeRetreatEnabled !== false,
+      stepSeconds: options.safeRetreatStepSeconds,
+      minStep: options.safeRetreatMinStep,
+      maxStep: options.safeRetreatMaxStep,
+      maxThreats: options.safeRetreatMaxThreats
+    });
+    this.lastSafeRetreatMove = null;
+    this.lastSafeRetreatFailure = null;
+  }
+
+  _consumePendingRetreat(context) {
+    const runtime = context && context.runtime;
+    if (!runtime || typeof runtime.takeEmergencyRetreat !== 'function') return null;
+    return runtime.takeEmergencyRetreat();
+  }
+
+  _engage(context, target) {
+    const snapshot = context && context.snapshot;
+    const character = snapshot && snapshot.character;
+    const pending = this._consumePendingRetreat(context);
+
+    if (pending && snapshot && character && !character.rip) {
+      const recovery = this._needsRecovery(snapshot);
+      this._maybePotion(context, recovery);
+      const decision = this.safeRetreat.evaluate(character, pending.threats || []);
+
+      if (decision.shouldMove) {
+        const result = context.adapter.command('move', [decision.x, decision.y]);
+        if (result.executed || result.shadow) {
+          const now = this.now();
+          this.lastActionAt = now;
+          this.lastSafeRetreatMove = {
+            at: now,
+            emergencyReason: pending.reason || null,
+            sourceTargetId: pending.sourceTargetId || null,
+            sourceTargetType: pending.sourceTargetType || null,
+            hpRatio: pending.hpRatio == null ? null : Number(pending.hpRatio),
+            reason: decision.reason,
+            threatCount: decision.threatCount,
+            nearestThreatId: decision.nearestThreatId,
+            nearestThreatDistance: decision.nearestThreatDistance,
+            step: decision.step,
+            x: Number(decision.x.toFixed(2)),
+            y: Number(decision.y.toFixed(2))
+          };
+          this.lastSafeRetreatFailure = null;
+          this._event('FARMER_SAFE_RETREAT_REQUESTED', 'warn', decision.reason, {
+            emergencyReason: pending.reason || null,
+            sourceTargetId: pending.sourceTargetId || null,
+            sourceTargetType: pending.sourceTargetType || null,
+            hpRatio: pending.hpRatio == null ? null : Number(pending.hpRatio),
+            threatCount: decision.threatCount,
+            nearestThreatId: decision.nearestThreatId,
+            nearestThreatDistance: decision.nearestThreatDistance,
+            step: decision.step,
+            x: Math.round(decision.x),
+            y: Math.round(decision.y)
+          });
+          this._clearTarget('EMERGENCY_SAFE_RETREAT');
+          this._transition(FarmerState.RECOVER, 'EMERGENCY_SAFE_RETREAT');
+          return;
+        }
+
+        this.lastSafeRetreatFailure = {
+          at: this.now(),
+          reason: result.reason || 'SAFE_RETREAT_MOVE_FAILED',
+          emergencyReason: pending.reason || null,
+          sourceTargetId: pending.sourceTargetId || null,
+          sourceTargetType: pending.sourceTargetType || null
+        };
+        this._event('FARMER_SAFE_RETREAT_FAILED', 'warn', this.lastSafeRetreatFailure.reason, {
+          emergencyReason: pending.reason || null,
+          sourceTargetId: pending.sourceTargetId || null,
+          sourceTargetType: pending.sourceTargetType || null,
+          x: Math.round(decision.x),
+          y: Math.round(decision.y)
+        });
+      } else {
+        this.lastSafeRetreatFailure = {
+          at: this.now(),
+          reason: decision.reason,
+          emergencyReason: pending.reason || null,
+          sourceTargetId: pending.sourceTargetId || null,
+          sourceTargetType: pending.sourceTargetType || null
+        };
+        this._event('FARMER_SAFE_RETREAT_SKIPPED', 'warn', decision.reason, {
+          emergencyReason: pending.reason || null,
+          sourceTargetId: pending.sourceTargetId || null,
+          sourceTargetType: pending.sourceTargetType || null
+        });
+      }
+
+      this._clearTarget('EMERGENCY_SAFE_RETREAT_UNAVAILABLE');
+      this._transition(FarmerState.RECOVER, 'EMERGENCY_SAFE_RETREAT_UNAVAILABLE');
+      return;
+    }
+
+    return super._engage(context, target);
+  }
+
+  status() {
+    return {
+      ...super.status(),
+      safeRetreat: {
+        ...this.safeRetreat.status(),
+        lastMove: this.lastSafeRetreatMove,
+        lastFailure: this.lastSafeRetreatFailure
+      }
+    };
+  }
+}
+
+module.exports = { RetreatFarmerController };
+
+},
 "src/farmer/skill-farmer.js": function(require,module,exports){
 'use strict';
 
@@ -3171,6 +3344,98 @@ class TargetReassessmentPolicy {
 }
 
 module.exports = { TargetReassessmentPolicy };
+
+},
+"src/farmer/safe-retreat.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+class SafeRetreatPolicy {
+  constructor(options = {}) {
+    this.enabled = options.enabled !== false;
+    this.stepSeconds = Math.max(0.5, Math.min(3, finite(options.stepSeconds, 1.5)));
+    this.minStep = Math.max(15, Math.min(80, finite(options.minStep, 35)));
+    this.maxStep = Math.max(this.minStep, Math.min(160, finite(options.maxStep, 90)));
+    this.maxThreats = Math.max(1, Math.min(10, Math.floor(finite(options.maxThreats, 6))));
+  }
+
+  evaluate(character, threats = []) {
+    if (!this.enabled) return { shouldMove: false, reason: 'SAFE_RETREAT_DISABLED' };
+    if (!character || character.x == null || character.y == null) {
+      return { shouldMove: false, reason: 'CHARACTER_POSITION_UNKNOWN' };
+    }
+
+    const cx = Number(character.x);
+    const cy = Number(character.y);
+    const positioned = (threats || [])
+      .filter((threat) => threat && threat.x != null && threat.y != null)
+      .slice(0, this.maxThreats)
+      .map((threat) => ({
+        ...threat,
+        x: Number(threat.x),
+        y: Number(threat.y),
+        distance: Math.hypot(cx - Number(threat.x), cy - Number(threat.y))
+      }))
+      .filter((threat) => Number.isFinite(threat.distance));
+
+    if (!positioned.length) return { shouldMove: false, reason: 'THREAT_POSITION_UNKNOWN' };
+
+    let awayX = 0;
+    let awayY = 0;
+    for (const threat of positioned) {
+      const d = Math.max(1, threat.distance);
+      const weight = 1 / Math.max(20, d);
+      awayX += ((cx - threat.x) / d) * weight;
+      awayY += ((cy - threat.y) / d) * weight;
+    }
+
+    let vectorLength = Math.hypot(awayX, awayY);
+    let fallbackThreat = null;
+    if (vectorLength < 0.0001) {
+      fallbackThreat = positioned.slice().sort((a, b) => a.distance - b.distance)[0];
+      const d = Math.max(1, fallbackThreat.distance);
+      awayX = (cx - fallbackThreat.x) / d;
+      awayY = (cy - fallbackThreat.y) / d;
+      vectorLength = Math.hypot(awayX, awayY);
+    }
+
+    if (vectorLength < 0.0001) return { shouldMove: false, reason: 'RETREAT_DIRECTION_UNAVAILABLE' };
+
+    const speed = Math.max(1, finite(character.speed, 40));
+    const step = Math.max(this.minStep, Math.min(this.maxStep, speed * this.stepSeconds));
+    const ux = awayX / vectorLength;
+    const uy = awayY / vectorLength;
+    const nearest = positioned.slice().sort((a, b) => a.distance - b.distance)[0];
+
+    return {
+      shouldMove: true,
+      reason: 'EMERGENCY_THREAT_RETREAT',
+      x: cx + ux * step,
+      y: cy + uy * step,
+      step: Number(step.toFixed(2)),
+      threatCount: positioned.length,
+      nearestThreatId: nearest && nearest.id || null,
+      nearestThreatDistance: nearest ? Number(nearest.distance.toFixed(2)) : null,
+      fallbackThreatId: fallbackThreat && fallbackThreat.id || null
+    };
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      stepSeconds: this.stepSeconds,
+      minStep: this.minStep,
+      maxStep: this.maxStep,
+      maxThreats: this.maxThreats
+    };
+  }
+}
+
+module.exports = { SafeRetreatPolicy };
 
 },
 "src/farmer/target-safety.js": function(require,module,exports){
