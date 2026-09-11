@@ -1,0 +1,93 @@
+name: release-21420
+on:
+  push:
+    branches: ["release/2.14.20-measurement-reliability"]
+permissions:
+  contents: write
+jobs:
+  patch-and-validate:
+    if: ${{ !contains(github.event.head_commit.message, '[21420-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply release patch
+        run: node scripts/apply-21420.mjs
+      - name: Bot syntax
+        run: node --check bot.js
+      - name: Worker syntax
+        run: node --check cloudflare-dashboard/src/worker.js
+      - name: Dashboard JS syntax
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+          for(const m of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)) new vm.Script(m[1]);
+          console.log('dashboard JS syntax OK');
+          NODE
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Smoke JS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js; do node "$f"; done
+      - name: Smoke MJS
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for f in scripts/smoke*.mjs; do node "$f"; done
+      - name: Diff check
+        run: git diff --check
+      - name: Commit tested release
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/src/worker.js cloudflare-dashboard/dashboard.html scripts
+          git commit -m "Release 2.14.20 measurement reliability [21420-applied]"
+          git push
+  validate-final-tree:
+    if: ${{ contains(github.event.head_commit.message, '[21420-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bot syntax
+        run: node --check bot.js
+      - name: Worker syntax
+        run: node --check cloudflare-dashboard/src/worker.js
+      - name: Dashboard JS syntax
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+          for(const m of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)) new vm.Script(m[1]);
+          console.log('dashboard JS syntax OK');
+          NODE
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Smoke JS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js; do node "$f"; done
+      - name: Smoke MJS
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for f in scripts/smoke*.mjs; do node "$f"; done
+      - name: Diff check
+        run: git diff --check HEAD^ HEAD
