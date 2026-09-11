@@ -2,7 +2,7 @@ const fs=require('fs');
 const bot=fs.readFileSync('bot.js','utf8');
 const v=JSON.parse(fs.readFileSync('version.json','utf8'));
 function ok(x,m){if(!x)throw new Error(m);}
-ok(/^2\.14\.(?:20|21)$/.test(v.version)&&v.dashboardVersion===v.version,'version sync');
+ok(/^2\.14\.\d+$/.test(v.version)&&Number(v.version.split('.')[2])>=20&&v.dashboardVersion===v.version,'version sync');
 ok(new RegExp("var VERSION = ['\\\"]"+v.version.replace(/\./g,'\\.')+"['\\\"]").test(bot),'bot version');
 ['research-window-integrity','teacher-error-classification','teacher-quota-circuit-breaker','merchant-diagnostic-completeness','learning-observability'].forEach(x=>ok(bot.includes(x),'marker '+x));
 ok(bot.includes("coverageStatus:measured?(coverage>=95?'complete':'partial'):'warming'"),'window coverage');
@@ -19,10 +19,8 @@ ok(bot.includes('minFreeSlots')&&bot.includes('routeOwner')&&bot.includes('event
 const merchantBlock=bot.slice(bot.indexOf('function v21420MerchantBlockedReason()'),bot.indexOf('function v21420MerchantTelemetry()'));
 ok(merchantBlock&&!merchantBlock.includes("'teacher-quota'")&&!merchantBlock.includes("'teacher-provider'"),'teacher outage is not merchant operational block');
 ok(bot.includes("brainStudentLearningRate: 0.012")&&bot.includes("brainStudentConfidencePct: 82")&&bot.includes("brainChallengerTrafficPct: 20"),'brain tuning unchanged');
-if(v.version==='2.14.21'){
-  const m=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);ok(m,'static contract missing');
-  const stat=Function('return '+m[1])();
-  const required=['merchant-route-owner','merchant-capacity-hard-state','merchant-exchange-capacity-gate','merchant-progress-loop-breaker','merchant-bank-state-backoff','merchant-presale-economics','merchant-state-hash-cache','merchant-phase-residual-profile','teacher-availability-circuit-breaker','research-window-telemetry','research-window-integrity','teacher-error-classification','teacher-quota-circuit-breaker','merchant-diagnostic-completeness','learning-observability'];
-  required.forEach(x=>ok(stat.includes(x),'legacy 2.14.21 updater would reject missing static feature '+x));
-}
-console.log('2.14.21+ measurement/teacher reliability smoke OK');
+const m=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);ok(m,'static contract missing');
+const stat=Function('return '+m[1])();
+const required=['merchant-route-owner','merchant-capacity-hard-state','merchant-exchange-capacity-gate','merchant-progress-loop-breaker','merchant-bank-state-backoff','merchant-presale-economics','merchant-state-hash-cache','merchant-phase-residual-profile','teacher-availability-circuit-breaker','research-window-telemetry','research-window-integrity','teacher-error-classification','teacher-quota-circuit-breaker','merchant-diagnostic-completeness','learning-observability'];
+required.forEach(x=>ok(stat.includes(x),'protected static feature '+x));
+console.log('2.14.20+ measurement/teacher reliability smoke OK');

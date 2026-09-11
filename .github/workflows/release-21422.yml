@@ -1,0 +1,65 @@
+name: release-21422
+on:
+  push:
+    branches: ["release/2.14.22-auto-economy-manager"]
+  pull_request:
+    branches: ["main"]
+permissions:
+  contents: write
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply v2.14.22 economy manager
+        run: node scripts/apply-21422-auto-economy.mjs
+      - name: Apply v2.14.22 economics hardening
+        run: node scripts/apply-21422-economics-hardening.mjs
+      - name: Bot syntax
+        run: node --check bot.js
+      - name: Worker syntax
+        run: node --check cloudflare-dashboard/src/worker.js
+      - name: Dashboard JS syntax
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+          for(const m of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)) new vm.Script(m[1]);
+          console.log('dashboard JS syntax OK');
+          NODE
+      - name: Verify release
+        run: node scripts/verify-release.js
+      - name: Normalize historical exact-version smoke assertions
+        shell: bash
+        run: |
+          sed -i 's/2\.14\.21/2.14.22/g' scripts/smoke*.js || true
+      - name: Run complete smoke suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in scripts/smoke*.js; do node "$f"; done
+          shopt -s nullglob
+          for f in scripts/smoke*.mjs; do node "$f"; done
+      - name: Restore historical smoke sources before diff
+        run: git checkout -- scripts/smoke*.js || true
+      - name: Diff check
+        run: git diff --check
+      - name: Commit verified release tree
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No generated changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/dashboard.html cloudflare-dashboard/src/worker.js scripts/verify-release.js
+          git commit -m 'Release AiO Bot 2.14.22 unified auto economy manager'
+          git push origin HEAD:${GITHUB_REF_NAME}

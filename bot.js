@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.21 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.22 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.21';
+  var VERSION = '2.14.22';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -123,6 +123,12 @@
     merchantBankRecheckSeconds: 180, merchantUpgradeCadenceMinutes: 20,
     merchantBuyHPTo: 2200, merchantBuyMPTo: 1800, merchantCollectGoldOver: 25000, merchantInventoryReserve: 5,
     merchantItemActions: {},
+    merchantItemRules: {},
+    autoEconomyEnabled: true, autoEconomyMinFreeSlots: 6, autoEconomyEmergencyFreeSlots: 2,
+    autoEconomyGoldReserve: 0, autoEconomyHighValueNpc: 250000, autoEconomyPlanSeconds: 5,
+    autoEconomyRequireProfitForCompound: true, autoEconomyRequireProfitForUpgrade: false,
+    autoEconomyMinProfitGold: 0, autoEconomyMinProfitPct: 0,
+    autoEconomyMaxBankSalesPerCycle: 4, autoEconomyRecoverySeconds: 20,
     showSettingHelp: true, uiTransparencyPct: 0, fastTravelEnabled: true, inventoryProtectedItems: '', standLocation: null,
     brainEnabled: true, brainWorldModelEnabled: true, brainDiscoveryModuleEnabled: true, brainExperimentModuleEnabled: true, brainPlannerModuleEnabled: true, brainExplainModuleEnabled: true, brainGatheringModuleEnabled: true, brainStandModuleEnabled: true, brainTeachingKeywords: '', brainDailyNeuronLimit: 10000, brainBudgetTargetPct: 99.5, brainWorkPct: 100, brainPriorityPct: 55, brainMinConfidencePct: 70, brainModel: '@cf/qwen/qwen3-30b-a3b-fp8',
     brainStudentEnabled: true, brainStudentConfidencePct: 82, brainOutcomeSeconds: 180, brainReplaySize: 512, brainStudentLearningRate: 0.012, brainTeacherMinIntervalSeconds: 30, brainTeacherMaxIntervalSeconds: 600,
@@ -165,7 +171,10 @@
     out.merchantBuyHPTo = clamp(out.merchantBuyHPTo, 0, 99999); out.merchantBuyMPTo = clamp(out.merchantBuyMPTo, 0, 99999); out.merchantInventoryReserve = clamp(out.merchantInventoryReserve, 2, 20);
     out.merchantCraftTargets = safeString(out.merchantCraftTargets || '', 1200);
     if(!out.merchantItemActions||typeof out.merchantItemActions!=='object'||Array.isArray(out.merchantItemActions))out.merchantItemActions={};
-    else{var itemActions2147={};Object.keys(out.merchantItemActions).slice(0,2000).forEach(function(name){var p=String(out.merchantItemActions[name]||'auto');if(['keep','bank','sell','exchange'].indexOf(p)>=0)itemActions2147[safeString(name,120)]=p;});out.merchantItemActions=itemActions2147;}
+    else{var itemActions2147={};Object.keys(out.merchantItemActions).slice(0,2000).forEach(function(name){var p=String(out.merchantItemActions[name]||'auto').toLowerCase();if(['auto','keep','bank','sell','upgrade','compound','exchange','recycle','discard','hold_for_merchant'].indexOf(p)>=0&&p!=='auto')itemActions2147[safeString(name,120)]=p;});out.merchantItemActions=itemActions2147;}
+    if(!out.merchantItemRules||typeof out.merchantItemRules!=='object'||Array.isArray(out.merchantItemRules))out.merchantItemRules={};
+    else{var itemRules21422={};Object.keys(out.merchantItemRules).slice(0,2000).forEach(function(name){var r=out.merchantItemRules[name];if(!r||typeof r!=='object'||Array.isArray(r))return;var a=String(r.action||'auto').toLowerCase();if(['auto','keep','bank','sell','upgrade','compound','exchange','recycle','discard','hold_for_merchant'].indexOf(a)<0)a='auto';itemRules21422[safeString(name,120)]={action:a,minKeep:clamp(r.minKeep,0,99999),targetLevel:clamp(r.targetLevel,0,20),requireProfit:r.requireProfit!==false};});out.merchantItemRules=itemRules21422;}
+    out.autoEconomyEnabled=out.autoEconomyEnabled!==false;out.autoEconomyMinFreeSlots=clamp(out.autoEconomyMinFreeSlots,2,20);out.autoEconomyEmergencyFreeSlots=clamp(out.autoEconomyEmergencyFreeSlots,1,out.autoEconomyMinFreeSlots);out.autoEconomyGoldReserve=clamp(out.autoEconomyGoldReserve,0,1000000000);out.autoEconomyHighValueNpc=clamp(out.autoEconomyHighValueNpc,0,1000000000);out.autoEconomyPlanSeconds=clamp(out.autoEconomyPlanSeconds,2,60);out.autoEconomyRequireProfitForCompound=out.autoEconomyRequireProfitForCompound!==false;out.autoEconomyRequireProfitForUpgrade=!!out.autoEconomyRequireProfitForUpgrade;out.autoEconomyMinProfitGold=clamp(out.autoEconomyMinProfitGold,0,1000000000);out.autoEconomyMinProfitPct=clamp(out.autoEconomyMinProfitPct,0,500);out.autoEconomyMaxBankSalesPerCycle=clamp(out.autoEconomyMaxBankSalesPerCycle,1,20);out.autoEconomyRecoverySeconds=clamp(out.autoEconomyRecoverySeconds,5,300);
     out.showSettingHelp = out.showSettingHelp !== false; out.uiTransparencyPct = clamp(out.uiTransparencyPct, 0, 85); out.fastTravelEnabled = out.fastTravelEnabled !== false; out.inventoryProtectedItems = safeString(out.inventoryProtectedItems || '', 2400);
     out.brainEnabled=out.brainEnabled!==false; out.brainDailyNeuronLimit=clamp(out.brainDailyNeuronLimit,100,10000); out.brainBudgetTargetPct=clamp(out.brainBudgetTargetPct,80,99.5); out.brainWorkPct=clamp(out.brainWorkPct,0,100); out.brainPriorityPct=clamp(out.brainPriorityPct,0,100); out.brainMinConfidencePct=clamp(out.brainMinConfidencePct,50,99); out.brainModel='@cf/qwen/qwen3-30b-a3b-fp8'; out.brainStudentEnabled=out.brainStudentEnabled!==false; out.brainStudentConfidencePct=clamp(out.brainStudentConfidencePct,55,99); out.brainOutcomeSeconds=clamp(out.brainOutcomeSeconds,60,900); out.brainReplaySize=clamp(out.brainReplaySize,64,1024); out.brainStudentLearningRate=clamp(out.brainStudentLearningRate,0.001,0.05); out.brainTeacherMinIntervalSeconds=clamp(out.brainTeacherMinIntervalSeconds,20,600); out.brainTeacherMaxIntervalSeconds=clamp(out.brainTeacherMaxIntervalSeconds,60,3600); if(out.brainTeacherMaxIntervalSeconds<out.brainTeacherMinIntervalSeconds)out.brainTeacherMaxIntervalSeconds=out.brainTeacherMinIntervalSeconds; out.brainLeagueEnabled=out.brainLeagueEnabled!==false; out.brainChallengerTrafficPct=clamp(out.brainChallengerTrafficPct,5,35); out.brainChallengeMinOutcomes=clamp(out.brainChallengeMinOutcomes,4,24); out.brainRollbackRewardDropPct=clamp(out.brainRollbackRewardDropPct,5,35); out.brainDiaryEnabled=out.brainDiaryEnabled!==false; out.brainDiaryMaxEntries=clamp(out.brainDiaryMaxEntries,20,200); out.brainQualityMonitorEnabled=out.brainQualityMonitorEnabled!==false; out.brainQualityWindow=clamp(out.brainQualityWindow,12,64); out.brainQualityMinOutcomes=clamp(out.brainQualityMinOutcomes,8,32); if(out.brainQualityMinOutcomes>out.brainQualityWindow)out.brainQualityMinOutcomes=out.brainQualityWindow; out.brainQualityOverconfidencePct=clamp(out.brainQualityOverconfidencePct,70,99); out.brainQualityRewardDropPct=clamp(out.brainQualityRewardDropPct,5,40); out.brainQualityCooldownMinutes=clamp(out.brainQualityCooldownMinutes,5,120); out.brainResearchBridgeEnabled=out.brainResearchBridgeEnabled!==false; out.brainResearchProfile=['overall','errors','learning','farm','merchant','development'].indexOf(String(out.brainResearchProfile))>=0?String(out.brainResearchProfile):'development'; out.brainResearchHours=clamp(out.brainResearchHours,1,168); out.brainResearchMaxHighlights=clamp(out.brainResearchMaxHighlights,5,40); out.brainResearchAnonymize=out.brainResearchAnonymize!==false; out.cloudSyncEnabled=out.cloudSyncEnabled!==false; out.cloudSyncSeconds=clamp(out.cloudSyncSeconds,15,600); out.farmerUpgradeCheckSeconds=clamp(out.farmerUpgradeCheckSeconds,30,1800); out.merchantExploreWhenIdle=out.merchantExploreWhenIdle!==false;
     if (!out.standLocation || typeof out.standLocation !== 'object' || !out.standLocation.map || !isFinite(Number(out.standLocation.x)) || !isFinite(Number(out.standLocation.y))) out.standLocation = null; else out.standLocation = { map:safeString(out.standLocation.map,80), x:Math.round(Number(out.standLocation.x)), y:Math.round(Number(out.standLocation.y)) };
@@ -3103,7 +3112,7 @@
   // ---------------------------------------------------------------------------
   // 2.14.7 Merchant bank-race guard + optional per-item disposition overrides.
   // ---------------------------------------------------------------------------
-  var V2147_ITEM_POLICIES=['auto','keep','bank','sell','exchange'];
+  var V2147_ITEM_POLICIES=['auto','keep','bank','sell','upgrade','compound','exchange','recycle','discard','hold_for_merchant'];
 
   function v2147ItemPolicy(name){
     var map=C.merchantItemActions;
@@ -4213,5 +4222,139 @@
   var v21421DashboardBase=dashboardPayload;dashboardPayload=function(){var d=v21421DashboardBase();d.botRelease={version:VERSION,build:BUILD,protocol:REPORT_PROTOCOL};return d;};
   var v21421ResearchBase=v214ResearchData;v214ResearchData=function(profile,hours,anonymize){var d=v21421ResearchBase(profile,hours,anonymize);d.botRelease={version:VERSION,build:BUILD,protocol:REPORT_PROTOCOL};return d;};
   audit('feature_contract','2.14.21 Mobile Update Backoff + statischer Feature-Contract + persistente Teacher-Quota + Release-Identität geprüft',{features:FEATURE_CONTRACT});
+
+
+  /* 2.14.22 unified auto-economy manager */
+  var V21422_ACTIONS=['KEEP','SELL','BANK','UPGRADE','COMPOUND','EXCHANGE','RECYCLE','DISCARD','HOLD_FOR_MERCHANT'];
+  S.autoEconomy21422=S.autoEconomy21422||{state:'IDLE',tx:null,plan:null,planAt:0,sig:'',recoverUntil:0,bankSales:0,lastLog:{}};
+
+  function v21422NormAction(v){v=String(v||'auto').trim().toUpperCase();return V21422_ACTIONS.indexOf(v)>=0?v:'AUTO';}
+  function v21422Rule(name){
+    var rich=C.merchantItemRules&&C.merchantItemRules[name],legacy=C.merchantItemActions&&C.merchantItemActions[name];
+    if(rich&&typeof rich==='object')return {action:v21422NormAction(rich.action),minKeep:Math.max(0,Number(rich.minKeep)||0),targetLevel:Math.max(0,Number(rich.targetLevel)||0),requireProfit:rich.requireProfit!==false,explicit:true};
+    if(legacy)return {action:v21422NormAction(legacy),minKeep:0,targetLevel:0,requireProfit:true,explicit:true};
+    return {action:'AUTO',minKeep:0,targetLevel:0,requireProfit:true,explicit:false};
+  }
+  function v21422Category(it){var d=GD.items&&GD.items[it&&it.name]||{};if(!it)return 'Unknown';if(/^c?scroll[0-4]$/.test(it.name))return 'Scrolls';if(it.name===C.hpot||it.name===C.mpot)return 'Potions';if(d.quest||d.event)return 'Event Items';if(d.e||d.exchange||d.exchanges)return 'Exchange Items';if(d.compound)return 'Compound Gear';if(d.upgrade)return 'Upgrade Gear';if(v273EquipSlotsForItem&&v273EquipSlotsForItem(it.name).length)return 'Gear';if(d.type==='material'||d.type==='misc')return 'Materials';return 'Misc';}
+  function v21422EquippedIdentity(it){if(!it)return false;var slots=character.slots||{};return Object.keys(slots).some(function(k){var s=slots[k];return s&&s.name===it.name&&(Number(s.level)||0)===(Number(it.level)||0)&&String(s.p||'')===String(it.p||'');});}
+  function v21422Protected(it){
+    if(!it||!it.name)return 'unknown-item';
+    var d=GD.items&&GD.items[it.name];if(!d)return 'unknown-definition';
+    if(it.l)return 'locked';if(it.p)return 'special-property';if(it.gift)return 'gift';if(v21422EquippedIdentity(it))return 'equipped-identity';
+    if(protectedStandItem(it)||csv(C.inventoryProtectedItems).indexOf(it.name)>=0)return 'configured-protected';
+    if(d.quest||d.event||d.cash||d.rare)return 'rare-or-special';
+    var high=Math.max(0,Number(C.autoEconomyHighValueNpc)||0),value=Number(itemValueSafe(it))||0;if(high>0&&value>=high)return 'high-npc-value';
+    return '';
+  }
+  function v21422Reserve(name,rule){var desired=0;try{desired=Math.max(0,Number(v273DesiredGroupCopies(name))||0);}catch(e){}return Math.max(desired,Math.max(0,Number(rule&&rule.minKeep)||0));}
+  function v21422Owned(name){try{return Math.max(0,Number(v273OwnedCount(name))||0);}catch(e){return qty(name);}}
+  function v21422Profit(prefix,it,copies){
+    copies=Math.max(1,Number(copies)||1);var e=v2144ActionEconomics(prefix,it,copies),cur=Number(e.npcValueNow)||0,delta=e.netNpcDelta==null?null:Number(e.netNpcDelta),pct=delta==null||cur<=0?null:(delta/cur*100),ok=delta!=null&&delta>=Number(C.autoEconomyMinProfitGold||0)&&(pct==null||pct>=Number(C.autoEconomyMinProfitPct||0));
+    return Object.assign({},e,{profitPct:pct==null?null:Math.round(pct*10)/10,profitable:ok});
+  }
+  function v21422ProjectedValueAtLevel(it,level){try{if(typeof item_value!=='function')return null;var clone=Object.assign({},it,{level:Math.max(0,Number(level)||0),q:1});var v=Number(item_value(clone));return isFinite(v)&&v>=0?v:null;}catch(e){return null;}}
+  function v21422ScrollCostAtLevel(prefix,it,level){try{var clone=Object.assign({},it,{level:Math.max(0,Number(level)||0)}),name=v273ScrollName(prefix,clone),d=GD.items&&GD.items[name];return d&&isFinite(Number(d.g))?Math.max(0,Number(d.g)):null;}catch(e){return null;}}
+  function v21422CompoundPathEconomics(it,targetLevel){
+    var start=Number(it&&it.level)||0,target=Math.max(start+1,Number(targetLevel)||start+1),steps=Math.max(1,target-start),base=Number(itemValueSafe(it))||0,inputCopies=Math.pow(3,steps),opportunity=base*inputCopies,scrollCost=0,known=base>0;
+    for(var lv=start;lv<target;lv++){var combines=Math.pow(3,target-lv-1),cost=v21422ScrollCostAtLevel('cscroll',it,lv);if(cost==null){known=false;break;}scrollCost+=combines*cost;}
+    var projected=v21422ProjectedValueAtLevel(it,target);if(projected==null)known=false;var delta=known?projected-opportunity-scrollCost:null,pct=delta==null||opportunity<=0?null:delta/opportunity*100,ok=known&&delta>=Number(C.autoEconomyMinProfitGold||0)&&(pct==null||pct>=Number(C.autoEconomyMinProfitPct||0));
+    return {known:known,startLevel:start,targetLevel:target,inputCopies:inputCopies,npcValueNowEach:base,opportunityValue:opportunity,projectedTargetValue:projected,scrollCost:known?scrollCost:null,netNpcDelta:delta,profitPct:pct==null?null:Math.round(pct*10)/10,profitable:ok};
+  }
+  function v21422CanFundScroll(prefix,it){var name=v273ScrollName(prefix,it);if(slot(name)>=0)return {ok:true,name:name,cost:0,owned:true};var d=GD.items&&GD.items[name],cost=d?Math.max(0,Number(d.g)||0):null,reserve=Math.max(Number(C.merchantBankGoldReserve)||0,Number(C.autoEconomyGoldReserve)||0);return {ok:cost!=null&&Number(character.gold||0)-cost>=reserve,name:name,cost:cost,reserve:reserve,gold:Number(character.gold)||0,owned:false};}
+
+  function v21422Policy(it,where){
+    var rule=v21422Rule(it&&it.name),prot=v21422Protected(it),d=GD.items&&GD.items[it&&it.name]||{},level=Number(it&&it.level)||0,owned=v21422Owned(it&&it.name),reserve=v21422Reserve(it&&it.name,rule),surplus=Math.max(0,owned-reserve),action=rule.action,reasonText='';
+    if(prot)return {action:'KEEP',reason:'protected:'+prot,protected:true,rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    if(action==='RECYCLE'||action==='DISCARD')return {action:'KEEP',reason:'unsupported-safe-fallback:'+action.toLowerCase(),protected:true,rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    if(action==='HOLD_FOR_MERCHANT')return {action:'HOLD_FOR_MERCHANT',reason:'explicit-hold',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    if(action!=='AUTO'){
+      if((action==='SELL'||action==='BANK'||action==='EXCHANGE')&&surplus<=0)return {action:'KEEP',reason:'reserve-floor',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+      return {action:action,reason:'explicit-policy',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    }
+    if(d.e||d.exchange||d.exchanges)return {action:'EXCHANGE',reason:'exchange-capable',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    if(d.compound&&surplus>=3&&level<v273EffectiveCompoundMax(it.name)){
+      var ce=v21422Profit('cscroll',it,3);if(!C.autoEconomyRequireProfitForCompound||ce.profitable)return {action:'COMPOUND',reason:'compound-economic',economics:ce,rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    }
+    if(d.upgrade&&level<Number(C.merchantUpgradeMax||0)&&v273GroupUtility(it)>=0){
+      var ue=v21422Profit('scroll',it,1);if(!C.autoEconomyRequireProfitForUpgrade||ue.profitable)return {action:'UPGRADE',reason:'upgrade-eligible',economics:ue,rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    }
+    var sd=v2144SellDecision(it);if(sd&&sd.sell&&surplus>0)return {action:'SELL',reason:sd.reason||'safe-surplus',sellDecision:sd,rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    if(where==='inventory'&&freeSlots()<=Number(C.autoEconomyMinFreeSlots||6))return {action:'BANK',reason:'inventory-pressure-safe-bank',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+    return {action:'KEEP',reason:'default-safe-keep',rule:rule,category:v21422Category(it),reserve:reserve,surplus:surplus};
+  }
+  function v21422InvSig(){return (character.items||[]).map(function(it){return it?[it.name,Number(it.level)||0,Number(it.q)||1,it.l?1:0,String(it.p||'')].join(':'):'-';}).join('|')+'#'+String(character.map||'')+'#'+String(character.gold||0);}
+  function v21422BankRows(){var rows=[];if(!character.bank)return rows;Object.keys(character.bank).filter(function(k){return /^items\d+$/.test(k)&&Array.isArray(character.bank[k]);}).forEach(function(pack){character.bank[pack].forEach(function(it,index){if(it)rows.push({pack:pack,index:index,it:it});});});return rows;}
+  function v21422BuildPlan(force){
+    var st=S.autoEconomy21422,now=clock(),sig=v21422InvSig();if(!force&&st.plan&&sig===st.sig&&now-Number(st.planAt||0)<Number(C.autoEconomyPlanSeconds||5)*1000)return st.plan;
+    var plan={sell:[],bank:[],upgrade:[],compound:[],exchange:[],keep:[],withdrawSell:[],at:now};
+    (character.items||[]).forEach(function(it,i){if(!it)return;var p=v21422Policy(it,'inventory'),row={index:i,item:it,policy:p};if(p.action==='SELL')plan.sell.push(row);else if(p.action==='BANK')plan.bank.push(row);else if(p.action==='UPGRADE')plan.upgrade.push(row);else if(p.action==='COMPOUND')plan.compound.push(row);else if(p.action==='EXCHANGE')plan.exchange.push(row);else plan.keep.push(row);});
+    if(character.bank){var cap=v273BankCapacity(),full=cap&&cap.free<=0;v21422BankRows().forEach(function(r){var p=v21422Policy(r.it,'bank');if(p.action==='SELL'&&(p.rule.explicit||full))plan.withdrawSell.push({pack:r.pack,index:r.index,item:r.it,policy:p});});}
+    st.plan=plan;st.planAt=now;st.sig=sig;return plan;
+  }
+  function v21422Log(kind,msg,data,level){var st=S.autoEconomy21422,now=clock(),key=kind+':'+msg;if(now-Number(st.lastLog[key]||0)<15000)return;st.lastLog[key]=now;audit(kind,msg,data||{},level||'info');}
+  function v21422State(next,reasonText,data){var st=S.autoEconomy21422;if(st.state===next)return;st.state=next;st.enteredAt=clock();v21422Log('merchant_economy_state','Auto-Economy State '+next,Object.assign({reason:reasonText||''},data||{}));}
+  function v21422ExistingBusy(){if(S.merchantBankRetrieve2149||S.merchantBankCleanup2148||S.moveInFlight||character.moving)return true;try{if(v21417EconomicFlightKind(character.q))return true;}catch(e){}return false;}
+  function v21422ExactInv(name,level){return (character.items||[]).reduce(function(n,it){return n+(it&&it.name===name&&(Number(it.level)||0)===(Number(level)||0)?(Number(it.q)||1):0);},0);}
+  function v21422ExactBank(name,level){return v21422BankRows().reduce(function(n,r){return n+(r.it.name===name&&(Number(r.it.level)||0)===(Number(level)||0)?(Number(r.it.q)||1):0);},0);}
+  function v21422FindInv(name,level){var best=-1;(character.items||[]).some(function(it,i){if(it&&it.name===name&&(Number(it.level)||0)===(Number(level)||0)){best=i;return true;}return false;});return best;}
+  function v21422VendorReady(){var v=v2144SellVendor();return !v||((!v.map||v.map===character.map)&&dist(character,v)<=80);}
+  function v21422Recover(reasonText){var st=S.autoEconomy21422;v21422Log('merchant_economy_recover','Auto-Economy Recovery',{reason:reasonText,state:st.state,tx:st.tx},'warning');st.tx=null;st.bankSales=0;st.recoverUntil=clock()+Number(C.autoEconomyRecoverySeconds||20)*1000;v21422State('RECOVER',reasonText);}
+  function v21422BankSellTick(){
+    var st=S.autoEconomy21422,now=clock(),tx=st.tx;
+    if(st.state==='RECOVER'){if(now<Number(st.recoverUntil||0))return true;st.tx=null;v21422State('IDLE','recovery-complete');return false;}
+    if(!tx)return false;
+    if(character.rip){v21422Recover('character-dead');return true;}
+    if(st.state==='WITHDRAW_ITEMS'){
+      if(String(character.map||'').indexOf('bank')!==0){if(v21422ExistingBusy())return true;return moveToGoal({map:'bank',x:0,y:0},'Auto-Economy Bankentnahme',{kind:'bank',forceAfter:9000})||true;}
+      if(v21422ExistingBusy())return true;
+      var live=(character.bank&&character.bank[tx.pack]||[])[tx.bankIndex];if(!live||live.name!==tx.name||(Number(live.level)||0)!==tx.level){v21422Recover('bank-slot-changed');return true;}
+      tx.beforeInv=v21422ExactInv(tx.name,tx.level);tx.beforeBank=v21422ExactBank(tx.name,tx.level);tx.startedAt=now;v21422State('WITHDRAW_WAIT','withdraw-sent',{item:tx.name,pack:tx.pack,index:tx.bankIndex});
+      var started=action('Auto-Economy Bankentnahme '+tx.name,function(){return bank_retrieve(tx.pack,tx.bankIndex);},'economy-withdraw:'+tx.name,1600);if(!started)v21422Recover('withdraw-not-started');return true;
+    }
+    if(st.state==='WITHDRAW_WAIT'){
+      if(v21422ExactInv(tx.name,tx.level)>Number(tx.beforeInv||0)||v21422ExactBank(tx.name,tx.level)<Number(tx.beforeBank||0)){v21422State('TRAVEL_TO_VENDOR','withdraw-confirmed',{item:tx.name});return true;}
+      if(now-Number(tx.startedAt||now)>12000){v21422Recover('withdraw-unconfirmed');return true;}return true;
+    }
+    if(st.state==='TRAVEL_TO_VENDOR'){
+      if(v21422VendorReady()){v21422State('SELL_ITEMS','vendor-ready');return true;}if(v21422ExistingBusy())return true;var v=v2144SellVendor();return moveToGoal(v,'Auto-Economy NPC-Verkauf',{kind:'merchant-vendor',tolerance:60,forceAfter:9000})||true;
+    }
+    if(st.state==='SELL_ITEMS'){
+      if(v21422ExistingBusy())return true;var idx=v21422FindInv(tx.name,tx.level);if(idx<0){v21422Recover('withdrawn-item-not-found');return true;}var it=character.items[idx],p=v21422Policy(it,'inventory');if(p.action!=='SELL'){v21422Recover('policy-changed-before-sale');return true;}var reserve=v21422Reserve(tx.name,p.rule),owned=v21422Owned(tx.name),maxSell=Math.max(0,owned-reserve),qtySell=Math.min(Number(it.q)||1,Math.max(1,maxSell));if(maxSell<=0){v21422Recover('reserve-floor-before-sale');return true;}tx.sellIndex=idx;tx.beforeSell=v21422ExactInv(tx.name,tx.level);tx.sellQty=qtySell;tx.startedAt=now;v21422State('SELL_WAIT','sale-sent',{item:tx.name,qty:qtySell});var ok=action('Auto-Economy Verkauf '+tx.name,function(){return sell(idx,qtySell);},'economy-sell:'+tx.name,1800);if(!ok)v21422Recover('sale-not-started');return true;
+    }
+    if(st.state==='SELL_WAIT'){
+      if(v21422ExactInv(tx.name,tx.level)<Number(tx.beforeSell||0)){st.bankSales=Number(st.bankSales||0)+1;v21422Log('merchant_economy_sale_confirmed','[SELL] '+tx.name+' x'+tx.sellQty,{item:tx.name,level:tx.level,qty:tx.sellQty});st.tx=null;v21422State('IDLE','sale-confirmed');return true;}
+      if(now-Number(tx.startedAt||now)>12000){v21422Recover('sale-unconfirmed');return true;}return true;
+    }
+    return false;
+  }
+  function v21422MaybeStartBankSale(){
+    var st=S.autoEconomy21422;if(st.tx||st.state!=='IDLE'||!character.bank||freeSlots()<1||v21422ExistingBusy())return false;if(Number(st.bankSales||0)>=Number(C.autoEconomyMaxBankSalesPerCycle||4)){st.bankSales=0;st.recoverUntil=clock()+30000;v21422State('RECOVER','bank-sale-cycle-limit');return true;}
+    var p=v21422BuildPlan(true),c=p.withdrawSell[0];if(!c)return false;st.tx={name:c.item.name,level:Number(c.item.level)||0,qty:Number(c.item.q)||1,pack:c.pack,bankIndex:c.index};v21422State('WITHDRAW_ITEMS','bank-sell-candidate',{item:c.item.name,pack:c.pack,index:c.index,reason:c.policy.reason});return true;
+  }
+  function v21422CompoundCandidate(){
+    var groups={};(character.items||[]).forEach(function(it,i){if(!it)return;var p=v21422Policy(it,'inventory');if(p.action!=='COMPOUND')return;var key=it.name+'|'+(Number(it.level)||0);(groups[key]||(groups[key]=[])).push({it:it,i:i,p:p});});
+    var rows=Object.keys(groups).filter(function(k){return groups[k].length>=3;}).map(function(k){var g=groups[k],rule=g[0].p.rule,lv=Number(g[0].it.level)||0,target=Number(rule.targetLevel)>lv?Number(rule.targetLevel):(Number(C.merchantCompoundMax)>lv?Number(C.merchantCompoundMax):lv+1),econ=v21422CompoundPathEconomics(g[0].it,target),require=rule.explicit?rule.requireProfit:C.autoEconomyRequireProfitForCompound;if(require&&(!econ.known||!econ.profitable)){v21422Log('merchant_economy_skip','[SKIP] Compound wirtschaftlich negativ/unklar',{item:g[0].it.name,level:lv,targetLevel:target,economics:econ},'info');return null;}return {g:g.slice(0,3),econ:econ,target:target};}).filter(Boolean);return rows[0]||null;
+  }
+  function v21422UpgradeCandidate(){
+    var rows=[];(character.items||[]).forEach(function(it,i){if(!it)return;var p=v21422Policy(it,'inventory');if(p.action!=='UPGRADE')return;var target=Number(p.rule.targetLevel)||Number(C.merchantUpgradeMax||0),lv=Number(it.level)||0;if(lv>=target)return;var econ=v21422Profit('scroll',it,1),require=p.rule.explicit?p.rule.requireProfit:C.autoEconomyRequireProfitForUpgrade;if(require&&!econ.profitable){v21422Log('merchant_economy_skip','[SKIP] Upgrade wirtschaftlich negativ',{item:it.name,level:lv,economics:econ},'info');return;}rows.push({it:it,i:i,p:p,econ:econ,lv:lv,target:target});});rows.sort(function(a,b){return a.lv-b.lv;});return rows[0]||null;
+  }
+
+  var v21422CompoundBase=v273CompoundTick;
+  v273CompoundTick=function(){if(character.ctype!=='merchant'||!C.autoEconomyEnabled)return v21422CompoundBase();if(v21422ExistingBusy())return false;var c=v21422CompoundCandidate();if(!c)return false;var item=c.g[0].it,fund=v21422CanFundScroll('cscroll',item);if(!fund.ok){v21422Log('merchant_economy_skip','[SKIP] Compound Goldreserve',{item:item.name,funding:fund},'warning');return false;}var sc=v273EnsureScroll('cscroll',item);if(sc<0)return true;var ids=c.g.map(function(x){return x.i;}),finger=c.g.map(function(x){return v291ItemFingerprint? v291ItemFingerprint(x.it):x.it.name+'|'+(Number(x.it.level)||0);});S.status='Kombiniere wirtschaftlich '+v273Name(item.name)+' +'+(Number(item.level)||0);S.mode='Merchant · Combine';return action('Wirtschaftliches Compound '+item.name,function(){for(var j=0;j<ids.length;j++){var live=character.items[ids[j]];if(!live||live.name!==item.name||(Number(live.level)||0)!==(Number(item.level)||0)||live.l||live.p)throw Error('compound_slot_changed');}audit('merchant_economy_compound','[COMPOUND] '+item.name+' +'+(Number(item.level)||0)+' x3',{item:item.name,level:Number(item.level)||0,economics:c.econ,fingerprints:finger});return compound(ids[0],ids[1],ids[2],sc);},'merchant-compound-21422',3400);};
+
+  var v21422UpgradeBase=v273UpgradeTick;
+  v273UpgradeTick=function(){if(character.ctype!=='merchant'||!C.autoEconomyEnabled)return v21422UpgradeBase();if(v21422ExistingBusy())return false;var c=v21422UpgradeCandidate();if(!c)return false;var fund=v21422CanFundScroll('scroll',c.it);if(!fund.ok){v21422Log('merchant_economy_skip','[SKIP] Upgrade Goldreserve',{item:c.it.name,funding:fund},'warning');return false;}var sc=v273EnsureScroll('scroll',c.it);if(sc<0)return true;var idx=c.i,name=c.it.name,lv=c.lv;S.status='Verbessere geplant '+v273Name(name)+' +'+lv+' → +'+(lv+1);S.mode='Merchant · Upgrade';return action('Geplantes Upgrade '+name,function(){var live=character.items[idx];if(!live||live.name!==name||(Number(live.level)||0)!==lv||live.l||live.p)throw Error('upgrade_slot_changed');audit('merchant_economy_upgrade','[UPGRADE] '+name+' +'+lv+' -> +'+(lv+1),{item:name,level:lv,target:c.target,economics:c.econ});return upgrade(idx,sc);},'merchant-upgrade-21422',2800);};
+
+  var v21422MerchantBase=merchantTick;
+  merchantTick=function(){
+    if(character.ctype!=='merchant'||!C.autoEconomyEnabled)return v21422MerchantBase();
+    var st=S.autoEconomy21422;if(st.state!=='IDLE'&&v21422BankSellTick())return true;
+    if(!v21422ExistingBusy()&&v21422MaybeStartBankSale())return true;
+    var p=v21422BuildPlan(false);if(clock()>Number(S.times.economySummary21422||0)){S.times.economySummary21422=clock()+30000;v21422Log('merchant_economy_plan','[INVENTORY] '+((character.items||[]).length-freeSlots())+'/'+(character.items||[]).length+' slots used',{sell:p.sell.length,bank:p.bank.length,upgrade:p.upgrade.length,compound:p.compound.length,exchange:p.exchange.length,keep:p.keep.length,withdrawSell:p.withdrawSell.length,free:freeSlots()});}
+    return v21422MerchantBase();
+  };
+
+  try{FEATURE_CONTRACT.push('merchant-unified-auto-economy','merchant-central-item-policy','merchant-economic-compound-guard','merchant-bank-withdraw-sell-state-machine');}catch(e){}
+  audit('feature_contract','2.14.22 Zentrale Item-Policy + Auto-Economy State Machine + wirtschaftliches Compound geprüft',{features:FEATURE_CONTRACT,configHash:v282ConfigHash(C)});
 
 })();
