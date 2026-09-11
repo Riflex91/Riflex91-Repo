@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.32 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.33 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.32';
+  var VERSION = '2.14.33';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -2188,7 +2188,7 @@
   // ---------------------------------------------------------------------------
   // 2.8.2 Merchant controls, inventory UX, explainability and regression safety
   // ---------------------------------------------------------------------------
-  var FEATURE_CONTRACT = ["character-info","inventory-window","party-manager","farm-mode","bestiary-items","skill-manager","merchant-director","merchant-stand","meters","web-dashboard","audit-logs","settings","headless","auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync","farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle","self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard","champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard","merchant-bank-warehouse","merchant-active-discovery","merchant-gathering","merchant-discovery-safety","brain-world-model","brain-safe-experiments","brain-planner","brain-explainability","brain-module-permissions","dashboard-game-sprites","merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed","merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle","merchant-bank-progress-lease","merchant-bank-sync-diagnostics","config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap","config-newest-valid-source","merchant-economic-action-flight-guard","merchant-bank-retrieve-travel-lease","merchant-vendor-range-guard","merchant-exchange-route-flight-lock","merchant-loot-flight-gate","merchant-capacity-blocked-state","config-control-write-dedupe","merchant-phase-profiler","merchant-route-owner","merchant-capacity-hard-state","merchant-exchange-capacity-gate","merchant-progress-loop-breaker","merchant-bank-state-backoff","merchant-presale-economics","merchant-state-hash-cache","merchant-phase-residual-profile","teacher-availability-circuit-breaker","research-window-telemetry","research-window-integrity","teacher-error-classification","teacher-quota-circuit-breaker","merchant-diagnostic-completeness","learning-observability","update-contract-static-manifest","update-failure-backoff","teacher-quota-persistence","release-identity-telemetry","cloudflare-auto-deploy-ready","merchant-unified-auto-economy","merchant-central-item-policy","merchant-economic-compound-guard","merchant-bank-withdraw-sell-state-machine","merchant-bank-store-no-progress-quarantine","merchant-proactive-buff-service","farmer-buff-renewal-request","dashboard-always-vector-terrain-fallback","group-class-buff-assignment","group-buff-request-confirmation","catalog-monster-item-detail-windows","catalog-live-drop-tables","merchant-orthogonal-item-permissions","farmer-projected-gear-upgrade-override","dashboard-adventure-land-tile-images","update-contract-dynamic-push-parser"];
+  var FEATURE_CONTRACT = ["character-info","inventory-window","party-manager","farm-mode","bestiary-items","skill-manager","merchant-director","merchant-stand","meters","web-dashboard","audit-logs","settings","headless","auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync","farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle","self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard","champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard","merchant-bank-warehouse","merchant-active-discovery","merchant-gathering","merchant-discovery-safety","brain-world-model","brain-safe-experiments","brain-planner","brain-explainability","brain-module-permissions","dashboard-game-sprites","merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed","merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle","merchant-bank-progress-lease","merchant-bank-sync-diagnostics","config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap","config-newest-valid-source","merchant-economic-action-flight-guard","merchant-bank-retrieve-travel-lease","merchant-vendor-range-guard","merchant-exchange-route-flight-lock","merchant-loot-flight-gate","merchant-capacity-blocked-state","config-control-write-dedupe","merchant-phase-profiler","merchant-route-owner","merchant-capacity-hard-state","merchant-exchange-capacity-gate","merchant-progress-loop-breaker","merchant-bank-state-backoff","merchant-presale-economics","merchant-state-hash-cache","merchant-phase-residual-profile","teacher-availability-circuit-breaker","research-window-telemetry","research-window-integrity","teacher-error-classification","teacher-quota-circuit-breaker","merchant-diagnostic-completeness","learning-observability","update-contract-static-manifest","update-failure-backoff","teacher-quota-persistence","release-identity-telemetry","cloudflare-auto-deploy-ready","merchant-unified-auto-economy","merchant-central-item-policy","merchant-economic-compound-guard","merchant-bank-withdraw-sell-state-machine","merchant-bank-store-no-progress-quarantine","merchant-proactive-buff-service","farmer-buff-renewal-request","dashboard-always-vector-terrain-fallback","group-class-buff-assignment","group-buff-request-confirmation","catalog-monster-item-detail-windows","catalog-live-drop-tables","merchant-orthogonal-item-permissions","farmer-projected-gear-upgrade-override","dashboard-adventure-land-tile-images","update-contract-dynamic-push-parser","bestiary-item-policy-authority","merchant-capacity-relief-v2","merchant-bank-explicit-target","farmer-self-service-eta","farmer-self-service-failsafe","farmer-self-service-lease","brain-source-separation","permission-menu-auto-close","transactional-economic-slot-reresolution","sell-transaction-confirmation","merchant-capacity-watchdog-v2","farmer-merchant-order-self-service","dashboard-transport-fallback","cloud-state-fetch-backoff","teacher-daily-quota-4006","recipe-analysis-throttle","update-contract-static-runtime-closure","update-contract-array-registration-parser","update-fetch-cache-bust","update-auto-singleflight"];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
   S.auditSeq = Number(read('auditSeq:' + me, 0)) || 0;
@@ -5620,5 +5620,55 @@
   };
 
   audit('feature_contract','2.14.32 Transactionale Merchant-Liveness + identischer Farmer-Stadtservice + Dashboard-Transport-Härtung geprüft',{serviceOrder:V21432_SERVICE_ORDER,bankSlotReresolve:true,sellPostcondition:true,capacityWatchdogMs:9000,dashboardCorsFallback:true,dashboardBackoff:true,recipeAnalysisCacheMs:12000,brainPolicyChanged:false});
+
+
+  /* v2.14.33 Update contract static/runtime closure hotfix */
+  // The v2.14.31 runtime appended its protected features through an array/.forEach registration.
+  // The legacy updater in 2.14.31 only extracted the static manifest plus direct .push('x') calls,
+  // so it falsely rejected 2.14.32 even though those features were still present. The static manifest
+  // above now contains every critical v2.14.31 feature so old clients can accept this build.
+  try{[
+    'bestiary-item-policy-authority','merchant-capacity-relief-v2','merchant-bank-explicit-target',
+    'farmer-self-service-eta','farmer-self-service-failsafe','farmer-self-service-lease',
+    'brain-source-separation','permission-menu-auto-close',
+    'transactional-economic-slot-reresolution','sell-transaction-confirmation','merchant-capacity-watchdog-v2',
+    'farmer-merchant-order-self-service','dashboard-transport-fallback','cloud-state-fetch-backoff',
+    'teacher-daily-quota-4006','recipe-analysis-throttle',
+    'update-contract-static-runtime-closure','update-contract-array-registration-parser',
+    'update-fetch-cache-bust','update-auto-singleflight'
+  ].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});}catch(e){}
+
+  var v21433ExtractContractBase=v282ExtractContract;
+  v282ExtractContract=function(code){
+    var out=v21433ExtractContractBase(code)||[],src=String(code||''),m;
+    function add(x){x=String(x||'');if(x&&out.indexOf(x)<0)out.push(x);}
+    var direct=/FEATURE_CONTRACT\.push\(([\s\S]*?)\);/g;
+    while((m=direct.exec(src))){var q=/['"]([^'"]+)['"]/g,x;while((x=q.exec(m[1])))add(x[1]);}
+    var arrays=/\[((?:\s*['"][^'"]+['"]\s*,?\s*)+)\]\.forEach\(function\(f\)\{if\(FEATURE_CONTRACT\.indexOf\(f\)<0\)FEATURE_CONTRACT\.push\(f\);\}\);/g;
+    while((m=arrays.exec(src))){var aq=/['"]([^'"]+)['"]/g,ax;while((ax=aq.exec(m[1])))add(ax[1]);}
+    return out;
+  };
+
+  // raw.githubusercontent.com can briefly serve a just-replaced main object through an edge cache.
+  // Cache-bust updater GETs so a newly published version and its bot.js are fetched as one release.
+  var v21433FetchTextBase=fetchText;
+  fetchText=function(url){
+    var u=String(url||'');
+    try{if(/^https:\/\/raw\.githubusercontent\.com\//i.test(u)){var x=new URL(u);x.searchParams.set('_aio_update',String(clock()));u=x.toString();}}catch(e){}
+    return v21433FetchTextBase(u);
+  };
+
+  // Multiple peer update signals can queue timers before the first attempt settles. Keep automatic
+  // installation single-flight per target version; manual update remains available immediately.
+  S.updateSingleflight21433=S.updateSingleflight21433||{version:'',until:0};
+  var v21433SelfUpdateBase=selfUpdate;
+  selfUpdate=function(auto){
+    var v=String(S.update&&S.update.latest||'');
+    if(auto&&v&&S.updateSingleflight21433.version===v&&clock()<Number(S.updateSingleflight21433.until||0))return false;
+    if(auto&&v)S.updateSingleflight21433={version:v,until:clock()+8000};
+    return v21433SelfUpdateBase(auto);
+  };
+
+  audit('feature_contract','2.14.33 Update-Contract-Hotfix aktiv',{staticManifestClosed:true,arrayRegistrationParser:true,cacheBust:true,autoSingleflightMs:8000,features:FEATURE_CONTRACT});
 
 })();
