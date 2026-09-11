@@ -8,6 +8,7 @@ permissions:
   contents: write
 jobs:
   patch-and-verify:
+    if: github.event_name == 'push' || github.head_ref == 'hotfix/2.14.34-control-update-dashboard'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
