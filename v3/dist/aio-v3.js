@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.2 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.3 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -74,12 +74,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { KitingFarmerController } = require('./farmer/kiting-farmer');
+const { SkillFarmerController } = require('./farmer/skill-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.2';
+const VERSION = '3.0.0-alpha.8.3';
 
 class Runtime {
   constructor(options = {}) {
@@ -90,7 +90,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new KitingFarmerController({
+    this.farmer = options.farmer || new SkillFarmerController({
       now: this.now,
       log: this.log,
       planner: this.planner,
@@ -103,7 +103,10 @@ class Runtime {
       kitingDesiredFactor: options.farmerKitingDesiredFactor,
       kitingMaxStepFactor: options.farmerKitingMaxStepFactor,
       kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
-      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs
+      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
+      skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
+      skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
+      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs
     });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
@@ -997,11 +1000,72 @@ class GameAdapter {
     try { return fn.call(this.root, target) !== false; } catch (_) { return false; }
   }
 
+  canUseSkill(skillName) {
+    const G = this._G();
+    const skill = G.skills && G.skills[skillName];
+    const c = this._character();
+    if (!skill || !c) return false;
+    if (Array.isArray(skill.class) && !skill.class.includes(c.ctype)) return false;
+    if (Number(skill.level) > 0 && Number(c.level) < Number(skill.level)) return false;
+    if (Number(skill.mp) > 0 && Number(c.mp) < Number(skill.mp)) return false;
+
+    if (Array.isArray(skill.wtype) && skill.wtype.length) {
+      const slots = c.slots || {};
+      const equippedTypes = ['mainhand', 'offhand']
+        .map((slot) => slots[slot] && slots[slot].name)
+        .filter(Boolean)
+        .map((name) => G.items && G.items[name] && G.items[name].wtype)
+        .filter(Boolean);
+      if (equippedTypes.length && !equippedTypes.some((wtype) => skill.wtype.includes(wtype))) return false;
+    }
+
+    const canUse = this.root.can_use || this.parent.can_use;
+    if (typeof canUse === 'function') {
+      try { return canUse.call(this.root, skillName) !== false; } catch (_) { return false; }
+    }
+    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
+    if (typeof onCooldown === 'function') {
+      try { return onCooldown.call(this.root, skillName) !== true; } catch (_) { return false; }
+    }
+    return true;
+  }
+
+  isSkillInRange(targetId, skillName) {
+    const target = this._entityById(targetId);
+    const c = this._character();
+    const G = this._G();
+    const skill = G.skills && G.skills[skillName];
+    if (!target || !c || !skill) return false;
+
+    const fn = this.root.is_in_range || this.parent.is_in_range;
+    if (typeof fn === 'function') {
+      try { return fn.call(this.root, target, skillName) !== false; } catch (_) { return false; }
+    }
+
+    const cx = finite(c.real_x != null ? c.real_x : c.x);
+    const cy = finite(c.real_y != null ? c.real_y : c.y);
+    const tx = finite(target.real_x != null ? target.real_x : target.x);
+    const ty = finite(target.real_y != null ? target.real_y : target.y);
+    if (cx == null || cy == null || tx == null || ty == null) return false;
+
+    let range = finite(skill.range);
+    if (range == null) {
+      const baseRange = finite(c.range);
+      if (baseRange == null) return false;
+      range = baseRange * (finite(skill.range_multiplier) || 1);
+    }
+    return Math.hypot(cx - tx, cy - ty) <= range;
+  }
+
   _prepareArgs(action, args) {
     const out = Array.isArray(args) ? args.slice() : [];
     if (action === 'attack' && typeof out[0] === 'string') {
       const target = this._entityById(out[0]);
       if (target) out[0] = target;
+    }
+    if (action === 'use_skill' && typeof out[1] === 'string') {
+      const target = this._entityById(out[1]);
+      if (target) out[1] = target;
     }
     return out;
   }
@@ -2016,6 +2080,123 @@ class FarmPlanner {
 module.exports = { FarmPlanner };
 
 },
+"src/farmer/skill-farmer.js": function(require,module,exports){
+'use strict';
+
+const { KitingFarmerController } = require('./kiting-farmer');
+const { SkillUsagePolicy } = require('./skill-usage');
+
+class SkillFarmerController extends KitingFarmerController {
+  constructor(options = {}) {
+    super(options);
+    this.skillUsage = options.skillUsage || new SkillUsagePolicy({
+      enabled: options.skillUsageEnabled !== false,
+      mpReserveRatio: options.skillUsageMpReserveRatio,
+      minIntervalMs: options.skillUsageMinIntervalMs
+    });
+    this.lastSkillAttemptAt = -Infinity;
+    this.selectedSkill = null;
+    this.lastSkillUse = null;
+    this.lastSkillDecision = null;
+  }
+
+  _updateSelectedSkill(context) {
+    const snapshot = context && context.snapshot;
+    const character = snapshot && snapshot.character;
+    const gameData = context && context.adapter && context.adapter.getGameData ? context.adapter.getGameData() || {} : {};
+    const selected = character ? this.skillUsage.select(character, gameData) : null;
+    this.selectedSkill = selected ? selected.id : null;
+    return { selected, gameData };
+  }
+
+  _shadowStep(context) {
+    this._updateSelectedSkill(context);
+    return super._shadowStep(context);
+  }
+
+  _engage(context, target) {
+    const snapshot = context && context.snapshot;
+    const character = snapshot && snapshot.character;
+
+    if (snapshot && character && target && !target.dead && !(target.hp != null && target.hp <= 0)) {
+      const recovery = this._needsRecovery(snapshot);
+      const targetAllowed = this._targetAllowed(target, snapshot, context.party);
+
+      if (!character.rip && !recovery.hpUnsafe && targetAllowed) {
+        const kiteDecision = this.kiting.evaluate(character, target);
+        if (kiteDecision.shouldMove) return super._engage(context, target);
+
+        const { gameData } = this._updateSelectedSkill(context);
+        const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
+        this.lastSkillDecision = {
+          at: this.now(),
+          reason: decision.reason,
+          skill: decision.skill ? decision.skill.id : null,
+          targetId: target.id || null,
+          targetType: target.mtype || null,
+          mp: decision.mp == null ? null : Number(decision.mp),
+          reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
+          mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2))
+        };
+
+        if (decision.useSkill && decision.skill) {
+          const now = this.now();
+          if (now - this.lastSkillAttemptAt >= this.skillUsage.minIntervalMs) {
+            this.lastSkillAttemptAt = now;
+            const result = context.adapter.command('use_skill', [decision.skill.id, String(target.id)]);
+            if (result.executed || result.shadow) {
+              this.lastActionAt = now;
+              this.lastSkillUse = {
+                at: now,
+                skill: decision.skill.id,
+                skillName: decision.skill.name,
+                targetId: target.id || null,
+                targetType: target.mtype || null,
+                mpCost: decision.skill.mp,
+                damageMultiplier: decision.skill.damageMultiplier
+              };
+              this._event('FARMER_SKILL_USED', 'info', 'SAFE_DIRECT_DAMAGE_SKILL', {
+                skill: decision.skill.id,
+                skillName: decision.skill.name,
+                targetId: target.id || null,
+                targetType: target.mtype || null,
+                mpCost: decision.skill.mp,
+                damageMultiplier: decision.skill.damageMultiplier,
+                mpAfter: Number(decision.mpAfter.toFixed(2)),
+                reserveMp: Number(decision.reserveMp.toFixed(2))
+              });
+              return;
+            }
+
+            this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
+              skill: decision.skill.id,
+              targetId: target.id || null,
+              targetType: target.mtype || null
+            });
+          }
+        }
+      }
+    }
+
+    return super._engage(context, target);
+  }
+
+  status() {
+    return {
+      ...super.status(),
+      skillUsage: {
+        ...this.skillUsage.status(),
+        selectedSkill: this.selectedSkill,
+        lastUse: this.lastSkillUse,
+        lastDecision: this.lastSkillDecision
+      }
+    };
+  }
+}
+
+module.exports = { SkillFarmerController };
+
+},
 "src/farmer/kiting-farmer.js": function(require,module,exports){
 'use strict';
 
@@ -2729,6 +2910,103 @@ class BasicKitingPolicy {
 }
 
 module.exports = { BasicKitingPolicy };
+
+},
+"src/farmer/skill-usage.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, finite(value, 0)));
+}
+
+function isDirectDamageSkill(skill, character) {
+  if (!skill || skill.type !== 'skill' || skill.hostile !== true) return false;
+  if (!(skill.target === true || skill.target === 'monster')) return false;
+  if (skill.consume || skill.slot || skill.persistent) return false;
+  if (!(finite(skill.damage_multiplier, 0) > 1)) return false;
+
+  const classes = Array.isArray(skill.class) ? skill.class : null;
+  if (classes && character && character.ctype && !classes.includes(character.ctype)) return false;
+
+  const requiredLevel = finite(skill.level, 0);
+  if (character && requiredLevel > finite(character.level, 0)) return false;
+  return true;
+}
+
+class SkillUsagePolicy {
+  constructor(options = {}) {
+    this.enabled = options.enabled !== false;
+    this.mpReserveRatio = clamp01(options.mpReserveRatio == null ? 0.30 : options.mpReserveRatio);
+    this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
+  }
+
+  select(character, gameData = {}) {
+    if (!this.enabled || !character) return null;
+    const skills = gameData.skills || {};
+    const candidates = Object.entries(skills)
+      .filter(([, skill]) => isDirectDamageSkill(skill, character))
+      .map(([id, skill]) => ({
+        id,
+        name: skill.name || id,
+        mp: Math.max(0, finite(skill.mp, 0)),
+        level: Math.max(0, finite(skill.level, 0)),
+        cooldown: Math.max(0, finite(skill.cooldown, 0)),
+        damageMultiplier: finite(skill.damage_multiplier, 0),
+        range: Number.isFinite(Number(skill.range)) ? Number(skill.range) : null,
+        rangeMultiplier: Number.isFinite(Number(skill.range_multiplier)) ? Number(skill.range_multiplier) : null,
+        weaponTypes: Array.isArray(skill.wtype) ? skill.wtype.slice() : []
+      }))
+      .sort((a, b) => {
+        if (b.damageMultiplier !== a.damageMultiplier) return b.damageMultiplier - a.damageMultiplier;
+        if (b.cooldown !== a.cooldown) return b.cooldown - a.cooldown;
+        return a.id.localeCompare(b.id);
+      });
+    return candidates[0] || null;
+  }
+
+  evaluate(snapshot, target, gameData, adapter) {
+    const character = snapshot && snapshot.character;
+    if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null };
+    if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null };
+
+    const skill = this.select(character, gameData || {});
+    if (!skill) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null };
+
+    const mp = Math.max(0, finite(character.mp, 0));
+    const maxMp = Math.max(0, finite(character.max_mp, mp));
+    const reserveMp = maxMp * this.mpReserveRatio;
+    const mpAfter = mp - skill.mp;
+    if (mpAfter < reserveMp) {
+      return { useSkill: false, reason: 'MP_RESERVE', skill, mp, reserveMp, mpAfter };
+    }
+
+    if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
+      return { useSkill: false, reason: 'SKILL_COOLDOWN_OR_REQUIREMENT', skill, mp, reserveMp, mpAfter };
+    }
+
+    if (adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(target.id, skill.id)) {
+      return { useSkill: false, reason: 'SKILL_OUT_OF_RANGE', skill, mp, reserveMp, mpAfter };
+    }
+
+    return { useSkill: true, reason: 'SAFE_DIRECT_DAMAGE_SKILL', skill, mp, reserveMp, mpAfter };
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      mpReserveRatio: this.mpReserveRatio,
+      minIntervalMs: this.minIntervalMs,
+      selection: 'single-target hostile damage_multiplier>1'
+    };
+  }
+}
+
+module.exports = { SkillUsagePolicy, isDirectDamageSkill };
 
 },
 "src/farmer/target-safety.js": function(require,module,exports){
