@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.3';
+const VERSION = '3.0.0-alpha.8.4';
 
 class Runtime {
   constructor(options = {}) {
