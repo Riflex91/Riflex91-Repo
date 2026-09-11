@@ -3,10 +3,9 @@ on:
   push:
     branches: ["release/2.14.19-stability"]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  patch-test-commit:
-    if: github.actor != 'github-actions[bot]'
+  validate-final-tree:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,14 +14,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply release patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/apply-21419.mjs
-          node scripts/apply-21419-fixes.mjs
-          sed -i 's/2\.14\.18/2.14.19/g' scripts/verify-release.js
-          grep -rlZ '2\.14\.18' scripts --include='smoke*.js' --include='smoke*.mjs' | xargs -0 -r sed -i 's/2\.14\.18/2.14.19/g'
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
@@ -50,13 +41,4 @@ jobs:
           shopt -s nullglob
           for f in scripts/smoke*.mjs; do node "$f"; done
       - name: Diff check
-        run: git diff --check
-      - name: Commit tested tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add bot.js version.json cloudflare-dashboard/package.json cloudflare-dashboard/src/worker.js cloudflare-dashboard/dashboard.html scripts/verify-release.js scripts/smoke*.js scripts/smoke*.mjs
-          git commit -m 'Release 2.14.19 stability hardening'
-          git push origin HEAD:release/2.14.19-stability
+        run: git diff --check HEAD^ HEAD
