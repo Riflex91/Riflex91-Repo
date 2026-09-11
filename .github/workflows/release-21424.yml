@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Apply v2.14.24
         run: node scripts/apply-21424-group-buffs-bestiary-item-policy-map.mjs
+      - name: Apply v2.14.24 config and buff hardening
+        run: node scripts/apply-21424-config-buff-hardening.mjs
       - name: Bot syntax
         run: node --check bot.js
       - name: Worker syntax
