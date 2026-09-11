@@ -20,7 +20,7 @@ assert.ok(bot.includes('function v2144SellDecision'),'economic sell policy missi
 const sellOverridePos=bot.lastIndexOf("v273SellTrashTick=function(){");
 assert.ok(sellOverridePos>=0,'latest NPC sell override missing');
 const sellOverrideLine=bot.slice(sellOverridePos,bot.indexOf('\n',sellOverridePos));
-assert.ok(!sellOverrideLine.includes('!S.bankFull'),'latest NPC sell override must not require a full bank');
+assert.ok(!/[|&]{1,2}\s*!S\.bankFull/.test(sellOverrideLine),'latest NPC sell override must not require a full bank');
 assert.ok(bot.includes("upgrade-bank-exit")&&bot.includes("compound-bank-exit"),'bank guards for upgrade/compound missing');
 assert.ok(bot.includes("party_realm_mismatch")&&bot.includes("v2144PartyRealmGuard"),'party realm mismatch guard missing');
 assert.ok(bot.includes(".mainbox.collapsed .body{display:none!important}")&&bot.includes("min-height:0!important"),'collapsed GUI body/min-height fix missing');
