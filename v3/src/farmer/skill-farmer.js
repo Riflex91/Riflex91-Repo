@@ -15,7 +15,8 @@ class SkillFarmerController extends KitingFarmerController {
     this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
       enabled: options.targetReassessmentEnabled !== false,
       minIntervalMs: options.targetReassessmentMinIntervalMs,
-      switchCooldownMs: options.targetReassessmentSwitchCooldownMs
+      switchCooldownMs: options.targetReassessmentSwitchCooldownMs,
+      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor
     });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
@@ -56,7 +57,9 @@ class SkillFarmerController extends KitingFarmerController {
       candidateTargetId: decision.target && decision.target.id || null,
       candidateTargetType: decision.target && decision.target.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+      currentDistance: Number.isFinite(Number(decision.currentDistance)) ? Number(Number(decision.currentDistance).toFixed(2)) : null,
+      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null,
+      switchThresholdDistance: Number.isFinite(Number(decision.switchThresholdDistance)) ? Number(Number(decision.switchThresholdDistance).toFixed(2)) : null
     };
 
     if (!decision.switchTarget || !decision.target) {
@@ -89,7 +92,9 @@ class SkillFarmerController extends KitingFarmerController {
       toTargetId: next.id || null,
       toTargetType: next.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      distance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+      currentDistance: baseRecord.currentDistance,
+      distance: baseRecord.candidateDistance,
+      switchThresholdDistance: baseRecord.switchThresholdDistance
     };
 
     this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
@@ -98,7 +103,9 @@ class SkillFarmerController extends KitingFarmerController {
       nextTargetId: next.id || null,
       nextTargetType: next.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      distance: this.lastTargetSwitch.distance
+      currentDistance: this.lastTargetSwitch.currentDistance,
+      distance: this.lastTargetSwitch.distance,
+      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance
     });
 
     return next;
