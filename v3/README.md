@@ -1,4 +1,4 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.5
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.6
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
@@ -13,14 +13,14 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 - **Safe Retreat Movement**: one bounded local `move` away from the current emergency threat cluster, executed only by the scheduler-owned Farmer
 - Basic Kiting during `ENGAGE`
 - Skill Usage v1: one conservative direct-damage single-target skill selected from live `G.skills` metadata
-- Combat Target Reassessment v1: a bounded switch from a non-self-focused current target to an already attacking self-aggressor
+- Combat Target Reassessment v2: prioritize an already attacking self-aggressor and, during multi-aggro, switch between self-aggressors only when another one is materially closer
 - range-aware local travel and basic attacks using observed `range`, `speed` and `frequency`, not fixed class names
 - recovery thresholds with HP/MP potion handling
 - shadow preview plans, structured telemetry, persistence, discovery, research and diagnostics foundations
 
 ## Safety boundary
 
-`3.0.0-alpha.8.5` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.8.6` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer performs only bounded combat/recovery primitives through the Scheduler and Safe Game Adapter.
 
@@ -40,7 +40,7 @@ AIO_V3.exportDiagnostics()
 AIO_V3.saveWorld()
 ```
 
-`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the selected v1 skill, latest decision and latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, latest decision and latest target switch.
+`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the selected v1 skill, latest decision and latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, the `selfAggroSwitchFactor`, latest decision and latest target switch.
 
 Shadow mode remains the safe default:
 
@@ -117,22 +117,24 @@ The command path is `use_skill(skill, target)` through the Safe Game Adapter. Th
 
 Successful uses are logged as `FARMER_SKILL_USED`.
 
-## Combat Target Reassessment v1 — alpha.8.4
+## Combat Target Reassessment v2 — alpha.8.6
 
 Reassessment runs only during a healthy active `ENGAGE`. Recovery, Emergency Disengage and target-policy rejection remain higher-priority paths.
 
-The first policy is intentionally conservative:
+The policy remains deliberately conservative:
 
-- if the current target already attacks the character, **keep it**, even when another self-attacker is closer
-- if the current target does not attack the character and no other monster attacks self, **keep it**
-- if the current target does not attack self but one or more already-live monsters do, switch to the **nearest self-attacker**
+- if the current target does **not** attack self and one or more already-live safe monsters do, switch to the **nearest self-attacker**
+- if the current target already attacks self and it is the only self-attacker, keep it
+- if multiple monsters already attack self, consider the nearest alternative self-attacker
+- switch between two self-attacking targets only when the candidate distance is at most **70%** of the current target distance by default
+- this 70% hysteresis prevents small distance changes from causing target ping-pong
 - reassessment checks are rate-limited to **750 ms** by default
-- actual target switches have a separate **2500 ms** cooldown
+- actual target switches retain the separate **2500 ms** cooldown
 - only monsters already present in the Scheduler-facing safe snapshot can become reassessment targets, so Target Safety, Combat Risk and target-claim filtering remain upstream
 
-A successful switch is logged as `FARMER_TARGET_REASSESSED` with previous target, next target, attacker count and distance. `AIO_V3.farmer.status().targetReassessment.lastDecision` shows the latest decision and `lastSwitch` shows the latest actual switch.
+A successful switch is logged as `FARMER_TARGET_REASSESSED`. For multi-aggro switches the telemetry includes the previous target, next target, attacker count, current distance, candidate distance and the calculated switch-threshold distance. `AIO_V3.farmer.status().targetReassessment.lastDecision` shows the latest decision and `lastSwitch` shows the latest actual switch.
 
-This version deliberately does **not** switch targets for better XP, lower HP, higher damage opportunity or arbitrary planner score. It also does not rotate between multiple self-attackers while the current target is already attacking self. Those broader threat-scoring decisions remain later work.
+This version deliberately does **not** switch targets for better XP, lower target HP, arbitrary planner score or estimated damage. It also does not pull a new monster to improve targeting. The multi-aggro extension is distance-only and applies only to monsters that are already attacking the character.
 
 ## Target-claim policy
 
@@ -157,9 +159,9 @@ AIO_V3.farmer.removeTargetExclusion("example")
 
 ## Current scope
 
-Alpha.8.5 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use one conservative single-target damage skill, and prioritize an already attacking self-aggressor over a current target that is not attacking self.
+Alpha.8.6 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use one conservative single-target damage skill, prioritize an already attacking self-aggressor over a non-self-focused target, and resolve multi-aggro toward a materially closer self-attacker without rapid target oscillation.
 
-It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, broad threat-score target switching, skill rotations, loot/economy loops, buying potions or merchant logistics.
+It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, damage/HP/XP-based broad threat scoring, skill rotations, loot/economy loops, buying potions or merchant logistics.
 
 ## Development
 
