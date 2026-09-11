@@ -1,13 +1,14 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.3
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.4
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
-## What alpha.3 adds
+## What alpha.4 adds
 
 - first scheduler-owned Farmer state machine: `ASSESS → SELECT_TARGET → TRAVEL → ENGAGE → RECOVER → REASSESS/BLOCKED`
 - one long-lived Farmer task per character; gameplay commands still originate through the Scheduler and Safe Game Adapter
 - target selection through the existing Farm Planner, measured World Model performance and capability-based party fingerprint
-- safe live-target selection that avoids monsters already claimed by unrelated players
+- configurable target-claim policy with `party-only` as the default: unclaimed/self/party targets are allowed, unrelated-player targets are skipped
+- `avoid` mode limits claimed targets to self only; `allow` permits targets claimed by any player
 - range-aware local travel and basic attacks using observed character `range`, `speed` and `frequency` instead of hard-coded class assumptions
 - recovery thresholds with HP/MP potion handling and a `BLOCKED` state when combat would be unsafe
 - Shadow preview plans that rank/select targets without issuing gameplay commands
@@ -17,7 +18,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 
 ## Safety boundary
 
-`3.0.0-alpha.3` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.4` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer currently performs only local combat/recovery primitives already allowed by the Safe Game Adapter.
 
@@ -29,6 +30,7 @@ The Farmer is enabled by default as a **shadow preview task**. It does not move,
 AIO_V3.showStatus()
 AIO_V3.status()
 AIO_V3.farmer.status()
+AIO_V3.farmer.setTargetPolicy("party-only")
 AIO_V3.farmer.disable()
 AIO_V3.farmer.enable()
 AIO_V3.getEvents(100)
@@ -61,9 +63,25 @@ To stop scheduling the Farmer task entirely:
 AIO_V3.farmer.disable()
 ```
 
+## Target-claim policy
+
+The default is `party-only`:
+
+```js
+AIO_V3.farmer.setTargetPolicy("party-only")
+```
+
+Available policies:
+
+- `avoid` — farm unclaimed monsters or monsters already targeting you; party-claimed and foreign-claimed monsters are skipped
+- `party-only` — also allow monsters targeting a current party member; unrelated players are skipped
+- `allow` — permit otherwise-safe monsters even when they currently target another player
+
+A policy change clears the current Farmer target and forces a reassessment, so it also applies to monsters that change ownership while the Farmer is travelling or fighting.
+
 ## Current Farmer scope
 
-Alpha.3 intentionally starts small. It farms **safe live monsters on the current map that are already visible**. If a selected target is outside attack range, it walks toward a range-aware position, attacks when `can_attack(target)` permits, consumes HP/MP potions under configured thresholds, and re-evaluates after the target dies/disappears.
+Alpha.4 intentionally starts small. It farms **safe live monsters on the current map that are already visible**. If a selected target is outside attack range, it walks toward a range-aware position, attacks when `can_attack(target)` permits, consumes HP/MP potions under configured thresholds, and re-evaluates after the target dies/disappears.
 
 It does not yet perform spawn routing, cross-map hunting, kiting paths, class-specific skills, loot/economy loops, buying potions or merchant logistics. Those remain later milestones so the first active controller stays observable and bounded.
 
