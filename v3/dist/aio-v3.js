@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.4 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.5 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -73,7 +73,7 @@ const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 
-const VERSION = '3.0.0-alpha.4';
+const VERSION = '3.0.0-alpha.5';
 
 class Runtime {
   constructor(options = {}) {
@@ -157,7 +157,7 @@ class Runtime {
     const entities = status.world && Number.isFinite(Number(status.world.entities)) ? Number(status.world.entities) : 0;
     const modeNote = status.mode === 'shadow' ? 'observing only' : 'active commands enabled';
     const farmer = status.farmer || {};
-    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''} | targetPolicy=${farmer.targetPolicy || 'party-only'}`;
+    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''}${farmer.reason ? '[' + farmer.reason + ']' : ''} | targetPolicy=${farmer.targetPolicy || 'party-only'}`;
     const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | ${farmerText} | world=${entities} | tasks=${active}/${queued}`;
     this._announce(message, 'VISIBLE_STATUS');
     return status;
@@ -712,7 +712,7 @@ module.exports = { TaskState, createTask };
 "src/game/adapter.js": function(require,module,exports){
 'use strict';
 
-const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_skill', 'stop']);
+const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_hp_or_mp', 'use_skill', 'stop']);
 
 function finite(n) { return Number.isFinite(Number(n)) ? Number(n) : null; }
 
@@ -858,16 +858,21 @@ class GameAdapter {
       if (this.log) this.log.emit({ component: 'adapter', event: 'SHADOW_COMMAND', data: { action, args: args.map((x) => typeof x === 'object' && x ? (x.id || x.name || '[object]') : x) } });
       return { executed: false, shadow: true };
     }
-    const fn = this.root[action] || this.parent[action];
+    let resolvedAction = action;
+    let fn = this.root[action] || this.parent[action];
+    if (typeof fn !== 'function' && (action === 'use_hp' || action === 'use_mp')) {
+      resolvedAction = 'use_hp_or_mp';
+      fn = this.root.use_hp_or_mp || this.parent.use_hp_or_mp;
+    }
     if (typeof fn !== 'function') {
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action } });
-      return { executed: false, reason: 'COMMAND_UNAVAILABLE' };
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action, resolvedAction } });
+      return { executed: false, reason: 'COMMAND_UNAVAILABLE', action, resolvedAction };
     }
     try {
-      const prepared = this._prepareArgs(action, args);
+      const prepared = this._prepareArgs(resolvedAction, args);
       const value = fn.apply(this.root, prepared);
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action } });
-      return { executed: true, value };
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction } });
+      return { executed: true, value, action, resolvedAction };
     } catch (error) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_FAILED', severity: 'error', reason: String(error && error.message || error), data: { action } });
       return { executed: false, reason: 'COMMAND_FAILED', error };
