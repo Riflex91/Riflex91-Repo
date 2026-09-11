@@ -8,7 +8,7 @@ ok(bot.includes("var VERSION = '2.14.22'"),'version 2.14.22 missing');
 ok(bot.includes('/* 2.14.22 unified auto-economy manager */'),'economy manager marker missing');
 ok(bot.includes("V21422_ACTIONS=['KEEP','SELL','BANK','UPGRADE','COMPOUND','EXCHANGE','RECYCLE','DISCARD','HOLD_FOR_MERCHANT']"),'central action policy missing');
 ok(bot.includes("unsupported-safe-fallback"),'unsupported destructive action safe fallback missing');
-ok(bot.includes("protected:locked")||bot.includes("return 'locked'"),'locked protection missing');
+ok(bot.includes("return 'locked'"),'locked protection missing');
 ok(bot.includes("return 'unknown-definition'"),'unknown item protection missing');
 ok(bot.includes("return 'configured-protected'"),'configured protection missing');
 ok(bot.includes("return 'high-npc-value'"),'high-value protection missing');
@@ -23,20 +23,24 @@ ok(bot.includes("v21422Recover('withdraw-unconfirmed')"),'withdraw recovery miss
 ok(bot.includes("v21422Recover('sale-unconfirmed')"),'sale recovery missing');
 ok(bot.includes("v21422Recover('policy-changed-before-sale')"),'pre-sale revalidation missing');
 ok(bot.includes("v21422Recover('bank-slot-changed')"),'bank slot race guard missing');
-ok(bot.includes("v21422Recover('upgrade_slot_changed')")||bot.includes("throw Error('upgrade_slot_changed')"),'upgrade slot revalidation missing');
+ok(bot.includes("throw Error('upgrade_slot_changed')"),'upgrade slot revalidation missing');
 ok(bot.includes("throw Error('compound_slot_changed')"),'compound slot revalidation missing');
 ok(bot.includes('autoEconomyRequireProfitForCompound: true'),'compound profitability default missing');
-ok(bot.includes("[SKIP] Compound wirtschaftlich negativ"),'negative compound audit missing');
+ok(bot.includes('function v21422CompoundPathEconomics'),'compound path economics missing');
+ok(bot.includes('Math.pow(3,steps)'),'compound input opportunity cost missing');
+ok(bot.includes('function v21422CanFundScroll'),'economy gold reserve funding gate missing');
+ok(bot.includes('Math.max(Number(C.merchantBankGoldReserve)||0,Number(C.autoEconomyGoldReserve)||0)'),'combined gold reserve missing');
+ok(bot.includes("[SKIP] Compound wirtschaftlich negativ/unklar"),'negative/unknown compound audit missing');
 ok(bot.includes("[INVENTORY] "),'inventory summary logging missing');
 ok(bot.includes("[SELL] "),'sell logging missing');
 ok(bot.includes("[UPGRADE] "),'upgrade logging missing');
 ok(bot.includes("[COMPOUND] "),'compound logging missing');
 
-// Economic sanity matrix: three +0 items worth 20k each must not be compounded
-// into an item worth 2k even before scroll costs.
-function profitable(nowEach,copies,after,scroll,minGold=0,minPct=0){const cur=nowEach*copies,delta=after-cur-scroll,pct=cur>0?delta/cur*100:null;return delta>=minGold&&(pct==null||pct>=minPct);}
-ok(!profitable(20000,3,2000,0),'negative compound example must be rejected');
-ok(profitable(1000,3,5000,500),'positive compound example should pass');
+// Economic sanity: a target +5 needs 3^5 base items. If +0 is worth 20k each and
+// the +5 target only sells for 2k, it is massively inferior to selling the inputs.
+function pathProfit(baseEach,start,target,projected,scrollCosts){const steps=target-start,inputCopies=3**steps,opportunity=baseEach*inputCopies;let scroll=0;for(let lv=start;lv<target;lv++)scroll+=(3**(target-lv-1))*(scrollCosts[lv]||0);return {inputCopies,delta:projected-opportunity-scroll};}
+const bad=pathProfit(20000,0,5,2000,[0,0,0,0,0]);ok(bad.inputCopies===243,'+0 to +5 compound path must require 243 base copies');ok(bad.delta<0,'negative +0 to +5 example must be rejected');
+const good=pathProfit(1000,0,1,5000,[500]);ok(good.delta>0,'positive one-step compound should pass');
 
 // Destructive unsupported actions must never be executed by the new manager.
 ok(!/\b(?:recycle|destroy|discard)\s*\(/.test(bot.slice(bot.indexOf('/* 2.14.22 unified auto-economy manager */'))),'unsupported destructive game API call introduced');
