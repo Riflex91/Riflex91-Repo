@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Escape nested dashboard template literals in patcher
+      - name: Prepare patcher nested templates and Worker embedding
         shell: bash
         run: |
           python3 - <<'PY'
@@ -24,9 +24,12 @@ jobs:
           s=open(p,encoding='utf-8').read()
           start=s.index('  const patch=`')
           end=s.index("`;\n  h=h.replace('</script>'",start)
-          segment=s[start:end]
-          segment=segment.replace('${','\\${')
+          segment=s[start:end].replace('${','\\${')
           s=s[:start]+segment+s[end:]
+          old="worker=worker.replace(/const DASHBOARD_HTML = [^;]+;/,`const DASHBOARD_HTML = ${JSON.stringify(fs.readFileSync(dashPath,'utf8'))};`);"
+          new="worker=worker.replace(/const DASHBOARD_HTML = [\\s\\S]*?;\\n\\n(?=function )/,`const DASHBOARD_HTML = ${JSON.stringify(fs.readFileSync(dashPath,'utf8'))};\\n\\n`);"
+          if old not in s: raise SystemExit('worker dashboard embedding line not found')
+          s=s.replace(old,new)
           open(p,'w',encoding='utf-8').write(s)
           PY
       - name: Prepare v2.14.26 release tree
