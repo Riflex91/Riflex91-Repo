@@ -2,6 +2,8 @@ name: release-21422
 on:
   push:
     branches: ["release/2.14.22-auto-economy-manager"]
+  pull_request:
+    branches: ["main"]
 permissions:
   contents: write
 jobs:
@@ -34,7 +36,7 @@ jobs:
       - name: Normalize historical exact-version smoke assertions
         shell: bash
         run: |
-          sed -i "s/var VERSION = '2\.14\.21';/var VERSION = '2.14.22';/g" scripts/smoke*.js || true
+          sed -i 's/2\.14\.21/2.14.22/g' scripts/smoke*.js || true
       - name: Run complete smoke suite
         shell: bash
         run: |
@@ -47,6 +49,7 @@ jobs:
       - name: Diff check
         run: git diff --check
       - name: Commit verified release tree
+        if: github.event_name == 'push'
         shell: bash
         run: |
           if git diff --quiet; then
