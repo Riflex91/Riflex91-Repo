@@ -35,3 +35,18 @@ test('GameAdapter snapshot exposes generic combat range, speed and frequency', (
   assert.equal(snap.character.speed, 48);
   assert.equal(snap.character.frequency, 1.7);
 });
+
+test('GameAdapter falls back to Adventure Land use_hp_or_mp for logical potion actions', () => {
+  const calls = [];
+  const root = {
+    character: { name: 'R1', ctype: 'ranger', level: 1, map: 'main', hp: 50, max_hp: 100, mp: 100, max_mp: 100, items: [{ name: 'hpot0', q: 10 }] },
+    parent: { entities: {}, party: {} },
+    G: { monsters: {}, maps: {} },
+    use_hp_or_mp: () => { calls.push('use_hp_or_mp'); }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const result = adapter.command('use_hp');
+  assert.equal(result.executed, true);
+  assert.equal(result.resolvedAction, 'use_hp_or_mp');
+  assert.deepEqual(calls, ['use_hp_or_mp']);
+});

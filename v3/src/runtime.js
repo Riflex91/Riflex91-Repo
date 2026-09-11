@@ -12,7 +12,7 @@ const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 
-const VERSION = '3.0.0-alpha.4';
+const VERSION = '3.0.0-alpha.5';
 
 class Runtime {
   constructor(options = {}) {
@@ -96,7 +96,7 @@ class Runtime {
     const entities = status.world && Number.isFinite(Number(status.world.entities)) ? Number(status.world.entities) : 0;
     const modeNote = status.mode === 'shadow' ? 'observing only' : 'active commands enabled';
     const farmer = status.farmer || {};
-    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''} | targetPolicy=${farmer.targetPolicy || 'party-only'}`;
+    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''}${farmer.reason ? '[' + farmer.reason + ']' : ''} | targetPolicy=${farmer.targetPolicy || 'party-only'}`;
     const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | ${farmerText} | world=${entities} | tasks=${active}/${queued}`;
     this._announce(message, 'VISIBLE_STATUS');
     return status;
