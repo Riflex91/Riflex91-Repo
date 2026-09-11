@@ -1,0 +1,41 @@
+
+
+  /* v2.14.29 Merchant town-route estimator */
+  try{['merchant-town-route-estimator','dashboard-map-name-only','dashboard-group-info-hidden'].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});}catch(e){}
+
+  function v21429TownSpawn(){
+    try{
+      var m=GD.maps&&GD.maps.main||{},s=Array.isArray(m.spawns)&&m.spawns[0];
+      if(Array.isArray(s)&&isFinite(Number(s[0]))&&isFinite(Number(s[1])))return {map:'main',x:Number(s[0]),y:Number(s[1])};
+      if(s&&typeof s==='object'&&isFinite(Number(s.x))&&isFinite(Number(s.y)))return {map:'main',x:Number(s.x),y:Number(s.y)};
+    }catch(e){}
+    return {map:'main',x:0,y:0};
+  }
+  function v21429MainDoorFor(map,from){
+    var ds=[];try{ds=GD.maps&&GD.maps.main&&Array.isArray(GD.maps.main.doors)?GD.maps.main.doors:[];}catch(e){}
+    var best=null,bestD=Infinity,fx=Number(from&&from.x)||0,fy=Number(from&&from.y)||0;
+    ds.forEach(function(d){if(!Array.isArray(d)||String(d[4]||'')!==String(map||''))return;var x=Number(d[0]),y=Number(d[1]);if(!isFinite(x)||!isFinite(y))return;var dd=Math.hypot(fx-x,fy-y);if(dd<bestD){bestD=dd;best={map:'main',x:x,y:y,destinationMap:String(map||'')};}});
+    return best;
+  }
+  function v21429TownRouteCandidate(g,why,opts){
+    if(character.ctype!=='merchant'||!C.fastTravelEnabled||!g||String(character.map||'')!=='main'||typeof town!=='function'||S.moveInFlight||character.moving||clock()<=Number(S.times.fastTown||0))return null;
+    try{if(typeof is_on_cooldown==='function'&&is_on_cooldown('use_town'))return null;}catch(e){}
+    try{if(typeof can_use==='function'&&!can_use('use_town'))return null;}catch(e){}
+    var targetMap=String(g.map||character.map||''),gx=Number(g.x),gy=Number(g.y),anchor=null;
+    if(targetMap==='main'&&isFinite(gx)&&isFinite(gy))anchor={map:'main',x:gx,y:gy,destinationMap:'main'};
+    else anchor=v21429MainDoorFor(targetMap,character);
+    if(!anchor)return null;
+    var spawn=v21429TownSpawn(),speed=Math.max(20,Number(character.speed)||40),cx=Number(character.x)||0,cy=Number(character.y)||0;
+    var directDistance=Math.hypot(cx-anchor.x,cy-anchor.y),afterTownDistance=Math.hypot(spawn.x-anchor.x,spawn.y-anchor.y),townOverheadSeconds=4;
+    var walkSeconds=directDistance/speed,townSeconds=townOverheadSeconds+afterTownDistance/speed,savedSeconds=walkSeconds-townSeconds;
+    if(directDistance<500||savedSeconds<2)return null;
+    return {from:{map:'main',x:Math.round(cx),y:Math.round(cy)},target:{map:targetMap,x:isFinite(gx)?Math.round(gx):0,y:isFinite(gy)?Math.round(gy):0},routeAnchor:{map:'main',x:Math.round(anchor.x),y:Math.round(anchor.y)},townSpawn:{map:'main',x:Math.round(spawn.x),y:Math.round(spawn.y)},directDistance:Math.round(directDistance),afterTownDistance:Math.round(afterTownDistance),speed:Math.round(speed),walkSeconds:Number(walkSeconds.toFixed(1)),townSeconds:Number(townSeconds.toFixed(1)),savedSeconds:Number(savedSeconds.toFixed(1)),reason:safeString(why||'',160),kind:safeString(opts&&opts.kind||'',80)};
+  }
+  var v21429MoveBase=moveToGoal;
+  moveToGoal=function(g,why,opts){
+    var plan=v21429TownRouteCandidate(g,why,opts||{});
+    if(plan){S.times.fastTown=clock()+20000;audit('merchant_town_shortcut','Town-Teleport ist voraussichtlich schneller als der Fußweg',plan);return action('Schnellreise town() · Merchant',function(){return town();},'merchant-fast-travel-town',18000);}
+    return v21429MoveBase(g,why,opts);
+  };
+
+  audit('feature_contract','2.14.29 Dashboard bereinigt + Merchant vergleicht Fußweg mit Town-Teleport',{townRouteEstimator:true,multiBankPacks:Array.isArray(v2149SnapshotRows&&v2149SnapshotRows())?v2149SnapshotRows().reduce(function(a,x){if(x&&x.pack)a[x.pack]=1;return a;},{}):{}});
