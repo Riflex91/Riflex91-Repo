@@ -2445,6 +2445,7 @@ class SkillFarmerController extends KitingFarmerController {
 
           const { gameData } = this._updateSelectedSkill(context);
           const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
+          if (decision.skill) this.selectedSkill = decision.skill.id;
           this.lastSkillDecision = {
             at: this.now(),
             reason: decision.reason,
@@ -2453,7 +2454,17 @@ class SkillFarmerController extends KitingFarmerController {
             targetType: target.mtype || null,
             mp: decision.mp == null ? null : Number(decision.mp),
             reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
-            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2))
+            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2)),
+            candidateCount: Number(decision.candidateCount) || 0,
+            candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+            rejectedCandidates: Array.isArray(decision.rejectedCandidates)
+              ? decision.rejectedCandidates.map((entry) => ({
+                skill: entry.skill || null,
+                rank: Number(entry.rank) || null,
+                reason: entry.reason || null,
+                mpAfter: entry.mpAfter == null ? null : Number(Number(entry.mpAfter).toFixed(2))
+              }))
+              : []
           };
 
           if (decision.useSkill && decision.skill) {
@@ -2470,9 +2481,11 @@ class SkillFarmerController extends KitingFarmerController {
                   targetId: target.id || null,
                   targetType: target.mtype || null,
                   mpCost: decision.skill.mp,
-                  damageMultiplier: decision.skill.damageMultiplier
+                  damageMultiplier: decision.skill.damageMultiplier,
+                  selectionReason: decision.reason,
+                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
                 };
-                this._event('FARMER_SKILL_USED', 'info', 'SAFE_DIRECT_DAMAGE_SKILL', {
+                this._event('FARMER_SKILL_USED', 'info', decision.reason, {
                   skill: decision.skill.id,
                   skillName: decision.skill.name,
                   targetId: target.id || null,
@@ -2480,7 +2493,10 @@ class SkillFarmerController extends KitingFarmerController {
                   mpCost: decision.skill.mp,
                   damageMultiplier: decision.skill.damageMultiplier,
                   mpAfter: Number(decision.mpAfter.toFixed(2)),
-                  reserveMp: Number(decision.reserveMp.toFixed(2))
+                  reserveMp: Number(decision.reserveMp.toFixed(2)),
+                  candidateCount: Number(decision.candidateCount) || 0,
+                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+                  rejectedCandidates: this.lastSkillDecision.rejectedCandidates
                 });
                 return;
               }
@@ -2488,7 +2504,9 @@ class SkillFarmerController extends KitingFarmerController {
               this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
                 skill: decision.skill.id,
                 targetId: target.id || null,
-                targetType: target.mtype || null
+                targetType: target.mtype || null,
+                selectionReason: decision.reason,
+                candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
               });
             }
           }
