@@ -2,7 +2,7 @@
 'use strict';
 const assert=require('assert'),fs=require('fs');
 const bot=fs.readFileSync('bot.js','utf8'),version=JSON.parse(fs.readFileSync('version.json','utf8'));
-assert.equal(version.version,'2.14.19');assert.equal(version.dashboardVersion,'2.14.19');
+assert.equal(version.version,'2.14.20');assert.equal(version.dashboardVersion,'2.14.20');
 const cm=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);assert(cm);const contract=JSON.parse(cm[1].replace(/'/g,'"'));
 for(const f of ['merchant-exchange-route-flight-lock','merchant-loot-flight-gate','merchant-capacity-blocked-state','config-control-write-dedupe','merchant-phase-profiler'])assert.ok(contract.includes(f),'missing feature '+f);
 assert.ok(bot.includes('S.exchangeRouteFlight21418')&&bot.includes("smart_move('exchange')")&&bot.includes("if(flight&&flight.active)"),'exchange route lock missing');
@@ -16,4 +16,4 @@ assert.ok(prov.includes('sourceAt:chosen21417?Number(chosen21417.at||0):0'),'con
 for(const secret of ['webDashboardWriteKey','WRITE_KEY','API_KEY'])assert.ok(!prov.includes(secret),'secret leaked in config provenance');
 for(const phase of ['inventory','plannerRecipe','service','movement','bank','economy','dashboard','audit'])assert.ok(bot.includes("v21418ProfileWrap('"+phase+"'"),'phase missing '+phase);
 assert.ok(bot.includes("audit('merchant_phase_profile'")&&bot.includes('phases:phases,sizes:sizes'),'phase payload missing');
-console.log('2.14.19 Merchant stability / performance smoke OK');
+console.log('2.14.20 Merchant stability / performance smoke OK');

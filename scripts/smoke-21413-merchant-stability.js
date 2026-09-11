@@ -8,9 +8,9 @@ const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
 assert.ok(/^2\.14\.\d+$/.test(version.version));
 assert.equal(version.dashboardVersion,version.version);
-assert(bot.includes("var VERSION = '2.14.19';"));
-assert(dash.includes('AiO Bot Dashboard 2.14.19'));
-assert(worker.includes('AiO Bot Dashboard 2.14.19'));
+assert(bot.includes("var VERSION = '2.14.20';"));
+assert(dash.includes('AiO Bot Dashboard 2.14.20'));
+assert(worker.includes('AiO Bot Dashboard 2.14.20'));
 assert(!bot.includes('v2144AuditEconomy('),'undefined v2144AuditEconomy reference must be gone');
 
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
