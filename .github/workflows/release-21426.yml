@@ -2,8 +2,6 @@ name: release-21426
 on:
   push:
     branches: ["release/2.14.26-merchant-brain-map-update"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
