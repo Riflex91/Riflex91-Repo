@@ -15,7 +15,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.6';
+const VERSION = '3.0.0-alpha.8.7';
 
 class Runtime {
   constructor(options = {}) {
@@ -47,6 +47,7 @@ class Runtime {
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
       targetReassessmentSelfAggroSwitchFactor: options.farmerTargetReassessmentSelfAggroSwitchFactor,
+      targetReassessmentSelfAggroThreatSwitchFactor: options.farmerTargetReassessmentSelfAggroThreatSwitchFactor,
       safeRetreatEnabled: options.farmerSafeRetreatEnabled !== false,
       safeRetreatStepSeconds: options.farmerSafeRetreatStepSeconds,
       safeRetreatMinStep: options.farmerSafeRetreatMinStep,

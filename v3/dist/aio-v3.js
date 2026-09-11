@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.6 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.7 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.6';
+const VERSION = '3.0.0-alpha.8.7';
 
 class Runtime {
   constructor(options = {}) {
@@ -111,6 +111,7 @@ class Runtime {
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
       targetReassessmentSelfAggroSwitchFactor: options.farmerTargetReassessmentSelfAggroSwitchFactor,
+      targetReassessmentSelfAggroThreatSwitchFactor: options.farmerTargetReassessmentSelfAggroThreatSwitchFactor,
       safeRetreatEnabled: options.farmerSafeRetreatEnabled !== false,
       safeRetreatStepSeconds: options.farmerSafeRetreatStepSeconds,
       safeRetreatMinStep: options.farmerSafeRetreatMinStep,
@@ -2319,7 +2320,8 @@ class SkillFarmerController extends KitingFarmerController {
       enabled: options.targetReassessmentEnabled !== false,
       minIntervalMs: options.targetReassessmentMinIntervalMs,
       switchCooldownMs: options.targetReassessmentSwitchCooldownMs,
-      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor
+      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor,
+      selfAggroThreatSwitchFactor: options.targetReassessmentSelfAggroThreatSwitchFactor
     });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
@@ -2350,7 +2352,9 @@ class SkillFarmerController extends KitingFarmerController {
     if (now - this.lastReassessmentAt < this.targetReassessment.minIntervalMs) return target;
     this.lastReassessmentAt = now;
 
-    const decision = this.targetReassessment.evaluate(context && context.snapshot, target);
+    const gameData = context && context.adapter && context.adapter.getGameData ? context.adapter.getGameData() || {} : {};
+    const decision = this.targetReassessment.evaluate(context && context.snapshot, target, gameData);
+    const round = (value) => Number.isFinite(Number(value)) ? Number(Number(value).toFixed(2)) : null;
     const baseRecord = {
       at: now,
       reason: decision.reason,
@@ -2360,9 +2364,12 @@ class SkillFarmerController extends KitingFarmerController {
       candidateTargetId: decision.target && decision.target.id || null,
       candidateTargetType: decision.target && decision.target.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      currentDistance: Number.isFinite(Number(decision.currentDistance)) ? Number(Number(decision.currentDistance).toFixed(2)) : null,
-      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null,
-      switchThresholdDistance: Number.isFinite(Number(decision.switchThresholdDistance)) ? Number(Number(decision.switchThresholdDistance).toFixed(2)) : null
+      currentDistance: round(decision.currentDistance),
+      candidateDistance: round(decision.targetDistance),
+      switchThresholdDistance: round(decision.switchThresholdDistance),
+      currentThreatScore: round(decision.currentThreatScore),
+      candidateThreatScore: round(decision.targetThreatScore),
+      threatSwitchThreshold: round(decision.threatSwitchThreshold)
     };
 
     if (!decision.switchTarget || !decision.target) {
@@ -2397,7 +2404,10 @@ class SkillFarmerController extends KitingFarmerController {
       attackerCount: Number(decision.attackerCount) || 0,
       currentDistance: baseRecord.currentDistance,
       distance: baseRecord.candidateDistance,
-      switchThresholdDistance: baseRecord.switchThresholdDistance
+      switchThresholdDistance: baseRecord.switchThresholdDistance,
+      currentThreatScore: baseRecord.currentThreatScore,
+      threatScore: baseRecord.candidateThreatScore,
+      threatSwitchThreshold: baseRecord.threatSwitchThreshold
     };
 
     this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
@@ -2408,7 +2418,10 @@ class SkillFarmerController extends KitingFarmerController {
       attackerCount: Number(decision.attackerCount) || 0,
       currentDistance: this.lastTargetSwitch.currentDistance,
       distance: this.lastTargetSwitch.distance,
-      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance
+      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance,
+      currentThreatScore: this.lastTargetSwitch.currentThreatScore,
+      threatScore: this.lastTargetSwitch.threatScore,
+      threatSwitchThreshold: this.lastTargetSwitch.threatSwitchThreshold
     });
 
     return next;
@@ -3333,12 +3346,23 @@ function liveMonster(entity, character) {
   return true;
 }
 
+function threatScore(entity, gameData) {
+  if (!entity || !entity.mtype || !gameData || !gameData.monsters) return null;
+  const data = gameData.monsters[entity.mtype];
+  if (!data) return null;
+  const attack = Number(data.attack);
+  const frequency = Number(data.frequency);
+  if (!Number.isFinite(attack) || attack <= 0 || !Number.isFinite(frequency) || frequency <= 0) return null;
+  return attack * frequency;
+}
+
 class TargetReassessmentPolicy {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
     this.minIntervalMs = Math.max(250, Number(options.minIntervalMs) || 750);
     this.switchCooldownMs = Math.max(1000, Number(options.switchCooldownMs) || 2500);
     this.selfAggroSwitchFactor = Math.max(0.25, Math.min(0.9, Number(options.selfAggroSwitchFactor) || 0.7));
+    this.selfAggroThreatSwitchFactor = Math.max(1, Math.min(3, Number(options.selfAggroThreatSwitchFactor) || 1.25));
   }
 
   _selfAttackers(snapshot, character, selfName) {
@@ -3351,7 +3375,24 @@ class TargetReassessmentPolicy {
       });
   }
 
-  evaluate(snapshot, currentTarget) {
+  _highestThreatAlternative(alternatives, character, gameData) {
+    return alternatives
+      .map((entity) => ({
+        entity,
+        score: threatScore(entity, gameData),
+        distance: distance(character, entity)
+      }))
+      .filter((row) => row.score != null)
+      .sort((a, b) => {
+        const threatDelta = b.score - a.score;
+        if (threatDelta !== 0) return threatDelta;
+        const distanceDelta = a.distance - b.distance;
+        if (distanceDelta !== 0) return distanceDelta;
+        return String(a.entity.id).localeCompare(String(b.entity.id));
+      })[0] || null;
+  }
+
+  evaluate(snapshot, currentTarget, gameData = {}) {
     if (!this.enabled) return { switchTarget: false, reason: 'REASSESSMENT_DISABLED' };
     if (!snapshot || !snapshot.character || !currentTarget) return { switchTarget: false, reason: 'REASSESSMENT_CONTEXT_MISSING' };
 
@@ -3364,6 +3405,7 @@ class TargetReassessmentPolicy {
 
     if (currentTarget.target === selfName) {
       const currentDistance = distance(character, currentTarget);
+      const currentThreatScore = threatScore(currentTarget, gameData);
       const alternatives = attackers.filter((entity) => String(entity.id) !== String(currentTarget.id));
 
       if (!alternatives.length) {
@@ -3372,12 +3414,31 @@ class TargetReassessmentPolicy {
           reason: 'CURRENT_TARGET_ONLY_SELF_AGGRO',
           attackerCount: attackers.length,
           currentTargetOwner: currentTarget.target || null,
-          currentDistance
+          currentDistance,
+          currentThreatScore
+        };
+      }
+
+      const highestThreat = this._highestThreatAlternative(alternatives, character, gameData);
+      if (currentThreatScore != null && highestThreat && highestThreat.score >= currentThreatScore * this.selfAggroThreatSwitchFactor) {
+        return {
+          switchTarget: true,
+          reason: 'HIGHER_SELF_AGGRO_THREAT',
+          target: highestThreat.entity,
+          attackerCount: attackers.length,
+          currentTargetOwner: currentTarget.target || null,
+          currentDistance,
+          targetDistance: highestThreat.distance,
+          switchThresholdDistance: Number.isFinite(currentDistance) ? currentDistance * this.selfAggroSwitchFactor : null,
+          currentThreatScore,
+          targetThreatScore: highestThreat.score,
+          threatSwitchThreshold: currentThreatScore * this.selfAggroThreatSwitchFactor
         };
       }
 
       const target = alternatives[0];
       const targetDistance = distance(character, target);
+      const targetThreatScore = threatScore(target, gameData);
       const switchThresholdDistance = Number.isFinite(currentDistance)
         ? currentDistance * this.selfAggroSwitchFactor
         : null;
@@ -3391,7 +3452,9 @@ class TargetReassessmentPolicy {
           currentTargetOwner: currentTarget.target || null,
           currentDistance,
           targetDistance,
-          switchThresholdDistance
+          switchThresholdDistance,
+          currentThreatScore,
+          targetThreatScore
         };
       }
 
@@ -3404,7 +3467,9 @@ class TargetReassessmentPolicy {
           currentTargetOwner: currentTarget.target || null,
           currentDistance,
           targetDistance,
-          switchThresholdDistance
+          switchThresholdDistance,
+          currentThreatScore,
+          targetThreatScore
         };
       }
 
@@ -3416,7 +3481,9 @@ class TargetReassessmentPolicy {
         currentTargetOwner: currentTarget.target || null,
         currentDistance,
         targetDistance,
-        switchThresholdDistance
+        switchThresholdDistance,
+        currentThreatScore,
+        targetThreatScore
       };
     }
 
@@ -3427,7 +3494,8 @@ class TargetReassessmentPolicy {
         reason: 'NO_SELF_AGGRO_ALTERNATIVE',
         attackerCount: 0,
         currentTargetOwner: currentTarget.target || null,
-        currentDistance: distance(character, currentTarget)
+        currentDistance: distance(character, currentTarget),
+        currentThreatScore: threatScore(currentTarget, gameData)
       };
     }
 
@@ -3440,7 +3508,9 @@ class TargetReassessmentPolicy {
       currentTargetOwner: currentTarget.target || null,
       currentDistance: distance(character, currentTarget),
       targetDistance: distance(character, target),
-      switchThresholdDistance: null
+      switchThresholdDistance: null,
+      currentThreatScore: threatScore(currentTarget, gameData),
+      targetThreatScore: threatScore(target, gameData)
     };
   }
 
@@ -3450,12 +3520,14 @@ class TargetReassessmentPolicy {
       minIntervalMs: this.minIntervalMs,
       switchCooldownMs: this.switchCooldownMs,
       selfAggroSwitchFactor: this.selfAggroSwitchFactor,
-      strategy: 'nearest-self-attacker; switch between self-aggro targets only when candidate <= factor * current distance'
+      selfAggroThreatSwitchFactor: this.selfAggroThreatSwitchFactor,
+      threatMetric: 'G.monsters[mtype].attack * frequency',
+      strategy: 'self-aggro threat override when candidate >= threat factor; otherwise alpha.8.6 distance hysteresis'
     };
   }
 }
 
-module.exports = { TargetReassessmentPolicy };
+module.exports = { TargetReassessmentPolicy, threatScore };
 
 },
 "src/farmer/safe-retreat.js": function(require,module,exports){
