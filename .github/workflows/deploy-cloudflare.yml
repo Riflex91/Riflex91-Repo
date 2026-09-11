@@ -1,3 +1,4 @@
+# deployment-check: secrets configured
 name: deploy-cloudflare
 on:
   push:
