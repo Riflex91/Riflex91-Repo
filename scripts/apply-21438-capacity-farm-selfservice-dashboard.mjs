@@ -15,8 +15,10 @@ if(!bot.includes('/* v2.14.38 targeted capacity relief, rate-ranked fallback, au
 const dashPath='cloudflare-dashboard/dashboard.html';let h=fs.readFileSync(dashPath,'utf8');
 h=h.replaceAll('AiO Bot Dashboard 2.14.37','AiO Bot Dashboard 2.14.38');
 h=h.replaceAll('Dashboard 2.14.37','Dashboard 2.14.38');
-h=mustReplace(h,"const off=c.ageSeconds>30;return", "const age=Number(c.ageSeconds)||0,state=String(c.connectionState||'').toLowerCase(),off=state?state==='offline':age>120,delayed=!off&&(state==='delayed'||age>30);return",'dashboard presence state');
-h=mustReplace(h,"class=\"status ${off?'offline':'live'}\">${off?'OFFLINE':'LIVE'}</div>","class=\"status ${off?'offline':delayed?'warn':'live'}\">${off?'OFFLINE':delayed?'VERZÖGERT':'LIVE'}</div>",'dashboard presence label');
+if(!h.includes("state=String(c.connectionState||'').toLowerCase()")){
+  h=mustReplace(h,"const off=c.ageSeconds>30;return", "const age=Number(c.ageSeconds)||0,state=String(c.connectionState||'').toLowerCase(),off=state?state==='offline':age>120,delayed=!off&&(state==='delayed'||age>30);return",'dashboard presence state');
+  h=mustReplace(h,"class=\"status ${off?'offline':'live'}\">${off?'OFFLINE':'LIVE'}</div>","class=\"status ${off?'offline':delayed?'warn':'live'}\">${off?'OFFLINE':delayed?'VERZÖGERT':'LIVE'}</div>",'dashboard presence label');
+}
 fs.writeFileSync(dashPath,h);
 
 const workerPath='cloudflare-dashboard/src/worker.js';let w=fs.readFileSync(workerPath,'utf8');
@@ -27,7 +29,9 @@ if(!w.includes('async function handlePushSimple(')){
   const simple=`async function handlePushSimple(request,env){const cors=corsFor(request,env);if(cors===null)return new Response(null,{status:403,headers:securityHeaders()});let raw='';try{raw=await request.text();}catch{return new Response(null,{status:400,headers:securityHeaders()});}if(raw.length>MAX_PUSH_BYTES)return new Response(null,{status:413,headers:securityHeaders()});const form=new URLSearchParams(raw),writeKey=form.get('writeKey')||'',statusRaw=form.get('status')||'';if(!(await secretMatches(writeKey,env.WRITE_KEY)))return new Response(null,{status:401,headers:securityHeaders()});let input;try{input=JSON.parse(statusRaw);}catch{return new Response(null,{status:400,headers:securityHeaders()});}const status=cleanStatus(input);if(!status)return new Response(null,{status:400,headers:securityHeaders()});const receivedAt=Date.now();await env.DB.prepare(\`INSERT INTO character_status (name,payload,received_at) VALUES(?,?,?) ON CONFLICT(name) DO UPDATE SET payload=excluded.payload,received_at=excluded.received_at\`).bind(status.name,JSON.stringify(status),receivedAt).run();return new Response(null,{status:204,headers:{...securityHeaders(),'cache-control':'no-store',...(cors||{})}});}\n`;
   w=w.replace(marker,simple+marker);
 }
-w=mustReplace(w,"p.ageSeconds=Math.max(0,Math.round((now-p.receivedAt)/1000));return p;","p.ageSeconds=Math.max(0,Math.round((now-p.receivedAt)/1000));p.connectionState=p.ageSeconds<=30?'live':p.ageSeconds<=120?'delayed':'offline';return p;",'server presence state');
+if(!w.includes("p.connectionState=p.ageSeconds<=30?'live':p.ageSeconds<=120?'delayed':'offline'")){
+  w=mustReplace(w,"p.ageSeconds=Math.max(0,Math.round((now-p.receivedAt)/1000));return p;","p.ageSeconds=Math.max(0,Math.round((now-p.receivedAt)/1000));p.connectionState=p.ageSeconds<=30?'live':p.ageSeconds<=120?'delayed':'offline';return p;",'server presence state');
+}
 if(!w.includes('url.pathname==="/api/push-simple"'))w=mustReplace(w,'if(request.method==="POST"&&url.pathname==="/api/push")return handlePush(request,env);','if(request.method==="POST"&&url.pathname==="/api/push")return handlePush(request,env);if(request.method==="POST"&&url.pathname==="/api/push-simple")return handlePushSimple(request,env);','simple push route');
 w=w.replace('["/api/push","/api/pushframe","/api/push-ack","/api/state","/api/brain","/api/brain-feedback"]','["/api/push","/api/push-simple","/api/pushframe","/api/push-ack","/api/state","/api/brain","/api/brain-feedback"]');
 w=w.replace(/const DASHBOARD_HTML = [\s\S]*?;\n\n(?=function )/,`const DASHBOARD_HTML = ${JSON.stringify(h)};\n\n`);
