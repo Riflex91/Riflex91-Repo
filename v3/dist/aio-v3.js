@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.5 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.6 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.5';
+const VERSION = '3.0.0-alpha.8.6';
 
 class Runtime {
   constructor(options = {}) {
@@ -107,6 +107,10 @@ class Runtime {
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
+      targetReassessmentEnabled: options.farmerTargetReassessmentEnabled !== false,
+      targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
+      targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
+      targetReassessmentSelfAggroSwitchFactor: options.farmerTargetReassessmentSelfAggroSwitchFactor,
       safeRetreatEnabled: options.farmerSafeRetreatEnabled !== false,
       safeRetreatStepSeconds: options.farmerSafeRetreatStepSeconds,
       safeRetreatMinStep: options.farmerSafeRetreatMinStep,
@@ -2314,7 +2318,8 @@ class SkillFarmerController extends KitingFarmerController {
     this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
       enabled: options.targetReassessmentEnabled !== false,
       minIntervalMs: options.targetReassessmentMinIntervalMs,
-      switchCooldownMs: options.targetReassessmentSwitchCooldownMs
+      switchCooldownMs: options.targetReassessmentSwitchCooldownMs,
+      selfAggroSwitchFactor: options.targetReassessmentSelfAggroSwitchFactor
     });
     this.lastSkillAttemptAt = -Infinity;
     this.selectedSkill = null;
@@ -2355,7 +2360,9 @@ class SkillFarmerController extends KitingFarmerController {
       candidateTargetId: decision.target && decision.target.id || null,
       candidateTargetType: decision.target && decision.target.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+      currentDistance: Number.isFinite(Number(decision.currentDistance)) ? Number(Number(decision.currentDistance).toFixed(2)) : null,
+      candidateDistance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null,
+      switchThresholdDistance: Number.isFinite(Number(decision.switchThresholdDistance)) ? Number(Number(decision.switchThresholdDistance).toFixed(2)) : null
     };
 
     if (!decision.switchTarget || !decision.target) {
@@ -2388,7 +2395,9 @@ class SkillFarmerController extends KitingFarmerController {
       toTargetId: next.id || null,
       toTargetType: next.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      distance: Number.isFinite(Number(decision.targetDistance)) ? Number(Number(decision.targetDistance).toFixed(2)) : null
+      currentDistance: baseRecord.currentDistance,
+      distance: baseRecord.candidateDistance,
+      switchThresholdDistance: baseRecord.switchThresholdDistance
     };
 
     this._event('FARMER_TARGET_REASSESSED', 'info', decision.reason, {
@@ -2397,7 +2406,9 @@ class SkillFarmerController extends KitingFarmerController {
       nextTargetId: next.id || null,
       nextTargetType: next.mtype || null,
       attackerCount: Number(decision.attackerCount) || 0,
-      distance: this.lastTargetSwitch.distance
+      currentDistance: this.lastTargetSwitch.currentDistance,
+      distance: this.lastTargetSwitch.distance,
+      switchThresholdDistance: this.lastTargetSwitch.switchThresholdDistance
     });
 
     return next;
@@ -3327,6 +3338,17 @@ class TargetReassessmentPolicy {
     this.enabled = options.enabled !== false;
     this.minIntervalMs = Math.max(250, Number(options.minIntervalMs) || 750);
     this.switchCooldownMs = Math.max(1000, Number(options.switchCooldownMs) || 2500);
+    this.selfAggroSwitchFactor = Math.max(0.25, Math.min(0.9, Number(options.selfAggroSwitchFactor) || 0.7));
+  }
+
+  _selfAttackers(snapshot, character, selfName) {
+    return (snapshot.entities || [])
+      .filter((entity) => liveMonster(entity, character) && entity.target === selfName)
+      .sort((a, b) => {
+        const delta = distance(character, a) - distance(character, b);
+        if (delta !== 0) return delta;
+        return String(a.id).localeCompare(String(b.id));
+      });
   }
 
   evaluate(snapshot, currentTarget) {
@@ -3338,41 +3360,87 @@ class TargetReassessmentPolicy {
     if (!selfName) return { switchTarget: false, reason: 'CHARACTER_NAME_MISSING' };
     if (!liveMonster(currentTarget, character)) return { switchTarget: false, reason: 'CURRENT_TARGET_NOT_LIVE' };
 
+    const attackers = this._selfAttackers(snapshot, character, selfName);
+
     if (currentTarget.target === selfName) {
+      const currentDistance = distance(character, currentTarget);
+      const alternatives = attackers.filter((entity) => String(entity.id) !== String(currentTarget.id));
+
+      if (!alternatives.length) {
+        return {
+          switchTarget: false,
+          reason: 'CURRENT_TARGET_ONLY_SELF_AGGRO',
+          attackerCount: attackers.length,
+          currentTargetOwner: currentTarget.target || null,
+          currentDistance
+        };
+      }
+
+      const target = alternatives[0];
+      const targetDistance = distance(character, target);
+      const switchThresholdDistance = Number.isFinite(currentDistance)
+        ? currentDistance * this.selfAggroSwitchFactor
+        : null;
+
+      if (!Number.isFinite(currentDistance) || !Number.isFinite(targetDistance)) {
+        return {
+          switchTarget: false,
+          reason: 'SELF_AGGRO_DISTANCE_UNKNOWN',
+          target,
+          attackerCount: attackers.length,
+          currentTargetOwner: currentTarget.target || null,
+          currentDistance,
+          targetDistance,
+          switchThresholdDistance
+        };
+      }
+
+      if (targetDistance > switchThresholdDistance) {
+        return {
+          switchTarget: false,
+          reason: 'CURRENT_SELF_AGGRO_STABLE',
+          target,
+          attackerCount: attackers.length,
+          currentTargetOwner: currentTarget.target || null,
+          currentDistance,
+          targetDistance,
+          switchThresholdDistance
+        };
+      }
+
       return {
-        switchTarget: false,
-        reason: 'CURRENT_TARGET_SELF_AGGRO',
-        attackerCount: (snapshot.entities || []).filter((entity) => liveMonster(entity, character) && entity.target === selfName).length
+        switchTarget: true,
+        reason: 'CLOSER_SELF_AGGRO_PRIORITY',
+        target,
+        attackerCount: attackers.length,
+        currentTargetOwner: currentTarget.target || null,
+        currentDistance,
+        targetDistance,
+        switchThresholdDistance
       };
     }
 
-    const attackers = (snapshot.entities || [])
-      .filter((entity) => liveMonster(entity, character))
-      .filter((entity) => String(entity.id) !== String(currentTarget.id))
-      .filter((entity) => entity.target === selfName)
-      .sort((a, b) => {
-        const delta = distance(character, a) - distance(character, b);
-        if (delta !== 0) return delta;
-        return String(a.id).localeCompare(String(b.id));
-      });
-
-    if (!attackers.length) {
+    const alternatives = attackers.filter((entity) => String(entity.id) !== String(currentTarget.id));
+    if (!alternatives.length) {
       return {
         switchTarget: false,
         reason: 'NO_SELF_AGGRO_ALTERNATIVE',
         attackerCount: 0,
-        currentTargetOwner: currentTarget.target || null
+        currentTargetOwner: currentTarget.target || null,
+        currentDistance: distance(character, currentTarget)
       };
     }
 
-    const target = attackers[0];
+    const target = alternatives[0];
     return {
       switchTarget: true,
       reason: 'SELF_AGGRO_PRIORITY',
       target,
-      attackerCount: attackers.length,
+      attackerCount: alternatives.length,
       currentTargetOwner: currentTarget.target || null,
-      targetDistance: distance(character, target)
+      currentDistance: distance(character, currentTarget),
+      targetDistance: distance(character, target),
+      switchThresholdDistance: null
     };
   }
 
@@ -3381,7 +3449,8 @@ class TargetReassessmentPolicy {
       enabled: this.enabled,
       minIntervalMs: this.minIntervalMs,
       switchCooldownMs: this.switchCooldownMs,
-      strategy: 'keep-self-aggro-current; otherwise nearest-self-attacker'
+      selfAggroSwitchFactor: this.selfAggroSwitchFactor,
+      strategy: 'nearest-self-attacker; switch between self-aggro targets only when candidate <= factor * current distance'
     };
   }
 }
