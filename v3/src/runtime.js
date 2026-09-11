@@ -10,12 +10,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { KitingFarmerController } = require('./farmer/kiting-farmer');
+const { SkillFarmerController } = require('./farmer/skill-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.2';
+const VERSION = '3.0.0-alpha.8.3';
 
 class Runtime {
   constructor(options = {}) {
@@ -26,7 +26,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new KitingFarmerController({
+    this.farmer = options.farmer || new SkillFarmerController({
       now: this.now,
       log: this.log,
       planner: this.planner,
@@ -39,7 +39,10 @@ class Runtime {
       kitingDesiredFactor: options.farmerKitingDesiredFactor,
       kitingMaxStepFactor: options.farmerKitingMaxStepFactor,
       kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
-      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs
+      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
+      skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
+      skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
+      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs
     });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
