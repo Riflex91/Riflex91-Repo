@@ -71,6 +71,8 @@ A window is only written into a monster performance profile when one monster is 
 
 The World Model keeps `OBSERVED`, `INFERRED` and `HYPOTHESIS` evidence distinct. Live entities/objects are `OBSERVED`; current-map metadata is `INFERRED`.
 
+When several evidence classes exist for the same fact, `fact(...)` resolves them with `OBSERVED > INFERRED > HYPOTHESIS` precedence. `evidenceFor(...)` exposes the provenance-specific records directly so weaker evidence remains inspectable instead of overwriting stronger observations.
+
 Persistence prefers Adventure Land's `get`/`set`, then browser `localStorage`, and can be replaced with a test/custom storage adapter. Reads/writes are defensive and never allowed to stop gameplay. World entities and performance profiles are bounded to prevent unbounded 24/7 growth.
 
 ## Diagnostics
