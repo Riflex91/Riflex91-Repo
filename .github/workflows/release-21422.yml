@@ -2,8 +2,6 @@ name: release-21422
 on:
   push:
     branches: ["release/2.14.22-auto-economy-manager"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
