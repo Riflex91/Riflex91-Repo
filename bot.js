@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.24 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.25 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.24';
+  var VERSION = '2.14.25';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -4497,6 +4497,56 @@
   try{FEATURE_CONTRACT.push('group-class-buff-assignment','group-buff-request-confirmation','catalog-monster-item-detail-windows','catalog-live-drop-tables','merchant-orthogonal-item-permissions','farmer-projected-gear-upgrade-override','dashboard-adventure-land-tile-images','update-contract-dynamic-push-parser');}catch(e){}
   audit('feature_contract','2.14.24 Gruppen-Buffs + Detail-Bestiarium + Itemrechte + echte Terrain-Tiles + Update-Contract-Fix geprüft',{features:FEATURE_CONTRACT});
 
+
+
+  /* v2.14.25 UI event wiring + Merchant bank liveness */
+  try{FEATURE_CONTRACT.push('catalog-detail-live-events','merchant-item-permission-contextmenu-live','merchant-bank-terminal-liveness','dashboard-clean-game-map','dashboard-mini-game-map');}catch(e){}
+
+  // v2.14.24 replaced uiClick/uiChange/initUI after initUI had already registered the old
+  // function objects as listeners. Register dedicated delegates now so catalog details and
+  // right-click Merchant permissions are actually reachable in the running UI.
+  function v21425CatalogClick(e){
+    var t=e&&e.target;if(!t||!uiRoot)return;
+    var close=t.closest&&t.closest('[data-detail-close]');
+    if(close){var key=close.dataset.detailClose,win=S.catalogDetails21424&&S.catalogDetails21424[key];if(win)win.remove();if(S.catalogDetails21424)delete S.catalogDetails21424[key];e.preventDefault();e.stopPropagation();return;}
+    var perm=t.closest&&t.closest('[data-item-perm-action]');
+    if(perm){v21424SetPermission(String(perm.dataset.name),String(perm.dataset.itemPermAction),String(perm.dataset.itemPermValue));var menu=perm.closest('.invmenu');if(menu)menu.remove();renderAll(true);e.preventDefault();e.stopPropagation();return;}
+    var row=t.closest&&t.closest('[data-catalog-kind][data-catalog-id]');
+    if(row){v21424OpenCatalogDetail(String(row.dataset.catalogKind),String(row.dataset.catalogId));e.preventDefault();e.stopPropagation();return;}
+    var inv=t.closest&&t.closest('[data-inv-name]');
+    if(inv){v21424OpenCatalogDetail('item',String(inv.dataset.invName));e.preventDefault();e.stopPropagation();}
+  }
+  function v21425CatalogContext(e){
+    if(!e||!uiRoot)return;var t=e.target,row=t&&t.closest&&t.closest('[data-catalog-kind="item"][data-catalog-id]'),inv=t&&t.closest&&t.closest('[data-inv-name]');
+    if(!row&&!inv)return;e.preventDefault();e.stopPropagation();v21424ShowPermissionMenu(String(row?row.dataset.catalogId:inv.dataset.invName),e.clientX,e.clientY);
+  }
+  function v21425BuffChange(e){var el=e&&e.target;if(!el||!el.dataset||!el.dataset.groupBuffSkill)return;v21424SetBuffAssignment(String(el.dataset.groupBuffSkill),String(el.dataset.groupBuffTarget),!!el.checked);renderTool('party');e.stopPropagation();}
+  if(uiRoot&&!S.uiDelegates21425){S.uiDelegates21425=true;uiRoot.addEventListener('click',v21425CatalogClick,true);uiRoot.addEventListener('contextmenu',v21425CatalogContext,true);uiRoot.addEventListener('change',v21425BuffChange,true);}
+
+  // A Merchant must never remain parked in bank merely because free slots are below the
+  // reserve while a bank-store identity has already been quarantined for no observable
+  // progress. Preserve the quarantine (no blind retry), leave bank, keep the hard loot
+  // guard, and give urgent service/economy work a bounded window to proceed.
+  S.bankLiveness21425=S.bankLiveness21425||{escapeUntil:0,lastExitAt:0,lastReason:''};
+  function v21425ActiveBankQuarantine(){var q=S.bankStoreNoProgress21423||{},now=clock();return Object.keys(q).some(function(k){var x=q[k];return x&&now<Number(x.until||0);});}
+  var v21425PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){
+    if(character.ctype!=='merchant')return v21425PressureBase();
+    var now=clock(),reserve=Math.max(1,Number(C.merchantInventoryReserve)||0),low=freeSlots()<=reserve,tx=!!(S.merchantBankRetrieve2149||(S.autoEconomy21422&&S.autoEconomy21422.tx));
+    if(now<Number(S.bankLiveness21425.escapeUntil||0)&&character.map!=='bank'&&low){S.status=C.language==='de'?'Bank-Liveness · Service/Economy hat Vorrang':'Bank liveness · service/economy priority';S.mode='Merchant · Recovery';return false;}
+    if(character.map==='bank'&&low&&!tx&&!character.q){
+      var blocked=S.capacityBlocked21418,blockedAge=blocked?now-Number(blocked.since||now):0,quarantined=v21425ActiveBankQuarantine();
+      if(quarantined||blockedAge>=20000){
+        S.bankLiveness21425.escapeUntil=now+120000;S.bankLiveness21425.lastExitAt=now;S.bankLiveness21425.lastReason=quarantined?'quarantined-bank-store':'capacity-no-progress';
+        S.capacityBlocked21418=null;S.inventoryPressureBusy=false;S.merchantOptionalBlockedUntil21419=0;
+        try{v21419RouteRelease(v21419RouteState().owner);}catch(e){}
+        audit('merchant_bank_liveness_exit','Merchant verlässt Bank nach terminalem Kapazitäts-/Sync-Zustand',{free:freeSlots(),reserve:reserve,reason:S.bankLiveness21425.lastReason,quarantinePreserved:quarantined},'warning');
+        return moveToGoal({map:'main',x:0,y:0},'Bank verlassen · Service/Economy fortsetzen',{kind:'merchant-bank-liveness-exit',tolerance:120,forceAfter:10000})||true;
+      }
+    }
+    return v21425PressureBase();
+  };
+  audit('feature_contract','2.14.25 UI-Events + Merchant-Bank-Liveness geprüft',{catalogDelegates:!!S.uiDelegates21425,bankEscapeWindowMs:120000});
 
   /* 2.14.24 config + buff telemetry hardening */
   function v21424ObservableBuffSkills(){
