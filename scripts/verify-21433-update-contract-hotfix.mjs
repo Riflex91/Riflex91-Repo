@@ -33,8 +33,10 @@ ok(bot.includes('S.updateSingleflight21433'),'automatic update singleflight miss
 ok(bot.includes('clock()+8000'),'automatic update singleflight duration missing');
 ok(bot.includes('Update-Contract-Hotfix aktiv'),'hotfix feature audit missing');
 
-// Preserve all 2.14.32 liveness/dashboard work.
-for(const marker of ['sell_transaction_confirmed','merchant_capacity_watchdog','dashboard_transport_fallback','cloud_state_backoff','teacher_daily_quota_block','V21432_SERVICE_ORDER'])ok(bot.includes(marker),'2.14.32 marker lost: '+marker);
+// Preserve all 2.14.32 liveness/dashboard work. Workers-AI quota handling lives in worker.js,
+// while the remaining transactional/capacity/dashboard markers live in bot.js.
+for(const marker of ['sell_transaction_confirmed','merchant_capacity_watchdog','dashboard_transport_fallback','cloud_state_backoff','V21432_SERVICE_ORDER'])ok(bot.includes(marker),'2.14.32 marker lost: '+marker);
+ok(worker.includes('Workers AI daily neuron quota reached'),'2.14.32 Worker quota handling lost');
 ok(bot.includes("brainMinConfidencePct: 70"),'brain confidence changed');
 ok(bot.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'brain model changed');
 
