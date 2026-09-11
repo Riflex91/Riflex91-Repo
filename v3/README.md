@@ -1,4 +1,4 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.4
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.5
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
@@ -10,16 +10,17 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 - central target-safety exclusions; Target Automatons are never farmed
 - Combat Risk Gate before new pulls
 - Emergency Disengage during unsafe active combat
+- **Safe Retreat Movement**: one bounded local `move` away from the current emergency threat cluster, executed only by the scheduler-owned Farmer
 - Basic Kiting during `ENGAGE`
 - Skill Usage v1: one conservative direct-damage single-target skill selected from live `G.skills` metadata
-- **Combat Target Reassessment v1**: a bounded switch from a non-self-focused current target to an already attacking self-aggressor
+- Combat Target Reassessment v1: a bounded switch from a non-self-focused current target to an already attacking self-aggressor
 - range-aware local travel and basic attacks using observed `range`, `speed` and `frequency`, not fixed class names
 - recovery thresholds with HP/MP potion handling
 - shadow preview plans, structured telemetry, persistence, discovery, research and diagnostics foundations
 
 ## Safety boundary
 
-`3.0.0-alpha.8.4` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.8.5` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer performs only bounded combat/recovery primitives through the Scheduler and Safe Game Adapter.
 
@@ -39,7 +40,7 @@ AIO_V3.exportDiagnostics()
 AIO_V3.saveWorld()
 ```
 
-`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds and the latest disengage. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the selected v1 skill, latest decision and latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, latest decision and latest target switch.
+`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the selected v1 skill, latest decision and latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, latest decision and latest target switch.
 
 Shadow mode remains the safe default:
 
@@ -64,7 +65,25 @@ Emergency Disengage currently triggers when either condition is true:
 - HP is at or below **35%**
 - at least **2 live monsters** target the character while HP is at or below **55%**
 
-It removes only the exact current `ENGAGE` target from the Scheduler-facing snapshot, so the existing Farmer stops attacking and falls back through reassessment/recovery. It does not yet perform a dedicated escape route.
+It removes only the exact current `ENGAGE` target from the Scheduler-facing snapshot. In active mode the Runtime also records one pending Safe Retreat request containing the current target and observed self-aggressors. The Runtime itself does **not** call `move` or any other gameplay action for the retreat.
+
+## Safe Retreat Movement — alpha.8.5
+
+Safe Retreat is deliberately small and local. It is not pathfinding and it is not a permanent flee mode.
+
+Default behavior:
+
+- only an active Emergency Disengage can arm a retreat; shadow mode never arms one
+- the Runtime records the retreat as pending; the scheduler-owned Farmer consumes it once
+- the retreat vector points away from the observed emergency cluster: the current combat target plus monsters currently targeting self
+- closer positioned threats weigh more heavily in the escape direction
+- movement uses the observed character speed for roughly **1.5 seconds** of travel, bounded to **35–90** distance units by default
+- the only movement primitive is local `move(x, y)` through the Safe Game Adapter
+- there is no `smart_move`, routing, obstacle solving or repeated flee loop in this step
+- after the one movement attempt the current target is cleared and the Farmer enters `RECOVER`, then continues through normal reassessment
+- a failed or unavailable retreat move is logged but **never** puts the Farmer into `BLOCKED`
+
+Successful movement requests are logged as `FARMER_SAFE_RETREAT_REQUESTED`; command failures as `FARMER_SAFE_RETREAT_FAILED`; missing/disabled movement decisions as `FARMER_SAFE_RETREAT_SKIPPED`.
 
 ## Basic Kiting
 
@@ -138,9 +157,9 @@ AIO_V3.farmer.removeTargetExclusion("example")
 
 ## Current scope
 
-Alpha.8.4 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make simple ranged distance corrections, use one conservative single-target damage skill, and prioritize an already attacking self-aggressor over a current target that is not attacking self.
+Alpha.8.5 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use one conservative single-target damage skill, and prioritize an already attacking self-aggressor over a current target that is not attacking self.
 
-It does not yet perform dedicated emergency escape routing, spawn routing, cross-map hunting, obstacle-aware kiting, broad threat-score target switching, skill rotations, loot/economy loops, buying potions or merchant logistics.
+It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, broad threat-score target switching, skill rotations, loot/economy loops, buying potions or merchant logistics.
 
 ## Development
 

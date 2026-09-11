@@ -10,12 +10,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { SkillFarmerController } = require('./farmer/skill-farmer');
+const { RetreatFarmerController } = require('./farmer/retreat-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.4';
+const VERSION = '3.0.0-alpha.8.5';
 
 class Runtime {
   constructor(options = {}) {
@@ -26,7 +26,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new SkillFarmerController({
+    this.farmer = options.farmer || new RetreatFarmerController({
       now: this.now,
       log: this.log,
       planner: this.planner,
@@ -42,7 +42,12 @@ class Runtime {
       kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
-      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs
+      skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
+      safeRetreatEnabled: options.farmerSafeRetreatEnabled !== false,
+      safeRetreatStepSeconds: options.farmerSafeRetreatStepSeconds,
+      safeRetreatMinStep: options.farmerSafeRetreatMinStep,
+      safeRetreatMaxStep: options.farmerSafeRetreatMaxStep,
+      safeRetreatMaxThreats: options.farmerSafeRetreatMaxThreats
     });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
@@ -63,6 +68,7 @@ class Runtime {
       multiAggroCount: options.combatEmergencyMultiAggroCount
     });
     this.lastEmergencyDisengage = null;
+    this.pendingEmergencyRetreat = null;
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -249,10 +255,50 @@ class Runtime {
     this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_RISK_REJECTED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: risk.reason, data: record });
   }
 
-  _noteEmergencyDisengage(entity, emergency) {
+  _armEmergencyRetreat(snapshot, entity, emergency, at) {
+    if (this.adapter.mode !== 'active' || !snapshot || !snapshot.character) return;
+    const character = snapshot.character;
+    const threats = [];
+    const seen = new Set();
+    for (const candidate of snapshot.entities || []) {
+      if (!candidate || !candidate.id || !candidate.mtype || candidate.dead || (candidate.hp != null && Number(candidate.hp) <= 0)) continue;
+      const isCurrent = entity && String(candidate.id) === String(entity.id);
+      const isSelfAggro = candidate.target === character.name;
+      if (!isCurrent && !isSelfAggro) continue;
+      const key = String(candidate.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      threats.push({
+        id: key,
+        mtype: candidate.mtype || null,
+        x: candidate.x == null ? null : Number(candidate.x),
+        y: candidate.y == null ? null : Number(candidate.y),
+        target: candidate.target || null
+      });
+      if (threats.length >= 6) break;
+    }
+
+    this.pendingEmergencyRetreat = {
+      at,
+      reason: emergency.reason,
+      hpRatio: emergency.signals && emergency.signals.hpRatio != null ? Number(emergency.signals.hpRatio) : null,
+      sourceTargetId: entity && entity.id || null,
+      sourceTargetType: entity && entity.mtype || null,
+      threats
+    };
+  }
+
+  takeEmergencyRetreat() {
+    const pending = this.pendingEmergencyRetreat;
+    this.pendingEmergencyRetreat = null;
+    return pending;
+  }
+
+  _noteEmergencyDisengage(entity, emergency, snapshot) {
     if (!entity || !emergency || !emergency.triggered) return;
+    const at = this.now();
     const record = {
-      at: this.now(),
+      at,
       entityId: entity.id || null,
       entityName: entity.name || null,
       monsterType: entity.mtype || null,
@@ -260,6 +306,7 @@ class Runtime {
       signals: emergency.signals || {}
     };
     this.lastEmergencyDisengage = record;
+    this._armEmergencyRetreat(snapshot, entity, emergency, at);
     this.log.emit({
       component: 'farmer',
       event: 'FARMER_EMERGENCY_DISENGAGE',
@@ -288,7 +335,7 @@ class Runtime {
       if (isCurrentEngageTarget) {
         const emergency = this.combatEmergency.evaluate(snapshot, entity);
         if (emergency.triggered) {
-          this._noteEmergencyDisengage(entity, emergency);
+          this._noteEmergencyDisengage(entity, emergency, snapshot);
           continue;
         }
       }
@@ -374,7 +421,7 @@ class Runtime {
           world: this.world.summary(),
           performance: this.performance.status().current,
           combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
           persistence: this.persistence.status()
         }
       });
@@ -392,7 +439,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -409,7 +456,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
-      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage, pendingRetreat: !!this.pendingEmergencyRetreat },
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
