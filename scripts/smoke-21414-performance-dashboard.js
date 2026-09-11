@@ -8,7 +8,7 @@ const version=JSON.parse(fs.readFileSync('version.json','utf8'));
 
 assert.ok(/^2\.14\.\d+$/.test(version.version));
 assert.equal(version.dashboardVersion,version.version);
-assert(bot.includes("var VERSION = '2.14.18';"));
+assert(bot.includes("var VERSION = '2.14.19';"));
 const contractMatch=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);
 assert(contractMatch);
 const contract=JSON.parse(contractMatch[1].replace(/'/g,'"'));
@@ -47,10 +47,10 @@ assert.equal(cleaned.learningFeed.length,1,'learning feed stripped');
 assert(cleaned.sprite&&cleaned.sprite.file.includes('ranger.png'),'sprite stripped');
 assert(cleaned.brainExplanation&&cleaned.brainExplanation.current==='work','brain explanation stripped');
 
-assert(dash.includes('AiO Bot Dashboard 2.14.18'));
+assert(dash.includes('AiO Bot Dashboard 2.14.19'));
 assert(dash.includes('function terrainMeta'));
 assert(dash.includes('function terrainVectorMarkup'));
 assert(dash.includes('function terrainGridMarkup'));
 assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));
-assert(worker.includes('AiO Bot Dashboard 2.14.18'));
+assert(worker.includes('AiO Bot Dashboard 2.14.19'));
 console.log('2.14.17 Merchant performance / dashboard terrain smoke OK');
