@@ -2,8 +2,6 @@ name: release-21428
 on:
   push:
     branches: ["release/2.14.28-priority-liveness-dashboard"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
