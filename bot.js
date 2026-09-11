@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.36 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.37 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.36';
+  var VERSION = '2.14.37';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -5996,5 +5996,98 @@
   };
 
   audit('feature_contract','2.14.36 Merchant-Routen serialisiert + slotfreigebender Notverkauf + kompakter Dashboard-CORS-ACK aktiv',{bankQuarantineScoped:true,serviceRouteSerialized:true,emergencySellSlotRelease:true,dashboardCompactFallback:true,dashboardCorsAck:true,brainPolicyChanged:false,brainModel:C.brainModel,brainMinConfidencePct:C.brainMinConfidencePct,features:FEATURE_CONTRACT});
+
+  /* v2.14.37 dashboard write-only truth, bank preflight capacity and farm-goal liveness */
+  try{FEATURE_CONTRACT.push('dashboard-lean-write-fallback','dashboard-submitted-unverified-state','merchant-bank-retrieve-capacity-preflight','merchant-bank-retrieve-capacity-relief','merchant-farm-goal-liveness','farmer-farm-goal-watchdog');}catch(e){}
+
+  // Bank retrieval must preserve the configured Merchant reserve after the incoming bank slots land.
+  // v2.14.36 only compared free slots to the number of source bank slots. With 1 free slot and a
+  // reserve of 2 this still launched a retrieve and the game returned inventory_full. Defer the
+  // request, free capacity first (classified sell -> safe emergency sell -> bank cleanup), then retry.
+  S.bankRetrieveDeferred21437=S.bankRetrieveDeferred21437||null;
+  function v21437NormalizeBankWants(wants){return (wants||[]).map(function(w){return {name:String(w&&w.name||''),level:Math.max(0,Number(w&&w.level)||0),q:Math.max(1,Number(w&&w.q)||1)};}).filter(function(w){try{return w.name&&v2149BankWantMissing(w)>0;}catch(e){return !!w.name;}});}
+  function v21437BankRetrieveBudget(wants){
+    var rows=v21437NormalizeBankWants(wants),reserve=Math.max(1,Number(C.merchantInventoryReserve)||0),needSlots=0;
+    rows.forEach(function(w){var missing=1,slots=1;try{missing=Math.max(1,v2149BankWantMissing(w));}catch(e){}try{slots=v2149BankSlotsFor(w.name,w.level,missing);}catch(e){slots=1;}if(!isFinite(slots)||slots<1)slots=1;needSlots+=Math.max(1,Number(slots)||1);});
+    needSlots=Math.max(rows.length?1:0,needSlots);return {wants:rows,reserve:reserve,needSlots:needSlots,requiredFree:reserve+needSlots,free:freeSlots()};
+  }
+  function v21437DeferBankRetrieve(reason,wants,meta,allowUnknown,source){
+    var b=v21437BankRetrieveBudget(wants),now=clock();if(!b.wants.length)return false;
+    S.bankRetrieveDeferred21437={reason:String(reason||'logistics'),wants:b.wants,meta:meta||{},allowUnknown:!!allowUnknown,requiredFree:b.requiredFree,reserve:b.reserve,needSlots:b.needSlots,since:Number(S.bankRetrieveDeferred21437&&S.bankRetrieveDeferred21437.since)||now,source:source||'preflight'};
+    if(now-Number(S.bankRetrieveDeferredAudit21437||0)>4000){S.bankRetrieveDeferredAudit21437=now;audit('merchant_bank_retrieve_capacity_deferred','Bankentnahme wartet auf freie Inventarplätze',{reason:reason,free:b.free,reserve:b.reserve,needSlots:b.needSlots,requiredFree:b.requiredFree,wants:b.wants,source:source||'preflight'},'warning');}
+    S.status=(C.language==='de'?'Bankentnahme vorbereiten · Inventar freigeben ':'Prepare bank retrieve · free inventory ')+b.free+'/'+b.requiredFree;S.mode='Merchant · Kapazität';return false;
+  }
+  var v21437RequestBankBase=v2149RequestBank;
+  v2149RequestBank=function(reason,wants,meta,allowUnknown){
+    var b=v21437BankRetrieveBudget(wants);if(b.wants.length&&b.free<b.requiredFree)return v21437DeferBankRetrieve(reason,b.wants,meta,allowUnknown,'request-preflight');
+    S.bankRetrieveDeferred21437=null;return v21437RequestBankBase(reason,wants,meta,allowUnknown);
+  };
+  var v21437BankRetrieveTickBase=v2149BankRetrieveTick;
+  v2149BankRetrieveTick=function(){
+    var st=S.merchantBankRetrieve2149;if(st){var b=v21437BankRetrieveBudget(st.wants);if(b.wants.length&&b.free<b.requiredFree){var copy={reason:st.reason,wants:st.wants,meta:st.meta,allowUnknown:st.allowUnknown};S.merchantBankRetrieve2149=null;S.times.merchantPlan=0;return v21437DeferBankRetrieve(copy.reason,copy.wants,copy.meta,copy.allowUnknown,'live-preflight');}}
+    return v21437BankRetrieveTickBase();
+  };
+  function v21437BankRetrieveCapacityReliefTick(){
+    if(character.ctype!=='merchant'||!S.bankRetrieveDeferred21437)return false;var st=S.bankRetrieveDeferred21437,b=v21437BankRetrieveBudget(st.wants);
+    if(!b.wants.length){S.bankRetrieveDeferred21437=null;S.times.merchantPlan=0;return false;}
+    st.requiredFree=b.requiredFree;st.reserve=b.reserve;st.needSlots=b.needSlots;
+    if(b.free>=b.requiredFree){audit('merchant_bank_retrieve_capacity_ready','Inventarkapazität für Bankentnahme hergestellt',{free:b.free,requiredFree:b.requiredFree,reserve:b.reserve,needSlots:b.needSlots});S.bankRetrieveDeferred21437=null;S.times.merchantPlan=0;return false;}
+    if(character.q||character.moving||S.moveInFlight)return false;
+    try{if(typeof v21431UnifiedSellTick==='function'&&v21431UnifiedSellTick('merchant-bank-preflight'))return true;}catch(e){}
+    try{if(typeof v21431EmergencySellTick==='function'&&v21431EmergencySellTick())return true;}catch(e){}
+    try{var cand=typeof v2148BankCleanupCandidate==='function'?v2148BankCleanupCandidate():null;if((S.merchantBankCleanup2148||cand)&&typeof v2148BankCleanupTick==='function'&&v2148BankCleanupTick())return true;}catch(e){}
+    S.status=(C.language==='de'?'Bankentnahme wartet · sichere Inventarfreigabe ':'Bank retrieve waits · safe capacity relief ')+b.free+'/'+b.requiredFree;S.mode='Merchant · Kapazität';
+    if(clock()-Number(S.bankRetrieveBlockedAudit21437||0)>12000){S.bankRetrieveBlockedAudit21437=clock();audit('merchant_bank_retrieve_capacity_blocked','Bankentnahme bleibt blockiert, bis sichere Kapazität verfügbar ist',{free:b.free,requiredFree:b.requiredFree,reserve:b.reserve,needSlots:b.needSlots,wants:b.wants},'warning');}
+    return false;
+  }
+  var v21437MerchantTickBase=merchantTick;
+  merchantTick=function(){if(character.ctype==='merchant'&&v21437BankRetrieveCapacityReliefTick())return true;return v21437MerchantTickBase();};
+
+  // A productive craft plan is not allowed to starve the whole party when that plan currently has no
+  // material-specific farm target (for example while the Merchant is checking bank materials). Keep a
+  // safe EXP fallback attached to the plan, and let farmers use a local watchdog if the Merchant report
+  // is briefly missing. All fallbacks pass the v2.14.35 central-city guard.
+  function v21437FarmGoalAllowed(g){if(!g)return false;try{if(typeof v21435CityGoal==='function'&&v21435CityGoal(g))return false;}catch(e){}return !!(g.map&&isFinite(Number(g.x))&&isFinite(Number(g.y)));}
+  function v21437StaticSafeFarmGoal(){
+    var fs=[];try{fs=farmerReports().filter(function(r){return r&&!r.rip&&r.active!==false;});}catch(e){}if(!fs.length&&character.ctype!=='merchant')fs=[report(false)];if(!fs.length)return null;
+    var attack=fs.reduce(function(n,r){return n+(Number(r.attack)||1)*Math.max(.1,Number(r.frequency)||1);},0),avgHP=fs.reduce(function(n,r){return n+(Number(r.max_hp)||Number(r.hp)||1);},0)/fs.length,avgDef=fs.reduce(function(n,r){return n+(Number(r.armor)||0)+(Number(r.resistance)||0);},0)/fs.length,rows=[];
+    (SPAWNS||[]).forEach(function(sp){if(!sp||!v21437FarmGoalAllowed(sp))return;var m=GD.monsters&&GD.monsters[sp.monster]||{},count=Math.max(1,Number(sp.count)||1);if(!m.hp||!m.xp||m.boss||m.cooperative||m.event||m.special)return;var incoming=(Number(m.attack)||0)*Math.max(.2,Number(m.frequency)||.5),safety=Math.max(0,Math.min(1,(avgHP+avgDef*2)/Math.max(1,incoming*12)));if(C.safety&&safety<C.risk/100)return;var ttk=Number(m.hp)/Math.max(1,attack),score=Number(m.xp)/Math.max(.15,ttk)*(.55+.45*Math.min(1,count/6))*(.5+.5*safety);rows.push({spawn:sp,score:score});});
+    rows.sort(function(a,b){return b.score-a.score;});return rows[0]&&rows[0].spawn||null;
+  }
+  function v21437SafeFarmFallback(){var g=null;try{g=v273GroupAutoGoal();}catch(e){}if(v21437FarmGoalAllowed(g))return g;try{g=autoGoal();}catch(e){}if(v21437FarmGoalAllowed(g))return g;try{g=v277FallbackFarmGoal();}catch(e){}if(v21437FarmGoalAllowed(g))return g;return v21437StaticSafeFarmGoal();}
+  var v21437PlannerBase=v273MerchantPlannerTick;
+  v273MerchantPlannerTick=function(){
+    var plan=v21437PlannerBase();if(character.ctype!=='merchant'||!plan||plan.farmGoal)return plan;var g=v21437SafeFarmFallback();if(!g)return plan;plan.farmGoal=g;plan.farmGoalFallback=true;var label='EXP-Fallback: '+v273Name(g.monster||'')+' · '+String(g.map||'');var steps=Array.isArray(plan.steps)?plan.steps.slice():[];if(steps.indexOf(label)<0)steps.push(label);plan.steps=steps.slice(0,5);v273SetMerchantPlan(plan);if(clock()-Number(S.farmGoalFallbackAudit21437||0)>15000){S.farmGoalFallbackAudit21437=clock();audit('merchant_farm_goal_fallback','Merchant-Plan ohne Materialziel erhält sicheres EXP-Farmziel',{goal:g,job:plan.job&&plan.job.recipe&&plan.job.recipe.output||null,hasFarmOrder:!!plan.farmOrder},'warning');}return plan;
+  };
+  S.noMerchantFarmGoalSince21437=Number(S.noMerchantFarmGoalSince21437)||0;
+  var v21437GroupGoalBase=v273GroupGoal;
+  v273GroupGoal=function(){
+    var g=v21437GroupGoalBase();if(v21437FarmGoalAllowed(g)){S.noMerchantFarmGoalSince21437=0;return g;}if(character.ctype==='merchant')return g;var now=clock();if(!S.noMerchantFarmGoalSince21437)S.noMerchantFarmGoalSince21437=now;if(now-S.noMerchantFarmGoalSince21437<8000)return null;g=v21437SafeFarmFallback();if(v21437FarmGoalAllowed(g)){if(now-Number(S.farmerGoalWatchdogAudit21437||0)>30000){S.farmerGoalWatchdogAudit21437=now;audit('farmer_farm_goal_watchdog','Merchant-Farmziel fehlte zu lange; sicherer lokaler Fallback aktiv',{waitMs:now-S.noMerchantFarmGoalSince21437,goal:g},'warning');}return g;}return null;
+  };
+
+  // In this Adventure Land browser both readable cross-origin POST and readable CORS ACK can fail,
+  // even when a write-only transport was successfully queued. Keep verification when it is readable,
+  // but do not label a queued Beacon/no-cors/form write as a hard dashboard failure. The fallback body
+  // is deliberately tiny so it remains useful under Beacon queue limits and constrained clients.
+  function v21437LeanDashboardPayload(p){p=p||{};var mp=p.merchantPlan||null;return {type:p.type||'aio-bot-status',version:Number(p.version)||11,botVersion:VERSION,language:p.language||C.language||'en',name:p.name||me,ctype:p.ctype||character.ctype,role:p.role||roleForName(me),level:Number(p.level)||Number(character.level)||0,hp:Number(p.hp)||0,maxHp:Number(p.maxHp)||0,hpPct:Number(p.hpPct)||0,mp:Number(p.mp)||0,maxMp:Number(p.maxMp)||0,mpPct:Number(p.mpPct)||0,xp:Number(p.xp)||0,xpPct:Number(p.xpPct)||0,xpPerHour:Number(p.xpPerHour)||0,goldPerHour:Number(p.goldPerHour)||0,levelEtaSeconds:p.levelEtaSeconds==null?null:Number(p.levelEtaSeconds),task:safeString(p.task,300),taskCode:safeString(p.taskCode,80),mode:safeString(p.mode,100),active:!!p.active,rip:!!p.rip,map:String(p.map||character.map||''),x:Number(p.x)||0,y:Number(p.y)||0,server:p.server||currentRealm(),party:p.party||null,merchantPlan:mp?{farmOrder:mp.farmOrder||null,farmGoal:mp.farmGoal||null,steps:(mp.steps||[]).slice(0,3)}:null,farmHealth:p.farmHealth||null,alerts:(p.alerts||[]).slice(0,4),updatedAt:Number(p.updatedAt)||clock()};}
+  function v21437DashboardFallbackSubmit(endpoint,payload,key){
+    var lean=v21437LeanDashboardPayload(payload),body=JSON.stringify({writeKey:key,status:lean}),f=typeof P.fetch==='function'?P.fetch.bind(P):((typeof fetch==='function')?fetch:null),beacon=false,form=false,noCors=false;
+    try{var nav=(P&&P.navigator)||((typeof navigator!=='undefined')?navigator:null),BlobCtor=P.Blob||((typeof Blob!=='undefined')?Blob:null);if(nav&&typeof nav.sendBeacon==='function'&&BlobCtor)beacon=!!nav.sendBeacon(endpoint,new BlobCtor([body],{type:'text/plain;charset=UTF-8'}));}catch(e){}
+    try{form=v21436BlindFormPost(endpoint,lean,key);}catch(e){}
+    var write=Promise.resolve();if(f)write=Promise.resolve(f(endpoint,{method:'POST',mode:'no-cors',credentials:'omit',cache:'no-store',keepalive:true,headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body})).then(function(){noCors=true;},function(){});
+    return write.then(function(){return new Promise(function(r){P.setTimeout(r,220);});}).then(function(){return v21436DashboardAckFetch(endpoint,lean,1800).then(function(r){r.leanBytes=body.length;r.submitted=true;return r;},function(e){if(beacon||form||noCors)return {verified:false,submitted:true,transport:'cloudflare-worker/lean-write-unverified',ack:null,leanBytes:body.length,writeTransports:{beacon:beacon,form:form,noCors:noCors},verificationError:reason(e)};throw e;});});
+  }
+  dashboardPublishTick=function(force){
+    if((!C.webDashboardEnabled&&!force)||S.dashboardSending)return false;var raw=String(C.webDashboardConnectionUrl||'').trim(),endpoint=v280DashboardEndpoint(raw),key=String(C.webDashboardWriteKey||'').trim(),now=clock(),ds=S.dashboardTransport21432||(S.dashboardTransport21432={failures:0,retryAt:0,lastFallbackAuditAt:0});
+    if(!endpoint||!key){if(C.webDashboardEnabled||force){S.dashboardLastError=!endpoint?'Cloudflare-Dashboard-URL fehlt/ist nicht HTTPS':'Dashboard-Schreibschlüssel fehlt';S.dashboardFailAt=now;}return false;}if(!force&&now<Number(ds.retryAt||0))return false;if(!force&&now-S.lastDashboardPublish<C.webDashboardIntervalSeconds*1000)return false;
+    S.lastDashboardPublish=now;var payload=dashboardPayload(),body=JSON.stringify({writeKey:key,status:payload});S.dashboardSending=true;S.dashboardTransportErrors=[];audit('dashboard_send','Cloudflare Worker dashboard status send',{endpoint:endpoint,payload:v276DashboardCompactPayload(payload),wireBytes:body.length,terrainBytes:Number(payload&&payload.terrain&&payload.terrain.bytes)||0});
+    v21434DashboardCorsPost(endpoint,body).catch(function(first){S.dashboardTransportErrors.push(reason(first));audit('dashboard_write_fallback','CORS-POST nicht lesbar; kleiner Write-only-Fallback wird parallel eingereicht',{error:reason(first),fullBytes:body.length},'warning');return v21437DashboardFallbackSubmit(endpoint,payload,key);}).then(function(result){
+      ds.failures=0;ds.retryAt=0;S.dashboardTransport=result.transport;S.dashboardLastOK=clock();S.dashboardFailAt=0;S.dashboardLastError='';S.dashboardProbe={ok:true,verified:result.verified!==false,at:clock(),error:'',host:(new URL(endpoint)).host};
+      if(result.verified!==false){S.dashboardLastAck=clock();audit('dashboard_ack','Cloudflare Worker/D1 hat Status bestätigt',{name:me,receivedAt:result.ack&&result.ack.receivedAt,transport:result.transport,leanBytes:result.leanBytes||null});}
+      else{S.dashboardLastSubmit=clock();audit('dashboard_submit_unverified','Dashboard-Status wurde eingereicht; Browser kann die Cross-Origin-Bestätigung nicht lesen',{name:me,transport:result.transport,leanBytes:result.leanBytes,writeTransports:result.writeTransports,verificationError:result.verificationError},'warning');}
+    }).catch(function(e){ds.failures=Math.min(8,Number(ds.failures||0)+1);ds.retryAt=clock()+(typeof v21432DashboardBackoffMs==='function'?v21432DashboardBackoffMs(ds.failures-1):Math.min(300000,5000*Math.pow(2,ds.failures-1)));S.dashboardProbe={ok:false,verified:false,at:clock(),error:reason(e)};S.dashboardFailAt=clock();S.dashboardLastError=reason(e);audit('dashboard_error','Cloudflare-Dashboard-Übertragung fehlgeschlagen: '+S.dashboardLastError,{endpoint:endpoint,retryAt:ds.retryAt,failures:ds.failures,transportErrors:S.dashboardTransportErrors.slice(-3)},'error');}).finally(function(){S.dashboardSending=false;renderAll(true);});return true;
+  };
+
+  audit('feature_contract','2.14.37 Dashboard Write-only-Fallback + Bank-Kapazitäts-Preflight + Farmziel-Liveness aktiv',{dashboardLeanFallback:true,dashboardUnverifiedState:true,bankRetrieveReservePreflight:true,bankRetrieveCapacityRelief:true,merchantFarmGoalFallback:true,farmerFarmGoalWatchdogMs:8000,brainPolicyChanged:false,brainModel:C.brainModel,brainMinConfidencePct:C.brainMinConfidencePct,features:FEATURE_CONTRACT});
 
 })();
