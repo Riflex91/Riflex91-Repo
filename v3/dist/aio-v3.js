@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.1 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.2 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -74,12 +74,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { FarmerController } = require('./farmer/farmer-fsm');
+const { KitingFarmerController } = require('./farmer/kiting-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.1';
+const VERSION = '3.0.0-alpha.8.2';
 
 class Runtime {
   constructor(options = {}) {
@@ -90,7 +90,21 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy, useHpRatio: options.farmerUseHpRatio || 0.75 });
+    this.farmer = options.farmer || new KitingFarmerController({
+      now: this.now,
+      log: this.log,
+      planner: this.planner,
+      enabled: options.farmerEnabled !== false,
+      targetPolicy: options.farmerTargetPolicy || options.targetPolicy,
+      useHpRatio: options.farmerUseHpRatio || 0.75,
+      kitingEnabled: options.farmerKitingEnabled !== false,
+      kitingMinRange: options.farmerKitingMinRange,
+      kitingTooCloseFactor: options.farmerKitingTooCloseFactor,
+      kitingDesiredFactor: options.farmerKitingDesiredFactor,
+      kitingMaxStepFactor: options.farmerKitingMaxStepFactor,
+      kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
+      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs
+    });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
     this.safetySkipLoggedAt = new Map();
@@ -2002,6 +2016,93 @@ class FarmPlanner {
 module.exports = { FarmPlanner };
 
 },
+"src/farmer/kiting-farmer.js": function(require,module,exports){
+'use strict';
+
+const { FarmerController } = require('./farmer-fsm');
+const { BasicKitingPolicy } = require('./basic-kiting');
+
+class KitingFarmerController extends FarmerController {
+  constructor(options = {}) {
+    super(options);
+    this.kiting = options.kiting || new BasicKitingPolicy({
+      enabled: options.kitingEnabled !== false,
+      minRange: options.kitingMinRange,
+      tooCloseFactor: options.kitingTooCloseFactor,
+      desiredFactor: options.kitingDesiredFactor,
+      maxStepFactor: options.kitingMaxStepFactor,
+      speedStepSeconds: options.kitingSpeedStepSeconds
+    });
+    this.kiteMoveCooldownMs = Math.max(250, Number(options.kitingMoveCooldownMs) || 650);
+    this.lastKiteAt = -Infinity;
+    this.lastKiteMove = null;
+  }
+
+  _engage(context, target) {
+    const snapshot = context && context.snapshot;
+    if (snapshot && snapshot.character && target && !target.dead && !(target.hp != null && target.hp <= 0)) {
+      const recovery = this._needsRecovery(snapshot);
+      const targetAllowed = this._targetAllowed(target, snapshot, context.party);
+      if (!snapshot.character.rip && !recovery.hpUnsafe && targetAllowed) {
+        const decision = this.kiting.evaluate(snapshot.character, target);
+        if (decision.shouldMove) {
+          const now = this.now();
+          if (now - this.lastKiteAt >= this.kiteMoveCooldownMs) {
+            const result = context.adapter.command('move', [decision.x, decision.y]);
+            if (result.executed || result.shadow) {
+              this.lastKiteAt = now;
+              this.lastActionAt = now;
+              this.lastKiteMove = {
+                at: now,
+                targetId: target.id || null,
+                targetType: target.mtype || null,
+                reason: decision.reason,
+                fromDistance: decision.distance,
+                desiredDistance: decision.desiredDistance,
+                step: decision.step,
+                x: Number(decision.x.toFixed(2)),
+                y: Number(decision.y.toFixed(2))
+              };
+              this._event('FARMER_KITE_MOVE_REQUESTED', 'info', decision.reason, {
+                distance: decision.distance,
+                range: decision.range,
+                tooCloseDistance: decision.tooCloseDistance,
+                desiredDistance: decision.desiredDistance,
+                step: decision.step,
+                x: Math.round(decision.x),
+                y: Math.round(decision.y)
+              });
+              return;
+            }
+
+            this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
+              distance: decision.distance,
+              x: Math.round(decision.x),
+              y: Math.round(decision.y)
+            });
+          }
+        }
+      }
+    }
+
+    return super._engage(context, target);
+  }
+
+  status() {
+    return {
+      ...super.status(),
+      kiting: {
+        ...this.kiting.status(),
+        moveCooldownMs: this.kiteMoveCooldownMs,
+        lastMove: this.lastKiteMove
+      }
+    };
+  }
+}
+
+module.exports = { KitingFarmerController };
+
+},
 "src/farmer/farmer-fsm.js": function(require,module,exports){
 'use strict';
 
@@ -2529,6 +2630,105 @@ class FarmerController {
 }
 
 module.exports = { FarmerController, FarmerState, TargetPolicy, normalizeTargetPolicy, ratio, distance, hasPotion };
+
+},
+"src/farmer/basic-kiting.js": function(require,module,exports){
+'use strict';
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value)));
+}
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+class BasicKitingPolicy {
+  constructor(options = {}) {
+    this.enabled = options.enabled !== false;
+    this.minRange = Math.max(40, Number(options.minRange) || 80);
+    this.tooCloseFactor = clamp(options.tooCloseFactor == null ? 0.45 : options.tooCloseFactor, 0.2, 0.75);
+    this.desiredFactor = clamp(options.desiredFactor == null ? 0.72 : options.desiredFactor, this.tooCloseFactor + 0.05, 0.9);
+    this.maxStepFactor = clamp(options.maxStepFactor == null ? 0.4 : options.maxStepFactor, 0.15, 0.6);
+    this.speedStepSeconds = clamp(options.speedStepSeconds == null ? 1.25 : options.speedStepSeconds, 0.5, 2);
+  }
+
+  evaluate(character, target) {
+    if (!this.enabled) return { shouldMove: false, reason: 'KITING_DISABLED' };
+    if (!character || !target) return { shouldMove: false, reason: 'KITING_NOT_APPLICABLE' };
+
+    const range = finite(character.range);
+    if (range == null || range < this.minRange) {
+      return { shouldMove: false, reason: 'RANGE_CAPABILITY_TOO_LOW', range };
+    }
+
+    if (target.target && target.target !== character.name) {
+      return { shouldMove: false, reason: 'TARGET_FOCUSED_ELSEWHERE', range, targetOwner: target.target };
+    }
+
+    const cx = finite(character.x);
+    const cy = finite(character.y);
+    const tx = finite(target.x);
+    const ty = finite(target.y);
+    if (cx == null || cy == null || tx == null || ty == null) {
+      return { shouldMove: false, reason: 'POSITION_UNKNOWN', range };
+    }
+
+    const dx = cx - tx;
+    const dy = cy - ty;
+    const distance = Math.hypot(dx, dy);
+    const tooCloseDistance = range * this.tooCloseFactor;
+    const desiredDistance = range * this.desiredFactor;
+
+    if (distance >= tooCloseDistance) {
+      return {
+        shouldMove: false,
+        reason: 'DISTANCE_OK',
+        distance: Number(distance.toFixed(2)),
+        range,
+        tooCloseDistance: Number(tooCloseDistance.toFixed(2)),
+        desiredDistance: Number(desiredDistance.toFixed(2))
+      };
+    }
+
+    if (distance < 0.001) {
+      return { shouldMove: false, reason: 'POSITION_OVERLAP', distance: 0, range };
+    }
+
+    const speed = Math.max(1, finite(character.speed) || 40);
+    const maxStep = Math.max(20, Math.min(range * this.maxStepFactor, speed * this.speedStepSeconds));
+    const step = Math.max(0, Math.min(desiredDistance - distance, maxStep));
+    if (step < 1) return { shouldMove: false, reason: 'KITE_STEP_TOO_SMALL', distance, range };
+
+    const ux = dx / distance;
+    const uy = dy / distance;
+    return {
+      shouldMove: true,
+      reason: 'TARGET_TOO_CLOSE',
+      x: cx + ux * step,
+      y: cy + uy * step,
+      distance: Number(distance.toFixed(2)),
+      range,
+      tooCloseDistance: Number(tooCloseDistance.toFixed(2)),
+      desiredDistance: Number(desiredDistance.toFixed(2)),
+      step: Number(step.toFixed(2))
+    };
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      minRange: this.minRange,
+      tooCloseFactor: this.tooCloseFactor,
+      desiredFactor: this.desiredFactor,
+      maxStepFactor: this.maxStepFactor,
+      speedStepSeconds: this.speedStepSeconds
+    };
+  }
+}
+
+module.exports = { BasicKitingPolicy };
 
 },
 "src/farmer/target-safety.js": function(require,module,exports){
