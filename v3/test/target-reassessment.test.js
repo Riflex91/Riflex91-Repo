@@ -51,15 +51,54 @@ function context(snap, commands = []) {
   };
 }
 
-test('TargetReassessmentPolicy keeps the current target when it already attacks self', () => {
+test('TargetReassessmentPolicy keeps a self-aggro current target when the alternative is not materially closer', () => {
+  const policy = new TargetReassessmentPolicy();
+  const current = monster('current', { x: 80, target: 'R1' });
+  const closer = monster('closer', { x: 60, target: 'R1' });
+  const result = policy.evaluate(snapshot([current, closer]), current);
+
+  assert.equal(result.switchTarget, false);
+  assert.equal(result.reason, 'CURRENT_SELF_AGGRO_STABLE');
+  assert.equal(result.attackerCount, 2);
+  assert.equal(result.currentDistance, 80);
+  assert.equal(result.targetDistance, 60);
+  assert.equal(result.switchThresholdDistance, 56);
+});
+
+test('TargetReassessmentPolicy switches between self attackers only when the alternative is materially closer', () => {
   const policy = new TargetReassessmentPolicy();
   const current = monster('current', { x: 80, target: 'R1' });
   const closer = monster('closer', { x: 20, target: 'R1' });
   const result = policy.evaluate(snapshot([current, closer]), current);
 
-  assert.equal(result.switchTarget, false);
-  assert.equal(result.reason, 'CURRENT_TARGET_SELF_AGGRO');
+  assert.equal(result.switchTarget, true);
+  assert.equal(result.reason, 'CLOSER_SELF_AGGRO_PRIORITY');
+  assert.equal(result.target.id, 'closer');
   assert.equal(result.attackerCount, 2);
+  assert.equal(result.currentDistance, 80);
+  assert.equal(result.targetDistance, 20);
+  assert.equal(result.switchThresholdDistance, 56);
+});
+
+test('TargetReassessmentPolicy switches at the configured self-aggro distance boundary', () => {
+  const policy = new TargetReassessmentPolicy({ selfAggroSwitchFactor: 0.5 });
+  const current = monster('current', { x: 80, target: 'R1' });
+  const boundary = monster('boundary', { x: 40, target: 'R1' });
+  const result = policy.evaluate(snapshot([current, boundary]), current);
+
+  assert.equal(result.switchTarget, true);
+  assert.equal(result.target.id, 'boundary');
+  assert.equal(policy.status().selfAggroSwitchFactor, 0.5);
+});
+
+test('TargetReassessmentPolicy keeps the only self attacker as current target', () => {
+  const policy = new TargetReassessmentPolicy();
+  const current = monster('current', { x: 80, target: 'R1' });
+  const result = policy.evaluate(snapshot([current]), current);
+
+  assert.equal(result.switchTarget, false);
+  assert.equal(result.reason, 'CURRENT_TARGET_ONLY_SELF_AGGRO');
+  assert.equal(result.attackerCount, 1);
 });
 
 test('TargetReassessmentPolicy switches from a non-self-focused target to the nearest self attacker', () => {
@@ -111,6 +150,32 @@ test('SkillFarmerController attacks the reassessed self-aggressor in the same en
   assert.deepEqual(commands.at(-1).args, ['attacker']);
   assert.equal(farmer.status().targetReassessment.lastSwitch.fromTargetId, 'current');
   assert.equal(farmer.status().targetReassessment.lastSwitch.toTargetId, 'attacker');
+});
+
+test('SkillFarmerController can switch from one self attacker to a much closer self attacker', () => {
+  const commands = [];
+  const current = monster('current', { x: 90, target: 'R1' });
+  const closer = monster('closer', { x: 30, target: 'R1' });
+  const snap = snapshot([current, closer]);
+  const farmer = new SkillFarmerController({
+    now: () => 10000,
+    kitingEnabled: false,
+    skillUsageEnabled: false,
+    targetReassessmentMinIntervalMs: 250,
+    targetReassessmentSwitchCooldownMs: 1000,
+    attackIntervalMs: 250
+  });
+  farmer.state = FarmerState.ENGAGE;
+  farmer.targetId = 'current';
+  farmer.targetType = 'goo';
+
+  farmer._engage(context(snap, commands), current);
+
+  assert.equal(farmer.targetId, 'closer');
+  assert.equal(farmer.status().targetReassessment.lastSwitch.reason, 'CLOSER_SELF_AGGRO_PRIORITY');
+  assert.equal(farmer.status().targetReassessment.lastSwitch.currentDistance, 90);
+  assert.equal(farmer.status().targetReassessment.lastSwitch.distance, 30);
+  assert.equal(farmer.status().targetReassessment.lastSwitch.switchThresholdDistance, 63);
 });
 
 test('SkillFarmerController switch cooldown blocks a second immediate reassessment switch', () => {
