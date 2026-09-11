@@ -8,6 +8,7 @@ permissions:
   contents: write
 jobs:
   patch-and-verify:
+    if: github.event_name == 'push' || github.head_ref == 'release/2.14.31-farmer-self-service-merchant-policy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
