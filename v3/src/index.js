@@ -10,6 +10,7 @@ const { DiscoveryService } = require('./world/discovery');
 const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
+const { FarmerController, FarmerState } = require('./farmer/farmer-fsm');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
 function install(root = globalThis, options = {}) {
@@ -30,6 +31,11 @@ function install(root = globalThis, options = {}) {
     scheduler: runtime.scheduler,
     performance: runtime.performance,
     research: runtime.research,
+    farmer: {
+      enable: () => runtime.setFarmerEnabled(true),
+      disable: () => runtime.setFarmerEnabled(false),
+      status: () => runtime.farmer.status()
+    },
     createTask,
     TaskState
   };
@@ -42,5 +48,5 @@ module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, partyProfile, capabilitiesFor
+  FarmPlanner, FarmerController, FarmerState, partyProfile, capabilitiesFor
 };

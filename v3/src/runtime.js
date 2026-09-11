@@ -10,8 +10,9 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
+const { FarmerController } = require('./farmer/farmer-fsm');
 
-const VERSION = '3.0.0-alpha.2';
+const VERSION = '3.0.0-alpha.3';
 
 class Runtime {
   constructor(options = {}) {
@@ -22,6 +23,7 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
+    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false });
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -38,7 +40,18 @@ class Runtime {
     this.readyAnnounced = false;
   }
 
-  setMode(mode) { return this.adapter.setMode(mode); }
+  setMode(mode) {
+    const resolved = this.adapter.setMode(mode);
+    const note = resolved === 'active' ? 'farmer commands can execute' : 'farmer preview only';
+    this._announce(`[AIO v3 ${VERSION}] MODE | ${resolved} | ${note}`, 'VISIBLE_MODE_CHANGED');
+    return resolved;
+  }
+
+  setFarmerEnabled(enabled) {
+    const resolved = this.farmer.setEnabled(enabled);
+    this._announce(`[AIO v3 ${VERSION}] FARMER | ${resolved ? 'enabled' : 'disabled'} | mode=${this.adapter.mode}`, resolved ? 'VISIBLE_FARMER_ENABLED' : 'VISIBLE_FARMER_DISABLED');
+    return resolved;
+  }
 
   _gameLog(message) {
     if (!this.visibleStatusEnabled) return false;
@@ -76,7 +89,9 @@ class Runtime {
     const active = status.scheduler && status.scheduler.active ? status.scheduler.active.length : 0;
     const entities = status.world && Number.isFinite(Number(status.world.entities)) ? Number(status.world.entities) : 0;
     const modeNote = status.mode === 'shadow' ? 'observing only' : 'active commands enabled';
-    const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | world=${entities} | tasks=${active}/${queued}`;
+    const farmer = status.farmer || {};
+    const farmerText = `farmer=${farmer.enabled ? farmer.state : 'disabled'}${farmer.targetType ? ':' + farmer.targetType : ''}`;
+    const message = `[AIO v3 ${VERSION}] STATUS | running=${status.running} | mode=${status.mode} (${modeNote}) | ${character} | ${farmerText} | world=${entities} | tasks=${active}/${queued}`;
     this._announce(message, 'VISIBLE_STATUS');
     return status;
   }
@@ -175,6 +190,7 @@ class Runtime {
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
     this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
+    this.farmer.ensureScheduled(this.scheduler, snapshot.character.name);
     this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
     this.persistence.maybeSave(this.world);
 
@@ -215,6 +231,7 @@ class Runtime {
       startedAt: this.startedAt,
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
+      farmer: this.farmer.status(),
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -229,6 +246,7 @@ class Runtime {
       runtime: this.status(),
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
+      farmer: this.farmer.status(),
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
