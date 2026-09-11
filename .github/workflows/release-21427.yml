@@ -42,6 +42,7 @@ jobs:
           const fs=require('fs'),path=require('path');
           for(const f of fs.readdirSync('scripts').filter(x=>/^smoke.*\.(?:js|mjs)$/.test(x))){
             const p=path.join('scripts',f);let s=fs.readFileSync(p,'utf8');
+            s=s.replace(/\.includes\("'"\+([A-Za-z_$][\w$]*)\+"'"\)/g,'.includes($1)');
             s=s.replace(/2\.14\.\d+/g,'2.14.27');
             s=s.replace("assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));","assert(dash.includes('Adventure Land G.geometry/G.tilesets')); // real terrain only");
             fs.writeFileSync(p,s);
