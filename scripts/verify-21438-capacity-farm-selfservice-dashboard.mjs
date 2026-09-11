@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+function ok(cond,msg){if(!cond)throw new Error(msg);}
+const bot=fs.readFileSync('bot.js','utf8');
+const worker=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8');
+const dash=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8');
+const version=JSON.parse(fs.readFileSync('version.json','utf8'));
+const pkg=JSON.parse(fs.readFileSync('cloudflare-dashboard/package.json','utf8'));
+ok(version.version==='2.14.38'&&version.dashboardVersion==='2.14.38','version.json not 2.14.38');
+ok(pkg.version==='2.14.38','dashboard package not 2.14.38');
+ok(bot.includes("var VERSION = '2.14.38';"),'bot VERSION missing');
+for(const f of ['merchant-capacity-targeted-bank-slot','farm-fallback-rate-score','farmer-unavailable-merchant-self-service','dashboard-simple-write-heartbeat'])ok(bot.includes("'"+f+"'"),'missing feature '+f);
+ok(bot.includes('function v21438MerchantTargetedBankReliefTick()'),'targeted Merchant capacity relief missing');
+ok(bot.includes("v21431BankStore(row,'merchant-capacity-21438')"),'Merchant capacity path does not reuse explicit bank target store');
+ok(bot.includes('function v21438BestRateFarmGoal()'),'rate-ranked farm fallback missing');
+ok(bot.includes('xpN*.68+goldN*.32'),'fallback does not combine EXP/h and Gold/h');
+ok(bot.includes("audit('farm_fallback_rate_selected'"),'rate selection audit missing');
+ok(bot.includes('merchantStalled'),'Merchant-not-coming detection missing');
+ok(bot.includes("audit('farmer_self_service_merchant_unavailable'"),'farmer autonomous service audit missing');
+ok(bot.includes('order:V21432_SERVICE_ORDER'),'farmer service order not preserved');
+ok(bot.includes("u.pathname='/api/push-simple'"),'simple dashboard endpoint missing in bot');
+ok(worker.includes('async function handlePushSimple('),'simple dashboard write handler missing');
+ok(worker.includes('url.pathname==="/api/push-simple"'),'simple dashboard route missing');
+ok(worker.includes("p.connectionState=p.ageSeconds<=30?'live':p.ageSeconds<=120?'delayed':'offline'"),'server freshness state missing');
+ok(dash.includes("state==='delayed'||age>30"),'dashboard delayed presence state missing');
+ok(dash.includes("delayed?'VERZÖGERT':'LIVE'"),'dashboard delayed label missing');
+ok(worker.includes('version:"2.14.38",brain:'),'worker health version missing');
+ok(bot.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'brain model changed unexpectedly');
+ok(bot.includes('brainMinConfidencePct: 70'),'brain confidence changed unexpectedly');
+console.log('v2.14.38 capacity/farm/self-service/dashboard regression verifier OK');
