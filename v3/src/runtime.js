@@ -10,12 +10,12 @@ const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
-const { FarmerController } = require('./farmer/farmer-fsm');
+const { KitingFarmerController } = require('./farmer/kiting-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.1';
+const VERSION = '3.0.0-alpha.8.2';
 
 class Runtime {
   constructor(options = {}) {
@@ -26,7 +26,21 @@ class Runtime {
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
-    this.farmer = options.farmer || new FarmerController({ now: this.now, log: this.log, planner: this.planner, enabled: options.farmerEnabled !== false, targetPolicy: options.farmerTargetPolicy || options.targetPolicy, useHpRatio: options.farmerUseHpRatio || 0.75 });
+    this.farmer = options.farmer || new KitingFarmerController({
+      now: this.now,
+      log: this.log,
+      planner: this.planner,
+      enabled: options.farmerEnabled !== false,
+      targetPolicy: options.farmerTargetPolicy || options.targetPolicy,
+      useHpRatio: options.farmerUseHpRatio || 0.75,
+      kitingEnabled: options.farmerKitingEnabled !== false,
+      kitingMinRange: options.farmerKitingMinRange,
+      kitingTooCloseFactor: options.farmerKitingTooCloseFactor,
+      kitingDesiredFactor: options.farmerKitingDesiredFactor,
+      kitingMaxStepFactor: options.farmerKitingMaxStepFactor,
+      kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
+      kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs
+    });
     this.targetSafety = options.targetSafety || new TargetSafety({ exclusions: options.farmerTargetExclusions || [] });
     this.lastSafetySkip = null;
     this.safetySkipLoggedAt = new Map();
