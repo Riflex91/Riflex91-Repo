@@ -77,6 +77,50 @@ test('Runtime arms active emergency retreat with current target and self attacke
   assert.equal(runtime.takeEmergencyRetreat(), null);
 });
 
+test('Runtime only records the pending retreat and does not issue gameplay commands', () => {
+  let commandCalls = 0;
+  const runtime = new Runtime({
+    adapter: {
+      mode: 'active',
+      command: () => {
+        commandCalls += 1;
+        return { executed: true };
+      }
+    },
+    root: { parent: {}, character: null, G: {} }
+  });
+  const snap = {
+    character: character(),
+    entities: [{ id: 'current', mtype: 'tortoise', x: 30, y: 0, hp: 100, dead: false, target: 'R1' }]
+  };
+
+  runtime._armEmergencyRetreat(snap, snap.entities[0], {
+    reason: 'CRITICAL_HP',
+    signals: { hpRatio: 0.3 }
+  }, 2000);
+
+  assert.equal(commandCalls, 0);
+  assert.equal(runtime.pendingEmergencyRetreat.sourceTargetId, 'current');
+});
+
+test('Runtime does not arm Safe Retreat while shadowing', () => {
+  const runtime = new Runtime({
+    mode: 'shadow',
+    root: { parent: {}, character: null, G: {} }
+  });
+  const snap = {
+    character: character(),
+    entities: [{ id: 'current', mtype: 'tortoise', x: 30, y: 0, hp: 100, dead: false, target: 'R1' }]
+  };
+
+  runtime._armEmergencyRetreat(snap, snap.entities[0], {
+    reason: 'CRITICAL_HP',
+    signals: { hpRatio: 0.3 }
+  }, 2000);
+
+  assert.equal(runtime.takeEmergencyRetreat(), null);
+});
+
 function retreatContext({ commandResult = { executed: true }, commands = [] } = {}) {
   const pending = {
     at: 10000,
@@ -123,8 +167,9 @@ test('RetreatFarmer executes one safe retreat and transitions to recovery', () =
   farmer.state = FarmerState.ENGAGE;
   farmer.targetId = 'current';
   farmer.targetType = 'tortoise';
+  const context = retreatContext({ commands });
 
-  farmer._engage(retreatContext({ commands }), null);
+  farmer.step(context);
 
   const move = commands.find((entry) => entry.action === 'move');
   assert.ok(move);
@@ -133,6 +178,9 @@ test('RetreatFarmer executes one safe retreat and transitions to recovery', () =
   assert.equal(farmer.state, FarmerState.RECOVER);
   assert.equal(farmer.targetId, null);
   assert.equal(farmer.status().safeRetreat.lastMove.emergencyReason, 'MULTI_AGGRO_LOW_HP');
+
+  farmer.step(context);
+  assert.equal(commands.filter((entry) => entry.action === 'move').length, 1);
 });
 
 test('RetreatFarmer does not block when safe retreat movement fails', () => {
@@ -146,7 +194,7 @@ test('RetreatFarmer does not block when safe retreat movement fails', () => {
   farmer.targetId = 'current';
   farmer.targetType = 'tortoise';
 
-  farmer._engage(retreatContext({ commandResult: { executed: false, reason: 'COMMAND_FAILED' }, commands }), null);
+  farmer.step(retreatContext({ commandResult: { executed: false, reason: 'COMMAND_FAILED' }, commands }));
 
   assert.equal(farmer.state, FarmerState.RECOVER);
   assert.notEqual(farmer.state, FarmerState.BLOCKED);
