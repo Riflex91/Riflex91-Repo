@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.20 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.21 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.20';
+  var VERSION = '2.14.21';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -1793,7 +1793,7 @@
   function v277BroadcastUpdate(version){try{if(typeof send_cm!=='function')return;C.roster.filter(function(n){return n!==me;}).forEach(function(n){try{send_cm(n,{type:'aio27-update-now',version:version,from:me,at:clock()});}catch(e){}});}catch(e){}}
   function updateCheckTick(force){
     if(S.update.checking||S.update.applying)return false;if(!force&&clock()-S.update.checkedAt<60000)return false;S.update.checking=true;S.update.checkedAt=clock();S.update.error='';var repo=defaults.updateRepositoryUrl;
-    checkRepo(repo).then(function(r){S.update.checking=false;S.update.latest=r.version;S.update.repo=r.repo;S.update.raw=r.raw;S.update.available=newer(r.version,VERSION);S.update.error='';audit('update_check',S.update.available?'Neue Bot-Version erkannt: '+r.version:'Bot is current',Object.assign({},r,{activeSlot:activeCodeSlot(),automatic:true}),S.update.available?'warning':'info');renderAll(true);if(S.update.available){v277BroadcastUpdate(r.version);P.setTimeout(function(){selfUpdate(true);},150+Math.floor(Math.random()*650));}}).catch(function(e){S.update.checking=false;S.update.error=reason(e);audit('update_error','Update check failed: '+S.update.error,{repo:repo,automatic:true},'warning');renderAll(true);});return true;
+    checkRepo(repo).then(function(r){S.update.checking=false;S.update.latest=r.version;S.update.repo=r.repo;S.update.raw=r.raw;S.update.available=newer(r.version,VERSION);S.update.error='';var b=S.updateFailure21421||read('updateFailure21421',null),blocked=!!(S.update.available&&b&&String(b.fingerprint||'').indexOf(String(r.version)+'|')===0&&clock()<Number(b.until||0));if(blocked){S.updateFailure21421=b;if(clock()>Number(S.times.updateBackoffNotice21421||0)){S.times.updateBackoffNotice21421=clock()+300000;audit('update_backoff_active','Bekannter inkompatibler Update-Kandidat bleibt bis zum Backoff-Ende pausiert',{latest:r.version,retryAt:Number(b.until)||0,count:Number(b.count)||0},'warning');}}else{if(!S.update.available&&S.updateFailure21421){S.updateFailure21421=null;write('updateFailure21421',null);}audit('update_check',S.update.available?'Neue Bot-Version erkannt: '+r.version:'Bot is current',Object.assign({},r,{activeSlot:activeCodeSlot(),automatic:true}),S.update.available?'warning':'info');}renderAll(true);if(S.update.available&&!blocked){v277BroadcastUpdate(r.version);P.setTimeout(function(){selfUpdate(true);},150+Math.floor(Math.random()*650));}}).catch(function(e){S.update.checking=false;S.update.error=reason(e);audit('update_error','Update check failed: '+S.update.error,{repo:repo,automatic:true},'warning');renderAll(true);});return true;
   }
   function v277HotReload(code,version){
     write('lastAppliedUpdate:'+me,{from:VERSION,to:version,at:clock(),automatic:true});audit('update_reload','Vollautomatischer Hot-Reload startet',{from:VERSION,to:version,bytes:code.length});
@@ -1801,7 +1801,7 @@
   }
   function selfUpdate(auto){
     if(S.update.applying)return Promise.resolve(false);if(!S.update.available&&!newer(S.update.latest||'',VERSION))return Promise.resolve(false);S.update.applying=true;var attempt=(S.update.applyAttempt||0)+1;S.update.applyAttempt=attempt;audit('update_apply','Vollautomatisches Self-Update gestartet',{latest:S.update.latest,repo:S.update.repo,attempt:attempt,activeSlot:activeCodeSlot()});
-    return fetchLatestBotCode().then(function(code){var v=v275ValidateUpdateCode(code,S.update.latest),slotId=activeCodeSlot();if((slotId==null||String(slotId)==='')&&P.code_slot!=null)slotId=P.code_slot;if((slotId==null||String(slotId)==='')&&typeof get_edited_code_slot==='function')try{slotId=get_edited_code_slot();}catch(_e){}var slotNum=parseInt(String(slotId),10);if(typeof upload_code!=='function'||!isFinite(slotNum)||slotNum<1)throw Error('Aktiver CODE-Slot konnte nicht automatisch ermittelt werden');var slotName=String(P.code_name||P.code_slot_name||'AiO Bot');return Promise.resolve(upload_code(slotNum,slotName,code)).then(function(res){audit('update_saved','Neue Version dauerhaft in aktivem CODE-Slot gespeichert',{slot:slotNum,slotName:slotName,from:VERSION,to:v,result:res,automatic:true});S.update.applyAttempt=0;S.update.error='';v277HotReload(code,v);return true;});}).catch(function(e){S.update.applying=false;S.update.error=reason(e);audit('update_auto_error','Automatisches Update fehlgeschlagen; Retry folgt ohne Benutzereingriff: '+reason(e),{latest:S.update.latest,attempt:attempt,nextRetryMs:Math.min(45000,10000*Math.max(1,attempt))},'error');P.setTimeout(function(){S.update.checkedAt=0;if(S.update.available||newer(S.update.latest||'',VERSION))selfUpdate(true);else updateCheckTick(true);},Math.min(45000,10000*Math.max(1,attempt)));if(attempt>=6)S.update.applyAttempt=0;renderAll(true);return false;});
+    return fetchLatestBotCode().then(function(code){var v=v275ValidateUpdateCode(code,S.update.latest),slotId=activeCodeSlot();if((slotId==null||String(slotId)==='')&&P.code_slot!=null)slotId=P.code_slot;if((slotId==null||String(slotId)==='')&&typeof get_edited_code_slot==='function')try{slotId=get_edited_code_slot();}catch(_e){}var slotNum=parseInt(String(slotId),10);if(typeof upload_code!=='function'||!isFinite(slotNum)||slotNum<1)throw Error('Aktiver CODE-Slot konnte nicht automatisch ermittelt werden');var slotName=String(P.code_name||P.code_slot_name||'AiO Bot');return Promise.resolve(upload_code(slotNum,slotName,code)).then(function(res){audit('update_saved','Neue Version dauerhaft in aktivem CODE-Slot gespeichert',{slot:slotNum,slotName:slotName,from:VERSION,to:v,result:res,automatic:true});S.update.applyAttempt=0;S.update.error='';v277HotReload(code,v);return true;});}).catch(function(e){S.update.applying=false;S.update.error=reason(e);var now=clock(),fp=String(S.update.latest||'')+'|'+S.update.error,b=S.updateFailure21421||(S.updateFailure21421={fingerprint:'',count:0,until:0});if(b.fingerprint!==fp){b.fingerprint=fp;b.count=0;}b.count=Math.min(4,Number(b.count||0)+1);var waits=[300000,900000,3600000,21600000],wait=waits[b.count-1];b.until=now+wait;write('updateFailure21421',b);if(now>Number(S.times.updateFailureLog21421||0)){S.times.updateFailureLog21421=now+Math.min(wait,900000);audit('update_auto_error','Automatisches Update fehlgeschlagen; identischer Kandidat wird kontrolliert erneut geprüft: '+S.update.error,{latest:S.update.latest,attempt:attempt,fingerprint:fp,retryAt:b.until,nextRetryMs:wait},'error');}P.setTimeout(function(){var cur=S.updateFailure21421;if(!cur||cur.fingerprint!==fp||clock()<Number(cur.until||0))return;S.update.checkedAt=0;updateCheckTick(true);},wait+1000);renderAll(true);return false;});
   }
   var v277CMBase=on_cm;
   on_cm=function(name,data){try{v277CMBase(name,data);}catch(e){}if(!accountCharacterName(name)||!data)return;if(data.type==='aio27-update-now'&&newer(String(data.version||''),VERSION)){audit('update_signal','Peer meldet neue Version',{from:name,version:data.version});S.update.checkedAt=0;P.setTimeout(function(){updateCheckTick(true);},100+Math.floor(Math.random()*500));}if(character.ctype==='merchant'&&data.type==='aio27-supply-request'&&data.from===name){S.merchantServiceUrgent[name]={at:clock(),request:data.request||{}};audit('merchant_supply_signal','Farmer fordert Zulieferung an',{farmer:name,request:data.request});}};
@@ -2174,22 +2174,23 @@
   // ---------------------------------------------------------------------------
   var FEATURE_CONTRACT = [
     'character-info','inventory-window','party-manager','farm-mode','bestiary-items','skill-manager',
-    'merchant-director','merchant-stand','meters','web-dashboard','audit-logs','settings','headless',
-    'auto-update','config-preservation','fast-travel','task-reason','aio-brain','cloud-state-sync',
-    'farmer-auto-equip','merchant-explorer','inventory-pressure-guard','gui-window-toggle',
-    'self-training-brain','teacher-student-learning','experience-replay','prioritized-replay','brain-dashboard',
-    'champion-challenger','brain-auto-rollback','brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard','brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard',
-    'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety',
-    'brain-world-model','brain-safe-experiments','brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites',
-    'merchant-bank-cleanup-confirmation','brain-teaching-hints','dashboard-terrain-tiles','dashboard-learning-feed',
-    'merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback','cloud-unconfigured-idle',
-    'merchant-bank-progress-lease','merchant-bank-sync-diagnostics',
-    'config-stable-mirror','config-update-namespace-recovery','merchant-compound-flight-guard','merchant-bank-unlock-affordability','merchant-audit-memory-cap',
-    'config-newest-valid-source',
-    'merchant-economic-action-flight-guard',
-    'merchant-bank-retrieve-travel-lease',
-    'merchant-vendor-range-guard',
-    'merchant-exchange-route-flight-lock','merchant-loot-flight-gate','merchant-capacity-blocked-state','config-control-write-dedupe','merchant-phase-profiler'];
+    'merchant-director','merchant-stand','meters','web-dashboard','audit-logs','settings',
+    'headless','auto-update','config-preservation','fast-travel','task-reason','aio-brain',
+    'cloud-state-sync','farmer-auto-equip','merchant-explorer','inventory-pressure-guard','gui-window-toggle','self-training-brain',
+    'teacher-student-learning','experience-replay','prioritized-replay','brain-dashboard','champion-challenger','brain-auto-rollback',
+    'brain-life-visualization','brain-diary','brain-diary-cloud-sync','brain-diary-dashboard','brain-quality-monitor','brain-overconfidence-guard',
+    'brain-drift-quarantine','adaptive-learning-control','brain-research-bridge','research-prompt-profiles','research-secret-redaction','research-dashboard',
+    'merchant-bank-warehouse','merchant-active-discovery','merchant-gathering','merchant-discovery-safety','brain-world-model','brain-safe-experiments',
+    'brain-planner','brain-explainability','brain-module-permissions','dashboard-game-sprites','merchant-bank-cleanup-confirmation','brain-teaching-hints',
+    'dashboard-terrain-tiles','dashboard-learning-feed','merchant-performance-budget','merchant-performance-telemetry','dashboard-terrain-pass-through','dashboard-vector-map-fallback',
+    'cloud-unconfigured-idle','merchant-bank-progress-lease','merchant-bank-sync-diagnostics','config-stable-mirror','config-update-namespace-recovery','merchant-compound-flight-guard',
+    'merchant-bank-unlock-affordability','merchant-audit-memory-cap','config-newest-valid-source','merchant-economic-action-flight-guard','merchant-bank-retrieve-travel-lease','merchant-vendor-range-guard',
+    'merchant-exchange-route-flight-lock','merchant-loot-flight-gate','merchant-capacity-blocked-state','config-control-write-dedupe','merchant-phase-profiler','merchant-route-owner',
+    'merchant-capacity-hard-state','merchant-exchange-capacity-gate','merchant-progress-loop-breaker','merchant-bank-state-backoff','merchant-presale-economics','merchant-state-hash-cache',
+    'merchant-phase-residual-profile','teacher-availability-circuit-breaker','research-window-telemetry','research-window-integrity','teacher-error-classification','teacher-quota-circuit-breaker',
+    'merchant-diagnostic-completeness','learning-observability','update-contract-static-manifest','update-failure-backoff','teacher-quota-persistence','release-identity-telemetry',
+    'cloudflare-auto-deploy-ready'
+  ];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
   S.auditSeq = Number(read('auditSeq:' + me, 0)) || 0;
@@ -4199,5 +4200,18 @@
   tick=function(){v21420ResearchSample(false);if(character.ctype==='merchant')v21420MerchantTelemetry();return v21420TickBase();};
 
   audit('feature_contract','2.14.20 Research Window Integrity + Teacher Error Classification/Quota Breaker + Merchant/Learning Observability geprüft',{features:FEATURE_CONTRACT});
+
+
+  // ---------------------------------------------------------------------------
+  // 2.14.21 Mobile-first update reliability + persisted Teacher quota + release identity
+  // ---------------------------------------------------------------------------
+  var V21421_TEACHER_QUOTA_KEY='teacherQuotaUntil21421:'+me;
+  var v21421AuditBase=audit;
+  audit=function(kind,message,data,level){if(kind==='brain_error'&&v21420TeacherClass(data&&(data.errorClass||data.error)||message)==='quota_exhausted'){var until=clock()+Math.max(3600000,v210ResetMs());write(V21421_TEACHER_QUOTA_KEY,until);S.teacherQuotaUntil21421=until;}return v21421AuditBase(kind,message,data,level);};
+  var v21421TeacherBase=v290BrainTick;
+  v290BrainTick=function(trigger,force){var until=Math.max(Number(S.teacherQuotaUntil21421)||0,Number(read(V21421_TEACHER_QUOTA_KEY,0))||0);if(clock()<until){S.teacherQuotaUntil21421=until;S.teacherSuppressedReason21419='quota-exhausted';v21420LocalStudentTick();return false;}if(until){S.teacherQuotaUntil21421=0;write(V21421_TEACHER_QUOTA_KEY,0);}return v21421TeacherBase(trigger,force);};
+  var v21421DashboardBase=dashboardPayload;dashboardPayload=function(){var d=v21421DashboardBase();d.botRelease={version:VERSION,build:BUILD,protocol:REPORT_PROTOCOL};return d;};
+  var v21421ResearchBase=v214ResearchData;v214ResearchData=function(profile,hours,anonymize){var d=v21421ResearchBase(profile,hours,anonymize);d.botRelease={version:VERSION,build:BUILD,protocol:REPORT_PROTOCOL};return d;};
+  audit('feature_contract','2.14.21 Mobile Update Backoff + statischer Feature-Contract + persistente Teacher-Quota + Release-Identität geprüft',{features:FEATURE_CONTRACT});
 
 })();

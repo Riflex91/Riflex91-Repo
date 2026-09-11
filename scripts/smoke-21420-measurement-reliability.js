@@ -23,6 +23,6 @@ if(v.version==='2.14.21'){
   const m=bot.match(/var FEATURE_CONTRACT\s*=\s*(\[[\s\S]*?\]);/);ok(m,'static contract missing');
   const stat=Function('return '+m[1])();
   const required=['merchant-route-owner','merchant-capacity-hard-state','merchant-exchange-capacity-gate','merchant-progress-loop-breaker','merchant-bank-state-backoff','merchant-presale-economics','merchant-state-hash-cache','merchant-phase-residual-profile','teacher-availability-circuit-breaker','research-window-telemetry','research-window-integrity','teacher-error-classification','teacher-quota-circuit-breaker','merchant-diagnostic-completeness','learning-observability'];
-  required.forEach(x=>ok(stat.includes(x),'legacy 2.14.20 updater would reject missing static feature '+x));
+  required.forEach(x=>ok(stat.includes(x),'legacy 2.14.21 updater would reject missing static feature '+x));
 }
-console.log('2.14.20+ measurement/teacher reliability smoke OK');
+console.log('2.14.21+ measurement/teacher reliability smoke OK');
