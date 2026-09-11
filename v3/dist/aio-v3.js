@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.1 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -77,8 +77,9 @@ const { FarmPlanner } = require('./planner/farm-planner');
 const { FarmerController } = require('./farmer/farmer-fsm');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
+const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8';
+const VERSION = '3.0.0-alpha.8.1';
 
 class Runtime {
   constructor(options = {}) {
@@ -103,6 +104,12 @@ class Runtime {
     this.lastRiskSkip = null;
     this.riskSkipLoggedAt = new Map();
     this.riskSkipLogCooldownMs = Math.max(5000, Number(options.riskSkipLogCooldownMs) || 30000);
+    this.combatEmergency = options.combatEmergency || new CombatEmergencyGate({
+      criticalHpRatio: options.combatEmergencyCriticalHpRatio,
+      multiAggroHpRatio: options.combatEmergencyMultiAggroHpRatio,
+      multiAggroCount: options.combatEmergencyMultiAggroCount
+    });
+    this.lastEmergencyDisengage = null;
     this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
     this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
     this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
@@ -183,7 +190,8 @@ class Runtime {
       ...this.farmer.status(),
       targetExclusions: this.targetSafety.list(),
       lastSafetySkip: this.lastSafetySkip,
-      lastRiskSkip: this.lastRiskSkip
+      lastRiskSkip: this.lastRiskSkip,
+      lastEmergencyDisengage: this.lastEmergencyDisengage
     };
   }
 
@@ -288,6 +296,27 @@ class Runtime {
     this.log.emit({ component: 'farmer', event: 'FARMER_TARGET_RISK_REJECTED', character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null, reason: risk.reason, data: record });
   }
 
+  _noteEmergencyDisengage(entity, emergency) {
+    if (!entity || !emergency || !emergency.triggered) return;
+    const record = {
+      at: this.now(),
+      entityId: entity.id || null,
+      entityName: entity.name || null,
+      monsterType: entity.mtype || null,
+      reason: emergency.reason,
+      signals: emergency.signals || {}
+    };
+    this.lastEmergencyDisengage = record;
+    this.log.emit({
+      component: 'farmer',
+      event: 'FARMER_EMERGENCY_DISENGAGE',
+      severity: 'warn',
+      character: this.lastSnapshot && this.lastSnapshot.character && this.lastSnapshot.character.name || null,
+      reason: emergency.reason,
+      data: record
+    });
+  }
+
   _farmSnapshot(snapshot, gameData, profile) {
     if (!snapshot) return snapshot;
     const entities = [];
@@ -301,6 +330,14 @@ class Runtime {
       if (!risk.allowed) {
         this._noteRiskSkip(entity, risk);
         continue;
+      }
+      const isCurrentEngageTarget = this.farmer.state === 'ENGAGE' && this.farmer.targetId != null && String(entity.id) === String(this.farmer.targetId);
+      if (isCurrentEngageTarget) {
+        const emergency = this.combatEmergency.evaluate(snapshot, entity);
+        if (emergency.triggered) {
+          this._noteEmergencyDisengage(entity, emergency);
+          continue;
+        }
       }
       entities.push(entity);
     }
@@ -384,6 +421,7 @@ class Runtime {
           world: this.world.summary(),
           performance: this.performance.status().current,
           combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+          combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
           persistence: this.persistence.status()
         }
       });
@@ -401,6 +439,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
       world: this.world.summary(),
       performance: this.performance.status(),
       discovery: this.discovery.status(),
@@ -417,6 +456,7 @@ class Runtime {
       scheduler: this.scheduler.snapshot(),
       farmer: this.farmerStatus(),
       combatRisk: { ...this.combatRisk.status(), lastRiskSkip: this.lastRiskSkip },
+      combatEmergency: { ...this.combatEmergency.status(), lastEmergencyDisengage: this.lastEmergencyDisengage },
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
@@ -2676,6 +2716,73 @@ class CombatRiskGate {
 }
 
 module.exports = { CombatRiskGate };
+
+},
+"src/farmer/combat-emergency.js": function(require,module,exports){
+'use strict';
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function hpRatio(snapshot) {
+  const c = snapshot && snapshot.character;
+  if (!c) return 1;
+  const maxHp = Number(c.max_hp) || 0;
+  if (maxHp <= 0) return 1;
+  return clamp01((Number(c.hp) || 0) / maxHp);
+}
+
+class CombatEmergencyGate {
+  constructor(options = {}) {
+    this.criticalHpRatio = Math.max(0.1, Math.min(0.9, Number(options.criticalHpRatio) || 0.35));
+    this.multiAggroHpRatio = Math.max(this.criticalHpRatio, Math.min(0.95, Number(options.multiAggroHpRatio) || 0.55));
+    this.multiAggroCount = Math.max(2, Math.floor(Number(options.multiAggroCount) || 2));
+  }
+
+  _attackers(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c || !c.name) return [];
+    return (snapshot.entities || []).filter((entity) => {
+      if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
+      return entity.target === c.name;
+    });
+  }
+
+  evaluate(snapshot, target) {
+    if (!snapshot || !snapshot.character || !target || !target.mtype) {
+      return { triggered: false, reason: 'EMERGENCY_NOT_APPLICABLE', signals: {} };
+    }
+
+    const currentHpRatio = hpRatio(snapshot);
+    const attackers = this._attackers(snapshot);
+    const signals = {
+      hpRatio: Number(currentHpRatio.toFixed(3)),
+      attackers: attackers.length,
+      attackerIds: attackers.slice(0, 5).map((entity) => String(entity.id))
+    };
+
+    if (currentHpRatio <= this.criticalHpRatio) {
+      return { triggered: true, reason: 'CRITICAL_HP', signals };
+    }
+
+    if (currentHpRatio <= this.multiAggroHpRatio && attackers.length >= this.multiAggroCount) {
+      return { triggered: true, reason: 'MULTI_AGGRO_LOW_HP', signals };
+    }
+
+    return { triggered: false, reason: 'EMERGENCY_CLEAR', signals };
+  }
+
+  status() {
+    return {
+      criticalHpRatio: this.criticalHpRatio,
+      multiAggroHpRatio: this.multiAggroHpRatio,
+      multiAggroCount: this.multiAggroCount
+    };
+  }
+}
+
+module.exports = { CombatEmergencyGate };
 
 }
 };
