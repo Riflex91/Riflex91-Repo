@@ -9,6 +9,7 @@ class GameAdapter {
     this.root = options.root || globalThis;
     this.parent = options.parent || this.root.parent || this.root;
     this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
     this.mode = options.mode === 'active' ? 'active' : 'shadow';
     this.lastSnapshot = null;
   }
@@ -16,6 +17,34 @@ class GameAdapter {
   _character() { return this.root.character || this.parent.character || null; }
   _entities() { return this.root.parent && this.root.parent.entities || this.parent.entities || {}; }
   _G() { return this.root.G || this.parent.G || {}; }
+
+  _objects() {
+    const collections = [
+      this.root.chests,
+      this.root.parent && this.root.parent.chests,
+      this.parent.chests,
+      this.root.map_objects,
+      this.parent.map_objects
+    ];
+    const out = new Map();
+    for (const collection of collections) {
+      if (!collection || typeof collection !== 'object') continue;
+      for (const [rawId, object] of Object.entries(collection)) {
+        if (!object) continue;
+        const id = String(object.id || rawId);
+        if (out.has(id)) continue;
+        out.set(id, {
+          id,
+          name: object.name || object.type || object.skin || null,
+          type: object.type || object.skin || 'object',
+          map: object.map || (this._character() && this._character().map) || null,
+          x: finite(object.real_x != null ? object.real_x : object.x),
+          y: finite(object.real_y != null ? object.real_y : object.y)
+        });
+      }
+    }
+    return [...out.values()];
+  }
 
   setMode(mode) {
     if (mode !== 'shadow' && mode !== 'active') throw new Error('mode must be shadow or active');
@@ -37,7 +66,7 @@ class GameAdapter {
         type: entity.type || null,
         mtype: entity.mtype || null,
         player: entity.player || null,
-        npc: entity.npc || null,
+        npc: entity.npc || entity.type === 'npc' || null,
         map: entity.map || c.map || null,
         x: finite(entity.real_x != null ? entity.real_x : entity.x),
         y: finite(entity.real_y != null ? entity.real_y : entity.y),
@@ -49,7 +78,7 @@ class GameAdapter {
     }
     const inventory = (c.items || []).map((item, index) => item ? ({ index, name: item.name, level: Number(item.level) || 0, q: Number(item.q) || 1, locked: !!item.l, special: !!item.p }) : null);
     const snap = {
-      observedAt: Date.now(),
+      observedAt: this.now(),
       character: {
         name: c.name || 'unknown',
         ctype: c.ctype || 'unknown',
@@ -66,6 +95,7 @@ class GameAdapter {
         inventory
       },
       entities,
+      objects: this._objects(),
       party: this._partySnapshot(),
       game: { monstersKnown: Object.keys((this._G().monsters) || {}).length, mapsKnown: Object.keys((this._G().maps) || {}).length }
     };

@@ -28,7 +28,7 @@ class EventLog {
   constructor(options = {}) {
     this.capacity = Math.max(100, Number(options.capacity) || 4000);
     this.now = options.now || (() => Date.now());
-    this.version = options.version || '3.0.0-alpha.1';
+    this.version = options.version || 'v3';
     this.runId = options.runId || makeRunId(this.now());
     this.events = [];
     this.sequence = 0;
@@ -62,15 +62,42 @@ class EventLog {
     return this.events.slice(this.events.length - n).map((e) => cloneSafe(e));
   }
 
+  query(options = {}) {
+    if (typeof options === 'number') return this.list(options);
+    const filters = options && typeof options === 'object' ? options : {};
+    let rows = this.events;
+    for (const field of ['component', 'event', 'severity', 'character', 'taskId', 'reason']) {
+      if (filters[field] != null) rows = rows.filter((e) => e[field] === filters[field]);
+    }
+    if (filters.sinceSeq != null) rows = rows.filter((e) => e.seq > Number(filters.sinceSeq));
+    if (Array.isArray(filters.events) && filters.events.length) {
+      const accepted = new Set(filters.events);
+      rows = rows.filter((e) => accepted.has(e.event));
+    }
+    const limit = Math.max(0, Math.min(rows.length, Number(filters.limit == null ? 100 : filters.limit) || 0));
+    return rows.slice(rows.length - limit).map((e) => cloneSafe(e));
+  }
+
   summary() {
     const counts = {};
-    for (const e of this.events) counts[e.event] = (counts[e.event] || 0) + 1;
+    const severities = {};
+    const components = {};
+    const reasons = {};
+    for (const e of this.events) {
+      counts[e.event] = (counts[e.event] || 0) + 1;
+      severities[e.severity] = (severities[e.severity] || 0) + 1;
+      components[e.component] = (components[e.component] || 0) + 1;
+      if (e.reason) reasons[e.reason] = (reasons[e.reason] || 0) + 1;
+    }
     return {
       runId: this.runId,
       retained: this.events.length,
       firstSeq: this.events[0] ? this.events[0].seq : null,
       lastSeq: this.events[this.events.length - 1] ? this.events[this.events.length - 1].seq : null,
-      counts
+      counts,
+      severities,
+      components,
+      reasons
     };
   }
 
@@ -78,7 +105,7 @@ class EventLog {
     return JSON.stringify({
       manifest: {
         botVersion: this.version,
-        schemaVersion: 1,
+        schemaVersion: 2,
         runId: this.runId,
         exportedAt: new Date(this.now()).toISOString()
       },

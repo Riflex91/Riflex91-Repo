@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot v3.0.0-alpha.1 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.2 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -10,6 +10,10 @@ const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { TaskState, createTask } = require('./core/task');
 const { WorldModel, KnowledgeState, EvidenceKind } = require('./world/world-model');
+const { WorldPersistence } = require('./world/persistence');
+const { DiscoveryService } = require('./world/discovery');
+const { PerformanceTracker } = require('./telemetry/performance-tracker');
+const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
@@ -23,10 +27,13 @@ function install(root = globalThis, options = {}) {
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
     status: () => runtime.status(),
-    getEvents: (limit = 100) => runtime.log.list(limit),
+    getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics: () => runtime.exportDiagnostics(),
+    saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
     world: runtime.world,
     scheduler: runtime.scheduler,
+    performance: runtime.performance,
+    research: runtime.research,
     createTask,
     TaskState
   };
@@ -37,7 +44,9 @@ function install(root = globalThis, options = {}) {
 
 module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
-  WorldModel, KnowledgeState, EvidenceKind, FarmPlanner, partyProfile, capabilitiesFor
+  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
+  PerformanceTracker, ResearchJournal, ExperimentState,
+  FarmPlanner, partyProfile, capabilitiesFor
 };
 
 },
@@ -48,31 +57,49 @@ const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { GameAdapter } = require('./game/adapter');
 const { WorldModel, EvidenceKind } = require('./world/world-model');
+const { WorldPersistence } = require('./world/persistence');
+const { DiscoveryService } = require('./world/discovery');
+const { PerformanceTracker } = require('./telemetry/performance-tracker');
+const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 
-const VERSION = '3.0.0-alpha.1';
+const VERSION = '3.0.0-alpha.2';
 
 class Runtime {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
+    this.root = options.root || globalThis;
     this.log = options.log || new EventLog({ version: VERSION, now: this.now, capacity: options.logCapacity || 4000 });
-    this.adapter = options.adapter || new GameAdapter({ root: options.root || globalThis, parent: options.parent, log: this.log, mode: options.mode || 'shadow' });
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: options.parent, log: this.log, mode: options.mode || 'shadow', now: this.now });
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
+    this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
+    this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
+    this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
+    this.research = options.research || new ResearchJournal({ world: this.world, now: this.now, log: this.log });
     this.tickMs = Math.max(100, Number(options.tickMs) || 250);
     this.timer = null;
     this.lastHeartbeat = 0;
     this.lastPlannerAudit = -Infinity;
     this.lastSnapshot = null;
+    this.lastDiscovery = null;
     this.startedAt = null;
+    this.worldLoaded = false;
   }
 
   setMode(mode) { return this.adapter.setMode(mode); }
 
+  _restoreWorldOnce() {
+    if (this.worldLoaded) return;
+    this.worldLoaded = true;
+    this.persistence.load(this.world);
+  }
+
   start() {
     if (this.timer) return false;
+    this._restoreWorldOnce();
     this.startedAt = this.startedAt || this.now();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
     this.tick();
@@ -81,22 +108,22 @@ class Runtime {
   }
 
   stop() {
-    if (!this.timer) return false;
+    if (!this.timer) {
+      this.persistence.maybeSave(this.world, { force: true });
+      return false;
+    }
     clearInterval(this.timer);
     this.timer = null;
+    this.performance.flush({ world: this.world }, 'RUNTIME_STOPPED');
+    this.persistence.maybeSave(this.world, { force: true });
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STOPPED' });
     return true;
   }
 
-  _observe(snapshot) {
+  _observeCharacter(snapshot) {
     if (!snapshot) return;
     const c = snapshot.character;
     this.world.observeEntity('character', c.name, { ctype: c.ctype, level: c.level, map: c.map, rip: c.rip }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
-    for (const entity of snapshot.entities) {
-      const type = entity.mtype ? 'monster' : entity.npc ? 'npc' : entity.player ? 'player' : entity.type || 'entity';
-      const id = entity.mtype || entity.name || entity.id;
-      this.world.observeEntity(type, id, { map: entity.map, x: entity.x, y: entity.y, live: !entity.dead }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
-    }
   }
 
   _partyProfile(snapshot) {
@@ -140,6 +167,7 @@ class Runtime {
   }
 
   tick() {
+    this._restoreWorldOnce();
     const snapshot = this.adapter.snapshot();
     if (!snapshot) {
       if (this.now() - this.lastHeartbeat > 5000) {
@@ -149,9 +177,13 @@ class Runtime {
       return;
     }
     this.lastSnapshot = snapshot;
-    this._observe(snapshot);
+    this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
+    const gameData = this.adapter.getGameData() || {};
+    this.lastDiscovery = this.discovery.scan(snapshot, gameData);
+    this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
     this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
+    this.persistence.maybeSave(this.world);
 
     if (this.now() - this.lastPlannerAudit >= 15000) {
       this.lastPlannerAudit = this.now();
@@ -162,7 +194,22 @@ class Runtime {
 
     if (this.now() - this.lastHeartbeat >= 5000) {
       this.lastHeartbeat = this.now();
-      this.log.emit({ component: 'runtime', event: 'HEARTBEAT', character: snapshot.character.name, data: { mode: this.adapter.mode, map: snapshot.character.map, hp: snapshot.character.hp, mp: snapshot.character.mp, gold: snapshot.character.gold, scheduler: { queued: this.scheduler.queue.length, active: this.scheduler.activeByOwner.size }, world: this.world.summary() } });
+      this.log.emit({
+        component: 'runtime',
+        event: 'HEARTBEAT',
+        character: snapshot.character.name,
+        data: {
+          mode: this.adapter.mode,
+          map: snapshot.character.map,
+          hp: snapshot.character.hp,
+          mp: snapshot.character.mp,
+          gold: snapshot.character.gold,
+          scheduler: { queued: this.scheduler.queue.length, active: this.scheduler.activeByOwner.size },
+          world: this.world.summary(),
+          performance: this.performance.status().current,
+          persistence: this.persistence.status()
+        }
+      });
     }
   }
 
@@ -176,6 +223,10 @@ class Runtime {
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
       world: this.world.summary(),
+      performance: this.performance.status(),
+      discovery: this.discovery.status(),
+      research: this.research.summary(),
+      persistence: this.persistence.status(),
       eventSummary: this.log.summary()
     };
   }
@@ -185,7 +236,10 @@ class Runtime {
       runtime: this.status(),
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
-      world: this.world.summary()
+      world: this.world.diagnosticsSnapshot(200),
+      performance: this.performance.status(),
+      research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
+      discovery: this.lastDiscovery
     });
   }
 }
@@ -224,7 +278,7 @@ class EventLog {
   constructor(options = {}) {
     this.capacity = Math.max(100, Number(options.capacity) || 4000);
     this.now = options.now || (() => Date.now());
-    this.version = options.version || '3.0.0-alpha.1';
+    this.version = options.version || 'v3';
     this.runId = options.runId || makeRunId(this.now());
     this.events = [];
     this.sequence = 0;
@@ -258,15 +312,42 @@ class EventLog {
     return this.events.slice(this.events.length - n).map((e) => cloneSafe(e));
   }
 
+  query(options = {}) {
+    if (typeof options === 'number') return this.list(options);
+    const filters = options && typeof options === 'object' ? options : {};
+    let rows = this.events;
+    for (const field of ['component', 'event', 'severity', 'character', 'taskId', 'reason']) {
+      if (filters[field] != null) rows = rows.filter((e) => e[field] === filters[field]);
+    }
+    if (filters.sinceSeq != null) rows = rows.filter((e) => e.seq > Number(filters.sinceSeq));
+    if (Array.isArray(filters.events) && filters.events.length) {
+      const accepted = new Set(filters.events);
+      rows = rows.filter((e) => accepted.has(e.event));
+    }
+    const limit = Math.max(0, Math.min(rows.length, Number(filters.limit == null ? 100 : filters.limit) || 0));
+    return rows.slice(rows.length - limit).map((e) => cloneSafe(e));
+  }
+
   summary() {
     const counts = {};
-    for (const e of this.events) counts[e.event] = (counts[e.event] || 0) + 1;
+    const severities = {};
+    const components = {};
+    const reasons = {};
+    for (const e of this.events) {
+      counts[e.event] = (counts[e.event] || 0) + 1;
+      severities[e.severity] = (severities[e.severity] || 0) + 1;
+      components[e.component] = (components[e.component] || 0) + 1;
+      if (e.reason) reasons[e.reason] = (reasons[e.reason] || 0) + 1;
+    }
     return {
       runId: this.runId,
       retained: this.events.length,
       firstSeq: this.events[0] ? this.events[0].seq : null,
       lastSeq: this.events[this.events.length - 1] ? this.events[this.events.length - 1].seq : null,
-      counts
+      counts,
+      severities,
+      components,
+      reasons
     };
   }
 
@@ -274,7 +355,7 @@ class EventLog {
     return JSON.stringify({
       manifest: {
         botVersion: this.version,
-        schemaVersion: 1,
+        schemaVersion: 2,
         runId: this.runId,
         exportedAt: new Date(this.now()).toISOString()
       },
@@ -562,6 +643,7 @@ class GameAdapter {
     this.root = options.root || globalThis;
     this.parent = options.parent || this.root.parent || this.root;
     this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
     this.mode = options.mode === 'active' ? 'active' : 'shadow';
     this.lastSnapshot = null;
   }
@@ -569,6 +651,34 @@ class GameAdapter {
   _character() { return this.root.character || this.parent.character || null; }
   _entities() { return this.root.parent && this.root.parent.entities || this.parent.entities || {}; }
   _G() { return this.root.G || this.parent.G || {}; }
+
+  _objects() {
+    const collections = [
+      this.root.chests,
+      this.root.parent && this.root.parent.chests,
+      this.parent.chests,
+      this.root.map_objects,
+      this.parent.map_objects
+    ];
+    const out = new Map();
+    for (const collection of collections) {
+      if (!collection || typeof collection !== 'object') continue;
+      for (const [rawId, object] of Object.entries(collection)) {
+        if (!object) continue;
+        const id = String(object.id || rawId);
+        if (out.has(id)) continue;
+        out.set(id, {
+          id,
+          name: object.name || object.type || object.skin || null,
+          type: object.type || object.skin || 'object',
+          map: object.map || (this._character() && this._character().map) || null,
+          x: finite(object.real_x != null ? object.real_x : object.x),
+          y: finite(object.real_y != null ? object.real_y : object.y)
+        });
+      }
+    }
+    return [...out.values()];
+  }
 
   setMode(mode) {
     if (mode !== 'shadow' && mode !== 'active') throw new Error('mode must be shadow or active');
@@ -590,7 +700,7 @@ class GameAdapter {
         type: entity.type || null,
         mtype: entity.mtype || null,
         player: entity.player || null,
-        npc: entity.npc || null,
+        npc: entity.npc || entity.type === 'npc' || null,
         map: entity.map || c.map || null,
         x: finite(entity.real_x != null ? entity.real_x : entity.x),
         y: finite(entity.real_y != null ? entity.real_y : entity.y),
@@ -602,7 +712,7 @@ class GameAdapter {
     }
     const inventory = (c.items || []).map((item, index) => item ? ({ index, name: item.name, level: Number(item.level) || 0, q: Number(item.q) || 1, locked: !!item.l, special: !!item.p }) : null);
     const snap = {
-      observedAt: Date.now(),
+      observedAt: this.now(),
       character: {
         name: c.name || 'unknown',
         ctype: c.ctype || 'unknown',
@@ -619,6 +729,7 @@ class GameAdapter {
         inventory
       },
       entities,
+      objects: this._objects(),
       party: this._partySnapshot(),
       game: { monstersKnown: Object.keys((this._G().monsters) || {}).length, mapsKnown: Object.keys((this._G().maps) || {}).length }
     };
@@ -670,60 +781,168 @@ module.exports = { GameAdapter, ACTIVE_ALLOWED };
 
 const KnowledgeState = Object.freeze({ UNKNOWN: 'UNKNOWN', KNOWN_TRUE: 'KNOWN_TRUE', KNOWN_FALSE: 'KNOWN_FALSE' });
 const EvidenceKind = Object.freeze({ OBSERVED: 'OBSERVED', INFERRED: 'INFERRED', HYPOTHESIS: 'HYPOTHESIS' });
+const EVIDENCE_PRIORITY = Object.freeze([EvidenceKind.OBSERVED, EvidenceKind.INFERRED, EvidenceKind.HYPOTHESIS]);
 
 function key(type, id) { return `${type}:${id}`; }
 function perfKey(monster, fingerprint) { return `${monster}::${fingerprint || 'unknown-party'}`; }
+function knowledgeState(value) {
+  if (value === undefined || value === null) return KnowledgeState.UNKNOWN;
+  if (typeof value === 'boolean') return value ? KnowledgeState.KNOWN_TRUE : KnowledgeState.KNOWN_FALSE;
+  return KnowledgeState.KNOWN_TRUE;
+}
+function confidence(value) { return Math.max(0, Math.min(1, Number(value == null ? 1 : value))); }
+
+function existingEvidence(fact) {
+  if (!fact) return {};
+  if (fact.evidenceByKind && typeof fact.evidenceByKind === 'object') return { ...fact.evidenceByKind };
+  if (!fact.evidence) return {};
+  return {
+    [fact.evidence]: {
+      state: fact.state,
+      value: fact.value,
+      confidence: fact.confidence,
+      samples: fact.samples || 0,
+      updatedAt: fact.updatedAt || null
+    }
+  };
+}
+
+function resolveEvidence(evidenceByKind) {
+  for (const evidence of EVIDENCE_PRIORITY) {
+    const record = evidenceByKind[evidence];
+    if (!record) continue;
+    return { ...record, evidence, evidenceByKind };
+  }
+  return {
+    state: KnowledgeState.UNKNOWN,
+    value: null,
+    confidence: 0,
+    evidence: null,
+    samples: 0,
+    updatedAt: null,
+    evidenceByKind
+  };
+}
 
 class WorldModel {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.maxEntities = Math.max(100, Number(options.maxEntities) || 5000);
+    this.maxPerformanceProfiles = Math.max(50, Number(options.maxPerformanceProfiles) || 1000);
     this.entities = new Map();
     this.performance = new Map();
+    this.revision = 0;
+  }
+
+  hasEntity(type, id) { return this.entities.has(key(type, id)); }
+  entity(type, id) { return this.entities.get(key(type, id)) || null; }
+
+  _touch() { this.revision += 1; }
+
+  _pruneEntities() {
+    if (this.entities.size <= this.maxEntities) return;
+    const removable = [...this.entities.entries()].sort((a, b) => (a[1].lastSeenAt || 0) - (b[1].lastSeenAt || 0));
+    const count = this.entities.size - this.maxEntities;
+    for (let i = 0; i < count; i++) this.entities.delete(removable[i][0]);
+    if (this.log && count > 0) this.log.emit({ component: 'world', event: 'WORLD_ENTITIES_PRUNED', severity: 'warn', data: { count, maxEntities: this.maxEntities } });
+  }
+
+  _prunePerformance() {
+    if (this.performance.size <= this.maxPerformanceProfiles) return;
+    const removable = [...this.performance.entries()].sort((a, b) => (a[1].updatedAt || 0) - (b[1].updatedAt || 0));
+    const count = this.performance.size - this.maxPerformanceProfiles;
+    for (let i = 0; i < count; i++) this.performance.delete(removable[i][0]);
+    if (this.log && count > 0) this.log.emit({ component: 'world', event: 'WORLD_PERFORMANCE_PRUNED', severity: 'warn', data: { count, maxPerformanceProfiles: this.maxPerformanceProfiles } });
   }
 
   observeEntity(type, id, attributes = {}, meta = {}) {
     if (!type || !id) return null;
     const k = key(type, id);
-    const current = this.entities.get(k) || { type, id: String(id), facts: {}, firstSeenAt: this.now(), lastSeenAt: 0 };
-    current.lastSeenAt = this.now();
+    const now = this.now();
+    const current = this.entities.get(k) || { type, id: String(id), facts: {}, firstSeenAt: now, lastSeenAt: 0 };
+    const evidence = Object.values(EvidenceKind).includes(meta.evidence) ? meta.evidence : EvidenceKind.OBSERVED;
+    current.lastSeenAt = now;
     for (const [name, value] of Object.entries(attributes)) {
-      current.facts[name] = {
-        state: value === undefined || value === null ? KnowledgeState.UNKNOWN : (typeof value === 'boolean' ? (value ? KnowledgeState.KNOWN_TRUE : KnowledgeState.KNOWN_FALSE) : KnowledgeState.KNOWN_TRUE),
+      const byEvidence = existingEvidence(current.facts[name]);
+      const previous = byEvidence[evidence];
+      byEvidence[evidence] = {
+        state: knowledgeState(value),
         value: value === undefined ? null : value,
-        confidence: Math.max(0, Math.min(1, Number(meta.confidence == null ? 1 : meta.confidence))),
-        evidence: meta.evidence || EvidenceKind.OBSERVED,
-        samples: (current.facts[name] && current.facts[name].samples || 0) + 1,
-        updatedAt: this.now()
+        confidence: confidence(meta.confidence),
+        samples: (previous && previous.samples || 0) + 1,
+        updatedAt: now
       };
+      current.facts[name] = resolveEvidence(byEvidence);
     }
     this.entities.set(k, current);
+    this._touch();
+    this._pruneEntities();
     return current;
   }
 
-  hypothesis(type, id, fact, value, confidence = 0.25) {
-    return this.observeEntity(type, id, { [fact]: value }, { evidence: EvidenceKind.HYPOTHESIS, confidence });
+  hypothesis(type, id, fact, value, confidenceValue = 0.25) {
+    return this.observeEntity(type, id, { [fact]: value }, { evidence: EvidenceKind.HYPOTHESIS, confidence: confidenceValue });
   }
 
   fact(type, id, factName) {
     const entity = this.entities.get(key(type, id));
-    return entity && entity.facts[factName] || { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence: null, samples: 0, updatedAt: null };
+    return entity && entity.facts[factName] || { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence: null, samples: 0, updatedAt: null, evidenceByKind: {} };
+  }
+
+  evidenceFor(type, id, factName, evidence) {
+    const fact = this.fact(type, id, factName);
+    if (fact.evidenceByKind && fact.evidenceByKind[evidence]) return { ...fact.evidenceByKind[evidence], evidence };
+    if (fact.evidence === evidence) return { state: fact.state, value: fact.value, confidence: fact.confidence, evidence, samples: fact.samples, updatedAt: fact.updatedAt };
+    return { state: KnowledgeState.UNKNOWN, value: null, confidence: 0, evidence, samples: 0, updatedAt: null };
   }
 
   recordPerformance(monster, fingerprint, sample = {}) {
     if (!monster) return null;
     const k = perfKey(monster, fingerprint);
-    const current = this.performance.get(k) || { monster, fingerprint: fingerprint || 'unknown-party', seconds: 0, xp: 0, gold: 0, kills: 0, deaths: 0, potions: 0, windows: 0, updatedAt: 0 };
+    const current = this.performance.get(k) || {
+      monster,
+      fingerprint: fingerprint || 'unknown-party',
+      seconds: 0,
+      xp: 0,
+      gold: 0,
+      kills: 0,
+      deaths: 0,
+      potions: 0,
+      damageTaken: 0,
+      monsterHpLost: 0,
+      windows: 0,
+      updatedAt: 0
+    };
     current.seconds += Math.max(0, Number(sample.seconds) || 0);
     current.xp += Math.max(0, Number(sample.xp) || 0);
-    current.gold += Math.max(0, Number(sample.gold) || 0);
+    current.gold += Number(sample.gold) || 0;
     current.kills += Math.max(0, Number(sample.kills) || 0);
     current.deaths += Math.max(0, Number(sample.deaths) || 0);
     current.potions += Math.max(0, Number(sample.potions) || 0);
+    current.damageTaken += Math.max(0, Number(sample.damageTaken) || 0);
+    current.monsterHpLost += Math.max(0, Number(sample.monsterHpLost) || 0);
     current.windows += 1;
     current.updatedAt = this.now();
     this.performance.set(k, current);
-    if (this.log) this.log.emit({ component: 'world', event: 'PERFORMANCE_WINDOW_RECORDED', data: { monster, fingerprint: current.fingerprint, seconds: sample.seconds || 0, xp: sample.xp || 0, gold: sample.gold || 0, kills: sample.kills || 0, deaths: sample.deaths || 0 } });
+    this._touch();
+    this._prunePerformance();
+    if (this.log) this.log.emit({
+      component: 'world',
+      event: 'PERFORMANCE_WINDOW_RECORDED',
+      data: {
+        monster,
+        fingerprint: current.fingerprint,
+        seconds: sample.seconds || 0,
+        xp: sample.xp || 0,
+        gold: sample.gold || 0,
+        kills: sample.kills || 0,
+        deaths: sample.deaths || 0,
+        potions: sample.potions || 0,
+        damageTaken: sample.damageTaken || 0,
+        monsterHpLost: sample.monsterHpLost || 0
+      }
+    });
     return this.performanceFor(monster, fingerprint);
   }
 
@@ -737,34 +956,692 @@ class WorldModel {
       goldPerHour: hours > 0 ? p.gold / hours : 0,
       deathsPerHour: hours > 0 ? p.deaths / hours : 0,
       killsPerHour: hours > 0 ? p.kills / hours : 0,
+      potionsPerHour: hours > 0 ? p.potions / hours : 0,
+      damageTakenPerHour: hours > 0 ? p.damageTaken / hours : 0,
+      monsterHpLostPerHour: hours > 0 ? p.monsterHpLost / hours : 0,
       confidence: Math.max(0, Math.min(1, p.seconds / 1800))
     };
   }
 
   summary() {
     const evidence = { OBSERVED: 0, INFERRED: 0, HYPOTHESIS: 0, UNKNOWN: 0 };
+    const entityTypes = {};
     for (const entity of this.entities.values()) {
+      entityTypes[entity.type] = (entityTypes[entity.type] || 0) + 1;
       for (const fact of Object.values(entity.facts)) {
-        if (fact.state === KnowledgeState.UNKNOWN) evidence.UNKNOWN += 1;
-        else evidence[fact.evidence] = (evidence[fact.evidence] || 0) + 1;
+        const records = fact.evidenceByKind && Object.keys(fact.evidenceByKind).length
+          ? Object.entries(fact.evidenceByKind)
+          : [[fact.evidence, fact]];
+        for (const [kind, record] of records) {
+          if (!record || record.state === KnowledgeState.UNKNOWN || !kind) evidence.UNKNOWN += 1;
+          else evidence[kind] = (evidence[kind] || 0) + 1;
+        }
       }
     }
-    return { entities: this.entities.size, performanceProfiles: this.performance.size, evidence };
+    return { entities: this.entities.size, entityTypes, performanceProfiles: this.performance.size, evidence, revision: this.revision };
+  }
+
+  diagnosticsSnapshot(limit = 100) {
+    const n = Math.max(0, Number(limit) || 0);
+    return {
+      summary: this.summary(),
+      recentEntities: [...this.entities.values()].sort((a, b) => (b.lastSeenAt || 0) - (a.lastSeenAt || 0)).slice(0, n),
+      performance: [...this.performance.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, n).map((p) => this.performanceFor(p.monster, p.fingerprint))
+    };
   }
 
   serialize() {
-    return JSON.stringify({ schemaVersion: 1, entities: [...this.entities.entries()], performance: [...this.performance.entries()] });
+    return JSON.stringify({
+      schemaVersion: 2,
+      revision: this.revision,
+      entities: [...this.entities.entries()],
+      performance: [...this.performance.entries()]
+    });
   }
 
   restore(serialized) {
     const data = typeof serialized === 'string' ? JSON.parse(serialized) : serialized;
-    if (!data || data.schemaVersion !== 1) throw new Error('unsupported world model schema');
+    if (!data || (data.schemaVersion !== 1 && data.schemaVersion !== 2)) throw new Error('unsupported world model schema');
     this.entities = new Map(data.entities || []);
     this.performance = new Map(data.performance || []);
+    this.revision = Math.max(0, Number(data.revision) || 0);
+    this._pruneEntities();
+    this._prunePerformance();
+    return this.summary();
   }
 }
 
 module.exports = { WorldModel, KnowledgeState, EvidenceKind };
+
+},
+"src/world/persistence.js": function(require,module,exports){
+'use strict';
+
+class WorldPersistence {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.key = options.key || 'AIO_V3_WORLD_MODEL';
+    this.minIntervalMs = Math.max(5000, Number(options.minIntervalMs) || 30000);
+    this.maxBytes = Math.max(10000, Number(options.maxBytes) || 900000);
+    this.storage = options.storage || null;
+    this.lastSavedAt = 0;
+    this.lastSavedRevision = -1;
+    this.loaded = false;
+    this.backendName = null;
+    this.unavailableLogged = false;
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') {
+      this.backendName = 'custom';
+      return this.storage;
+    }
+    const get = this.root && this.root.get;
+    const set = this.root && this.root.set;
+    if (typeof get === 'function' && typeof set === 'function') {
+      this.backendName = 'adventure-land';
+      return { get: (key) => get.call(this.root, key), set: (key, value) => set.call(this.root, key, value) };
+    }
+    const localStorage = this.root && this.root.localStorage;
+    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') {
+      this.backendName = 'localStorage';
+      return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
+    }
+    this.backendName = null;
+    return null;
+  }
+
+  load(world) {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) {
+      this._logUnavailable();
+      return false;
+    }
+    try {
+      const serialized = backend.get(this.key);
+      if (serialized == null || serialized === '') {
+        if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_STORAGE_EMPTY', data: { backend: this.backendName } });
+        return false;
+      }
+      world.restore(serialized);
+      this.lastSavedRevision = world.revision;
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_RESTORED', data: { backend: this.backendName, bytes: String(serialized).length, revision: world.revision } });
+      return true;
+    } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_RESTORE_FAILED', severity: 'warn', reason: 'PERSISTENCE_READ_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
+      return false;
+    }
+  }
+
+  maybeSave(world, options = {}) {
+    const force = options.force === true;
+    const backend = this._backend();
+    if (!backend) {
+      this._logUnavailable();
+      return false;
+    }
+    const now = this.now();
+    if (!force && world.revision === this.lastSavedRevision) return false;
+    if (!force && now - this.lastSavedAt < this.minIntervalMs) return false;
+
+    let serialized;
+    try { serialized = world.serialize(); } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'SERIALIZE_ERROR', data: { message: String(error && error.message || error) } });
+      return false;
+    }
+    if (serialized.length > this.maxBytes) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_SKIPPED', severity: 'warn', reason: 'PERSISTENCE_SIZE_LIMIT', data: { bytes: serialized.length, maxBytes: this.maxBytes, revision: world.revision } });
+      return false;
+    }
+    try {
+      backend.set(this.key, serialized);
+      this.lastSavedAt = now;
+      this.lastSavedRevision = world.revision;
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVED', data: { backend: this.backendName, bytes: serialized.length, revision: world.revision, forced: force } });
+      return true;
+    } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'PERSISTENCE_WRITE_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
+      return false;
+    }
+  }
+
+  _logUnavailable() {
+    if (this.unavailableLogged) return;
+    this.unavailableLogged = true;
+    if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_PERSISTENCE_UNAVAILABLE', severity: 'warn', reason: 'NO_SUPPORTED_STORAGE' });
+  }
+
+  status() {
+    return {
+      backend: this.backendName,
+      loaded: this.loaded,
+      lastSavedAt: this.lastSavedAt || null,
+      lastSavedRevision: this.lastSavedRevision
+    };
+  }
+}
+
+module.exports = { WorldPersistence };
+
+},
+"src/world/discovery.js": function(require,module,exports){
+'use strict';
+
+const { EvidenceKind } = require('./world-model');
+
+function uniqueMaps(existing, map) {
+  const out = Array.isArray(existing) ? existing.slice() : [];
+  if (map && !out.includes(map)) out.push(map);
+  return out.sort();
+}
+
+function extractName(value, fallback) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    const candidate = value.find((item) => typeof item === 'string');
+    return candidate || fallback;
+  }
+  if (value && typeof value === 'object') return value.mtype || value.type || value.id || value.name || value.npc || fallback;
+  return fallback;
+}
+
+class DiscoveryService {
+  constructor(options = {}) {
+    this.world = options.world;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.totalNew = 0;
+  }
+
+  _record(type, id, attributes, meta) {
+    if (!this.world || !type || !id) return null;
+    const isNew = !this.world.hasEntity(type, id);
+    const oldMaps = this.world.fact(type, id, 'maps').value;
+    const map = attributes && attributes.map;
+    const merged = { ...attributes, maps: uniqueMaps(oldMaps, map) };
+    delete merged.map;
+    const entity = this.world.observeEntity(type, String(id), merged, {
+      evidence: meta.evidence,
+      confidence: meta.confidence
+    });
+    if (isNew) {
+      this.totalNew += 1;
+      if (this.log) this.log.emit({
+        component: 'discovery',
+        event: 'DISCOVERY_ENTITY_NEW',
+        data: { type, id: String(id), map: map || null, evidence: meta.evidence, confidence: meta.confidence, source: meta.source }
+      });
+    }
+    return entity;
+  }
+
+  _scanLive(snapshot) {
+    let created = 0;
+    for (const entity of snapshot.entities || []) {
+      if (entity.mtype) {
+        const before = this.world.hasEntity('monster', entity.mtype);
+        this._record('monster', entity.mtype, {
+          map: entity.map || snapshot.character.map,
+          lastX: entity.x,
+          lastY: entity.y,
+          lastHp: entity.hp,
+          live: !entity.dead,
+          lastSeenSource: 'live-entity'
+        }, { evidence: EvidenceKind.OBSERVED, confidence: 1, source: 'live-entity' });
+        if (!before) created += 1;
+      } else if (entity.npc || entity.type === 'npc') {
+        const id = entity.name || entity.id;
+        const before = this.world.hasEntity('npc', id);
+        this._record('npc', id, {
+          map: entity.map || snapshot.character.map,
+          lastX: entity.x,
+          lastY: entity.y,
+          lastSeenSource: 'live-entity'
+        }, { evidence: EvidenceKind.OBSERVED, confidence: 1, source: 'live-entity' });
+        if (!before) created += 1;
+      }
+    }
+    for (const object of snapshot.objects || []) {
+      const id = object.name || object.id;
+      const before = this.world.hasEntity('object', id);
+      this._record('object', id, {
+        map: object.map || snapshot.character.map,
+        objectType: object.type || 'object',
+        lastX: object.x,
+        lastY: object.y,
+        lastSeenSource: 'live-object'
+      }, { evidence: EvidenceKind.OBSERVED, confidence: 1, source: 'live-object' });
+      if (!before) created += 1;
+    }
+    return created;
+  }
+
+  _scanCurrentMapMetadata(snapshot, gameData) {
+    const mapName = snapshot.character.map;
+    const mapData = gameData && gameData.maps && gameData.maps[mapName];
+    if (!mapData || typeof mapData !== 'object') return 0;
+    let created = 0;
+
+    const scanCollection = (type, collection, source) => {
+      if (!collection) return;
+      const values = Array.isArray(collection) ? collection : Object.values(collection);
+      values.forEach((value, index) => {
+        const id = extractName(value, `${source}-${index}`);
+        if (!id) return;
+        const before = this.world.hasEntity(type, id);
+        this._record(type, id, { map: mapName, lastSeenSource: source }, { evidence: EvidenceKind.INFERRED, confidence: 0.65, source });
+        if (!before) created += 1;
+      });
+    };
+
+    scanCollection('npc', mapData.npcs, 'map-metadata-npc');
+    scanCollection('monster', mapData.monsters, 'map-metadata-monster');
+
+    if (Array.isArray(mapData.doors)) {
+      mapData.doors.forEach((door, index) => {
+        const id = `door:${mapName}:${index}`;
+        const before = this.world.hasEntity('object', id);
+        const x = Array.isArray(door) ? door[0] : door && door.x;
+        const y = Array.isArray(door) ? door[1] : door && door.y;
+        this._record('object', id, { map: mapName, objectType: 'door', lastX: x, lastY: y, lastSeenSource: 'map-metadata-door' }, { evidence: EvidenceKind.INFERRED, confidence: 0.65, source: 'map-metadata-door' });
+        if (!before) created += 1;
+      });
+    }
+    return created;
+  }
+
+  scan(snapshot, gameData = {}) {
+    if (!snapshot || !snapshot.character || !this.world) return { newEntities: 0, totalNew: this.totalNew };
+    const newEntities = this._scanLive(snapshot) + this._scanCurrentMapMetadata(snapshot, gameData);
+    if (newEntities && this.log) this.log.emit({
+      component: 'discovery',
+      event: 'DISCOVERY_SCAN_COMPLETED',
+      character: snapshot.character.name,
+      data: { map: snapshot.character.map, newEntities, worldEntities: this.world.entities.size }
+    });
+    return { newEntities, totalNew: this.totalNew };
+  }
+
+  status() {
+    return { totalNew: this.totalNew };
+  }
+}
+
+module.exports = { DiscoveryService };
+
+},
+"src/telemetry/performance-tracker.js": function(require,module,exports){
+'use strict';
+
+function number(value) { return Number.isFinite(Number(value)) ? Number(value) : 0; }
+
+function potionCount(inventory) {
+  let total = 0;
+  for (const item of inventory || []) {
+    if (!item || !/^(hpot|mpot)/i.test(String(item.name || ''))) continue;
+    total += Math.max(0, number(item.q) || 1);
+  }
+  return total;
+}
+
+function levelRequirement(gameData, level) {
+  const levels = gameData && gameData.levels;
+  if (!levels) return null;
+  const raw = Array.isArray(levels) ? levels[level] : levels[level] != null ? levels[level] : levels[String(level)];
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function xpDelta(previous, current, gameData) {
+  if (!previous || !current) return 0;
+  const before = number(previous.xp);
+  const after = number(current.xp);
+  const beforeLevel = number(previous.level);
+  const afterLevel = number(current.level);
+  if (afterLevel === beforeLevel) return Math.max(0, after - before);
+  if (afterLevel < beforeLevel) return 0;
+
+  let total = -before + after;
+  for (let level = beforeLevel; level < afterLevel; level++) {
+    const required = levelRequirement(gameData, level);
+    if (required == null) return Math.max(0, after - before);
+    total += required;
+  }
+  return Math.max(0, total);
+}
+
+class PerformanceTracker {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.windowMs = Math.max(1000, Number(options.windowMs) || 60000);
+    this.minRecordSeconds = Math.max(1, Number(options.minRecordSeconds) || 5);
+    this.historyCapacity = Math.max(10, Number(options.historyCapacity) || 120);
+    this.previous = null;
+    this.window = null;
+    this.history = [];
+    this.nextWindowId = 1;
+  }
+
+  _start(snapshot, context) {
+    const now = this.now();
+    this.window = {
+      id: `perf-${this.nextWindowId++}`,
+      startedAt: now,
+      lastObservedAt: now,
+      character: snapshot.character.name,
+      map: snapshot.character.map,
+      partyFingerprint: context.partyFingerprint || 'unknown-party',
+      xp: 0,
+      gold: 0,
+      kills: 0,
+      deaths: 0,
+      potions: 0,
+      damageTaken: 0,
+      monsterHpLost: 0,
+      targetSamples: {},
+      killsByMonster: {},
+      damageEventsByMonster: {},
+      samples: 0
+    };
+  }
+
+  _contextChanged(snapshot, context) {
+    return this.window && (
+      this.window.character !== snapshot.character.name ||
+      this.window.map !== snapshot.character.map ||
+      this.window.partyFingerprint !== (context.partyFingerprint || 'unknown-party')
+    );
+  }
+
+  _entityMap(snapshot) {
+    const map = new Map();
+    for (const entity of snapshot && snapshot.entities || []) map.set(entity.id, entity);
+    return map;
+  }
+
+  _increment(object, key, amount = 1) {
+    if (!key) return;
+    object[key] = (object[key] || 0) + amount;
+  }
+
+  _observeTransition(previous, current, context) {
+    const w = this.window;
+    const prevC = previous.character;
+    const currC = current.character;
+    w.samples += 1;
+    w.lastObservedAt = this.now();
+    w.xp += xpDelta(prevC, currC, context.gameData);
+    w.gold += number(currC.gold) - number(prevC.gold);
+
+    if (!prevC.rip && currC.rip) w.deaths += 1;
+    if (number(prevC.hp) > number(currC.hp)) w.damageTaken += number(prevC.hp) - number(currC.hp);
+
+    const beforePotions = potionCount(prevC.inventory);
+    const afterPotions = potionCount(currC.inventory);
+    if (beforePotions > afterPotions) w.potions += beforePotions - afterPotions;
+
+    const prevEntities = this._entityMap(previous);
+    const currEntities = this._entityMap(current);
+    for (const [id, before] of prevEntities) {
+      if (!before.mtype) continue;
+      const after = currEntities.get(id);
+      if (!after) continue;
+      const beforeHp = number(before.hp);
+      const afterHp = number(after.hp);
+      if (beforeHp > afterHp) {
+        w.monsterHpLost += beforeHp - afterHp;
+        this._increment(w.damageEventsByMonster, before.mtype);
+      }
+      const wasAlive = !before.dead && (before.hp == null || beforeHp > 0);
+      const isDead = !!after.dead || (after.hp != null && afterHp <= 0);
+      if (wasAlive && isDead) {
+        w.kills += 1;
+        this._increment(w.killsByMonster, before.mtype);
+      }
+    }
+
+    const targetId = currC.target;
+    if (targetId) {
+      const target = currEntities.get(String(targetId)) || currEntities.get(targetId);
+      if (target && target.mtype) this._increment(w.targetSamples, target.mtype);
+    }
+  }
+
+  _dominantMonster(window) {
+    const score = {};
+    for (const [monster, count] of Object.entries(window.targetSamples)) this._increment(score, monster, count);
+    for (const [monster, count] of Object.entries(window.killsByMonster)) this._increment(score, monster, count * 8);
+    for (const [monster, count] of Object.entries(window.damageEventsByMonster)) this._increment(score, monster, count * 2);
+    const ranked = Object.entries(score).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    if (!ranked.length) return { monster: null, confidence: 0, mixed: false };
+    const total = ranked.reduce((sum, row) => sum + row[1], 0);
+    const share = total > 0 ? ranked[0][1] / total : 0;
+    return { monster: share >= 0.6 || ranked.length === 1 ? ranked[0][0] : null, confidence: share, mixed: ranked.length > 1 && share < 0.6 };
+  }
+
+  _rates(window, seconds) {
+    const hours = seconds / 3600;
+    return {
+      xpPerHour: hours > 0 ? window.xp / hours : 0,
+      goldPerHour: hours > 0 ? window.gold / hours : 0,
+      killsPerHour: hours > 0 ? window.kills / hours : 0,
+      deathsPerHour: hours > 0 ? window.deaths / hours : 0,
+      potionsPerHour: hours > 0 ? window.potions / hours : 0,
+      damageTakenPerHour: hours > 0 ? window.damageTaken / hours : 0,
+      monsterHpLostPerHour: hours > 0 ? window.monsterHpLost / hours : 0
+    };
+  }
+
+  flush(context = {}, reason = 'WINDOW_COMPLETE') {
+    if (!this.window) return null;
+    const now = this.now();
+    const seconds = Math.max(0, (now - this.window.startedAt) / 1000);
+    const dominant = this._dominantMonster(this.window);
+    const completed = {
+      ...this.window,
+      endedAt: now,
+      seconds,
+      monster: dominant.monster,
+      targetConfidence: dominant.confidence,
+      mixedTargets: dominant.mixed,
+      rates: this._rates(this.window, seconds),
+      reason
+    };
+    this.history.push(completed);
+    if (this.history.length > this.historyCapacity) this.history.splice(0, this.history.length - this.historyCapacity);
+
+    if (this.log) {
+      this.log.emit({
+        component: 'performance',
+        event: 'PERFORMANCE_WINDOW_COMPLETED',
+        character: completed.character,
+        reason: dominant.monster ? reason : (dominant.mixed ? 'MIXED_TARGETS' : 'TARGET_UNKNOWN'),
+        data: {
+          windowId: completed.id,
+          seconds: Number(seconds.toFixed(3)),
+          monster: dominant.monster,
+          targetConfidence: Number(dominant.confidence.toFixed(3)),
+          partyFingerprint: completed.partyFingerprint,
+          map: completed.map,
+          xp: completed.xp,
+          gold: completed.gold,
+          kills: completed.kills,
+          deaths: completed.deaths,
+          potions: completed.potions,
+          damageTaken: completed.damageTaken,
+          monsterHpLost: completed.monsterHpLost,
+          rates: completed.rates
+        }
+      });
+    }
+
+    const world = context.world;
+    if (world && dominant.monster && seconds >= this.minRecordSeconds) {
+      world.recordPerformance(dominant.monster, completed.partyFingerprint, {
+        seconds,
+        xp: completed.xp,
+        gold: completed.gold,
+        kills: completed.kills,
+        deaths: completed.deaths,
+        potions: completed.potions,
+        damageTaken: completed.damageTaken,
+        monsterHpLost: completed.monsterHpLost
+      });
+    }
+    this.window = null;
+    return completed;
+  }
+
+  observe(snapshot, context = {}) {
+    if (!snapshot || !snapshot.character) return null;
+    if (!this.window) this._start(snapshot, context);
+    if (this.previous && this._contextChanged(snapshot, context)) {
+      this.flush(context, 'CONTEXT_CHANGED');
+      this._start(snapshot, context);
+      this.previous = snapshot;
+      return this.status();
+    }
+    if (this.previous) this._observeTransition(this.previous, snapshot, context);
+    this.previous = snapshot;
+
+    if (this.now() - this.window.startedAt >= this.windowMs) {
+      this.flush(context, 'WINDOW_COMPLETE');
+      this._start(snapshot, context);
+    }
+    return this.status();
+  }
+
+  status() {
+    const current = this.window ? {
+      id: this.window.id,
+      startedAt: this.window.startedAt,
+      seconds: Math.max(0, (this.now() - this.window.startedAt) / 1000),
+      character: this.window.character,
+      map: this.window.map,
+      partyFingerprint: this.window.partyFingerprint,
+      xp: this.window.xp,
+      gold: this.window.gold,
+      kills: this.window.kills,
+      deaths: this.window.deaths,
+      potions: this.window.potions,
+      damageTaken: this.window.damageTaken,
+      monsterHpLost: this.window.monsterHpLost,
+      rates: this._rates(this.window, Math.max(0, (this.now() - this.window.startedAt) / 1000))
+    } : null;
+    return { windowMs: this.windowMs, current, recent: this.history.slice(-10) };
+  }
+}
+
+module.exports = { PerformanceTracker, xpDelta, potionCount };
+
+},
+"src/research/research.js": function(require,module,exports){
+'use strict';
+
+const ExperimentState = Object.freeze({
+  READY: 'READY',
+  BLOCKED: 'BLOCKED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+});
+
+const OBSERVATION_ONLY_KINDS = new Set(['OBSERVE', 'MEASURE', 'COMPARE']);
+
+class ResearchJournal {
+  constructor(options = {}) {
+    this.world = options.world || null;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.hypotheses = new Map();
+    this.experiments = new Map();
+    this.nextHypothesisId = 1;
+    this.nextExperimentId = 1;
+  }
+
+  hypothesis(spec = {}) {
+    if (!spec.type || !spec.entityId || !spec.fact) throw new Error('type, entityId and fact are required');
+    const id = spec.id || `hyp-${this.nextHypothesisId++}`;
+    const record = {
+      id,
+      type: spec.type,
+      entityId: String(spec.entityId),
+      fact: spec.fact,
+      value: spec.value,
+      confidence: Math.max(0, Math.min(1, Number(spec.confidence == null ? 0.25 : spec.confidence))),
+      rationale: spec.rationale || null,
+      createdAt: this.now()
+    };
+    this.hypotheses.set(id, record);
+    if (this.world) this.world.hypothesis(record.type, record.entityId, record.fact, record.value, record.confidence);
+    if (this.log) this.log.emit({ component: 'research', event: 'HYPOTHESIS_RECORDED', data: record });
+    return { ...record };
+  }
+
+  proposeExperiment(spec = {}) {
+    const id = spec.id || `exp-${this.nextExperimentId++}`;
+    const kind = String(spec.kind || 'OBSERVE').toUpperCase();
+    const actions = Array.isArray(spec.actions) ? spec.actions.slice() : [];
+    const observationOnly = OBSERVATION_ONLY_KINDS.has(kind) && !spec.requiresAction && actions.length === 0;
+    const state = observationOnly ? ExperimentState.READY : ExperimentState.BLOCKED;
+    const reason = observationOnly ? null : 'ALPHA_OBSERVATION_ONLY';
+    const record = {
+      id,
+      kind,
+      target: spec.target || null,
+      hypothesisId: spec.hypothesisId || null,
+      method: spec.method || null,
+      state,
+      reason,
+      observationOnly,
+      createdAt: this.now(),
+      observations: []
+    };
+    this.experiments.set(id, record);
+    if (this.log) this.log.emit({
+      component: 'research',
+      event: 'EXPERIMENT_PROPOSED',
+      severity: state === ExperimentState.BLOCKED ? 'warn' : 'info',
+      reason,
+      data: { id, kind, target: record.target, hypothesisId: record.hypothesisId, observationOnly }
+    });
+    return this._cloneExperiment(record);
+  }
+
+  recordObservation(experimentId, observation = {}) {
+    const record = this.experiments.get(experimentId);
+    if (!record) throw new Error('unknown experiment');
+    if (record.state === ExperimentState.BLOCKED || record.state === ExperimentState.CANCELLED) return this._cloneExperiment(record);
+    record.observations.push({ at: this.now(), ...observation });
+    if (observation.complete === true) record.state = ExperimentState.COMPLETED;
+    if (this.log) this.log.emit({
+      component: 'research',
+      event: 'EXPERIMENT_OBSERVATION_RECORDED',
+      data: { id: record.id, state: record.state, observation }
+    });
+    return this._cloneExperiment(record);
+  }
+
+  _cloneExperiment(record) {
+    return { ...record, observations: record.observations.map((row) => ({ ...row })) };
+  }
+
+  listExperiments() {
+    return [...this.experiments.values()].map((record) => this._cloneExperiment(record));
+  }
+
+  summary() {
+    const states = {};
+    for (const record of this.experiments.values()) states[record.state] = (states[record.state] || 0) + 1;
+    return { hypotheses: this.hypotheses.size, experiments: this.experiments.size, states };
+  }
+}
+
+module.exports = { ResearchJournal, ExperimentState, OBSERVATION_ONLY_KINDS };
 
 },
 "src/party/capabilities.js": function(require,module,exports){

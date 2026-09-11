@@ -13,14 +13,17 @@ test('Runtime observes a fake Adventure Land character without issuing active co
     parent: { entities: { m1: { id: 'm1', type: 'monster', mtype: 'goo', map: 'main', x: 40, y: 0, hp: 100, max_hp: 100 } }, party: {} }
   };
   const log = new EventLog({ now: () => now, runId: 'runtime-test' });
-  const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow' });
+  const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow', now: () => now });
   const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now });
   runtime.tick();
   const status = runtime.status();
   assert.equal(status.mode, 'shadow');
   assert.equal(status.character.name, 'R1');
   assert.ok(status.world.entities >= 2);
+  assert.ok(status.world.entityTypes.monster >= 1);
   assert.ok(log.events.some((e) => e.event === 'FARM_TARGET_RANKED'));
   const result = adapter.command('attack', ['m1']);
   assert.equal(result.shadow, true);
+  const economy = adapter.command('sell', [0]);
+  assert.equal(economy.reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
 });
