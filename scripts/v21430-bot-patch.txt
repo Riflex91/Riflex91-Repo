@@ -1,0 +1,137 @@
+
+
+  /* v2.14.30 Merchant service preparation, update compatibility and inventory context UX */
+  try{
+    if(FEATURE_CONTRACT.indexOf('merchant-equipment-first-priority')<0)FEATURE_CONTRACT.push('merchant-equipment-first-priority');
+    if(FEATURE_CONTRACT.indexOf('merchant-gold-second-priority')<0)FEATURE_CONTRACT.push('merchant-gold-second-priority');
+    if(FEATURE_CONTRACT.indexOf('merchant-acquisition-source-router')<0)FEATURE_CONTRACT.push('merchant-acquisition-source-router');
+    if(FEATURE_CONTRACT.indexOf('merchant-player-market-buy')<0)FEATURE_CONTRACT.push('merchant-player-market-buy');
+    if(FEATURE_CONTRACT.indexOf('merchant-offbank-capacity-work-window')<0)FEATURE_CONTRACT.push('merchant-offbank-capacity-work-window');
+    if(FEATURE_CONTRACT.indexOf('dashboard-class-markers')<0)FEATURE_CONTRACT.push('dashboard-class-markers');
+    if(FEATURE_CONTRACT.indexOf('merchant-town-route-estimator')<0)FEATURE_CONTRACT.push('merchant-town-route-estimator');
+    if(FEATURE_CONTRACT.indexOf('dashboard-map-name-only')<0)FEATURE_CONTRACT.push('dashboard-map-name-only');
+    if(FEATURE_CONTRACT.indexOf('dashboard-group-info-hidden')<0)FEATURE_CONTRACT.push('dashboard-group-info-hidden');
+    if(FEATURE_CONTRACT.indexOf('merchant-service-prep-sequence')<0)FEATURE_CONTRACT.push('merchant-service-prep-sequence');
+    if(FEATURE_CONTRACT.indexOf('manual-update-backoff-bypass')<0)FEATURE_CONTRACT.push('manual-update-backoff-bypass');
+    if(FEATURE_CONTRACT.indexOf('inventory-context-auto-close')<0)FEATURE_CONTRACT.push('inventory-context-auto-close');
+    if(FEATURE_CONTRACT.indexOf('dashboard-map-fullscreen')<0)FEATURE_CONTRACT.push('dashboard-map-fullscreen');
+  }catch(e){}
+
+  function v21430ServicePrepBusy(){
+    try{return typeof v21422ExistingBusy==='function'&&v21422ExistingBusy();}catch(e){return !!(S.moveInFlight||character.moving);}
+  }
+  function v21430ServicePrepState(target){
+    var name=target&&target.r&&target.r.name||'';
+    var st=S.merchantServicePrep21430;
+    if(!st||st.target!==name){
+      st=S.merchantServicePrep21430={target:name,stage:'compound',startedAt:clock(),stageAt:clock(),initialFree:freeSlots()};
+      audit('merchant_service_prep_start','Farmer-Service wird mit leerem Merchant-Inventar vorbereitet',{farmer:name,sequence:['compound','upgrade','sell','potions','bank'],free:freeSlots(),hp:qty(C.hpot),mp:qty(C.mpot)});
+    }
+    return st;
+  }
+  function v21430ServicePrepAdvance(st,next){
+    var prev=st.stage;st.stage=next;st.stageAt=clock();
+    audit('merchant_service_prep_stage','Merchant-Servicevorbereitung wechselt Phase',{farmer:st.target,from:prev,to:next,free:freeSlots(),hp:qty(C.hpot),mp:qty(C.mpot)});
+  }
+  function v21430PotionPrepTick(target){
+    var req=target&&target.req||{},haveH=qty(C.hpot),haveM=qty(C.mpot);
+    var targetH=Math.max(0,Number(C.merchantBuyHPTo)||0,req.hp?(Number(C.merchantDeliveryHPQty)||0)+80:0);
+    var targetM=Math.max(0,Number(C.merchantBuyMPTo)||0,req.mp?(Number(C.merchantDeliveryMPQty)||0)+80:0);
+    if(haveH>=targetH&&haveM>=targetM)return false;
+    var vendor={map:'main',x:-56,y:402};
+    if(character.map!=='main'||dist(character,vendor)>90||character.moving||S.moveInFlight){
+      S.status='Farmer-Service vorbereiten · Tränke auffüllen';S.mode='Merchant · Vorbereitung';
+      return moveToGoal(vendor,'Tränke vor Farmer-Service auffüllen',{kind:'merchant-service-prep-potions',tolerance:60,forceAfter:7000});
+    }
+    if(haveH<targetH&&typeof buy==='function')return action('HP-Tränke vor Farmer-Service auffüllen',function(){return buy(C.hpot,Math.max(1,targetH-haveH));},'merchant-service-prep-hp',1800);
+    if(haveM<targetM&&typeof buy==='function')return action('MP-Tränke vor Farmer-Service auffüllen',function(){return buy(C.mpot,Math.max(1,targetM-haveM));},'merchant-service-prep-mp',1800);
+    return false;
+  }
+  function v21430PrepareMerchantForService(target){
+    if(character.ctype!=='merchant'||!target||!target.r)return false;
+    var st=v21430ServicePrepState(target);
+    if(st.stage==='done')return false;
+    S.status='Farmer-Service vorbereiten · '+st.stage;S.mode='Merchant · Vorbereitung';
+    if(v21430ServicePrepBusy())return true;
+    if(st.stage==='compound'){
+      if(typeof v273CompoundTick==='function'&&v273CompoundTick())return true;
+      v21430ServicePrepAdvance(st,'upgrade');
+    }
+    if(st.stage==='upgrade'){
+      if(v21430ServicePrepBusy())return true;
+      if(typeof v273UpgradeTick==='function'&&v273UpgradeTick())return true;
+      v21430ServicePrepAdvance(st,'sell');
+    }
+    if(st.stage==='sell'){
+      if(v21430ServicePrepBusy())return true;
+      if(typeof v273SellTrashTick==='function'&&v273SellTrashTick())return true;
+      v21430ServicePrepAdvance(st,'potions');
+    }
+    if(st.stage==='potions'){
+      if(v21430ServicePrepBusy())return true;
+      if(v21430PotionPrepTick(target))return true;
+      v21430ServicePrepAdvance(st,'bank');
+    }
+    if(st.stage==='bank'){
+      if(v21430ServicePrepBusy())return true;
+      var cand=null;try{cand=typeof v2148BankCleanupCandidate==='function'?v2148BankCleanupCandidate():null;}catch(e){}
+      if(S.merchantBankCleanup2148||cand){
+        if(typeof v2148BankCleanupTick==='function'){v2148BankCleanupTick();return true;}
+      }
+      v21430ServicePrepAdvance(st,'done');
+      audit('merchant_service_prep_done','Merchant ist für Farmer-Abholung vorbereitet',{farmer:st.target,durationMs:clock()-st.startedAt,freeBefore:st.initialFree,freeAfter:freeSlots(),hp:qty(C.hpot),mp:qty(C.mpot)});
+      return false;
+    }
+    return st.stage!=='done';
+  }
+
+  var v21430MerchantServiceBase=v277MerchantServiceTick;
+  v277MerchantServiceTick=function(){
+    if(character.ctype!=='merchant')return v21430MerchantServiceBase();
+    var cands=v277MerchantServiceCandidates(),cur=S.merchantServiceTarget&&cands.find(function(x){return x.r.name===S.merchantServiceTarget;});
+    if(!cur){
+      if(!cands.length){S.merchantServicePrep21430=null;return v21430MerchantServiceBase();}
+      S.merchantServiceTarget=cands[0].r.name;S.merchantServiceArrivedAt=0;S.merchantServiceDelivered={hp:false,mp:false};S.merchantServicePrep21430=null;cur=cands[0];
+      audit('merchant_service_prep_selected','Farmer für vorbereitete Abholung gewählt',{farmer:cur.r.name,priority:cur.priority,potionNeed:cur.potNeed,goldNeed:cur.goldNeed,lootNeed:cur.lootNeed,free:freeSlots()});
+    }
+    if(v21430PrepareMerchantForService(cur))return true;
+    return v21430MerchantServiceBase();
+  };
+
+  function v21430CloseInventoryContext(){
+    var el=S.inventoryContext;
+    if(el&&el.parentNode)try{el.parentNode.removeChild(el);}catch(e){}
+    S.inventoryContext=null;
+  }
+  var v21430InventoryContextBase=v282ShowInventoryContext;
+  v282ShowInventoryContext=function(slotNo,x,y){
+    v21430CloseInventoryContext();
+    v21430InventoryContextBase(slotNo,x,y);
+    var el=S.inventoryContext;if(!el)return;
+    var close=D.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','Schließen');
+    close.style.cssText='position:absolute;right:6px;top:5px;width:24px;height:24px;border:0;border-radius:7px;background:transparent;color:inherit;font-size:20px;line-height:20px;cursor:pointer;z-index:2';
+    try{el.style.position='fixed';el.style.paddingTop='30px';el.appendChild(close);}catch(e){}
+    var shut=function(){v21430CloseInventoryContext();};
+    close.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();shut();});
+    el.addEventListener('mouseleave',shut,{once:true});
+  };
+
+  function v21430ClearUpdateFailure(){
+    S.updateFailure21421=null;S.update.applyAttempt=0;S.update.checkedAt=0;S.update.error='';
+    try{write('updateFailure21421',null);}catch(e){}
+  }
+  function v21430ManualUpdateInstall(){
+    if(S.update.checking||S.update.applying){if(S.toolWindows&&S.toolWindows.settings)renderTool('settings');return false;}
+    v21430ClearUpdateFailure();S.update.checking=true;S.update.checkedAt=clock();
+    var repo=defaults.updateRepositoryUrl;
+    audit('update_manual_check','Manuelle Update-Prüfung und Installation gestartet',{version:VERSION,repo:repo,backoffCleared:true});
+    checkRepo(repo).then(function(r){
+      S.update.checking=false;S.update.latest=r.version;S.update.repo=r.repo;S.update.raw=r.raw;S.update.available=newer(r.version,VERSION);S.update.error='';
+      if(!S.update.available){audit('update_manual_current','Bot ist bereits aktuell',{version:VERSION,found:r.version});renderAll(true);return false;}
+      audit('update_manual_found','Neue Version gefunden; Installation startet sofort',{from:VERSION,to:r.version,repo:r.repo},'warning');renderAll(true);return selfUpdate(false);
+    }).catch(function(e){S.update.checking=false;S.update.error=reason(e);audit('update_manual_error','Manuelles Update fehlgeschlagen: '+S.update.error,{repo:repo},'error');renderAll(true);});
+    return true;
+  }
+  try{v2148ManualUpdateInstall=v21430ManualUpdateInstall;}catch(e){}
+
+  audit('feature_contract','2.14.30 Farmer-Servicevorbereitung + Update-Kompatibilität + Schutzregel-Popup geprüft',{servicePrep:['compound','upgrade','sell','potions','bank'],manualUpdateBackoffBypass:true,inventoryContextAutoClose:true});
