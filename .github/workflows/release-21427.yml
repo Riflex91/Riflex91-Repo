@@ -43,7 +43,11 @@ jobs:
           for(const f of fs.readdirSync('scripts').filter(x=>/^smoke.*\.(?:js|mjs)$/.test(x))){
             const p=path.join('scripts',f);let s=fs.readFileSync(p,'utf8');
             s=s.replace(/\.includes\("'"\+([A-Za-z_$][\w$]*)\+"'"\)/g,'.includes($1)');
-            s=s.replace(/2\.14\.\d+/g,'2.14.27');
+            s=s.replace(/(assert\.(?:equal|strictEqual)\([^,\n]+,\s*)'2\.14\.\d+'/g,"$1'2.14.27'");
+            s=s.replace(/version\.version\s*,\s*'2\.14\.\d+'/g,"version.version,'2.14.27'");
+            s=s.replace(/version\.dashboardVersion\s*,\s*'2\.14\.\d+'/g,"version.dashboardVersion,'2.14.27'");
+            s=s.replace(/var VERSION = '2\.14\.\d+'/g,"var VERSION = '2.14.27'");
+            s=s.replace(/AiO Bot Dashboard 2\.14\.\d+/g,'AiO Bot Dashboard 2.14.27');
             s=s.replace("assert(dash.includes('G.geometry-Kollisionslinien als Vektor-Fallback'));","assert(dash.includes('Adventure Land G.geometry/G.tilesets')); // real terrain only");
             fs.writeFileSync(p,s);
           }
