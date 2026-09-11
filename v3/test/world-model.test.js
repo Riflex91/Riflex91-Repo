@@ -23,3 +23,10 @@ test('WorldModel aggregates performance per party fingerprint', () => {
   assert.equal(p.kills, 45);
   assert.equal(p.deaths, 1);
 });
+
+test('WorldModel restores alpha.1 schema and serializes bounded alpha.2 schema', () => {
+  const world = new WorldModel({ now: () => 1000 });
+  world.restore({ schemaVersion: 1, entities: [['npc:x', { type: 'npc', id: 'x', facts: {}, firstSeenAt: 1, lastSeenAt: 1 }]], performance: [] });
+  assert.equal(world.hasEntity('npc', 'x'), true);
+  assert.equal(JSON.parse(world.serialize()).schemaVersion, 2);
+});

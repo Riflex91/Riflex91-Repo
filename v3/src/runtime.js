@@ -4,31 +4,49 @@ const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { GameAdapter } = require('./game/adapter');
 const { WorldModel, EvidenceKind } = require('./world/world-model');
+const { WorldPersistence } = require('./world/persistence');
+const { DiscoveryService } = require('./world/discovery');
+const { PerformanceTracker } = require('./telemetry/performance-tracker');
+const { ResearchJournal } = require('./research/research');
 const { partyProfile } = require('./party/capabilities');
 const { FarmPlanner } = require('./planner/farm-planner');
 
-const VERSION = '3.0.0-alpha.1';
+const VERSION = '3.0.0-alpha.2';
 
 class Runtime {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
+    this.root = options.root || globalThis;
     this.log = options.log || new EventLog({ version: VERSION, now: this.now, capacity: options.logCapacity || 4000 });
-    this.adapter = options.adapter || new GameAdapter({ root: options.root || globalThis, parent: options.parent, log: this.log, mode: options.mode || 'shadow' });
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: options.parent, log: this.log, mode: options.mode || 'shadow', now: this.now });
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
+    this.performance = options.performance || new PerformanceTracker({ now: this.now, log: this.log, windowMs: options.performanceWindowMs || 60000 });
+    this.persistence = options.persistence || new WorldPersistence({ root: this.root, storage: options.storage, now: this.now, log: this.log, minIntervalMs: options.persistenceIntervalMs || 30000 });
+    this.discovery = options.discovery || new DiscoveryService({ world: this.world, now: this.now, log: this.log });
+    this.research = options.research || new ResearchJournal({ world: this.world, now: this.now, log: this.log });
     this.tickMs = Math.max(100, Number(options.tickMs) || 250);
     this.timer = null;
     this.lastHeartbeat = 0;
     this.lastPlannerAudit = -Infinity;
     this.lastSnapshot = null;
+    this.lastDiscovery = null;
     this.startedAt = null;
+    this.worldLoaded = false;
   }
 
   setMode(mode) { return this.adapter.setMode(mode); }
 
+  _restoreWorldOnce() {
+    if (this.worldLoaded) return;
+    this.worldLoaded = true;
+    this.persistence.load(this.world);
+  }
+
   start() {
     if (this.timer) return false;
+    this._restoreWorldOnce();
     this.startedAt = this.startedAt || this.now();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
     this.tick();
@@ -37,22 +55,22 @@ class Runtime {
   }
 
   stop() {
-    if (!this.timer) return false;
+    if (!this.timer) {
+      this.persistence.maybeSave(this.world, { force: true });
+      return false;
+    }
     clearInterval(this.timer);
     this.timer = null;
+    this.performance.flush({ world: this.world }, 'RUNTIME_STOPPED');
+    this.persistence.maybeSave(this.world, { force: true });
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STOPPED' });
     return true;
   }
 
-  _observe(snapshot) {
+  _observeCharacter(snapshot) {
     if (!snapshot) return;
     const c = snapshot.character;
     this.world.observeEntity('character', c.name, { ctype: c.ctype, level: c.level, map: c.map, rip: c.rip }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
-    for (const entity of snapshot.entities) {
-      const type = entity.mtype ? 'monster' : entity.npc ? 'npc' : entity.player ? 'player' : entity.type || 'entity';
-      const id = entity.mtype || entity.name || entity.id;
-      this.world.observeEntity(type, id, { map: entity.map, x: entity.x, y: entity.y, live: !entity.dead }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
-    }
   }
 
   _partyProfile(snapshot) {
@@ -96,6 +114,7 @@ class Runtime {
   }
 
   tick() {
+    this._restoreWorldOnce();
     const snapshot = this.adapter.snapshot();
     if (!snapshot) {
       if (this.now() - this.lastHeartbeat > 5000) {
@@ -105,9 +124,13 @@ class Runtime {
       return;
     }
     this.lastSnapshot = snapshot;
-    this._observe(snapshot);
+    this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
+    const gameData = this.adapter.getGameData() || {};
+    this.lastDiscovery = this.discovery.scan(snapshot, gameData);
+    this.performance.observe(snapshot, { partyFingerprint: profile.fingerprint, world: this.world, gameData });
     this.scheduler.tick({ snapshot, adapter: this.adapter, world: this.world, party: profile, runtime: this });
+    this.persistence.maybeSave(this.world);
 
     if (this.now() - this.lastPlannerAudit >= 15000) {
       this.lastPlannerAudit = this.now();
@@ -118,7 +141,22 @@ class Runtime {
 
     if (this.now() - this.lastHeartbeat >= 5000) {
       this.lastHeartbeat = this.now();
-      this.log.emit({ component: 'runtime', event: 'HEARTBEAT', character: snapshot.character.name, data: { mode: this.adapter.mode, map: snapshot.character.map, hp: snapshot.character.hp, mp: snapshot.character.mp, gold: snapshot.character.gold, scheduler: { queued: this.scheduler.queue.length, active: this.scheduler.activeByOwner.size }, world: this.world.summary() } });
+      this.log.emit({
+        component: 'runtime',
+        event: 'HEARTBEAT',
+        character: snapshot.character.name,
+        data: {
+          mode: this.adapter.mode,
+          map: snapshot.character.map,
+          hp: snapshot.character.hp,
+          mp: snapshot.character.mp,
+          gold: snapshot.character.gold,
+          scheduler: { queued: this.scheduler.queue.length, active: this.scheduler.activeByOwner.size },
+          world: this.world.summary(),
+          performance: this.performance.status().current,
+          persistence: this.persistence.status()
+        }
+      });
     }
   }
 
@@ -132,6 +170,10 @@ class Runtime {
       character: this.lastSnapshot && this.lastSnapshot.character || null,
       scheduler: this.scheduler.snapshot(),
       world: this.world.summary(),
+      performance: this.performance.status(),
+      discovery: this.discovery.status(),
+      research: this.research.summary(),
+      persistence: this.persistence.status(),
       eventSummary: this.log.summary()
     };
   }
@@ -141,7 +183,10 @@ class Runtime {
       runtime: this.status(),
       snapshot: this.lastSnapshot,
       scheduler: this.scheduler.snapshot(),
-      world: this.world.summary()
+      world: this.world.diagnosticsSnapshot(200),
+      performance: this.performance.status(),
+      research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
+      discovery: this.lastDiscovery
     });
   }
 }

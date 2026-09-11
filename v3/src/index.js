@@ -5,6 +5,10 @@ const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { TaskState, createTask } = require('./core/task');
 const { WorldModel, KnowledgeState, EvidenceKind } = require('./world/world-model');
+const { WorldPersistence } = require('./world/persistence');
+const { DiscoveryService } = require('./world/discovery');
+const { PerformanceTracker } = require('./telemetry/performance-tracker');
+const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 
@@ -18,10 +22,13 @@ function install(root = globalThis, options = {}) {
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
     status: () => runtime.status(),
-    getEvents: (limit = 100) => runtime.log.list(limit),
+    getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics: () => runtime.exportDiagnostics(),
+    saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
     world: runtime.world,
     scheduler: runtime.scheduler,
+    performance: runtime.performance,
+    research: runtime.research,
     createTask,
     TaskState
   };
@@ -32,5 +39,7 @@ function install(root = globalThis, options = {}) {
 
 module.exports = {
   install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
-  WorldModel, KnowledgeState, EvidenceKind, FarmPlanner, partyProfile, capabilitiesFor
+  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
+  PerformanceTracker, ResearchJournal, ExperimentState,
+  FarmPlanner, partyProfile, capabilitiesFor
 };

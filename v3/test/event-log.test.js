@@ -14,3 +14,12 @@ test('EventLog redacts secrets and keeps a bounded ring buffer', () => {
   const bundle = JSON.parse(log.exportBundle({ authorization: 'hidden' }));
   assert.equal(bundle.context.authorization, '[redacted]');
 });
+
+test('EventLog supports structured filtering without changing the legacy numeric API', () => {
+  const log = new EventLog({ now: () => 1000, runId: 'query-test' });
+  log.emit({ component: 'performance', event: 'WINDOW', severity: 'info' });
+  log.emit({ component: 'persistence', event: 'SAVE', severity: 'warn', reason: 'TEST' });
+  assert.equal(log.query({ component: 'performance', limit: 10 }).length, 1);
+  assert.equal(log.query({ severity: 'warn', reason: 'TEST', limit: 10 })[0].event, 'SAVE');
+  assert.equal(log.query(1).length, 1);
+});
