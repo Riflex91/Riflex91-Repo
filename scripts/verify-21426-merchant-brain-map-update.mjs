@@ -13,10 +13,11 @@ ok(b.includes('v21426BrainModulesHTML')&&b.includes('data-brain-module')&&b.incl
 ok(b.includes('finde 100 bee wings'),'focus example missing');
 ok(!b.includes('applyAppearance();P.setTimeout(v282ShowWhatsNew,400);'),'Whats New still scheduled');
 ok(b.includes("button[data-action=\"update-check\"]")&&b.includes('v2148ManualUpdateInstall'),'manual update live delegate missing');
-ok(b.includes("encoding:'base36-rows-v1'")&&b.includes('v21426PackRows')&&!b.slice(b.indexOf('function v21426PackRows'),b.indexOf('function v21426BrainModuleRow')).includes('collision-lines'),'real terrain packing missing/uses collision fallback');
+const terrainBlock=b.slice(b.indexOf('function v21426PackRows'),b.indexOf('// Clean Brain UI'));
+ok(terrainBlock.includes("encoding:'base36-rows-v1'")&&terrainBlock.includes('v21426PackRows')&&terrainBlock.includes("source:'Adventure Land G.geometry/G.tilesets'")&&!terrainBlock.includes("fallback:'collision-lines'"),'v2.14.26 real terrain packing missing or collision fallback added');
 ok(h.includes('AIO_PLAYER_ARROW_URL')&&h.includes('DSCK-w5WxbEcUXrjkq5KHyO7TN9BJmyGkiMVX2vDmEc'),'requested arrow marker missing');
 ok(h.includes('.player-name21426{fill:#fff;font-size:10px'),'small character label missing');
-ok(h.includes('terrainPlacements21426')&&h.includes('base36'),'packed terrain decoder missing');
+ok(h.includes('terrainPlacements21426')&&h.includes('parseInt(v,36)'),'packed terrain decoder missing');
 ok(!h.includes('G.geometry-Kollisionslinien als Vektor-Fallback'),'collision overlay hint returned');
 ok(w.includes('const MAX_PUSH_BYTES = 128 * 1024;'),'worker push limit not raised for real terrain');
 ok(w.includes('Dashboard 2.14.26'),'embedded dashboard stale');
