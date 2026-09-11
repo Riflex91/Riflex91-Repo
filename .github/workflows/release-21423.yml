@@ -2,8 +2,6 @@ name: release-21423
 on:
   push:
     branches: ["release/2.14.23-merchant-liveness-buffs-map"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
