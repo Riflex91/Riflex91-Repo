@@ -1,4 +1,4 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.7
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.8
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
@@ -12,7 +12,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 - Emergency Disengage during unsafe active combat
 - **Safe Retreat Movement**: one bounded local `move` away from the current emergency threat cluster, executed only by the scheduler-owned Farmer
 - Basic Kiting during `ENGAGE`
-- Skill Usage v1: one conservative direct-damage single-target skill selected from live `G.skills` metadata
+- Skill Usage v2: a ranked ladder of the same conservative direct-damage single-target skills from live `G.skills` metadata, with bounded fallback when a higher-ranked safe candidate is temporarily unusable
 - Combat Target Reassessment v3: preserve self-aggro distance hysteresis and add a narrow threat override when another already-attacking self-aggressor has a materially higher known incoming-DPS proxy
 - range-aware local travel and basic attacks using observed `range`, `speed` and `frequency`, not fixed class names
 - recovery thresholds with HP/MP potion handling
@@ -20,7 +20,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 
 ## Safety boundary
 
-`3.0.0-alpha.8.7` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.8.8` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer performs only bounded combat/recovery primitives through the Scheduler and Safe Game Adapter.
 
@@ -40,7 +40,7 @@ AIO_V3.exportDiagnostics()
 AIO_V3.saveWorld()
 ```
 
-`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the selected v1 skill, latest decision and latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, the distance and threat switch factors, the threat metric, latest decision and latest target switch.
+`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the highest-ranked safe metadata candidate, whether bounded fallback is enabled, the latest selection decision including rejected candidates, and the latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, the distance and threat switch factors, the threat metric, latest decision and latest target switch.
 
 Shadow mode remains the safe default:
 
@@ -99,11 +99,11 @@ Default behavior:
 
 Successful requests are logged as `FARMER_KITE_MOVE_REQUESTED`; failures as `FARMER_KITE_MOVE_FAILED`.
 
-## Skill Usage v1
+## Skill Usage v2 — alpha.8.8
 
-This increment deliberately adds only one narrow skill path. It does not contain a class-specific rotation or a hard-coded `ranger` branch.
+The safe skill boundary from v1 is unchanged. This increment does **not** add a class-specific rotation, a hard-coded `ranger` branch, AoE, support/debuff skills or any new skill category.
 
-The Farmer inspects live `G.skills` metadata and selects at most one skill that satisfies all of these conditions:
+The Farmer inspects live `G.skills` metadata and builds a candidate list only from skills that satisfy all of these conditions:
 
 - `type === "skill"`
 - hostile single-target skill (`target === true` or `target === "monster"`)
@@ -111,11 +111,20 @@ The Farmer inspects live `G.skills` metadata and selects at most one skill that 
 - not an item-consume, slot-bound or persistent action
 - direct damage with `damage_multiplier > 1`
 
-Before use it preserves a default **30% max-MP reserve**, checks Adventure Land's live skill availability/cooldown helper, and checks the game's skill-range helper. Kiting has priority: if the target is currently too close, the Farmer repositions first and does not cast the skill on that tick.
+Safe candidates are ranked deterministically by higher `damage_multiplier`, then higher metadata cooldown, then stable skill ID. For each candidate in that order, the Farmer preserves the default **30% max-MP reserve**, checks Adventure Land's live skill availability/cooldown/requirement helper, and checks the game's skill-range helper. A candidate rejected by one of those gates is recorded and the next candidate from the **same safe pool** may be considered.
 
-The command path is `use_skill(skill, target)` through the Safe Game Adapter. The adapter resolves the target ID back to the live Adventure Land entity before calling the game API. If the skill command fails, the Farmer logs `FARMER_SKILL_USE_FAILED` and falls back to the existing attack path instead of entering `BLOCKED`.
+The four bounded Alpha.8.8 improvements are:
 
-Successful uses are logged as `FARMER_SKILL_USED`.
+- if the highest-ranked safe skill would violate the MP reserve, try the next safe candidate instead of abandoning the skill path immediately
+- if it is unavailable because of cooldown or a live requirement, try the next safe candidate
+- if it is out of range, try the next safe candidate
+- expose `candidateCount`, selected `candidateRank`, and `rejectedCandidates` in the latest skill decision/use telemetry
+
+Rank 1 keeps reason `SAFE_DIRECT_DAMAGE_SKILL`; a lower-ranked safe candidate uses `SAFE_DIRECT_DAMAGE_FALLBACK_SKILL`. If no safe candidate passes all gates, the Farmer preserves the primary rejection reason and falls back to the existing normal attack path rather than entering `BLOCKED`. Kiting still has priority: if the target is currently too close, the Farmer repositions first and does not cast a skill on that tick.
+
+The command path remains `use_skill(skill, target)` through the Safe Game Adapter. The adapter resolves the target ID back to the live Adventure Land entity before calling the game API. If the chosen skill command itself fails, the Farmer logs `FARMER_SKILL_USE_FAILED` and falls back to the existing attack path.
+
+Successful uses remain logged as `FARMER_SKILL_USED`; telemetry identifies whether the primary or a bounded fallback candidate was selected. No candidate outside the existing v1 direct single-target damage safety classifier can enter the ladder.
 
 ## Combat Target Reassessment v3 — alpha.8.7
 
@@ -165,9 +174,9 @@ AIO_V3.farmer.removeTargetExclusion("example")
 
 ## Current scope
 
-Alpha.8.7 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use one conservative single-target damage skill, prioritize an already attacking self-aggressor over a non-self-focused target, resolve multi-aggro toward a materially closer self-attacker, and prioritize a materially higher known `attack × frequency` self-aggressor without abandoning the existing switch cooldown.
+Alpha.8.8 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use the highest-ranked currently usable member of the existing conservative single-target direct-damage skill pool with bounded MP/cooldown/range fallback, prioritize an already attacking self-aggressor over a non-self-focused target, resolve multi-aggro toward a materially closer self-attacker, and prioritize a materially higher known `attack × frequency` self-aggressor without abandoning the existing switch cooldown.
 
-It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, HP/XP/planner-based target switching, armor/special-attack-aware threat modeling, full skill rotations, loot/economy loops, buying potions or merchant logistics.
+It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, HP/XP/planner-based target switching, armor/special-attack-aware threat modeling, AoE or full skill rotations, loot/economy loops, buying potions or merchant logistics.
 
 ## Development
 
