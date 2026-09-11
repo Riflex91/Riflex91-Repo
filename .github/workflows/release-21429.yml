@@ -2,8 +2,6 @@ name: release-21429
 on:
   push:
     branches: ["release/2.14.29-dashboard-town"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
