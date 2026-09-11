@@ -1,6 +1,6 @@
 'use strict';
 
-const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_skill', 'stop']);
+const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_hp_or_mp', 'use_skill', 'stop']);
 
 function finite(n) { return Number.isFinite(Number(n)) ? Number(n) : null; }
 
@@ -146,16 +146,21 @@ class GameAdapter {
       if (this.log) this.log.emit({ component: 'adapter', event: 'SHADOW_COMMAND', data: { action, args: args.map((x) => typeof x === 'object' && x ? (x.id || x.name || '[object]') : x) } });
       return { executed: false, shadow: true };
     }
-    const fn = this.root[action] || this.parent[action];
+    let resolvedAction = action;
+    let fn = this.root[action] || this.parent[action];
+    if (typeof fn !== 'function' && (action === 'use_hp' || action === 'use_mp')) {
+      resolvedAction = 'use_hp_or_mp';
+      fn = this.root.use_hp_or_mp || this.parent.use_hp_or_mp;
+    }
     if (typeof fn !== 'function') {
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action } });
-      return { executed: false, reason: 'COMMAND_UNAVAILABLE' };
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action, resolvedAction } });
+      return { executed: false, reason: 'COMMAND_UNAVAILABLE', action, resolvedAction };
     }
     try {
-      const prepared = this._prepareArgs(action, args);
+      const prepared = this._prepareArgs(resolvedAction, args);
       const value = fn.apply(this.root, prepared);
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action } });
-      return { executed: true, value };
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction } });
+      return { executed: true, value, action, resolvedAction };
     } catch (error) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_FAILED', severity: 'error', reason: String(error && error.message || error), data: { action } });
       return { executed: false, reason: 'COMMAND_FAILED', error };
