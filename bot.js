@@ -1,4 +1,4 @@
-/* Adventure Land • AiO Bot 2.14.35 | 2026-09-11
+/* Adventure Land • AiO Bot 2.14.36 | 2026-09-11
  * One codebase for farmer classes + merchant.
  * Focus: Merchant-directed 4-character logistics, shared inventory/crafting knowledge,
  * stable pathing, autonomous updates, deep diagnostics and Merchant service logistics.
@@ -9,7 +9,7 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.35';
+  var VERSION = '2.14.36';
   var BUILD = '2026-09-11';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
@@ -5890,5 +5890,111 @@
   };
 
   audit('feature_contract','2.14.35 Stadt-Kampfguard + Bank-Routenbindung + D1/Image-Dashboardbestätigung aktiv',{cityCombatForbidden:true,cityGoalForbidden:true,bankSnapshotAuthoritative:true,bankSettleMs:9000,dashboardImageAck:true,brainPolicyChanged:false,features:FEATURE_CONTRACT});
+
+  /* v2.14.36 merchant transaction routing + compact verified dashboard fallback */
+  try{FEATURE_CONTRACT.push('merchant-bank-quarantine-operation-scope','merchant-service-route-serialization','merchant-emergency-sell-slot-release','dashboard-compact-write-fallback','dashboard-cors-ack-poll');}catch(e){}
+
+  // A quarantine belongs to the failed item transfer, not to the whole bank. v2.14.26 treated any
+  // active quarantine as a terminal bank state and could therefore eject a Merchant while a different,
+  // valid cleanup/retrieve transaction was already committed to the bank.
+  function v21436ServicePrepStage(){var s=S.merchantServicePrep21430;return s&&String(s.stage||'')||'';}
+  function v21436ServicePrepOwnsRoute(){var st=v21436ServicePrepStage();return !!(st&&st!=='done'&&st!=='bank');}
+  function v21436CommittedBankWork(){
+    if(character.ctype!=='merchant'||String(character.map||'').indexOf('bank')!==0)return false;
+    var cleanup=S.merchantBankCleanup2148||null,retrieve=S.merchantBankRetrieve2149||null;
+    if(retrieve)return true;
+    if(!cleanup)return false;
+    if(cleanup.awaiting)return true;
+    try{return !!v2148BankCleanupCandidate();}catch(e){return true;}
+  }
+  var v21436BankEscapeBase=v21426BankEscapeTick;
+  v21426BankEscapeTick=function(){
+    if(v21436CommittedBankWork()){
+      var live=S.bankLiveness21426;if(live&&live.startedAt){live.startedAt=0;live.attempts=0;live.reason='';}
+      return false;
+    }
+    return v21436BankEscapeBase();
+  };
+
+  // Farmer-service preparation owns its route until the explicit bank stage. Capacity pressure must
+  // not start an unrelated bank cleanup while the Merchant is already travelling to potions/service.
+  var v21436StoreTrashBankBase=v273StoreTrashBankTick;
+  v273StoreTrashBankTick=function(){if(character.ctype==='merchant'&&v21436ServicePrepOwnsRoute())return false;return v21436StoreTrashBankBase();};
+
+  // Emergency selling is only useful for capacity if it actually frees a slot. The old fallback sold
+  // one unit from a large stack per tick (e.g. 60+ honey slices), producing action spam without freeing
+  // inventory space. Sell the whole locally dispensable stack portion in one transaction and never
+  // preempt a committed bank/service route.
+  S.emergencySell21436=S.emergencySell21436||null;
+  function v21436EmergencyBusy(){
+    var p=S.emergencySell21436;if(!p)return false;
+    var it=(character.items||[])[p.index],same=it&&it.name===p.name&&(Number(it.level)||0)===p.level,q=it?(Number(it.q)||1):0;
+    if(!same||q<Number(p.beforeQ||0)){S.emergencySell21436=null;return false;}
+    if(clock()-Number(p.startedAt||0)>8000){S.emergencySell21436=null;return false;}
+    return true;
+  }
+  v21431EmergencySellTick=function(){
+    if(character.ctype!=='merchant'||typeof sell!=='function')return false;
+    if(v21436EmergencyBusy())return true;
+    if(character.q||S.merchantBankCleanup2148||S.merchantBankRetrieve2149||(typeof v21435BankSettling==='function'&&v21435BankSettling())||v21436ServicePrepOwnsRoute())return false;
+    if(S.moveInFlight||character.moving)return false;
+    var row=v21431EmergencySellCandidate();if(!row)return false;
+    var dest=v2144SellVendor&&v2144SellVendor();if(dest&&!v21431VendorReady(dest))return moveToGoal(dest,'Kapazitäts-Notverkauf '+row.item.name,{kind:'merchant-capacity-emergency-vendor',forceAfter:9000});
+    var localQ=Math.max(1,Number(row.item.q)||1),others=Math.max(0,Number(row.owned||0)-localQ),keepLocal=Math.max(0,Number(row.need||0)-others),sellQ=Math.max(0,localQ-keepLocal);
+    // A partial stack sale does not create a free inventory slot, so it is not a valid capacity fallback.
+    if(sellQ<localQ)return false;
+    audit('merchant_capacity_emergency_sell','Bankpfad blockiert; kompletter entbehrlicher Stack wird zur Slot-Freigabe verkauft',{item:row.item.name,level:Number(row.item.level)||0,owned:row.owned,reserve:row.need,quantity:sellQ,value:row.value},'warning');
+    var pending={index:row.index,name:row.item.name,level:Number(row.item.level)||0,beforeQ:localQ,quantity:sellQ,startedAt:clock()};
+    var started=action('Kapazitäts-Notverkauf '+row.item.name+' x'+sellQ,function(){return sell(row.index,sellQ);},'merchant-capacity-emergency-sell',2500);
+    if(started)S.emergencySell21436=pending;return started;
+  };
+
+  // When a service route is already moving, inventory pressure may observe a transient free-slot
+  // shortage but must not take ownership of movement. Let merchantTick continue the committed route.
+  var v21436PressureBase=v290InventoryPressureTick;
+  v290InventoryPressureTick=function(){
+    if(character.ctype==='merchant'&&v21436ServicePrepOwnsRoute()&&(S.moveInFlight||character.moving))return false;
+    return v21436PressureBase();
+  };
+
+  // Dashboard: the main-map terrain payload can be >100 KiB. That exceeds common sendBeacon queue
+  // limits and made the write fallback unreliable. The fallback sends a compact status (terrain is
+  // restored on the next verified full CORS write) and verifies D1 through a tiny CORS GET instead
+  // of an <img>, which Adventure Land can block independently via img-src/CSP.
+  function v21436CompactDashboardPayload(payload){var x=Object.assign({},payload||{});if(x.terrain)x.terrain=null;return x;}
+  function v21436DashboardAckUrl(endpoint,payload){try{var u=new URL(endpoint);u.pathname=u.pathname.replace(/\/api\/push\/?$/,'/api/push-ack');u.search='';u.searchParams.set('name',me);u.searchParams.set('after',String(Number(payload&&payload.updatedAt)||0));u.searchParams.set('_',String(clock())+Math.random().toString(36).slice(2));return u.toString();}catch(e){return '';}}
+  function v21436DashboardAckFetch(endpoint,payload,timeout){
+    var f=typeof P.fetch==='function'?P.fetch.bind(P):((typeof fetch==='function')?fetch:null);if(!f)return Promise.reject(Error('dashboard ack fetch unavailable'));
+    var deadline=clock()+(timeout||7000);
+    return new Promise(function(resolve,reject){
+      function poll(){
+        if(clock()>=deadline)return reject(Error('dashboard CORS acknowledgement timeout'));
+        var u=v21436DashboardAckUrl(endpoint,payload);if(!u)return reject(Error('invalid dashboard acknowledgement endpoint'));
+        Promise.resolve(f(u,{method:'GET',mode:'cors',credentials:'omit',cache:'no-store'})).then(function(r){if(!r||!r.ok)throw Error('ACK HTTP '+(r&&r.status));return r.json();}).then(function(j){if(j&&j.ok===true&&j.name===me&&Number(j.updatedAt||0)>=Number(payload.updatedAt||0))resolve({verified:true,transport:'cloudflare-worker/compact-write+cors-ack',ack:j});else throw Error('dashboard acknowledgement pending');}).catch(function(){P.setTimeout(poll,500);});
+      }
+      poll();
+    });
+  }
+  function v21436BlindFormPost(endpoint,payload,key){
+    try{if(!D||!D.body)return false;var u=new URL(endpoint);u.pathname=u.pathname.replace(/\/api\/push\/?$/,'/api/pushframe');u.search='';var frame=D.createElement('iframe'),form=D.createElement('form'),a=D.createElement('input'),b=D.createElement('input'),name='aio21436-'+clock()+'-'+Math.random().toString(36).slice(2,8);frame.name=name;frame.style.display='none';form.method='POST';form.action=u.toString();form.target=name;form.style.display='none';a.type='hidden';a.name='writeKey';a.value=String(key||'');b.type='hidden';b.name='status';b.value=JSON.stringify(payload);form.appendChild(a);form.appendChild(b);D.body.appendChild(frame);D.body.appendChild(form);form.submit();P.setTimeout(function(){try{form.remove();frame.remove();}catch(e){}},9000);return true;}catch(e){return false;}
+  }
+  function v21436DashboardWriteAndVerify(endpoint,payload,key){
+    var compact=v21436CompactDashboardPayload(payload),body=JSON.stringify({writeKey:key,status:compact}),f=typeof P.fetch==='function'?P.fetch.bind(P):((typeof fetch==='function')?fetch:null),beacon=false,form=false;
+    try{var nav=(P&&P.navigator)||((typeof navigator!=='undefined')?navigator:null),BlobCtor=P.Blob||((typeof Blob!=='undefined')?Blob:null);if(nav&&typeof nav.sendBeacon==='function'&&BlobCtor)beacon=!!nav.sendBeacon(endpoint,new BlobCtor([body],{type:'text/plain;charset=UTF-8'}));}catch(e){}
+    // Form submission is an independent fallback from connect-src/fetch. Duplicate upserts are safe.
+    form=v21436BlindFormPost(endpoint,compact,key);
+    var noCors=Promise.resolve();if(!beacon&&f)noCors=Promise.resolve(f(endpoint,{method:'POST',mode:'no-cors',credentials:'omit',cache:'no-store',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:body})).catch(function(){});
+    return noCors.then(function(){return new Promise(function(r){P.setTimeout(r,250);});}).then(function(){return v21436DashboardAckFetch(endpoint,compact,7500);}).catch(function(e){e.fallbackAttempted=!!(beacon||form||f);throw e;});
+  }
+  dashboardPublishTick=function(force){
+    if((!C.webDashboardEnabled&&!force)||S.dashboardSending)return false;
+    var raw=String(C.webDashboardConnectionUrl||'').trim(),endpoint=v280DashboardEndpoint(raw),key=String(C.webDashboardWriteKey||'').trim(),now=clock(),ds=S.dashboardTransport21432||(S.dashboardTransport21432={failures:0,retryAt:0,lastFallbackAuditAt:0});
+    if(!endpoint||!key){if(C.webDashboardEnabled||force){S.dashboardLastError=!endpoint?'Cloudflare-Dashboard-URL fehlt/ist nicht HTTPS':'Dashboard-Schreibschlüssel fehlt';S.dashboardFailAt=now;}return false;}
+    if(!force&&now<Number(ds.retryAt||0))return false;if(!force&&now-S.lastDashboardPublish<C.webDashboardIntervalSeconds*1000)return false;
+    S.lastDashboardPublish=now;var payload=dashboardPayload(),body=JSON.stringify({writeKey:key,status:payload});S.dashboardSending=true;S.dashboardTransportErrors=[];audit('dashboard_send','Cloudflare Worker dashboard status send',{endpoint:endpoint,payload:v276DashboardCompactPayload(payload),wireBytes:body.length,terrainBytes:Number(payload&&payload.terrain&&payload.terrain.bytes)||0});
+    v21434DashboardCorsPost(endpoint,body).catch(function(first){S.dashboardTransportErrors.push(reason(first));audit('dashboard_cors_ack_retry','CORS-POST nicht lesbar; kompakter Write-Fallback + CORS-ACK wird versucht',{error:reason(first),fullBytes:body.length},'warning');return v21436DashboardWriteAndVerify(endpoint,payload,key);}).then(function(result){ds.failures=0;ds.retryAt=0;S.dashboardTransport=result.transport;S.dashboardLastOK=clock();S.dashboardLastAck=clock();S.dashboardFailAt=0;S.dashboardLastError='';S.dashboardProbe={ok:true,at:clock(),error:'',host:(new URL(endpoint)).host};audit('dashboard_ack','Cloudflare Worker/D1 hat Status bestätigt',{name:me,receivedAt:result.ack&&result.ack.receivedAt,transport:result.transport});}).catch(function(e){ds.failures=Math.min(8,Number(ds.failures||0)+1);ds.retryAt=clock()+(typeof v21432DashboardBackoffMs==='function'?v21432DashboardBackoffMs(ds.failures-1):Math.min(300000,5000*Math.pow(2,ds.failures-1)));S.dashboardProbe={ok:false,at:clock(),error:reason(e)};S.dashboardFailAt=clock();S.dashboardLastError=reason(e);audit('dashboard_error','Cloudflare-Dashboard nicht bestätigt: '+S.dashboardLastError,{endpoint:endpoint,retryAt:ds.retryAt,failures:ds.failures,transportErrors:S.dashboardTransportErrors.slice(-3)},'error');}).finally(function(){S.dashboardSending=false;renderAll(true);});return true;
+  };
+
+  audit('feature_contract','2.14.36 Merchant-Routen serialisiert + slotfreigebender Notverkauf + kompakter Dashboard-CORS-ACK aktiv',{bankQuarantineScoped:true,serviceRouteSerialized:true,emergencySellSlotRelease:true,dashboardCompactFallback:true,dashboardCorsAck:true,brainPolicyChanged:false,brainModel:C.brainModel,brainMinConfidencePct:C.brainMinConfidencePct,features:FEATURE_CONTRACT});
 
 })();
