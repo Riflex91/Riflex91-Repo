@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import vm from 'node:vm';
+function ok(x,m){if(!x)throw new Error(m)}
+const b=fs.readFileSync('bot.js','utf8'),h=fs.readFileSync('cloudflare-dashboard/dashboard.html','utf8'),w=fs.readFileSync('cloudflare-dashboard/src/worker.js','utf8'),v=JSON.parse(fs.readFileSync('version.json','utf8')),p=JSON.parse(fs.readFileSync('cloudflare-dashboard/package.json','utf8'));
+ok(v.version==='2.14.27'&&v.dashboardVersion==='2.14.27'&&p.version==='2.14.27','version mismatch');
+ok(b.includes("var VERSION = '2.14.27';")&&b.includes('/* v2.14.27 live-proof Merchant, Brain UI and full-terrain payload */'),'bot release marker missing');
+ok(b.includes('function v21427HasActiveQueue()')&&b.includes("Object.keys(q).some"),'empty-q helper missing');
+ok(b.includes("if(S.merchantBankRetrieve2149&&!v21427HasActiveQueue())"),'bank retrieve release still treats empty q as busy');
+ok(b.includes("audit('merchant_bank_terminal_state_released'")&&b.includes("audit('merchant_bank_liveness_exit_attempt'"),'merchant release/exit telemetry missing');
+const final=b.lastIndexOf('/* v2.14.27 live-proof Merchant, Brain UI and full-terrain payload */');
+ok(final>b.lastIndexOf('var v21423MerchantBase=merchantTick'),'v2.14.27 guard is not after historical Merchant wrappers');
+ok(b.slice(final).includes('var v21427MerchantBase=merchantTick')&&b.slice(final).includes("if(character.ctype==='merchant'&&v21426BankEscapeTick())return true"),'outermost Merchant liveness wrapper missing');
+ok(b.slice(final).includes("gc:groups.map(v21427PackRows)")&&b.slice(final).includes("ac:v21427PackRows(animations)")&&!b.slice(final).includes('out.g=[]'),'full terrain groups/animations not preserved');
+ok(b.slice(final).includes("encoding:'base36-all-v2'")&&b.slice(final).includes("dashboard_terrain_payload"),'terrain diagnostics/encoding missing');
+ok(b.slice(final).includes('function v21427BrainHTML()')&&b.slice(final).includes("toolHTML=function(key){if(key==='brain')return v21427BrainHTML()"),'final Brain dispatcher missing');
+ok(b.slice(final).includes('data-brain-module')&&b.slice(final).includes('data-brain-focus')&&b.slice(final).includes('finde 100 bee wings'),'Brain module/focus controls missing');
+ok(b.includes("brainMinConfidencePct: 70")&&b.includes("brainModel: '@cf/qwen/qwen3-30b-a3b-fp8'"),'Brain safety/model invariant changed');
+ok(h.includes('v2.14.27 inline player arrow + packed group terrain recovery'),'dashboard patch missing');
+ok(h.includes('playerArrow21426=function(size=30)')&&h.includes('M0 -17 L12 -3.5')&&h.includes('drop-shadow'),'inline glow arrow missing');
+ok(h.includes('.pin text.player-name21426{font-size:10px!important'),'small player label override missing');
+ok(h.includes('v21427HydrateTerrain')&&h.includes('t.gc')&&h.includes('t.ac'),'dashboard packed group hydration missing');
+ok(h.includes("file.startsWith('//')")&&h.includes("new URL(file,'https://adventure.land/')"),'terrain URL normalization missing');
+ok(w.includes('const MAX_PUSH_BYTES = 512 * 1024;'),'worker push limit missing');
+ok(w.includes('packedGroups')&&w.includes('gc:packedGroups')&&w.includes('ac:packedAnimations'),'worker strips packed terrain groups');
+ok(w.includes('worker-size-guard-v21427'),'worker terrain guard marker missing');
+ok(w.includes('AiO Bot Dashboard 2.14.27'),'Worker embedded dashboard stale');
+new vm.Script(b,{filename:'bot.js'});
+for(const m of h.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(m[1],{filename:'dashboard-inline.js'});
+const ws={console,crypto:{subtle:{}},TextEncoder,URL,Response:function(){},Request:function(){},Headers:function(){}};vm.createContext(ws);new vm.Script(w.replace(/\bexport\s+default\b/,'const __worker_default =')+'\n;globalThis.__cleanTerrain=cleanTerrain;',{filename:'worker.js'}).runInContext(ws);const ct=ws.__cleanTerrain({map:'main',source:'x',encoding:'base36-all-v2',d:0,t:[['custom',0,0,16]],pc:'0,0,0',gc:['0,1,1;0,2,2'],ac:'0,3,3',s:{custom:'/images/tiles/map/custom.png'}});ok(ct&&ct.pc==='0,0,0'&&ct.gc&&ct.gc[0]&&ct.ac==='0,3,3','Worker cleanTerrain does not preserve packed terrain');
+console.log('v2.14.27 live-proof invariants OK');
