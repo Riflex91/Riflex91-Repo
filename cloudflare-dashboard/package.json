@@ -1,7 +1,7 @@
 {
   "name": "aio-bot-dashboard",
   "private": true,
-  "version": "2.14.30",
+  "version": "2.14.31",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

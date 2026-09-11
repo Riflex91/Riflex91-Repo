@@ -1,0 +1,76 @@
+      S.status='Farmer-Selbstservice · zurück zum Farmspot';S.mode='Farmer · Selbstservice';
+      return v21431FarmerMove(st.origin,'Zurück zum Farmspot','farmer-self-service-return');
+    }
+    return true;
+  }
+  function v21431FarmerEvaluate(){
+    if(character.ctype==='merchant'||character.rip||S.farmerSelfService21431)return false;
+    var plan=v21431ServicePlan();if(!v21431SelfServiceNeeded(plan))return false;
+    var m=v21431MerchantEta(),f=v21431FarmerServiceEta(plan),critical=freeSlots()<=V21431_CRITICAL_FREE,lease=v21431PeerLease(),d=v21431SelfServiceDecision(m,f,{critical:critical,leaseBlocked:!!lease});
+    if(clock()>Number(S.times.farmerSelfServiceEval21431||0)){
+      S.times.farmerSelfServiceEval21431=clock()+15000;
+      audit('merchant_service_eta','Merchant-Service-ETA bewertet',{merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,credible:m.credible,blocked:m.blocked,reason:m.reason,reportAgeMs:m.reportAgeMs});
+      audit('farmer_service_eta','Farmer-Rundreise-ETA bewertet',{farmerRoundTripEtaSeconds:f.seconds,credible:f.credible,route:f.route,actionSeconds:f.actionSeconds});
+      audit('farmer_self_service_evaluated','Farmer-Selbstservice bewertet',{selected:d.selected,failsafe:d.failsafe,reason:d.reason,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,farmerRoundTripEtaSeconds:f.seconds,savingSeconds:d.savingSeconds,savingPct:d.savingPct,minSavingSeconds:V21431_MIN_SAVING_SECONDS,minSavingPct:V21431_MIN_SAVING_PCT,free:freeSlots(),lease:lease&&lease.holder||null});
+    }
+    if(!d.selected){if(lease&&clock()>Number(S.times.farmerSelfServiceDeferred21431||0)){S.times.farmerSelfServiceDeferred21431=clock()+30000;audit('farmer_self_service_deferred','Farmer-Selbstservice wegen Gruppenkoordination/ETA verschoben',{reason:d.reason,lease:lease.holder||null});}return false;}
+    var origin={map:character.map,x:Number(character.x)||0,y:Number(character.y)||0,targetMtype:S.targetMtype||null,goal:S.goal?Object.assign({},S.goal):null,at:clock()};
+    S.farmerSelfService21431={active:true,stage:'service',critical:critical,failsafe:d.failsafe,origin:origin,beforeFree:freeSlots(),stages:[],startedAt:clock(),lastLeaseAt:0,expiresAt:clock()+V21431_LEASE_MS};
+    v21431BroadcastLease(true,critical);
+    audit(d.failsafe?'farmer_self_service_failsafe':'farmer_self_service_selected',d.failsafe?'Farmer-Selbstservice als Sicherheitsfallback gewählt':'Farmer-Selbstservice ist voraussichtlich schneller',{reason:d.reason,merchantEtaSeconds:isFinite(m.seconds)?Number(m.seconds.toFixed(1)):null,farmerRoundTripEtaSeconds:f.seconds,savingSeconds:d.savingSeconds,savingPct:d.savingPct,route:f.route,origin:origin,critical:critical});
+    audit('farmer_self_service_start','Farmer startet Selbstservice',{origin:origin,beforeFree:freeSlots(),route:f.route});
+    return true;
+  }
+
+  var v21431FarmerTickBase=farmerTick;
+  farmerTick=function(){
+    if(character.ctype!=='merchant'){
+      if(S.farmerSelfService21431)return v21431FarmerServiceTick();
+      if(clock()>Number(S.times.farmerSelfServiceCheck21431||0)){S.times.farmerSelfServiceCheck21431=clock()+5000;if(v21431FarmerEvaluate())return v21431FarmerServiceTick();}
+    }
+    return v21431FarmerTickBase();
+  };
+
+  var v21431ReportBase=report;
+  report=function(withRole){
+    var r=v21431ReportBase(withRole),st=S.farmerSelfService21431;
+    r.speed=Number(character.speed)||0;
+    r.selfService21431=st?{active:true,critical:!!st.critical,stage:st.stage,expiresAt:Number(st.expiresAt)||0,origin:st.origin}:null;
+    if(character.ctype==='merchant')r.merchantHealth21431={capacityBlocked:!!S.capacityBlocked21418,bankCleanup:!!S.merchantBankCleanup2148,bankRetrieve:!!S.merchantBankRetrieve2149,free:freeSlots(),mode:S.mode,status:S.status};
+    return r;
+  };
+
+  var v21431DashboardPayloadBase=dashboardPayload;
+  dashboardPayload=function(){
+    var x=v21431DashboardPayloadBase(),st=S.farmerSelfService21431;
+    x.selfService21431=st?{active:true,critical:!!st.critical,stage:st.stage,origin:st.origin,beforeFree:st.beforeFree,free:freeSlots(),expiresAt:st.expiresAt}:null;
+    return x;
+  };
+
+  var v21431BrainApplyBase=v290ApplyBrainDecision;
+  v290ApplyBrainDecision=function(d){
+    var applied=v21431BrainApplyBase(d);if(applied){S.brain.lastAppliedDecision21431={decision:d,at:clock()};}return applied;
+  };
+  var v21431ExplainBase=v21411Explain;
+  v21411Explain=function(){
+    var x=v21431ExplainBase(),a=S.brain&&S.brain.lastAppliedDecision21431,recent=a&&clock()-Number(a.at||0)<300000;
+    if(recent){
+      x.sourceKind='brain';x.sourceLabel='Aktive Brain-/Student-Entscheidung';x.brainDecision=a.decision;
+      x.current=safeString(a.decision.action+(a.decision.target?' · '+a.decision.target:''),180);
+      x.why=safeString(a.decision.reason||'Brain-Entscheidung mit ausreichender Sicherheit angewendet.',260);
+    }else{
+      x.sourceKind=character.ctype==='merchant'?'merchant-deterministic':'farmer-deterministic';
+      x.sourceLabel=character.ctype==='merchant'?'Deterministische Merchant-Automatik':'Deterministische Farmer-Automatik';
+      x.runtimeCurrent=safeString(S.status||S.mode||'Beobachten',180);
+      x.runtimeWhy=safeString(S.taskReason||'Lokale Sicherheits- und Prioritätslogik.',260);
+      x.current='Keine aktive neuronale Entscheidung';
+      x.why='Der aktuelle Laufzeitzustand wird von deterministischer Bot-Logik gesteuert; Merchant-Plan und Inventarstatus sind keine Brain-Entscheidung.';
+      x.next=x.planner&&x.planner.chosen?'Planner-Vorschlag: '+x.planner.chosen.label+' · '+x.planner.chosen.reason:x.next;
+    }
+    return x;
+  };
+
+  audit('feature_contract','2.14.31 Farmer-Selbstservice + Bestiarium-Itempolicy + Merchant-Liveness + Brain-Quellentrennung geprüft',{
+    minSavingSeconds:V21431_MIN_SAVING_SECONDS,minSavingPct:V21431_MIN_SAVING_PCT,leaseMs:V21431_LEASE_MS,
+    bankStoreTargeted:true,itemPolicySource:'bestiary-items',brainSourceSeparated:true
+  });

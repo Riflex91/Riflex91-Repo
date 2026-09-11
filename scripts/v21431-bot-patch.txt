@@ -1,0 +1,120 @@
+
+  /* v2.14.31 Farmer self-service, Bestiary item policy, Merchant liveness and Brain source separation */
+  // ---------------------------------------------------------------------------
+  // 2.14.31 unified item policy + Farmer self-service + merchant liveness
+  // ---------------------------------------------------------------------------
+  try{
+    [
+      'bestiary-item-policy-authority',
+      'merchant-capacity-relief-v2',
+      'merchant-bank-explicit-target',
+      'farmer-self-service-eta',
+      'farmer-self-service-failsafe',
+      'farmer-self-service-lease',
+      'brain-source-separation',
+      'permission-menu-auto-close'
+    ].forEach(function(f){if(FEATURE_CONTRACT.indexOf(f)<0)FEATURE_CONTRACT.push(f);});
+  }catch(e){}
+
+  var V21431_MIN_SAVING_SECONDS=25;
+  var V21431_MIN_SAVING_PCT=30;
+  var V21431_MERCHANT_STALE_MS=60000;
+  var V21431_LEASE_MS=150000;
+  var V21431_CRITICAL_FREE=1;
+  var V21431_SERVICE_HUB={map:'main',x:-56,y:402};
+
+  S.farmerSelfService21431=S.farmerSelfService21431||null;
+  S.farmerSelfServiceLeases21431=S.farmerSelfServiceLeases21431||{};
+  S.merchantHealth21431=S.merchantHealth21431||{blockedSince:0,lastProgressAt:clock(),lastSig:''};
+
+  function v21431MigrateItemPolicy(){
+    var permissions=Object.assign({},C.merchantItemPermissions||{}),legacy=Object.assign({},C.merchantItemActions||{}),rules=Object.assign({},C.merchantItemRules||{}),changed=false;
+    function take(name,action){
+      if(['sell','bank','compound','upgrade'].indexOf(action)<0)return;
+      var row=Object.assign({},permissions[name]||{});
+      if(typeof row[action]!=='boolean')row[action]=true;
+      permissions[name]=row;changed=true;
+    }
+    Object.keys(legacy).forEach(function(name){
+      var action=String(legacy[name]||'').toLowerCase();
+      if(['sell','bank','compound','upgrade'].indexOf(action)>=0){take(name,action);delete legacy[name];}
+    });
+    Object.keys(rules).forEach(function(name){
+      var row=rules[name];if(!row||typeof row!=='object')return;
+      var action=String(row.action||'auto').toLowerCase();
+      if(['sell','bank','compound','upgrade'].indexOf(action)>=0){
+        take(name,action);rules[name]=Object.assign({},row,{action:'auto'});
+      }
+    });
+    if(!changed)return false;
+    C.merchantItemPermissions=permissions;C.merchantItemActions=legacy;C.merchantItemRules=rules;C=cleanConfig(C);write('config',C);S.cloudConfigDirty=true;
+    audit('merchant_item_policy_migrated','Merchant-Itemverhalten in Bestiarium/Items-Rechte überführt',{items:Object.keys(permissions).length});
+    return true;
+  }
+  v21431MigrateItemPolicy();
+
+  function v21431PermissionRow(name){var x=C.merchantItemPermissions&&C.merchantItemPermissions[name];return x&&typeof x==='object'?x:{};}
+  function v21431ExactCopies(it){return (character.items||[]).filter(function(x){return x&&x.name===it.name&&(Number(x.level)||0)===(Number(it.level)||0)&&!x.l&&!x.p;}).length;}
+  function v21431ForcedPermission(it,p){
+    if(!it||!p||p.protected)return null;
+    var r=v21431PermissionRow(it.name),d=GD.items&&GD.items[it.name]||{},lv=Number(it.level)||0;
+    if(r.compound===true&&d.compound&&v21431ExactCopies(it)>=3&&lv<v273EffectiveCompoundMax(it.name))return 'COMPOUND';
+    if(r.upgrade===true&&d.upgrade&&lv<Number(C.merchantUpgradeMax||4))return 'UPGRADE';
+    if(r.sell===true&&!d.quest&&!d.event&&!d.cash&&!d.rare&&!d.e&&!d.exchange&&!d.exchanges&&Number(p.surplus||0)>0)return 'SELL';
+    if(r.bank===true&&Number(p.surplus||0)>0)return 'BANK';
+    return null;
+  }
+  var v21431PolicyBase=v21422Policy;
+  v21422Policy=function(it,where){
+    var p=v21431PolicyBase(it,where);if(!it||!p||p.protected)return p;
+    var r=v21431PermissionRow(it.name),key=p.action==='SELL'?'sell':p.action==='BANK'?'bank':p.action==='COMPOUND'?'compound':p.action==='UPGRADE'?'upgrade':'';
+    if(key&&r[key]===false)return Object.assign({},p,{action:'KEEP',reason:'bestiary-'+key+'-denied'});
+    var forced=v21431ForcedPermission(it,p);
+    if(forced){
+      var forcedKey=forced.toLowerCase();
+      if(r[forcedKey]===false)return Object.assign({},p,{action:'KEEP',reason:'bestiary-'+forcedKey+'-denied'});
+      return Object.assign({},p,{action:forced,reason:'bestiary-'+forcedKey+'-selected',explicit:true});
+    }
+    return p;
+  };
+
+  function v21431ServicePlan(){
+    var out={compound:[],upgrade:[],sell:[],bank:[],exchange:[],keep:[],free:freeSlots(),used:(character.items||[]).filter(Boolean).length};
+    (character.items||[]).forEach(function(it,index){
+      if(!it)return;var p=v21422Policy(it,'inventory'),key=String(p&&p.action||'KEEP').toLowerCase(),row={index:index,item:it,policy:p};
+      if(out[key])out[key].push(row);else out.keep.push(row);
+    });
+    return out;
+  }
+
+  function v21431BankPackTable(){try{return (typeof bank_packs!=='undefined'&&bank_packs)||(P&&P.bank_packs)||{};}catch(e){return {};}}
+  function v21431BankTarget(it,preferCurrent){
+    if(!character.bank)return null;var table=v21431BankPackTable(),rows=[];
+    Object.keys(character.bank).forEach(function(pack){
+      if(!/^items\d+$/.test(pack)||!Array.isArray(character.bank[pack]))return;
+      var arr=character.bank[pack],map=table[pack]&&String(table[pack][0]||'bank')||'bank';
+      for(var i=0;i<arr.length;i++)if(!arr[i]){rows.push({pack:pack,slot:i,map:map});break;}
+    });
+    rows.sort(function(a,b){
+      var ac=a.map===character.map?0:1,bc=b.map===character.map?0:1;if(preferCurrent&&ac!==bc)return ac-bc;
+      return Number(a.pack.slice(5))-Number(b.pack.slice(5))||a.slot-b.slot;
+    });
+    return rows[0]||null;
+  }
+  var v21431BankStoreBase=typeof bank_store==='function'?bank_store:null;
+  if(v21431BankStoreBase){
+    bank_store=function(num,pack,pack_num){
+      if((pack==null||pack==='')&&character.items&&character.items[num]){
+        var autoTarget=v21431BankTarget(character.items[num],true);
+        if(autoTarget&&autoTarget.map===character.map)return v21431BankStoreBase(num,autoTarget.pack,autoTarget.slot);
+      }
+      return v21431BankStoreBase(num,pack,pack_num);
+    };
+  }
+
+  function v21431BankStore(row,kind){
+    if(!row||!row.item||typeof bank_store!=='function')return false;
+    var target=v21431BankTarget(row.item,true);
+    if(!target){S.bankFull=true;return false;}
+    if(character.map!==target.map){
+      S.status='Bankfach '+target.pack+' erreichen';S.mode=character.ctype==='merchant'?'Merchant · Bank':'Farmer · Selbstservice';

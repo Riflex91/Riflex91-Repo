@@ -1,0 +1,78 @@
+    close.style.cssText='position:absolute;right:6px;top:4px;border:0;background:transparent;color:inherit;font-size:20px;cursor:pointer;padding:2px 6px;';
+    close.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();v21431ClosePermissionContext();});
+    el.style.position='fixed';el.appendChild(close);
+    el.addEventListener('mouseleave',function(){v21431ClosePermissionContext();},{once:true});
+  };
+
+  function v21431TownAvailable(){
+    if(!C.fastTravelEnabled||typeof town!=='function'||String(character.map||'')!=='main')return false;
+    try{if(typeof is_on_cooldown==='function'&&is_on_cooldown('use_town'))return false;}catch(e){}
+    try{if(typeof can_use==='function'&&!can_use('use_town'))return false;}catch(e){}
+    return true;
+  }
+  function v21431TravelEstimate(from,target,speed,allowTown){
+    speed=Math.max(20,Number(speed)||40);from=from||{};target=target||{};
+    if(String(from.map||'')!==String(target.map||''))return {seconds:35,route:'smart_move',credible:false};
+    var direct=Math.hypot((Number(from.x)||0)-(Number(target.x)||0),(Number(from.y)||0)-(Number(target.y)||0)),walk=direct/speed,best=walk,route='smart_move';
+    if(allowTown&&String(from.map)==='main'&&String(target.map)==='main'){
+      var spawn=v21429TownSpawn(),after=Math.hypot((Number(spawn.x)||0)-(Number(target.x)||0),(Number(spawn.y)||0)-(Number(target.y)||0))/speed+4;
+      if(direct>=500&&after+2<best){best=after;route='town';}
+    }
+    return {seconds:Number(best.toFixed(1)),route:route,credible:true,walkSeconds:Number(walk.toFixed(1))};
+  }
+  function v21431MerchantReport(){
+    var mn=merchantName&&merchantName();if(!mn||mn===me)return null;
+    var live=S.reports&&S.reports[mn],saved=read('report:'+mn,null),r=null;
+    if(live&&saved)r=Number(live.at||0)>=Number(saved.at||0)?live:saved;else r=live||saved;
+    return r&&r.ctype==='merchant'?r:null;
+  }
+  function v21431MerchantEta(){
+    var r=v21431MerchantReport(),now=clock();if(!r)return {seconds:Infinity,credible:false,blocked:true,reason:'merchant-report-missing'};
+    var age=now-Number(r.at||0),blocked=!r.active||r.rip||age>V21431_MERCHANT_STALE_MS,reason=blocked?(r.active===false?'merchant-inactive':age>V21431_MERCHANT_STALE_MS?'merchant-report-stale':'merchant-unavailable'):'';
+    var penalty=12,status=(String(r.status||'')+' '+String(r.mode||'')).toLowerCase();
+    if(/bank|bankentnahme/.test(status))penalty+=45;
+    if(/kapaz|inventar|freie plätze|scroll-kauf/.test(status))penalty+=60;
+    if(/craft|upgrade|compound|exchange|versorgung/.test(status))penalty+=25;
+    var q=0;try{q=v277MerchantServiceCandidates().filter(function(x){return x&&x.r&&x.r.name!==me&&x.urgent;}).length;}catch(e){}
+    penalty+=Math.min(75,q*20);
+    var travel=v21431TravelEstimate(r,{map:character.map,x:character.x,y:character.y},Number(r.speed)||55,false),seconds=blocked?Infinity:penalty+travel.seconds;
+    return {seconds:seconds,credible:!blocked&&travel.credible,blocked:blocked,reason:reason||'merchant-route-and-queue',reportAgeMs:age,travelSeconds:travel.seconds,queue:q,status:r.status||'',mode:r.mode||''};
+  }
+  function v21431FarmerServiceEta(plan){
+    var origin={map:character.map,x:character.x,y:character.y},to=v21431TravelEstimate(origin,V21431_SERVICE_HUB,character.speed,v21431TownAvailable()),back=v21431TravelEstimate(V21431_SERVICE_HUB,origin,character.speed,false);
+    var actionSeconds=4+plan.compound.length*5+plan.upgrade.length*4+plan.sell.length*2+plan.bank.length*4;
+    if(qty(C.hpot)<Number(C.stockHP||0)||qty(C.mpot)<Number(C.stockMP||0))actionSeconds+=4;
+    return {seconds:Number((to.seconds+back.seconds+actionSeconds).toFixed(1)),credible:to.credible&&back.credible,route:to.route,toSeconds:to.seconds,backSeconds:back.seconds,actionSeconds:actionSeconds};
+  }
+  function v21431SelfServiceDecision(m,f,coord){
+    var critical=!!(coord&&coord.critical),leaseBlocked=!!(coord&&coord.leaseBlocked);
+    if(critical&&(m.blocked||!m.credible||!isFinite(m.seconds)))return {selected:true,failsafe:true,reason:'critical-inventory-and-merchant-unavailable',savingSeconds:null,savingPct:null};
+    if(leaseBlocked&&!critical)return {selected:false,failsafe:false,reason:'peer-self-service-lease',savingSeconds:null,savingPct:null};
+    if(!m.credible||!f.credible||!isFinite(m.seconds)||!isFinite(f.seconds))return {selected:false,failsafe:false,reason:'eta-not-credible',savingSeconds:null,savingPct:null};
+    var saving=m.seconds-f.seconds,pct=m.seconds>0?saving/m.seconds*100:0,selected=saving>=V21431_MIN_SAVING_SECONDS&&pct>=V21431_MIN_SAVING_PCT;
+    return {selected:selected,failsafe:false,reason:selected?'farmer-roundtrip-faster':'merchant-faster-or-hysteresis',savingSeconds:Number(saving.toFixed(1)),savingPct:Number(pct.toFixed(1))};
+  }
+
+  function v21431PeerLease(){
+    var now=clock(),best=null;
+    Object.keys(S.farmerSelfServiceLeases21431||{}).forEach(function(name){var x=S.farmerSelfServiceLeases21431[name];if(!x||Number(x.expiresAt||0)<=now){delete S.farmerSelfServiceLeases21431[name];return;}if(name!==me&&(!best||Number(x.expiresAt)>Number(best.expiresAt)))best=x;});
+    try{farmerReports().forEach(function(r){var x=r&&r.selfService21431;if(!r||r.name===me||!x||!x.active||Number(x.expiresAt||0)<=now)return;if(!best||Number(x.expiresAt)>Number(best.expiresAt))best=Object.assign({holder:r.name},x);});}catch(e){}
+    return best;
+  }
+  function v21431BroadcastLease(active,critical){
+    var msg={type:'aio21431-self-service-lease',holder:me,active:!!active,critical:!!critical,expiresAt:active?clock()+V21431_LEASE_MS:clock(),at:clock()};
+    S.farmerSelfServiceLeases21431[me]=msg;
+    ACCOUNT_CHARS.forEach(function(c){if(c.name!==me)try{send_cm(c.name,msg);}catch(e){}});
+  }
+  var v21431CMBase=on_cm;
+  on_cm=function(name,data){
+    try{if(data&&data.type==='aio21431-self-service-lease'&&accountCharacterName(name)){S.farmerSelfServiceLeases21431[name]=Object.assign({},data,{holder:name});}}catch(e){}
+    return v21431CMBase(name,data);
+  };
+
+  function v21431SelfServiceNeeded(plan){
+    return !!(plan.sell.length||plan.bank.length||plan.upgrade.length||plan.compound.length);
+  }
+  function v21431StopSelfService(reasonText){
+    var st=S.farmerSelfService21431;if(!st)return false;v21431BroadcastLease(false,st.critical);
+    audit('farmer_self_service_done','Farmer-Selbstservice abgeschlossen',{reason:reasonText||'done',beforeFree:st.beforeFree,afterFree:freeSlots(),stages:st.stages||[],origin:st.origin});

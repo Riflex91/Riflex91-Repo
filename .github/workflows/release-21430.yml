@@ -2,8 +2,6 @@ name: release-21430
 on:
   push:
     branches: ["release/2.14.30-merchant-service-ui-update"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
