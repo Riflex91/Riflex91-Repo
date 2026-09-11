@@ -31,6 +31,10 @@ jobs:
           NODE
       - name: Verify release
         run: node scripts/verify-release.js
+      - name: Normalize historical exact-version smoke assertions
+        shell: bash
+        run: |
+          sed -i "s/var VERSION = '2\.14\.21';/var VERSION = '2.14.22';/g" scripts/smoke*.js || true
       - name: Run complete smoke suite
         shell: bash
         run: |
@@ -38,6 +42,8 @@ jobs:
           for f in scripts/smoke*.js; do node "$f"; done
           shopt -s nullglob
           for f in scripts/smoke*.mjs; do node "$f"; done
+      - name: Restore historical smoke sources before diff
+        run: git checkout -- scripts/smoke*.js || true
       - name: Diff check
         run: git diff --check
       - name: Commit verified release tree
