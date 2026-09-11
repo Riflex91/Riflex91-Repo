@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+import fs from 'fs';
+let s=fs.readFileSync('bot.js','utf8');
+if(!s.includes('/* 2.14.23 merchant liveness + buff maintenance + terrain hardening */'))throw Error('apply main v2.14.23 patch first');
+if(!s.includes('v21423SkillTargetReady')){
+  const old="    var target=localPlayer(q.name),d=GD.skills&&GD.skills[q.skill]||{},range=Math.max(40,Number(d.range)||320);\n    if(!target||target.map!==character.map||dist(character,target)>range){if(character.moving||S.moveInFlight)return true;var dest={map:q.r.map,x:Number(q.r.x)||0,y:Number(q.r.y)||0};S.status='Buff-Service · '+q.skill+' → '+q.name;S.mode='Merchant · Buff';return moveToGoal(dest,'Merchant Buff-Service '+q.skill+' → '+q.name,{kind:'merchant-buff-service',tolerance:Math.max(35,Math.min(120,range*.55)),forceAfter:12000})||true;}";
+  const neu="    var target=localPlayer(q.name),d=GD.skills&&GD.skills[q.skill]||{},range=Math.max(0,Number(d.range)||0);\n    function v21423SkillTargetReady(t,id){if(!t||t.map!==character.map)return false;try{if(typeof is_in_range==='function')return !!is_in_range(t,id);}catch(e){}return range>0&&dist(character,t)<=range;}\n    if(!v21423SkillTargetReady(target,q.skill)){if(character.moving||S.moveInFlight)return true;var dest={map:q.r.map,x:Number(q.r.x)||0,y:Number(q.r.y)||0};S.status='Buff-Service · '+q.skill+' → '+q.name;S.mode='Merchant · Buff';return moveToGoal(dest,'Merchant Buff-Service '+q.skill+' → '+q.name,{kind:'merchant-buff-service',tolerance:range>0?Math.max(35,Math.min(120,range*.55)):35,forceAfter:12000})||true;}";
+  if(!s.includes(old))throw Error('buff range block missing');s=s.replace(old,neu);
+  const terrainOld="  v21412TerrainPayload=function(){var out=v21423TerrainBase(),mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];if(!geo)return out;var v={x:v21414CompactLines(geo.x_lines,420),y:v21414CompactLines(geo.y_lines,420)};if(!out)out={map:mapId,omitted:true,bytes:0,source:'Adventure Land G.geometry'};out.v=v;out.fallback=out.omitted?'collision-lines':'tiles+collision-lines';return out;};";
+  const terrainNew="  v21412TerrainPayload=function(){var out=v21423TerrainBase(),mapId=String(character.map||''),geo=GD.geometry&&GD.geometry[mapId];if(!geo)return out;var v={x:v21414CompactLines(geo.x_lines,420),y:v21414CompactLines(geo.y_lines,420)};if(!out)out={map:mapId,omitted:true,bytes:0,source:'Adventure Land G.geometry'};out.v=v;out.fallback=out.omitted?'collision-lines':'tiles+collision-lines';try{var bytes=JSON.stringify(out).length;if(bytes>56000)return {map:mapId,omitted:true,bytes:bytes,source:out.source||'Adventure Land G.geometry',v:v,fallback:'collision-lines'};}catch(e){}return out;};";
+  if(!s.includes(terrainOld))throw Error('terrain wrapper missing');s=s.replace(terrainOld,terrainNew);
+  fs.writeFileSync('bot.js',s);
+}
+let v=fs.readFileSync('scripts/verify-release.js','utf8');v=v.replaceAll('2.14.22','2.14.23');fs.writeFileSync('scripts/verify-release.js',v);
+console.log('Applied v2.14.23 hardening');
