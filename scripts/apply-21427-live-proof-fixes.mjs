@@ -27,10 +27,12 @@ if(!h.includes('v2.14.27 inline player arrow + packed group terrain recovery')){
 
 const workerPath='cloudflare-dashboard/src/worker.js';
 let w=fs.readFileSync(workerPath,'utf8');
-w=mustReplace(w,'const MAX_PUSH_BYTES = 128 * 1024;','const MAX_PUSH_BYTES = 512 * 1024;','worker push limit');
+if(w.includes('const MAX_PUSH_BYTES = 128 * 1024;'))w=w.replace('const MAX_PUSH_BYTES = 128 * 1024;','const MAX_PUSH_BYTES = 512 * 1024;');
+if(!w.includes('const MAX_PUSH_BYTES = 512 * 1024;'))throw new Error('worker push limit missing');
 const oldTerrain=`  const groups=Array.isArray(input.g)?input.g.slice(0,64).map(g=>cleanTerrainRows(g,240,6)).filter(g=>g.length):[];\n  const packed=typeof input.pc==="string"?input.pc.slice(0,120000):"";\n  const out=Object.assign({},base,{d:input.d==null?null:number(input.d),t:cleanTerrainRows(input.t,640,6),p:cleanTerrainRows(input.p,2600,6),pc:packed,g:groups,a:cleanTerrainRows(input.a,500,6),s:sets});\n  try{if(JSON.stringify(out).length>118000)return Object.assign({},base,{omitted:true,fallback:base.fallback||"worker-size-guard"});}catch{}\n  return out;`;
 const newTerrain=`  const groups=Array.isArray(input.g)?input.g.slice(0,64).map(g=>cleanTerrainRows(g,240,6)).filter(g=>g.length):[];\n  const packed=typeof input.pc==="string"?input.pc.slice(0,480000):"";\n  const packedGroups=Array.isArray(input.gc)?input.gc.slice(0,96).map(x=>text(x,480000)):[];\n  const packedAnimations=typeof input.ac==="string"?input.ac.slice(0,480000):"";\n  const out=Object.assign({},base,{d:input.d==null?null:number(input.d),t:cleanTerrainRows(input.t,1600,8),p:cleanTerrainRows(input.p,6000,6),pc:packed,g:groups,gc:packedGroups,a:cleanTerrainRows(input.a,1200,8),ac:packedAnimations,s:sets});\n  try{if(JSON.stringify(out).length>480000)return Object.assign({},base,{omitted:true,fallback:base.fallback||"worker-size-guard-v21427"});}catch{}\n  return out;`;
-w=mustReplace(w,oldTerrain,newTerrain,'worker packed terrain sanitizer');
+if(w.includes(oldTerrain))w=w.replace(oldTerrain,newTerrain);
+if(!w.includes('const packedGroups=Array.isArray(input.gc)'))throw new Error('worker packed terrain sanitizer missing');
 // Re-embed the exact dashboard release in the Worker after dashboard modifications.
 w=w.replace(/const DASHBOARD_HTML = [\s\S]*?;\n\n(?=function )/,`const DASHBOARD_HTML = ${JSON.stringify(h)};\n\n`);
 fs.writeFileSync(workerPath,w);
