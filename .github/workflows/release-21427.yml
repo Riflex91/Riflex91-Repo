@@ -2,8 +2,6 @@ name: release-21427
 on:
   push:
     branches: ["release/2.14.27-live-proof-fixes"]
-  pull_request:
-    branches: ["main"]
 permissions:
   contents: write
 jobs:
