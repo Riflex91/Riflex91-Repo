@@ -23,7 +23,7 @@ jobs:
         if: github.event_name == 'push'
         shell: bash
         run: |
-          if git diff --quiet -- v3/dist/aio-v3.js; then
+          if git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1 && git diff --quiet -- v3/dist/aio-v3.js; then
             echo 'Bundle already current.'
             exit 0
           fi
@@ -34,6 +34,9 @@ jobs:
           git push origin HEAD:${GITHUB_REF_NAME}
       - name: Verify generated bundle on pull requests
         if: github.event_name == 'pull_request'
-        run: git diff --exit-code -- v3/dist/aio-v3.js
+        shell: bash
+        run: |
+          git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1
+          git diff --exit-code -- v3/dist/aio-v3.js
       - name: Diff check
         run: git diff --check
