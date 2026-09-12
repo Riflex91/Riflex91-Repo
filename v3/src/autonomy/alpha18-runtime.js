@@ -51,6 +51,13 @@ class Alpha18Runtime extends Alpha17Runtime {
     this._observeBankCapacity();
   }
 
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
   _bankPacks() {
     return this.root && (this.root.bank_packs || this.root.parent && this.root.parent.bank_packs) || {};
   }
