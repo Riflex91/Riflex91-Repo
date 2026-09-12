@@ -155,7 +155,14 @@ function install(root = globalThis, options = {}) {
       drainTelemetry: (limit = 100) => operations.drainTelemetry(limit),
       peekTelemetry: (limit = 100) => operations.peekTelemetry(limit),
       takeStateReplica: () => operations.takeStateReplica(),
-      peekStateReplica: () => operations.peekStateReplica()
+      peekStateReplica: () => operations.peekStateReplica(),
+      peekAlerts: (limit = 100) => operations.peekAlerts(limit),
+      pendingAlerts: (limit = 100) => operations.alerts.pending(limit),
+      claimAlerts: (ids = []) => operations.alerts.claim(ids),
+      acknowledgeAlert: (id, options = {}) => operations.acknowledgeAlert(id, options),
+      configureSafeRecovery: (config = {}) => operations.configureSafeRecovery(config),
+      safeRecoveryStatus: () => operations.safeRecoveryStatus(),
+      hostHeartbeat: () => operations.hostHeartbeat()
     },
     world: runtime.world,
     scheduler: runtime.scheduler,
@@ -20115,22 +20122,28 @@ class AlertEscalationManager {
 
   pending(limit = 100) {
     this.sweep();
-    const n = Math.max(0, Math.floor(finite(limit, 0)));
+    const n = Math.max(0, Math.min(500, Math.floor(finite(limit, 0))));
     return this.alerts.filter((row) => row.pendingDelivery && row.acknowledgedAt == null).slice(0, n).map(clone);
   }
 
-  drain(limit = 100) {
+  claim(ids = []) {
     const now = this.now();
-    const rows = this.pending(limit);
-    const ids = new Set(rows.map((row) => row.id));
+    const wanted = new Set((Array.isArray(ids) ? ids : []).slice(0, 500).map((id) => String(id || '')).filter(Boolean));
+    const claimed = [];
     for (const row of this.alerts) {
-      if (!ids.has(row.id)) continue;
+      if (!wanted.has(row.id) || !row.pendingDelivery || row.acknowledgedAt != null) continue;
       row.pendingDelivery = false;
       row.deliveryCount += 1;
       row.deliveredAt = now;
       this.stats.delivered += 1;
+      claimed.push(clone(row));
     }
-    return rows;
+    return claimed;
+  }
+
+  drain(limit = 100) {
+    const rows = this.pending(limit);
+    return this.claim(rows.map((row) => row.id));
   }
 
   status() {
