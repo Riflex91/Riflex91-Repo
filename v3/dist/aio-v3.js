@@ -12604,13 +12604,30 @@ class DebugMonitorUI {
     this.timer = null;
     this.minimized = false;
     this.lastCopy = null;
+    this.documentScope = 'none';
   }
 
   _doc() {
     try {
-      if (this.root && this.root.document) return this.root.document;
-      if (this.root && this.root.parent && this.root.parent.document) return this.root.parent.document;
+      if (
+        this.root &&
+        this.root.parent &&
+        this.root.parent !== this.root &&
+        this.root.parent.document
+      ) {
+        this.documentScope = 'parent';
+        return this.root.parent.document;
+      }
     } catch (_) {}
+
+    try {
+      if (this.root && this.root.document) {
+        this.documentScope = 'local';
+        return this.root.document;
+      }
+    } catch (_) {}
+
+    this.documentScope = 'none';
     return null;
   }
 
@@ -12624,8 +12641,8 @@ class DebugMonitorUI {
     button.type = 'button';
     button.textContent = text;
     this._setStyle(button, {
-      marginLeft: '6px', padding: '4px 8px', border: '1px solid #666', borderRadius: '4px',
-      background: '#222', color: '#eee', cursor: 'pointer', fontSize: '11px'
+      marginLeft: '7px', padding: '5px 10px', border: '1px solid #666', borderRadius: '4px',
+      background: '#222', color: '#eee', cursor: 'pointer', fontSize: '12px'
     });
     button.onclick = onClick;
     return button;
@@ -12633,7 +12650,7 @@ class DebugMonitorUI {
 
   _row(doc, label, value) {
     const row = doc.createElement('div');
-    this._setStyle(row, { display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '3px' });
+    this._setStyle(row, { display: 'flex', justifyContent: 'space-between', gap: '14px', marginBottom: '5px' });
     const l = doc.createElement('span');
     l.textContent = label;
     this._setStyle(l, { color: '#9ca3af', whiteSpace: 'nowrap' });
@@ -12681,7 +12698,7 @@ class DebugMonitorUI {
 
   _eventsText() {
     if (!this.log || typeof this.log.list !== 'function') return 'Keine Events';
-    const rows = this.log.list(12);
+    const rows = this.log.list(16);
     if (!rows.length) return 'Keine Events';
     return rows.map((row) => {
       const time = row.ts ? String(row.ts).slice(11, 19) : '--:--:--';
@@ -12733,17 +12750,36 @@ class DebugMonitorUI {
     const box = doc.createElement('div');
     box.id = this.containerId;
     this._setStyle(box, {
-      position: 'fixed', top: '8px', right: '8px', width: '390px', maxHeight: '78vh', zIndex: '2147483646',
-      background: 'rgba(10,12,16,0.96)', color: '#f3f4f6', border: '1px solid #4b5563', borderRadius: '7px',
-      boxShadow: '0 8px 26px rgba(0,0,0,.45)', padding: '8px', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.35'
+      position: 'fixed',
+      right: '18px',
+      bottom: '18px',
+      top: 'auto',
+      left: 'auto',
+      width: '480px',
+      maxWidth: 'calc(100vw - 36px)',
+      maxHeight: 'calc(100vh - 36px)',
+      boxSizing: 'border-box',
+      overflow: 'auto',
+      zIndex: '2147483646',
+      background: 'rgba(10,12,16,0.96)',
+      color: '#f3f4f6',
+      border: '1px solid #4b5563',
+      borderRadius: '8px',
+      boxShadow: '0 10px 30px rgba(0,0,0,.5)',
+      padding: '11px',
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      lineHeight: '1.45',
+      pointerEvents: 'auto'
     });
 
     const header = doc.createElement('div');
-    this._setStyle(header, { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px' });
+    this._setStyle(header, { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '9px' });
     const title = doc.createElement('strong');
     title.textContent = 'AIO v3 Monitor';
-    this._setStyle(title, { fontSize: '12px', color: '#fff' });
+    this._setStyle(title, { fontSize: '14px', color: '#fff' });
     const buttons = doc.createElement('div');
+    this._setStyle(buttons, { display: 'flex', alignItems: 'center', flexShrink: '0' });
     this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
     const minimize = this._button(doc, '–', () => {
       this.minimized = !this.minimized;
@@ -12765,16 +12801,32 @@ class DebugMonitorUI {
 
     this.logBox = doc.createElement('pre');
     this._setStyle(this.logBox, {
-      margin: '7px 0 0', padding: '6px', maxHeight: '180px', overflow: 'auto', whiteSpace: 'pre-wrap',
-      background: '#05070a', border: '1px solid #374151', borderRadius: '4px', color: '#d1d5db', fontSize: '10px'
+      margin: '10px 0 0',
+      padding: '8px',
+      maxHeight: '260px',
+      overflow: 'auto',
+      whiteSpace: 'pre-wrap',
+      background: '#05070a',
+      border: '1px solid #374151',
+      borderRadius: '5px',
+      color: '#d1d5db',
+      fontSize: '11px',
+      lineHeight: '1.4'
     });
     box.appendChild(this.logBox);
 
     this.fallbackArea = doc.createElement('textarea');
     this.fallbackArea.setAttribute('readonly', 'readonly');
     this._setStyle(this.fallbackArea, {
-      display: 'none', width: '100%', height: '110px', marginTop: '7px', boxSizing: 'border-box',
-      background: '#05070a', color: '#fff', border: '1px solid #f59e0b', fontSize: '9px'
+      display: 'none',
+      width: '100%',
+      height: '180px',
+      marginTop: '9px',
+      boxSizing: 'border-box',
+      background: '#05070a',
+      color: '#fff',
+      border: '1px solid #f59e0b',
+      fontSize: '10px'
     });
     box.appendChild(this.fallbackArea);
 
@@ -12785,7 +12837,7 @@ class DebugMonitorUI {
     this.refresh();
     const setTimer = (this.root && this.root.setInterval) || setInterval;
     this.timer = setTimer(() => this.refresh(), this.refreshMs);
-    return { shown: true, reused: false };
+    return { shown: true, reused: false, documentScope: this.documentScope };
   }
 
   hide() {
@@ -12813,6 +12865,7 @@ class DebugMonitorUI {
       actionAuthority: false,
       directGameplayActionAccess: false,
       domAvailable: !!this._doc(),
+      documentScope: this.documentScope,
       visible: !!(this.container && this.container.style.display !== 'none'),
       minimized: this.minimized,
       refreshMs: this.refreshMs,
