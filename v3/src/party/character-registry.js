@@ -152,8 +152,7 @@ function materialView(record) {
     map: record.map,
     online: record.online,
     available: record.available,
-    dead: record.dead,
-    primarySource: record.primarySource
+    dead: record.dead
   });
 }
 
@@ -279,11 +278,9 @@ class CharacterRegistry {
 
     if (!record.sources.includes(source)) record.sources.push(source);
     record.sources.sort((a, b) => this._sourceRank(b) - this._sourceRank(a));
-    if (rank >= record.primarySourceRank) {
-      record.primarySource = source;
-      record.primarySourceRank = rank;
-    }
-    record.stateConfidence = Math.max(record.stateConfidence, clamp01(options.confidence == null ? SOURCE_CONFIDENCE[source] : options.confidence));
+    record.primarySource = source;
+    record.primarySourceRank = rank;
+    record.stateConfidence = clamp01(options.confidence == null ? SOURCE_CONFIDENCE[source] : options.confidence);
     if (options.live === true || observation.online === true) record.lastSeenAt = at;
     record.lastUpdatedAt = at;
 
