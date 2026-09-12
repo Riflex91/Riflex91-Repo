@@ -1,11 +1,12 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.13 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.20 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
 "src/index.js": function(require,module,exports){
 'use strict';
 
-const { Runtime, VERSION } = require('./runtime');
+const { Runtime } = require('./runtime');
+const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
@@ -4439,6 +4440,14 @@ class CombatEmergencyGate {
 module.exports = { CombatEmergencyGate };
 
 },
+"src/version.js": function(require,module,exports){
+'use strict';
+
+const VERSION = '3.0.0-alpha.8.20';
+
+module.exports = { VERSION };
+
+},
 "src/stability/stability-runtime.js": function(require,module,exports){
 'use strict';
 
@@ -4628,14 +4637,6 @@ class StabilityRuntime extends Runtime {
 }
 
 module.exports = { StabilityRuntime };
-
-},
-"src/version.js": function(require,module,exports){
-'use strict';
-
-const VERSION = '3.0.0-alpha.8.20';
-
-module.exports = { VERSION };
 
 },
 "src/game/stability-adapter.js": function(require,module,exports){
