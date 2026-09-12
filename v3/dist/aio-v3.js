@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.15.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.16.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -15,6 +15,7 @@ const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
 const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
+const { Alpha16Runtime } = require('./autonomy/alpha16-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -48,6 +49,7 @@ const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyCont
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
+const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -60,7 +62,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha15Runtime({ ...options, root });
+  const runtime = new Alpha16Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -106,10 +108,7 @@ function install(root = globalThis, options = {}) {
     scheduler: runtime.scheduler,
     performance: runtime.performance,
     research: runtime.research,
-    brain: {
-      status: () => runtime.brain.status(),
-      replay: (limit = 32) => runtime.brain.replay(limit)
-    },
+    brain: { status: () => runtime.brain.status(), replay: (limit = 32) => runtime.brain.replay(limit) },
     supervisor: {
       status: () => runtime.globalSupervisor.status(),
       setSafeActionsEnabled: (enabled) => runtime.setSupervisorSafeActionsEnabled(enabled),
@@ -145,6 +144,14 @@ function install(root = globalThis, options = {}) {
         breaker: (family) => runtime.transactionEngine.breaker(family),
         save: () => runtime.transactionEngine.save()
       }
+    },
+    travel: {
+      status: () => runtime.safeTravel.status(),
+      list: (limit = 100) => runtime.safeTravel.list(limit),
+      get: (id) => runtime.safeTravel.get(id),
+      plan: (request) => runtime.planTravel(request),
+      cancel: (id, reason) => runtime.safeTravel.cancel(id, reason),
+      breaker: () => runtime.safeTravel.breaker()
     },
     party: {
       status: () => runtime.status().party,
@@ -199,7 +206,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -212,6 +219,7 @@ module.exports = {
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
+  SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
@@ -4549,7 +4557,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.15.0';
+const RELEASE_VERSION = '3.0.0-alpha.16.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -10220,13 +10228,14 @@ module.exports = {
 'use strict';
 
 const { Alpha14Runtime } = require('./alpha14-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { EconomyTransactionEngine } = require('../economy/transaction-engine');
+
+const ALPHA15_VERSION = '3.0.0-alpha.15.0';
 
 class Alpha15Runtime extends Alpha14Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA15_VERSION;
     this.transactionMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.transactionMaintenanceIntervalMs) || 1000));
     this.lastTransactionMaintenanceAt = -Infinity;
     this.transactionEngine = options.transactionEngine || new EconomyTransactionEngine({
@@ -10243,7 +10252,7 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA15_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -10302,7 +10311,7 @@ class Alpha15Runtime extends Alpha14Runtime {
 
   status() {
     const base = super.status();
-    return { ...base, version: RELEASE_VERSION, economy: this._economyStatus() };
+    return { ...base, version: ALPHA15_VERSION, economy: this._economyStatus() };
   }
 
   exportDiagnostics() {
@@ -10316,7 +10325,7 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 }
 
-module.exports = { Alpha15Runtime };
+module.exports = { Alpha15Runtime, ALPHA15_VERSION };
 
 },
 "src/economy/transaction-engine.js": function(require,module,exports){
@@ -10734,6 +10743,364 @@ module.exports = {
   TransactionState,
   EXPECTED_DISPOSITIONS
 };
+
+},
+"src/autonomy/alpha16-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha15Runtime } = require('./alpha15-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { SafeTravelController } = require('../travel/safe-travel');
+
+class Alpha16Runtime extends Alpha15Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+    this.travelMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.travelMaintenanceIntervalMs) || 1000));
+    this.lastTravelMaintenanceAt = -Infinity;
+    this.safeTravel = options.safeTravel || new SafeTravelController({
+      now: this.now,
+      log: this.log,
+      capacity: options.travelCapacity,
+      leaseMs: options.travelLeaseMs,
+      noProgressMs: options.travelNoProgressMs,
+      arrivalRadius: options.travelArrivalRadius,
+      minProgressDistance: options.travelMinProgressDistance,
+      failureThreshold: options.travelFailureThreshold,
+      failureWindowMs: options.travelFailureWindowMs,
+      circuitCooldownMs: options.travelCircuitCooldownMs
+    });
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
+  _travelStatus() {
+    return this.safeTravel.status();
+  }
+
+  tick() {
+    super.tick();
+    const now = this.now();
+    if (now - this.lastTravelMaintenanceAt >= this.travelMaintenanceIntervalMs) {
+      this.lastTravelMaintenanceAt = now;
+      this.safeTravel.tick(this.lastSnapshot || {});
+    }
+  }
+
+  setTravelLiveEnabled() {
+    this.log.emit({ component: 'safe-travel', event: 'LIVE_ENABLE_REJECTED', severity: 'warn', reason: 'ALPHA16_SHADOW_ONLY' });
+    return false;
+  }
+
+  planTravel(request) {
+    return this.safeTravel.plan(request, {
+      gameData: this.adapter.getGameData() || {},
+      contentDrift: this.contentDrift,
+      snapshot: this.lastSnapshot || this.adapter.snapshot()
+    });
+  }
+
+  status() {
+    const base = super.status();
+    return { ...base, version: RELEASE_VERSION, travel: this._travelStatus() };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.travel = { status: this.safeTravel.status(), plans: this.safeTravel.list(100) };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha16Runtime };
+
+},
+"src/travel/safe-travel.js": function(require,module,exports){
+'use strict';
+
+const TRAVEL_SCHEMA_VERSION = 1;
+const TRAVEL_MODE = 'shadow-safe-travel-foundation';
+const TravelState = Object.freeze({
+  PLANNED: 'PLANNED',
+  TRAVELLING: 'TRAVELLING',
+  VERIFYING: 'VERIFYING',
+  COMPLETED: 'COMPLETED',
+  ABORTED: 'ABORTED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+const TERMINAL = new Set([TravelState.COMPLETED, TravelState.ABORTED, TravelState.FAILED_SAFE]);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function point(snapshot = {}) {
+  const c = snapshot.character || snapshot || {};
+  return {
+    map: String(c.map || ''),
+    x: finite(c.x != null ? c.x : c.real_x, 0),
+    y: finite(c.y != null ? c.y : c.real_y, 0)
+  };
+}
+function distance(a, b) {
+  const dx = finite(a && a.x) - finite(b && b.x);
+  const dy = finite(a && a.y) - finite(b && b.y);
+  return Math.hypot(dx, dy);
+}
+
+class SafeTravelController {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.capacity = Math.max(16, Math.min(256, Math.floor(finite(options.capacity, 64))));
+    this.leaseMs = Math.max(5000, Math.min(30 * 60 * 1000, finite(options.leaseMs, 120000)));
+    this.noProgressMs = Math.max(2000, Math.min(5 * 60 * 1000, finite(options.noProgressMs, 15000)));
+    this.arrivalRadius = Math.max(5, Math.min(300, finite(options.arrivalRadius, 80)));
+    this.failureThreshold = Math.max(1, Math.min(20, Math.floor(finite(options.failureThreshold, 3))));
+    this.failureWindowMs = Math.max(5000, Math.min(60 * 60 * 1000, finite(options.failureWindowMs, 120000)));
+    this.circuitCooldownMs = Math.max(5000, Math.min(60 * 60 * 1000, finite(options.circuitCooldownMs, 120000)));
+    this.minProgressDistance = Math.max(1, Math.min(200, finite(options.minProgressDistance, 12)));
+    this.plans = new Map();
+    this.sequence = 0;
+    this.failures = [];
+    this.circuit = null;
+    this.stats = { planned: 0, rejected: 0, syntheticStarts: 0, completed: 0, aborted: 0, failedSafe: 0, progress: 0, capacityEvictions: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'safe-travel', event, severity, reason, data });
+    }
+  }
+
+  _id() {
+    this.sequence += 1;
+    return `travel-${this.now().toString(36)}-${this.sequence.toString(36)}`;
+  }
+
+  _pruneFailures(now = this.now()) {
+    this.failures = this.failures.filter((row) => now - row.at <= this.failureWindowMs);
+    if (this.circuit && this.circuit.openUntil <= now) this.circuit = null;
+  }
+
+  breaker() {
+    const now = this.now();
+    this._pruneFailures(now);
+    return {
+      open: !!(this.circuit && this.circuit.openUntil > now),
+      openUntil: this.circuit ? this.circuit.openUntil : null,
+      reason: this.circuit ? this.circuit.reason : null,
+      failuresInWindow: this.failures.length,
+      threshold: this.failureThreshold,
+      windowMs: this.failureWindowMs,
+      cooldownMs: this.circuitCooldownMs
+    };
+  }
+
+  _failure(reason, plan = null) {
+    const now = this.now();
+    this._pruneFailures(now);
+    this.failures.push({ at: now, reason: String(reason || 'TRAVEL_FAILURE'), planId: plan && plan.id || null });
+    if (this.failures.length >= this.failureThreshold) {
+      this.circuit = { openedAt: now, openUntil: now + this.circuitCooldownMs, reason: String(reason || 'TRAVEL_FAILURE_BUDGET') };
+      this._event('TRAVEL_CIRCUIT_OPENED', 'warn', reason, { openUntil: this.circuit.openUntil, failures: this.failures.length });
+    }
+  }
+
+  _reject(reason, data = {}) {
+    this.stats.rejected += 1;
+    this._event('TRAVEL_PLAN_REJECTED', 'warn', reason, data);
+    return { accepted: false, reason };
+  }
+
+  _evict() {
+    if (this.plans.size < this.capacity) return;
+    const row = [...this.plans.values()].filter((p) => TERMINAL.has(p.state)).sort((a, b) => finite(a.updatedAt) - finite(b.updatedAt))[0];
+    if (row) {
+      this.plans.delete(row.id);
+      this.stats.capacityEvictions += 1;
+    }
+  }
+
+  plan(request = {}, context = {}) {
+    if (this.breaker().open) return this._reject('TRAVEL_CIRCUIT_OPEN');
+    if (request.server || request.region || request.serverChange === true) return this._reject('SERVER_CHANGE_FORBIDDEN');
+    const destination = typeof request.destination === 'string' ? { map: request.destination } : clone(request.destination || {});
+    const map = String(destination.map || '').trim();
+    if (!map) return this._reject('DESTINATION_MAP_REQUIRED');
+    const gameData = context.gameData || {};
+    if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, map)) return this._reject('UNKNOWN_DESTINATION_MAP', { map });
+    if (context.contentDrift && typeof context.contentDrift.requiresRevalidation === 'function' && context.contentDrift.requiresRevalidation('maps', map)) {
+      return this._reject('DESTINATION_MAP_REQUIRES_REVALIDATION', { map });
+    }
+    const start = point(context.snapshot || {});
+    if (!start.map) return this._reject('TRAVEL_SNAPSHOT_UNAVAILABLE');
+    const target = {
+      map,
+      x: destination.x == null ? null : finite(destination.x, 0),
+      y: destination.y == null ? null : finite(destination.y, 0)
+    };
+    this._evict();
+    if (this.plans.size >= this.capacity) return this._reject('TRAVEL_CAPACITY_EXHAUSTED');
+    const now = this.now();
+    const id = this._id();
+    const row = {
+      schemaVersion: TRAVEL_SCHEMA_VERSION,
+      id,
+      state: TravelState.PLANNED,
+      createdAt: now,
+      updatedAt: now,
+      leaseExpiresAt: now + this.leaseMs,
+      lastProgressAt: now,
+      start,
+      lastObserved: start,
+      target,
+      reason: 'SAFE_PLAN_CREATED',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      serverChangeAllowed: false,
+      routeKind: start.map === map ? 'SAME_MAP' : 'CROSS_MAP_KNOWN_ONLY',
+      metadata: request.metadata && typeof request.metadata === 'object' ? clone(request.metadata) : {}
+    };
+    this.plans.set(id, row);
+    this.stats.planned += 1;
+    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind });
+    return { accepted: true, plan: clone(row) };
+  }
+
+  startSynthetic(id) {
+    const row = this.plans.get(String(id));
+    if (!row || row.state !== TravelState.PLANNED) return { started: false, reason: 'PLAN_NOT_STARTABLE' };
+    if (this.breaker().open) return { started: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
+    row.state = TravelState.TRAVELLING;
+    row.updatedAt = this.now();
+    row.lastProgressAt = row.updatedAt;
+    row.reason = 'SYNTHETIC_EXECUTION_STARTED';
+    this.stats.syntheticStarts += 1;
+    this._event('TRAVEL_SYNTHETIC_STARTED', 'info', null, { planId: row.id });
+    return { started: true, plan: clone(row) };
+  }
+
+  _arrived(row, observed) {
+    if (!row || !observed || observed.map !== row.target.map) return false;
+    if (row.target.x == null || row.target.y == null) return true;
+    return distance(observed, row.target) <= this.arrivalRadius;
+  }
+
+  observe(snapshot) {
+    const now = this.now();
+    const observed = point(snapshot || {});
+    const results = [];
+    for (const row of this.plans.values()) {
+      if (TERMINAL.has(row.state) || row.state === TravelState.PLANNED) continue;
+      if (row.leaseExpiresAt != null && now > row.leaseExpiresAt) {
+        row.state = TravelState.FAILED_SAFE;
+        row.reason = 'TRAVEL_LEASE_EXPIRED';
+        row.updatedAt = now;
+        this.stats.failedSafe += 1;
+        this._failure(row.reason, row);
+        results.push({ id: row.id, state: row.state, reason: row.reason });
+        continue;
+      }
+      const mapChanged = observed.map && observed.map !== row.lastObserved.map;
+      const moved = observed.map === row.lastObserved.map && distance(observed, row.lastObserved) >= this.minProgressDistance;
+      if (mapChanged || moved) {
+        row.lastProgressAt = now;
+        row.lastObserved = observed;
+        row.updatedAt = now;
+        this.stats.progress += 1;
+        this._event('TRAVEL_PROGRESS', 'debug', null, { planId: row.id, observed });
+      }
+      if (this._arrived(row, observed)) {
+        row.state = TravelState.COMPLETED;
+        row.reason = 'ARRIVAL_VERIFIED';
+        row.updatedAt = now;
+        row.lastObserved = observed;
+        this.stats.completed += 1;
+        this.failures = [];
+        this.circuit = null;
+        this._event('TRAVEL_COMPLETED', 'info', null, { planId: row.id, observed });
+        results.push({ id: row.id, state: row.state, reason: row.reason });
+        continue;
+      }
+      if (now - row.lastProgressAt > this.noProgressMs) {
+        row.state = TravelState.FAILED_SAFE;
+        row.reason = 'TRAVEL_NO_PROGRESS_TIMEOUT';
+        row.updatedAt = now;
+        this.stats.failedSafe += 1;
+        this._failure(row.reason, row);
+        this._event('TRAVEL_FAILED_SAFE', 'warn', row.reason, { planId: row.id });
+        results.push({ id: row.id, state: row.state, reason: row.reason });
+      }
+    }
+    return results;
+  }
+
+  cancel(id, reason = 'OPERATOR_CANCELLED') {
+    const row = this.plans.get(String(id));
+    if (!row) return { cancelled: false, reason: 'PLAN_NOT_FOUND' };
+    if (TERMINAL.has(row.state)) return { cancelled: false, reason: 'PLAN_ALREADY_TERMINAL', plan: clone(row) };
+    row.state = TravelState.ABORTED;
+    row.reason = String(reason || 'OPERATOR_CANCELLED');
+    row.updatedAt = this.now();
+    this.stats.aborted += 1;
+    this._event('TRAVEL_ABORTED', 'warn', row.reason, { planId: row.id });
+    return { cancelled: true, plan: clone(row) };
+  }
+
+  tick(snapshot) {
+    this._pruneFailures(this.now());
+    return this.observe(snapshot);
+  }
+
+  get(id) {
+    const row = this.plans.get(String(id));
+    return row ? clone(row) : null;
+  }
+
+  list(limit = 100) {
+    const rows = [...this.plans.values()].sort((a, b) => finite(a.createdAt) - finite(b.createdAt));
+    const n = Math.max(0, Math.min(rows.length, Math.floor(finite(limit, 100))));
+    return rows.slice(rows.length - n).map(clone);
+  }
+
+  status() {
+    const rows = [...this.plans.values()];
+    const states = {};
+    for (const state of Object.values(TravelState)) states[state] = rows.filter((row) => row.state === state).length;
+    return {
+      schemaVersion: TRAVEL_SCHEMA_VERSION,
+      mode: TRAVEL_MODE,
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      liveExecutionEnabled: false,
+      smartMoveExecutionEnabled: false,
+      serverChangeAllowed: false,
+      unknownMapTravelAllowed: false,
+      capacity: this.capacity,
+      leaseMs: this.leaseMs,
+      noProgressMs: this.noProgressMs,
+      arrivalRadius: this.arrivalRadius,
+      plans: rows.length,
+      active: rows.filter((row) => !TERMINAL.has(row.state) && row.state !== TravelState.PLANNED).length,
+      states,
+      circuit: this.breaker(),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){

@@ -1,13 +1,14 @@
 'use strict';
 
 const { Alpha14Runtime } = require('./alpha14-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { EconomyTransactionEngine } = require('../economy/transaction-engine');
+
+const ALPHA15_VERSION = '3.0.0-alpha.15.0';
 
 class Alpha15Runtime extends Alpha14Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA15_VERSION;
     this.transactionMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.transactionMaintenanceIntervalMs) || 1000));
     this.lastTransactionMaintenanceAt = -Infinity;
     this.transactionEngine = options.transactionEngine || new EconomyTransactionEngine({
@@ -24,7 +25,7 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA15_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -83,7 +84,7 @@ class Alpha15Runtime extends Alpha14Runtime {
 
   status() {
     const base = super.status();
-    return { ...base, version: RELEASE_VERSION, economy: this._economyStatus() };
+    return { ...base, version: ALPHA15_VERSION, economy: this._economyStatus() };
   }
 
   exportDiagnostics() {
@@ -97,4 +98,4 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 }
 
-module.exports = { Alpha15Runtime };
+module.exports = { Alpha15Runtime, ALPHA15_VERSION };
