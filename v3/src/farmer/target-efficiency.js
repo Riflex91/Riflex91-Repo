@@ -15,6 +15,11 @@ function finiteNonNegative(value) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+function finiteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function maxKnown(...values) {
   const known = values.map(finiteNonNegative).filter((value) => value != null);
   return known.length ? Math.max(...known) : null;
@@ -45,6 +50,12 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
   const evasion = maxKnown(source.evasion, metadata.evasion);
   const avoidance = maxKnown(source.avoidance, metadata.avoidance);
   const evasionSensitive = !ctype || EVASION_SENSITIVE_CTYPES.includes(ctype);
+  const routineFarm = options.routineFarm === true;
+  const defensive = options.defensive === true || !!(
+    character && character.name && source && source.target &&
+    String(source.target) === String(character.name)
+  );
+  const respawn = finiteNumber(metadata.respawn);
 
   const base = {
     allowed: true,
@@ -55,7 +66,15 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
     avoidance,
     maxEvasion,
     maxAvoidance,
-    evasionSensitive
+    evasionSensitive,
+    routineFarm,
+    defensive,
+    special: metadata.special === true,
+    cooperative: metadata.cooperative === true,
+    immune: metadata.immune === true,
+    peaceful: metadata.peaceful === true,
+    operator: metadata.operator === true,
+    respawn
   };
 
   if (avoidance != null && avoidance >= maxAvoidance) {
@@ -64,6 +83,21 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
 
   if (evasionSensitive && evasion != null && evasion >= maxEvasion) {
     return { ...base, allowed: false, reason: 'EXTREME_EVASION' };
+  }
+
+  if (routineFarm) {
+    if (metadata.immune === true) return { ...base, allowed: false, reason: 'IMMUNE_TARGET' };
+    if (metadata.peaceful === true) return { ...base, allowed: false, reason: 'PEACEFUL_TARGET' };
+    if (metadata.operator === true) return { ...base, allowed: false, reason: 'OPERATOR_CONTENT_NOT_ROUTINE_FARM' };
+
+    // Special/cooperative/irregular-spawn content is never selected proactively
+    // as routine farming. A self-aggro target may still pass this efficiency
+    // layer so the existing combat-risk/emergency boundaries retain authority.
+    if (!defensive) {
+      if (metadata.special === true) return { ...base, allowed: false, reason: 'SPECIAL_CONTENT_NOT_ROUTINE_FARM' };
+      if (metadata.cooperative === true) return { ...base, allowed: false, reason: 'COOPERATIVE_CONTENT_NOT_ROUTINE_FARM' };
+      if (respawn != null && respawn < 0) return { ...base, allowed: false, reason: 'NON_ROUTINE_RESPAWN' };
+    }
   }
 
   return base;
