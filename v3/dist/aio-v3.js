@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.8 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.9 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
