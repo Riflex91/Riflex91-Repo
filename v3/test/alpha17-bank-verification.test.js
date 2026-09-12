@@ -42,6 +42,7 @@ function root(overrides = {}) {
   const value = {
     character: character(),
     parent: { entities: {} },
+    G: { items: { junk: { type: 'material' } } },
     setTimeout,
     clearTimeout,
     ...overrides
