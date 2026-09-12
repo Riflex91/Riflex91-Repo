@@ -30,6 +30,12 @@ class SkillUsagePolicy {
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
     this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
     this.failureBackoffMs = Math.max(500, Math.min(10000, finite(options.failureBackoffMs, 2000)));
+    this.failureBackoffMultiplier = Math.max(1, Math.min(4, finite(options.failureBackoffMultiplier, 2)));
+    this.failureBackoffMaxMs = Math.max(
+      this.failureBackoffMs,
+      Math.min(60000, finite(options.failureBackoffMaxMs, 8000))
+    );
+    this.failureStreakResetMs = Math.max(5000, Math.min(300000, finite(options.failureStreakResetMs, 30000)));
     this.retryableCommandReasons = new Set(['COMMAND_FAILED']);
   }
 
@@ -63,6 +69,12 @@ class SkillUsagePolicy {
   canRetryCommandFailure(result) {
     if (!result || result.executed || result.shadow) return false;
     return this.retryableCommandReasons.has(String(result.reason || ''));
+  }
+
+  failureBackoffForStreak(streak) {
+    const boundedStreak = Math.max(1, Math.floor(finite(streak, 1)));
+    const scaled = this.failureBackoffMs * Math.pow(this.failureBackoffMultiplier, boundedStreak - 1);
+    return Math.min(this.failureBackoffMaxMs, Math.max(this.failureBackoffMs, Math.round(scaled)));
   }
 
   evaluate(snapshot, target, gameData, adapter, options = {}) {
@@ -150,6 +162,10 @@ class SkillUsagePolicy {
       retryableCommandReasons: [...this.retryableCommandReasons],
       failureBackoffEnabled: true,
       failureBackoffMs: this.failureBackoffMs,
+      failureIntelligenceEnabled: true,
+      failureBackoffMultiplier: this.failureBackoffMultiplier,
+      failureBackoffMaxMs: this.failureBackoffMaxMs,
+      failureStreakResetMs: this.failureStreakResetMs,
       backoffReason: 'SKILL_COMMAND_BACKOFF',
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
