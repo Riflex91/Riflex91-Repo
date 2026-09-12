@@ -1796,9 +1796,16 @@ class WorldPersistence {
     return null;
   }
 
+  _localStorageWriteKey() {
+    if (this.backendName === 'adventure-land') return `store_${this.key}`;
+    if (this.backendName === 'localStorage') return this.key;
+    return null;
+  }
+
   _localStorageProjectedChars(serialized) {
     const storage = this.root && this.root.localStorage;
-    if (!storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
+    const writeKey = this._localStorageWriteKey();
+    if (!writeKey || !storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
     try {
       let total = 0;
       for (let i = 0; i < Number(storage.length || 0); i += 1) {
@@ -1808,19 +1815,13 @@ class WorldPersistence {
         total += String(key).length + String(value == null ? '' : value).length;
       }
 
-      const candidates = [`csstore_${this.key}`, this.key];
-      let oldChars = 0;
-      let oldKeyChars = 0;
-      for (const candidate of candidates) {
-        const value = storage.getItem(candidate);
-        if (value != null) {
-          oldChars = Math.max(oldChars, String(value).length);
-          oldKeyChars = Math.max(oldKeyChars, candidate.length);
-        }
-      }
-      return Math.max(0, total - oldChars - oldKeyChars)
-        + String(serialized == null ? '' : serialized).length
-        + (`csstore_${this.key}`).length;
+      const previous = storage.getItem(writeKey);
+      const previousChars = previous == null
+        ? 0
+        : String(writeKey).length + String(previous).length;
+      return Math.max(0, total - previousChars)
+        + String(writeKey).length
+        + String(serialized == null ? '' : serialized).length;
     } catch (_) {
       return null;
     }
@@ -5612,7 +5613,7 @@ module.exports = { StableScheduler };
 "src/world/resilient-persistence.js": function(require,module,exports){
 'use strict';
 
-const { WorldPersistence } = require('./persistence');
+const { WorldPersistence, isQuotaError } = require('./persistence');
 
 class ResilientWorldPersistence extends WorldPersistence {
   constructor(options = {}) {
@@ -5725,6 +5726,8 @@ class ResilientWorldPersistence extends WorldPersistence {
   }
 
   maybeSave(world, options = {}) {
+    if (this.quotaBlocked) return false;
+
     const force = options.force === true;
     const now = this.now();
     if (!force && this.saveCircuitUntil > now) return false;
@@ -5758,14 +5761,35 @@ class ResilientWorldPersistence extends WorldPersistence {
       return false;
     }
 
+    const projectedChars = this._localStorageProjectedChars(serialized);
+    if (projectedChars != null && projectedChars >= this.storageHighWatermarkChars) {
+      this.preflightQuotaBlocks += 1;
+      this.lastSaveError = 'PERSISTENCE_QUOTA_PRESSURE';
+      return this._blockQuota('PERSISTENCE_QUOTA_PRESSURE', null, {
+        projectedChars,
+        highWatermarkChars: this.storageHighWatermarkChars,
+        bytes: serialized.length,
+        revision: world.revision
+      });
+    }
+
     try {
       backend.set(this.key, serialized);
       this.lastSavedAt = now;
       this.lastSavedRevision = world.revision;
+      this.lastWriteError = null;
       this._resetSaveFailures();
       if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVED', data: { backend: this.backendName, bytes: serialized.length, revision: world.revision, forced: force } });
       return true;
     } catch (error) {
+      this.writeFailures += 1;
+      if (isQuotaError(error)) {
+        this.lastSaveError = String(error && error.message || error);
+        return this._blockQuota('PERSISTENCE_QUOTA_EXCEEDED', error, {
+          bytes: serialized.length,
+          revision: world.revision
+        });
+      }
       if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'PERSISTENCE_WRITE_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
       this._recordSaveFailure('PERSISTENCE_WRITE_ERROR', error);
       return false;
@@ -19986,6 +20010,7 @@ const {
 const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
 const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
 const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
@@ -20032,6 +20057,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     this.preFarmingReliability = installPreFarmingReliability(this);
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
+    this.farmerTargetEfficiencyHotfix = installFarmerTargetEfficiencyHotfix(this, {
+      maxEvasion: options.farmerMaxTargetEvasion,
+      maxAvoidance: options.farmerMaxTargetAvoidance
+    });
 
     // Live reliability fixes remain modular so the proven Alpha.20 action
     // boundaries are unchanged. Persistence failure may reduce observability,
@@ -20106,6 +20135,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -20141,6 +20171,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -20162,6 +20193,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
+        extremeEvasionFarmTargetsRejected: true,
+        extremeAvoidanceFarmTargetsRejected: true,
+        farmEfficiencySeparateFromNavigationSafety: true,
         partyTrustUsesExplicitRoster: true,
         partyBootstrapEnabled: true,
         partyBootstrapDoesNotGateTrustedFarmerProgress: true,
@@ -22374,6 +22408,244 @@ function installFarmerTravelSafetyHotfix(runtime, options = {}) {
 }
 
 module.exports = { FarmerTravelSafetyHotfix, installFarmerTravelSafetyHotfix, FARMER_TRAVEL_SAFETY_MODE };
+
+},
+"src/reliability/farmer-target-efficiency-hotfix.js": function(require,module,exports){
+'use strict';
+
+const {
+  DEFAULT_MAX_EVASION,
+  DEFAULT_MAX_AVOIDANCE,
+  EVASION_SENSITIVE_CTYPES,
+  evaluateTargetEfficiency
+} = require('../farmer/target-efficiency');
+
+class FarmerTargetEfficiencyHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.log = runtime.log || null;
+    this.maxEvasion = Number.isFinite(Number(options.maxEvasion))
+      ? Math.max(0, Number(options.maxEvasion))
+      : DEFAULT_MAX_EVASION;
+    this.maxAvoidance = Number.isFinite(Number(options.maxAvoidance))
+      ? Math.max(0, Number(options.maxAvoidance))
+      : DEFAULT_MAX_AVOIDANCE;
+    this.installed = false;
+    this.plannerInstalled = false;
+    this.farmerInstalled = false;
+    this.lastSkip = null;
+    this.seenSkipSignals = new Set();
+    this.stats = {
+      plannerCandidatesRejected: 0,
+      liveTargetsRejected: 0,
+      extremeEvasionRejected: 0,
+      extremeAvoidanceRejected: 0
+    };
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try {
+      this.log.emit({ component: 'farmer-target-efficiency', event, severity, reason, data });
+    } catch (_) {
+      // Diagnostics must never affect target arbitration.
+    }
+  }
+
+  _gameData() {
+    const adapter = this.runtime && this.runtime.adapter;
+    if (!adapter || typeof adapter.getGameData !== 'function') return {};
+    try { return adapter.getGameData() || {}; } catch (_) { return {}; }
+  }
+
+  _evaluate(entity, snapshot, gameData) {
+    return evaluateTargetEfficiency(entity, gameData || {}, {
+      character: snapshot && snapshot.character || null,
+      maxEvasion: this.maxEvasion,
+      maxAvoidance: this.maxAvoidance
+    });
+  }
+
+  _recordSkip(source, verdict, entity = null) {
+    const mtype = verdict && verdict.mtype || entity && (entity.mtype || entity.monster) || null;
+    if (source === 'planner') this.stats.plannerCandidatesRejected += 1;
+    else this.stats.liveTargetsRejected += 1;
+    if (verdict && verdict.reason === 'EXTREME_EVASION') this.stats.extremeEvasionRejected += 1;
+    if (verdict && verdict.reason === 'EXTREME_AVOIDANCE') this.stats.extremeAvoidanceRejected += 1;
+    this.lastSkip = {
+      at: this.runtime && typeof this.runtime.now === 'function' ? this.runtime.now() : Date.now(),
+      source,
+      mtype,
+      reason: verdict && verdict.reason || 'TARGET_INEFFICIENT',
+      evasion: verdict && verdict.evasion != null ? verdict.evasion : null,
+      avoidance: verdict && verdict.avoidance != null ? verdict.avoidance : null,
+      ctype: verdict && verdict.ctype || null
+    };
+
+    const signal = `${source}|${mtype || '-'}|${this.lastSkip.reason}`;
+    if (!this.seenSkipSignals.has(signal)) {
+      this.seenSkipSignals.add(signal);
+      this._event('FARM_TARGET_EFFICIENCY_REJECTED', 'info', this.lastSkip.reason, { ...this.lastSkip });
+    }
+  }
+
+  _installPlanner() {
+    const planner = this.runtime && this.runtime.localFarmPlanner;
+    if (!planner || typeof planner.spawnCandidates !== 'function' || planner.__targetEfficiencyHotfixInstalled) return false;
+    const baseSpawnCandidates = planner.spawnCandidates.bind(planner);
+    planner.spawnCandidates = (snapshot, gameData, world, party) => {
+      const rows = baseSpawnCandidates(snapshot, gameData, world, party);
+      if (!Array.isArray(rows)) return rows;
+      return rows.filter((row) => {
+        const verdict = this._evaluate({ mtype: row && row.monster }, snapshot, gameData || {});
+        if (verdict.allowed) return true;
+        this._recordSkip('planner', verdict, row);
+        return false;
+      });
+    };
+    planner.__targetEfficiencyHotfixInstalled = true;
+    return true;
+  }
+
+  _installFarmer() {
+    const farmer = this.runtime && this.runtime.farmer;
+    if (!farmer || typeof farmer._safeLiveMonsters !== 'function' || farmer.__targetEfficiencyHotfixInstalled) return false;
+    const baseSafeLiveMonsters = farmer._safeLiveMonsters.bind(farmer);
+    farmer._safeLiveMonsters = (snapshot, party) => {
+      const rows = baseSafeLiveMonsters(snapshot, party);
+      if (!Array.isArray(rows)) return rows;
+      const gameData = this._gameData();
+      return rows.filter((entity) => {
+        const verdict = this._evaluate(entity, snapshot, gameData);
+        if (verdict.allowed) return true;
+        this._recordSkip('live', verdict, entity);
+        return false;
+      });
+    };
+    farmer.__targetEfficiencyHotfixInstalled = true;
+    return true;
+  }
+
+  install() {
+    this.plannerInstalled = this._installPlanner() || this.plannerInstalled;
+    this.farmerInstalled = this._installFarmer() || this.farmerInstalled;
+    this.installed = this.plannerInstalled || this.farmerInstalled;
+    this._event('FARM_TARGET_EFFICIENCY_HOTFIX_INSTALLED', 'info', null, {
+      plannerInstalled: this.plannerInstalled,
+      farmerInstalled: this.farmerInstalled,
+      maxEvasion: this.maxEvasion,
+      maxAvoidance: this.maxAvoidance
+    });
+    return this.installed;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'farmer-target-efficiency-v1',
+      installed: this.installed,
+      plannerInstalled: this.plannerInstalled,
+      farmerInstalled: this.farmerInstalled,
+      maxEvasion: this.maxEvasion,
+      maxAvoidance: this.maxAvoidance,
+      evasionSensitiveCtypes: [...EVASION_SENSITIVE_CTYPES],
+      lastSkip: this.lastSkip ? { ...this.lastSkip } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installFarmerTargetEfficiencyHotfix(runtime, options = {}) {
+  return new FarmerTargetEfficiencyHotfix(runtime, options);
+}
+
+module.exports = {
+  FarmerTargetEfficiencyHotfix,
+  installFarmerTargetEfficiencyHotfix
+};
+
+},
+"src/farmer/target-efficiency.js": function(require,module,exports){
+'use strict';
+
+const DEFAULT_MAX_EVASION = 80;
+const DEFAULT_MAX_AVOIDANCE = 80;
+const EVASION_SENSITIVE_CTYPES = Object.freeze([
+  'merchant',
+  'paladin',
+  'ranger',
+  'rogue',
+  'warrior'
+]);
+
+function finiteNonNegative(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function maxKnown(...values) {
+  const known = values.map(finiteNonNegative).filter((value) => value != null);
+  return known.length ? Math.max(...known) : null;
+}
+
+function normalizedType(value) {
+  return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+function resolveMonsterType(entity, options = {}) {
+  if (typeof entity === 'string') return normalizedType(entity);
+  if (!entity || typeof entity !== 'object') return normalizedType(options.mtype);
+  return normalizedType(entity.mtype || entity.monster || entity.type || options.mtype);
+}
+
+function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
+  const mtype = resolveMonsterType(entity, options);
+  const metadata = mtype && gameData && gameData.monsters && gameData.monsters[mtype] || {};
+  const source = entity && typeof entity === 'object' ? entity : {};
+  const character = options.character || {};
+  const ctype = normalizedType(character.ctype || character.type || options.ctype);
+  const maxEvasion = finiteNonNegative(options.maxEvasion) == null
+    ? DEFAULT_MAX_EVASION
+    : finiteNonNegative(options.maxEvasion);
+  const maxAvoidance = finiteNonNegative(options.maxAvoidance) == null
+    ? DEFAULT_MAX_AVOIDANCE
+    : finiteNonNegative(options.maxAvoidance);
+  const evasion = maxKnown(source.evasion, metadata.evasion);
+  const avoidance = maxKnown(source.avoidance, metadata.avoidance);
+  const evasionSensitive = !ctype || EVASION_SENSITIVE_CTYPES.includes(ctype);
+
+  const base = {
+    allowed: true,
+    reason: 'EFFICIENT_ENOUGH',
+    mtype: mtype || null,
+    ctype: ctype || null,
+    evasion,
+    avoidance,
+    maxEvasion,
+    maxAvoidance,
+    evasionSensitive
+  };
+
+  if (avoidance != null && avoidance >= maxAvoidance) {
+    return { ...base, allowed: false, reason: 'EXTREME_AVOIDANCE' };
+  }
+
+  if (evasionSensitive && evasion != null && evasion >= maxEvasion) {
+    return { ...base, allowed: false, reason: 'EXTREME_EVASION' };
+  }
+
+  return base;
+}
+
+module.exports = {
+  DEFAULT_MAX_EVASION,
+  DEFAULT_MAX_AVOIDANCE,
+  EVASION_SENSITIVE_CTYPES,
+  evaluateTargetEfficiency,
+  resolveMonsterType
+};
 
 },
 "src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
