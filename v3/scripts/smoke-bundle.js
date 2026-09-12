@@ -19,7 +19,8 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.8.13');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.8.20');
+assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.8.20');
 assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.status().combatRisk);
 assert.equal(typeof sandbox.AIO_V3.status().combatRisk.threshold, 'number');
@@ -80,6 +81,28 @@ assert.equal(sandbox.AIO_V3.farmer.setTargetPolicy('allow'), 'allow');
 assert.equal(sandbox.AIO_V3.farmer.status().targetPolicy, 'allow');
 assert.equal(typeof sandbox.AIO_V3.saveWorld, 'function');
 assert.equal(typeof sandbox.AIO_V3.showStatus, 'function');
+
+// Alpha.8 stability freeze contract.
+const stability = sandbox.AIO_V3.status().stability;
+assert.ok(stability);
+assert.equal(stability.stableScheduler, true);
+assert.ok(stability.commandOutcomes);
+assert.ok(stability.commandOutcomes.outcomes);
+assert.equal(stability.commandOutcomes.outcomes.historyCapacity, 500);
+assert.ok(stability.commandOutcomes.movement);
+assert.equal(stability.commandOutcomes.movement.maxFailures, 3);
+assert.equal(stability.commandOutcomes.movement.circuitOpen, false);
+assert.ok(stability.combat);
+assert.ok(stability.combat.retreat);
+assert.equal(stability.combat.retreat.pendingOutcomeId, null);
+assert.ok(stability.knowledgeAging);
+assert.equal(stability.knowledgeAging.freshMs, 6 * 60 * 60 * 1000);
+assert.equal(stability.knowledgeAging.staleMs, 72 * 60 * 60 * 1000);
+assert.equal(stability.knowledgeAging.minFreshness, 0.15);
+assert.ok(sandbox.AIO_V3.status().persistence);
+assert.equal(sandbox.AIO_V3.status().persistence.retryBaseMs, 5000);
+assert.equal(sandbox.AIO_V3.status().persistence.retryMaxMs, 120000);
+assert.equal(typeof sandbox.AIO_V3.status().persistence.saveCircuitOpen, 'boolean');
 
 // Headless contract: no DOM or game_log is supplied by this VM sandbox.
 assert.equal(typeof sandbox.document, 'undefined');
