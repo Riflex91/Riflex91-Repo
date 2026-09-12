@@ -186,9 +186,7 @@ class StrategyBrain {
     if (result.changed) {
       this.diary.add(result.reason === 'FIRST_CHAMPION' ? 'promotion' : 'challenge', { reason: result.reason, league: this.league.status() });
       this._event('BRAIN_LEAGUE_CHANGED', 'info', result.reason, this.league.status());
-      if (result.reason === 'FIRST_CHAMPION') {
-        this.quality.setHealthyChampion(this.league.champion);
-      }
+      if (result.reason === 'FIRST_CHAMPION') this.quality.setHealthyChampion(this.league.champion);
     }
     return result;
   }
@@ -217,7 +215,7 @@ class StrategyBrain {
     for (const pending of this.pendingOutcomes) {
       if (now < pending.expiresAt) { remaining.push(pending); continue; }
       const after = this.rewardModel.metrics(context);
-      const safetyIncident = after.rip === true || (context.progress && context.progress.state === 'DEGRADED' && pending.before.progressHealthy > 0);
+      const safetyIncident = after.rip === true;
       const evaluated = this.rewardModel.evaluate(pending.before, after, { safetyIncident });
       const index = actionIndex(pending.action);
       const targetIndex = evaluated.reward >= 0 ? index : 0;
@@ -243,7 +241,7 @@ class StrategyBrain {
   _modelPredictionFromSnapshot(snapshot, features, mask) {
     if (!snapshot) return null;
     try {
-      const model = new StudentNetwork({ hiddenSize: this.student.hiddenSize, learningRate: this.student.learningRate, seed: 1 });
+      const model = new StudentNetwork({ hiddenSize: this.student.hiddenSize, learningRate: this.student.learningRate, l2: this.student.l2, gradientClip: this.student.gradientClip, seed: 1 });
       model.restore(snapshot);
       return model.predict(features, mask);
     } catch (error) {
@@ -347,15 +345,71 @@ class StrategyBrain {
   restoreState(data) {
     try {
       if (!data || data.schemaVersion !== 1) throw new Error('unsupported brain state schema');
-      this.student.restore(data.student);
-      this.replay.restore(data.replay || { schemaVersion: 1, samples: [] });
-      this.quality.restore(data.quality || { schemaVersion: 1, outcomes: [] });
-      this.league.restore(data.league || { schemaVersion: 1, state: 'shadow' });
-      this.diary.restore(data.diary || { schemaVersion: 1, entries: [] });
-      this.teacher = { received: 0, accepted: 0, rejected: 0, agreements: 0, ...(data.teacher || {}) };
-      this.outcomes = { completed: 0, safetyIncidents: 0, rewardSum: 0, ...(data.outcomes || {}) };
-      this.lastTeacher = data.lastTeacher || null;
-      this.lastOutcome = data.lastOutcome || null;
+
+      const student = new StudentNetwork({
+        hiddenSize: this.student.hiddenSize,
+        learningRate: this.student.learningRate,
+        l2: this.student.l2,
+        gradientClip: this.student.gradientClip,
+        seed: 1
+      });
+      student.restore(data.student);
+
+      const replay = new PrioritizedReplayBuffer({ capacity: this.replay.capacity, alpha: this.replay.alpha, seed: 1 });
+      replay.restore(data.replay || { schemaVersion: 1, samples: [] });
+
+      const quality = new BrainQualityMonitor({
+        now: this.now,
+        windowSize: this.quality.windowSize,
+        minOutcomes: this.quality.minOutcomes,
+        overconfidenceThreshold: this.quality.overconfidenceThreshold,
+        rewardDropThreshold: this.quality.rewardDropThreshold,
+        quarantineMs: this.quality.quarantineMs
+      });
+      quality.restore(data.quality || { schemaVersion: 1, outcomes: [] });
+
+      const league = new BrainLeague({
+        now: this.now,
+        minSamples: this.league.minSamples,
+        minUpdates: this.league.minUpdates,
+        minTeacherAgreement: this.league.minTeacherAgreement,
+        minOutcomes: this.league.minOutcomes,
+        challengerTraffic: this.league.challengerTraffic,
+        challengeMinOutcomes: this.league.challengeMinOutcomes,
+        probationMinOutcomes: this.league.probationMinOutcomes,
+        rollbackRewardDrop: this.league.rollbackRewardDrop,
+        validationImprovement: this.league.validationImprovement
+      });
+      league.restore(data.league || { schemaVersion: 1, state: 'shadow' });
+
+      const diary = new BrainDiary({ now: this.now, capacity: this.diary.capacity, enabled: this.diary.enabled });
+      diary.restore(data.diary || { schemaVersion: 1, entries: [] });
+
+      const teacher = {
+        received: Math.max(0, finite(data.teacher && data.teacher.received)),
+        accepted: Math.max(0, finite(data.teacher && data.teacher.accepted)),
+        rejected: Math.max(0, finite(data.teacher && data.teacher.rejected)),
+        agreements: Math.max(0, finite(data.teacher && data.teacher.agreements))
+      };
+      const outcomes = {
+        completed: Math.max(0, finite(data.outcomes && data.outcomes.completed)),
+        safetyIncidents: Math.max(0, finite(data.outcomes && data.outcomes.safetyIncidents)),
+        rewardSum: finite(data.outcomes && data.outcomes.rewardSum)
+      };
+
+      this.student = student;
+      this.replay = replay;
+      this.quality = quality;
+      this.league = league;
+      this.diary = diary;
+      this.teacher = teacher;
+      this.outcomes = outcomes;
+      this.lastTeacher = data.lastTeacher ? sanitize(data.lastTeacher) : null;
+      this.lastOutcome = data.lastOutcome ? sanitize(data.lastOutcome) : null;
+      this.pendingOutcomes = [];
+      this.lastFeatures = null;
+      this.lastPrediction = null;
+      this.lastDecision = null;
       this.influenceEnabled = false;
       this.currentPreference = null;
       this.lastRestoreError = null;
@@ -366,7 +420,7 @@ class StrategyBrain {
       this.lastRestoreError = String(error && error.message || error);
       this.influenceEnabled = false;
       this.currentPreference = null;
-      this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError });
+      this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError, statePreserved: true });
       return false;
     }
   }
