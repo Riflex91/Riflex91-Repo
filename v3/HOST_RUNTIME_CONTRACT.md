@@ -66,16 +66,35 @@ No credentials belong in the gameplay bundle or persisted alert payload. Email, 
 
 Provider success means only that the host transport accepted the alert. It does not change bot state and does not acknowledge the incident on behalf of the operator.
 
-## Deployment boundary
+## Production host harness boundary
 
-This Alpha.20.5 slice supplies the host-side supervision primitives, not a production deployment package. A real unattended deployment still requires a concrete headless-browser/process launcher, authenticated host API, durable host directory, provider adapters/secrets, service supervision and production observation.
+Alpha.20.5 now includes a concrete **production host harness foundation** under `v3/host/**`:
 
-The bot is not considered overnight-ready solely because these classes exist. Before the unattended overnight gate, the deployed stack must prove:
+- `ManagedProcessLauncher` for a bounded external process lifecycle with `shell:false`, graceful-stop timeout, forced-kill fallback and serialized restart;
+- `HostApiServer` for authenticated, read-only, loopback-only host observability;
+- `JsonFileStateStore` plus `AlertRelay` for durable persist-before-claim alert handoff;
+- `createWebhookAlertTransport` as a host-secret-backed HTTPS transport adapter foundation;
+- `HostWatchdogSupervisor` and `HeadlessHostController` for external dead-man supervision and bounded process-only restart authority;
+- `RestartReconciliationObserver` for fresh-run, observation-only post-restart reconciliation evidence;
+- `ProductionHostHarness` for wiring those pieces together without adding gameplay authority.
 
-- live beacon/dead-man detection outside the browser process;
-- bounded real process restart and restart-circuit behavior;
-- durable alert handoff across host/browser restarts;
-- at least one real critical alert delivery path plus a fallback path where required;
-- no blind transaction/travel/party resume after restart;
-- stable four-character liveness and reconciliation;
-- no unexpected raw gameplay action during the reliability soak.
+This is intentionally **not yet a turnkey unattended deployment package**. `ProductionHostHarness` receives an injected `botClient`; this slice does not yet implement the real browser/page bridge that evaluates `AIO_V3.operations` inside an Adventure Land session. It also does not provision login/session bootstrapping, operating-system service supervision, production secrets, provider accounts, durable-directory lifecycle/backups or machine-specific browser installation.
+
+The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
+
+## Remaining unattended-deployment requirements
+
+Before the unattended overnight gate, the deployed stack must prove all of the following with real production evidence:
+
+- a real browser/page `botClient` bridge can read `hostHeartbeat()`, `pendingAlerts()`, exact `claimAlerts(ids)` and reconciliation status without acquiring gameplay authority;
+- live beacon/dead-man detection continues outside the browser process;
+- bounded real browser/process restart and restart-circuit behavior work under the target operating system/service manager;
+- after restart, a fresh run is observed and deterministic bot reconciliation completes before the host considers recovery clean;
+- durable alert handoff survives host/browser restarts and corrupt/unavailable persistence fails closed;
+- at least one real critical alert delivery route is demonstrated, with the required fallback route configured independently;
+- credentials are host-side only and are absent from the browser bundle, alert payloads and read-only API surfaces;
+- stable Merchant + three-combat-character liveness is maintained through the reliability observation;
+- no blind transaction, travel or party resume occurs after restart;
+- no unexpected raw gameplay action occurs during the reliability soak.
+
+The existence of the host classes or a green synthetic soak alone does **not** make the bot overnight-ready. Restart authority remains default-off until the deployment canary explicitly enables `ALPHA20_5_HOST_RESTART`.
