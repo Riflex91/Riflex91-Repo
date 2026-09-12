@@ -106,6 +106,53 @@ test('ManagedProcessLauncher refuses an empty command instead of invoking a shel
   assert.equal(calls, 0);
 });
 
+test('ManagedProcessLauncher reports forced shutdown per stop attempt instead of leaking historical state', async () => {
+  const children = [];
+  const makeChild = (pid, stubborn) => {
+    const child = new EventEmitter();
+    child.pid = pid;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.exitCode = null;
+    child.signalCode = null;
+    child.killCalls = [];
+    child.kill = (signal) => {
+      child.killCalls.push(signal);
+      if (signal === 'SIGKILL' || !stubborn) child.signalCode = signal;
+      return true;
+    };
+    return child;
+  };
+  const launcher = new ManagedProcessLauncher({
+    command: '/usr/bin/chromium',
+    stopGraceMs: 1000,
+    spawn: () => {
+      const child = makeChild(2000 + children.length, children.length === 0);
+      children.push(child);
+      return child;
+    }
+  });
+  launcher._waitForExit = async (child) => !(child === children[0] && child.killCalls.length === 1 && child.killCalls[0] === 'SIGTERM');
+
+  assert.equal((await launcher.start()).started, true);
+  const forced = await launcher.stop('FORCED_TEST');
+  assert.equal(forced.stopped, true);
+  assert.equal(forced.forced, true);
+  assert.deepEqual(children[0].killCalls, ['SIGTERM', 'SIGKILL']);
+  assert.equal(launcher.status().stats.forcedKills, 1);
+
+  assert.equal((await launcher.start()).started, true);
+  const graceful = await launcher.stop('GRACEFUL_TEST');
+  assert.equal(graceful.stopped, true);
+  assert.equal(graceful.forced, false);
+  assert.deepEqual(children[1].killCalls, ['SIGTERM']);
+  assert.equal(launcher.status().stats.forcedKills, 1);
+
+  const duplicate = await launcher.stop('DUPLICATE_TEST');
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(duplicate.forced, false);
+});
+
 test('HostApiServer refuses non-loopback bind and short authentication tokens', async () => {
   const publicServer = new HostApiServer({ host: '0.0.0.0', token: 'x'.repeat(64) });
   assert.equal((await publicServer.start()).reason, 'LOOPBACK_BIND_REQUIRED');
