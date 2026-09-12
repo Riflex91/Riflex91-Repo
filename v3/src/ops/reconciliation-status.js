@@ -32,7 +32,7 @@ function stateCount(status, name) {
   return states && typeof states === 'object' ? Math.max(0, Math.floor(finite(states[name], 0))) : 0;
 }
 
-function buildReconciliationStatus(runtime, now = () => Date.now()) {
+function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarget = null) {
   const observedAt = finite(typeof now === 'function' ? now() : Date.now(), Date.now());
   const blockers = [];
   const add = (value) => {
@@ -61,9 +61,7 @@ function buildReconciliationStatus(runtime, now = () => Date.now()) {
   const consolidation = safeStatus(runtime.controlledBankConsolidation);
   const travel = safeStatus(runtime.safeTravel);
   const lifecycle = safeStatus(runtime.controlledPartyLifecycle);
-  const recovery = runtime.headlessOperations && runtime.headlessOperations.recovery
-    ? safeStatus(runtime.headlessOperations.recovery)
-    : null;
+  const recoveryStatus = safeStatus(recoveryTarget);
 
   if (!economy) add('ECONOMY_STATUS_UNAVAILABLE');
   else {
@@ -108,7 +106,6 @@ function buildReconciliationStatus(runtime, now = () => Date.now()) {
   if (!liveGate || typeof liveGate !== 'object') add('ALPHA20_LIVE_GATE_STATUS_UNAVAILABLE');
   else if (liveGate.running === true) add('ALPHA20_LIVE_GATE_RUNNING');
 
-  const recoveryStatus = recovery || (runtime.__headlessRecovery && safeStatus(runtime.__headlessRecovery));
   if (recoveryStatus && recoveryStatus.degradedSince != null) add('SAFE_RECOVERY_INCIDENT_ACTIVE');
 
   return {
