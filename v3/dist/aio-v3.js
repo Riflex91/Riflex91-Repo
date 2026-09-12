@@ -16821,7 +16821,6 @@ module.exports = { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCH
 'use strict';
 
 const { PartyLifecycleState } = require('./lifecycle-store');
-const { AURAS } = require('./paladin-aura-policy');
 
 const CONTROLLED_PARTY_LIFECYCLE_MODE = 'controlled-live-default-off';
 const CONTROLLED_PARTY_LIFECYCLE_ACK = 'ALPHA20_PARTY_LIFECYCLE';
@@ -16848,22 +16847,24 @@ class ControlledPartyLifecycleCoordinator {
     this.storageKey = options.storageKey || 'AIO_V3_PARTY_LIFECYCLE_OPERATION';
     this.lifecycle = options.lifecycle;
     this.transitions = options.transitions;
-    this.auraPolicy = options.auraPolicy;
-    this.adapter = options.adapter;
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'UNKNOWN' }));
     this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
     this.enabled = false;
     this.allowTransitions = false;
     this.allowDevelopmentRotation = false;
-    this.allowAuraChanges = false;
     this.minTransitionIntervalMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.minTransitionIntervalMs) || 15 * 60 * 1000));
+    this.failureWindowMs = Math.max(60 * 1000, Math.min(60 * 60 * 1000, Number(options.failureWindowMs) || 10 * 60 * 1000));
+    this.failureThreshold = Math.max(2, Math.min(10, Number(options.failureThreshold) || 3));
+    this.circuitCooldownMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.circuitCooldownMs) || 10 * 60 * 1000));
+    this.failureTimestamps = [];
+    this.circuitOpenUntil = 0;
+    this.circuitReason = null;
     this.lastTransitionAt = 0;
     this.operation = null;
     this.busy = false;
     this.lastResult = null;
-    this.lastAuraResult = null;
-    this.stats = { plans: 0, attempts: 0, committed: 0, aborted: 0, failedSafe: 0, rejected: 0, developmentRotations: 0, promotions: 0, auraAttempts: 0, auraChanges: 0 };
+    this.stats = { plans: 0, attempts: 0, committed: 0, aborted: 0, failedSafe: 0, rejected: 0, developmentRotations: 0, promotions: 0, circuitOpens: 0 };
     this.load();
   }
 
@@ -16879,11 +16880,55 @@ class ControlledPartyLifecycleCoordinator {
     return null;
   }
 
+  _pruneFailures(at = this.now()) {
+    const cutoff = at - this.failureWindowMs;
+    this.failureTimestamps = this.failureTimestamps.filter((value) => Number.isFinite(Number(value)) && Number(value) >= cutoff && Number(value) <= at);
+  }
+
+  breaker() {
+    const now = this.now();
+    this._pruneFailures(now);
+    if (this.circuitOpenUntil > 0 && now >= this.circuitOpenUntil) {
+      this.circuitOpenUntil = 0;
+      this.circuitReason = null;
+    }
+    return {
+      open: this.circuitOpenUntil > now,
+      openUntil: this.circuitOpenUntil > now ? this.circuitOpenUntil : null,
+      reason: this.circuitOpenUntil > now ? this.circuitReason : null,
+      failuresInWindow: this.failureTimestamps.length,
+      threshold: this.failureThreshold,
+      windowMs: this.failureWindowMs,
+      cooldownMs: this.circuitCooldownMs
+    };
+  }
+
+  _recordFailure(reason) {
+    const now = this.now();
+    this.failureTimestamps.push(now);
+    this._pruneFailures(now);
+    if (this.failureTimestamps.length >= this.failureThreshold) {
+      this.circuitOpenUntil = Math.max(this.circuitOpenUntil, now + this.circuitCooldownMs);
+      this.circuitReason = String(reason || 'PARTY_TRANSITION_FAILURE_BUDGET_EXCEEDED');
+      this.stats.circuitOpens += 1;
+      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
+      this._event('PARTY_LIFECYCLE_CIRCUIT_OPENED', this.breaker(), 'error', this.circuitReason);
+    }
+  }
+
   save() {
     const backend = this._backend();
     if (!backend) return false;
     try {
-      backend.set(this.storageKey, JSON.stringify({ schemaVersion: 1, savedAt: this.now(), operation: this.operation, lastTransitionAt: this.lastTransitionAt }));
+      backend.set(this.storageKey, JSON.stringify({
+        schemaVersion: 1,
+        savedAt: this.now(),
+        operation: this.operation,
+        lastTransitionAt: this.lastTransitionAt,
+        failureTimestamps: this.failureTimestamps,
+        circuitOpenUntil: this.circuitOpenUntil,
+        circuitReason: this.circuitReason
+      }));
       return true;
     } catch (error) {
       this._event('PARTY_LIFECYCLE_OPERATION_SAVE_FAILED', { message: String(error && error.message || error) }, 'warn', 'PERSISTENCE_WRITE_ERROR');
@@ -16900,6 +16945,10 @@ class ControlledPartyLifecycleCoordinator {
       const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!data || data.schemaVersion !== 1) throw new Error('unsupported lifecycle operation schema');
       this.lastTransitionAt = Math.max(0, finite(data.lastTransitionAt));
+      this.failureTimestamps = Array.isArray(data.failureTimestamps) ? data.failureTimestamps.map(Number).filter(Number.isFinite) : [];
+      this.circuitOpenUntil = Math.max(0, finite(data.circuitOpenUntil));
+      this.circuitReason = data.circuitReason ? String(data.circuitReason) : null;
+      this.breaker();
       if (data.operation && [PartyLifecycleOperationState.RESERVED, PartyLifecycleOperationState.EXECUTING, PartyLifecycleOperationState.VERIFYING].includes(data.operation.state)) {
         this.operation = { ...data.operation, state: PartyLifecycleOperationState.RECOVERING, reason: 'RESTART_RECONCILIATION_REQUIRED', updatedAt: this.now() };
         this._event('PARTY_LIFECYCLE_RESTART_RECOVERY_REQUIRED', { id: this.operation.id }, 'warn', 'NO_BLIND_RETRY');
@@ -16908,6 +16957,9 @@ class ControlledPartyLifecycleCoordinator {
       return true;
     } catch (error) {
       this.operation = null;
+      this.failureTimestamps = [];
+      this.circuitOpenUntil = 0;
+      this.circuitReason = null;
       this._event('PARTY_LIFECYCLE_OPERATION_RESTORE_FAILED', { message: String(error && error.message || error) }, 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA');
       return false;
     }
@@ -16923,11 +16975,15 @@ class ControlledPartyLifecycleCoordinator {
       this.stats.rejected += 1;
       return { ...this.status(), enableRejected: 'WRONG_ACK' };
     }
+    if (this.breaker().open) {
+      this.disable('PARTY_LIFECYCLE_CIRCUIT_OPEN');
+      this.stats.rejected += 1;
+      return { ...this.status(), enableRejected: 'PARTY_LIFECYCLE_CIRCUIT_OPEN' };
+    }
     this.enabled = true;
     this.allowTransitions = config.allowTransitions === true;
     this.allowDevelopmentRotation = this.allowTransitions && config.allowDevelopmentRotation === true;
-    this.allowAuraChanges = config.allowAuraChanges === true;
-    this._event('PARTY_LIFECYCLE_CONTROL_ENABLED', { allowTransitions: this.allowTransitions, allowDevelopmentRotation: this.allowDevelopmentRotation, allowAuraChanges: this.allowAuraChanges });
+    this._event('PARTY_LIFECYCLE_CONTROL_ENABLED', { allowTransitions: this.allowTransitions, allowDevelopmentRotation: this.allowDevelopmentRotation });
     return this.status();
   }
 
@@ -16935,20 +16991,19 @@ class ControlledPartyLifecycleCoordinator {
     this.enabled = false;
     this.allowTransitions = false;
     this.allowDevelopmentRotation = false;
-    this.allowAuraChanges = false;
     if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
     this._event('PARTY_LIFECYCLE_CONTROL_DISABLED', {}, 'info', reason);
     return this.status();
   }
 
   _localCharacter() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
-  _partyNames() { const p = this.root && (this.root.parent || this.root); return Object.keys(p && p.party || {}); }
 
   _gate(context = {}) {
     const reasons = [];
     const local = this._localCharacter();
     const supervisor = this.getSupervisorStatus() || {};
     if (!this.enabled) reasons.push('CONTROLLED_PARTY_LIFECYCLE_DISABLED');
+    if (this.breaker().open) reasons.push('PARTY_LIFECYCLE_CIRCUIT_OPEN');
     if (this.getMode() !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
     if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reasons.push('SUPERVISOR_NOT_HEALTHY');
     if (!local || local.ctype !== 'merchant') reasons.push('MERCHANT_CONTROLLER_REQUIRED');
@@ -16962,7 +17017,7 @@ class ControlledPartyLifecycleCoordinator {
   }
 
   _selectPlan(currentMembers = [], registryStatus = {}, context = {}) {
-    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [] };
+    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [], thresholds: {} };
     const rows = life.characters || [];
     const current = currentMembers.filter(Boolean);
     const merchant = current.find((row) => row.ctype === 'merchant');
@@ -16994,9 +17049,11 @@ class ControlledPartyLifecycleCoordinator {
     if (kind === 'PROMOTION') {
       if (incoming.currentScore == null || !outgoing.lifecycle || outgoing.lifecycle.currentScore == null || incoming.currentScore <= outgoing.lifecycle.currentScore) return { planned: false, reason: 'CURRENT_SUPERIORITY_NOT_PROVEN' };
     }
-    if (kind === 'DEVELOPMENT_ROTATION' && (incoming.expectedTrainingXpRatio == null || incoming.expectedTrainingXpRatio < life.thresholds.minTrainingExpectedXpRatio)) return { planned: false, reason: 'TRAINING_XP_RATIO_GATE' };
+    const minTrainingXpRatio = life.thresholds && Number(life.thresholds.minTrainingExpectedXpRatio);
+    if (kind === 'DEVELOPMENT_ROTATION' && (incoming.expectedTrainingXpRatio == null || !Number.isFinite(minTrainingXpRatio) || incoming.expectedTrainingXpRatio < minTrainingXpRatio)) return { planned: false, reason: 'TRAINING_XP_RATIO_GATE' };
 
     const targetNames = [merchant.name, ...activeCombat.filter((row) => row.name !== outgoing.member.name).map((row) => row.name), incoming.name];
+    if (new Set(targetNames).size !== 4) return { planned: false, reason: 'TARGET_PARTY_DUPLICATE' };
     const targetMembers = targetNames.map((name) => byName.get(name) || current.find((row) => row.name === name)).filter(Boolean);
     if (targetMembers.length !== 4) return { planned: false, reason: 'TARGET_MEMBER_STATE_INCOMPLETE' };
     return {
@@ -17079,6 +17136,7 @@ class ControlledPartyLifecycleCoordinator {
       op.result = clone(result);
       op.updatedAt = this.now();
       if (op.state === PartyLifecycleOperationState.FAILED_SAFE) this.stats.failedSafe += 1; else this.stats.aborted += 1;
+      this._recordFailure(op.reason);
       this.lastResult = clone(op); this.save();
       return { executed: false, operation: clone(op), transition: result, reason: op.reason };
     } catch (error) {
@@ -17088,6 +17146,7 @@ class ControlledPartyLifecycleCoordinator {
       op.error = String(error && error.message || error);
       op.updatedAt = this.now();
       this.stats.failedSafe += 1;
+      this._recordFailure(op.reason);
       this.lastResult = clone(op); this.save();
       this._event('PARTY_LIFECYCLE_TRANSITION_FAILED_SAFE', { id: op.id, error: op.error }, 'error', op.reason);
       return { executed: false, reason: op.reason, operation: clone(op) };
@@ -17122,6 +17181,7 @@ class ControlledPartyLifecycleCoordinator {
       this.operation.state = PartyLifecycleOperationState.FAILED_SAFE;
       this.operation.reason = 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY';
       this.stats.failedSafe += 1;
+      this._recordFailure(this.operation.reason);
     }
     this.operation.updatedAt = this.now();
     this.lastResult = clone(this.operation);
@@ -17129,46 +17189,24 @@ class ControlledPartyLifecycleCoordinator {
     return { reconciled: true, operation: clone(this.operation) };
   }
 
-  applyAura(recommendation, context = {}) {
-    const gate = this._gate(context);
-    if (!gate.allowed) return { executed: false, reason: gate.reasons[0], reasons: gate.reasons };
-    if (!this.allowAuraChanges) return { executed: false, reason: 'AURA_CHANGES_NOT_AUTHORIZED' };
-    const local = gate.local;
-    if (!local || local.ctype !== 'paladin') return { executed: false, reason: 'LOCAL_PALADIN_REQUIRED' };
-    if (Number(local.level) < 60) return { executed: false, reason: 'PALADIN_LEVEL_TOO_LOW' };
-    const aura = recommendation && recommendation.aura;
-    if (!AURAS.includes(aura)) return { executed: false, reason: 'INVALID_AURA' };
-    if (recommendation.canSwitch === false) return { executed: false, reason: 'AURA_HYSTERESIS_HOLD' };
-    if (!this.adapter || typeof this.adapter.command !== 'function') return { executed: false, reason: 'ADAPTER_UNAVAILABLE' };
-    this.stats.auraAttempts += 1;
-    const result = this.adapter.command('use_skill', ['paladin_aura', aura]);
-    const out = { at: this.now(), aura, executed: !!(result && result.executed), reason: result && result.reason || null, shadow: !!(result && result.shadow) };
-    if (out.executed) {
-      if (this.auraPolicy && typeof this.auraPolicy.noteApplied === 'function') this.auraPolicy.noteApplied(aura);
-      this.stats.auraChanges += 1;
-      this._event('PALADIN_AURA_CONTROLLED_CHANGED', { aura, recommendation: clone(recommendation) });
-    }
-    this.lastAuraResult = out;
-    return clone(out);
-  }
-
   status() {
+    const breaker = this.breaker();
+    const authority = this.enabled && !breaker.open;
     return {
       mode: CONTROLLED_PARTY_LIFECYCLE_MODE,
       requiredAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
       enabled: this.enabled,
-      actionAuthority: this.enabled && (this.allowTransitions || this.allowAuraChanges),
+      actionAuthority: authority && this.allowTransitions,
       directGameplayActionAccess: false,
-      transitionAuthority: this.enabled && this.allowTransitions,
-      developmentRotationAuthority: this.enabled && this.allowDevelopmentRotation,
-      auraAuthority: this.enabled && this.allowAuraChanges,
+      transitionAuthority: authority && this.allowTransitions,
+      developmentRotationAuthority: authority && this.allowDevelopmentRotation,
       maxDevelopmentSlots: 1,
       minTransitionIntervalMs: this.minTransitionIntervalMs,
       lastTransitionAt: this.lastTransitionAt || null,
       busy: this.busy,
       operation: clone(this.operation),
       lastResult: clone(this.lastResult),
-      lastAuraResult: clone(this.lastAuraResult),
+      breaker,
       serverChangeAllowed: false,
       smartMoveAllowed: false,
       crossMapRoutingAllowed: false,
