@@ -1,7 +1,10 @@
 'use strict';
 
 const BUILT_IN_TARGET_EXCLUSIONS = Object.freeze([
-  Object.freeze({ token: 'automatron', reason: 'TRAINING_TARGET_AUTOMATRON' })
+  Object.freeze({ token: 'automatron', reason: 'TRAINING_TARGET_AUTOMATRON' }),
+  Object.freeze({ token: 'redfairy', reason: 'DANGEROUS_SPECIAL_FAIRY' }),
+  Object.freeze({ token: 'greenfairy', reason: 'DANGEROUS_SPECIAL_FAIRY' }),
+  Object.freeze({ token: 'bluefairy', reason: 'DANGEROUS_SPECIAL_FAIRY' })
 ]);
 
 function normalizeTargetToken(value) {

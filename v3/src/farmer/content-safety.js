@@ -8,6 +8,9 @@ const ContentDisposition = Object.freeze({
   QUARANTINED: 'QUARANTINED'
 });
 
+const BUILT_IN_DANGEROUS_MONSTERS = Object.freeze(['redfairy', 'greenfairy', 'bluefairy']);
+const BUILT_IN_DANGEROUS_SET = new Set(BUILT_IN_DANGEROUS_MONSTERS);
+
 function normalizeMonsterType(value) {
   const id = String(value || '').trim();
   if (!id) throw new Error('monster type must be a non-empty string');
@@ -54,7 +57,11 @@ class ContentSafetyGate {
   }
 
   approve(world, mtype) {
-    return this._write(world, mtype, ContentDisposition.APPROVED, 'OPERATOR_APPROVED', 'CONTENT_MONSTER_APPROVED');
+    const id = normalizeMonsterType(mtype);
+    if (BUILT_IN_DANGEROUS_SET.has(id)) {
+      return this._write(world, id, ContentDisposition.QUARANTINED, 'BUILT_IN_DANGEROUS_SPECIAL', 'CONTENT_MONSTER_BUILT_IN_BLOCKED');
+    }
+    return this._write(world, id, ContentDisposition.APPROVED, 'OPERATOR_APPROVED', 'CONTENT_MONSTER_APPROVED');
   }
 
   quarantine(world, mtype) {
@@ -66,6 +73,27 @@ class ContentSafetyGate {
       return { allowed: true, reason: 'CONTENT_SAFETY_NOT_APPLICABLE', disposition: null, monsterType: null };
     }
     const mtype = String(entity.mtype);
+
+    // Hard safety boundary. These special fairies can exist in old persisted
+    // world data and therefore used to inherit LEGACY_ALLOWED. Built-in safety
+    // always wins over migration state and cannot be overridden by approve().
+    if (BUILT_IN_DANGEROUS_SET.has(mtype)) {
+      const validWorld = world && typeof world.fact === 'function' && typeof world.observeEntity === 'function';
+      const disposition = validWorld ? this._fact(world, mtype, this.dispositionFact) : null;
+      const reason = validWorld ? this._fact(world, mtype, 'contentSafetyReason') : null;
+      if (validWorld && (disposition !== ContentDisposition.QUARANTINED || reason !== 'BUILT_IN_DANGEROUS_SPECIAL')) {
+        this._write(world, mtype, ContentDisposition.QUARANTINED, 'BUILT_IN_DANGEROUS_SPECIAL', 'CONTENT_MONSTER_BUILT_IN_BLOCKED');
+      }
+      const result = {
+        allowed: false,
+        reason: 'BUILT_IN_DANGEROUS_SPECIAL',
+        disposition: ContentDisposition.QUARANTINED,
+        monsterType: mtype
+      };
+      this.lastDecision = { at: this.now(), ...result };
+      return result;
+    }
+
     if (!world || typeof world.hasEntity !== 'function' || typeof world.fact !== 'function' || typeof world.observeEntity !== 'function') {
       const result = { allowed: false, reason: 'CONTENT_SAFETY_UNAVAILABLE', disposition: null, monsterType: mtype };
       this.lastDecision = { at: this.now(), ...result };
@@ -118,6 +146,7 @@ class ContentSafetyGate {
     return {
       enabled: true,
       unknownDefault: ContentDisposition.QUARANTINED,
+      builtInDangerous: BUILT_IN_DANGEROUS_MONSTERS.slice(),
       policyType: this.policyType,
       counts,
       quarantined: rows.filter((row) => row.disposition === ContentDisposition.QUARANTINED).slice(0, this.maxStatusEntries),
@@ -128,4 +157,9 @@ class ContentSafetyGate {
   }
 }
 
-module.exports = { ContentSafetyGate, ContentDisposition, normalizeMonsterType };
+module.exports = {
+  ContentSafetyGate,
+  ContentDisposition,
+  BUILT_IN_DANGEROUS_MONSTERS,
+  normalizeMonsterType
+};
