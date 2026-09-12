@@ -2,6 +2,8 @@
 
 Version target: `3.0.0-alpha.14.0`
 
+Status: **FULL CONFIRMED**
+
 Alpha.14 establishes the central non-destructive economy planning layer required before any Merchant executor may sell, bank, exchange, compound or upgrade items.
 
 The default remains safe: runtime `shadow`, `productionReplacement=false`, Brain shadow-only, Supervisor safe actions OFF, Party transitions OFF, aura automation OFF, Party exploration OFF, Inventory/Gear action authority OFF.
@@ -71,7 +73,7 @@ There is deliberately no public `sell`, `bank`, `compound`, `upgrade` or `exchan
 
 ## Internal certification
 
-The Alpha.14 suite must cover at minimum:
+The Alpha.14 suite covers:
 
 - ledger schema/mode/action-authority boundary;
 - hard capacity and JSON serialization;
@@ -110,7 +112,7 @@ Alpha.14 does not enable:
 
 ## Release gate
 
-Alpha.14 becomes `CONFIRMED` only after:
+Alpha.14 is confirmed only after:
 
 1. version is exactly `3.0.0-alpha.14.0`;
 2. default mode remains `shadow`;
@@ -127,6 +129,8 @@ Alpha.14 becomes `CONFIRMED` only after:
 13. one combined safe Adventure Land Alpha.14 FULL certification passes after merge;
 14. final runtime is restored to `shadow` with all live Party/economy controls disabled.
 
+All fourteen gates are satisfied.
+
 ## Branch certification — 2026-09-12
 
 The implementation candidate passed the complete branch gate after correcting two assertion-only current-release regressions in the historical Alpha.10/Alpha.11 test harness. No production safety or economy behavior was weakened.
@@ -142,4 +146,17 @@ Certified branch results:
 - Inventory Ledger and Gear Progression remain no-authority planning layers;
 - all previous Brain/Party/Supervisor/Content/Combat safety regressions PASS.
 
-Freeze status: **branch-certified; exact final PR-head verification pending**.
+Validated implementation PR:
+
+- PR `#50`;
+- validated final implementation head: `abf065c1666f768859a4179717edc26fcd746b57`;
+- merged implementation main: `43a79a0a138494484f5c6a7a90ad55217756b4ea`;
+- merge parents: prior main `6951ffdd91148b62375c5fcea43f001f0e405115` and validated implementation head `abf065c1666f768859a4179717edc26fcd746b57`.
+
+## Adventure Land FULL certification — 2026-09-12
+
+The post-merge combined Alpha.14 FULL certification was executed in the real Adventure Land runtime and returned **PASS**.
+
+The live certification verified the release/runtime identity, Inventory Ledger and Gear Progression schemas and no-authority boundaries, bounded/JSON-safe observed entries and goals, absence of destructive public economy executor APIs, preservation of Brain/Supervisor/Content/Party safety contracts, unknown-content fail-closed behavior, `performance_trick()` guard availability/arming, headless compatibility, elevated remote-control default deny, and final cleanup back to `shadow` with Party/economy controls disabled.
+
+Final phase result: **Alpha.14 FULL CONFIRMED**.
