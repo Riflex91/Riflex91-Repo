@@ -16229,8 +16229,8 @@ class Alpha20Runtime extends Alpha19Runtime {
     super(options);
     this.log.version = RELEASE_VERSION;
 
-    // Alpha.12 legacy live switches are never used directly in Alpha.20.
-    // Alpha.20 re-authorizes them only inside a bounded controlled operation.
+    // Legacy Alpha.12 live switches are permanently closed in Alpha.20.
+    // Live authority can only be borrowed inside the controlled lifecycle operation.
     this.partyTransitions.setLiveEnabled(false);
     this.auraAutomationEnabled = false;
 
@@ -16261,12 +16261,14 @@ class Alpha20Runtime extends Alpha19Runtime {
       storageKey: options.partyLifecycleOperationStorageKey,
       lifecycle: this.partyLifecycle,
       transitions: this.partyTransitions,
-      auraPolicy: this.auraPolicy,
-      adapter: this.adapter,
       getMode: () => this.adapter.mode,
       getSupervisorStatus: () => this.globalSupervisor.status(),
       getEconomyEmergency: () => this._alpha20EconomyEmergency(),
-      minTransitionIntervalMs: options.partyLifecycleMinTransitionIntervalMs
+      minTransitionIntervalMs: options.partyLifecycleMinTransitionIntervalMs,
+      maxDevelopmentRotationMs: options.partyLifecycleMaxDevelopmentRotationMs,
+      failureWindowMs: options.partyLifecycleFailureWindowMs,
+      failureThreshold: options.partyLifecycleFailureThreshold,
+      circuitCooldownMs: options.partyLifecycleCircuitCooldownMs
     });
 
     this.controlledPaladinAura = options.controlledPaladinAura || new ControlledPaladinAuraExecutor({
@@ -16306,24 +16308,37 @@ class Alpha20Runtime extends Alpha19Runtime {
     return clamp01(['survival', 'progress', 'controllability', 'synergy'].reduce((sum, key) => sum + clamp01(row.measured[key]) * finite(weights[key]), 0));
   }
 
+  _sameParty(candidate, currentMembers) {
+    const candidateNames = new Set((candidate && candidate.members || []).map((row) => row && row.name).filter(Boolean));
+    const currentNames = new Set((currentMembers || []).map((row) => row && row.name).filter(Boolean));
+    return candidateNames.size === currentNames.size && [...candidateNames].every((name) => currentNames.has(name));
+  }
+
   _lifecycleEvidence(snapshot, currentMembers, registryStatus, encounter, risk) {
     const context = { snapshot, gameData: this.adapter.getGameData() || {}, registryStatus, currentMembers, encounter, performanceStore: this.partyPerformance };
     const scored = this.partyOrchestrator.candidates(registryStatus).map((candidate) => this.partyOrchestrator.score(candidate, context));
+    const currentScored = scored.find((row) => this._sameParty(row.candidate, currentMembers)) || null;
     const activeNames = new Set(currentMembers.filter((row) => row.ctype !== 'merchant').map((row) => row.name));
     const combat = (registryStatus.characters || []).filter((row) => row && row.ctype !== 'merchant');
+    const session = this.controlledPartyLifecycle && this.controlledPartyLifecycle.status ? this.controlledPartyLifecycle.status().developmentSession : null;
     const rows = [];
 
     for (const character of combat) {
+      const active = activeNames.has(character.name);
       const containing = scored.filter((row) => row.candidate.combat.some((member) => member.name === character.name) && !row.hardSafetyRejected);
       const projected = containing.slice().sort((a, b) => b.score - a.score || b.confidence - a.confidence)[0] || null;
-      const measuredRows = containing.filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0).sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs));
-      const measured = measuredRows[0] || null;
+      const historicalMeasured = containing
+        .filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0)
+        .sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs))[0] || null;
+      // Active characters only receive CURRENT evidence from the actually active composition.
+      // Benched candidates may use their own previously observed real compositions, never theory-only score.
+      const measured = active ? (currentScored && currentScored.measured && currentScored.profile ? currentScored : null) : historicalMeasured;
       const gear = character.gear && typeof character.gear === 'object' ? character.gear : {};
       rows.push({
         name: character.name,
         ctype: character.ctype,
         level: character.level,
-        active: activeNames.has(character.name),
+        active,
         currentScore: measured ? this._measuredScore(measured) : null,
         currentConfidence: measured ? measured.measured.confidence : 0,
         currentSamples: measured && measured.profile ? measured.profile.samples : 0,
@@ -16343,10 +16358,17 @@ class Alpha20Runtime extends Alpha19Runtime {
     const activeProjected = active.map((row) => row.projectedScore).filter((value) => value != null);
     const activeProgress = active.map((row) => row.projectedProgress).filter((value) => value != null && value > 0);
     const activeXp = active.map((row) => row.xpPerHour).filter((value) => value > 0);
-    const incumbentCurrentScore = activeCurrent.length === active.length && active.length ? Math.min(...activeCurrent) : null;
-    const incumbentProjectedScore = activeProjected.length ? Math.min(...activeProjected) : null;
-    const incumbentProjectedProgress = activeProgress.length ? Math.min(...activeProgress) : null;
-    const incumbentXpPerHour = activeXp.length ? Math.min(...activeXp) : 0;
+    const observedIncumbentCurrentScore = activeCurrent.length === active.length && active.length ? Math.min(...activeCurrent) : null;
+    const observedIncumbentProjectedScore = activeProjected.length ? Math.min(...activeProjected) : null;
+    const observedIncumbentProjectedProgress = activeProgress.length ? Math.min(...activeProgress) : null;
+    const observedIncumbentXpPerHour = activeXp.length ? Math.min(...activeXp) : 0;
+
+    // During a bounded Development rotation the comparison baseline is frozen from the
+    // pre-rotation incumbent. This prevents the trainee from being compared against itself.
+    const incumbentCurrentScore = session && session.baselineCurrentScore != null ? clamp01(session.baselineCurrentScore) : observedIncumbentCurrentScore;
+    const incumbentProjectedScore = session && session.baselineProjectedScore != null ? clamp01(session.baselineProjectedScore) : observedIncumbentProjectedScore;
+    const incumbentProjectedProgress = session && session.baselineProjectedProgress != null ? clamp01(session.baselineProjectedProgress) : observedIncumbentProjectedProgress;
+    const incumbentXpPerHour = session && finite(session.baselineXpPerHour) > 0 ? finite(session.baselineXpPerHour) : observedIncumbentXpPerHour;
     for (const row of rows) {
       row.expectedTrainingXpRatio = row.projectedProgress != null && incumbentProjectedProgress > 0 ? row.projectedProgress / incumbentProjectedProgress : null;
     }
@@ -16355,6 +16377,7 @@ class Alpha20Runtime extends Alpha19Runtime {
       incumbentCurrentScore,
       incumbentProjectedScore,
       incumbentXpPerHour,
+      developmentCandidateName: session && session.candidate || null,
       highRisk: !!(risk && (risk.highRisk || risk.unknown)),
       economyEmergency: this._alpha20EconomyEmergency()
     };
@@ -16378,7 +16401,7 @@ class Alpha20Runtime extends Alpha19Runtime {
     return recommendation;
   }
 
-  // Alpha.20 never lets the old projected party recommendation directly execute a switch.
+  // Projected Alpha.12 recommendations can never directly execute a switch in Alpha.20.
   _maybeStartTransition() { return null; }
 
   _verifyLifecycleTarget(targetNames, snapshot) {
@@ -16418,7 +16441,10 @@ class Alpha20Runtime extends Alpha19Runtime {
     this.lastLifecyclePlan = this.controlledPartyLifecycle.plan(currentMembers, registryStatus, context);
     if (this.lastLifecyclePlan && this.lastLifecyclePlan.planned && !this.controlledPartyLifecycle.busy) {
       Promise.resolve(this.controlledPartyLifecycle.executePlan(this.lastLifecyclePlan, currentMembers, registryStatus, context))
-        .then((result) => { this.lastLifecycleExecution = result; if (result && result.executed) this.partyOrchestrator.noteSwitch(); })
+        .then((result) => {
+          this.lastLifecycleExecution = result;
+          if (result && result.executed) this.partyOrchestrator.noteSwitch();
+        })
         .catch((error) => {
           this.lastLifecycleExecution = { executed: false, reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', error: String(error && error.message || error) };
           this.log.emit({ component: 'alpha20-party-lifecycle', event: 'PARTY_LIFECYCLE_EXECUTION_ERROR', severity: 'error', reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', data: { message: String(error && error.message || error) } });
@@ -16441,7 +16467,6 @@ class Alpha20Runtime extends Alpha19Runtime {
       ack: config.ack,
       allowTransitions: config.allowTransitions === true,
       allowDevelopmentRotation: config.allowDevelopmentRotation === true,
-      allowAuraChanges: false,
       reason: config.reason
     });
     let aura;
@@ -16456,11 +16481,11 @@ class Alpha20Runtime extends Alpha19Runtime {
     return this.controlledPartyLifecycle.reconcile(names);
   }
 
-  // Legacy setters are intentionally closed so old Alpha.12 switches cannot bypass Alpha.20.
   setPartyTransitionsEnabled() {
     this.partyTransitions.setLiveEnabled(false);
     return false;
   }
+
   setPartyAuraAutomationEnabled() {
     this.auraAutomationEnabled = false;
     return false;
@@ -16472,6 +16497,7 @@ class Alpha20Runtime extends Alpha19Runtime {
     let reason = null;
     if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
     else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (this.controlledPartyLifecycle.breaker().open) reason = 'PARTY_LIFECYCLE_CIRCUIT_OPEN';
     if (reason) {
       if (this.controlledPartyLifecycle.status().enabled) this.controlledPartyLifecycle.disable(reason);
       if (this.controlledPaladinAura.status().enabled) this.controlledPaladinAura.disable(reason);
@@ -16498,13 +16524,14 @@ class Alpha20Runtime extends Alpha19Runtime {
 
   status() {
     const base = super.status();
+    const controlledLifecycle = this.controlledPartyLifecycle.status();
     return {
       ...base,
       version: RELEASE_VERSION,
       party: {
         ...(base.party || {}),
         lifecycle: this.partyLifecycle.status(),
-        controlledLifecycle: this.controlledPartyLifecycle.status(),
+        controlledLifecycle,
         controlledAura: this.controlledPaladinAura.status(),
         lifecyclePlan: this.lastLifecyclePlan,
         lifecycleExecution: this.lastLifecycleExecution,
@@ -16517,6 +16544,10 @@ class Alpha20Runtime extends Alpha19Runtime {
         currentScoreRequiredForPromotion: true,
         projectedScorePlanningOnly: true,
         maxDevelopmentSlots: 1,
+        maxDevelopmentRotationMs: controlledLifecycle.maxDevelopmentRotationMs,
+        boundedDevelopmentReturn: true,
+        persistentDevelopmentSession: true,
+        partyTransitionCircuitBreaker: true,
         controlledLifecycleAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
         controlledAuraAck: CONTROLLED_PALADIN_AURA_ACK,
         transitionAuthorityDefault: false,
@@ -16666,12 +16697,14 @@ class PartyLifecycleStore {
     const incumbentCurrentScore = input.incumbentCurrentScore == null ? null : clamp01(input.incumbentCurrentScore);
     const incumbentProjectedScore = input.incumbentProjectedScore == null ? null : clamp01(input.incumbentProjectedScore);
     const incumbentXpPerHour = Math.max(0, finite(input.incumbentXpPerHour));
+    const developmentCandidateName = input.developmentCandidateName ? String(input.developmentCandidateName) : null;
     const highRisk = input.highRisk === true;
     const economyEmergency = input.economyEmergency === true;
 
     const next = [];
     for (const raw of characters) {
-      const old = this.records.get(String(raw.name));
+      const name = String(raw.name);
+      const old = this.records.get(name);
       const currentScore = raw.currentScore == null ? null : clamp01(raw.currentScore);
       const currentConfidence = clamp01(raw.currentConfidence);
       const currentSamples = Math.max(0, finite(raw.currentSamples));
@@ -16685,13 +16718,15 @@ class PartyLifecycleStore {
       const gearReady = raw.gearReady === true;
       const contentSafe = raw.contentSafe === true;
       const active = raw.active === true;
+      const continuingDevelopment = active && developmentCandidateName === name;
       const reasons = [];
 
       const measuredReady = currentScore != null && currentSamples >= this.minCurrentSamples && currentConfidence >= this.minCurrentConfidence;
       const promotionSuperior = measuredReady && incumbentCurrentScore != null && currentScore >= incumbentCurrentScore + this.minPromotionGain;
       const promotionSafe = survivalScore != null && survivalScore >= this.minPromotionSafety && contentSafe && !highRisk && !economyEmergency;
       const promotionProgress = xpRatioToIncumbent != null && xpRatioToIncumbent >= this.minPromotionXpRatio;
-      const qualifiesPromotionWindow = !active && promotionSuperior && promotionSafe && promotionProgress && gearReady;
+      const promotionEligiblePosition = !active || continuingDevelopment;
+      const qualifiesPromotionWindow = promotionEligiblePosition && promotionSuperior && promotionSafe && promotionProgress && gearReady;
       const promotionStreak = qualifiesPromotionWindow ? Math.min(1000, (old && old.promotionStreak || 0) + 1) : 0;
 
       if (!measuredReady) reasons.push('CURRENT_EVIDENCE_NOT_READY');
@@ -16704,13 +16739,25 @@ class PartyLifecycleStore {
       if (economyEmergency) reasons.push('ECONOMY_EMERGENCY');
       if (xpRatioToIncumbent == null || xpRatioToIncumbent < this.minPromotionXpRatio) reasons.push('PROMOTION_XP_RATIO_GATE');
       if (!promotionSuperior) reasons.push('CURRENT_SUPERIORITY_NOT_PROVEN');
+      if (continuingDevelopment) reasons.push('ACTIVE_BOUNDED_DEVELOPMENT_SESSION');
       if (qualifiesPromotionWindow && promotionStreak < this.promotionWindowsRequired) reasons.push('PROMOTION_HYSTERESIS_BUILDING');
 
+      let state = PartyLifecycleState.BENCH;
+      if (continuingDevelopment) {
+        state = qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired
+          ? PartyLifecycleState.PROMOTION_CANDIDATE
+          : PartyLifecycleState.DEVELOPMENT;
+      } else if (active) {
+        state = PartyLifecycleState.ACTIVE;
+      } else if (qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired) {
+        state = PartyLifecycleState.PROMOTION_CANDIDATE;
+      }
+
       next.push(this._sanitize({
-        name: raw.name,
+        name,
         ctype: raw.ctype,
         level: raw.level,
-        state: active ? PartyLifecycleState.ACTIVE : (qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired ? PartyLifecycleState.PROMOTION_CANDIDATE : PartyLifecycleState.BENCH),
+        state,
         active,
         currentScore,
         currentConfidence,
@@ -16731,7 +16778,8 @@ class PartyLifecycleStore {
       }));
     }
 
-    const development = next
+    const activeDevelopment = next.find((row) => row.active && (row.state === PartyLifecycleState.DEVELOPMENT || row.state === PartyLifecycleState.PROMOTION_CANDIDATE));
+    const development = activeDevelopment ? [] : next
       .filter((row) => !row.active && row.state !== PartyLifecycleState.PROMOTION_CANDIDATE)
       .filter((row) => row.projectedScore != null && incumbentProjectedScore != null && row.projectedScore >= incumbentProjectedScore + this.minProjectedGain)
       .filter((row) => row.trainingSafetyScore != null && row.trainingSafetyScore >= this.minTrainingSafety)
@@ -16760,9 +16808,10 @@ class PartyLifecycleStore {
       incumbentCurrentScore,
       incumbentProjectedScore,
       incumbentXpPerHour,
-      developmentSlotsUsed: development.length,
+      developmentCandidateName,
+      developmentSlotsUsed: activeDevelopment ? 1 : development.length,
       promotionCandidates: next.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE).map((row) => row.name),
-      development: development.map((row) => row.name)
+      development: next.filter((row) => row.state === PartyLifecycleState.DEVELOPMENT).map((row) => row.name)
     };
     this._event('PARTY_LIFECYCLE_EVALUATED', clone(this.lastEvaluation));
     return this.status();
@@ -16837,6 +16886,7 @@ const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function uniqueNames(values) { return [...new Set((values || []).map((value) => typeof value === 'string' ? value : value && value.name).filter(Boolean).map(String))]; }
 
 class ControlledPartyLifecycleCoordinator {
   constructor(options = {}) {
@@ -16854,6 +16904,7 @@ class ControlledPartyLifecycleCoordinator {
     this.allowTransitions = false;
     this.allowDevelopmentRotation = false;
     this.minTransitionIntervalMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.minTransitionIntervalMs) || 15 * 60 * 1000));
+    this.maxDevelopmentRotationMs = Math.max(15 * 60 * 1000, Math.min(4 * 60 * 60 * 1000, Number(options.maxDevelopmentRotationMs) || 30 * 60 * 1000));
     this.failureWindowMs = Math.max(60 * 1000, Math.min(60 * 60 * 1000, Number(options.failureWindowMs) || 10 * 60 * 1000));
     this.failureThreshold = Math.max(2, Math.min(10, Number(options.failureThreshold) || 3));
     this.circuitCooldownMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.circuitCooldownMs) || 10 * 60 * 1000));
@@ -16862,9 +16913,23 @@ class ControlledPartyLifecycleCoordinator {
     this.circuitReason = null;
     this.lastTransitionAt = 0;
     this.operation = null;
+    this.developmentSession = null;
     this.busy = false;
     this.lastResult = null;
-    this.stats = { plans: 0, attempts: 0, committed: 0, aborted: 0, failedSafe: 0, rejected: 0, developmentRotations: 0, promotions: 0, circuitOpens: 0 };
+    this.stats = {
+      plans: 0,
+      attempts: 0,
+      committed: 0,
+      aborted: 0,
+      failedSafe: 0,
+      rejected: 0,
+      developmentRotations: 0,
+      developmentReturns: 0,
+      developmentPromotions: 0,
+      developmentSessionDrifts: 0,
+      promotions: 0,
+      circuitOpens: 0
+    };
     this.load();
   }
 
@@ -16916,6 +16981,28 @@ class ControlledPartyLifecycleCoordinator {
     }
   }
 
+  _sanitizeDevelopmentSession(value) {
+    if (!value || typeof value !== 'object') return null;
+    const originalNames = uniqueNames(value.originalNames);
+    const trainingNames = uniqueNames(value.trainingNames);
+    if (!value.candidate || !value.incumbent || originalNames.length !== 4 || trainingNames.length !== 4) return null;
+    return {
+      schemaVersion: 1,
+      candidate: String(value.candidate),
+      incumbent: String(value.incumbent),
+      originalNames,
+      trainingNames,
+      startedAt: Math.max(0, finite(value.startedAt)),
+      expiresAt: Math.max(0, finite(value.expiresAt)),
+      baselineCurrentScore: value.baselineCurrentScore == null ? null : finite(value.baselineCurrentScore),
+      baselineProjectedScore: value.baselineProjectedScore == null ? null : finite(value.baselineProjectedScore),
+      baselineProjectedProgress: value.baselineProjectedProgress == null ? null : finite(value.baselineProjectedProgress),
+      baselineXpPerHour: Math.max(0, finite(value.baselineXpPerHour)),
+      driftDetectedAt: value.driftDetectedAt == null ? null : Math.max(0, finite(value.driftDetectedAt)),
+      lastObservedAt: value.lastObservedAt == null ? null : Math.max(0, finite(value.lastObservedAt))
+    };
+  }
+
   save() {
     const backend = this._backend();
     if (!backend) return false;
@@ -16924,6 +17011,7 @@ class ControlledPartyLifecycleCoordinator {
         schemaVersion: 1,
         savedAt: this.now(),
         operation: this.operation,
+        developmentSession: this.developmentSession,
         lastTransitionAt: this.lastTransitionAt,
         failureTimestamps: this.failureTimestamps,
         circuitOpenUntil: this.circuitOpenUntil,
@@ -16948,6 +17036,7 @@ class ControlledPartyLifecycleCoordinator {
       this.failureTimestamps = Array.isArray(data.failureTimestamps) ? data.failureTimestamps.map(Number).filter(Number.isFinite) : [];
       this.circuitOpenUntil = Math.max(0, finite(data.circuitOpenUntil));
       this.circuitReason = data.circuitReason ? String(data.circuitReason) : null;
+      this.developmentSession = this._sanitizeDevelopmentSession(data.developmentSession);
       this.breaker();
       if (data.operation && [PartyLifecycleOperationState.RESERVED, PartyLifecycleOperationState.EXECUTING, PartyLifecycleOperationState.VERIFYING].includes(data.operation.state)) {
         this.operation = { ...data.operation, state: PartyLifecycleOperationState.RECOVERING, reason: 'RESTART_RECONCILIATION_REQUIRED', updatedAt: this.now() };
@@ -16957,6 +17046,7 @@ class ControlledPartyLifecycleCoordinator {
       return true;
     } catch (error) {
       this.operation = null;
+      this.developmentSession = null;
       this.failureTimestamps = [];
       this.circuitOpenUntil = 0;
       this.circuitReason = null;
@@ -16992,11 +17082,16 @@ class ControlledPartyLifecycleCoordinator {
     this.allowTransitions = false;
     this.allowDevelopmentRotation = false;
     if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
-    this._event('PARTY_LIFECYCLE_CONTROL_DISABLED', {}, 'info', reason);
+    this._event('PARTY_LIFECYCLE_CONTROL_DISABLED', { developmentSessionPreserved: !!this.developmentSession }, 'info', reason);
     return this.status();
   }
 
   _localCharacter() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
+  _sameNames(left, right) {
+    const a = uniqueNames(left);
+    const b = uniqueNames(right);
+    return a.length === b.length && a.every((name) => b.includes(name));
+  }
 
   _gate(context = {}) {
     const reasons = [];
@@ -17014,6 +17109,100 @@ class ControlledPartyLifecycleCoordinator {
     if (this.busy) reasons.push('PARTY_LIFECYCLE_BUSY');
     if (this.operation && this.operation.state === PartyLifecycleOperationState.RECOVERING) reasons.push('RESTART_RECONCILIATION_REQUIRED');
     return { allowed: reasons.length === 0, reasons, local, supervisor };
+  }
+
+  _startDevelopmentSession(plan, at = this.now()) {
+    const originalNames = uniqueNames(plan && plan.evidence && plan.evidence.context && plan.evidence.context.currentNames);
+    const trainingNames = uniqueNames(plan && plan.targetNames);
+    if (!plan || plan.kind !== 'DEVELOPMENT_ROTATION' || originalNames.length !== 4 || trainingNames.length !== 4) return null;
+    const outgoing = plan.evidence && plan.evidence.outgoing || {};
+    this.developmentSession = this._sanitizeDevelopmentSession({
+      candidate: plan.incoming,
+      incumbent: plan.outgoing,
+      originalNames,
+      trainingNames,
+      startedAt: at,
+      expiresAt: at + this.maxDevelopmentRotationMs,
+      baselineCurrentScore: outgoing.currentScore,
+      baselineProjectedScore: outgoing.projectedScore,
+      baselineProjectedProgress: outgoing.projectedProgress,
+      baselineXpPerHour: outgoing.xpPerHour,
+      lastObservedAt: at
+    });
+    if (this.developmentSession) {
+      this._event('DEVELOPMENT_SESSION_STARTED', clone(this.developmentSession));
+      this.save();
+    }
+    return clone(this.developmentSession);
+  }
+
+  _clearDevelopmentSession(reason) {
+    const previous = clone(this.developmentSession);
+    this.developmentSession = null;
+    this._event('DEVELOPMENT_SESSION_CLEARED', { reason, previous });
+    this.save();
+    return previous;
+  }
+
+  _planDevelopmentSession(currentMembers = [], registryStatus = {}, context = {}) {
+    const session = this.developmentSession;
+    if (!session) return null;
+    const currentNames = uniqueNames(currentMembers);
+    const now = this.now();
+
+    if (this._sameNames(currentNames, session.originalNames)) {
+      this._clearDevelopmentSession('ORIGINAL_PARTY_OBSERVED');
+      return { planned: false, reason: 'DEVELOPMENT_SESSION_RETURN_OBSERVED' };
+    }
+    if (!this._sameNames(currentNames, session.trainingNames)) {
+      if (session.driftDetectedAt == null) {
+        session.driftDetectedAt = now;
+        session.lastObservedAt = now;
+        this.stats.developmentSessionDrifts += 1;
+        this._recordFailure('DEVELOPMENT_SESSION_PARTY_DRIFT');
+        this._event('DEVELOPMENT_SESSION_PARTY_DRIFT', { session: clone(session), currentNames }, 'error', 'NO_BLIND_TRANSITION');
+        this.save();
+      }
+      return { planned: false, reason: 'DEVELOPMENT_SESSION_PARTY_DRIFT', currentNames, expectedTrainingNames: session.trainingNames.slice(), expectedOriginalNames: session.originalNames.slice() };
+    }
+
+    session.lastObservedAt = now;
+    session.driftDetectedAt = null;
+    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [] };
+    const candidate = (life.characters || []).find((row) => row.name === session.candidate) || null;
+    if (candidate && candidate.state === PartyLifecycleState.PROMOTION_CANDIDATE && candidate.active === true) {
+      this.stats.developmentPromotions += 1;
+      this.stats.promotions += 1;
+      this._clearDevelopmentSession('MEASURED_PROMOTION_CONFIRMED');
+      this._event('DEVELOPMENT_PROMOTION_COMMITTED', { candidate: candidate.name, currentScore: candidate.currentScore, promotionStreak: candidate.promotionStreak });
+      return { planned: false, reason: 'DEVELOPMENT_PROMOTION_COMMITTED_NO_RAW_TRANSITION', promoted: true, candidate: candidate.name };
+    }
+
+    if (now < session.expiresAt) {
+      this.save();
+      return { planned: false, reason: 'DEVELOPMENT_WINDOW_ACTIVE', candidate: session.candidate, expiresAt: session.expiresAt, remainingMs: session.expiresAt - now };
+    }
+    if (!this.allowDevelopmentRotation) return { planned: false, reason: 'DEVELOPMENT_RETURN_NOT_AUTHORIZED', candidate: session.candidate };
+
+    const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
+    const merchant = currentMembers.find((row) => row && row.ctype === 'merchant') || null;
+    if (!merchant) return { planned: false, reason: 'MERCHANT_CONTROLLER_REQUIRED' };
+    const members = session.originalNames.map((name) => byName.get(name) || currentMembers.find((row) => row && row.name === name)).filter(Boolean);
+    if (members.length !== 4 || new Set(members.map((row) => row.name)).size !== 4) return { planned: false, reason: 'DEVELOPMENT_RETURN_STATE_INCOMPLETE' };
+    const incumbent = byName.get(session.incumbent) || members.find((row) => row.name === session.incumbent);
+    if (!incumbent || incumbent.dead === true || incumbent.available === false) return { planned: false, reason: 'DEVELOPMENT_RETURN_INCUMBENT_UNAVAILABLE' };
+
+    return {
+      planned: true,
+      kind: 'DEVELOPMENT_RETURN',
+      destructive: false,
+      incoming: session.incumbent,
+      outgoing: session.candidate,
+      targetNames: session.originalNames.slice(),
+      members,
+      merchant,
+      evidence: { session: clone(session), context: clone(context) }
+    };
   }
 
   _selectPlan(currentMembers = [], registryStatus = {}, context = {}) {
@@ -17074,6 +17263,13 @@ class ControlledPartyLifecycleCoordinator {
     const gate = this._gate(context);
     if (!gate.allowed) return { planned: false, reason: gate.reasons[0], reasons: gate.reasons };
     if (!this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
+
+    const sessionPlan = this._planDevelopmentSession(currentMembers, registryStatus, context);
+    if (sessionPlan) {
+      if (sessionPlan.planned && this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { planned: false, reason: 'TRANSITION_HYSTERESIS_HOLD', sessionPlan };
+      return sessionPlan;
+    }
+
     if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { planned: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
     return this._selectPlan(currentMembers, registryStatus, context);
   }
@@ -17095,18 +17291,41 @@ class ControlledPartyLifecycleCoordinator {
     return this.operation;
   }
 
+  _commitOperation(op, plan, result) {
+    op.state = PartyLifecycleOperationState.COMMITTED;
+    op.reason = 'PARTY_LIFECYCLE_TRANSITION_COMMITTED';
+    op.result = clone(result);
+    op.updatedAt = this.now();
+    this.lastTransitionAt = this.now();
+    this.stats.committed += 1;
+    if (plan.kind === 'PROMOTION') this.stats.promotions += 1;
+    if (plan.kind === 'DEVELOPMENT_ROTATION') {
+      this.stats.developmentRotations += 1;
+      this._startDevelopmentSession(plan, op.updatedAt);
+    }
+    if (plan.kind === 'DEVELOPMENT_RETURN') {
+      this.stats.developmentReturns += 1;
+      this._clearDevelopmentSession('BOUNDED_DEVELOPMENT_RETURN_COMMITTED');
+    }
+    this.lastResult = clone(op);
+    this.save();
+    this._event('PARTY_LIFECYCLE_TRANSITION_COMMITTED', { id: op.id, kind: plan.kind, incoming: plan.incoming, outgoing: plan.outgoing });
+  }
+
   async executePlan(plan, currentMembers = [], registryStatus = {}, context = {}) {
     const gate = this._gate(context);
     if (!gate.allowed) { this.stats.rejected += 1; return { executed: false, reason: gate.reasons[0], reasons: gate.reasons }; }
     if (!plan || plan.planned !== true) return { executed: false, reason: 'INVALID_PLAN' };
     if (!this.allowTransitions) return { executed: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
-    if (plan.kind === 'DEVELOPMENT_ROTATION' && !this.allowDevelopmentRotation) return { executed: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
+    if ((plan.kind === 'DEVELOPMENT_ROTATION' || plan.kind === 'DEVELOPMENT_RETURN') && !this.allowDevelopmentRotation) return { executed: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
     if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { executed: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
     this.busy = true;
     this.stats.attempts += 1;
     const op = this._reserve(plan);
     try {
-      op.state = PartyLifecycleOperationState.EXECUTING; op.updatedAt = this.now(); this.save();
+      op.state = PartyLifecycleOperationState.EXECUTING;
+      op.updatedAt = this.now();
+      this.save();
       this.transitions.setLiveEnabled(true);
       const result = await this.transitions.execute({ members: plan.members, merchant: plan.merchant }, {
         runtimeMode: this.getMode(),
@@ -17119,17 +17338,8 @@ class ControlledPartyLifecycleCoordinator {
       });
       this.transitions.setLiveEnabled(false);
       if (result && result.executed === true) {
-        op.state = PartyLifecycleOperationState.COMMITTED;
-        op.reason = 'PARTY_LIFECYCLE_TRANSITION_COMMITTED';
-        op.result = clone(result);
-        op.updatedAt = this.now();
-        this.lastTransitionAt = this.now();
-        this.stats.committed += 1;
-        if (plan.kind === 'PROMOTION') this.stats.promotions += 1; else this.stats.developmentRotations += 1;
-        this.lastResult = clone(op);
-        this.save();
-        this._event('PARTY_LIFECYCLE_TRANSITION_COMMITTED', { id: op.id, kind: plan.kind, incoming: plan.incoming, outgoing: plan.outgoing });
-        return { executed: true, operation: clone(op), transition: result };
+        this._commitOperation(op, plan, result);
+        return { executed: true, operation: clone(op), transition: result, developmentSession: clone(this.developmentSession) };
       }
       op.state = result && result.recovery && result.recovery.recovered === false ? PartyLifecycleOperationState.FAILED_SAFE : PartyLifecycleOperationState.ABORTED;
       op.reason = result && result.reason || 'TRANSITION_ABORTED';
@@ -17137,7 +17347,8 @@ class ControlledPartyLifecycleCoordinator {
       op.updatedAt = this.now();
       if (op.state === PartyLifecycleOperationState.FAILED_SAFE) this.stats.failedSafe += 1; else this.stats.aborted += 1;
       this._recordFailure(op.reason);
-      this.lastResult = clone(op); this.save();
+      this.lastResult = clone(op);
+      this.save();
       return { executed: false, operation: clone(op), transition: result, reason: op.reason };
     } catch (error) {
       if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
@@ -17147,7 +17358,8 @@ class ControlledPartyLifecycleCoordinator {
       op.updatedAt = this.now();
       this.stats.failedSafe += 1;
       this._recordFailure(op.reason);
-      this.lastResult = clone(op); this.save();
+      this.lastResult = clone(op);
+      this.save();
       this._event('PARTY_LIFECYCLE_TRANSITION_FAILED_SAFE', { id: op.id, error: op.error }, 'error', op.reason);
       return { executed: false, reason: op.reason, operation: clone(op) };
     } finally {
@@ -17164,29 +17376,39 @@ class ControlledPartyLifecycleCoordinator {
 
   reconcile(currentNames = []) {
     if (!this.operation || this.operation.state !== PartyLifecycleOperationState.RECOVERING) return { reconciled: false, reason: 'NO_RECOVERING_OPERATION' };
-    const current = new Set((currentNames || []).map((row) => typeof row === 'string' ? row : row && row.name).filter(Boolean));
-    const target = new Set(this.operation.plan && this.operation.plan.targetNames || []);
-    const old = new Set(this.operation.plan && this.operation.plan.evidence && this.operation.plan.evidence.context && this.operation.plan.evidence.context.currentNames || []);
-    const exact = (set) => set.size === current.size && [...set].every((name) => current.has(name));
-    if (target.size === 4 && exact(target)) {
+    const current = uniqueNames(currentNames);
+    const target = uniqueNames(this.operation.plan && this.operation.plan.targetNames);
+    const old = uniqueNames(this.operation.plan && this.operation.plan.evidence && this.operation.plan.evidence.context && this.operation.plan.evidence.context.currentNames);
+    if (target.length === 4 && this._sameNames(current, target)) {
       this.operation.state = PartyLifecycleOperationState.COMMITTED;
       this.operation.reason = 'RESTART_TARGET_STATE_OBSERVED';
+      this.operation.updatedAt = this.now();
       this.lastTransitionAt = this.now();
       this.stats.committed += 1;
-    } else if (old.size === 4 && exact(old)) {
+      if (this.operation.plan.kind === 'DEVELOPMENT_ROTATION' && !this.developmentSession) {
+        this.stats.developmentRotations += 1;
+        this._startDevelopmentSession(this.operation.plan, this.operation.updatedAt);
+      }
+      if (this.operation.plan.kind === 'DEVELOPMENT_RETURN') {
+        this.stats.developmentReturns += 1;
+        this._clearDevelopmentSession('RESTART_RETURN_TARGET_OBSERVED');
+      }
+      if (this.operation.plan.kind === 'PROMOTION') this.stats.promotions += 1;
+    } else if (old.length === 4 && this._sameNames(current, old)) {
       this.operation.state = PartyLifecycleOperationState.ABORTED;
       this.operation.reason = 'RESTART_ORIGINAL_STATE_OBSERVED';
+      this.operation.updatedAt = this.now();
       this.stats.aborted += 1;
     } else {
       this.operation.state = PartyLifecycleOperationState.FAILED_SAFE;
       this.operation.reason = 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY';
+      this.operation.updatedAt = this.now();
       this.stats.failedSafe += 1;
       this._recordFailure(this.operation.reason);
     }
-    this.operation.updatedAt = this.now();
     this.lastResult = clone(this.operation);
     this.save();
-    return { reconciled: true, operation: clone(this.operation) };
+    return { reconciled: true, operation: clone(this.operation), developmentSession: clone(this.developmentSession) };
   }
 
   status() {
@@ -17201,10 +17423,12 @@ class ControlledPartyLifecycleCoordinator {
       transitionAuthority: authority && this.allowTransitions,
       developmentRotationAuthority: authority && this.allowDevelopmentRotation,
       maxDevelopmentSlots: 1,
+      maxDevelopmentRotationMs: this.maxDevelopmentRotationMs,
       minTransitionIntervalMs: this.minTransitionIntervalMs,
       lastTransitionAt: this.lastTransitionAt || null,
       busy: this.busy,
       operation: clone(this.operation),
+      developmentSession: clone(this.developmentSession),
       lastResult: clone(this.lastResult),
       breaker,
       serverChangeAllowed: false,
