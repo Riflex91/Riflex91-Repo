@@ -19,8 +19,6 @@ function activeOwnedNames(root) {
       .map(([name]) => String(name));
     if (localName && !names.includes(localName)) names.push(localName);
     const unique = [...new Set(names)].sort();
-    // Adventure Land supports four simultaneously active characters. An
-    // impossible larger set must never widen party trust.
     return unique.length <= 4 ? unique : (localName ? [localName] : []);
   } catch (_) {
     return localName ? [localName] : [];
@@ -66,20 +64,42 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     return activeOwnedNames(this.root);
   }
 
+  _partyTrustedNames() {
+    const bootstrap = this.partyBootstrap;
+    if (bootstrap && typeof bootstrap.trustedRosterNames === 'function') {
+      const names = bootstrap.trustedRosterNames();
+      if (Array.isArray(names) && names.length) return [...new Set(names.map(String))].sort();
+    }
+    return this._activeOwnedNames();
+  }
+
   syncPartyControlConfig() {
     if (!this.partyControlLease) return null;
     const status = this.characterRegistry.status();
-    const names = this._activeOwnedNames();
-    const owned = new Set(names);
+    const names = this._partyTrustedNames();
+    const trusted = new Set(names);
     const local = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
-    const localMerchant = local && String(local.ctype || '').toLowerCase() === 'merchant' && owned.has(String(local.name)) ? String(local.name) : null;
-    const candidates = status.characters.filter((row) => row && row.ctype === 'merchant' && owned.has(String(row.name)));
-    const registryMerchant = new Set(candidates.map((row) => String(row.name))).size === 1 ? String(candidates[0].name) : null;
-    const currentMerchant = this.partyControlLease.merchantName && owned.has(String(this.partyControlLease.merchantName)) ? String(this.partyControlLease.merchantName) : null;
-    const merchantName = localMerchant || registryMerchant || currentMerchant || null;
+    const localMerchant = local && String(local.ctype || '').toLowerCase() === 'merchant' && trusted.has(String(local.name))
+      ? String(local.name)
+      : null;
+    const bootstrapMerchant = this.partyBootstrap && this.partyBootstrap.merchantName && trusted.has(String(this.partyBootstrap.merchantName))
+      ? String(this.partyBootstrap.merchantName)
+      : null;
+    const candidates = status.characters.filter(
+      (row) => row && row.ctype === 'merchant' && trusted.has(String(row.name))
+    );
+    const registryMerchant = new Set(candidates.map((row) => String(row.name))).size === 1
+      ? String(candidates[0].name)
+      : null;
+    const currentMerchant = this.partyControlLease.merchantName && trusted.has(String(this.partyControlLease.merchantName))
+      ? String(this.partyControlLease.merchantName)
+      : null;
+    const merchantName = bootstrapMerchant || localMerchant || registryMerchant || currentMerchant || null;
 
     this.partyControlLease.setTrustedNames(names);
-    if (this.partyTelemetry && typeof this.partyTelemetry.setTrustedNames === 'function') this.partyTelemetry.setTrustedNames(names);
+    if (this.partyTelemetry && typeof this.partyTelemetry.setTrustedNames === 'function') {
+      this.partyTelemetry.setTrustedNames(names);
+    }
     if (merchantName) {
       this.partyControlLease.setMerchantName(merchantName);
       this.partyTransitions.setMerchantName(merchantName);
@@ -111,13 +131,17 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
 
   status() {
     const base = super.status();
+    const trusted = this._partyTrustedNames();
     return {
       ...base,
       version: ALPHA12_VERSION,
       party: {
         ...(base.party || {}),
         activeOwnedNames: this._activeOwnedNames(),
-        trustSource: 'get_active_characters',
+        trustedPartyNames: trusted,
+        trustSource: this.partyBootstrap && typeof this.partyBootstrap.trustedRosterNames === 'function'
+          ? 'explicit-party-bootstrap-roster'
+          : 'get_active_characters',
         controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
         transition: {
           ...((base.party && base.party.transition) || {}),
