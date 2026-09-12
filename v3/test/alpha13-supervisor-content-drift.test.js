@@ -260,11 +260,11 @@ test('Alpha13 runtime fail-closes a previously approved monster when its game de
   const runtime = new Alpha13Runtime({ root, parent: root.parent, mode: 'shadow', now: () => now, visibleStatus: false, storage, contentDriftScanMs: 1000, globalSupervisorIntervalMs: 500 });
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
-  assert.equal(runtime.world.fact('monster', 'goo', 'contentSafetyDisposition').value, 'APPROVED');
+  assert.equal(runtime.world.fact('monster-policy', 'goo', 'contentSafetyDisposition').value, 'APPROVED');
   root.G.monsters.goo.attack = 999;
   now += 2000;
   runtime.tick();
-  assert.equal(runtime.world.fact('monster', 'goo', 'contentSafetyDisposition').value, 'QUARANTINED');
+  assert.equal(runtime.world.fact('monster-policy', 'goo', 'contentSafetyDisposition').value, 'QUARANTINED');
   assert.equal(runtime.contentDrift.requiresRevalidation('monsters', 'goo'), true);
 });
 

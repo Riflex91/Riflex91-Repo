@@ -160,7 +160,7 @@ test('Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved sa
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
   const status = runtime.status();
-  assert.equal(status.version, '3.0.0-alpha.12.0');
+  assert.equal(status.version, '3.0.0-alpha.13.0');
   assert.equal(status.mode, 'shadow');
   assert.ok(status.brain);
   assert.equal(status.brain.mode, 'shadow');
