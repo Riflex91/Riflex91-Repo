@@ -5,7 +5,7 @@ const { RELEASE_VERSION } = require('../release-version');
 const { BankCapacityManager } = require('../economy/bank-capacity-manager');
 const { BankExpansionTransactionEngine } = require('../economy/bank-expansion-transactions');
 const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_ACK } = require('../economy/controlled-bank-expansion-executor');
-const { Alpha18CombinedLiveGate, ALPHA18_LIVE_GATE_ACK } = require('../ops/alpha18-combined-live-gate');
+const { Alpha18CombinedLiveGate, ALPHA18_LIVE_GATE_ACK } = require('../ops/alpha18-combined-live-gate-hardened');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
