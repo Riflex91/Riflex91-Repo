@@ -182,7 +182,7 @@ test('Failed incoming start rolls back the old party and authorizes the rollback
   assert.match(authorized[0].transactionId, /:rollback$/);
 });
 
-test('Hardened Alpha12 runtime installs the control lease, keeps Party authority default-off and reports the release version visibly', () => {
+test('Hardened Alpha12 runtime installs the control lease, keeps Party authority default-off and normalizes visible release version tags', () => {
   const visible = [];
   const storage = { get: () => null, set() {} };
   const root = {
@@ -205,7 +205,7 @@ test('Hardened Alpha12 runtime installs the control lease, keeps Party authority
     partyMerchantName: 'Merch'
   });
   runtime._gameLog = (message) => { visible.push(String(message)); return true; };
-  runtime.setMode('shadow');
+  runtime._announce('[AIO v3 3.0.0-alpha.8.13] TEST', 'TEST_RELEASE_VERSION_NORMALIZATION');
   const status = runtime.status();
   assert.equal(status.version, '3.0.0-alpha.12.0');
   assert.equal(status.party.actionAuthority, false);
