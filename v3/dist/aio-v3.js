@@ -6861,6 +6861,7 @@ class StrategyBrain {
       this.lastRestoreError = String(error && error.message || error);
       this.influenceEnabled = false;
       this.currentPreference = null;
+      this.diary.add('error', { event: 'BRAIN_STATE_RESTORE_FAILED', message: this.lastRestoreError, statePreserved: true }, 'warn');
       this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError, statePreserved: true });
       return false;
     }
