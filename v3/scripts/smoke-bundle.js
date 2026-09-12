@@ -8,16 +8,16 @@ const sandbox = {
   AIO_V3_AUTOSTART: false, console, setInterval, clearInterval, Date, Math,
   parent: { entities: {}, party: {} },
   character: { name: 'Smoke', ctype: 'ranger', level: 70, map: 'main', real_x: 0, real_y: 0, hp: 100, max_hp: 100, mp: 100, max_mp: 100, xp: 0, gold: 0, items: [], speed: 40 },
-  G: { monsters: {}, maps: { main: {} }, skills: {} },
+  G: { monsters: {}, maps: { main: {} }, skills: {}, items: {}, npcs: {}, events: {} },
   performance_trick: () => { performanceTrickCalls += 1; }
 };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.12.0');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.13.0');
 const status = sandbox.AIO_V3.status();
-assert.equal(status.version, '3.0.0-alpha.12.0');
+assert.equal(status.version, '3.0.0-alpha.13.0');
 assert.equal(status.mode, 'shadow');
 assert.ok(status.combatRisk && status.combatRisk.contentSafety);
 assert.equal(status.combatRisk.contentSafety.unknownDefault, 'QUARANTINED');
@@ -33,6 +33,21 @@ assert.equal(status.brain.mode, 'shadow');
 assert.equal(status.brain.actionAuthority, false);
 assert.equal(status.brain.directActionAccess, false);
 assert.equal(status.brain.executorBypassAllowed, false);
+assert.ok(status.supervisor);
+assert.equal(status.supervisor.state, 'HEALTHY');
+assert.equal(status.supervisor.safeActionsEnabled, false);
+assert.equal(status.supervisor.actionAuthority, false);
+assert.equal(status.supervisor.actionScope, 'safety-reduction-only');
+assert.equal(status.supervisor.directGameplayActionAccess, false);
+assert.ok(status.contentDrift);
+assert.equal(status.contentDrift.schemaVersion, 1);
+assert.equal(status.contentDrift.mode, 'observation-first');
+assert.equal(status.contentDrift.actionAuthority, false);
+assert.equal(status.contentDrift.directGameplayActionAccess, false);
+assert.ok(sandbox.AIO_V3.supervisor);
+for (const name of ['status','setSafeActionsEnabled','quarantineSubsystem','clearSubsystemQuarantine']) assert.equal(typeof sandbox.AIO_V3.supervisor[name], 'function');
+assert.ok(sandbox.AIO_V3.contentDrift);
+for (const name of ['status','records','requiresRevalidation','markRevalidated','save']) assert.equal(typeof sandbox.AIO_V3.contentDrift[name], 'function');
 assert.ok(sandbox.AIO_V3.party);
 for (const name of ['status','registry','character','configureRoster','decision','fingerprints','performance','telemetry','transition','aura','setTransitionsEnabled','setAuraAutomationEnabled','setExplorationEnabled','setCodeSlots']) assert.equal(typeof sandbox.AIO_V3.party[name], 'function');
 assert.equal(typeof sandbox.AIO_V3.party.switch, 'undefined');
@@ -69,4 +84,5 @@ const denied = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-active', act
 assert.equal(denied.status, 'REJECTED');
 assert.equal(denied.reason, 'ELEVATED_CONTROL_DISABLED');
 assert.doesNotThrow(() => JSON.stringify(sandbox.AIO_V3.status()));
+assert.doesNotThrow(() => JSON.parse(sandbox.AIO_V3.exportDiagnostics()));
 console.log('bundle smoke OK');

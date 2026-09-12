@@ -1,12 +1,14 @@
 'use strict';
 
 const { Alpha12Runtime: BaseAlpha12Runtime } = require('./alpha12-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { PartyControlLease } = require('../party/control-lease');
+
+const ALPHA12_VERSION = '3.0.0-alpha.12.0';
 
 class Alpha12Runtime extends BaseAlpha12Runtime {
   constructor(options = {}) {
     super(options);
+    this.log.version = ALPHA12_VERSION;
     const roster = this.characterRegistry.status().characters || [];
     const merchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || this.partyTransitions.merchantName || null;
     this.partyControlLease = options.partyControlLease || new PartyControlLease({
@@ -26,8 +28,10 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
-    return super._announce(normalized, event);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA12_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
   }
 
   syncPartyControlConfig() {
@@ -69,7 +73,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA12_VERSION,
       party: {
         ...(base.party || {}),
         controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
@@ -82,4 +86,4 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 }
 
-module.exports = { Alpha12Runtime };
+module.exports = { Alpha12Runtime, ALPHA12_VERSION };
