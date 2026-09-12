@@ -78,72 +78,116 @@ class Alpha17Runtime extends Alpha16Runtime {
     );
 
     let ignored = 0;
-    const visible = (snapshot.entities || []).filter((entity) => {
-      if (!entity || entity.type !== 'character') return false;
-      const name = registryName(entity.name || entity.id);
+    const entities = (snapshot.entities || []).filter((entity) => {
+      const name = registryName(entity && entity.name);
       if (!name) return false;
-      const trusted = partyNames.has(name) || knownNames.has(name);
-      if (!trusted) ignored += 1;
-      return trusted;
+      const allowed = name === selfName || partyNames.has(name) || knownNames.has(name);
+      if (!allowed) ignored += 1;
+      return allowed;
     });
-    const observations = this.characterRegistry.observe({
-      self: snapshot.character,
-      party: snapshot.party,
-      visible
+
+    this.registryVisibility.foreignVisibleIgnored += ignored;
+    this.registryVisibility.lastObservedAt = snapshot.observedAt || this.now();
+
+    return this.characterRegistry.observe({
+      snapshot: { ...snapshot, entities },
+      gameData: this.adapter.getGameData() || {},
+      liveCharacter: this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null
     });
-    this.registryVisibility = {
-      foreignVisibleIgnored: ignored,
-      lastObservedAt: this.now()
-    };
-    return observations;
   }
 
-  _liveEnableGate() {
-    const supervisor = this.globalSupervisor.status();
-    if (this.adapter.mode !== 'active') return { allowed: false, reason: 'RUNTIME_NOT_ACTIVE' };
-    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { allowed: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
-    return { allowed: true, reason: null };
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA17_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
   }
 
   _controlledSubsystemHealth() {
-    const economy = this.controlledMerchant.status();
-    const travel = this.controlledTravel.status();
+    const tx = this.transactionEngine.status();
+    const economyReasons = [];
+    for (const family of ['SELL', 'BANK']) {
+      if (tx.circuits && tx.circuits[family] && tx.circuits[family].open) economyReasons.push(`${family}_CIRCUIT_OPEN`);
+    }
+    const economyLast = this.controlledMerchant && this.controlledMerchant.status().lastAction;
+    const economy = economyReasons.length
+      ? { state: 'DEGRADED', reasons: economyReasons }
+      : economyLast && economyLast.result === 'FAILED_SAFE'
+        ? { state: 'WATCH', reasons: ['CONTROLLED_MERCHANT_LAST_ACTION_FAILED_SAFE'] }
+        : { state: 'HEALTHY', reasons: [] };
+
+    const breaker = this.safeTravel.breaker();
+    const travelLast = this.controlledTravel && this.controlledTravel.status().lastAction;
+    const travel = breaker.open
+      ? { state: 'DEGRADED', reasons: ['TRAVEL_CIRCUIT_OPEN'] }
+      : travelLast && travelLast.result === 'FAILED_SAFE'
+        ? { state: 'WATCH', reasons: ['CONTROLLED_TRAVEL_LAST_ACTION_FAILED_SAFE'] }
+        : { state: 'HEALTHY', reasons: [] };
+    return { economy, travel };
+  }
+
+  _economyStatus() {
+    const base = super._economyStatus();
+    const controlled = this.controlledMerchant ? this.controlledMerchant.status() : null;
     return {
-      economy: {
-        enabled: economy.enabled,
-        busy: economy.busy,
-        lastAction: economy.lastAction || null,
-        stats: economy.stats || null
-      },
-      travel: {
-        enabled: travel.enabled,
-        activePlanId: travel.activePlanId || null,
-        lastAction: travel.lastAction || null,
-        stats: travel.stats || null
-      }
+      ...base,
+      mode: 'controlled-canary-default-off',
+      actionAuthority: !!(controlled && controlled.actionAuthority),
+      directGameplayActionAccess: !!(controlled && controlled.actionAuthority),
+      liveEnabled: !!(controlled && controlled.enabled),
+      sellLiveEnabled: !!(controlled && controlled.sellEnabled),
+      bankLiveEnabled: !!(controlled && controlled.bankEnabled),
+      controlled
     };
   }
 
+  _travelStatus() {
+    const base = super._travelStatus();
+    const controlled = this.controlledTravel ? this.controlledTravel.status() : null;
+    return {
+      ...base,
+      plannerActionAuthority: false,
+      actionAuthority: !!(controlled && controlled.actionAuthority),
+      liveExecutionEnabled: !!(controlled && controlled.enabled),
+      smartMoveExecutionEnabled: !!(controlled && controlled.enabled),
+      controlled
+    };
+  }
+
+  _evaluateGlobalSupervisor() {
+    const status = super.status();
+    const result = this.globalSupervisor.observe({ runtime: this, status, contentDrift: this.contentDrift.status() });
+    this.lastSupervisorResult = result;
+    return result;
+  }
+
+  _liveEnableGate() {
+    if (this.adapter.mode !== 'active') return { allowed: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    const supervisor = this.globalSupervisor.status();
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { allowed: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    const character = this.root && this.root.character;
+    if (!character || String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { allowed: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { allowed: false, reason: 'CHARACTER_DEAD' };
+    return { allowed: true, reason: null };
+  }
+
   _guardControlledAuthority() {
-    const gate = this._liveEnableGate();
-    let reason = gate.reason;
-    if (!reason && this.transactionEngine && typeof this.transactionEngine.breaker === 'function') {
-      const sell = this.transactionEngine.breaker('SELL');
-      const bank = this.transactionEngine.breaker('BANK');
-      if ((sell && sell.open) || (bank && bank.open)) reason = 'ECONOMY_CIRCUIT_OPEN';
+    const health = this._controlledSubsystemHealth();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (health.economy.state === 'DEGRADED') reason = 'ECONOMY_CIRCUIT_OPEN';
+
+    if (reason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(reason);
+    if ((reason || health.travel.state === 'DEGRADED') && this.controlledTravel.status().enabled) {
+      const travelReason = health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : reason;
+      Promise.resolve(this.controlledTravel.disable(travelReason)).catch((error) => {
+        this.log.emit({ component: 'controlled-travel', event: 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED', severity: 'error', reason: travelReason, data: { message: String(error && error.message || error) } });
+      });
     }
-    if (!reason && this.safeTravel && typeof this.safeTravel.breaker === 'function') {
-      const travel = this.safeTravel.breaker();
-      if (travel && travel.open) reason = 'TRAVEL_CIRCUIT_OPEN';
-    }
-    if (!reason) {
-      this.lastControlledGuardReason = null;
-      return { allowed: true, reason: null };
-    }
-    this.lastControlledGuardReason = reason;
-    if (this.controlledMerchant.status().enabled) this.controlledMerchant.disable(reason);
-    if (this.controlledTravel.status().enabled) Promise.resolve(this.controlledTravel.disable(reason)).catch(() => {});
-    return { allowed: false, reason };
+    this.lastControlledGuardReason = reason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
+    return { reason: this.lastControlledGuardReason, health };
   }
 
   tick() {
@@ -158,6 +202,19 @@ class Alpha17Runtime extends Alpha16Runtime {
       Promise.resolve(this.controlledTravel.disable('RUNTIME_LEFT_ACTIVE_MODE')).catch(() => {});
     }
     return resolved;
+  }
+
+  configureInventoryActionPolicy(config = {}) {
+    const normalize = (value) => [...new Set((Array.isArray(value) ? value : []).map((x) => String(x || '').trim()).filter(Boolean))].slice(0, 128);
+    const sell = normalize(config.sell);
+    const bank = normalize(config.bank);
+    const exchange = normalize(config.exchange);
+    this.inventoryLedger.sellAllowlist = new Set(sell);
+    this.inventoryLedger.bankAllowlist = new Set(bank);
+    this.inventoryLedger.exchangeAllowlist = new Set(exchange);
+    this.log.emit({ component: 'inventory-ledger', event: 'INVENTORY_ACTION_POLICY_CHANGED', severity: 'warn', reason: 'OPERATOR_POLICY', data: { sell, bank, exchange } });
+    if (this.lastSnapshot) this._planInventoryAndGear();
+    return clone(this.inventoryLedger.status().policy);
   }
 
   configureControlledMerchant(config = {}) {
