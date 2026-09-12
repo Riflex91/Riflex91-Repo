@@ -14990,6 +14990,38 @@ function finite(value, fallback = 0) {
 }
 
 class HardenedControlledMerchantSpaceRecovery extends ControlledMerchantSpaceRecovery {
+  constructor(options = {}) {
+    super(options);
+    this.allowExpansionPurchase = false;
+    this.allowEmergencyReclaim = false;
+  }
+
+  configure(config = {}) {
+    const status = super.configure(config);
+    if (status && status.enabled === true) {
+      this.allowExpansionPurchase = config.allowExpansionPurchase === true;
+      this.allowEmergencyReclaim = config.allowEmergencyReclaim === true;
+    } else {
+      this.allowExpansionPurchase = false;
+      this.allowEmergencyReclaim = false;
+    }
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.allowExpansionPurchase = false;
+    this.allowEmergencyReclaim = false;
+    super.disable(reason);
+    return this.status();
+  }
+
+  async _expand(operation, plan, observation) {
+    if (this.allowExpansionPurchase !== true) {
+      return { ok: false, blocked: true, reason: 'EXPANSION_PURCHASE_NOT_AUTHORIZED', rawActions: 0 };
+    }
+    return super._expand(operation, plan, observation);
+  }
+
   _freshReclaimPlan(operation, originalPlan, observation) {
     if (originalPlan && originalPlan.reason === 'ALPHA19_MINIMAL_RECLAIM_FALLBACK') {
       // Re-evaluate the same executable Alpha.19 authority scope. A cross-floor
@@ -15001,6 +15033,9 @@ class HardenedControlledMerchantSpaceRecovery extends ControlledMerchantSpaceRec
   }
 
   async _reclaim(operation, plan) {
+    if (this.allowEmergencyReclaim !== true) {
+      return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_NOT_AUTHORIZED', rawActions: 0 };
+    }
     if (operation.emergencyReclaimCount >= 1 || plan.exactlyOneUnit !== true || plan.bulkSellForbidden !== true || !plan.candidate || Number(plan.candidate.quantity) !== 1) {
       return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_BOUNDARY_INVALID', rawActions: 0 };
     }
@@ -15081,6 +15116,15 @@ class HardenedControlledMerchantSpaceRecovery extends ControlledMerchantSpaceRec
       operation: this.journal.get(id)
     };
     return JSON.parse(JSON.stringify(this.lastResult));
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      expansionPurchaseAuthority: this.enabled && this.allowExpansionPurchase === true,
+      emergencyReclaimAuthority: this.enabled && this.allowEmergencyReclaim === true
+    };
   }
 }
 
