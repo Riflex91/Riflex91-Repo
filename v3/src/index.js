@@ -14,21 +14,58 @@ const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer
 const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-safety');
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
+const { TelemetryOutbox } = require('./ops/telemetry-outbox');
+const { ControlGateway } = require('./ops/control-gateway');
+const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
+const { HeadlessOperations } = require('./ops/headless-operations');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
   const runtime = new Runtime({ ...options, root });
+  const operations = new HeadlessOperations({
+    runtime,
+    log: runtime.log,
+    now: runtime.now,
+    telemetryCapacity: options.telemetryOutboxCapacity,
+    replicaMaxBytes: options.stateReplicaMaxBytes,
+    watchAfterMs: options.headlessWatchAfterMs,
+    degradedAfterMs: options.headlessDegradedAfterMs,
+    allowElevatedControl: options.allowElevatedRemoteControl === true,
+    controlHistory: options.remoteControlHistory,
+    controlMaxTtlMs: options.remoteControlMaxTtlMs
+  });
+
+  function status() {
+    return { ...runtime.status(), operations: operations.status() };
+  }
+
+  function exportDiagnostics() {
+    const base = JSON.parse(runtime.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.operations = operations.status();
+    return JSON.stringify(base, null, 2);
+  }
+
   const api = {
     version: VERSION,
     __runtime: runtime,
+    __operations: operations,
     start: () => runtime.start(),
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
-    status: () => runtime.status(),
-    showStatus: () => runtime.showStatus(),
+    status,
+    showStatus: () => { runtime.showStatus(); return status(); },
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
-    exportDiagnostics: () => runtime.exportDiagnostics(),
+    exportDiagnostics,
     saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    operations: {
+      status: () => operations.status(),
+      submit: (command) => operations.submit(command),
+      drainTelemetry: (limit = 100) => operations.drainTelemetry(limit),
+      peekTelemetry: (limit = 100) => operations.peekTelemetry(limit),
+      takeStateReplica: () => operations.takeStateReplica(),
+      peekStateReplica: () => operations.peekStateReplica()
+    },
     world: runtime.world,
     scheduler: runtime.scheduler,
     performance: runtime.performance,
@@ -56,5 +93,6 @@ module.exports = {
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
-  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor
+  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations
 };

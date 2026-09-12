@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.12 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.13 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -19,21 +19,58 @@ const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer
 const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-safety');
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
+const { TelemetryOutbox } = require('./ops/telemetry-outbox');
+const { ControlGateway } = require('./ops/control-gateway');
+const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
+const { HeadlessOperations } = require('./ops/headless-operations');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
   const runtime = new Runtime({ ...options, root });
+  const operations = new HeadlessOperations({
+    runtime,
+    log: runtime.log,
+    now: runtime.now,
+    telemetryCapacity: options.telemetryOutboxCapacity,
+    replicaMaxBytes: options.stateReplicaMaxBytes,
+    watchAfterMs: options.headlessWatchAfterMs,
+    degradedAfterMs: options.headlessDegradedAfterMs,
+    allowElevatedControl: options.allowElevatedRemoteControl === true,
+    controlHistory: options.remoteControlHistory,
+    controlMaxTtlMs: options.remoteControlMaxTtlMs
+  });
+
+  function status() {
+    return { ...runtime.status(), operations: operations.status() };
+  }
+
+  function exportDiagnostics() {
+    const base = JSON.parse(runtime.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.operations = operations.status();
+    return JSON.stringify(base, null, 2);
+  }
+
   const api = {
     version: VERSION,
     __runtime: runtime,
+    __operations: operations,
     start: () => runtime.start(),
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
-    status: () => runtime.status(),
-    showStatus: () => runtime.showStatus(),
+    status,
+    showStatus: () => { runtime.showStatus(); return status(); },
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
-    exportDiagnostics: () => runtime.exportDiagnostics(),
+    exportDiagnostics,
     saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    operations: {
+      status: () => operations.status(),
+      submit: (command) => operations.submit(command),
+      drainTelemetry: (limit = 100) => operations.drainTelemetry(limit),
+      peekTelemetry: (limit = 100) => operations.peekTelemetry(limit),
+      takeStateReplica: () => operations.takeStateReplica(),
+      peekStateReplica: () => operations.peekStateReplica()
+    },
     world: runtime.world,
     scheduler: runtime.scheduler,
     performance: runtime.performance,
@@ -61,7 +98,8 @@ module.exports = {
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
-  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor
+  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations
 };
 
 },
@@ -83,7 +121,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.12';
+const VERSION = '3.0.0-alpha.8.13';
 
 class Runtime {
   constructor(options = {}) {
@@ -401,9 +439,6 @@ class Runtime {
     if (!snapshot) return snapshot;
     const entities = [];
     for (const entity of snapshot.entities || []) {
-      // Emergency safety must see the raw current target before any content/risk
-      // filter can hide it. Quarantine prevents fighting unknown content, but it
-      // must never suppress an emergency disengage decision.
       const isCurrentEngageTarget = this.farmer.state === 'ENGAGE' && this.farmer.targetId != null && String(entity.id) === String(this.farmer.targetId);
       if (isCurrentEngageTarget) {
         const emergency = this.combatEmergency.evaluate(snapshot, entity);
@@ -4394,6 +4429,404 @@ class CombatEmergencyGate {
 }
 
 module.exports = { CombatEmergencyGate };
+
+},
+"src/ops/telemetry-outbox.js": function(require,module,exports){
+'use strict';
+
+function cloneJson(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class TelemetryOutbox {
+  constructor(options = {}) {
+    this.capacity = Math.max(100, Number(options.capacity) || 2000);
+    this.queue = [];
+    this.lastCapturedSeq = 0;
+    this.dropped = 0;
+  }
+
+  capture(log) {
+    if (!log || typeof log.query !== 'function') return 0;
+    const rows = log.query({ sinceSeq: this.lastCapturedSeq, limit: this.capacity * 2 });
+    for (const row of rows) {
+      if (!row || !Number.isFinite(Number(row.seq))) continue;
+      this.lastCapturedSeq = Math.max(this.lastCapturedSeq, Number(row.seq));
+      this.queue.push(cloneJson(row));
+    }
+    if (this.queue.length > this.capacity) {
+      const overflow = this.queue.length - this.capacity;
+      this.queue.splice(0, overflow);
+      this.dropped += overflow;
+    }
+    return rows.length;
+  }
+
+  drain(limit = 100) {
+    const n = Math.max(0, Math.min(this.queue.length, Number(limit) || 0));
+    return this.queue.splice(0, n).map(cloneJson);
+  }
+
+  peek(limit = 100) {
+    const n = Math.max(0, Math.min(this.queue.length, Number(limit) || 0));
+    return this.queue.slice(0, n).map(cloneJson);
+  }
+
+  status() {
+    return {
+      queued: this.queue.length,
+      capacity: this.capacity,
+      dropped: this.dropped,
+      lastCapturedSeq: this.lastCapturedSeq || null
+    };
+  }
+}
+
+module.exports = { TelemetryOutbox };
+
+},
+"src/ops/control-gateway.js": function(require,module,exports){
+'use strict';
+
+const COMMANDS = new Set([
+  'SET_MODE',
+  'SET_FARMER_ENABLED',
+  'SET_TARGET_POLICY',
+  'ADD_TARGET_EXCLUSION',
+  'REMOVE_TARGET_EXCLUSION',
+  'APPROVE_MONSTER_CONTENT',
+  'QUARANTINE_MONSTER_CONTENT',
+  'SAVE_WORLD',
+  'SHOW_STATUS'
+]);
+
+function text(value) { return String(value == null ? '' : value).trim(); }
+function short(value, max = 500) {
+  const out = String(value == null ? '' : value);
+  return out.length > max ? out.slice(0, max) + '…' : out;
+}
+
+class ControlGateway {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.execute = typeof options.execute === 'function' ? options.execute : (() => { throw new Error('control executor unavailable'); });
+    this.allowElevated = options.allowElevated === true;
+    this.maxHistory = Math.max(50, Number(options.maxHistory) || 500);
+    this.maxTtlMs = Math.max(1000, Number(options.maxTtlMs) || 60000);
+    this.history = new Map();
+    this.order = [];
+  }
+
+  _emit(event, input, result) {
+    if (!this.log) return;
+    this.log.emit({
+      component: 'control',
+      event,
+      severity: result.status === 'REJECTED' || result.status === 'FAILED' ? 'warn' : 'info',
+      reason: result.reason || null,
+      data: {
+        commandId: input && input.commandId || null,
+        action: input && input.action || null,
+        status: result.status
+      }
+    });
+  }
+
+  _receipt(result) {
+    return {
+      commandId: result.commandId || null,
+      action: result.action || null,
+      status: result.status,
+      executedAt: result.executedAt || null,
+      reason: result.reason ? short(result.reason) : null
+    };
+  }
+
+  _remember(id, result) {
+    this.history.set(id, this._receipt(result));
+    this.order.push(id);
+    while (this.order.length > this.maxHistory) {
+      const oldest = this.order.shift();
+      this.history.delete(oldest);
+    }
+  }
+
+  _requiresElevated(action, params) {
+    if (action === 'SET_MODE' && params && params.mode === 'active') return true;
+    if (action === 'SET_FARMER_ENABLED' && params && params.enabled === true) return true;
+    if (action === 'SET_TARGET_POLICY' && params && params.policy === 'allow') return true;
+    if (action === 'REMOVE_TARGET_EXCLUSION') return true;
+    if (action === 'APPROVE_MONSTER_CONTENT') return true;
+    return false;
+  }
+
+  submit(input = {}) {
+    const now = this.now();
+    const commandId = text(input.commandId);
+    const action = text(input.action).toUpperCase();
+    const params = input.params && typeof input.params === 'object' ? input.params : {};
+    const issuedAt = Number(input.issuedAt);
+    const expiresAt = Number(input.expiresAt);
+
+    if (!commandId || commandId.length > 120) return this._reject(input, 'INVALID_COMMAND_ID');
+    if (this.history.has(commandId)) {
+      const previous = this.history.get(commandId);
+      const result = { ...previous, duplicate: true };
+      this._emit('CONTROL_COMMAND_DUPLICATE', input, result);
+      return result;
+    }
+    if (!COMMANDS.has(action)) return this._reject(input, 'ACTION_NOT_ALLOWED');
+    if (!Number.isFinite(issuedAt) || !Number.isFinite(expiresAt) || expiresAt < issuedAt) return this._reject(input, 'INVALID_TIME_WINDOW');
+    if (expiresAt - issuedAt > this.maxTtlMs) return this._reject(input, 'TTL_TOO_LONG');
+    if (now > expiresAt) return this._reject(input, 'COMMAND_EXPIRED', 'EXPIRED');
+    if (issuedAt > now + 5000) return this._reject(input, 'COMMAND_FROM_FUTURE');
+    if (this._requiresElevated(action, params) && !this.allowElevated) return this._reject(input, 'ELEVATED_CONTROL_DISABLED');
+
+    try {
+      const value = this.execute(action, params);
+      const result = { commandId, action, status: 'EXECUTED', executedAt: now, value };
+      this._remember(commandId, result);
+      this._emit('CONTROL_COMMAND_EXECUTED', input, result);
+      return result;
+    } catch (error) {
+      const result = { commandId, action, status: 'FAILED', executedAt: now, reason: short(error && error.message || error) };
+      this._remember(commandId, result);
+      this._emit('CONTROL_COMMAND_FAILED', input, result);
+      return result;
+    }
+  }
+
+  _reject(input, reason, status = 'REJECTED') {
+    const commandId = text(input && input.commandId);
+    const action = text(input && input.action).toUpperCase();
+    const result = { commandId: commandId || null, action: action || null, status, reason: short(reason), executedAt: this.now() };
+    if (commandId) this._remember(commandId, result);
+    this._emit(status === 'EXPIRED' ? 'CONTROL_COMMAND_EXPIRED' : 'CONTROL_COMMAND_REJECTED', input, result);
+    return result;
+  }
+
+  status() {
+    return {
+      enabled: true,
+      allowElevated: this.allowElevated,
+      remembered: this.history.size,
+      maxHistory: this.maxHistory,
+      maxTtlMs: this.maxTtlMs,
+      actions: [...COMMANDS]
+    };
+  }
+}
+
+module.exports = { ControlGateway, COMMANDS };
+
+},
+"src/ops/state-replica.js": function(require,module,exports){
+'use strict';
+
+class StateReplica {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.maxBytes = Math.max(10000, Number(options.maxBytes) || 900000);
+    this.latest = null;
+    this.lastRevision = -1;
+    this.droppedOversize = 0;
+    this.captureErrors = 0;
+    this.lastError = null;
+  }
+
+  capture(world) {
+    if (!world || typeof world.serialize !== 'function') return false;
+    if (Number(world.revision) === this.lastRevision) return false;
+    let serialized;
+    try {
+      serialized = world.serialize();
+    } catch (error) {
+      this.captureErrors += 1;
+      this.lastError = String(error && error.message || error);
+      return false;
+    }
+    if (serialized.length > this.maxBytes) {
+      this.droppedOversize += 1;
+      return false;
+    }
+    this.lastRevision = Number(world.revision);
+    this.lastError = null;
+    this.latest = {
+      revision: this.lastRevision,
+      capturedAt: this.now(),
+      bytes: serialized.length,
+      serialized
+    };
+    return true;
+  }
+
+  peek() {
+    return this.latest ? { ...this.latest } : null;
+  }
+
+  take() {
+    if (!this.latest) return null;
+    const value = { ...this.latest };
+    this.latest = null;
+    return value;
+  }
+
+  status() {
+    return {
+      pending: !!this.latest,
+      revision: this.latest ? this.latest.revision : this.lastRevision >= 0 ? this.lastRevision : null,
+      bytes: this.latest ? this.latest.bytes : 0,
+      maxBytes: this.maxBytes,
+      droppedOversize: this.droppedOversize,
+      captureErrors: this.captureErrors,
+      lastError: this.lastError
+    };
+  }
+}
+
+class HeadlessHealth {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.watchAfterMs = Math.max(1000, Number(options.watchAfterMs) || 10000);
+    this.degradedAfterMs = Math.max(this.watchAfterMs, Number(options.degradedAfterMs) || 30000);
+    this.lastTickAt = null;
+    this.lastSnapshotAt = null;
+    this.startedAt = null;
+  }
+
+  noteStart() { if (this.startedAt == null) this.startedAt = this.now(); }
+  noteTick() { this.lastTickAt = this.now(); }
+  noteSnapshot() { this.lastSnapshotAt = this.now(); }
+
+  status() {
+    const now = this.now();
+    const tickAgeMs = this.lastTickAt == null ? null : Math.max(0, now - this.lastTickAt);
+    const snapshotAgeMs = this.lastSnapshotAt == null ? null : Math.max(0, now - this.lastSnapshotAt);
+    const age = snapshotAgeMs == null ? (this.startedAt == null ? 0 : Math.max(0, now - this.startedAt)) : snapshotAgeMs;
+    let state = 'HEALTHY';
+    if (age >= this.degradedAfterMs) state = 'DEGRADED';
+    else if (age >= this.watchAfterMs) state = 'WATCH';
+    return {
+      state,
+      headlessCompatible: true,
+      domRequired: false,
+      dashboardRequired: false,
+      tickAgeMs,
+      snapshotAgeMs,
+      watchAfterMs: this.watchAfterMs,
+      degradedAfterMs: this.degradedAfterMs
+    };
+  }
+}
+
+module.exports = { StateReplica, HeadlessHealth };
+
+},
+"src/ops/headless-operations.js": function(require,module,exports){
+'use strict';
+
+const { TelemetryOutbox } = require('./telemetry-outbox');
+const { ControlGateway } = require('./control-gateway');
+const { StateReplica } = require('./state-replica');
+
+class HeadlessOperations {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.runtime = options.runtime || null;
+    this.watchAfterMs = Math.max(1000, Number(options.watchAfterMs) || 10000);
+    this.degradedAfterMs = Math.max(this.watchAfterMs, Number(options.degradedAfterMs) || 30000);
+    this.telemetry = options.telemetry || new TelemetryOutbox({ capacity: options.telemetryCapacity });
+    this.replica = options.replica || new StateReplica({ now: this.now, maxBytes: options.replicaMaxBytes });
+    this.control = options.control || new ControlGateway({
+      now: this.now,
+      log: this.log,
+      allowElevated: options.allowElevatedControl === true,
+      maxHistory: options.controlHistory,
+      maxTtlMs: options.controlMaxTtlMs,
+      execute: (action, params) => this._execute(action, params)
+    });
+    this.captureErrors = 0;
+  }
+
+  _execute(action, params = {}) {
+    const runtime = this.runtime;
+    if (!runtime) throw new Error('runtime unavailable');
+    if (action === 'SET_MODE') return runtime.setMode(params.mode);
+    if (action === 'SET_FARMER_ENABLED') return runtime.setFarmerEnabled(params.enabled === true);
+    if (action === 'SET_TARGET_POLICY') return runtime.setFarmerTargetPolicy(params.policy);
+    if (action === 'ADD_TARGET_EXCLUSION') return runtime.addFarmerTargetExclusion(params.value);
+    if (action === 'REMOVE_TARGET_EXCLUSION') return runtime.removeFarmerTargetExclusion(params.value);
+    if (action === 'APPROVE_MONSTER_CONTENT') return runtime.combatRisk.approveMonsterType(runtime.world, params.mtype);
+    if (action === 'QUARANTINE_MONSTER_CONTENT') return runtime.combatRisk.quarantineMonsterType(runtime.world, params.mtype);
+    if (action === 'SAVE_WORLD') return runtime.persistence.maybeSave(runtime.world, { force: true });
+    if (action === 'SHOW_STATUS') return runtime.status();
+    throw new Error('unsupported control action');
+  }
+
+  _capture() {
+    try {
+      if (this.log) this.telemetry.capture(this.log);
+      if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+    } catch (_) {
+      this.captureErrors += 1;
+    }
+  }
+
+  _healthStatus() {
+    const runtime = this.runtime;
+    const now = this.now();
+    const startedAt = runtime && Number.isFinite(Number(runtime.startedAt)) ? Number(runtime.startedAt) : null;
+    const lastHeartbeatAt = runtime && Number.isFinite(Number(runtime.lastHeartbeat)) && Number(runtime.lastHeartbeat) > 0 ? Number(runtime.lastHeartbeat) : null;
+    const observedAt = runtime && runtime.lastSnapshot && Number.isFinite(Number(runtime.lastSnapshot.observedAt)) ? Number(runtime.lastSnapshot.observedAt) : null;
+    const base = observedAt != null ? observedAt : lastHeartbeatAt != null ? lastHeartbeatAt : startedAt;
+    const snapshotAgeMs = observedAt == null ? null : Math.max(0, now - observedAt);
+    const heartbeatAgeMs = lastHeartbeatAt == null ? null : Math.max(0, now - lastHeartbeatAt);
+    const age = base == null ? 0 : Math.max(0, now - base);
+    let state = 'HEALTHY';
+    if (age >= this.degradedAfterMs) state = 'DEGRADED';
+    else if (age >= this.watchAfterMs) state = 'WATCH';
+    return {
+      state,
+      headlessCompatible: true,
+      domRequired: false,
+      gameLogRequired: false,
+      dashboardRequired: false,
+      snapshotAgeMs,
+      heartbeatAgeMs,
+      watchAfterMs: this.watchAfterMs,
+      degradedAfterMs: this.degradedAfterMs
+    };
+  }
+
+  submit(command) {
+    const result = this.control.submit(command);
+    this._capture();
+    return result;
+  }
+
+  drainTelemetry(limit = 100) { this._capture(); return this.telemetry.drain(limit); }
+  peekTelemetry(limit = 100) { this._capture(); return this.telemetry.peek(limit); }
+  takeStateReplica() { this._capture(); return this.replica.take(); }
+  peekStateReplica() { this._capture(); return this.replica.peek(); }
+
+  status() {
+    this._capture();
+    return {
+      contractVersion: 1,
+      transport: 'host-provided',
+      captureErrors: this.captureErrors,
+      telemetry: this.telemetry.status(),
+      control: this.control.status(),
+      stateReplica: this.replica.status(),
+      health: this._healthStatus()
+    };
+  }
+}
+
+module.exports = { HeadlessOperations };
 
 }
 };
