@@ -4315,7 +4315,10 @@ module.exports = { SafeRetreatPolicy };
 'use strict';
 
 const BUILT_IN_TARGET_EXCLUSIONS = Object.freeze([
-  Object.freeze({ token: 'automatron', reason: 'TRAINING_TARGET_AUTOMATRON' })
+  Object.freeze({ token: 'automatron', reason: 'TRAINING_TARGET_AUTOMATRON' }),
+  Object.freeze({ token: 'redfairy', reason: 'DANGEROUS_SPECIAL_FAIRY' }),
+  Object.freeze({ token: 'greenfairy', reason: 'DANGEROUS_SPECIAL_FAIRY' }),
+  Object.freeze({ token: 'bluefairy', reason: 'DANGEROUS_SPECIAL_FAIRY' })
 ]);
 
 function normalizeTargetToken(value) {
@@ -4539,6 +4542,9 @@ const ContentDisposition = Object.freeze({
   QUARANTINED: 'QUARANTINED'
 });
 
+const BUILT_IN_DANGEROUS_MONSTERS = Object.freeze(['redfairy', 'greenfairy', 'bluefairy']);
+const BUILT_IN_DANGEROUS_SET = new Set(BUILT_IN_DANGEROUS_MONSTERS);
+
 function normalizeMonsterType(value) {
   const id = String(value || '').trim();
   if (!id) throw new Error('monster type must be a non-empty string');
@@ -4585,7 +4591,11 @@ class ContentSafetyGate {
   }
 
   approve(world, mtype) {
-    return this._write(world, mtype, ContentDisposition.APPROVED, 'OPERATOR_APPROVED', 'CONTENT_MONSTER_APPROVED');
+    const id = normalizeMonsterType(mtype);
+    if (BUILT_IN_DANGEROUS_SET.has(id)) {
+      return this._write(world, id, ContentDisposition.QUARANTINED, 'BUILT_IN_DANGEROUS_SPECIAL', 'CONTENT_MONSTER_BUILT_IN_BLOCKED');
+    }
+    return this._write(world, id, ContentDisposition.APPROVED, 'OPERATOR_APPROVED', 'CONTENT_MONSTER_APPROVED');
   }
 
   quarantine(world, mtype) {
@@ -4597,6 +4607,27 @@ class ContentSafetyGate {
       return { allowed: true, reason: 'CONTENT_SAFETY_NOT_APPLICABLE', disposition: null, monsterType: null };
     }
     const mtype = String(entity.mtype);
+
+    // Hard safety boundary. These special fairies can exist in old persisted
+    // world data and therefore used to inherit LEGACY_ALLOWED. Built-in safety
+    // always wins over migration state and cannot be overridden by approve().
+    if (BUILT_IN_DANGEROUS_SET.has(mtype)) {
+      const validWorld = world && typeof world.fact === 'function' && typeof world.observeEntity === 'function';
+      const disposition = validWorld ? this._fact(world, mtype, this.dispositionFact) : null;
+      const reason = validWorld ? this._fact(world, mtype, 'contentSafetyReason') : null;
+      if (validWorld && (disposition !== ContentDisposition.QUARANTINED || reason !== 'BUILT_IN_DANGEROUS_SPECIAL')) {
+        this._write(world, mtype, ContentDisposition.QUARANTINED, 'BUILT_IN_DANGEROUS_SPECIAL', 'CONTENT_MONSTER_BUILT_IN_BLOCKED');
+      }
+      const result = {
+        allowed: false,
+        reason: 'BUILT_IN_DANGEROUS_SPECIAL',
+        disposition: ContentDisposition.QUARANTINED,
+        monsterType: mtype
+      };
+      this.lastDecision = { at: this.now(), ...result };
+      return result;
+    }
+
     if (!world || typeof world.hasEntity !== 'function' || typeof world.fact !== 'function' || typeof world.observeEntity !== 'function') {
       const result = { allowed: false, reason: 'CONTENT_SAFETY_UNAVAILABLE', disposition: null, monsterType: mtype };
       this.lastDecision = { at: this.now(), ...result };
@@ -4649,6 +4680,7 @@ class ContentSafetyGate {
     return {
       enabled: true,
       unknownDefault: ContentDisposition.QUARANTINED,
+      builtInDangerous: BUILT_IN_DANGEROUS_MONSTERS.slice(),
       policyType: this.policyType,
       counts,
       quarantined: rows.filter((row) => row.disposition === ContentDisposition.QUARANTINED).slice(0, this.maxStatusEntries),
@@ -4659,7 +4691,12 @@ class ContentSafetyGate {
   }
 }
 
-module.exports = { ContentSafetyGate, ContentDisposition, normalizeMonsterType };
+module.exports = {
+  ContentSafetyGate,
+  ContentDisposition,
+  BUILT_IN_DANGEROUS_MONSTERS,
+  normalizeMonsterType
+};
 
 },
 "src/farmer/combat-emergency.js": function(require,module,exports){
@@ -7612,19 +7649,47 @@ const { Alpha12Runtime: BaseAlpha12Runtime } = require('./alpha12-runtime');
 const { PartyControlLease } = require('../party/control-lease');
 
 const ALPHA12_VERSION = '3.0.0-alpha.12.0';
+const OWNED_PRESENT_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
+
+function activeOwnedNames(root) {
+  const localCharacter = root && (root.character || (root.parent && root.parent.character));
+  const localName = localCharacter && localCharacter.name ? String(localCharacter.name) : null;
+  const fn = root && (root.get_active_characters || (root.parent && root.parent.get_active_characters));
+  if (typeof fn !== 'function') return localName ? [localName] : [];
+  try {
+    const active = fn.call(root);
+    if (!active || typeof active !== 'object') return localName ? [localName] : [];
+    const names = Object.entries(active)
+      .filter(([, state]) => OWNED_PRESENT_STATES.has(String(state)))
+      .map(([name]) => String(name));
+    if (localName && !names.includes(localName)) names.push(localName);
+    const unique = [...new Set(names)].sort();
+    // Adventure Land supports four simultaneously active characters. An
+    // impossible larger set must never widen party trust.
+    return unique.length <= 4 ? unique : (localName ? [localName] : []);
+  } catch (_) {
+    return localName ? [localName] : [];
+  }
+}
 
 class Alpha12Runtime extends BaseAlpha12Runtime {
   constructor(options = {}) {
     super(options);
     this.log.version = ALPHA12_VERSION;
     const roster = this.characterRegistry.status().characters || [];
-    const merchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || this.partyTransitions.merchantName || null;
+    const owned = activeOwnedNames(this.root);
+    const ownedSet = new Set(owned);
+    const local = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
+    const localMerchant = local && String(local.ctype || '').toLowerCase() === 'merchant' ? String(local.name) : null;
+    const configured = options.partyMerchantName && ownedSet.has(String(options.partyMerchantName)) ? String(options.partyMerchantName) : null;
+    const registryMerchant = roster.find((row) => row && row.ctype === 'merchant' && ownedSet.has(String(row.name)));
+    const merchant = localMerchant || configured || (registryMerchant && registryMerchant.name) || null;
     this.partyControlLease = options.partyControlLease || new PartyControlLease({
       root: this.root,
       now: this.now,
       log: this.log,
       merchantName: merchant,
-      trustedNames: roster.map((row) => row.name),
+      trustedNames: owned,
       leaseMs: options.partyControlLeaseMs,
       ackTimeoutMs: options.partyControlAckTimeoutMs,
       pollMs: options.partyControlPollMs,
@@ -7642,16 +7707,28 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     return true;
   }
 
+  _activeOwnedNames() {
+    return activeOwnedNames(this.root);
+  }
+
   syncPartyControlConfig() {
     if (!this.partyControlLease) return null;
     const status = this.characterRegistry.status();
-    const names = status.characters.map((row) => row.name);
-    const merchant = status.characters.find((row) => row.ctype === 'merchant');
+    const names = this._activeOwnedNames();
+    const owned = new Set(names);
+    const local = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
+    const localMerchant = local && String(local.ctype || '').toLowerCase() === 'merchant' && owned.has(String(local.name)) ? String(local.name) : null;
+    const candidates = status.characters.filter((row) => row && row.ctype === 'merchant' && owned.has(String(row.name)));
+    const registryMerchant = new Set(candidates.map((row) => String(row.name))).size === 1 ? String(candidates[0].name) : null;
+    const currentMerchant = this.partyControlLease.merchantName && owned.has(String(this.partyControlLease.merchantName)) ? String(this.partyControlLease.merchantName) : null;
+    const merchantName = localMerchant || registryMerchant || currentMerchant || null;
+
     this.partyControlLease.setTrustedNames(names);
-    if (merchant) {
-      this.partyControlLease.setMerchantName(merchant.name);
-      this.partyTransitions.setMerchantName(merchant.name);
-      this.partyTelemetry.setMerchantName(merchant.name);
+    if (this.partyTelemetry && typeof this.partyTelemetry.setTrustedNames === 'function') this.partyTelemetry.setTrustedNames(names);
+    if (merchantName) {
+      this.partyControlLease.setMerchantName(merchantName);
+      this.partyTransitions.setMerchantName(merchantName);
+      this.partyTelemetry.setMerchantName(merchantName);
     }
     return this.partyControlLease.status();
   }
@@ -7684,6 +7761,8 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
       version: ALPHA12_VERSION,
       party: {
         ...(base.party || {}),
+        activeOwnedNames: this._activeOwnedNames(),
+        trustSource: 'get_active_characters',
         controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
         transition: {
           ...((base.party && base.party.transition) || {}),
@@ -7694,7 +7773,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 }
 
-module.exports = { Alpha12Runtime, ALPHA12_VERSION };
+module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames };
 
 },
 "src/autonomy/alpha12-runtime.js": function(require,module,exports){
@@ -19769,12 +19848,19 @@ module.exports = { RouteCostEstimator, ROUTE_COST_MODE };
 const { Alpha20_5MerchantRuntime } = require('./alpha20-5-merchant-runtime');
 const { ControlledFarmerLoot } = require('../farmer/controlled-farmer-loot');
 const { ControlledAutoRespawn } = require('../ops/controlled-auto-respawn');
+const { ControlledPartyBootstrap } = require('../party/controlled-party-bootstrap');
 const {
   createObservableBankCapacityManager,
   installPreFarmingReliability
 } = require('../reliability/pre-farming-reliability');
 const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
 const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
+const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
+const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
+const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
+const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
+const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
+const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -19811,16 +19897,62 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       retryMs: options.autoRespawnRetryMs,
       maxAttempts: options.autoRespawnMaxAttempts
     });
+
     this.preFarmingReliability = installPreFarmingReliability(this);
-    // Install after the pre-farming wrapper: live logs showed that the old
-    // safe-entity cache still left ordinary visible monsters as navigation
-    // blockers. This replacement asks the existing TargetSafety + CombatRisk
-    // boundaries directly on every Local Farm arbitration pass.
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
+
+    // 2026-09 live diagnostics: special fairies inherited LEGACY_ALLOWED,
+    // direct Farmer travel requested very large raw moves, content-drift writes
+    // exhausted localStorage, and send_cm therefore failed repeatedly. Keep the
+    // fixes modular so the proven Alpha.20 action boundaries remain unchanged.
+    this.dangerousContentHotfix = installDangerousContentHotfix(this);
+    this.farmerTravelSafetyHotfix = installFarmerTravelSafetyHotfix(this, {
+      minStep: options.farmerTravelMinStep,
+      maxStep: options.farmerTravelMaxStep,
+      stepSeconds: options.farmerTravelStepSeconds
+    });
+    this.contentDriftStorageHotfix = installContentDriftStorageHotfix(this, {
+      maxRecordsAfterQuota: options.contentDriftQuotaMaxRecords,
+      retryBaseMs: options.contentDriftQuotaRetryBaseMs,
+      retryMaxMs: options.contentDriftQuotaRetryMaxMs
+    });
+    this.partyAccountCommunication = installPartyAccountCommunication(this, {
+      telemetryBaseBackoffMs: options.partyTelemetryFailureBackoffMs,
+      telemetryMaxBackoffMs: options.partyTelemetryFailureBackoffMaxMs
+    });
+    this.partyBootstrap = options.partyBootstrap || new ControlledPartyBootstrap({
+      runtime: this,
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      controlLease: this.partyControlLease,
+      transport: this.partyAccountCommunication.transport,
+      challengeTtlMs: options.partyBootstrapChallengeTtlMs,
+      ackTimeoutMs: options.partyBootstrapAckTimeoutMs,
+      verifyTimeoutMs: options.partyBootstrapVerifyTimeoutMs,
+      retryBaseMs: options.partyBootstrapRetryBaseMs,
+      retryMaxMs: options.partyBootstrapRetryMaxMs,
+      maxAttempts: options.partyBootstrapMaxAttempts,
+      breakerMs: options.partyBootstrapBreakerMs
+    });
+    this.partyBootstrapMerchantDiscoveryHotfix = installPartyBootstrapMerchantDiscoveryHotfix(this.partyBootstrap);
+    this.partyBootstrapFarmerGate = installPartyBootstrapFarmerGate(this, this.partyBootstrap);
+  }
+
+  start() {
+    if (this.partyBootstrap) this.partyBootstrap.resume();
+    return super.start();
+  }
+
+  stop() {
+    if (this.partyBootstrap) this.partyBootstrap.cancel('RUNTIME_STOPPED');
+    return super.stop();
   }
 
   tick() {
+    this.dangerousContentHotfix.beforeTick();
+    this.partyBootstrap.tick();
     this.preFarmingReliability.beforeTick();
     super.tick();
     const snapshot = this.lastSnapshot;
@@ -19838,12 +19970,21 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      dangerousContentHotfix: this.dangerousContentHotfix.status(),
+      farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
+      contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      partyAccountCommunication: this.partyAccountCommunication.status(),
+      partyBootstrap: this.partyBootstrap.status(),
+      partyBootstrapMerchantDiscoveryHotfix: this.partyBootstrapMerchantDiscoveryHotfix.status(),
+      partyBootstrapFarmerGate: this.partyBootstrapFarmerGate.status(),
       startupPolicy: {
         recommendedMode: 'active',
         recommendedInitialRuntimeState: 'stopped',
         oneClickStartUsesExistingOperatorRunControl: true,
         startDoesNotGrantMerchantServiceAuthority: true,
-        startDoesNotGrantPartyOrEconomyAuthority: true
+        startDoesNotGrantPartyLifecycleAuthority: true,
+        startDoesNotGrantEconomyAuthority: true,
+        partyBootstrapAuthority: 'bounded-active-owned-invites-only'
       }
     };
   }
@@ -19852,11 +19993,21 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     const base = super.status();
     return {
       ...base,
+      party: {
+        ...(base.party || {}),
+        bootstrap: this.partyBootstrap.status(),
+        bootstrapMerchantDiscovery: this.partyBootstrapMerchantDiscoveryHotfix.status(),
+        accountCommunication: this.partyAccountCommunication.status()
+      },
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      dangerousContentHotfix: this.dangerousContentHotfix.status(),
+      farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
+      contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      partyBootstrapFarmerGate: this.partyBootstrapFarmerGate.status(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
         farmReadiness: true,
@@ -19871,6 +20022,13 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         localFarmPlanGetsOneSafeSchedulerTurn: true,
         unsafeOrUnknownVisibleMonsterStillBlocks: true,
         trainingTargetPresenceDoesNotPinNavigation: true,
+        dangerousSpecialFairiesFailClosed: true,
+        farmerTargetTravelBounded: true,
+        partyTrustUsesActiveOwnedCharacters: true,
+        partyBootstrapEnabled: true,
+        partyBootstrapRequiresFullPartyForFarming: true,
+        partyCommunicationPrefersCommandCharacter: true,
+        contentDriftQuotaRecoveryBounded: true,
         incompleteSupplyFailClosed: true,
         incompleteLocationFailClosed: true,
         stableContentFingerprintProfile: true,
@@ -20329,6 +20487,614 @@ class ControlledAutoRespawn {
 }
 
 module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
+
+},
+"src/party/controlled-party-bootstrap.js": function(require,module,exports){
+'use strict';
+
+const { AccountCharacterTransport } = require('./account-character-transport');
+
+const PARTY_BOOTSTRAP_PROTOCOL = 1;
+const PARTY_BOOTSTRAP_TYPE = 'aio-v3-party-bootstrap';
+const PARTY_BOOTSTRAP_RECEIVER = '__AIO_V3_PARTY_BOOTSTRAP_RECEIVE';
+const PartyBootstrapAction = Object.freeze({
+  HELLO_CHALLENGE: 'HELLO_CHALLENGE',
+  HELLO_ACK: 'HELLO_ACK'
+});
+
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function cleanName(value) { const name = String(value == null ? '' : value).trim(); return name || null; }
+function randomToken(now) { return `${now.toString(36)}-${Math.random().toString(36).slice(2, 12)}`; }
+
+class ControlledPartyBootstrap {
+  constructor(options = {}) {
+    this.runtime = options.runtime || null;
+    this.root = options.root || (this.runtime && this.runtime.root) || globalThis;
+    this.now = options.now || (this.runtime && this.runtime.now) || (() => Date.now());
+    this.log = options.log || (this.runtime && this.runtime.log) || null;
+    this.controlLease = options.controlLease || (this.runtime && this.runtime.partyControlLease) || null;
+    this.transport = options.transport || new AccountCharacterTransport({ root: this.root, now: this.now, log: this.log });
+    this.challengeTtlMs = Math.max(1500, Math.min(15000, Number(options.challengeTtlMs) || 5000));
+    this.ackTimeoutMs = Math.max(1000, Math.min(10000, Number(options.ackTimeoutMs) || 3500));
+    this.verifyTimeoutMs = Math.max(2000, Math.min(20000, Number(options.verifyTimeoutMs) || 8000));
+    this.pollMs = Math.max(50, Math.min(1000, Number(options.pollMs) || 100));
+    this.retryBaseMs = Math.max(1000, Number(options.retryBaseMs) || 5000);
+    this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 60000);
+    this.maxAttempts = Math.max(1, Math.min(10, Number(options.maxAttempts) || 3));
+    this.breakerMs = Math.max(10000, Number(options.breakerMs) || 120000);
+    this.active = false;
+    this.generation = 0;
+    this.state = 'SUSPENDED';
+    this.reason = 'RUNTIME_NOT_STARTED';
+    this.ready = false;
+    this.lastObserved = null;
+    this.lastResult = null;
+    this.inFlight = null;
+    this.pendingChallenges = new Map();
+    this.acknowledged = new Map();
+    this.attempts = new Map();
+    this.nextAttemptAt = new Map();
+    this.breakerUntil = 0;
+    this.previousOnCm = null;
+    this.installed = false;
+    this.stats = {
+      observations: 0,
+      noops: 0,
+      challengesSent: 0,
+      challengesAccepted: 0,
+      challengeAcksReceived: 0,
+      invitesSent: 0,
+      invitesVerified: 0,
+      failures: 0,
+      foreignPartyBlocks: 0,
+      leaderBlocks: 0,
+      activeLimitBlocks: 0,
+      breakerOpens: 0,
+      cancels: 0
+    };
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'party-bootstrap', event, severity, reason, data });
+  }
+
+  _function(name) {
+    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
+  }
+
+  _character() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _partyNames() {
+    const parent = this.root && (this.root.parent || this.root);
+    const names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
+    const local = cleanName(this._character() && this._character().name);
+    if (local && !names.includes(local)) names.push(local);
+    return [...new Set(names)].sort();
+  }
+
+  _observableLeader() {
+    const parent = this.root && (this.root.parent || this.root);
+    const list = parent && parent.party_list;
+    return Array.isArray(list) && list.length ? cleanName(list[0]) : null;
+  }
+
+  _activeSnapshot() {
+    const raw = this.transport.activeCharacters();
+    if (!raw) return { available: false, present: [], running: [], raw: null };
+    const present = this.transport.ownedNames();
+    const running = this.transport.ownedNames({ runningOnly: true });
+    return { available: true, present, running, raw };
+  }
+
+  _merchantName(activeNames) {
+    const active = new Set(activeNames || []);
+    const c = this._character();
+    if (c && String(c.ctype || '').toLowerCase() === 'merchant' && active.has(String(c.name))) return String(c.name);
+
+    const configured = cleanName(this.controlLease && this.controlLease.merchantName);
+    if (configured && active.has(configured)) return configured;
+
+    const registry = this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status && this.runtime.characterRegistry.status();
+    const candidates = (registry && registry.characters || [])
+      .filter((row) => row && String(row.ctype || '').toLowerCase() === 'merchant' && active.has(String(row.name)))
+      .map((row) => String(row.name));
+    if (new Set(candidates).size === 1) return candidates[0];
+
+    const parent = this.root && (this.root.parent || this.root);
+    const party = parent && parent.party || {};
+    const partyMerchants = Object.entries(party)
+      .filter(([name, row]) => active.has(String(name)) && String(row && (row.ctype || row.type) || '').toLowerCase() === 'merchant')
+      .map(([name]) => String(name));
+    return new Set(partyMerchants).size === 1 ? partyMerchants[0] : null;
+  }
+
+  _configureTrust(activeNames, merchantName) {
+    if (!this.controlLease) return;
+    if (typeof this.controlLease.setTrustedNames === 'function') this.controlLease.setTrustedNames(activeNames);
+    if (merchantName && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(merchantName);
+  }
+
+  _observe() {
+    const at = this.now();
+    const active = this._activeSnapshot();
+    const local = cleanName(this._character() && this._character().name);
+    const merchant = this._merchantName(active.present);
+    const partyNames = this._partyNames();
+    const leader = this._observableLeader();
+    const presentSet = new Set(active.present);
+    const foreignPartyNames = partyNames.filter((name) => !presentSet.has(name));
+    const missingRunning = active.running.filter((name) => name !== merchant && !partyNames.includes(name));
+    const full = active.available && active.running.length === 4 && !!merchant && active.running.every((name) => partyNames.includes(name));
+    const leaderWrong = !!leader && !!merchant && partyNames.length > 1 && leader !== merchant;
+    const observation = {
+      at,
+      local,
+      merchant,
+      activeStateAvailable: active.available,
+      presentNames: active.present,
+      runningNames: active.running,
+      partyNames,
+      foreignPartyNames,
+      missingRunning,
+      leader,
+      leaderObserved: !!leader,
+      leaderWrong,
+      full
+    };
+    this.lastObserved = observation;
+    this.stats.observations += 1;
+    this._configureTrust(active.present, merchant);
+    return observation;
+  }
+
+  _setState(state, reason, ready = false) {
+    const changed = this.state !== state || this.reason !== reason || this.ready !== ready;
+    this.state = state;
+    this.reason = reason;
+    this.ready = ready === true;
+    if (changed) this._event('PARTY_BOOTSTRAP_STATE_CHANGED', ready ? 'info' : (state === 'BLOCKED' ? 'warn' : 'info'), reason, { state, ready });
+  }
+
+  _isBootstrapMessage(data) {
+    return !!data && data.type === PARTY_BOOTSTRAP_TYPE && Number(data.protocol) === PARTY_BOOTSTRAP_PROTOCOL;
+  }
+
+  receive(sender, data) {
+    if (!this.active || !this._isBootstrapMessage(data)) return false;
+    const from = cleanName(sender);
+    const local = cleanName(this._character() && this._character().name);
+    const active = this._activeSnapshot();
+    if (!active.available || active.present.length > 4 || !from || !local || !active.present.includes(from) || !active.present.includes(local)) return false;
+    const merchant = this._merchantName(active.present);
+    const action = String(data.action || '');
+
+    if (action === PartyBootstrapAction.HELLO_CHALLENGE) {
+      if (!merchant || from !== merchant || cleanName(data.merchantName) !== merchant || cleanName(data.target) !== local) return false;
+      const issuedAt = Number(data.issuedAt);
+      const expiresAt = Number(data.expiresAt);
+      const nonce = String(data.nonce || '');
+      if (!nonce || !Number.isFinite(issuedAt) || !Number.isFinite(expiresAt) || issuedAt > this.now() + 3000 || expiresAt <= this.now() || expiresAt - issuedAt > this.challengeTtlMs + 3000) return false;
+      this.stats.challengesAccepted += 1;
+      const ack = {
+        type: PARTY_BOOTSTRAP_TYPE,
+        protocol: PARTY_BOOTSTRAP_PROTOCOL,
+        action: PartyBootstrapAction.HELLO_ACK,
+        merchantName: merchant,
+        target: local,
+        nonce,
+        at: this.now()
+      };
+      Promise.resolve(this.transport.send(merchant, ack, { receiver: PARTY_BOOTSTRAP_RECEIVER, sender: local })).catch((error) => {
+        this._event('PARTY_BOOTSTRAP_ACK_SEND_FAILED', 'warn', 'ACK_SEND_FAILED', { target: local, message: String(error && error.message || error).slice(0, 200) });
+      });
+      return true;
+    }
+
+    if (action === PartyBootstrapAction.HELLO_ACK) {
+      if (!merchant || local !== merchant || cleanName(data.merchantName) !== merchant || cleanName(data.target) !== from) return false;
+      const pending = this.pendingChallenges.get(from);
+      if (!pending || pending.nonce !== String(data.nonce || '') || pending.expiresAt <= this.now()) return false;
+      this.acknowledged.set(from, { nonce: pending.nonce, at: this.now() });
+      this.stats.challengeAcksReceived += 1;
+      return true;
+    }
+    return false;
+  }
+
+  install() {
+    if (this.installed || !this.root) return false;
+    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, (sender, payload) => this.receive(sender, payload));
+    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+    const self = this;
+    this.root.on_cm = function onPartyBootstrapMessage(name, data) {
+      if (self._isBootstrapMessage(data)) {
+        self.receive(name, data);
+        return undefined;
+      }
+      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
+      return undefined;
+    };
+    this.installed = true;
+    return true;
+  }
+
+  resume() {
+    this.active = true;
+    this.generation += 1;
+    this._setState('OBSERVING', 'RUNTIME_STARTED', false);
+    return true;
+  }
+
+  cancel(reason = 'RUNTIME_STOPPED') {
+    this.active = false;
+    this.generation += 1;
+    this.pendingChallenges.clear();
+    this.acknowledged.clear();
+    this.stats.cancels += 1;
+    this._setState('SUSPENDED', reason, false);
+    return true;
+  }
+
+  _assertGeneration(generation) {
+    if (!this.active || generation !== this.generation) throw new Error('PARTY_BOOTSTRAP_CANCELLED');
+  }
+
+  async _waitUntil(predicate, timeoutMs, generation, reason) {
+    const started = this.now();
+    while (this.now() - started <= timeoutMs) {
+      this._assertGeneration(generation);
+      if (predicate()) return true;
+      await sleep(this.pollMs);
+    }
+    throw new Error(reason || 'PARTY_BOOTSTRAP_TIMEOUT');
+  }
+
+  async _verifyPresence(target, merchant, generation) {
+    const issuedAt = this.now();
+    const nonce = randomToken(issuedAt);
+    const pending = { nonce, target, issuedAt, expiresAt: issuedAt + this.challengeTtlMs };
+    this.pendingChallenges.set(target, pending);
+    this.acknowledged.delete(target);
+    await this.transport.send(target, {
+      type: PARTY_BOOTSTRAP_TYPE,
+      protocol: PARTY_BOOTSTRAP_PROTOCOL,
+      action: PartyBootstrapAction.HELLO_CHALLENGE,
+      merchantName: merchant,
+      target,
+      nonce,
+      issuedAt,
+      expiresAt: pending.expiresAt
+    }, { receiver: PARTY_BOOTSTRAP_RECEIVER, sender: merchant });
+    this.stats.challengesSent += 1;
+    await this._waitUntil(() => {
+      const ack = this.acknowledged.get(target);
+      return !!ack && ack.nonce === nonce;
+    }, this.ackTimeoutMs, generation, `PARTY_BOOTSTRAP_HELLO_TIMEOUT:${target}`);
+    this.pendingChallenges.delete(target);
+    this.acknowledged.delete(target);
+    return true;
+  }
+
+  async _invite(target, observation, generation) {
+    const merchant = observation.merchant;
+    this._assertGeneration(generation);
+    this._setState('DISCOVERING', `VERIFYING_${target}`, false);
+    await this._verifyPresence(target, merchant, generation);
+    this._assertGeneration(generation);
+
+    if (!this.controlLease || typeof this.controlLease.authorizeIncoming !== 'function') throw new Error('PARTY_CONTROL_LEASE_UNAVAILABLE');
+    this._configureTrust(observation.presentNames, merchant);
+    const transactionId = `party-bootstrap-${this.now()}-${target}`;
+    this._setState('AUTHORIZING', `AUTHORIZING_${target}`, false);
+    await this.controlLease.authorizeIncoming(target, transactionId);
+    this._assertGeneration(generation);
+
+    const invite = this._function('send_party_invite');
+    if (typeof invite !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
+    this._setState('INVITING', `INVITING_${target}`, false);
+    await Promise.resolve(invite.call(this.root, target));
+    this.stats.invitesSent += 1;
+    this._setState('VERIFYING', `VERIFYING_PARTY_${target}`, false);
+    await this._waitUntil(() => this._partyNames().includes(target), this.verifyTimeoutMs, generation, `PARTY_BOOTSTRAP_VERIFY_TIMEOUT:${target}`);
+    this.stats.invitesVerified += 1;
+    this.attempts.delete(target);
+    this.nextAttemptAt.delete(target);
+    this.lastResult = { ok: true, target, transactionId, at: this.now() };
+    return this.lastResult;
+  }
+
+  _noteFailure(target, error) {
+    const attempts = (this.attempts.get(target) || 0) + 1;
+    this.attempts.set(target, attempts);
+    this.stats.failures += 1;
+    const message = String(error && error.message || error || 'PARTY_BOOTSTRAP_FAILED').slice(0, 240);
+    if (attempts >= this.maxAttempts) {
+      this.breakerUntil = this.now() + this.breakerMs;
+      this.stats.breakerOpens += 1;
+      this._setState('BLOCKED', 'PARTY_BOOTSTRAP_CIRCUIT_OPEN', false);
+    } else {
+      const delay = Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, attempts - 1));
+      this.nextAttemptAt.set(target, this.now() + delay);
+      this._setState('BACKOFF', `RETRY_${target}`, false);
+    }
+    this.lastResult = { ok: false, target, attempts, message, at: this.now() };
+    this._event('PARTY_BOOTSTRAP_ATTEMPT_FAILED', 'warn', message, { target, attempts, breakerUntil: this.breakerUntil || null });
+  }
+
+  tick() {
+    if (!this.active) return this.status();
+    const observation = this._observe();
+
+    if (!observation.activeStateAvailable) {
+      this._setState('BLOCKED', 'ACTIVE_CHARACTER_STATE_UNAVAILABLE', false);
+      return this.status();
+    }
+    if (observation.presentNames.length > 4) {
+      this.stats.activeLimitBlocks += 1;
+      this._setState('BLOCKED', 'ACTIVE_CHARACTER_LIMIT_EXCEEDED', false);
+      return this.status();
+    }
+    if (!observation.merchant) {
+      this._setState('OBSERVING', 'MERCHANT_NOT_IDENTIFIED', false);
+      return this.status();
+    }
+    if (observation.foreignPartyNames.length) {
+      this.stats.foreignPartyBlocks += 1;
+      this._setState('BLOCKED', 'FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT', false);
+      return this.status();
+    }
+    if (observation.leaderWrong) {
+      this.stats.leaderBlocks += 1;
+      this._setState('BLOCKED', 'MERCHANT_NOT_PARTY_LEADER', false);
+      return this.status();
+    }
+    if (observation.full) {
+      this.stats.noops += 1;
+      this._setState('READY', observation.leaderObserved ? 'FULL_PARTY_VERIFIED' : 'FULL_PARTY_NOOP_LEADER_INFERRED', true);
+      return this.status();
+    }
+
+    if (this.breakerUntil > this.now()) {
+      this._setState('BLOCKED', 'PARTY_BOOTSTRAP_CIRCUIT_OPEN', false);
+      return this.status();
+    }
+    if (this.breakerUntil && this.breakerUntil <= this.now()) {
+      this.breakerUntil = 0;
+      this.attempts.clear();
+    }
+
+    const local = observation.local;
+    if (local !== observation.merchant) {
+      this._setState('PARTIAL', 'WAITING_FOR_MERCHANT_BOOTSTRAP', false);
+      return this.status();
+    }
+    if (this.runtime && this.runtime.adapter && this.runtime.adapter.mode !== 'active') {
+      this._setState('PARTIAL', 'ACTIVE_MODE_REQUIRED_FOR_BOOTSTRAP', false);
+      return this.status();
+    }
+    if (this.inFlight) return this.status();
+
+    const target = observation.missingRunning.find((name) => this.now() >= (this.nextAttemptAt.get(name) || 0));
+    if (!target) {
+      this._setState('PARTIAL', observation.runningNames.length < 4 ? 'WAITING_FOR_ACTIVE_COMPANIONS' : 'WAITING_FOR_RETRY_WINDOW', false);
+      return this.status();
+    }
+
+    const generation = this.generation;
+    this.inFlight = Promise.resolve()
+      .then(() => this._invite(target, observation, generation))
+      .catch((error) => {
+        if (String(error && error.message || error) === 'PARTY_BOOTSTRAP_CANCELLED') return;
+        this._noteFailure(target, error);
+      })
+      .finally(() => { this.inFlight = null; });
+    return this.status();
+  }
+
+  async waitForIdle(timeoutMs = 15000) {
+    const started = this.now();
+    while (this.inFlight && this.now() - started <= timeoutMs) await sleep(this.pollMs);
+    return !this.inFlight;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'controlled-dynamic-party-bootstrap-v1',
+      protocol: PARTY_BOOTSTRAP_PROTOCOL,
+      installed: this.installed,
+      active: this.active,
+      state: this.state,
+      reason: this.reason,
+      ready: this.ready,
+      actionAuthority: this.active && this.runtime && this.runtime.adapter && this.runtime.adapter.mode === 'active' && this.lastObserved && this.lastObserved.local === this.lastObserved.merchant,
+      inFlight: !!this.inFlight,
+      breakerUntil: this.breakerUntil || null,
+      breakerRemainingMs: Math.max(0, this.breakerUntil - this.now()),
+      observed: this.lastObserved ? { ...this.lastObserved } : null,
+      lastResult: this.lastResult ? { ...this.lastResult } : null,
+      attempts: Object.fromEntries(this.attempts.entries()),
+      stats: { ...this.stats },
+      transport: this.transport.status()
+    };
+  }
+}
+
+module.exports = {
+  ControlledPartyBootstrap,
+  PARTY_BOOTSTRAP_PROTOCOL,
+  PARTY_BOOTSTRAP_TYPE,
+  PARTY_BOOTSTRAP_RECEIVER,
+  PartyBootstrapAction
+};
+
+},
+"src/party/account-character-transport.js": function(require,module,exports){
+'use strict';
+
+const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
+const RUNNING_CHARACTER_STATES = new Set(['self', 'active', 'code']);
+
+function cleanName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
+function boundedMessage(error) {
+  return String(error && error.message || error || 'unknown').slice(0, 240);
+}
+
+class AccountCharacterTransport {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.fallbackEnabled = options.fallbackEnabled !== false;
+    this.stats = {
+      directSent: 0,
+      directFailed: 0,
+      fallbackSent: 0,
+      fallbackFailed: 0,
+      rejectedNotOwned: 0,
+      localDelivered: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'account-character-transport', event, severity, reason, data });
+  }
+
+  _function(name) {
+    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
+  }
+
+  localName() {
+    const character = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
+    return cleanName(character && character.name);
+  }
+
+  activeCharacters() {
+    const fn = this._function('get_active_characters');
+    if (typeof fn !== 'function') return null;
+    try {
+      const value = fn.call(this.root);
+      return value && typeof value === 'object' ? { ...value } : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  ownedNames(options = {}) {
+    const runningOnly = options.runningOnly === true;
+    const allowed = runningOnly ? RUNNING_CHARACTER_STATES : ACTIVE_CHARACTER_STATES;
+    const active = this.activeCharacters();
+    const local = this.localName();
+    if (!active) return local ? [local] : [];
+    const names = Object.entries(active)
+      .filter(([, state]) => allowed.has(String(state)))
+      .map(([name]) => cleanName(name))
+      .filter(Boolean);
+    if (local && !names.includes(local)) names.push(local);
+    return [...new Set(names)].sort();
+  }
+
+  isOwned(name, options = {}) {
+    const target = cleanName(name);
+    return !!target && this.ownedNames(options).includes(target);
+  }
+
+  installDirectReceiver(receiverName, handler) {
+    const name = cleanName(receiverName);
+    if (!name || typeof handler !== 'function' || !this.root) return false;
+    this.root[name] = handler;
+    return true;
+  }
+
+  _directCode(receiverName, sender, payload) {
+    const receiver = JSON.stringify(String(receiverName));
+    const from = JSON.stringify(String(sender));
+    const body = JSON.stringify(payload == null ? null : payload);
+    return `if(globalThis[${receiver}]){globalThis[${receiver}](${from},${body});}`;
+  }
+
+  async send(targetName, payload, options = {}) {
+    const target = cleanName(targetName);
+    const sender = cleanName(options.sender) || this.localName();
+    const receiver = cleanName(options.receiver);
+    if (!target || !sender) throw new Error('ACCOUNT_TRANSPORT_INVALID_ENDPOINT');
+
+    const local = this.localName();
+    if (target === local && receiver && this.root && typeof this.root[receiver] === 'function') {
+      this.root[receiver](sender, payload);
+      this.stats.localDelivered += 1;
+      return { delivered: true, transport: 'local', target, sender };
+    }
+
+    if (!this.isOwned(target)) {
+      this.stats.rejectedNotOwned += 1;
+      this._event('ACCOUNT_TRANSPORT_REJECTED', 'warn', 'TARGET_NOT_ACTIVE_OWN_CHARACTER', { target, sender });
+      throw new Error(`TARGET_NOT_ACTIVE_OWN_CHARACTER:${target}`);
+    }
+
+    const commandCharacter = this._function('command_character');
+    if (receiver && typeof commandCharacter === 'function') {
+      try {
+        const code = this._directCode(receiver, sender, payload);
+        await Promise.resolve(commandCharacter.call(this.root, target, code));
+        this.stats.directSent += 1;
+        return { delivered: true, transport: 'command_character', target, sender };
+      } catch (error) {
+        this.stats.directFailed += 1;
+        this._event('ACCOUNT_TRANSPORT_DIRECT_FAILED', 'warn', 'COMMAND_CHARACTER_FAILED', {
+          target,
+          sender,
+          message: boundedMessage(error)
+        });
+      }
+    }
+
+    if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
+    const sendCm = this._function('send_cm');
+    if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    try {
+      await Promise.resolve(sendCm.call(this.root, target, payload));
+      this.stats.fallbackSent += 1;
+      return { delivered: true, transport: 'send_cm', target, sender };
+    } catch (error) {
+      this.stats.fallbackFailed += 1;
+      this._event('ACCOUNT_TRANSPORT_FALLBACK_FAILED', 'warn', 'SEND_CM_FAILED', {
+        target,
+        sender,
+        message: boundedMessage(error)
+      });
+      throw error;
+    }
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'same-account-command-character-first',
+      localName: this.localName(),
+      activeOwnedNames: this.ownedNames(),
+      runningOwnedNames: this.ownedNames({ runningOnly: true }),
+      fallbackEnabled: this.fallbackEnabled,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  AccountCharacterTransport,
+  ACTIVE_CHARACTER_STATES,
+  RUNNING_CHARACTER_STATES,
+  cleanName
+};
 
 },
 "src/reliability/pre-farming-reliability.js": function(require,module,exports){
@@ -21142,6 +21908,663 @@ module.exports = {
   LIVE_NAVIGATION_HOTFIX_SCHEMA_VERSION,
   LIVE_NAVIGATION_HOTFIX_MODE
 };
+
+},
+"src/reliability/farmer-travel-safety-hotfix.js": function(require,module,exports){
+'use strict';
+
+const FARMER_TRAVEL_SAFETY_MODE = 'bounded-farmer-target-travel-v1';
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function distance(a, b) {
+  const ax = finite(a && a.x);
+  const ay = finite(a && a.y);
+  const bx = finite(b && b.x);
+  const by = finite(b && b.y);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+class FarmerTravelSafetyHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.farmer) throw new Error('runtime farmer required');
+    this.runtime = runtime;
+    this.farmer = runtime.farmer;
+    this.minStep = Math.max(20, Number(options.minStep) || 50);
+    this.maxStep = Math.max(this.minStep, Number(options.maxStep) || 120);
+    this.stepSeconds = Math.max(0.5, Math.min(4, Number(options.stepSeconds) || 2));
+    this.stats = { travelCalls: 0, boundedMoves: 0, unboundedDistanceAvoided: 0, moveFailures: 0 };
+    this.lastMove = null;
+    this._install();
+  }
+
+  _boundedStep(character, travel) {
+    const speed = Math.max(1, Number(character && character.speed) || 40);
+    const desired = Math.max(this.minStep, Math.min(this.maxStep, speed * this.stepSeconds));
+    return Math.min(Math.max(0, travel), desired);
+  }
+
+  _install() {
+    const farmer = this.farmer;
+    if (farmer.__boundedTargetTravelInstalled) return;
+    farmer.__boundedTargetTravelInstalled = true;
+    farmer._travel = (context, target) => {
+      this.stats.travelCalls += 1;
+      const snapshot = context && context.snapshot;
+      const c = snapshot && snapshot.character;
+      if (!snapshot || !c) {
+        farmer._block('TARGET_POSITION_UNKNOWN');
+        return;
+      }
+      if (!target || target.dead || (target.hp != null && target.hp <= 0)) {
+        farmer._clearTarget('TARGET_GONE');
+        farmer._transition('REASSESS', 'TARGET_GONE');
+        return;
+      }
+      if (!farmer._targetAllowed(target, snapshot, context.party)) {
+        farmer._clearTarget('TARGET_POLICY_REJECTED');
+        farmer._transition('REASSESS', 'TARGET_POLICY_REJECTED');
+        return;
+      }
+
+      const engageRange = farmer._engagementRange(snapshot);
+      const d = distance(c, target);
+      if (d <= engageRange) {
+        farmer._transition('ENGAGE', 'IN_RANGE', { distance: Math.round(d), engageRange: Math.round(engageRange) });
+        return;
+      }
+      if (!Number.isFinite(d) || target.x == null || target.y == null || c.x == null || c.y == null) {
+        farmer._block('TARGET_POSITION_UNKNOWN');
+        return;
+      }
+
+      const now = farmer.now();
+      if (now - farmer.lastActionAt < farmer.config.moveCooldownMs) return;
+      const dx = Number(target.x) - Number(c.x);
+      const dy = Number(target.y) - Number(c.y);
+      const len = Math.max(1, Math.hypot(dx, dy));
+      const desiredRange = Math.max(20, engageRange * 0.9);
+      const rawTravel = Math.max(0, len - desiredRange);
+      const step = this._boundedStep(c, rawTravel);
+      const x = Number(c.x) + (dx / len) * step;
+      const y = Number(c.y) + (dy / len) * step;
+      const result = context.adapter.command('move', [x, y]);
+      farmer.lastActionAt = now;
+
+      if (!result.executed && !result.shadow && !result.coalesced) {
+        this.stats.moveFailures += 1;
+        farmer._block(result.reason === 'COMMAND_UNAVAILABLE' ? 'MOVE_COMMAND_UNAVAILABLE' : 'MOVE_COMMAND_FAILED');
+        return;
+      }
+
+      if (rawTravel > step + 0.01) {
+        this.stats.boundedMoves += 1;
+        this.stats.unboundedDistanceAvoided += rawTravel - step;
+      }
+      this.lastMove = {
+        at: now,
+        targetId: target.id == null ? null : String(target.id),
+        targetType: target.mtype || null,
+        distance: d,
+        engageRange,
+        rawTravel,
+        step,
+        x,
+        y,
+        executed: !!result.executed,
+        shadow: !!result.shadow,
+        coalesced: !!result.coalesced,
+        reason: result.reason || null
+      };
+      farmer._event('FARMER_MOVE_REQUESTED', 'info', 'TARGET_OUT_OF_RANGE', {
+        x: Math.round(x),
+        y: Math.round(y),
+        distance: Math.round(d),
+        engageRange: Math.round(engageRange),
+        boundedStep: Math.round(step),
+        rawTravel: Math.round(rawTravel)
+      });
+    };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: FARMER_TRAVEL_SAFETY_MODE,
+      minStep: this.minStep,
+      maxStep: this.maxStep,
+      stepSeconds: this.stepSeconds,
+      lastMove: this.lastMove ? { ...this.lastMove } : null,
+      stats: { ...this.stats, unboundedDistanceAvoided: Math.round(this.stats.unboundedDistanceAvoided) }
+    };
+  }
+}
+
+function installFarmerTravelSafetyHotfix(runtime, options = {}) {
+  return new FarmerTravelSafetyHotfix(runtime, options);
+}
+
+module.exports = { FarmerTravelSafetyHotfix, installFarmerTravelSafetyHotfix, FARMER_TRAVEL_SAFETY_MODE };
+
+},
+"src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
+'use strict';
+
+const { BUILT_IN_DANGEROUS_MONSTERS } = require('../farmer/content-safety');
+
+const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
+
+class DangerousContentHotfix {
+  constructor(runtime) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.filteredCandidates = 0;
+    this.revalidated = false;
+    this._installPlannerFilter();
+  }
+
+  _installPlannerFilter() {
+    const planner = this.runtime.localFarming && this.runtime.localFarming.planner;
+    if (!planner || typeof planner.spawnCandidates !== 'function' || planner.__dangerousContentFilterInstalled) return false;
+    planner.__dangerousContentFilterInstalled = true;
+    const original = planner.spawnCandidates.bind(planner);
+    planner.spawnCandidates = (...args) => {
+      const rows = original(...args);
+      const safe = rows.filter((row) => !DANGEROUS.has(String(row && row.monster || '')));
+      this.filteredCandidates += rows.length - safe.length;
+      return safe;
+    };
+    return true;
+  }
+
+  beforeTick() {
+    if (this.revalidated) return false;
+    const gate = this.runtime.contentSafety;
+    const world = this.runtime.world;
+    if (!gate || typeof gate.evaluate !== 'function' || !world) return false;
+    for (const mtype of DANGEROUS) gate.evaluate({ mtype }, world);
+    this.revalidated = true;
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'dangerous-content-hotfix-v1',
+      blockedMonsterTypes: [...DANGEROUS].sort(),
+      worldPolicyRevalidated: this.revalidated,
+      filteredCandidates: this.filteredCandidates
+    };
+  }
+}
+
+function installDangerousContentHotfix(runtime) {
+  return new DangerousContentHotfix(runtime);
+}
+
+module.exports = { DangerousContentHotfix, installDangerousContentHotfix };
+
+},
+"src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
+'use strict';
+
+class ContentDriftStorageHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.contentDrift) throw new Error('runtime contentDrift required');
+    this.runtime = runtime;
+    this.monitor = runtime.contentDrift;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.maxRecordsAfterQuota = Math.max(128, Math.min(1024, Number(options.maxRecordsAfterQuota) || 384));
+    this.retryBaseMs = Math.max(5000, Number(options.retryBaseMs) || 10000);
+    this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 300000);
+    this.failureStreak = 0;
+    this.backoffUntil = 0;
+    this.compacted = false;
+    this.originalCapacity = Number(this.monitor.capacity) || null;
+    this.originalSave = this.monitor.save.bind(this.monitor);
+    this.stats = { quotaFailures: 0, compactions: 0, retrySuccesses: 0, backoffSkips: 0 };
+    this._install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'content-drift-storage-hotfix', event, severity, reason, data });
+  }
+
+  _compact() {
+    const monitor = this.monitor;
+    if (!(monitor.records instanceof Map)) return false;
+    const quarantined = [...monitor.records.values()].filter((row) => row && row.lifecycle === 'QUARANTINED').length;
+    const target = Math.max(this.maxRecordsAfterQuota, quarantined);
+    const previousCapacity = Number(monitor.capacity) || monitor.records.size;
+    monitor.capacity = Math.min(previousCapacity, target);
+    const before = monitor.records.size;
+    if (typeof monitor._prune === 'function') monitor._prune();
+    const after = monitor.records.size;
+    this.compacted = true;
+    this.stats.compactions += 1;
+    this._event('CONTENT_DRIFT_STORAGE_COMPACTED', 'warn', 'STORAGE_QUOTA_RECOVERY', {
+      before,
+      after,
+      previousCapacity,
+      capacity: monitor.capacity,
+      quarantinedPreserved: quarantined
+    });
+    return after < before || monitor.capacity < previousCapacity;
+  }
+
+  _armBackoff() {
+    this.failureStreak += 1;
+    const delay = Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, Math.max(0, this.failureStreak - 1)));
+    this.backoffUntil = this.now() + delay;
+    this._event('CONTENT_DRIFT_STORAGE_BACKOFF_ARMED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
+      failureStreak: this.failureStreak,
+      delayMs: delay
+    });
+  }
+
+  _clearFailure() {
+    this.failureStreak = 0;
+    this.backoffUntil = 0;
+  }
+
+  _install() {
+    const monitor = this.monitor;
+    if (monitor.__aioQuotaHotfixInstalled) return;
+    monitor.__aioQuotaHotfixInstalled = true;
+    monitor.save = (options = {}) => {
+      const now = this.now();
+      if (now < this.backoffUntil && options.overrideBackoff !== true) {
+        this.stats.backoffSkips += 1;
+        return false;
+      }
+
+      const beforeErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
+      const first = this.originalSave(options);
+      const afterErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
+      if (afterErrors <= beforeErrors) {
+        if (first === true) this._clearFailure();
+        return first;
+      }
+
+      this.stats.quotaFailures += 1;
+      const compacted = this._compact();
+      if (compacted) {
+        const retryErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
+        const retry = this.originalSave({ ...options, force: true });
+        const retryErrorsAfter = Number(monitor.stats && monitor.stats.saveErrors) || 0;
+        if (retry === true && retryErrorsAfter === retryErrors) {
+          this.stats.retrySuccesses += 1;
+          this._clearFailure();
+          this._event('CONTENT_DRIFT_STORAGE_RECOVERED', 'info', 'COMPACT_RETRY_SUCCEEDED', {
+            records: monitor.records instanceof Map ? monitor.records.size : null,
+            capacity: monitor.capacity
+          });
+          return true;
+        }
+      }
+
+      this._armBackoff();
+      return false;
+    };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'content-drift-quota-recovery-v1',
+      originalCapacity: this.originalCapacity,
+      currentCapacity: Number(this.monitor.capacity) || null,
+      maxRecordsAfterQuota: this.maxRecordsAfterQuota,
+      compacted: this.compacted,
+      failureStreak: this.failureStreak,
+      backoffUntil: this.backoffUntil || null,
+      backoffRemainingMs: Math.max(0, this.backoffUntil - this.now()),
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installContentDriftStorageHotfix(runtime, options = {}) {
+  return new ContentDriftStorageHotfix(runtime, options);
+}
+
+module.exports = { ContentDriftStorageHotfix, installContentDriftStorageHotfix };
+
+},
+"src/reliability/party-account-communication.js": function(require,module,exports){
+'use strict';
+
+const { AccountCharacterTransport } = require('../party/account-character-transport');
+
+const CONTROL_RECEIVER = '__AIO_V3_PARTY_CONTROL_RECEIVE';
+const TELEMETRY_RECEIVER = '__AIO_V3_PARTY_TELEMETRY_RECEIVE';
+
+function bounded(value, max = 240) {
+  return String(value == null ? '' : value).slice(0, max);
+}
+
+class PartyAccountCommunicationReliability {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.transport = options.transport || new AccountCharacterTransport({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      fallbackEnabled: options.fallbackEnabled !== false
+    });
+    this.telemetryFailureStreak = 0;
+    this.telemetryBackoffUntil = 0;
+    this.telemetryBaseBackoffMs = Math.max(5000, Number(options.telemetryBaseBackoffMs) || 5000);
+    this.telemetryMaxBackoffMs = Math.max(this.telemetryBaseBackoffMs, Number(options.telemetryMaxBackoffMs) || 120000);
+    this.installed = false;
+    this.originalControlSend = null;
+    this.originalTelemetryTick = null;
+    this.originalTelemetryReceive = null;
+    this.originalTelemetryCleanReport = null;
+    this.stats = {
+      controlDirectReceiverCalls: 0,
+      telemetryDirectReceiverCalls: 0,
+      telemetryBackoffs: 0,
+      telemetryRecovered: 0,
+      telemetryUntrustedRejected: 0
+    };
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'party-account-communication', event, severity, reason, data });
+  }
+
+  _localName() {
+    return this.transport.localName();
+  }
+
+  _armTelemetryBackoff(error) {
+    this.telemetryFailureStreak += 1;
+    const delay = Math.min(
+      this.telemetryMaxBackoffMs,
+      this.telemetryBaseBackoffMs * Math.pow(2, Math.max(0, this.telemetryFailureStreak - 1))
+    );
+    this.telemetryBackoffUntil = this.now() + delay;
+    this.stats.telemetryBackoffs += 1;
+    this._event('PARTY_TELEMETRY_BACKOFF_ARMED', 'warn', 'TRANSPORT_FAILURE', {
+      failureStreak: this.telemetryFailureStreak,
+      delayMs: delay,
+      message: bounded(error && error.message || error)
+    });
+  }
+
+  _clearTelemetryBackoff(transport) {
+    if (this.telemetryFailureStreak > 0) this.stats.telemetryRecovered += 1;
+    this.telemetryFailureStreak = 0;
+    this.telemetryBackoffUntil = 0;
+    this._event('PARTY_TELEMETRY_DELIVERED', 'info', null, { transport });
+  }
+
+  _installControlTransport() {
+    const lease = this.runtime.partyControlLease;
+    if (!lease) return false;
+    this.transport.installDirectReceiver(CONTROL_RECEIVER, (sender, payload) => {
+      if (!lease.installed || typeof lease.receive !== 'function') return false;
+      this.stats.controlDirectReceiverCalls += 1;
+      return lease.receive(sender, payload);
+    });
+    if (!this.originalControlSend) this.originalControlSend = typeof lease._send === 'function' ? lease._send.bind(lease) : null;
+    lease._send = async (target, payload) => this.transport.send(target, payload, {
+      receiver: CONTROL_RECEIVER,
+      sender: this._localName()
+    });
+    return true;
+  }
+
+  _installTelemetryTrustBoundary(bridge) {
+    if (bridge.__aioOwnedTelemetryTrustInstalled) return false;
+    bridge.__aioOwnedTelemetryTrustInstalled = true;
+    this.originalTelemetryCleanReport = typeof bridge._cleanReport === 'function' ? bridge._cleanReport.bind(bridge) : null;
+    this.originalTelemetryReceive = typeof bridge.receive === 'function' ? bridge.receive.bind(bridge) : null;
+    if (!this.originalTelemetryCleanReport || !this.originalTelemetryReceive) return false;
+
+    // Keep _cleanReport as the production sanitizer/freshness contract used by
+    // existing diagnostics. Trust is enforced at the actual receive boundary,
+    // where an untrusted payload could mutate the report store.
+    bridge._cleanReport = (report, sender) => {
+      const trusted = bridge.trustedNames;
+      bridge.trustedNames = new Set();
+      try {
+        return this.originalTelemetryCleanReport(report, sender);
+      } finally {
+        bridge.trustedNames = trusted;
+      }
+    };
+
+    bridge.receive = (sender, data) => {
+      const name = String(sender || (data && data.name) || '');
+      if (!name || (bridge.trustedNames.size && !bridge.trustedNames.has(name))) {
+        bridge.stats.rejected += 1;
+        this.stats.telemetryUntrustedRejected += 1;
+        return false;
+      }
+      return this.originalTelemetryReceive(sender, data);
+    };
+    return true;
+  }
+
+  _installTelemetryTransport() {
+    const bridge = this.runtime.partyTelemetry;
+    if (!bridge) return false;
+    this._installTelemetryTrustBoundary(bridge);
+    this.transport.installDirectReceiver(TELEMETRY_RECEIVER, (sender, payload) => {
+      if (typeof bridge.receive !== 'function') return false;
+      this.stats.telemetryDirectReceiverCalls += 1;
+      return bridge.receive(sender, payload);
+    });
+    if (!this.originalTelemetryTick) this.originalTelemetryTick = typeof bridge.tick === 'function' ? bridge.tick.bind(bridge) : null;
+
+    bridge.tick = (runtime) => {
+      if (typeof bridge.prune === 'function') bridge.prune();
+      const c = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
+      const now = this.now();
+      if (!c || !bridge.merchantName || c.name === bridge.merchantName) return false;
+      if (now < this.telemetryBackoffUntil) return false;
+      if (now - bridge.lastSentAt < bridge.sendIntervalMs) return false;
+      const report = bridge.buildLocalReport(runtime);
+      if (!report) return false;
+
+      bridge.lastSentAt = now;
+      bridge.stats.sent += 1;
+      Promise.resolve(this.transport.send(bridge.merchantName, report, {
+        receiver: TELEMETRY_RECEIVER,
+        sender: c.name
+      })).then((result) => {
+        this._clearTelemetryBackoff(result && result.transport || null);
+      }).catch((error) => {
+        bridge.stats.sendFailures += 1;
+        if (typeof bridge._event === 'function') {
+          bridge._event('PARTY_TELEMETRY_SEND_FAILED', {
+            merchant: bridge.merchantName,
+            message: bounded(error && error.message || error)
+          }, 'warn', 'ACCOUNT_TRANSPORT_FAILED');
+        }
+        this._armTelemetryBackoff(error);
+      });
+      return true;
+    };
+    return true;
+  }
+
+  install() {
+    if (this.installed) return false;
+    this._installControlTransport();
+    this._installTelemetryTransport();
+    this.installed = true;
+    this._event('PARTY_ACCOUNT_COMMUNICATION_INSTALLED', 'info', null, {
+      preferredTransport: 'command_character',
+      fallbackTransport: 'send_cm'
+    });
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'party-account-communication-reliability-v1',
+      installed: this.installed,
+      controlReceiver: CONTROL_RECEIVER,
+      telemetryReceiver: TELEMETRY_RECEIVER,
+      telemetryFailureStreak: this.telemetryFailureStreak,
+      telemetryBackoffUntil: this.telemetryBackoffUntil || null,
+      telemetryBackoffRemainingMs: Math.max(0, this.telemetryBackoffUntil - this.now()),
+      stats: { ...this.stats },
+      transport: this.transport.status()
+    };
+  }
+}
+
+function installPartyAccountCommunication(runtime, options = {}) {
+  return new PartyAccountCommunicationReliability(runtime, options);
+}
+
+module.exports = {
+  PartyAccountCommunicationReliability,
+  installPartyAccountCommunication,
+  CONTROL_RECEIVER,
+  TELEMETRY_RECEIVER
+};
+
+},
+"src/reliability/party-bootstrap-farmer-gate.js": function(require,module,exports){
+'use strict';
+
+const { TaskState } = require('../core/task');
+
+class PartyBootstrapFarmerGate {
+  constructor(runtime, bootstrap) {
+    if (!runtime || !runtime.farmer || !bootstrap) throw new Error('runtime farmer and bootstrap required');
+    this.runtime = runtime;
+    this.bootstrap = bootstrap;
+    this.stats = { gatedSteps: 0, allowedSteps: 0, merchantBypasses: 0 };
+    this.lastGate = null;
+    this._install();
+  }
+
+  _install() {
+    const farmer = this.runtime.farmer;
+    if (farmer.__partyBootstrapGateInstalled || typeof farmer.step !== 'function') return false;
+    farmer.__partyBootstrapGateInstalled = true;
+    const original = farmer.step.bind(farmer);
+    farmer.step = (context = {}) => {
+      const snapshot = context.snapshot || this.runtime.lastSnapshot;
+      const character = snapshot && snapshot.character;
+      const isMerchant = String(character && character.ctype || '').toLowerCase() === 'merchant';
+      if (isMerchant) {
+        this.stats.merchantBypasses += 1;
+        return original(context);
+      }
+      const status = this.bootstrap.status();
+      if (!status.ready) {
+        this.stats.gatedSteps += 1;
+        this.lastGate = {
+          at: this.runtime.now(),
+          character: character && character.name || null,
+          state: status.state,
+          reason: status.reason
+        };
+        return { state: TaskState.RUNNING, reason: 'PARTY_BOOTSTRAP_NOT_READY' };
+      }
+      this.stats.allowedSteps += 1;
+      return original(context);
+    };
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'party-bootstrap-farmer-gate-v1',
+      requiresReady: true,
+      lastGate: this.lastGate ? { ...this.lastGate } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installPartyBootstrapFarmerGate(runtime, bootstrap) {
+  return new PartyBootstrapFarmerGate(runtime, bootstrap);
+}
+
+module.exports = { PartyBootstrapFarmerGate, installPartyBootstrapFarmerGate };
+
+},
+"src/reliability/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
+'use strict';
+
+const { PARTY_BOOTSTRAP_TYPE, PARTY_BOOTSTRAP_PROTOCOL, PartyBootstrapAction } = require('../party/controlled-party-bootstrap');
+
+class PartyBootstrapMerchantDiscoveryHotfix {
+  constructor(bootstrap) {
+    if (!bootstrap || typeof bootstrap.receive !== 'function') throw new Error('party bootstrap required');
+    this.bootstrap = bootstrap;
+    this.inferred = 0;
+    this.lastInference = null;
+    this._install();
+  }
+
+  _install() {
+    const bootstrap = this.bootstrap;
+    if (bootstrap.__merchantDiscoveryHotfixInstalled) return false;
+    bootstrap.__merchantDiscoveryHotfixInstalled = true;
+    const original = bootstrap.receive.bind(bootstrap);
+    bootstrap.receive = (sender, data) => {
+      const from = String(sender || '').trim();
+      const localCharacter = bootstrap._character();
+      const local = String(localCharacter && localCharacter.name || '').trim();
+      const isChallenge = !!data && data.type === PARTY_BOOTSTRAP_TYPE && Number(data.protocol) === PARTY_BOOTSTRAP_PROTOCOL && data.action === PartyBootstrapAction.HELLO_CHALLENGE;
+      if (isChallenge && from && local && String(data.merchantName || '') === from && String(data.target || '') === local) {
+        const active = bootstrap._activeSnapshot();
+        const knownMerchant = bootstrap._merchantName(active.present);
+        if (active.available && active.present.length <= 4 && active.present.includes(from) && active.present.includes(local) && !knownMerchant && String(localCharacter && localCharacter.ctype || '').toLowerCase() !== 'merchant') {
+          // command_character can only address another character on the same
+          // account, while the send_cm fallback is still constrained by the
+          // authoritative get_active_characters set. This inference therefore
+          // narrows trust to an already proven owned active sender; it never
+          // accepts a visible stranger as merchant authority.
+          bootstrap._configureTrust(active.present, from);
+          this.inferred += 1;
+          this.lastInference = { at: bootstrap.now(), merchant: from, target: local };
+          bootstrap._event('PARTY_BOOTSTRAP_MERCHANT_DISCOVERED', 'info', 'OWNED_MERCHANT_CHALLENGE', this.lastInference);
+        }
+      }
+      return original(sender, data);
+    };
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'owned-merchant-challenge-discovery-v1',
+      inferred: this.inferred,
+      lastInference: this.lastInference ? { ...this.lastInference } : null
+    };
+  }
+}
+
+function installPartyBootstrapMerchantDiscoveryHotfix(bootstrap) {
+  return new PartyBootstrapMerchantDiscoveryHotfix(bootstrap);
+}
+
+module.exports = { PartyBootstrapMerchantDiscoveryHotfix, installPartyBootstrapMerchantDiscoveryHotfix };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
