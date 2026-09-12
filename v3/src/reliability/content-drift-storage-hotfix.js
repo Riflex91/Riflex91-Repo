@@ -7,15 +7,17 @@ class ContentDriftStorageHotfix {
     this.monitor = runtime.contentDrift;
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
-    this.maxRecordsAfterQuota = Math.max(128, Math.min(1024, Number(options.maxRecordsAfterQuota) || 384));
-    this.retryBaseMs = Math.max(5000, Number(options.retryBaseMs) || 10000);
-    this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 300000);
-    this.failureStreak = 0;
-    this.backoffUntil = 0;
-    this.compacted = false;
     this.originalCapacity = Number(this.monitor.capacity) || null;
     this.originalSave = this.monitor.save.bind(this.monitor);
-    this.stats = { quotaFailures: 0, compactions: 0, retrySuccesses: 0, backoffSkips: 0 };
+    this.sessionWriteBlocked = false;
+    this.blockedAt = 0;
+    this.lastError = null;
+    this.stats = {
+      quotaFailures: 0,
+      persistenceFailures: 0,
+      blockedWrites: 0,
+      semanticCompactionsPrevented: 0
+    };
     this._install();
   }
 
@@ -24,41 +26,19 @@ class ContentDriftStorageHotfix {
     this.log.emit({ component: 'content-drift-storage-hotfix', event, severity, reason, data });
   }
 
-  _compact() {
-    const monitor = this.monitor;
-    if (!(monitor.records instanceof Map)) return false;
-    const quarantined = [...monitor.records.values()].filter((row) => row && row.lifecycle === 'QUARANTINED').length;
-    const target = Math.max(this.maxRecordsAfterQuota, quarantined);
-    const previousCapacity = Number(monitor.capacity) || monitor.records.size;
-    monitor.capacity = Math.min(previousCapacity, target);
-    const before = monitor.records.size;
-    if (typeof monitor._prune === 'function') monitor._prune();
-    const after = monitor.records.size;
-    this.compacted = true;
-    this.stats.compactions += 1;
-    this._event('CONTENT_DRIFT_STORAGE_COMPACTED', 'warn', 'STORAGE_QUOTA_RECOVERY', {
-      before,
-      after,
-      previousCapacity,
-      capacity: monitor.capacity,
-      quarantinedPreserved: quarantined
+  _blockWrites(error) {
+    this.sessionWriteBlocked = true;
+    this.blockedAt = this.now();
+    this.lastError = String(error && error.message || error || 'PERSISTENCE_WRITE_ERROR').slice(0, 240);
+    this.stats.persistenceFailures += 1;
+    if (/quota|storage|setitem/i.test(this.lastError)) this.stats.quotaFailures += 1;
+    this.stats.semanticCompactionsPrevented += 1;
+    this._event('CONTENT_DRIFT_STORAGE_SESSION_BLOCKED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
+      message: this.lastError,
+      recordsPreserved: this.monitor.records instanceof Map ? this.monitor.records.size : null,
+      capacityPreserved: Number(this.monitor.capacity) || null,
+      policy: 'never-delete-semantic-drift-records-for-storage-recovery'
     });
-    return after < before || monitor.capacity < previousCapacity;
-  }
-
-  _armBackoff() {
-    this.failureStreak += 1;
-    const delay = Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, Math.max(0, this.failureStreak - 1)));
-    this.backoffUntil = this.now() + delay;
-    this._event('CONTENT_DRIFT_STORAGE_BACKOFF_ARMED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
-      failureStreak: this.failureStreak,
-      delayMs: delay
-    });
-  }
-
-  _clearFailure() {
-    this.failureStreak = 0;
-    this.backoffUntil = 0;
   }
 
   _install() {
@@ -66,53 +46,36 @@ class ContentDriftStorageHotfix {
     if (monitor.__aioQuotaHotfixInstalled) return;
     monitor.__aioQuotaHotfixInstalled = true;
     monitor.save = (options = {}) => {
-      const now = this.now();
-      if (now < this.backoffUntil && options.overrideBackoff !== true) {
-        this.stats.backoffSkips += 1;
+      if (this.sessionWriteBlocked) {
+        this.stats.blockedWrites += 1;
         return false;
       }
 
       const beforeErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-      const first = this.originalSave(options);
+      const result = this.originalSave(options);
       const afterErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-      if (afterErrors <= beforeErrors) {
-        if (first === true) this._clearFailure();
-        return first;
+      if (afterErrors > beforeErrors) {
+        // The previous implementation reduced monitor.capacity and pruned records
+        // here. That changed safety semantics: pruned baseline entries were seen as
+        // NOVELTY on the next scan and eventually quarantined the whole catalog.
+        // Persistence loss must never mutate the in-memory safety knowledge.
+        this._blockWrites('CONTENT_DRIFT_STORAGE_WRITE_FAILED');
+        return false;
       }
-
-      this.stats.quotaFailures += 1;
-      const compacted = this._compact();
-      if (compacted) {
-        const retryErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-        const retry = this.originalSave({ ...options, force: true });
-        const retryErrorsAfter = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-        if (retry === true && retryErrorsAfter === retryErrors) {
-          this.stats.retrySuccesses += 1;
-          this._clearFailure();
-          this._event('CONTENT_DRIFT_STORAGE_RECOVERED', 'info', 'COMPACT_RETRY_SUCCEEDED', {
-            records: monitor.records instanceof Map ? monitor.records.size : null,
-            capacity: monitor.capacity
-          });
-          return true;
-        }
-      }
-
-      this._armBackoff();
-      return false;
+      return result;
     };
   }
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'content-drift-quota-recovery-v1',
+      schemaVersion: 2,
+      mode: 'content-drift-persistence-isolation-v2',
       originalCapacity: this.originalCapacity,
       currentCapacity: Number(this.monitor.capacity) || null,
-      maxRecordsAfterQuota: this.maxRecordsAfterQuota,
-      compacted: this.compacted,
-      failureStreak: this.failureStreak,
-      backoffUntil: this.backoffUntil || null,
-      backoffRemainingMs: Math.max(0, this.backoffUntil - this.now()),
+      sessionWriteBlocked: this.sessionWriteBlocked,
+      blockedAt: this.blockedAt || null,
+      lastError: this.lastError,
+      semanticRecordPruningAllowedForQuotaRecovery: false,
       stats: { ...this.stats }
     };
   }
