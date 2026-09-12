@@ -1,12 +1,12 @@
 'use strict';
 
 const { Alpha17Runtime } = require('./alpha17-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { BankCapacityManager } = require('../economy/bank-capacity-manager');
 const { BankExpansionTransactionEngine } = require('../economy/bank-expansion-transactions');
 const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_ACK } = require('../economy/controlled-bank-expansion-executor');
 const { Alpha18CombinedLiveGate, ALPHA18_LIVE_GATE_ACK } = require('../ops/alpha18-combined-live-gate-hardened');
 
+const ALPHA18_VERSION = '3.0.0-alpha.18.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -14,7 +14,7 @@ function clone(value) { return value == null ? value : JSON.parse(JSON.stringify
 class Alpha18Runtime extends Alpha17Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA18_VERSION;
     this.bankCapacityObservationIntervalMs = Math.max(1000, Math.min(60000, Number(options.bankCapacityObservationIntervalMs) || 3000));
     this.lastBankCapacityObservationAt = -Infinity;
 
@@ -62,7 +62,7 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA18_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -181,7 +181,7 @@ class Alpha18Runtime extends Alpha17Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA18_VERSION,
       economy: this._economyStatus(),
       alpha18: {
         bankCapacityFoundation: true,
@@ -209,4 +209,4 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 }
 
-module.exports = { Alpha18Runtime };
+module.exports = { Alpha18Runtime, ALPHA18_VERSION };
