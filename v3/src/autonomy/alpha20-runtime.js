@@ -118,6 +118,7 @@ class Alpha20Runtime extends Alpha19Runtime {
         xpPerHour: measured && measured.profile ? measured.profile.xpPerHour : 0,
         projectedScore: projected ? projected.score : null,
         projectedProgress: projected ? projected.components.progress : null,
+        trainingSafetyScore: projected ? projected.components.survival : null,
         expectedTrainingXpRatio: null,
         gearReady: Object.keys(gear).length > 0 && finite(character.stateConfidence) >= 0.75,
         contentSafe: encounter && encounter.contentDisposition !== 'UNKNOWN' && encounter.contentDisposition !== 'QUARANTINED'
