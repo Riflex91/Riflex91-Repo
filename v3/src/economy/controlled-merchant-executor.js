@@ -85,6 +85,7 @@ class ControlledMerchantExecutor {
       failedSafe: 0,
       timeouts: 0,
       verificationRetries: 0,
+      inventoryIndexRejected: 0,
       bankServerAckCommits: 0,
       bankLocalEvidenceCommits: 0,
       bankLocalObservationMisses: 0,
@@ -169,6 +170,23 @@ class ControlledMerchantExecutor {
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
 
+    const items = Array.isArray(character.items) ? character.items : [];
+    const txIndex = Number(tx.index);
+    const reportedIsize = Number(character.isize);
+    const inventorySize = Number.isFinite(reportedIsize)
+      ? Math.max(0, Math.floor(reportedIsize))
+      : items.length;
+    if (!Number.isInteger(txIndex) || txIndex < 0 || txIndex >= inventorySize) {
+      this.stats.inventoryIndexRejected += 1;
+      return {
+        ok: false,
+        reason: 'INVENTORY_INDEX_OUT_OF_RANGE',
+        index: tx.index,
+        inventorySize,
+        inventorySizeSource: Number.isFinite(reportedIsize) ? 'character.isize' : 'items.length-fallback'
+      };
+    }
+
     const ledgerStatus = this.ledger && typeof this.ledger.status === 'function' ? this.ledger.status() : null;
     if (!ledgerStatus || ledgerStatus.stale === true) return { ok: false, reason: 'LEDGER_UNAVAILABLE_OR_STALE' };
     const entry = this._ledgerEntry(tx);
@@ -178,8 +196,7 @@ class ControlledMerchantExecutor {
     if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
     if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
 
-    const items = Array.isArray(character.items) ? character.items : [];
-    const liveItem = itemSnapshot(items[tx.index]);
+    const liveItem = itemSnapshot(items[txIndex]);
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
@@ -192,7 +209,7 @@ class ControlledMerchantExecutor {
 
     this._pruneActions();
     if (this.actionTimes.length >= this.maxActionsPerWindow) return { ok: false, reason: 'ACTION_BUDGET_EXHAUSTED' };
-    return { ok: true, entry, liveItem, supervisor };
+    return { ok: true, entry, liveItem, supervisor, txIndex, inventorySize };
   }
 
   _timeout(promise, label) {
@@ -288,8 +305,20 @@ class ControlledMerchantExecutor {
     if (!check.ok) {
       if (tx && check.reason === 'TRANSACTION_LEASE_EXPIRED' && this.engine) this.engine.cancel(tx.id, check.reason);
       this.stats.rejected += 1;
-      this._event('CONTROLLED_MERCHANT_EXECUTION_REJECTED', 'warn', check.reason, { transactionId, type: tx && tx.type || null, supervisorState: check.supervisorState || null });
-      return { executed: false, committed: false, reason: check.reason };
+      this._event('CONTROLLED_MERCHANT_EXECUTION_REJECTED', 'warn', check.reason, {
+        transactionId,
+        type: tx && tx.type || null,
+        supervisorState: check.supervisorState || null,
+        index: check.index == null ? tx && tx.index : check.index,
+        inventorySize: check.inventorySize == null ? null : check.inventorySize
+      });
+      return {
+        executed: false,
+        committed: false,
+        reason: check.reason,
+        index: check.index == null ? undefined : check.index,
+        inventorySize: check.inventorySize == null ? undefined : check.inventorySize
+      };
     }
 
     this.busy = true;
@@ -297,7 +326,7 @@ class ControlledMerchantExecutor {
     this.actionTimes.push(this.now());
     const character = this.root.character;
     const before = {
-      item: itemSnapshot(character.items[tx.index]),
+      item: itemSnapshot(character.items[check.txIndex]),
       gold: finite(character.gold, 0),
       at: this.now(),
       inventoryQuantity: identityQuantity(character.items, tx.item, tx.level),
@@ -306,11 +335,11 @@ class ControlledMerchantExecutor {
     this.engine.transition(tx.id, 'EXECUTING', 'CONTROLLED_EXECUTION_STARTED');
     this.engine.save();
     this._event('CONTROLLED_MERCHANT_EXECUTION_STARTED', 'warn', 'CONTROLLED_CANARY', {
-      transactionId: tx.id, type: tx.type, item: tx.item, quantity: tx.quantity, index: tx.index
+      transactionId: tx.id, type: tx.type, item: tx.item, quantity: tx.quantity, index: check.txIndex
     });
 
     try {
-      const call = tx.type === 'SELL' ? this.root.sell(tx.index, tx.quantity) : this.root.bank_store(tx.index);
+      const call = tx.type === 'SELL' ? this.root.sell(check.txIndex, tx.quantity) : this.root.bank_store(check.txIndex);
       const response = await this._timeout(call, tx.type);
       if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
       this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
@@ -417,6 +446,12 @@ class ControlledMerchantExecutor {
       explicitAckRequired: LIVE_ACK,
       busy: this.busy,
       timeoutMs: this.timeoutMs,
+      inventoryIndexGuard: {
+        enabled: true,
+        authoritativeSource: 'character.isize',
+        fallbackSource: 'items.length',
+        validRange: '0..isize-1'
+      },
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
