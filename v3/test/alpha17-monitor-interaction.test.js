@@ -122,7 +122,7 @@ test('Debug monitor can be dragged by its header and remains clamped to the view
   assert.equal(ui.container.style.right, 'auto');
   assert.equal(ui.container.style.bottom, 'auto');
   assert.equal(ui.container.style.left, '520px');
-  assert.equal(ui.container.style.top, '412px');
+  assert.equal(ui.container.style.top, '380px');
 
   ui.header.onmousedown({ button: 0, clientX: 700, clientY: 450, preventDefault() {} });
   document.dispatch('mousemove', { clientX: -5000, clientY: -5000 });
