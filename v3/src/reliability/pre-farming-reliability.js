@@ -35,6 +35,14 @@ function supplyEvidenceComplete(supplies) {
     ownObservedNumber(supplies, 'freeSlots') != null;
 }
 
+function serviceEvidenceComplete(report) {
+  if (!report || typeof report !== 'object' || !report.name || !report.map) return false;
+  return finiteObserved(report.at) != null &&
+    ownObservedNumber(report, 'x') != null &&
+    ownObservedNumber(report, 'y') != null &&
+    supplyEvidenceComplete(report.supplies);
+}
+
 function hasObservableBankSnapshot(character) {
   const bank = character && character.bank;
   if (!bank || typeof bank !== 'object' || Array.isArray(bank)) return false;
@@ -187,16 +195,20 @@ class PreFarmingReliabilityPolicy {
     if (!runtime) throw new Error('runtime required');
     this.runtime = runtime;
     this.installed = false;
+    this.safeEntityIds = new Set();
+    this.safeEntitySnapshotAt = null;
     this.stats = {
       merchantFarmerSuppressions: 0,
+      merchantScheduleSuppressions: 0,
       merchantLocalFarmSuppressions: 0,
       incidentalVisibleMonstersIgnored: 0,
+      unsafeVisibleMonstersBlocked: 0,
       incidentalTargetsFiltered: 0,
       incompleteSupplyReports: 0,
       supplyHolds: 0,
       contentRecordsMigrated: 0,
       contentVolatileFieldsStripped: 0,
-      contentFlappingRecordsRevalidated: 0
+      contentFlappingRecordsReobserved: 0
     };
     this.lastSupplyHold = null;
     this._install();
@@ -223,6 +235,17 @@ class PreFarmingReliabilityPolicy {
   _installMerchantBoundary() {
     if (!this._isMerchant()) return;
     const farmer = this.runtime.farmer;
+    if (farmer && !farmer.__merchantSchedulingSuppressed && typeof farmer.ensureScheduled === 'function') {
+      farmer.__merchantSchedulingSuppressed = true;
+      const originalEnsureScheduled = farmer.ensureScheduled.bind(farmer);
+      farmer.ensureScheduled = (scheduler, owner) => {
+        if (this._isMerchant()) {
+          this.stats.merchantScheduleSuppressions += 1;
+          return null;
+        }
+        return originalEnsureScheduled(scheduler, owner);
+      };
+    }
     if (farmer && farmer.enabled !== false && typeof farmer.setEnabled === 'function') {
       farmer.setEnabled(false);
       this.stats.merchantFarmerSuppressions += 1;
@@ -233,6 +256,19 @@ class PreFarmingReliabilityPolicy {
       this.stats.merchantLocalFarmSuppressions += 1;
       this._event('MERCHANT_LOCAL_FARMING_SUPPRESSED', 'info', 'MERCHANT_ROLE_BOUNDARY');
     }
+  }
+
+  _installSafeFarmSnapshotTracking() {
+    const runtime = this.runtime;
+    if (runtime.__preFarmingSafeSnapshotTrackingInstalled || typeof runtime._farmSnapshot !== 'function') return;
+    runtime.__preFarmingSafeSnapshotTrackingInstalled = true;
+    const originalFarmSnapshot = runtime._farmSnapshot.bind(runtime);
+    runtime._farmSnapshot = (snapshot, gameData, profile) => {
+      const safe = originalFarmSnapshot(snapshot, gameData, profile);
+      this.safeEntityIds = new Set((safe && safe.entities || []).filter((row) => row && row.id != null).map((row) => String(row.id)));
+      this.safeEntitySnapshotAt = snapshot && snapshot.observedAt != null ? snapshot.observedAt : runtime.now();
+      return safe;
+    };
   }
 
   _installLocalFarmArbitration() {
@@ -246,14 +282,21 @@ class PreFarmingReliabilityPolicy {
       const characterName = snapshot && snapshot.character && snapshot.character.name;
       const targetId = farmer.targetId == null ? null : String(farmer.targetId);
       const planMonster = local.currentPlan && local.currentPlan.monster ? String(local.currentPlan.monster) : null;
+      let unsafeBlocked = 0;
       const blocking = all.filter((entity) => {
         if (characterName && String(entity.target || '') === String(characterName)) return true;
         if (targetId != null && entity.id != null && String(entity.id) === targetId) return true;
         if (planMonster && String(entity.mtype || '') === planMonster) return true;
+        const safetyApproved = entity.id != null && this.safeEntityIds.has(String(entity.id));
+        if (!safetyApproved) {
+          unsafeBlocked += 1;
+          return true;
+        }
         return false;
       });
       const ignored = Math.max(0, all.length - blocking.length);
       if (ignored) this.stats.incidentalVisibleMonstersIgnored += ignored;
+      if (unsafeBlocked) this.stats.unsafeVisibleMonstersBlocked += unsafeBlocked;
       return blocking;
     };
 
@@ -290,9 +333,13 @@ class PreFarmingReliabilityPolicy {
         const observed = ownObservedNumber(source, field);
         supplies[field] = observed == null ? null : Math.max(0, observed);
       }
+      clean.x = ownObservedNumber(report, 'x');
+      clean.y = ownObservedNumber(report, 'y');
+      clean.map = report && typeof report.map === 'string' && report.map.trim() ? report.map.trim() : null;
       supplies.complete = supplyEvidenceComplete(supplies);
       supplies.evidence = supplies.complete ? 'COMPLETE' : 'INCOMPLETE';
-      if (!supplies.complete) this.stats.incompleteSupplyReports += 1;
+      clean.serviceEvidenceComplete = serviceEvidenceComplete({ ...clean, supplies });
+      if (!clean.serviceEvidenceComplete) this.stats.incompleteSupplyReports += 1;
       clean.supplies = supplies;
       return clean;
     };
@@ -305,7 +352,7 @@ class PreFarmingReliabilityPolicy {
     const originalNeed = planner._need.bind(planner);
     const originalPlan = planner.plan.bind(planner);
     planner._need = (report) => {
-      if (!report || !supplyEvidenceComplete(report.supplies)) return null;
+      if (!serviceEvidenceComplete(report)) return null;
       return originalNeed(report);
     };
     planner.plan = (input = {}) => {
@@ -317,12 +364,12 @@ class PreFarmingReliabilityPolicy {
         if (report.rip === true || report.active === false) return false;
         return true;
       });
-      const incomplete = freshCombatReports.filter((report) => !supplyEvidenceComplete(report.supplies));
+      const incomplete = freshCombatReports.filter((report) => !serviceEvidenceComplete(report));
       const result = originalPlan(input);
       if (!incomplete.length) return result;
-      const actionableComplete = freshCombatReports.some((report) => supplyEvidenceComplete(report.supplies) && originalNeed(report));
+      const actionableComplete = freshCombatReports.some((report) => serviceEvidenceComplete(report) && originalNeed(report));
       if (actionableComplete) return result;
-      if (result && !['STAND_OPEN', 'HOLD'].includes(result.kind)) return result;
+      if (!result || result.kind !== 'STAND_OPEN') return result;
       const hold = planner._plan('HOLD', 'SUPPLY_EVIDENCE_INSUFFICIENT', {
         incompleteReports: incomplete.slice(0, 8).map((report) => ({ name: report.name, at: report.at }))
       });
@@ -363,7 +410,8 @@ class PreFarmingReliabilityPolicy {
           id: String(id),
           legacyLifecycle,
           legacyChangeCount,
-          strippedFields: sanitized.stripped
+          strippedFields: sanitized.stripped,
+          controlAuthorityGranted: false
         });
       }
       const row = originalObserve(category, id, sanitized.value, options);
@@ -376,13 +424,20 @@ class PreFarmingReliabilityPolicy {
         }
         if (updated.semanticStableSamples >= 3 && updated.lifecycle === 'QUARANTINED') {
           updated.semanticMigrationPending = false;
-          monitor.markRevalidated(category, id);
-          this.stats.contentFlappingRecordsRevalidated += 1;
-          this._event('CONTENT_FLAPPING_REVALIDATED', 'info', 'STABLE_SEMANTIC_FINGERPRINT', {
+          updated.lifecycle = 'OBSERVED';
+          updated.baselineFingerprint = updated.fingerprint;
+          updated.previousFingerprint = null;
+          updated.lastSeenAt = monitor.now();
+          if (monitor.stats) monitor.stats.revalidated += 1;
+          if (typeof monitor.save === 'function') monitor.save({ force: true });
+          this.stats.contentFlappingRecordsReobserved += 1;
+          this._event('CONTENT_LEGACY_VOLATILE_QUARANTINE_REOBSERVED', 'info', 'STABLE_SEMANTIC_FINGERPRINT', {
             category: String(category),
             id: String(id),
             fingerprint: updated.fingerprint,
-            stableSamples: updated.semanticStableSamples
+            stableSamples: updated.semanticStableSamples,
+            lifecycle: 'OBSERVED',
+            controlAuthorityGranted: false
           });
         }
       }
@@ -393,6 +448,7 @@ class PreFarmingReliabilityPolicy {
   _install() {
     if (this.installed) return;
     this._installMerchantBoundary();
+    this._installSafeFarmSnapshotTracking();
     this._installLocalFarmArbitration();
     this._installNullableSupplyTelemetry();
     this._installSupplyPlannerBoundary();
@@ -410,12 +466,17 @@ class PreFarmingReliabilityPolicy {
       mode: 'pre-farming-reliability-hardening',
       actionAuthority: false,
       merchantFarmerFsmAllowed: false,
+      merchantFarmerSchedulingAllowed: false,
       incidentalVisibleMonsterNavigationBlock: false,
+      unsafeOrUnknownVisibleMonsterStillBlocksNavigation: true,
       selfAggroStillBlocksNavigation: true,
       selectedOrPlannedTargetsStillBlockNavigation: true,
       incompleteSupplyTreatedAsZero: false,
+      incompleteLocationTreatedAsZero: false,
       contentFingerprintProfile: CONTENT_FINGERPRINT_PROFILE,
+      contentMigrationControlAuthority: false,
       bankOutsideObservableContextTreatedAsFull: false,
+      safeEntitySnapshotAt: this.safeEntitySnapshotAt,
       lastSupplyHold: clone(this.lastSupplyHold),
       stats: clone(this.stats)
     };
@@ -435,5 +496,6 @@ module.exports = {
   installPreFarmingReliability,
   hasObservableBankSnapshot,
   supplyEvidenceComplete,
+  serviceEvidenceComplete,
   sanitizeVolatileContent
 };
