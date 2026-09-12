@@ -71,4 +71,4 @@ The Alpha.15 internal gate covers:
 
 Alpha.15 is internally certified and merged before Alpha.16 Safe Travel begins. The first real 5–10 minute instrumented live canary is intentionally deferred until Alpha.17, when controlled Merchant execution and the monitoring/log GUI are present.
 
-Freeze status: implementation candidate pending complete branch and exact PR-head CI.
+Freeze status: implementation complete; complete branch CI pending on the exact candidate head.
