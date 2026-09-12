@@ -16,8 +16,8 @@ class Alpha20Runtime extends Alpha19Runtime {
     super(options);
     this.log.version = RELEASE_VERSION;
 
-    // Alpha.12 legacy live switches are never used directly in Alpha.20.
-    // Alpha.20 re-authorizes them only inside a bounded controlled operation.
+    // Legacy Alpha.12 live switches are permanently closed in Alpha.20.
+    // Live authority can only be borrowed inside the controlled lifecycle operation.
     this.partyTransitions.setLiveEnabled(false);
     this.auraAutomationEnabled = false;
 
@@ -48,12 +48,14 @@ class Alpha20Runtime extends Alpha19Runtime {
       storageKey: options.partyLifecycleOperationStorageKey,
       lifecycle: this.partyLifecycle,
       transitions: this.partyTransitions,
-      auraPolicy: this.auraPolicy,
-      adapter: this.adapter,
       getMode: () => this.adapter.mode,
       getSupervisorStatus: () => this.globalSupervisor.status(),
       getEconomyEmergency: () => this._alpha20EconomyEmergency(),
-      minTransitionIntervalMs: options.partyLifecycleMinTransitionIntervalMs
+      minTransitionIntervalMs: options.partyLifecycleMinTransitionIntervalMs,
+      maxDevelopmentRotationMs: options.partyLifecycleMaxDevelopmentRotationMs,
+      failureWindowMs: options.partyLifecycleFailureWindowMs,
+      failureThreshold: options.partyLifecycleFailureThreshold,
+      circuitCooldownMs: options.partyLifecycleCircuitCooldownMs
     });
 
     this.controlledPaladinAura = options.controlledPaladinAura || new ControlledPaladinAuraExecutor({
@@ -93,24 +95,37 @@ class Alpha20Runtime extends Alpha19Runtime {
     return clamp01(['survival', 'progress', 'controllability', 'synergy'].reduce((sum, key) => sum + clamp01(row.measured[key]) * finite(weights[key]), 0));
   }
 
+  _sameParty(candidate, currentMembers) {
+    const candidateNames = new Set((candidate && candidate.members || []).map((row) => row && row.name).filter(Boolean));
+    const currentNames = new Set((currentMembers || []).map((row) => row && row.name).filter(Boolean));
+    return candidateNames.size === currentNames.size && [...candidateNames].every((name) => currentNames.has(name));
+  }
+
   _lifecycleEvidence(snapshot, currentMembers, registryStatus, encounter, risk) {
     const context = { snapshot, gameData: this.adapter.getGameData() || {}, registryStatus, currentMembers, encounter, performanceStore: this.partyPerformance };
     const scored = this.partyOrchestrator.candidates(registryStatus).map((candidate) => this.partyOrchestrator.score(candidate, context));
+    const currentScored = scored.find((row) => this._sameParty(row.candidate, currentMembers)) || null;
     const activeNames = new Set(currentMembers.filter((row) => row.ctype !== 'merchant').map((row) => row.name));
     const combat = (registryStatus.characters || []).filter((row) => row && row.ctype !== 'merchant');
+    const session = this.controlledPartyLifecycle && this.controlledPartyLifecycle.status ? this.controlledPartyLifecycle.status().developmentSession : null;
     const rows = [];
 
     for (const character of combat) {
+      const active = activeNames.has(character.name);
       const containing = scored.filter((row) => row.candidate.combat.some((member) => member.name === character.name) && !row.hardSafetyRejected);
       const projected = containing.slice().sort((a, b) => b.score - a.score || b.confidence - a.confidence)[0] || null;
-      const measuredRows = containing.filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0).sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs));
-      const measured = measuredRows[0] || null;
+      const historicalMeasured = containing
+        .filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0)
+        .sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs))[0] || null;
+      // Active characters only receive CURRENT evidence from the actually active composition.
+      // Benched candidates may use their own previously observed real compositions, never theory-only score.
+      const measured = active ? (currentScored && currentScored.measured && currentScored.profile ? currentScored : null) : historicalMeasured;
       const gear = character.gear && typeof character.gear === 'object' ? character.gear : {};
       rows.push({
         name: character.name,
         ctype: character.ctype,
         level: character.level,
-        active: activeNames.has(character.name),
+        active,
         currentScore: measured ? this._measuredScore(measured) : null,
         currentConfidence: measured ? measured.measured.confidence : 0,
         currentSamples: measured && measured.profile ? measured.profile.samples : 0,
@@ -130,10 +145,17 @@ class Alpha20Runtime extends Alpha19Runtime {
     const activeProjected = active.map((row) => row.projectedScore).filter((value) => value != null);
     const activeProgress = active.map((row) => row.projectedProgress).filter((value) => value != null && value > 0);
     const activeXp = active.map((row) => row.xpPerHour).filter((value) => value > 0);
-    const incumbentCurrentScore = activeCurrent.length === active.length && active.length ? Math.min(...activeCurrent) : null;
-    const incumbentProjectedScore = activeProjected.length ? Math.min(...activeProjected) : null;
-    const incumbentProjectedProgress = activeProgress.length ? Math.min(...activeProgress) : null;
-    const incumbentXpPerHour = activeXp.length ? Math.min(...activeXp) : 0;
+    const observedIncumbentCurrentScore = activeCurrent.length === active.length && active.length ? Math.min(...activeCurrent) : null;
+    const observedIncumbentProjectedScore = activeProjected.length ? Math.min(...activeProjected) : null;
+    const observedIncumbentProjectedProgress = activeProgress.length ? Math.min(...activeProgress) : null;
+    const observedIncumbentXpPerHour = activeXp.length ? Math.min(...activeXp) : 0;
+
+    // During a bounded Development rotation the comparison baseline is frozen from the
+    // pre-rotation incumbent. This prevents the trainee from being compared against itself.
+    const incumbentCurrentScore = session && session.baselineCurrentScore != null ? clamp01(session.baselineCurrentScore) : observedIncumbentCurrentScore;
+    const incumbentProjectedScore = session && session.baselineProjectedScore != null ? clamp01(session.baselineProjectedScore) : observedIncumbentProjectedScore;
+    const incumbentProjectedProgress = session && session.baselineProjectedProgress != null ? clamp01(session.baselineProjectedProgress) : observedIncumbentProjectedProgress;
+    const incumbentXpPerHour = session && finite(session.baselineXpPerHour) > 0 ? finite(session.baselineXpPerHour) : observedIncumbentXpPerHour;
     for (const row of rows) {
       row.expectedTrainingXpRatio = row.projectedProgress != null && incumbentProjectedProgress > 0 ? row.projectedProgress / incumbentProjectedProgress : null;
     }
@@ -142,6 +164,7 @@ class Alpha20Runtime extends Alpha19Runtime {
       incumbentCurrentScore,
       incumbentProjectedScore,
       incumbentXpPerHour,
+      developmentCandidateName: session && session.candidate || null,
       highRisk: !!(risk && (risk.highRisk || risk.unknown)),
       economyEmergency: this._alpha20EconomyEmergency()
     };
@@ -165,7 +188,7 @@ class Alpha20Runtime extends Alpha19Runtime {
     return recommendation;
   }
 
-  // Alpha.20 never lets the old projected party recommendation directly execute a switch.
+  // Projected Alpha.12 recommendations can never directly execute a switch in Alpha.20.
   _maybeStartTransition() { return null; }
 
   _verifyLifecycleTarget(targetNames, snapshot) {
@@ -205,7 +228,10 @@ class Alpha20Runtime extends Alpha19Runtime {
     this.lastLifecyclePlan = this.controlledPartyLifecycle.plan(currentMembers, registryStatus, context);
     if (this.lastLifecyclePlan && this.lastLifecyclePlan.planned && !this.controlledPartyLifecycle.busy) {
       Promise.resolve(this.controlledPartyLifecycle.executePlan(this.lastLifecyclePlan, currentMembers, registryStatus, context))
-        .then((result) => { this.lastLifecycleExecution = result; if (result && result.executed) this.partyOrchestrator.noteSwitch(); })
+        .then((result) => {
+          this.lastLifecycleExecution = result;
+          if (result && result.executed) this.partyOrchestrator.noteSwitch();
+        })
         .catch((error) => {
           this.lastLifecycleExecution = { executed: false, reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', error: String(error && error.message || error) };
           this.log.emit({ component: 'alpha20-party-lifecycle', event: 'PARTY_LIFECYCLE_EXECUTION_ERROR', severity: 'error', reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', data: { message: String(error && error.message || error) } });
@@ -228,7 +254,6 @@ class Alpha20Runtime extends Alpha19Runtime {
       ack: config.ack,
       allowTransitions: config.allowTransitions === true,
       allowDevelopmentRotation: config.allowDevelopmentRotation === true,
-      allowAuraChanges: false,
       reason: config.reason
     });
     let aura;
@@ -243,11 +268,11 @@ class Alpha20Runtime extends Alpha19Runtime {
     return this.controlledPartyLifecycle.reconcile(names);
   }
 
-  // Legacy setters are intentionally closed so old Alpha.12 switches cannot bypass Alpha.20.
   setPartyTransitionsEnabled() {
     this.partyTransitions.setLiveEnabled(false);
     return false;
   }
+
   setPartyAuraAutomationEnabled() {
     this.auraAutomationEnabled = false;
     return false;
@@ -259,6 +284,7 @@ class Alpha20Runtime extends Alpha19Runtime {
     let reason = null;
     if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
     else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (this.controlledPartyLifecycle.breaker().open) reason = 'PARTY_LIFECYCLE_CIRCUIT_OPEN';
     if (reason) {
       if (this.controlledPartyLifecycle.status().enabled) this.controlledPartyLifecycle.disable(reason);
       if (this.controlledPaladinAura.status().enabled) this.controlledPaladinAura.disable(reason);
@@ -285,13 +311,14 @@ class Alpha20Runtime extends Alpha19Runtime {
 
   status() {
     const base = super.status();
+    const controlledLifecycle = this.controlledPartyLifecycle.status();
     return {
       ...base,
       version: RELEASE_VERSION,
       party: {
         ...(base.party || {}),
         lifecycle: this.partyLifecycle.status(),
-        controlledLifecycle: this.controlledPartyLifecycle.status(),
+        controlledLifecycle,
         controlledAura: this.controlledPaladinAura.status(),
         lifecyclePlan: this.lastLifecyclePlan,
         lifecycleExecution: this.lastLifecycleExecution,
@@ -304,6 +331,10 @@ class Alpha20Runtime extends Alpha19Runtime {
         currentScoreRequiredForPromotion: true,
         projectedScorePlanningOnly: true,
         maxDevelopmentSlots: 1,
+        maxDevelopmentRotationMs: controlledLifecycle.maxDevelopmentRotationMs,
+        boundedDevelopmentReturn: true,
+        persistentDevelopmentSession: true,
+        partyTransitionCircuitBreaker: true,
         controlledLifecycleAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
         controlledAuraAck: CONTROLLED_PALADIN_AURA_ACK,
         transitionAuthorityDefault: false,
