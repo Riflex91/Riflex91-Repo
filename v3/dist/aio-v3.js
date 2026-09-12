@@ -6027,6 +6027,14 @@ class HeadlessOperations {
     if (action === 'REMOVE_TARGET_EXCLUSION') return runtime.removeFarmerTargetExclusion(params.value);
     if (action === 'APPROVE_MONSTER_CONTENT') return runtime.combatRisk.approveMonsterType(runtime.world, params.mtype);
     if (action === 'QUARANTINE_MONSTER_CONTENT') return runtime.combatRisk.quarantineMonsterType(runtime.world, params.mtype);
+    if (action === 'SET_BRAIN_INFLUENCE') {
+      if (typeof runtime.setBrainInfluenceEnabled !== 'function') throw new Error('brain control unavailable');
+      return runtime.setBrainInfluenceEnabled(params.enabled === true);
+    }
+    if (action === 'BRAIN_TEACH') {
+      if (typeof runtime.submitBrainTeacher !== 'function') throw new Error('brain teacher unavailable');
+      return runtime.submitBrainTeacher(params.recommendation || params);
+    }
     if (action === 'SAVE_WORLD') return runtime.persistence.maybeSave(runtime.world, { force: true });
     if (action === 'SHOW_STATUS') return runtime.status();
     throw new Error('unsupported control action');
