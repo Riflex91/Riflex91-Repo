@@ -18871,6 +18871,32 @@ module.exports = { StateReplica, HeadlessHealth };
 const { TelemetryOutbox } = require('./telemetry-outbox');
 const { ControlGateway } = require('./control-gateway');
 const { StateReplica } = require('./state-replica');
+const { FlightRecorder } = require('./flight-recorder');
+const { GroupLivenessMonitor } = require('./group-liveness');
+const { RuntimeProgressWatchdog } = require('./runtime-watchdog');
+const { ReliabilityCheckpointStore } = require('./reliability-checkpoint');
+
+function safeCall(fn, fallback = null) {
+  try { return typeof fn === 'function' ? fn() : fallback; } catch (_) { return fallback; }
+}
+function compactCharacter(character) {
+  if (!character) return null;
+  return {
+    name: character.name || null,
+    ctype: character.ctype || null,
+    level: Number(character.level) || 0,
+    map: character.map || null,
+    x: Number.isFinite(Number(character.x)) ? Number(character.x) : null,
+    y: Number.isFinite(Number(character.y)) ? Number(character.y) : null,
+    hp: Number.isFinite(Number(character.hp)) ? Number(character.hp) : null,
+    maxHp: Number.isFinite(Number(character.max_hp)) ? Number(character.max_hp) : null,
+    mp: Number.isFinite(Number(character.mp)) ? Number(character.mp) : null,
+    maxMp: Number.isFinite(Number(character.max_mp)) ? Number(character.max_mp) : null,
+    xp: Number.isFinite(Number(character.xp)) ? Number(character.xp) : null,
+    gold: Number.isFinite(Number(character.gold)) ? Number(character.gold) : null,
+    rip: character.rip === true
+  };
+}
 
 class HeadlessOperations {
   constructor(options = {}) {
@@ -18889,7 +18915,41 @@ class HeadlessOperations {
       maxTtlMs: options.controlMaxTtlMs,
       execute: (action, params) => this._execute(action, params)
     });
+
+    this.flightRecorder = options.flightRecorder || new FlightRecorder({
+      now: this.now,
+      capacity: options.flightRecorderCapacity,
+      incidentCapacity: options.flightRecorderIncidentCapacity,
+      sampleIntervalMs: options.flightRecorderSampleIntervalMs
+    });
+    this.groupLiveness = options.groupLiveness || new GroupLivenessMonitor({
+      now: this.now,
+      staleAfterMs: options.groupLivenessStaleAfterMs
+    });
+    this.watchdog = options.watchdog || new RuntimeProgressWatchdog({
+      now: this.now,
+      watchAfterMs: options.watchdogWatchAfterMs || this.watchAfterMs,
+      degradedAfterMs: options.watchdogDegradedAfterMs || this.degradedAfterMs,
+      progressWatchAfterMs: options.watchdogProgressWatchAfterMs,
+      progressDegradedAfterMs: options.watchdogProgressDegradedAfterMs,
+      clockBackwardsToleranceMs: options.watchdogClockBackwardsToleranceMs
+    });
+    const root = options.root || this.runtime && this.runtime.root || globalThis;
+    const storage = options.checkpointStorage || options.storage || this.runtime && this.runtime.persistence && this.runtime.persistence.storage || null;
+    this.checkpoint = options.checkpoint || new ReliabilityCheckpointStore({
+      root,
+      storage,
+      now: this.now,
+      baseKey: options.checkpointBaseKey,
+      maxBytes: options.checkpointMaxBytes
+    });
+    this.checkpointIntervalMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.checkpointIntervalMs) || 30000));
+    this.lastCheckpointAttemptAt = null;
+    this.previousCheckpoint = this.checkpoint.load();
+    this.lastReliability = null;
     this.captureErrors = 0;
+    this.observing = false;
+    this._installEventSink();
   }
 
   _execute(action, params = {}) {
@@ -18907,10 +18967,139 @@ class HeadlessOperations {
     throw new Error('unsupported control action');
   }
 
+  _installEventSink() {
+    if (!this.log || typeof this.log.emit !== 'function') return false;
+    const previous = typeof this.log.sink === 'function' ? this.log.sink : null;
+    this.log.sink = (event) => {
+      if (previous) {
+        try { previous(event); } catch (_) {}
+      }
+      try { this._onEvent(event); } catch (_) { this.captureErrors += 1; }
+    };
+    return true;
+  }
+
+  _onEvent(event) {
+    if (this.observing || !event) return;
+    const severity = String(event.severity || '').toLowerCase();
+    if (severity === 'warn' || severity === 'error' || severity === 'fatal') {
+      this.flightRecorder.markIncident({
+        at: Date.parse(event.ts) || this.now(),
+        severity: severity || 'warn',
+        type: event.event || 'EVENT',
+        reason: event.reason || null,
+        data: { component: event.component || null, character: event.character || null, taskId: event.taskId || null }
+      });
+    }
+    if (event.event === 'HEARTBEAT' || event.event === 'SNAPSHOT_UNAVAILABLE' || event.event === 'RUNTIME_STARTED' || event.event === 'RUNTIME_STOPPED') {
+      this._observeReliability({ forceSample: event.event !== 'HEARTBEAT', forceCheckpoint: event.event === 'RUNTIME_STOPPED' });
+    }
+  }
+
+  _checkpointSnapshot(group, watchdog) {
+    const runtime = this.runtime;
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    const supervisor = runtime && runtime.globalSupervisor && typeof runtime.globalSupervisor.status === 'function'
+      ? safeCall(() => runtime.globalSupervisor.status(), {}) : {};
+    const farmer = runtime && typeof runtime.farmerStatus === 'function' ? safeCall(() => runtime.farmerStatus(), {}) : {};
+    const lifecycle = runtime && runtime.controlledPartyLifecycle && typeof runtime.controlledPartyLifecycle.status === 'function'
+      ? safeCall(() => runtime.controlledPartyLifecycle.status(), {}) : {};
+    const aura = runtime && runtime.controlledPaladinAura && typeof runtime.controlledPaladinAura.status === 'function'
+      ? safeCall(() => runtime.controlledPaladinAura.status(), {}) : {};
+    const transactions = runtime && runtime.transactionEngine && typeof runtime.transactionEngine.status === 'function'
+      ? safeCall(() => runtime.transactionEngine.status(), {}) : {};
+    const travel = runtime && runtime.safeTravel && typeof runtime.safeTravel.status === 'function'
+      ? safeCall(() => runtime.safeTravel.status(), {}) : {};
+    const eventSummary = this.log && typeof this.log.summary === 'function' ? safeCall(() => this.log.summary(), {}) : {};
+    const runtimeStatus = runtime && typeof runtime.status === 'function' ? safeCall(() => runtime.status(), {}) : {};
+
+    return {
+      version: runtimeStatus.version || null,
+      runId: this.log && this.log.runId || null,
+      observedAt: snapshot && snapshot.observedAt || null,
+      mode: runtime && runtime.adapter && runtime.adapter.mode || null,
+      character: compactCharacter(snapshot && snapshot.character),
+      supervisor: { state: supervisor.state || null, reasons: Array.isArray(supervisor.reasons) ? supervisor.reasons.slice(0, 16) : [] },
+      farmer: { enabled: farmer.enabled === true, state: farmer.state || null, targetType: farmer.targetType || null },
+      group: group ? {
+        state: group.state,
+        memberCount: group.memberCount,
+        fourCharacterReady: group.fourCharacterReady,
+        invalidMembers: group.invalidMembers,
+        members: group.members
+      } : null,
+      watchdog: watchdog ? {
+        state: watchdog.state,
+        reason: watchdog.reason,
+        recoveryRecommendation: watchdog.recoveryRecommendation,
+        activityExpected: watchdog.activityExpected,
+        snapshotAgeMs: watchdog.snapshotAgeMs,
+        heartbeatAgeMs: watchdog.heartbeatAgeMs,
+        progressAgeMs: watchdog.progressAgeMs
+      } : null,
+      partyLifecycle: {
+        enabled: lifecycle.enabled === true,
+        operation: lifecycle.operation || null,
+        developmentSession: lifecycle.developmentSession || null,
+        breaker: lifecycle.breaker || null
+      },
+      aura: { enabled: aura.enabled === true, actionAuthority: aura.actionAuthority === true },
+      economy: { active: Number(transactions.active) || 0, recovering: Number(transactions.recovering) || 0, states: transactions.states || {} },
+      travel: { active: Number(travel.active) || 0, states: travel.states || {}, circuit: travel.circuit || null },
+      eventLog: { firstSeq: eventSummary.firstSeq || null, lastSeq: eventSummary.lastSeq || null, retained: Number(eventSummary.retained) || 0 }
+    };
+  }
+
+  _maybeCheckpoint(group, watchdog, options = {}) {
+    const now = this.now();
+    const force = options.force === true;
+    if (!force && this.lastCheckpointAttemptAt != null && now - this.lastCheckpointAttemptAt < this.checkpointIntervalMs) return null;
+    this.lastCheckpointAttemptAt = now;
+    return this.checkpoint.save(this._checkpointSnapshot(group, watchdog), { reason: options.reason || (force ? 'FORCED' : 'PERIODIC') });
+  }
+
+  _observeReliability(options = {}) {
+    if (this.observing) return this.lastReliability;
+    this.observing = true;
+    try {
+      const group = this.groupLiveness.evaluate(this.runtime);
+      const watchdog = this.watchdog.observe(this.runtime, group);
+      if (watchdog.transition) {
+        const incident = this.flightRecorder.markIncident({
+          at: watchdog.transition.at,
+          severity: watchdog.transition.state === 'DEGRADED' ? 'error' : watchdog.transition.state === 'WATCH' ? 'warn' : 'info',
+          type: 'RUNTIME_WATCHDOG_STATE_CHANGED',
+          reason: watchdog.transition.reason,
+          data: watchdog.transition
+        });
+        if (this.log && typeof this.log.emit === 'function') this.log.emit({
+          component: 'reliability',
+          event: 'RUNTIME_WATCHDOG_STATE_CHANGED',
+          severity: incident.severity,
+          reason: incident.reason,
+          data: { previous: watchdog.transition.previous, state: watchdog.transition.state, recommendation: watchdog.recoveryRecommendation }
+        });
+      }
+      const sample = this.flightRecorder.capture(this.runtime, { group, watchdog }, { force: options.forceSample === true });
+      const checkpoint = this._maybeCheckpoint(group, watchdog, {
+        force: options.forceCheckpoint === true,
+        reason: options.forceCheckpoint ? 'RUNTIME_STOP' : 'PERIODIC'
+      });
+      this.lastReliability = { at: this.now(), group, watchdog, sample, checkpoint };
+      return this.lastReliability;
+    } catch (_) {
+      this.captureErrors += 1;
+      return this.lastReliability;
+    } finally {
+      this.observing = false;
+    }
+  }
+
   _capture() {
     try {
       if (this.log) this.telemetry.capture(this.log);
       if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+      this._observeReliability();
     } catch (_) {
       this.captureErrors += 1;
     }
@@ -18926,9 +19115,11 @@ class HeadlessOperations {
     const snapshotAgeMs = observedAt == null ? null : Math.max(0, now - observedAt);
     const heartbeatAgeMs = lastHeartbeatAt == null ? null : Math.max(0, now - lastHeartbeatAt);
     const age = base == null ? 0 : Math.max(0, now - base);
+    const group = this.groupLiveness.evaluate(runtime);
+    const watchdog = this.watchdog.status(runtime, group);
     let state = 'HEALTHY';
-    if (age >= this.degradedAfterMs) state = 'DEGRADED';
-    else if (age >= this.watchAfterMs) state = 'WATCH';
+    if (age >= this.degradedAfterMs || watchdog.state === 'DEGRADED') state = 'DEGRADED';
+    else if (age >= this.watchAfterMs || watchdog.state === 'WATCH' || (group.localCharacter && (group.state === 'WATCH' || group.state === 'DEGRADED'))) state = 'WATCH';
     return {
       state,
       headlessCompatible: true,
@@ -18938,7 +19129,9 @@ class HeadlessOperations {
       snapshotAgeMs,
       heartbeatAgeMs,
       watchAfterMs: this.watchAfterMs,
-      degradedAfterMs: this.degradedAfterMs
+      degradedAfterMs: this.degradedAfterMs,
+      watchdog,
+      groupLiveness: group
     };
   }
 
@@ -18952,22 +19145,694 @@ class HeadlessOperations {
   peekTelemetry(limit = 100) { this._capture(); return this.telemetry.peek(limit); }
   takeStateReplica() { this._capture(); return this.replica.take(); }
   peekStateReplica() { this._capture(); return this.replica.peek(); }
+  flightRecorderSamples(limit = 100) { this._capture(); return this.flightRecorder.list(limit); }
+  flightRecorderWindow(windowMs = 10 * 60 * 1000) { this._capture(); return this.flightRecorder.recent(windowMs); }
+  reliabilityIncidents(limit = 50) { this._capture(); return this.flightRecorder.listIncidents(limit); }
+  reliabilityCheckpoint() { this._capture(); return this.checkpoint.latestEvidence(); }
 
   status() {
     this._capture();
     return {
-      contractVersion: 1,
+      contractVersion: 2,
       transport: 'host-provided',
       captureErrors: this.captureErrors,
       telemetry: this.telemetry.status(),
       control: this.control.status(),
       stateReplica: this.replica.status(),
-      health: this._healthStatus()
+      health: this._healthStatus(),
+      reliability: {
+        mode: 'observational-read-only',
+        actionAuthority: false,
+        automaticRecovery: false,
+        flightRecorder: this.flightRecorder.status(),
+        watchdog: this.watchdog.status(this.runtime, this.groupLiveness.evaluate(this.runtime)),
+        groupLiveness: this.groupLiveness.evaluate(this.runtime),
+        checkpoint: this.checkpoint.status(),
+        previousCheckpoint: this.previousCheckpoint ? {
+          slot: this.previousCheckpoint.slot || null,
+          sequence: this.previousCheckpoint.sequence || null,
+          savedAt: this.previousCheckpoint.savedAt || null,
+          reason: this.previousCheckpoint.reason || null,
+          resumeAllowed: this.previousCheckpoint.resumeAllowed === true,
+          reconciliationRequired: this.previousCheckpoint.reconciliationRequired === true
+        } : null
+      }
     };
   }
 }
 
 module.exports = { HeadlessOperations };
+
+},
+"src/ops/flight-recorder.js": function(require,module,exports){
+'use strict';
+
+const FLIGHT_RECORDER_SCHEMA_VERSION = 1;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class FlightRecorder {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.capacity = Math.max(60, Math.min(7200, Math.floor(finite(options.capacity, 720))));
+    this.incidentCapacity = Math.max(20, Math.min(1000, Math.floor(finite(options.incidentCapacity, 200))));
+    this.sampleIntervalMs = Math.max(1000, Math.min(60000, finite(options.sampleIntervalMs, 5000)));
+    this.samples = [];
+    this.incidents = [];
+    this.sequence = 0;
+    this.incidentSequence = 0;
+    this.lastSampleAt = null;
+    this.droppedSamples = 0;
+    this.droppedIncidents = 0;
+  }
+
+  _compactRuntime(runtime, group, watchdog, at) {
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    const character = snapshot && snapshot.character || null;
+    const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : null;
+    const supervisor = runtime && runtime.globalSupervisor && typeof runtime.globalSupervisor.status === 'function'
+      ? runtime.globalSupervisor.status() : null;
+    const scheduler = runtime && runtime.scheduler && typeof runtime.scheduler.snapshot === 'function'
+      ? runtime.scheduler.snapshot() : null;
+    const economy = runtime && runtime.transactionEngine && typeof runtime.transactionEngine.status === 'function'
+      ? runtime.transactionEngine.status() : null;
+    const travel = runtime && runtime.safeTravel && typeof runtime.safeTravel.status === 'function'
+      ? runtime.safeTravel.status() : null;
+
+    return {
+      schemaVersion: FLIGHT_RECORDER_SCHEMA_VERSION,
+      seq: ++this.sequence,
+      at,
+      runId: runtime && runtime.log && runtime.log.runId || null,
+      mode: runtime && runtime.adapter && runtime.adapter.mode || null,
+      character: character ? {
+        name: character.name || null,
+        ctype: character.ctype || null,
+        level: finite(character.level, 0),
+        map: character.map || null,
+        x: finite(character.x),
+        y: finite(character.y),
+        hp: finite(character.hp),
+        maxHp: finite(character.max_hp),
+        mp: finite(character.mp),
+        maxMp: finite(character.max_mp),
+        xp: finite(character.xp),
+        gold: finite(character.gold),
+        target: character.target || null,
+        moving: character.moving === true,
+        rip: character.rip === true
+      } : null,
+      farmer: farmer ? {
+        enabled: farmer.enabled === true,
+        state: farmer.state || null,
+        targetType: farmer.targetType || null,
+        reason: farmer.reason || null
+      } : null,
+      supervisor: supervisor ? { state: supervisor.state || null, reasons: Array.isArray(supervisor.reasons) ? supervisor.reasons.slice(0, 8) : [] } : null,
+      scheduler: scheduler ? {
+        active: Array.isArray(scheduler.active) ? scheduler.active.length : 0,
+        queued: Array.isArray(scheduler.queued) ? scheduler.queued.length : 0
+      } : null,
+      group: group ? {
+        state: group.state || null,
+        memberCount: finite(group.memberCount, 0),
+        freshCount: finite(group.freshCount, 0),
+        fourCharacterReady: group.fourCharacterReady === true,
+        invalidMembers: Array.isArray(group.invalidMembers) ? group.invalidMembers.slice(0, 8) : []
+      } : null,
+      watchdog: watchdog ? {
+        state: watchdog.state || null,
+        activityExpected: watchdog.activityExpected === true,
+        progressAgeMs: finite(watchdog.progressAgeMs),
+        heartbeatAgeMs: finite(watchdog.heartbeatAgeMs),
+        snapshotAgeMs: finite(watchdog.snapshotAgeMs),
+        recommendation: watchdog.recoveryRecommendation || null
+      } : null,
+      operations: {
+        activeTransactions: finite(economy && economy.active, 0),
+        recoveringTransactions: finite(economy && economy.recovering, 0),
+        activeTravel: finite(travel && travel.active, 0)
+      }
+    };
+  }
+
+  capture(runtime, context = {}, options = {}) {
+    const at = finite(options.at, this.now());
+    const force = options.force === true;
+    if (!force && this.lastSampleAt != null && at - this.lastSampleAt < this.sampleIntervalMs) return null;
+    const sample = this._compactRuntime(runtime, context.group || null, context.watchdog || null, at);
+    this.samples.push(sample);
+    this.lastSampleAt = at;
+    if (this.samples.length > this.capacity) {
+      const overflow = this.samples.length - this.capacity;
+      this.samples.splice(0, overflow);
+      this.droppedSamples += overflow;
+    }
+    return clone(sample);
+  }
+
+  markIncident(input = {}) {
+    const record = {
+      schemaVersion: FLIGHT_RECORDER_SCHEMA_VERSION,
+      incidentSeq: ++this.incidentSequence,
+      at: finite(input.at, this.now()),
+      severity: String(input.severity || 'warn'),
+      type: String(input.type || input.event || 'INCIDENT'),
+      reason: input.reason == null ? null : String(input.reason),
+      data: clone(input.data || {})
+    };
+    this.incidents.push(record);
+    if (this.incidents.length > this.incidentCapacity) {
+      const overflow = this.incidents.length - this.incidentCapacity;
+      this.incidents.splice(0, overflow);
+      this.droppedIncidents += overflow;
+    }
+    return clone(record);
+  }
+
+  list(limit = 100) {
+    const n = Math.max(0, Math.min(this.samples.length, Math.floor(finite(limit, 0))));
+    return this.samples.slice(this.samples.length - n).map(clone);
+  }
+
+  recent(windowMs = 10 * 60 * 1000) {
+    const cutoff = this.now() - Math.max(0, finite(windowMs, 0));
+    return this.samples.filter((row) => row.at >= cutoff).map(clone);
+  }
+
+  listIncidents(limit = 50) {
+    const n = Math.max(0, Math.min(this.incidents.length, Math.floor(finite(limit, 0))));
+    return this.incidents.slice(this.incidents.length - n).map(clone);
+  }
+
+  latest() { return this.samples.length ? clone(this.samples[this.samples.length - 1]) : null; }
+
+  status() {
+    return {
+      schemaVersion: FLIGHT_RECORDER_SCHEMA_VERSION,
+      mode: 'observational-read-only',
+      actionAuthority: false,
+      samples: this.samples.length,
+      capacity: this.capacity,
+      sampleIntervalMs: this.sampleIntervalMs,
+      droppedSamples: this.droppedSamples,
+      incidents: this.incidents.length,
+      incidentCapacity: this.incidentCapacity,
+      droppedIncidents: this.droppedIncidents,
+      lastSampleAt: this.lastSampleAt,
+      latest: this.latest(),
+      recentIncidents: this.listIncidents(8)
+    };
+  }
+}
+
+module.exports = { FlightRecorder, FLIGHT_RECORDER_SCHEMA_VERSION };
+
+},
+"src/ops/group-liveness.js": function(require,module,exports){
+'use strict';
+
+const GROUP_LIVENESS_SCHEMA_VERSION = 1;
+const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function unique(values) {
+  return [...new Set((values || []).filter(Boolean).map(String))];
+}
+
+class GroupLivenessMonitor {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.staleAfterMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.staleAfterMs, 15000)));
+  }
+
+  evaluate(runtime) {
+    const now = this.now();
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    const character = snapshot && snapshot.character || null;
+    const registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function'
+      ? runtime.characterRegistry.status() : { characters: [] };
+    const byName = new Map((registry.characters || []).filter(Boolean).map((row) => [String(row.name), row]));
+    const partyNames = unique([
+      character && character.name,
+      ...((snapshot && snapshot.party || []).map((row) => row && row.name))
+    ]);
+
+    const members = partyNames.map((name) => {
+      if (character && String(character.name) === name) {
+        return {
+          name,
+          ctype: character.ctype || null,
+          level: finite(character.level, 0),
+          map: character.map || null,
+          presence: 'ONLINE',
+          online: true,
+          available: character.rip !== true,
+          dead: character.rip === true,
+          ageMs: 0,
+          fresh: true,
+          source: 'self'
+        };
+      }
+      const row = byName.get(name);
+      const ageMs = row && finite(row.observationAgeMs);
+      const fresh = !!row && row.presence !== 'STALE' && (ageMs == null || ageMs <= this.staleAfterMs);
+      return {
+        name,
+        ctype: row && row.ctype || null,
+        level: finite(row && row.level, 0),
+        map: row && row.map || null,
+        presence: row && row.presence || 'UNKNOWN',
+        online: row ? row.online : null,
+        available: row ? row.available : null,
+        dead: row ? row.dead === true : null,
+        ageMs,
+        fresh,
+        source: row && row.primarySource || null
+      };
+    });
+
+    const invalidMembers = members
+      .filter((row) => !row.fresh || row.online === false || row.dead === true || row.available === false)
+      .map((row) => row.name);
+    const merchantCount = members.filter((row) => String(row.ctype || '').toLowerCase() === 'merchant').length;
+    const combatCount = members.filter((row) => COMBAT_CLASSES.has(String(row.ctype || '').toLowerCase())).length;
+    const fourCharacterReady = members.length === 4 && merchantCount === 1 && combatCount === 3 && invalidMembers.length === 0;
+
+    let state = 'HEALTHY';
+    const reasons = [];
+    if (!character) {
+      state = 'DEGRADED';
+      reasons.push('LOCAL_CHARACTER_UNAVAILABLE');
+    }
+    if (character && character.rip === true) {
+      state = 'DEGRADED';
+      reasons.push('LOCAL_CHARACTER_DEAD');
+    }
+    if (invalidMembers.length) {
+      state = 'DEGRADED';
+      reasons.push('PARTY_MEMBER_NOT_LIVE');
+    } else if (character && String(character.ctype || '').toLowerCase() === 'merchant' && members.length > 1 && !fourCharacterReady) {
+      state = 'WATCH';
+      reasons.push('MERCHANT_PARTY_NOT_FOUR_CHARACTER_READY');
+    }
+
+    return {
+      schemaVersion: GROUP_LIVENESS_SCHEMA_VERSION,
+      mode: 'observation-only',
+      actionAuthority: false,
+      state,
+      reasons,
+      evaluatedAt: now,
+      staleAfterMs: this.staleAfterMs,
+      localCharacter: character && character.name || null,
+      memberCount: members.length,
+      freshCount: members.filter((row) => row.fresh).length,
+      merchantCount,
+      combatCount,
+      fourCharacterReady,
+      invalidMembers,
+      members: clone(members)
+    };
+  }
+
+  status(runtime) { return this.evaluate(runtime); }
+}
+
+module.exports = { GroupLivenessMonitor, GROUP_LIVENESS_SCHEMA_VERSION };
+
+},
+"src/ops/runtime-watchdog.js": function(require,module,exports){
+'use strict';
+
+const RUNTIME_WATCHDOG_SCHEMA_VERSION = 1;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function snapshotToken(snapshot) {
+  const c = snapshot && snapshot.character;
+  if (!c) return null;
+  return JSON.stringify([
+    c.map || null,
+    finite(c.x), finite(c.y), finite(c.xp), finite(c.gold),
+    c.target || null, c.moving === true, c.rip === true
+  ]);
+}
+
+class RuntimeProgressWatchdog {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.watchAfterMs = Math.max(1000, finite(options.watchAfterMs, 15000));
+    this.degradedAfterMs = Math.max(this.watchAfterMs, finite(options.degradedAfterMs, 45000));
+    this.progressWatchAfterMs = Math.max(5000, finite(options.progressWatchAfterMs, 30000));
+    this.progressDegradedAfterMs = Math.max(this.progressWatchAfterMs, finite(options.progressDegradedAfterMs, 120000));
+    this.clockBackwardsToleranceMs = Math.max(0, finite(options.clockBackwardsToleranceMs, 1000));
+    this.lastObservedAt = null;
+    this.lastSnapshotAt = null;
+    this.lastHeartbeatAt = null;
+    this.lastProgressAt = null;
+    this.lastProgressToken = null;
+    this.lastState = 'HEALTHY';
+    this.lastReason = null;
+    this.clockAnomalies = 0;
+    this.transitions = 0;
+    this.observations = 0;
+    this.lastTransition = null;
+  }
+
+  _activityExpected(runtime, snapshot) {
+    if (!runtime || !snapshot || !snapshot.character) return false;
+    if (!(runtime.adapter && runtime.adapter.mode === 'active')) return false;
+    if (snapshot.character.rip === true) return false;
+    let farmer = null;
+    try { farmer = typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : null; } catch (_) {}
+    if (!farmer || farmer.enabled !== true) return false;
+    const state = String(farmer.state || '');
+    if (['ENGAGE', 'MOVE', 'RETREAT', 'RECOVER'].includes(state)) return true;
+    if (snapshot.character.moving === true || snapshot.character.target) return true;
+    const scheduler = runtime.scheduler && runtime.scheduler.snapshot ? runtime.scheduler.snapshot() : null;
+    return !!(scheduler && Array.isArray(scheduler.active) && scheduler.active.length > 0 && !['IDLE', 'WAITING'].includes(state));
+  }
+
+  _ages(runtime, now) {
+    const snapshotAt = runtime && runtime.lastSnapshot && finite(runtime.lastSnapshot.observedAt);
+    const heartbeatAt = runtime && finite(runtime.lastHeartbeat);
+    return {
+      snapshotAgeMs: snapshotAt == null ? null : Math.max(0, now - snapshotAt),
+      heartbeatAgeMs: heartbeatAt == null || heartbeatAt <= 0 ? null : Math.max(0, now - heartbeatAt)
+    };
+  }
+
+  _transition(state, reason, now) {
+    if (state === this.lastState && reason === this.lastReason) return null;
+    const previous = this.lastState;
+    this.lastState = state;
+    this.lastReason = reason;
+    this.transitions += 1;
+    this.lastTransition = { at: now, previous, state, reason };
+    return { ...this.lastTransition };
+  }
+
+  observe(runtime, group = null) {
+    const now = this.now();
+    this.observations += 1;
+    let clockBackwards = false;
+    if (this.lastObservedAt != null && now + this.clockBackwardsToleranceMs < this.lastObservedAt) {
+      this.clockAnomalies += 1;
+      clockBackwards = true;
+    }
+    this.lastObservedAt = now;
+
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    if (snapshot && finite(snapshot.observedAt) != null) this.lastSnapshotAt = Number(snapshot.observedAt);
+    if (runtime && finite(runtime.lastHeartbeat) != null && Number(runtime.lastHeartbeat) > 0) this.lastHeartbeatAt = Number(runtime.lastHeartbeat);
+
+    const token = snapshotToken(snapshot);
+    if (token != null && token !== this.lastProgressToken) {
+      this.lastProgressToken = token;
+      this.lastProgressAt = now;
+    } else if (token != null && this.lastProgressAt == null) {
+      this.lastProgressAt = now;
+    }
+
+    const activityExpected = this._activityExpected(runtime, snapshot);
+    if (!activityExpected && token != null) this.lastProgressAt = now;
+
+    const ages = this._ages(runtime, now);
+    const progressAgeMs = this.lastProgressAt == null ? null : Math.max(0, now - this.lastProgressAt);
+    let state = 'HEALTHY';
+    let reason = null;
+    let recoveryRecommendation = null;
+
+    if (clockBackwards) {
+      state = 'DEGRADED'; reason = 'CLOCK_MOVED_BACKWARDS'; recoveryRecommendation = 'SAFE_MODE_AND_REOBSERVE';
+    } else if (!snapshot) {
+      state = 'DEGRADED'; reason = 'SNAPSHOT_UNAVAILABLE'; recoveryRecommendation = 'REOBSERVE_OR_RESTART';
+    } else if (ages.snapshotAgeMs != null && ages.snapshotAgeMs >= this.degradedAfterMs) {
+      state = 'DEGRADED'; reason = 'SNAPSHOT_STALE'; recoveryRecommendation = 'REOBSERVE_OR_RESTART';
+    } else if (ages.heartbeatAgeMs != null && ages.heartbeatAgeMs >= this.degradedAfterMs) {
+      state = 'DEGRADED'; reason = 'HEARTBEAT_STALE'; recoveryRecommendation = 'REOBSERVE_OR_RESTART';
+    } else if (activityExpected && progressAgeMs != null && progressAgeMs >= this.progressDegradedAfterMs) {
+      state = 'DEGRADED'; reason = 'EXPECTED_ACTIVITY_NO_PROGRESS'; recoveryRecommendation = 'REPLAN_THEN_SAFE_MODE';
+    } else if (group && group.localCharacter && group.state === 'DEGRADED') {
+      state = 'WATCH'; reason = 'GROUP_LIVENESS_DEGRADED'; recoveryRecommendation = 'REOBSERVE_PARTY';
+    } else if ((ages.snapshotAgeMs != null && ages.snapshotAgeMs >= this.watchAfterMs) || (ages.heartbeatAgeMs != null && ages.heartbeatAgeMs >= this.watchAfterMs)) {
+      state = 'WATCH'; reason = 'RUNTIME_FRESHNESS_WATCH'; recoveryRecommendation = 'REOBSERVE';
+    } else if (activityExpected && progressAgeMs != null && progressAgeMs >= this.progressWatchAfterMs) {
+      state = 'WATCH'; reason = 'EXPECTED_ACTIVITY_PROGRESS_WATCH'; recoveryRecommendation = 'REOBSERVE_THEN_REPLAN';
+    } else if (group && group.localCharacter && group.state === 'WATCH') {
+      state = 'WATCH'; reason = 'GROUP_LIVENESS_WATCH'; recoveryRecommendation = 'REOBSERVE_PARTY';
+    }
+
+    const transition = this._transition(state, reason, now);
+    return {
+      ...this.status(runtime, group),
+      state,
+      reason,
+      recoveryRecommendation,
+      activityExpected,
+      progressAgeMs,
+      transition
+    };
+  }
+
+  status(runtime, group = null) {
+    const now = this.now();
+    const ages = this._ages(runtime, now);
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    const activityExpected = this._activityExpected(runtime, snapshot);
+    const progressAgeMs = this.lastProgressAt == null ? null : Math.max(0, now - this.lastProgressAt);
+    let state = this.lastState;
+    let reason = this.lastReason;
+    let recommendation = null;
+
+    if (ages.snapshotAgeMs != null && ages.snapshotAgeMs >= this.degradedAfterMs) { state = 'DEGRADED'; reason = 'SNAPSHOT_STALE'; recommendation = 'REOBSERVE_OR_RESTART'; }
+    else if (ages.heartbeatAgeMs != null && ages.heartbeatAgeMs >= this.degradedAfterMs) { state = 'DEGRADED'; reason = 'HEARTBEAT_STALE'; recommendation = 'REOBSERVE_OR_RESTART'; }
+    else if (activityExpected && progressAgeMs != null && progressAgeMs >= this.progressDegradedAfterMs) { state = 'DEGRADED'; reason = 'EXPECTED_ACTIVITY_NO_PROGRESS'; recommendation = 'REPLAN_THEN_SAFE_MODE'; }
+    else if ((ages.snapshotAgeMs != null && ages.snapshotAgeMs >= this.watchAfterMs) || (ages.heartbeatAgeMs != null && ages.heartbeatAgeMs >= this.watchAfterMs)) { state = 'WATCH'; reason = 'RUNTIME_FRESHNESS_WATCH'; recommendation = 'REOBSERVE'; }
+    else if (activityExpected && progressAgeMs != null && progressAgeMs >= this.progressWatchAfterMs) { state = 'WATCH'; reason = 'EXPECTED_ACTIVITY_PROGRESS_WATCH'; recommendation = 'REOBSERVE_THEN_REPLAN'; }
+    else if (group && group.localCharacter && group.state === 'DEGRADED') { state = 'WATCH'; reason = 'GROUP_LIVENESS_DEGRADED'; recommendation = 'REOBSERVE_PARTY'; }
+    else if (group && group.localCharacter && group.state === 'WATCH') { state = 'WATCH'; reason = 'GROUP_LIVENESS_WATCH'; recommendation = 'REOBSERVE_PARTY'; }
+
+    return {
+      schemaVersion: RUNTIME_WATCHDOG_SCHEMA_VERSION,
+      mode: 'observe-and-recommend-only',
+      actionAuthority: false,
+      automaticRecovery: false,
+      state,
+      reason,
+      recoveryRecommendation: recommendation,
+      activityExpected,
+      snapshotAgeMs: ages.snapshotAgeMs,
+      heartbeatAgeMs: ages.heartbeatAgeMs,
+      progressAgeMs,
+      lastObservedAt: this.lastObservedAt,
+      lastProgressAt: this.lastProgressAt,
+      watchAfterMs: this.watchAfterMs,
+      degradedAfterMs: this.degradedAfterMs,
+      progressWatchAfterMs: this.progressWatchAfterMs,
+      progressDegradedAfterMs: this.progressDegradedAfterMs,
+      clockAnomalies: this.clockAnomalies,
+      observations: this.observations,
+      transitions: this.transitions,
+      lastTransition: this.lastTransition ? { ...this.lastTransition } : null
+    };
+  }
+}
+
+module.exports = { RuntimeProgressWatchdog, RUNTIME_WATCHDOG_SCHEMA_VERSION };
+
+},
+"src/ops/reliability-checkpoint.js": function(require,module,exports){
+'use strict';
+
+const RELIABILITY_CHECKPOINT_SCHEMA_VERSION = 1;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function checksum(text) {
+  let hash = 0x811c9dc5;
+  const value = String(text);
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+class ReliabilityCheckpointStore {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.baseKey = options.baseKey || 'AIO_V3_RELIABILITY_CHECKPOINT';
+    this.maxBytes = Math.max(10000, Math.min(1000000, finite(options.maxBytes, 120000)));
+    this.lastLoaded = null;
+    this.lastSaved = null;
+    this.backendName = null;
+    this.stats = { saves: 0, saveFailures: 0, loads: 0, loadFailures: 0, fallbacks: 0, corrupt: 0, oversize: 0 };
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') {
+      this.backendName = 'custom';
+      return this.storage;
+    }
+    const get = this.root && this.root.get;
+    const set = this.root && this.root.set;
+    if (typeof get === 'function' && typeof set === 'function') {
+      this.backendName = 'adventure-land';
+      return { get: (key) => get.call(this.root, key), set: (key, value) => set.call(this.root, key, value) };
+    }
+    const localStorage = this.root && this.root.localStorage;
+    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') {
+      this.backendName = 'localStorage';
+      return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
+    }
+    this.backendName = null;
+    return null;
+  }
+
+  _slotKey(slot) { return `${this.baseKey}_${slot}`; }
+  _pointerKey() { return `${this.baseKey}_PTR`; }
+
+  _decode(raw) {
+    if (raw == null || raw === '') return null;
+    try {
+      const envelope = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!envelope || envelope.schemaVersion !== RELIABILITY_CHECKPOINT_SCHEMA_VERSION || typeof envelope.serialized !== 'string') return null;
+      if (checksum(envelope.serialized) !== envelope.checksum) return null;
+      const payload = JSON.parse(envelope.serialized);
+      if (!payload || payload.schemaVersion !== RELIABILITY_CHECKPOINT_SCHEMA_VERSION) return null;
+      if (payload.resumeAllowed !== false || payload.reconciliationRequired !== true) return null;
+      return payload;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  load() {
+    const backend = this._backend();
+    this.stats.loads += 1;
+    if (!backend) {
+      this.stats.loadFailures += 1;
+      return null;
+    }
+    let pointer = null;
+    try { pointer = String(backend.get(this._pointerKey()) || '').toUpperCase(); } catch (_) {}
+    const order = pointer === 'A' || pointer === 'B' ? [pointer, pointer === 'A' ? 'B' : 'A'] : ['A', 'B'];
+    for (let index = 0; index < order.length; index += 1) {
+      const slot = order[index];
+      let raw = null;
+      try { raw = backend.get(this._slotKey(slot)); } catch (_) { raw = null; }
+      const decoded = this._decode(raw);
+      if (decoded) {
+        if (index > 0) this.stats.fallbacks += 1;
+        this.lastLoaded = { slot, ...clone(decoded) };
+        return clone(this.lastLoaded);
+      }
+      if (raw != null && raw !== '') this.stats.corrupt += 1;
+    }
+    this.stats.loadFailures += 1;
+    return null;
+  }
+
+  save(snapshot = {}, options = {}) {
+    const backend = this._backend();
+    if (!backend) {
+      this.stats.saveFailures += 1;
+      return { saved: false, reason: 'STORAGE_UNAVAILABLE' };
+    }
+    let pointer = null;
+    try { pointer = String(backend.get(this._pointerKey()) || '').toUpperCase(); } catch (_) {}
+    const slot = pointer === 'A' ? 'B' : 'A';
+    const previousSequence = Math.max(
+      finite(this.lastSaved && this.lastSaved.sequence, 0),
+      finite(this.lastLoaded && this.lastLoaded.sequence, 0)
+    );
+    const payload = {
+      schemaVersion: RELIABILITY_CHECKPOINT_SCHEMA_VERSION,
+      sequence: previousSequence + 1,
+      savedAt: this.now(),
+      reason: options.reason || 'PERIODIC',
+      resumeAllowed: false,
+      reconciliationRequired: true,
+      snapshot: clone(snapshot)
+    };
+    let serialized;
+    try { serialized = JSON.stringify(payload); } catch (_) {
+      this.stats.saveFailures += 1;
+      return { saved: false, reason: 'SERIALIZE_FAILED' };
+    }
+    const envelope = JSON.stringify({
+      schemaVersion: RELIABILITY_CHECKPOINT_SCHEMA_VERSION,
+      checksum: checksum(serialized),
+      serialized
+    });
+    if (envelope.length > this.maxBytes) {
+      this.stats.oversize += 1;
+      this.stats.saveFailures += 1;
+      return { saved: false, reason: 'SIZE_LIMIT', bytes: envelope.length, maxBytes: this.maxBytes };
+    }
+    try {
+      backend.set(this._slotKey(slot), envelope);
+      backend.set(this._pointerKey(), slot);
+      this.stats.saves += 1;
+      this.lastSaved = { slot, bytes: envelope.length, ...clone(payload) };
+      return { saved: true, slot, bytes: envelope.length, sequence: payload.sequence, savedAt: payload.savedAt };
+    } catch (error) {
+      this.stats.saveFailures += 1;
+      return { saved: false, reason: 'WRITE_FAILED', error: String(error && error.message || error) };
+    }
+  }
+
+  latestEvidence() {
+    const row = this.lastSaved || this.lastLoaded;
+    return row ? clone(row) : null;
+  }
+
+  status() {
+    return {
+      schemaVersion: RELIABILITY_CHECKPOINT_SCHEMA_VERSION,
+      mode: 'reconciliation-evidence-only',
+      actionAuthority: false,
+      resumeAllowed: false,
+      reconciliationRequired: true,
+      backend: this.backendName,
+      baseKey: this.baseKey,
+      maxBytes: this.maxBytes,
+      lastSavedAt: this.lastSaved && this.lastSaved.savedAt || null,
+      lastSavedSequence: this.lastSaved && this.lastSaved.sequence || null,
+      lastLoadedAt: this.lastLoaded && this.lastLoaded.savedAt || null,
+      lastLoadedSequence: this.lastLoaded && this.lastLoaded.sequence || null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { ReliabilityCheckpointStore, RELIABILITY_CHECKPOINT_SCHEMA_VERSION, checksum };
 
 },
 "src/ops/session-monitor.js": function(require,module,exports){
