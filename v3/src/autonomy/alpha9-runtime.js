@@ -1,4 +1,4 @@
-' strict';
+'use strict';
 
 const { StabilityRuntime } = require('../stability/stability-runtime');
 const { LocalFarmPlanner } = require('./local-farm-planner');
