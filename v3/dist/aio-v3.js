@@ -16318,7 +16318,7 @@ class Alpha20Runtime extends Alpha19Runtime {
       const projected = containing.slice().sort((a, b) => b.score - a.score || b.confidence - a.confidence)[0] || null;
       const measuredRows = containing.filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0).sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs));
       const measured = measuredRows[0] || null;
-      const equipment = character.equipment && typeof character.equipment === 'object' ? character.equipment : {};
+      const gear = character.gear && typeof character.gear === 'object' ? character.gear : {};
       rows.push({
         name: character.name,
         ctype: character.ctype,
@@ -16332,7 +16332,7 @@ class Alpha20Runtime extends Alpha19Runtime {
         projectedScore: projected ? projected.score : null,
         projectedProgress: projected ? projected.components.progress : null,
         expectedTrainingXpRatio: null,
-        gearReady: Object.keys(equipment).length > 0 && finite(character.stateConfidence) >= 0.75,
+        gearReady: Object.keys(gear).length > 0 && finite(character.stateConfidence) >= 0.75,
         contentSafe: encounter && encounter.contentDisposition !== 'UNKNOWN' && encounter.contentDisposition !== 'QUARANTINED'
       });
     }
