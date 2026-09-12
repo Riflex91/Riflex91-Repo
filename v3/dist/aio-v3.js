@@ -17,6 +17,7 @@ const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
 const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
+const { Alpha18Runtime } = require('./autonomy/alpha18-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -51,6 +52,9 @@ const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE,
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK } = require('./economy/controlled-merchant-executor');
+const { BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction } = require('./economy/bank-capacity-manager');
+const { BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState } = require('./economy/bank-expansion-transactions');
+const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK } = require('./economy/controlled-bank-expansion-executor');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
@@ -67,7 +71,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha17Runtime({ ...options, root });
+  const runtime = new Alpha18Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -195,6 +199,27 @@ function install(root = globalThis, options = {}) {
         reconcile: (id) => runtime.reconcileEconomyTransaction(id),
         breaker: (family) => runtime.transactionEngine.breaker(family),
         save: () => runtime.transactionEngine.save()
+      },
+      bankCapacity: {
+        status: () => runtime.bankCapacity.status(),
+        observe: () => runtime._observeBankCapacity(),
+        planSpace: (request = {}) => runtime.planBankSpace(request),
+        workGate: () => runtime.bankCapacity.status().workGate
+      },
+      bankExpansion: {
+        status: () => runtime.bankExpansionTransactions.status(),
+        list: (limit = 100) => runtime.bankExpansionTransactions.list(limit),
+        get: (id) => runtime.bankExpansionTransactions.get(id),
+        plan: (request = {}) => runtime.planBankExpansion(request),
+        reconcile: (id) => runtime.bankExpansionTransactions.reconcile(id, runtime._observeBankCapacity()),
+        breaker: () => runtime.bankExpansionTransactions.breaker(),
+        save: () => runtime.bankExpansionTransactions.save(),
+        controlled: {
+          status: () => runtime.controlledBankExpansion.status(),
+          configure: (config) => runtime.configureControlledBankExpansion(config),
+          disable: (reason) => runtime.controlledBankExpansion.disable(reason),
+          execute: (id) => runtime.executeBankExpansion(id)
+        }
       }
     },
     travel: {
@@ -266,7 +291,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -280,6 +305,9 @@ module.exports = {
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
   ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK,
+  BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction,
+  BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState,
+  ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK,
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
@@ -4632,7 +4660,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.17.0';
+const RELEASE_VERSION = '3.0.0-alpha.18.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -11410,11 +11438,11 @@ module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, Tra
 'use strict';
 
 const { Alpha16Runtime } = require('./alpha16-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../economy/controlled-merchant-executor');
 const { sellMetadataConsensus, rawSellProtectionReasons } = require('../economy/sell-safety');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_ACK } = require('../travel/controlled-travel-executor');
 
+const ALPHA17_VERSION = '3.0.0-alpha.17.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) {
@@ -11430,7 +11458,7 @@ function registryName(value) {
 class Alpha17Runtime extends Alpha16Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA17_VERSION;
     if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
       this.inventoryLedger.setSellSafetyResolver(({ row }) => {
         const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
@@ -11506,7 +11534,7 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA17_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -11680,7 +11708,7 @@ class Alpha17Runtime extends Alpha16Runtime {
     const controlledSubsystems = this._controlledSubsystemHealth();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA17_VERSION,
       economy: this._economyStatus(),
       travel: this._travelStatus(),
       supervisor: { ...base.supervisor, controlledSubsystems },
@@ -11709,7 +11737,7 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 }
 
-module.exports = { Alpha17Runtime };
+module.exports = { Alpha17Runtime, ALPHA17_VERSION };
 
 },
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
@@ -12450,6 +12478,1087 @@ class ControlledTravelExecutor {
 }
 
 module.exports = { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK: LIVE_ACK };
+
+},
+"src/autonomy/alpha18-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha17Runtime } = require('./alpha17-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { BankCapacityManager } = require('../economy/bank-capacity-manager');
+const { BankExpansionTransactionEngine } = require('../economy/bank-expansion-transactions');
+const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_ACK } = require('../economy/controlled-bank-expansion-executor');
+
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
+class Alpha18Runtime extends Alpha17Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+    this.bankCapacityObservationIntervalMs = Math.max(1000, Math.min(60000, Number(options.bankCapacityObservationIntervalMs) || 3000));
+    this.lastBankCapacityObservationAt = -Infinity;
+
+    this.bankCapacity = options.bankCapacity || new BankCapacityManager({
+      now: this.now,
+      log: this.log,
+      workspaceSlots: options.bankWorkspaceSlots == null ? options.inventoryWorkspaceSlots : options.bankWorkspaceSlots,
+      protectedGoldReserve: options.bankProtectedGoldReserve,
+      protectedShellReserve: options.bankProtectedShellReserve,
+      allowShellSpend: options.bankAllowShellSpend === true,
+      pressureObservationsRequired: options.bankPressureObservationsRequired
+    });
+    this.bankExpansionTransactions = options.bankExpansionTransactions || new BankExpansionTransactionEngine({
+      now: this.now,
+      log: this.log,
+      storage: options.bankExpansionStorage || options.storage,
+      leaseMs: options.bankExpansionLeaseMs,
+      failureWindowMs: options.bankExpansionFailureWindowMs,
+      failureThreshold: options.bankExpansionFailureThreshold,
+      circuitCooldownMs: options.bankExpansionCircuitCooldownMs,
+      preflightRetryBudget: options.bankExpansionPreflightRetryBudget,
+      retryBackoffMs: options.bankExpansionRetryBackoffMs
+    });
+    this.bankExpansionTransactions.load();
+    this.controlledBankExpansion = options.controlledBankExpansion || new ControlledBankExpansionExecutor({
+      root: this.root,
+      engine: this.bankExpansionTransactions,
+      manager: this.bankCapacity,
+      log: this.log,
+      now: this.now,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      timeoutMs: options.controlledBankExpansionTimeoutMs
+    });
+    this._observeBankCapacity();
+  }
+
+  _bankPacks() {
+    return this.root && (this.root.bank_packs || this.root.parent && this.root.parent.bank_packs) || {};
+  }
+
+  _liveCharacter() {
+    return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+  }
+
+  _observeBankCapacity() {
+    const character = this._liveCharacter();
+    if (!character) return null;
+    const result = this.bankCapacity.observe({
+      character,
+      bankPacks: this._bankPacks(),
+      gameData: this.adapter.getGameData() || {},
+      contentDrift: this.contentDrift,
+      observedAt: this.now()
+    });
+    for (const tx of this.bankExpansionTransactions.list(256)) {
+      if (tx.state === 'RECOVERING') this.bankExpansionTransactions.reconcile(tx.id, result);
+    }
+    return result;
+  }
+
+  _economyStatus() {
+    const base = super._economyStatus();
+    return {
+      ...base,
+      bankCapacity: this.bankCapacity.status(),
+      bankExpansion: {
+        transactions: this.bankExpansionTransactions.status(),
+        controlled: this.controlledBankExpansion.status()
+      }
+    };
+  }
+
+  _guardControlledAuthority() {
+    const result = super._guardControlledAuthority();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (this.bankExpansionTransactions.breaker().open) reason = 'BANK_EXPANSION_CIRCUIT_OPEN';
+    if (reason && this.controlledBankExpansion.status().enabled) this.controlledBankExpansion.disable(reason);
+    return { ...result, bankExpansionGuardReason: reason };
+  }
+
+  tick() {
+    super.tick();
+    const now = this.now();
+    this.bankExpansionTransactions.tick();
+    if (now - this.lastBankCapacityObservationAt >= this.bankCapacityObservationIntervalMs) {
+      this.lastBankCapacityObservationAt = now;
+      this._observeBankCapacity();
+    }
+  }
+
+  setMode(mode) {
+    const resolved = super.setMode(mode);
+    if (resolved !== 'active') this.controlledBankExpansion.disable('RUNTIME_LEFT_ACTIVE_MODE');
+    return resolved;
+  }
+
+  planBankSpace(request = {}) {
+    const observation = this._observeBankCapacity();
+    return this.bankCapacity.planSpace(request, {
+      observation,
+      currentMap: this._liveCharacter() && this._liveCharacter().map,
+      gold: this._liveCharacter() && this._liveCharacter().gold,
+      ledger: this.inventoryLedger,
+      gameData: this.adapter.getGameData() || {},
+      contentDrift: this.contentDrift,
+      minimumReserves: request.minimumReserves || {}
+    });
+  }
+
+  planBankExpansion(request = {}) {
+    const plan = request.plan && request.plan.action === 'EXPAND_BANK_PACK' ? request.plan : this.planBankSpace(request);
+    if (!plan || plan.action !== 'EXPAND_BANK_PACK') return { accepted: false, reason: 'NO_SAFE_EXPANSION_PLAN', plan: clone(plan) };
+    return this.bankExpansionTransactions.plan(plan, { observation: this.bankCapacity.status().observation });
+  }
+
+  configureControlledBankExpansion(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        this.controlledBankExpansion.disable(gate.reason);
+        return { ...this.controlledBankExpansion.status(), enableRejected: gate.reason };
+      }
+      if (this.bankExpansionTransactions.breaker().open) {
+        this.controlledBankExpansion.disable('BANK_EXPANSION_CIRCUIT_OPEN');
+        return { ...this.controlledBankExpansion.status(), enableRejected: 'BANK_EXPANSION_CIRCUIT_OPEN' };
+      }
+    }
+    return this.controlledBankExpansion.configure(config);
+  }
+
+  executeBankExpansion(id) { return this.controlledBankExpansion.execute(id); }
+
+  stop() {
+    this.controlledBankExpansion.disable('RUNTIME_STOP');
+    this.bankExpansionTransactions.save();
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      economy: this._economyStatus(),
+      alpha18: {
+        bankCapacityFoundation: true,
+        automaticExpansionEnabled: false,
+        automaticEmergencyReclaimEnabled: false,
+        controlledExpansionAck: CONTROLLED_BANK_EXPANSION_ACK,
+        globalStopOnNoSpace: false
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.bankCapacity = this.bankCapacity.status();
+    base.context.bankExpansion = {
+      status: this.bankExpansionTransactions.status(),
+      transactions: this.bankExpansionTransactions.list(100),
+      controlled: this.controlledBankExpansion.status()
+    };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha18Runtime };
+
+},
+"src/economy/bank-capacity-manager.js": function(require,module,exports){
+'use strict';
+
+const { sellProtectionReasons } = require('./sell-safety');
+
+const BANK_CAPACITY_SCHEMA_VERSION = 1;
+const BANK_CAPACITY_MODE = 'observation-planning-only';
+const BankSpaceAction = Object.freeze({
+  DEPOSIT_STACK: 'DEPOSIT_STACK',
+  DEPOSIT_FREE_SLOT: 'DEPOSIT_FREE_SLOT',
+  CONSOLIDATE_BANK_STACKS: 'CONSOLIDATE_BANK_STACKS',
+  EXPAND_BANK_PACK: 'EXPAND_BANK_PACK',
+  EMERGENCY_RECLAIM: 'EMERGENCY_RECLAIM',
+  BLOCK_INVENTORY_PRODUCING_WORK: 'BLOCK_INVENTORY_PRODUCING_WORK'
+});
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function hasOwn(value, key) {
+  return !!value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, key);
+}
+function unique(values) {
+  return [...new Set((Array.isArray(values) ? values : []).filter(Boolean).map(String))];
+}
+function itemIdentity(item) {
+  if (!item || !item.name) return null;
+  return `${String(item.name)}:${Math.max(0, Math.floor(finite(item.level, 0)))}`;
+}
+function packCatalogRow(name, value) {
+  if (Array.isArray(value)) {
+    return {
+      name: String(name),
+      map: value[0] == null ? null : String(value[0]),
+      goldCost: Math.max(0, finite(value[1], 0)),
+      shellCost: Math.max(0, finite(value[2], 0)),
+      source: 'bank_packs-array'
+    };
+  }
+  if (value && typeof value === 'object') {
+    return {
+      name: String(name),
+      map: value.map == null && value.place == null ? null : String(value.map == null ? value.place : value.map),
+      goldCost: Math.max(0, finite(value.gold == null ? value.goldCost : value.gold, 0)),
+      shellCost: Math.max(0, finite(value.shells == null ? value.shellCost : value.shells, 0)),
+      source: 'bank_packs-object'
+    };
+  }
+  return { name: String(name), map: null, goldCost: 0, shellCost: 0, source: 'observed-bank-only' };
+}
+
+class BankCapacityManager {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.workspaceSlots = Math.max(1, Math.min(32, Math.floor(finite(options.workspaceSlots, 3))));
+    this.protectedGoldReserve = Math.max(0, finite(options.protectedGoldReserve, 1000000));
+    this.protectedShellReserve = Math.max(0, finite(options.protectedShellReserve, 0));
+    this.allowShellSpend = options.allowShellSpend === true;
+    this.pressureObservationsRequired = Math.max(2, Math.min(20, Math.floor(finite(options.pressureObservationsRequired, 3))));
+    this.pressureHistory = [];
+    this.lastObservation = null;
+    this.lastPlan = null;
+    this.stats = {
+      observations: 0,
+      plans: 0,
+      stackTargets: 0,
+      freeSlotTargets: 0,
+      consolidationPlans: 0,
+      expansionPlans: 0,
+      reclaimPlans: 0,
+      selectiveBlocks: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'bank-capacity', event, severity, reason, data });
+    }
+  }
+
+  _catalog(bank, bankPacks) {
+    const names = new Set();
+    if (bankPacks && typeof bankPacks === 'object') Object.keys(bankPacks).forEach((name) => names.add(name));
+    if (bank && typeof bank === 'object') {
+      for (const [name, value] of Object.entries(bank)) if (Array.isArray(value)) names.add(name);
+    }
+    const rows = [];
+    for (const name of names) {
+      const source = bankPacks && typeof bankPacks === 'object' ? bankPacks[name] : null;
+      rows.push(packCatalogRow(name, source));
+    }
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _contentUnsafe(contentDrift, itemName) {
+    if (!contentDrift || !itemName) return false;
+    try {
+      if (typeof contentDrift.requiresRevalidation === 'function') return contentDrift.requiresRevalidation('items', itemName) === true;
+    } catch (_) {}
+    return false;
+  }
+
+  _bankItemSafety(item, gameData, contentDrift) {
+    if (!item || !item.name) return { protected: true, reasons: ['BANK_ITEM_UNKNOWN'] };
+    const reasons = [];
+    if (item.l === true || item.locked === true) reasons.push('BANK_ITEM_LOCKED');
+    if (item.p || item.special) reasons.push('BANK_ITEM_SPECIAL');
+    if (hasOwn(item, 'level') && Math.max(0, finite(item.level, 0)) > 0) reasons.push('BANK_ITEM_LEVELLED');
+    const meta = gameData && gameData.items && gameData.items[item.name];
+    if (!meta) reasons.push('BANK_ITEM_METADATA_UNKNOWN');
+    if (this._contentUnsafe(contentDrift, item.name)) reasons.push('BANK_ITEM_CONTENT_REVALIDATION_REQUIRED');
+    if (meta) reasons.push(...sellProtectionReasons(meta));
+    return { protected: unique(reasons).length > 0, reasons: unique(reasons) };
+  }
+
+  _packView(row, bank, gameData, contentDrift) {
+    const items = bank && Array.isArray(bank[row.name]) ? bank[row.name] : null;
+    const unlocked = !!items;
+    const capacity = unlocked ? items.length : 0;
+    let occupied = 0;
+    let protectedSlots = 0;
+    const compatibleStacks = [];
+    const identities = new Map();
+    if (items) {
+      items.forEach((item, index) => {
+        if (!item || !item.name) return;
+        occupied += 1;
+        const safety = this._bankItemSafety(item, gameData, contentDrift);
+        if (safety.protected) protectedSlots += 1;
+        const meta = gameData && gameData.items && gameData.items[item.name];
+        const stackMax = Math.max(1, Math.floor(finite(meta && meta.s, 1)));
+        const quantity = Math.max(1, Math.floor(finite(item.q, 1)));
+        const identity = itemIdentity(item);
+        if (!identity) return;
+        const current = identities.get(identity) || [];
+        current.push({ index, quantity, stackMax, name: String(item.name), level: Math.max(0, Math.floor(finite(item.level, 0))) });
+        identities.set(identity, current);
+        if (stackMax > quantity) compatibleStacks.push({ index, name: String(item.name), level: Math.max(0, Math.floor(finite(item.level, 0))), quantity, stackMax, headroom: stackMax - quantity });
+      });
+    }
+    const consolidation = [];
+    for (const stacks of identities.values()) {
+      if (stacks.length < 2) continue;
+      for (let i = 0; i < stacks.length; i += 1) {
+        for (let j = i + 1; j < stacks.length; j += 1) {
+          if (stacks[i].stackMax > 1 && stacks[i].quantity + stacks[j].quantity <= stacks[i].stackMax) {
+            consolidation.push({ fromIndex: stacks[j].index, toIndex: stacks[i].index, name: stacks[i].name, level: stacks[i].level, combinedQuantity: stacks[i].quantity + stacks[j].quantity, stackMax: stacks[i].stackMax });
+          }
+        }
+      }
+    }
+    return {
+      ...row,
+      unlocked,
+      capacity,
+      occupied,
+      free: Math.max(0, capacity - occupied),
+      protectedSlots,
+      reservedSlots: protectedSlots,
+      workspaceSlots: this.workspaceSlots,
+      workspaceAvailable: unlocked && Math.max(0, capacity - occupied) >= this.workspaceSlots,
+      compatibleStacks,
+      consolidation
+    };
+  }
+
+  observe(context = {}) {
+    const character = context.character || {};
+    const bank = character.bank && typeof character.bank === 'object' ? character.bank : {};
+    const gameData = context.gameData || {};
+    const catalog = this._catalog(bank, context.bankPacks || {});
+    const packs = catalog.map((row) => this._packView(row, bank, gameData, context.contentDrift || null));
+    const unlocked = packs.filter((row) => row.unlocked);
+    const locked = packs.filter((row) => !row.unlocked);
+    const totals = {
+      capacity: unlocked.reduce((sum, row) => sum + row.capacity, 0),
+      occupied: unlocked.reduce((sum, row) => sum + row.occupied, 0),
+      free: unlocked.reduce((sum, row) => sum + row.free, 0),
+      compatibleStackHeadroom: unlocked.reduce((sum, row) => sum + row.compatibleStacks.reduce((inner, stack) => inner + stack.headroom, 0), 0),
+      consolidationSlotsRecoverable: unlocked.reduce((sum, row) => sum + row.consolidation.length, 0)
+    };
+    const pressureNow = totals.free < this.workspaceSlots;
+    this.pressureHistory.push({ at: finite(context.observedAt, this.now()), pressure: pressureNow });
+    this.pressureHistory = this.pressureHistory.slice(-this.pressureObservationsRequired);
+    const sustainedPressure = this.pressureHistory.length >= this.pressureObservationsRequired && this.pressureHistory.every((row) => row.pressure);
+    this.lastObservation = {
+      schemaVersion: BANK_CAPACITY_SCHEMA_VERSION,
+      observedAt: finite(context.observedAt, this.now()),
+      character: { name: character.name || null, map: character.map || null, gold: Math.max(0, finite(character.gold, 0)) },
+      catalogSource: context.bankPacks && Object.keys(context.bankPacks).length ? 'observed-bank_packs' : 'observed-bank-only',
+      packs,
+      totals,
+      unlockedPackCount: unlocked.length,
+      lockedPackCount: locked.length,
+      pressureNow,
+      sustainedPressure,
+      actionAuthority: false
+    };
+    this.stats.observations += 1;
+    if (pressureNow) this._event('BANK_CAPACITY_PRESSURE', sustainedPressure ? 'warn' : 'info', sustainedPressure ? 'SUSTAINED_CAPACITY_PRESSURE' : 'CAPACITY_PRESSURE_OBSERVED', { free: totals.free, workspaceSlots: this.workspaceSlots, observations: this.pressureHistory.length });
+    return clone(this.lastObservation);
+  }
+
+  _stackTarget(request, observation) {
+    const name = String(request.item || request.name || '').trim();
+    const level = Math.max(0, Math.floor(finite(request.level, 0)));
+    const quantity = Math.max(1, Math.floor(finite(request.quantity, 1)));
+    if (!name) return null;
+    for (const pack of observation.packs.filter((row) => row.unlocked)) {
+      const stack = pack.compatibleStacks.find((row) => row.name === name && row.level === level && row.headroom >= quantity);
+      if (stack) return { action: BankSpaceAction.DEPOSIT_STACK, pack: pack.name, slot: stack.index, headroom: stack.headroom, quantity };
+    }
+    return null;
+  }
+
+  _freeTarget(observation) {
+    const pack = observation.packs.filter((row) => row.unlocked && row.free > 0).sort((a, b) => b.free - a.free || a.name.localeCompare(b.name))[0];
+    return pack ? { action: BankSpaceAction.DEPOSIT_FREE_SLOT, pack: pack.name, freeBefore: pack.free } : null;
+  }
+
+  _consolidation(observation) {
+    for (const pack of observation.packs.filter((row) => row.unlocked)) {
+      if (pack.consolidation.length) return { action: BankSpaceAction.CONSOLIDATE_BANK_STACKS, pack: pack.name, move: clone(pack.consolidation[0]), destructive: false, executionAuthority: false };
+    }
+    return null;
+  }
+
+  _expansion(observation, context = {}) {
+    const currentMap = String(context.currentMap == null ? observation.character.map || '' : context.currentMap);
+    const gold = Math.max(0, finite(context.gold, observation.character.gold));
+    const shells = Math.max(0, finite(context.shells, 0));
+    const candidates = observation.packs.filter((row) => !row.unlocked).map((row) => {
+      const choices = [];
+      if (row.goldCost >= 0 && gold - row.goldCost >= this.protectedGoldReserve) choices.push({ currency: 'gold', cost: row.goldCost, reserveAfter: gold - row.goldCost });
+      if (this.allowShellSpend && row.shellCost >= 0 && shells - row.shellCost >= this.protectedShellReserve) choices.push({ currency: 'shells', cost: row.shellCost, reserveAfter: shells - row.shellCost });
+      choices.sort((a, b) => a.cost - b.cost || a.currency.localeCompare(b.currency));
+      return { row, payment: choices[0] || null, sameMap: !row.map || row.map === currentMap };
+    }).filter((candidate) => candidate.payment);
+    candidates.sort((a, b) => Number(b.sameMap) - Number(a.sameMap) || a.payment.cost - b.payment.cost || a.row.name.localeCompare(b.row.name));
+    const picked = candidates[0];
+    if (!picked) return null;
+    return {
+      action: BankSpaceAction.EXPAND_BANK_PACK,
+      pack: picked.row.name,
+      map: picked.row.map,
+      currency: picked.payment.currency,
+      cost: picked.payment.cost,
+      reserveAfter: picked.payment.reserveAfter,
+      protectedReserve: picked.payment.currency === 'gold' ? this.protectedGoldReserve : this.protectedShellReserve,
+      requiresTravel: !!picked.row.map && picked.row.map !== currentMap,
+      exactlyOneExpansion: true,
+      executionAuthority: false
+    };
+  }
+
+  _reclaimBlockers(entry, meta, contentDrift, minimumReserve) {
+    const blockers = [];
+    if (!entry || entry.disposition !== 'SELL') blockers.push('NOT_POSITIVELY_DISPOSABLE');
+    if (!entry || entry.metadataKnown !== true) blockers.push('ITEM_METADATA_UNKNOWN');
+    if (entry && (entry.locked || entry.special)) blockers.push(entry.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL');
+    if (entry && String(entry.disposition || '').startsWith('RESERVE_')) blockers.push('ITEM_RESERVED');
+    if (entry && this._contentUnsafe(contentDrift, entry.name)) blockers.push('CONTENT_REVALIDATION_REQUIRED');
+    blockers.push(...sellProtectionReasons(meta));
+    const quantity = Math.max(1, Math.floor(finite(entry && entry.q, 1)));
+    if (quantity <= minimumReserve) blockers.push('PROTECTED_MINIMUM_RESERVE');
+    return unique(blockers);
+  }
+
+  _lossScore(entry, meta, minimumReserve) {
+    const quantity = Math.max(1, Math.floor(finite(entry.q, 1)));
+    const surplus = Math.max(0, quantity - minimumReserve);
+    const replacementCost = Math.max(0, finite(meta && (meta.g == null ? meta.gold : meta.g), 0));
+    const rarityPenalty = Math.max(0, finite(meta && (meta.rarity == null ? meta.rare : meta.rarity), 0));
+    const acquisitionPenalty = Math.max(0, finite(meta && meta.difficulty, 0));
+    const progressionPenalty = String(entry.disposition || '').includes('PROGRESSION') ? 1000000000 : 0;
+    const groupPenalty = String(entry.disposition || '').includes('GROUP') ? 1000000000 : 0;
+    return replacementCost + rarityPenalty * 1000000 + acquisitionPenalty * 100000 + progressionPenalty + groupPenalty + (surplus > 0 ? 1000 / surplus : 1000000000);
+  }
+
+  _reclaim(context = {}) {
+    const ledger = context.ledger;
+    const entries = ledger && typeof ledger.list === 'function' ? ledger.list(5000) : [];
+    const status = ledger && typeof ledger.status === 'function' ? ledger.status() : null;
+    if (!status || status.stale === true) return null;
+    const gameData = context.gameData || {};
+    const minimumReserves = context.minimumReserves && typeof context.minimumReserves === 'object' ? context.minimumReserves : {};
+    const candidates = [];
+    for (const entry of entries) {
+      if (!entry || !entry.name) continue;
+      const meta = gameData.items && gameData.items[entry.name];
+      const minimumReserve = Math.max(0, Math.floor(finite(minimumReserves[entry.name], 0)));
+      const blockers = this._reclaimBlockers(entry, meta, context.contentDrift || null, minimumReserve);
+      if (blockers.length) continue;
+      candidates.push({
+        character: entry.character,
+        index: entry.index,
+        item: entry.name,
+        level: Math.max(0, Math.floor(finite(entry.level, 0))),
+        observedQuantity: Math.max(1, Math.floor(finite(entry.q, 1))),
+        protectedMinimumReserve: minimumReserve,
+        quantity: 1,
+        lossScore: this._lossScore(entry, meta, minimumReserve),
+        reasons: ['POSITIVE_SELL_DISPOSITION', 'SELL_SAFETY_CLEAR', 'MINIMUM_RESERVE_PRESERVED']
+      });
+    }
+    candidates.sort((a, b) => a.lossScore - b.lossScore || a.item.localeCompare(b.item) || a.index - b.index);
+    return candidates[0] || null;
+  }
+
+  planSpace(request = {}, context = {}) {
+    const observation = context.observation || this.lastObservation || this.observe(context);
+    if (!observation) return { planned: false, reason: 'BANK_OBSERVATION_UNAVAILABLE' };
+    this.stats.plans += 1;
+    const stack = this._stackTarget(request, observation);
+    if (stack) {
+      this.stats.stackTargets += 1;
+      return this._remember({ planned: true, reason: 'COMPATIBLE_STACK_AVAILABLE', ...stack, destructive: false });
+    }
+    const free = this._freeTarget(observation);
+    if (free) {
+      this.stats.freeSlotTargets += 1;
+      return this._remember({ planned: true, reason: 'FREE_BANK_SLOT_AVAILABLE', ...free, destructive: false });
+    }
+    const consolidation = this._consolidation(observation);
+    if (consolidation) {
+      this.stats.consolidationPlans += 1;
+      return this._remember({ planned: true, reason: 'SAFE_STACK_CONSOLIDATION_AVAILABLE', ...consolidation });
+    }
+
+    const depositBlocked = request.depositBlocked === true || !!String(request.item || request.name || '').trim();
+    if (observation.sustainedPressure || depositBlocked) {
+      const expansion = this._expansion(observation, context);
+      if (expansion) {
+        this.stats.expansionPlans += 1;
+        return this._remember({ planned: true, reason: depositBlocked ? 'SAFE_DEPOSIT_BLOCKED_EXPANSION_AVAILABLE' : 'SUSTAINED_CAPACITY_PRESSURE', ...expansion });
+      }
+    }
+
+    const reclaim = this._reclaim(context);
+    if (reclaim) {
+      this.stats.reclaimPlans += 1;
+      return this._remember({
+        planned: true,
+        reason: 'EMERGENCY_RECLAIM_MINIMAL_SAFE_CANDIDATE',
+        action: BankSpaceAction.EMERGENCY_RECLAIM,
+        candidate: reclaim,
+        destructive: true,
+        exactlyOneUnit: true,
+        reobserveRequiredBeforeNextDecision: true,
+        bulkSellForbidden: true,
+        executionAuthority: false
+      });
+    }
+
+    this.stats.selectiveBlocks += 1;
+    return this._remember({
+      planned: true,
+      reason: 'NO_SAFE_SPACE_RECOVERY_ACTION',
+      action: BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK,
+      blockInventoryProducingWork: true,
+      globalBotStop: false,
+      independentSubsystemsMayContinue: ['combat', 'party', 'monitoring', 'travel-without-loot', 'safe-non-inventory-work'],
+      executionAuthority: false
+    });
+  }
+
+  _remember(plan) {
+    this.lastPlan = { at: this.now(), ...clone(plan) };
+    this._event('BANK_SPACE_PLAN', plan.action === BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK ? 'warn' : 'info', plan.reason, { action: plan.action, pack: plan.pack || null, item: plan.candidate && plan.candidate.item || null });
+    return clone(this.lastPlan);
+  }
+
+  status() {
+    return {
+      schemaVersion: BANK_CAPACITY_SCHEMA_VERSION,
+      mode: BANK_CAPACITY_MODE,
+      actionAuthority: false,
+      destructiveActionAuthority: false,
+      automaticSellEnabled: false,
+      automaticExpansionEnabled: false,
+      workspaceSlots: this.workspaceSlots,
+      protectedGoldReserve: this.protectedGoldReserve,
+      protectedShellReserve: this.protectedShellReserve,
+      shellSpendAllowed: this.allowShellSpend,
+      pressureObservationsRequired: this.pressureObservationsRequired,
+      observation: clone(this.lastObservation),
+      lastPlan: clone(this.lastPlan),
+      workGate: this.lastPlan && this.lastPlan.action === BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK ? {
+        inventoryProducingWorkBlocked: true,
+        globalBotStop: false,
+        reason: this.lastPlan.reason
+      } : { inventoryProducingWorkBlocked: false, globalBotStop: false, reason: null },
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  BankCapacityManager,
+  BANK_CAPACITY_SCHEMA_VERSION,
+  BANK_CAPACITY_MODE,
+  BankSpaceAction,
+  packCatalogRow,
+  itemIdentity
+};
+
+},
+"src/economy/bank-expansion-transactions.js": function(require,module,exports){
+'use strict';
+
+const BANK_EXPANSION_TX_SCHEMA_VERSION = 1;
+const BANK_EXPANSION_TX_MODE = 'shadow-restart-safe-default-off';
+const BankExpansionState = Object.freeze({
+  RESERVED: 'RESERVED',
+  EXECUTING: 'EXECUTING',
+  VERIFYING: 'VERIFYING',
+  RECOVERING: 'RECOVERING',
+  COMMITTED: 'COMMITTED',
+  ABORTED: 'ABORTED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+const TERMINAL = new Set([BankExpansionState.COMMITTED, BankExpansionState.ABORTED, BankExpansionState.FAILED_SAFE]);
+
+function finite(v, f = 0) { const n = Number(v); return Number.isFinite(n) ? n : f; }
+function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
+function storageGet(storage, key) {
+  if (!storage) return null;
+  if (typeof storage.get === 'function') return storage.get(key);
+  if (typeof storage.getItem === 'function') return storage.getItem(key);
+  return null;
+}
+function storageSet(storage, key, value) {
+  if (!storage) return false;
+  if (typeof storage.set === 'function') { storage.set(key, value); return true; }
+  if (typeof storage.setItem === 'function') { storage.setItem(key, value); return true; }
+  return false;
+}
+
+class BankExpansionTransactionEngine {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3:bank-expansion-transactions:v1';
+    this.leaseMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.leaseMs, 30000)));
+    this.failureWindowMs = Math.max(5000, Math.min(60 * 60 * 1000, finite(options.failureWindowMs, 120000)));
+    this.failureThreshold = Math.max(1, Math.min(20, Math.floor(finite(options.failureThreshold, 3))));
+    this.circuitCooldownMs = Math.max(5000, Math.min(60 * 60 * 1000, finite(options.circuitCooldownMs, 120000)));
+    this.preflightRetryBudget = Math.max(0, Math.min(10, Math.floor(finite(options.preflightRetryBudget, 2))));
+    this.retryBackoffMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.retryBackoffMs, 5000)));
+    this.transactions = new Map();
+    this.activeByPack = new Map();
+    this.failures = [];
+    this.circuit = null;
+    this.sequence = 0;
+    this.stats = { planned: 0, deduped: 0, committed: 0, aborted: 0, failedSafe: 0, recovered: 0, expired: 0, loadErrors: 0, saveErrors: 0 };
+  }
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'bank-expansion-transaction', event, severity, reason, data });
+  }
+  _pruneFailures() {
+    const now = this.now();
+    this.failures = this.failures.filter((row) => now - row.at <= this.failureWindowMs);
+    if (this.circuit && this.circuit.openUntil <= now) this.circuit = null;
+  }
+  breaker() {
+    this._pruneFailures();
+    return { open: !!this.circuit, openUntil: this.circuit && this.circuit.openUntil || null, reason: this.circuit && this.circuit.reason || null, failuresInWindow: this.failures.length, threshold: this.failureThreshold, windowMs: this.failureWindowMs, cooldownMs: this.circuitCooldownMs };
+  }
+  noteFailure(reason) {
+    this._pruneFailures();
+    const now = this.now();
+    this.failures.push({ at: now, reason: String(reason || 'BANK_EXPANSION_FAILURE') });
+    if (this.failures.length >= this.failureThreshold) {
+      this.circuit = { openedAt: now, openUntil: now + this.circuitCooldownMs, reason: String(reason || 'BANK_EXPANSION_FAILURE') };
+      this._event('BANK_EXPANSION_CIRCUIT_OPENED', 'warn', this.circuit.reason, { openUntil: this.circuit.openUntil });
+    }
+    this.save();
+    return this.breaker();
+  }
+  noteSuccess() { this.failures = []; this.circuit = null; this.save(); return this.breaker(); }
+  plan(plan = {}, context = {}) {
+    if (!plan || plan.action !== 'EXPAND_BANK_PACK') return { accepted: false, reason: 'EXPANSION_PLAN_REQUIRED' };
+    if (this.breaker().open) return { accepted: false, reason: 'BANK_EXPANSION_CIRCUIT_OPEN' };
+    const pack = String(plan.pack || '').trim();
+    const currency = String(plan.currency || '').trim();
+    const cost = finite(plan.cost, -1);
+    if (!pack || !['gold', 'shells'].includes(currency) || cost < 0) return { accepted: false, reason: 'INVALID_EXPANSION_INTENT' };
+    const existingId = this.activeByPack.get(pack);
+    if (existingId) {
+      this.stats.deduped += 1;
+      return { accepted: false, reason: 'BANK_PACK_TRANSACTION_ALREADY_ACTIVE', transaction: this.get(existingId) };
+    }
+    const observation = context.observation || null;
+    const packBefore = observation && Array.isArray(observation.packs) ? observation.packs.find((row) => row.name === pack) : null;
+    if (!packBefore || packBefore.unlocked) return { accepted: false, reason: packBefore ? 'BANK_PACK_ALREADY_UNLOCKED' : 'BANK_PACK_NOT_OBSERVED' };
+    if ((currency === 'gold' ? packBefore.goldCost : packBefore.shellCost) !== cost) return { accepted: false, reason: 'EXPANSION_COST_STALE' };
+    const now = this.now();
+    const id = `bank-expand-${now.toString(36)}-${(++this.sequence).toString(36)}`;
+    const row = {
+      schemaVersion: BANK_EXPANSION_TX_SCHEMA_VERSION,
+      id,
+      pack,
+      map: plan.map == null ? null : String(plan.map),
+      currency,
+      cost,
+      protectedReserve: Math.max(0, finite(plan.protectedReserve, 0)),
+      state: BankExpansionState.RESERVED,
+      reason: 'EXPANSION_INTENT_PERSISTED',
+      createdAt: now,
+      updatedAt: now,
+      leaseExpiresAt: now + this.leaseMs,
+      preflightRetriesRemaining: this.preflightRetryBudget,
+      nextRetryAt: null,
+      rawActionAttempts: 0,
+      rawActionAttemptLimit: 1,
+      before: { unlocked: false, capacity: Math.max(0, finite(packBefore.capacity, 0)), goldCost: packBefore.goldCost, shellCost: packBefore.shellCost, totals: clone(observation.totals) },
+      executionAllowed: false,
+      actionAuthority: false,
+      restartReconcileRequired: false
+    };
+    this.transactions.set(id, row);
+    this.activeByPack.set(pack, id);
+    this.stats.planned += 1;
+    this.save();
+    this._event('BANK_EXPANSION_RESERVED', 'info', null, { transactionId: id, pack, currency, cost, leaseExpiresAt: row.leaseExpiresAt });
+    return { accepted: true, transaction: clone(row) };
+  }
+  begin(id) {
+    const row = this.transactions.get(String(id));
+    if (!row) return { ok: false, reason: 'TRANSACTION_NOT_FOUND' };
+    if (row.state !== BankExpansionState.RESERVED) return { ok: false, reason: 'TRANSACTION_NOT_RESERVED' };
+    if (row.leaseExpiresAt != null && this.now() > row.leaseExpiresAt) return { ok: false, reason: 'TRANSACTION_LEASE_EXPIRED' };
+    if (row.rawActionAttempts >= row.rawActionAttemptLimit) return { ok: false, reason: 'RAW_ACTION_ATTEMPT_BUDGET_EXHAUSTED' };
+    row.state = BankExpansionState.EXECUTING;
+    row.reason = 'RAW_ACTION_STARTED';
+    row.updatedAt = this.now();
+    row.rawActionAttempts += 1;
+    this.save();
+    return { ok: true, transaction: clone(row) };
+  }
+  verifying(id) {
+    const row = this.transactions.get(String(id));
+    if (!row || row.state !== BankExpansionState.EXECUTING) return false;
+    row.state = BankExpansionState.VERIFYING;
+    row.reason = 'RAW_ACTION_RESULT_RECEIVED';
+    row.updatedAt = this.now();
+    this.save();
+    return true;
+  }
+  preflightRetry(id, reason) {
+    const row = this.transactions.get(String(id));
+    if (!row || row.state !== BankExpansionState.RESERVED) return false;
+    if (row.preflightRetriesRemaining <= 0) return false;
+    row.preflightRetriesRemaining -= 1;
+    row.nextRetryAt = this.now() + this.retryBackoffMs;
+    row.reason = String(reason || 'PREFLIGHT_RETRY_BACKOFF');
+    row.updatedAt = this.now();
+    this.save();
+    return true;
+  }
+  commit(id, evidence = {}) {
+    const row = this.transactions.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.state = BankExpansionState.COMMITTED;
+    row.reason = 'UNLOCK_VERIFIED_COMMIT';
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    row.evidence = clone(evidence);
+    this.activeByPack.delete(row.pack);
+    this.stats.committed += 1;
+    this.noteSuccess();
+    this.save();
+    return true;
+  }
+  abort(id, reason = 'ABORTED') {
+    const row = this.transactions.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.state = BankExpansionState.ABORTED;
+    row.reason = String(reason);
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    this.activeByPack.delete(row.pack);
+    this.stats.aborted += 1;
+    this.save();
+    return true;
+  }
+  failSafe(id, reason = 'FAILED_SAFE', evidence = {}) {
+    const row = this.transactions.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.state = BankExpansionState.FAILED_SAFE;
+    row.reason = String(reason);
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    row.evidence = clone(evidence);
+    this.activeByPack.delete(row.pack);
+    this.stats.failedSafe += 1;
+    this.noteFailure(row.reason);
+    this.save();
+    return true;
+  }
+  reconcile(id, observation) {
+    const row = this.transactions.get(String(id));
+    if (!row || row.state !== BankExpansionState.RECOVERING) return { reconciled: false, reason: 'TRANSACTION_NOT_RECOVERING' };
+    const pack = observation && Array.isArray(observation.packs) ? observation.packs.find((candidate) => candidate.name === row.pack) : null;
+    if (pack && pack.unlocked && pack.capacity > 0) {
+      row.state = BankExpansionState.COMMITTED;
+      row.reason = 'RESTART_OBSERVED_UNLOCK';
+      row.updatedAt = this.now();
+      row.leaseExpiresAt = null;
+      row.restartReconcileRequired = false;
+      row.evidence = { after: clone(pack), reconciliation: true };
+      this.activeByPack.delete(row.pack);
+      this.stats.committed += 1;
+      this.stats.recovered += 1;
+      this.noteSuccess();
+      this.save();
+      return { reconciled: true, committed: true, transaction: clone(row) };
+    }
+    row.state = BankExpansionState.ABORTED;
+    row.reason = 'RESTART_RECONCILED_NO_UNLOCK_RETRY_REQUIRES_NEW_TRANSACTION';
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    row.restartReconcileRequired = false;
+    this.activeByPack.delete(row.pack);
+    this.stats.aborted += 1;
+    this.stats.recovered += 1;
+    this.save();
+    return { reconciled: true, committed: false, transaction: clone(row) };
+  }
+  tick() {
+    const now = this.now();
+    let expired = 0;
+    for (const row of this.transactions.values()) {
+      if (TERMINAL.has(row.state) || row.state === BankExpansionState.RECOVERING) continue;
+      if (row.leaseExpiresAt != null && now > row.leaseExpiresAt) {
+        this.abort(row.id, 'BANK_EXPANSION_LEASE_EXPIRED');
+        expired += 1;
+        this.stats.expired += 1;
+      }
+    }
+    this._pruneFailures();
+    return { expired };
+  }
+  get(id) { const row = this.transactions.get(String(id)); return row ? clone(row) : null; }
+  list(limit = 100) {
+    const rows = [...this.transactions.values()].sort((a, b) => a.createdAt - b.createdAt);
+    return rows.slice(-Math.max(0, Math.min(rows.length, Math.floor(finite(limit, 100))))).map(clone);
+  }
+  save() {
+    if (!this.storage) return false;
+    try {
+      return storageSet(this.storage, this.storageKey, JSON.stringify({ schemaVersion: BANK_EXPANSION_TX_SCHEMA_VERSION, sequence: this.sequence, transactions: this.list(256), failures: clone(this.failures), circuit: clone(this.circuit) }));
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('BANK_EXPANSION_SAVE_FAILED', 'error', 'PERSISTENCE_WRITE_FAILED', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+  load() {
+    this.transactions.clear(); this.activeByPack.clear();
+    if (!this.storage) return false;
+    try {
+      const raw = storageGet(this.storage, this.storageKey);
+      if (!raw) return false;
+      const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!payload || payload.schemaVersion !== BANK_EXPANSION_TX_SCHEMA_VERSION || !Array.isArray(payload.transactions)) throw new Error('UNSUPPORTED_BANK_EXPANSION_SCHEMA');
+      this.sequence = Math.max(0, Math.floor(finite(payload.sequence, 0)));
+      this.failures = Array.isArray(payload.failures) ? payload.failures : [];
+      this.circuit = payload.circuit || null;
+      for (const candidate of payload.transactions) {
+        if (!candidate || !candidate.id || !candidate.pack) continue;
+        const row = clone(candidate);
+        if (!TERMINAL.has(row.state)) {
+          row.state = BankExpansionState.RECOVERING;
+          row.reason = 'RESTART_RECONCILE_REQUIRED';
+          row.restartReconcileRequired = true;
+          row.leaseExpiresAt = null;
+          this.activeByPack.set(row.pack, row.id);
+        }
+        this.transactions.set(row.id, row);
+      }
+      return true;
+    } catch (error) {
+      this.transactions.clear(); this.activeByPack.clear(); this.failures = []; this.circuit = null;
+      this.stats.loadErrors += 1;
+      this._event('BANK_EXPANSION_LOAD_FAILED', 'error', 'PERSISTENCE_CORRUPT_FAIL_CLOSED', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+  status() {
+    const rows = [...this.transactions.values()];
+    return { schemaVersion: BANK_EXPANSION_TX_SCHEMA_VERSION, mode: BANK_EXPANSION_TX_MODE, actionAuthority: false, liveExecutionEnabled: false, leaseMs: this.leaseMs, rawActionAttemptLimit: 1, preflightRetryBudget: this.preflightRetryBudget, retryBackoffMs: this.retryBackoffMs, transactions: rows.length, active: rows.filter((row) => !TERMINAL.has(row.state) && row.state !== BankExpansionState.RECOVERING).length, recovering: rows.filter((row) => row.state === BankExpansionState.RECOVERING).length, breaker: this.breaker(), stats: clone(this.stats) };
+  }
+}
+
+module.exports = { BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState };
+
+},
+"src/economy/controlled-bank-expansion-executor.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_BANK_EXPANSION_MODE = 'controlled-canary-default-off';
+const CONTROLLED_BANK_EXPANSION_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(v, f = 0) { const n = Number(v); return Number.isFinite(n) ? n : f; }
+function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
+
+class ControlledBankExpansionExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.engine = options.engine;
+    this.manager = options.manager;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 10000)));
+    this.enabled = false;
+    this.busy = false;
+    this.lastAction = null;
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, timeouts: 0, staleCostRejected: 0, partialUnlockRejected: 0 };
+  }
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-bank-expansion', event, severity, reason, data });
+  }
+  configure(config = {}) {
+    if (config.enabled === true && config.ack !== CONTROLLED_BANK_EXPANSION_ACK) {
+      this.enabled = false;
+      this._event('CONTROLLED_BANK_EXPANSION_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = config.enabled === true;
+    this._event('CONTROLLED_BANK_EXPANSION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CANARY_ENABLE' : 'DISABLED');
+    return this.status();
+  }
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this._event('CONTROLLED_BANK_EXPANSION_DISABLED', 'warn', reason);
+    return this.status();
+  }
+  _inCombat() {
+    const character = this.root && this.root.character || {};
+    if (character.target) return true;
+    const entities = this.root && this.root.parent && this.root.parent.entities || this.root.entities || {};
+    const self = new Set([character.name, character.id].filter(Boolean).map(String));
+    return Object.values(entities).some((entity) => entity && entity.target && self.has(String(entity.target)));
+  }
+  _bankPacks() {
+    return this.root.bank_packs || this.root.parent && this.root.parent.bank_packs || {};
+  }
+  _observe() {
+    const character = this.root && this.root.character || null;
+    if (!character || !this.manager) return null;
+    const G = this.root.G || this.root.parent && this.root.parent.G || {};
+    return this.manager.observe({ character, bankPacks: this._bankPacks(), gameData: G, observedAt: this.now() });
+  }
+  _preflight(tx) {
+    if (!tx) return { ok: false, reason: 'TRANSACTION_NOT_FOUND' };
+    if (!this.enabled) return { ok: false, reason: 'CONTROLLED_BANK_EXPANSION_DISABLED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (this.busy) return { ok: false, reason: 'CONTROLLED_BANK_EXPANSION_BUSY' };
+    if (tx.state !== 'RESERVED') return { ok: false, reason: 'TRANSACTION_NOT_RESERVED' };
+    if (tx.leaseExpiresAt != null && this.now() > Number(tx.leaseExpiresAt)) return { ok: false, reason: 'TRANSACTION_LEASE_EXPIRED' };
+    if (tx.nextRetryAt != null && this.now() < Number(tx.nextRetryAt)) return { ok: false, reason: 'PREFLIGHT_BACKOFF_ACTIVE' };
+    if (tx.currency !== 'gold') return { ok: false, reason: 'SHELL_SPEND_NOT_ENABLED_FOR_ALPHA18_CANARY' };
+    if (this.engine && this.engine.breaker().open) return { ok: false, reason: 'BANK_EXPANSION_CIRCUIT_OPEN' };
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    const character = this.root && this.root.character;
+    if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
+    if (Array.isArray(character.bank[tx.pack])) return { ok: false, reason: 'BANK_PACK_ALREADY_UNLOCKED' };
+    const catalog = this._bankPacks();
+    const raw = catalog && catalog[tx.pack];
+    if (!raw) return { ok: false, reason: 'BANK_PACK_CATALOG_MISSING' };
+    const map = Array.isArray(raw) ? raw[0] : raw.map || raw.place;
+    const goldCost = Array.isArray(raw) ? finite(raw[1], -1) : finite(raw.gold == null ? raw.goldCost : raw.gold, -1);
+    if (map != null && String(character.map || '') !== String(map)) return { ok: false, reason: 'WRONG_BANK_FLOOR', expectedMap: map, actualMap: character.map || null };
+    if (goldCost !== finite(tx.cost, -2)) {
+      this.stats.staleCostRejected += 1;
+      return { ok: false, reason: 'EXPANSION_COST_STALE', expectedCost: tx.cost, observedCost: goldCost };
+    }
+    const gold = Math.max(0, finite(character.gold, 0));
+    if (gold < goldCost) return { ok: false, reason: 'INSUFFICIENT_FUNDS' };
+    if (gold - goldCost < Math.max(0, finite(tx.protectedReserve, 0))) return { ok: false, reason: 'PROTECTED_GOLD_RESERVE_VIOLATION' };
+    if (typeof this.root.open_bank_pack !== 'function') return { ok: false, reason: 'OPEN_BANK_PACK_API_UNAVAILABLE' };
+    return { ok: true, character, catalog, map, goldCost };
+  }
+  _timeout(promise) {
+    let timer = null;
+    const setTimer = this.root.setTimeout || setTimeout;
+    const clearTimer = this.root.clearTimeout || clearTimeout;
+    const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error('BANK_EXPANSION_TIMEOUT')), this.timeoutMs); });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
+  }
+  _snapshot(tx) {
+    const character = this.root && this.root.character || {};
+    const pack = character.bank && Array.isArray(character.bank[tx.pack]) ? character.bank[tx.pack] : null;
+    return {
+      at: this.now(),
+      pack: tx.pack,
+      unlocked: !!pack,
+      capacity: pack ? pack.length : 0,
+      occupied: pack ? pack.filter(Boolean).length : 0,
+      gold: Math.max(0, finite(character.gold, 0)),
+      map: character.map || null
+    };
+  }
+  _failSafe(tx, reason, evidence = {}) {
+    this.engine.failSafe(tx.id, reason, evidence);
+    this.stats.failedSafe += 1;
+    this.lastAction = { at: this.now(), transactionId: tx.id, pack: tx.pack, result: 'FAILED_SAFE', reason, evidence: clone(evidence) };
+    this._event('CONTROLLED_BANK_EXPANSION_FAILED_SAFE', 'error', reason, this.lastAction);
+    return { executed: true, committed: false, reason, evidence: clone(evidence) };
+  }
+  async execute(transactionId) {
+    const tx = this.engine && this.engine.get(String(transactionId));
+    const check = this._preflight(tx);
+    if (!check.ok) {
+      this.stats.rejected += 1;
+      if (tx && ['BANK_PACK_CATALOG_MISSING', 'WRONG_BANK_FLOOR', 'PREFLIGHT_BACKOFF_ACTIVE'].includes(check.reason)) this.engine.preflightRetry(tx.id, check.reason);
+      if (tx && check.reason === 'TRANSACTION_LEASE_EXPIRED') this.engine.abort(tx.id, check.reason);
+      this._event('CONTROLLED_BANK_EXPANSION_REJECTED', 'warn', check.reason, { transactionId, pack: tx && tx.pack || null });
+      return { executed: false, committed: false, reason: check.reason, ...check };
+    }
+    const begun = this.engine.begin(tx.id);
+    if (!begun.ok) return { executed: false, committed: false, reason: begun.reason };
+    this.busy = true;
+    this.stats.attempts += 1;
+    const before = this._snapshot(tx);
+    this._event('CONTROLLED_BANK_EXPANSION_STARTED', 'warn', 'CONTROLLED_CANARY', { transactionId: tx.id, pack: tx.pack, currency: tx.currency, cost: tx.cost, before });
+    try {
+      const response = await this._timeout(this.root.open_bank_pack(tx.pack, tx.currency, this.timeoutMs));
+      this.engine.verifying(tx.id);
+      const after = this._snapshot(tx);
+      if (!after.unlocked || after.capacity <= 0) {
+        this.stats.partialUnlockRejected += 1;
+        return this._failSafe(tx, 'BANK_PACK_UNLOCK_NOT_OBSERVED', { before, after, response: clone(response) });
+      }
+      if (before.unlocked || before.capacity !== 0) return this._failSafe(tx, 'BANK_PACK_BEFORE_SNAPSHOT_INVALID', { before, after });
+      if (after.gold > before.gold || before.gold - after.gold > finite(tx.cost, 0)) {
+        return this._failSafe(tx, 'BANK_EXPANSION_GOLD_DELTA_INVALID', { before, after, expectedCost: tx.cost });
+      }
+      this.engine.commit(tx.id, { before, after, response: clone(response), commitBasis: 'OFFICIAL_PROMISE_PLUS_OBSERVED_UNLOCK' });
+      this.stats.committed += 1;
+      this.lastAction = { at: this.now(), transactionId: tx.id, pack: tx.pack, result: 'COMMITTED', reason: 'UNLOCK_VERIFIED_COMMIT', before, after };
+      this._event('CONTROLLED_BANK_EXPANSION_COMMITTED', 'info', 'UNLOCK_VERIFIED_COMMIT', this.lastAction);
+      return { executed: true, committed: true, reason: 'UNLOCK_VERIFIED_COMMIT', before, after, response: clone(response) };
+    } catch (error) {
+      const reason = String(error && error.message || error || 'BANK_EXPANSION_FAILED');
+      if (reason.includes('TIMEOUT')) this.stats.timeouts += 1;
+      return this._failSafe(tx, reason, { before, after: this._snapshot(tx) });
+    } finally {
+      this.busy = false;
+    }
+  }
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_BANK_EXPANSION_MODE,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      explicitAckRequired: CONTROLLED_BANK_EXPANSION_ACK,
+      officialApi: 'open_bank_pack(pack,currency,timeout_ms)',
+      goldCanaryOnly: true,
+      shellSpendEnabled: false,
+      rawActionAttemptLimit: 1,
+      verification: 'official-promise-plus-observed-pack-unlock-and-capacity-snapshot',
+      busy: this.busy,
+      timeoutMs: this.timeoutMs,
+      lastAction: clone(this.lastAction),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
