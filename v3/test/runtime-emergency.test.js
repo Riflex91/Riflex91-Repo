@@ -5,6 +5,7 @@ const { Runtime } = require('../src/runtime');
 const { GameAdapter } = require('../src/game/adapter');
 const { EventLog } = require('../src/core/event-log');
 const { FarmerState } = require('../src/farmer/farmer-fsm');
+const { WorldModel, EvidenceKind } = require('../src/world/world-model');
 
 test('Runtime removes only the active Farmer target when emergency disengage triggers', () => {
   let now = 40000;
@@ -18,7 +19,9 @@ test('Runtime removes only the active Farmer target when emergency disengage tri
   };
   const log = new EventLog({ now: () => now, runId: 'emergency-runtime-test' });
   const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'active', now: () => now });
-  const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now });
+  const world = new WorldModel({ now: () => now });
+  world.observeEntity('monster', 'goo', { maps: ['main'] }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
+  const runtime = new Runtime({ root, parent: root.parent, adapter, log, world, now: () => now });
   const snap = adapter.snapshot();
   const profile = runtime._partyProfile(snap);
   runtime.lastSnapshot = snap;

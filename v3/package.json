@@ -1,8 +1,8 @@
 {
   "name": "adventure-land-aio-v3",
-  "version": "3.0.0-alpha.8.11",
+  "version": "3.0.0-alpha.8.12",
   "private": true,
-  "description": "Adventure Land AiO Bot v3 alpha: scheduler-owned farmer FSM with combat safety, basic kiting, conservative skill usage, bounded target reassessment, and emergency safe retreat.",
+  "description": "Adventure Land AiO Bot v3 alpha: stability-first scheduler-owned farmer with combat safety, unknown-content quarantine, conservative skills, kiting, target reassessment and emergency retreat.",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",

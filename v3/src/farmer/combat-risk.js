@@ -1,5 +1,7 @@
 'use strict';
 
+const { ContentSafetyGate } = require('./content-safety');
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
 }
@@ -21,6 +23,16 @@ class CombatRiskGate {
     this.deathRiskWeight = Math.max(0, Math.min(1, Number(options.deathRiskWeight) || 0.65));
     this.deathRateReference = Math.max(0.1, Number(options.deathRateReference) || 2);
     this.minLearnedConfidence = Math.max(0, Math.min(1, Number(options.minLearnedConfidence) || 0.25));
+    this.contentSafety = options.contentSafety || new ContentSafetyGate({ log: options.log, now: options.now });
+    this.lastWorld = null;
+  }
+
+  approveMonsterType(world, mtype) {
+    return this.contentSafety.approve(world || this.lastWorld, mtype);
+  }
+
+  quarantineMonsterType(world, mtype) {
+    return this.contentSafety.quarantine(world || this.lastWorld, mtype);
   }
 
   _additionalAggro(snapshot, entity) {
@@ -39,17 +51,34 @@ class CombatRiskGate {
       return { allowed: true, score: 0, reason: 'RISK_NOT_APPLICABLE', signals: {} };
     }
 
-    // Alpha.8 step 1 only controls new pulls. Existing combat is never abandoned here.
+    if (world) this.lastWorld = world;
+    const content = this.contentSafety.evaluate(entity, world || this.lastWorld);
+    if (!content.allowed) {
+      return {
+        allowed: false,
+        score: 1,
+        threshold: this.threshold,
+        reason: content.reason,
+        signals: {
+          contentDisposition: content.disposition || null,
+          contentReason: content.cause || content.reason,
+          monsterType: content.monsterType || entity.mtype
+        }
+      };
+    }
+
+    // Existing combat is not abandoned by the ordinary risk score, but unknown
+    // content was already filtered above so ALREADY_ENGAGED cannot bypass quarantine.
     if (entity.target) {
       return {
         allowed: true,
         score: 0,
         reason: 'ALREADY_ENGAGED',
-        signals: { claimedBy: entity.target }
+        signals: { claimedBy: entity.target, contentDisposition: content.disposition || null }
       };
     }
 
-    const signals = {};
+    const signals = { contentDisposition: content.disposition || null };
     let score = 0;
     let primaryReason = 'RISK_ACCEPTABLE';
 
@@ -108,7 +137,8 @@ class CombatRiskGate {
       threshold: this.threshold,
       recoveryHpRatio: this.recoveryHpRatio,
       minLearnedConfidence: this.minLearnedConfidence,
-      deathRateReference: this.deathRateReference
+      deathRateReference: this.deathRateReference,
+      contentSafety: this.contentSafety.status(this.lastWorld)
     };
   }
 }
