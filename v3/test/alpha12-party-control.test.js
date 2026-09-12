@@ -189,7 +189,6 @@ test('Hardened Alpha12 runtime installs the control lease, keeps Party authority
     character: { name: 'Merch', ctype: 'merchant', level: 70, map: 'main', real_x: 0, real_y: 0, hp: 2000, max_hp: 2000, mp: 1000, max_mp: 1000, xp: 0, gold: 0, items: [], slots: {}, speed: 40, rip: false },
     parent: { entities: {}, party: {} },
     G: { monsters: {}, maps: { main: {} }, skills: {} },
-    game_log(message) { visible.push(String(message)); },
     performance_trick() {}
   };
   const runtime = new Alpha12Runtime({
@@ -205,6 +204,7 @@ test('Hardened Alpha12 runtime installs the control lease, keeps Party authority
     ],
     partyMerchantName: 'Merch'
   });
+  runtime._gameLog = (message) => { visible.push(String(message)); return true; };
   runtime.setMode('shadow');
   const status = runtime.status();
   assert.equal(status.version, '3.0.0-alpha.12.0');
