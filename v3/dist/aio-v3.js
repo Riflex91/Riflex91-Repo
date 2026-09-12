@@ -9748,6 +9748,10 @@ function asSet(value) {
   return new Set(Array.isArray(value) ? value.map(String) : []);
 }
 
+function uniqueStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).map((value) => String(value || '')).filter(Boolean))];
+}
+
 class InventoryLedger {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
@@ -9762,6 +9766,7 @@ class InventoryLedger {
     this.sellAllowlist = asSet(options.sellAllowlist);
     this.bankAllowlist = asSet(options.bankAllowlist);
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
+    this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
     this.entries = new Map();
     this.lastObservedAt = null;
@@ -9782,6 +9787,11 @@ class InventoryLedger {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (!this.log || typeof this.log.emit !== 'function') return;
     this.log.emit({ component: 'inventory-ledger', event, severity, reason, data });
+  }
+
+  setSellSafetyResolver(resolver) {
+    this.sellSafetyResolver = typeof resolver === 'function' ? resolver : null;
+    return this.sellSafetyResolver !== null;
   }
 
   setProgressionReservations(reservations) {
@@ -9816,6 +9826,23 @@ class InventoryLedger {
     return false;
   }
 
+  _resolveSellBlockers(row, meta, gameData, contentDrift) {
+    let blockers = sellProtectionReasons(meta);
+    if (!this.sellSafetyResolver) return blockers;
+    try {
+      const resolved = this.sellSafetyResolver({ row: clone(row), meta, gameData, contentDrift });
+      const extra = Array.isArray(resolved)
+        ? resolved
+        : resolved && Array.isArray(resolved.blockers)
+          ? resolved.blockers
+          : [];
+      blockers = uniqueStrings([...blockers, ...extra]);
+    } catch (_) {
+      blockers = uniqueStrings([...blockers, 'SELL_SAFETY_RESOLVER_FAILED']);
+    }
+    return blockers;
+  }
+
   _baseDisposition(row, gameData, contentDrift, counts) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
@@ -9836,7 +9863,7 @@ class InventoryLedger {
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
     if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
     if (this.sellAllowlist.has(row.name)) {
-      const blockers = sellProtectionReasons(meta);
+      const blockers = this._resolveSellBlockers(row, meta, gameData, contentDrift);
       if (blockers.length) {
         return {
           disposition: ItemDisposition.UNDECIDED,
@@ -10017,6 +10044,7 @@ class InventoryLedger {
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
         defaultDisposition: ItemDisposition.UNDECIDED,
+        sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
         sellSafety: sellSafetyStatus()
       },
       stats: clone(this.stats)
@@ -10036,41 +10064,126 @@ module.exports = {
 "src/economy/sell-safety.js": function(require,module,exports){
 'use strict';
 
-const LOW_RISK_SELL_TYPES = Object.freeze(['material', 'misc']);
-const LOW_RISK_SELL_TYPE_SET = new Set(LOW_RISK_SELL_TYPES);
+const LOW_RISK_SELL_TYPES = Object.freeze(['material']);
+const STRUCTURAL_GEAR_KEYS = Object.freeze(['grades', 'tier', 'scroll', 'wtype', 'class']);
+const INTERACTIVE_KEYS = Object.freeze(['action', 'onclick', 'offering', 'throw', 'rare', 'ignore']);
+
+function hasOwn(value, key) {
+  return !!value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function finite(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
 
 function sellProtectionReasons(meta) {
   if (!meta || typeof meta !== 'object') return ['SELL_METADATA_UNKNOWN'];
-
   const reasons = [];
   const type = String(meta.type || '').toLowerCase();
+  if (!LOW_RISK_SELL_TYPES.includes(type)) reasons.push('SELL_TYPE_NOT_LOW_RISK');
 
-  if (!LOW_RISK_SELL_TYPE_SET.has(type)) reasons.push('SELL_TYPE_NOT_LOW_RISK');
-  if (type === 'quest' || meta.quest != null) reasons.push('SELL_QUEST_PROTECTED');
-  if (meta.e != null || meta.exchange != null) reasons.push('SELL_EXCHANGE_PROTECTED');
-  if (meta.event === true || typeof meta.event === 'string') reasons.push('SELL_EVENT_PROTECTED');
-  if (meta.cash != null && meta.cash !== false) reasons.push('SELL_CASH_PROTECTED');
-  if (meta.soulbound === true) reasons.push('SELL_SOULBOUND_PROTECTED');
-  if (meta.compound === true) reasons.push('SELL_COMPOUND_PROTECTED');
-  if (meta.upgrade != null && meta.upgrade !== false) reasons.push('SELL_UPGRADE_PROTECTED');
+  const stackSize = finite(meta.s);
+  if (stackSize == null || stackSize < 2) reasons.push('SELL_NOT_PLAIN_STACKABLE_MATERIAL');
 
-  return [...new Set(reasons)];
+  if (meta.quest || meta.q) reasons.push('SELL_QUEST_ITEM_PROTECTED');
+  if (meta.e || meta.exchange) reasons.push('SELL_EXCHANGE_ITEM_PROTECTED');
+  if (meta.event) reasons.push('SELL_EVENT_ITEM_PROTECTED');
+  if (meta.cash || meta.cash_item || meta.cashitem) reasons.push('SELL_CASH_ITEM_PROTECTED');
+  if (meta.soulbound || meta.soul_bound) reasons.push('SELL_SOULBOUND_ITEM_PROTECTED');
+  if (meta.compound) reasons.push('SELL_COMPOUND_ITEM_PROTECTED');
+  if (meta.upgrade) reasons.push('SELL_UPGRADE_ITEM_PROTECTED');
+
+  for (const key of STRUCTURAL_GEAR_KEYS) {
+    if (hasOwn(meta, key)) reasons.push(`SELL_GEAR_SIGNAL_${key.toUpperCase()}`);
+  }
+  for (const key of INTERACTIVE_KEYS) {
+    if (hasOwn(meta, key) && meta[key] != null && meta[key] !== false) reasons.push(`SELL_SPECIAL_SIGNAL_${key.toUpperCase()}`);
+  }
+
+  return unique(reasons);
+}
+
+function rawSellProtectionReasons(item) {
+  if (!item || typeof item !== 'object') return ['SELL_RAW_ITEM_UNKNOWN'];
+  const reasons = [];
+  if (hasOwn(item, 'level')) reasons.push('SELL_RAW_LEVELLED_ITEM_PROTECTED');
+  if (item.l === true) reasons.push('SELL_RAW_LOCKED_ITEM_PROTECTED');
+  if (item.p) reasons.push('SELL_RAW_SPECIAL_ITEM_PROTECTED');
+  return unique(reasons);
+}
+
+function sellMetadataSafetyView(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  const out = {
+    type: String(meta.type || '').toLowerCase(),
+    stackSize: finite(meta.s)
+  };
+  for (const key of [
+    'quest', 'q', 'e', 'exchange', 'event', 'cash', 'cash_item', 'cashitem',
+    'soulbound', 'soul_bound', 'compound', 'upgrade',
+    ...STRUCTURAL_GEAR_KEYS, ...INTERACTIVE_KEYS
+  ]) {
+    out[key] = hasOwn(meta, key) ? (meta[key] == null ? null : meta[key] === false ? false : true) : 'ABSENT';
+  }
+  return out;
+}
+
+function sellMetadataConsensus(root, itemName) {
+  const name = String(itemName || '').trim();
+  const candidates = [];
+  const seen = new Set();
+  const sources = [
+    ['root', root && root.G],
+    ['parent', root && root.parent && root.parent.G]
+  ];
+
+  for (const [source, gameData] of sources) {
+    const meta = gameData && gameData.items && gameData.items[name];
+    if (!meta || typeof meta !== 'object' || seen.has(meta)) continue;
+    seen.add(meta);
+    candidates.push({ source, meta });
+  }
+
+  if (!candidates.length) {
+    return { ok: false, blockers: ['SELL_METADATA_UNKNOWN'], sources: [], views: [] };
+  }
+
+  const blockers = [];
+  const views = [];
+  for (const candidate of candidates) {
+    blockers.push(...sellProtectionReasons(candidate.meta));
+    views.push({ source: candidate.source, safety: sellMetadataSafetyView(candidate.meta) });
+  }
+
+  const fingerprints = new Set(views.map((row) => JSON.stringify(row.safety)));
+  if (fingerprints.size > 1) blockers.push('SELL_METADATA_CONFLICT');
+
+  const resolvedBlockers = unique(blockers);
+  return {
+    ok: resolvedBlockers.length === 0,
+    blockers: resolvedBlockers,
+    sources: candidates.map((row) => row.source),
+    views
+  };
 }
 
 function sellSafetyStatus() {
   return {
-    policy: 'low-risk-metadata-only',
+    policy: 'plain-stackable-material-only',
     allowlistCannotOverride: true,
     allowedMetadataTypes: LOW_RISK_SELL_TYPES.slice(),
+    requiresStackableMetadata: true,
+    rawLevelledItemProtected: true,
+    metadataConsensusRequiredAtLiveExecution: true,
     protectedSignals: [
-      'quest',
-      'exchange',
-      'event',
-      'cash',
-      'soulbound',
-      'compound',
-      'upgrade',
-      'non-low-risk-type'
+      'quest', 'exchange', 'event', 'cash', 'soulbound', 'compound', 'upgrade',
+      'grades', 'tier', 'scroll', 'wtype', 'class',
+      'action', 'onclick', 'offering', 'throw', 'rare', 'ignore'
     ]
   };
 }
@@ -10078,6 +10191,9 @@ function sellSafetyStatus() {
 module.exports = {
   LOW_RISK_SELL_TYPES,
   sellProtectionReasons,
+  rawSellProtectionReasons,
+  sellMetadataSafetyView,
+  sellMetadataConsensus,
   sellSafetyStatus
 };
 
@@ -11296,6 +11412,7 @@ module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, Tra
 const { Alpha16Runtime } = require('./alpha16-runtime');
 const { RELEASE_VERSION } = require('../release-version');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../economy/controlled-merchant-executor');
+const { sellMetadataConsensus, rawSellProtectionReasons } = require('../economy/sell-safety');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_ACK } = require('../travel/controlled-travel-executor');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -11314,6 +11431,20 @@ class Alpha17Runtime extends Alpha16Runtime {
   constructor(options = {}) {
     super(options);
     this.log.version = RELEASE_VERSION;
+    if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
+      this.inventoryLedger.setSellSafetyResolver(({ row }) => {
+        const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
+        const character = this.root && this.root.character;
+        const sameCharacter = character && row && String(character.name || '') === String(row.character || '');
+        if (sameCharacter) {
+          const items = Array.isArray(character.items) ? character.items : [];
+          const index = Number(row.index);
+          const rawItem = Number.isInteger(index) && index >= 0 ? items[index] : null;
+          blockers.push(...rawSellProtectionReasons(rawItem));
+        }
+        return [...new Set(blockers)];
+      });
+    }
     this.controlledMerchant = options.controlledMerchant || new ControlledMerchantExecutor({
       root: this.root,
       engine: this.transactionEngine,
@@ -11584,7 +11715,7 @@ module.exports = { Alpha17Runtime };
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
 'use strict';
 
-const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+const { sellMetadataConsensus, rawSellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
 
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
@@ -11783,17 +11914,22 @@ class ControlledMerchantExecutor {
     if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
     if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
 
-    const liveItem = itemSnapshot(items[txIndex]);
+    const rawLiveItem = items[txIndex];
+    const liveItem = itemSnapshot(rawLiveItem);
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
     if (tx.type === 'SELL') {
-      const gameData = this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || {};
-      const meta = gameData && gameData.items && gameData.items[tx.item];
-      const blockers = sellProtectionReasons(meta);
+      const consensus = sellMetadataConsensus(this.root, tx.item);
+      const blockers = [...new Set([...rawSellProtectionReasons(rawLiveItem), ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
-        return { ok: false, reason: 'SELL_ITEM_NOT_LOW_RISK', sellProtectionReasons: blockers };
+        return {
+          ok: false,
+          reason: 'SELL_ITEM_NOT_LOW_RISK',
+          sellProtectionReasons: blockers,
+          sellMetadataSources: consensus.sources
+        };
       }
       if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
     }
@@ -11907,7 +12043,8 @@ class ControlledMerchantExecutor {
         supervisorState: check.supervisorState || null,
         index: check.index == null ? tx && tx.index : check.index,
         inventorySize: check.inventorySize == null ? null : check.inventorySize,
-        sellProtectionReasons: check.sellProtectionReasons || null
+        sellProtectionReasons: check.sellProtectionReasons || null,
+        sellMetadataSources: check.sellMetadataSources || null
       });
       return {
         executed: false,
@@ -11915,7 +12052,8 @@ class ControlledMerchantExecutor {
         reason: check.reason,
         index: check.index == null ? undefined : check.index,
         inventorySize: check.inventorySize == null ? undefined : check.inventorySize,
-        sellProtectionReasons: check.sellProtectionReasons || undefined
+        sellProtectionReasons: check.sellProtectionReasons || undefined,
+        sellMetadataSources: check.sellMetadataSources || undefined
       };
     }
 
