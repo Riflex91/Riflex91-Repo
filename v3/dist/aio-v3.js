@@ -22435,12 +22435,16 @@ class FarmerTargetEfficiencyHotfix {
     this.plannerInstalled = false;
     this.farmerInstalled = false;
     this.lastSkip = null;
+    this.lastArrivalFallback = null;
     this.seenSkipSignals = new Set();
     this.stats = {
       plannerCandidatesRejected: 0,
       liveTargetsRejected: 0,
       extremeEvasionRejected: 0,
-      extremeAvoidanceRejected: 0
+      extremeAvoidanceRejected: 0,
+      nonRoutineRejected: 0,
+      arrivalFallbackActivations: 0,
+      arrivalFallbackCandidates: 0
     };
     this.install();
   }
@@ -22464,7 +22468,8 @@ class FarmerTargetEfficiencyHotfix {
     return evaluateTargetEfficiency(entity, gameData || {}, {
       character: snapshot && snapshot.character || null,
       maxEvasion: this.maxEvasion,
-      maxAvoidance: this.maxAvoidance
+      maxAvoidance: this.maxAvoidance,
+      routineFarm: true
     });
   }
 
@@ -22474,6 +22479,14 @@ class FarmerTargetEfficiencyHotfix {
     else this.stats.liveTargetsRejected += 1;
     if (verdict && verdict.reason === 'EXTREME_EVASION') this.stats.extremeEvasionRejected += 1;
     if (verdict && verdict.reason === 'EXTREME_AVOIDANCE') this.stats.extremeAvoidanceRejected += 1;
+    if (verdict && [
+      'SPECIAL_CONTENT_NOT_ROUTINE_FARM',
+      'COOPERATIVE_CONTENT_NOT_ROUTINE_FARM',
+      'NON_ROUTINE_RESPAWN',
+      'IMMUNE_TARGET',
+      'PEACEFUL_TARGET',
+      'OPERATOR_CONTENT_NOT_ROUTINE_FARM'
+    ].includes(verdict.reason)) this.stats.nonRoutineRejected += 1;
     this.lastSkip = {
       at: this.runtime && typeof this.runtime.now === 'function' ? this.runtime.now() : Date.now(),
       source,
@@ -22481,7 +22494,10 @@ class FarmerTargetEfficiencyHotfix {
       reason: verdict && verdict.reason || 'TARGET_INEFFICIENT',
       evasion: verdict && verdict.evasion != null ? verdict.evasion : null,
       avoidance: verdict && verdict.avoidance != null ? verdict.avoidance : null,
-      ctype: verdict && verdict.ctype || null
+      ctype: verdict && verdict.ctype || null,
+      special: verdict && verdict.special === true,
+      cooperative: verdict && verdict.cooperative === true,
+      respawn: verdict && verdict.respawn != null ? verdict.respawn : null
     };
 
     const signal = `${source}|${mtype || '-'}|${this.lastSkip.reason}`;
@@ -22489,6 +22505,42 @@ class FarmerTargetEfficiencyHotfix {
       this.seenSkipSignals.add(signal);
       this._event('FARM_TARGET_EFFICIENCY_REJECTED', 'info', this.lastSkip.reason, { ...this.lastSkip });
     }
+  }
+
+  _arrivedAtPlannedSpawn() {
+    const local = this.runtime && this.runtime.localFarming;
+    const plan = local && local.currentPlan;
+    if (!plan || String(plan.state || '') !== 'HOLDING') return false;
+    return String(plan.completionReason || '') === 'SPAWN_RADIUS_REACHED' ||
+      !!(local.lastDecision && String(local.lastDecision.reason || '') === 'SPAWN_RADIUS_REACHED');
+  }
+
+  _arrivalFallback(snapshot, party, gameData) {
+    if (!this._arrivedAtPlannedSpawn() || !snapshot || !snapshot.character) return [];
+    const reliability = this.runtime && this.runtime.preFarmingReliability;
+    if (!reliability || !(reliability.safeEntityIds instanceof Set)) return [];
+
+    // Never reuse safety approval from another observation. If both timestamps
+    // are available they must refer to the exact same snapshot.
+    if (reliability.safeEntitySnapshotAt != null && snapshot.observedAt != null &&
+        Number(reliability.safeEntitySnapshotAt) !== Number(snapshot.observedAt)) return [];
+
+    const farmer = this.runtime && this.runtime.farmer;
+    const character = snapshot.character;
+    const candidates = [];
+    for (const entity of snapshot.entities || []) {
+      if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) continue;
+      if (entity.map && character.map && String(entity.map) !== String(character.map)) continue;
+      if (entity.id == null || !reliability.safeEntityIds.has(String(entity.id))) continue;
+      if (farmer && typeof farmer._targetAllowed === 'function' && !farmer._targetAllowed(entity, snapshot, party)) continue;
+      const verdict = this._evaluate(entity, snapshot, gameData);
+      if (!verdict.allowed) {
+        this._recordSkip('live-fallback', verdict, entity);
+        continue;
+      }
+      candidates.push(entity);
+    }
+    return candidates;
   }
 
   _installPlanner() {
@@ -22517,12 +22569,26 @@ class FarmerTargetEfficiencyHotfix {
       const rows = baseSafeLiveMonsters(snapshot, party);
       if (!Array.isArray(rows)) return rows;
       const gameData = this._gameData();
-      return rows.filter((entity) => {
+      const filtered = rows.filter((entity) => {
         const verdict = this._evaluate(entity, snapshot, gameData);
         if (verdict.allowed) return true;
         this._recordSkip('live', verdict, entity);
         return false;
       });
+      if (filtered.length || !this._arrivedAtPlannedSpawn()) return filtered;
+
+      const fallback = this._arrivalFallback(snapshot, party, gameData);
+      if (!fallback.length) return filtered;
+      this.stats.arrivalFallbackActivations += 1;
+      this.stats.arrivalFallbackCandidates += fallback.length;
+      this.lastArrivalFallback = {
+        at: this.runtime && typeof this.runtime.now === 'function' ? this.runtime.now() : Date.now(),
+        plannedMonster: this.runtime.localFarming && this.runtime.localFarming.currentPlan && this.runtime.localFarming.currentPlan.monster || null,
+        candidateTypes: [...new Set(fallback.map((entity) => entity && entity.mtype).filter(Boolean))],
+        candidateCount: fallback.length
+      };
+      this._event('FARM_TARGET_ARRIVAL_FALLBACK', 'info', 'PLANNED_MONSTER_NOT_VISIBLE', { ...this.lastArrivalFallback });
+      return fallback;
     };
     farmer.__targetEfficiencyHotfixInstalled = true;
     return true;
@@ -22543,8 +22609,8 @@ class FarmerTargetEfficiencyHotfix {
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'farmer-target-efficiency-v1',
+      schemaVersion: 2,
+      mode: 'farmer-target-efficiency-v2',
       installed: this.installed,
       plannerInstalled: this.plannerInstalled,
       farmerInstalled: this.farmerInstalled,
@@ -22552,6 +22618,7 @@ class FarmerTargetEfficiencyHotfix {
       maxAvoidance: this.maxAvoidance,
       evasionSensitiveCtypes: [...EVASION_SENSITIVE_CTYPES],
       lastSkip: this.lastSkip ? { ...this.lastSkip } : null,
+      lastArrivalFallback: this.lastArrivalFallback ? { ...this.lastArrivalFallback } : null,
       stats: { ...this.stats }
     };
   }
@@ -22585,6 +22652,11 @@ function finiteNonNegative(value) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+function finiteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function maxKnown(...values) {
   const known = values.map(finiteNonNegative).filter((value) => value != null);
   return known.length ? Math.max(...known) : null;
@@ -22615,6 +22687,12 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
   const evasion = maxKnown(source.evasion, metadata.evasion);
   const avoidance = maxKnown(source.avoidance, metadata.avoidance);
   const evasionSensitive = !ctype || EVASION_SENSITIVE_CTYPES.includes(ctype);
+  const routineFarm = options.routineFarm === true;
+  const defensive = options.defensive === true || !!(
+    character && character.name && source && source.target &&
+    String(source.target) === String(character.name)
+  );
+  const respawn = finiteNumber(metadata.respawn);
 
   const base = {
     allowed: true,
@@ -22625,7 +22703,15 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
     avoidance,
     maxEvasion,
     maxAvoidance,
-    evasionSensitive
+    evasionSensitive,
+    routineFarm,
+    defensive,
+    special: metadata.special === true,
+    cooperative: metadata.cooperative === true,
+    immune: metadata.immune === true,
+    peaceful: metadata.peaceful === true,
+    operator: metadata.operator === true,
+    respawn
   };
 
   if (avoidance != null && avoidance >= maxAvoidance) {
@@ -22634,6 +22720,21 @@ function evaluateTargetEfficiency(entity, gameData = {}, options = {}) {
 
   if (evasionSensitive && evasion != null && evasion >= maxEvasion) {
     return { ...base, allowed: false, reason: 'EXTREME_EVASION' };
+  }
+
+  if (routineFarm) {
+    if (metadata.immune === true) return { ...base, allowed: false, reason: 'IMMUNE_TARGET' };
+    if (metadata.peaceful === true) return { ...base, allowed: false, reason: 'PEACEFUL_TARGET' };
+    if (metadata.operator === true) return { ...base, allowed: false, reason: 'OPERATOR_CONTENT_NOT_ROUTINE_FARM' };
+
+    // Special/cooperative/irregular-spawn content is never selected proactively
+    // as routine farming. A self-aggro target may still pass this efficiency
+    // layer so the existing combat-risk/emergency boundaries retain authority.
+    if (!defensive) {
+      if (metadata.special === true) return { ...base, allowed: false, reason: 'SPECIAL_CONTENT_NOT_ROUTINE_FARM' };
+      if (metadata.cooperative === true) return { ...base, allowed: false, reason: 'COOPERATIVE_CONTENT_NOT_ROUTINE_FARM' };
+      if (respawn != null && respawn < 0) return { ...base, allowed: false, reason: 'NON_ROUTINE_RESPAWN' };
+    }
   }
 
   return base;
@@ -24582,6 +24683,8 @@ module.exports = { RuntimeProgressWatchdog, RUNTIME_WATCHDOG_SCHEMA_VERSION };
 "src/ops/reliability-checkpoint.js": function(require,module,exports){
 'use strict';
 
+const { isQuotaError } = require('../world/persistence');
+
 const RELIABILITY_CHECKPOINT_SCHEMA_VERSION = 1;
 
 function finite(value, fallback = null) {
@@ -24609,10 +24712,24 @@ class ReliabilityCheckpointStore {
     this.now = options.now || (() => Date.now());
     this.baseKey = options.baseKey || 'AIO_V3_RELIABILITY_CHECKPOINT';
     this.maxBytes = Math.max(10000, Math.min(1000000, finite(options.maxBytes, 120000)));
+    this.storageHighWatermarkChars = Math.max(500000, finite(options.storageHighWatermarkChars, 4000000));
     this.lastLoaded = null;
     this.lastSaved = null;
     this.backendName = null;
-    this.stats = { saves: 0, saveFailures: 0, loads: 0, loadFailures: 0, fallbacks: 0, corrupt: 0, oversize: 0 };
+    this.quotaBlocked = false;
+    this.quotaBlockedAt = 0;
+    this.lastWriteError = null;
+    this.stats = {
+      saves: 0,
+      saveFailures: 0,
+      loads: 0,
+      loadFailures: 0,
+      fallbacks: 0,
+      corrupt: 0,
+      oversize: 0,
+      preflightQuotaBlocks: 0,
+      quotaWriteFailures: 0
+    };
   }
 
   _backend() {
@@ -24637,6 +24754,46 @@ class ReliabilityCheckpointStore {
 
   _slotKey(slot) { return `${this.baseKey}_${slot}`; }
   _pointerKey() { return `${this.baseKey}_PTR`; }
+
+  _physicalStorageKey(logicalKey) {
+    if (this.backendName === 'adventure-land') return `store_${logicalKey}`;
+    if (this.backendName === 'localStorage') return logicalKey;
+    return null;
+  }
+
+  _projectedStorageChars(writes) {
+    if (this.backendName !== 'adventure-land' && this.backendName !== 'localStorage') return null;
+    const storage = this.root && this.root.localStorage;
+    if (!storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
+    try {
+      let total = 0;
+      for (let index = 0; index < Number(storage.length || 0); index += 1) {
+        const key = storage.key(index);
+        if (key == null) continue;
+        const value = storage.getItem(key);
+        total += String(key).length + String(value == null ? '' : value).length;
+      }
+      for (const write of writes || []) {
+        const physicalKey = this._physicalStorageKey(write && write.key);
+        if (!physicalKey) continue;
+        const previous = storage.getItem(physicalKey);
+        if (previous != null) total -= String(physicalKey).length + String(previous).length;
+        total += String(physicalKey).length + String(write && write.value == null ? '' : write.value).length;
+      }
+      return Math.max(0, total);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _blockQuota(reason, error = null) {
+    if (!this.quotaBlocked) {
+      this.quotaBlocked = true;
+      this.quotaBlockedAt = this.now();
+      this.lastWriteError = error ? String(error && error.message || error) : reason;
+    }
+    return { saved: false, reason, quotaBlocked: true, error: error ? this.lastWriteError : undefined };
+  }
 
   _decode(raw) {
     if (raw == null || raw === '') return null;
@@ -24680,6 +24837,7 @@ class ReliabilityCheckpointStore {
   }
 
   save(snapshot = {}, options = {}) {
+    if (this.quotaBlocked) return { saved: false, reason: 'QUOTA_BLOCKED', quotaBlocked: true };
     const backend = this._backend();
     if (!backend) {
       this.stats.saveFailures += 1;
@@ -24716,15 +24874,32 @@ class ReliabilityCheckpointStore {
       this.stats.saveFailures += 1;
       return { saved: false, reason: 'SIZE_LIMIT', bytes: envelope.length, maxBytes: this.maxBytes };
     }
+
+    const projectedChars = this._projectedStorageChars([
+      { key: this._slotKey(slot), value: envelope },
+      { key: this._pointerKey(), value: slot }
+    ]);
+    if (projectedChars != null && projectedChars >= this.storageHighWatermarkChars) {
+      this.stats.preflightQuotaBlocks += 1;
+      this.stats.saveFailures += 1;
+      return this._blockQuota('CHECKPOINT_QUOTA_PRESSURE');
+    }
+
     try {
       backend.set(this._slotKey(slot), envelope);
       backend.set(this._pointerKey(), slot);
       this.stats.saves += 1;
+      this.lastWriteError = null;
       this.lastSaved = { slot, bytes: envelope.length, ...clone(payload) };
       return { saved: true, slot, bytes: envelope.length, sequence: payload.sequence, savedAt: payload.savedAt };
     } catch (error) {
       this.stats.saveFailures += 1;
-      return { saved: false, reason: 'WRITE_FAILED', error: String(error && error.message || error) };
+      if (isQuotaError(error)) {
+        this.stats.quotaWriteFailures += 1;
+        return this._blockQuota('CHECKPOINT_QUOTA_EXCEEDED', error);
+      }
+      this.lastWriteError = String(error && error.message || error);
+      return { saved: false, reason: 'WRITE_FAILED', error: this.lastWriteError };
     }
   }
 
@@ -24743,6 +24918,10 @@ class ReliabilityCheckpointStore {
       backend: this.backendName,
       baseKey: this.baseKey,
       maxBytes: this.maxBytes,
+      storageHighWatermarkChars: this.storageHighWatermarkChars,
+      quotaBlocked: this.quotaBlocked,
+      quotaBlockedAt: this.quotaBlockedAt || null,
+      lastWriteError: this.lastWriteError,
       lastSavedAt: this.lastSaved && this.lastSaved.savedAt || null,
       lastSavedSequence: this.lastSaved && this.lastSaved.sequence || null,
       lastLoadedAt: this.lastLoaded && this.lastLoaded.savedAt || null,
