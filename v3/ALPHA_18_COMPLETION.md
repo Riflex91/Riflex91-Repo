@@ -230,6 +230,7 @@ A live result is eligible for the later confirmation PR only when `pass=true`, `
 - explicit gate acknowledgement requirement
 - non-destructive `NOT_JUSTIFIED` path with existing safe capacity
 - exactly one justified controlled expansion followed by default-off restoration
+- justified same-floor expansion left unexecuted remains a confirmation blocker across returned, stored and printable result surfaces
 - passive-window error-event detection and fail-closed result
 
 Full repository tests, browser bundle smoke, generated bundle verification and diff check are required on the exact final live-gate preparation PR head before merge.
