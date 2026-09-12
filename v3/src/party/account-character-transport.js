@@ -8,6 +8,10 @@ function cleanName(value) {
   return name || null;
 }
 
+function uniqueNames(values) {
+  return [...new Set((values || []).map(cleanName).filter(Boolean))].sort();
+}
+
 function boundedMessage(error) {
   return String(error && error.message || error || 'unknown').slice(0, 240);
 }
@@ -18,6 +22,7 @@ class AccountCharacterTransport {
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
     this.fallbackEnabled = options.fallbackEnabled !== false;
+    this.trustedNames = new Set(uniqueNames(options.trustedNames || []));
     this.stats = {
       directSent: 0,
       directFailed: 0,
@@ -42,6 +47,15 @@ class AccountCharacterTransport {
     return cleanName(character && character.name);
   }
 
+  setTrustedNames(names) {
+    this.trustedNames = new Set(uniqueNames(names));
+    return [...this.trustedNames].sort();
+  }
+
+  trustedRosterNames() {
+    return [...this.trustedNames].sort();
+  }
+
   activeCharacters() {
     const fn = this._function('get_active_characters');
     if (typeof fn !== 'function') return null;
@@ -53,7 +67,7 @@ class AccountCharacterTransport {
     }
   }
 
-  ownedNames(options = {}) {
+  activeNames(options = {}) {
     const runningOnly = options.runningOnly === true;
     const allowed = runningOnly ? RUNNING_CHARACTER_STATES : ACTIVE_CHARACTER_STATES;
     const active = this.activeCharacters();
@@ -64,18 +78,38 @@ class AccountCharacterTransport {
       .map(([name]) => cleanName(name))
       .filter(Boolean);
     if (local && !names.includes(local)) names.push(local);
-    return [...new Set(names)].sort();
+    return uniqueNames(names);
   }
 
-  isOwned(name, options = {}) {
+  ownedNames(options = {}) {
+    // An explicit roster is the strongest trust source. get_active_characters()
+    // is retained only as an observational fallback because live Adventure Land
+    // runners may expose only the local character from that API.
+    if (this.trustedNames.size) return this.trustedRosterNames();
+    return this.activeNames(options);
+  }
+
+  isOwned(name) {
     const target = cleanName(name);
-    return !!target && this.ownedNames(options).includes(target);
+    return !!target && this.ownedNames().includes(target);
   }
 
   installDirectReceiver(receiverName, handler) {
     const name = cleanName(receiverName);
     if (!name || typeof handler !== 'function' || !this.root) return false;
     this.root[name] = handler;
+    return true;
+  }
+
+  uninstallDirectReceiver(receiverName, handler = null, previous = undefined) {
+    const name = cleanName(receiverName);
+    if (!name || !this.root) return false;
+    if (handler && this.root[name] !== handler) return false;
+    if (previous === undefined) {
+      try { delete this.root[name]; } catch (_) { this.root[name] = undefined; }
+    } else {
+      this.root[name] = previous;
+    }
     return true;
   }
 
@@ -101,8 +135,8 @@ class AccountCharacterTransport {
 
     if (!this.isOwned(target)) {
       this.stats.rejectedNotOwned += 1;
-      this._event('ACCOUNT_TRANSPORT_REJECTED', 'warn', 'TARGET_NOT_ACTIVE_OWN_CHARACTER', { target, sender });
-      throw new Error(`TARGET_NOT_ACTIVE_OWN_CHARACTER:${target}`);
+      this._event('ACCOUNT_TRANSPORT_REJECTED', 'warn', 'TARGET_NOT_TRUSTED_OWN_CHARACTER', { target, sender });
+      throw new Error(`TARGET_NOT_TRUSTED_OWN_CHARACTER:${target}`);
     }
 
     const commandCharacter = this._function('command_character');
@@ -145,6 +179,10 @@ class AccountCharacterTransport {
       schemaVersion: 1,
       mode: 'same-account-command-character-first',
       localName: this.localName(),
+      trustSource: this.trustedNames.size ? 'explicit-roster' : 'get_active_characters-fallback',
+      trustedNames: this.trustedRosterNames(),
+      observedActiveNames: this.activeNames(),
+      observedRunningNames: this.activeNames({ runningOnly: true }),
       activeOwnedNames: this.ownedNames(),
       runningOwnedNames: this.ownedNames({ runningOnly: true }),
       fallbackEnabled: this.fallbackEnabled,
@@ -157,5 +195,6 @@ module.exports = {
   AccountCharacterTransport,
   ACTIVE_CHARACTER_STATES,
   RUNNING_CHARACTER_STATES,
-  cleanName
+  cleanName,
+  uniqueNames
 };
