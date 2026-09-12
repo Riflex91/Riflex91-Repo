@@ -7,7 +7,12 @@ Release target: `3.0.0-alpha.19.0`
 - Core implementation: **MERGED** via PR #68.
 - Core merge commit: `5a1274d4f37703abc90c8c1a88e0efbf794e46c1`.
 - Exact certified core PR head: `8d73ed95f26433edcf759e9fef6c788b7a107ee3`.
-- FULL production confirmation: **NOT YET CONFIRMED**.
+- Live-gate preparation: **MERGED** via PR #69.
+- Live-gate preparation merge commit: `13d6e5d66b497d9bf00d2de2a0904acf285c6e98`.
+- Exact certified live-gate preparation PR head: `21bd066494045925877c5683e0281047abee5121`.
+- FULL production confirmation evidence: **PASSED / CONFIRMATION-ELIGIBLE** on 2026-09-12.
+- Documentation evidence: `v3/ALPHA_19_LIVE_CONFIRMATION.md`.
+- Phase status: **FULL CONFIRMED once this documentation-only confirmation PR is exact-head certified and merged**.
 - Default runtime remains `shadow`.
 - `productionReplacement=false` remains unchanged.
 - Controlled Alpha.19 execution is default-off and requires exact `ALPHA19_SPACE_RECOVERY` acknowledgement.
@@ -198,7 +203,7 @@ Alpha.19 automated coverage includes:
 - 2500-cycle bounded journal soak and active-operation dedupe
 - combined live-gate source selection, real BANK canary, zero-action unauthorized paths and passive error detection
 
-The exact final live-gate preparation PR head must pass the complete repository test suite, generated browser bundle verification, browser bundle smoke and diff check before merge.
+The exact final live-gate preparation PR head passed the complete repository test suite, generated browser bundle verification, browser bundle smoke and diff check before merge.
 
 ## Combined production live confirmation gate
 
@@ -224,7 +229,7 @@ The gate:
 10. returns to `shadow`/default-off before the 10-minute passive window
 11. fails closed on error events, opened circuits, authority leakage, unexpected action attempts or safety invariant violations
 
-Recommended first production run keeps Emergency Reclaim disabled:
+Recommended production invocation:
 
 ```js
 AIO_V3.__runtime.runAlpha19CombinedLiveGate({
@@ -237,36 +242,43 @@ AIO_V3.__runtime.runAlpha19CombinedLiveGate({
 
 `allowExpansionPurchase:true` does not force a purchase. It only permits one if the real planner independently justifies a safe same-floor expansion and all preflight rules still pass.
 
-`allowEmergencyReclaim:false` means a real situation that genuinely requires reclaim will remain safe but will not satisfy FULL-confirmation coverage. Do not manufacture such a situation. A later deliberate rerun may explicitly allow one-unit reclaim only if the live evidence and operator intent justify it.
+`allowEmergencyReclaim:false` means a real situation that genuinely requires reclaim remains safe but does not authorize any SELL.
 
 A preferred low-risk live canary is a real item that the operator already intends to bank. It must first be positively classified `BANK` through the existing Inventory Action Policy. The gate never changes that policy itself.
 
-While the gate is running, leave the Merchant in the bank and do not manually enable Farmer, active mode, Travel or controlled executors.
+## Production confirmation evidence — 2026-09-12
 
-Status while running:
+The real production gate completed successfully for `3.0.0-alpha.19.0`.
 
-```js
-AIO_V3.__runtime.alpha19LiveGateStatus()
-```
+Summary:
 
-Final result if the console block is missed:
+- `pass=true`
+- `confirmationEligible=true`
+- `confirmationBlockers=[]`
+- `testMode=false`
+- real fresh `BANK` source selected from the Inventory Ledger
+- live plan: `DEPOSIT_FREE_SLOT`
+- recovery canary: `COMMITTED`
+- recovery coverage satisfied: true
+- exactly one raw BANK action
+- zero Emergency Reclaim actions
+- two recorded reobservations
+- no invariant failures
+- full `600000 ms` passive observation satisfied
+- 121 passive samples
+- no violations
+- no error events
+- no unexpected parent, consolidation, Merchant, expansion or Travel action deltas
+- all monitored circuits remained closed
+- final mode `shadow`
+- Farmer and every controlled executor disabled in the final state
+- final Bank Capacity `actionAuthority=false`
+- final safety violations: none
 
-```js
-AIO_V3.__runtime.alpha19LiveGateResultText()
-```
+The complete reviewed evidence summary is recorded in `v3/ALPHA_19_LIVE_CONFIRMATION.md`.
 
-Expected result markers:
+A small manual Merchant movement during the passive window did not invalidate the production run. The Merchant remained in a valid bank context and the gate itself completed the required observation with no violations, errors, circuit openings, authority leakage or unexpected action attempts.
 
-```text
-=== ALPHA19 FULL LIVE GATE RESULT BEGIN ===
-...
-=== ALPHA19 FULL LIVE GATE RESULT END ===
-```
+## Final confirmation requirement
 
-A production result is confirmation-eligible only when `pass === true`, `confirmationEligible === true`, the complete 10-minute observation is satisfied, the selected real recovery coverage committed, no error events or unexpected action deltas occurred, all circuits remain closed, and the final state is shadow/default-off.
-
-## Confirmation still required after live-gate preparation merge
-
-Merging the Alpha.19 live-gate preparation does **not** make the phase FULL CONFIRMED.
-
-After that merge we still require the actual combined production live result, log review, then a separate documentation-only confirmation PR certified and merged against its exact final head.
+The production behavior is now confirmed by a clean, confirmation-eligible live result. Alpha.19 becomes **FULL CONFIRMED** after this documentation-only confirmation PR is certified against its exact final head and merged into `main`.
