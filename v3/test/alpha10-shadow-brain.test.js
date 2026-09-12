@@ -117,7 +117,7 @@ test('ShadowStrategicBrain performs bounded teacher distillation and keeps finit
     maxAbsWeight: 0.5,
     initialWeights: Object.fromEntries(FEATURE_NAMES.map((name) => [name, 0]))
   });
-  const context = brainContext({ teacherRanking: [{ id: 'main:crab:1' }] });
+  const context = brainContext({ teacherRanking: [{ id: 'main:goo:0' }] });
   for (let i = 0; i < 40; i += 1) {
     now += 1000;
     brain.observe(context);
