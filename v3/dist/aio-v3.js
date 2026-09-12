@@ -12616,6 +12616,7 @@ class DebugMonitorUI {
     this.lastCopy = null;
     this.documentScope = 'none';
     this._interactionCleanup = null;
+    this._expandedLayout = null;
   }
 
   _doc() {
@@ -12741,7 +12742,7 @@ class DebugMonitorUI {
   }
 
   _beginDrag(event) {
-    if (!this.container || this.minimized) return false;
+    if (!this.container) return false;
     if (event && Number.isFinite(Number(event.button)) && Number(event.button) !== 0) return false;
     const doc = this._doc();
     const rect = this._rect();
@@ -12752,7 +12753,9 @@ class DebugMonitorUI {
     const startLeft = Number(rect.left) || 0;
     const startTop = Number(rect.top) || 0;
     const width = Math.max(this.minWidth, Number(rect.width) || this.minWidth);
-    const height = Math.max(this.minHeight, Number(rect.height) || this.minHeight);
+    const height = this.minimized
+      ? Math.max(1, Number(rect.height) || 1)
+      : Math.max(this.minHeight, Number(rect.height) || this.minHeight);
     this._anchorToPixels({ ...rect, width, height });
     if (this.header) this.header.style.cursor = 'grabbing';
 
@@ -12797,6 +12800,54 @@ class DebugMonitorUI {
       this.container.style.width = `${Math.round(width)}px`;
       this.container.style.height = `${Math.round(height)}px`;
     }, () => {});
+  }
+
+  _setMinimized(minimized) {
+    if (!this.container || !this.header) return false;
+    const next = minimized === true;
+    if (next === this.minimized) return true;
+
+    if (next) {
+      const rect = this._rect();
+      this._expandedLayout = {
+        width: rect ? `${Math.round(Number(rect.width) || this.minWidth)}px` : (this.container.style.width || '480px'),
+        height: rect ? `${Math.round(Number(rect.height) || this.minHeight)}px` : (this.container.style.height || `${this.minHeight}px`),
+        minHeight: this.container.style.minHeight || `${this.minHeight}px`,
+        maxHeight: this.container.style.maxHeight || 'calc(100vh - 36px)',
+        overflow: this.container.style.overflow || 'auto',
+        headerMarginBottom: this.header.style.marginBottom || '9px'
+      };
+      this.minimized = true;
+      if (this.body) this.body.style.display = 'none';
+      if (this.logBox) this.logBox.style.display = 'none';
+      if (this.resizeHandle) this.resizeHandle.style.display = 'none';
+      if (this.fallbackArea) this.fallbackArea.style.display = 'none';
+      this._setStyle(this.container, {
+        width: this._expandedLayout.width,
+        height: 'auto',
+        minHeight: '0px',
+        maxHeight: 'none',
+        overflow: 'hidden'
+      });
+      this.header.style.marginBottom = '0px';
+      return true;
+    }
+
+    this.minimized = false;
+    const layout = this._expandedLayout || {};
+    this._setStyle(this.container, {
+      width: layout.width || this.container.style.width || '480px',
+      height: layout.height || `${this.minHeight}px`,
+      minHeight: layout.minHeight || `${this.minHeight}px`,
+      maxHeight: layout.maxHeight || 'calc(100vh - 36px)',
+      overflow: layout.overflow || 'auto'
+    });
+    this.header.style.marginBottom = layout.headerMarginBottom || '9px';
+    if (this.body) this.body.style.display = 'block';
+    if (this.logBox) this.logBox.style.display = 'block';
+    if (this.resizeHandle) this.resizeHandle.style.display = 'block';
+    if (this.fallbackArea) this.fallbackArea.style.display = 'none';
+    return true;
   }
 
   async _copy() {
@@ -12913,11 +12964,7 @@ class DebugMonitorUI {
     };
     this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
     const minimize = this._button(doc, '–', () => {
-      this.minimized = !this.minimized;
-      if (this.body) this.body.style.display = this.minimized ? 'none' : 'block';
-      if (this.logBox) this.logBox.style.display = this.minimized ? 'none' : 'block';
-      if (this.resizeHandle) this.resizeHandle.style.display = this.minimized ? 'none' : 'block';
-      if (this.fallbackArea) this.fallbackArea.style.display = 'none';
+      this._setMinimized(!this.minimized);
       minimize.textContent = this.minimized ? '+' : '–';
     });
     const close = this._button(doc, '×', () => this.hide());
@@ -12986,6 +13033,7 @@ class DebugMonitorUI {
     this.copyButton = null;
     this.fallbackArea = null;
     this.resizeHandle = null;
+    this._expandedLayout = null;
     return true;
   }
 
@@ -13000,6 +13048,7 @@ class DebugMonitorUI {
       documentScope: this.documentScope,
       visible: !!(this.container && this.container.style.display !== 'none'),
       minimized: this.minimized,
+      collapsedToTitleBar: this.minimized,
       draggable: true,
       resizable: true,
       minWidth: this.minWidth,
@@ -13015,7 +13064,6 @@ class DebugMonitorUI {
 }
 
 module.exports = { DebugMonitorUI };
-
 }
 };
 var cache={};
