@@ -1239,7 +1239,19 @@ class GameAdapter {
         dead: !!entity.dead
       });
     }
-    const inventory = (c.items || []).map((item, index) => item ? ({ index, name: item.name, level: Number(item.level) || 0, q: Number(item.q) || 1, locked: !!item.l, special: !!item.p }) : null);
+    const rawItems = Array.isArray(c.items) ? c.items : [];
+    const reportedIsize = finite(c.isize);
+    const inventorySize = reportedIsize == null
+      ? rawItems.length
+      : Math.max(0, Math.floor(reportedIsize));
+    const inventory = rawItems.slice(0, inventorySize).map((item, index) => item ? ({
+      index,
+      name: item.name,
+      level: Number(item.level) || 0,
+      q: Number(item.q) || 1,
+      locked: !!item.l,
+      special: !!item.p
+    }) : null);
     const snap = {
       observedAt: this.now(),
       character: {
@@ -1256,6 +1268,7 @@ class GameAdapter {
         moving: !!c.moving,
         target: c.target || null,
         rip: !!c.rip,
+        isize: inventorySize,
         inventory
       },
       entities,
