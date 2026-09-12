@@ -4,6 +4,13 @@ const assert = require('node:assert/strict');
 const { Runtime } = require('../src/runtime');
 const { GameAdapter } = require('../src/game/adapter');
 const { EventLog } = require('../src/core/event-log');
+const { WorldModel, EvidenceKind } = require('../src/world/world-model');
+
+function knownWorld(...types) {
+  const world = new WorldModel();
+  for (const type of types) world.observeEntity('monster', type, { maps: ['main'] }, { evidence: EvidenceKind.OBSERVED, confidence: 1 });
+  return world;
+}
 
 test('Runtime observes a fake Adventure Land character without issuing active commands', () => {
   let now = 10000;
@@ -14,7 +21,7 @@ test('Runtime observes a fake Adventure Land character without issuing active co
   };
   const log = new EventLog({ now: () => now, runId: 'runtime-test' });
   const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow', now: () => now });
-  const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now });
+  const runtime = new Runtime({ root, parent: root.parent, adapter, log, world: knownWorld('goo'), now: () => now });
   runtime.tick();
   const status = runtime.status();
   assert.equal(status.mode, 'shadow');
@@ -79,7 +86,7 @@ test('Runtime planner and Farmer safety ignore Target Automatron', () => {
   };
   const log = new EventLog({ now: () => now, runId: 'automatron-safety-test' });
   const adapter = new GameAdapter({ root, parent: root.parent, log, mode: 'shadow', now: () => now });
-  const runtime = new Runtime({ root, parent: root.parent, adapter, log, now: () => now });
+  const runtime = new Runtime({ root, parent: root.parent, adapter, log, world: knownWorld('goo'), now: () => now });
   runtime.tick();
   assert.equal(runtime.farmerStatus().targetType, 'goo');
   assert.ok(runtime.farmerStatus().targetExclusions.includes('automatron'));
