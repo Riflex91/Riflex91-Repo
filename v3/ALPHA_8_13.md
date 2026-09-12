@@ -10,7 +10,7 @@ This block makes headless operation and web-dashboard integration a first-class 
 - Risk-increasing remote actions are disabled unless the host explicitly enables elevated control.
 - World-state replication is coalesced to the latest bounded snapshot instead of blocking gameplay on remote storage.
 - External supervisors can read headless health (`HEALTHY`, `WATCH`, `DEGRADED`) from tick/snapshot freshness.
-- In-game visible messages are an optional mirror; audit events exist even when `game_log` does not.
+- In-game visible messages are only an optional mirror; operational/control audit telemetry does not depend on `game_log`.
 
 ## Explicit non-goals
 

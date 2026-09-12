@@ -26,7 +26,7 @@ test('TelemetryOutbox is bounded, ordered and dashboard failure independent', ()
 test('ControlGateway deduplicates, expires and blocks every risk-increasing remote action by default', () => {
   let now = 10000;
   const calls = [];
-  const gateway = new ControlGateway({ now: () => now, execute: (action, params) => { calls.push({ action, params }); return 'ok'; } });
+  const gateway = new ControlGateway({ now: () => now, execute: (action, params) => { calls.push({ action, params }); return action === 'SHOW_STATUS' ? { huge: 'x'.repeat(10000) } : 'ok'; } });
   const safe = gateway.submit({ commandId: 'c1', action: 'SET_MODE', params: { mode: 'shadow' }, issuedAt: 9000, expiresAt: 11000 });
   assert.equal(safe.status, 'EXECUTED');
   assert.equal(calls.length, 1);
@@ -50,10 +50,17 @@ test('ControlGateway deduplicates, expires and blocks every risk-increasing remo
   assert.equal(unknown.status, 'REJECTED');
   assert.equal(unknown.reason, 'ACTION_NOT_ALLOWED');
 
+  const statusResult = gateway.submit({ commandId: 'c-status', action: 'SHOW_STATUS', params: {}, issuedAt: 9000, expiresAt: 11000 });
+  assert.equal(statusResult.status, 'EXECUTED');
+  assert.equal(statusResult.value.huge.length, 10000);
+  const statusDuplicate = gateway.submit({ commandId: 'c-status', action: 'SHOW_STATUS', params: {}, issuedAt: 9000, expiresAt: 11000 });
+  assert.equal(statusDuplicate.duplicate, true);
+  assert.equal(statusDuplicate.value, undefined);
+
   now = 12000;
   const expired = gateway.submit({ commandId: 'c8', action: 'SHOW_STATUS', params: {}, issuedAt: 9000, expiresAt: 11000 });
   assert.equal(expired.status, 'EXPIRED');
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
 });
 
 test('ControlGateway can execute elevated actions only after explicit host opt-in', () => {
