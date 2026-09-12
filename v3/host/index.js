@@ -8,6 +8,7 @@ const { ManagedProcessLauncher } = require('./managed-process-launcher');
 const { HostApiServer, isLoopback, safeEqual } = require('./host-api-server');
 const { createWebhookAlertTransport, validateWebhookUrl } = require('./alert-transports');
 const { RestartReconciliationObserver } = require('./restart-reconciliation-observer');
+const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH } = require('./browser-bot-client');
 const { ProductionHostHarness } = require('./production-host-harness');
 
 module.exports = {
@@ -25,5 +26,9 @@ module.exports = {
   createWebhookAlertTransport,
   validateWebhookUrl,
   RestartReconciliationObserver,
+  BrowserBotClient,
+  DEFAULT_ALLOWED_ORIGINS,
+  MAX_CLAIM_IDS,
+  MAX_ID_LENGTH,
   ProductionHostHarness
 };
