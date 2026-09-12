@@ -1,0 +1,439 @@
+'use strict';
+
+const { BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION } = require('../economy/bank-capacity-manager');
+const { fingerprint } = require('../world/content-drift');
+
+const PRE_FARMING_RELIABILITY_SCHEMA_VERSION = 1;
+const CONTENT_FINGERPRINT_PROFILE = 'stable-runtime-fields-v1';
+
+const VOLATILE_CONTENT_KEYS = new Set([
+  'cache', 'cached', 'cachekey', 'characters', 'chests', 'client', 'clients', 'entities',
+  'last', 'lastupdate', 'lastupdated', 'last_update', 'loaded', 'loading', 'objects',
+  'players', 'renderer', 'runtime', 'runtimestate', 'runtime_state', 'seen', 'session',
+  'sessionid', 'session_id', 'socket', 'timestamp', 'updated', 'updatedat', 'updated_at'
+]);
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function finiteObserved(value) {
+  if (value == null || value === '' || typeof value === 'boolean') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function ownObservedNumber(object, key) {
+  if (!object || typeof object !== 'object' || !Object.prototype.hasOwnProperty.call(object, key)) return null;
+  return finiteObserved(object[key]);
+}
+
+function supplyEvidenceComplete(supplies) {
+  return ownObservedNumber(supplies, 'hpPotions') != null &&
+    ownObservedNumber(supplies, 'mpPotions') != null &&
+    ownObservedNumber(supplies, 'freeSlots') != null;
+}
+
+function hasObservableBankSnapshot(character) {
+  const bank = character && character.bank;
+  if (!bank || typeof bank !== 'object' || Array.isArray(bank)) return false;
+  return Object.values(bank).some((value) => Array.isArray(value));
+}
+
+function volatileContentKey(key) {
+  const raw = String(key || '');
+  const lower = raw.toLowerCase();
+  return raw.startsWith('__') || raw.startsWith('_runtime') || raw.startsWith('$runtime') || VOLATILE_CONTENT_KEYS.has(lower);
+}
+
+function sanitizeVolatileContent(value, depth = 0, stats = { stripped: 0 }) {
+  if (depth > 8) return { value: '[depth-limit]', stripped: stats.stripped };
+  if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return { value, stripped: stats.stripped };
+  }
+  if (typeof value === 'function' || typeof value === 'undefined' || typeof value === 'symbol') {
+    stats.stripped += 1;
+    return { value: undefined, stripped: stats.stripped };
+  }
+  if (Array.isArray(value)) {
+    const out = [];
+    for (const item of value.slice(0, 256)) {
+      const child = sanitizeVolatileContent(item, depth + 1, stats);
+      out.push(child.value);
+    }
+    return { value: out, stripped: stats.stripped };
+  }
+  if (typeof value === 'object') {
+    const out = {};
+    for (const key of Object.keys(value).sort().slice(0, 512)) {
+      if (volatileContentKey(key)) {
+        stats.stripped += 1;
+        continue;
+      }
+      const child = sanitizeVolatileContent(value[key], depth + 1, stats);
+      if (child.value !== undefined) out[key] = child.value;
+    }
+    return { value: out, stripped: stats.stripped };
+  }
+  return { value: String(value), stripped: stats.stripped };
+}
+
+class ObservableBankCapacityManager extends BankCapacityManager {
+  constructor(options = {}) {
+    super(options);
+    this.observabilityState = 'UNKNOWN';
+    this.notObservableReason = null;
+    this.notObservableTransitions = 0;
+  }
+
+  observe(context = {}) {
+    const character = context.character || {};
+    if (!hasObservableBankSnapshot(character)) {
+      const previous = this.observabilityState;
+      this.observabilityState = 'NOT_OBSERVABLE';
+      this.notObservableReason = 'BANK_SNAPSHOT_UNAVAILABLE';
+      this.pressureHistory = [];
+      this.lastObservation = {
+        schemaVersion: BANK_CAPACITY_SCHEMA_VERSION,
+        observedAt: Number.isFinite(Number(context.observedAt)) ? Number(context.observedAt) : this.now(),
+        character: {
+          name: character.name || null,
+          map: character.map || null,
+          gold: Number.isFinite(Number(character.gold)) ? Math.max(0, Number(character.gold)) : null
+        },
+        observable: false,
+        observationState: 'NOT_OBSERVABLE',
+        reason: this.notObservableReason,
+        catalogSource: 'bank-snapshot-unavailable',
+        packs: [],
+        totals: {
+          capacity: null,
+          occupied: null,
+          free: null,
+          compatibleStackHeadroom: null,
+          consolidationSlotsRecoverable: null
+        },
+        unlockedPackCount: null,
+        lockedPackCount: null,
+        pressureNow: false,
+        sustainedPressure: false,
+        actionAuthority: false
+      };
+      this.stats.observations += 1;
+      if (previous !== this.observabilityState) {
+        this.notObservableTransitions += 1;
+        this._event('BANK_CAPACITY_NOT_OBSERVABLE', 'info', this.notObservableReason, {
+          character: character.name || null,
+          map: character.map || null
+        });
+      }
+      return clone(this.lastObservation);
+    }
+
+    const result = super.observe(context);
+    this.observabilityState = 'OBSERVED';
+    this.notObservableReason = null;
+    this.lastObservation = {
+      ...result,
+      observable: true,
+      observationState: 'OBSERVED',
+      reason: null
+    };
+    return clone(this.lastObservation);
+  }
+
+  planSpace(request = {}, context = {}) {
+    const observation = context.observation || this.lastObservation || this.observe(context);
+    if (!observation || observation.observable === false || observation.observationState === 'NOT_OBSERVABLE') {
+      this.stats.plans += 1;
+      this.lastPlan = {
+        at: this.now(),
+        planned: false,
+        reason: 'BANK_SNAPSHOT_NOT_OBSERVABLE',
+        actionAuthority: false
+      };
+      return clone(this.lastPlan);
+    }
+    return super.planSpace(request, { ...context, observation });
+  }
+
+  status() {
+    return {
+      ...super.status(),
+      observability: {
+        state: this.observabilityState,
+        reason: this.notObservableReason,
+        transitionsToNotObservable: this.notObservableTransitions
+      }
+    };
+  }
+}
+
+function createObservableBankCapacityManager(options = {}) {
+  return new ObservableBankCapacityManager({
+    now: options.now,
+    log: options.log,
+    workspaceSlots: options.bankWorkspaceSlots == null ? options.inventoryWorkspaceSlots : options.bankWorkspaceSlots,
+    protectedGoldReserve: options.bankProtectedGoldReserve,
+    protectedShellReserve: options.bankProtectedShellReserve,
+    allowShellSpend: options.bankAllowShellSpend === true,
+    pressureObservationsRequired: options.bankPressureObservationsRequired
+  });
+}
+
+class PreFarmingReliabilityPolicy {
+  constructor(runtime) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.installed = false;
+    this.stats = {
+      merchantFarmerSuppressions: 0,
+      merchantLocalFarmSuppressions: 0,
+      incidentalVisibleMonstersIgnored: 0,
+      incidentalTargetsFiltered: 0,
+      incompleteSupplyReports: 0,
+      supplyHolds: 0,
+      contentRecordsMigrated: 0,
+      contentVolatileFieldsStripped: 0,
+      contentFlappingRecordsRevalidated: 0
+    };
+    this.lastSupplyHold = null;
+    this._install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    const log = this.runtime && this.runtime.log;
+    if (log && typeof log.emit === 'function') {
+      log.emit({ component: 'pre-farming-reliability', event, severity, reason, data });
+    }
+  }
+
+  _character() {
+    const root = this.runtime && this.runtime.root;
+    return root && (root.character || root.parent && root.parent.character) ||
+      this.runtime && this.runtime.lastSnapshot && this.runtime.lastSnapshot.character || null;
+  }
+
+  _isMerchant() {
+    const c = this._character();
+    return String(c && (c.ctype || c.type) || '').toLowerCase() === 'merchant';
+  }
+
+  _installMerchantBoundary() {
+    if (!this._isMerchant()) return;
+    const farmer = this.runtime.farmer;
+    if (farmer && farmer.enabled !== false && typeof farmer.setEnabled === 'function') {
+      farmer.setEnabled(false);
+      this.stats.merchantFarmerSuppressions += 1;
+      this._event('MERCHANT_FARMER_FSM_SUPPRESSED', 'info', 'MERCHANT_ROLE_BOUNDARY');
+    }
+    if (this.runtime.localFarming && this.runtime.localFarming.enabled !== false) {
+      this.runtime.localFarming.enabled = false;
+      this.stats.merchantLocalFarmSuppressions += 1;
+      this._event('MERCHANT_LOCAL_FARMING_SUPPRESSED', 'info', 'MERCHANT_ROLE_BOUNDARY');
+    }
+  }
+
+  _installLocalFarmArbitration() {
+    const local = this.runtime.localFarming;
+    const farmer = this.runtime.farmer;
+    if (!local || !farmer || local.__preFarmingVisiblePolicyInstalled) return;
+    local.__preFarmingVisiblePolicyInstalled = true;
+    const originalVisible = local._visibleMonsters.bind(local);
+    local._visibleMonsters = (snapshot) => {
+      const all = originalVisible(snapshot);
+      const characterName = snapshot && snapshot.character && snapshot.character.name;
+      const targetId = farmer.targetId == null ? null : String(farmer.targetId);
+      const planMonster = local.currentPlan && local.currentPlan.monster ? String(local.currentPlan.monster) : null;
+      const blocking = all.filter((entity) => {
+        if (characterName && String(entity.target || '') === String(characterName)) return true;
+        if (targetId != null && entity.id != null && String(entity.id) === targetId) return true;
+        if (planMonster && String(entity.mtype || '') === planMonster) return true;
+        return false;
+      });
+      const ignored = Math.max(0, all.length - blocking.length);
+      if (ignored) this.stats.incidentalVisibleMonstersIgnored += ignored;
+      return blocking;
+    };
+
+    if (farmer.__preFarmingTargetPolicyInstalled || typeof farmer._safeLiveMonsters !== 'function') return;
+    farmer.__preFarmingTargetPolicyInstalled = true;
+    const originalSafeLive = farmer._safeLiveMonsters.bind(farmer);
+    farmer._safeLiveMonsters = (snapshot, party) => {
+      const all = originalSafeLive(snapshot, party);
+      const plan = local.currentPlan;
+      const plannedMonster = plan && plan.monster ? String(plan.monster) : null;
+      if (!plannedMonster) return all;
+      const characterName = snapshot && snapshot.character && snapshot.character.name;
+      const filtered = all.filter((entity) => {
+        if (characterName && String(entity.target || '') === String(characterName)) return true;
+        return String(entity.mtype || '') === plannedMonster;
+      });
+      this.stats.incidentalTargetsFiltered += Math.max(0, all.length - filtered.length);
+      return filtered;
+    };
+  }
+
+  _installNullableSupplyTelemetry() {
+    const bridge = this.runtime.partyTelemetry;
+    if (!bridge || bridge.__nullableSupplyEvidenceInstalled || typeof bridge._cleanReport !== 'function') return;
+    bridge.__nullableSupplyEvidenceInstalled = true;
+    const originalClean = bridge._cleanReport.bind(bridge);
+    bridge._cleanReport = (report, sender) => {
+      const clean = originalClean(report, sender);
+      if (!clean) return clean;
+      const source = report && report.supplies;
+      const fields = ['inventorySize', 'inventoryLimit', 'freeSlots', 'hpPotions', 'mpPotions'];
+      const supplies = { ...(clean.supplies || {}) };
+      for (const field of fields) {
+        const observed = ownObservedNumber(source, field);
+        supplies[field] = observed == null ? null : Math.max(0, observed);
+      }
+      supplies.complete = supplyEvidenceComplete(supplies);
+      supplies.evidence = supplies.complete ? 'COMPLETE' : 'INCOMPLETE';
+      if (!supplies.complete) this.stats.incompleteSupplyReports += 1;
+      clean.supplies = supplies;
+      return clean;
+    };
+  }
+
+  _installSupplyPlannerBoundary() {
+    const planner = this.runtime.merchantServicePlanner;
+    if (!planner || planner.__nullableSupplyPlannerInstalled || typeof planner._need !== 'function' || typeof planner.plan !== 'function') return;
+    planner.__nullableSupplyPlannerInstalled = true;
+    const originalNeed = planner._need.bind(planner);
+    const originalPlan = planner.plan.bind(planner);
+    planner._need = (report) => {
+      if (!report || !supplyEvidenceComplete(report.supplies)) return null;
+      return originalNeed(report);
+    };
+    planner.plan = (input = {}) => {
+      const now = planner.now();
+      const freshCombatReports = (Array.isArray(input.reports) ? input.reports : []).filter((report) => {
+        if (!report || !report.name || String(report.ctype || '').toLowerCase() === 'merchant') return false;
+        const at = finiteObserved(report.at);
+        if (at == null || now - at > planner.reportTtlMs) return false;
+        if (report.rip === true || report.active === false) return false;
+        return true;
+      });
+      const incomplete = freshCombatReports.filter((report) => !supplyEvidenceComplete(report.supplies));
+      const result = originalPlan(input);
+      if (!incomplete.length) return result;
+      const actionableComplete = freshCombatReports.some((report) => supplyEvidenceComplete(report.supplies) && originalNeed(report));
+      if (actionableComplete) return result;
+      if (result && !['STAND_OPEN', 'HOLD'].includes(result.kind)) return result;
+      const hold = planner._plan('HOLD', 'SUPPLY_EVIDENCE_INSUFFICIENT', {
+        incompleteReports: incomplete.slice(0, 8).map((report) => ({ name: report.name, at: report.at }))
+      });
+      this.stats.supplyHolds += 1;
+      this.lastSupplyHold = clone(hold);
+      return hold;
+    };
+  }
+
+  _installStableContentFingerprinting() {
+    const monitor = this.runtime.contentDrift;
+    if (!monitor || monitor.__stableContentProfileInstalled || typeof monitor._observe !== 'function') return;
+    monitor.__stableContentProfileInstalled = true;
+    const originalObserve = monitor._observe.bind(monitor);
+    monitor._observe = (category, id, value, options = {}) => {
+      if (!['maps', 'npcs'].includes(String(category))) return originalObserve(category, id, value, options);
+      const sanitized = sanitizeVolatileContent(value);
+      this.stats.contentVolatileFieldsStripped += sanitized.stripped;
+      const key = `${String(category)}:${String(id)}`;
+      const current = monitor.records && monitor.records.get(key);
+      const fp = fingerprint(sanitized.value);
+      if (current && current.semanticFingerprintProfile !== CONTENT_FINGERPRINT_PROFILE) {
+        const legacyLifecycle = current.lifecycle;
+        const legacyChangeCount = Number(current.changeCount) || 0;
+        current.fingerprint = fp.hash;
+        current.baselineFingerprint = fp.hash;
+        current.previousFingerprint = null;
+        current.bytes = fp.bytes;
+        current.semanticFingerprintProfile = CONTENT_FINGERPRINT_PROFILE;
+        current.semanticProfileMigratedAt = monitor.now();
+        if (legacyLifecycle === 'QUARANTINED' && legacyChangeCount >= 3 && sanitized.stripped > 0) {
+          current.semanticMigrationPending = true;
+          current.semanticStableSamples = 0;
+        }
+        this.stats.contentRecordsMigrated += 1;
+        this._event('CONTENT_FINGERPRINT_PROFILE_MIGRATED', 'info', 'VOLATILE_FIELDS_EXCLUDED', {
+          category: String(category),
+          id: String(id),
+          legacyLifecycle,
+          legacyChangeCount,
+          strippedFields: sanitized.stripped
+        });
+      }
+      const row = originalObserve(category, id, sanitized.value, options);
+      const updated = monitor.records && monitor.records.get(key);
+      if (updated && updated.semanticMigrationPending === true) {
+        if (updated.fingerprint === fp.hash && (!row || row.kind === 'UNCHANGED')) {
+          updated.semanticStableSamples = Math.max(0, Number(updated.semanticStableSamples) || 0) + 1;
+        } else {
+          updated.semanticStableSamples = 0;
+        }
+        if (updated.semanticStableSamples >= 3 && updated.lifecycle === 'QUARANTINED') {
+          updated.semanticMigrationPending = false;
+          monitor.markRevalidated(category, id);
+          this.stats.contentFlappingRecordsRevalidated += 1;
+          this._event('CONTENT_FLAPPING_REVALIDATED', 'info', 'STABLE_SEMANTIC_FINGERPRINT', {
+            category: String(category),
+            id: String(id),
+            fingerprint: updated.fingerprint,
+            stableSamples: updated.semanticStableSamples
+          });
+        }
+      }
+      return row;
+    };
+  }
+
+  _install() {
+    if (this.installed) return;
+    this._installMerchantBoundary();
+    this._installLocalFarmArbitration();
+    this._installNullableSupplyTelemetry();
+    this._installSupplyPlannerBoundary();
+    this._installStableContentFingerprinting();
+    this.installed = true;
+  }
+
+  beforeTick() {
+    if (this._isMerchant()) this._installMerchantBoundary();
+  }
+
+  status() {
+    return {
+      schemaVersion: PRE_FARMING_RELIABILITY_SCHEMA_VERSION,
+      mode: 'pre-farming-reliability-hardening',
+      actionAuthority: false,
+      merchantFarmerFsmAllowed: false,
+      incidentalVisibleMonsterNavigationBlock: false,
+      selfAggroStillBlocksNavigation: true,
+      selectedOrPlannedTargetsStillBlockNavigation: true,
+      incompleteSupplyTreatedAsZero: false,
+      contentFingerprintProfile: CONTENT_FINGERPRINT_PROFILE,
+      bankOutsideObservableContextTreatedAsFull: false,
+      lastSupplyHold: clone(this.lastSupplyHold),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+function installPreFarmingReliability(runtime) {
+  return new PreFarmingReliabilityPolicy(runtime);
+}
+
+module.exports = {
+  PRE_FARMING_RELIABILITY_SCHEMA_VERSION,
+  CONTENT_FINGERPRINT_PROFILE,
+  ObservableBankCapacityManager,
+  PreFarmingReliabilityPolicy,
+  createObservableBankCapacityManager,
+  installPreFarmingReliability,
+  hasObservableBankSnapshot,
+  supplyEvidenceComplete,
+  sanitizeVolatileContent
+};
