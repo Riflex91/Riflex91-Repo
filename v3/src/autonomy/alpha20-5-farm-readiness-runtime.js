@@ -7,6 +7,7 @@ const {
   createObservableBankCapacityManager,
   installPreFarmingReliability
 } = require('../reliability/pre-farming-reliability');
+const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -44,6 +45,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxAttempts: options.autoRespawnMaxAttempts
     });
     this.preFarmingReliability = installPreFarmingReliability(this);
+    this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
   }
 
   tick() {
@@ -62,6 +64,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
       preFarmingReliability: this.preFarmingReliability.status(),
+      farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       startupPolicy: {
         recommendedMode: 'active',
         recommendedInitialRuntimeState: 'stopped',
@@ -79,6 +82,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
       preFarmingReliability: this.preFarmingReliability.status(),
+      farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
         farmReadiness: true,
@@ -89,7 +93,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         lootMerchantExcluded: true,
         merchantFarmerFsmExcluded: true,
         incidentalMonsterNavigationBlockRemoved: true,
+        localFarmPlanGetsOneSafeSchedulerTurn: true,
+        unsafeOrUnknownVisibleMonsterStillBlocks: true,
         incompleteSupplyFailClosed: true,
+        incompleteLocationFailClosed: true,
         stableContentFingerprintProfile: true,
         bankSnapshotObservabilityRequired: true
       }
