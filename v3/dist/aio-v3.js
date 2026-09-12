@@ -6102,21 +6102,30 @@ class LocalFarmOrchestrator {
   }
 
   _choosePlan(runtime, snapshot, gameData, world, party, now) {
-    const ranked = this.planner.rank(snapshot, gameData, world, party, runtime && runtime.planner);
-    if (!ranked.length) return null;
-    const top = ranked[0];
-    if (!this.currentPlan) return this._makePlan(top, now);
-    if (this.currentPlan.map !== snapshot.character.map) {
+    if (this.currentPlan && this.currentPlan.map !== snapshot.character.map) {
       this._abort('MAP_CHANGED', now, { map: snapshot.character.map });
       return null;
     }
-    if (now >= this.currentPlan.leaseUntil) {
+    if (this.currentPlan && now >= this.currentPlan.leaseUntil) {
       this._abort('PLAN_LEASE_EXPIRED', now);
       return null;
     }
+
+    const ranked = this.planner.rank(snapshot, gameData, world, party, runtime && runtime.planner);
+    if (!ranked.length) {
+      if (this.currentPlan) this._abort('PLAN_NO_LONGER_ELIGIBLE', now);
+      return null;
+    }
+
+    const top = ranked[0];
+    if (!this.currentPlan) return this._makePlan(top, now);
     if (now < this.currentPlan.holdUntil) return this.currentPlan;
     const currentRank = ranked.find((row) => row.monster === this.currentPlan.monster && row.spawnIndex === this.currentPlan.spawnIndex);
-    if (!currentRank || this.planner.materiallyBetter(currentRank, top)) {
+    if (!currentRank) {
+      this._abort('PLAN_NO_LONGER_ELIGIBLE', now);
+      return null;
+    }
+    if (this.planner.materiallyBetter(currentRank, top)) {
       const previous = this.currentPlan;
       this.currentPlan = null;
       const next = this._makePlan(top, now);
