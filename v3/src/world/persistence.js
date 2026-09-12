@@ -52,9 +52,16 @@ class WorldPersistence {
     return null;
   }
 
+  _localStorageWriteKey() {
+    if (this.backendName === 'adventure-land') return `store_${this.key}`;
+    if (this.backendName === 'localStorage') return this.key;
+    return null;
+  }
+
   _localStorageProjectedChars(serialized) {
     const storage = this.root && this.root.localStorage;
-    if (!storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
+    const writeKey = this._localStorageWriteKey();
+    if (!writeKey || !storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
     try {
       let total = 0;
       for (let i = 0; i < Number(storage.length || 0); i += 1) {
@@ -64,19 +71,13 @@ class WorldPersistence {
         total += String(key).length + String(value == null ? '' : value).length;
       }
 
-      const candidates = [`csstore_${this.key}`, this.key];
-      let oldChars = 0;
-      let oldKeyChars = 0;
-      for (const candidate of candidates) {
-        const value = storage.getItem(candidate);
-        if (value != null) {
-          oldChars = Math.max(oldChars, String(value).length);
-          oldKeyChars = Math.max(oldKeyChars, candidate.length);
-        }
-      }
-      return Math.max(0, total - oldChars - oldKeyChars)
-        + String(serialized == null ? '' : serialized).length
-        + (`csstore_${this.key}`).length;
+      const previous = storage.getItem(writeKey);
+      const previousChars = previous == null
+        ? 0
+        : String(writeKey).length + String(previous).length;
+      return Math.max(0, total - previousChars)
+        + String(writeKey).length
+        + String(serialized == null ? '' : serialized).length;
     } catch (_) {
       return null;
     }

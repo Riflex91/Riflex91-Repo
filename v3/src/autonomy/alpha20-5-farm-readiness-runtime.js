@@ -11,6 +11,7 @@ const {
 const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
 const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
 const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
@@ -57,6 +58,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     this.preFarmingReliability = installPreFarmingReliability(this);
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
+    this.farmerTargetEfficiencyHotfix = installFarmerTargetEfficiencyHotfix(this, {
+      maxEvasion: options.farmerMaxTargetEvasion,
+      maxAvoidance: options.farmerMaxTargetAvoidance
+    });
 
     // Live reliability fixes remain modular so the proven Alpha.20 action
     // boundaries are unchanged. Persistence failure may reduce observability,
@@ -131,6 +136,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -166,6 +172,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       preFarmingReliability: this.preFarmingReliability.status(),
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
+      farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -187,6 +194,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
+        extremeEvasionFarmTargetsRejected: true,
+        extremeAvoidanceFarmTargetsRejected: true,
+        farmEfficiencySeparateFromNavigationSafety: true,
         partyTrustUsesExplicitRoster: true,
         partyBootstrapEnabled: true,
         partyBootstrapDoesNotGateTrustedFarmerProgress: true,
