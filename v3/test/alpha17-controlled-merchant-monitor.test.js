@@ -131,12 +131,17 @@ test('Controlled SELL commits only after exact inventory delta verification', as
   assert.equal(root.character.gold, 112);
 });
 
-test('Controlled BANK requires bank context and verifies full-stack removal', async () => {
+test('Controlled BANK requires bank context and verifies full-stack transfer into bank balance', async () => {
   const engine = new EconomyTransactionEngine();
   const fakeLedger = ledger({ character: 'MerchantA', index: 0, name: 'bankme', level: 0, q: 1, disposition: 'BANK' });
+  const bank = { items0: Array(42).fill(null) };
   const root = runtimeRoot({
-    character: character({ items: [{ name: 'bankme', q: 1 }], bank: {} }),
-    bank_store: async (index) => { root.character.items[index] = null; return { success: true }; }
+    character: character({ items: [{ name: 'bankme', q: 1 }], bank }),
+    bank_store: async (index) => {
+      root.character.items[index] = null;
+      root.character.bank.items0[0] = { name: 'bankme', q: 1 };
+      return { success: true };
+    }
   });
   const executor = new ControlledMerchantExecutor({ root, engine, ledger: fakeLedger, getMode: () => 'active', getSupervisorStatus: () => ({ state: 'HEALTHY' }), verifyDelayMs: 0 });
   executor.configure({ enabled: true, bank: true, ack: CONTROLLED_MERCHANT_ACK });
@@ -145,6 +150,7 @@ test('Controlled BANK requires bank context and verifies full-stack removal', as
   assert.equal(result.committed, true);
   assert.equal(engine.get(planned.transaction.id).state, 'COMMITTED');
   assert.equal(root.character.items[0], null);
+  assert.equal(root.character.bank.items0[0].name, 'bankme');
 });
 
 test('Controlled Merchant failures fail safe and trip the existing action-family circuit budget', async () => {
