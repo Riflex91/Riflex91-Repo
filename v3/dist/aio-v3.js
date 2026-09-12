@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.12 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.13 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -121,7 +121,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.12';
+const VERSION = '3.0.0-alpha.8.13';
 
 class Runtime {
   constructor(options = {}) {
@@ -439,9 +439,6 @@ class Runtime {
     if (!snapshot) return snapshot;
     const entities = [];
     for (const entity of snapshot.entities || []) {
-      // Emergency safety must see the raw current target before any content/risk
-      // filter can hide it. Quarantine prevents fighting unknown content, but it
-      // must never suppress an emergency disengage decision.
       const isCurrentEngageTarget = this.farmer.state === 'ENGAGE' && this.farmer.targetId != null && String(entity.id) === String(this.farmer.targetId);
       if (isCurrentEngageTarget) {
         const emergency = this.combatEmergency.evaluate(snapshot, entity);
@@ -4504,8 +4501,6 @@ const COMMANDS = new Set([
   'SHOW_STATUS'
 ]);
 
-const ELEVATED = new Set(['SET_MODE_ACTIVE', 'SET_FARMER_ENABLED_TRUE', 'APPROVE_MONSTER_CONTENT']);
-
 function text(value) { return String(value == null ? '' : value).trim(); }
 
 class ControlGateway {
@@ -4547,8 +4542,10 @@ class ControlGateway {
   _requiresElevated(action, params) {
     if (action === 'SET_MODE' && params && params.mode === 'active') return true;
     if (action === 'SET_FARMER_ENABLED' && params && params.enabled === true) return true;
+    if (action === 'SET_TARGET_POLICY' && params && params.policy === 'allow') return true;
+    if (action === 'REMOVE_TARGET_EXCLUSION') return true;
     if (action === 'APPROVE_MONSTER_CONTENT') return true;
-    return ELEVATED.has(action);
+    return false;
   }
 
   submit(input = {}) {
@@ -4621,17 +4618,27 @@ class StateReplica {
     this.latest = null;
     this.lastRevision = -1;
     this.droppedOversize = 0;
+    this.captureErrors = 0;
+    this.lastError = null;
   }
 
   capture(world) {
     if (!world || typeof world.serialize !== 'function') return false;
     if (Number(world.revision) === this.lastRevision) return false;
-    const serialized = world.serialize();
+    let serialized;
+    try {
+      serialized = world.serialize();
+    } catch (error) {
+      this.captureErrors += 1;
+      this.lastError = String(error && error.message || error);
+      return false;
+    }
     if (serialized.length > this.maxBytes) {
       this.droppedOversize += 1;
       return false;
     }
     this.lastRevision = Number(world.revision);
+    this.lastError = null;
     this.latest = {
       revision: this.lastRevision,
       capturedAt: this.now(),
@@ -4658,7 +4665,9 @@ class StateReplica {
       revision: this.latest ? this.latest.revision : this.lastRevision >= 0 ? this.lastRevision : null,
       bytes: this.latest ? this.latest.bytes : 0,
       maxBytes: this.maxBytes,
-      droppedOversize: this.droppedOversize
+      droppedOversize: this.droppedOversize,
+      captureErrors: this.captureErrors,
+      lastError: this.lastError
     };
   }
 }
@@ -4725,6 +4734,7 @@ class HeadlessOperations {
       maxTtlMs: options.controlMaxTtlMs,
       execute: (action, params) => this._execute(action, params)
     });
+    this.captureErrors = 0;
   }
 
   _execute(action, params = {}) {
@@ -4743,19 +4753,23 @@ class HeadlessOperations {
   }
 
   _capture() {
-    if (this.log) this.telemetry.capture(this.log);
-    if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+    try {
+      if (this.log) this.telemetry.capture(this.log);
+      if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+    } catch (_) {
+      this.captureErrors += 1;
+    }
   }
 
   _healthStatus() {
     const runtime = this.runtime;
     const now = this.now();
     const startedAt = runtime && Number.isFinite(Number(runtime.startedAt)) ? Number(runtime.startedAt) : null;
-    const lastTickAt = runtime && Number.isFinite(Number(runtime.lastHeartbeat)) && Number(runtime.lastHeartbeat) > 0 ? Number(runtime.lastHeartbeat) : null;
+    const lastHeartbeatAt = runtime && Number.isFinite(Number(runtime.lastHeartbeat)) && Number(runtime.lastHeartbeat) > 0 ? Number(runtime.lastHeartbeat) : null;
     const observedAt = runtime && runtime.lastSnapshot && Number.isFinite(Number(runtime.lastSnapshot.observedAt)) ? Number(runtime.lastSnapshot.observedAt) : null;
-    const base = observedAt != null ? observedAt : lastTickAt != null ? lastTickAt : startedAt;
+    const base = observedAt != null ? observedAt : lastHeartbeatAt != null ? lastHeartbeatAt : startedAt;
     const snapshotAgeMs = observedAt == null ? null : Math.max(0, now - observedAt);
-    const heartbeatAgeMs = lastTickAt == null ? null : Math.max(0, now - lastTickAt);
+    const heartbeatAgeMs = lastHeartbeatAt == null ? null : Math.max(0, now - lastHeartbeatAt);
     const age = base == null ? 0 : Math.max(0, now - base);
     let state = 'HEALTHY';
     if (age >= this.degradedAfterMs) state = 'DEGRADED';
@@ -4789,6 +4803,7 @@ class HeadlessOperations {
     return {
       contractVersion: 1,
       transport: 'host-provided',
+      captureErrors: this.captureErrors,
       telemetry: this.telemetry.status(),
       control: this.control.status(),
       stateReplica: this.replica.status(),
