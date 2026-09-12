@@ -216,7 +216,7 @@ test('HeadlessOperations captures heartbeat flight data, exposes group/watchdog 
 
   log.emit({ component: 'runtime', event: 'HEARTBEAT', character: 'MerchantA', data: { mode: 'shadow' } });
   const status = ops.status();
-  assert.equal(status.contractVersion, 2);
+  assert.equal(status.contractVersion, 3);
   assert.equal(status.reliability.actionAuthority, false);
   assert.equal(status.reliability.automaticRecovery, false);
   assert.equal(status.reliability.groupLiveness.fourCharacterReady, true);

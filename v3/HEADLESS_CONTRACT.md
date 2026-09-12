@@ -34,7 +34,7 @@ The Alpha.20.5 runtime watchdog distinguishes runtime freshness from expected ga
 - clock anomalies are surfaced as degraded evidence
 - group-liveness degradation is surfaced without granting recovery authority
 
-The watchdog is recommendation-only in this foundation. `automaticRecovery:false` and `actionAuthority:false` are binding. Recommendations such as reobserve, replan, safe mode or restart are evidence for the later recovery manager/external supervisor; this layer does not execute them itself.
+The watchdog itself is recommendation-only. It never calls attack, movement, travel, economy or party actions.
 
 ## Group-liveness boundary
 
@@ -52,6 +52,51 @@ Every reliability checkpoint is explicitly evidence-only:
 - `reconciliationRequired:true`
 
 A checkpoint may describe a nonterminal transaction, travel operation, lifecycle operation or Development session, but it can never authorize a blind retry or automatic resume. After restart, the owning deterministic subsystem must reobserve current game state and reconcile according to its existing safety rules before any new raw action.
+
+## Alert and escalation boundary
+
+Alpha.20.5 provides a bounded in-process Alert Escalation Manager with severities `INFO`, `WARNING` and `CRITICAL`.
+
+The manager:
+
+- deduplicates repeated incidents within a bounded window
+- rate-limits creation of new alert identities
+- keeps bounded retained history
+- can escalate an unacknowledged warning to critical after a configured interval
+- supports operator/host acknowledgement
+- exposes pending alerts for host transport
+
+Alert transport is deliberately not implemented inside gameplay code. Email, push, WhatsApp or another delivery provider belongs to the authenticated external host. Failure to deliver an alert must never stall gameplay or grant additional bot authority. A missing acknowledgement never authorizes a riskier gameplay action.
+
+## Safe recovery boundary
+
+The bounded recovery ladder is:
+
+`REOBSERVE -> REPLAN -> CIRCUIT -> SAFE_MODE -> HOST_RESTART`
+
+Only `SAFE_MODE` may perform an automatic in-process action in this foundation, and only after explicit enablement with the exact acknowledgement `ALPHA20_5_SAFE_RECOVERY`.
+
+Safe-mode authority is strictly safety-reducing. It may:
+
+- cancel a running Alpha.20 live gate
+- disable the Farmer
+- remove legacy party-transition authority
+- disable controlled party/aura/Merchant/bank/travel authorities
+- place the runtime in `shadow`
+
+It may **not** attack, move, call `smart_move`, call `town`, buy, sell, transfer, upgrade, compound, invite, start/stop a character, change server, or perform any other raw gameplay action. It does not automatically retry a nonterminal transaction.
+
+Safe-mode attempts are bounded by cooldown and sliding-window budget and are idempotent for one degradation incident. Persistent failure eventually becomes a `HOST_RESTART` recommendation only; gameplay code never restarts its own browser/process.
+
+Recovery is default-off. Without the exact acknowledgement it remains recommendation-only.
+
+## External dead-man/watchdog contract
+
+The headless operations layer can emit a monotonic host-watchdog beacon containing a sequence, lease/deadline, runtime freshness, watchdog/group state, recovery stage and pending-alert counts.
+
+The external host must treat a missed deadline as an unhealthy/dead process. This is intentionally external: code running inside a dead browser cannot announce that it is dead or restart itself reliably.
+
+The beacon grants no gameplay action authority. Authentication, TLS, persistence, dead-man scheduling and actual process restart remain host responsibilities. After any host restart, v3 reconciliation rules and the evidence-only checkpoint contract still apply; no blind transaction/travel/party resume is allowed.
 
 ## Remote-control boundary
 
@@ -86,10 +131,12 @@ A host may persist these replicas to a database/object store and maintain last-k
 - runtime heartbeat age
 - activity-aware watchdog state and recovery recommendation
 - observed group-liveness state
+- bounded alert state
+- bounded safe-recovery state
 
 The external host is responsible for detecting a dead browser/process and restarting it. Internal bot logic cannot recover if the whole browser process no longer exists. Alpha.20.5 therefore does not claim dead-man coverage merely because the internal watchdog exists.
 
-Future supervisor work will add bounded restart/reconnect reconciliation and alert escalation, but the interface is intentionally host-agnostic so the bot can later run under Docker, systemd, Kubernetes, a VM service, or another headless-browser supervisor.
+The interface remains host-agnostic so the bot can later run under Docker, systemd, Kubernetes, a VM service, or another headless-browser supervisor.
 
 ## Dashboard design rule
 

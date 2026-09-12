@@ -7,6 +7,9 @@ const { FlightRecorder } = require('./flight-recorder');
 const { GroupLivenessMonitor } = require('./group-liveness');
 const { RuntimeProgressWatchdog } = require('./runtime-watchdog');
 const { ReliabilityCheckpointStore } = require('./reliability-checkpoint');
+const { AlertEscalationManager } = require('./alert-escalation-manager');
+const { SafeRecoveryCoordinator } = require('./safe-recovery-coordinator');
+const { HostWatchdogBeacon } = require('./host-watchdog-beacon');
 
 function safeCall(fn, fallback = null) {
   try { return typeof fn === 'function' ? fn() : fallback; } catch (_) { return fallback; }
@@ -75,10 +78,36 @@ class HeadlessOperations {
       baseKey: options.checkpointBaseKey,
       maxBytes: options.checkpointMaxBytes
     });
+    this.alerts = options.alerts || new AlertEscalationManager({
+      now: this.now,
+      capacity: options.alertCapacity,
+      dedupeWindowMs: options.alertDedupeWindowMs,
+      warningEscalateAfterMs: options.alertWarningEscalateAfterMs,
+      maxNewPerWindow: options.alertMaxNewPerWindow,
+      rateWindowMs: options.alertRateWindowMs
+    });
+    this.recovery = options.recovery || new SafeRecoveryCoordinator({
+      runtime: this.runtime,
+      now: this.now,
+      reobserveAfterMs: options.recoveryReobserveAfterMs,
+      replanAfterMs: options.recoveryReplanAfterMs,
+      circuitAfterMs: options.recoveryCircuitAfterMs,
+      safeModeAfterMs: options.recoverySafeModeAfterMs,
+      hostRestartAfterMs: options.recoveryHostRestartAfterMs,
+      windowMs: options.recoveryWindowMs,
+      maxSafeModesPerWindow: options.recoveryMaxSafeModesPerWindow,
+      safeModeCooldownMs: options.recoverySafeModeCooldownMs,
+      maxHistory: options.recoveryHistory
+    });
+    this.hostWatchdog = options.hostWatchdog || new HostWatchdogBeacon({
+      now: this.now,
+      leaseMs: options.hostWatchdogLeaseMs
+    });
     this.checkpointIntervalMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.checkpointIntervalMs) || 30000));
     this.lastCheckpointAttemptAt = null;
     this.previousCheckpoint = this.checkpoint.load();
     this.lastReliability = null;
+    this.lastGroupState = null;
     this.captureErrors = 0;
     this.observing = false;
     this._installEventSink();
@@ -111,15 +140,34 @@ class HeadlessOperations {
     return true;
   }
 
+  _alertSeverity(severity) {
+    const value = String(severity || '').toLowerCase();
+    if (value === 'error' || value === 'fatal') return 'CRITICAL';
+    if (value === 'warn' || value === 'warning') return 'WARNING';
+    return 'INFO';
+  }
+
+  _emitAlert(input = {}) {
+    return this.alerts.emit(input);
+  }
+
   _onEvent(event) {
     if (this.observing || !event) return;
     const severity = String(event.severity || '').toLowerCase();
-    if (severity === 'warn' || severity === 'error' || severity === 'fatal') {
+    if (severity === 'warn' || severity === 'warning' || severity === 'error' || severity === 'fatal') {
       this.flightRecorder.markIncident({
         at: Date.parse(event.ts) || this.now(),
         severity: severity || 'warn',
         type: event.event || 'EVENT',
         reason: event.reason || null,
+        data: { component: event.component || null, character: event.character || null, taskId: event.taskId || null }
+      });
+      this._emitAlert({
+        at: Date.parse(event.ts) || this.now(),
+        severity: this._alertSeverity(severity),
+        type: event.event || 'EVENT',
+        reason: event.reason || null,
+        dedupeKey: `${event.component || 'unknown'}:${event.event || 'EVENT'}:${event.reason || ''}`,
         data: { component: event.component || null, character: event.character || null, taskId: event.taskId || null }
       });
     }
@@ -169,6 +217,8 @@ class HeadlessOperations {
         heartbeatAgeMs: watchdog.heartbeatAgeMs,
         progressAgeMs: watchdog.progressAgeMs
       } : null,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status(),
       partyLifecycle: {
         enabled: lifecycle.enabled === true,
         operation: lifecycle.operation || null,
@@ -196,6 +246,18 @@ class HeadlessOperations {
     try {
       const group = this.groupLiveness.evaluate(this.runtime);
       const watchdog = this.watchdog.observe(this.runtime, group);
+
+      if (this.lastGroupState != null && group.state !== this.lastGroupState && group.state !== 'HEALTHY') {
+        this._emitAlert({
+          severity: group.state === 'DEGRADED' ? 'CRITICAL' : 'WARNING',
+          type: 'GROUP_LIVENESS_STATE_CHANGED',
+          reason: group.reasons && group.reasons[0] || group.state,
+          dedupeKey: `group-liveness:${group.state}:${(group.invalidMembers || []).join(',')}`,
+          data: { previous: this.lastGroupState, state: group.state, invalidMembers: group.invalidMembers, fourCharacterReady: group.fourCharacterReady }
+        });
+      }
+      this.lastGroupState = group.state;
+
       if (watchdog.transition) {
         const incident = this.flightRecorder.markIncident({
           at: watchdog.transition.at,
@@ -204,6 +266,16 @@ class HeadlessOperations {
           reason: watchdog.transition.reason,
           data: watchdog.transition
         });
+        if (watchdog.transition.state !== 'HEALTHY') {
+          this._emitAlert({
+            at: watchdog.transition.at,
+            severity: watchdog.transition.state === 'DEGRADED' ? 'CRITICAL' : 'WARNING',
+            type: 'RUNTIME_WATCHDOG_STATE_CHANGED',
+            reason: watchdog.transition.reason,
+            dedupeKey: `runtime-watchdog:${watchdog.transition.state}:${watchdog.transition.reason || ''}`,
+            data: { previous: watchdog.transition.previous, state: watchdog.transition.state, recommendation: watchdog.recoveryRecommendation }
+          });
+        }
         if (this.log && typeof this.log.emit === 'function') this.log.emit({
           component: 'reliability',
           event: 'RUNTIME_WATCHDOG_STATE_CHANGED',
@@ -212,12 +284,34 @@ class HeadlessOperations {
           data: { previous: watchdog.transition.previous, state: watchdog.transition.state, recommendation: watchdog.recoveryRecommendation }
         });
       }
+
+      const recoveryPlan = this.recovery.observe(watchdog, group);
+      if (recoveryPlan && recoveryPlan.execution && recoveryPlan.execution.executed) {
+        this._emitAlert({
+          severity: 'CRITICAL',
+          type: 'RELIABILITY_SAFE_MODE_APPLIED',
+          reason: recoveryPlan.execution.reason,
+          dedupeKey: `recovery-safe-mode:${recoveryPlan.incidentId}`,
+          data: { incidentId: recoveryPlan.incidentId, watchdogReason: recoveryPlan.watchdogReason, failures: recoveryPlan.execution.failures }
+        });
+      }
+      if (recoveryPlan && recoveryPlan.stage === 'HOST_RESTART') {
+        this._emitAlert({
+          severity: 'CRITICAL',
+          type: 'EXTERNAL_RESTART_REQUIRED',
+          reason: recoveryPlan.reason,
+          dedupeKey: `external-restart:${recoveryPlan.incidentId}`,
+          data: { incidentId: recoveryPlan.incidentId, elapsedMs: recoveryPlan.elapsedMs, watchdogReason: recoveryPlan.watchdogReason }
+        });
+      }
+      this.alerts.sweep();
+
       const sample = this.flightRecorder.capture(this.runtime, { group, watchdog }, { force: options.forceSample === true });
       const checkpoint = this._maybeCheckpoint(group, watchdog, {
         force: options.forceCheckpoint === true,
         reason: options.forceCheckpoint ? 'RUNTIME_STOP' : 'PERIODIC'
       });
-      this.lastReliability = { at: this.now(), group, watchdog, sample, checkpoint };
+      this.lastReliability = { at: this.now(), group, watchdog, recoveryPlan, sample, checkpoint };
       return this.lastReliability;
     } catch (_) {
       this.captureErrors += 1;
@@ -263,7 +357,9 @@ class HeadlessOperations {
       watchAfterMs: this.watchAfterMs,
       degradedAfterMs: this.degradedAfterMs,
       watchdog,
-      groupLiveness: group
+      groupLiveness: group,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status()
     };
   }
 
@@ -281,24 +377,49 @@ class HeadlessOperations {
   flightRecorderWindow(windowMs = 10 * 60 * 1000) { this._capture(); return this.flightRecorder.recent(windowMs); }
   reliabilityIncidents(limit = 50) { this._capture(); return this.flightRecorder.listIncidents(limit); }
   reliabilityCheckpoint() { this._capture(); return this.checkpoint.latestEvidence(); }
+  peekAlerts(limit = 100) { this._capture(); return this.alerts.peek(limit); }
+  drainAlerts(limit = 100) { this._capture(); return this.alerts.drain(limit); }
+  acknowledgeAlert(id, options = {}) { return this.alerts.acknowledge(id, options); }
+  configureSafeRecovery(config = {}) { return this.recovery.configure(config); }
+  safeRecoveryStatus() { this._capture(); return this.recovery.status(); }
+  hostHeartbeat() {
+    this._capture();
+    const health = this._healthStatus();
+    return this.hostWatchdog.emit(this.runtime, {
+      health,
+      watchdog: health.watchdog,
+      group: health.groupLiveness,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status()
+    });
+  }
 
   status() {
     this._capture();
+    const group = this.groupLiveness.evaluate(this.runtime);
+    const watchdog = this.watchdog.status(this.runtime, group);
     return {
-      contractVersion: 2,
+      contractVersion: 3,
       transport: 'host-provided',
       captureErrors: this.captureErrors,
       telemetry: this.telemetry.status(),
       control: this.control.status(),
       stateReplica: this.replica.status(),
+      alerts: this.alerts.status(),
+      hostWatchdog: this.hostWatchdog.status(),
       health: this._healthStatus(),
       reliability: {
-        mode: 'observational-read-only',
-        actionAuthority: false,
-        automaticRecovery: false,
+        mode: 'observational-plus-explicit-safe-recovery',
+        actionAuthority: this.recovery.enabled,
+        actionScope: 'safety-reduction-only',
+        rawGameplayActionAuthority: false,
+        automaticRecovery: this.recovery.enabled,
         flightRecorder: this.flightRecorder.status(),
-        watchdog: this.watchdog.status(this.runtime, this.groupLiveness.evaluate(this.runtime)),
-        groupLiveness: this.groupLiveness.evaluate(this.runtime),
+        watchdog,
+        groupLiveness: group,
+        recovery: this.recovery.status(),
+        alerting: this.alerts.status(),
+        externalWatchdog: this.hostWatchdog.status(),
         checkpoint: this.checkpoint.status(),
         previousCheckpoint: this.previousCheckpoint ? {
           slot: this.previousCheckpoint.slot || null,
