@@ -30,6 +30,7 @@ class ControlledFarmerLoot {
     this.failureBackoffMs = Math.floor(clamp(options.failureBackoffMs, 1000, 60000, 5000));
     this.verifyDelayMs = Math.floor(clamp(options.verifyDelayMs, 100, 5000, 500));
     this.nextAttemptAt = 0;
+    this.requestSequence = 0;
     this.pendingObservation = null;
     this.lastAttempt = null;
     this.lastObservation = null;
@@ -52,16 +53,10 @@ class ControlledFarmerLoot {
     this.log.emit({ component: 'controlled-farmer-loot', event, severity, reason, data });
   }
 
-  _character() {
-    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
-  }
-
-  _lootFn() {
-    return this.root && (this.root.loot || (this.root.parent && this.root.parent.loot)) || null;
-  }
-
-  _getChestsFn() {
-    return this.root && (this.root.get_chests || (this.root.parent && this.root.parent.get_chests)) || null;
+  _binding(name) {
+    if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
+    if (this.root && this.root.parent && typeof this.root.parent[name] === 'function') return { fn: this.root.parent[name], owner: this.root.parent };
+    return null;
   }
 
   _metrics(snapshot) {
@@ -85,11 +80,11 @@ class ControlledFarmerLoot {
   }
 
   _chestCount() {
-    const fn = this._getChestsFn();
-    if (typeof fn !== 'function') return null;
+    const binding = this._binding('get_chests');
+    if (!binding) return null;
     this.stats.chestPolls += 1;
     try {
-      const value = fn.call(this.root);
+      const value = binding.fn.call(binding.owner);
       if (Array.isArray(value)) return value.length;
       if (value && typeof value === 'object') return Object.keys(value).length;
       return null;
@@ -105,6 +100,7 @@ class ControlledFarmerLoot {
     if (now - this.pendingObservation.at < this.verifyDelayMs) return null;
     const after = this._metrics(snapshot);
     const before = this.pendingObservation.before;
+    const requestId = this.pendingObservation.requestId;
     const delta = {
       gold: after.gold - before.gold,
       occupied: after.occupied - before.occupied,
@@ -112,10 +108,10 @@ class ControlledFarmerLoot {
       freeSlots: after.freeSlots - before.freeSlots
     };
     const observedDelta = delta.gold !== 0 || delta.occupied !== 0 || delta.quantity !== 0 || delta.freeSlots !== 0;
-    this.lastObservation = { at: now, requestedAt: this.pendingObservation.at, observedDelta, delta, before, after };
+    this.lastObservation = { at: now, requestId, requestedAt: this.pendingObservation.at, observedDelta, delta, before, after };
     if (observedDelta) {
       this.stats.observedDeltas += 1;
-      this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { delta, freeSlots: after.freeSlots });
+      this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { requestId, delta, freeSlots: after.freeSlots });
     }
     this.pendingObservation = null;
     return clone(this.lastObservation);
@@ -152,8 +148,8 @@ class ControlledFarmerLoot {
       return { executed: false, reason: 'NO_CHESTS' };
     }
 
-    const fn = this._lootFn();
-    if (typeof fn !== 'function') {
+    const binding = this._binding('loot');
+    if (!binding) {
       this.state = 'BLOCKED';
       this.failureStreak += 1;
       this.stats.failures += 1;
@@ -164,23 +160,27 @@ class ControlledFarmerLoot {
     }
 
     const before = this._metrics(snapshot);
+    const requestId = ++this.requestSequence;
     try {
-      const value = fn.call(this.root);
+      const value = binding.fn.call(binding.owner);
       this.stats.requests += 1;
       this.stats.rawActions += 1;
       if (before.freeSlots <= 0) this.stats.fullInventoryRequests += 1;
       this.failureStreak = 0;
       this.state = 'REQUESTED';
       this.nextAttemptAt = now + (before.freeSlots <= 0 ? this.fullInventoryIntervalMs : this.intervalMs);
-      this.pendingObservation = { at: now, before };
-      this.lastAttempt = { at: now, executed: true, reason: 'LOOT_REQUESTED', chestCount, freeSlots: before.freeSlots };
-      this._event('FARMER_LOOT_REQUESTED', 'info', 'CHEST_AVAILABLE', { chestCount, freeSlots: before.freeSlots, rawActions: this.stats.rawActions });
+      this.pendingObservation = { at: now, requestId, before };
+      this.lastAttempt = { at: now, requestId, executed: true, reason: 'LOOT_REQUESTED', chestCount, freeSlots: before.freeSlots };
+      this._event('FARMER_LOOT_REQUESTED', 'info', 'CHEST_AVAILABLE', { requestId, chestCount, freeSlots: before.freeSlots, rawActions: this.stats.rawActions });
       if (value && typeof value.then === 'function') {
         Promise.resolve(value).catch((error) => {
           this.failureStreak += 1;
           this.stats.failures += 1;
           this.nextAttemptAt = Math.max(this.nextAttemptAt, this.now() + this.failureBackoffMs);
-          this._event('FARMER_LOOT_ASYNC_REJECTED', 'warn', 'LOOT_PROMISE_REJECTED', { message: String(error && error.message || error).slice(0, 160) });
+          this._event('FARMER_LOOT_ASYNC_REJECTED', 'warn', 'LOOT_PROMISE_REJECTED', {
+            requestId,
+            message: String(error && error.message || error).slice(0, 160)
+          });
         });
       }
       return clone(this.lastAttempt);
@@ -189,8 +189,8 @@ class ControlledFarmerLoot {
       this.failureStreak += 1;
       this.stats.failures += 1;
       this.nextAttemptAt = now + this.failureBackoffMs;
-      this.lastAttempt = { at: now, executed: false, reason: 'LOOT_CALL_FAILED', error: String(error && error.message || error).slice(0, 160) };
-      this._event('FARMER_LOOT_FAILED_SAFE', 'warn', 'LOOT_CALL_FAILED', { message: this.lastAttempt.error });
+      this.lastAttempt = { at: now, requestId, executed: false, reason: 'LOOT_CALL_FAILED', error: String(error && error.message || error).slice(0, 160) };
+      this._event('FARMER_LOOT_FAILED_SAFE', 'warn', 'LOOT_CALL_FAILED', { requestId, message: this.lastAttempt.error });
       return clone(this.lastAttempt);
     }
   }
@@ -206,6 +206,7 @@ class ControlledFarmerLoot {
       lootAuthority: true,
       intervalMs: this.intervalMs,
       nextAttemptAt: this.nextAttemptAt || null,
+      requestSequence: this.requestSequence,
       failureStreak: this.failureStreak,
       pendingObservation: clone(this.pendingObservation),
       lastAttempt: clone(this.lastAttempt),
