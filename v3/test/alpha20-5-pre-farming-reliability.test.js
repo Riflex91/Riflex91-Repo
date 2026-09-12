@@ -9,6 +9,7 @@ const {
   PreFarmingReliabilityPolicy,
   hasObservableBankSnapshot,
   supplyEvidenceComplete,
+  serviceEvidenceComplete,
   sanitizeVolatileContent
 } = require('../src/reliability/pre-farming-reliability');
 
@@ -20,7 +21,9 @@ function runtimeFixture(overrides = {}) {
     enabled: true,
     targetId: null,
     state: 'ASSESS',
+    ensureScheduledCalls: 0,
     setEnabled(value) { this.enabled = value === true; return this.enabled; },
+    ensureScheduled() { this.ensureScheduledCalls += 1; return 'farmer-task'; },
     _safeLiveMonsters(snapshot) { return (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead); }
   };
   const localFarming = overrides.localFarming || {
@@ -47,32 +50,47 @@ function runtimeFixture(overrides = {}) {
   };
   const contentDrift = overrides.contentDrift || new ContentDriftMonitor({ now: () => 1000, categories: ['maps', 'npcs'] });
   const logEvents = [];
-  return {
+  const runtime = {
     root,
     farmer,
     localFarming,
     partyTelemetry,
     merchantServicePlanner: overrides.merchantServicePlanner || new MerchantServicePlanner({ now: () => 1000 }),
     contentDrift,
+    now: () => 1000,
+    _farmSnapshot(snapshot) {
+      if (typeof overrides.farmSnapshotFilter === 'function') return overrides.farmSnapshotFilter(snapshot);
+      return snapshot;
+    },
     log: { emit(row) { logEvents.push(row); } },
     logEvents
   };
+  return runtime;
 }
 
-test('merchant role boundary disables generic Farmer FSM and local farming before runtime ticks', () => {
+function primeSafeSnapshot(runtime, snapshot) {
+  return runtime._farmSnapshot(snapshot, {}, {});
+}
+
+test('merchant role boundary disables and prevents scheduling of generic Farmer FSM and local farming before runtime ticks', () => {
   const runtime = runtimeFixture({ character: { name: 'My_Merchant', ctype: 'merchant', map: 'main' } });
   const policy = new PreFarmingReliabilityPolicy(runtime);
   assert.equal(runtime.farmer.enabled, false);
   assert.equal(runtime.localFarming.enabled, false);
+  assert.equal(runtime.farmer.ensureScheduled({}, 'My_Merchant'), null);
+  assert.equal(runtime.farmer.ensureScheduledCalls, 0);
   assert.equal(policy.status().merchantFarmerFsmAllowed, false);
+  assert.equal(policy.status().merchantFarmerSchedulingAllowed, false);
   assert.equal(policy.status().stats.merchantFarmerSuppressions, 1);
+  assert.equal(policy.status().stats.merchantScheduleSuppressions, 1);
   assert.equal(policy.status().stats.merchantLocalFarmSuppressions, 1);
 });
 
-test('incidental hens no longer block local repositioning while planned hens and self-aggro still do', () => {
+test('incidental safety-approved hens no longer block repositioning while planned hens and self-aggro still do', () => {
   const runtime = runtimeFixture();
   const policy = new PreFarmingReliabilityPolicy(runtime);
   const snapshot = {
+    observedAt: 1000,
     character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
     entities: [
       { id: 'hen-1', mtype: 'hen', map: 'main' },
@@ -80,6 +98,7 @@ test('incidental hens no longer block local repositioning while planned hens and
       { id: 'crab-1', mtype: 'crab', map: 'main', target: 'FarmerA' }
     ]
   };
+  primeSafeSnapshot(runtime, snapshot);
 
   runtime.localFarming.currentPlan = { monster: 'squigtoad' };
   assert.deepEqual(runtime.localFarming._visibleMonsters(snapshot).map((row) => row.id).sort(), ['crab-1', 'squig-1']);
@@ -92,19 +111,44 @@ test('incidental hens no longer block local repositioning while planned hens and
   assert.ok(policy.status().stats.incidentalTargetsFiltered >= 2);
 });
 
+test('unknown or safety-rejected incidental monsters remain navigation blockers', () => {
+  const runtime = runtimeFixture({
+    farmSnapshotFilter(snapshot) {
+      return { ...snapshot, entities: (snapshot.entities || []).filter((row) => row.id !== 'danger-1') };
+    }
+  });
+  const policy = new PreFarmingReliabilityPolicy(runtime);
+  runtime.localFarming.currentPlan = { monster: 'squigtoad' };
+  const snapshot = {
+    observedAt: 1000,
+    character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
+    entities: [
+      { id: 'hen-1', mtype: 'hen', map: 'main' },
+      { id: 'squig-1', mtype: 'squigtoad', map: 'main' },
+      { id: 'danger-1', mtype: 'unknownboss', map: 'main' }
+    ]
+  };
+  primeSafeSnapshot(runtime, snapshot);
+  assert.deepEqual(runtime.localFarming._visibleMonsters(snapshot).map((row) => row.id).sort(), ['danger-1', 'squig-1']);
+  assert.equal(policy.status().unsafeOrUnknownVisibleMonsterStillBlocksNavigation, true);
+  assert.equal(policy.status().stats.unsafeVisibleMonstersBlocked, 1);
+});
+
 test('explicit Farmer target remains a navigation blocker even when it is not the planned monster type', () => {
   const runtime = runtimeFixture();
   new PreFarmingReliabilityPolicy(runtime);
   runtime.localFarming.currentPlan = { monster: 'squigtoad' };
   runtime.farmer.targetId = 'hen-1';
   const snapshot = {
+    observedAt: 1000,
     character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
     entities: [{ id: 'hen-1', mtype: 'hen', map: 'main' }]
   };
+  primeSafeSnapshot(runtime, snapshot);
   assert.deepEqual(runtime.localFarming._visibleMonsters(snapshot).map((row) => row.id), ['hen-1']);
 });
 
-test('missing Farmer supply telemetry stays UNKNOWN and cannot fabricate a critical zero-potion service plan', () => {
+test('missing Farmer supply or location telemetry stays UNKNOWN and cannot fabricate zero-potion or 0,0 service plans', () => {
   const runtime = runtimeFixture();
   const policy = new PreFarmingReliabilityPolicy(runtime);
   const cleaned = runtime.partyTelemetry._cleanReport({
@@ -112,15 +156,17 @@ test('missing Farmer supply telemetry stays UNKNOWN and cannot fabricate a criti
     ctype: 'ranger',
     at: 1000,
     map: 'main',
-    x: 10,
-    y: 20,
     supplies: {}
   }, 'FarmerA');
+  assert.equal(cleaned.x, null);
+  assert.equal(cleaned.y, null);
   assert.equal(cleaned.supplies.hpPotions, null);
   assert.equal(cleaned.supplies.mpPotions, null);
   assert.equal(cleaned.supplies.freeSlots, null);
   assert.equal(cleaned.supplies.complete, false);
+  assert.equal(cleaned.serviceEvidenceComplete, false);
   assert.equal(supplyEvidenceComplete(cleaned.supplies), false);
+  assert.equal(serviceEvidenceComplete(cleaned), false);
 
   const plan = runtime.merchantServicePlanner.plan({
     merchant: { name: 'Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, inventory: [{ name: 'hpot1', q: 1000 }] },
@@ -132,14 +178,15 @@ test('missing Farmer supply telemetry stays UNKNOWN and cannot fabricate a criti
   assert.equal(policy.status().stats.supplyHolds, 1);
 });
 
-test('a real observed zero potion count remains actionable after nullable telemetry hardening', () => {
+test('a real observed zero potion count at explicit 0,0 remains actionable after nullable telemetry hardening', () => {
   const runtime = runtimeFixture();
   new PreFarmingReliabilityPolicy(runtime);
   const cleaned = runtime.partyTelemetry._cleanReport({
-    name: 'FarmerA', ctype: 'ranger', at: 1000, map: 'main', x: 10, y: 20,
+    name: 'FarmerA', ctype: 'ranger', at: 1000, map: 'main', x: 0, y: 0,
     supplies: { inventorySize: 2, inventoryLimit: 42, freeSlots: 40, hpPotions: 0, mpPotions: 500, preferredHpPotion: 'hpot1' }
   }, 'FarmerA');
   assert.equal(cleaned.supplies.complete, true);
+  assert.equal(cleaned.serviceEvidenceComplete, true);
   const plan = runtime.merchantServicePlanner.plan({
     merchant: { name: 'Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, inventory: [{ name: 'hpot1', q: 1000 }] },
     reports: [cleaned],
@@ -148,7 +195,23 @@ test('a real observed zero potion count remains actionable after nullable teleme
   });
   assert.equal(plan.kind, 'SERVICE_DELIVERY');
   assert.equal(plan.reason, 'HP_POTIONS_CRITICAL');
+  assert.equal(plan.target.x, 0);
+  assert.equal(plan.target.y, 0);
   assert.ok(plan.delivery.quantity > 0);
+});
+
+test('incomplete service evidence never masks a stronger Merchant safety hold', () => {
+  const runtime = runtimeFixture();
+  new PreFarmingReliabilityPolicy(runtime);
+  const cleaned = runtime.partyTelemetry._cleanReport({ name: 'FarmerA', ctype: 'ranger', at: 1000, map: 'main', supplies: {} }, 'FarmerA');
+  const plan = runtime.merchantServicePlanner.plan({
+    merchant: { name: 'Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, inventory: [] },
+    reports: [cleaned],
+    inCombat: true,
+    standOpen: false
+  });
+  assert.equal(plan.kind, 'HOLD');
+  assert.equal(plan.reason, 'MERCHANT_IN_COMBAT');
 });
 
 test('bank capacity is NOT_OBSERVABLE outside a real bank snapshot and cannot fabricate pressure or a plan', () => {
@@ -203,7 +266,7 @@ test('content semantic projection strips runtime fields but preserves meaningful
   assert.notDeepEqual(first.value, semanticChange.value);
 });
 
-test('high-flap legacy quarantine can recover only after three stable semantic observations; later semantic drift quarantines again', () => {
+test('high-flap legacy quarantine becomes OBSERVED only after three stable semantic observations and never gains control authority', () => {
   let now = 1000;
   const monitor = new ContentDriftMonitor({ now: () => now, categories: ['maps'], minObservedSamples: 2 });
   monitor._observe('maps', 'uhills', { monsters: [{ type: 'hen', count: 4 }], last_update: 1 }, { baselineAllowed: true });
@@ -217,8 +280,13 @@ test('high-flap legacy quarantine can recover only after three stable semantic o
     now += 1000;
     monitor._observe('maps', 'uhills', { monsters: [{ type: 'hen', count: 4 }], last_update: i + 10 }, { baselineAllowed: false });
   }
-  assert.equal(monitor.records.get('maps:uhills').lifecycle, ContentLifecycle.OBSERVED);
-  assert.equal(policy.status().stats.contentFlappingRecordsRevalidated, 1);
+  const observed = monitor.records.get('maps:uhills');
+  assert.equal(observed.lifecycle, ContentLifecycle.OBSERVED);
+  assert.equal(policy.status().contentMigrationControlAuthority, false);
+  assert.equal(policy.status().stats.contentFlappingRecordsReobserved, 1);
+  const serialized = JSON.parse(monitor.serialize());
+  const serializedRecord = serialized.records.find(([key]) => key === 'maps:uhills')[1];
+  assert.equal(serializedRecord.semanticFingerprintProfile, 'stable-runtime-fields-v1');
 
   now += 1000;
   const changed = monitor._observe('maps', 'uhills', { monsters: [{ type: 'hen', count: 5 }], last_update: 999 }, { baselineAllowed: false });
@@ -226,18 +294,20 @@ test('high-flap legacy quarantine can recover only after three stable semantic o
   assert.equal(monitor.records.get('maps:uhills').lifecycle, ContentLifecycle.QUARANTINED);
 });
 
-test('3000-cycle incidental-monster arbitration soak never promotes random hens over a planned farm type', () => {
+test('3000-cycle incidental-monster arbitration soak never promotes random safe hens over a planned farm type', () => {
   const runtime = runtimeFixture();
   const policy = new PreFarmingReliabilityPolicy(runtime);
   runtime.localFarming.currentPlan = { monster: 'squigtoad' };
   for (let i = 0; i < 3000; i += 1) {
     const snapshot = {
+      observedAt: i,
       character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
       entities: [
         { id: `hen-${i}`, mtype: 'hen', map: 'main' },
         { id: `squig-${i}`, mtype: 'squigtoad', map: 'main' }
       ]
     };
+    primeSafeSnapshot(runtime, snapshot);
     const localBlocking = runtime.localFarming._visibleMonsters(snapshot);
     const targets = runtime.farmer._safeLiveMonsters(snapshot, {});
     assert.equal(localBlocking.length, 1);
@@ -247,4 +317,32 @@ test('3000-cycle incidental-monster arbitration soak never promotes random hens 
   }
   assert.equal(policy.status().stats.incidentalVisibleMonstersIgnored, 3000);
   assert.equal(policy.status().stats.incidentalTargetsFiltered, 3000);
+});
+
+test('2500-cycle unsafe incidental-monster soak never ignores a monster rejected by the existing safety snapshot', () => {
+  const runtime = runtimeFixture({
+    farmSnapshotFilter(snapshot) {
+      return { ...snapshot, entities: (snapshot.entities || []).filter((row) => row.id !== 'danger') };
+    }
+  });
+  const policy = new PreFarmingReliabilityPolicy(runtime);
+  runtime.localFarming.currentPlan = { monster: 'squigtoad' };
+  for (let i = 0; i < 2500; i += 1) {
+    const snapshot = {
+      observedAt: i,
+      character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
+      entities: [
+        { id: `hen-${i}`, mtype: 'hen', map: 'main' },
+        { id: `squig-${i}`, mtype: 'squigtoad', map: 'main' },
+        { id: 'danger', mtype: 'unknownboss', map: 'main' }
+      ]
+    };
+    primeSafeSnapshot(runtime, snapshot);
+    const ids = runtime.localFarming._visibleMonsters(snapshot).map((row) => row.id);
+    assert.ok(ids.includes('danger'));
+    assert.ok(ids.includes(`squig-${i}`));
+    assert.ok(!ids.includes(`hen-${i}`));
+  }
+  assert.equal(policy.status().stats.incidentalVisibleMonstersIgnored, 2500);
+  assert.equal(policy.status().stats.unsafeVisibleMonstersBlocked, 2500);
 });
