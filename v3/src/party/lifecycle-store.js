@@ -120,12 +120,14 @@ class PartyLifecycleStore {
     const incumbentCurrentScore = input.incumbentCurrentScore == null ? null : clamp01(input.incumbentCurrentScore);
     const incumbentProjectedScore = input.incumbentProjectedScore == null ? null : clamp01(input.incumbentProjectedScore);
     const incumbentXpPerHour = Math.max(0, finite(input.incumbentXpPerHour));
+    const developmentCandidateName = input.developmentCandidateName ? String(input.developmentCandidateName) : null;
     const highRisk = input.highRisk === true;
     const economyEmergency = input.economyEmergency === true;
 
     const next = [];
     for (const raw of characters) {
-      const old = this.records.get(String(raw.name));
+      const name = String(raw.name);
+      const old = this.records.get(name);
       const currentScore = raw.currentScore == null ? null : clamp01(raw.currentScore);
       const currentConfidence = clamp01(raw.currentConfidence);
       const currentSamples = Math.max(0, finite(raw.currentSamples));
@@ -139,13 +141,15 @@ class PartyLifecycleStore {
       const gearReady = raw.gearReady === true;
       const contentSafe = raw.contentSafe === true;
       const active = raw.active === true;
+      const continuingDevelopment = active && developmentCandidateName === name;
       const reasons = [];
 
       const measuredReady = currentScore != null && currentSamples >= this.minCurrentSamples && currentConfidence >= this.minCurrentConfidence;
       const promotionSuperior = measuredReady && incumbentCurrentScore != null && currentScore >= incumbentCurrentScore + this.minPromotionGain;
       const promotionSafe = survivalScore != null && survivalScore >= this.minPromotionSafety && contentSafe && !highRisk && !economyEmergency;
       const promotionProgress = xpRatioToIncumbent != null && xpRatioToIncumbent >= this.minPromotionXpRatio;
-      const qualifiesPromotionWindow = !active && promotionSuperior && promotionSafe && promotionProgress && gearReady;
+      const promotionEligiblePosition = !active || continuingDevelopment;
+      const qualifiesPromotionWindow = promotionEligiblePosition && promotionSuperior && promotionSafe && promotionProgress && gearReady;
       const promotionStreak = qualifiesPromotionWindow ? Math.min(1000, (old && old.promotionStreak || 0) + 1) : 0;
 
       if (!measuredReady) reasons.push('CURRENT_EVIDENCE_NOT_READY');
@@ -158,13 +162,25 @@ class PartyLifecycleStore {
       if (economyEmergency) reasons.push('ECONOMY_EMERGENCY');
       if (xpRatioToIncumbent == null || xpRatioToIncumbent < this.minPromotionXpRatio) reasons.push('PROMOTION_XP_RATIO_GATE');
       if (!promotionSuperior) reasons.push('CURRENT_SUPERIORITY_NOT_PROVEN');
+      if (continuingDevelopment) reasons.push('ACTIVE_BOUNDED_DEVELOPMENT_SESSION');
       if (qualifiesPromotionWindow && promotionStreak < this.promotionWindowsRequired) reasons.push('PROMOTION_HYSTERESIS_BUILDING');
 
+      let state = PartyLifecycleState.BENCH;
+      if (continuingDevelopment) {
+        state = qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired
+          ? PartyLifecycleState.PROMOTION_CANDIDATE
+          : PartyLifecycleState.DEVELOPMENT;
+      } else if (active) {
+        state = PartyLifecycleState.ACTIVE;
+      } else if (qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired) {
+        state = PartyLifecycleState.PROMOTION_CANDIDATE;
+      }
+
       next.push(this._sanitize({
-        name: raw.name,
+        name,
         ctype: raw.ctype,
         level: raw.level,
-        state: active ? PartyLifecycleState.ACTIVE : (qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired ? PartyLifecycleState.PROMOTION_CANDIDATE : PartyLifecycleState.BENCH),
+        state,
         active,
         currentScore,
         currentConfidence,
@@ -185,7 +201,8 @@ class PartyLifecycleStore {
       }));
     }
 
-    const development = next
+    const activeDevelopment = next.find((row) => row.active && (row.state === PartyLifecycleState.DEVELOPMENT || row.state === PartyLifecycleState.PROMOTION_CANDIDATE));
+    const development = activeDevelopment ? [] : next
       .filter((row) => !row.active && row.state !== PartyLifecycleState.PROMOTION_CANDIDATE)
       .filter((row) => row.projectedScore != null && incumbentProjectedScore != null && row.projectedScore >= incumbentProjectedScore + this.minProjectedGain)
       .filter((row) => row.trainingSafetyScore != null && row.trainingSafetyScore >= this.minTrainingSafety)
@@ -214,9 +231,10 @@ class PartyLifecycleStore {
       incumbentCurrentScore,
       incumbentProjectedScore,
       incumbentXpPerHour,
-      developmentSlotsUsed: development.length,
+      developmentCandidateName,
+      developmentSlotsUsed: activeDevelopment ? 1 : development.length,
       promotionCandidates: next.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE).map((row) => row.name),
-      development: development.map((row) => row.name)
+      development: next.filter((row) => row.state === PartyLifecycleState.DEVELOPMENT).map((row) => row.name)
     };
     this._event('PARTY_LIFECYCLE_EVALUATED', clone(this.lastEvaluation));
     return this.status();
