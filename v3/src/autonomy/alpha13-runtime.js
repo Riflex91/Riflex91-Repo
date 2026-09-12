@@ -1,14 +1,15 @@
 'use strict';
 
 const { Alpha12Runtime } = require('./alpha12-hardened-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { GlobalSupervisor } = require('../stability/global-supervisor');
 const { ContentDriftMonitor } = require('../world/content-drift');
+
+const ALPHA13_VERSION = '3.0.0-alpha.13.0';
 
 class Alpha13Runtime extends Alpha12Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA13_VERSION;
     this.contentDriftScanMs = Math.max(1000, Math.min(60000, Number(options.contentDriftScanMs) || 5000));
     this.supervisorIntervalMs = Math.max(500, Math.min(30000, Number(options.globalSupervisorIntervalMs) || 1000));
     this.lastContentDriftScanAt = -Infinity;
@@ -44,7 +45,7 @@ class Alpha13Runtime extends Alpha12Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA13_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -61,18 +62,13 @@ class Alpha13Runtime extends Alpha12Runtime {
       try {
         this.combatRisk.quarantineMonsterType(this.world, change.id);
         this.log.emit({
-          component: 'content-drift',
-          event: 'CONTENT_MONSTER_FAIL_CLOSED',
-          severity: 'warn',
+          component: 'content-drift', event: 'CONTENT_MONSTER_FAIL_CLOSED', severity: 'warn',
           reason: change.kind === 'DRIFT' ? 'MONSTER_DEFINITION_CHANGED' : 'NEW_MONSTER_AFTER_BASELINE',
           data: { monster: change.id, fingerprint: change.fingerprint }
         });
       } catch (error) {
         this.log.emit({
-          component: 'content-drift',
-          event: 'CONTENT_MONSTER_FAIL_CLOSED_FAILED',
-          severity: 'error',
-          reason: 'QUARANTINE_WRITE_FAILED',
+          component: 'content-drift', event: 'CONTENT_MONSTER_FAIL_CLOSED_FAILED', severity: 'error', reason: 'QUARANTINE_WRITE_FAILED',
           data: { monster: change.id, message: String(error && error.message || error) }
         });
       }
@@ -82,11 +78,7 @@ class Alpha13Runtime extends Alpha12Runtime {
 
   _evaluateGlobalSupervisor() {
     const baseStatus = super.status();
-    const result = this.globalSupervisor.observe({
-      runtime: this,
-      status: baseStatus,
-      contentDrift: this.contentDrift.status()
-    });
+    const result = this.globalSupervisor.observe({ runtime: this, status: baseStatus, contentDrift: this.contentDrift.status() });
     this.lastSupervisorResult = result;
     return result;
   }
@@ -109,42 +101,23 @@ class Alpha13Runtime extends Alpha12Runtime {
     return super.stop();
   }
 
-  setSupervisorSafeActionsEnabled(enabled) {
-    return this.globalSupervisor.setSafeActionsEnabled(enabled);
-  }
-
-  quarantineSubsystem(name, reason) {
-    return this.globalSupervisor.quarantineSubsystem(name, reason);
-  }
-
-  clearSubsystemQuarantine(name) {
-    return this.globalSupervisor.clearSubsystemQuarantine(name);
-  }
-
-  markContentRevalidated(category, id) {
-    return this.contentDrift.markRevalidated(category, id);
-  }
+  setSupervisorSafeActionsEnabled(enabled) { return this.globalSupervisor.setSafeActionsEnabled(enabled); }
+  quarantineSubsystem(name, reason) { return this.globalSupervisor.quarantineSubsystem(name, reason); }
+  clearSubsystemQuarantine(name) { return this.globalSupervisor.clearSubsystemQuarantine(name); }
+  markContentRevalidated(category, id) { return this.contentDrift.markRevalidated(category, id); }
 
   status() {
     const base = super.status();
-    return {
-      ...base,
-      version: RELEASE_VERSION,
-      supervisor: this.globalSupervisor.status(),
-      contentDrift: this.contentDrift.status()
-    };
+    return { ...base, version: ALPHA13_VERSION, supervisor: this.globalSupervisor.status(), contentDrift: this.contentDrift.status() };
   }
 
   exportDiagnostics() {
     const base = JSON.parse(super.exportDiagnostics());
     base.context = base.context || {};
     base.context.supervisor = this.globalSupervisor.status();
-    base.context.contentDrift = {
-      status: this.contentDrift.status(),
-      recent: this.contentDrift.list(200)
-    };
+    base.context.contentDrift = { status: this.contentDrift.status(), recent: this.contentDrift.list(200) };
     return JSON.stringify(base, null, 2);
   }
 }
 
-module.exports = { Alpha13Runtime };
+module.exports = { Alpha13Runtime, ALPHA13_VERSION };
