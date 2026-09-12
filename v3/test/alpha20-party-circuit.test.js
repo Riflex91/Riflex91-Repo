@@ -112,7 +112,7 @@ test('high-risk, combat and economy emergency gates produce zero child transitio
   assert.equal(executeCalls, 0);
 });
 
-test('circuit automatically closes only after cooldown and failure window expiry', async () => {
+test('circuit automatically closes after cooldown while the sliding failure window expires on its exact boundary', async () => {
   let now = 1_000_000;
   const { result: c, data } = coordinator({ now: () => now });
   const plan = c.plan(data.currentMembers, data.registryStatus, {});
@@ -122,6 +122,10 @@ test('circuit automatically closes only after cooldown and failure window expiry
   now = openedUntil - 1;
   assert.equal(c.breaker().open, true);
   now = openedUntil;
+  const exactBoundary = c.breaker();
+  assert.equal(exactBoundary.open, false);
+  assert.equal(exactBoundary.failuresInWindow, 3);
+  now = openedUntil + 1;
   assert.equal(c.breaker().open, false);
   assert.equal(c.breaker().failuresInWindow, 0);
 });
