@@ -1,4 +1,4 @@
-# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.10
+# Adventure Land AiO Bot v3 — 3.0.0-alpha.8.11
 
 v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The browser bundle still starts in **shadow mode** by default, so copying it into Adventure Land does not immediately take control of the character.
 
@@ -12,7 +12,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 - Emergency Disengage during unsafe active combat
 - **Safe Retreat Movement**: one bounded local `move` away from the current emergency threat cluster, executed only by the scheduler-owned Farmer
 - Basic Kiting during `ENGAGE`
-- Skill Usage v4: the same conservative direct-damage single-target safe pool, with bounded preflight fallback, bounded execution fallback, and a short per-skill cross-tick backoff after retryable command failures
+- Skill Usage v5: the same conservative direct-damage single-target safe pool, with bounded preflight fallback, bounded execution fallback, cross-tick per-skill backoff, and bounded repeated-failure intelligence
 - Combat Target Reassessment v3: preserve self-aggro distance hysteresis and add a narrow threat override when another already-attacking self-aggressor has a materially higher known incoming-DPS proxy
 - range-aware local travel and basic attacks using observed `range`, `speed` and `frequency`, not fixed class names
 - recovery thresholds with HP/MP potion handling
@@ -20,7 +20,7 @@ v3 remains isolated beside the v2 production bot. `bot.js` is not replaced. The 
 
 ## Safety boundary
 
-`3.0.0-alpha.8.10` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
+`3.0.0-alpha.8.11` is **not** the v2 production replacement. Default mode remains `shadow` and `productionReplacement` remains `false`.
 
 Economy actions such as `sell`, `bank`, `compound`, `upgrade` and `trade` remain outside the adapter allowlist. The Farmer performs only bounded combat/recovery primitives through the Scheduler and Safe Game Adapter.
 
@@ -40,7 +40,7 @@ AIO_V3.exportDiagnostics()
 AIO_V3.saveWorld()
 ```
 
-`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the highest-ranked safe metadata candidate, bounded preflight/execution fallback settings, the current failure-backoff configuration and active per-skill backoffs, the latest decision including rejected candidates and command attempts, the latest execution outcome, and the latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, the distance and threat switch factors, the threat metric, latest decision and latest target switch.
+`AIO_V3.status().combatRisk` exposes pre-pull risk state. `AIO_V3.status().combatEmergency` exposes emergency thresholds, the latest disengage and whether a retreat is pending. `AIO_V3.farmer.status().safeRetreat` exposes Safe Retreat configuration plus the latest move/failure. `AIO_V3.farmer.status().kiting` exposes Basic Kiting. `AIO_V3.farmer.status().skillUsage` exposes the highest-ranked safe metadata candidate, bounded preflight/execution fallback settings, adaptive failure-backoff configuration, active per-skill backoffs and recent failure streaks, the latest decision including rejected candidates and command attempts, the latest execution outcome, the latest failure recovery and the latest successful use. `AIO_V3.farmer.status().targetReassessment` exposes the bounded reassessment policy, the distance and threat switch factors, the threat metric, latest decision and latest target switch.
 
 Shadow mode remains the safe default:
 
@@ -99,9 +99,9 @@ Default behavior:
 
 Successful requests are logged as `FARMER_KITE_MOVE_REQUESTED`; failures as `FARMER_KITE_MOVE_FAILED`.
 
-## Skill Usage v4 — alpha.8.10
+## Skill Usage v5 — alpha.8.11
 
-The safe skill boundary from v1 remains unchanged. Alpha.8.8 added bounded preflight fallback, Alpha.8.9 added bounded same-tick execution fallback, and Alpha.8.10 only adds short memory for retryable command failures across later engage ticks. This increment still does **not** add a class-specific rotation, a hard-coded `ranger` branch, AoE, support/debuff skills or any new skill category.
+The safe skill boundary from v1 remains unchanged. Alpha.8.8 added bounded preflight fallback, Alpha.8.9 added bounded same-tick execution fallback, Alpha.8.10 added short per-skill memory for retryable command failures across later engage ticks, and Alpha.8.11 adds bounded repeated-failure intelligence. This increment still does **not** add a class-specific rotation, a hard-coded `ranger` branch, AoE, support/debuff skills or any new skill category.
 
 The Farmer inspects live `G.skills` metadata and builds a candidate list only from skills that satisfy all of these conditions:
 
@@ -128,19 +128,27 @@ Alpha.8.9 keeps five bounded execution behaviors:
 - if no safe execution fallback is available, the retry limit is exhausted, or the failure is non-retryable, control falls back to the existing normal attack path rather than entering a skill loop
 - execution telemetry records every bounded attempt, retryability, whether a retry was planned, the final execution outcome and whether an execution fallback was used
 
-Alpha.8.10 adds five bounded cross-tick behaviors:
+Alpha.8.10 keeps five bounded cross-tick behaviors:
 
 - every retryable `COMMAND_FAILED` arms a backoff for that exact safe skill only; non-retryable failures never create a backoff
-- the default backoff is **2000 ms**, with configuration clamped to **500–10000 ms**
+- the base backoff is **2000 ms**, with the base configuration clamped to **500–10000 ms**
 - while a backoff is active, the same safe ladder rejects that candidate with reason `SKILL_COMMAND_BACKOFF` and revalidates lower-ranked candidates through the existing MP, cooldown/requirement and range gates
 - expired backoffs are pruned automatically, so the original higher-ranked skill becomes eligible again without manual state reset
 - `FARMER_SKILL_BACKOFF_ARMED`, `activeFailureBackoffs`, `lastBackoff`, `backoffArmed` and `backoffMs` expose the bounded state in events/status/diagnostics
 
-Rank 1 keeps preflight reason `SAFE_DIRECT_DAMAGE_SKILL`; a lower-ranked safe candidate uses `SAFE_DIRECT_DAMAGE_FALLBACK_SKILL`. A successful second command attempt is additionally identified by execution reason `SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK`. A candidate failed earlier in the same engage tick still uses `PREVIOUS_COMMAND_FAILED`; that same-tick reason intentionally takes precedence over the new cross-tick `SKILL_COMMAND_BACKOFF` marker so Alpha.8.9 telemetry remains stable.
+Alpha.8.11 adds five bounded repeated-failure behaviors:
 
-The command path remains `use_skill(skill, target)` through the Safe Game Adapter. The adapter resolves the target ID back to the live Adventure Land entity before calling the game API. `FARMER_SKILL_USE_FAILED` reports `executionAttempt`, `retryable`, `willRetry`, `maxCommandAttempts`, `backoffArmed` and `backoffMs`; successful execution remains `FARMER_SKILL_USED`. `lastExecution`, `lastDecision.executionAttempts`, `executionOutcome` and `executionFallbackUsed` expose the bounded execution chain, while active failure backoffs are reported separately.
+- retryable failures are counted **per exact skill**; a failure of one safe candidate does not poison other candidates
+- repeated failures within the memory window increase that skill's backoff from **2 s → 4 s → 8 s**, capped at **8 s** by default; multiplier and maximum are bounded configuration values
+- a real `executed` success for that skill immediately clears its failure streak and active backoff; a `shadow` result deliberately does not fabricate a recovery
+- if the skill has no retryable failure for **30 s** by default, its failure history expires and the next failure starts again at the base backoff
+- `failureStreak`, `recentFailureStreaks`, `lastFailureRecovery` and `FARMER_SKILL_FAILURE_STREAK_RESET` make escalation and recovery explicit in status/events/diagnostics
 
-No candidate outside the existing v1 direct single-target damage safety classifier can enter preflight, execution fallback or failure backoff. Kiting still has priority, the existing 750 ms skill interval remains in force between engage ticks, and Alpha.8.5–8.9 safety behavior is unchanged.
+Rank 1 keeps preflight reason `SAFE_DIRECT_DAMAGE_SKILL`; a lower-ranked safe candidate uses `SAFE_DIRECT_DAMAGE_FALLBACK_SKILL`. A successful second command attempt is additionally identified by execution reason `SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK`. A candidate failed earlier in the same engage tick still uses `PREVIOUS_COMMAND_FAILED`; that same-tick reason intentionally takes precedence over the cross-tick `SKILL_COMMAND_BACKOFF` marker so Alpha.8.9 telemetry remains stable.
+
+The command path remains `use_skill(skill, target)` through the Safe Game Adapter. The adapter resolves the target ID back to the live Adventure Land entity before calling the game API. `FARMER_SKILL_USE_FAILED` reports `executionAttempt`, `retryable`, `willRetry`, `maxCommandAttempts`, `backoffArmed`, `backoffMs` and `failureStreak`; successful execution remains `FARMER_SKILL_USED`. `lastExecution`, `lastDecision.executionAttempts`, `executionOutcome` and `executionFallbackUsed` expose the bounded execution chain, while active backoffs, recent streak state and the latest confirmed recovery are reported separately.
+
+No candidate outside the existing v1 direct single-target damage safety classifier can enter preflight, execution fallback or failure intelligence. Kiting still has priority, the existing 750 ms skill interval remains in force between engage ticks, and Alpha.8.5–8.10 safety behavior is unchanged.
 
 ## Combat Target Reassessment v3 — alpha.8.7
 
@@ -190,9 +198,13 @@ AIO_V3.farmer.removeTargetExclusion("example")
 
 ## Current scope
 
-Alpha.8.10 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use the highest-ranked currently usable member of the existing conservative single-target direct-damage skill pool with bounded MP/cooldown/range fallback, make one bounded retry to another revalidated safe skill after a retryable command failure, temporarily avoid an exact safe skill that just produced a retryable command failure, prioritize an already attacking self-aggressor over a non-self-focused target, resolve multi-aggro toward a materially closer self-attacker, and prioritize a materially higher known `attack × frequency` self-aggressor without abandoning the existing switch cooldown.
+Alpha.8.11 still farms safe live monsters already visible on the current map. It can recover, select targets, travel locally, attack, reject unsafe pulls, emergency-disengage, make one short local emergency retreat, make simple ranged distance corrections, use the highest-ranked currently usable member of the existing conservative single-target direct-damage skill pool with bounded MP/cooldown/range fallback, make one bounded retry to another revalidated safe skill after a retryable command failure, temporarily avoid an exact safe skill that just produced a retryable command failure, progressively but boundedly damp repeated failures of that exact skill and reset the streak on confirmed success, prioritize an already attacking self-aggressor over a non-self-focused target, resolve multi-aggro toward a materially closer self-attacker, and prioritize a materially higher known `attack × frequency` self-aggressor without abandoning the existing switch cooldown.
 
 It does not yet perform emergency pathfinding, obstacle-aware escape routing, repeated flee behavior, spawn routing, cross-map hunting, obstacle-aware kiting, HP/XP/planner-based target switching, armor/special-attack-aware threat modeling, AoE or full skill rotations, loot/economy loops, buying potions or merchant logistics.
+
+## Stability direction
+
+`STABILITY_ROADMAP.md` records the project-wide unattended-operation invariants: bounded actions, leases/timeouts, risk budgets, anti-thrashing, circuit breakers, crash-safe transactions, persistent/schema-versioned state, content-drift handling, sustainable equipment progression, deterministic Brain safety boundaries and soak/fault certification.
 
 ## Development
 
