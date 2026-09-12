@@ -67,6 +67,7 @@ class PartyLifecycleStore {
       currentSamples: Math.max(0, finite(row.currentSamples)),
       projectedScore: row.projectedScore == null ? null : clamp01(row.projectedScore),
       projectedProgress: row.projectedProgress == null ? null : clamp01(row.projectedProgress),
+      trainingSafetyScore: row.trainingSafetyScore == null ? null : clamp01(row.trainingSafetyScore),
       survivalScore: row.survivalScore == null ? null : clamp01(row.survivalScore),
       xpPerHour: Math.max(0, finite(row.xpPerHour)),
       xpRatioToIncumbent: row.xpRatioToIncumbent == null ? null : Math.max(0, finite(row.xpRatioToIncumbent)),
@@ -130,6 +131,7 @@ class PartyLifecycleStore {
       const currentSamples = Math.max(0, finite(raw.currentSamples));
       const projectedScore = raw.projectedScore == null ? null : clamp01(raw.projectedScore);
       const projectedProgress = raw.projectedProgress == null ? null : clamp01(raw.projectedProgress);
+      const trainingSafetyScore = raw.trainingSafetyScore == null ? null : clamp01(raw.trainingSafetyScore);
       const survivalScore = raw.survivalScore == null ? null : clamp01(raw.survivalScore);
       const xpPerHour = Math.max(0, finite(raw.xpPerHour));
       const xpRatioToIncumbent = incumbentXpPerHour > 0 ? xpPerHour / incumbentXpPerHour : null;
@@ -148,6 +150,7 @@ class PartyLifecycleStore {
 
       if (!measuredReady) reasons.push('CURRENT_EVIDENCE_NOT_READY');
       if (projectedScore != null && incumbentProjectedScore != null && projectedScore > incumbentProjectedScore) reasons.push('PROJECTED_SUPERIORITY_ONLY_PLANNING');
+      if (trainingSafetyScore == null || trainingSafetyScore < this.minTrainingSafety) reasons.push('TRAINING_SAFETY_GATE');
       if (survivalScore == null || survivalScore < this.minPromotionSafety) reasons.push('PROMOTION_SURVIVAL_GATE');
       if (!gearReady) reasons.push('PROMOTION_GEAR_NOT_READY');
       if (!contentSafe) reasons.push('CONTENT_NOT_SAFE');
@@ -168,6 +171,7 @@ class PartyLifecycleStore {
         currentSamples,
         projectedScore,
         projectedProgress,
+        trainingSafetyScore,
         survivalScore,
         xpPerHour,
         xpRatioToIncumbent,
@@ -184,7 +188,7 @@ class PartyLifecycleStore {
     const development = next
       .filter((row) => !row.active && row.state !== PartyLifecycleState.PROMOTION_CANDIDATE)
       .filter((row) => row.projectedScore != null && incumbentProjectedScore != null && row.projectedScore >= incumbentProjectedScore + this.minProjectedGain)
-      .filter((row) => row.survivalScore == null || row.survivalScore >= this.minTrainingSafety)
+      .filter((row) => row.trainingSafetyScore != null && row.trainingSafetyScore >= this.minTrainingSafety)
       .filter((row) => row.expectedTrainingXpRatio != null && row.expectedTrainingXpRatio >= this.minTrainingExpectedXpRatio)
       .filter((row) => row.contentSafe && !highRisk && !economyEmergency)
       .sort((a, b) => (b.projectedScore || 0) - (a.projectedScore || 0) || b.level - a.level || a.name.localeCompare(b.name))
