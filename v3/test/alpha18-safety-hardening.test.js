@@ -7,9 +7,9 @@ const {
   BankCapacityManager,
   BankExpansionTransactionEngine,
   ControlledBankExpansionExecutor,
-  BankSpaceAction,
-  packCatalogRow
+  BankSpaceAction
 } = require('../src');
+const { packCatalogRow } = require('../src/economy/bank-capacity-manager');
 
 function memoryStorage() {
   const data = new Map();
@@ -70,7 +70,6 @@ test('controlled bank expansion fails safe on a partial local gold delta', async
 });
 
 test('Alpha18 runtime announcements cannot inherit the frozen Alpha.17 version label', () => {
-  const messages = [];
   const root = {
     character: {
       name: 'MerchantA', ctype: 'merchant', level: 80, map: 'bank', x: 0, y: 0, real_x: 0, real_y: 0,
@@ -81,13 +80,13 @@ test('Alpha18 runtime announcements cannot inherit the frozen Alpha.17 version l
     G: gameData(),
     bank_packs: { items0: ['bank', 0, 0], items2: ['bank', 500, 50] },
     performance_trick() {},
-    game_log: (message) => messages.push(String(message)),
     setTimeout, clearTimeout, setInterval, clearInterval
   };
   root.globalThis = root;
   const runtime = new Alpha18Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, storage: memoryStorage() });
   runtime._announce('[AIO v3 3.0.0-alpha.17.0] test', 'ALPHA18_VERSION_TEST');
-  assert.equal(messages.length, 1);
-  assert.match(messages[0], /3\.0\.0-alpha\.18\.0/);
-  assert.doesNotMatch(messages[0], /alpha\.17/);
+  const event = runtime.log.list(50).find((row) => row.event === 'ALPHA18_VERSION_TEST');
+  assert.ok(event);
+  assert.match(event.data.message, /3\.0\.0-alpha\.18\.0/);
+  assert.doesNotMatch(event.data.message, /alpha\.17/);
 });
