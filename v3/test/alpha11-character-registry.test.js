@@ -104,8 +104,7 @@ test('CharacterRegistry enriches self from read-only live character data', () =>
   const registry = new CharacterRegistry();
   const snapshot = registrySnapshot({
     character: { name: 'RangerA', ctype: 'ranger', level: 70, map: 'main', x: 0, y: 0, hp: 100, max_hp: 100, mp: 100, max_mp: 100, rip: false },
-    party: [],
-    entities: []
+    party: [], entities: []
   });
   registry.observe({ snapshot, gameData: gameData(), liveCharacter: character({ attack: 777, armor: 333 }) });
   const self = registry.get('RangerA');
@@ -135,10 +134,7 @@ test('CharacterRegistry is hard bounded and live observations can evict lower-co
   const roster = ['A', 'B', 'C', 'D'].map((name) => ({ name, ctype: 'ranger' }));
   const registry = new CharacterRegistry({ capacity: 4, roster });
   assert.equal(registry.status().counts.total, 4);
-  registry.observe({
-    snapshot: registrySnapshot({ character: { ...registrySnapshot().character, name: 'LIVE' }, party: [], entities: [] }),
-    gameData: gameData()
-  });
+  registry.observe({ snapshot: registrySnapshot({ character: { ...registrySnapshot().character, name: 'LIVE' }, party: [], entities: [] }), gameData: gameData() });
   assert.equal(registry.status().counts.total, 4);
   assert.ok(registry.get('LIVE'));
   assert.equal(registry.status().stats.evicted, 1);
@@ -149,13 +145,8 @@ test('CharacterRegistry sanitizes malformed optional data and remains JSON-safe'
   registry.observe({
     snapshot: {
       observedAt: 1,
-      character: {
-        name: 'Bad', ctype: 'ranger', level: Infinity,
-        hp: NaN, max_hp: 0, mp: Infinity, max_mp: 0, rip: false,
-        inventory: [{ name: 'hpot1', q: Infinity }]
-      },
-      party: [],
-      entities: []
+      character: { name: 'Bad', ctype: 'ranger', level: Infinity, hp: NaN, max_hp: 0, mp: Infinity, max_mp: 0, rip: false, inventory: [{ name: 'hpot1', q: Infinity }] },
+      party: [], entities: []
     },
     gameData: { skills: { bad: { class: ['ranger'], level: Infinity } } }
   });
@@ -172,28 +163,21 @@ test('Alpha11Runtime integrates party observation while preserving Alpha.10 Brai
   const root = {
     character: character(),
     parent: {
-      entities: {
-        p1: { id: 'p1', name: 'PaladinA', type: 'character', player: true, map: 'main', real_x: 50, real_y: 60, hp: 900, max_hp: 1200, dead: false }
-      },
+      entities: { p1: { id: 'p1', name: 'PaladinA', type: 'character', player: true, map: 'main', real_x: 50, real_y: 60, hp: 900, max_hp: 1200, dead: false } },
       party: { PaladinA: { type: 'paladin', level: 65, map: 'main' } }
     },
     G: gameData()
   };
   const runtime = new Alpha11Runtime({
-    root,
-    parent: root.parent,
-    mode: 'shadow',
-    now: () => now,
-    visibleStatus: false,
-    partyObservationMs: 500,
-    brainAuditMs: 1000,
+    root, parent: root.parent, mode: 'shadow', now: () => now, visibleStatus: false,
+    partyObservationMs: 500, brainAuditMs: 1000,
     characterRoster: [{ name: 'MageReserve', ctype: 'mage', level: 50, online: false }],
     storage: { get: () => null, set() {} }
   });
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
   const status = runtime.status();
-  assert.equal(status.version, '3.0.0-alpha.16.0');
+  assert.equal(status.version, '3.0.0-alpha.17.0');
   assert.equal(status.mode, 'shadow');
   assert.equal(status.brain.mode, 'shadow');
   assert.equal(status.brain.actionAuthority, false);
@@ -210,11 +194,7 @@ test('Alpha11Runtime integrates party observation while preserving Alpha.10 Brai
 });
 
 test('Bot active mode never promotes Alpha.11 party observation into action authority', () => {
-  const root = {
-    character: character(),
-    parent: { entities: {}, party: {} },
-    G: gameData()
-  };
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
   const runtime = new Alpha11Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, storage: { get: () => null, set() {} } });
   runtime.setMode('active');
   runtime.tick();
@@ -241,8 +221,7 @@ test('Alpha.11 synthetic observation soak keeps registry bounded, finite and ser
       snapshot: {
         observedAt: now,
         character: { name: self, ctype: 'ranger', level: 70 + (i % 5), map: 'main', hp: 1000, max_hp: 1000, mp: 500, max_mp: 500, rip: false, inventory: [] },
-        party: [{ name: `P${i % 8}`, type: 'paladin', level: 65, map: 'main' }],
-        entities: []
+        party: [{ name: `P${i % 8}`, type: 'paladin', level: 65, map: 'main' }], entities: []
       },
       gameData: gameData()
     });

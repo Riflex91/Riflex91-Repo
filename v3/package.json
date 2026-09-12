@@ -1,8 +1,8 @@
 {
   "name": "adventure-land-aio-v3",
-  "version": "3.0.0-alpha.16.0",
+  "version": "3.0.0-alpha.17.0",
   "private": true,
-  "description": "Adventure Land AiO Bot v3 alpha: bounded Safe Travel planning and progress watchdog foundation.",
+  "description": "Adventure Land AiO Bot v3 alpha: controlled Merchant/Travel canary execution and read-only session monitor GUI.",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",

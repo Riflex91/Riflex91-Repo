@@ -29,11 +29,7 @@ function gameData(monsters = [
   { type: 'unknownboss', boundary: [900, 900, 1100, 1100] }
 ]) {
   return {
-    monsters: {
-      goo: { xp: 100 },
-      crab: { xp: 500 },
-      unknownboss: { xp: 999999 }
-    },
+    monsters: { goo: { xp: 100 }, crab: { xp: 500 }, unknownboss: { xp: 999999 } },
     maps: { main: { monsters }, other: { monsters: [] } },
     skills: {}
   };
@@ -59,12 +55,7 @@ test('StrategicFeatureEncoder emits a versioned bounded finite schema', () => {
   assert.equal(rows[0].schemaVersion, FEATURE_SCHEMA_VERSION);
   assert.equal(rows[0].vector.length, FEATURE_NAMES.length);
   assert.deepEqual(encoder.status().featureNames, FEATURE_NAMES);
-  for (const row of rows) {
-    for (const value of row.vector) {
-      assert.ok(Number.isFinite(value));
-      assert.ok(value >= 0 && value <= 1);
-    }
-  }
+  for (const row of rows) for (const value of row.vector) { assert.ok(Number.isFinite(value)); assert.ok(value >= 0 && value <= 1); }
 });
 
 test('StrategicFeatureEncoder sanitizes malformed numeric observations instead of propagating NaN/Infinity', () => {
@@ -75,10 +66,7 @@ test('StrategicFeatureEncoder sanitizes malformed numeric observations instead o
     teacherRanking: []
   }));
   assert.equal(rows.length, 1);
-  for (const value of rows[0].vector) {
-    assert.ok(Number.isFinite(value));
-    assert.ok(value >= 0 && value <= 1);
-  }
+  for (const value of rows[0].vector) { assert.ok(Number.isFinite(value)); assert.ok(value >= 0 && value <= 1); }
 });
 
 test('BoundedReplayBuffer keeps a hard capacity and reports drops', () => {
@@ -108,28 +96,14 @@ test('ShadowStrategicBrain is recommendation-only and cannot expose direct actio
 
 test('ShadowStrategicBrain performs bounded teacher distillation and keeps finite capped weights', () => {
   let now = 1000;
-  const brain = new ShadowStrategicBrain({
-    now: () => now,
-    replayCapacity: 32,
-    qualityWindow: 8,
-    minQualitySamples: 4,
-    learningRate: 0.1,
-    maxAbsWeight: 0.5,
-    initialWeights: Object.fromEntries(FEATURE_NAMES.map((name) => [name, 0]))
-  });
+  const brain = new ShadowStrategicBrain({ now: () => now, replayCapacity: 32, qualityWindow: 8, minQualitySamples: 4, learningRate: 0.1, maxAbsWeight: 0.5, initialWeights: Object.fromEntries(FEATURE_NAMES.map((name) => [name, 0])) });
   const context = brainContext({ teacherRanking: [{ id: 'main:goo:0' }] });
-  for (let i = 0; i < 40; i += 1) {
-    now += 1000;
-    brain.observe(context);
-  }
+  for (let i = 0; i < 40; i += 1) { now += 1000; brain.observe(context); }
   const status = brain.status();
   assert.ok(status.stats.teacherSamples >= 40);
   assert.ok(status.stats.distillations > 0);
   assert.ok(Object.values(BrainQualityState).includes(status.quality.state));
-  for (const value of Object.values(status.weights)) {
-    assert.ok(Number.isFinite(value));
-    assert.ok(Math.abs(value) <= 0.5);
-  }
+  for (const value of Object.values(status.weights)) { assert.ok(Number.isFinite(value)); assert.ok(Math.abs(value) <= 0.5); }
   assert.ok(status.replay.size <= 32);
 });
 
@@ -143,24 +117,12 @@ test('ShadowStrategicBrain handles an empty candidate set without fabricating a 
 
 test('Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved same-map candidates', () => {
   let now = 10000;
-  const root = {
-    character: character(),
-    parent: { entities: {}, party: {} },
-    G: gameData()
-  };
-  const runtime = new Alpha10Runtime({
-    root,
-    parent: root.parent,
-    mode: 'shadow',
-    now: () => now,
-    visibleStatus: false,
-    brainAuditMs: 1000,
-    storage: { get: () => null, set() {} }
-  });
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
+  const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', now: () => now, visibleStatus: false, brainAuditMs: 1000, storage: { get: () => null, set() {} } });
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
   const status = runtime.status();
-  assert.equal(status.version, '3.0.0-alpha.16.0');
+  assert.equal(status.version, '3.0.0-alpha.17.0');
   assert.equal(status.mode, 'shadow');
   assert.ok(status.brain);
   assert.equal(status.brain.mode, 'shadow');
@@ -172,11 +134,7 @@ test('Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved sa
 });
 
 test('Bot active mode never promotes the Alpha10 Brain out of shadow', () => {
-  const root = {
-    character: character(),
-    parent: { entities: {}, party: {} },
-    G: gameData([{ type: 'goo', boundary: [400, -50, 500, 50] }])
-  };
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData([{ type: 'goo', boundary: [400, -50, 500, 50] }]) };
   const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, storage: { get: () => null, set() {} } });
   runtime.setMode('active');
   assert.equal(runtime.status().mode, 'active');
@@ -190,11 +148,7 @@ test('A malicious shadow recommendation cannot replace the deterministic local f
     status() { return { mode: 'shadow', actionAuthority: false, lastRecommendation: { recommendation: { id: 'bad', monster: 'unknownboss' } } }; },
     replay() { return []; }
   };
-  const root = {
-    character: character(),
-    parent: { entities: {}, party: {} },
-    G: gameData()
-  };
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
   const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, brain: fakeBrain, storage: { get: () => null, set() {} } });
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
@@ -208,8 +162,7 @@ test('Alpha10 synthetic shadow soak keeps Brain state bounded and serializable',
   const context = brainContext();
   for (let i = 0; i < 2000; i += 1) {
     now += 5000;
-    if (i % 17 === 0) context.teacherRanking = [{ ...context.candidates[1], score: 1 }];
-    else context.teacherRanking = [{ ...context.candidates[0], score: 1 }];
+    context.teacherRanking = i % 17 === 0 ? [{ ...context.candidates[1], score: 1 }] : [{ ...context.candidates[0], score: 1 }];
     brain.observe(context);
   }
   const status = brain.status();
