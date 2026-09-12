@@ -81,7 +81,7 @@ class ControlledBankExpansionExecutor {
     const map = Array.isArray(raw) ? raw[0] : raw.map || raw.place;
     const goldCost = Array.isArray(raw) ? finite(raw[1], -1) : finite(raw.gold == null ? raw.goldCost : raw.gold, -1);
     if (map != null && String(character.map || '') !== String(map)) return { ok: false, reason: 'WRONG_BANK_FLOOR', expectedMap: map, actualMap: character.map || null };
-    if (goldCost !== finite(tx.cost, -2)) {
+    if (goldCost < 0 || goldCost !== finite(tx.cost, -2)) {
       this.stats.staleCostRejected += 1;
       return { ok: false, reason: 'EXPANSION_COST_STALE', expectedCost: tx.cost, observedCost: goldCost };
     }
@@ -143,14 +143,16 @@ class ControlledBankExpansionExecutor {
         return this._failSafe(tx, 'BANK_PACK_UNLOCK_NOT_OBSERVED', { before, after, response: clone(response) });
       }
       if (before.unlocked || before.capacity !== 0) return this._failSafe(tx, 'BANK_PACK_BEFORE_SNAPSHOT_INVALID', { before, after });
-      if (after.gold > before.gold || before.gold - after.gold > finite(tx.cost, 0)) {
-        return this._failSafe(tx, 'BANK_EXPANSION_GOLD_DELTA_INVALID', { before, after, expectedCost: tx.cost });
+      const goldDelta = before.gold - after.gold;
+      const expectedCost = finite(tx.cost, -1);
+      if (expectedCost < 0 || (goldDelta !== 0 && goldDelta !== expectedCost)) {
+        return this._failSafe(tx, 'BANK_EXPANSION_GOLD_DELTA_INVALID', { before, after, expectedCost, observedGoldDelta: goldDelta });
       }
-      this.engine.commit(tx.id, { before, after, response: clone(response), commitBasis: 'OFFICIAL_PROMISE_PLUS_OBSERVED_UNLOCK' });
+      this.engine.commit(tx.id, { before, after, response: clone(response), expectedCost, observedGoldDelta: goldDelta, commitBasis: 'OFFICIAL_PROMISE_PLUS_OBSERVED_UNLOCK' });
       this.stats.committed += 1;
-      this.lastAction = { at: this.now(), transactionId: tx.id, pack: tx.pack, result: 'COMMITTED', reason: 'UNLOCK_VERIFIED_COMMIT', before, after };
+      this.lastAction = { at: this.now(), transactionId: tx.id, pack: tx.pack, result: 'COMMITTED', reason: 'UNLOCK_VERIFIED_COMMIT', before, after, expectedCost, observedGoldDelta: goldDelta };
       this._event('CONTROLLED_BANK_EXPANSION_COMMITTED', 'info', 'UNLOCK_VERIFIED_COMMIT', this.lastAction);
-      return { executed: true, committed: true, reason: 'UNLOCK_VERIFIED_COMMIT', before, after, response: clone(response) };
+      return { executed: true, committed: true, reason: 'UNLOCK_VERIFIED_COMMIT', before, after, expectedCost, observedGoldDelta: goldDelta, response: clone(response) };
     } catch (error) {
       const reason = String(error && error.message || error || 'BANK_EXPANSION_FAILED');
       if (reason.includes('TIMEOUT')) this.stats.timeouts += 1;
@@ -170,7 +172,7 @@ class ControlledBankExpansionExecutor {
       goldCanaryOnly: true,
       shellSpendEnabled: false,
       rawActionAttemptLimit: 1,
-      verification: 'official-promise-plus-observed-pack-unlock-and-capacity-snapshot',
+      verification: 'official-promise-plus-observed-pack-unlock-capacity-and-exact-or-stale-local-gold-delta',
       busy: this.busy,
       timeoutMs: this.timeoutMs,
       lastAction: clone(this.lastAction),
