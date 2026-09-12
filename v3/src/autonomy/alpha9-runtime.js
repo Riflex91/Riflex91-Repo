@@ -2,7 +2,9 @@
 
 const { StabilityRuntime } = require('../stability/stability-runtime');
 const { EvidenceKind } = require('../world/world-model');
-const { LocalSpawnNavigator, ProgressWatchdog } = require('./local-farming');
+const { FarmPlanner } = require('../planner/farm-planner');
+const { ProgressWatchdog } = require('./local-farming');
+const { SafeLocalSpawnNavigator } = require('./safe-local-farming');
 const { StrategyBrain } = require('../brain/strategy-brain');
 
 function ratio(value, max) {
@@ -14,10 +16,17 @@ function ratio(value, max) {
 class Alpha9Runtime extends StabilityRuntime {
   constructor(options = {}) {
     super(options);
-    this.localFarming = options.localFarming || new LocalSpawnNavigator({
+    this.localFarmPlanner = options.localFarmPlanner || new FarmPlanner({
+      log: null,
+      maxDeathsPerHour: this.planner && this.planner.maxDeathsPerHour,
+      maxTravelSeconds: this.planner && this.planner.maxTravelSeconds,
+      explorationWeight: this.planner && this.planner.explorationWeight
+    });
+    this.localFarming = options.localFarming || new SafeLocalSpawnNavigator({
       now: this.now,
       log: this.log,
-      planner: this.planner,
+      planner: this.localFarmPlanner,
+      minLearnedConfidence: options.localFarmMinLearnedConfidence,
       maxStep: options.localFarmMaxStep,
       arrivalRadius: options.localFarmArrivalRadius,
       moveCooldownMs: options.localFarmMoveCooldownMs,
@@ -46,10 +55,12 @@ class Alpha9Runtime extends StabilityRuntime {
     });
     this.lastFarmSnapshot = null;
     this.lastLocalFarmStep = null;
+    this.lastBrainSafetyIncidentAt = 0;
     this.brainStateRestored = false;
     this.brainStateRestoreAttempted = false;
     this.brainStateLastSavedAt = 0;
     this.brainStateLastSavedUpdates = -1;
+    this.brainStateLastSerialized = null;
     this.brainPersistenceIntervalMs = Math.max(10000, Number(options.brainPersistenceIntervalMs) || 60000);
     this.brainStateMaxBytes = Math.max(50000, Math.min(750000, Number(options.brainStateMaxBytes) || 350000));
     this.brainStateLastError = null;
@@ -101,9 +112,15 @@ class Alpha9Runtime extends StabilityRuntime {
       this.log.emit({ component: 'brain', event: 'BRAIN_STATE_SAVE_SKIPPED', severity: 'warn', reason: 'BRAIN_STATE_SIZE_LIMIT', data: { bytes: serialized.length, maxBytes: this.brainStateMaxBytes } });
       return false;
     }
+    if (!force && serialized === this.brainStateLastSerialized) {
+      this.brainStateLastSavedAt = now;
+      this.brainStateLastSavedUpdates = this.brain.student.updates;
+      return false;
+    }
     this.world.observeEntity('brain', 'strategy', { schemaVersion: 1, state }, { evidence: EvidenceKind.INFERRED, confidence: 1 });
     this.brainStateLastSavedAt = now;
     this.brainStateLastSavedUpdates = this.brain.student.updates;
+    this.brainStateLastSerialized = serialized;
     this.brainStateLastError = null;
     this.log.emit({ component: 'brain', event: 'BRAIN_STATE_STAGED_FOR_PERSISTENCE', data: { bytes: serialized.length, updates: this.brain.student.updates, forced: force } });
     return true;
@@ -153,6 +170,15 @@ class Alpha9Runtime extends StabilityRuntime {
     return true;
   }
 
+  _propagateSafetyIncident() {
+    const emergency = this.lastEmergencyDisengage;
+    const at = emergency && Number(emergency.at) || 0;
+    if (!at || at <= this.lastBrainSafetyIncidentAt) return false;
+    this.lastBrainSafetyIncidentAt = at;
+    this.brain.recordSafetyIncident(`COMBAT_EMERGENCY:${emergency.reason || 'UNKNOWN'}`);
+    return true;
+  }
+
   setBrainInfluenceEnabled(enabled) {
     const resolved = this.brain.setInfluenceEnabled(enabled === true);
     this._announce(`[AIO v3] BRAIN INFLUENCE | ${resolved ? 'enabled' : 'disabled'} | strategic local preference only`, 'VISIBLE_BRAIN_INFLUENCE_CHANGED');
@@ -175,6 +201,7 @@ class Alpha9Runtime extends StabilityRuntime {
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return;
     this._restoreBrainOnce();
+    this._propagateSafetyIncident();
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
     const paused = this.adapter.mode !== 'active' || !this.farmer.enabled || snapshot.character.rip === true;
