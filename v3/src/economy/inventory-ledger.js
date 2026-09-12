@@ -1,5 +1,7 @@
 'use strict';
 
+const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+
 const INVENTORY_LEDGER_SCHEMA_VERSION = 1;
 const INVENTORY_LEDGER_MODE = 'observation-planning-only';
 const ItemDisposition = Object.freeze({
@@ -67,7 +69,8 @@ class InventoryLedger {
       outOfRangeRejected: 0,
       undecided: 0,
       reserved: 0,
-      sellCandidates: 0
+      sellCandidates: 0,
+      sellProtected: 0
     };
   }
 
@@ -127,7 +130,17 @@ class InventoryLedger {
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
     if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
-    if (this.sellAllowlist.has(row.name)) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+    if (this.sellAllowlist.has(row.name)) {
+      const blockers = sellProtectionReasons(meta);
+      if (blockers.length) {
+        return {
+          disposition: ItemDisposition.UNDECIDED,
+          reasons: ['SELL_ALLOWLIST_PROTECTED', ...blockers].slice(0, 12),
+          sellProtected: true
+        };
+      }
+      return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+    }
 
     return { disposition: ItemDisposition.UNDECIDED, reasons };
   }
@@ -183,11 +196,13 @@ class InventoryLedger {
     let hpReserved = 0;
     let mpReserved = 0;
     let truncated = 0;
+    let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
       const classified = this._baseDisposition(row, gameData, contentDrift, counts);
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
+      if (classified.sellProtected === true) sellProtected += 1;
       const lower = row.name.toLowerCase();
       if (disposition === ItemDisposition.RESERVE_GROUP && /^hpot/.test(lower)) {
         if (hpReserved >= this.groupPotionReserve.hp) { disposition = ItemDisposition.UNDECIDED; reasons.push('GROUP_RESERVE_ALREADY_SATISFIED'); }
@@ -229,6 +244,7 @@ class InventoryLedger {
     this.stats.undecided = dispositionCounts.UNDECIDED || 0;
     this.stats.reserved = [...this.entries.values()].filter((row) => String(row.disposition).startsWith('RESERVE_') || row.disposition === ItemDisposition.KEEP).length;
     this.stats.sellCandidates = dispositionCounts.SELL || 0;
+    this.stats.sellProtected = sellProtected;
     this.lastSummary = {
       at,
       characters: new Set([...this.entries.values()].map((row) => row.character)).size,
@@ -256,6 +272,7 @@ class InventoryLedger {
       isize: authoritativeCapacity,
       rejected: outOfRangeRejected
     });
+    if (sellProtected) this._event('INVENTORY_SELL_PROTECTED', 'info', 'SELL_ALLOWLIST_CANNOT_OVERRIDE_PROTECTED_METADATA', { rejected: sellProtected });
     if (freeSlots != null && freeSlots < this.workspaceSlots) this._event('INVENTORY_PRESSURE_HIGH', 'warn', 'WORKSPACE_RESERVE_VIOLATED', { freeSlots, workspaceSlots: this.workspaceSlots });
     return this.status();
   }
@@ -294,7 +311,8 @@ class InventoryLedger {
         sellAllowlist: [...this.sellAllowlist].sort(),
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
-        defaultDisposition: ItemDisposition.UNDECIDED
+        defaultDisposition: ItemDisposition.UNDECIDED,
+        sellSafety: sellSafetyStatus()
       },
       stats: clone(this.stats)
     };
