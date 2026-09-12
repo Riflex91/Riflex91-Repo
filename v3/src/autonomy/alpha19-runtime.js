@@ -4,7 +4,7 @@ const { Alpha18Runtime } = require('./alpha18-runtime');
 const { RELEASE_VERSION } = require('../release-version');
 const { MerchantSpaceRecoveryJournal } = require('../economy/merchant-space-recovery-journal');
 const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('../economy/controlled-bank-consolidation-executor');
-const { ControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery');
+const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery-hardened');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
@@ -35,7 +35,7 @@ class Alpha19Runtime extends Alpha18Runtime {
       verifyDelayMs: options.controlledBankConsolidationVerifyDelayMs,
       verifyAttempts: options.controlledBankConsolidationVerifyAttempts
     });
-    this.controlledMerchantSpaceRecovery = options.controlledMerchantSpaceRecovery || new ControlledMerchantSpaceRecovery({
+    this.controlledMerchantSpaceRecovery = options.controlledMerchantSpaceRecovery || new HardenedControlledMerchantSpaceRecovery({
       root: this.root,
       log: this.log,
       now: this.now,
