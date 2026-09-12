@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.7 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.8 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.7';
+const VERSION = '3.0.0-alpha.8.8';
 
 class Runtime {
   constructor(options = {}) {
@@ -2445,6 +2445,7 @@ class SkillFarmerController extends KitingFarmerController {
 
           const { gameData } = this._updateSelectedSkill(context);
           const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
+          if (decision.skill) this.selectedSkill = decision.skill.id;
           this.lastSkillDecision = {
             at: this.now(),
             reason: decision.reason,
@@ -2453,7 +2454,17 @@ class SkillFarmerController extends KitingFarmerController {
             targetType: target.mtype || null,
             mp: decision.mp == null ? null : Number(decision.mp),
             reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
-            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2))
+            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2)),
+            candidateCount: Number(decision.candidateCount) || 0,
+            candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+            rejectedCandidates: Array.isArray(decision.rejectedCandidates)
+              ? decision.rejectedCandidates.map((entry) => ({
+                skill: entry.skill || null,
+                rank: Number(entry.rank) || null,
+                reason: entry.reason || null,
+                mpAfter: entry.mpAfter == null ? null : Number(Number(entry.mpAfter).toFixed(2))
+              }))
+              : []
           };
 
           if (decision.useSkill && decision.skill) {
@@ -2470,9 +2481,11 @@ class SkillFarmerController extends KitingFarmerController {
                   targetId: target.id || null,
                   targetType: target.mtype || null,
                   mpCost: decision.skill.mp,
-                  damageMultiplier: decision.skill.damageMultiplier
+                  damageMultiplier: decision.skill.damageMultiplier,
+                  selectionReason: decision.reason,
+                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
                 };
-                this._event('FARMER_SKILL_USED', 'info', 'SAFE_DIRECT_DAMAGE_SKILL', {
+                this._event('FARMER_SKILL_USED', 'info', decision.reason, {
                   skill: decision.skill.id,
                   skillName: decision.skill.name,
                   targetId: target.id || null,
@@ -2480,7 +2493,10 @@ class SkillFarmerController extends KitingFarmerController {
                   mpCost: decision.skill.mp,
                   damageMultiplier: decision.skill.damageMultiplier,
                   mpAfter: Number(decision.mpAfter.toFixed(2)),
-                  reserveMp: Number(decision.reserveMp.toFixed(2))
+                  reserveMp: Number(decision.reserveMp.toFixed(2)),
+                  candidateCount: Number(decision.candidateCount) || 0,
+                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+                  rejectedCandidates: this.lastSkillDecision.rejectedCandidates
                 });
                 return;
               }
@@ -2488,7 +2504,9 @@ class SkillFarmerController extends KitingFarmerController {
               this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
                 skill: decision.skill.id,
                 targetId: target.id || null,
-                targetType: target.mtype || null
+                targetType: target.mtype || null,
+                selectionReason: decision.reason,
+                candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
               });
             }
           }
@@ -3268,10 +3286,10 @@ class SkillUsagePolicy {
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
   }
 
-  select(character, gameData = {}) {
-    if (!this.enabled || !character) return null;
+  candidates(character, gameData = {}) {
+    if (!this.enabled || !character) return [];
     const skills = gameData.skills || {};
-    const candidates = Object.entries(skills)
+    return Object.entries(skills)
       .filter(([, skill]) => isDirectDamageSkill(skill, character))
       .map(([id, skill]) => ({
         id,
@@ -3289,34 +3307,74 @@ class SkillUsagePolicy {
         if (b.cooldown !== a.cooldown) return b.cooldown - a.cooldown;
         return a.id.localeCompare(b.id);
       });
-    return candidates[0] || null;
+  }
+
+  select(character, gameData = {}) {
+    return this.candidates(character, gameData)[0] || null;
   }
 
   evaluate(snapshot, target, gameData, adapter) {
     const character = snapshot && snapshot.character;
-    if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null };
-    if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null };
+    if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
+    if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
 
-    const skill = this.select(character, gameData || {});
-    if (!skill) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null };
+    const candidates = this.candidates(character, gameData || {});
+    if (!candidates.length) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
 
     const mp = Math.max(0, finite(character.mp, 0));
     const maxMp = Math.max(0, finite(character.max_mp, mp));
     const reserveMp = maxMp * this.mpReserveRatio;
-    const mpAfter = mp - skill.mp;
-    if (mpAfter < reserveMp) {
-      return { useSkill: false, reason: 'MP_RESERVE', skill, mp, reserveMp, mpAfter };
+    const rejectedCandidates = [];
+
+    for (let index = 0; index < candidates.length; index += 1) {
+      const skill = candidates[index];
+      const mpAfter = mp - skill.mp;
+      let rejectionReason = null;
+
+      if (mpAfter < reserveMp) {
+        rejectionReason = 'MP_RESERVE';
+      } else if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
+        rejectionReason = 'SKILL_COOLDOWN_OR_REQUIREMENT';
+      } else if (adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(target.id, skill.id)) {
+        rejectionReason = 'SKILL_OUT_OF_RANGE';
+      }
+
+      if (rejectionReason) {
+        rejectedCandidates.push({
+          skill: skill.id,
+          rank: index + 1,
+          reason: rejectionReason,
+          mpAfter
+        });
+        continue;
+      }
+
+      return {
+        useSkill: true,
+        reason: index === 0 ? 'SAFE_DIRECT_DAMAGE_SKILL' : 'SAFE_DIRECT_DAMAGE_FALLBACK_SKILL',
+        skill,
+        mp,
+        reserveMp,
+        mpAfter,
+        candidateCount: candidates.length,
+        candidateRank: index + 1,
+        rejectedCandidates
+      };
     }
 
-    if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
-      return { useSkill: false, reason: 'SKILL_COOLDOWN_OR_REQUIREMENT', skill, mp, reserveMp, mpAfter };
-    }
-
-    if (adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(target.id, skill.id)) {
-      return { useSkill: false, reason: 'SKILL_OUT_OF_RANGE', skill, mp, reserveMp, mpAfter };
-    }
-
-    return { useSkill: true, reason: 'SAFE_DIRECT_DAMAGE_SKILL', skill, mp, reserveMp, mpAfter };
+    const primary = candidates[0];
+    const primaryRejection = rejectedCandidates[0] || { reason: 'NO_USABLE_SAFE_DIRECT_DAMAGE_SKILL' };
+    return {
+      useSkill: false,
+      reason: primaryRejection.reason,
+      skill: primary,
+      mp,
+      reserveMp,
+      mpAfter: mp - primary.mp,
+      candidateCount: candidates.length,
+      candidateRank: null,
+      rejectedCandidates
+    };
   }
 
   status() {
@@ -3324,7 +3382,8 @@ class SkillUsagePolicy {
       enabled: this.enabled,
       mpReserveRatio: this.mpReserveRatio,
       minIntervalMs: this.minIntervalMs,
-      selection: 'single-target hostile damage_multiplier>1'
+      fallbackEnabled: true,
+      selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }
 }

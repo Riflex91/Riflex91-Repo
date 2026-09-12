@@ -30,10 +30,10 @@ class SkillUsagePolicy {
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
   }
 
-  select(character, gameData = {}) {
-    if (!this.enabled || !character) return null;
+  candidates(character, gameData = {}) {
+    if (!this.enabled || !character) return [];
     const skills = gameData.skills || {};
-    const candidates = Object.entries(skills)
+    return Object.entries(skills)
       .filter(([, skill]) => isDirectDamageSkill(skill, character))
       .map(([id, skill]) => ({
         id,
@@ -51,34 +51,74 @@ class SkillUsagePolicy {
         if (b.cooldown !== a.cooldown) return b.cooldown - a.cooldown;
         return a.id.localeCompare(b.id);
       });
-    return candidates[0] || null;
+  }
+
+  select(character, gameData = {}) {
+    return this.candidates(character, gameData)[0] || null;
   }
 
   evaluate(snapshot, target, gameData, adapter) {
     const character = snapshot && snapshot.character;
-    if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null };
-    if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null };
+    if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
+    if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
 
-    const skill = this.select(character, gameData || {});
-    if (!skill) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null };
+    const candidates = this.candidates(character, gameData || {});
+    if (!candidates.length) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
 
     const mp = Math.max(0, finite(character.mp, 0));
     const maxMp = Math.max(0, finite(character.max_mp, mp));
     const reserveMp = maxMp * this.mpReserveRatio;
-    const mpAfter = mp - skill.mp;
-    if (mpAfter < reserveMp) {
-      return { useSkill: false, reason: 'MP_RESERVE', skill, mp, reserveMp, mpAfter };
+    const rejectedCandidates = [];
+
+    for (let index = 0; index < candidates.length; index += 1) {
+      const skill = candidates[index];
+      const mpAfter = mp - skill.mp;
+      let rejectionReason = null;
+
+      if (mpAfter < reserveMp) {
+        rejectionReason = 'MP_RESERVE';
+      } else if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
+        rejectionReason = 'SKILL_COOLDOWN_OR_REQUIREMENT';
+      } else if (adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(target.id, skill.id)) {
+        rejectionReason = 'SKILL_OUT_OF_RANGE';
+      }
+
+      if (rejectionReason) {
+        rejectedCandidates.push({
+          skill: skill.id,
+          rank: index + 1,
+          reason: rejectionReason,
+          mpAfter
+        });
+        continue;
+      }
+
+      return {
+        useSkill: true,
+        reason: index === 0 ? 'SAFE_DIRECT_DAMAGE_SKILL' : 'SAFE_DIRECT_DAMAGE_FALLBACK_SKILL',
+        skill,
+        mp,
+        reserveMp,
+        mpAfter,
+        candidateCount: candidates.length,
+        candidateRank: index + 1,
+        rejectedCandidates
+      };
     }
 
-    if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
-      return { useSkill: false, reason: 'SKILL_COOLDOWN_OR_REQUIREMENT', skill, mp, reserveMp, mpAfter };
-    }
-
-    if (adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(target.id, skill.id)) {
-      return { useSkill: false, reason: 'SKILL_OUT_OF_RANGE', skill, mp, reserveMp, mpAfter };
-    }
-
-    return { useSkill: true, reason: 'SAFE_DIRECT_DAMAGE_SKILL', skill, mp, reserveMp, mpAfter };
+    const primary = candidates[0];
+    const primaryRejection = rejectedCandidates[0] || { reason: 'NO_USABLE_SAFE_DIRECT_DAMAGE_SKILL' };
+    return {
+      useSkill: false,
+      reason: primaryRejection.reason,
+      skill: primary,
+      mp,
+      reserveMp,
+      mpAfter: mp - primary.mp,
+      candidateCount: candidates.length,
+      candidateRank: null,
+      rejectedCandidates
+    };
   }
 
   status() {
@@ -86,7 +126,8 @@ class SkillUsagePolicy {
       enabled: this.enabled,
       mpReserveRatio: this.mpReserveRatio,
       minIntervalMs: this.minIntervalMs,
-      selection: 'single-target hostile damage_multiplier>1'
+      fallbackEnabled: true,
+      selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }
 }
