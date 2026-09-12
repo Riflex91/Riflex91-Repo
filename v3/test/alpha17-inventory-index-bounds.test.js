@@ -2,8 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { GameAdapter } = require('../src/game/adapter');
 const {
-  GameAdapter,
   InventoryLedger,
   ControlledMerchantExecutor,
   EconomyTransactionEngine,
