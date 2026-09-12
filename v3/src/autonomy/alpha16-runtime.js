@@ -1,13 +1,14 @@
 'use strict';
 
 const { Alpha15Runtime } = require('./alpha15-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { SafeTravelController } = require('../travel/safe-travel');
+
+const ALPHA16_VERSION = '3.0.0-alpha.16.0';
 
 class Alpha16Runtime extends Alpha15Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA16_VERSION;
     this.travelMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.travelMaintenanceIntervalMs) || 1000));
     this.lastTravelMaintenanceAt = -Infinity;
     this.safeTravel = options.safeTravel || new SafeTravelController({
@@ -25,15 +26,13 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA16_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
   }
 
-  _travelStatus() {
-    return this.safeTravel.status();
-  }
+  _travelStatus() { return this.safeTravel.status(); }
 
   tick() {
     super.tick();
@@ -59,7 +58,7 @@ class Alpha16Runtime extends Alpha15Runtime {
 
   status() {
     const base = super.status();
-    return { ...base, version: RELEASE_VERSION, travel: this._travelStatus() };
+    return { ...base, version: ALPHA16_VERSION, travel: this._travelStatus() };
   }
 
   exportDiagnostics() {
@@ -70,4 +69,4 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 }
 
-module.exports = { Alpha16Runtime };
+module.exports = { Alpha16Runtime, ALPHA16_VERSION };

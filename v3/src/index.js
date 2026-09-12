@@ -10,7 +10,8 @@ const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
 const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
-const { Alpha16Runtime } = require('./autonomy/alpha16-runtime');
+const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
+const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -44,12 +45,16 @@ const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyCont
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
+const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK } = require('./economy/controlled-merchant-executor');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
+const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
 const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
+const { SessionMonitor, MONITOR_SCHEMA_VERSION } = require('./ops/session-monitor');
+const { DebugMonitorUI } = require('./ops/debug-monitor-ui');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
@@ -57,7 +62,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha16Runtime({ ...options, root });
+  const runtime = new Alpha17Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -70,12 +75,41 @@ function install(root = globalThis, options = {}) {
     controlHistory: options.remoteControlHistory,
     controlMaxTtlMs: options.remoteControlMaxTtlMs
   });
+  const monitor = new SessionMonitor({
+    root,
+    runtime,
+    operations,
+    log: runtime.log,
+    now: runtime.now,
+    version: VERSION,
+    maxEvents: options.sessionMonitorMaxEvents,
+    maxInventory: options.sessionMonitorMaxInventory,
+    maxTransactions: options.sessionMonitorMaxTransactions,
+    maxTravel: options.sessionMonitorMaxTravel,
+    maxGoals: options.sessionMonitorMaxGoals
+  });
+  const debugUI = new DebugMonitorUI({
+    root,
+    monitor,
+    log: runtime.log,
+    refreshMs: options.debugMonitorRefreshMs,
+    containerId: options.debugMonitorContainerId
+  });
 
-  function status() { return { ...runtime.status(), operations: operations.status() }; }
+  function status() {
+    return {
+      ...runtime.status(),
+      operations: operations.status(),
+      monitor: monitor.status(),
+      debugUI: debugUI.status()
+    };
+  }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
     base.context.operations = operations.status();
+    base.context.monitor = monitor.status();
+    base.context.debugUI = debugUI.status();
     return JSON.stringify(base, null, 2);
   }
 
@@ -83,6 +117,8 @@ function install(root = globalThis, options = {}) {
     version: VERSION,
     __runtime: runtime,
     __operations: operations,
+    __monitor: monitor,
+    __debugUI: debugUI,
     start: () => runtime.start(),
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
@@ -91,6 +127,15 @@ function install(root = globalThis, options = {}) {
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics,
     saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    monitor: {
+      status: () => monitor.status(),
+      summary: () => monitor.summary(),
+      exportSession: () => monitor.exportSession(),
+      copyLog: () => monitor.copyToClipboard(),
+      show: () => debugUI.show(),
+      hide: () => debugUI.hide(),
+      uiStatus: () => debugUI.status()
+    },
     operations: {
       status: () => operations.status(),
       submit: (command) => operations.submit(command),
@@ -105,7 +150,7 @@ function install(root = globalThis, options = {}) {
     research: runtime.research,
     brain: { status: () => runtime.brain.status(), replay: (limit = 32) => runtime.brain.replay(limit) },
     supervisor: {
-      status: () => runtime.globalSupervisor.status(),
+      status: () => runtime.status().supervisor,
       setSafeActionsEnabled: (enabled) => runtime.setSupervisorSafeActionsEnabled(enabled),
       quarantineSubsystem: (name, reason) => runtime.quarantineSubsystem(name, reason),
       clearSubsystemQuarantine: (name) => runtime.clearSubsystemQuarantine(name)
@@ -120,7 +165,8 @@ function install(root = globalThis, options = {}) {
     inventory: {
       status: () => runtime.inventoryLedger.status(),
       entries: (limit = 100) => runtime.inventoryLedger.list(limit),
-      item: (character, index) => runtime.inventoryLedger.get(character, index)
+      item: (character, index) => runtime.inventoryLedger.get(character, index),
+      setActionPolicy: (config) => runtime.configureInventoryActionPolicy(config)
     },
     gearProgression: {
       status: () => runtime.gearProgression.status(),
@@ -129,6 +175,12 @@ function install(root = globalThis, options = {}) {
     },
     economy: {
       status: () => runtime.status().economy,
+      controlled: {
+        status: () => runtime.controlledMerchant.status(),
+        configure: (config) => runtime.configureControlledMerchant(config),
+        disable: (reason) => runtime.controlledMerchant.disable(reason),
+        execute: (id) => runtime.executeEconomyTransaction(id)
+      },
       transactions: {
         status: () => runtime.transactionEngine.status(),
         list: (limit = 100) => runtime.transactionEngine.list(limit),
@@ -141,12 +193,19 @@ function install(root = globalThis, options = {}) {
       }
     },
     travel: {
-      status: () => runtime.safeTravel.status(),
+      status: () => runtime.status().travel,
       list: (limit = 100) => runtime.safeTravel.list(limit),
       get: (id) => runtime.safeTravel.get(id),
       plan: (request) => runtime.planTravel(request),
       cancel: (id, reason) => runtime.safeTravel.cancel(id, reason),
-      breaker: () => runtime.safeTravel.breaker()
+      breaker: () => runtime.safeTravel.breaker(),
+      controlled: {
+        status: () => runtime.controlledTravel.status(),
+        configure: (config) => runtime.configureControlledTravel(config),
+        disable: (reason) => runtime.controlledTravel.disable(reason),
+        execute: (id) => runtime.executeTravelPlan(id),
+        abort: (reason) => runtime.abortControlledTravel(reason)
+      }
     },
     party: {
       status: () => runtime.status().party,
@@ -196,12 +255,13 @@ function install(root = globalThis, options = {}) {
   };
 
   root.AIO_V3 = api;
+  if (options.debugMonitorVisible !== false) debugUI.show();
   if (root.AIO_V3_AUTOSTART !== false) runtime.start();
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -214,7 +274,9 @@ module.exports = {
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
-  SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState,
+  ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK,
+  SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
+  SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState

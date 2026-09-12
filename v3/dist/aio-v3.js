@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.16.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.17.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -15,7 +15,8 @@ const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
 const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
-const { Alpha16Runtime } = require('./autonomy/alpha16-runtime');
+const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
+const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -49,12 +50,16 @@ const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyCont
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
+const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK } = require('./economy/controlled-merchant-executor');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
+const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
 const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
+const { SessionMonitor, MONITOR_SCHEMA_VERSION } = require('./ops/session-monitor');
+const { DebugMonitorUI } = require('./ops/debug-monitor-ui');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
@@ -62,7 +67,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha16Runtime({ ...options, root });
+  const runtime = new Alpha17Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -75,12 +80,41 @@ function install(root = globalThis, options = {}) {
     controlHistory: options.remoteControlHistory,
     controlMaxTtlMs: options.remoteControlMaxTtlMs
   });
+  const monitor = new SessionMonitor({
+    root,
+    runtime,
+    operations,
+    log: runtime.log,
+    now: runtime.now,
+    version: VERSION,
+    maxEvents: options.sessionMonitorMaxEvents,
+    maxInventory: options.sessionMonitorMaxInventory,
+    maxTransactions: options.sessionMonitorMaxTransactions,
+    maxTravel: options.sessionMonitorMaxTravel,
+    maxGoals: options.sessionMonitorMaxGoals
+  });
+  const debugUI = new DebugMonitorUI({
+    root,
+    monitor,
+    log: runtime.log,
+    refreshMs: options.debugMonitorRefreshMs,
+    containerId: options.debugMonitorContainerId
+  });
 
-  function status() { return { ...runtime.status(), operations: operations.status() }; }
+  function status() {
+    return {
+      ...runtime.status(),
+      operations: operations.status(),
+      monitor: monitor.status(),
+      debugUI: debugUI.status()
+    };
+  }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
     base.context.operations = operations.status();
+    base.context.monitor = monitor.status();
+    base.context.debugUI = debugUI.status();
     return JSON.stringify(base, null, 2);
   }
 
@@ -88,6 +122,8 @@ function install(root = globalThis, options = {}) {
     version: VERSION,
     __runtime: runtime,
     __operations: operations,
+    __monitor: monitor,
+    __debugUI: debugUI,
     start: () => runtime.start(),
     stop: () => runtime.stop(),
     setMode: (mode) => runtime.setMode(mode),
@@ -96,6 +132,15 @@ function install(root = globalThis, options = {}) {
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics,
     saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    monitor: {
+      status: () => monitor.status(),
+      summary: () => monitor.summary(),
+      exportSession: () => monitor.exportSession(),
+      copyLog: () => monitor.copyToClipboard(),
+      show: () => debugUI.show(),
+      hide: () => debugUI.hide(),
+      uiStatus: () => debugUI.status()
+    },
     operations: {
       status: () => operations.status(),
       submit: (command) => operations.submit(command),
@@ -110,7 +155,7 @@ function install(root = globalThis, options = {}) {
     research: runtime.research,
     brain: { status: () => runtime.brain.status(), replay: (limit = 32) => runtime.brain.replay(limit) },
     supervisor: {
-      status: () => runtime.globalSupervisor.status(),
+      status: () => runtime.status().supervisor,
       setSafeActionsEnabled: (enabled) => runtime.setSupervisorSafeActionsEnabled(enabled),
       quarantineSubsystem: (name, reason) => runtime.quarantineSubsystem(name, reason),
       clearSubsystemQuarantine: (name) => runtime.clearSubsystemQuarantine(name)
@@ -125,7 +170,8 @@ function install(root = globalThis, options = {}) {
     inventory: {
       status: () => runtime.inventoryLedger.status(),
       entries: (limit = 100) => runtime.inventoryLedger.list(limit),
-      item: (character, index) => runtime.inventoryLedger.get(character, index)
+      item: (character, index) => runtime.inventoryLedger.get(character, index),
+      setActionPolicy: (config) => runtime.configureInventoryActionPolicy(config)
     },
     gearProgression: {
       status: () => runtime.gearProgression.status(),
@@ -134,6 +180,12 @@ function install(root = globalThis, options = {}) {
     },
     economy: {
       status: () => runtime.status().economy,
+      controlled: {
+        status: () => runtime.controlledMerchant.status(),
+        configure: (config) => runtime.configureControlledMerchant(config),
+        disable: (reason) => runtime.controlledMerchant.disable(reason),
+        execute: (id) => runtime.executeEconomyTransaction(id)
+      },
       transactions: {
         status: () => runtime.transactionEngine.status(),
         list: (limit = 100) => runtime.transactionEngine.list(limit),
@@ -146,12 +198,19 @@ function install(root = globalThis, options = {}) {
       }
     },
     travel: {
-      status: () => runtime.safeTravel.status(),
+      status: () => runtime.status().travel,
       list: (limit = 100) => runtime.safeTravel.list(limit),
       get: (id) => runtime.safeTravel.get(id),
       plan: (request) => runtime.planTravel(request),
       cancel: (id, reason) => runtime.safeTravel.cancel(id, reason),
-      breaker: () => runtime.safeTravel.breaker()
+      breaker: () => runtime.safeTravel.breaker(),
+      controlled: {
+        status: () => runtime.controlledTravel.status(),
+        configure: (config) => runtime.configureControlledTravel(config),
+        disable: (reason) => runtime.controlledTravel.disable(reason),
+        execute: (id) => runtime.executeTravelPlan(id),
+        abort: (reason) => runtime.abortControlledTravel(reason)
+      }
     },
     party: {
       status: () => runtime.status().party,
@@ -201,12 +260,13 @@ function install(root = globalThis, options = {}) {
   };
 
   root.AIO_V3 = api;
+  if (options.debugMonitorVisible !== false) debugUI.show();
   if (root.AIO_V3_AUTOSTART !== false) runtime.start();
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -219,7 +279,9 @@ module.exports = {
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
-  SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState,
+  ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK,
+  SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
+  SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
@@ -4557,7 +4619,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.16.0';
+const RELEASE_VERSION = '3.0.0-alpha.17.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -10749,13 +10811,14 @@ module.exports = {
 'use strict';
 
 const { Alpha15Runtime } = require('./alpha15-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { SafeTravelController } = require('../travel/safe-travel');
+
+const ALPHA16_VERSION = '3.0.0-alpha.16.0';
 
 class Alpha16Runtime extends Alpha15Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA16_VERSION;
     this.travelMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.travelMaintenanceIntervalMs) || 1000));
     this.lastTravelMaintenanceAt = -Infinity;
     this.safeTravel = options.safeTravel || new SafeTravelController({
@@ -10773,15 +10836,13 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA16_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
   }
 
-  _travelStatus() {
-    return this.safeTravel.status();
-  }
+  _travelStatus() { return this.safeTravel.status(); }
 
   tick() {
     super.tick();
@@ -10807,7 +10868,7 @@ class Alpha16Runtime extends Alpha15Runtime {
 
   status() {
     const base = super.status();
-    return { ...base, version: RELEASE_VERSION, travel: this._travelStatus() };
+    return { ...base, version: ALPHA16_VERSION, travel: this._travelStatus() };
   }
 
   exportDiagnostics() {
@@ -10818,7 +10879,7 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 }
 
-module.exports = { Alpha16Runtime };
+module.exports = { Alpha16Runtime, ALPHA16_VERSION };
 
 },
 "src/travel/safe-travel.js": function(require,module,exports){
@@ -11101,6 +11162,777 @@ class SafeTravelController {
 }
 
 module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState };
+
+},
+"src/autonomy/alpha17-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha16Runtime } = require('./alpha16-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../economy/controlled-merchant-executor');
+const { ControlledTravelExecutor, CONTROLLED_TRAVEL_ACK } = require('../travel/controlled-travel-executor');
+
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class Alpha17Runtime extends Alpha16Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+    this.controlledMerchant = options.controlledMerchant || new ControlledMerchantExecutor({
+      root: this.root,
+      engine: this.transactionEngine,
+      ledger: this.inventoryLedger,
+      contentDrift: this.contentDrift,
+      log: this.log,
+      now: this.now,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      timeoutMs: options.controlledMerchantTimeoutMs,
+      verifyDelayMs: options.controlledMerchantVerifyDelayMs,
+      verifyAttempts: options.controlledMerchantVerifyAttempts,
+      actionWindowMs: options.controlledMerchantActionWindowMs,
+      maxActionsPerWindow: options.controlledMerchantMaxActionsPerWindow
+    });
+    this.controlledTravel = options.controlledTravel || new ControlledTravelExecutor({
+      root: this.root,
+      controller: this.safeTravel,
+      log: this.log,
+      now: this.now,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      timeoutMs: options.controlledTravelTimeoutMs
+    });
+    this.lastControlledGuardReason = null;
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
+  _controlledSubsystemHealth() {
+    const tx = this.transactionEngine.status();
+    const economyReasons = [];
+    for (const family of ['SELL', 'BANK']) {
+      if (tx.circuits && tx.circuits[family] && tx.circuits[family].open) economyReasons.push(`${family}_CIRCUIT_OPEN`);
+    }
+    const economyLast = this.controlledMerchant && this.controlledMerchant.status().lastAction;
+    const economy = economyReasons.length
+      ? { state: 'DEGRADED', reasons: economyReasons }
+      : economyLast && economyLast.result === 'FAILED_SAFE'
+        ? { state: 'WATCH', reasons: ['CONTROLLED_MERCHANT_LAST_ACTION_FAILED_SAFE'] }
+        : { state: 'HEALTHY', reasons: [] };
+
+    const breaker = this.safeTravel.breaker();
+    const travelLast = this.controlledTravel && this.controlledTravel.status().lastAction;
+    const travel = breaker.open
+      ? { state: 'DEGRADED', reasons: ['TRAVEL_CIRCUIT_OPEN'] }
+      : travelLast && travelLast.result === 'FAILED_SAFE'
+        ? { state: 'WATCH', reasons: ['CONTROLLED_TRAVEL_LAST_ACTION_FAILED_SAFE'] }
+        : { state: 'HEALTHY', reasons: [] };
+    return { economy, travel };
+  }
+
+  _economyStatus() {
+    const base = super._economyStatus();
+    const controlled = this.controlledMerchant ? this.controlledMerchant.status() : null;
+    return {
+      ...base,
+      mode: 'controlled-canary-default-off',
+      actionAuthority: !!(controlled && controlled.actionAuthority),
+      directGameplayActionAccess: !!(controlled && controlled.actionAuthority),
+      liveEnabled: !!(controlled && controlled.enabled),
+      sellLiveEnabled: !!(controlled && controlled.sellEnabled),
+      bankLiveEnabled: !!(controlled && controlled.bankEnabled),
+      controlled
+    };
+  }
+
+  _travelStatus() {
+    const base = super._travelStatus();
+    const controlled = this.controlledTravel ? this.controlledTravel.status() : null;
+    return {
+      ...base,
+      plannerActionAuthority: false,
+      actionAuthority: !!(controlled && controlled.actionAuthority),
+      liveExecutionEnabled: !!(controlled && controlled.enabled),
+      smartMoveExecutionEnabled: !!(controlled && controlled.enabled),
+      controlled
+    };
+  }
+
+  _evaluateGlobalSupervisor() {
+    const status = super.status();
+    const result = this.globalSupervisor.observe({ runtime: this, status, contentDrift: this.contentDrift.status() });
+    this.lastSupervisorResult = result;
+    return result;
+  }
+
+  _liveEnableGate() {
+    if (this.adapter.mode !== 'active') return { allowed: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    const supervisor = this.globalSupervisor.status();
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { allowed: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    const character = this.root && this.root.character;
+    if (!character || String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { allowed: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { allowed: false, reason: 'CHARACTER_DEAD' };
+    return { allowed: true, reason: null };
+  }
+
+  _guardControlledAuthority() {
+    const health = this._controlledSubsystemHealth();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (health.economy.state === 'DEGRADED') reason = 'ECONOMY_CIRCUIT_OPEN';
+
+    if (reason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(reason);
+    if ((reason || health.travel.state === 'DEGRADED') && this.controlledTravel.status().enabled) {
+      const travelReason = health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : reason;
+      Promise.resolve(this.controlledTravel.disable(travelReason)).catch((error) => {
+        this.log.emit({ component: 'controlled-travel', event: 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED', severity: 'error', reason: travelReason, data: { message: String(error && error.message || error) } });
+      });
+    }
+    this.lastControlledGuardReason = reason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
+    return { reason: this.lastControlledGuardReason, health };
+  }
+
+  tick() {
+    super.tick();
+    this._guardControlledAuthority();
+  }
+
+  setMode(mode) {
+    const resolved = super.setMode(mode);
+    if (resolved !== 'active') {
+      this.controlledMerchant.disable('RUNTIME_LEFT_ACTIVE_MODE');
+      Promise.resolve(this.controlledTravel.disable('RUNTIME_LEFT_ACTIVE_MODE')).catch(() => {});
+    }
+    return resolved;
+  }
+
+  configureInventoryActionPolicy(config = {}) {
+    const normalize = (value) => [...new Set((Array.isArray(value) ? value : []).map((x) => String(x || '').trim()).filter(Boolean))].slice(0, 128);
+    const sell = normalize(config.sell);
+    const bank = normalize(config.bank);
+    const exchange = normalize(config.exchange);
+    this.inventoryLedger.sellAllowlist = new Set(sell);
+    this.inventoryLedger.bankAllowlist = new Set(bank);
+    this.inventoryLedger.exchangeAllowlist = new Set(exchange);
+    this.log.emit({ component: 'inventory-ledger', event: 'INVENTORY_ACTION_POLICY_CHANGED', severity: 'warn', reason: 'OPERATOR_POLICY', data: { sell, bank, exchange } });
+    if (this.lastSnapshot) this._planInventoryAndGear();
+    return clone(this.inventoryLedger.status().policy);
+  }
+
+  configureControlledMerchant(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        this.controlledMerchant.disable(gate.reason);
+        this.log.emit({ component: 'controlled-merchant', event: 'CONTROLLED_MERCHANT_ENABLE_REJECTED', severity: 'warn', reason: gate.reason });
+        return { ...this.controlledMerchant.status(), enableRejected: gate.reason };
+      }
+    }
+    return this.controlledMerchant.configure(config);
+  }
+
+  configureControlledTravel(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        Promise.resolve(this.controlledTravel.disable(gate.reason)).catch(() => {});
+        this.log.emit({ component: 'controlled-travel', event: 'CONTROLLED_TRAVEL_ENABLE_REJECTED', severity: 'warn', reason: gate.reason });
+        return { ...this.controlledTravel.status(), enableRejected: gate.reason };
+      }
+    }
+    return this.controlledTravel.configure(config);
+  }
+
+  setEconomyLiveEnabled(enabled) {
+    if (enabled !== true) return this.controlledMerchant.disable('GENERIC_LIVE_DISABLE');
+    this.log.emit({ component: 'controlled-merchant', event: 'GENERIC_LIVE_ENABLE_REJECTED', severity: 'warn', reason: 'USE_CONTROLLED_CANARY_API' });
+    return false;
+  }
+
+  setTravelLiveEnabled(enabled) {
+    if (enabled !== true) {
+      Promise.resolve(this.controlledTravel.disable('GENERIC_LIVE_DISABLE')).catch(() => {});
+      return false;
+    }
+    this.log.emit({ component: 'controlled-travel', event: 'GENERIC_LIVE_ENABLE_REJECTED', severity: 'warn', reason: 'USE_CONTROLLED_CANARY_API' });
+    return false;
+  }
+
+  executeEconomyTransaction(id) { return this.controlledMerchant.execute(id); }
+  executeTravelPlan(id) { return this.controlledTravel.execute(id); }
+  abortControlledTravel(reason) { return this.controlledTravel.abort(reason); }
+
+  stop() {
+    this.controlledMerchant.disable('RUNTIME_STOP');
+    Promise.resolve(this.controlledTravel.disable('RUNTIME_STOP')).catch(() => {});
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    const controlledSubsystems = this._controlledSubsystemHealth();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      economy: this._economyStatus(),
+      travel: this._travelStatus(),
+      supervisor: { ...base.supervisor, controlledSubsystems },
+      controlledCanary: {
+        explicitAck: CONTROLLED_MERCHANT_ACK,
+        merchantAck: CONTROLLED_MERCHANT_ACK,
+        travelAck: CONTROLLED_TRAVEL_ACK,
+        defaultEnabled: false,
+        guardReason: this.lastControlledGuardReason
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.controlledCanary = {
+      economy: this._economyStatus(),
+      travel: this._travelStatus(),
+      supervisor: this._controlledSubsystemHealth(),
+      guardReason: this.lastControlledGuardReason
+    };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha17Runtime };
+
+},
+"src/economy/controlled-merchant-executor.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
+const LIVE_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function itemSnapshot(item) {
+  if (!item) return null;
+  return {
+    name: item.name == null ? null : String(item.name),
+    level: Math.max(0, Math.floor(finite(item.level, 0))),
+    q: Math.max(1, Math.floor(finite(item.q, 1)))
+  };
+}
+
+class ControlledMerchantExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.engine = options.engine;
+    this.ledger = options.ledger;
+    this.contentDrift = options.contentDrift || null;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
+    this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 100)));
+    this.verifyAttempts = Math.max(1, Math.min(5, Math.floor(finite(options.verifyAttempts, 3))));
+    this.actionWindowMs = Math.max(10000, Math.min(30 * 60 * 1000, finite(options.actionWindowMs, 60000)));
+    this.maxActionsPerWindow = Math.max(1, Math.min(10, Math.floor(finite(options.maxActionsPerWindow, 3))));
+    this.enabled = false;
+    this.sellEnabled = false;
+    this.bankEnabled = false;
+    this.busy = false;
+    this.actionTimes = [];
+    this.lastAction = null;
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, timeouts: 0, verificationRetries: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'controlled-merchant', event, severity, reason, data });
+    }
+  }
+
+  configure(config = {}) {
+    const wantsLive = config.enabled === true;
+    if (wantsLive && config.ack !== LIVE_ACK) {
+      this.enabled = false;
+      this.sellEnabled = false;
+      this.bankEnabled = false;
+      this._event('CONTROLLED_MERCHANT_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = wantsLive;
+    this.sellEnabled = wantsLive && config.sell === true;
+    this.bankEnabled = wantsLive && config.bank === true;
+    this._event('CONTROLLED_MERCHANT_CONFIG_CHANGED', 'warn', wantsLive ? 'EXPLICIT_CANARY_ENABLE' : 'DISABLED', {
+      enabled: this.enabled, sell: this.sellEnabled, bank: this.bankEnabled
+    });
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this.sellEnabled = false;
+    this.bankEnabled = false;
+    this._event('CONTROLLED_MERCHANT_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  _pruneActions() {
+    const now = this.now();
+    this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs);
+  }
+
+  _inCombat() {
+    const root = this.root || {};
+    const character = root.character || {};
+    if (character.target) return true;
+    const parent = root.parent || {};
+    const entities = parent.entities || root.entities || {};
+    const selfNames = new Set([character.name, character.id].filter(Boolean).map(String));
+    for (const entity of Object.values(entities)) {
+      if (!entity || !entity.target) continue;
+      if (selfNames.has(String(entity.target))) return true;
+    }
+    return false;
+  }
+
+  _ledgerEntry(tx) {
+    if (!this.ledger || typeof this.ledger.get !== 'function') return null;
+    try { return this.ledger.get(tx.character, tx.index); } catch (_) { return null; }
+  }
+
+  _preflight(tx) {
+    if (!tx) return { ok: false, reason: 'TRANSACTION_NOT_FOUND' };
+    if (!this.enabled) return { ok: false, reason: 'CONTROLLED_MERCHANT_DISABLED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (this.busy) return { ok: false, reason: 'CONTROLLED_MERCHANT_BUSY' };
+    if (tx.state !== 'RESERVED') return { ok: false, reason: 'TRANSACTION_NOT_RESERVED' };
+    if (tx.leaseExpiresAt != null && this.now() > Number(tx.leaseExpiresAt)) return { ok: false, reason: 'TRANSACTION_LEASE_EXPIRED' };
+    if (!['SELL', 'BANK'].includes(tx.type)) return { ok: false, reason: 'TRANSACTION_FAMILY_NOT_LIVE_ALLOWED' };
+    if (tx.type === 'SELL' && !this.sellEnabled) return { ok: false, reason: 'SELL_LIVE_DISABLED' };
+    if (tx.type === 'BANK' && !this.bankEnabled) return { ok: false, reason: 'BANK_LIVE_DISABLED' };
+    if (this.engine && this.engine.breaker(tx.type).open) return { ok: false, reason: 'TRANSACTION_CIRCUIT_OPEN' };
+
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY', supervisorState: supervisor.state || null };
+
+    const character = this.root && this.root.character;
+    if (!character || String(character.name || '') !== String(tx.character || '')) return { ok: false, reason: 'CONTROLLED_CHARACTER_MISMATCH' };
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+
+    const ledgerStatus = this.ledger && typeof this.ledger.status === 'function' ? this.ledger.status() : null;
+    if (!ledgerStatus || ledgerStatus.stale === true) return { ok: false, reason: 'LEDGER_UNAVAILABLE_OR_STALE' };
+    const entry = this._ledgerEntry(tx);
+    if (!entry) return { ok: false, reason: 'LEDGER_ITEM_NOT_FOUND' };
+    if (entry.name !== tx.item || Math.max(0, Math.floor(finite(entry.level, 0))) !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'ITEM_IDENTITY_CHANGED' };
+    if (entry.disposition !== tx.type) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', disposition: entry.disposition };
+    if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
+    if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
+
+    const items = Array.isArray(character.items) ? character.items : [];
+    const liveItem = itemSnapshot(items[tx.index]);
+    if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
+    if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
+
+    if (tx.type === 'SELL' && typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+    if (tx.type === 'BANK') {
+      if (typeof this.root.bank_store !== 'function') return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
+      if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
+      if (finite(tx.quantity, 1) !== liveItem.q) return { ok: false, reason: 'BANK_REQUIRES_FULL_STACK' };
+    }
+
+    this._pruneActions();
+    if (this.actionTimes.length >= this.maxActionsPerWindow) return { ok: false, reason: 'ACTION_BUDGET_EXHAUSTED' };
+    return { ok: true, entry, liveItem, supervisor };
+  }
+
+  _timeout(promise, label) {
+    let timer = null;
+    const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+    const clearTimer = (this.root && this.root.clearTimeout) || clearTimeout;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimer(() => reject(new Error(`${label}_TIMEOUT`)), this.timeoutMs);
+    });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => {
+      if (timer != null) clearTimer(timer);
+    });
+  }
+
+  _sleep(ms) {
+    if (ms <= 0) return Promise.resolve();
+    const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+    return new Promise((resolve) => setTimer(resolve, ms));
+  }
+
+  _verify(tx, before) {
+    const character = this.root && this.root.character || {};
+    const after = itemSnapshot(Array.isArray(character.items) ? character.items[tx.index] : null);
+    const afterGold = finite(character.gold, before.gold);
+    const quantity = Math.max(1, Math.floor(finite(tx.quantity, 1)));
+    if (tx.type === 'SELL') {
+      const expectedQ = before.item.q - quantity;
+      const itemOk = expectedQ <= 0
+        ? after == null
+        : !!after && after.name === before.item.name && after.level === before.item.level && after.q === expectedQ;
+      return { ok: itemOk && afterGold >= before.gold, afterItem: after, afterGold, expectedQ };
+    }
+    if (tx.type === 'BANK') return { ok: after == null, afterItem: after, afterGold, expectedQ: 0 };
+    return { ok: false, afterItem: after, afterGold, expectedQ: null };
+  }
+
+  async _verifyEventually(tx, before) {
+    let result = this._verify(tx, before);
+    for (let attempt = 1; !result.ok && attempt < this.verifyAttempts; attempt += 1) {
+      this.stats.verificationRetries += 1;
+      await this._sleep(this.verifyDelayMs);
+      result = this._verify(tx, before);
+    }
+    return result;
+  }
+
+  async execute(transactionId) {
+    const tx = this.engine && this.engine.get(String(transactionId));
+    const check = this._preflight(tx);
+    if (!check.ok) {
+      if (tx && check.reason === 'TRANSACTION_LEASE_EXPIRED' && this.engine) this.engine.cancel(tx.id, check.reason);
+      this.stats.rejected += 1;
+      this._event('CONTROLLED_MERCHANT_EXECUTION_REJECTED', 'warn', check.reason, { transactionId, type: tx && tx.type || null, supervisorState: check.supervisorState || null });
+      return { executed: false, committed: false, reason: check.reason };
+    }
+
+    this.busy = true;
+    this.stats.attempts += 1;
+    this.actionTimes.push(this.now());
+    const character = this.root.character;
+    const before = { item: itemSnapshot(character.items[tx.index]), gold: finite(character.gold, 0), at: this.now() };
+    this.engine.transition(tx.id, 'EXECUTING', 'CONTROLLED_EXECUTION_STARTED');
+    this.engine.save();
+    this._event('CONTROLLED_MERCHANT_EXECUTION_STARTED', 'warn', 'CONTROLLED_CANARY', {
+      transactionId: tx.id, type: tx.type, item: tx.item, quantity: tx.quantity, index: tx.index
+    });
+
+    try {
+      const call = tx.type === 'SELL' ? this.root.sell(tx.index, tx.quantity) : this.root.bank_store(tx.index);
+      const response = await this._timeout(call, tx.type);
+      if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
+      this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
+      this.engine.save();
+      const verification = await this._verifyEventually(tx, before);
+      if (!verification.ok) {
+        this.engine.markFailedSafe(tx.id, 'INVENTORY_DELTA_MISMATCH');
+        this.stats.failedSafe += 1;
+        this.lastAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason: 'INVENTORY_DELTA_MISMATCH', verification };
+        this._event('CONTROLLED_MERCHANT_FAILED_SAFE', 'error', 'INVENTORY_DELTA_MISMATCH', this.lastAction);
+        return { executed: true, committed: false, reason: 'INVENTORY_DELTA_MISMATCH', verification };
+      }
+      this.engine.markCommitted(tx.id, { serverResponse: clone(response), before: clone(before), verification: clone(verification) });
+      this.stats.committed += 1;
+      this.lastAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'COMMITTED', verification };
+      this._event('CONTROLLED_MERCHANT_COMMITTED', 'info', null, this.lastAction);
+      return { executed: true, committed: true, reason: 'VERIFIED_COMMIT', verification, response: clone(response) };
+    } catch (error) {
+      const reason = String(error && error.message || error || 'CONTROLLED_EXECUTION_FAILED');
+      if (reason.includes('_TIMEOUT')) this.stats.timeouts += 1;
+      this.engine.markFailedSafe(tx.id, reason);
+      this.stats.failedSafe += 1;
+      this.lastAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason };
+      this._event('CONTROLLED_MERCHANT_FAILED_SAFE', 'error', reason, this.lastAction);
+      return { executed: true, committed: false, reason };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  status() {
+    this._pruneActions();
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_MERCHANT_MODE,
+      enabled: this.enabled,
+      sellEnabled: this.sellEnabled,
+      bankEnabled: this.bankEnabled,
+      compoundEnabled: false,
+      upgradeEnabled: false,
+      exchangeEnabled: false,
+      actionAuthority: this.enabled && (this.sellEnabled || this.bankEnabled),
+      directActionAccess: true,
+      boundedActionFamilies: ['SELL', 'BANK'],
+      forbiddenActionFamilies: ['COMPOUND', 'UPGRADE', 'EXCHANGE', 'TRADE', 'SEND_ITEM'],
+      explicitAckRequired: LIVE_ACK,
+      busy: this.busy,
+      timeoutMs: this.timeoutMs,
+      verification: { attempts: this.verifyAttempts, delayMs: this.verifyDelayMs },
+      actionBudget: { maxPerWindow: this.maxActionsPerWindow, windowMs: this.actionWindowMs, inWindow: this.actionTimes.length },
+      lastAction: clone(this.lastAction),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK: LIVE_ACK };
+
+},
+"src/travel/controlled-travel-executor.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_TRAVEL_MODE = 'controlled-live-default-off';
+const LIVE_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class ControlledTravelExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.controller = options.controller;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.timeoutMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.timeoutMs) || 120000));
+    this.enabled = false;
+    this.busy = false;
+    this.activePlanId = null;
+    this.lastAction = null;
+    this.stats = { attempts: 0, completed: 0, rejected: 0, failedSafe: 0, timeouts: 0, aborts: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-travel', event, severity, reason, data });
+  }
+
+  configure(config = {}) {
+    const wantsLive = config.enabled === true;
+    if (wantsLive && config.ack !== LIVE_ACK) {
+      this.enabled = false;
+      this._event('CONTROLLED_TRAVEL_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = wantsLive;
+    this._event('CONTROLLED_TRAVEL_CONFIG_CHANGED', 'warn', wantsLive ? 'EXPLICIT_CANARY_ENABLE' : 'DISABLED', { enabled: this.enabled });
+    return this.status();
+  }
+
+  async disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    if (this.busy) await this.abort(reason);
+    this._event('CONTROLLED_TRAVEL_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  _inCombat() {
+    const root = this.root || {};
+    const character = root.character || {};
+    if (character.target) return true;
+    const parent = root.parent || {};
+    const entities = parent.entities || root.entities || {};
+    const selfNames = new Set([character.name, character.id].filter(Boolean).map(String));
+    for (const entity of Object.values(entities)) {
+      if (entity && entity.target && selfNames.has(String(entity.target))) return true;
+    }
+    return false;
+  }
+
+  _preflight(plan) {
+    if (!plan) return { ok: false, reason: 'TRAVEL_PLAN_NOT_FOUND' };
+    if (!this.enabled) return { ok: false, reason: 'CONTROLLED_TRAVEL_DISABLED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (this.busy) return { ok: false, reason: 'CONTROLLED_TRAVEL_BUSY' };
+    if (plan.state !== 'PLANNED') return { ok: false, reason: 'TRAVEL_PLAN_NOT_PLANNED' };
+    if (plan.leaseExpiresAt != null && this.now() > Number(plan.leaseExpiresAt)) return { ok: false, reason: 'TRAVEL_LEASE_EXPIRED' };
+    if (plan.serverChangeAllowed !== false) return { ok: false, reason: 'PLAN_SERVER_CHANGE_CONTRACT_INVALID' };
+    if (this.controller && this.controller.breaker().open) return { ok: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY', supervisorState: supervisor.state || null };
+    const character = this.root && this.root.character;
+    if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    if (typeof this.root.smart_move !== 'function') return { ok: false, reason: 'SMART_MOVE_API_UNAVAILABLE' };
+    if (typeof this.root.stop !== 'function') return { ok: false, reason: 'STOP_API_UNAVAILABLE' };
+    return { ok: true, supervisor };
+  }
+
+  _destination(plan) {
+    if (!plan || !plan.target) return null;
+    if (plan.target.x == null || plan.target.y == null) return plan.target.map;
+    return { map: plan.target.map, x: plan.target.x, y: plan.target.y };
+  }
+
+  _snapshot() {
+    const c = this.root && this.root.character || {};
+    return {
+      observedAt: this.now(),
+      character: {
+        name: c.name, ctype: c.ctype || c.type, map: c.map,
+        x: c.x != null ? c.x : c.real_x, y: c.y != null ? c.y : c.real_y,
+        real_x: c.real_x, real_y: c.real_y, hp: c.hp, max_hp: c.max_hp,
+        mp: c.mp, max_mp: c.max_mp, rip: c.rip === true
+      }
+    };
+  }
+
+  _timeout(promise) {
+    let timer = null;
+    const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+    const clearTimer = (this.root && this.root.clearTimeout) || clearTimeout;
+    const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error('SMART_MOVE_TIMEOUT')), this.timeoutMs); });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
+  }
+
+  _startControlled(plan) {
+    if (this.controller && typeof this.controller.startControlled === 'function') return this.controller.startControlled(plan.id);
+    const map = this.controller && this.controller.plans;
+    const row = map && typeof map.get === 'function' ? map.get(String(plan.id)) : null;
+    if (!row || row.state !== 'PLANNED') return { started: false, reason: 'PLAN_NOT_STARTABLE' };
+    if (this.controller.breaker().open) return { started: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
+    row.state = 'TRAVELLING';
+    row.updatedAt = this.now();
+    row.lastProgressAt = row.updatedAt;
+    row.reason = 'CONTROLLED_EXECUTION_STARTED';
+    this.controller.stats.controlledStarts = (this.controller.stats.controlledStarts || 0) + 1;
+    if (typeof this.controller._event === 'function') this.controller._event('TRAVEL_CONTROLLED_STARTED', 'warn', 'CONTROLLED_CANARY', { planId: row.id });
+    return { started: true, plan: clone(row) };
+  }
+
+  _failSafe(planId, reason) {
+    if (this.controller && typeof this.controller.failSafe === 'function') return this.controller.failSafe(planId, reason);
+    const map = this.controller && this.controller.plans;
+    const row = map && typeof map.get === 'function' ? map.get(String(planId)) : null;
+    if (!row || ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(row.state)) return false;
+    row.state = 'FAILED_SAFE';
+    row.reason = String(reason || 'FAILED_SAFE');
+    row.updatedAt = this.now();
+    this.controller.stats.failedSafe = (this.controller.stats.failedSafe || 0) + 1;
+    if (typeof this.controller._failure === 'function') this.controller._failure(row.reason, row);
+    if (typeof this.controller._event === 'function') this.controller._event('TRAVEL_FAILED_SAFE', 'error', row.reason, { planId: row.id });
+    return true;
+  }
+
+  async _stopSmart(reason) {
+    try {
+      const result = await Promise.resolve(this.root.stop('smart'));
+      this._event('CONTROLLED_TRAVEL_STOPPED', 'warn', reason, { result: clone(result) });
+      return true;
+    } catch (error) {
+      this._event('CONTROLLED_TRAVEL_STOP_FAILED', 'error', reason, { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  async execute(planId) {
+    const plan = this.controller && this.controller.get(String(planId));
+    const check = this._preflight(plan);
+    if (!check.ok) {
+      if (plan && check.reason === 'TRAVEL_LEASE_EXPIRED') this.controller.cancel(plan.id, check.reason);
+      this.stats.rejected += 1;
+      this._event('CONTROLLED_TRAVEL_EXECUTION_REJECTED', 'warn', check.reason, { planId, supervisorState: check.supervisorState || null });
+      return { executed: false, completed: false, reason: check.reason };
+    }
+    this.busy = true;
+    this.activePlanId = plan.id;
+    this.stats.attempts += 1;
+    const started = this._startControlled(plan);
+    if (!started || started.started !== true) {
+      this.busy = false;
+      this.activePlanId = null;
+      this.stats.rejected += 1;
+      return { executed: false, completed: false, reason: started && started.reason || 'TRAVEL_PLAN_NOT_STARTABLE' };
+    }
+    const destination = this._destination(plan);
+    this._event('CONTROLLED_TRAVEL_STARTED', 'warn', 'CONTROLLED_CANARY', { planId: plan.id, destination: clone(destination) });
+
+    try {
+      const routePromise = Promise.resolve(this.root.smart_move(destination));
+      routePromise.catch(() => {});
+      const response = await this._timeout(routePromise);
+      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+      this.controller.observe(this._snapshot());
+      const finalPlan = this.controller.get(plan.id);
+      if (!finalPlan || finalPlan.state !== 'COMPLETED') {
+        this._failSafe(plan.id, 'ARRIVAL_VERIFICATION_FAILED');
+        this.stats.failedSafe += 1;
+        this.lastAction = { at: this.now(), planId: plan.id, result: 'FAILED_SAFE', reason: 'ARRIVAL_VERIFICATION_FAILED' };
+        this._event('CONTROLLED_TRAVEL_FAILED_SAFE', 'error', 'ARRIVAL_VERIFICATION_FAILED', this.lastAction);
+        return { executed: true, completed: false, reason: 'ARRIVAL_VERIFICATION_FAILED', response: clone(response) };
+      }
+      this.stats.completed += 1;
+      this.lastAction = { at: this.now(), planId: plan.id, result: 'COMPLETED', destination: clone(destination) };
+      this._event('CONTROLLED_TRAVEL_COMPLETED', 'info', null, this.lastAction);
+      return { executed: true, completed: true, reason: 'ARRIVAL_VERIFIED', response: clone(response) };
+    } catch (error) {
+      const reason = String(error && error.message || error || 'SMART_MOVE_FAILED');
+      if (reason === 'SMART_MOVE_TIMEOUT') {
+        this.stats.timeouts += 1;
+        await this._stopSmart(reason);
+      }
+      this._failSafe(plan.id, reason);
+      this.stats.failedSafe += 1;
+      this.lastAction = { at: this.now(), planId: plan.id, result: 'FAILED_SAFE', reason };
+      this._event('CONTROLLED_TRAVEL_FAILED_SAFE', 'error', reason, this.lastAction);
+      return { executed: true, completed: false, reason };
+    } finally {
+      this.busy = false;
+      this.activePlanId = null;
+    }
+  }
+
+  async abort(reason = 'OPERATOR_ABORT') {
+    if (!this.busy || !this.activePlanId) return { aborted: false, reason: 'NO_ACTIVE_CONTROLLED_TRAVEL' };
+    const planId = this.activePlanId;
+    await this._stopSmart(reason);
+    this.controller.cancel(planId, reason);
+    this.stats.aborts += 1;
+    this.busy = false;
+    this.activePlanId = null;
+    this.lastAction = { at: this.now(), planId, result: 'ABORTED', reason };
+    return { aborted: true, planId, reason };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_TRAVEL_MODE,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      boundedActionFamilies: ['SMART_MOVE'],
+      serverChangeAllowed: false,
+      unknownMapTravelAllowed: false,
+      explicitAckRequired: LIVE_ACK,
+      busy: this.busy,
+      activePlanId: this.activePlanId,
+      timeoutMs: this.timeoutMs,
+      lastAction: clone(this.lastAction),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK: LIVE_ACK };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
@@ -11499,6 +12331,497 @@ class HeadlessOperations {
 }
 
 module.exports = { HeadlessOperations };
+
+},
+"src/ops/session-monitor.js": function(require,module,exports){
+'use strict';
+
+const MONITOR_SCHEMA_VERSION = 1;
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function safeCall(fn, fallback = null) {
+  try { return typeof fn === 'function' ? fn() : fallback; } catch (_) { return fallback; }
+}
+function sessionId(now) {
+  return `session-${Number(now()).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+class SessionMonitor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.runtime = options.runtime;
+    this.operations = options.operations || null;
+    this.log = options.log || (this.runtime && this.runtime.log) || null;
+    this.now = options.now || (() => Date.now());
+    this.version = options.version || null;
+    const retainedCapacity = this.log && Number(this.log.capacity);
+    this.maxEvents = Math.max(100, Math.min(20000, Math.floor(finite(options.maxEvents, Number.isFinite(retainedCapacity) ? retainedCapacity : 4000))));
+    this.maxInventory = Math.max(50, Math.min(1000, Math.floor(finite(options.maxInventory, 400))));
+    this.maxTransactions = Math.max(20, Math.min(500, Math.floor(finite(options.maxTransactions, 200))));
+    this.maxTravel = Math.max(20, Math.min(300, Math.floor(finite(options.maxTravel, 100))));
+    this.maxGoals = Math.max(20, Math.min(300, Math.floor(finite(options.maxGoals, 100))));
+    this.id = sessionId(this.now);
+    this.startedAt = this.now();
+    this.copyStats = { attempts: 0, success: 0, failures: 0, lastMethod: null, lastAt: null };
+  }
+
+  _status() {
+    const base = safeCall(() => this.runtime.status(), {}) || {};
+    if (!this.operations || typeof this.operations.status !== 'function') return base;
+    return { ...base, operations: safeCall(() => this.operations.status(), null) };
+  }
+
+  _character(status) {
+    const c = status && status.character || this.root && this.root.character || {};
+    return {
+      name: c.name || null,
+      ctype: c.ctype || c.type || null,
+      level: finite(c.level, 0),
+      map: c.map || null,
+      x: finite(c.x != null ? c.x : c.real_x, 0),
+      y: finite(c.y != null ? c.y : c.real_y, 0),
+      hp: finite(c.hp, 0),
+      maxHp: finite(c.max_hp, 0),
+      mp: finite(c.mp, 0),
+      maxMp: finite(c.max_mp, 0),
+      xp: finite(c.xp, 0),
+      gold: finite(c.gold, 0),
+      rip: c.rip === true
+    };
+  }
+
+  summary() {
+    const status = this._status();
+    const inventory = status.inventory || {};
+    const inventorySummary = inventory.summary || {};
+    const economy = status.economy || {};
+    const transactions = economy.transactions || {};
+    const travel = status.travel || {};
+    const supervisor = status.supervisor || {};
+    const party = status.party || {};
+    const gear = status.gearProgression || {};
+    const events = this.log && typeof this.log.list === 'function' ? this.log.list(50) : [];
+    const errorEvents = events.filter((row) => row && (row.severity === 'error' || row.severity === 'fatal')).length;
+    const warningEvents = events.filter((row) => row && row.severity === 'warn').length;
+    return {
+      schemaVersion: MONITOR_SCHEMA_VERSION,
+      sessionId: this.id,
+      startedAt: this.startedAt,
+      generatedAt: this.now(),
+      version: status.version || this.version,
+      running: status.running === true,
+      mode: status.mode || null,
+      character: this._character(status),
+      supervisor: {
+        state: supervisor.state || null,
+        reasons: Array.isArray(supervisor.reasons) ? supervisor.reasons.slice(0, 16) : [],
+        controlledSubsystems: clone(supervisor.controlledSubsystems || null)
+      },
+      party: {
+        mode: party.mode || null,
+        actionAuthority: party.actionAuthority === true,
+        transitionState: party.transition && party.transition.state || null,
+        transitionLive: !!(party.transition && party.transition.liveEnabled)
+      },
+      economy: {
+        live: !!economy.liveEnabled,
+        controlled: clone(economy.controlled || null),
+        activeTransactions: finite(transactions.active, 0),
+        recoveringTransactions: finite(transactions.recovering, 0),
+        transactionStates: clone(transactions.states || {}),
+        transactionCircuits: clone(transactions.circuits || {})
+      },
+      travel: {
+        active: finite(travel.active, 0),
+        states: clone(travel.states || {}),
+        circuit: clone(travel.circuit || null),
+        controlled: clone(travel.controlled || null)
+      },
+      inventory: {
+        totalEntries: finite(inventorySummary.entries, finite(inventory.stats && inventory.stats.items, 0)),
+        capacity: finite(inventory.capacity, 0),
+        dispositionCounts: clone(inventorySummary.dispositions || {}),
+        pressure: clone(inventorySummary.selfInventory || null),
+        stale: inventory.stale === true
+      },
+      gear: {
+        goals: finite(gear.goals, finite(gear.stats && gear.stats.goals, 0)),
+        lastEvaluation: clone(gear.lastEvaluation || null)
+      },
+      recentSignals: { errors: errorEvents, warnings: warningEvents, retainedSample: events.length },
+      copy: clone(this.copyStats)
+    };
+  }
+
+  bundle() {
+    const status = this._status();
+    const runtime = this.runtime || {};
+    const eventLog = this.log && typeof this.log.list === 'function' ? this.log.list(this.maxEvents) : [];
+    const eventSummary = this.log && typeof this.log.summary === 'function' ? this.log.summary() : null;
+    const inventoryEntries = runtime.inventoryLedger && typeof runtime.inventoryLedger.list === 'function' ? runtime.inventoryLedger.list(this.maxInventory) : [];
+    const gearGoals = runtime.gearProgression && typeof runtime.gearProgression.list === 'function' ? runtime.gearProgression.list(this.maxGoals) : [];
+    const transactions = runtime.transactionEngine && typeof runtime.transactionEngine.list === 'function' ? runtime.transactionEngine.list(this.maxTransactions) : [];
+    const travelPlans = runtime.safeTravel && typeof runtime.safeTravel.list === 'function' ? runtime.safeTravel.list(this.maxTravel) : [];
+    const performance = runtime.performance && typeof runtime.performance.status === 'function' ? safeCall(() => runtime.performance.status(), null) : null;
+    const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? safeCall(() => runtime.characterRegistry.status(), null) : null;
+    return {
+      schemaVersion: MONITOR_SCHEMA_VERSION,
+      kind: 'aio-v3-session-log',
+      sessionId: this.id,
+      startedAt: this.startedAt,
+      generatedAt: this.now(),
+      durationMs: Math.max(0, this.now() - this.startedAt),
+      version: status.version || this.version,
+      summary: this.summary(),
+      status: clone(status),
+      performance: clone(performance),
+      characterRegistry: clone(registry),
+      inventory: { status: clone(status.inventory || null), entries: clone(inventoryEntries) },
+      gearProgression: { status: clone(status.gearProgression || null), goals: clone(gearGoals) },
+      economy: { status: clone(status.economy || null), transactions: clone(transactions) },
+      travel: { status: clone(status.travel || null), plans: clone(travelPlans) },
+      eventLog: {
+        summary: clone(eventSummary),
+        retained: eventLog.length,
+        maxExported: this.maxEvents,
+        completeRetainedLog: !eventSummary || eventSummary.retained <= eventLog.length,
+        events: clone(eventLog)
+      }
+    };
+  }
+
+  exportSession() {
+    return JSON.stringify(this.bundle(), null, 2);
+  }
+
+  _document() {
+    try {
+      if (this.root && this.root.document) return this.root.document;
+      if (this.root && this.root.parent && this.root.parent.document) return this.root.parent.document;
+    } catch (_) {}
+    return null;
+  }
+
+  _navigator() {
+    try {
+      if (this.root && this.root.navigator) return this.root.navigator;
+      if (this.root && this.root.parent && this.root.parent.navigator) return this.root.parent.navigator;
+    } catch (_) {}
+    return null;
+  }
+
+  async copyToClipboard() {
+    this.copyStats.attempts += 1;
+    this.copyStats.lastAt = this.now();
+    const text = this.exportSession();
+    const nav = this._navigator();
+    if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+      try {
+        await nav.clipboard.writeText(text);
+        this.copyStats.success += 1;
+        this.copyStats.lastMethod = 'navigator.clipboard';
+        return { copied: true, method: 'navigator.clipboard', bytes: text.length };
+      } catch (_) {}
+    }
+
+    const doc = this._document();
+    if (doc && typeof doc.createElement === 'function') {
+      let area = null;
+      try {
+        area = doc.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', 'readonly');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        area.style.left = '-9999px';
+        const body = doc.body || doc.documentElement;
+        if (body && typeof body.appendChild === 'function') body.appendChild(area);
+        if (typeof area.focus === 'function') area.focus();
+        if (typeof area.select === 'function') area.select();
+        if (typeof area.setSelectionRange === 'function') area.setSelectionRange(0, area.value.length);
+        const ok = typeof doc.execCommand === 'function' && doc.execCommand('copy') === true;
+        if (area.parentNode) area.parentNode.removeChild(area);
+        if (ok) {
+          this.copyStats.success += 1;
+          this.copyStats.lastMethod = 'execCommand';
+          return { copied: true, method: 'execCommand', bytes: text.length };
+        }
+      } catch (_) {
+        try { if (area && area.parentNode) area.parentNode.removeChild(area); } catch (_) {}
+      }
+    }
+
+    this.copyStats.failures += 1;
+    this.copyStats.lastMethod = 'manual';
+    return { copied: false, method: 'manual', bytes: text.length, text };
+  }
+
+  status() {
+    return {
+      schemaVersion: MONITOR_SCHEMA_VERSION,
+      mode: 'read-only-monitor',
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      sessionId: this.id,
+      startedAt: this.startedAt,
+      maxEvents: this.maxEvents,
+      copy: clone(this.copyStats)
+    };
+  }
+}
+
+module.exports = { SessionMonitor, MONITOR_SCHEMA_VERSION };
+
+},
+"src/ops/debug-monitor-ui.js": function(require,module,exports){
+'use strict';
+
+function safeText(value) {
+  if (value == null) return '—';
+  if (typeof value === 'string') return value;
+  try { return JSON.stringify(value); } catch (_) { return String(value); }
+}
+
+class DebugMonitorUI {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.monitor = options.monitor;
+    this.log = options.log || null;
+    this.refreshMs = Math.max(500, Math.min(10000, Number(options.refreshMs) || 1000));
+    this.containerId = options.containerId || 'aio-v3-session-monitor';
+    this.container = null;
+    this.body = null;
+    this.logBox = null;
+    this.copyButton = null;
+    this.fallbackArea = null;
+    this.timer = null;
+    this.minimized = false;
+    this.lastCopy = null;
+  }
+
+  _doc() {
+    try {
+      if (this.root && this.root.document) return this.root.document;
+      if (this.root && this.root.parent && this.root.parent.document) return this.root.parent.document;
+    } catch (_) {}
+    return null;
+  }
+
+  _setStyle(node, styles) {
+    if (!node || !node.style) return;
+    for (const [key, value] of Object.entries(styles)) node.style[key] = value;
+  }
+
+  _button(doc, text, onClick) {
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.textContent = text;
+    this._setStyle(button, {
+      marginLeft: '6px', padding: '4px 8px', border: '1px solid #666', borderRadius: '4px',
+      background: '#222', color: '#eee', cursor: 'pointer', fontSize: '11px'
+    });
+    button.onclick = onClick;
+    return button;
+  }
+
+  _row(doc, label, value) {
+    const row = doc.createElement('div');
+    this._setStyle(row, { display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '3px' });
+    const l = doc.createElement('span');
+    l.textContent = label;
+    this._setStyle(l, { color: '#9ca3af', whiteSpace: 'nowrap' });
+    const v = doc.createElement('span');
+    v.textContent = safeText(value);
+    this._setStyle(v, { color: '#f3f4f6', textAlign: 'right', overflowWrap: 'anywhere' });
+    row.appendChild(l);
+    row.appendChild(v);
+    return row;
+  }
+
+  async _copy() {
+    if (!this.monitor) return;
+    if (this.copyButton) {
+      this.copyButton.disabled = true;
+      this.copyButton.textContent = 'Kopiere…';
+    }
+    let result = null;
+    try { result = await this.monitor.copyToClipboard(); }
+    catch (error) { result = { copied: false, method: 'manual', text: this.monitor.exportSession(), error: String(error && error.message || error) }; }
+    this.lastCopy = result;
+    if (result && result.copied) {
+      if (this.copyButton) {
+        this.copyButton.textContent = 'Kopiert ✓';
+        this.copyButton.disabled = false;
+      }
+      if (this.fallbackArea) this.fallbackArea.style.display = 'none';
+      const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+      setTimer(() => { if (this.copyButton) this.copyButton.textContent = 'Log kopieren'; }, 1800);
+      return;
+    }
+
+    if (this.fallbackArea) {
+      this.fallbackArea.value = result && result.text || this.monitor.exportSession();
+      this.fallbackArea.style.display = 'block';
+      if (typeof this.fallbackArea.focus === 'function') this.fallbackArea.focus();
+      if (typeof this.fallbackArea.select === 'function') this.fallbackArea.select();
+      if (typeof this.fallbackArea.setSelectionRange === 'function') this.fallbackArea.setSelectionRange(0, this.fallbackArea.value.length);
+    }
+    if (this.copyButton) {
+      this.copyButton.textContent = 'Strg+C';
+      this.copyButton.disabled = false;
+    }
+  }
+
+  _eventsText() {
+    if (!this.log || typeof this.log.list !== 'function') return 'Keine Events';
+    const rows = this.log.list(12);
+    if (!rows.length) return 'Keine Events';
+    return rows.map((row) => {
+      const time = row.ts ? String(row.ts).slice(11, 19) : '--:--:--';
+      return `${time} ${String(row.severity || 'info').toUpperCase()} ${row.component || '-'} :: ${row.event || '-'}${row.reason ? ` [${row.reason}]` : ''}`;
+    }).join('\n');
+  }
+
+  refresh() {
+    if (!this.container || !this.monitor) return false;
+    const doc = this._doc();
+    if (!doc || !this.body) return false;
+    const summary = this.monitor.summary();
+    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
+    const char = summary.character || {};
+    const sup = summary.supervisor || {};
+    const economy = summary.economy || {};
+    const travel = summary.travel || {};
+    const inventory = summary.inventory || {};
+    const controlledEconomy = economy.controlled || {};
+    const controlledTravel = travel.controlled || {};
+
+    const rows = [
+      ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
+      ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
+      ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
+      ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
+      ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
+      ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
+      ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
+      ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
+      ['Inventar', `Einträge ${inventory.totalEntries || 0}${inventory.stale ? ' · STALE' : ''}`],
+      ['Log', `Fehler ${summary.recentSignals.errors || 0} · Warn ${summary.recentSignals.warnings || 0}`]
+    ];
+    for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
+    if (this.logBox) this.logBox.textContent = this._eventsText();
+    return true;
+  }
+
+  show() {
+    const doc = this._doc();
+    if (!doc || typeof doc.createElement !== 'function') return { shown: false, reason: 'DOM_UNAVAILABLE' };
+    if (this.container && this.container.parentNode) {
+      this.container.style.display = 'block';
+      return { shown: true, reused: true };
+    }
+    const old = typeof doc.getElementById === 'function' ? doc.getElementById(this.containerId) : null;
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+
+    const box = doc.createElement('div');
+    box.id = this.containerId;
+    this._setStyle(box, {
+      position: 'fixed', top: '8px', right: '8px', width: '390px', maxHeight: '78vh', zIndex: '2147483646',
+      background: 'rgba(10,12,16,0.96)', color: '#f3f4f6', border: '1px solid #4b5563', borderRadius: '7px',
+      boxShadow: '0 8px 26px rgba(0,0,0,.45)', padding: '8px', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.35'
+    });
+
+    const header = doc.createElement('div');
+    this._setStyle(header, { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px' });
+    const title = doc.createElement('strong');
+    title.textContent = 'AIO v3 Monitor';
+    this._setStyle(title, { fontSize: '12px', color: '#fff' });
+    const buttons = doc.createElement('div');
+    this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
+    const minimize = this._button(doc, '–', () => {
+      this.minimized = !this.minimized;
+      if (this.body) this.body.style.display = this.minimized ? 'none' : 'block';
+      if (this.logBox) this.logBox.style.display = this.minimized ? 'none' : 'block';
+      if (this.fallbackArea) this.fallbackArea.style.display = 'none';
+      minimize.textContent = this.minimized ? '+' : '–';
+    });
+    const close = this._button(doc, '×', () => this.hide());
+    buttons.appendChild(this.copyButton);
+    buttons.appendChild(minimize);
+    buttons.appendChild(close);
+    header.appendChild(title);
+    header.appendChild(buttons);
+    box.appendChild(header);
+
+    this.body = doc.createElement('div');
+    box.appendChild(this.body);
+
+    this.logBox = doc.createElement('pre');
+    this._setStyle(this.logBox, {
+      margin: '7px 0 0', padding: '6px', maxHeight: '180px', overflow: 'auto', whiteSpace: 'pre-wrap',
+      background: '#05070a', border: '1px solid #374151', borderRadius: '4px', color: '#d1d5db', fontSize: '10px'
+    });
+    box.appendChild(this.logBox);
+
+    this.fallbackArea = doc.createElement('textarea');
+    this.fallbackArea.setAttribute('readonly', 'readonly');
+    this._setStyle(this.fallbackArea, {
+      display: 'none', width: '100%', height: '110px', marginTop: '7px', boxSizing: 'border-box',
+      background: '#05070a', color: '#fff', border: '1px solid #f59e0b', fontSize: '9px'
+    });
+    box.appendChild(this.fallbackArea);
+
+    const host = doc.body || doc.documentElement;
+    if (!host || typeof host.appendChild !== 'function') return { shown: false, reason: 'DOM_HOST_UNAVAILABLE' };
+    host.appendChild(box);
+    this.container = box;
+    this.refresh();
+    const setTimer = (this.root && this.root.setInterval) || setInterval;
+    this.timer = setTimer(() => this.refresh(), this.refreshMs);
+    return { shown: true, reused: false };
+  }
+
+  hide() {
+    if (this.container) this.container.style.display = 'none';
+    return true;
+  }
+
+  destroy() {
+    const clearTimer = (this.root && this.root.clearInterval) || clearInterval;
+    if (this.timer != null) clearTimer(this.timer);
+    this.timer = null;
+    if (this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
+    this.container = null;
+    this.body = null;
+    this.logBox = null;
+    this.copyButton = null;
+    this.fallbackArea = null;
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'read-only-debug-ui',
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      domAvailable: !!this._doc(),
+      visible: !!(this.container && this.container.style.display !== 'none'),
+      minimized: this.minimized,
+      refreshMs: this.refreshMs,
+      lastCopy: this.lastCopy ? { copied: this.lastCopy.copied === true, method: this.lastCopy.method || null, bytes: this.lastCopy.bytes || null } : null
+    };
+  }
+}
+
+module.exports = { DebugMonitorUI };
 
 }
 };

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const code = fs.readFileSync(require('path').resolve(__dirname, '../dist/aio-v3.js'), 'utf8');
 let performanceTrickCalls = 0;
 const sandbox = {
-  AIO_V3_AUTOSTART: false, console, setInterval, clearInterval, Date, Math,
+  AIO_V3_AUTOSTART: false, console, setInterval, clearInterval, setTimeout, clearTimeout, Date, Math,
   parent: { entities: {}, party: {} },
   character: { name: 'Smoke', ctype: 'merchant', level: 80, map: 'main', real_x: 0, real_y: 0, hp: 100, max_hp: 100, mp: 100, max_mp: 100, xp: 0, gold: 0, items: [], slots: {}, speed: 40 },
   G: { monsters: {}, maps: { main: {}, winterland: {} }, skills: {}, items: {}, npcs: {}, events: {} },
@@ -15,9 +15,9 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.16.0');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.17.0');
 const status = sandbox.AIO_V3.status();
-assert.equal(status.version, '3.0.0-alpha.16.0');
+assert.equal(status.version, '3.0.0-alpha.17.0');
 assert.equal(status.mode, 'shadow');
 assert.equal(status.combatRisk.contentSafety.unknownDefault, 'QUARANTINED');
 assert.equal(status.localFarming.smartMoveAllowed, false);
@@ -30,20 +30,28 @@ assert.equal(status.inventory.destructiveActionsEnabled, false);
 assert.equal(status.gearProgression.actionAuthority, false);
 assert.equal(status.economy.actionAuthority, false);
 assert.equal(status.economy.liveEnabled, false);
+assert.equal(status.economy.controlled.enabled, false);
+assert.equal(status.economy.controlled.explicitAckRequired, 'CONTROLLED_CANARY');
 assert.equal(status.economy.transactions.liveExecutionEnabled, false);
 assert.ok(status.travel);
 assert.equal(status.travel.schemaVersion, 1);
-assert.equal(status.travel.mode, 'shadow-safe-travel-foundation');
 assert.equal(status.travel.actionAuthority, false);
 assert.equal(status.travel.liveExecutionEnabled, false);
 assert.equal(status.travel.smartMoveExecutionEnabled, false);
+assert.equal(status.travel.controlled.enabled, false);
+assert.equal(status.travel.controlled.explicitAckRequired, 'CONTROLLED_CANARY');
 assert.equal(status.travel.serverChangeAllowed, false);
 assert.equal(status.travel.unknownMapTravelAllowed, false);
 assert.ok(sandbox.AIO_V3.travel);
 for (const name of ['status','list','get','plan','cancel','breaker']) assert.equal(typeof sandbox.AIO_V3.travel[name], 'function');
 assert.equal(typeof sandbox.AIO_V3.travel.execute, 'undefined');
 assert.equal(typeof sandbox.AIO_V3.travel.setLiveEnabled, 'undefined');
+assert.equal(typeof sandbox.AIO_V3.travel.controlled.execute, 'function');
+assert.equal(typeof sandbox.AIO_V3.travel.controlled.configure, 'function');
 for (const name of ['sell','bank','compound','upgrade','exchange']) assert.equal(typeof sandbox.AIO_V3.inventory[name], 'undefined');
+assert.equal(typeof sandbox.AIO_V3.inventory.setActionPolicy, 'function');
+assert.equal(typeof sandbox.AIO_V3.economy.controlled.execute, 'function');
+assert.equal(typeof sandbox.AIO_V3.economy.controlled.configure, 'function');
 const party = sandbox.AIO_V3.party.status();
 assert.equal(party.actionAuthority, false);
 assert.equal(party.transition.liveEnabled, false);
@@ -57,6 +65,13 @@ assert.equal(sandbox.AIO_V3.backgroundExecution.arm().armed, true);
 assert.equal(performanceTrickCalls, 1);
 assert.equal(typeof sandbox.document, 'undefined');
 assert.equal(typeof sandbox.game_log, 'undefined');
+assert.equal(status.monitor.actionAuthority, false);
+assert.equal(status.debugUI.domAvailable, false);
+assert.equal(typeof sandbox.AIO_V3.monitor.copyLog, 'function');
+const session = JSON.parse(sandbox.AIO_V3.monitor.exportSession());
+assert.equal(session.kind, 'aio-v3-session-log');
+assert.equal(session.version, '3.0.0-alpha.17.0');
+assert.equal(session.eventLog.completeRetainedLog, true);
 const ops = sandbox.AIO_V3.operations.status();
 assert.equal(ops.health.headlessCompatible, true);
 assert.equal(ops.health.domRequired, false);
