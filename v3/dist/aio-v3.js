@@ -5759,6 +5759,8 @@ const COMMANDS = new Set([
   'REMOVE_TARGET_EXCLUSION',
   'APPROVE_MONSTER_CONTENT',
   'QUARANTINE_MONSTER_CONTENT',
+  'SET_BRAIN_INFLUENCE',
+  'BRAIN_TEACH',
   'SAVE_WORLD',
   'SHOW_STATUS'
 ]);
@@ -5821,6 +5823,8 @@ class ControlGateway {
     if (action === 'SET_TARGET_POLICY' && params && params.policy === 'allow') return true;
     if (action === 'REMOVE_TARGET_EXCLUSION') return true;
     if (action === 'APPROVE_MONSTER_CONTENT') return true;
+    if (action === 'SET_BRAIN_INFLUENCE' && params && params.enabled === true) return true;
+    if (action === 'BRAIN_TEACH') return true;
     return false;
   }
 
