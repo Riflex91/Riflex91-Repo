@@ -18,7 +18,8 @@ const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
 const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime');
-const { Alpha19Runtime } = require('./autonomy/alpha19-runtime');
+const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
+const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -49,6 +50,9 @@ const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
 const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
 const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
 const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
+const { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE } = require('./party/lifecycle-store');
+const { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState } = require('./party/controlled-lifecycle-coordinator');
+const { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK } = require('./party/controlled-paladin-aura-executor');
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
@@ -66,6 +70,7 @@ const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
 const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
+const { MinuteCountdownReporter } = require('./ops/minute-countdown-reporter');
 const { SessionMonitor, MONITOR_SCHEMA_VERSION } = require('./ops/session-monitor');
 const { DebugMonitorUI } = require('./ops/debug-monitor-ui');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
@@ -75,7 +80,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha19Runtime({ ...options, root });
+  const runtime = new Alpha20Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -110,12 +115,7 @@ function install(root = globalThis, options = {}) {
   });
 
   function status() {
-    return {
-      ...runtime.status(),
-      operations: operations.status(),
-      monitor: monitor.status(),
-      debugUI: debugUI.status()
-    };
+    return { ...runtime.status(), operations: operations.status(), monitor: monitor.status(), debugUI: debugUI.status() };
   }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
@@ -239,9 +239,7 @@ function install(root = globalThis, options = {}) {
           disable: (reason) => runtime.controlledMerchantSpaceRecovery.disable(reason),
           execute: (id) => runtime.executeMerchantSpaceRecovery(id)
         },
-        consolidation: {
-          status: () => runtime.controlledBankConsolidation.status()
-        }
+        consolidation: { status: () => runtime.controlledBankConsolidation.status() }
       }
     },
     travel: {
@@ -281,6 +279,20 @@ function install(root = globalThis, options = {}) {
       transition: () => runtime.partyTransitions.status(),
       controlLease: () => runtime.partyControlLease ? runtime.partyControlLease.status() : null,
       aura: () => runtime.status().party.aura,
+      lifecycle: {
+        status: () => runtime.partyLifecycle.status(),
+        characters: () => runtime.partyLifecycle.list(),
+        character: (name) => runtime.partyLifecycle.get(name),
+        controlled: {
+          status: () => runtime.controlledPartyLifecycle.status(),
+          configure: (config) => runtime.configureControlledPartyLifecycle(config),
+          disable: (reason) => runtime.configureControlledPartyLifecycle({ enabled: false, reason }),
+          reconcile: () => runtime.reconcilePartyLifecycle()
+        },
+        aura: {
+          status: () => runtime.controlledPaladinAura.status()
+        }
+      },
       setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled),
       setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled),
       setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled),
@@ -313,7 +325,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -323,6 +335,9 @@ module.exports = {
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
+  PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE,
+  ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState,
+  ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK,
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
@@ -336,7 +351,7 @@ module.exports = {
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard, MinuteCountdownReporter,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
 };
 
@@ -4685,7 +4700,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.19.0';
+const RELEASE_VERSION = '3.0.0-alpha.20.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -14129,18 +14144,18 @@ module.exports = {
 'use strict';
 
 const { Alpha18Runtime } = require('./alpha18-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { MerchantSpaceRecoveryJournal } = require('../economy/merchant-space-recovery-journal');
 const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('../economy/controlled-bank-consolidation-executor');
 const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery-hardened');
 const { Alpha19CombinedLiveGate, ALPHA19_LIVE_GATE_ACK } = require('../ops/alpha19-combined-live-gate');
 
+const ALPHA19_VERSION = '3.0.0-alpha.19.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 class Alpha19Runtime extends Alpha18Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA19_VERSION;
     this.merchantSpaceRecoveryJournal = options.merchantSpaceRecoveryJournal || new MerchantSpaceRecoveryJournal({
       now: this.now,
       log: this.log,
@@ -14194,7 +14209,7 @@ class Alpha19Runtime extends Alpha18Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA19_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -14202,10 +14217,7 @@ class Alpha19Runtime extends Alpha18Runtime {
 
   _economyStatus() {
     const base = super._economyStatus();
-    return {
-      ...base,
-      merchantSpaceRecovery: this.controlledMerchantSpaceRecovery.status()
-    };
+    return { ...base, merchantSpaceRecovery: this.controlledMerchantSpaceRecovery.status() };
   }
 
   _guardControlledAuthority() {
@@ -14220,10 +14232,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     return { ...result, merchantSpaceRecoveryGuardReason: reason };
   }
 
-  tick() {
-    super.tick();
-    this.merchantSpaceRecoveryJournal.tick();
-  }
+  tick() { super.tick(); this.merchantSpaceRecoveryJournal.tick(); }
 
   setMode(mode) {
     const resolved = super.setMode(mode);
@@ -14234,9 +14243,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     return resolved;
   }
 
-  planMerchantSpaceRecovery(request = {}) {
-    return this.controlledMerchantSpaceRecovery.plan(request);
-  }
+  planMerchantSpaceRecovery(request = {}) { return this.controlledMerchantSpaceRecovery.plan(request); }
 
   configureControlledMerchantSpaceRecovery(config = {}) {
     if (config.enabled === true) {
@@ -14253,14 +14260,8 @@ class Alpha19Runtime extends Alpha18Runtime {
     return this.controlledMerchantSpaceRecovery.configure(config);
   }
 
-  executeMerchantSpaceRecovery(id) {
-    return this.controlledMerchantSpaceRecovery.execute(id);
-  }
-
-  reconcileMerchantSpaceRecovery(id) {
-    return this.controlledMerchantSpaceRecovery.reconcile(id);
-  }
-
+  executeMerchantSpaceRecovery(id) { return this.controlledMerchantSpaceRecovery.execute(id); }
+  reconcileMerchantSpaceRecovery(id) { return this.controlledMerchantSpaceRecovery.reconcile(id); }
   runAlpha19CombinedLiveGate(config = {}) { return this.alpha19LiveGate.run(config); }
   alpha19LiveGateStatus() { return this.alpha19LiveGate.status(); }
   alpha19LiveGateResult() { return this.alpha19LiveGate.result(); }
@@ -14277,7 +14278,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA19_VERSION,
       economy: this._economyStatus(),
       alpha19: {
         merchantSpaceRecovery: true,
@@ -14306,17 +14307,13 @@ class Alpha19Runtime extends Alpha18Runtime {
   exportDiagnostics() {
     const base = JSON.parse(super.exportDiagnostics());
     base.context = base.context || {};
-    base.context.merchantSpaceRecovery = {
-      status: this.controlledMerchantSpaceRecovery.status(),
-      journal: this.merchantSpaceRecoveryJournal.list(100),
-      consolidation: this.controlledBankConsolidation.status()
-    };
+    base.context.merchantSpaceRecovery = { status: this.controlledMerchantSpaceRecovery.status(), journal: this.merchantSpaceRecoveryJournal.list(100), consolidation: this.controlledBankConsolidation.status() };
     base.context.alpha19LiveGate = this.alpha19LiveGate.status();
     return JSON.stringify(base, null, 2);
   }
 }
 
-module.exports = { Alpha19Runtime };
+module.exports = { Alpha19Runtime, ALPHA19_VERSION };
 
 },
 "src/economy/merchant-space-recovery-journal.js": function(require,module,exports){
@@ -16213,6 +16210,1069 @@ module.exports = {
 };
 
 },
+"src/autonomy/alpha20-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha19Runtime } = require('./alpha19-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { PartyLifecycleStore } = require('../party/lifecycle-store');
+const { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_ACK } = require('../party/controlled-lifecycle-coordinator');
+const { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_ACK } = require('../party/controlled-paladin-aura-executor');
+
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
+
+class Alpha20Runtime extends Alpha19Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+
+    // Alpha.12 legacy live switches are never used directly in Alpha.20.
+    // Alpha.20 re-authorizes them only inside a bounded controlled operation.
+    this.partyTransitions.setLiveEnabled(false);
+    this.auraAutomationEnabled = false;
+
+    this.partyLifecycle = options.partyLifecycle || new PartyLifecycleStore({
+      root: this.root,
+      storage: options.partyLifecycleStorage || options.storage,
+      key: options.partyLifecycleStorageKey,
+      now: this.now,
+      log: this.log,
+      capacity: options.partyLifecycleCapacity,
+      minCurrentSamples: options.partyLifecycleMinCurrentSamples,
+      minCurrentConfidence: options.partyLifecycleMinCurrentConfidence,
+      minPromotionSafety: options.partyLifecycleMinPromotionSafety,
+      minPromotionXpRatio: options.partyLifecycleMinPromotionXpRatio,
+      minPromotionGain: options.partyLifecycleMinPromotionGain,
+      minProjectedGain: options.partyLifecycleMinProjectedGain,
+      minTrainingSafety: options.partyLifecycleMinTrainingSafety,
+      minTrainingExpectedXpRatio: options.partyLifecycleMinTrainingExpectedXpRatio,
+      promotionWindowsRequired: options.partyLifecyclePromotionWindowsRequired
+    });
+    this.partyLifecycle.load();
+
+    this.controlledPartyLifecycle = options.controlledPartyLifecycle || new ControlledPartyLifecycleCoordinator({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      storage: options.partyLifecycleOperationStorage || options.storage,
+      storageKey: options.partyLifecycleOperationStorageKey,
+      lifecycle: this.partyLifecycle,
+      transitions: this.partyTransitions,
+      auraPolicy: this.auraPolicy,
+      adapter: this.adapter,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      getEconomyEmergency: () => this._alpha20EconomyEmergency(),
+      minTransitionIntervalMs: options.partyLifecycleMinTransitionIntervalMs
+    });
+
+    this.controlledPaladinAura = options.controlledPaladinAura || new ControlledPaladinAuraExecutor({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      adapter: this.adapter,
+      auraPolicy: this.auraPolicy,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      getEconomyEmergency: () => this._alpha20EconomyEmergency()
+    });
+    this.lastLifecyclePlan = null;
+    this.lastLifecycleExecution = null;
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
+  _alpha20EconomyEmergency() {
+    const recovery = this.controlledMerchantSpaceRecovery && this.controlledMerchantSpaceRecovery.status ? this.controlledMerchantSpaceRecovery.status() : null;
+    const capacity = this.bankCapacity && this.bankCapacity.status ? this.bankCapacity.status() : null;
+    return !!(
+      recovery && recovery.busy ||
+      recovery && recovery.journal && recovery.journal.breaker && recovery.journal.breaker.open ||
+      capacity && capacity.workGate && capacity.workGate.blockInventoryProducingWork === true
+    );
+  }
+
+  _measuredScore(row) {
+    if (!row || !row.measured) return null;
+    const weights = this.partyOrchestrator.weights || {};
+    return clamp01(['survival', 'progress', 'controllability', 'synergy'].reduce((sum, key) => sum + clamp01(row.measured[key]) * finite(weights[key]), 0));
+  }
+
+  _lifecycleEvidence(snapshot, currentMembers, registryStatus, encounter, risk) {
+    const context = { snapshot, gameData: this.adapter.getGameData() || {}, registryStatus, currentMembers, encounter, performanceStore: this.partyPerformance };
+    const scored = this.partyOrchestrator.candidates(registryStatus).map((candidate) => this.partyOrchestrator.score(candidate, context));
+    const activeNames = new Set(currentMembers.filter((row) => row.ctype !== 'merchant').map((row) => row.name));
+    const combat = (registryStatus.characters || []).filter((row) => row && row.ctype !== 'merchant');
+    const rows = [];
+
+    for (const character of combat) {
+      const containing = scored.filter((row) => row.candidate.combat.some((member) => member.name === character.name) && !row.hardSafetyRejected);
+      const projected = containing.slice().sort((a, b) => b.score - a.score || b.confidence - a.confidence)[0] || null;
+      const measuredRows = containing.filter((row) => row.measured && row.profile && Number(row.profile.samples) > 0).sort((a, b) => finite(b.measured.confidence) - finite(a.measured.confidence) || finite(a.profile.ageMs) - finite(b.profile.ageMs));
+      const measured = measuredRows[0] || null;
+      const equipment = character.equipment && typeof character.equipment === 'object' ? character.equipment : {};
+      rows.push({
+        name: character.name,
+        ctype: character.ctype,
+        level: character.level,
+        active: activeNames.has(character.name),
+        currentScore: measured ? this._measuredScore(measured) : null,
+        currentConfidence: measured ? measured.measured.confidence : 0,
+        currentSamples: measured && measured.profile ? measured.profile.samples : 0,
+        survivalScore: measured ? measured.measured.survival : null,
+        xpPerHour: measured && measured.profile ? measured.profile.xpPerHour : 0,
+        projectedScore: projected ? projected.score : null,
+        projectedProgress: projected ? projected.components.progress : null,
+        expectedTrainingXpRatio: null,
+        gearReady: Object.keys(equipment).length > 0 && finite(character.stateConfidence) >= 0.75,
+        contentSafe: encounter && encounter.contentDisposition !== 'UNKNOWN' && encounter.contentDisposition !== 'QUARANTINED'
+      });
+    }
+
+    const active = rows.filter((row) => row.active);
+    const activeCurrent = active.map((row) => row.currentScore).filter((value) => value != null);
+    const activeProjected = active.map((row) => row.projectedScore).filter((value) => value != null);
+    const activeProgress = active.map((row) => row.projectedProgress).filter((value) => value != null && value > 0);
+    const activeXp = active.map((row) => row.xpPerHour).filter((value) => value > 0);
+    const incumbentCurrentScore = activeCurrent.length === active.length && active.length ? Math.min(...activeCurrent) : null;
+    const incumbentProjectedScore = activeProjected.length ? Math.min(...activeProjected) : null;
+    const incumbentProjectedProgress = activeProgress.length ? Math.min(...activeProgress) : null;
+    const incumbentXpPerHour = activeXp.length ? Math.min(...activeXp) : 0;
+    for (const row of rows) {
+      row.expectedTrainingXpRatio = row.projectedProgress != null && incumbentProjectedProgress > 0 ? row.projectedProgress / incumbentProjectedProgress : null;
+    }
+    return {
+      characters: rows,
+      incumbentCurrentScore,
+      incumbentProjectedScore,
+      incumbentXpPerHour,
+      highRisk: !!(risk && (risk.highRisk || risk.unknown)),
+      economyEmergency: this._alpha20EconomyEmergency()
+    };
+  }
+
+  _maybeApplyAura(snapshot, encounter, risk, currentMembers) {
+    const localName = snapshot && snapshot.character && snapshot.character.name;
+    const local = currentMembers.find((row) => row.name === localName);
+    const paladin = currentMembers.find((row) => row.ctype === 'paladin') || null;
+    const recommendation = this.auraPolicy.recommend({ paladin, encounter, risk });
+    this.lastAuraRecommendation = recommendation;
+    if (!local || local.ctype !== 'paladin' || !paladin || paladin.name !== local.name) return recommendation;
+    const c = snapshot.character;
+    const inCombat = !!c.target || (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.target === c.name);
+    const result = this.controlledPaladinAura.execute(recommendation, {
+      inCombat,
+      highRisk: !!(risk && (risk.highRisk || risk.unknown)),
+      emergency: !!this.pendingEmergencyRetreat
+    });
+    if (result && result.executed) this.lastAuraExecution = result;
+    return recommendation;
+  }
+
+  // Alpha.20 never lets the old projected party recommendation directly execute a switch.
+  _maybeStartTransition() { return null; }
+
+  _verifyLifecycleTarget(targetNames, snapshot) {
+    const latest = this.characterRegistry.status();
+    const byName = new Map((latest.characters || []).map((row) => [row.name, row]));
+    return targetNames.every((name) => {
+      const row = byName.get(name);
+      if (!row || row.dead === true || row.online === false || row.presence === 'STALE') return false;
+      if (row.map && snapshot.character.map && row.map !== snapshot.character.map) return false;
+      const hp = row.stats && Number(row.stats.hp);
+      const maxHp = row.stats && Number(row.stats.max_hp);
+      return !(Number.isFinite(hp) && Number.isFinite(maxHp) && maxHp > 0 && hp / maxHp < 0.5);
+    });
+  }
+
+  _partyDecisionCycle() {
+    const decision = super._partyDecisionCycle();
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character || !this.currentEncounterFingerprint) return decision;
+    const registryStatus = this.characterRegistry.status();
+    const currentMembers = this._currentMembers(snapshot);
+    const risk = this._riskContext(snapshot, this.currentEncounterFingerprint);
+    const evidence = this._lifecycleEvidence(snapshot, currentMembers, registryStatus, this.currentEncounterFingerprint, risk);
+    this.partyLifecycle.evaluate(evidence);
+    this.partyLifecycle.save();
+
+    const c = snapshot.character;
+    const inCombat = !!c.target || (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.target === c.name);
+    const context = {
+      currentNames: currentMembers.map((row) => row.name),
+      inCombat,
+      highRisk: evidence.highRisk,
+      emergency: !!this.pendingEmergencyRetreat,
+      requiresCrossMapRouting: currentMembers.some((member) => member.map && c.map && member.map !== c.map && member.online === true),
+      verifyTargetState: (targetNames) => this._verifyLifecycleTarget(targetNames, snapshot)
+    };
+    this.lastLifecyclePlan = this.controlledPartyLifecycle.plan(currentMembers, registryStatus, context);
+    if (this.lastLifecyclePlan && this.lastLifecyclePlan.planned && !this.controlledPartyLifecycle.busy) {
+      Promise.resolve(this.controlledPartyLifecycle.executePlan(this.lastLifecyclePlan, currentMembers, registryStatus, context))
+        .then((result) => { this.lastLifecycleExecution = result; if (result && result.executed) this.partyOrchestrator.noteSwitch(); })
+        .catch((error) => {
+          this.lastLifecycleExecution = { executed: false, reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', error: String(error && error.message || error) };
+          this.log.emit({ component: 'alpha20-party-lifecycle', event: 'PARTY_LIFECYCLE_EXECUTION_ERROR', severity: 'error', reason: 'UNHANDLED_ALPHA20_TRANSITION_ERROR', data: { message: String(error && error.message || error) } });
+        });
+    }
+    return decision;
+  }
+
+  configureControlledPartyLifecycle(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        this.controlledPartyLifecycle.disable(gate.reason);
+        this.controlledPaladinAura.disable(gate.reason);
+        return { lifecycle: { ...this.controlledPartyLifecycle.status(), enableRejected: gate.reason }, aura: this.controlledPaladinAura.status() };
+      }
+    }
+    const lifecycle = this.controlledPartyLifecycle.configure({
+      enabled: config.enabled === true,
+      ack: config.ack,
+      allowTransitions: config.allowTransitions === true,
+      allowDevelopmentRotation: config.allowDevelopmentRotation === true,
+      allowAuraChanges: false,
+      reason: config.reason
+    });
+    let aura;
+    if (config.enabled === true && config.allowAuraChanges === true) aura = this.controlledPaladinAura.configure({ enabled: true, ack: config.auraAck });
+    else aura = this.controlledPaladinAura.disable(config.reason || 'AURA_NOT_AUTHORIZED');
+    return { lifecycle, aura };
+  }
+
+  reconcilePartyLifecycle() {
+    const snapshot = this.lastSnapshot;
+    const names = snapshot ? this._currentMembers(snapshot).map((row) => row.name) : [];
+    return this.controlledPartyLifecycle.reconcile(names);
+  }
+
+  // Legacy setters are intentionally closed so old Alpha.12 switches cannot bypass Alpha.20.
+  setPartyTransitionsEnabled() {
+    this.partyTransitions.setLiveEnabled(false);
+    return false;
+  }
+  setPartyAuraAutomationEnabled() {
+    this.auraAutomationEnabled = false;
+    return false;
+  }
+
+  _guardControlledAuthority() {
+    const base = super._guardControlledAuthority();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    if (reason) {
+      if (this.controlledPartyLifecycle.status().enabled) this.controlledPartyLifecycle.disable(reason);
+      if (this.controlledPaladinAura.status().enabled) this.controlledPaladinAura.disable(reason);
+    }
+    return { ...base, partyLifecycleGuardReason: reason };
+  }
+
+  setMode(mode) {
+    const resolved = super.setMode(mode);
+    if (resolved !== 'active') {
+      this.controlledPartyLifecycle.disable('RUNTIME_LEFT_ACTIVE_MODE');
+      this.controlledPaladinAura.disable('RUNTIME_LEFT_ACTIVE_MODE');
+    }
+    return resolved;
+  }
+
+  stop() {
+    this.controlledPartyLifecycle.disable('RUNTIME_STOP');
+    this.controlledPaladinAura.disable('RUNTIME_STOP');
+    this.partyLifecycle.save({ force: true });
+    this.controlledPartyLifecycle.save();
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      party: {
+        ...(base.party || {}),
+        lifecycle: this.partyLifecycle.status(),
+        controlledLifecycle: this.controlledPartyLifecycle.status(),
+        controlledAura: this.controlledPaladinAura.status(),
+        lifecyclePlan: this.lastLifecyclePlan,
+        lifecycleExecution: this.lastLifecycleExecution,
+        legacyTransitionBypassAllowed: false,
+        legacyAuraBypassAllowed: false
+      },
+      alpha20: {
+        adaptivePartyLifecycle: true,
+        statuses: ['ACTIVE', 'BENCH', 'DEVELOPMENT', 'PROMOTION_CANDIDATE'],
+        currentScoreRequiredForPromotion: true,
+        projectedScorePlanningOnly: true,
+        maxDevelopmentSlots: 1,
+        controlledLifecycleAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
+        controlledAuraAck: CONTROLLED_PALADIN_AURA_ACK,
+        transitionAuthorityDefault: false,
+        developmentRotationAuthorityDefault: false,
+        auraAuthorityDefault: false,
+        crossMapRoutingAuthority: false,
+        smartMoveAuthority: false,
+        serverChangeAuthority: false,
+        brainGameplayAuthority: false
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.partyLifecycle = this.partyLifecycle.status();
+    base.context.controlledPartyLifecycle = this.controlledPartyLifecycle.status();
+    base.context.controlledPaladinAura = this.controlledPaladinAura.status();
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha20Runtime };
+
+},
+"src/party/lifecycle-store.js": function(require,module,exports){
+'use strict';
+
+const PARTY_LIFECYCLE_SCHEMA_VERSION = 1;
+const PARTY_LIFECYCLE_MODE = 'planning-controlled-default-off';
+const PartyLifecycleState = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  BENCH: 'BENCH',
+  DEVELOPMENT: 'DEVELOPMENT',
+  PROMOTION_CANDIDATE: 'PROMOTION_CANDIDATE'
+});
+
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
+class PartyLifecycleStore {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.key = options.key || 'AIO_V3_PARTY_LIFECYCLE';
+    this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 32));
+    this.minCurrentSamples = Math.max(2, Math.min(100, Number(options.minCurrentSamples) || 8));
+    this.minCurrentConfidence = Math.max(0.1, Math.min(1, finite(options.minCurrentConfidence, 0.55)));
+    this.minPromotionSafety = Math.max(0.5, Math.min(1, finite(options.minPromotionSafety, 0.90)));
+    this.minPromotionXpRatio = Math.max(0.5, Math.min(2, finite(options.minPromotionXpRatio, 0.85)));
+    this.minPromotionGain = Math.max(0.01, Math.min(0.5, finite(options.minPromotionGain, 0.05)));
+    this.minProjectedGain = Math.max(0.01, Math.min(0.5, finite(options.minProjectedGain, 0.04)));
+    this.minTrainingSafety = Math.max(0.5, Math.min(1, finite(options.minTrainingSafety, 0.90)));
+    this.minTrainingExpectedXpRatio = Math.max(0.5, Math.min(1.5, finite(options.minTrainingExpectedXpRatio, 0.75)));
+    this.promotionWindowsRequired = Math.max(2, Math.min(20, Number(options.promotionWindowsRequired) || 3));
+    this.maxDevelopmentSlots = 1;
+    this.records = new Map();
+    this.loaded = false;
+    this.dirty = false;
+    this.lastEvaluation = null;
+    this.stats = { evaluations: 0, loads: 0, loadFailures: 0, saves: 0, saveFailures: 0, promotionsReady: 0, developmentSelections: 0, evicted: 0 };
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-lifecycle', event, data, severity, reason });
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') return { get: (key) => this.root.get(key), set: (key, value) => this.root.set(key, value) };
+    const localStorage = this.root && this.root.localStorage;
+    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
+    return null;
+  }
+
+  _sanitize(row) {
+    if (!row || typeof row !== 'object' || !row.name) return null;
+    const state = Object.values(PartyLifecycleState).includes(row.state) ? row.state : PartyLifecycleState.BENCH;
+    return {
+      name: String(row.name),
+      ctype: row.ctype ? String(row.ctype) : null,
+      level: Math.max(0, finite(row.level)),
+      state,
+      active: row.active === true,
+      currentScore: row.currentScore == null ? null : clamp01(row.currentScore),
+      currentConfidence: clamp01(row.currentConfidence),
+      currentSamples: Math.max(0, finite(row.currentSamples)),
+      projectedScore: row.projectedScore == null ? null : clamp01(row.projectedScore),
+      projectedProgress: row.projectedProgress == null ? null : clamp01(row.projectedProgress),
+      survivalScore: row.survivalScore == null ? null : clamp01(row.survivalScore),
+      xpPerHour: Math.max(0, finite(row.xpPerHour)),
+      xpRatioToIncumbent: row.xpRatioToIncumbent == null ? null : Math.max(0, finite(row.xpRatioToIncumbent)),
+      expectedTrainingXpRatio: row.expectedTrainingXpRatio == null ? null : Math.max(0, finite(row.expectedTrainingXpRatio)),
+      gearReady: row.gearReady === true,
+      contentSafe: row.contentSafe === true,
+      promotionStreak: Math.max(0, Math.floor(finite(row.promotionStreak))),
+      reasons: Array.isArray(row.reasons) ? row.reasons.map(String).slice(0, 24) : [],
+      updatedAt: Math.max(0, finite(row.updatedAt)),
+      firstSeenAt: Math.max(0, finite(row.firstSeenAt))
+    };
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.key);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== PARTY_LIFECYCLE_SCHEMA_VERSION || !Array.isArray(data.records)) throw new Error('unsupported party lifecycle schema');
+      for (const row of data.records.slice(-this.capacity)) {
+        const clean = this._sanitize(row);
+        if (clean) this.records.set(clean.name, clean);
+      }
+      this.stats.loads += 1;
+      this._event('PARTY_LIFECYCLE_RESTORED', { records: this.records.size });
+      return true;
+    } catch (error) {
+      this.records.clear();
+      this.stats.loadFailures += 1;
+      this._event('PARTY_LIFECYCLE_RESTORE_FAILED', { message: String(error && error.message || error) }, 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA');
+      return false;
+    }
+  }
+
+  _prune() {
+    if (this.records.size <= this.capacity) return;
+    const rows = [...this.records.values()].sort((a, b) => a.updatedAt - b.updatedAt);
+    const count = this.records.size - this.capacity;
+    for (let i = 0; i < count; i += 1) this.records.delete(rows[i].name);
+    this.stats.evicted += count;
+  }
+
+  evaluate(input = {}) {
+    const now = this.now();
+    const characters = Array.isArray(input.characters) ? input.characters.filter((row) => row && row.name && row.ctype !== 'merchant') : [];
+    const incumbentCurrentScore = input.incumbentCurrentScore == null ? null : clamp01(input.incumbentCurrentScore);
+    const incumbentProjectedScore = input.incumbentProjectedScore == null ? null : clamp01(input.incumbentProjectedScore);
+    const incumbentXpPerHour = Math.max(0, finite(input.incumbentXpPerHour));
+    const highRisk = input.highRisk === true;
+    const economyEmergency = input.economyEmergency === true;
+
+    const next = [];
+    for (const raw of characters) {
+      const old = this.records.get(String(raw.name));
+      const currentScore = raw.currentScore == null ? null : clamp01(raw.currentScore);
+      const currentConfidence = clamp01(raw.currentConfidence);
+      const currentSamples = Math.max(0, finite(raw.currentSamples));
+      const projectedScore = raw.projectedScore == null ? null : clamp01(raw.projectedScore);
+      const projectedProgress = raw.projectedProgress == null ? null : clamp01(raw.projectedProgress);
+      const survivalScore = raw.survivalScore == null ? null : clamp01(raw.survivalScore);
+      const xpPerHour = Math.max(0, finite(raw.xpPerHour));
+      const xpRatioToIncumbent = incumbentXpPerHour > 0 ? xpPerHour / incumbentXpPerHour : null;
+      const expectedTrainingXpRatio = raw.expectedTrainingXpRatio == null ? null : Math.max(0, finite(raw.expectedTrainingXpRatio));
+      const gearReady = raw.gearReady === true;
+      const contentSafe = raw.contentSafe === true;
+      const active = raw.active === true;
+      const reasons = [];
+
+      const measuredReady = currentScore != null && currentSamples >= this.minCurrentSamples && currentConfidence >= this.minCurrentConfidence;
+      const promotionSuperior = measuredReady && incumbentCurrentScore != null && currentScore >= incumbentCurrentScore + this.minPromotionGain;
+      const promotionSafe = survivalScore != null && survivalScore >= this.minPromotionSafety && contentSafe && !highRisk && !economyEmergency;
+      const promotionProgress = xpRatioToIncumbent != null && xpRatioToIncumbent >= this.minPromotionXpRatio;
+      const qualifiesPromotionWindow = !active && promotionSuperior && promotionSafe && promotionProgress && gearReady;
+      const promotionStreak = qualifiesPromotionWindow ? Math.min(1000, (old && old.promotionStreak || 0) + 1) : 0;
+
+      if (!measuredReady) reasons.push('CURRENT_EVIDENCE_NOT_READY');
+      if (projectedScore != null && incumbentProjectedScore != null && projectedScore > incumbentProjectedScore) reasons.push('PROJECTED_SUPERIORITY_ONLY_PLANNING');
+      if (survivalScore == null || survivalScore < this.minPromotionSafety) reasons.push('PROMOTION_SURVIVAL_GATE');
+      if (!gearReady) reasons.push('PROMOTION_GEAR_NOT_READY');
+      if (!contentSafe) reasons.push('CONTENT_NOT_SAFE');
+      if (highRisk) reasons.push('HIGH_RISK_CONTEXT');
+      if (economyEmergency) reasons.push('ECONOMY_EMERGENCY');
+      if (xpRatioToIncumbent == null || xpRatioToIncumbent < this.minPromotionXpRatio) reasons.push('PROMOTION_XP_RATIO_GATE');
+      if (!promotionSuperior) reasons.push('CURRENT_SUPERIORITY_NOT_PROVEN');
+      if (qualifiesPromotionWindow && promotionStreak < this.promotionWindowsRequired) reasons.push('PROMOTION_HYSTERESIS_BUILDING');
+
+      next.push(this._sanitize({
+        name: raw.name,
+        ctype: raw.ctype,
+        level: raw.level,
+        state: active ? PartyLifecycleState.ACTIVE : (qualifiesPromotionWindow && promotionStreak >= this.promotionWindowsRequired ? PartyLifecycleState.PROMOTION_CANDIDATE : PartyLifecycleState.BENCH),
+        active,
+        currentScore,
+        currentConfidence,
+        currentSamples,
+        projectedScore,
+        projectedProgress,
+        survivalScore,
+        xpPerHour,
+        xpRatioToIncumbent,
+        expectedTrainingXpRatio,
+        gearReady,
+        contentSafe,
+        promotionStreak,
+        reasons,
+        firstSeenAt: old && old.firstSeenAt || now,
+        updatedAt: now
+      }));
+    }
+
+    const development = next
+      .filter((row) => !row.active && row.state !== PartyLifecycleState.PROMOTION_CANDIDATE)
+      .filter((row) => row.projectedScore != null && incumbentProjectedScore != null && row.projectedScore >= incumbentProjectedScore + this.minProjectedGain)
+      .filter((row) => row.survivalScore == null || row.survivalScore >= this.minTrainingSafety)
+      .filter((row) => row.expectedTrainingXpRatio != null && row.expectedTrainingXpRatio >= this.minTrainingExpectedXpRatio)
+      .filter((row) => row.contentSafe && !highRisk && !economyEmergency)
+      .sort((a, b) => (b.projectedScore || 0) - (a.projectedScore || 0) || b.level - a.level || a.name.localeCompare(b.name))
+      .slice(0, this.maxDevelopmentSlots);
+    const developmentNames = new Set(development.map((row) => row.name));
+    for (const row of next) {
+      if (developmentNames.has(row.name)) {
+        row.state = PartyLifecycleState.DEVELOPMENT;
+        row.reasons = [...new Set(row.reasons.concat('BOUNDED_DEVELOPMENT_SLOT'))];
+      }
+      this.records.set(row.name, row);
+    }
+
+    this._prune();
+    this.dirty = true;
+    this.stats.evaluations += 1;
+    this.stats.promotionsReady += next.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE).length;
+    this.stats.developmentSelections += development.length;
+    this.lastEvaluation = {
+      at: now,
+      highRisk,
+      economyEmergency,
+      incumbentCurrentScore,
+      incumbentProjectedScore,
+      incumbentXpPerHour,
+      developmentSlotsUsed: development.length,
+      promotionCandidates: next.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE).map((row) => row.name),
+      development: development.map((row) => row.name)
+    };
+    this._event('PARTY_LIFECYCLE_EVALUATED', clone(this.lastEvaluation));
+    return this.status();
+  }
+
+  get(name) { const row = this.records.get(String(name)); return row ? clone(row) : null; }
+  list() { return [...this.records.values()].sort((a, b) => (a.state === PartyLifecycleState.ACTIVE ? -1 : 0) - (b.state === PartyLifecycleState.ACTIVE ? -1 : 0) || a.name.localeCompare(b.name)).map(clone); }
+
+  save(options = {}) {
+    if (!this.dirty && options.force !== true) return false;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      backend.set(this.key, JSON.stringify({ schemaVersion: PARTY_LIFECYCLE_SCHEMA_VERSION, savedAt: this.now(), records: [...this.records.values()] }));
+      this.dirty = false;
+      this.stats.saves += 1;
+      return true;
+    } catch (error) {
+      this.stats.saveFailures += 1;
+      this._event('PARTY_LIFECYCLE_SAVE_FAILED', { message: String(error && error.message || error) }, 'warn', 'PERSISTENCE_WRITE_ERROR');
+      return false;
+    }
+  }
+
+  status() {
+    const rows = this.list();
+    return {
+      schemaVersion: PARTY_LIFECYCLE_SCHEMA_VERSION,
+      mode: PARTY_LIFECYCLE_MODE,
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      maxDevelopmentSlots: this.maxDevelopmentSlots,
+      thresholds: {
+        minCurrentSamples: this.minCurrentSamples,
+        minCurrentConfidence: this.minCurrentConfidence,
+        minPromotionSafety: this.minPromotionSafety,
+        minPromotionXpRatio: this.minPromotionXpRatio,
+        minPromotionGain: this.minPromotionGain,
+        minProjectedGain: this.minProjectedGain,
+        minTrainingSafety: this.minTrainingSafety,
+        minTrainingExpectedXpRatio: this.minTrainingExpectedXpRatio,
+        promotionWindowsRequired: this.promotionWindowsRequired
+      },
+      lastEvaluation: clone(this.lastEvaluation),
+      counts: Object.fromEntries(Object.values(PartyLifecycleState).map((state) => [state, rows.filter((row) => row.state === state).length])),
+      characters: rows,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE };
+
+},
+"src/party/controlled-lifecycle-coordinator.js": function(require,module,exports){
+'use strict';
+
+const { PartyLifecycleState } = require('./lifecycle-store');
+const { AURAS } = require('./paladin-aura-policy');
+
+const CONTROLLED_PARTY_LIFECYCLE_MODE = 'controlled-live-default-off';
+const CONTROLLED_PARTY_LIFECYCLE_ACK = 'ALPHA20_PARTY_LIFECYCLE';
+const PartyLifecycleOperationState = Object.freeze({
+  RESERVED: 'RESERVED',
+  EXECUTING: 'EXECUTING',
+  VERIFYING: 'VERIFYING',
+  RECOVERING: 'RECOVERING',
+  COMMITTED: 'COMMITTED',
+  ABORTED: 'ABORTED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+
+class ControlledPartyLifecycleCoordinator {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'AIO_V3_PARTY_LIFECYCLE_OPERATION';
+    this.lifecycle = options.lifecycle;
+    this.transitions = options.transitions;
+    this.auraPolicy = options.auraPolicy;
+    this.adapter = options.adapter;
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'UNKNOWN' }));
+    this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
+    this.enabled = false;
+    this.allowTransitions = false;
+    this.allowDevelopmentRotation = false;
+    this.allowAuraChanges = false;
+    this.minTransitionIntervalMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.minTransitionIntervalMs) || 15 * 60 * 1000));
+    this.lastTransitionAt = 0;
+    this.operation = null;
+    this.busy = false;
+    this.lastResult = null;
+    this.lastAuraResult = null;
+    this.stats = { plans: 0, attempts: 0, committed: 0, aborted: 0, failedSafe: 0, rejected: 0, developmentRotations: 0, promotions: 0, auraAttempts: 0, auraChanges: 0 };
+    this.load();
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-lifecycle-controlled', event, data, severity, reason });
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') return { get: (key) => this.root.get(key), set: (key, value) => this.root.set(key, value) };
+    const localStorage = this.root && this.root.localStorage;
+    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
+    return null;
+  }
+
+  save() {
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      backend.set(this.storageKey, JSON.stringify({ schemaVersion: 1, savedAt: this.now(), operation: this.operation, lastTransitionAt: this.lastTransitionAt }));
+      return true;
+    } catch (error) {
+      this._event('PARTY_LIFECYCLE_OPERATION_SAVE_FAILED', { message: String(error && error.message || error) }, 'warn', 'PERSISTENCE_WRITE_ERROR');
+      return false;
+    }
+  }
+
+  load() {
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.storageKey);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== 1) throw new Error('unsupported lifecycle operation schema');
+      this.lastTransitionAt = Math.max(0, finite(data.lastTransitionAt));
+      if (data.operation && [PartyLifecycleOperationState.RESERVED, PartyLifecycleOperationState.EXECUTING, PartyLifecycleOperationState.VERIFYING].includes(data.operation.state)) {
+        this.operation = { ...data.operation, state: PartyLifecycleOperationState.RECOVERING, reason: 'RESTART_RECONCILIATION_REQUIRED', updatedAt: this.now() };
+        this._event('PARTY_LIFECYCLE_RESTART_RECOVERY_REQUIRED', { id: this.operation.id }, 'warn', 'NO_BLIND_RETRY');
+        this.save();
+      } else this.operation = data.operation || null;
+      return true;
+    } catch (error) {
+      this.operation = null;
+      this._event('PARTY_LIFECYCLE_OPERATION_RESTORE_FAILED', { message: String(error && error.message || error) }, 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA');
+      return false;
+    }
+  }
+
+  configure(config = {}) {
+    if (config.enabled !== true) {
+      this.disable(config.reason || 'OPERATOR_DISABLED');
+      return this.status();
+    }
+    if (config.ack !== CONTROLLED_PARTY_LIFECYCLE_ACK) {
+      this.disable('WRONG_ACK');
+      this.stats.rejected += 1;
+      return { ...this.status(), enableRejected: 'WRONG_ACK' };
+    }
+    this.enabled = true;
+    this.allowTransitions = config.allowTransitions === true;
+    this.allowDevelopmentRotation = this.allowTransitions && config.allowDevelopmentRotation === true;
+    this.allowAuraChanges = config.allowAuraChanges === true;
+    this._event('PARTY_LIFECYCLE_CONTROL_ENABLED', { allowTransitions: this.allowTransitions, allowDevelopmentRotation: this.allowDevelopmentRotation, allowAuraChanges: this.allowAuraChanges });
+    return this.status();
+  }
+
+  disable(reason = 'DISABLED') {
+    this.enabled = false;
+    this.allowTransitions = false;
+    this.allowDevelopmentRotation = false;
+    this.allowAuraChanges = false;
+    if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
+    this._event('PARTY_LIFECYCLE_CONTROL_DISABLED', {}, 'info', reason);
+    return this.status();
+  }
+
+  _localCharacter() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
+  _partyNames() { const p = this.root && (this.root.parent || this.root); return Object.keys(p && p.party || {}); }
+
+  _gate(context = {}) {
+    const reasons = [];
+    const local = this._localCharacter();
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!this.enabled) reasons.push('CONTROLLED_PARTY_LIFECYCLE_DISABLED');
+    if (this.getMode() !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reasons.push('SUPERVISOR_NOT_HEALTHY');
+    if (!local || local.ctype !== 'merchant') reasons.push('MERCHANT_CONTROLLER_REQUIRED');
+    if (context.inCombat === true) reasons.push('ACTIVE_COMBAT');
+    if (context.highRisk === true) reasons.push('HIGH_RISK_CONTEXT');
+    if (context.emergency === true) reasons.push('EMERGENCY_RECOVERY');
+    if (this.getEconomyEmergency() === true) reasons.push('ECONOMY_EMERGENCY');
+    if (this.busy) reasons.push('PARTY_LIFECYCLE_BUSY');
+    if (this.operation && this.operation.state === PartyLifecycleOperationState.RECOVERING) reasons.push('RESTART_RECONCILIATION_REQUIRED');
+    return { allowed: reasons.length === 0, reasons, local, supervisor };
+  }
+
+  _selectPlan(currentMembers = [], registryStatus = {}, context = {}) {
+    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [] };
+    const rows = life.characters || [];
+    const current = currentMembers.filter(Boolean);
+    const merchant = current.find((row) => row.ctype === 'merchant');
+    const activeCombat = current.filter((row) => row.ctype !== 'merchant');
+    if (!merchant || activeCombat.length !== 3) return { planned: false, reason: 'CURRENT_PARTY_MUST_BE_MERCHANT_PLUS_THREE' };
+    const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
+    const lifecycleByName = new Map(rows.map((row) => [row.name, row]));
+    const promotion = rows.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE && !row.active).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0))[0] || null;
+    const development = rows.filter((row) => row.state === PartyLifecycleState.DEVELOPMENT && !row.active).sort((a, b) => (b.projectedScore || 0) - (a.projectedScore || 0))[0] || null;
+    let incoming = promotion;
+    let kind = 'PROMOTION';
+    if (!incoming && this.allowDevelopmentRotation) { incoming = development; kind = 'DEVELOPMENT_ROTATION'; }
+    if (!incoming) return { planned: false, reason: 'NO_ELIGIBLE_LIFECYCLE_CHANGE' };
+    if (kind === 'DEVELOPMENT_ROTATION' && !this.allowDevelopmentRotation) return { planned: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
+    if (kind === 'PROMOTION' && !this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
+    const incomingRegistry = byName.get(incoming.name);
+    if (!incomingRegistry || incomingRegistry.dead === true || incomingRegistry.available === false) return { planned: false, reason: 'INCOMING_NOT_AVAILABLE' };
+
+    const outgoing = activeCombat
+      .map((member) => ({ member, lifecycle: lifecycleByName.get(member.name) || null }))
+      .sort((a, b) => {
+        const as = a.lifecycle && a.lifecycle.currentScore;
+        const bs = b.lifecycle && b.lifecycle.currentScore;
+        if (as == null && bs != null) return -1;
+        if (as != null && bs == null) return 1;
+        return finite(as, 0) - finite(bs, 0) || finite(a.member.level, 0) - finite(b.member.level, 0);
+      })[0];
+    if (!outgoing) return { planned: false, reason: 'NO_OUTGOING_MEMBER' };
+    if (kind === 'PROMOTION') {
+      if (incoming.currentScore == null || !outgoing.lifecycle || outgoing.lifecycle.currentScore == null || incoming.currentScore <= outgoing.lifecycle.currentScore) return { planned: false, reason: 'CURRENT_SUPERIORITY_NOT_PROVEN' };
+    }
+    if (kind === 'DEVELOPMENT_ROTATION' && (incoming.expectedTrainingXpRatio == null || incoming.expectedTrainingXpRatio < life.thresholds.minTrainingExpectedXpRatio)) return { planned: false, reason: 'TRAINING_XP_RATIO_GATE' };
+
+    const targetNames = [merchant.name, ...activeCombat.filter((row) => row.name !== outgoing.member.name).map((row) => row.name), incoming.name];
+    const targetMembers = targetNames.map((name) => byName.get(name) || current.find((row) => row.name === name)).filter(Boolean);
+    if (targetMembers.length !== 4) return { planned: false, reason: 'TARGET_MEMBER_STATE_INCOMPLETE' };
+    return {
+      planned: true,
+      kind,
+      destructive: false,
+      incoming: incoming.name,
+      outgoing: outgoing.member.name,
+      targetNames,
+      members: targetMembers,
+      merchant,
+      evidence: { incoming: clone(incoming), outgoing: clone(outgoing.lifecycle), context: clone(context) }
+    };
+  }
+
+  plan(currentMembers = [], registryStatus = {}, context = {}) {
+    this.stats.plans += 1;
+    const gate = this._gate(context);
+    if (!gate.allowed) return { planned: false, reason: gate.reasons[0], reasons: gate.reasons };
+    if (!this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
+    if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { planned: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
+    return this._selectPlan(currentMembers, registryStatus, context);
+  }
+
+  _reserve(plan) {
+    const now = this.now();
+    this.operation = {
+      schemaVersion: 1,
+      id: `party-life-${now}`,
+      state: PartyLifecycleOperationState.RESERVED,
+      createdAt: now,
+      updatedAt: now,
+      plan: clone(plan),
+      rawActionAuthority: false,
+      directGameplayActionAccess: false,
+      reason: 'PARTY_LIFECYCLE_RESERVED'
+    };
+    this.save();
+    return this.operation;
+  }
+
+  async executePlan(plan, currentMembers = [], registryStatus = {}, context = {}) {
+    const gate = this._gate(context);
+    if (!gate.allowed) { this.stats.rejected += 1; return { executed: false, reason: gate.reasons[0], reasons: gate.reasons }; }
+    if (!plan || plan.planned !== true) return { executed: false, reason: 'INVALID_PLAN' };
+    if (!this.allowTransitions) return { executed: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
+    if (plan.kind === 'DEVELOPMENT_ROTATION' && !this.allowDevelopmentRotation) return { executed: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
+    if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { executed: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
+    this.busy = true;
+    this.stats.attempts += 1;
+    const op = this._reserve(plan);
+    try {
+      op.state = PartyLifecycleOperationState.EXECUTING; op.updatedAt = this.now(); this.save();
+      this.transitions.setLiveEnabled(true);
+      const result = await this.transitions.execute({ members: plan.members, merchant: plan.merchant }, {
+        runtimeMode: this.getMode(),
+        currentMembers,
+        registryStatus,
+        inCombat: context.inCombat === true,
+        emergency: context.emergency === true || context.highRisk === true || this.getEconomyEmergency() === true,
+        requiresCrossMapRouting: context.requiresCrossMapRouting === true,
+        verifyTargetState: context.verifyTargetState
+      });
+      this.transitions.setLiveEnabled(false);
+      if (result && result.executed === true) {
+        op.state = PartyLifecycleOperationState.COMMITTED;
+        op.reason = 'PARTY_LIFECYCLE_TRANSITION_COMMITTED';
+        op.result = clone(result);
+        op.updatedAt = this.now();
+        this.lastTransitionAt = this.now();
+        this.stats.committed += 1;
+        if (plan.kind === 'PROMOTION') this.stats.promotions += 1; else this.stats.developmentRotations += 1;
+        this.lastResult = clone(op);
+        this.save();
+        this._event('PARTY_LIFECYCLE_TRANSITION_COMMITTED', { id: op.id, kind: plan.kind, incoming: plan.incoming, outgoing: plan.outgoing });
+        return { executed: true, operation: clone(op), transition: result };
+      }
+      op.state = result && result.recovery && result.recovery.recovered === false ? PartyLifecycleOperationState.FAILED_SAFE : PartyLifecycleOperationState.ABORTED;
+      op.reason = result && result.reason || 'TRANSITION_ABORTED';
+      op.result = clone(result);
+      op.updatedAt = this.now();
+      if (op.state === PartyLifecycleOperationState.FAILED_SAFE) this.stats.failedSafe += 1; else this.stats.aborted += 1;
+      this.lastResult = clone(op); this.save();
+      return { executed: false, operation: clone(op), transition: result, reason: op.reason };
+    } catch (error) {
+      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
+      op.state = PartyLifecycleOperationState.FAILED_SAFE;
+      op.reason = 'UNHANDLED_PARTY_LIFECYCLE_ERROR';
+      op.error = String(error && error.message || error);
+      op.updatedAt = this.now();
+      this.stats.failedSafe += 1;
+      this.lastResult = clone(op); this.save();
+      this._event('PARTY_LIFECYCLE_TRANSITION_FAILED_SAFE', { id: op.id, error: op.error }, 'error', op.reason);
+      return { executed: false, reason: op.reason, operation: clone(op) };
+    } finally {
+      this.busy = false;
+      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
+    }
+  }
+
+  async maybeExecute(currentMembers = [], registryStatus = {}, context = {}) {
+    const plan = this.plan(currentMembers, registryStatus, context);
+    if (!plan.planned) return plan;
+    return this.executePlan(plan, currentMembers, registryStatus, context);
+  }
+
+  reconcile(currentNames = []) {
+    if (!this.operation || this.operation.state !== PartyLifecycleOperationState.RECOVERING) return { reconciled: false, reason: 'NO_RECOVERING_OPERATION' };
+    const current = new Set((currentNames || []).map((row) => typeof row === 'string' ? row : row && row.name).filter(Boolean));
+    const target = new Set(this.operation.plan && this.operation.plan.targetNames || []);
+    const old = new Set(this.operation.plan && this.operation.plan.evidence && this.operation.plan.evidence.context && this.operation.plan.evidence.context.currentNames || []);
+    const exact = (set) => set.size === current.size && [...set].every((name) => current.has(name));
+    if (target.size === 4 && exact(target)) {
+      this.operation.state = PartyLifecycleOperationState.COMMITTED;
+      this.operation.reason = 'RESTART_TARGET_STATE_OBSERVED';
+      this.lastTransitionAt = this.now();
+      this.stats.committed += 1;
+    } else if (old.size === 4 && exact(old)) {
+      this.operation.state = PartyLifecycleOperationState.ABORTED;
+      this.operation.reason = 'RESTART_ORIGINAL_STATE_OBSERVED';
+      this.stats.aborted += 1;
+    } else {
+      this.operation.state = PartyLifecycleOperationState.FAILED_SAFE;
+      this.operation.reason = 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY';
+      this.stats.failedSafe += 1;
+    }
+    this.operation.updatedAt = this.now();
+    this.lastResult = clone(this.operation);
+    this.save();
+    return { reconciled: true, operation: clone(this.operation) };
+  }
+
+  applyAura(recommendation, context = {}) {
+    const gate = this._gate(context);
+    if (!gate.allowed) return { executed: false, reason: gate.reasons[0], reasons: gate.reasons };
+    if (!this.allowAuraChanges) return { executed: false, reason: 'AURA_CHANGES_NOT_AUTHORIZED' };
+    const local = gate.local;
+    if (!local || local.ctype !== 'paladin') return { executed: false, reason: 'LOCAL_PALADIN_REQUIRED' };
+    if (Number(local.level) < 60) return { executed: false, reason: 'PALADIN_LEVEL_TOO_LOW' };
+    const aura = recommendation && recommendation.aura;
+    if (!AURAS.includes(aura)) return { executed: false, reason: 'INVALID_AURA' };
+    if (recommendation.canSwitch === false) return { executed: false, reason: 'AURA_HYSTERESIS_HOLD' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { executed: false, reason: 'ADAPTER_UNAVAILABLE' };
+    this.stats.auraAttempts += 1;
+    const result = this.adapter.command('use_skill', ['paladin_aura', aura]);
+    const out = { at: this.now(), aura, executed: !!(result && result.executed), reason: result && result.reason || null, shadow: !!(result && result.shadow) };
+    if (out.executed) {
+      if (this.auraPolicy && typeof this.auraPolicy.noteApplied === 'function') this.auraPolicy.noteApplied(aura);
+      this.stats.auraChanges += 1;
+      this._event('PALADIN_AURA_CONTROLLED_CHANGED', { aura, recommendation: clone(recommendation) });
+    }
+    this.lastAuraResult = out;
+    return clone(out);
+  }
+
+  status() {
+    return {
+      mode: CONTROLLED_PARTY_LIFECYCLE_MODE,
+      requiredAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
+      enabled: this.enabled,
+      actionAuthority: this.enabled && (this.allowTransitions || this.allowAuraChanges),
+      directGameplayActionAccess: false,
+      transitionAuthority: this.enabled && this.allowTransitions,
+      developmentRotationAuthority: this.enabled && this.allowDevelopmentRotation,
+      auraAuthority: this.enabled && this.allowAuraChanges,
+      maxDevelopmentSlots: 1,
+      minTransitionIntervalMs: this.minTransitionIntervalMs,
+      lastTransitionAt: this.lastTransitionAt || null,
+      busy: this.busy,
+      operation: clone(this.operation),
+      lastResult: clone(this.lastResult),
+      lastAuraResult: clone(this.lastAuraResult),
+      serverChangeAllowed: false,
+      smartMoveAllowed: false,
+      crossMapRoutingAllowed: false,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState };
+
+},
+"src/party/controlled-paladin-aura-executor.js": function(require,module,exports){
+'use strict';
+
+const { AURAS } = require('./paladin-aura-policy');
+
+const CONTROLLED_PALADIN_AURA_MODE = 'controlled-live-default-off';
+const CONTROLLED_PALADIN_AURA_ACK = 'ALPHA20_PALADIN_AURA';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+class ControlledPaladinAuraExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.adapter = options.adapter;
+    this.auraPolicy = options.auraPolicy;
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'UNKNOWN' }));
+    this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
+    this.enabled = false;
+    this.lastResult = null;
+    this.stats = { attempts: 0, changed: 0, rejected: 0 };
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'paladin-aura-controlled', event, data, severity, reason });
+  }
+
+  _character() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
+
+  configure(config = {}) {
+    if (config.enabled !== true) return this.disable(config.reason || 'OPERATOR_DISABLED');
+    if (config.ack !== CONTROLLED_PALADIN_AURA_ACK) {
+      this.stats.rejected += 1;
+      this.disable('WRONG_ACK');
+      return { ...this.status(), enableRejected: 'WRONG_ACK' };
+    }
+    this.enabled = true;
+    return this.status();
+  }
+
+  disable(reason = 'DISABLED') {
+    this.enabled = false;
+    this._event('PALADIN_AURA_CONTROL_DISABLED', {}, 'info', reason);
+    return this.status();
+  }
+
+  execute(recommendation, context = {}) {
+    const character = this._character();
+    const supervisor = this.getSupervisorStatus() || {};
+    const reasons = [];
+    if (!this.enabled) reasons.push('CONTROLLED_PALADIN_AURA_DISABLED');
+    if (this.getMode() !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reasons.push('SUPERVISOR_NOT_HEALTHY');
+    if (!character || character.ctype !== 'paladin') reasons.push('LOCAL_PALADIN_REQUIRED');
+    if (!character || Number(character.level) < 60) reasons.push('PALADIN_LEVEL_TOO_LOW');
+    if (context.inCombat === true || context.highRisk === true || context.emergency === true) reasons.push('UNSAFE_AURA_SWITCH_CONTEXT');
+    if (this.getEconomyEmergency() === true) reasons.push('ECONOMY_EMERGENCY');
+    const aura = recommendation && recommendation.aura;
+    if (!AURAS.includes(aura)) reasons.push('INVALID_AURA');
+    if (recommendation && recommendation.canSwitch === false) reasons.push('AURA_HYSTERESIS_HOLD');
+    if (this.auraPolicy && this.auraPolicy.lastAura === aura) reasons.push('AURA_ALREADY_ACTIVE');
+    if (!this.adapter || typeof this.adapter.command !== 'function') reasons.push('ADAPTER_UNAVAILABLE');
+    if (reasons.length) {
+      this.stats.rejected += 1;
+      this.lastResult = { at: this.now(), executed: false, aura: aura || null, reason: reasons[0], reasons };
+      return { ...this.lastResult };
+    }
+
+    this.stats.attempts += 1;
+    const result = this.adapter.command('use_skill', ['paladin_aura', aura]);
+    this.lastResult = { at: this.now(), aura, executed: !!(result && result.executed), reason: result && result.reason || null, shadow: !!(result && result.shadow) };
+    if (this.lastResult.executed) {
+      if (this.auraPolicy && typeof this.auraPolicy.noteApplied === 'function') this.auraPolicy.noteApplied(aura);
+      this.stats.changed += 1;
+      this._event('PALADIN_AURA_CONTROLLED_CHANGED', { aura, recommendation });
+    }
+    return { ...this.lastResult };
+  }
+
+  status() {
+    return {
+      mode: CONTROLLED_PALADIN_AURA_MODE,
+      requiredAck: CONTROLLED_PALADIN_AURA_ACK,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      directGameplayActionAccess: false,
+      oneAuraPerParty: true,
+      allowedAuras: AURAS.slice(),
+      lastResult: this.lastResult ? { ...this.lastResult } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK };
+
+},
 "src/ops/telemetry-outbox.js": function(require,module,exports){
 'use strict';
 
@@ -16609,6 +17669,65 @@ class HeadlessOperations {
 }
 
 module.exports = { HeadlessOperations };
+
+},
+"src/ops/minute-countdown-reporter.js": function(require,module,exports){
+'use strict';
+
+class MinuteCountdownReporter {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.emit = typeof options.emit === 'function' ? options.emit : (() => {});
+    this.intervalMs = Math.max(60 * 1000, Number(options.intervalMs) || 60 * 1000);
+    this.label = options.label || 'Live Gate';
+    this.startedAt = null;
+    this.durationMs = 0;
+    this.lastBucket = null;
+    this.completed = false;
+  }
+
+  start(durationMs, label = this.label) {
+    this.startedAt = this.now();
+    this.durationMs = Math.max(0, Number(durationMs) || 0);
+    this.label = String(label || this.label);
+    this.lastBucket = null;
+    this.completed = false;
+    this.emit(`[${this.label}] gestartet — ${Math.ceil(this.durationMs / 60000)} Minuten Beobachtung.`);
+    return this.status();
+  }
+
+  tick(at = this.now()) {
+    if (this.startedAt == null || this.completed) return null;
+    const elapsed = Math.max(0, Number(at) - this.startedAt);
+    const remaining = Math.max(0, this.durationMs - elapsed);
+    if (remaining <= 0) {
+      this.completed = true;
+      this.emit(`[${this.label}] Beobachtung abgeschlossen.`);
+      return { type: 'complete', remainingMs: 0 };
+    }
+    const bucket = Math.ceil(remaining / this.intervalMs);
+    if (bucket === this.lastBucket) return null;
+    this.lastBucket = bucket;
+    if (elapsed < this.intervalMs) return null;
+    const minutes = Math.max(1, Math.ceil(remaining / 60000));
+    this.emit(`[${this.label}] noch ${minutes} Minute${minutes === 1 ? '' : 'n'}.`);
+    return { type: 'countdown', remainingMs: remaining, minutes };
+  }
+
+  status(at = this.now()) {
+    if (this.startedAt == null) return { active: false, label: this.label, durationMs: this.durationMs, remainingMs: null, completed: this.completed };
+    return {
+      active: !this.completed,
+      label: this.label,
+      startedAt: this.startedAt,
+      durationMs: this.durationMs,
+      remainingMs: Math.max(0, this.durationMs - Math.max(0, Number(at) - this.startedAt)),
+      completed: this.completed
+    };
+  }
+}
+
+module.exports = { MinuteCountdownReporter };
 
 },
 "src/ops/session-monitor.js": function(require,module,exports){
