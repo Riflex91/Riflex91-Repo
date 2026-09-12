@@ -210,28 +210,28 @@ test('party bootstrap fails closed for foreign party members and impossible acti
   assert.equal(tooMany.status().stats.invitesSent, 0);
 });
 
-test('content-drift quota recovery compacts only its own bounded record set and retries once', () => {
+test('content-drift quota failure preserves semantic records and blocks subsequent writes', () => {
   const records = new Map();
   for (let i = 0; i < 800; i += 1) records.set(`r${i}`, { lifecycle: 'OBSERVED', lastSeenAt: i });
+  let writes = 0;
   const monitor = {
     capacity: 2048,
     records,
     stats: { saveErrors: 0 },
-    _prune() {
-      while (this.records.size > this.capacity) this.records.delete(this.records.keys().next().value);
-    },
     save() {
-      if (this.records.size > 400) {
-        this.stats.saveErrors += 1;
-        return false;
-      }
-      return true;
+      writes += 1;
+      this.stats.saveErrors += 1;
+      return false;
     }
   };
   const runtime = { contentDrift: monitor, now: () => 1000, log: null };
-  const hotfix = installContentDriftStorageHotfix(runtime, { maxRecordsAfterQuota: 384 });
-  assert.equal(monitor.save({ force: true }), true);
-  assert.ok(monitor.records.size <= 384);
-  assert.equal(hotfix.status().stats.compactions, 1);
-  assert.equal(hotfix.status().stats.retrySuccesses, 1);
+  const hotfix = installContentDriftStorageHotfix(runtime);
+  assert.equal(monitor.save({ force: true }), false);
+  assert.equal(monitor.records.size, 800);
+  assert.equal(monitor.capacity, 2048);
+  assert.equal(hotfix.status().sessionWriteBlocked, true);
+  assert.equal(hotfix.status().semanticRecordPruningAllowedForQuotaRecovery, false);
+  assert.equal(monitor.save({ force: true }), false);
+  assert.equal(writes, 1);
+  assert.equal(monitor.records.size, 800);
 });

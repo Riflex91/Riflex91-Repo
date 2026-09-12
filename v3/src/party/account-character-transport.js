@@ -26,6 +26,7 @@ class AccountCharacterTransport {
     this.stats = {
       directSent: 0,
       directFailed: 0,
+      directSkippedUnobserved: 0,
       fallbackSent: 0,
       fallbackFailed: 0,
       rejectedNotOwned: 0,
@@ -82,9 +83,6 @@ class AccountCharacterTransport {
   }
 
   ownedNames(options = {}) {
-    // An explicit roster is the strongest trust source. get_active_characters()
-    // is retained only as an observational fallback because live Adventure Land
-    // runners may expose only the local character from that API.
     if (this.trustedNames.size) return this.trustedRosterNames();
     return this.activeNames(options);
   }
@@ -139,8 +137,13 @@ class AccountCharacterTransport {
       throw new Error(`TARGET_NOT_TRUSTED_OWN_CHARACTER:${target}`);
     }
 
+    // Adventure Land can surface "Character not found" as an in-game message
+    // without rejecting the JS call. Therefore command_character is only safe to
+    // use when get_active_characters() actually observes this target in this runner.
+    const observedActive = this.activeNames();
+    const directObserved = observedActive.includes(target);
     const commandCharacter = this._function('command_character');
-    if (receiver && typeof commandCharacter === 'function') {
+    if (receiver && typeof commandCharacter === 'function' && directObserved) {
       try {
         const code = this._directCode(receiver, sender, payload);
         await Promise.resolve(commandCharacter.call(this.root, target, code));
@@ -154,6 +157,13 @@ class AccountCharacterTransport {
           message: boundedMessage(error)
         });
       }
+    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
+      this.stats.directSkippedUnobserved += 1;
+      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
+        target,
+        sender,
+        observedActive
+      });
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
@@ -176,8 +186,8 @@ class AccountCharacterTransport {
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'same-account-command-character-first',
+      schemaVersion: 2,
+      mode: 'observed-active-command-character-else-cm',
       localName: this.localName(),
       trustSource: this.trustedNames.size ? 'explicit-roster' : 'get_active_characters-fallback',
       trustedNames: this.trustedRosterNames(),
@@ -185,6 +195,7 @@ class AccountCharacterTransport {
       observedRunningNames: this.activeNames({ runningOnly: true }),
       activeOwnedNames: this.ownedNames(),
       runningOwnedNames: this.ownedNames({ runningOnly: true }),
+      directRequiresObservedActive: true,
       fallbackEnabled: this.fallbackEnabled,
       stats: { ...this.stats }
     };
