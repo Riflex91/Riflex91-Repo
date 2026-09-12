@@ -8,6 +8,7 @@ const {
   installPreFarmingReliability
 } = require('../reliability/pre-farming-reliability');
 const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
+const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -45,6 +46,11 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxAttempts: options.autoRespawnMaxAttempts
     });
     this.preFarmingReliability = installPreFarmingReliability(this);
+    // Install after the pre-farming wrapper: live logs showed that the old
+    // safe-entity cache still left ordinary visible monsters as navigation
+    // blockers. This replacement asks the existing TargetSafety + CombatRisk
+    // boundaries directly on every Local Farm arbitration pass.
+    this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
   }
 
@@ -64,6 +70,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
       preFarmingReliability: this.preFarmingReliability.status(),
+      liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       startupPolicy: {
         recommendedMode: 'active',
@@ -82,6 +89,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
       preFarmingReliability: this.preFarmingReliability.status(),
+      liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
@@ -93,8 +101,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         lootMerchantExcluded: true,
         merchantFarmerFsmExcluded: true,
         incidentalMonsterNavigationBlockRemoved: true,
+        liveNavigationUsesDirectExistingSafetyBoundaries: true,
         localFarmPlanGetsOneSafeSchedulerTurn: true,
         unsafeOrUnknownVisibleMonsterStillBlocks: true,
+        trainingTargetPresenceDoesNotPinNavigation: true,
         incompleteSupplyFailClosed: true,
         incompleteLocationFailClosed: true,
         stableContentFingerprintProfile: true,
