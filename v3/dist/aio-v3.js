@@ -9764,7 +9764,16 @@ class InventoryLedger {
     this.entries = new Map();
     this.lastObservedAt = null;
     this.lastSummary = null;
-    this.stats = { observations: 0, items: 0, truncated: 0, undecided: 0, reserved: 0, sellCandidates: 0 };
+    this.stats = {
+      observations: 0,
+      items: 0,
+      truncated: 0,
+      invalidIndexes: 0,
+      outOfRangeRejected: 0,
+      undecided: 0,
+      reserved: 0,
+      sellCandidates: 0
+    };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -9833,15 +9842,35 @@ class InventoryLedger {
     const registryRows = this._registryRows(context.registry);
     const gameData = context.gameData || {};
     const contentDrift = context.contentDrift || null;
+    const liveCharacter = context.liveCharacter && typeof context.liveCharacter === 'object' ? context.liveCharacter : null;
+    const selfName = liveCharacter && normalizeName(liveCharacter.name);
+    const reportedIsize = liveCharacter ? finite(liveCharacter.isize) : null;
+    const fallbackLength = liveCharacter && Array.isArray(liveCharacter.items) ? liveCharacter.items.length : null;
+    const authoritativeCapacity = reportedIsize == null
+      ? fallbackLength
+      : Math.max(0, Math.floor(reportedIsize));
+    const capacitySource = reportedIsize == null ? 'items.length-fallback' : 'character.isize';
     const raw = [];
+    let invalidIndexes = 0;
+    let outOfRangeRejected = 0;
+
     for (const character of registryRows.slice(0, 128)) {
       const name = normalizeName(character && character.name);
       if (!name || !Array.isArray(character.inventory)) continue;
       for (const item of character.inventory) {
         if (!item || !item.name) continue;
+        const index = finite(item.index);
+        if (index == null || !Number.isInteger(index) || index < 0) {
+          invalidIndexes += 1;
+          continue;
+        }
+        if (selfName && name === selfName && authoritativeCapacity != null && index >= authoritativeCapacity) {
+          outOfRangeRejected += 1;
+          continue;
+        }
         raw.push({
           character: name,
-          index: finite(item.index),
+          index,
           name: String(item.name),
           level: Math.max(0, Math.floor(finite(item.level, 0))),
           q: Math.max(1, Math.floor(finite(item.q, 1))),
@@ -9851,7 +9880,7 @@ class InventoryLedger {
         });
       }
     }
-    raw.sort((a, b) => a.character.localeCompare(b.character) || finite(a.index, 1e9) - finite(b.index, 1e9) || a.name.localeCompare(b.name));
+    raw.sort((a, b) => a.character.localeCompare(b.character) || a.index - b.index || a.name.localeCompare(b.name));
     const counts = new Map();
     for (const row of raw) counts.set(stackKey(row.name, row.level), (counts.get(stackKey(row.name, row.level)) || 0) + row.q);
 
@@ -9889,11 +9918,9 @@ class InventoryLedger {
       this.entries.set(entry.key, entry);
     }
 
-    const selfName = context.liveCharacter && normalizeName(context.liveCharacter.name);
-    const capacity = context.liveCharacter && Array.isArray(context.liveCharacter.items) ? context.liveCharacter.items.length : null;
     const selfOccupied = selfName ? [...this.entries.values()].filter((row) => row.character === selfName).length : null;
-    const freeSlots = capacity == null || selfOccupied == null ? null : Math.max(0, capacity - selfOccupied);
-    const pressure = capacity && selfOccupied != null ? Math.max(0, Math.min(1, selfOccupied / capacity)) : null;
+    const freeSlots = authoritativeCapacity == null || selfOccupied == null ? null : Math.max(0, authoritativeCapacity - selfOccupied);
+    const pressure = authoritativeCapacity && selfOccupied != null ? Math.max(0, Math.min(1, selfOccupied / authoritativeCapacity)) : null;
     const dispositionCounts = {};
     for (const value of Object.values(ItemDisposition)) dispositionCounts[value] = 0;
     for (const row of this.entries.values()) dispositionCounts[row.disposition] = (dispositionCounts[row.disposition] || 0) + 1;
@@ -9902,6 +9929,8 @@ class InventoryLedger {
     this.stats.observations += 1;
     this.stats.items = this.entries.size;
     this.stats.truncated += truncated;
+    this.stats.invalidIndexes += invalidIndexes;
+    this.stats.outOfRangeRejected += outOfRangeRejected;
     this.stats.undecided = dispositionCounts.UNDECIDED || 0;
     this.stats.reserved = [...this.entries.values()].filter((row) => String(row.disposition).startsWith('RESERVE_') || row.disposition === ItemDisposition.KEEP).length;
     this.stats.sellCandidates = dispositionCounts.SELL || 0;
@@ -9912,9 +9941,26 @@ class InventoryLedger {
       quantity: [...this.entries.values()].reduce((sum, row) => sum + row.q, 0),
       dispositions: dispositionCounts,
       groupReserve: { hpRequired: this.groupPotionReserve.hp, hpObservedReserved: hpReserved, mpRequired: this.groupPotionReserve.mp, mpObservedReserved: mpReserved },
-      selfInventory: { name: selfName, capacity, occupied: selfOccupied, freeSlots, pressure, workspaceSlots: this.workspaceSlots, workspaceAvailable: freeSlots == null ? null : freeSlots >= this.workspaceSlots }
+      selfInventory: {
+        name: selfName,
+        capacity: authoritativeCapacity,
+        capacitySource,
+        occupied: selfOccupied,
+        freeSlots,
+        pressure,
+        workspaceSlots: this.workspaceSlots,
+        workspaceAvailable: freeSlots == null ? null : freeSlots >= this.workspaceSlots,
+        invalidIndexesRejected: invalidIndexes,
+        outOfRangeRejected
+      }
     };
     if (truncated) this._event('INVENTORY_LEDGER_TRUNCATED', 'warn', 'CAPACITY_LIMIT', { capacity: this.capacity, dropped: truncated });
+    if (invalidIndexes) this._event('INVENTORY_INDEX_INVALID', 'warn', 'INVALID_INVENTORY_INDEX', { rejected: invalidIndexes });
+    if (outOfRangeRejected) this._event('INVENTORY_INDEX_OUT_OF_RANGE', 'warn', 'CHARACTER_ISIZE_BOUND', {
+      character: selfName,
+      isize: authoritativeCapacity,
+      rejected: outOfRangeRejected
+    });
     if (freeSlots != null && freeSlots < this.workspaceSlots) this._event('INVENTORY_PRESSURE_HIGH', 'warn', 'WORKSPACE_RESERVE_VIOLATED', { freeSlots, workspaceSlots: this.workspaceSlots });
     return this.status();
   }
