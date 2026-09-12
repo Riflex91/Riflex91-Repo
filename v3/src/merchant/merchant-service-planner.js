@@ -116,6 +116,19 @@ class MerchantServicePlanner {
     return { family: need.family, itemName: source.name, quantity, sourceQuantity: source.quantity, merchantReserve: this.merchantPotionReserve };
   }
 
+  _serviceContext(selected) {
+    return {
+      sourceReportAt: finite(selected && selected.report && selected.report.at),
+      target: {
+        name: selected.report.name,
+        map: selected.report.map || null,
+        x: finite(selected.report.x),
+        y: finite(selected.report.y)
+      },
+      need: selected.need
+    };
+  }
+
   plan(input = {}) {
     const merchant = input.merchant || {};
     const ctype = String(merchant.ctype || merchant.type || '').toLowerCase();
@@ -152,11 +165,10 @@ class MerchantServicePlanner {
       return this._plan(MerchantServicePlanKind.HOLD, standOpen ? 'STAND_IDLE' : 'NO_SERVICE_NEED');
     }
 
+    const serviceContext = this._serviceContext(selected);
+
     if (standOpen) {
-      return this._plan(MerchantServicePlanKind.STAND_CLOSE, 'SERVICE_PREEMPTS_STAND', {
-        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
-        need: selected.need
-      });
+      return this._plan(MerchantServicePlanKind.STAND_CLOSE, 'SERVICE_PREEMPTS_STAND', serviceContext);
     }
 
     if (selected.need.family === 'inventory') {
@@ -164,23 +176,16 @@ class MerchantServicePlanner {
       const hasPosition = finite(selected.report.x) != null && finite(selected.report.y) != null;
       if (!sameMap || !hasPosition) {
         return this._plan(MerchantServicePlanKind.SERVICE_TRAVEL, selected.need.reason, {
-          target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
-          need: selected.need,
+          ...serviceContext,
           afterTravel: MerchantServicePlanKind.COLLECTION_REQUIRED
         });
       }
-      return this._plan(MerchantServicePlanKind.COLLECTION_REQUIRED, selected.need.reason, {
-        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
-        need: selected.need
-      });
+      return this._plan(MerchantServicePlanKind.COLLECTION_REQUIRED, selected.need.reason, serviceContext);
     }
 
     const delivery = this._delivery(merchant.inventory || [], selected.need);
     if (!delivery) {
-      return this._plan(MerchantServicePlanKind.RESTOCK_REQUIRED, `MERCHANT_${selected.need.family.toUpperCase()}_POTION_STOCK_LOW`, {
-        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
-        need: selected.need
-      });
+      return this._plan(MerchantServicePlanKind.RESTOCK_REQUIRED, `MERCHANT_${selected.need.family.toUpperCase()}_POTION_STOCK_LOW`, serviceContext);
     }
 
     const sameMap = merchant.map && selected.report.map && String(merchant.map) === String(selected.report.map);
@@ -189,12 +194,7 @@ class MerchantServicePlanner {
     const my = finite(merchant.y != null ? merchant.y : merchant.real_y);
     const distance = sameMap && hasPosition && mx != null && my != null ? Math.hypot(mx - Number(selected.report.x), my - Number(selected.report.y)) : null;
     const nearby = sameMap && distance != null && distance <= Math.max(50, finite(input.deliveryDistance, 400));
-    const base = {
-      target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
-      need: selected.need,
-      delivery,
-      distance
-    };
+    const base = { ...serviceContext, delivery, distance };
     if (!nearby) return this._plan(MerchantServicePlanKind.SERVICE_TRAVEL, selected.need.reason, { ...base, afterTravel: MerchantServicePlanKind.SERVICE_DELIVERY });
     return this._plan(MerchantServicePlanKind.SERVICE_DELIVERY, selected.need.reason, base);
   }
