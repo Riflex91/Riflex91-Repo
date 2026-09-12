@@ -49,6 +49,13 @@ function bankStoreAcknowledged(response) {
     && String(response.place || '') === 'bank'
     && String(response.bank_action || '') === 'store';
 }
+function genericSuccessfulResponse(response) {
+  if (!response || typeof response !== 'object' || response.failed === true || response.success !== true) return false;
+  return response.place == null && response.bank_action == null;
+}
+function hasExplicitBankBinding(response) {
+  return !!response && typeof response === 'object' && (response.place != null || response.bank_action != null);
+}
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
@@ -79,6 +86,7 @@ class ControlledMerchantExecutor {
       timeouts: 0,
       verificationRetries: 0,
       bankServerAckCommits: 0,
+      bankLocalEvidenceCommits: 0,
       bankLocalObservationMisses: 0,
       bankInvalidServerAcks: 0
     };
@@ -309,7 +317,8 @@ class ControlledMerchantExecutor {
       this.engine.save();
 
       if (tx.type === 'BANK') {
-        if (!bankStoreAcknowledged(response)) {
+        const serverAcknowledged = bankStoreAcknowledged(response);
+        if (!serverAcknowledged && hasExplicitBankBinding(response)) {
           this.stats.bankInvalidServerAcks += 1;
           const localObservation = this._verify(tx, before);
           return this._failSafe(tx, 'BANK_SERVER_ACK_INVALID', {
@@ -321,13 +330,26 @@ class ControlledMerchantExecutor {
         }
 
         const localObservation = await this._verifyEventually(tx, before);
+        const localFallbackConfirmed = !serverAcknowledged && genericSuccessfulResponse(response) && localObservation.ok === true;
+        if (!serverAcknowledged && !localFallbackConfirmed) {
+          const reason = genericSuccessfulResponse(response) ? 'INVENTORY_DELTA_MISMATCH' : 'BANK_SERVER_ACK_INVALID';
+          if (reason === 'BANK_SERVER_ACK_INVALID') this.stats.bankInvalidServerAcks += 1;
+          return this._failSafe(tx, reason, {
+            serverResponse: clone(response),
+            serverAcknowledged: false,
+            localObservationConfirmed: localObservation.ok === true,
+            verification: localObservation
+          });
+        }
+
+        const commitBasis = serverAcknowledged ? 'SERVER_ACK' : 'LOCAL_IDENTITY_BALANCE';
         const verification = {
           ...localObservation,
-          serverAcknowledged: true,
+          serverAcknowledged,
           localObservationConfirmed: localObservation.ok === true,
-          commitBasis: 'SERVER_ACK'
+          commitBasis
         };
-        if (!localObservation.ok) {
+        if (serverAcknowledged && !localObservation.ok) {
           this.stats.bankLocalObservationMisses += 1;
           this._event('CONTROLLED_BANK_LOCAL_STATE_UNCONFIRMED', 'warn', 'SERVER_ACK_LOCAL_CACHE_MISMATCH', {
             transactionId: tx.id,
@@ -342,16 +364,18 @@ class ControlledMerchantExecutor {
           verification: clone(verification)
         });
         this.stats.committed += 1;
-        this.stats.bankServerAckCommits += 1;
+        if (serverAcknowledged) this.stats.bankServerAckCommits += 1;
+        else this.stats.bankLocalEvidenceCommits += 1;
+        const commitReason = serverAcknowledged ? 'SERVER_ACK_COMMIT' : 'VERIFIED_COMMIT';
         this.lastAction = {
           at: this.now(), transactionId: tx.id, type: tx.type, result: 'COMMITTED',
-          reason: 'SERVER_ACK_COMMIT', verification: clone(verification)
+          reason: commitReason, verification: clone(verification)
         };
-        this._event('CONTROLLED_MERCHANT_COMMITTED', 'info', 'SERVER_ACK_COMMIT', this.lastAction);
+        this._event('CONTROLLED_MERCHANT_COMMITTED', 'info', commitReason, this.lastAction);
         return {
           executed: true,
           committed: true,
-          reason: 'SERVER_ACK_COMMIT',
+          reason: commitReason,
           verification,
           response: clone(response)
         };
@@ -398,8 +422,9 @@ class ControlledMerchantExecutor {
         delayMs: this.verifyDelayMs,
         maxPollingMs: Math.max(0, this.verifyAttempts - 1) * this.verifyDelayMs,
         strategy: 'server-ack-bank-with-local-identity-balance-diagnostic',
-        bankCommitBasis: 'SERVER_ACK',
+        bankCommitBasis: 'SERVER_ACK_OR_STRICT_LOCAL_FALLBACK',
         bankRequiredAck: { success: true, place: 'bank', bank_action: 'store' },
+        bankGenericSuccessFallback: 'REQUIRES_EXACT_LOCAL_IDENTITY_BALANCE',
         sellCommitBasis: 'IDENTITY_BALANCE_DELTA'
       },
       actionBudget: { maxPerWindow: this.maxActionsPerWindow, windowMs: this.actionWindowMs, inWindow: this.actionTimes.length },
