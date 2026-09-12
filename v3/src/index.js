@@ -3,8 +3,9 @@
 const { Runtime } = require('./runtime');
 const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
-const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
+const { Alpha9Runtime } = require('./autonomy/alpha9-scheduler-runtime');
 const { LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns } = require('./autonomy/local-farming');
+const { SafeLocalSpawnNavigator } = require('./autonomy/safe-local-farming');
 const { StrategyBrain } = require('./brain/strategy-brain');
 const { ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom } = require('./brain/model');
 const { BrainQualityMonitor, BrainLeague, BrainDiary } = require('./brain/governance');
@@ -127,7 +128,7 @@ module.exports = {
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor,
-  LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns,
+  LocalSpawnNavigator, SafeLocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns,
   StrategyBrain, ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom,
   BrainQualityMonitor, BrainLeague, BrainDiary, StrategicRewardModel
 };
