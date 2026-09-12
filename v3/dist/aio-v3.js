@@ -155,7 +155,14 @@ function install(root = globalThis, options = {}) {
       drainTelemetry: (limit = 100) => operations.drainTelemetry(limit),
       peekTelemetry: (limit = 100) => operations.peekTelemetry(limit),
       takeStateReplica: () => operations.takeStateReplica(),
-      peekStateReplica: () => operations.peekStateReplica()
+      peekStateReplica: () => operations.peekStateReplica(),
+      peekAlerts: (limit = 100) => operations.peekAlerts(limit),
+      pendingAlerts: (limit = 100) => operations.alerts.pending(limit),
+      claimAlerts: (ids = []) => operations.alerts.claim(ids),
+      acknowledgeAlert: (id, options = {}) => operations.acknowledgeAlert(id, options),
+      configureSafeRecovery: (config = {}) => operations.configureSafeRecovery(config),
+      safeRecoveryStatus: () => operations.safeRecoveryStatus(),
+      hostHeartbeat: () => operations.hostHeartbeat()
     },
     world: runtime.world,
     scheduler: runtime.scheduler,
