@@ -9705,6 +9705,8 @@ module.exports = { Alpha14Runtime, ALPHA14_VERSION };
 "src/economy/inventory-ledger.js": function(require,module,exports){
 'use strict';
 
+const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+
 const INVENTORY_LEDGER_SCHEMA_VERSION = 1;
 const INVENTORY_LEDGER_MODE = 'observation-planning-only';
 const ItemDisposition = Object.freeze({
@@ -9772,7 +9774,8 @@ class InventoryLedger {
       outOfRangeRejected: 0,
       undecided: 0,
       reserved: 0,
-      sellCandidates: 0
+      sellCandidates: 0,
+      sellProtected: 0
     };
   }
 
@@ -9832,7 +9835,17 @@ class InventoryLedger {
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
     if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
-    if (this.sellAllowlist.has(row.name)) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+    if (this.sellAllowlist.has(row.name)) {
+      const blockers = sellProtectionReasons(meta);
+      if (blockers.length) {
+        return {
+          disposition: ItemDisposition.UNDECIDED,
+          reasons: ['SELL_ALLOWLIST_PROTECTED', ...blockers].slice(0, 12),
+          sellProtected: true
+        };
+      }
+      return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWLIST'] };
+    }
 
     return { disposition: ItemDisposition.UNDECIDED, reasons };
   }
@@ -9888,11 +9901,13 @@ class InventoryLedger {
     let hpReserved = 0;
     let mpReserved = 0;
     let truncated = 0;
+    let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
       const classified = this._baseDisposition(row, gameData, contentDrift, counts);
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
+      if (classified.sellProtected === true) sellProtected += 1;
       const lower = row.name.toLowerCase();
       if (disposition === ItemDisposition.RESERVE_GROUP && /^hpot/.test(lower)) {
         if (hpReserved >= this.groupPotionReserve.hp) { disposition = ItemDisposition.UNDECIDED; reasons.push('GROUP_RESERVE_ALREADY_SATISFIED'); }
@@ -9934,6 +9949,7 @@ class InventoryLedger {
     this.stats.undecided = dispositionCounts.UNDECIDED || 0;
     this.stats.reserved = [...this.entries.values()].filter((row) => String(row.disposition).startsWith('RESERVE_') || row.disposition === ItemDisposition.KEEP).length;
     this.stats.sellCandidates = dispositionCounts.SELL || 0;
+    this.stats.sellProtected = sellProtected;
     this.lastSummary = {
       at,
       characters: new Set([...this.entries.values()].map((row) => row.character)).size,
@@ -9961,6 +9977,7 @@ class InventoryLedger {
       isize: authoritativeCapacity,
       rejected: outOfRangeRejected
     });
+    if (sellProtected) this._event('INVENTORY_SELL_PROTECTED', 'info', 'SELL_ALLOWLIST_CANNOT_OVERRIDE_PROTECTED_METADATA', { rejected: sellProtected });
     if (freeSlots != null && freeSlots < this.workspaceSlots) this._event('INVENTORY_PRESSURE_HIGH', 'warn', 'WORKSPACE_RESERVE_VIOLATED', { freeSlots, workspaceSlots: this.workspaceSlots });
     return this.status();
   }
@@ -9999,7 +10016,8 @@ class InventoryLedger {
         sellAllowlist: [...this.sellAllowlist].sort(),
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
-        defaultDisposition: ItemDisposition.UNDECIDED
+        defaultDisposition: ItemDisposition.UNDECIDED,
+        sellSafety: sellSafetyStatus()
       },
       stats: clone(this.stats)
     };
@@ -10012,6 +10030,55 @@ module.exports = {
   INVENTORY_LEDGER_MODE,
   ItemDisposition,
   stackKey
+};
+
+},
+"src/economy/sell-safety.js": function(require,module,exports){
+'use strict';
+
+const LOW_RISK_SELL_TYPES = Object.freeze(['material', 'misc']);
+const LOW_RISK_SELL_TYPE_SET = new Set(LOW_RISK_SELL_TYPES);
+
+function sellProtectionReasons(meta) {
+  if (!meta || typeof meta !== 'object') return ['SELL_METADATA_UNKNOWN'];
+
+  const reasons = [];
+  const type = String(meta.type || '').toLowerCase();
+
+  if (!LOW_RISK_SELL_TYPE_SET.has(type)) reasons.push('SELL_TYPE_NOT_LOW_RISK');
+  if (type === 'quest' || meta.quest != null) reasons.push('SELL_QUEST_PROTECTED');
+  if (meta.e != null || meta.exchange != null) reasons.push('SELL_EXCHANGE_PROTECTED');
+  if (meta.event === true || typeof meta.event === 'string') reasons.push('SELL_EVENT_PROTECTED');
+  if (meta.cash != null && meta.cash !== false) reasons.push('SELL_CASH_PROTECTED');
+  if (meta.soulbound === true) reasons.push('SELL_SOULBOUND_PROTECTED');
+  if (meta.compound === true) reasons.push('SELL_COMPOUND_PROTECTED');
+  if (meta.upgrade != null && meta.upgrade !== false) reasons.push('SELL_UPGRADE_PROTECTED');
+
+  return [...new Set(reasons)];
+}
+
+function sellSafetyStatus() {
+  return {
+    policy: 'low-risk-metadata-only',
+    allowlistCannotOverride: true,
+    allowedMetadataTypes: LOW_RISK_SELL_TYPES.slice(),
+    protectedSignals: [
+      'quest',
+      'exchange',
+      'event',
+      'cash',
+      'soulbound',
+      'compound',
+      'upgrade',
+      'non-low-risk-type'
+    ]
+  };
+}
+
+module.exports = {
+  LOW_RISK_SELL_TYPES,
+  sellProtectionReasons,
+  sellSafetyStatus
 };
 
 },
@@ -11517,6 +11584,8 @@ module.exports = { Alpha17Runtime };
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
 'use strict';
 
+const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -11603,6 +11672,7 @@ class ControlledMerchantExecutor {
       timeouts: 0,
       verificationRetries: 0,
       inventoryIndexRejected: 0,
+      sellSafetyRejected: 0,
       bankServerAckCommits: 0,
       bankLocalEvidenceCommits: 0,
       bankLocalObservationMisses: 0,
@@ -11717,7 +11787,16 @@ class ControlledMerchantExecutor {
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
-    if (tx.type === 'SELL' && typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+    if (tx.type === 'SELL') {
+      const gameData = this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || {};
+      const meta = gameData && gameData.items && gameData.items[tx.item];
+      const blockers = sellProtectionReasons(meta);
+      if (blockers.length) {
+        this.stats.sellSafetyRejected += 1;
+        return { ok: false, reason: 'SELL_ITEM_NOT_LOW_RISK', sellProtectionReasons: blockers };
+      }
+      if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+    }
     if (tx.type === 'BANK') {
       if (typeof this.root.bank_store !== 'function') return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
       if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
@@ -11827,14 +11906,16 @@ class ControlledMerchantExecutor {
         type: tx && tx.type || null,
         supervisorState: check.supervisorState || null,
         index: check.index == null ? tx && tx.index : check.index,
-        inventorySize: check.inventorySize == null ? null : check.inventorySize
+        inventorySize: check.inventorySize == null ? null : check.inventorySize,
+        sellProtectionReasons: check.sellProtectionReasons || null
       });
       return {
         executed: false,
         committed: false,
         reason: check.reason,
         index: check.index == null ? undefined : check.index,
-        inventorySize: check.inventorySize == null ? undefined : check.inventorySize
+        inventorySize: check.inventorySize == null ? undefined : check.inventorySize,
+        sellProtectionReasons: check.sellProtectionReasons || undefined
       };
     }
 
@@ -11969,6 +12050,7 @@ class ControlledMerchantExecutor {
         fallbackSource: 'items.length',
         validRange: '0..isize-1'
       },
+      sellSafety: sellSafetyStatus(),
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
