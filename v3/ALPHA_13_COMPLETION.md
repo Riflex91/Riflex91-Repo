@@ -141,4 +141,23 @@ Alpha.13 becomes `CONFIRMED` only after:
 13. one combined safe Adventure Land Alpha.13 FULL certification passes after merge;
 14. final runtime is restored to `shadow` with supervisor live safe actions and all Party live controls disabled.
 
-Freeze candidate: source implementation complete. Initial branch CI found three assertion-only regressions (two current-release expectations and one incorrect content-safety fact namespace); these were corrected without weakening production safety logic. Full branch CI must pass again before PR creation.
+## FULL confirmation — 2026-09-12
+
+**Status: `FULL CONFIRMED`.**
+
+The implementation PR #48 was validated on exact head `8334a87241c6e935bfdf9cef0c3160b6ede7275c` and merged as `900a3e4649d7bb66f19b454a185671e4d307b329`, with the merge tree matching the validated PR-head tree.
+
+Internal certification completed with:
+
+- 206/206 tests PASS;
+- generated browser bundle smoke PASS;
+- PR generated-bundle verification PASS;
+- diff check PASS;
+- combined 2000-cycle Supervisor/Content-Drift soak PASS;
+- all changes confined to `v3/**` with v2 / `bot.js` untouched.
+
+The post-merge combined safe Adventure Land Alpha.13 FULL certification was then executed by the operator and reported **PASS**. The certification restored the runtime to `shadow`, kept Supervisor safe actions disabled, kept Party transitions/aura automation/exploration disabled, preserved Brain shadow-only authority, verified Content Drift as observation-first/no direct gameplay authority, and retained fail-closed unknown-content handling.
+
+Because the planned Alpha.14 Content Drift / Novelty Foundation scope was intentionally absorbed into this Alpha.13 certification unit, that foundation is also certified as part of Alpha.13. Alpha.14 is therefore free for the next distinct development scope rather than repeating the drift foundation.
+
+Canonical phase state: **Alpha.13 FULL CONFIRMED**.
