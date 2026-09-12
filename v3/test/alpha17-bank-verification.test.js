@@ -42,7 +42,7 @@ function root(overrides = {}) {
   const value = {
     character: character(),
     parent: { entities: {} },
-    G: { items: { junk: { type: 'material' } } },
+    G: { items: { junk: { type: 'material', s: 999 } } },
     setTimeout,
     clearTimeout,
     ...overrides
@@ -146,7 +146,7 @@ test('Controlled SELL verification tolerates inventory slot compaction but requi
     character: character({
       map: 'main',
       bank: undefined,
-      items: [{ name: 'junk', level: 0, q: 1 }, { name: 'other', level: 0, q: 1 }],
+      items: [{ name: 'junk', q: 1 }, { name: 'other', level: 0, q: 1 }],
       gold: 100
     })
   });
