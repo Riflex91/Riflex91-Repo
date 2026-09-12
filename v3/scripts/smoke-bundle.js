@@ -108,7 +108,7 @@ assert.equal(ops.health.domRequired, false);
 assert.equal(ops.health.gameLogRequired, false);
 assert.equal(ops.control.allowElevated, false);
 const now = Date.now();
-const denied = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-shadow', action: 'SET_MODE', params: { mode: 'shadow' }, issuedAt: now - 100, expiresAt: now + 1000 });
+const denied = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-elevated', action: 'SET_FARMER_ENABLED', params: { enabled: true }, issuedAt: now - 100, expiresAt: now + 1000 });
 assert.equal(denied.status, 'REJECTED');
 assert.equal(denied.reason, 'ELEVATED_CONTROL_DISABLED');
 assert.doesNotThrow(() => JSON.stringify(sandbox.AIO_V3.status()));
