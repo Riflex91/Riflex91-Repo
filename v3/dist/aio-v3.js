@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.9.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.10.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -9,8 +9,12 @@ const { Runtime } = require('./runtime');
 const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
+const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
+const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
+const { BoundedReplayBuffer } = require('./brain/replay-buffer');
+const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { StableScheduler } = require('./core/stable-scheduler');
@@ -37,7 +41,7 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha9Runtime({ ...options, root });
+  const runtime = new Alpha10Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -86,6 +90,10 @@ function install(root = globalThis, options = {}) {
     scheduler: runtime.scheduler,
     performance: runtime.performance,
     research: runtime.research,
+    brain: {
+      status: () => runtime.brain.status(),
+      replay: (limit = 32) => runtime.brain.replay(limit)
+    },
     localFarming: {
       status: () => runtime.localFarming.status()
     },
@@ -108,11 +116,12 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
+  StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
 };
@@ -4449,7 +4458,7 @@ module.exports = { CombatEmergencyGate };
 "src/version.js": function(require,module,exports){
 'use strict';
 
-const VERSION = '3.0.0-alpha.9.0';
+const VERSION = '3.0.0-alpha.10.0';
 
 module.exports = { VERSION };
 
@@ -6298,6 +6307,448 @@ class LocalFarmOrchestrator {
 }
 
 module.exports = { LocalFarmOrchestrator };
+
+},
+"src/autonomy/alpha10-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha9Runtime } = require('./alpha9-runtime');
+const { ShadowStrategicBrain } = require('../brain/shadow-brain');
+
+class Alpha10Runtime extends Alpha9Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.brain = options.brain || new ShadowStrategicBrain({
+      now: this.now,
+      log: this.log,
+      replayCapacity: options.brainReplayCapacity,
+      learningRate: options.brainLearningRate,
+      maxAbsWeight: options.brainMaxAbsWeight,
+      qualityWindow: options.brainQualityWindow,
+      minQualitySamples: options.brainMinQualitySamples,
+      healthyAgreement: options.brainHealthyAgreement,
+      watchAgreement: options.brainWatchAgreement,
+      maxDeathsPerHour: options.brainMaxDeathsPerHour,
+      maxTravelSeconds: options.brainMaxTravelSeconds
+    });
+    this.brainAuditMs = Math.max(1000, Math.min(60000, Number(options.brainAuditMs) || 5000));
+    this.lastBrainAudit = -Infinity;
+  }
+
+  _brainAudit() {
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return null;
+    const party = this._partyProfile(snapshot);
+    const gameData = this.adapter.getGameData() || {};
+    const candidates = this.localFarmPlanner.spawnCandidates(snapshot, gameData, this.world, party);
+    const teacherRanking = candidates.length
+      ? this.planner.rank(candidates, {
+          character: snapshot.character.name || null,
+          partyFingerprint: party.fingerprint || null
+        })
+      : [];
+    const localStatus = this.localFarming && typeof this.localFarming.status === 'function'
+      ? this.localFarming.status()
+      : null;
+    return this.brain.observe({
+      snapshot,
+      party,
+      candidates,
+      teacherRanking,
+      currentPlan: localStatus && localStatus.currentPlan || null
+    });
+  }
+
+  tick() {
+    super.tick();
+    const now = this.now();
+    if (now - this.lastBrainAudit < this.brainAuditMs) return;
+    this.lastBrainAudit = now;
+    this._brainAudit();
+  }
+
+  status() {
+    return {
+      ...super.status(),
+      brain: this.brain.status()
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.brain = {
+      status: this.brain.status(),
+      replay: this.brain.replay(32)
+    };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha10Runtime };
+
+},
+"src/brain/shadow-brain.js": function(require,module,exports){
+'use strict';
+
+const { FEATURE_NAMES, StrategicFeatureEncoder } = require('./feature-encoder');
+const { BoundedReplayBuffer } = require('./replay-buffer');
+
+const BrainQualityState = Object.freeze({
+  WARMUP: 'WARMUP',
+  HEALTHY: 'HEALTHY',
+  WATCH: 'WATCH',
+  QUARANTINED: 'QUARANTINED'
+});
+
+const DEFAULT_WEIGHTS = Object.freeze({
+  xpRate: 0.55,
+  goldRate: 0.22,
+  survival: 0.35,
+  confidence: 0.18,
+  travelEfficiency: 0.12,
+  measuredEvidence: 0.08,
+  hpReserve: 0.03,
+  mpReserve: 0.02,
+  currentPlanAffinity: 0.06
+});
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function bounded(value, limit) {
+  return Math.max(-limit, Math.min(limit, finite(value, 0)));
+}
+
+class ShadowStrategicBrain {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.encoder = options.encoder || new StrategicFeatureEncoder(options);
+    this.replayBuffer = options.replayBuffer || new BoundedReplayBuffer({ capacity: options.replayCapacity });
+    this.learningRate = Math.max(0.001, Math.min(0.1, finite(options.learningRate, 0.02)));
+    this.maxAbsWeight = Math.max(0.25, Math.min(5, finite(options.maxAbsWeight, 2)));
+    this.qualityWindow = Math.max(8, Math.min(256, Number(options.qualityWindow) || 64));
+    this.minQualitySamples = Math.max(4, Math.min(this.qualityWindow, Number(options.minQualitySamples) || 16));
+    this.healthyAgreement = Math.max(0.5, Math.min(0.95, finite(options.healthyAgreement, 0.7)));
+    this.watchAgreement = Math.max(0.1, Math.min(this.healthyAgreement, finite(options.watchAgreement, 0.4)));
+    this.weights = {};
+    const supplied = options.initialWeights || {};
+    for (const name of FEATURE_NAMES) {
+      const initial = supplied[name] == null ? DEFAULT_WEIGHTS[name] : supplied[name];
+      this.weights[name] = bounded(initial, this.maxAbsWeight);
+    }
+    this.qualityHistory = [];
+    this.qualityState = BrainQualityState.WARMUP;
+    this.lastRecommendation = null;
+    this.lastQualityTransition = null;
+    this.stats = {
+      evaluations: 0,
+      noCandidates: 0,
+      teacherSamples: 0,
+      agreements: 0,
+      distillations: 0,
+      qualityTransitions: 0
+    };
+  }
+
+  _score(row) {
+    let score = 0;
+    for (const name of FEATURE_NAMES) score += finite(row.features[name], 0) * finite(this.weights[name], 0);
+    return finite(score, 0);
+  }
+
+  _quality() {
+    const samples = this.qualityHistory.length;
+    const agreements = this.qualityHistory.reduce((sum, value) => sum + (value ? 1 : 0), 0);
+    return {
+      state: this.qualityState,
+      samples,
+      agreements,
+      agreementRate: samples ? agreements / samples : null,
+      window: this.qualityWindow,
+      minSamples: this.minQualitySamples,
+      healthyAgreement: this.healthyAgreement,
+      watchAgreement: this.watchAgreement
+    };
+  }
+
+  _updateQuality(agreement) {
+    this.qualityHistory.push(!!agreement);
+    while (this.qualityHistory.length > this.qualityWindow) this.qualityHistory.shift();
+    const before = this.qualityState;
+    const quality = this._quality();
+    if (quality.samples < this.minQualitySamples) this.qualityState = BrainQualityState.WARMUP;
+    else if (quality.agreementRate >= this.healthyAgreement) this.qualityState = BrainQualityState.HEALTHY;
+    else if (quality.agreementRate >= this.watchAgreement) this.qualityState = BrainQualityState.WATCH;
+    else this.qualityState = BrainQualityState.QUARANTINED;
+    if (before !== this.qualityState) {
+      this.stats.qualityTransitions += 1;
+      this.lastQualityTransition = { at: this.now(), from: before, to: this.qualityState, agreementRate: this._quality().agreementRate };
+      if (this.log) this.log.emit({ component: 'brain', event: 'BRAIN_QUALITY_CHANGED', severity: this.qualityState === BrainQualityState.QUARANTINED ? 'warn' : 'info', data: this.lastQualityTransition });
+    }
+  }
+
+  _distill(studentRow, teacherRow) {
+    if (!studentRow || !teacherRow || studentRow.id === teacherRow.id) return false;
+    for (const name of FEATURE_NAMES) {
+      const delta = finite(teacherRow.features[name], 0) - finite(studentRow.features[name], 0);
+      this.weights[name] = bounded(this.weights[name] + this.learningRate * delta, this.maxAbsWeight);
+    }
+    this.stats.distillations += 1;
+    return true;
+  }
+
+  observe(context = {}) {
+    this.stats.evaluations += 1;
+    const encoded = this.encoder.encodeCandidates(context);
+    if (!encoded.length) {
+      this.stats.noCandidates += 1;
+      this.lastRecommendation = {
+        at: this.now(),
+        mode: 'shadow',
+        actionAuthority: false,
+        reason: 'NO_ELIGIBLE_CANDIDATES',
+        candidateCount: 0,
+        recommendation: null,
+        teacher: null,
+        agreement: null
+      };
+      return this.lastRecommendation;
+    }
+
+    const ranked = encoded.map((row) => ({ ...row, score: this._score(row) }))
+      .sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id)));
+    const student = ranked[0];
+    const teacherTop = Array.isArray(context.teacherRanking) && context.teacherRanking[0] || null;
+    const teacherId = teacherTop && teacherTop.id != null ? String(teacherTop.id) : null;
+    const teacherRow = teacherId ? encoded.find((row) => row.id === teacherId) || null : null;
+    const agreement = teacherRow ? student.id === teacherRow.id : null;
+
+    if (teacherRow) {
+      this.stats.teacherSamples += 1;
+      if (agreement) this.stats.agreements += 1;
+      this._updateQuality(agreement);
+      if (!agreement) this._distill(student, teacherRow);
+    }
+
+    const record = {
+      at: this.now(),
+      mode: 'shadow',
+      actionAuthority: false,
+      featureSchemaVersion: this.encoder.status().schemaVersion,
+      candidateCount: ranked.length,
+      recommendation: { id: student.id, monster: student.monster, map: student.map, score: Number(student.score.toFixed(6)) },
+      teacher: teacherRow ? { id: teacherRow.id, monster: teacherRow.monster, map: teacherRow.map } : null,
+      agreement,
+      quality: this._quality(),
+      top: ranked.slice(0, 5).map((row) => ({ id: row.id, monster: row.monster, score: Number(row.score.toFixed(6)) }))
+    };
+    this.replayBuffer.push(record);
+    this.lastRecommendation = record;
+    if (this.log) this.log.emit({
+      component: 'brain',
+      event: 'BRAIN_SHADOW_RECOMMENDATION',
+      data: {
+        candidateCount: record.candidateCount,
+        recommendation: record.recommendation,
+        teacher: record.teacher,
+        agreement: record.agreement,
+        qualityState: record.quality.state
+      }
+    });
+    return record;
+  }
+
+  replay(limit = 32) {
+    return this.replayBuffer.list(limit);
+  }
+
+  status() {
+    return {
+      mode: 'shadow',
+      actionAuthority: false,
+      directActionAccess: false,
+      executorBypassAllowed: false,
+      learning: 'bounded-teacher-distillation',
+      encoder: this.encoder.status(),
+      replay: this.replayBuffer.status(),
+      quality: this._quality(),
+      learningRate: this.learningRate,
+      maxAbsWeight: this.maxAbsWeight,
+      weights: { ...this.weights },
+      stats: { ...this.stats },
+      lastRecommendation: this.lastRecommendation,
+      lastQualityTransition: this.lastQualityTransition
+    };
+  }
+}
+
+module.exports = {
+  ShadowStrategicBrain,
+  BrainQualityState,
+  DEFAULT_WEIGHTS
+};
+
+},
+"src/brain/feature-encoder.js": function(require,module,exports){
+'use strict';
+
+const FEATURE_SCHEMA_VERSION = 1;
+const FEATURE_NAMES = Object.freeze([
+  'xpRate',
+  'goldRate',
+  'survival',
+  'confidence',
+  'travelEfficiency',
+  'measuredEvidence',
+  'hpReserve',
+  'mpReserve',
+  'currentPlanAffinity'
+]);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, finite(value, 0)));
+}
+
+function ratio(value, max) {
+  const denominator = finite(max, 0);
+  if (denominator <= 0) return 0;
+  return clamp01(finite(value, 0) / denominator);
+}
+
+function candidateId(candidate) {
+  if (!candidate) return null;
+  if (candidate.id != null && String(candidate.id)) return String(candidate.id);
+  if (candidate.monster != null && String(candidate.monster)) return String(candidate.monster);
+  return null;
+}
+
+class StrategicFeatureEncoder {
+  constructor(options = {}) {
+    this.maxDeathsPerHour = Math.max(0.01, Math.min(10, finite(options.maxDeathsPerHour, 0.25)));
+    this.maxTravelSeconds = Math.max(30, Math.min(3600, finite(options.maxTravelSeconds, 600)));
+  }
+
+  encodeCandidates(context = {}) {
+    const snapshot = context.snapshot || {};
+    const character = snapshot.character || {};
+    const candidates = Array.isArray(context.candidates) ? context.candidates.filter(Boolean) : [];
+    const currentPlan = context.currentPlan || null;
+    const usable = candidates.filter((candidate) => candidateId(candidate));
+    if (!usable.length) return [];
+
+    const maxXp = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.xpPerHour, 0))));
+    const maxGold = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.goldPerHour, 0))));
+    const hpReserve = ratio(character.hp, character.max_hp);
+    const mpReserve = ratio(character.mp, character.max_mp);
+
+    return usable.map((candidate) => {
+      const id = candidateId(candidate);
+      const deaths = Math.max(0, finite(candidate.deathsPerHour, 0));
+      const travel = Math.max(0, finite(candidate.travelSeconds, this.maxTravelSeconds));
+      const source = String(candidate.source || '');
+      const planMatches = !!currentPlan && (
+        (currentPlan.id != null && String(currentPlan.id) === id) ||
+        (currentPlan.monster != null && candidate.monster != null && String(currentPlan.monster) === String(candidate.monster))
+      );
+      const features = {
+        xpRate: clamp01(Math.max(0, finite(candidate.xpPerHour, 0)) / maxXp),
+        goldRate: clamp01(Math.max(0, finite(candidate.goldPerHour, 0)) / maxGold),
+        survival: clamp01(1 - deaths / this.maxDeathsPerHour),
+        confidence: clamp01(candidate.confidence == null ? 0 : candidate.confidence),
+        travelEfficiency: clamp01(1 - travel / this.maxTravelSeconds),
+        measuredEvidence: source.startsWith('measured') ? 1 : 0,
+        hpReserve,
+        mpReserve,
+        currentPlanAffinity: planMatches ? 1 : 0
+      };
+      return {
+        id,
+        monster: candidate.monster != null ? String(candidate.monster) : null,
+        map: candidate.map != null ? String(candidate.map) : null,
+        schemaVersion: FEATURE_SCHEMA_VERSION,
+        features,
+        vector: FEATURE_NAMES.map((name) => features[name])
+      };
+    });
+  }
+
+  status() {
+    return {
+      schemaVersion: FEATURE_SCHEMA_VERSION,
+      featureNames: FEATURE_NAMES.slice(),
+      maxDeathsPerHour: this.maxDeathsPerHour,
+      maxTravelSeconds: this.maxTravelSeconds
+    };
+  }
+}
+
+module.exports = {
+  FEATURE_SCHEMA_VERSION,
+  FEATURE_NAMES,
+  StrategicFeatureEncoder,
+  candidateId,
+  clamp01
+};
+
+},
+"src/brain/replay-buffer.js": function(require,module,exports){
+'use strict';
+
+function safeClone(value) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (_) {
+    return null;
+  }
+}
+
+class BoundedReplayBuffer {
+  constructor(options = {}) {
+    this.capacity = Math.max(32, Math.min(4096, Number(options.capacity) || 256));
+    this.records = [];
+    this.dropped = 0;
+    this.rejected = 0;
+  }
+
+  push(record) {
+    const cloned = safeClone(record);
+    if (!cloned) {
+      this.rejected += 1;
+      return false;
+    }
+    this.records.push(cloned);
+    while (this.records.length > this.capacity) {
+      this.records.shift();
+      this.dropped += 1;
+    }
+    return true;
+  }
+
+  list(limit = this.capacity) {
+    const count = Math.max(0, Math.min(this.capacity, Number(limit) || 0));
+    return this.records.slice(Math.max(0, this.records.length - count)).map((row) => safeClone(row));
+  }
+
+  status() {
+    return {
+      capacity: this.capacity,
+      size: this.records.length,
+      dropped: this.dropped,
+      rejected: this.rejected
+    };
+  }
+}
+
+module.exports = { BoundedReplayBuffer };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
