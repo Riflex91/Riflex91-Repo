@@ -12698,6 +12698,11 @@ function finite(value, fallback = null) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
+function observedCost(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 function clone(value) {
   if (value == null) return value;
   return JSON.parse(JSON.stringify(value));
@@ -12717,8 +12722,8 @@ function packCatalogRow(name, value) {
     return {
       name: String(name),
       map: value[0] == null ? null : String(value[0]),
-      goldCost: Math.max(0, finite(value[1], 0)),
-      shellCost: Math.max(0, finite(value[2], 0)),
+      goldCost: observedCost(value[1]),
+      shellCost: observedCost(value[2]),
       source: 'bank_packs-array'
     };
   }
@@ -12726,12 +12731,12 @@ function packCatalogRow(name, value) {
     return {
       name: String(name),
       map: value.map == null && value.place == null ? null : String(value.map == null ? value.place : value.map),
-      goldCost: Math.max(0, finite(value.gold == null ? value.goldCost : value.gold, 0)),
-      shellCost: Math.max(0, finite(value.shells == null ? value.shellCost : value.shells, 0)),
+      goldCost: observedCost(value.gold == null ? value.goldCost : value.gold),
+      shellCost: observedCost(value.shells == null ? value.shellCost : value.shells),
       source: 'bank_packs-object'
     };
   }
-  return { name: String(name), map: null, goldCost: 0, shellCost: 0, source: 'observed-bank-only' };
+  return { name: String(name), map: null, goldCost: null, shellCost: null, source: 'observed-bank-only' };
 }
 
 class BankCapacityManager {
@@ -12917,8 +12922,8 @@ class BankCapacityManager {
     const shells = Math.max(0, finite(context.shells, 0));
     const candidates = observation.packs.filter((row) => !row.unlocked).map((row) => {
       const choices = [];
-      if (row.goldCost >= 0 && gold - row.goldCost >= this.protectedGoldReserve) choices.push({ currency: 'gold', cost: row.goldCost, reserveAfter: gold - row.goldCost });
-      if (this.allowShellSpend && row.shellCost >= 0 && shells - row.shellCost >= this.protectedShellReserve) choices.push({ currency: 'shells', cost: row.shellCost, reserveAfter: shells - row.shellCost });
+      if (Number.isFinite(row.goldCost) && row.goldCost >= 0 && gold - row.goldCost >= this.protectedGoldReserve) choices.push({ currency: 'gold', cost: row.goldCost, reserveAfter: gold - row.goldCost });
+      if (this.allowShellSpend && Number.isFinite(row.shellCost) && row.shellCost >= 0 && shells - row.shellCost >= this.protectedShellReserve) choices.push({ currency: 'shells', cost: row.shellCost, reserveAfter: shells - row.shellCost });
       choices.sort((a, b) => a.cost - b.cost || a.currency.localeCompare(b.currency));
       return { row, payment: choices[0] || null, sameMap: !row.map || row.map === currentMap };
     }).filter((candidate) => candidate.payment);
