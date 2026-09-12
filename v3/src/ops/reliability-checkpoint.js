@@ -1,5 +1,7 @@
 'use strict';
 
+const { isQuotaError } = require('../world/persistence');
+
 const RELIABILITY_CHECKPOINT_SCHEMA_VERSION = 1;
 
 function finite(value, fallback = null) {
@@ -27,10 +29,24 @@ class ReliabilityCheckpointStore {
     this.now = options.now || (() => Date.now());
     this.baseKey = options.baseKey || 'AIO_V3_RELIABILITY_CHECKPOINT';
     this.maxBytes = Math.max(10000, Math.min(1000000, finite(options.maxBytes, 120000)));
+    this.storageHighWatermarkChars = Math.max(500000, finite(options.storageHighWatermarkChars, 4000000));
     this.lastLoaded = null;
     this.lastSaved = null;
     this.backendName = null;
-    this.stats = { saves: 0, saveFailures: 0, loads: 0, loadFailures: 0, fallbacks: 0, corrupt: 0, oversize: 0 };
+    this.quotaBlocked = false;
+    this.quotaBlockedAt = 0;
+    this.lastWriteError = null;
+    this.stats = {
+      saves: 0,
+      saveFailures: 0,
+      loads: 0,
+      loadFailures: 0,
+      fallbacks: 0,
+      corrupt: 0,
+      oversize: 0,
+      preflightQuotaBlocks: 0,
+      quotaWriteFailures: 0
+    };
   }
 
   _backend() {
@@ -55,6 +71,46 @@ class ReliabilityCheckpointStore {
 
   _slotKey(slot) { return `${this.baseKey}_${slot}`; }
   _pointerKey() { return `${this.baseKey}_PTR`; }
+
+  _physicalStorageKey(logicalKey) {
+    if (this.backendName === 'adventure-land') return `store_${logicalKey}`;
+    if (this.backendName === 'localStorage') return logicalKey;
+    return null;
+  }
+
+  _projectedStorageChars(writes) {
+    if (this.backendName !== 'adventure-land' && this.backendName !== 'localStorage') return null;
+    const storage = this.root && this.root.localStorage;
+    if (!storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
+    try {
+      let total = 0;
+      for (let index = 0; index < Number(storage.length || 0); index += 1) {
+        const key = storage.key(index);
+        if (key == null) continue;
+        const value = storage.getItem(key);
+        total += String(key).length + String(value == null ? '' : value).length;
+      }
+      for (const write of writes || []) {
+        const physicalKey = this._physicalStorageKey(write && write.key);
+        if (!physicalKey) continue;
+        const previous = storage.getItem(physicalKey);
+        if (previous != null) total -= String(physicalKey).length + String(previous).length;
+        total += String(physicalKey).length + String(write && write.value == null ? '' : write.value).length;
+      }
+      return Math.max(0, total);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _blockQuota(reason, error = null) {
+    if (!this.quotaBlocked) {
+      this.quotaBlocked = true;
+      this.quotaBlockedAt = this.now();
+      this.lastWriteError = error ? String(error && error.message || error) : reason;
+    }
+    return { saved: false, reason, quotaBlocked: true, error: error ? this.lastWriteError : undefined };
+  }
 
   _decode(raw) {
     if (raw == null || raw === '') return null;
@@ -98,6 +154,7 @@ class ReliabilityCheckpointStore {
   }
 
   save(snapshot = {}, options = {}) {
+    if (this.quotaBlocked) return { saved: false, reason: 'QUOTA_BLOCKED', quotaBlocked: true };
     const backend = this._backend();
     if (!backend) {
       this.stats.saveFailures += 1;
@@ -134,15 +191,32 @@ class ReliabilityCheckpointStore {
       this.stats.saveFailures += 1;
       return { saved: false, reason: 'SIZE_LIMIT', bytes: envelope.length, maxBytes: this.maxBytes };
     }
+
+    const projectedChars = this._projectedStorageChars([
+      { key: this._slotKey(slot), value: envelope },
+      { key: this._pointerKey(), value: slot }
+    ]);
+    if (projectedChars != null && projectedChars >= this.storageHighWatermarkChars) {
+      this.stats.preflightQuotaBlocks += 1;
+      this.stats.saveFailures += 1;
+      return this._blockQuota('CHECKPOINT_QUOTA_PRESSURE');
+    }
+
     try {
       backend.set(this._slotKey(slot), envelope);
       backend.set(this._pointerKey(), slot);
       this.stats.saves += 1;
+      this.lastWriteError = null;
       this.lastSaved = { slot, bytes: envelope.length, ...clone(payload) };
       return { saved: true, slot, bytes: envelope.length, sequence: payload.sequence, savedAt: payload.savedAt };
     } catch (error) {
       this.stats.saveFailures += 1;
-      return { saved: false, reason: 'WRITE_FAILED', error: String(error && error.message || error) };
+      if (isQuotaError(error)) {
+        this.stats.quotaWriteFailures += 1;
+        return this._blockQuota('CHECKPOINT_QUOTA_EXCEEDED', error);
+      }
+      this.lastWriteError = String(error && error.message || error);
+      return { saved: false, reason: 'WRITE_FAILED', error: this.lastWriteError };
     }
   }
 
@@ -161,6 +235,10 @@ class ReliabilityCheckpointStore {
       backend: this.backendName,
       baseKey: this.baseKey,
       maxBytes: this.maxBytes,
+      storageHighWatermarkChars: this.storageHighWatermarkChars,
+      quotaBlocked: this.quotaBlocked,
+      quotaBlockedAt: this.quotaBlockedAt || null,
+      lastWriteError: this.lastWriteError,
       lastSavedAt: this.lastSaved && this.lastSaved.savedAt || null,
       lastSavedSequence: this.lastSaved && this.lastSaved.sequence || null,
       lastLoadedAt: this.lastLoaded && this.lastLoaded.savedAt || null,
