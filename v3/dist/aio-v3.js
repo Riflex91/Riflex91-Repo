@@ -8,6 +8,12 @@ var modules={
 const { Runtime } = require('./runtime');
 const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
+const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
+const { LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns } = require('./autonomy/local-farming');
+const { StrategyBrain } = require('./brain/strategy-brain');
+const { ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom } = require('./brain/model');
+const { BrainQualityMonitor, BrainLeague, BrainDiary } = require('./brain/governance');
+const { StrategicRewardModel } = require('./brain/reward');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { StableScheduler } = require('./core/stable-scheduler');
@@ -34,7 +40,7 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new StabilityRuntime({ ...options, root });
+  const runtime = new Alpha9Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -56,6 +62,8 @@ function install(root = globalThis, options = {}) {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
     base.context.operations = operations.status();
+    base.context.localFarming = runtime.status().localFarming;
+    base.context.brain = runtime.status().brain;
     return JSON.stringify(base, null, 2);
   }
 
@@ -70,7 +78,10 @@ function install(root = globalThis, options = {}) {
     showStatus: () => { runtime.showStatus(); return status(); },
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics,
-    saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    saveWorld: () => {
+      if (typeof runtime._persistBrainMaybe === 'function') runtime._persistBrainMaybe(true);
+      return runtime.persistence.maybeSave(runtime.world, { force: true });
+    },
     operations: {
       status: () => operations.status(),
       submit: (command) => operations.submit(command),
@@ -93,6 +104,18 @@ function install(root = globalThis, options = {}) {
       approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype),
       quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype)
     },
+    localFarming: {
+      status: () => runtime.status().localFarming,
+      reset: (reason = 'OPERATOR_RESET') => runtime.localFarming.reset(reason)
+    },
+    brain: {
+      status: () => runtime.brain.status(),
+      features: () => runtime.brain.lastFeatures ? runtime.brain.lastFeatures.slice() : null,
+      submitTeacher: (recommendation) => runtime.submitBrainTeacher(recommendation),
+      setInfluenceEnabled: (enabled) => runtime.setBrainInfluenceEnabled(enabled),
+      preference: () => runtime.brain.preference(),
+      researchSummary: () => runtime.brain.researchSummary()
+    },
     createTask,
     TaskState
   };
@@ -102,13 +125,16 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
-  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
+  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor,
+  LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns,
+  StrategyBrain, ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom,
+  BrainQualityMonitor, BrainLeague, BrainDiary, StrategicRewardModel
 };
 
 },
@@ -5691,6 +5717,1826 @@ class CombatStabilitySupervisor {
 }
 
 module.exports = { CombatStabilitySupervisor };
+
+},
+"src/autonomy/alpha9-runtime.js": function(require,module,exports){
+'use strict';
+
+const { StabilityRuntime } = require('../stability/stability-runtime');
+const { EvidenceKind } = require('../world/world-model');
+const { LocalSpawnNavigator, ProgressWatchdog } = require('./local-farming');
+const { StrategyBrain } = require('../brain/strategy-brain');
+
+function ratio(value, max) {
+  const d = Number(max) || 0;
+  if (d <= 0) return 1;
+  return Math.max(0, Math.min(1, (Number(value) || 0) / d));
+}
+
+class Alpha9Runtime extends StabilityRuntime {
+  constructor(options = {}) {
+    super(options);
+    this.localFarming = options.localFarming || new LocalSpawnNavigator({
+      now: this.now,
+      log: this.log,
+      planner: this.planner,
+      maxStep: options.localFarmMaxStep,
+      arrivalRadius: options.localFarmArrivalRadius,
+      moveCooldownMs: options.localFarmMoveCooldownMs,
+      goalHoldMs: options.localFarmGoalHoldMs,
+      arrivalHoldMs: options.localFarmArrivalHoldMs
+    });
+    this.progressWatchdog = options.progressWatchdog || new ProgressWatchdog({
+      now: this.now,
+      log: this.log,
+      watchAfterMs: options.progressWatchAfterMs,
+      degradedAfterMs: options.progressDegradedAfterMs,
+      cooldownMs: options.progressCooldownMs
+    });
+    this.brain = options.brain || new StrategyBrain({
+      now: this.now,
+      log: this.log,
+      hiddenSize: 24,
+      replayCapacity: options.brainReplayCapacity || 512,
+      diaryCapacity: options.brainDiaryCapacity || 80,
+      outcomeMs: options.brainOutcomeMs,
+      decisionIntervalMs: options.brainDecisionIntervalMs,
+      minInfluenceConfidence: options.brainMinInfluenceConfidence,
+      influenceHoldMs: options.brainInfluenceHoldMs,
+      seed: options.brainSeed,
+      replaySeed: options.brainReplaySeed
+    });
+    this.lastFarmSnapshot = null;
+    this.lastLocalFarmStep = null;
+    this.brainStateRestored = false;
+    this.brainStateRestoreAttempted = false;
+    this.brainStateLastSavedAt = 0;
+    this.brainStateLastSavedUpdates = -1;
+    this.brainPersistenceIntervalMs = Math.max(10000, Number(options.brainPersistenceIntervalMs) || 60000);
+    this.brainStateMaxBytes = Math.max(50000, Math.min(750000, Number(options.brainStateMaxBytes) || 350000));
+    this.brainStateLastError = null;
+  }
+
+  _farmSnapshot(snapshot, gameData, profile) {
+    const filtered = super._farmSnapshot(snapshot, gameData, profile);
+    this.lastFarmSnapshot = filtered;
+    return filtered;
+  }
+
+  _brainFact() {
+    return this.world && typeof this.world.fact === 'function' ? this.world.fact('brain', 'strategy', 'state') : null;
+  }
+
+  _restoreBrainOnce() {
+    if (this.brainStateRestoreAttempted || !this.worldLoaded) return false;
+    this.brainStateRestoreAttempted = true;
+    const fact = this._brainFact();
+    const state = fact && fact.value;
+    if (state == null) {
+      this.brainStateRestored = true;
+      this.log.emit({ component: 'brain', event: 'BRAIN_STORAGE_EMPTY' });
+      return false;
+    }
+    const restored = this.brain.restoreState(state);
+    this.brainStateRestored = restored;
+    this.brainStateLastError = restored ? null : this.brain.lastRestoreError;
+    this.log.emit({ component: 'brain', event: restored ? 'BRAIN_STATE_RESTORED' : 'BRAIN_STATE_RESTORE_FAILED', severity: restored ? 'info' : 'warn', reason: restored ? null : 'BRAIN_STATE_INVALID', data: { influenceForcedOff: true, message: this.brainStateLastError } });
+    return restored;
+  }
+
+  _persistBrainMaybe(force = false) {
+    if (!this.world || !this.brain) return false;
+    const now = this.now();
+    if (!force && now - this.brainStateLastSavedAt < this.brainPersistenceIntervalMs && this.brain.student.updates === this.brainStateLastSavedUpdates) return false;
+    let state;
+    let serialized;
+    try {
+      state = this.brain.exportState();
+      serialized = JSON.stringify(state);
+    } catch (error) {
+      this.brainStateLastError = String(error && error.message || error);
+      this.log.emit({ component: 'brain', event: 'BRAIN_STATE_SAVE_SKIPPED', severity: 'warn', reason: 'SERIALIZE_ERROR', data: { message: this.brainStateLastError } });
+      return false;
+    }
+    if (serialized.length > this.brainStateMaxBytes) {
+      this.brainStateLastError = 'BRAIN_STATE_SIZE_LIMIT';
+      this.log.emit({ component: 'brain', event: 'BRAIN_STATE_SAVE_SKIPPED', severity: 'warn', reason: 'BRAIN_STATE_SIZE_LIMIT', data: { bytes: serialized.length, maxBytes: this.brainStateMaxBytes } });
+      return false;
+    }
+    this.world.observeEntity('brain', 'strategy', { schemaVersion: 1, state }, { evidence: EvidenceKind.INFERRED, confidence: 1 });
+    this.brainStateLastSavedAt = now;
+    this.brainStateLastSavedUpdates = this.brain.student.updates;
+    this.brainStateLastError = null;
+    this.log.emit({ component: 'brain', event: 'BRAIN_STATE_STAGED_FOR_PERSISTENCE', data: { bytes: serialized.length, updates: this.brain.student.updates, forced: force } });
+    return true;
+  }
+
+  _brainContext(snapshot, profile, gameData, localStatus, progressStatus) {
+    const stability = this.adapter && typeof this.adapter.stabilityStatus === 'function' ? this.adapter.stabilityStatus() : {};
+    const status = super.status();
+    return {
+      snapshot,
+      party: profile,
+      gameData,
+      farmer: this.farmerStatus(),
+      combatEmergency: status.combatEmergency,
+      contentSafety: status.combatRisk && status.combatRisk.contentSafety,
+      localFarming: localStatus,
+      progress: progressStatus,
+      performance: this.performance.status(),
+      movement: stability && stability.movement || {},
+      persistence: this.persistence.status(),
+      headlessHealth: { state: snapshot ? 'HEALTHY' : 'DEGRADED' },
+      world: this.world.summary(),
+      noveltyCount: this.lastDiscovery && this.lastDiscovery.newEntities || 0
+    };
+  }
+
+  _canSeekSpawn(snapshot) {
+    if (!snapshot || !snapshot.character || snapshot.character.rip) return false;
+    if (this.adapter.mode !== 'active' && this.adapter.mode !== 'shadow') return false;
+    if (!this.farmer.enabled || this.farmer.targetId) return false;
+    if (this.pendingEmergencyRetreat) return false;
+    if (this.farmer.state === 'ENGAGE' || this.farmer.state === 'RECOVER' || this.farmer.state === 'BLOCKED') return false;
+    if (ratio(snapshot.character.hp, snapshot.character.max_hp) < this.farmer.config.recoverHpRatio) return false;
+    const filtered = this.lastFarmSnapshot;
+    if (filtered && Array.isArray(filtered.entities) && filtered.entities.some((entity) => entity && entity.mtype && !entity.dead && (entity.hp == null || Number(entity.hp) > 0))) return false;
+    return true;
+  }
+
+  _handleProgressReassessment() {
+    if (this.adapter.mode !== 'active') return false;
+    if (this.farmer.state === 'ENGAGE' || this.farmer.state === 'RECOVER') return false;
+    if (!this.progressWatchdog.requestReassessment()) return false;
+    this.localFarming.reset('PROGRESS_WATCHDOG');
+    this.farmer.lastShadowPlanAt = -Infinity;
+    if (typeof this.farmer._clearTarget === 'function') this.farmer._clearTarget('PROGRESS_WATCHDOG');
+    if (typeof this.farmer._transition === 'function') this.farmer._transition('REASSESS', 'PROGRESS_WATCHDOG');
+    return true;
+  }
+
+  setBrainInfluenceEnabled(enabled) {
+    const resolved = this.brain.setInfluenceEnabled(enabled === true);
+    this._announce(`[AIO v3] BRAIN INFLUENCE | ${resolved ? 'enabled' : 'disabled'} | strategic local preference only`, 'VISIBLE_BRAIN_INFLUENCE_CHANGED');
+    return resolved;
+  }
+
+  submitBrainTeacher(input) {
+    const snapshot = this.lastSnapshot;
+    if (!snapshot) return { accepted: false, reason: 'SNAPSHOT_UNAVAILABLE' };
+    const profile = this._partyProfile(snapshot);
+    const gameData = this.adapter.getGameData() || {};
+    const localContext = { snapshot, gameData, world: this.world, party: profile, adapter: this.adapter };
+    const localStatus = this.localFarming.status(localContext);
+    const progressStatus = this.progressWatchdog.status();
+    return this.brain.submitTeacher(input, this._brainContext(snapshot, profile, gameData, localStatus, progressStatus));
+  }
+
+  tick() {
+    super.tick();
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return;
+    this._restoreBrainOnce();
+    const profile = this._partyProfile(snapshot);
+    const gameData = this.adapter.getGameData() || {};
+    const paused = this.adapter.mode !== 'active' || !this.farmer.enabled || snapshot.character.rip === true;
+    const progressStatus = this.progressWatchdog.observe(snapshot, { paused });
+    this._handleProgressReassessment();
+    const localContext = { snapshot, gameData, world: this.world, party: profile, adapter: this.adapter };
+    const localStatusBefore = this.localFarming.status(localContext);
+    const brainContext = this._brainContext(snapshot, profile, gameData, localStatusBefore, progressStatus);
+    this.brain.observe(brainContext);
+    if (this._canSeekSpawn(snapshot)) this.lastLocalFarmStep = this.localFarming.step(localContext, this.brain.preference());
+    else this.lastLocalFarmStep = { acted: false, reason: 'LOCAL_FARMING_NOT_ELIGIBLE' };
+    this._persistBrainMaybe(false);
+  }
+
+  stop() {
+    this._persistBrainMaybe(true);
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    const snapshot = this.lastSnapshot;
+    let localContext = null;
+    if (snapshot && snapshot.character) {
+      localContext = { snapshot, gameData: this.adapter.getGameData() || {}, world: this.world, party: this._partyProfile(snapshot), adapter: this.adapter };
+    }
+    return {
+      ...base,
+      localFarming: {
+        ...this.localFarming.status(localContext),
+        lastStep: this.lastLocalFarmStep,
+        progress: this.progressWatchdog.status()
+      },
+      brain: {
+        ...this.brain.status(),
+        persistence: {
+          restored: this.brainStateRestored,
+          restoreAttempted: this.brainStateRestoreAttempted,
+          lastSavedAt: this.brainStateLastSavedAt || null,
+          lastSavedUpdates: this.brainStateLastSavedUpdates,
+          maxBytes: this.brainStateMaxBytes,
+          lastError: this.brainStateLastError
+        },
+        research: this.brain.researchSummary()
+      }
+    };
+  }
+}
+
+module.exports = { Alpha9Runtime };
+
+},
+"src/autonomy/local-farming.js": function(require,module,exports){
+'use strict';
+
+const SAFE_DISPOSITIONS = new Set(['LEGACY_ALLOWED', 'APPROVED']);
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value) || 0));
+}
+
+function distance(a, b) {
+  if (!a || !b) return Infinity;
+  const ax = finite(a.x != null ? a.x : a.real_x);
+  const ay = finite(a.y != null ? a.y : a.real_y);
+  const bx = finite(b.x != null ? b.x : b.real_x);
+  const by = finite(b.y != null ? b.y : b.real_y);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function monsterType(raw) {
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) {
+    const token = raw.find((value) => typeof value === 'string' && value.trim());
+    return token ? token.trim() : null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw.type || raw.mtype || raw.monster || raw.id || raw.name;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function pointFromBoundary(boundary) {
+  if (!Array.isArray(boundary)) return null;
+  if (boundary.length >= 4 && boundary.slice(0, 4).every((value) => Number.isFinite(Number(value)))) {
+    const [x1, y1, x2, y2] = boundary.slice(0, 4).map(Number);
+    return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+  }
+  if (boundary.length >= 2 && boundary.slice(0, 2).every((value) => Number.isFinite(Number(value)))) {
+    return { x: Number(boundary[0]), y: Number(boundary[1]) };
+  }
+  return null;
+}
+
+function spawnPoints(raw) {
+  const points = [];
+  const push = (point, source) => {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+    points.push({ x: point.x, y: point.y, source });
+  };
+
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const x = finite(raw.x);
+    const y = finite(raw.y);
+    if (x != null && y != null) push({ x, y }, 'xy');
+    push(pointFromBoundary(raw.boundary), 'boundary');
+    if (Array.isArray(raw.boundaries)) {
+      for (const boundary of raw.boundaries) push(pointFromBoundary(boundary), 'boundaries');
+    }
+  }
+
+  if (Array.isArray(raw)) {
+    const numeric = raw.filter((value) => Number.isFinite(Number(value))).map(Number);
+    if (numeric.length >= 4) push(pointFromBoundary(numeric.slice(0, 4)), 'array-boundary');
+    else if (numeric.length >= 2) push({ x: numeric[0], y: numeric[1] }, 'array-xy');
+    for (const value of raw) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const x = finite(value.x);
+        const y = finite(value.y);
+        if (x != null && y != null) push({ x, y }, 'array-object');
+        push(pointFromBoundary(value.boundary), 'array-object-boundary');
+      }
+    }
+  }
+
+  const unique = new Map();
+  for (const point of points) unique.set(`${Math.round(point.x)}:${Math.round(point.y)}`, point);
+  return [...unique.values()];
+}
+
+function extractSameMapSpawns(mapName, mapData) {
+  if (!mapName || !mapData || typeof mapData !== 'object') return [];
+  const collection = mapData.monsters;
+  if (!collection) return [];
+  const values = Array.isArray(collection) ? collection : Object.values(collection);
+  const rows = [];
+  values.forEach((raw, index) => {
+    const monster = monsterType(raw);
+    if (!monster) return;
+    const points = spawnPoints(raw);
+    points.forEach((point, pointIndex) => rows.push({
+      id: `${mapName}:${monster}:${index}:${pointIndex}`,
+      map: mapName,
+      monster,
+      x: point.x,
+      y: point.y,
+      source: point.source
+    }));
+  });
+  return rows;
+}
+
+class LocalSpawnNavigator {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.planner = options.planner || null;
+    this.maxStep = clamp(options.maxStep == null ? 120 : options.maxStep, 40, 250);
+    this.arrivalRadius = clamp(options.arrivalRadius == null ? 55 : options.arrivalRadius, 20, 150);
+    this.moveCooldownMs = clamp(options.moveCooldownMs == null ? 1400 : options.moveCooldownMs, 500, 10000);
+    this.goalHoldMs = clamp(options.goalHoldMs == null ? 15000 : options.goalHoldMs, 3000, 120000);
+    this.arrivalHoldMs = clamp(options.arrivalHoldMs == null ? 4500 : options.arrivalHoldMs, 1000, 30000);
+    this.goal = null;
+    this.goalSince = 0;
+    this.holdUntil = 0;
+    this.lastMoveAt = 0;
+    this.lastDecision = null;
+    this.lastMove = null;
+    this.rotation = 0;
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log) return;
+    this.log.emit({ component: 'local-farming', event, severity, reason, data });
+  }
+
+  reset(reason = 'RESET') {
+    if (this.goal) this._event('LOCAL_FARM_GOAL_CLEARED', 'info', reason, { goal: this.goal });
+    this.goal = null;
+    this.goalSince = 0;
+    this.holdUntil = 0;
+    this.lastDecision = { at: this.now(), action: 'RESET', reason };
+  }
+
+  _disposition(world, monster) {
+    if (!world || typeof world.fact !== 'function') return null;
+    const fact = world.fact('monster-policy', monster, 'contentSafetyDisposition');
+    return fact && fact.value || null;
+  }
+
+  _safeSpawns(snapshot, gameData, world, party) {
+    const character = snapshot && snapshot.character;
+    if (!character || !character.map) return [];
+    const mapData = gameData && gameData.maps && gameData.maps[character.map];
+    const spawns = extractSameMapSpawns(character.map, mapData);
+    const byMonster = new Map();
+
+    for (const spawn of spawns) {
+      const disposition = this._disposition(world, spawn.monster);
+      if (!SAFE_DISPOSITIONS.has(disposition)) continue;
+      const list = byMonster.get(spawn.monster) || [];
+      list.push({ ...spawn, disposition });
+      byMonster.set(spawn.monster, list);
+    }
+
+    const fingerprint = party && party.fingerprint || 'unknown-party';
+    const rows = [];
+    for (const [monster, monsterSpawns] of byMonster.entries()) {
+      const nearest = monsterSpawns.slice().sort((a, b) => distance(character, a) - distance(character, b))[0];
+      const learned = world && typeof world.performanceFor === 'function' ? world.performanceFor(monster, fingerprint) : null;
+      const g = gameData && gameData.monsters && gameData.monsters[monster] || {};
+      rows.push({
+        id: monster,
+        monster,
+        xpPerHour: learned ? learned.xpPerHour : Math.max(0, Number(g.xp) || 0) * 60,
+        goldPerHour: learned ? learned.goldPerHour : 0,
+        deathsPerHour: learned ? learned.deathsPerHour : 0,
+        confidence: learned ? learned.confidence : 0.05,
+        travelSeconds: Number.isFinite(distance(character, nearest)) ? distance(character, nearest) / Math.max(1, Number(character.speed) || 40) : 120,
+        source: learned ? 'measured-spawn' : 'metadata-spawn',
+        spawn: nearest,
+        spawnCount: monsterSpawns.length
+      });
+    }
+
+    const ranked = this.planner && typeof this.planner.rank === 'function'
+      ? this.planner.rank(rows, { character: character.name, partyFingerprint: fingerprint })
+      : rows.slice().sort((a, b) => b.xpPerHour - a.xpPerHour || a.travelSeconds - b.travelSeconds || a.monster.localeCompare(b.monster));
+
+    return ranked.map((row) => ({ ...row, spawn: row.spawn || (byMonster.get(row.monster) || [])[0] })).filter((row) => row.spawn);
+  }
+
+  candidates(context = {}) {
+    const rows = this._safeSpawns(context.snapshot, context.gameData || {}, context.world, context.party);
+    return rows.map((row) => ({
+      monster: row.monster,
+      map: row.spawn.map,
+      x: row.spawn.x,
+      y: row.spawn.y,
+      score: Number.isFinite(Number(row.score)) ? Number(row.score) : null,
+      confidence: Number(row.confidence) || 0,
+      disposition: row.spawn.disposition,
+      spawnCount: row.spawnCount
+    }));
+  }
+
+  _select(context, preference = null) {
+    const now = this.now();
+    const ranked = this._safeSpawns(context.snapshot, context.gameData || {}, context.world, context.party);
+    if (!ranked.length) return { ranked, selected: null, reason: 'NO_SAFE_SAME_MAP_SPAWN' };
+
+    let eligible = ranked;
+    if (preference && preference.action === 'change_farm_target' && preference.avoidMonster) {
+      const alternatives = ranked.filter((row) => row.monster !== preference.avoidMonster);
+      if (alternatives.length) eligible = alternatives;
+    }
+    if (preference && preference.preferredMonster) {
+      const preferred = eligible.find((row) => row.monster === preference.preferredMonster);
+      if (preferred) return { ranked, selected: preferred, reason: 'BRAIN_SAFE_PREFERENCE' };
+    }
+
+    if (this.goal && now < this.goalSince + this.goalHoldMs) {
+      const held = eligible.find((row) => row.monster === this.goal.monster && row.spawn.map === this.goal.map);
+      if (held) return { ranked, selected: held, reason: 'GOAL_HYSTERESIS' };
+    }
+
+    if (preference && preference.action === 'change_farm_target' && eligible.length > 1) {
+      this.rotation = (this.rotation + 1) % eligible.length;
+      return { ranked, selected: eligible[this.rotation], reason: 'BRAIN_SAFE_ROTATION' };
+    }
+    return { ranked, selected: eligible[0], reason: 'DETERMINISTIC_PLANNER' };
+  }
+
+  step(context = {}, preference = null) {
+    const now = this.now();
+    const snapshot = context.snapshot;
+    const character = snapshot && snapshot.character;
+    const adapter = context.adapter;
+    if (!character || !adapter) return { acted: false, reason: 'CONTEXT_UNAVAILABLE' };
+    if (preference && preference.action === 'wait' && Number(preference.expiresAt) > now) {
+      this.lastDecision = { at: now, action: 'WAIT', reason: 'BRAIN_BOUNDED_WAIT', expiresAt: preference.expiresAt };
+      return { acted: false, reason: 'BRAIN_BOUNDED_WAIT' };
+    }
+    if (now < this.holdUntil) return { acted: false, reason: 'ARRIVAL_HOLD', holdUntil: this.holdUntil };
+
+    const movement = typeof adapter.stabilityStatus === 'function' ? adapter.stabilityStatus().movement : null;
+    if (movement && movement.circuitOpen) {
+      this.lastDecision = { at: now, action: 'SUPPRESS', reason: 'MOVEMENT_CIRCUIT_OPEN', circuitUntil: movement.circuitUntil };
+      return { acted: false, reason: 'MOVEMENT_CIRCUIT_OPEN' };
+    }
+    if (movement && movement.pendingOutcomeId) return { acted: false, reason: 'MOVE_OUTCOME_PENDING', outcomeId: movement.pendingOutcomeId };
+
+    const choice = this._select(context, preference);
+    const selected = choice.selected;
+    if (!selected) {
+      this.reset(choice.reason);
+      return { acted: false, reason: choice.reason, candidateCount: choice.ranked.length };
+    }
+
+    const spawn = selected.spawn;
+    const nextGoal = {
+      monster: selected.monster,
+      map: spawn.map,
+      x: spawn.x,
+      y: spawn.y,
+      score: Number.isFinite(Number(selected.score)) ? Number(selected.score) : null,
+      confidence: Number(selected.confidence) || 0,
+      reason: choice.reason
+    };
+    if (!this.goal || this.goal.monster !== nextGoal.monster || this.goal.map !== nextGoal.map || distance(this.goal, nextGoal) > 5) {
+      this.goal = nextGoal;
+      this.goalSince = now;
+      this._event('LOCAL_FARM_GOAL_SELECTED', 'info', choice.reason, { goal: this.goal, candidateCount: choice.ranked.length });
+    }
+
+    if (character.map !== spawn.map) {
+      this.lastDecision = { at: now, action: 'SUPPRESS', reason: 'CROSS_MAP_FORBIDDEN', characterMap: character.map, goalMap: spawn.map };
+      return { acted: false, reason: 'CROSS_MAP_FORBIDDEN' };
+    }
+
+    const d = distance(character, spawn);
+    if (!Number.isFinite(d)) return { acted: false, reason: 'SPAWN_POSITION_UNKNOWN' };
+    if (d <= this.arrivalRadius) {
+      this.holdUntil = now + this.arrivalHoldMs;
+      this.lastDecision = { at: now, action: 'ARRIVED', reason: 'SAFE_SPAWN_REACHED', distance: d, goal: this.goal };
+      this._event('LOCAL_FARM_SPAWN_REACHED', 'info', 'SAFE_SPAWN_REACHED', { goal: this.goal, distance: Math.round(d), holdUntil: this.holdUntil });
+      return { acted: false, reason: 'SAFE_SPAWN_REACHED', arrived: true, distance: d };
+    }
+    if (now - this.lastMoveAt < this.moveCooldownMs) return { acted: false, reason: 'LOCAL_MOVE_COOLDOWN' };
+
+    const cx = finite(character.x != null ? character.x : character.real_x);
+    const cy = finite(character.y != null ? character.y : character.real_y);
+    if (cx == null || cy == null) return { acted: false, reason: 'CHARACTER_POSITION_UNKNOWN' };
+    const dx = spawn.x - cx;
+    const dy = spawn.y - cy;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const step = Math.min(this.maxStep, Math.max(0, len - this.arrivalRadius * 0.5));
+    const x = cx + (dx / len) * step;
+    const y = cy + (dy / len) * step;
+    const result = adapter.command('move', [x, y]);
+    this.lastMoveAt = now;
+    this.lastMove = { at: now, x, y, distance: d, goal: this.goal, result: { executed: !!result.executed, shadow: !!result.shadow, reason: result.reason || null, outcomeId: result.outcomeId || null } };
+    this.lastDecision = { at: now, action: result.executed || result.shadow ? 'MOVE' : 'MOVE_FAILED', reason: result.reason || 'SAFE_SPAWN_SEEK', goal: this.goal };
+    this._event(
+      result.executed || result.shadow ? 'LOCAL_FARM_MOVE_REQUESTED' : 'LOCAL_FARM_MOVE_FAILED',
+      result.executed || result.shadow ? 'info' : 'warn',
+      result.reason || 'SAFE_SPAWN_SEEK',
+      { goal: this.goal, x: Math.round(x), y: Math.round(y), distance: Math.round(d), outcomeId: result.outcomeId || null }
+    );
+    return { acted: !!result.executed || !!result.shadow, reason: result.reason || 'SAFE_SPAWN_SEEK', result, goal: this.goal };
+  }
+
+  status(context = null) {
+    const candidates = context ? this.candidates(context) : [];
+    return {
+      enabled: true,
+      sameMapOnly: true,
+      unknownContentAllowed: false,
+      crossMapAllowed: false,
+      maxStep: this.maxStep,
+      arrivalRadius: this.arrivalRadius,
+      moveCooldownMs: this.moveCooldownMs,
+      goalHoldMs: this.goalHoldMs,
+      goal: this.goal,
+      holdUntil: this.holdUntil || null,
+      candidateCount: candidates.length,
+      candidates: candidates.slice(0, 20),
+      lastDecision: this.lastDecision,
+      lastMove: this.lastMove
+    };
+  }
+}
+
+class ProgressWatchdog {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.watchAfterMs = clamp(options.watchAfterMs == null ? 90000 : options.watchAfterMs, 10000, 3600000);
+    this.degradedAfterMs = clamp(options.degradedAfterMs == null ? 180000 : options.degradedAfterMs, this.watchAfterMs, 7200000);
+    this.cooldownMs = clamp(options.cooldownMs == null ? 60000 : options.cooldownMs, 5000, 1800000);
+    this.lastProgressAt = this.now();
+    this.lastXp = null;
+    this.lastGold = null;
+    this.lastMap = null;
+    this.lastState = 'HEALTHY';
+    this.escalations = 0;
+    this.cooldownUntil = 0;
+    this.lastAction = null;
+  }
+
+  _event(event, severity, reason, data) {
+    if (!this.log) return;
+    this.log.emit({ component: 'progress-watchdog', event, severity: severity || 'info', reason: reason || null, data: data || {} });
+  }
+
+  observe(snapshot, options = {}) {
+    const now = this.now();
+    const character = snapshot && snapshot.character;
+    if (!character) return this.status();
+    const xp = finite(character.xp, 0);
+    const gold = finite(character.gold, 0);
+    const map = character.map || null;
+    const progressed = this.lastXp == null || xp > this.lastXp || gold > this.lastGold || (this.lastMap != null && map !== this.lastMap);
+    if (progressed) {
+      this.lastProgressAt = now;
+      if (this.lastState !== 'HEALTHY') this._event('FARM_PROGRESS_RECOVERED', 'info', 'MEANINGFUL_PROGRESS', { previousState: this.lastState });
+      this.lastState = 'HEALTHY';
+      this.escalations = 0;
+      this.cooldownUntil = 0;
+    }
+    this.lastXp = xp;
+    this.lastGold = gold;
+    this.lastMap = map;
+
+    const paused = options.paused === true || character.rip === true;
+    if (paused) return this.status();
+    const age = Math.max(0, now - this.lastProgressAt);
+    let state = 'HEALTHY';
+    if (now < this.cooldownUntil) state = 'COOLDOWN';
+    else if (age >= this.degradedAfterMs) state = 'DEGRADED';
+    else if (age >= this.watchAfterMs) state = 'WATCH';
+    if (state !== this.lastState) {
+      this._event('FARM_PROGRESS_STATE_CHANGED', state === 'DEGRADED' ? 'warn' : 'info', state, { from: this.lastState, to: state, progressAgeMs: age });
+      this.lastState = state;
+    }
+    return this.status();
+  }
+
+  requestReassessment() {
+    const now = this.now();
+    if (this.lastState !== 'DEGRADED' || now < this.cooldownUntil) return false;
+    this.escalations += 1;
+    this.cooldownUntil = now + this.cooldownMs;
+    this.lastState = 'COOLDOWN';
+    this.lastAction = { at: now, action: 'REASSESS_LOCAL_PLAN', escalation: this.escalations, cooldownUntil: this.cooldownUntil };
+    this._event('FARM_PROGRESS_REASSESS_REQUESTED', 'warn', 'NO_MEANINGFUL_PROGRESS', this.lastAction);
+    return true;
+  }
+
+  status() {
+    const now = this.now();
+    return {
+      state: this.lastState,
+      lastProgressAt: this.lastProgressAt,
+      progressAgeMs: Math.max(0, now - this.lastProgressAt),
+      watchAfterMs: this.watchAfterMs,
+      degradedAfterMs: this.degradedAfterMs,
+      cooldownMs: this.cooldownMs,
+      cooldownUntil: this.cooldownUntil || null,
+      cooldownRemainingMs: Math.max(0, this.cooldownUntil - now),
+      escalations: this.escalations,
+      lastAction: this.lastAction
+    };
+  }
+}
+
+module.exports = { LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns, SAFE_DISPOSITIONS };
+
+},
+"src/brain/strategy-brain.js": function(require,module,exports){
+'use strict';
+
+const { ACTIONS, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, clamp01, normalizeTarget } = require('./model');
+const { BrainQualityMonitor, BrainLeague, BrainDiary, mean, sanitize } = require('./governance');
+const { StrategicRewardModel } = require('./reward');
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function oneHot(index, confidence = 1) {
+  const n = ACTIONS.length;
+  const c = Math.max(1 / n, Math.min(1, finite(confidence, 1)));
+  const rest = n > 1 ? (1 - c) / (n - 1) : 0;
+  return Array.from({ length: n }, (_, i) => i === index ? c : rest);
+}
+function actionIndex(action) { return ACTIONS.indexOf(String(action || '')); }
+
+class StrategyBrain {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.encoder = options.encoder || new StrategicFeatureEncoder({ now: this.now });
+    this.student = options.student || new StudentNetwork({
+      hiddenSize: options.hiddenSize,
+      learningRate: options.learningRate,
+      seed: options.seed
+    });
+    this.replay = options.replay || new PrioritizedReplayBuffer({ capacity: options.replayCapacity || 512, seed: options.replaySeed });
+    this.rewardModel = options.rewardModel || new StrategicRewardModel({ outcomeMs: options.outcomeMs });
+    this.quality = options.quality || new BrainQualityMonitor({ now: this.now });
+    this.league = options.league || new BrainLeague({ now: this.now });
+    this.diary = options.diary || new BrainDiary({ now: this.now, capacity: options.diaryCapacity || 80 });
+    this.enabled = options.enabled !== false;
+    this.influenceEnabled = false;
+    this.minInfluenceConfidence = Math.max(0.6, Math.min(0.99, Number(options.minInfluenceConfidence) || 0.82));
+    this.decisionIntervalMs = Math.max(1000, Math.min(60000, Number(options.decisionIntervalMs) || 5000));
+    this.influenceHoldMs = Math.max(2000, Math.min(60000, Number(options.influenceHoldMs) || 15000));
+    this.maxPendingOutcomes = Math.max(4, Math.min(100, Number(options.maxPendingOutcomes) || 32));
+    this.lastDecisionAt = -Infinity;
+    this.lastFeatures = null;
+    this.lastPrediction = null;
+    this.lastTeacher = null;
+    this.lastDecision = null;
+    this.lastOutcome = null;
+    this.currentPreference = null;
+    this.pendingOutcomes = [];
+    this.teacher = { received: 0, accepted: 0, rejected: 0, agreements: 0 };
+    this.outcomes = { completed: 0, safetyIncidents: 0, rewardSum: 0 };
+    this.restoreErrors = 0;
+    this.lastRestoreError = null;
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log) return;
+    this.log.emit({ component: 'brain', event, severity, reason, data: sanitize(data) });
+  }
+
+  _safeIdle(context = {}) {
+    const farmer = context.farmer || {};
+    const emergency = context.combatEmergency || {};
+    if (emergency.pendingRetreat) return false;
+    if (farmer.state === 'ENGAGE' || farmer.state === 'RECOVER') return false;
+    return true;
+  }
+
+  actionMask(context = {}) {
+    const local = context.localFarming || {};
+    const safeIdle = this._safeIdle(context);
+    return [
+      true,
+      safeIdle && finite(local.candidateCount) >= 2,
+      false,
+      false,
+      safeIdle
+    ];
+  }
+
+  _contextForEncoder(context = {}) {
+    return {
+      ...context,
+      replay: this.replay.status(),
+      targetType: context.farmer && context.farmer.targetType || null
+    };
+  }
+
+  _teacherTarget(input, index) {
+    const scores = input && input.scores;
+    if (Array.isArray(scores) && scores.length === ACTIONS.length && scores.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0)) return normalizeTarget(scores.map(Number));
+    if (scores && typeof scores === 'object') {
+      const values = ACTIONS.map((action) => Math.max(0, finite(scores[action], 0)));
+      if (values.some((value) => value > 0)) return normalizeTarget(values);
+    }
+    return oneHot(index, input && input.confidence == null ? 1 : input.confidence);
+  }
+
+  submitTeacher(input = {}, context = {}) {
+    this.teacher.received += 1;
+    const action = String(input.action || '').trim();
+    const index = actionIndex(action);
+    const features = this.lastFeatures || this.encoder.encode(this._contextForEncoder(context));
+    const mask = this.actionMask(context);
+    if (index < 0) return this._rejectTeacher('INVALID_ACTION', input);
+    if (mask[index] === false) return this._rejectTeacher('ACTION_MASKED', input);
+    const confidence = clamp01(input.confidence == null ? 0.5 : input.confidence);
+    const target = this._teacherTarget(input, index);
+    const prediction = this.student.predict(features, mask);
+    this.teacher.accepted += 1;
+    if (prediction.action === action) this.teacher.agreements += 1;
+    const sample = this.replay.add({
+      source: 'teacher',
+      features,
+      target,
+      teacherAction: action,
+      teacherConfidence: confidence,
+      reward: 0,
+      mask: mask.slice(),
+      lesson: String(input.lesson || '').slice(0, 500),
+      reason: String(input.reason || '').slice(0, 500)
+    }, Math.max(0.05, 0.5 + confidence));
+    const direct = this.student.train(features, target, { learningRate: this.student.learningRate * this.quality.learningRateFactor() });
+    this.replay.updatePriority(sample.id, direct.loss + 0.05);
+    this._trainReplay(2);
+    this.lastTeacher = {
+      at: this.now(), action, confidence,
+      scores: sanitize(input.scores || null),
+      reason: String(input.reason || '').slice(0, 500),
+      lesson: String(input.lesson || '').slice(0, 500),
+      expected: sanitize(input.expected || input.expectedOutcomeChanges || null),
+      preferredMonster: typeof input.monster === 'string' ? input.monster : null,
+      prediction: { action: prediction.action, confidence: prediction.confidence },
+      loss: direct.loss
+    };
+    this.diary.add('teacher', this.lastTeacher);
+    this._event('BRAIN_TEACHER_ACCEPTED', 'info', action, { confidence, studentAction: prediction.action, loss: direct.loss });
+    this._startOutcome(action, features, confidence, context, 'teacher', null);
+    this._considerLeague();
+    return { accepted: true, action, confidence, loss: direct.loss, agreement: prediction.action === action };
+  }
+
+  _rejectTeacher(reason, input) {
+    this.teacher.rejected += 1;
+    const record = { at: this.now(), accepted: false, reason, action: input && input.action || null };
+    this.lastTeacher = record;
+    this.diary.add('error', record, 'warn');
+    this._event('BRAIN_TEACHER_REJECTED', 'warn', reason, record);
+    return record;
+  }
+
+  _trainReplay(iterations = 1) {
+    let lastLoss = null;
+    const count = Math.max(0, Math.min(20, Number(iterations) || 0));
+    for (let n = 0; n < count; n += 1) {
+      const batch = this.replay.sample(8);
+      for (const sample of batch) {
+        const result = this.student.train(sample.features, sample.target, { learningRate: this.student.learningRate * this.quality.learningRateFactor() });
+        this.replay.updatePriority(sample.id, Math.abs(finite(sample.reward)) + result.loss + 0.05);
+        lastLoss = result.loss;
+      }
+    }
+    return lastLoss;
+  }
+
+  _validationLoss(model = this.student) {
+    const rows = this.replay.validationSet(64);
+    if (!rows.length) return model.lossEma == null ? 10 : model.lossEma;
+    const losses = [];
+    for (const sample of rows) {
+      const prediction = model.predict(sample.features, null).probabilities;
+      const target = normalizeTarget(sample.target);
+      losses.push(-target.reduce((acc, value, index) => acc + value * Math.log(Math.max(1e-12, prediction[index])), 0));
+    }
+    return mean(losses);
+  }
+
+  _metrics() {
+    return {
+      samples: this.replay.status().size,
+      updates: this.student.updates,
+      teacherAgreement: this.teacher.accepted ? this.teacher.agreements / this.teacher.accepted : 0,
+      outcomes: this.outcomes.completed,
+      validationLoss: this._validationLoss(),
+      meanReward: this.outcomes.completed ? this.outcomes.rewardSum / this.outcomes.completed : 0
+    };
+  }
+
+  _considerLeague() {
+    const result = this.league.consider(this.student, this._metrics(), this.quality.status());
+    if (result.changed) {
+      this.diary.add(result.reason === 'FIRST_CHAMPION' ? 'promotion' : 'challenge', { reason: result.reason, league: this.league.status() });
+      this._event('BRAIN_LEAGUE_CHANGED', 'info', result.reason, this.league.status());
+      if (result.reason === 'FIRST_CHAMPION') {
+        this.quality.setHealthyChampion(this.league.champion);
+      }
+    }
+    return result;
+  }
+
+  _startOutcome(action, features, confidence, context, source, policy) {
+    if (actionIndex(action) < 0) return null;
+    const row = {
+      id: `brain-outcome-${this.now()}-${this.pendingOutcomes.length + 1}`,
+      startedAt: this.now(),
+      expiresAt: this.now() + this.rewardModel.outcomeMs,
+      action,
+      features: features.slice(),
+      confidence: clamp01(confidence),
+      source,
+      policy: policy || 'student',
+      before: this.rewardModel.metrics(context)
+    };
+    this.pendingOutcomes.push(row);
+    if (this.pendingOutcomes.length > this.maxPendingOutcomes) this.pendingOutcomes.splice(0, this.pendingOutcomes.length - this.maxPendingOutcomes);
+    return row;
+  }
+
+  _resolveOutcomes(context) {
+    const now = this.now();
+    const remaining = [];
+    for (const pending of this.pendingOutcomes) {
+      if (now < pending.expiresAt) { remaining.push(pending); continue; }
+      const after = this.rewardModel.metrics(context);
+      const safetyIncident = after.rip === true || (context.progress && context.progress.state === 'DEGRADED' && pending.before.progressHealthy > 0);
+      const evaluated = this.rewardModel.evaluate(pending.before, after, { safetyIncident });
+      const index = actionIndex(pending.action);
+      const targetIndex = evaluated.reward >= 0 ? index : 0;
+      const target = oneHot(Math.max(0, targetIndex), Math.max(0.55, 0.55 + Math.abs(evaluated.reward) * 0.45));
+      const sample = this.replay.add({ source: 'outcome', features: pending.features, target, action: pending.action, reward: evaluated.reward, components: evaluated.components }, Math.abs(evaluated.reward) + 0.2);
+      const trained = this.student.train(sample.features, sample.target, { learningRate: this.student.learningRate * this.quality.learningRateFactor() });
+      this.replay.updatePriority(sample.id, Math.abs(evaluated.reward) + trained.loss + 0.05);
+      this.outcomes.completed += 1;
+      this.outcomes.rewardSum += evaluated.reward;
+      if (safetyIncident) this.outcomes.safetyIncidents += 1;
+      const quality = this.quality.record({ reward: evaluated.reward, confidence: pending.confidence, loss: trained.loss, safetyIncident, death: after.rip === true });
+      const leagueResult = this.league.recordOutcome(pending.policy, evaluated.reward, { safetyIncident });
+      this.lastOutcome = { at: now, id: pending.id, action: pending.action, reward: evaluated.reward, components: evaluated.components, source: pending.source, policy: pending.policy, safetyIncident, qualityState: quality.state, leagueReason: leagueResult.reason };
+      this.diary.add('outcome', this.lastOutcome, evaluated.reward < 0 ? 'warn' : 'info');
+      this._event('BRAIN_OUTCOME_MEASURED', evaluated.reward < 0 ? 'warn' : 'info', pending.action, this.lastOutcome);
+      if (safetyIncident) this.currentPreference = null;
+    }
+    this.pendingOutcomes = remaining;
+    this._trainReplay(1);
+    this._considerLeague();
+  }
+
+  _modelPredictionFromSnapshot(snapshot, features, mask) {
+    if (!snapshot) return null;
+    try {
+      const model = new StudentNetwork({ hiddenSize: this.student.hiddenSize, learningRate: this.student.learningRate, seed: 1 });
+      model.restore(snapshot);
+      return model.predict(features, mask);
+    } catch (error) {
+      this._event('BRAIN_POLICY_MODEL_INVALID', 'warn', 'MODEL_RESTORE_FAILED', { message: String(error && error.message || error) });
+      return null;
+    }
+  }
+
+  _influenceDecision(context, features, mask) {
+    if (!this.influenceEnabled || !this.quality.autonomyAllowed() || !this.league.champion) return null;
+    const policy = this.league.choosePolicy();
+    const modelSnapshot = this.league.modelFor(policy);
+    const prediction = this._modelPredictionFromSnapshot(modelSnapshot, features, mask);
+    if (!prediction) return null;
+    const threshold = Math.min(0.99, this.minInfluenceConfidence + this.quality.confidenceAdjustment());
+    if (prediction.confidence < threshold) return null;
+    if (prediction.action === 'continue') return null;
+    if (prediction.action === 'replan_merchant' || prediction.action === 'explore') return null;
+    const now = this.now();
+    let preference = null;
+    if (prediction.action === 'wait') {
+      preference = { action: 'wait', at: now, expiresAt: now + Math.min(this.influenceHoldMs, 10000), confidence: prediction.confidence, policy };
+    } else if (prediction.action === 'change_farm_target') {
+      const candidates = context.localFarming && Array.isArray(context.localFarming.candidates) ? context.localFarming.candidates : [];
+      if (candidates.length < 2) return null;
+      const currentMonster = context.localFarming && context.localFarming.goal && context.localFarming.goal.monster || null;
+      let preferredMonster = null;
+      if (this.lastTeacher && this.lastTeacher.action === 'change_farm_target' && this.lastTeacher.preferredMonster && now - finite(this.lastTeacher.at) < 10 * 60 * 1000) {
+        if (candidates.some((candidate) => candidate.monster === this.lastTeacher.preferredMonster)) preferredMonster = this.lastTeacher.preferredMonster;
+      }
+      preference = { action: 'change_farm_target', at: now, expiresAt: now + this.influenceHoldMs, confidence: prediction.confidence, policy, avoidMonster: currentMonster, preferredMonster };
+    }
+    if (preference) {
+      this._startOutcome(prediction.action, features, prediction.confidence, context, 'autonomy', policy);
+      this.diary.add('autonomy', preference);
+      this._event('BRAIN_SAFE_INFLUENCE_APPLIED', 'info', prediction.action, preference);
+    }
+    return preference;
+  }
+
+  observe(context = {}) {
+    if (!this.enabled) return this.status();
+    this._resolveOutcomes(context);
+    const now = this.now();
+    if (this.currentPreference && finite(this.currentPreference.expiresAt) <= now) this.currentPreference = null;
+    if (now - this.lastDecisionAt < this.decisionIntervalMs) return this.status();
+    this.lastDecisionAt = now;
+    const features = this.encoder.encode(this._contextForEncoder(context));
+    const mask = this.actionMask(context);
+    const prediction = this.student.predict(features, mask);
+    this.lastFeatures = features;
+    this.lastPrediction = { at: now, action: prediction.action, confidence: prediction.confidence, probabilities: prediction.probabilities, entropy: prediction.entropy, mask: ACTIONS.reduce((out, action, index) => { out[action] = mask[index]; return out; }, {}) };
+    this.lastDecision = { at: now, mode: this.influenceEnabled ? 'bounded-influence-eligible' : 'shadow', prediction: this.lastPrediction };
+    const influence = this._influenceDecision(context, features, mask);
+    if (influence) this.currentPreference = influence;
+    this._trainReplay(1);
+    this._considerLeague();
+    return this.status();
+  }
+
+  recordSafetyIncident(reason = 'SAFETY_INCIDENT') {
+    this.outcomes.safetyIncidents += 1;
+    this.currentPreference = null;
+    const quality = this.quality.record({ at: this.now(), reward: -1, confidence: 1, loss: this.student.lossEma || 0, safetyIncident: true });
+    const league = this.league.recordOutcome('champion', -1, { safetyIncident: true });
+    const record = { at: this.now(), reason, qualityState: quality.state, leagueReason: league.reason };
+    this.diary.add('rollback', record, 'warn');
+    this._event('BRAIN_SAFETY_INCIDENT', 'warn', reason, record);
+    return record;
+  }
+
+  setInfluenceEnabled(enabled) {
+    this.influenceEnabled = enabled === true;
+    if (!this.influenceEnabled) this.currentPreference = null;
+    const record = { at: this.now(), influenceEnabled: this.influenceEnabled };
+    this.diary.add('autonomy', record, this.influenceEnabled ? 'warn' : 'info');
+    this._event('BRAIN_INFLUENCE_CHANGED', this.influenceEnabled ? 'warn' : 'info', this.influenceEnabled ? 'EXPLICITLY_ENABLED' : 'DISABLED', record);
+    return this.influenceEnabled;
+  }
+
+  preference() {
+    if (!this.currentPreference || finite(this.currentPreference.expiresAt) <= this.now()) return null;
+    return { ...this.currentPreference };
+  }
+
+  exportState() {
+    return {
+      schemaVersion: 1,
+      student: this.student.export(),
+      replay: this.replay.export(128),
+      quality: this.quality.export(),
+      league: this.league.export(),
+      diary: this.diary.export(),
+      teacher: { ...this.teacher },
+      outcomes: { ...this.outcomes },
+      lastTeacher: this.lastTeacher,
+      lastOutcome: this.lastOutcome
+    };
+  }
+
+  restoreState(data) {
+    try {
+      if (!data || data.schemaVersion !== 1) throw new Error('unsupported brain state schema');
+      this.student.restore(data.student);
+      this.replay.restore(data.replay || { schemaVersion: 1, samples: [] });
+      this.quality.restore(data.quality || { schemaVersion: 1, outcomes: [] });
+      this.league.restore(data.league || { schemaVersion: 1, state: 'shadow' });
+      this.diary.restore(data.diary || { schemaVersion: 1, entries: [] });
+      this.teacher = { received: 0, accepted: 0, rejected: 0, agreements: 0, ...(data.teacher || {}) };
+      this.outcomes = { completed: 0, safetyIncidents: 0, rewardSum: 0, ...(data.outcomes || {}) };
+      this.lastTeacher = data.lastTeacher || null;
+      this.lastOutcome = data.lastOutcome || null;
+      this.influenceEnabled = false;
+      this.currentPreference = null;
+      this.lastRestoreError = null;
+      this.diary.add('confirmed', { event: 'BRAIN_STATE_RESTORED', influenceForcedOff: true });
+      return true;
+    } catch (error) {
+      this.restoreErrors += 1;
+      this.lastRestoreError = String(error && error.message || error);
+      this.influenceEnabled = false;
+      this.currentPreference = null;
+      this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError });
+      return false;
+    }
+  }
+
+  researchSummary() {
+    return {
+      generatedAt: this.now(),
+      architecture: this.student.status().architecture,
+      actions: [...ACTIONS],
+      metrics: this._metrics(),
+      quality: this.quality.status(),
+      league: this.league.status(),
+      teacher: this.teacherStatus(),
+      outcomes: { ...this.outcomes },
+      diary: this.diary.researchSummary({ profile: 'development', hours: 24, maxHighlights: 12 })
+    };
+  }
+
+  teacherStatus() {
+    return {
+      transport: 'host-provided',
+      requiredForGameplay: false,
+      received: this.teacher.received,
+      accepted: this.teacher.accepted,
+      rejected: this.teacher.rejected,
+      agreement: this.teacher.accepted ? this.teacher.agreements / this.teacher.accepted : 0,
+      last: this.lastTeacher
+    };
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      strategicOnly: true,
+      rawGameplayAccess: false,
+      actions: [...ACTIONS],
+      influenceEnabled: this.influenceEnabled,
+      influenceDefault: false,
+      minInfluenceConfidence: this.minInfluenceConfidence,
+      decisionIntervalMs: this.decisionIntervalMs,
+      currentPreference: this.preference(),
+      lastDecision: this.lastDecision,
+      lastPrediction: this.lastPrediction,
+      pendingOutcomes: this.pendingOutcomes.length,
+      maxPendingOutcomes: this.maxPendingOutcomes,
+      lastOutcome: this.lastOutcome,
+      features: this.encoder.status(),
+      student: this.student.status(),
+      replay: this.replay.status(),
+      reward: this.rewardModel.status(),
+      teacher: this.teacherStatus(),
+      quality: this.quality.status(),
+      league: this.league.status(),
+      diary: this.diary.status(),
+      outcomes: { ...this.outcomes },
+      restoreErrors: this.restoreErrors,
+      lastRestoreError: this.lastRestoreError
+    };
+  }
+}
+
+module.exports = { StrategyBrain };
+
+},
+"src/brain/model.js": function(require,module,exports){
+'use strict';
+
+const ACTIONS = Object.freeze(['continue', 'change_farm_target', 'replan_merchant', 'explore', 'wait']);
+
+const FEATURE_NAMES = Object.freeze([
+  'hp_ratio', 'mp_ratio', 'inventory_fill', 'free_inventory_ratio', 'gold_log',
+  'party_size_ratio', 'party_alive_ratio', 'xp_rate_norm', 'gold_rate_norm', 'kills_rate_norm',
+  'deaths_rate_norm', 'potions_rate_norm', 'damage_taken_norm', 'visible_monsters_norm', 'self_aggro_norm',
+  'competition_norm', 'content_quarantine_norm', 'farm_confidence', 'farm_safety', 'movement_circuit_open',
+  'movement_failure_norm', 'persistence_health', 'headless_health', 'snapshot_freshness', 'progress_freshness',
+  'planner_candidates_norm', 'world_known_norm', 'novelty_norm', 'replay_fill', 'map_hash',
+  'target_hash', 'utc_day_fraction'
+]);
+
+function clamp01(value) { return Math.max(0, Math.min(1, Number(value) || 0)); }
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function ratio(value, max, fallback = 1) { const d = finite(max, 0); return d > 0 ? clamp01(finite(value, 0) / d) : fallback; }
+function rateNorm(value, scale) { return clamp01(Math.log1p(Math.max(0, finite(value, 0))) / Math.log1p(scale)); }
+function hash01(value) {
+  const text = String(value == null ? '' : value);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
+}
+
+class StrategicFeatureEncoder {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+  }
+
+  encode(context = {}) {
+    const snapshot = context.snapshot || {};
+    const c = snapshot.character || {};
+    const inventory = Array.isArray(c.inventory) ? c.inventory : [];
+    const capacity = Math.max(1, inventory.length || 42);
+    const occupied = inventory.filter(Boolean).length;
+    const party = context.party && Array.isArray(context.party.members) ? context.party.members : [];
+    const partySize = Math.max(1, party.length || 1);
+    const partyAlive = party.filter((member) => member && member.rip !== true).length || 1;
+    const performance = context.performance && context.performance.current || {};
+    const rates = performance.rates || {};
+    const entities = Array.isArray(snapshot.entities) ? snapshot.entities : [];
+    const visibleMonsters = entities.filter((entity) => entity && entity.mtype && !entity.dead && (entity.hp == null || Number(entity.hp) > 0));
+    const selfAggro = visibleMonsters.filter((entity) => entity.target && entity.target === c.name).length;
+    const friendly = new Set([c.name, ...party.map((member) => member && member.name).filter(Boolean)]);
+    const competition = visibleMonsters.filter((entity) => entity.target && !friendly.has(entity.target)).length;
+    const content = context.contentSafety || {};
+    const counts = content.counts || {};
+    const contentTotal = Math.max(1, finite(counts.LEGACY_ALLOWED) + finite(counts.APPROVED) + finite(counts.QUARANTINED));
+    const local = context.localFarming || {};
+    const movement = context.movement || {};
+    const persistence = context.persistence || {};
+    const health = context.headlessHealth || {};
+    const progress = context.progress || {};
+    const world = context.world || {};
+    const replay = context.replay || {};
+    const now = this.now();
+    const observedAt = finite(snapshot.observedAt, now);
+    const snapshotAge = Math.max(0, now - observedAt);
+    const progressAge = Math.max(0, finite(progress.progressAgeMs, 0));
+    const target = context.targetType || (context.farmer && context.farmer.targetType) || null;
+    const localConfidence = local.goal && Number.isFinite(Number(local.goal.confidence)) ? Number(local.goal.confidence) : 0;
+    const farmSafety = clamp01(1 - Math.min(1, finite(rates.deathsPerHour) / 2));
+
+    const values = [
+      ratio(c.hp, c.max_hp),
+      ratio(c.mp, c.max_mp),
+      clamp01(occupied / capacity),
+      clamp01((capacity - occupied) / capacity),
+      clamp01(Math.log10(Math.max(1, finite(c.gold, 0) + 1)) / 8),
+      clamp01(partySize / 4),
+      clamp01(partyAlive / partySize),
+      rateNorm(rates.xpPerHour, 100000000),
+      rateNorm(rates.goldPerHour, 10000000),
+      rateNorm(rates.killsPerHour, 10000),
+      clamp01(finite(rates.deathsPerHour) / 5),
+      clamp01(finite(rates.potionsPerHour) / 1000),
+      rateNorm(rates.damageTakenPerHour, 10000000),
+      clamp01(visibleMonsters.length / 20),
+      clamp01(selfAggro / 6),
+      clamp01(competition / 12),
+      clamp01(finite(counts.QUARANTINED) / contentTotal),
+      clamp01(localConfidence),
+      farmSafety,
+      movement.circuitOpen ? 1 : 0,
+      clamp01(finite(movement.failureStreak) / Math.max(1, finite(movement.maxFailures, 3))),
+      persistence.saveCircuitOpen || finite(persistence.loadFailureStreak) > 0 ? 0 : 1,
+      health.state === 'DEGRADED' ? 0 : health.state === 'WATCH' ? 0.5 : 1,
+      clamp01(1 - snapshotAge / 30000),
+      clamp01(1 - progressAge / Math.max(1, finite(progress.degradedAfterMs, 180000))),
+      clamp01(finite(local.candidateCount) / 20),
+      clamp01(finite(world.entities) / 5000),
+      clamp01(finite(context.noveltyCount) / 20),
+      clamp01(finite(replay.size) / Math.max(1, finite(replay.capacity, 512))),
+      hash01(c.map),
+      hash01(target),
+      ((new Date(now).getUTCHours() * 3600 + new Date(now).getUTCMinutes() * 60 + new Date(now).getUTCSeconds()) / 86400)
+    ].map((value) => clamp01(Number.isFinite(Number(value)) ? Number(value) : 0));
+
+    if (values.length !== FEATURE_NAMES.length) throw new Error(`feature encoder produced ${values.length}, expected ${FEATURE_NAMES.length}`);
+    return values;
+  }
+
+  named(context = {}) {
+    const values = this.encode(context);
+    const out = {};
+    FEATURE_NAMES.forEach((name, index) => { out[name] = values[index]; });
+    return out;
+  }
+
+  status() { return { featureCount: FEATURE_NAMES.length, featureNames: [...FEATURE_NAMES] }; }
+}
+
+class SeededRandom {
+  constructor(seed = 0x5f3759df) { this.state = (Number(seed) >>> 0) || 1; }
+  next() {
+    let x = this.state;
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    this.state = x >>> 0;
+    return this.state / 4294967296;
+  }
+}
+
+function zeros(rows, cols) { return Array.from({ length: rows }, () => Array(cols).fill(0)); }
+function vectorZeros(n) { return Array(n).fill(0); }
+function clip(value, limit) { return Math.max(-limit, Math.min(limit, value)); }
+function normalizeTarget(target) {
+  const values = Array.from({ length: ACTIONS.length }, (_, i) => Math.max(0, finite(target && target[i], 0)));
+  const sum = values.reduce((a, b) => a + b, 0);
+  if (sum <= 0) return values.map((_, i) => i === 0 ? 1 : 0);
+  return values.map((value) => value / sum);
+}
+
+class StudentNetwork {
+  constructor(options = {}) {
+    this.inputSize = FEATURE_NAMES.length;
+    this.hiddenSize = Math.max(4, Math.min(128, Number(options.hiddenSize) || 24));
+    this.outputSize = ACTIONS.length;
+    this.learningRate = Math.max(0.0001, Math.min(0.2, Number(options.learningRate) || 0.012));
+    this.l2 = Math.max(0, Math.min(0.1, Number(options.l2) || 0.0001));
+    this.gradientClip = Math.max(0.1, Math.min(10, Number(options.gradientClip) || 1));
+    this.rng = options.rng || new SeededRandom(options.seed == null ? 0x39a9b17 : options.seed);
+    this.w1 = zeros(this.hiddenSize, this.inputSize);
+    this.b1 = vectorZeros(this.hiddenSize);
+    this.w2 = zeros(this.outputSize, this.hiddenSize);
+    this.b2 = vectorZeros(this.outputSize);
+    this.updates = 0;
+    this.lossEma = null;
+    this._init();
+  }
+
+  _init() {
+    const limit1 = Math.sqrt(6 / (this.inputSize + this.hiddenSize));
+    const limit2 = Math.sqrt(6 / (this.hiddenSize + this.outputSize));
+    for (let i = 0; i < this.hiddenSize; i += 1) for (let j = 0; j < this.inputSize; j += 1) this.w1[i][j] = (this.rng.next() * 2 - 1) * limit1;
+    for (let i = 0; i < this.outputSize; i += 1) for (let j = 0; j < this.hiddenSize; j += 1) this.w2[i][j] = (this.rng.next() * 2 - 1) * limit2;
+  }
+
+  _forward(features) {
+    if (!Array.isArray(features) || features.length !== this.inputSize) throw new Error(`expected ${this.inputSize} features`);
+    const x = features.map((v) => clamp01(v));
+    const hidden = this.w1.map((row, i) => Math.tanh(row.reduce((sum, w, j) => sum + w * x[j], this.b1[i])));
+    const logits = this.w2.map((row, i) => row.reduce((sum, w, j) => sum + w * hidden[j], this.b2[i]));
+    return { x, hidden, logits };
+  }
+
+  predict(features, mask = null) {
+    const { hidden, logits } = this._forward(features);
+    const allowed = Array.from({ length: this.outputSize }, (_, i) => !mask || mask[i] !== false);
+    if (!allowed.some(Boolean)) allowed[0] = true;
+    const masked = logits.map((value, i) => allowed[i] ? value : -1e9);
+    const max = Math.max(...masked);
+    const exps = masked.map((value, i) => allowed[i] ? Math.exp(value - max) : 0);
+    const sum = exps.reduce((a, b) => a + b, 0) || 1;
+    const probabilities = exps.map((value) => value / sum);
+    let best = 0;
+    for (let i = 1; i < probabilities.length; i += 1) if (probabilities[i] > probabilities[best]) best = i;
+    const entropy = -probabilities.reduce((acc, p) => p > 0 ? acc + p * Math.log(p) : acc, 0) / Math.log(this.outputSize);
+    return { action: ACTIONS[best], actionIndex: best, confidence: probabilities[best], probabilities, entropy: clamp01(entropy), hidden };
+  }
+
+  train(features, target, options = {}) {
+    const targetDistribution = normalizeTarget(target);
+    const { x, hidden, logits } = this._forward(features);
+    const max = Math.max(...logits);
+    const exps = logits.map((value) => Math.exp(value - max));
+    const sum = exps.reduce((a, b) => a + b, 0) || 1;
+    const probabilities = exps.map((value) => value / sum);
+    const eps = 1e-12;
+    const loss = -targetDistribution.reduce((acc, t, i) => acc + t * Math.log(Math.max(eps, probabilities[i])), 0);
+    const dLogits = probabilities.map((p, i) => p - targetDistribution[i]);
+    const dHidden = vectorZeros(this.hiddenSize);
+    for (let i = 0; i < this.outputSize; i += 1) {
+      for (let j = 0; j < this.hiddenSize; j += 1) dHidden[j] += dLogits[i] * this.w2[i][j];
+    }
+    const rate = Math.max(0.00001, Math.min(0.2, Number(options.learningRate) || this.learningRate));
+    for (let i = 0; i < this.outputSize; i += 1) {
+      for (let j = 0; j < this.hiddenSize; j += 1) {
+        const grad = clip(dLogits[i] * hidden[j] + this.l2 * this.w2[i][j], this.gradientClip);
+        this.w2[i][j] -= rate * grad;
+      }
+      this.b2[i] -= rate * clip(dLogits[i], this.gradientClip);
+    }
+    for (let j = 0; j < this.hiddenSize; j += 1) {
+      const local = dHidden[j] * (1 - hidden[j] * hidden[j]);
+      for (let k = 0; k < this.inputSize; k += 1) {
+        const grad = clip(local * x[k] + this.l2 * this.w1[j][k], this.gradientClip);
+        this.w1[j][k] -= rate * grad;
+      }
+      this.b1[j] -= rate * clip(local, this.gradientClip);
+    }
+    this.updates += 1;
+    this.lossEma = this.lossEma == null ? loss : this.lossEma * 0.95 + loss * 0.05;
+    return { loss, probabilities };
+  }
+
+  clone() {
+    const copy = new StudentNetwork({ hiddenSize: this.hiddenSize, learningRate: this.learningRate, l2: this.l2, gradientClip: this.gradientClip, seed: 1 });
+    copy.restore(this.export());
+    return copy;
+  }
+
+  export() {
+    const round = (value) => Number(Number(value).toFixed(7));
+    return {
+      schemaVersion: 1,
+      inputSize: this.inputSize,
+      hiddenSize: this.hiddenSize,
+      outputSize: this.outputSize,
+      learningRate: this.learningRate,
+      l2: this.l2,
+      gradientClip: this.gradientClip,
+      updates: this.updates,
+      lossEma: this.lossEma,
+      w1: this.w1.map((row) => row.map(round)),
+      b1: this.b1.map(round),
+      w2: this.w2.map((row) => row.map(round)),
+      b2: this.b2.map(round)
+    };
+  }
+
+  restore(data) {
+    if (!data || data.schemaVersion !== 1 || Number(data.inputSize) !== this.inputSize || Number(data.outputSize) !== this.outputSize || Number(data.hiddenSize) !== this.hiddenSize) throw new Error('incompatible student model');
+    const matrix = (value, rows, cols) => {
+      if (!Array.isArray(value) || value.length !== rows || value.some((row) => !Array.isArray(row) || row.length !== cols || row.some((v) => !Number.isFinite(Number(v))))) throw new Error('invalid student weights');
+      return value.map((row) => row.map(Number));
+    };
+    const vector = (value, size) => {
+      if (!Array.isArray(value) || value.length !== size || value.some((v) => !Number.isFinite(Number(v)))) throw new Error('invalid student bias');
+      return value.map(Number);
+    };
+    this.w1 = matrix(data.w1, this.hiddenSize, this.inputSize);
+    this.b1 = vector(data.b1, this.hiddenSize);
+    this.w2 = matrix(data.w2, this.outputSize, this.hiddenSize);
+    this.b2 = vector(data.b2, this.outputSize);
+    this.updates = Math.max(0, Number(data.updates) || 0);
+    this.lossEma = data.lossEma == null ? null : finite(data.lossEma, null);
+    return this;
+  }
+
+  status() { return { architecture: `${this.inputSize}-${this.hiddenSize}-${this.outputSize}`, updates: this.updates, learningRate: this.learningRate, l2: this.l2, gradientClip: this.gradientClip, lossEma: this.lossEma }; }
+}
+
+class PrioritizedReplayBuffer {
+  constructor(options = {}) {
+    this.capacity = Math.max(32, Math.min(4096, Number(options.capacity) || 512));
+    this.alpha = Math.max(0, Math.min(2, Number(options.alpha) || 0.7));
+    this.rng = options.rng || new SeededRandom(options.seed == null ? 0x7419 : options.seed);
+    this.samples = [];
+    this.nextId = 1;
+  }
+
+  add(sample = {}, priority = null) {
+    if (!Array.isArray(sample.features) || sample.features.length !== FEATURE_NAMES.length) throw new Error('replay sample requires 32 features');
+    const resolvedPriority = Math.max(0.001, finite(priority, Math.abs(finite(sample.reward, 0)) + finite(sample.loss, 0) + 0.05));
+    const row = { ...sample, id: sample.id || `replay-${this.nextId++}`, features: sample.features.map((v) => clamp01(v)), priority: resolvedPriority, addedAt: sample.addedAt || Date.now() };
+    this.samples.push(row);
+    if (this.samples.length > this.capacity) this.samples.splice(0, this.samples.length - this.capacity);
+    return row;
+  }
+
+  updatePriority(id, priority) {
+    const row = this.samples.find((sample) => sample.id === id);
+    if (!row) return false;
+    row.priority = Math.max(0.001, finite(priority, row.priority));
+    return true;
+  }
+
+  sample(count = 8) {
+    const n = Math.max(0, Math.min(this.samples.length, Number(count) || 0));
+    if (!n) return [];
+    const weights = this.samples.map((sample) => Math.pow(Math.max(0.001, sample.priority), this.alpha));
+    const total = weights.reduce((a, b) => a + b, 0) || 1;
+    const out = [];
+    for (let k = 0; k < n; k += 1) {
+      let needle = this.rng.next() * total;
+      let selected = this.samples[this.samples.length - 1];
+      for (let i = 0; i < this.samples.length; i += 1) {
+        needle -= weights[i];
+        if (needle <= 0) { selected = this.samples[i]; break; }
+      }
+      out.push(selected);
+    }
+    return out;
+  }
+
+  validationSet(limit = 64) {
+    const rows = this.samples.filter((sample, index) => index % 5 === 0);
+    return rows.slice(Math.max(0, rows.length - Math.max(1, Number(limit) || 64)));
+  }
+
+  export(limit = 128) {
+    const rows = this.samples.slice(-Math.max(0, Math.min(this.capacity, Number(limit) || 0))).map((sample) => ({ ...sample }));
+    return { schemaVersion: 1, capacity: this.capacity, nextId: this.nextId, samples: rows };
+  }
+
+  restore(data) {
+    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.samples)) throw new Error('invalid replay state');
+    this.samples = [];
+    for (const sample of data.samples.slice(-this.capacity)) this.add(sample, sample.priority);
+    this.nextId = Math.max(this.nextId, Number(data.nextId) || this.nextId);
+    return this;
+  }
+
+  status() { return { size: this.samples.length, capacity: this.capacity, fillRatio: this.samples.length / this.capacity }; }
+}
+
+module.exports = { ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom, clamp01, hash01, normalizeTarget };
+
+},
+"src/brain/governance.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
+function mean(values) { return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; }
+function std(values) { if (!values.length) return 0; const m = mean(values); return Math.sqrt(mean(values.map((v) => Math.pow(v - m, 2)))); }
+
+class BrainQualityMonitor {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.windowSize = Math.max(12, Math.min(200, Number(options.windowSize) || 24));
+    this.minOutcomes = Math.max(6, Math.min(this.windowSize, Number(options.minOutcomes) || 12));
+    this.overconfidenceThreshold = Math.max(0.5, Math.min(0.99, Number(options.overconfidenceThreshold) || 0.88));
+    this.rewardDropThreshold = Math.max(0.05, Math.min(0.5, Number(options.rewardDropThreshold) || 0.15));
+    this.quarantineMs = Math.max(60000, Math.min(24 * 60 * 60 * 1000, Number(options.quarantineMs) || 20 * 60 * 1000));
+    this.outcomes = [];
+    this.state = 'warming';
+    this.score = 50;
+    this.quarantineUntil = 0;
+    this.lastEvaluation = null;
+    this.healthyChampion = null;
+  }
+
+  record(outcome = {}) {
+    const row = {
+      at: finite(outcome.at, this.now()),
+      reward: Math.max(-1, Math.min(1, finite(outcome.reward))),
+      confidence: clamp01(outcome.confidence),
+      loss: Math.max(0, finite(outcome.loss)),
+      safetyIncident: outcome.safetyIncident === true,
+      death: outcome.death === true,
+      partyRegression: outcome.partyRegression === true
+    };
+    this.outcomes.push(row);
+    if (this.outcomes.length > this.windowSize) this.outcomes.splice(0, this.outcomes.length - this.windowSize);
+    if (row.safetyIncident) this.quarantineUntil = Math.max(this.quarantineUntil, this.now() + this.quarantineMs);
+    return this.evaluate();
+  }
+
+  evaluate() {
+    const now = this.now();
+    const rows = this.outcomes;
+    if (now < this.quarantineUntil) {
+      this.state = 'quarantine';
+      this.score = 0;
+    } else if (rows.length < this.minOutcomes) {
+      this.state = 'warming';
+      this.score = Math.round(40 + 20 * rows.length / this.minOutcomes);
+    } else {
+      const half = Math.max(1, Math.floor(rows.length / 2));
+      const older = rows.slice(0, half);
+      const recent = rows.slice(half);
+      const olderReward = mean(older.map((row) => row.reward));
+      const recentReward = mean(recent.map((row) => row.reward));
+      const rewardDrop = olderReward - recentReward;
+      const highConfidenceNegative = recent.filter((row) => row.confidence >= this.overconfidenceThreshold && row.reward < 0).length / Math.max(1, recent.length);
+      const volatility = std(recent.map((row) => row.reward));
+      const safetyIncidents = recent.filter((row) => row.safetyIncident || row.death || row.partyRegression).length;
+      const avgLoss = mean(recent.map((row) => row.loss));
+      let penalty = 0;
+      penalty += Math.max(0, rewardDrop) * 140;
+      penalty += highConfidenceNegative * 45;
+      penalty += Math.min(1, volatility) * 20;
+      penalty += Math.min(3, safetyIncidents) * 18;
+      penalty += Math.min(2, avgLoss) * 8;
+      this.score = Math.max(0, Math.min(100, Math.round(92 - penalty)));
+      if (safetyIncidents > 0 || rewardDrop >= this.rewardDropThreshold * 1.5 || highConfidenceNegative >= 0.5) this.state = 'degraded';
+      else if (rewardDrop >= this.rewardDropThreshold * 0.5 || highConfidenceNegative >= 0.25 || volatility >= 0.7) this.state = 'watch';
+      else this.state = 'healthy';
+      this.lastEvaluation = { at: now, olderReward, recentReward, rewardDrop, highConfidenceNegative, volatility, safetyIncidents, avgLoss };
+    }
+    return this.status();
+  }
+
+  autonomyAllowed() { return this.state === 'healthy'; }
+  challengerAllowed() { return this.state === 'healthy'; }
+  learningRateFactor() {
+    if (this.state === 'watch') return 0.75;
+    if (this.state === 'degraded') return 0.42;
+    if (this.state === 'quarantine') return 0.18;
+    return 1;
+  }
+  confidenceAdjustment() {
+    if (this.state === 'watch') return 0.05;
+    if (this.state === 'degraded' || this.state === 'quarantine') return 1;
+    return 0;
+  }
+  setHealthyChampion(snapshot) { this.healthyChampion = snapshot || null; }
+
+  export() {
+    return {
+      schemaVersion: 1,
+      state: this.state,
+      score: this.score,
+      quarantineUntil: this.quarantineUntil,
+      outcomes: this.outcomes.slice(),
+      lastEvaluation: this.lastEvaluation,
+      healthyChampion: this.healthyChampion
+    };
+  }
+
+  restore(data) {
+    if (!data || data.schemaVersion !== 1) throw new Error('invalid quality state');
+    this.outcomes = Array.isArray(data.outcomes) ? data.outcomes.slice(-this.windowSize) : [];
+    this.quarantineUntil = Math.max(0, finite(data.quarantineUntil));
+    this.healthyChampion = data.healthyChampion || null;
+    this.evaluate();
+    return this;
+  }
+
+  status() {
+    return {
+      state: this.state,
+      score: this.score,
+      outcomeCount: this.outcomes.length,
+      windowSize: this.windowSize,
+      minOutcomes: this.minOutcomes,
+      overconfidenceThreshold: this.overconfidenceThreshold,
+      rewardDropThreshold: this.rewardDropThreshold,
+      quarantineUntil: this.quarantineUntil || null,
+      quarantineRemainingMs: Math.max(0, this.quarantineUntil - this.now()),
+      autonomyAllowed: this.autonomyAllowed(),
+      challengerAllowed: this.challengerAllowed(),
+      learningRateFactor: this.learningRateFactor(),
+      confidenceAdjustment: this.confidenceAdjustment(),
+      lastEvaluation: this.lastEvaluation,
+      healthyChampionAvailable: !!this.healthyChampion
+    };
+  }
+}
+
+class BrainLeague {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.minSamples = Math.max(20, Number(options.minSamples) || 80);
+    this.minUpdates = Math.max(20, Number(options.minUpdates) || 120);
+    this.minTeacherAgreement = Math.max(0.4, Math.min(1, Number(options.minTeacherAgreement) || 0.6));
+    this.minOutcomes = Math.max(4, Number(options.minOutcomes) || 12);
+    this.challengerTraffic = Math.max(0.01, Math.min(0.5, Number(options.challengerTraffic) || 0.2));
+    this.challengeMinOutcomes = Math.max(4, Number(options.challengeMinOutcomes) || 8);
+    this.probationMinOutcomes = Math.max(4, Number(options.probationMinOutcomes) || 12);
+    this.rollbackRewardDrop = Math.max(0.05, Math.min(0.5, Number(options.rollbackRewardDrop) || 0.12));
+    this.validationImprovement = Math.max(0.001, Math.min(0.5, Number(options.validationImprovement) || 0.03));
+    this.state = 'shadow';
+    this.champion = null;
+    this.challenger = null;
+    this.rollback = null;
+    this.challenge = null;
+    this.probation = null;
+    this.decisionCounter = 0;
+    this.lastEvent = null;
+  }
+
+  eligible(metrics = {}) {
+    return finite(metrics.samples) >= this.minSamples && finite(metrics.updates) >= this.minUpdates && finite(metrics.teacherAgreement) >= this.minTeacherAgreement && finite(metrics.outcomes) >= this.minOutcomes && Number.isFinite(Number(metrics.validationLoss));
+  }
+
+  _snapshot(model, metrics) {
+    return { at: this.now(), model: model.export(), metrics: { ...metrics } };
+  }
+
+  consider(model, metrics = {}, quality = null) {
+    if (!model || !this.eligible(metrics)) return { changed: false, reason: 'NOT_ELIGIBLE' };
+    if (quality && quality.challengerAllowed === false) return { changed: false, reason: 'QUALITY_BLOCKED' };
+    if (!this.champion) {
+      this.champion = this._snapshot(model, metrics);
+      this.state = 'champion';
+      this.lastEvent = { at: this.now(), event: 'CHAMPION_CREATED', metrics: { ...metrics } };
+      return { changed: true, reason: 'FIRST_CHAMPION' };
+    }
+    if (this.challenger || this.probation) return { changed: false, reason: 'LEAGUE_BUSY' };
+    const championLoss = finite(this.champion.metrics && this.champion.metrics.validationLoss, Infinity);
+    const challengerLoss = finite(metrics.validationLoss, Infinity);
+    if (!Number.isFinite(championLoss) || !(challengerLoss <= championLoss * (1 - this.validationImprovement))) return { changed: false, reason: 'NO_VALIDATION_IMPROVEMENT' };
+    this.challenger = this._snapshot(model, metrics);
+    this.challenge = { startedAt: this.now(), challengerRewards: [], championRewards: [], safetyIncidents: 0 };
+    this.state = 'challenge';
+    this.lastEvent = { at: this.now(), event: 'CHALLENGE_STARTED', championLoss, challengerLoss };
+    return { changed: true, reason: 'CHALLENGE_STARTED' };
+  }
+
+  choosePolicy() {
+    this.decisionCounter += 1;
+    if (!this.challenger || this.state !== 'challenge') return 'champion';
+    const bucket = (this.decisionCounter % 100) / 100;
+    return bucket < this.challengerTraffic ? 'challenger' : 'champion';
+  }
+
+  modelFor(policy) {
+    if (policy === 'challenger' && this.challenger) return this.challenger.model;
+    if (this.champion) return this.champion.model;
+    return null;
+  }
+
+  recordOutcome(policy, reward, options = {}) {
+    const value = Math.max(-1, Math.min(1, finite(reward)));
+    const safetyIncident = options.safetyIncident === true;
+    if (this.state === 'challenge' && this.challenge) {
+      if (safetyIncident) {
+        this.challenge.safetyIncidents += 1;
+        return this.rejectChallenger('SAFETY_INCIDENT');
+      }
+      const list = policy === 'challenger' ? this.challenge.challengerRewards : this.challenge.championRewards;
+      list.push(value);
+      if (this.challenge.challengerRewards.length >= this.challengeMinOutcomes) {
+        const challengerMean = mean(this.challenge.challengerRewards);
+        const championMean = this.challenge.championRewards.length ? mean(this.challenge.championRewards) : finite(this.champion.metrics && this.champion.metrics.meanReward, 0);
+        if (challengerMean + this.rollbackRewardDrop < championMean) return this.rejectChallenger('CANARY_REWARD_REGRESSION');
+        this.rollback = this.champion;
+        this.champion = this.challenger;
+        this.challenger = null;
+        this.probation = { startedAt: this.now(), baselineReward: championMean, rewards: [], safetyIncidents: 0 };
+        this.challenge = null;
+        this.state = 'probation';
+        this.lastEvent = { at: this.now(), event: 'CHALLENGER_PROMOTED_TO_PROBATION', challengerMean, championMean };
+        return { changed: true, reason: 'PROBATION_STARTED' };
+      }
+    } else if (this.state === 'probation' && this.probation) {
+      if (safetyIncident) {
+        this.probation.safetyIncidents += 1;
+        return this.rollbackChampion('SAFETY_INCIDENT');
+      }
+      this.probation.rewards.push(value);
+      const current = mean(this.probation.rewards);
+      if (this.probation.rewards.length >= 3 && current < this.probation.baselineReward - this.rollbackRewardDrop) return this.rollbackChampion('PROBATION_REWARD_DROP');
+      if (this.probation.rewards.length >= this.probationMinOutcomes) {
+        this.rollback = null;
+        this.probation = null;
+        this.state = 'champion';
+        this.lastEvent = { at: this.now(), event: 'CHAMPION_CONFIRMED', reward: current };
+        return { changed: true, reason: 'CHAMPION_CONFIRMED' };
+      }
+    }
+    return { changed: false, reason: 'OUTCOME_RECORDED' };
+  }
+
+  rejectChallenger(reason) {
+    this.challenger = null;
+    this.challenge = null;
+    this.state = this.champion ? 'champion' : 'shadow';
+    this.lastEvent = { at: this.now(), event: 'CHALLENGER_REJECTED', reason };
+    return { changed: true, reason };
+  }
+
+  rollbackChampion(reason) {
+    if (this.rollback) this.champion = this.rollback;
+    this.rollback = null;
+    this.challenger = null;
+    this.challenge = null;
+    this.probation = null;
+    this.state = this.champion ? 'champion' : 'shadow';
+    this.lastEvent = { at: this.now(), event: 'CHAMPION_ROLLED_BACK', reason };
+    return { changed: true, reason };
+  }
+
+  export() {
+    return { schemaVersion: 1, state: this.state, champion: this.champion, challenger: this.challenger, rollback: this.rollback, challenge: this.challenge, probation: this.probation, decisionCounter: this.decisionCounter, lastEvent: this.lastEvent };
+  }
+
+  restore(data) {
+    if (!data || data.schemaVersion !== 1) throw new Error('invalid league state');
+    this.state = ['shadow', 'champion', 'challenge', 'probation'].includes(data.state) ? data.state : 'shadow';
+    this.champion = data.champion || null;
+    this.challenger = data.challenger || null;
+    this.rollback = data.rollback || null;
+    this.challenge = data.challenge || null;
+    this.probation = data.probation || null;
+    this.decisionCounter = Math.max(0, finite(data.decisionCounter));
+    this.lastEvent = data.lastEvent || null;
+    return this;
+  }
+
+  status() {
+    return {
+      state: this.state,
+      championAvailable: !!this.champion,
+      challengerAvailable: !!this.challenger,
+      rollbackAvailable: !!this.rollback,
+      challenge: this.challenge ? { startedAt: this.challenge.startedAt, challengerOutcomes: this.challenge.challengerRewards.length, championOutcomes: this.challenge.championRewards.length, safetyIncidents: this.challenge.safetyIncidents } : null,
+      probation: this.probation ? { startedAt: this.probation.startedAt, outcomes: this.probation.rewards.length, baselineReward: this.probation.baselineReward, safetyIncidents: this.probation.safetyIncidents } : null,
+      thresholds: { minSamples: this.minSamples, minUpdates: this.minUpdates, minTeacherAgreement: this.minTeacherAgreement, minOutcomes: this.minOutcomes, challengerTraffic: this.challengerTraffic, challengeMinOutcomes: this.challengeMinOutcomes, probationMinOutcomes: this.probationMinOutcomes, rollbackRewardDrop: this.rollbackRewardDrop, validationImprovement: this.validationImprovement },
+      lastEvent: this.lastEvent
+    };
+  }
+}
+
+const SECRET_KEY = /(token|secret|password|passwd|write[_-]?key|api[_-]?key|authorization|cookie|session)/i;
+function sanitize(value, depth = 0) {
+  if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.length > 1000 ? value.slice(0, 1000) + '…' : value;
+  if (depth > 4) return '[depth-limit]';
+  if (Array.isArray(value)) return value.slice(0, 30).map((item) => sanitize(item, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [key, child] of Object.entries(value).slice(0, 50)) out[key] = SECRET_KEY.test(key) ? '[redacted]' : sanitize(child, depth + 1);
+    return out;
+  }
+  return String(value);
+}
+
+class BrainDiary {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.capacity = Math.max(20, Math.min(200, Number(options.capacity) || 80));
+    this.enabled = options.enabled !== false;
+    this.entries = [];
+    this.nextId = 1;
+  }
+
+  add(type, data = {}, severity = 'info') {
+    if (!this.enabled) return null;
+    const entry = { id: `brain-diary-${this.nextId++}`, at: this.now(), type: String(type || 'event'), severity, data: sanitize(data) };
+    this.entries.push(entry);
+    if (this.entries.length > this.capacity) this.entries.splice(0, this.entries.length - this.capacity);
+    return entry;
+  }
+
+  researchSummary(options = {}) {
+    const hours = Math.max(1, Math.min(168, Number(options.hours) || 24));
+    const since = this.now() - hours * 60 * 60 * 1000;
+    const rows = this.entries.filter((entry) => entry.at >= since);
+    const byType = {};
+    for (const row of rows) byType[row.type] = (byType[row.type] || 0) + 1;
+    const highlights = rows.slice(-Math.max(1, Math.min(20, Number(options.maxHighlights) || 10))).map((row) => ({ id: row.id, at: row.at, type: row.type, severity: row.severity, data: row.data }));
+    return { profile: options.profile || 'development', hours, entries: rows.length, byType, highlights };
+  }
+
+  export() { return { schemaVersion: 1, enabled: this.enabled, capacity: this.capacity, nextId: this.nextId, entries: this.entries.slice() }; }
+  restore(data) {
+    if (!data || data.schemaVersion !== 1) throw new Error('invalid brain diary');
+    this.enabled = data.enabled !== false;
+    this.entries = Array.isArray(data.entries) ? data.entries.slice(-this.capacity).map((entry) => sanitize(entry)) : [];
+    this.nextId = Math.max(1, finite(data.nextId, this.entries.length + 1));
+    return this;
+  }
+  status() { return { enabled: this.enabled, entries: this.entries.length, capacity: this.capacity, recent: this.entries.slice(-10) }; }
+}
+
+module.exports = { BrainQualityMonitor, BrainLeague, BrainDiary, sanitize, mean, std };
+
+},
+"src/brain/reward.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp(value, min, max) { return Math.max(min, Math.min(max, finite(value))); }
+function ratio(value, max, fallback = 1) { const d = finite(max, 0); return d > 0 ? clamp(finite(value) / d, 0, 1) : fallback; }
+
+class StrategicRewardModel {
+  constructor(options = {}) {
+    this.outcomeMs = Math.max(5000, Math.min(30 * 60 * 1000, Number(options.outcomeMs) || 180000));
+  }
+
+  metrics(context = {}) {
+    const snapshot = context.snapshot || {};
+    const c = snapshot.character || {};
+    const inventory = Array.isArray(c.inventory) ? c.inventory : [];
+    const capacity = Math.max(1, inventory.length || 42);
+    const occupied = inventory.filter(Boolean).length;
+    const performance = context.performance && context.performance.current || {};
+    const rates = performance.rates || {};
+    const party = context.party && Array.isArray(context.party.members) ? context.party.members : [];
+    const partySize = Math.max(1, party.length || 1);
+    const partyAlive = party.filter((member) => member && member.rip !== true).length || 1;
+    const progress = context.progress || {};
+    const movement = context.movement || {};
+    const persistence = context.persistence || {};
+    return {
+      xpPerHour: Math.max(0, finite(rates.xpPerHour)),
+      goldPerHour: finite(rates.goldPerHour),
+      freeInventoryRatio: clamp((capacity - occupied) / capacity, 0, 1),
+      hpRatio: ratio(c.hp, c.max_hp),
+      mpRatio: ratio(c.mp, c.max_mp),
+      partyAliveRatio: clamp(partyAlive / partySize, 0, 1),
+      deathsPerHour: Math.max(0, finite(rates.deathsPerHour)),
+      movementHealthy: movement.circuitOpen ? 0 : 1,
+      persistenceHealthy: persistence.saveCircuitOpen || finite(persistence.loadFailureStreak) > 0 ? 0 : 1,
+      progressHealthy: progress.state === 'DEGRADED' ? 0 : progress.state === 'WATCH' ? 0.5 : 1,
+      rip: c.rip === true
+    };
+  }
+
+  evaluate(before = {}, after = {}, options = {}) {
+    const rel = (a, b, floor = 1) => clamp((finite(b) - finite(a)) / Math.max(floor, Math.abs(finite(a))), -1, 1);
+    let reward = 0;
+    const components = {};
+    components.xp = rel(before.xpPerHour, after.xpPerHour, 1000) * 0.34;
+    components.gold = rel(before.goldPerHour, after.goldPerHour, 100) * 0.12;
+    components.inventory = clamp(finite(after.freeInventoryRatio) - finite(before.freeInventoryRatio), -1, 1) * 0.10;
+    components.hp = clamp(finite(after.hpRatio) - finite(before.hpRatio), -1, 1) * 0.08;
+    components.party = clamp(finite(after.partyAliveRatio) - finite(before.partyAliveRatio), -1, 1) * 0.12;
+    components.deaths = -clamp(finite(after.deathsPerHour) - finite(before.deathsPerHour), 0, 5) * 0.16;
+    components.movement = (finite(after.movementHealthy) - finite(before.movementHealthy)) * 0.06;
+    components.persistence = (finite(after.persistenceHealthy) - finite(before.persistenceHealthy)) * 0.03;
+    components.progress = (finite(after.progressHealthy) - finite(before.progressHealthy)) * 0.05;
+    for (const value of Object.values(components)) reward += value;
+    if (after.rip && !before.rip) { components.deathEvent = -0.65; reward -= 0.65; }
+    if (options.safetyIncident === true) { components.safetyIncident = -0.75; reward -= 0.75; }
+    if (options.actionError === true) { components.actionError = -0.15; reward -= 0.15; }
+    reward = clamp(reward, -1, 1);
+    return { reward, components };
+  }
+
+  status() { return { outcomeMs: this.outcomeMs, rewardRange: [-1, 1] }; }
+}
+
+module.exports = { StrategicRewardModel };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
