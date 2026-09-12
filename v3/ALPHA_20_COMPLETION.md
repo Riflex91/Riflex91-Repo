@@ -1,23 +1,24 @@
 # Alpha.20 — Adaptive Party Lifecycle
 
-Release target: `3.0.0-alpha.20.0`
+Release: `3.0.0-alpha.20.0`
 
 ## Phase status
 
 - Alpha.19 production confirmation: **FULL CONFIRMED**.
-- Alpha.20 core implementation: **IN DEVELOPMENT / NOT YET MERGED**.
+- Alpha.20 core: **MERGED** via PR #71.
+- Alpha.20 exact certified core head: `6e2ba60b05dcf14e338e2a8bf5ecd8eceebeaede`.
+- Alpha.20 core merge on `main`: `63d16e2798f1275a7f1bcc8f9028c27d0789e0a6`.
+- Alpha.20 core merge tree: `0778b2b6e76d47f3f7cede46d91c0c38471a1661`.
+- Core merge parents: previous confirmed `main` `144d83a92cf00d178fb8902e9cd6c70b10e5c2ea` + exact certified PR head `6e2ba60b05dcf14e338e2a8bf5ecd8eceebeaede`.
+- Alpha.20 combined four-character live-gate preparation: **IN PREPARATION / NOT YET MERGED**.
 - Alpha.20 production confirmation: **NOT YET CONFIRMED**.
-- Phase status remains **NOT FULL CONFIRMED** until the core is exact-head certified and merged, a separate combined four-character production live gate is completed and reviewed, and a documentation-only confirmation PR is exact-head certified and merged.
-- Default runtime remains `shadow`.
-- Party transition authority remains default-off.
-- Development rotation authority remains separately default-off.
-- Paladin aura authority remains separately default-off.
-- Strategic Brain gameplay authority remains disabled.
-- Cross-map party routing, broad `smart_move()` autonomy and server changes remain disabled.
+- Alpha.20 remains **NOT FULL CONFIRMED** until live-gate preparation is exact-head certified and merged, one genuine four-character production run is reviewed, and a separate confirmation PR is exact-head certified and merged.
+
+Default runtime remains `shadow`. Party transition, Development rotation and Paladin aura authority remain independently default-off. Strategic Brain gameplay authority, cross-map party routing, broad `smart_move()` autonomy and server changes remain disabled.
 
 ## Goal
 
-Alpha.20 turns the existing measured Party Orchestrator into a controlled adaptive lifecycle for one Merchant plus three combat characters without allowing projected/theoretical scores to replace real production evidence.
+Alpha.20 turns the measured Party Orchestrator into a controlled adaptive lifecycle for one Merchant plus three combat characters without allowing theory/projected scores to replace real production evidence.
 
 Lifecycle states:
 
@@ -26,93 +27,50 @@ Lifecycle states:
 - `DEVELOPMENT`
 - `PROMOTION_CANDIDATE`
 
-The Merchant remains the party controller. At most one combat character may occupy the Development slot at a time.
+At most one combat character may occupy the Development slot.
 
 ## Current score versus projected score
 
-Alpha.20 enforces two separate evidence classes.
+`projectedScore` is planning evidence only. It may identify a Development candidate and may justify one bounded controlled training rotation when all training gates pass, but it can never directly authorize a permanent replacement.
 
-`projectedScore`:
+`currentScore` is real observed evidence. Permanent promotion requires minimum samples/confidence, safe current survival, observed progression, gear readiness, content safety, superiority over the relevant incumbent and sustained promotion hysteresis.
 
-- is planning evidence only
-- may identify a Development candidate
-- may justify one bounded controlled training rotation when all training safety gates pass
-- can never directly authorize a permanent party replacement
-
-`currentScore`:
-
-- is based on real observed performance evidence
-- requires minimum samples and confidence
-- is the only score class that can prove superiority over an incumbent
-- must remain superior for multiple evaluation windows before promotion
-
-The intended progression is:
+Required progression:
 
 `projected superiority -> DEVELOPMENT -> controlled training -> real observations -> sustained current superiority -> PROMOTION_CANDIDATE -> permanent promotion`
 
-## Development readiness gates
+## Development guardrails
 
-A projected candidate can enter `DEVELOPMENT` only when all controlled planning gates pass.
-
-Default Alpha.20 guardrails include:
+Default Alpha.20 Development gates include:
 
 - maximum Development slots: **1**
 - projected training safety: **>= 90%**
 - expected training XP ratio to incumbent: **>= 75%**
-- content is known/safe for the current controlled context
+- known/safe content
 - no high-risk context
-- no active economy emergency
-- no active combat transition
-- incoming character is available and not dead
-- target composition remains exactly Merchant plus three distinct combat characters
-
-A Development candidate that is actively training stays distinguishable from ordinary `ACTIVE` members so that real promotion evidence can be accumulated without allowing every active character to self-promote.
-
-## Permanent promotion gates
-
-Permanent promotion requires current measured evidence. Projected superiority is ignored for this authorization decision.
-
-Default requirements include:
-
-- current performance samples meet the minimum evidence count
-- current confidence meets the minimum confidence threshold
-- current score exceeds the relevant incumbent by the configured minimum gain
-- survival score is at or above the promotion safety threshold
-- observed XP ratio is at or above the promotion progression threshold
-- gear readiness is positively observed
-- content remains safe
-- no high-risk or economy-emergency context
-- superiority persists for the configured promotion hysteresis windows
-
-If the evidence disappears, the promotion streak resets instead of being carried forward optimistically.
+- no economy emergency
+- no transition during combat/emergency recovery
+- incoming character available and alive
+- exact Merchant + three distinct combat-character target shape
 
 ## Bounded Development session
 
-A controlled Development rotation is a temporary, persistent operation rather than an unbounded composition change.
+A verified Development rotation persists:
 
-After a verified Development rotation, Alpha.20 persists:
-
-- candidate name
+- candidate
 - temporarily displaced incumbent
-- exact original party names
-- exact training party names
-- start time
-- hard expiry time
-- frozen incumbent current-score baseline
-- frozen incumbent projected-score/progress baselines
-- frozen incumbent XP/h baseline
+- exact original party
+- exact training party
+- start and hard expiry
+- frozen incumbent current/projected/progression/XP baselines
 
-The default Development window is bounded and cannot be configured outside the hard safety range.
+Safe outcomes are limited to:
 
-While the exact training composition remains observed and the window has not expired, no additional party transition is permitted by the Development session.
+1. **Measured promotion** — sustained real current evidence promotes the active trainee; no unnecessary second raw transition is issued.
+2. **Controlled return** — expiry without measured promotion plans an exact return to the original party through the same controlled transition boundary.
+3. **Fail closed** — unexpected party drift performs no blind recovery action and leaves reconciliation evidence visible.
 
-The session has only three safe outcomes:
-
-1. **Measured promotion:** sustained real current evidence makes the active trainee a `PROMOTION_CANDIDATE`; the training composition becomes the accepted permanent composition without an unnecessary second raw transition.
-2. **Controlled return:** the window expires without measured promotion; Alpha.20 plans an exact return to the original party and executes it only through the same controlled transition gates.
-3. **Fail closed:** the observed party drifts away from both the exact training composition and exact original composition; Alpha.20 records the drift, performs no blind recovery action and keeps the session visible for reconciliation.
-
-The Development session is persisted across restart. Restart never turns an uncertain composition into an automatic stop/start/invite sequence.
+The session survives restart. Restart never blindly repeats stop/start/invite operations.
 
 ## Controlled party transitions
 
@@ -120,162 +78,156 @@ Required acknowledgement:
 
 `ALPHA20_PARTY_LIFECYCLE`
 
-The acknowledgement alone does not grant all party authority. The controlled parent also requires explicit `allowTransitions:true`, and Development rotations additionally require `allowDevelopmentRotation:true`.
+The ack alone grants nothing. The controlled parent also requires explicit `allowTransitions:true`; Development additionally requires `allowDevelopmentRotation:true`.
 
-Every transition is gated by:
+Every transition requires runtime `active`, Merchant controller, Supervisor `HEALTHY`/`WATCH`, lifecycle circuit closed, no combat/high-risk/emergency/economy emergency, no concurrent/recovering operation, transition hysteresis elapsed and sufficient same-map target state for the lower-level controlled transition executor.
 
-- runtime `active`
-- Merchant controller context
-- Supervisor `HEALTHY` or `WATCH`
-- lifecycle circuit closed
-- no active combat
-- no high-risk context
-- no emergency recovery
-- no active economy emergency
-- no concurrent lifecycle operation
-- no restart reconciliation hold
-- transition hysteresis interval elapsed
-- same-map/known target state sufficient for controlled execution
+The lower-level transition controller owns raw stop/start/invite, postcondition verification and rollback. Alpha.20 borrows that authority only for one bounded operation and removes it in `finally` paths. Legacy direct enable setters are forced closed.
 
-The existing lower-level transition controller still owns the raw stop/start/invite sequence, postcondition verification and rollback behavior. Alpha.20 only grants that child live authority for the duration of one bounded controlled operation and disables it again in `finally` paths.
+## Persistent party circuit
 
-Legacy direct party enable setters are forced closed so older Alpha.12 interfaces cannot bypass the Alpha.20 lifecycle.
-
-## Persistent party circuit breaker
-
-The controlled lifecycle has its own persistent transition-failure circuit independent of other subsystem circuits.
-
-Properties:
-
-- bounded sliding failure window
-- bounded failure threshold
-- bounded cooldown
-- persisted failure timestamps
-- persisted open-until time and reason
-- child transition authority is disabled when the circuit opens
-- restart restores an open circuit instead of silently clearing it
-
-Repeated failed/aborted transitions therefore cannot create an endless stop/start/invite loop.
-
-## Restart reconciliation
-
-Controlled lifecycle operation states are:
-
-- `RESERVED`
-- `EXECUTING`
-- `VERIFYING`
-- `RECOVERING`
-- `COMMITTED`
-- `ABORTED`
-- `FAILED_SAFE`
-
-A persisted nonterminal operation loads as `RECOVERING` and requires explicit reconciliation. It is never blindly retried.
-
-A separately persisted Development session is retained even when controlled authority is disabled, because forgetting which combat character was temporarily rotated would be less safe than preserving the reconciliation evidence.
+Alpha.20 has an independent persistent party-transition circuit breaker with bounded sliding failure window, threshold and cooldown. Open state/failure evidence survives restart and disables child transition authority. Repeated failure therefore cannot create an endless transition loop.
 
 ## Controlled Paladin aura
 
-Paladin aura changes use a separate controlled executor and a separate exact acknowledgement.
+Paladin aura has a separate controlled executor and acknowledgement. Only known `paladin_aura` modes modeled by policy are eligible. Aura authority is default-off, Supervisor/runtime gated and independent of party-transition/Development authority.
 
-Only the known official `paladin_aura` modes modeled by the Party Aura policy are eligible. The controlled executor does not provide general skill authority and cannot authorize party transitions.
+The Merchant cannot legitimately cast a Paladin aura on another character process. The Merchant-hosted combined live gate therefore verifies the aura **authority boundary** (default-off and wrong-ack rejection) but does not invent remote aura execution merely for coverage.
 
-Aura changes remain:
+## Brain boundary
 
-- default-off
-- Supervisor/runtime gated
-- fail-closed
-- independent from Development authority
-- bounded to one known recommended aura action
+The Strategic Brain remains recommendation-only. It cannot directly invoke attack, movement, `smart_move()`, character start/stop, party invite, aura calls, economy actions, irreversible item actions or server changes.
 
-Alpha.20 does not introduce general combat-skill autonomy through this path.
+## Core automated coverage
 
-## Strategic Brain boundary
+The exact Alpha.20 core PR head passed the complete release workflow with **352/352** tests, browser bundle build/smoke and generated-bundle/diff verification. Coverage includes:
 
-The Strategic Brain remains recommendation-only in Alpha.20.
-
-It cannot directly invoke:
-
-- attack
-- movement
-- `smart_move()`
-- character start/stop
-- party invite
-- aura skill calls
-- buy/sell/bank
-- upgrade/compound/exchange/craft
-- server changes
-
-Party lifecycle execution remains deterministic and safety-gated even if future strategic recommendations are present.
-
-## Automated safety coverage
-
-Alpha.20 automated coverage includes:
-
-- projected superiority creates `DEVELOPMENT`, never direct promotion
-- projected training safety below 90% fails closed
-- maximum one Development slot
-- permanent promotion requires sustained real current superiority
-- high-risk/economy emergency resets or suppresses lifecycle progression
-- exact acknowledgement and independent Development authority
-- weakest-incumbent selection for measured promotion
-- transition failure removes child live authority
-- restart never blindly retries uncertain transitions
-- controlled Paladin aura acknowledgement/action boundary
-- minute countdown reporting without owning/changing test timing
-- persistent transition circuit opening after bounded failures
-- circuit restart persistence and exact cooldown/window boundary behavior
-- combat/high-risk/emergency/economy gates cause zero child transition calls
-- active bounded trainee can graduate only from measured current evidence
-- Development session exact expiry/return behavior
-- Development session restart persistence with zero blind action
-- measured Development promotion requires no unnecessary second raw transition
-- unexpected Development party drift fails closed
+- projected superiority -> DEVELOPMENT only
+- >=90% training safety and >=75% expected progression gates
+- one Development slot maximum
+- sustained measured current superiority for promotion
+- high-risk/economy suppression and hysteresis reset
+- exact acknowledgements and independent authorities
+- restart no-blind-retry
+- controlled Paladin aura boundary
+- persistent lifecycle circuit
+- bounded Development exact return/restart/drift behavior
+- measured Development promotion without second raw transition
 - 2500-cycle active Development-session soak
 - 3000-cycle lifecycle soak
 - 2200-cycle controlled planner soak
 - existing 2000-cycle Party Orchestrator soak
 
-The pre-freeze branch test suite currently passes with the browser bundle generated and smoke-tested. The exact PR-head certification still has to be performed after the core PR is frozen.
+## Combined four-character production live gate
 
-## Production confirmation plan
+Required live-gate acknowledgement:
 
-Alpha.20 is not FULL CONFIRMED by automated tests alone.
+`ALPHA20_FULL_LIVE_GATE`
 
-After the exact-head-certified core PR is merged, a separate combined four-character live-gate preparation change must provide a production evidence path with its own acknowledgement.
+Production observation is fixed at **10 minutes**. Shortened test-mode gates are never confirmation eligible.
 
-The combined gate must be conservative and evidence-driven:
+The gate requires a real local Merchant plus exactly three real combat party members and validates release version, Supervisor health, lifecycle/default-off boundaries, Development-slot cardinality, circuits, economy emergency state and legacy-bypass boundaries before any controlled action.
 
-1. run with a real Merchant plus three real combat characters
-2. verify version, Supervisor, worker/runtime freshness and default-off authority
-3. verify no legacy party/aura bypass is active
-4. verify exactly one Development slot maximum
-5. observe real current/projected lifecycle evidence without fabricating superiority
-6. allow a party transition only when the real lifecycle independently justifies it and the operator explicitly authorizes the corresponding controlled budget
-7. never force a Development candidate merely for coverage
-8. never introduce cross-map routing, `smart_move()` or server changes
-9. never perform a party change during active combat, high-risk content, emergency recovery or economy emergency
-10. if a real Development rotation occurs, verify the persisted bounded session and either measured promotion or controlled return according to the real evidence
-11. if a real Paladin aura action is covered, require its own explicit authority and verify the exact known aura transition
-12. return every controlled authority to default-off after the canary portion
-13. complete a production passive observation window with no unexpected action deltas, circuit leaks, state drift or error events
-14. emit a visible start message, once-per-minute remaining-time countdown and finish message without allowing the countdown to influence gate timing or pass/fail semantics
-15. expose a complete copyable result block for post-run review
+It never fabricates a candidate, score, performance sample or party pressure. DEVELOPMENT is optional training and is never forced for coverage.
 
-A shortened test-mode window may be used only for automated gate tests and is never production-confirmation eligible.
+If no real permanent change is currently justified, a stable genuine Merchant+3 production observation can be confirmation eligible with **zero party transitions**. If a real non-active `PROMOTION_CANDIDATE` already exists, skipping that independently justified promotion becomes an explicit confirmation blocker unless the controlled canary safely executes it.
+
+The canary has at most **one** controlled transition attempt. It cannot introduce cross-map routing, `smart_move()`, server changes or Brain action authority. Development rotation additionally needs its separate explicit operator budget.
+
+The passive window requires runtime `shadow`, Farmer off, all controlled party/aura/economy/travel authority off, lifecycle circuit and relevant subsystem circuits closed, Merchant alive and out of combat, valid Merchant+3 party shape, <=1 Development slot, no unexpected action-attempt deltas and no new error events.
+
+The gate is explicitly abortable. A requested abort exits bounded, returns controlled authority to safe/default-off state and can never satisfy confirmation duration.
+
+### Countdown
+
+Production gates emit:
+
+- start message
+- one visible remaining-time message per minute
+- completion message
+
+Countdown reporting is observation-only and cannot change gate timing or pass/fail semantics.
+
+## Recommended first production run
+
+Run the gate on the **Merchant** after live-gate preparation has been exact-head certified and merged to `main`:
+
+```js
+AIO_V3.__runtime.runAlpha20CombinedLiveGate({
+  ack: "ALPHA20_FULL_LIVE_GATE",
+  allowControlledPartyTransition: true,
+  allowDevelopmentRotation: false
+});
+```
+
+This first production run permits one genuinely measured permanent Promotion if the real lifecycle already justifies it, but it **does not authorize a Development training rotation**.
+
+Status while running:
+
+```js
+console.log(AIO_V3.__runtime.alpha20LiveGateStatus());
+```
+
+Explicit safe abort if truly required:
+
+```js
+AIO_V3.__runtime.cancelAlpha20CombinedLiveGate("OPERATOR_CANCELLED");
+```
+
+An aborted run is not confirmation eligible and must later be rerun from the beginning.
+
+After completion:
+
+```js
+console.log(AIO_V3.__runtime.alpha20LiveGateResultText());
+```
+
+Copy the complete block between:
+
+`=== ALPHA20 FULL LIVE GATE RESULT BEGIN ===`
+
+and
+
+`=== ALPHA20 FULL LIVE GATE RESULT END ===`
+
+for review.
+
+Do not manually enable Farmer, Travel, controlled economy, party lifecycle, aura automation or legacy transition authority during the passive observation. Do not force a Promotion/Development candidate merely to obtain coverage.
+
+## Live-gate automated coverage
+
+Live-gate preparation adds tests for:
+
+- exact gate acknowledgement
+- real Merchant + three combat party requirement
+- wrong lifecycle/aura ack cannot leave authority enabled
+- stable full 10-minute four-character production observation with zero fabricated change
+- shortened test mode never confirmation eligible
+- justified but unauthorized Promotion becomes explicit blocker
+- explicitly authorized Promotion executes at most one controlled transition
+- cross-map transition receives zero authority
+- more than one Development slot fails closed before action
+- ISO timestamped error event fails passive observation
+- minute countdown start/9-to-1/finish behavior
+- explicit abort while idle/running
+- abort cannot satisfy confirmation duration
+- Merchant death/combat during passive observation fails closed
+- public Alpha20Runtime exposes hardened gate status/result/cancel surfaces
+
+The current integrated prep branch passes **368/368** tests with browser bundle **92 modules / 892018 bytes**, bundle smoke OK and diff check clean. Exact PR-head certification is still required before merge.
 
 ## FULL CONFIRMED definition
 
-Alpha.20 becomes **FULL CONFIRMED** only after all of the following are true:
+Alpha.20 becomes **FULL CONFIRMED** only after:
 
-1. core branch frozen
-2. core PR exact final head passes the complete repository workflow
-3. core PR is SHA-bound merged
-4. post-merge `main`, tree and both parents are verified
-5. combined four-character live-gate preparation is exact-head certified and merged
-6. one genuine production four-character live gate completes with confirmation-eligible evidence
-7. the complete production result/log is reviewed for lifecycle, transition, aura, circuit, restart/default-off and unexpected-action invariants
-8. a separate documentation-only confirmation PR records the evidence
-9. that confirmation PR exact final head passes full CI
-10. confirmation PR is SHA-bound merged and final `main`/tree/parents are verified
+1. core exact-head certified and SHA-bound merged — **DONE**
+2. core `main`/tree/both parents verified — **DONE**
+3. combined four-character live-gate preparation exact-head certified and SHA-bound merged
+4. one genuine production four-character live gate completes with `confirmationEligible:true`
+5. complete result/log review confirms lifecycle, transition, aura-boundary, circuit, default-off and unexpected-action invariants
+6. separate documentation-only confirmation PR records the evidence
+7. confirmation PR exact final head passes full CI
+8. confirmation PR is SHA-bound merged
+9. final `main`, tree and both parents are verified
 
-Until step 10, Alpha.20 must not be described as FULL CONFIRMED.
+Until step 9, Alpha.20 must not be described as FULL CONFIRMED.
