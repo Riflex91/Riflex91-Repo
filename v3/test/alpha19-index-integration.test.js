@@ -60,7 +60,8 @@ test('public Alpha.20 lifecycle API is default-off and legacy direct party switc
   assert.equal(api.party.lifecycle.aura.status().actionAuthority, false);
   assert.equal(api.party.setTransitionsEnabled(true), false);
   assert.equal(api.party.setAuraAutomationEnabled(true), false);
-  assert.equal(api.party.transition().enabled, false);
+  assert.equal(api.status().party.legacyTransitionBypassAllowed, false);
+  assert.equal(api.status().party.legacyAuraBypassAllowed, false);
 });
 
 test('Alpha.19 runtime version remains frozen when instantiated directly after public Alpha.20 release bump', () => {
