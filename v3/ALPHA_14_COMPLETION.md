@@ -127,4 +127,19 @@ Alpha.14 becomes `CONFIRMED` only after:
 13. one combined safe Adventure Land Alpha.14 FULL certification passes after merge;
 14. final runtime is restored to `shadow` with all live Party/economy controls disabled.
 
-Freeze candidate: source implementation complete; full branch CI pending.
+## Branch certification — 2026-09-12
+
+The implementation candidate passed the complete branch gate after correcting two assertion-only current-release regressions in the historical Alpha.10/Alpha.11 test harness. No production safety or economy behavior was weakened.
+
+Certified branch results:
+
+- **216/216 tests PASS**;
+- all 10 Alpha.14 Inventory/Gear tests PASS;
+- 2000-cycle combined Inventory/Gear soak PASS;
+- generated browser bundle smoke PASS;
+- diff check PASS;
+- destructive economy actions remain rejected by `GameAdapter`;
+- Inventory Ledger and Gear Progression remain no-authority planning layers;
+- all previous Brain/Party/Supervisor/Content/Combat safety regressions PASS.
+
+Freeze status: **branch-certified; exact final PR-head verification pending**.
