@@ -275,6 +275,24 @@ test('JsonFileStateStore uses atomic bounded persistence and corrupt state fails
   }
 });
 
+test('AlertRelay refuses bot claims when an existing durable spool is corrupt', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'aio-v3-corrupt-relay-'));
+  const filePath = path.join(directory, 'relay.json');
+  const bot = botAlertQueue([{ id: 'alert-1', severity: 'CRITICAL', type: 'FAULT', reason: 'CORRUPT_SPOOL' }]);
+  try {
+    fs.writeFileSync(filePath, '{broken', 'utf8');
+    const store = new JsonFileStateStore({ filePath, maxBytes: 8192 });
+    const relay = new AlertRelay({ now: () => 1000, botClient: bot, store });
+    assert.equal(relay.status().durableReady, false);
+    const result = await relay.ingest();
+    assert.equal(result.blocked, true);
+    assert.equal(bot.calls.some((row) => row[0] === 'claim'), false);
+    assert.equal(bot.pending.length, 1);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('AlertRelay persists an alert before exact bot claim and never auto-acknowledges it', async () => {
   const clock = { value: 1000 };
   const store = memoryStateStore();
@@ -348,7 +366,7 @@ test('durable spool failure blocks bot claim instead of losing alerts', async ()
   assert.equal(bot.pending.length, 1);
 });
 
-test('2500-alert host relay soak remains bounded while delivering without gameplay authority', async () => {
+test('2500-alert host relay soak respects spool backpressure while delivering without gameplay authority', async () => {
   const clock = { value: 1000 };
   const store = memoryStateStore();
   const bot = botAlertQueue([]);
@@ -366,13 +384,20 @@ test('2500-alert host relay soak remains bounded while delivering without gamepl
       const id = batch * 100 + i;
       bot.pending.push({ id: `alert-${id}`, severity: 'CRITICAL', type: 'SOAK', reason: String(id) });
     }
-    await relay.ingest();
+    const firstIngest = await relay.ingest();
+    assert.equal(firstIngest.claimed, 50);
+    assert.equal(bot.pending.length, 50);
     await relay.flush(100);
+    const secondIngest = await relay.ingest();
+    assert.equal(secondIngest.claimed, 50);
+    await relay.flush(100);
+    assert.equal(bot.pending.length, 0);
     clock.value += 1000;
   }
   assert.equal(bot.pending.length, 0);
   assert.equal(delivered, 2500);
   assert.ok(relay.status().retained <= 50);
+  assert.ok(relay.status().stats.spoolFullBlocks >= 25);
   assert.equal(relay.status().gameplayActionAuthority, false);
   assert.equal(relay.status().rawGameplayActionAuthority, false);
 });
