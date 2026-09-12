@@ -11,7 +11,7 @@ const { StabilityRuntime } = require('./stability/stability-runtime');
 const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
 const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
-const { Alpha12Runtime } = require('./autonomy/alpha12-runtime');
+const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -40,6 +40,7 @@ const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/
 const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
 const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
 const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
+const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -52,43 +53,117 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
   const runtime = new Alpha12Runtime({ ...options, root });
-  const operations = new HeadlessOperations({ runtime, log: runtime.log, now: runtime.now, telemetryCapacity: options.telemetryOutboxCapacity, replicaMaxBytes: options.stateReplicaMaxBytes, watchAfterMs: options.headlessWatchAfterMs, degradedAfterMs: options.headlessDegradedAfterMs, allowElevatedControl: options.allowElevatedRemoteControl === true, controlHistory: options.remoteControlHistory, controlMaxTtlMs: options.remoteControlMaxTtlMs });
+  const operations = new HeadlessOperations({
+    runtime,
+    log: runtime.log,
+    now: runtime.now,
+    telemetryCapacity: options.telemetryOutboxCapacity,
+    replicaMaxBytes: options.stateReplicaMaxBytes,
+    watchAfterMs: options.headlessWatchAfterMs,
+    degradedAfterMs: options.headlessDegradedAfterMs,
+    allowElevatedControl: options.allowElevatedRemoteControl === true,
+    controlHistory: options.remoteControlHistory,
+    controlMaxTtlMs: options.remoteControlMaxTtlMs
+  });
+
   function status() { return { ...runtime.status(), operations: operations.status() }; }
-  function exportDiagnostics() { const base = JSON.parse(runtime.exportDiagnostics()); base.context = base.context || {}; base.context.operations = operations.status(); return JSON.stringify(base, null, 2); }
+  function exportDiagnostics() {
+    const base = JSON.parse(runtime.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.operations = operations.status();
+    return JSON.stringify(base, null, 2);
+  }
+
   const api = {
-    version: VERSION, __runtime: runtime, __operations: operations,
-    start: () => runtime.start(), stop: () => runtime.stop(), setMode: (mode) => runtime.setMode(mode), status, showStatus: () => { runtime.showStatus(); return status(); }, getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query), exportDiagnostics, saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
-    operations: { status: () => operations.status(), submit: (command) => operations.submit(command), drainTelemetry: (limit = 100) => operations.drainTelemetry(limit), peekTelemetry: (limit = 100) => operations.peekTelemetry(limit), takeStateReplica: () => operations.takeStateReplica(), peekStateReplica: () => operations.peekStateReplica() },
-    world: runtime.world, scheduler: runtime.scheduler, performance: runtime.performance, research: runtime.research,
-    brain: { status: () => runtime.brain.status(), replay: (limit = 32) => runtime.brain.replay(limit) },
+    version: VERSION,
+    __runtime: runtime,
+    __operations: operations,
+    start: () => runtime.start(),
+    stop: () => runtime.stop(),
+    setMode: (mode) => runtime.setMode(mode),
+    status,
+    showStatus: () => { runtime.showStatus(); return status(); },
+    getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
+    exportDiagnostics,
+    saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    operations: {
+      status: () => operations.status(),
+      submit: (command) => operations.submit(command),
+      drainTelemetry: (limit = 100) => operations.drainTelemetry(limit),
+      peekTelemetry: (limit = 100) => operations.peekTelemetry(limit),
+      takeStateReplica: () => operations.takeStateReplica(),
+      peekStateReplica: () => operations.peekStateReplica()
+    },
+    world: runtime.world,
+    scheduler: runtime.scheduler,
+    performance: runtime.performance,
+    research: runtime.research,
+    brain: {
+      status: () => runtime.brain.status(),
+      replay: (limit = 32) => runtime.brain.replay(limit)
+    },
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
       character: (name) => runtime.characterRegistry.get(name),
-      configureRoster: (roster) => { const result = runtime.characterRegistry.seedRoster(roster); runtime.partyTelemetry.setTrustedNames(result.characters.map((row) => row.name)); const merchant = result.characters.find((row) => row.ctype === 'merchant'); if (merchant) { runtime.partyTelemetry.setMerchantName(merchant.name); runtime.partyTransitions.setMerchantName(merchant.name); } return result; },
+      configureRoster: (roster) => {
+        const result = runtime.characterRegistry.seedRoster(roster);
+        runtime.partyTelemetry.setTrustedNames(result.characters.map((row) => row.name));
+        const merchant = result.characters.find((row) => row.ctype === 'merchant');
+        if (merchant) {
+          runtime.partyTelemetry.setMerchantName(merchant.name);
+          runtime.partyTransitions.setMerchantName(merchant.name);
+        }
+        if (typeof runtime.syncPartyControlConfig === 'function') runtime.syncPartyControlConfig();
+        return result;
+      },
       decision: () => runtime.lastPartyDecision,
       fingerprints: () => ({ party: runtime.currentPartyFingerprint, encounter: runtime.currentEncounterFingerprint }),
-      performance: () => runtime.partyPerformance.status(64), telemetry: () => runtime.partyTelemetry.status(), transition: () => runtime.partyTransitions.status(), aura: () => runtime.status().party.aura,
-      setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled), setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled), setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled), setCodeSlots: (slots) => runtime.setPartyCodeSlots(slots)
+      performance: () => runtime.partyPerformance.status(64),
+      telemetry: () => runtime.partyTelemetry.status(),
+      transition: () => runtime.partyTransitions.status(),
+      controlLease: () => runtime.partyControlLease ? runtime.partyControlLease.status() : null,
+      aura: () => runtime.status().party.aura,
+      setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled),
+      setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled),
+      setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled),
+      setCodeSlots: (slots) => runtime.setPartyCodeSlots(slots)
     },
-    backgroundExecution: { status: () => runtime.backgroundExecution.status(), arm: () => runtime.backgroundExecution.arm('API_MANUAL'), setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled) },
+    backgroundExecution: {
+      status: () => runtime.backgroundExecution.status(),
+      arm: () => runtime.backgroundExecution.arm('API_MANUAL'),
+      setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled)
+    },
     localFarming: { status: () => runtime.localFarming.status() },
-    farmer: { enable: () => runtime.setFarmerEnabled(true), disable: () => runtime.setFarmerEnabled(false), status: () => runtime.farmerStatus(), setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy), addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value), removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value), approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype), quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype) },
-    createTask, TaskState
+    farmer: {
+      enable: () => runtime.setFarmerEnabled(true),
+      disable: () => runtime.setFarmerEnabled(false),
+      status: () => runtime.farmerStatus(),
+      setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy),
+      addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value),
+      removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value),
+      approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype),
+      quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype)
+    },
+    createTask,
+    TaskState
   };
+
   root.AIO_V3 = api;
   if (root.AIO_V3_AUTOSTART !== false) runtime.start();
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, VERSION,
+  EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
-  PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL, PartyTransitionController, TransitionState,
+  PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
+  PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
@@ -4625,7 +4700,7 @@ module.exports = { StabilityRuntime };
 "src/version.js": function(require,module,exports){
 'use strict';
 
-const VERSION = '3.0.0-alpha.11.0';
+const { RELEASE_VERSION: VERSION } = require('./release-version');
 
 module.exports = { VERSION };
 
@@ -7295,6 +7370,94 @@ module.exports = {
 };
 
 },
+"src/autonomy/alpha12-hardened-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha12Runtime: BaseAlpha12Runtime } = require('./alpha12-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { PartyControlLease } = require('../party/control-lease');
+
+class Alpha12Runtime extends BaseAlpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    const roster = this.characterRegistry.status().characters || [];
+    const merchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || this.partyTransitions.merchantName || null;
+    this.partyControlLease = options.partyControlLease || new PartyControlLease({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      merchantName: merchant,
+      trustedNames: roster.map((row) => row.name),
+      leaseMs: options.partyControlLeaseMs,
+      ackTimeoutMs: options.partyControlAckTimeoutMs,
+      pollMs: options.partyControlPollMs,
+      maxClockSkewMs: options.partyControlMaxClockSkewMs
+    });
+    this.partyControlLease.install();
+    this.partyTransitions.setControlLease(this.partyControlLease);
+    this.syncPartyControlConfig();
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    return super._announce(normalized, event);
+  }
+
+  syncPartyControlConfig() {
+    if (!this.partyControlLease) return null;
+    const status = this.characterRegistry.status();
+    const names = status.characters.map((row) => row.name);
+    const merchant = status.characters.find((row) => row.ctype === 'merchant');
+    this.partyControlLease.setTrustedNames(names);
+    if (merchant) {
+      this.partyControlLease.setMerchantName(merchant.name);
+      this.partyTransitions.setMerchantName(merchant.name);
+      this.partyTelemetry.setMerchantName(merchant.name);
+    }
+    return this.partyControlLease.status();
+  }
+
+  _partyDecisionCycle() {
+    this.syncPartyControlConfig();
+    return super._partyDecisionCycle();
+  }
+
+  start() {
+    if (this.partyControlLease && !this.partyControlLease.installed) this.partyControlLease.install();
+    return super.start();
+  }
+
+  stop() {
+    if (this.backgroundExecution && typeof this.backgroundExecution.stop === 'function') this.backgroundExecution.stop();
+    if (this.partyControlLease) this.partyControlLease.uninstall();
+    return super.stop();
+  }
+
+  setPartyTransitionsEnabled(enabled) {
+    this.syncPartyControlConfig();
+    return super.setPartyTransitionsEnabled(enabled);
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      party: {
+        ...(base.party || {}),
+        controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
+        transition: {
+          ...((base.party && base.party.transition) || {}),
+          controlLeaseBound: !!(this.partyTransitions && this.partyTransitions.controlLease)
+        }
+      }
+    };
+  }
+}
+
+module.exports = { Alpha12Runtime };
+
+},
 "src/autonomy/alpha12-runtime.js": function(require,module,exports){
 'use strict';
 
@@ -7619,57 +7782,388 @@ module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL };
 "src/party/transition-controller.js": function(require,module,exports){
 'use strict';
 
-const TransitionState = Object.freeze({ IDLE: 'IDLE', PREFLIGHT: 'PREFLIGHT', STOPPING: 'STOPPING', STARTING: 'STARTING', PARTYING: 'PARTYING', VERIFYING: 'VERIFYING', COMPLETED: 'COMPLETED', ABORTED: 'ABORTED', RECOVERING: 'RECOVERING', RECOVERED: 'RECOVERED', FAILED_SAFE: 'FAILED_SAFE' });
+const TransitionState = Object.freeze({
+  IDLE: 'IDLE',
+  PREFLIGHT: 'PREFLIGHT',
+  STOPPING: 'STOPPING',
+  STARTING: 'STARTING',
+  PARTYING: 'PARTYING',
+  VERIFYING: 'VERIFYING',
+  COMPLETED: 'COMPLETED',
+  ABORTED: 'ABORTED',
+  RECOVERING: 'RECOVERING',
+  RECOVERED: 'RECOVERED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
-function namesOf(members) { return (members || []).map((member) => typeof member === 'string' ? member : member && member.name).filter(Boolean).map(String); }
+function namesOf(members) {
+  return (members || [])
+    .map((member) => typeof member === 'string' ? member : member && member.name)
+    .filter(Boolean)
+    .map(String);
+}
+
 class PartyTransitionController {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.liveEnabled = options.liveEnabled === true; this.merchantName = options.merchantName || null; this.codeSlots = { ...(options.codeSlots || {}) }; this.stepTimeoutMs = Math.max(3000, Math.min(120000, Number(options.stepTimeoutMs) || 20000)); this.transitionLeaseMs = Math.max(15000, Math.min(10 * 60 * 1000, Number(options.transitionLeaseMs) || 90000)); this.pollMs = Math.max(100, Math.min(5000, Number(options.pollMs) || 500)); this.state = TransitionState.IDLE; this.active = null; this.lastResult = null; this.history = []; this.historyCapacity = Math.max(10, Math.min(100, Number(options.historyCapacity) || 30));
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.liveEnabled = options.liveEnabled === true;
+    this.merchantName = options.merchantName || null;
+    this.codeSlots = { ...(options.codeSlots || {}) };
+    this.controlLease = options.controlLease || null;
+    this.stepTimeoutMs = Math.max(3000, Math.min(120000, Number(options.stepTimeoutMs) || 20000));
+    this.transitionLeaseMs = Math.max(15000, Math.min(10 * 60 * 1000, Number(options.transitionLeaseMs) || 90000));
+    this.pollMs = Math.max(100, Math.min(5000, Number(options.pollMs) || 500));
+    this.state = TransitionState.IDLE;
+    this.active = null;
+    this.lastResult = null;
+    this.history = [];
+    this.historyCapacity = Math.max(10, Math.min(100, Number(options.historyCapacity) || 30));
   }
-  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-transition', event, severity, reason, data }); }
-  setLiveEnabled(enabled) { this.liveEnabled = enabled === true; return this.liveEnabled; }
-  setMerchantName(name) { this.merchantName = name ? String(name) : null; return this.merchantName; }
-  setCodeSlots(slots) { this.codeSlots = { ...(slots || {}) }; return { ...this.codeSlots }; }
-  _function(name) { return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null; }
-  _localCharacter() { return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null; }
-  _activeCharacters() { const fn = this._function('get_active_characters'); if (typeof fn !== 'function') return null; try { const value = fn.call(this.root); return value && typeof value === 'object' ? value : null; } catch (_) { return null; } }
-  _partyNames() { const parent = this.root && (this.root.parent || this.root); return Object.keys(parent && parent.party || {}); }
-  _isActiveState(value) { return ['self', 'starting', 'loading', 'active', 'code'].includes(String(value)); }
-  preflight(plan, context = {}) {
-    const local = this._localCharacter(); const targetNames = namesOf(plan && plan.members); const currentNames = namesOf(context.currentMembers); const desiredMerchant = plan && plan.merchant && plan.merchant.name || this.merchantName; const registry = context.registryStatus || { characters: [] }; const byName = new Map((registry.characters || []).map((entry) => [entry.name, entry])); const slotRequired = [...new Set(currentNames.concat(targetNames))].filter((name) => name !== desiredMerchant); const missingSlots = slotRequired.filter((name) => !this.codeSlots[name]); const unsafeOutgoing = currentNames.filter((name) => name !== desiredMerchant).map((name) => byName.get(name)).filter((row) => row && (row.dead || row.available !== true || (row.stats && row.stats.hp != null && row.stats.max_hp > 0 && row.stats.hp / row.stats.max_hp < 0.6))); const reasons = [];
-    if (!this.liveEnabled) reasons.push('TRANSITIONS_DISABLED'); if (context.runtimeMode !== 'active') reasons.push('RUNTIME_NOT_ACTIVE'); if (!local || !desiredMerchant || local.name !== desiredMerchant) reasons.push('MERCHANT_CONTROLLER_REQUIRED'); if (context.inCombat) reasons.push('ACTIVE_COMBAT'); if (context.emergency) reasons.push('EMERGENCY_RECOVERY'); if (!targetNames.includes(desiredMerchant)) reasons.push('MERCHANT_MUST_REMAIN'); if (targetNames.length !== 4) reasons.push('PARTY_SIZE_MUST_BE_FOUR'); if (new Set(targetNames).size !== targetNames.length) reasons.push('DUPLICATE_CHARACTER_NAME'); if (missingSlots.length) reasons.push('MISSING_CODE_SLOT'); if (unsafeOutgoing.length) reasons.push('UNSAFE_OUTGOING_CHARACTER'); const active = this._activeCharacters(); if (!active) reasons.push('ACTIVE_CHARACTER_STATE_UNAVAILABLE'); if (context.requiresCrossMapRouting) reasons.push('CROSS_MAP_ROUTING_NOT_ALLOWED');
-    return { allowed: reasons.length === 0, reasons, targetNames, currentNames, merchantName: desiredMerchant, missingSlots, activeCharacters: active };
-  }
-  async _waitUntil(predicate, timeoutMs, reason) { const started = this.now(); while (this.now() - started <= timeoutMs) { try { if (predicate()) return true; } catch (_) {} await sleep(this.pollMs); } throw new Error(reason || 'TRANSITION_STEP_TIMEOUT'); }
-  async _stop(name) { const fn = this._function('stop_character'); if (typeof fn !== 'function') throw new Error('STOP_CHARACTER_UNAVAILABLE'); fn.call(this.root, name); await this._waitUntil(() => { const active = this._activeCharacters(); return active && !this._isActiveState(active[name]); }, this.stepTimeoutMs, `STOP_VERIFY_TIMEOUT:${name}`); }
-  async _start(name) { const fn = this._function('start_character'); if (typeof fn !== 'function') throw new Error('START_CHARACTER_UNAVAILABLE'); const slot = this.codeSlots[name]; if (!slot) throw new Error(`MISSING_CODE_SLOT:${name}`); await Promise.resolve(fn.call(this.root, name, slot)); await this._waitUntil(() => { const active = this._activeCharacters(); return active && this._isActiveState(active[name]); }, this.stepTimeoutMs, `START_VERIFY_TIMEOUT:${name}`); }
-  async _invite(name) { const fn = this._function('send_party_invite'); if (typeof fn !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE'); await Promise.resolve(fn.call(this.root, name)); }
-  async _recover(oldNames, newStarted, merchantName) {
-    this.state = TransitionState.RECOVERING; this._event('PARTY_SWITCH_RECOVERY', { oldNames, newStarted }, 'warn');
-    for (const name of newStarted.slice().reverse()) { if (name === merchantName || oldNames.includes(name)) continue; try { await this._stop(name); } catch (_) {} }
-    for (const name of oldNames) { if (name === merchantName) continue; const active = this._activeCharacters(); if (active && this._isActiveState(active[name])) continue; try { await this._start(name); } catch (error) { this.state = TransitionState.FAILED_SAFE; return { recovered: false, reason: `ROLLBACK_START_FAILED:${name}`, error: String(error && error.message || error) }; } }
-    try { for (const name of oldNames) { if (name === merchantName || this._partyNames().includes(name)) continue; await this._invite(name); } await this._waitUntil(() => { const party = new Set(this._partyNames().concat(merchantName)); return oldNames.every((name) => party.has(name)); }, this.stepTimeoutMs, 'ROLLBACK_PARTY_VERIFY_TIMEOUT'); }
-    catch (error) { this.state = TransitionState.FAILED_SAFE; return { recovered: false, reason: 'ROLLBACK_PARTY_FAILED', error: String(error && error.message || error) }; }
-    this.state = TransitionState.RECOVERED; return { recovered: true };
-  }
-  async execute(plan, context = {}) {
-    if (this.active) return { executed: false, reason: 'TRANSITION_ALREADY_RUNNING' }; this.state = TransitionState.PREFLIGHT; const preflight = this.preflight(plan, context);
-    if (!preflight.allowed) { this.state = TransitionState.ABORTED; const result = { executed: false, state: this.state, reason: preflight.reasons[0], reasons: preflight.reasons, preflight }; this._finish(result); this._event('PARTY_SWITCH_SUPPRESSED', { reasons: preflight.reasons }, 'warn', preflight.reasons[0]); return result; }
-    const transaction = { id: `party-transition-${this.now()}`, startedAt: this.now(), targetNames: preflight.targetNames, oldNames: preflight.currentNames, stopped: [], started: [] }; this.active = transaction; this._event('PARTY_SWITCH_STARTED', { id: transaction.id, from: transaction.oldNames, to: transaction.targetNames });
-    try {
-      const deadline = transaction.startedAt + this.transitionLeaseMs; const target = new Set(transaction.targetNames); const outgoing = transaction.oldNames.filter((name) => name !== preflight.merchantName && !target.has(name)); const incoming = transaction.targetNames.filter((name) => name !== preflight.merchantName && !transaction.oldNames.includes(name));
-      this.state = TransitionState.STOPPING; for (const name of outgoing) { if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED'); await this._stop(name); transaction.stopped.push(name); }
-      this.state = TransitionState.STARTING; for (const name of incoming) { if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED'); await this._start(name); transaction.started.push(name); }
-      this.state = TransitionState.PARTYING; for (const name of transaction.targetNames) { if (name === preflight.merchantName) continue; if (!this._partyNames().includes(name)) { try { await this._invite(name); } catch (error) { throw new Error(`PARTY_INVITE_FAILED:${name}:${String(error && error.message || error)}`); } } }
-      this.state = TransitionState.VERIFYING; await this._waitUntil(() => { const active = this._activeCharacters(); if (!active) return false; const activeOk = transaction.targetNames.every((name) => name === preflight.merchantName || this._isActiveState(active[name])); const party = new Set(this._partyNames().concat(preflight.merchantName)); const partyOk = transaction.targetNames.every((name) => party.has(name)); const stateOk = typeof context.verifyTargetState === 'function' ? context.verifyTargetState(transaction.targetNames) === true : true; return activeOk && partyOk && stateOk; }, this.stepTimeoutMs, 'POSTCONDITION_VERIFY_TIMEOUT');
-      this.state = TransitionState.COMPLETED; const result = { executed: true, state: this.state, id: transaction.id, from: transaction.oldNames, to: transaction.targetNames, durationMs: this.now() - transaction.startedAt }; this._finish(result); this._event('PARTY_SWITCH_COMPLETED', result); return result;
-    } catch (error) {
-      this.state = TransitionState.ABORTED; const reason = String(error && error.message || error); this._event('PARTY_SWITCH_ABORTED', { id: transaction.id, reason }, 'error', reason); const recovery = await this._recover(transaction.oldNames, transaction.started, preflight.merchantName); const result = { executed: false, state: this.state, id: transaction.id, reason, recovery, durationMs: this.now() - transaction.startedAt }; this._finish(result); return result;
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'party-transition', event, severity, reason, data });
     }
   }
-  _finish(result) { this.lastResult = result; this.history.push(result); if (this.history.length > this.historyCapacity) this.history.splice(0, this.history.length - this.historyCapacity); this.active = null; }
-  status() { return { liveEnabled: this.liveEnabled, state: this.state, merchantName: this.merchantName, transitionLeaseMs: this.transitionLeaseMs, stepTimeoutMs: this.stepTimeoutMs, configuredCodeSlots: Object.keys(this.codeSlots).sort(), crossMapRoutingAllowed: false, serverChangeAllowed: false, smartMoveAllowed: false, active: this.active ? { ...this.active } : null, lastResult: this.lastResult, recent: this.history.slice(-10) }; }
+
+  setLiveEnabled(enabled) {
+    this.liveEnabled = enabled === true;
+    return this.liveEnabled;
+  }
+
+  setMerchantName(name) {
+    this.merchantName = name ? String(name) : null;
+    if (this.controlLease && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
+    return this.merchantName;
+  }
+
+  setCodeSlots(slots) {
+    this.codeSlots = { ...(slots || {}) };
+    return { ...this.codeSlots };
+  }
+
+  setControlLease(controlLease) {
+    this.controlLease = controlLease || null;
+    if (this.controlLease && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
+    return !!this.controlLease;
+  }
+
+  _function(name) {
+    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
+  }
+
+  _localCharacter() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _activeCharacters() {
+    const fn = this._function('get_active_characters');
+    if (typeof fn !== 'function') return null;
+    try {
+      const value = fn.call(this.root);
+      return value && typeof value === 'object' ? value : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _partyNames() {
+    const parent = this.root && (this.root.parent || this.root);
+    return Object.keys(parent && parent.party || {});
+  }
+
+  _isPresentState(value) {
+    return ['self', 'starting', 'loading', 'active', 'code'].includes(String(value));
+  }
+
+  _isRunningState(value) {
+    return ['self', 'active', 'code'].includes(String(value));
+  }
+
+  _controlLeaseStatus() {
+    if (!this.controlLease || typeof this.controlLease.status !== 'function') return null;
+    try { return this.controlLease.status(); } catch (_) { return null; }
+  }
+
+  preflight(plan, context = {}) {
+    const local = this._localCharacter();
+    const targetNames = namesOf(plan && plan.members);
+    const currentNames = namesOf(context.currentMembers);
+    const desiredMerchant = plan && plan.merchant && plan.merchant.name || this.merchantName;
+    const registry = context.registryStatus || { characters: [] };
+    const byName = new Map((registry.characters || []).map((entry) => [entry.name, entry]));
+    const slotRequired = [...new Set(currentNames.concat(targetNames))].filter((name) => name !== desiredMerchant);
+    const missingSlots = slotRequired.filter((name) => !this.codeSlots[name]);
+    const unsafeOutgoing = currentNames
+      .filter((name) => name !== desiredMerchant)
+      .map((name) => byName.get(name))
+      .filter((row) => row && (
+        row.dead ||
+        row.available !== true ||
+        (row.stats && row.stats.hp != null && row.stats.max_hp > 0 && row.stats.hp / row.stats.max_hp < 0.6)
+      ));
+    const reasons = [];
+
+    if (!this.liveEnabled) reasons.push('TRANSITIONS_DISABLED');
+    if (context.runtimeMode !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
+    if (!local || !desiredMerchant || local.name !== desiredMerchant) reasons.push('MERCHANT_CONTROLLER_REQUIRED');
+    if (context.inCombat) reasons.push('ACTIVE_COMBAT');
+    if (context.emergency) reasons.push('EMERGENCY_RECOVERY');
+    if (!targetNames.includes(desiredMerchant)) reasons.push('MERCHANT_MUST_REMAIN');
+    if (targetNames.length !== 4) reasons.push('PARTY_SIZE_MUST_BE_FOUR');
+    if (new Set(targetNames).size !== targetNames.length) reasons.push('DUPLICATE_CHARACTER_NAME');
+    if (missingSlots.length) reasons.push('MISSING_CODE_SLOT');
+    if (unsafeOutgoing.length) reasons.push('UNSAFE_OUTGOING_CHARACTER');
+    const active = this._activeCharacters();
+    if (!active) reasons.push('ACTIVE_CHARACTER_STATE_UNAVAILABLE');
+    if (context.requiresCrossMapRouting) reasons.push('CROSS_MAP_ROUTING_NOT_ALLOWED');
+
+    const control = this._controlLeaseStatus();
+    if (this.controlLease) {
+      if (!control || control.installed !== true) reasons.push('PARTY_CONTROL_LEASE_NOT_READY');
+      if (control && control.merchantName !== desiredMerchant) reasons.push('PARTY_CONTROL_MERCHANT_MISMATCH');
+    }
+
+    return {
+      allowed: reasons.length === 0,
+      reasons,
+      targetNames,
+      currentNames,
+      merchantName: desiredMerchant,
+      missingSlots,
+      activeCharacters: active,
+      controlLease: control
+    };
+  }
+
+  async _waitUntil(predicate, timeoutMs, reason) {
+    const started = this.now();
+    while (this.now() - started <= timeoutMs) {
+      try {
+        if (predicate()) return true;
+      } catch (_) {}
+      await sleep(this.pollMs);
+    }
+    throw new Error(reason || 'TRANSITION_STEP_TIMEOUT');
+  }
+
+  async _stop(name) {
+    const fn = this._function('stop_character');
+    if (typeof fn !== 'function') throw new Error('STOP_CHARACTER_UNAVAILABLE');
+    fn.call(this.root, name);
+    await this._waitUntil(() => {
+      const active = this._activeCharacters();
+      return active && !this._isPresentState(active[name]);
+    }, this.stepTimeoutMs, `STOP_VERIFY_TIMEOUT:${name}`);
+  }
+
+  async _start(name) {
+    const fn = this._function('start_character');
+    if (typeof fn !== 'function') throw new Error('START_CHARACTER_UNAVAILABLE');
+    const slot = this.codeSlots[name];
+    if (!slot) throw new Error(`MISSING_CODE_SLOT:${name}`);
+    await Promise.resolve(fn.call(this.root, name, slot));
+    await this._waitUntil(() => {
+      const active = this._activeCharacters();
+      return active && this._isRunningState(active[name]);
+    }, this.stepTimeoutMs, `START_VERIFY_TIMEOUT:${name}`);
+  }
+
+  async _authorizeInvite(name, transactionId) {
+    if (!this.controlLease || typeof this.controlLease.authorizeIncoming !== 'function') return { authorized: true, legacy: true };
+    return this.controlLease.authorizeIncoming(name, transactionId);
+  }
+
+  async _invite(name, transactionId) {
+    await this._authorizeInvite(name, transactionId);
+    const fn = this._function('send_party_invite');
+    if (typeof fn !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
+    await Promise.resolve(fn.call(this.root, name));
+  }
+
+  async _recover(oldNames, newStarted, merchantName, transactionId) {
+    this.state = TransitionState.RECOVERING;
+    this._event('PARTY_SWITCH_RECOVERY', { oldNames, newStarted }, 'warn');
+
+    for (const name of newStarted.slice().reverse()) {
+      if (name === merchantName || oldNames.includes(name)) continue;
+      try { await this._stop(name); } catch (_) {}
+    }
+
+    for (const name of oldNames) {
+      if (name === merchantName) continue;
+      const active = this._activeCharacters();
+      if (active && this._isRunningState(active[name])) continue;
+      try {
+        await this._start(name);
+      } catch (error) {
+        this.state = TransitionState.FAILED_SAFE;
+        return {
+          recovered: false,
+          reason: `ROLLBACK_START_FAILED:${name}`,
+          error: String(error && error.message || error)
+        };
+      }
+    }
+
+    try {
+      for (const name of oldNames) {
+        if (name === merchantName || this._partyNames().includes(name)) continue;
+        await this._invite(name, `${transactionId}:rollback`);
+      }
+      await this._waitUntil(() => {
+        const party = new Set(this._partyNames().concat(merchantName));
+        return oldNames.every((name) => party.has(name));
+      }, this.stepTimeoutMs, 'ROLLBACK_PARTY_VERIFY_TIMEOUT');
+    } catch (error) {
+      this.state = TransitionState.FAILED_SAFE;
+      return {
+        recovered: false,
+        reason: 'ROLLBACK_PARTY_FAILED',
+        error: String(error && error.message || error)
+      };
+    }
+
+    this.state = TransitionState.RECOVERED;
+    return { recovered: true };
+  }
+
+  async execute(plan, context = {}) {
+    if (this.active) return { executed: false, reason: 'TRANSITION_ALREADY_RUNNING' };
+    this.state = TransitionState.PREFLIGHT;
+    const preflight = this.preflight(plan, context);
+    if (!preflight.allowed) {
+      this.state = TransitionState.ABORTED;
+      const result = {
+        executed: false,
+        state: this.state,
+        reason: preflight.reasons[0],
+        reasons: preflight.reasons,
+        preflight
+      };
+      this._finish(result);
+      this._event('PARTY_SWITCH_SUPPRESSED', { reasons: preflight.reasons }, 'warn', preflight.reasons[0]);
+      return result;
+    }
+
+    const transaction = {
+      id: `party-transition-${this.now()}`,
+      startedAt: this.now(),
+      targetNames: preflight.targetNames,
+      oldNames: preflight.currentNames,
+      stopped: [],
+      started: []
+    };
+    this.active = transaction;
+    this._event('PARTY_SWITCH_STARTED', { id: transaction.id, from: transaction.oldNames, to: transaction.targetNames });
+
+    try {
+      const deadline = transaction.startedAt + this.transitionLeaseMs;
+      const target = new Set(transaction.targetNames);
+      const outgoing = transaction.oldNames.filter((name) => name !== preflight.merchantName && !target.has(name));
+      const incoming = transaction.targetNames.filter((name) => name !== preflight.merchantName && !transaction.oldNames.includes(name));
+
+      this.state = TransitionState.STOPPING;
+      for (const name of outgoing) {
+        if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+        await this._stop(name);
+        transaction.stopped.push(name);
+      }
+
+      this.state = TransitionState.STARTING;
+      for (const name of incoming) {
+        if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+        await this._start(name);
+        transaction.started.push(name);
+      }
+
+      this.state = TransitionState.PARTYING;
+      for (const name of transaction.targetNames) {
+        if (name === preflight.merchantName) continue;
+        if (!this._partyNames().includes(name)) {
+          if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+          try {
+            await this._invite(name, transaction.id);
+          } catch (error) {
+            throw new Error(`PARTY_INVITE_FAILED:${name}:${String(error && error.message || error)}`);
+          }
+        }
+      }
+
+      this.state = TransitionState.VERIFYING;
+      await this._waitUntil(() => {
+        const active = this._activeCharacters();
+        if (!active) return false;
+        const activeOk = transaction.targetNames.every((name) => name === preflight.merchantName || this._isRunningState(active[name]));
+        const party = new Set(this._partyNames().concat(preflight.merchantName));
+        const partyOk = transaction.targetNames.every((name) => party.has(name));
+        const stateOk = typeof context.verifyTargetState === 'function'
+          ? context.verifyTargetState(transaction.targetNames) === true
+          : true;
+        return activeOk && partyOk && stateOk;
+      }, Math.min(this.stepTimeoutMs, Math.max(this.pollMs, deadline - this.now())), 'POSTCONDITION_VERIFY_TIMEOUT');
+
+      if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+      this.state = TransitionState.COMPLETED;
+      const result = {
+        executed: true,
+        state: this.state,
+        id: transaction.id,
+        from: transaction.oldNames,
+        to: transaction.targetNames,
+        durationMs: this.now() - transaction.startedAt
+      };
+      this._finish(result);
+      this._event('PARTY_SWITCH_COMPLETED', result);
+      return result;
+    } catch (error) {
+      this.state = TransitionState.ABORTED;
+      const reason = String(error && error.message || error);
+      this._event('PARTY_SWITCH_ABORTED', { id: transaction.id, reason }, 'error', reason);
+      const recovery = await this._recover(transaction.oldNames, transaction.started, preflight.merchantName, transaction.id);
+      const result = {
+        executed: false,
+        state: this.state,
+        id: transaction.id,
+        reason,
+        recovery,
+        durationMs: this.now() - transaction.startedAt
+      };
+      this._finish(result);
+      return result;
+    }
+  }
+
+  _finish(result) {
+    this.lastResult = result;
+    this.history.push(result);
+    if (this.history.length > this.historyCapacity) this.history.splice(0, this.history.length - this.historyCapacity);
+    this.active = null;
+  }
+
+  status() {
+    return {
+      liveEnabled: this.liveEnabled,
+      state: this.state,
+      merchantName: this.merchantName,
+      transitionLeaseMs: this.transitionLeaseMs,
+      stepTimeoutMs: this.stepTimeoutMs,
+      configuredCodeSlots: Object.keys(this.codeSlots).sort(),
+      controlLeaseBound: !!this.controlLease,
+      controlLease: this._controlLeaseStatus(),
+      crossMapRoutingAllowed: false,
+      serverChangeAllowed: false,
+      smartMoveAllowed: false,
+      active: this.active ? { ...this.active } : null,
+      lastResult: this.lastResult,
+      recent: this.history.slice(-10)
+    };
+  }
 }
+
 module.exports = { PartyTransitionController, TransitionState };
 
 },
@@ -7678,24 +8172,460 @@ module.exports = { PartyTransitionController, TransitionState };
 
 class BackgroundExecutionGuard {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.expectedTickMs = Math.max(100, Number(options.expectedTickMs) || 250);
-    this.driftThresholdMs = Math.max(1000, Math.min(60000, Number(options.driftThresholdMs) || 3000)); this.rearmCooldownMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.rearmCooldownMs) || 30000)); this.enabled = options.enabled !== false;
-    this.lastTickAt = null; this.lastArmAt = 0; this.lastDriftMs = 0; this.stats = { armAttempts: 0, armSuccess: 0, armFailures: 0, driftEvents: 0, focusRearms: 0 }; this.listenersInstalled = false; this.boundRearm = () => { this.stats.focusRearms += 1; this.arm('FOCUS_OR_VISIBILITY'); };
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.expectedTickMs = Math.max(100, Number(options.expectedTickMs) || 250);
+    this.driftThresholdMs = Math.max(1000, Math.min(60000, Number(options.driftThresholdMs) || 3000));
+    this.rearmCooldownMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.rearmCooldownMs) || 30000));
+    this.enabled = options.enabled !== false;
+    this.lastTickAt = null;
+    this.lastArmAt = 0;
+    this.lastDriftMs = 0;
+    this.stats = { armAttempts: 0, armSuccess: 0, armFailures: 0, driftEvents: 0, focusRearms: 0 };
+    this.listenersInstalled = false;
+    this.boundRearm = () => {
+      if (!this.enabled) return;
+      const now = this.now();
+      if (this.lastArmAt && now - this.lastArmAt < Math.min(this.rearmCooldownMs, 5000)) return;
+      this.stats.focusRearms += 1;
+      this.arm('FOCUS_OR_VISIBILITY');
+    };
   }
-  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'background-execution', event, severity, reason, data }); }
-  _fn() { if (!this.root) return null; return this.root.performance_trick || (this.root.parent && this.root.parent.performance_trick) || null; }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'background-execution', event, severity, reason, data });
+    }
+  }
+
+  _fn() {
+    if (!this.root) return null;
+    return this.root.performance_trick || (this.root.parent && this.root.parent.performance_trick) || null;
+  }
+
   arm(reason = 'MANUAL') {
-    if (!this.enabled) return { armed: false, reason: 'DISABLED' }; const fn = this._fn(); this.stats.armAttempts += 1; if (typeof fn !== 'function') return { armed: false, reason: 'PERFORMANCE_TRICK_UNAVAILABLE' };
-    try { fn.call(this.root); this.lastArmAt = this.now(); this.stats.armSuccess += 1; this._event('BACKGROUND_EXECUTION_GUARD_ARMED', { reason, strategy: 'adventure-land-performance-trick' }); return { armed: true, reason, strategy: 'adventure-land-performance-trick' }; }
-    catch (error) { this.stats.armFailures += 1; this._event('BACKGROUND_EXECUTION_GUARD_FAILED', { reason, message: String(error && error.message || error) }, 'warn', 'PERFORMANCE_TRICK_FAILED'); return { armed: false, reason: 'PERFORMANCE_TRICK_FAILED' }; }
+    if (!this.enabled) return { armed: false, reason: 'DISABLED' };
+    const fn = this._fn();
+    this.stats.armAttempts += 1;
+    if (typeof fn !== 'function') {
+      this.stats.armFailures += 1;
+      return { armed: false, reason: 'PERFORMANCE_TRICK_UNAVAILABLE' };
+    }
+    try {
+      const pending = fn.call(this.root);
+      this.lastArmAt = this.now();
+      this.stats.armSuccess += 1;
+      this._event('BACKGROUND_EXECUTION_GUARD_ARMED', { reason, strategy: 'adventure-land-performance-trick' });
+      if (pending && typeof pending.then === 'function') {
+        Promise.resolve(pending).catch((error) => {
+          this.stats.armFailures += 1;
+          this._event('BACKGROUND_EXECUTION_GUARD_FAILED', { reason, message: String(error && error.message || error) }, 'warn', 'PERFORMANCE_TRICK_ASYNC_FAILED');
+        });
+      }
+      return { armed: true, reason, strategy: 'adventure-land-performance-trick' };
+    } catch (error) {
+      this.stats.armFailures += 1;
+      this._event('BACKGROUND_EXECUTION_GUARD_FAILED', { reason, message: String(error && error.message || error) }, 'warn', 'PERFORMANCE_TRICK_FAILED');
+      return { armed: false, reason: 'PERFORMANCE_TRICK_FAILED' };
+    }
   }
-  installListeners() { if (this.listenersInstalled || !this.root) return false; const doc = this.root.document; if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('visibilitychange', this.boundRearm); if (typeof this.root.addEventListener === 'function') this.root.addEventListener('focus', this.boundRearm); this.listenersInstalled = !!((doc && typeof doc.addEventListener === 'function') || typeof this.root.addEventListener === 'function'); return this.listenersInstalled; }
-  noteTick() { const now = this.now(); if (this.lastTickAt != null) { const drift = Math.max(0, now - this.lastTickAt - this.expectedTickMs); this.lastDriftMs = drift; if (drift >= this.driftThresholdMs) { this.stats.driftEvents += 1; this._event('BACKGROUND_EXECUTION_DRIFT', { driftMs: drift, expectedTickMs: this.expectedTickMs }, 'warn', 'TIMER_DRIFT'); if (now - this.lastArmAt >= this.rearmCooldownMs) this.arm('TIMER_DRIFT'); } } this.lastTickAt = now; }
-  start() { this.installListeners(); return this.arm('RUNTIME_START'); }
-  setEnabled(enabled) { this.enabled = enabled === true; return this.enabled; }
-  status() { return { enabled: this.enabled, strategy: 'adventure-land-performance-trick', guarantee: false, listenersInstalled: this.listenersInstalled, functionAvailable: typeof this._fn() === 'function', lastArmAt: this.lastArmAt || null, lastDriftMs: this.lastDriftMs, expectedTickMs: this.expectedTickMs, driftThresholdMs: this.driftThresholdMs, rearmCooldownMs: this.rearmCooldownMs, stats: { ...this.stats } }; }
+
+  installListeners() {
+    if (this.listenersInstalled || !this.root) return false;
+    const doc = this.root.document;
+    if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('visibilitychange', this.boundRearm);
+    if (typeof this.root.addEventListener === 'function') this.root.addEventListener('focus', this.boundRearm);
+    this.listenersInstalled = !!((doc && typeof doc.addEventListener === 'function') || typeof this.root.addEventListener === 'function');
+    return this.listenersInstalled;
+  }
+
+  removeListeners() {
+    if (!this.listenersInstalled || !this.root) return false;
+    const doc = this.root.document;
+    try {
+      if (doc && typeof doc.removeEventListener === 'function') doc.removeEventListener('visibilitychange', this.boundRearm);
+      if (typeof this.root.removeEventListener === 'function') this.root.removeEventListener('focus', this.boundRearm);
+    } catch (_) {}
+    this.listenersInstalled = false;
+    return true;
+  }
+
+  noteTick() {
+    const now = this.now();
+    if (this.lastTickAt != null) {
+      const drift = Math.max(0, now - this.lastTickAt - this.expectedTickMs);
+      this.lastDriftMs = drift;
+      if (drift >= this.driftThresholdMs) {
+        this.stats.driftEvents += 1;
+        this._event('BACKGROUND_EXECUTION_DRIFT', { driftMs: drift, expectedTickMs: this.expectedTickMs }, 'warn', 'TIMER_DRIFT');
+        if (now - this.lastArmAt >= this.rearmCooldownMs) this.arm('TIMER_DRIFT');
+      }
+    }
+    this.lastTickAt = now;
+  }
+
+  start() {
+    this.installListeners();
+    return this.arm('RUNTIME_START');
+  }
+
+  stop() {
+    this.removeListeners();
+    this.lastTickAt = null;
+    return true;
+  }
+
+  setEnabled(enabled) {
+    this.enabled = enabled === true;
+    return this.enabled;
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      strategy: 'adventure-land-performance-trick',
+      guarantee: false,
+      listenersInstalled: this.listenersInstalled,
+      functionAvailable: typeof this._fn() === 'function',
+      lastArmAt: this.lastArmAt || null,
+      lastDriftMs: this.lastDriftMs,
+      expectedTickMs: this.expectedTickMs,
+      driftThresholdMs: this.driftThresholdMs,
+      rearmCooldownMs: this.rearmCooldownMs,
+      stats: { ...this.stats }
+    };
+  }
 }
+
 module.exports = { BackgroundExecutionGuard };
+
+},
+"src/party/control-lease.js": function(require,module,exports){
+'use strict';
+
+const PARTY_CONTROL_PROTOCOL = 1;
+const PARTY_CONTROL_TYPE = 'aio-v3-party-control';
+const PartyControlAction = Object.freeze({
+  ALLOW_PARTY_INVITE: 'ALLOW_PARTY_INVITE',
+  LEASE_ACK: 'LEASE_ACK'
+});
+
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
+function cleanName(value) { const name = String(value == null ? '' : value).trim(); return name || null; }
+function cleanTransactionId(value) {
+  const id = String(value == null ? '' : value).trim();
+  if (!id || id.length > 128) return null;
+  return id;
+}
+
+class PartyControlLease {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.merchantName = cleanName(options.merchantName);
+    this.trustedNames = new Set((options.trustedNames || []).map(cleanName).filter(Boolean));
+    this.leaseMs = Math.max(5000, Math.min(60000, Number(options.leaseMs) || 15000));
+    this.ackTimeoutMs = Math.max(1000, Math.min(15000, Number(options.ackTimeoutMs) || 5000));
+    this.pollMs = Math.max(50, Math.min(1000, Number(options.pollMs) || 100));
+    this.maxClockSkewMs = Math.max(1000, Math.min(10000, Number(options.maxClockSkewMs) || 3000));
+    this.activeLease = null;
+    this.acks = new Map();
+    this.installed = false;
+    this.previousOnCm = null;
+    this.previousOnPartyInvite = null;
+    this.stats = {
+      leasesSent: 0,
+      leasesReceived: 0,
+      leaseAcksSent: 0,
+      leaseAcksReceived: 0,
+      controlRejected: 0,
+      inviteAccepted: 0,
+      inviteRejected: 0,
+      acceptFailures: 0,
+      ackTimeouts: 0
+    };
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'party-control', event, severity, reason, data });
+    }
+  }
+
+  _function(name) {
+    if (!this.root) return null;
+    return this.root[name] || (this.root.parent && this.root.parent[name]) || null;
+  }
+
+  _character() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _localName() {
+    const character = this._character();
+    return cleanName(character && character.name);
+  }
+
+  setMerchantName(name) {
+    this.merchantName = cleanName(name);
+    return this.merchantName;
+  }
+
+  setTrustedNames(names) {
+    this.trustedNames = new Set((names || []).map(cleanName).filter(Boolean));
+    return [...this.trustedNames].sort();
+  }
+
+  _isTrusted(name) {
+    const resolved = cleanName(name);
+    return !!resolved && this.trustedNames.has(resolved);
+  }
+
+  _isControlMessage(data) {
+    return !!data && data.type === PARTY_CONTROL_TYPE && Number(data.protocol) === PARTY_CONTROL_PROTOCOL;
+  }
+
+  _ackKey(transactionId, target) {
+    return `${transactionId}:${target}`;
+  }
+
+  _prune() {
+    const now = this.now();
+    if (this.activeLease && this.activeLease.expiresAt <= now) {
+      this._event('PARTY_CONTROL_LEASE_EXPIRED', { transactionId: this.activeLease.transactionId, target: this.activeLease.target }, 'warn', 'LEASE_EXPIRED');
+      this.activeLease = null;
+    }
+    for (const [key, at] of this.acks) {
+      if (now - at > this.ackTimeoutMs * 2) this.acks.delete(key);
+    }
+  }
+
+  _reject(reason, data = {}) {
+    this.stats.controlRejected += 1;
+    this._event('PARTY_CONTROL_REJECTED', data, 'warn', reason);
+    return false;
+  }
+
+  async _send(name, payload) {
+    const send = this._function('send_cm');
+    if (typeof send !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    return Promise.resolve(send.call(this.root, name, payload));
+  }
+
+  _validateLeaseEnvelope(sender, data) {
+    const now = this.now();
+    const localName = this._localName();
+    const senderName = cleanName(sender);
+    const target = cleanName(data && data.target);
+    const transactionId = cleanTransactionId(data && data.transactionId);
+    const issuedAt = finite(data && data.issuedAt);
+    const expiresAt = finite(data && data.expiresAt);
+    if (!localName) return { ok: false, reason: 'LOCAL_CHARACTER_UNAVAILABLE' };
+    if (!this.merchantName || senderName !== this.merchantName) return { ok: false, reason: 'UNTRUSTED_MERCHANT' };
+    if (!this._isTrusted(senderName) || !this._isTrusted(localName)) return { ok: false, reason: 'UNTRUSTED_ROSTER_MEMBER' };
+    if (!target || target !== localName) return { ok: false, reason: 'LEASE_TARGET_MISMATCH' };
+    if (!transactionId) return { ok: false, reason: 'INVALID_TRANSACTION_ID' };
+    if (issuedAt == null || expiresAt == null) return { ok: false, reason: 'INVALID_LEASE_TIME' };
+    if (issuedAt > now + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_FROM_FUTURE' };
+    if (now - issuedAt > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_TOO_OLD' };
+    if (expiresAt <= now) return { ok: false, reason: 'LEASE_EXPIRED' };
+    if (expiresAt - issuedAt > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_TOO_LONG' };
+    if (expiresAt - now > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_EXPIRY_TOO_FAR' };
+    return { ok: true, senderName, localName, target, transactionId, issuedAt, expiresAt };
+  }
+
+  receive(sender, data) {
+    if (!this._isControlMessage(data)) return false;
+    this._prune();
+    const action = String(data.action || '');
+    if (action === PartyControlAction.ALLOW_PARTY_INVITE) {
+      const validation = this._validateLeaseEnvelope(sender, data);
+      if (!validation.ok) return this._reject(validation.reason, { sender: cleanName(sender), action, target: cleanName(data.target) });
+      this.activeLease = {
+        merchantName: validation.senderName,
+        target: validation.target,
+        transactionId: validation.transactionId,
+        issuedAt: validation.issuedAt,
+        expiresAt: validation.expiresAt
+      };
+      this.stats.leasesReceived += 1;
+      this._event('PARTY_CONTROL_LEASE_RECEIVED', { transactionId: validation.transactionId, target: validation.target, expiresAt: validation.expiresAt });
+      const ack = {
+        type: PARTY_CONTROL_TYPE,
+        protocol: PARTY_CONTROL_PROTOCOL,
+        action: PartyControlAction.LEASE_ACK,
+        merchantName: validation.senderName,
+        target: validation.target,
+        transactionId: validation.transactionId,
+        at: this.now()
+      };
+      try {
+        const pending = this._send(validation.senderName, ack);
+        this.stats.leaseAcksSent += 1;
+        Promise.resolve(pending).catch((error) => {
+          this._event('PARTY_CONTROL_ACK_SEND_FAILED', { transactionId: validation.transactionId, message: String(error && error.message || error) }, 'warn', 'ACK_SEND_FAILED');
+        });
+      } catch (error) {
+        this._event('PARTY_CONTROL_ACK_SEND_FAILED', { transactionId: validation.transactionId, message: String(error && error.message || error) }, 'warn', 'ACK_SEND_FAILED');
+      }
+      return true;
+    }
+
+    if (action === PartyControlAction.LEASE_ACK) {
+      const localName = this._localName();
+      const senderName = cleanName(sender);
+      const target = cleanName(data.target);
+      const transactionId = cleanTransactionId(data.transactionId);
+      if (!localName || !this.merchantName || localName !== this.merchantName) return this._reject('ACK_NOT_ON_MERCHANT', { sender: senderName, target });
+      if (!senderName || senderName !== target || !this._isTrusted(senderName) || !this._isTrusted(localName)) return this._reject('ACK_UNTRUSTED_TARGET', { sender: senderName, target });
+      if (cleanName(data.merchantName) !== localName || !transactionId) return this._reject('ACK_MISMATCH', { sender: senderName, target });
+      const at = finite(data.at);
+      if (at == null || Math.abs(this.now() - at) > this.leaseMs + this.maxClockSkewMs) return this._reject('ACK_STALE', { sender: senderName, target });
+      this.acks.set(this._ackKey(transactionId, senderName), this.now());
+      this.stats.leaseAcksReceived += 1;
+      this._event('PARTY_CONTROL_ACK_RECEIVED', { transactionId, target: senderName });
+      return true;
+    }
+
+    return this._reject('UNKNOWN_CONTROL_ACTION', { action, sender: cleanName(sender) });
+  }
+
+  async authorizeIncoming(targetName, transactionId) {
+    this._prune();
+    const target = cleanName(targetName);
+    const tx = cleanTransactionId(transactionId);
+    const localName = this._localName();
+    if (!target || !tx) throw new Error('INVALID_PARTY_CONTROL_REQUEST');
+    if (!this.merchantName || localName !== this.merchantName) throw new Error('MERCHANT_CONTROLLER_REQUIRED');
+    if (!this._isTrusted(localName) || !this._isTrusted(target)) throw new Error(`UNTRUSTED_PARTY_CONTROL_TARGET:${target}`);
+    if (target === localName) return { authorized: true, target, transactionId: tx, local: true };
+    const issuedAt = this.now();
+    const expiresAt = issuedAt + this.leaseMs;
+    const key = this._ackKey(tx, target);
+    this.acks.delete(key);
+    await this._send(target, {
+      type: PARTY_CONTROL_TYPE,
+      protocol: PARTY_CONTROL_PROTOCOL,
+      action: PartyControlAction.ALLOW_PARTY_INVITE,
+      merchantName: localName,
+      target,
+      transactionId: tx,
+      issuedAt,
+      expiresAt
+    });
+    this.stats.leasesSent += 1;
+    this._event('PARTY_CONTROL_LEASE_SENT', { transactionId: tx, target, expiresAt });
+    const startedAt = this.now();
+    while (this.now() - startedAt <= this.ackTimeoutMs) {
+      this._prune();
+      if (this.acks.has(key)) {
+        this.acks.delete(key);
+        return { authorized: true, target, transactionId: tx, expiresAt };
+      }
+      await sleep(this.pollMs);
+    }
+    this.stats.ackTimeouts += 1;
+    this._event('PARTY_CONTROL_ACK_TIMEOUT', { transactionId: tx, target }, 'warn', 'ACK_TIMEOUT');
+    throw new Error(`PARTY_CONTROL_ACK_TIMEOUT:${target}`);
+  }
+
+  _validInviteLease(inviter) {
+    this._prune();
+    const inviterName = cleanName(inviter);
+    const localName = this._localName();
+    const lease = this.activeLease;
+    return !!lease && !!localName && inviterName === lease.merchantName && inviterName === this.merchantName && localName === lease.target && this._isTrusted(inviterName) && this._isTrusted(localName) && lease.expiresAt > this.now();
+  }
+
+  _handleInvite(inviter) {
+    const inviterName = cleanName(inviter);
+    if (!this.merchantName || inviterName !== this.merchantName) return false;
+    if (!this._validInviteLease(inviterName)) {
+      this.stats.inviteRejected += 1;
+      this._event('PARTY_CONTROL_INVITE_REJECTED', { inviter: inviterName, target: this._localName() }, 'warn', 'NO_VALID_CONTROL_LEASE');
+      return true;
+    }
+    const lease = this.activeLease;
+    this.activeLease = null;
+    const accept = this._function('accept_party_invite');
+    if (typeof accept !== 'function') {
+      this.stats.acceptFailures += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId }, 'error', 'ACCEPT_PARTY_INVITE_UNAVAILABLE');
+      return true;
+    }
+    try {
+      const pending = accept.call(this.root, inviterName);
+      this.stats.inviteAccepted += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPTED', { inviter: inviterName, target: lease.target, transactionId: lease.transactionId });
+      Promise.resolve(pending).catch((error) => {
+        this.stats.acceptFailures += 1;
+        this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId, message: String(error && error.message || error) }, 'error', 'ACCEPT_PARTY_INVITE_FAILED');
+      });
+    } catch (error) {
+      this.stats.acceptFailures += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId, message: String(error && error.message || error) }, 'error', 'ACCEPT_PARTY_INVITE_FAILED');
+    }
+    return true;
+  }
+
+  install() {
+    if (this.installed || !this.root) return false;
+    const self = this;
+    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
+    this.root.on_cm = function onPartyControlMessage(name, data) {
+      if (self._isControlMessage(data)) {
+        self.receive(name, data);
+        return undefined;
+      }
+      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
+      return undefined;
+    };
+    this.root.on_party_invite = function onPartyControlInvite(name) {
+      if (self._handleInvite(name)) return undefined;
+      if (self.previousOnPartyInvite) return self.previousOnPartyInvite.apply(this, arguments);
+      return undefined;
+    };
+    this.installed = true;
+    return true;
+  }
+
+  uninstall() {
+    if (!this.installed || !this.root) return false;
+    if (this.root.on_cm && this.root.on_cm.name === 'onPartyControlMessage') this.root.on_cm = this.previousOnCm || undefined;
+    if (this.root.on_party_invite && this.root.on_party_invite.name === 'onPartyControlInvite') this.root.on_party_invite = this.previousOnPartyInvite || undefined;
+    this.installed = false;
+    this.activeLease = null;
+    this.acks.clear();
+    return true;
+  }
+
+  status() {
+    this._prune();
+    return {
+      protocol: PARTY_CONTROL_PROTOCOL,
+      type: PARTY_CONTROL_TYPE,
+      installed: this.installed,
+      merchantName: this.merchantName,
+      trustedNames: [...this.trustedNames].sort(),
+      leaseMs: this.leaseMs,
+      ackTimeoutMs: this.ackTimeoutMs,
+      activeLease: this.activeLease ? { ...this.activeLease } : null,
+      pendingAcks: this.acks.size,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  PartyControlLease,
+  PARTY_CONTROL_PROTOCOL,
+  PARTY_CONTROL_TYPE,
+  PartyControlAction
+};
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
