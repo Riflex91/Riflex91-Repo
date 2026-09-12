@@ -19,8 +19,8 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.8.20');
-assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.8.20');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.9.10');
+assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.9.10');
 assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.status().combatRisk);
 assert.equal(typeof sandbox.AIO_V3.status().combatRisk.threshold, 'number');
@@ -77,12 +77,10 @@ assert.equal(sandbox.AIO_V3.farmer.status().safeRetreat.enabled, true);
 assert.equal(typeof sandbox.AIO_V3.farmer.status().safeRetreat.stepSeconds, 'number');
 assert.equal(typeof sandbox.AIO_V3.farmer.status().safeRetreat.minStep, 'number');
 assert.equal(typeof sandbox.AIO_V3.farmer.status().safeRetreat.maxStep, 'number');
-assert.equal(sandbox.AIO_V3.farmer.setTargetPolicy('allow'), 'allow');
-assert.equal(sandbox.AIO_V3.farmer.status().targetPolicy, 'allow');
 assert.equal(typeof sandbox.AIO_V3.saveWorld, 'function');
 assert.equal(typeof sandbox.AIO_V3.showStatus, 'function');
 
-// Alpha.8 stability freeze contract.
+// Alpha.8 stability freeze contract remains binding.
 const stability = sandbox.AIO_V3.status().stability;
 assert.ok(stability);
 assert.equal(stability.stableScheduler, true);
@@ -104,6 +102,50 @@ assert.equal(sandbox.AIO_V3.status().persistence.retryBaseMs, 5000);
 assert.equal(sandbox.AIO_V3.status().persistence.retryMaxMs, 120000);
 assert.equal(typeof sandbox.AIO_V3.status().persistence.saveCircuitOpen, 'boolean');
 
+// Alpha.9 same-map farming contract.
+assert.ok(sandbox.AIO_V3.localFarming);
+assert.equal(typeof sandbox.AIO_V3.localFarming.status, 'function');
+assert.equal(typeof sandbox.AIO_V3.localFarming.reset, 'function');
+const local = sandbox.AIO_V3.localFarming.status();
+assert.equal(local.enabled, true);
+assert.equal(local.sameMapOnly, true);
+assert.equal(local.crossMapAllowed, false);
+assert.equal(local.unknownContentAllowed, false);
+assert.equal(local.schedulerOwned, true);
+assert.equal(local.legacyRequiresLearnedConfidence, true);
+assert.equal(local.unlearnedLegacyShadowPreviewOnly, true);
+assert.equal(local.minLearnedConfidence, 0.10);
+assert.equal(local.pendingSchedulerMove, null);
+
+// Alpha.9 strategic Brain contract.
+assert.ok(sandbox.AIO_V3.brain);
+assert.equal(typeof sandbox.AIO_V3.brain.status, 'function');
+assert.equal(typeof sandbox.AIO_V3.brain.features, 'function');
+assert.equal(typeof sandbox.AIO_V3.brain.submitTeacher, 'function');
+assert.equal(typeof sandbox.AIO_V3.brain.setInfluenceEnabled, 'function');
+assert.equal(typeof sandbox.AIO_V3.brain.researchSummary, 'function');
+const brain = sandbox.AIO_V3.brain.status();
+assert.equal(brain.enabled, true);
+assert.equal(brain.strategicOnly, true);
+assert.equal(brain.rawGameplayAccess, false);
+assert.equal(brain.influenceEnabled, false);
+assert.equal(brain.influenceDefault, false);
+assert.equal(brain.features.featureCount, 32);
+assert.equal(Array.from(brain.features.featureNames).length, 32);
+assert.equal(brain.student.architecture, '32-24-5');
+assert.equal(brain.replay.capacity, 512);
+assert.equal(brain.maxPendingOutcomes, 32);
+assert.equal(brain.diary.capacity, 80);
+assert.deepEqual(Array.from(brain.actions), ['continue', 'change_farm_target', 'replan_merchant', 'explore', 'wait']);
+assert.equal(brain.teacher.transport, 'host-provided');
+assert.equal(brain.teacher.requiredForGameplay, false);
+assert.equal(brain.quality.state, 'warming');
+assert.equal(brain.league.thresholds.minSamples, 80);
+assert.equal(brain.league.thresholds.minUpdates, 120);
+assert.equal(brain.league.thresholds.minTeacherAgreement, 0.6);
+assert.equal(brain.league.thresholds.challengerTraffic, 0.2);
+assert.equal(brain.persistence.maxBytes, 350000);
+
 // Headless contract: no DOM or game_log is supplied by this VM sandbox.
 assert.equal(typeof sandbox.document, 'undefined');
 assert.equal(typeof sandbox.game_log, 'undefined');
@@ -120,12 +162,26 @@ assert.equal(ops.health.domRequired, false);
 assert.equal(ops.health.gameLogRequired, false);
 assert.equal(ops.health.dashboardRequired, false);
 assert.equal(ops.control.allowElevated, false);
+assert.ok(Array.from(ops.control.actions).includes('BRAIN_TEACH'));
+assert.ok(Array.from(ops.control.actions).includes('SET_BRAIN_INFLUENCE'));
+
 const now = Date.now();
 const safeRemote = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-shadow', action: 'SET_MODE', params: { mode: 'shadow' }, issuedAt: now - 100, expiresAt: now + 1000 });
 assert.equal(safeRemote.status, 'EXECUTED');
 const deniedRemote = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-active', action: 'SET_MODE', params: { mode: 'active' }, issuedAt: now - 100, expiresAt: now + 1000 });
 assert.equal(deniedRemote.status, 'REJECTED');
 assert.equal(deniedRemote.reason, 'ELEVATED_CONTROL_DISABLED');
+const deniedTeach = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-teacher', action: 'BRAIN_TEACH', params: { recommendation: { action: 'continue', confidence: 0.8 } }, issuedAt: now - 100, expiresAt: now + 1000 });
+assert.equal(deniedTeach.status, 'REJECTED');
+assert.equal(deniedTeach.reason, 'ELEVATED_CONTROL_DISABLED');
+const deniedInfluence = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-brain-enable', action: 'SET_BRAIN_INFLUENCE', params: { enabled: true }, issuedAt: now - 100, expiresAt: now + 1000 });
+assert.equal(deniedInfluence.status, 'REJECTED');
+assert.equal(deniedInfluence.reason, 'ELEVATED_CONTROL_DISABLED');
+const safeInfluenceOff = sandbox.AIO_V3.operations.submit({ commandId: 'smoke-brain-disable', action: 'SET_BRAIN_INFLUENCE', params: { enabled: false }, issuedAt: now - 100, expiresAt: now + 1000 });
+assert.equal(safeInfluenceOff.status, 'EXECUTED');
+assert.equal(sandbox.AIO_V3.brain.status().influenceEnabled, false);
+
 assert.doesNotThrow(() => JSON.stringify(sandbox.AIO_V3.status()));
+assert.doesNotThrow(() => JSON.stringify(sandbox.AIO_V3.brain.researchSummary()));
 assert.ok(sandbox.AIO_V3.status().operations);
 console.log('bundle smoke OK');
