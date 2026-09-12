@@ -11,7 +11,8 @@ class SkillFarmerController extends KitingFarmerController {
       enabled: options.skillUsageEnabled !== false,
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs,
-      maxCommandAttempts: options.skillUsageMaxCommandAttempts
+      maxCommandAttempts: options.skillUsageMaxCommandAttempts,
+      failureBackoffMs: options.skillUsageFailureBackoffMs
     });
     this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
       enabled: options.targetReassessmentEnabled !== false,
@@ -25,6 +26,8 @@ class SkillFarmerController extends KitingFarmerController {
     this.lastSkillUse = null;
     this.lastSkillDecision = null;
     this.lastSkillExecution = null;
+    this.skillFailureBackoffs = new Map();
+    this.lastSkillBackoff = null;
     this.lastReassessmentAt = -Infinity;
     this.lastTargetSwitchAt = -Infinity;
     this.lastReassessmentDecision = null;
@@ -163,6 +166,49 @@ class SkillFarmerController extends KitingFarmerController {
     };
   }
 
+  _pruneSkillFailureBackoffs(now = this.now()) {
+    for (const [skillId, record] of this.skillFailureBackoffs.entries()) {
+      if (!record || Number(record.expiresAt) <= now) this.skillFailureBackoffs.delete(skillId);
+    }
+  }
+
+  _activeSkillFailureBackoffIds(now = this.now()) {
+    this._pruneSkillFailureBackoffs(now);
+    return [...this.skillFailureBackoffs.keys()];
+  }
+
+  _skillFailureBackoffStatus(now = this.now()) {
+    this._pruneSkillFailureBackoffs(now);
+    return [...this.skillFailureBackoffs.values()]
+      .sort((a, b) => Number(a.expiresAt) - Number(b.expiresAt) || String(a.skill).localeCompare(String(b.skill)))
+      .map((record) => ({
+        skill: record.skill,
+        reason: record.reason,
+        at: record.at,
+        expiresAt: record.expiresAt,
+        remainingMs: Math.max(0, Number(record.expiresAt) - now)
+      }));
+  }
+
+  _armSkillFailureBackoff(skill, result, now = this.now()) {
+    if (!skill || !skill.id || !this.skillUsage.canRetryCommandFailure(result)) return null;
+    const record = {
+      skill: String(skill.id),
+      reason: String(result.reason || 'COMMAND_FAILED'),
+      at: now,
+      expiresAt: now + this.skillUsage.failureBackoffMs
+    };
+    this.skillFailureBackoffs.set(record.skill, record);
+    this.lastSkillBackoff = { ...record };
+    this._event('FARMER_SKILL_BACKOFF_ARMED', 'warn', 'SKILL_COMMAND_BACKOFF', {
+      skill: record.skill,
+      commandReason: record.reason,
+      backoffMs: this.skillUsage.failureBackoffMs,
+      expiresAt: record.expiresAt
+    });
+    return record;
+  }
+
   _engage(context, target) {
     const snapshot = context && context.snapshot;
     const character = snapshot && snapshot.character;
@@ -180,7 +226,9 @@ class SkillFarmerController extends KitingFarmerController {
           if (kiteDecision.shouldMove) return super._engage(context, target);
 
           const { gameData } = this._updateSelectedSkill(context);
-          const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
+          const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter, {
+            backoffSkillIds: this._activeSkillFailureBackoffIds(this.now())
+          });
           if (decision.skill) this.selectedSkill = decision.skill.id;
           this.lastSkillDecision = this._skillDecisionRecord(decision, target);
 
@@ -257,11 +305,13 @@ class SkillFarmerController extends KitingFarmerController {
 
                 attemptedSkillIds.push(skill.id);
                 const retryable = this.skillUsage.canRetryCommandFailure(result);
+                if (retryable) this._armSkillFailureBackoff(skill, result, now);
                 const withinAttemptLimit = attempt < this.skillUsage.maxCommandAttempts;
                 let nextDecision = null;
                 if (retryable && withinAttemptLimit) {
                   nextDecision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter, {
-                    skipSkillIds: attemptedSkillIds
+                    skipSkillIds: attemptedSkillIds,
+                    backoffSkillIds: this._activeSkillFailureBackoffIds(now)
                   });
                 }
                 const willRetry = !!(nextDecision && nextDecision.useSkill && nextDecision.skill);
@@ -275,7 +325,9 @@ class SkillFarmerController extends KitingFarmerController {
                   executionAttempt: attempt,
                   retryable,
                   willRetry,
-                  maxCommandAttempts: this.skillUsage.maxCommandAttempts
+                  maxCommandAttempts: this.skillUsage.maxCommandAttempts,
+                  backoffArmed: retryable,
+                  backoffMs: retryable ? this.skillUsage.failureBackoffMs : 0
                 });
 
                 if (!retryable) {
@@ -324,7 +376,9 @@ class SkillFarmerController extends KitingFarmerController {
         selectedSkill: this.selectedSkill,
         lastUse: this.lastSkillUse,
         lastDecision: this.lastSkillDecision,
-        lastExecution: this.lastSkillExecution
+        lastExecution: this.lastSkillExecution,
+        activeFailureBackoffs: this._skillFailureBackoffStatus(),
+        lastBackoff: this.lastSkillBackoff
       },
       targetReassessment: {
         ...this.targetReassessment.status(),
