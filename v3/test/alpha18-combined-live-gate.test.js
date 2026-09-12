@@ -116,6 +116,30 @@ test('combined live gate executes exactly one justified controlled bank expansio
   assert.equal(runtime.bankExpansionTransactions.status().breaker.open, false);
 });
 
+test('a justified same-floor expansion that is not authorized remains an explicit confirmation blocker in every result surface', async () => {
+  let openCalls = 0;
+  const r = root({
+    character: character({ gold: 1000, bank: { items0: [{ name: 'weapon' }] } }),
+    open_bank_pack: async () => { openCalls += 1; }
+  });
+  const runtime = new Alpha18Runtime(runtimeOptions(r));
+  const result = await runtime.runAlpha18CombinedLiveGate({ ack: 'ALPHA18_FULL_LIVE_GATE', allowExpansionPurchase: false });
+  const stored = runtime.alpha18LiveGateResult();
+  const statusStored = runtime.alpha18LiveGateStatus().lastResult;
+
+  assert.equal(result.pass, true);
+  assert.equal(result.planProbe.plan.action, 'EXPAND_BANK_PACK');
+  assert.equal(result.expansionCanary.state, 'NOT_EXECUTED');
+  assert.equal(result.expansionCoverageSatisfied, false);
+  assert.ok(result.confirmationBlockers.includes('JUSTIFIED_SAME_FLOOR_EXPANSION_NOT_COMMITTED'));
+  assert.equal(stored.expansionCoverageSatisfied, false);
+  assert.ok(stored.confirmationBlockers.includes('JUSTIFIED_SAME_FLOOR_EXPANSION_NOT_COMMITTED'));
+  assert.equal(statusStored.expansionCoverageSatisfied, false);
+  assert.ok(statusStored.confirmationBlockers.includes('JUSTIFIED_SAME_FLOOR_EXPANSION_NOT_COMMITTED'));
+  assert.match(runtime.alpha18LiveGateResultText(), /JUSTIFIED_SAME_FLOOR_EXPANSION_NOT_COMMITTED/);
+  assert.equal(openCalls, 0);
+});
+
 test('passive observation fails on a real error event and never hides it from the gate result', async () => {
   let now = 1000;
   let runtime;
