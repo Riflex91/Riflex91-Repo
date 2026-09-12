@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.10 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.11 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.10';
+const VERSION = '3.0.0-alpha.8.11';
 
 class Runtime {
   constructor(options = {}) {
@@ -109,6 +109,9 @@ class Runtime {
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
       skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
       skillUsageFailureBackoffMs: options.farmerSkillUsageFailureBackoffMs,
+      skillUsageFailureBackoffMultiplier: options.farmerSkillUsageFailureBackoffMultiplier,
+      skillUsageFailureBackoffMaxMs: options.farmerSkillUsageFailureBackoffMaxMs,
+      skillUsageFailureStreakResetMs: options.farmerSkillUsageFailureStreakResetMs,
       targetReassessmentEnabled: options.farmerTargetReassessmentEnabled !== false,
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
@@ -2318,7 +2321,10 @@ class SkillFarmerController extends KitingFarmerController {
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs,
       maxCommandAttempts: options.skillUsageMaxCommandAttempts,
-      failureBackoffMs: options.skillUsageFailureBackoffMs
+      failureBackoffMs: options.skillUsageFailureBackoffMs,
+      failureBackoffMultiplier: options.skillUsageFailureBackoffMultiplier,
+      failureBackoffMaxMs: options.skillUsageFailureBackoffMaxMs,
+      failureStreakResetMs: options.skillUsageFailureStreakResetMs
     });
     this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
       enabled: options.targetReassessmentEnabled !== false,
@@ -2333,7 +2339,9 @@ class SkillFarmerController extends KitingFarmerController {
     this.lastSkillDecision = null;
     this.lastSkillExecution = null;
     this.skillFailureBackoffs = new Map();
+    this.skillFailureHistory = new Map();
     this.lastSkillBackoff = null;
+    this.lastSkillFailureRecovery = null;
     this.lastReassessmentAt = -Infinity;
     this.lastTargetSwitchAt = -Infinity;
     this.lastReassessmentDecision = null;
@@ -2472,19 +2480,28 @@ class SkillFarmerController extends KitingFarmerController {
     };
   }
 
-  _pruneSkillFailureBackoffs(now = this.now()) {
+  _pruneSkillFailureState(now = this.now()) {
     for (const [skillId, record] of this.skillFailureBackoffs.entries()) {
       if (!record || Number(record.expiresAt) <= now) this.skillFailureBackoffs.delete(skillId);
     }
+    for (const [skillId, record] of this.skillFailureHistory.entries()) {
+      if (!record || now - Number(record.lastFailureAt) >= this.skillUsage.failureStreakResetMs) {
+        this.skillFailureHistory.delete(skillId);
+      }
+    }
+  }
+
+  _pruneSkillFailureBackoffs(now = this.now()) {
+    this._pruneSkillFailureState(now);
   }
 
   _activeSkillFailureBackoffIds(now = this.now()) {
-    this._pruneSkillFailureBackoffs(now);
+    this._pruneSkillFailureState(now);
     return [...this.skillFailureBackoffs.keys()];
   }
 
   _skillFailureBackoffStatus(now = this.now()) {
-    this._pruneSkillFailureBackoffs(now);
+    this._pruneSkillFailureState(now);
     return [...this.skillFailureBackoffs.values()]
       .sort((a, b) => Number(a.expiresAt) - Number(b.expiresAt) || String(a.skill).localeCompare(String(b.skill)))
       .map((record) => ({
@@ -2492,24 +2509,87 @@ class SkillFarmerController extends KitingFarmerController {
         reason: record.reason,
         at: record.at,
         expiresAt: record.expiresAt,
-        remainingMs: Math.max(0, Number(record.expiresAt) - now)
+        remainingMs: Math.max(0, Number(record.expiresAt) - now),
+        failureStreak: Number(record.failureStreak) || 1,
+        backoffMs: Number(record.backoffMs) || this.skillUsage.failureBackoffMs
       }));
+  }
+
+  _skillFailureHistoryStatus(now = this.now()) {
+    this._pruneSkillFailureState(now);
+    return [...this.skillFailureHistory.values()]
+      .sort((a, b) => Number(b.lastFailureAt) - Number(a.lastFailureAt) || String(a.skill).localeCompare(String(b.skill)))
+      .map((record) => ({
+        skill: record.skill,
+        failureStreak: Number(record.failureStreak) || 0,
+        firstFailureAt: record.firstFailureAt,
+        lastFailureAt: record.lastFailureAt,
+        lastBackoffMs: record.lastBackoffMs,
+        resetsInMs: Math.max(0, this.skillUsage.failureStreakResetMs - (now - Number(record.lastFailureAt)))
+      }));
+  }
+
+  _nextSkillFailureRecord(skillId, now = this.now()) {
+    const id = String(skillId);
+    this._pruneSkillFailureState(now);
+    const previous = this.skillFailureHistory.get(id) || null;
+    const failureStreak = previous ? Number(previous.failureStreak) + 1 : 1;
+    const backoffMs = this.skillUsage.failureBackoffForStreak(failureStreak);
+    const record = {
+      skill: id,
+      failureStreak,
+      firstFailureAt: previous ? previous.firstFailureAt : now,
+      lastFailureAt: now,
+      lastBackoffMs: backoffMs
+    };
+    this.skillFailureHistory.set(id, record);
+    return record;
+  }
+
+  _resetSkillFailureState(skill, now = this.now()) {
+    if (!skill || !skill.id) return null;
+    const id = String(skill.id);
+    this._pruneSkillFailureState(now);
+    const history = this.skillFailureHistory.get(id) || null;
+    const backoff = this.skillFailureBackoffs.get(id) || null;
+    if (!history && !backoff) return null;
+
+    this.skillFailureHistory.delete(id);
+    this.skillFailureBackoffs.delete(id);
+    const recovery = {
+      at: now,
+      skill: id,
+      reason: 'COMMAND_SUCCEEDED',
+      previousFailureStreak: history
+        ? Number(history.failureStreak) || 0
+        : (backoff ? Number(backoff.failureStreak) || 0 : 0)
+    };
+    this.lastSkillFailureRecovery = recovery;
+    this._event('FARMER_SKILL_FAILURE_STREAK_RESET', 'info', 'COMMAND_SUCCEEDED', recovery);
+    return recovery;
   }
 
   _armSkillFailureBackoff(skill, result, now = this.now()) {
     if (!skill || !skill.id || !this.skillUsage.canRetryCommandFailure(result)) return null;
+    const failure = this._nextSkillFailureRecord(skill.id, now);
     const record = {
       skill: String(skill.id),
       reason: String(result.reason || 'COMMAND_FAILED'),
       at: now,
-      expiresAt: now + this.skillUsage.failureBackoffMs
+      expiresAt: now + failure.lastBackoffMs,
+      failureStreak: failure.failureStreak,
+      backoffMs: failure.lastBackoffMs
     };
     this.skillFailureBackoffs.set(record.skill, record);
     this.lastSkillBackoff = { ...record };
     this._event('FARMER_SKILL_BACKOFF_ARMED', 'warn', 'SKILL_COMMAND_BACKOFF', {
       skill: record.skill,
       commandReason: record.reason,
-      backoffMs: this.skillUsage.failureBackoffMs,
+      backoffMs: record.backoffMs,
+      baseBackoffMs: this.skillUsage.failureBackoffMs,
+      maxBackoffMs: this.skillUsage.failureBackoffMaxMs,
+      failureStreak: record.failureStreak,
+      escalated: record.failureStreak > 1,
       expiresAt: record.expiresAt
     });
     return record;
@@ -2556,6 +2636,7 @@ class SkillFarmerController extends KitingFarmerController {
                 executionAttempts.push(this._executionAttemptRecord(attempt, attemptDecision, result));
 
                 if (result.executed || result.shadow) {
+                  const failureRecovery = result.executed ? this._resetSkillFailureState(skill, now) : null;
                   const executionReason = attempt === 1
                     ? attemptDecision.reason
                     : 'SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK';
@@ -2587,7 +2668,9 @@ class SkillFarmerController extends KitingFarmerController {
                     selectionReason: attemptDecision.reason,
                     executionReason,
                     candidateRank: attemptDecision.candidateRank == null ? null : Number(attemptDecision.candidateRank),
-                    executionAttempt: attempt
+                    executionAttempt: attempt,
+                    failureStreakReset: !!failureRecovery,
+                    previousFailureStreak: failureRecovery ? failureRecovery.previousFailureStreak : 0
                   };
                   this._event('FARMER_SKILL_USED', 'info', executionReason, {
                     skill: skill.id,
@@ -2603,6 +2686,8 @@ class SkillFarmerController extends KitingFarmerController {
                     selectionReason: attemptDecision.reason,
                     executionAttempt: attempt,
                     executionFallbackUsed: attempt > 1,
+                    failureStreakReset: !!failureRecovery,
+                    previousFailureStreak: failureRecovery ? failureRecovery.previousFailureStreak : 0,
                     rejectedCandidates: this.lastSkillDecision.rejectedCandidates,
                     executionAttempts: executionAttempts.slice()
                   });
@@ -2611,7 +2696,7 @@ class SkillFarmerController extends KitingFarmerController {
 
                 attemptedSkillIds.push(skill.id);
                 const retryable = this.skillUsage.canRetryCommandFailure(result);
-                if (retryable) this._armSkillFailureBackoff(skill, result, now);
+                const backoffRecord = retryable ? this._armSkillFailureBackoff(skill, result, now) : null;
                 const withinAttemptLimit = attempt < this.skillUsage.maxCommandAttempts;
                 let nextDecision = null;
                 if (retryable && withinAttemptLimit) {
@@ -2632,8 +2717,9 @@ class SkillFarmerController extends KitingFarmerController {
                   retryable,
                   willRetry,
                   maxCommandAttempts: this.skillUsage.maxCommandAttempts,
-                  backoffArmed: retryable,
-                  backoffMs: retryable ? this.skillUsage.failureBackoffMs : 0
+                  backoffArmed: !!backoffRecord,
+                  backoffMs: backoffRecord ? backoffRecord.backoffMs : 0,
+                  failureStreak: backoffRecord ? backoffRecord.failureStreak : 0
                 });
 
                 if (!retryable) {
@@ -2684,7 +2770,9 @@ class SkillFarmerController extends KitingFarmerController {
         lastDecision: this.lastSkillDecision,
         lastExecution: this.lastSkillExecution,
         activeFailureBackoffs: this._skillFailureBackoffStatus(),
-        lastBackoff: this.lastSkillBackoff
+        recentFailureStreaks: this._skillFailureHistoryStatus(),
+        lastBackoff: this.lastSkillBackoff,
+        lastFailureRecovery: this.lastSkillFailureRecovery
       },
       targetReassessment: {
         ...this.targetReassessment.status(),
@@ -3446,6 +3534,12 @@ class SkillUsagePolicy {
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
     this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
     this.failureBackoffMs = Math.max(500, Math.min(10000, finite(options.failureBackoffMs, 2000)));
+    this.failureBackoffMultiplier = Math.max(1, Math.min(4, finite(options.failureBackoffMultiplier, 2)));
+    this.failureBackoffMaxMs = Math.max(
+      this.failureBackoffMs,
+      Math.min(60000, finite(options.failureBackoffMaxMs, 8000))
+    );
+    this.failureStreakResetMs = Math.max(5000, Math.min(300000, finite(options.failureStreakResetMs, 30000)));
     this.retryableCommandReasons = new Set(['COMMAND_FAILED']);
   }
 
@@ -3479,6 +3573,12 @@ class SkillUsagePolicy {
   canRetryCommandFailure(result) {
     if (!result || result.executed || result.shadow) return false;
     return this.retryableCommandReasons.has(String(result.reason || ''));
+  }
+
+  failureBackoffForStreak(streak) {
+    const boundedStreak = Math.max(1, Math.floor(finite(streak, 1)));
+    const scaled = this.failureBackoffMs * Math.pow(this.failureBackoffMultiplier, boundedStreak - 1);
+    return Math.min(this.failureBackoffMaxMs, Math.max(this.failureBackoffMs, Math.round(scaled)));
   }
 
   evaluate(snapshot, target, gameData, adapter, options = {}) {
@@ -3566,6 +3666,10 @@ class SkillUsagePolicy {
       retryableCommandReasons: [...this.retryableCommandReasons],
       failureBackoffEnabled: true,
       failureBackoffMs: this.failureBackoffMs,
+      failureIntelligenceEnabled: true,
+      failureBackoffMultiplier: this.failureBackoffMultiplier,
+      failureBackoffMaxMs: this.failureBackoffMaxMs,
+      failureStreakResetMs: this.failureStreakResetMs,
       backoffReason: 'SKILL_COMMAND_BACKOFF',
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
