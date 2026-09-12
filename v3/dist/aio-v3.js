@@ -4502,6 +4502,10 @@ const COMMANDS = new Set([
 ]);
 
 function text(value) { return String(value == null ? '' : value).trim(); }
+function short(value, max = 500) {
+  const out = String(value == null ? '' : value);
+  return out.length > max ? out.slice(0, max) + '…' : out;
+}
 
 class ControlGateway {
   constructor(options = {}) {
@@ -4530,8 +4534,18 @@ class ControlGateway {
     });
   }
 
+  _receipt(result) {
+    return {
+      commandId: result.commandId || null,
+      action: result.action || null,
+      status: result.status,
+      executedAt: result.executedAt || null,
+      reason: result.reason ? short(result.reason) : null
+    };
+  }
+
   _remember(id, result) {
-    this.history.set(id, result);
+    this.history.set(id, this._receipt(result));
     this.order.push(id);
     while (this.order.length > this.maxHistory) {
       const oldest = this.order.shift();
@@ -4577,7 +4591,7 @@ class ControlGateway {
       this._emit('CONTROL_COMMAND_EXECUTED', input, result);
       return result;
     } catch (error) {
-      const result = { commandId, action, status: 'FAILED', executedAt: now, reason: String(error && error.message || error) };
+      const result = { commandId, action, status: 'FAILED', executedAt: now, reason: short(error && error.message || error) };
       this._remember(commandId, result);
       this._emit('CONTROL_COMMAND_FAILED', input, result);
       return result;
@@ -4587,7 +4601,7 @@ class ControlGateway {
   _reject(input, reason, status = 'REJECTED') {
     const commandId = text(input && input.commandId);
     const action = text(input && input.action).toUpperCase();
-    const result = { commandId: commandId || null, action: action || null, status, reason, executedAt: this.now() };
+    const result = { commandId: commandId || null, action: action || null, status, reason: short(reason), executedAt: this.now() };
     if (commandId) this._remember(commandId, result);
     this._emit(status === 'EXPIRED' ? 'CONTROL_COMMAND_EXPIRED' : 'CONTROL_COMMAND_REJECTED', input, result);
     return result;
