@@ -1,6 +1,7 @@
 'use strict';
 
-const { Runtime, VERSION } = require('./runtime');
+const { Runtime } = require('./runtime');
+const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
