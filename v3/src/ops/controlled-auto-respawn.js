@@ -48,8 +48,10 @@ class ControlledAutoRespawn {
     return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
   }
 
-  _respawnFn() {
-    return this.root && (this.root.respawn || (this.root.parent && this.root.parent.respawn)) || null;
+  _respawnBinding() {
+    if (this.root && typeof this.root.respawn === 'function') return { fn: this.root.respawn, owner: this.root };
+    if (this.root && this.root.parent && typeof this.root.parent.respawn === 'function') return { fn: this.root.parent.respawn, owner: this.root.parent };
+    return null;
   }
 
   _dead(snapshot) {
@@ -136,8 +138,8 @@ class ControlledAutoRespawn {
       return { executed: false, reason: 'RESPAWN_WAIT', nextAttemptAt: this.nextAttemptAt };
     }
 
-    const fn = this._respawnFn();
-    if (typeof fn !== 'function') {
+    const binding = this._respawnBinding();
+    if (!binding) {
       this.state = 'BLOCKED';
       this.lastError = 'RESPAWN_UNAVAILABLE';
       this.nextAttemptAt = now + this.retryMs;
@@ -147,6 +149,8 @@ class ControlledAutoRespawn {
     }
 
     this.attempts += 1;
+    const attempt = this.attempts;
+    const deathSequence = this.deathSequence;
     this.lastAttemptAt = now;
     this.nextAttemptAt = now + this.retryMs;
     this.stats.respawnRequests += 1;
@@ -155,42 +159,33 @@ class ControlledAutoRespawn {
     this.lastError = null;
 
     try {
-      const value = fn.call(this.root);
+      const value = binding.fn.call(binding.owner);
       this._event('AUTO_RESPAWN_REQUESTED', 'warn', 'RESPAWN_REQUESTED', {
-        deathSequence: this.deathSequence,
-        attempt: this.attempts,
+        deathSequence,
+        attempt,
         maxAttempts: this.maxAttempts,
         rawActions: this.stats.rawActions
       });
       if (value && typeof value.then === 'function') {
         Promise.resolve(value)
           .then(() => {
-            this._event('AUTO_RESPAWN_CALL_SETTLED', 'info', 'RESPAWN_CALL_RESOLVED', {
-              deathSequence: this.deathSequence,
-              attempt: this.attempts
-            });
+            this._event('AUTO_RESPAWN_CALL_SETTLED', 'info', 'RESPAWN_CALL_RESOLVED', { deathSequence, attempt });
           })
           .catch((error) => {
-            this.lastError = String(error && error.message || error).slice(0, 160);
+            const message = String(error && error.message || error).slice(0, 160);
             this.stats.failures += 1;
-            this._event('AUTO_RESPAWN_CALL_REJECTED', 'warn', 'RESPAWN_CALL_REJECTED', {
-              deathSequence: this.deathSequence,
-              attempt: this.attempts,
-              message: this.lastError
-            });
+            if (this.deathSequence === deathSequence && this.deathStartedAt != null) this.lastError = message;
+            this._event('AUTO_RESPAWN_CALL_REJECTED', 'warn', 'RESPAWN_CALL_REJECTED', { deathSequence, attempt, message });
           });
       }
-      return { executed: true, reason: 'RESPAWN_REQUESTED', attempt: this.attempts, nextAttemptAt: this.nextAttemptAt };
+      return { executed: true, reason: 'RESPAWN_REQUESTED', deathSequence, attempt, nextAttemptAt: this.nextAttemptAt };
     } catch (error) {
-      this.lastError = String(error && error.message || error).slice(0, 160);
+      const message = String(error && error.message || error).slice(0, 160);
+      this.lastError = message;
       this.stats.failures += 1;
       this.state = 'VERIFYING';
-      this._event('AUTO_RESPAWN_CALL_FAILED', 'warn', 'RESPAWN_CALL_FAILED', {
-        deathSequence: this.deathSequence,
-        attempt: this.attempts,
-        message: this.lastError
-      });
-      return { executed: false, reason: 'RESPAWN_CALL_FAILED', attempt: this.attempts, error: this.lastError };
+      this._event('AUTO_RESPAWN_CALL_FAILED', 'warn', 'RESPAWN_CALL_FAILED', { deathSequence, attempt, message });
+      return { executed: false, reason: 'RESPAWN_CALL_FAILED', deathSequence, attempt, error: message };
     }
   }
 
