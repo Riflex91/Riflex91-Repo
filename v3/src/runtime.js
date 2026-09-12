@@ -15,7 +15,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.8';
+const VERSION = '3.0.0-alpha.8.9';
 
 class Runtime {
   constructor(options = {}) {
@@ -43,6 +43,7 @@ class Runtime {
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
+      skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
       targetReassessmentEnabled: options.farmerTargetReassessmentEnabled !== false,
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,

@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.8 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.9 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.8';
+const VERSION = '3.0.0-alpha.8.9';
 
 class Runtime {
   constructor(options = {}) {
@@ -107,6 +107,7 @@ class Runtime {
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
+      skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
       targetReassessmentEnabled: options.farmerTargetReassessmentEnabled !== false,
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
@@ -2314,7 +2315,8 @@ class SkillFarmerController extends KitingFarmerController {
     this.skillUsage = options.skillUsage || new SkillUsagePolicy({
       enabled: options.skillUsageEnabled !== false,
       mpReserveRatio: options.skillUsageMpReserveRatio,
-      minIntervalMs: options.skillUsageMinIntervalMs
+      minIntervalMs: options.skillUsageMinIntervalMs,
+      maxCommandAttempts: options.skillUsageMaxCommandAttempts
     });
     this.targetReassessment = options.targetReassessment || new TargetReassessmentPolicy({
       enabled: options.targetReassessmentEnabled !== false,
@@ -2327,6 +2329,7 @@ class SkillFarmerController extends KitingFarmerController {
     this.selectedSkill = null;
     this.lastSkillUse = null;
     this.lastSkillDecision = null;
+    this.lastSkillExecution = null;
     this.lastReassessmentAt = -Infinity;
     this.lastTargetSwitchAt = -Infinity;
     this.lastReassessmentDecision = null;
@@ -2427,6 +2430,44 @@ class SkillFarmerController extends KitingFarmerController {
     return next;
   }
 
+  _skillDecisionRecord(decision, target) {
+    return {
+      at: this.now(),
+      reason: decision.reason,
+      preflightReason: decision.reason,
+      skill: decision.skill ? decision.skill.id : null,
+      targetId: target && target.id || null,
+      targetType: target && target.mtype || null,
+      mp: decision.mp == null ? null : Number(decision.mp),
+      reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
+      mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2)),
+      candidateCount: Number(decision.candidateCount) || 0,
+      candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+      rejectedCandidates: Array.isArray(decision.rejectedCandidates)
+        ? decision.rejectedCandidates.map((entry) => ({
+          skill: entry.skill || null,
+          rank: Number(entry.rank) || null,
+          reason: entry.reason || null,
+          mpAfter: entry.mpAfter == null ? null : Number(Number(entry.mpAfter).toFixed(2))
+        }))
+        : [],
+      executionAttempts: [],
+      executionOutcome: null,
+      executionFallbackUsed: false
+    };
+  }
+
+  _executionAttemptRecord(attempt, decision, result) {
+    return {
+      attempt,
+      skill: decision.skill ? decision.skill.id : null,
+      candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
+      selectionReason: decision.reason || null,
+      result: result && result.executed ? 'executed' : (result && result.shadow ? 'shadow' : 'failed'),
+      failureReason: result && !result.executed && !result.shadow ? (result.reason || 'SKILL_COMMAND_FAILED') : null
+    };
+  }
+
   _engage(context, target) {
     const snapshot = context && context.snapshot;
     const character = snapshot && snapshot.character;
@@ -2446,68 +2487,131 @@ class SkillFarmerController extends KitingFarmerController {
           const { gameData } = this._updateSelectedSkill(context);
           const decision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter);
           if (decision.skill) this.selectedSkill = decision.skill.id;
-          this.lastSkillDecision = {
-            at: this.now(),
-            reason: decision.reason,
-            skill: decision.skill ? decision.skill.id : null,
-            targetId: target.id || null,
-            targetType: target.mtype || null,
-            mp: decision.mp == null ? null : Number(decision.mp),
-            reserveMp: decision.reserveMp == null ? null : Number(decision.reserveMp.toFixed(2)),
-            mpAfter: decision.mpAfter == null ? null : Number(decision.mpAfter.toFixed(2)),
-            candidateCount: Number(decision.candidateCount) || 0,
-            candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
-            rejectedCandidates: Array.isArray(decision.rejectedCandidates)
-              ? decision.rejectedCandidates.map((entry) => ({
-                skill: entry.skill || null,
-                rank: Number(entry.rank) || null,
-                reason: entry.reason || null,
-                mpAfter: entry.mpAfter == null ? null : Number(Number(entry.mpAfter).toFixed(2))
-              }))
-              : []
-          };
+          this.lastSkillDecision = this._skillDecisionRecord(decision, target);
 
           if (decision.useSkill && decision.skill) {
             const now = this.now();
             if (now - this.lastSkillAttemptAt >= this.skillUsage.minIntervalMs) {
               this.lastSkillAttemptAt = now;
-              const result = context.adapter.command('use_skill', [decision.skill.id, String(target.id)]);
-              if (result.executed || result.shadow) {
-                this.lastActionAt = now;
-                this.lastSkillUse = {
-                  at: now,
-                  skill: decision.skill.id,
-                  skillName: decision.skill.name,
+              const attemptedSkillIds = [];
+              const executionAttempts = [];
+              let attemptDecision = decision;
+              let executionOutcome = null;
+
+              for (let attempt = 1; attempt <= this.skillUsage.maxCommandAttempts; attempt += 1) {
+                if (!attemptDecision || !attemptDecision.useSkill || !attemptDecision.skill) break;
+
+                const skill = attemptDecision.skill;
+                this.selectedSkill = skill.id;
+                const result = context.adapter.command('use_skill', [skill.id, String(target.id)]);
+                executionAttempts.push(this._executionAttemptRecord(attempt, attemptDecision, result));
+
+                if (result.executed || result.shadow) {
+                  const executionReason = attempt === 1
+                    ? attemptDecision.reason
+                    : 'SAFE_DIRECT_DAMAGE_EXECUTION_FALLBACK';
+                  executionOutcome = executionReason;
+                  this.lastActionAt = now;
+                  this.lastSkillDecision = {
+                    ...this._skillDecisionRecord(attemptDecision, target),
+                    reason: executionReason,
+                    preflightReason: attemptDecision.reason,
+                    executionAttempts,
+                    executionOutcome,
+                    executionFallbackUsed: attempt > 1
+                  };
+                  this.lastSkillExecution = {
+                    at: now,
+                    targetId: target.id || null,
+                    targetType: target.mtype || null,
+                    outcome: executionOutcome,
+                    attempts: executionAttempts.slice()
+                  };
+                  this.lastSkillUse = {
+                    at: now,
+                    skill: skill.id,
+                    skillName: skill.name,
+                    targetId: target.id || null,
+                    targetType: target.mtype || null,
+                    mpCost: skill.mp,
+                    damageMultiplier: skill.damageMultiplier,
+                    selectionReason: attemptDecision.reason,
+                    executionReason,
+                    candidateRank: attemptDecision.candidateRank == null ? null : Number(attemptDecision.candidateRank),
+                    executionAttempt: attempt
+                  };
+                  this._event('FARMER_SKILL_USED', 'info', executionReason, {
+                    skill: skill.id,
+                    skillName: skill.name,
+                    targetId: target.id || null,
+                    targetType: target.mtype || null,
+                    mpCost: skill.mp,
+                    damageMultiplier: skill.damageMultiplier,
+                    mpAfter: Number(attemptDecision.mpAfter.toFixed(2)),
+                    reserveMp: Number(attemptDecision.reserveMp.toFixed(2)),
+                    candidateCount: Number(attemptDecision.candidateCount) || 0,
+                    candidateRank: attemptDecision.candidateRank == null ? null : Number(attemptDecision.candidateRank),
+                    selectionReason: attemptDecision.reason,
+                    executionAttempt: attempt,
+                    executionFallbackUsed: attempt > 1,
+                    rejectedCandidates: this.lastSkillDecision.rejectedCandidates,
+                    executionAttempts: executionAttempts.slice()
+                  });
+                  return;
+                }
+
+                attemptedSkillIds.push(skill.id);
+                const retryable = this.skillUsage.canRetryCommandFailure(result);
+                const withinAttemptLimit = attempt < this.skillUsage.maxCommandAttempts;
+                let nextDecision = null;
+                if (retryable && withinAttemptLimit) {
+                  nextDecision = this.skillUsage.evaluate(snapshot, target, gameData, context.adapter, {
+                    skipSkillIds: attemptedSkillIds
+                  });
+                }
+                const willRetry = !!(nextDecision && nextDecision.useSkill && nextDecision.skill);
+
+                this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
+                  skill: skill.id,
                   targetId: target.id || null,
                   targetType: target.mtype || null,
-                  mpCost: decision.skill.mp,
-                  damageMultiplier: decision.skill.damageMultiplier,
-                  selectionReason: decision.reason,
-                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
-                };
-                this._event('FARMER_SKILL_USED', 'info', decision.reason, {
-                  skill: decision.skill.id,
-                  skillName: decision.skill.name,
-                  targetId: target.id || null,
-                  targetType: target.mtype || null,
-                  mpCost: decision.skill.mp,
-                  damageMultiplier: decision.skill.damageMultiplier,
-                  mpAfter: Number(decision.mpAfter.toFixed(2)),
-                  reserveMp: Number(decision.reserveMp.toFixed(2)),
-                  candidateCount: Number(decision.candidateCount) || 0,
-                  candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank),
-                  rejectedCandidates: this.lastSkillDecision.rejectedCandidates
+                  selectionReason: attemptDecision.reason,
+                  candidateRank: attemptDecision.candidateRank == null ? null : Number(attemptDecision.candidateRank),
+                  executionAttempt: attempt,
+                  retryable,
+                  willRetry,
+                  maxCommandAttempts: this.skillUsage.maxCommandAttempts
                 });
-                return;
+
+                if (!retryable) {
+                  executionOutcome = 'SKILL_COMMAND_NON_RETRYABLE';
+                  break;
+                }
+                if (!withinAttemptLimit) {
+                  executionOutcome = 'SKILL_COMMAND_FALLBACK_EXHAUSTED';
+                  break;
+                }
+                if (!willRetry) {
+                  executionOutcome = 'NO_SAFE_EXECUTION_FALLBACK';
+                  break;
+                }
+
+                attemptDecision = nextDecision;
               }
 
-              this._event('FARMER_SKILL_USE_FAILED', 'warn', result.reason || 'SKILL_COMMAND_FAILED', {
-                skill: decision.skill.id,
+              this.lastSkillDecision = {
+                ...this.lastSkillDecision,
+                executionAttempts,
+                executionOutcome: executionOutcome || 'SKILL_COMMAND_FALLBACK_EXHAUSTED',
+                executionFallbackUsed: executionAttempts.length > 1
+              };
+              this.lastSkillExecution = {
+                at: now,
                 targetId: target.id || null,
                 targetType: target.mtype || null,
-                selectionReason: decision.reason,
-                candidateRank: decision.candidateRank == null ? null : Number(decision.candidateRank)
-              });
+                outcome: this.lastSkillDecision.executionOutcome,
+                attempts: executionAttempts.slice()
+              };
             }
           }
         }
@@ -2524,7 +2628,8 @@ class SkillFarmerController extends KitingFarmerController {
         ...this.skillUsage.status(),
         selectedSkill: this.selectedSkill,
         lastUse: this.lastSkillUse,
-        lastDecision: this.lastSkillDecision
+        lastDecision: this.lastSkillDecision,
+        lastExecution: this.lastSkillExecution
       },
       targetReassessment: {
         ...this.targetReassessment.status(),
@@ -3284,6 +3389,8 @@ class SkillUsagePolicy {
     this.enabled = options.enabled !== false;
     this.mpReserveRatio = clamp01(options.mpReserveRatio == null ? 0.30 : options.mpReserveRatio);
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
+    this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
+    this.retryableCommandReasons = new Set(['COMMAND_FAILED']);
   }
 
   candidates(character, gameData = {}) {
@@ -3313,7 +3420,12 @@ class SkillUsagePolicy {
     return this.candidates(character, gameData)[0] || null;
   }
 
-  evaluate(snapshot, target, gameData, adapter) {
+  canRetryCommandFailure(result) {
+    if (!result || result.executed || result.shadow) return false;
+    return this.retryableCommandReasons.has(String(result.reason || ''));
+  }
+
+  evaluate(snapshot, target, gameData, adapter, options = {}) {
     const character = snapshot && snapshot.character;
     if (!this.enabled) return { useSkill: false, reason: 'SKILL_USAGE_DISABLED', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
     if (!character || !target) return { useSkill: false, reason: 'SKILL_CONTEXT_MISSING', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
@@ -3321,6 +3433,9 @@ class SkillUsagePolicy {
     const candidates = this.candidates(character, gameData || {});
     if (!candidates.length) return { useSkill: false, reason: 'NO_SAFE_DIRECT_DAMAGE_SKILL', skill: null, candidateCount: 0, candidateRank: null, rejectedCandidates: [] };
 
+    const skippedSkillIds = new Set(
+      Array.isArray(options.skipSkillIds) ? options.skipSkillIds.map((id) => String(id)) : []
+    );
     const mp = Math.max(0, finite(character.mp, 0));
     const maxMp = Math.max(0, finite(character.max_mp, mp));
     const reserveMp = maxMp * this.mpReserveRatio;
@@ -3331,7 +3446,9 @@ class SkillUsagePolicy {
       const mpAfter = mp - skill.mp;
       let rejectionReason = null;
 
-      if (mpAfter < reserveMp) {
+      if (skippedSkillIds.has(String(skill.id))) {
+        rejectionReason = 'PREVIOUS_COMMAND_FAILED';
+      } else if (mpAfter < reserveMp) {
         rejectionReason = 'MP_RESERVE';
       } else if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
         rejectionReason = 'SKILL_COOLDOWN_OR_REQUIREMENT';
@@ -3383,6 +3500,9 @@ class SkillUsagePolicy {
       mpReserveRatio: this.mpReserveRatio,
       minIntervalMs: this.minIntervalMs,
       fallbackEnabled: true,
+      executionFallbackEnabled: true,
+      maxCommandAttempts: this.maxCommandAttempts,
+      retryableCommandReasons: [...this.retryableCommandReasons],
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }
