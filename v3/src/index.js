@@ -15,6 +15,7 @@ const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime');
 const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
 const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
+const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK } = require('./autonomy/alpha20-5-merchant-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -60,6 +61,9 @@ const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE,
 const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('./economy/controlled-merchant-space-recovery-hardened');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
+const { RouteCostEstimator, ROUTE_COST_MODE } = require('./travel/route-cost-estimator');
+const { MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE } = require('./merchant/merchant-service-planner');
+const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE } = require('./merchant/controlled-merchant-service-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -76,7 +80,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20Runtime({ ...options, root });
+  const runtime = new Alpha20_5MerchantRuntime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -261,6 +265,13 @@ function install(root = globalThis, options = {}) {
         abort: (reason) => runtime.abortControlledTravel(reason)
       }
     },
+    merchantService: {
+      status: () => runtime.merchantServiceStatus(),
+      configure: (config = {}) => runtime.configureMerchantService(config),
+      disable: (reason) => runtime.disableMerchantService(reason),
+      reconcile: () => runtime.reconcileMerchantService(),
+      evaluate: () => runtime._merchantServiceCycle()
+    },
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
@@ -329,7 +340,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -353,6 +364,8 @@ module.exports = {
   ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE, CONTROLLED_BANK_CONSOLIDATION_ACK,
   HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION,
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
+  RouteCostEstimator, ROUTE_COST_MODE,
+  MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE, ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard, MinuteCountdownReporter,
