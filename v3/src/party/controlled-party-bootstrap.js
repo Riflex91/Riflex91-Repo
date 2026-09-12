@@ -1,10 +1,16 @@
 'use strict';
 
-const { AccountCharacterTransport } = require('./account-character-transport');
+const { AccountCharacterTransport, uniqueNames } = require('./account-character-transport');
 
 const PARTY_BOOTSTRAP_PROTOCOL = 1;
 const PARTY_BOOTSTRAP_TYPE = 'aio-v3-party-bootstrap';
 const PARTY_BOOTSTRAP_RECEIVER = '__AIO_V3_PARTY_BOOTSTRAP_RECEIVE';
+const DEFAULT_PARTY_BOOTSTRAP_ROSTER = Object.freeze([
+  'My_Merchant',
+  'My_Ranger1',
+  'My_Ranger2',
+  'My_Ranger3'
+]);
 const PartyBootstrapAction = Object.freeze({
   HELLO_CHALLENGE: 'HELLO_CHALLENGE',
   HELLO_ACK: 'HELLO_ACK'
@@ -21,7 +27,36 @@ class ControlledPartyBootstrap {
     this.now = options.now || (this.runtime && this.runtime.now) || (() => Date.now());
     this.log = options.log || (this.runtime && this.runtime.log) || null;
     this.controlLease = options.controlLease || (this.runtime && this.runtime.partyControlLease) || null;
-    this.transport = options.transport || new AccountCharacterTransport({ root: this.root, now: this.now, log: this.log });
+
+    const configuredRoster = options.desiredRoster || options.roster || null;
+    let resolvedRoster = configuredRoster ? uniqueNames(configuredRoster) : [];
+    if (!resolvedRoster.length) {
+      const activeFn = this.root && (this.root.get_active_characters || (this.root.parent && this.root.parent.get_active_characters));
+      if (typeof activeFn === 'function') {
+        try {
+          const active = activeFn.call(this.root);
+          const activeNames = active && typeof active === 'object' ? uniqueNames(Object.keys(active)) : [];
+          if (activeNames.length === 4) resolvedRoster = activeNames;
+        } catch (_) {}
+      }
+    }
+    if (!resolvedRoster.length) resolvedRoster = uniqueNames(DEFAULT_PARTY_BOOTSTRAP_ROSTER);
+    this.desiredRoster = resolvedRoster;
+    if (this.desiredRoster.length !== 4) throw new Error('PARTY_BOOTSTRAP_REQUIRES_EXACTLY_FOUR_TRUSTED_NAMES');
+    this.merchantName = cleanName(options.merchantName)
+      || (this.desiredRoster.includes('My_Merchant') ? 'My_Merchant' : null)
+      || (this.desiredRoster.includes('Merch') ? 'Merch' : null)
+      || this.desiredRoster[0];
+    if (!this.desiredRoster.includes(this.merchantName)) throw new Error('PARTY_BOOTSTRAP_MERCHANT_NOT_IN_ROSTER');
+
+    this.transport = options.transport || new AccountCharacterTransport({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      trustedNames: this.desiredRoster
+    });
+    if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
+
     this.challengeTtlMs = Math.max(1500, Math.min(15000, Number(options.challengeTtlMs) || 5000));
     this.ackTimeoutMs = Math.max(1000, Math.min(10000, Number(options.ackTimeoutMs) || 3500));
     this.verifyTimeoutMs = Math.max(2000, Math.min(20000, Number(options.verifyTimeoutMs) || 8000));
@@ -30,6 +65,7 @@ class ControlledPartyBootstrap {
     this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 60000);
     this.maxAttempts = Math.max(1, Math.min(10, Number(options.maxAttempts) || 3));
     this.breakerMs = Math.max(10000, Number(options.breakerMs) || 120000);
+
     this.active = false;
     this.generation = 0;
     this.state = 'SUSPENDED';
@@ -44,6 +80,9 @@ class ControlledPartyBootstrap {
     this.nextAttemptAt = new Map();
     this.breakerUntil = 0;
     this.previousOnCm = null;
+    this.previousDirectReceiver = undefined;
+    this.cmWrapper = null;
+    this.directReceiver = null;
     this.installed = false;
     this.stats = {
       observations: 0,
@@ -55,10 +94,12 @@ class ControlledPartyBootstrap {
       invitesVerified: 0,
       failures: 0,
       foreignPartyBlocks: 0,
-      leaderBlocks: 0,
+      leaderWarnings: 0,
       activeLimitBlocks: 0,
       breakerOpens: 0,
-      cancels: 0
+      cancels: 0,
+      installs: 0,
+      uninstalls: 0
     };
     this.install();
   }
@@ -76,12 +117,16 @@ class ControlledPartyBootstrap {
     return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
   }
 
+  trustedRosterNames() {
+    return this.desiredRoster.slice();
+  }
+
   _partyNames() {
     const parent = this.root && (this.root.parent || this.root);
     const names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
     const local = cleanName(this._character() && this._character().name);
     if (local && !names.includes(local)) names.push(local);
-    return [...new Set(names)].sort();
+    return uniqueNames(names);
   }
 
   _observableLeader() {
@@ -92,62 +137,52 @@ class ControlledPartyBootstrap {
 
   _activeSnapshot() {
     const raw = this.transport.activeCharacters();
-    if (!raw) return { available: false, present: [], running: [], raw: null };
-    const present = this.transport.ownedNames();
-    const running = this.transport.ownedNames({ runningOnly: true });
-    return { available: true, present, running, raw };
+    const observedPresent = typeof this.transport.activeNames === 'function'
+      ? this.transport.activeNames()
+      : (typeof this.transport.ownedNames === 'function' ? this.transport.ownedNames() : []);
+    const observedRunning = typeof this.transport.activeNames === 'function'
+      ? this.transport.activeNames({ runningOnly: true })
+      : observedPresent.slice();
+    return {
+      available: !!raw,
+      observedPresent,
+      observedRunning,
+      raw
+    };
   }
 
-  _merchantName(activeNames) {
-    const active = new Set(activeNames || []);
-    const c = this._character();
-    if (c && String(c.ctype || '').toLowerCase() === 'merchant' && active.has(String(c.name))) return String(c.name);
-
-    const configured = cleanName(this.controlLease && this.controlLease.merchantName);
-    if (configured && active.has(configured)) return configured;
-
-    const registry = this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status && this.runtime.characterRegistry.status();
-    const candidates = (registry && registry.characters || [])
-      .filter((row) => row && String(row.ctype || '').toLowerCase() === 'merchant' && active.has(String(row.name)))
-      .map((row) => String(row.name));
-    if (new Set(candidates).size === 1) return candidates[0];
-
-    const parent = this.root && (this.root.parent || this.root);
-    const party = parent && parent.party || {};
-    const partyMerchants = Object.entries(party)
-      .filter(([name, row]) => active.has(String(name)) && String(row && (row.ctype || row.type) || '').toLowerCase() === 'merchant')
-      .map(([name]) => String(name));
-    return new Set(partyMerchants).size === 1 ? partyMerchants[0] : null;
-  }
-
-  _configureTrust(activeNames, merchantName) {
+  _configureTrust() {
+    if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
     if (!this.controlLease) return;
-    if (typeof this.controlLease.setTrustedNames === 'function') this.controlLease.setTrustedNames(activeNames);
-    if (merchantName && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(merchantName);
+    if (typeof this.controlLease.setTrustedNames === 'function') this.controlLease.setTrustedNames(this.desiredRoster);
+    if (typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
   }
 
   _observe() {
     const at = this.now();
     const active = this._activeSnapshot();
     const local = cleanName(this._character() && this._character().name);
-    const merchant = this._merchantName(active.present);
     const partyNames = this._partyNames();
     const leader = this._observableLeader();
-    const presentSet = new Set(active.present);
-    const foreignPartyNames = partyNames.filter((name) => !presentSet.has(name));
-    const missingRunning = active.running.filter((name) => name !== merchant && !partyNames.includes(name));
-    const full = active.available && active.running.length === 4 && !!merchant && active.running.every((name) => partyNames.includes(name));
-    const leaderWrong = !!leader && !!merchant && partyNames.length > 1 && leader !== merchant;
+    const desiredSet = new Set(this.desiredRoster);
+    const foreignPartyNames = partyNames.filter((name) => !desiredSet.has(name));
+    const missingDesired = this.desiredRoster.filter((name) => !partyNames.includes(name));
+    const full = partyNames.length === this.desiredRoster.length
+      && this.desiredRoster.every((name) => partyNames.includes(name))
+      && foreignPartyNames.length === 0;
+    const leaderWrong = !!leader && partyNames.length > 1 && leader !== this.merchantName;
     const observation = {
       at,
       local,
-      merchant,
+      merchant: this.merchantName,
+      trustSource: 'explicit-four-character-roster',
+      desiredRoster: this.desiredRoster.slice(),
       activeStateAvailable: active.available,
-      presentNames: active.present,
-      runningNames: active.running,
+      observedPresentNames: active.observedPresent,
+      observedRunningNames: active.observedRunning,
       partyNames,
       foreignPartyNames,
-      missingRunning,
+      missingDesired,
       leader,
       leaderObserved: !!leader,
       leaderWrong,
@@ -155,7 +190,7 @@ class ControlledPartyBootstrap {
     };
     this.lastObserved = observation;
     this.stats.observations += 1;
-    this._configureTrust(active.present, merchant);
+    this._configureTrust();
     return observation;
   }
 
@@ -164,7 +199,12 @@ class ControlledPartyBootstrap {
     this.state = state;
     this.reason = reason;
     this.ready = ready === true;
-    if (changed) this._event('PARTY_BOOTSTRAP_STATE_CHANGED', ready ? 'info' : (state === 'BLOCKED' ? 'warn' : 'info'), reason, { state, ready });
+    if (changed) this._event(
+      'PARTY_BOOTSTRAP_STATE_CHANGED',
+      ready ? 'info' : (state === 'BLOCKED' ? 'warn' : 'info'),
+      reason,
+      { state, ready }
+    );
   }
 
   _isBootstrapMessage(data) {
@@ -175,35 +215,43 @@ class ControlledPartyBootstrap {
     if (!this.active || !this._isBootstrapMessage(data)) return false;
     const from = cleanName(sender);
     const local = cleanName(this._character() && this._character().name);
-    const active = this._activeSnapshot();
-    if (!active.available || active.present.length > 4 || !from || !local || !active.present.includes(from) || !active.present.includes(local)) return false;
-    const merchant = this._merchantName(active.present);
+    if (!from || !local || !this.desiredRoster.includes(from) || !this.desiredRoster.includes(local)) return false;
     const action = String(data.action || '');
 
     if (action === PartyBootstrapAction.HELLO_CHALLENGE) {
-      if (!merchant || from !== merchant || cleanName(data.merchantName) !== merchant || cleanName(data.target) !== local) return false;
+      if (from !== this.merchantName || cleanName(data.merchantName) !== this.merchantName || cleanName(data.target) !== local) return false;
       const issuedAt = Number(data.issuedAt);
       const expiresAt = Number(data.expiresAt);
       const nonce = String(data.nonce || '');
-      if (!nonce || !Number.isFinite(issuedAt) || !Number.isFinite(expiresAt) || issuedAt > this.now() + 3000 || expiresAt <= this.now() || expiresAt - issuedAt > this.challengeTtlMs + 3000) return false;
+      if (!nonce || !Number.isFinite(issuedAt) || !Number.isFinite(expiresAt)
+        || issuedAt > this.now() + 3000 || expiresAt <= this.now()
+        || expiresAt - issuedAt > this.challengeTtlMs + 3000) return false;
+
+      this._configureTrust();
       this.stats.challengesAccepted += 1;
       const ack = {
         type: PARTY_BOOTSTRAP_TYPE,
         protocol: PARTY_BOOTSTRAP_PROTOCOL,
         action: PartyBootstrapAction.HELLO_ACK,
-        merchantName: merchant,
+        merchantName: this.merchantName,
         target: local,
         nonce,
         at: this.now()
       };
-      Promise.resolve(this.transport.send(merchant, ack, { receiver: PARTY_BOOTSTRAP_RECEIVER, sender: local })).catch((error) => {
-        this._event('PARTY_BOOTSTRAP_ACK_SEND_FAILED', 'warn', 'ACK_SEND_FAILED', { target: local, message: String(error && error.message || error).slice(0, 200) });
+      Promise.resolve(this.transport.send(this.merchantName, ack, {
+        receiver: PARTY_BOOTSTRAP_RECEIVER,
+        sender: local
+      })).catch((error) => {
+        this._event('PARTY_BOOTSTRAP_ACK_SEND_FAILED', 'warn', 'ACK_SEND_FAILED', {
+          target: local,
+          message: String(error && error.message || error).slice(0, 200)
+        });
       });
       return true;
     }
 
     if (action === PartyBootstrapAction.HELLO_ACK) {
-      if (!merchant || local !== merchant || cleanName(data.merchantName) !== merchant || cleanName(data.target) !== from) return false;
+      if (local !== this.merchantName || cleanName(data.merchantName) !== this.merchantName || cleanName(data.target) !== from) return false;
       const pending = this.pendingChallenges.get(from);
       if (!pending || pending.nonce !== String(data.nonce || '') || pending.expiresAt <= this.now()) return false;
       this.acknowledged.set(from, { nonce: pending.nonce, at: this.now() });
@@ -215,10 +263,15 @@ class ControlledPartyBootstrap {
 
   install() {
     if (this.installed || !this.root) return false;
-    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, (sender, payload) => this.receive(sender, payload));
+    this._configureTrust();
+
+    this.previousDirectReceiver = this.root[PARTY_BOOTSTRAP_RECEIVER];
+    this.directReceiver = (sender, payload) => this.receive(sender, payload);
+    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver);
+
     this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
     const self = this;
-    this.root.on_cm = function onPartyBootstrapMessage(name, data) {
+    this.cmWrapper = function onPartyBootstrapMessage(name, data) {
       if (self._isBootstrapMessage(data)) {
         self.receive(name, data);
         return undefined;
@@ -226,13 +279,47 @@ class ControlledPartyBootstrap {
       if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
       return undefined;
     };
+    this.root.on_cm = this.cmWrapper;
     this.installed = true;
+    this.stats.installs += 1;
+    return true;
+  }
+
+  uninstall() {
+    if (!this.installed || !this.root) return false;
+    if (this.root.on_cm === this.cmWrapper) this.root.on_cm = this.previousOnCm || undefined;
+    if (typeof this.transport.uninstallDirectReceiver === 'function') {
+      this.transport.uninstallDirectReceiver(
+        PARTY_BOOTSTRAP_RECEIVER,
+        this.directReceiver,
+        this.previousDirectReceiver
+      );
+    } else if (this.root[PARTY_BOOTSTRAP_RECEIVER] === this.directReceiver) {
+      if (this.previousDirectReceiver === undefined) {
+        try { delete this.root[PARTY_BOOTSTRAP_RECEIVER]; } catch (_) { this.root[PARTY_BOOTSTRAP_RECEIVER] = undefined; }
+      } else {
+        this.root[PARTY_BOOTSTRAP_RECEIVER] = this.previousDirectReceiver;
+      }
+    }
+    this.previousOnCm = null;
+    this.previousDirectReceiver = undefined;
+    this.cmWrapper = null;
+    this.directReceiver = null;
+    this.installed = false;
+    this.stats.uninstalls += 1;
     return true;
   }
 
   resume() {
+    // Keep the lease below the bootstrap CM wrapper. This ordering makes
+    // STOP -> START deterministic and prevents cyclic previous-handler chains.
+    if (this.controlLease && !this.controlLease.installed && typeof this.controlLease.install === 'function') {
+      this.controlLease.install();
+    }
+    this.install();
     this.active = true;
     this.generation += 1;
+    this._configureTrust();
     this._setState('OBSERVING', 'RUNTIME_STARTED', false);
     return true;
   }
@@ -244,6 +331,10 @@ class ControlledPartyBootstrap {
     this.acknowledged.clear();
     this.stats.cancels += 1;
     this._setState('SUSPENDED', reason, false);
+    this.uninstall();
+    if (this.controlLease && this.controlLease.installed && typeof this.controlLease.uninstall === 'function') {
+      this.controlLease.uninstall();
+    }
     return true;
   }
 
@@ -261,7 +352,7 @@ class ControlledPartyBootstrap {
     throw new Error(reason || 'PARTY_BOOTSTRAP_TIMEOUT');
   }
 
-  async _verifyPresence(target, merchant, generation) {
+  async _verifyPresence(target, generation) {
     const issuedAt = this.now();
     const nonce = randomToken(issuedAt);
     const pending = { nonce, target, issuedAt, expiresAt: issuedAt + this.challengeTtlMs };
@@ -271,12 +362,12 @@ class ControlledPartyBootstrap {
       type: PARTY_BOOTSTRAP_TYPE,
       protocol: PARTY_BOOTSTRAP_PROTOCOL,
       action: PartyBootstrapAction.HELLO_CHALLENGE,
-      merchantName: merchant,
+      merchantName: this.merchantName,
       target,
       nonce,
       issuedAt,
       expiresAt: pending.expiresAt
-    }, { receiver: PARTY_BOOTSTRAP_RECEIVER, sender: merchant });
+    }, { receiver: PARTY_BOOTSTRAP_RECEIVER, sender: this.merchantName });
     this.stats.challengesSent += 1;
     await this._waitUntil(() => {
       const ack = this.acknowledged.get(target);
@@ -287,15 +378,14 @@ class ControlledPartyBootstrap {
     return true;
   }
 
-  async _invite(target, observation, generation) {
-    const merchant = observation.merchant;
+  async _invite(target, generation) {
     this._assertGeneration(generation);
     this._setState('DISCOVERING', `VERIFYING_${target}`, false);
-    await this._verifyPresence(target, merchant, generation);
+    await this._verifyPresence(target, generation);
     this._assertGeneration(generation);
 
     if (!this.controlLease || typeof this.controlLease.authorizeIncoming !== 'function') throw new Error('PARTY_CONTROL_LEASE_UNAVAILABLE');
-    this._configureTrust(observation.presentNames, merchant);
+    this._configureTrust();
     const transactionId = `party-bootstrap-${this.now()}-${target}`;
     this._setState('AUTHORIZING', `AUTHORIZING_${target}`, false);
     await this.controlLease.authorizeIncoming(target, transactionId);
@@ -330,39 +420,72 @@ class ControlledPartyBootstrap {
       this._setState('BACKOFF', `RETRY_${target}`, false);
     }
     this.lastResult = { ok: false, target, attempts, message, at: this.now() };
-    this._event('PARTY_BOOTSTRAP_ATTEMPT_FAILED', 'warn', message, { target, attempts, breakerUntil: this.breakerUntil || null });
+    this._event('PARTY_BOOTSTRAP_ATTEMPT_FAILED', 'warn', message, {
+      target,
+      attempts,
+      breakerUntil: this.breakerUntil || null
+    });
+  }
+
+  farmingGate(characterName = null) {
+    const local = cleanName(characterName) || cleanName(this._character() && this._character().name);
+    const observation = this.lastObserved || this._observe();
+    if (!local || !this.desiredRoster.includes(local)) {
+      return { allowed: false, reason: 'LOCAL_CHARACTER_NOT_IN_TRUSTED_ROSTER', full: false };
+    }
+    if (local === this.merchantName) {
+      return { allowed: true, reason: 'MERCHANT_NOT_FARMER', full: observation.full };
+    }
+    if (observation.foreignPartyNames.length) {
+      return { allowed: false, reason: 'FOREIGN_PARTY_MEMBER_PRESENT', full: observation.full };
+    }
+    if (observation.full) {
+      return { allowed: true, reason: 'FULL_TRUSTED_PARTY', full: true };
+    }
+    // Reliability escape hatch: a trusted farmer already co-located in an
+    // observed party with the trusted Merchant may keep farming while the
+    // Merchant repairs one missing trusted member. This prevents bootstrap
+    // discovery faults from turning into NO_PROGRESS / SAFE_MODE loops.
+    const safeTrustedPartial = observation.partyNames.includes(local)
+      && observation.partyNames.includes(this.merchantName)
+      && observation.partyNames.length >= 2
+      && observation.partyNames.every((name) => this.desiredRoster.includes(name));
+    if (safeTrustedPartial) {
+      return { allowed: true, reason: 'SAFE_TRUSTED_PARTIAL_PARTY', full: false };
+    }
+    return {
+      allowed: false,
+      reason: this.reason || 'PARTY_BOOTSTRAP_NOT_READY',
+      full: false
+    };
   }
 
   tick() {
     if (!this.active) return this.status();
     const observation = this._observe();
 
-    if (!observation.activeStateAvailable) {
-      this._setState('BLOCKED', 'ACTIVE_CHARACTER_STATE_UNAVAILABLE', false);
-      return this.status();
-    }
-    if (observation.presentNames.length > 4) {
+    if (observation.observedPresentNames.length > 4) {
       this.stats.activeLimitBlocks += 1;
       this._setState('BLOCKED', 'ACTIVE_CHARACTER_LIMIT_EXCEEDED', false);
       return this.status();
     }
-    if (!observation.merchant) {
-      this._setState('OBSERVING', 'MERCHANT_NOT_IDENTIFIED', false);
+    if (!this.desiredRoster.includes(observation.local)) {
+      this._setState('BLOCKED', 'LOCAL_CHARACTER_NOT_IN_TRUSTED_ROSTER', false);
       return this.status();
     }
     if (observation.foreignPartyNames.length) {
       this.stats.foreignPartyBlocks += 1;
-      this._setState('BLOCKED', 'FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT', false);
-      return this.status();
-    }
-    if (observation.leaderWrong) {
-      this.stats.leaderBlocks += 1;
-      this._setState('BLOCKED', 'MERCHANT_NOT_PARTY_LEADER', false);
+      this._setState('BLOCKED', 'FOREIGN_PARTY_MEMBER_PRESENT', false);
       return this.status();
     }
     if (observation.full) {
+      if (observation.leaderWrong) this.stats.leaderWarnings += 1;
       this.stats.noops += 1;
-      this._setState('READY', observation.leaderObserved ? 'FULL_PARTY_VERIFIED' : 'FULL_PARTY_NOOP_LEADER_INFERRED', true);
+      this._setState(
+        'READY',
+        observation.leaderWrong ? 'FULL_TRUSTED_PARTY_NON_MERCHANT_LEADER' : 'FULL_PARTY_VERIFIED',
+        true
+      );
       return this.status();
     }
 
@@ -375,9 +498,14 @@ class ControlledPartyBootstrap {
       this.attempts.clear();
     }
 
-    const local = observation.local;
-    if (local !== observation.merchant) {
-      this._setState('PARTIAL', 'WAITING_FOR_MERCHANT_BOOTSTRAP', false);
+    if (observation.local !== this.merchantName) {
+      this._setState(
+        'PARTIAL',
+        observation.partyNames.includes(this.merchantName)
+          ? 'WAITING_FOR_MERCHANT_BOOTSTRAP'
+          : 'WAITING_FOR_TRUSTED_MERCHANT_PARTY',
+        false
+      );
       return this.status();
     }
     if (this.runtime && this.runtime.adapter && this.runtime.adapter.mode !== 'active') {
@@ -386,15 +514,17 @@ class ControlledPartyBootstrap {
     }
     if (this.inFlight) return this.status();
 
-    const target = observation.missingRunning.find((name) => this.now() >= (this.nextAttemptAt.get(name) || 0));
+    const target = observation.missingDesired.find(
+      (name) => name !== this.merchantName && this.now() >= (this.nextAttemptAt.get(name) || 0)
+    );
     if (!target) {
-      this._setState('PARTIAL', observation.runningNames.length < 4 ? 'WAITING_FOR_ACTIVE_COMPANIONS' : 'WAITING_FOR_RETRY_WINDOW', false);
+      this._setState('PARTIAL', 'WAITING_FOR_RETRY_WINDOW', false);
       return this.status();
     }
 
     const generation = this.generation;
     this.inFlight = Promise.resolve()
-      .then(() => this._invite(target, observation, generation))
+      .then(() => this._invite(target, generation))
       .catch((error) => {
         if (String(error && error.message || error) === 'PARTY_BOOTSTRAP_CANCELLED') return;
         this._noteFailure(target, error);
@@ -411,15 +541,20 @@ class ControlledPartyBootstrap {
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'controlled-dynamic-party-bootstrap-v1',
+      schemaVersion: 2,
+      mode: 'controlled-explicit-party-bootstrap-v2',
       protocol: PARTY_BOOTSTRAP_PROTOCOL,
       installed: this.installed,
       active: this.active,
       state: this.state,
       reason: this.reason,
       ready: this.ready,
-      actionAuthority: this.active && this.runtime && this.runtime.adapter && this.runtime.adapter.mode === 'active' && this.lastObserved && this.lastObserved.local === this.lastObserved.merchant,
+      merchantName: this.merchantName,
+      desiredRoster: this.desiredRoster.slice(),
+      trustSource: 'explicit-four-character-roster',
+      actionAuthority: this.active
+        && this.runtime && this.runtime.adapter && this.runtime.adapter.mode === 'active'
+        && this.lastObserved && this.lastObserved.local === this.merchantName,
       inFlight: !!this.inFlight,
       breakerUntil: this.breakerUntil || null,
       breakerRemainingMs: Math.max(0, this.breakerUntil - this.now()),
@@ -437,5 +572,6 @@ module.exports = {
   PARTY_BOOTSTRAP_PROTOCOL,
   PARTY_BOOTSTRAP_TYPE,
   PARTY_BOOTSTRAP_RECEIVER,
+  DEFAULT_PARTY_BOOTSTRAP_ROSTER,
   PartyBootstrapAction
 };
