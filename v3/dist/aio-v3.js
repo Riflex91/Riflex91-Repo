@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.20 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.9.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -4449,7 +4449,7 @@ module.exports = { CombatEmergencyGate };
 "src/version.js": function(require,module,exports){
 'use strict';
 
-const VERSION = '3.0.0-alpha.8.20';
+const VERSION = '3.0.0-alpha.9.0';
 
 module.exports = { VERSION };
 
