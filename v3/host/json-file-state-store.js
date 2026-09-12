@@ -26,34 +26,40 @@ class JsonFileStateStore {
     };
   }
 
+  _failLoad(code, error, counter) {
+    if (counter && Object.prototype.hasOwnProperty.call(this.stats, counter)) this.stats[counter] += 1;
+    this._setError(code, error);
+    const wrapped = new Error(this.lastError.message);
+    wrapped.code = code;
+    throw wrapped;
+  }
+
   load(fallback = null) {
     this.stats.loads += 1;
+    let stat;
+    let text;
     try {
-      const stat = fs.statSync(this.filePath);
-      if (stat.size > this.maxBytes) {
-        this.stats.oversized += 1;
-        this._setError('STATE_FILE_OVERSIZED', new Error(`state file is ${stat.size} bytes`));
-        return clone(fallback);
-      }
-      const text = fs.readFileSync(this.filePath, 'utf8');
-      if (Buffer.byteLength(text, 'utf8') > this.maxBytes) {
-        this.stats.oversized += 1;
-        this._setError('STATE_FILE_OVERSIZED', new Error('state file exceeds byte limit'));
-        return clone(fallback);
-      }
-      const value = JSON.parse(text);
-      this.lastError = null;
-      return value;
+      stat = fs.statSync(this.filePath);
+      text = fs.readFileSync(this.filePath, 'utf8');
     } catch (error) {
       if (error && error.code === 'ENOENT') {
         this.stats.missing += 1;
         this.lastError = null;
         return clone(fallback);
       }
-      if (error instanceof SyntaxError) this.stats.corrupt += 1;
-      else this.stats.failures += 1;
-      this._setError(error instanceof SyntaxError ? 'STATE_FILE_CORRUPT' : 'STATE_LOAD_FAILED', error);
-      return clone(fallback);
+      return this._failLoad('STATE_LOAD_FAILED', error, 'failures');
+    }
+
+    if (stat.size > this.maxBytes || Buffer.byteLength(text, 'utf8') > this.maxBytes) {
+      return this._failLoad('STATE_FILE_OVERSIZED', new Error(`state file exceeds ${this.maxBytes} bytes`), 'oversized');
+    }
+
+    try {
+      const value = JSON.parse(text);
+      this.lastError = null;
+      return value;
+    } catch (error) {
+      return this._failLoad('STATE_FILE_CORRUPT', error, 'corrupt');
     }
   }
 
