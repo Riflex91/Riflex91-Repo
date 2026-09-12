@@ -1,6 +1,7 @@
 'use strict';
 
 const { Runtime } = require('../runtime');
+const { VERSION } = require('../version');
 const { TaskState } = require('../core/task');
 const { StabilityGameAdapter } = require('../game/stability-adapter');
 const { StableScheduler } = require('../core/stable-scheduler');
@@ -11,6 +12,10 @@ const { CombatStabilitySupervisor } = require('./combat-stability-supervisor');
 class StabilityRuntime extends Runtime {
   constructor(options = {}) {
     super(options);
+    // Runtime alpha.8.13 remains the historical base implementation. The
+    // stability runtime owns the phase-freeze version without rewriting that
+    // large proven file, and all emitted events use the phase version.
+    this.log.version = VERSION;
 
     if (!options.adapter) {
       this.adapter = new StabilityGameAdapter({
@@ -121,9 +126,14 @@ class StabilityRuntime extends Runtime {
     farmer.__kitingCircuitGuardInstalled = true;
   }
 
+  _phaseMessage(message) {
+    return String(message || '').replace(/\[AIO v3 [^\]]+\]/, `[AIO v3 ${VERSION}]`);
+  }
+
   _announce(message, event) {
-    this.log.emit({ component: 'runtime', event, data: { message, visibleMirror: !!this.visibleStatusEnabled } });
-    this._gameLog(message);
+    const resolved = this._phaseMessage(message);
+    this.log.emit({ component: 'runtime', event, data: { message: resolved, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(resolved);
     return true;
   }
 
@@ -132,6 +142,18 @@ class StabilityRuntime extends Runtime {
     this.persistence.load(this.world);
     const status = this.persistence.status();
     this.worldLoaded = status.loadComplete === true || (status.loaded === true && status.loadComplete == null);
+  }
+
+  start() {
+    if (this.timer) return false;
+    this._restoreWorldOnce();
+    this.startedAt = this.startedAt || this.now();
+    this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
+    const modeNote = this.adapter.mode === 'shadow' ? 'observing only' : 'active commands enabled';
+    this._announce(`[AIO v3 ${VERSION}] STARTED | mode=${this.adapter.mode} | ${modeNote}`, 'VISIBLE_STARTUP');
+    this.tick();
+    this.timer = setInterval(() => this.tick(), this.tickMs);
+    return true;
   }
 
   _armEmergencyRetreat(snapshot, entity, emergency, at) {
@@ -150,6 +172,7 @@ class StabilityRuntime extends Runtime {
     const base = super.status();
     return {
       ...base,
+      version: VERSION,
       stability: {
         commandOutcomes: this.adapter && typeof this.adapter.stabilityStatus === 'function'
           ? this.adapter.stabilityStatus()
