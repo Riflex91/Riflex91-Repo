@@ -21,6 +21,7 @@ class HeadlessOperations {
       maxTtlMs: options.controlMaxTtlMs,
       execute: (action, params) => this._execute(action, params)
     });
+    this.captureErrors = 0;
   }
 
   _execute(action, params = {}) {
@@ -39,19 +40,23 @@ class HeadlessOperations {
   }
 
   _capture() {
-    if (this.log) this.telemetry.capture(this.log);
-    if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+    try {
+      if (this.log) this.telemetry.capture(this.log);
+      if (this.runtime && this.runtime.world) this.replica.capture(this.runtime.world);
+    } catch (_) {
+      this.captureErrors += 1;
+    }
   }
 
   _healthStatus() {
     const runtime = this.runtime;
     const now = this.now();
     const startedAt = runtime && Number.isFinite(Number(runtime.startedAt)) ? Number(runtime.startedAt) : null;
-    const lastTickAt = runtime && Number.isFinite(Number(runtime.lastHeartbeat)) && Number(runtime.lastHeartbeat) > 0 ? Number(runtime.lastHeartbeat) : null;
+    const lastHeartbeatAt = runtime && Number.isFinite(Number(runtime.lastHeartbeat)) && Number(runtime.lastHeartbeat) > 0 ? Number(runtime.lastHeartbeat) : null;
     const observedAt = runtime && runtime.lastSnapshot && Number.isFinite(Number(runtime.lastSnapshot.observedAt)) ? Number(runtime.lastSnapshot.observedAt) : null;
-    const base = observedAt != null ? observedAt : lastTickAt != null ? lastTickAt : startedAt;
+    const base = observedAt != null ? observedAt : lastHeartbeatAt != null ? lastHeartbeatAt : startedAt;
     const snapshotAgeMs = observedAt == null ? null : Math.max(0, now - observedAt);
-    const heartbeatAgeMs = lastTickAt == null ? null : Math.max(0, now - lastTickAt);
+    const heartbeatAgeMs = lastHeartbeatAt == null ? null : Math.max(0, now - lastHeartbeatAt);
     const age = base == null ? 0 : Math.max(0, now - base);
     let state = 'HEALTHY';
     if (age >= this.degradedAfterMs) state = 'DEGRADED';
@@ -85,6 +90,7 @@ class HeadlessOperations {
     return {
       contractVersion: 1,
       transport: 'host-provided',
+      captureErrors: this.captureErrors,
       telemetry: this.telemetry.status(),
       control: this.control.status(),
       stateReplica: this.replica.status(),

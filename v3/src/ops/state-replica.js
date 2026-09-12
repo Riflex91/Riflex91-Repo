@@ -7,17 +7,27 @@ class StateReplica {
     this.latest = null;
     this.lastRevision = -1;
     this.droppedOversize = 0;
+    this.captureErrors = 0;
+    this.lastError = null;
   }
 
   capture(world) {
     if (!world || typeof world.serialize !== 'function') return false;
     if (Number(world.revision) === this.lastRevision) return false;
-    const serialized = world.serialize();
+    let serialized;
+    try {
+      serialized = world.serialize();
+    } catch (error) {
+      this.captureErrors += 1;
+      this.lastError = String(error && error.message || error);
+      return false;
+    }
     if (serialized.length > this.maxBytes) {
       this.droppedOversize += 1;
       return false;
     }
     this.lastRevision = Number(world.revision);
+    this.lastError = null;
     this.latest = {
       revision: this.lastRevision,
       capturedAt: this.now(),
@@ -44,7 +54,9 @@ class StateReplica {
       revision: this.latest ? this.latest.revision : this.lastRevision >= 0 ? this.lastRevision : null,
       bytes: this.latest ? this.latest.bytes : 0,
       maxBytes: this.maxBytes,
-      droppedOversize: this.droppedOversize
+      droppedOversize: this.droppedOversize,
+      captureErrors: this.captureErrors,
+      lastError: this.lastError
     };
   }
 }

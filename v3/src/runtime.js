@@ -15,7 +15,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.12';
+const VERSION = '3.0.0-alpha.8.13';
 
 class Runtime {
   constructor(options = {}) {
@@ -333,9 +333,6 @@ class Runtime {
     if (!snapshot) return snapshot;
     const entities = [];
     for (const entity of snapshot.entities || []) {
-      // Emergency safety must see the raw current target before any content/risk
-      // filter can hide it. Quarantine prevents fighting unknown content, but it
-      // must never suppress an emergency disengage decision.
       const isCurrentEngageTarget = this.farmer.state === 'ENGAGE' && this.farmer.targetId != null && String(entity.id) === String(this.farmer.targetId);
       if (isCurrentEngageTarget) {
         const emergency = this.combatEmergency.evaluate(snapshot, entity);

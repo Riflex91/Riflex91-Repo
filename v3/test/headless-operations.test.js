@@ -23,7 +23,7 @@ test('TelemetryOutbox is bounded, ordered and dashboard failure independent', ()
   assert.equal(first[4].data.i, 29);
 });
 
-test('ControlGateway deduplicates, expires and blocks elevated remote actions by default', () => {
+test('ControlGateway deduplicates, expires and blocks every risk-increasing remote action by default', () => {
   let now = 10000;
   const calls = [];
   const gateway = new ControlGateway({ now: () => now, execute: (action, params) => { calls.push({ action, params }); return 'ok'; } });
@@ -33,12 +33,38 @@ test('ControlGateway deduplicates, expires and blocks elevated remote actions by
   const duplicate = gateway.submit({ commandId: 'c1', action: 'SET_MODE', params: { mode: 'shadow' }, issuedAt: 9000, expiresAt: 11000 });
   assert.equal(duplicate.duplicate, true);
   assert.equal(calls.length, 1);
-  const elevated = gateway.submit({ commandId: 'c2', action: 'SET_MODE', params: { mode: 'active' }, issuedAt: 9000, expiresAt: 11000 });
-  assert.equal(elevated.status, 'REJECTED');
-  assert.equal(elevated.reason, 'ELEVATED_CONTROL_DISABLED');
+
+  for (const [id, action, params] of [
+    ['c2', 'SET_MODE', { mode: 'active' }],
+    ['c3', 'SET_FARMER_ENABLED', { enabled: true }],
+    ['c4', 'SET_TARGET_POLICY', { policy: 'allow' }],
+    ['c5', 'REMOVE_TARGET_EXCLUSION', { value: 'automatron' }],
+    ['c6', 'APPROVE_MONSTER_CONTENT', { mtype: 'newboss' }]
+  ]) {
+    const result = gateway.submit({ commandId: id, action, params, issuedAt: 9000, expiresAt: 11000 });
+    assert.equal(result.status, 'REJECTED');
+    assert.equal(result.reason, 'ELEVATED_CONTROL_DISABLED');
+  }
+
+  const unknown = gateway.submit({ commandId: 'c7', action: 'EVAL_JAVASCRIPT', params: {}, issuedAt: 9000, expiresAt: 11000 });
+  assert.equal(unknown.status, 'REJECTED');
+  assert.equal(unknown.reason, 'ACTION_NOT_ALLOWED');
+
   now = 12000;
-  const expired = gateway.submit({ commandId: 'c3', action: 'SHOW_STATUS', params: {}, issuedAt: 9000, expiresAt: 11000 });
+  const expired = gateway.submit({ commandId: 'c8', action: 'SHOW_STATUS', params: {}, issuedAt: 9000, expiresAt: 11000 });
   assert.equal(expired.status, 'EXPIRED');
+  assert.equal(calls.length, 1);
+});
+
+test('ControlGateway can execute elevated actions only after explicit host opt-in', () => {
+  const calls = [];
+  const gateway = new ControlGateway({
+    now: () => 10000,
+    allowElevated: true,
+    execute: (action, params) => { calls.push({ action, params }); return 'ok'; }
+  });
+  const result = gateway.submit({ commandId: 'e1', action: 'SET_MODE', params: { mode: 'active' }, issuedAt: 9000, expiresAt: 11000 });
+  assert.equal(result.status, 'EXECUTED');
   assert.equal(calls.length, 1);
 });
 
@@ -56,6 +82,14 @@ test('StateReplica coalesces to the newest bounded world snapshot', () => {
   assert.ok(latest.revision > firstRevision);
   assert.match(latest.serialized, /bee/);
   assert.equal(replica.peek(), null);
+});
+
+test('StateReplica contains serialization faults instead of breaking operations', () => {
+  const replica = new StateReplica();
+  const broken = { revision: 1, serialize: () => { throw new Error('broken-state'); } };
+  assert.equal(replica.capture(broken), false);
+  assert.equal(replica.status().captureErrors, 1);
+  assert.match(replica.status().lastError, /broken-state/);
 });
 
 test('HeadlessHealth exposes supervisor freshness states without DOM assumptions', () => {

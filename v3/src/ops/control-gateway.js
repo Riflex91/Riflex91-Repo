@@ -12,8 +12,6 @@ const COMMANDS = new Set([
   'SHOW_STATUS'
 ]);
 
-const ELEVATED = new Set(['SET_MODE_ACTIVE', 'SET_FARMER_ENABLED_TRUE', 'APPROVE_MONSTER_CONTENT']);
-
 function text(value) { return String(value == null ? '' : value).trim(); }
 
 class ControlGateway {
@@ -55,8 +53,10 @@ class ControlGateway {
   _requiresElevated(action, params) {
     if (action === 'SET_MODE' && params && params.mode === 'active') return true;
     if (action === 'SET_FARMER_ENABLED' && params && params.enabled === true) return true;
+    if (action === 'SET_TARGET_POLICY' && params && params.policy === 'allow') return true;
+    if (action === 'REMOVE_TARGET_EXCLUSION') return true;
     if (action === 'APPROVE_MONSTER_CONTENT') return true;
-    return ELEVATED.has(action);
+    return false;
   }
 
   submit(input = {}) {
