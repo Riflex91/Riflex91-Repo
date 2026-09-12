@@ -5,6 +5,7 @@ const { RELEASE_VERSION } = require('../release-version');
 const { BankCapacityManager } = require('../economy/bank-capacity-manager');
 const { BankExpansionTransactionEngine } = require('../economy/bank-expansion-transactions');
 const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_ACK } = require('../economy/controlled-bank-expansion-executor');
+const { Alpha18CombinedLiveGate, ALPHA18_LIVE_GATE_ACK } = require('../ops/alpha18-combined-live-gate');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
@@ -47,6 +48,15 @@ class Alpha18Runtime extends Alpha17Runtime {
       getMode: () => this.adapter.mode,
       getSupervisorStatus: () => this.globalSupervisor.status(),
       timeoutMs: options.controlledBankExpansionTimeoutMs
+    });
+    this.alpha18LiveGate = options.alpha18LiveGate || new Alpha18CombinedLiveGate({
+      runtime: this,
+      root: this.root,
+      now: this.now,
+      testMode: options.alpha18LiveGateTestMode === true,
+      observationMs: options.alpha18LiveGateObservationMs,
+      sampleMs: options.alpha18LiveGateSampleMs,
+      sleep: options.alpha18LiveGateSleep
     });
     this._observeBankCapacity();
   }
@@ -156,6 +166,10 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 
   executeBankExpansion(id) { return this.controlledBankExpansion.execute(id); }
+  runAlpha18CombinedLiveGate(config = {}) { return this.alpha18LiveGate.run(config); }
+  alpha18LiveGateStatus() { return this.alpha18LiveGate.status(); }
+  alpha18LiveGateResult() { return this.alpha18LiveGate.result(); }
+  alpha18LiveGateResultText() { return this.alpha18LiveGate.resultText(); }
 
   stop() {
     this.controlledBankExpansion.disable('RUNTIME_STOP');
@@ -174,6 +188,8 @@ class Alpha18Runtime extends Alpha17Runtime {
         automaticExpansionEnabled: false,
         automaticEmergencyReclaimEnabled: false,
         controlledExpansionAck: CONTROLLED_BANK_EXPANSION_ACK,
+        liveGateAck: ALPHA18_LIVE_GATE_ACK,
+        liveGate: this.alpha18LiveGate.status(),
         globalStopOnNoSpace: false
       }
     };
@@ -188,6 +204,7 @@ class Alpha18Runtime extends Alpha17Runtime {
       transactions: this.bankExpansionTransactions.list(100),
       controlled: this.controlledBankExpansion.status()
     };
+    base.context.alpha18LiveGate = this.alpha18LiveGate.status();
     return JSON.stringify(base, null, 2);
   }
 }
