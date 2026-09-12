@@ -108,17 +108,19 @@ class ManagedProcessLauncher {
 
   async stop(reason = 'HOST_STOP') {
     const child = this.child;
-    if (!child) return { stopped: true, duplicate: true, reason: 'PROCESS_NOT_RUNNING' };
+    if (!child) return { stopped: true, duplicate: true, reason: 'PROCESS_NOT_RUNNING', forced: false };
     this.stats.stops += 1;
+    let forced = false;
     try { child.kill('SIGTERM'); } catch (_) {}
     let exited = await this._waitForExit(child, this.stopGraceMs);
     if (!exited && this.child === child) {
+      forced = true;
       this.stats.forcedKills += 1;
       try { child.kill('SIGKILL'); } catch (_) {}
       exited = await this._waitForExit(child, Math.min(5000, this.stopGraceMs));
     }
     if (this.child === child && (child.exitCode != null || child.signalCode != null || exited)) this.child = null;
-    return { stopped: this.child !== child, forced: this.stats.forcedKills > 0, reason: bounded(reason, 128) };
+    return { stopped: this.child !== child, forced, reason: bounded(reason, 128) };
   }
 
   async restart(context = {}) {
