@@ -141,4 +141,4 @@ Alpha.13 becomes `CONFIRMED` only after:
 13. one combined safe Adventure Land Alpha.13 FULL certification passes after merge;
 14. final runtime is restored to `shadow` with supervisor live safe actions and all Party live controls disabled.
 
-Freeze candidate: source implementation complete; branch CI required before PR creation.
+Freeze candidate: source implementation complete. Initial branch CI found three assertion-only regressions (two current-release expectations and one incorrect content-safety fact namespace); these were corrected without weakening production safety logic. Full branch CI must pass again before PR creation.
