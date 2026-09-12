@@ -1,11 +1,12 @@
 'use strict';
 
 const { Runtime } = require('./runtime');
-const { VERSION } = require('./version');
+const { RELEASE_VERSION: VERSION } = require('./release-version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
 const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
+const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -28,17 +29,25 @@ const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-sa
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
+const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint } = require('./party/fingerprints');
+const { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION } = require('./party/performance-store');
+const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/orchestrator');
+const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
+const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
+const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
+const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
+const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha11Runtime({ ...options, root });
+  const runtime = new Alpha12Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -52,10 +61,7 @@ function install(root = globalThis, options = {}) {
     controlMaxTtlMs: options.remoteControlMaxTtlMs
   });
 
-  function status() {
-    return { ...runtime.status(), operations: operations.status() };
-  }
-
+  function status() { return { ...runtime.status(), operations: operations.status() }; }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
@@ -94,11 +100,36 @@ function install(root = globalThis, options = {}) {
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
-      character: (name) => runtime.characterRegistry.get(name)
+      character: (name) => runtime.characterRegistry.get(name),
+      configureRoster: (roster) => {
+        const result = runtime.characterRegistry.seedRoster(roster);
+        runtime.partyTelemetry.setTrustedNames(result.characters.map((row) => row.name));
+        const merchant = result.characters.find((row) => row.ctype === 'merchant');
+        if (merchant) {
+          runtime.partyTelemetry.setMerchantName(merchant.name);
+          runtime.partyTransitions.setMerchantName(merchant.name);
+        }
+        if (typeof runtime.syncPartyControlConfig === 'function') runtime.syncPartyControlConfig();
+        return result;
+      },
+      decision: () => runtime.lastPartyDecision,
+      fingerprints: () => ({ party: runtime.currentPartyFingerprint, encounter: runtime.currentEncounterFingerprint }),
+      performance: () => runtime.partyPerformance.status(64),
+      telemetry: () => runtime.partyTelemetry.status(),
+      transition: () => runtime.partyTransitions.status(),
+      controlLease: () => runtime.partyControlLease ? runtime.partyControlLease.status() : null,
+      aura: () => runtime.status().party.aura,
+      setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled),
+      setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled),
+      setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled),
+      setCodeSlots: (slots) => runtime.setPartyCodeSlots(slots)
     },
-    localFarming: {
-      status: () => runtime.localFarming.status()
+    backgroundExecution: {
+      status: () => runtime.backgroundExecution.status(),
+      arm: () => runtime.backgroundExecution.arm('API_MANUAL'),
+      setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled)
     },
+    localFarming: { status: () => runtime.localFarming.status() },
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
@@ -112,18 +143,23 @@ function install(root = globalThis, options = {}) {
     createTask,
     TaskState
   };
+
   root.AIO_V3 = api;
   if (root.AIO_V3_AUTOSTART !== false) runtime.start();
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, VERSION,
+  EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
+  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
+  PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
+  PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
 };

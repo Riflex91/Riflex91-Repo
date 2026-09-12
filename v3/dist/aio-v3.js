@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.11.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.12.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -6,11 +6,12 @@ var modules={
 'use strict';
 
 const { Runtime } = require('./runtime');
-const { VERSION } = require('./version');
+const { RELEASE_VERSION: VERSION } = require('./release-version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
 const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
+const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -33,17 +34,25 @@ const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-sa
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
+const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint } = require('./party/fingerprints');
+const { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION } = require('./party/performance-store');
+const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/orchestrator');
+const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
+const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
+const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
+const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
+const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha11Runtime({ ...options, root });
+  const runtime = new Alpha12Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -57,10 +66,7 @@ function install(root = globalThis, options = {}) {
     controlMaxTtlMs: options.remoteControlMaxTtlMs
   });
 
-  function status() {
-    return { ...runtime.status(), operations: operations.status() };
-  }
-
+  function status() { return { ...runtime.status(), operations: operations.status() }; }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
@@ -99,11 +105,36 @@ function install(root = globalThis, options = {}) {
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
-      character: (name) => runtime.characterRegistry.get(name)
+      character: (name) => runtime.characterRegistry.get(name),
+      configureRoster: (roster) => {
+        const result = runtime.characterRegistry.seedRoster(roster);
+        runtime.partyTelemetry.setTrustedNames(result.characters.map((row) => row.name));
+        const merchant = result.characters.find((row) => row.ctype === 'merchant');
+        if (merchant) {
+          runtime.partyTelemetry.setMerchantName(merchant.name);
+          runtime.partyTransitions.setMerchantName(merchant.name);
+        }
+        if (typeof runtime.syncPartyControlConfig === 'function') runtime.syncPartyControlConfig();
+        return result;
+      },
+      decision: () => runtime.lastPartyDecision,
+      fingerprints: () => ({ party: runtime.currentPartyFingerprint, encounter: runtime.currentEncounterFingerprint }),
+      performance: () => runtime.partyPerformance.status(64),
+      telemetry: () => runtime.partyTelemetry.status(),
+      transition: () => runtime.partyTransitions.status(),
+      controlLease: () => runtime.partyControlLease ? runtime.partyControlLease.status() : null,
+      aura: () => runtime.status().party.aura,
+      setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled),
+      setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled),
+      setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled),
+      setCodeSlots: (slots) => runtime.setPartyCodeSlots(slots)
     },
-    localFarming: {
-      status: () => runtime.localFarming.status()
+    backgroundExecution: {
+      status: () => runtime.backgroundExecution.status(),
+      arm: () => runtime.backgroundExecution.arm('API_MANUAL'),
+      setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled)
     },
+    localFarming: { status: () => runtime.localFarming.status() },
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
@@ -117,19 +148,24 @@ function install(root = globalThis, options = {}) {
     createTask,
     TaskState
   };
+
   root.AIO_V3 = api;
   if (root.AIO_V3_AUTOSTART !== false) runtime.start();
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, VERSION,
+  EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
+  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
+  PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
+  PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
 };
 
@@ -4462,12 +4498,12 @@ class CombatEmergencyGate {
 module.exports = { CombatEmergencyGate };
 
 },
-"src/version.js": function(require,module,exports){
+"src/release-version.js": function(require,module,exports){
 'use strict';
 
-const VERSION = '3.0.0-alpha.11.0';
+const RELEASE_VERSION = '3.0.0-alpha.12.0';
 
-module.exports = { VERSION };
+module.exports = { RELEASE_VERSION };
 
 },
 "src/stability/stability-runtime.js": function(require,module,exports){
@@ -4659,6 +4695,14 @@ class StabilityRuntime extends Runtime {
 }
 
 module.exports = { StabilityRuntime };
+
+},
+"src/version.js": function(require,module,exports){
+'use strict';
+
+const { RELEASE_VERSION: VERSION } = require('./release-version');
+
+module.exports = { VERSION };
 
 },
 "src/game/stability-adapter.js": function(require,module,exports){
@@ -7323,6 +7367,1264 @@ module.exports = {
   SOURCE_CONFIDENCE,
   levelUnlockedSkills,
   summarizeSupplies
+};
+
+},
+"src/autonomy/alpha12-hardened-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha12Runtime: BaseAlpha12Runtime } = require('./alpha12-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { PartyControlLease } = require('../party/control-lease');
+
+class Alpha12Runtime extends BaseAlpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    const roster = this.characterRegistry.status().characters || [];
+    const merchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || this.partyTransitions.merchantName || null;
+    this.partyControlLease = options.partyControlLease || new PartyControlLease({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      merchantName: merchant,
+      trustedNames: roster.map((row) => row.name),
+      leaseMs: options.partyControlLeaseMs,
+      ackTimeoutMs: options.partyControlAckTimeoutMs,
+      pollMs: options.partyControlPollMs,
+      maxClockSkewMs: options.partyControlMaxClockSkewMs
+    });
+    this.partyControlLease.install();
+    this.partyTransitions.setControlLease(this.partyControlLease);
+    this.syncPartyControlConfig();
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    return super._announce(normalized, event);
+  }
+
+  syncPartyControlConfig() {
+    if (!this.partyControlLease) return null;
+    const status = this.characterRegistry.status();
+    const names = status.characters.map((row) => row.name);
+    const merchant = status.characters.find((row) => row.ctype === 'merchant');
+    this.partyControlLease.setTrustedNames(names);
+    if (merchant) {
+      this.partyControlLease.setMerchantName(merchant.name);
+      this.partyTransitions.setMerchantName(merchant.name);
+      this.partyTelemetry.setMerchantName(merchant.name);
+    }
+    return this.partyControlLease.status();
+  }
+
+  _partyDecisionCycle() {
+    this.syncPartyControlConfig();
+    return super._partyDecisionCycle();
+  }
+
+  start() {
+    if (this.partyControlLease && !this.partyControlLease.installed) this.partyControlLease.install();
+    return super.start();
+  }
+
+  stop() {
+    if (this.backgroundExecution && typeof this.backgroundExecution.stop === 'function') this.backgroundExecution.stop();
+    if (this.partyControlLease) this.partyControlLease.uninstall();
+    return super.stop();
+  }
+
+  setPartyTransitionsEnabled(enabled) {
+    this.syncPartyControlConfig();
+    return super.setPartyTransitionsEnabled(enabled);
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      party: {
+        ...(base.party || {}),
+        controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
+        transition: {
+          ...((base.party && base.party.transition) || {}),
+          controlLeaseBound: !!(this.partyTransitions && this.partyTransitions.controlLease)
+        }
+      }
+    };
+  }
+}
+
+module.exports = { Alpha12Runtime };
+
+},
+"src/autonomy/alpha12-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha11Runtime } = require('./alpha11-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { createPartyFingerprint, createEncounterFingerprint, dominantMonster } = require('../party/fingerprints');
+const { PartyPerformanceStore } = require('../party/performance-store');
+const { PartyOrchestrator } = require('../party/orchestrator');
+const { PaladinAuraPolicy } = require('../party/paladin-aura-policy');
+const { PartyTelemetryBridge } = require('../party/telemetry-bridge');
+const { PartyTransitionController } = require('../party/transition-controller');
+const { BackgroundExecutionGuard } = require('../ops/background-execution-guard');
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
+class Alpha12Runtime extends Alpha11Runtime {
+  constructor(options = {}) {
+    super(options); this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.min(60000, Number(options.partyDecisionMs) || 5000)); this.lastPartyDecisionAt = -Infinity; this.lastPerformanceSampleAt = null; this.currentPartyFingerprint = null; this.currentEncounterFingerprint = null; this.lastPartyDecision = null; this.lastAuraRecommendation = null; this.lastAuraExecution = null; this.auraAutomationEnabled = options.partyAuraAutomationEnabled === true;
+    this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
+    this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
+    const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
+    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
+    this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
+    this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
+  }
+  start() { const started = super.start(); this.backgroundExecution.start(); return started; }
+  stop() { this.partyPerformance.save({ force: true }); return super.stop(); }
+  _contentDisposition(mtype) { if (!mtype || !this.world || typeof this.world.fact !== 'function') return 'UNKNOWN'; const fact = this.world.fact('monster-policy', mtype, 'contentSafetyDisposition'); return fact && fact.value || 'UNKNOWN'; }
+  _currentMembers(snapshot) {
+    if (!snapshot || !snapshot.character) return []; const names = new Set([snapshot.character.name]); for (const member of snapshot.party || []) if (member && member.name) names.add(member.name); const status = this.characterRegistry.status(); const byName = new Map(status.characters.map((row) => [row.name, row])); const result = [];
+    for (const name of names) { const row = byName.get(name); if (row) result.push(row); else if (name === snapshot.character.name) result.push({ name, ctype: snapshot.character.ctype, level: snapshot.character.level, map: snapshot.character.map, stateConfidence: 1, online: true, available: !snapshot.character.rip, dead: !!snapshot.character.rip, stats: { hp: snapshot.character.hp, max_hp: snapshot.character.max_hp, mp: snapshot.character.mp, max_mp: snapshot.character.max_mp }, skillUnlocks: [] }); } return result;
+  }
+  _encounter(snapshot, gameData) {
+    const monster = dominantMonster(snapshot) || (this.localFarming && this.localFarming.status().currentPlan && this.localFarming.status().currentPlan.monster) || null; const distances = []; for (const entity of snapshot.entities || []) { if (!entity || entity.mtype !== monster || entity.x == null || entity.y == null || snapshot.character.x == null || snapshot.character.y == null) continue; distances.push(Math.hypot(entity.x - snapshot.character.x, entity.y - snapshot.character.y)); }
+    const levels = this._currentMembers(snapshot).map((row) => Number(row.level) || 0).filter((value) => value > 0); const avgLevel = levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : 0;
+    return createEncounterFingerprint({ snapshot, gameData, monster, contentDisposition: this._contentDisposition(monster), avgDistance: distances.length ? distances.reduce((a, b) => a + b, 0) / distances.length : null, spawnDensity: monster ? (snapshot.entities || []).filter((entity) => entity && entity.mtype === monster && !entity.dead).length : 0, partyLevelBand: Math.floor(avgLevel / 10) * 10 });
+  }
+  _riskContext(snapshot, encounter) {
+    const c = snapshot.character; const hpRatio = c.max_hp > 0 ? c.hp / c.max_hp : 1; const telemetry = this.partyTelemetry.aggregate(this._currentMembers(snapshot).map((row) => row.name)); const unknown = encounter.contentDisposition === 'QUARANTINED' || encounter.contentDisposition === 'UNKNOWN';
+    return { unknown, highRisk: unknown || telemetry.emergencies > 0 || telemetry.deathsPerHour >= 1 || hpRatio < 0.45, mediumRisk: telemetry.deathsPerHour > 0 || telemetry.retreats > 0 || hpRatio < 0.7, lowSurvivalMargin: hpRatio < 0.6 || (telemetry.minHpRatio != null && telemetry.minHpRatio < 0.55), mpStarvation: telemetry.minMpRatio != null && telemetry.minMpRatio < 0.2, statusPressure: false, elementalPressure: false };
+  }
+  _recordCurrentPerformance(snapshot, encounter, currentMembers, currentFingerprint) {
+    if (!currentFingerprint || !encounter || !encounter.monster || !encounter.monster.mtype) return; const now = this.now(); const elapsedMs = this.lastPerformanceSampleAt == null ? 0 : now - this.lastPerformanceSampleAt; this.lastPerformanceSampleAt = now; if (elapsedMs < 1000 || elapsedMs > 60000) return; const names = currentMembers.map((row) => row.name); const aggregate = this.partyTelemetry.aggregate(names); const local = this.partyTelemetry.buildLocalReport(this);
+    if (local && !aggregate.reports.some((row) => row.name === local.name)) { aggregate.freshReports += 1; for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) aggregate[key] += local.rates[key]; aggregate.minHpRatio = aggregate.minHpRatio == null ? local.hpRatio : Math.min(aggregate.minHpRatio, local.hpRatio); aggregate.minMpRatio = aggregate.minMpRatio == null ? local.mpRatio : Math.min(aggregate.minMpRatio, local.mpRatio); if (local.safety.retreat) aggregate.retreats += 1; if (local.safety.emergency) aggregate.emergencies += 1; if (local.safety.movementCircuitOpen) aggregate.movementCircuits += 1; aggregate.skillFailureBackoffs += local.safety.skillFailureBackoffs; }
+    if (aggregate.freshReports <= 0) return; const hours = elapsedMs / 3600000; const progressNorm = clamp01(Math.log1p(Math.max(0, aggregate.xpPerHour)) / Math.log(6000001)); const safetyMargin = aggregate.minHpRatio == null ? 0.5 : aggregate.minHpRatio; const score = clamp01(safetyMargin * 0.6 + progressNorm * 0.4 - Math.min(0.5, aggregate.deathsPerHour * 0.35));
+    this.partyPerformance.record(encounter.key, currentFingerprint.key, { seconds: elapsedMs / 1000, xp: aggregate.xpPerHour * hours, gold: aggregate.goldPerHour * hours, kills: aggregate.killsPerHour * hours, deaths: aggregate.deathsPerHour * hours, hpPotions: aggregate.potionsPerHour * hours, damage: 0, retreats: aggregate.retreats, nearDeaths: aggregate.minHpRatio != null && aggregate.minHpRatio < 0.25 ? 1 : 0, movementFailures: aggregate.movementCircuits, skillFailures: aggregate.skillFailureBackoffs, safetyMargin, score }); this.partyPerformance.save();
+  }
+  _maybeApplyAura(snapshot, encounter, risk, currentMembers) {
+    const localName = snapshot.character.name; const local = currentMembers.find((row) => row.name === localName); const paladin = currentMembers.find((row) => row.ctype === 'paladin') || null; const recommendation = this.auraPolicy.recommend({ paladin, encounter, risk }); this.lastAuraRecommendation = recommendation; if (!recommendation.aura || !local || local.ctype !== 'paladin' || paladin.name !== local.name) return; if (!this.auraAutomationEnabled || this.adapter.mode !== 'active' || recommendation.canSwitch === false) return; if (this.auraPolicy.lastAura === recommendation.aura) return; const result = this.adapter.command('use_skill', ['paladin_aura', recommendation.aura]); this.lastAuraExecution = { at: this.now(), aura: recommendation.aura, result: { executed: !!result.executed, reason: result.reason || null, shadow: !!result.shadow } }; if (result.executed) { this.auraPolicy.noteApplied(recommendation.aura); this.log.emit({ component: 'party-aura', event: 'PALADIN_AURA_CHANGED', data: { aura: recommendation.aura, reason: recommendation.reason } }); }
+  }
+  _maybeStartTransition(snapshot, decision, currentMembers) {
+    if (!decision || decision.decision !== 'WOULD_SWITCH' || !decision.recommended || this.partyTransitions.active) return; if (!this.partyTransitions.liveEnabled || this.adapter.mode !== 'active') return; const recommendedNames = new Set(decision.recommended.members.map((row) => row.name)); const status = this.characterRegistry.status(); const planMembers = status.characters.filter((row) => recommendedNames.has(row.name)); if (planMembers.length !== 4) return; const merchant = planMembers.find((row) => row.ctype === 'merchant'); if (!merchant) return; const c = snapshot.character; const inCombat = !!c.target || (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.target === c.name); const requiresCrossMapRouting = planMembers.some((member) => member.map && c.map && member.map !== c.map && member.online === true);
+    Promise.resolve(this.partyTransitions.execute({ members: planMembers, merchant }, { runtimeMode: this.adapter.mode, currentMembers, registryStatus: status, inCombat, emergency: !!this.pendingEmergencyRetreat, requiresCrossMapRouting, verifyTargetState: (targetNames) => { const latest = this.characterRegistry.status(); const byName = new Map(latest.characters.map((row) => [row.name, row])); return targetNames.every((name) => { const row = byName.get(name); if (!row || row.dead === true) return false; if (row.online === false || row.presence === 'STALE') return false; if (row.map && c.map && row.map !== c.map) return false; const hp = row.stats && Number(row.stats.hp); const maxHp = row.stats && Number(row.stats.max_hp); if (Number.isFinite(hp) && Number.isFinite(maxHp) && maxHp > 0 && hp / maxHp < 0.5) return false; return true; }); } })).then((result) => { if (result && result.executed) this.partyOrchestrator.noteSwitch(); }).catch((error) => { this.log.emit({ component: 'party-transition', event: 'PARTY_SWITCH_ABORTED', severity: 'error', reason: 'UNHANDLED_TRANSITION_ERROR', data: { message: String(error && error.message || error) } }); });
+  }
+  _partyDecisionCycle() {
+    const snapshot = this.lastSnapshot; if (!snapshot || !snapshot.character) return null; const gameData = this.adapter.getGameData() || {}; const registryStatus = this.characterRegistry.status(); const rosterNames = registryStatus.characters.map((row) => row.name); this.partyTelemetry.setTrustedNames(rosterNames); const merchant = registryStatus.characters.find((row) => row.ctype === 'merchant'); if (merchant) { this.partyTelemetry.setMerchantName(merchant.name); this.partyTransitions.setMerchantName(merchant.name); }
+    const currentMembers = this._currentMembers(snapshot); const currentFingerprint = createPartyFingerprint(currentMembers, { aura: this.auraPolicy.lastAura }); const encounter = this._encounter(snapshot, gameData); this.currentPartyFingerprint = currentFingerprint; this.currentEncounterFingerprint = encounter; this._recordCurrentPerformance(snapshot, encounter, currentMembers, currentFingerprint); const decision = this.partyOrchestrator.decide({ snapshot, gameData, registryStatus, currentMembers, encounter, performanceStore: this.partyPerformance, switchCostSeconds: 180 }); this.lastPartyDecision = decision; const risk = this._riskContext(snapshot, encounter); this._maybeApplyAura(snapshot, encounter, risk, currentMembers); this._maybeStartTransition(snapshot, decision, currentMembers); return decision;
+  }
+  tick() { this.backgroundExecution.noteTick(); super.tick(); this.partyTelemetry.tick(this); const now = this.now(); if (now - this.lastPartyDecisionAt < this.partyDecisionMs) return; this.lastPartyDecisionAt = now; this._partyDecisionCycle(); }
+  setPartyTransitionsEnabled(enabled) { return this.partyTransitions.setLiveEnabled(enabled); }
+  setPartyAuraAutomationEnabled(enabled) { this.auraAutomationEnabled = enabled === true; return this.auraAutomationEnabled; }
+  setPartyExplorationEnabled(enabled) { return this.partyOrchestrator.setExplorationEnabled(enabled); }
+  setPartyCodeSlots(slots) { return this.partyTransitions.setCodeSlots(slots); }
+  status() {
+    const base = super.status(); return { ...base, version: RELEASE_VERSION, backgroundExecution: this.backgroundExecution.status(), party: { ...(base.party || {}), mode: 'adaptive-orchestrator', actionAuthority: (this.adapter.mode === 'active' && (this.partyTransitions.liveEnabled || this.auraAutomationEnabled)), strategicBrainAuthority: false, decisionIntervalMs: this.partyDecisionMs, fingerprints: { party: this.currentPartyFingerprint, encounter: this.currentEncounterFingerprint }, orchestrator: this.partyOrchestrator.status(), decision: this.lastPartyDecision, performance: this.partyPerformance.status(16), telemetry: this.partyTelemetry.status(), aura: { automationEnabled: this.auraAutomationEnabled, recommendation: this.lastAuraRecommendation, execution: this.lastAuraExecution, policy: this.auraPolicy.status() }, transition: this.partyTransitions.status() } };
+  }
+  exportDiagnostics() { const base = JSON.parse(super.exportDiagnostics()); base.context = base.context || {}; base.context.backgroundExecution = this.backgroundExecution.status(); base.context.party = this.status().party; return JSON.stringify(base, null, 2); }
+}
+module.exports = { Alpha12Runtime };
+
+},
+"src/party/fingerprints.js": function(require,module,exports){
+'use strict';
+
+const FINGERPRINT_SCHEMA_VERSION = 1;
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+function clamp(value, min, max) {
+  const n = finite(value);
+  if (n == null) return min;
+  return Math.max(min, Math.min(max, n));
+}
+function stableStringify(value) {
+  if (value == null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+function hash(input) {
+  const text = String(input || '');
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+function gearSignature(gear) {
+  if (!gear || typeof gear !== 'object') return 'none';
+  return Object.keys(gear).sort().map((slot) => { const item = gear[slot] || {}; return `${slot}:${item.name || '?'}+${Math.max(0, Number(item.level) || 0)}`; }).join(',') || 'none';
+}
+function memberFingerprint(member) {
+  return { name: String(member && member.name || 'unknown'), ctype: String(member && (member.ctype || member.type) || 'unknown').toLowerCase(), level: Math.max(0, Number(member && member.level) || 0), gear: gearSignature(member && member.gear), skills: Array.isArray(member && member.skillUnlocks) ? member.skillUnlocks.slice().map(String).sort().slice(0, 128) : [] };
+}
+function createPartyFingerprint(members = [], options = {}) {
+  const normalized = members.map(memberFingerprint).sort((a, b) => a.name.localeCompare(b.name));
+  const classes = normalized.map((member) => member.ctype).sort();
+  const semantic = classes.join('|') || 'empty';
+  const detail = { schemaVersion: FINGERPRINT_SCHEMA_VERSION, members: normalized, aura: options.aura || null, rolePolicy: options.rolePolicy || null };
+  const detailHash = hash(stableStringify(detail));
+  return { schemaVersion: FINGERPRINT_SCHEMA_VERSION, semantic, key: `${semantic}::${detailHash}`, detailHash, members: normalized, aura: options.aura || null };
+}
+function monsterMetadata(gameData, mtype) {
+  const raw = gameData && gameData.monsters && gameData.monsters[mtype] || {};
+  return { mtype: mtype || null, hp: finite(raw.hp), attack: finite(raw.attack), frequency: finite(raw.frequency), armor: finite(raw.armor), resistance: finite(raw.resistance), damageType: raw.damage_type || raw.damageType || null, aggro: raw.aggro == null ? null : Number(raw.aggro), rage: raw.rage == null ? null : Number(raw.rage) };
+}
+function dominantMonster(snapshot) {
+  const c = snapshot && snapshot.character;
+  if (!c) return null;
+  const rows = new Map();
+  for (const entity of snapshot.entities || []) {
+    if (!entity || !entity.mtype || entity.dead) continue;
+    let score = 1;
+    if (String(entity.id) === String(c.target || '')) score += 6;
+    if (entity.target === c.name) score += 4;
+    rows.set(entity.mtype, (rows.get(entity.mtype) || 0) + score);
+  }
+  return [...rows.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
+}
+function createEncounterFingerprint(context = {}) {
+  const snapshot = context.snapshot || {};
+  const c = snapshot.character || {};
+  const gameData = context.gameData || {};
+  const mtype = context.monster || dominantMonster(snapshot) || (context.currentPlan && context.currentPlan.monster) || null;
+  const metadata = monsterMetadata(gameData, mtype);
+  const selfAggro = (snapshot.entities || []).filter((entity) => entity && !entity.dead && entity.target === c.name).length;
+  const visibleSameType = (snapshot.entities || []).filter((entity) => entity && !entity.dead && entity.mtype === mtype).length;
+  const hpRatio = c.max_hp > 0 ? clamp(c.hp / c.max_hp, 0, 1) : null;
+  const mpRatio = c.max_mp > 0 ? clamp(c.mp / c.max_mp, 0, 1) : null;
+  const detail = { schemaVersion: FINGERPRINT_SCHEMA_VERSION, map: c.map || null, zone: context.zone || null, monster: metadata, expectedParallel: Math.max(visibleSameType, selfAggro, Number(context.expectedParallel) || 1), spawnDensity: context.spawnDensity == null ? null : clamp(context.spawnDensity, 0, 1000), avgDistance: context.avgDistance == null ? null : Math.max(0, finite(context.avgDistance) || 0), partyLevelBand: context.partyLevelBand || null, event: context.event || null, hpBand: hpRatio == null ? null : Math.round(hpRatio * 10), mpBand: mpRatio == null ? null : Math.round(mpRatio * 10), contentDisposition: context.contentDisposition || null };
+  const key = `enc::${hash(stableStringify(detail))}`;
+  return { ...detail, key };
+}
+module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, dominantMonster, monsterMetadata };
+
+},
+"src/party/performance-store.js": function(require,module,exports){
+'use strict';
+
+const PARTY_PERFORMANCE_SCHEMA_VERSION = 1;
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value, 0))); }
+class PartyPerformanceStore {
+  constructor(options = {}) {
+    this.root = options.root || globalThis; this.storage = options.storage || null; this.log = options.log || null; this.now = options.now || (() => Date.now());
+    this.key = options.key || 'AIO_V3_PARTY_PERFORMANCE'; this.capacity = Math.max(32, Math.min(4096, Number(options.capacity) || 512));
+    this.halfLifeMs = Math.max(60 * 60 * 1000, Math.min(90 * 24 * 60 * 60 * 1000, Number(options.halfLifeMs) || 7 * 24 * 60 * 60 * 1000));
+    this.minSaveMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.minSaveMs) || 30000));
+    this.records = new Map(); this.loaded = false; this.dirty = false; this.lastSavedAt = 0; this.stats = { samples: 0, loads: 0, loadFailures: 0, saves: 0, saveFailures: 0, evicted: 0 };
+  }
+  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-performance', event, severity, reason, data }); }
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') return { get: (key) => this.root.get(key), set: (key, value) => this.root.set(key, value) };
+    const localStorage = this.root && this.root.localStorage;
+    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
+    return null;
+  }
+  _key(encounterKey, partyKey) { return `${encounterKey || 'unknown-encounter'}::${partyKey || 'unknown-party'}`; }
+  _sanitize(record) {
+    if (!record || typeof record !== 'object') return null; const encounterKey = String(record.encounterKey || ''); const partyKey = String(record.partyKey || ''); if (!encounterKey || !partyKey) return null;
+    return { encounterKey, partyKey, samples: Math.max(0, finite(record.samples)), combatSeconds: Math.max(0, finite(record.combatSeconds)), xp: Math.max(0, finite(record.xp)), gold: finite(record.gold), damage: Math.max(0, finite(record.damage)), kills: Math.max(0, finite(record.kills)), deaths: Math.max(0, finite(record.deaths)), retreats: Math.max(0, finite(record.retreats)), nearDeaths: Math.max(0, finite(record.nearDeaths)), recoverySeconds: Math.max(0, finite(record.recoverySeconds)), hpPotions: Math.max(0, finite(record.hpPotions)), mpPotions: Math.max(0, finite(record.mpPotions)), merchantTrips: Math.max(0, finite(record.merchantTrips)), skillFailures: Math.max(0, finite(record.skillFailures)), movementFailures: Math.max(0, finite(record.movementFailures)), disconnects: Math.max(0, finite(record.disconnects)), safetyMarginSum: Math.max(0, finite(record.safetyMarginSum)), safetyMarginSamples: Math.max(0, finite(record.safetyMarginSamples)), scoreEwma: clamp01(record.scoreEwma), scoreVariance: Math.max(0, finite(record.scoreVariance)), updatedAt: Math.max(0, finite(record.updatedAt)), firstSeenAt: Math.max(0, finite(record.firstSeenAt)) };
+  }
+  load() {
+    if (this.loaded) return false; this.loaded = true; const backend = this._backend(); if (!backend) return false;
+    try { const raw = backend.get(this.key); if (!raw) return false; const data = typeof raw === 'string' ? JSON.parse(raw) : raw; if (!data || data.schemaVersion !== PARTY_PERFORMANCE_SCHEMA_VERSION || !Array.isArray(data.records)) throw new Error('unsupported party performance schema'); for (const row of data.records.slice(-this.capacity)) { const clean = this._sanitize(row); if (clean) this.records.set(this._key(clean.encounterKey, clean.partyKey), clean); } this.stats.loads += 1; this._event('PARTY_PERFORMANCE_RESTORED', { records: this.records.size }); return true; }
+    catch (error) { this.records.clear(); this.stats.loadFailures += 1; this._event('PARTY_PERFORMANCE_RESTORE_FAILED', { message: String(error && error.message || error) }, 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA'); return false; }
+  }
+  _prune() { if (this.records.size <= this.capacity) return; const rows = [...this.records.entries()].sort((a, b) => (a[1].updatedAt || 0) - (b[1].updatedAt || 0)); const count = this.records.size - this.capacity; for (let i = 0; i < count; i += 1) this.records.delete(rows[i][0]); this.stats.evicted += count; }
+  record(encounterKey, partyKey, sample = {}) {
+    if (!encounterKey || !partyKey) return null; const key = this._key(encounterKey, partyKey); const now = this.now(); const current = this.records.get(key) || this._sanitize({ encounterKey, partyKey, firstSeenAt: now, updatedAt: now });
+    const weight = Math.max(1, finite(sample.samples, 1)); const score = clamp01(sample.score == null ? current.scoreEwma : sample.score); const alpha = Math.max(0.02, Math.min(0.5, finite(sample.ewmaAlpha, 0.12))); const oldEwma = current.scoreEwma; const nextEwma = current.samples > 0 ? oldEwma * (1 - alpha) + score * alpha : score; const delta = score - oldEwma;
+    current.scoreVariance = current.samples > 0 ? Math.max(0, current.scoreVariance * (1 - alpha) + delta * delta * alpha) : 0; current.scoreEwma = clamp01(nextEwma); current.samples += weight;
+    current.combatSeconds += Math.max(0, finite(sample.combatSeconds || sample.seconds)); current.xp += Math.max(0, finite(sample.xp)); current.gold += finite(sample.gold); current.damage += Math.max(0, finite(sample.damage)); current.kills += Math.max(0, finite(sample.kills)); current.deaths += Math.max(0, finite(sample.deaths)); current.retreats += Math.max(0, finite(sample.retreats)); current.nearDeaths += Math.max(0, finite(sample.nearDeaths)); current.recoverySeconds += Math.max(0, finite(sample.recoverySeconds)); current.hpPotions += Math.max(0, finite(sample.hpPotions)); current.mpPotions += Math.max(0, finite(sample.mpPotions)); current.merchantTrips += Math.max(0, finite(sample.merchantTrips)); current.skillFailures += Math.max(0, finite(sample.skillFailures)); current.movementFailures += Math.max(0, finite(sample.movementFailures)); current.disconnects += Math.max(0, finite(sample.disconnects));
+    if (sample.safetyMargin != null) { current.safetyMarginSum += clamp01(sample.safetyMargin); current.safetyMarginSamples += 1; } current.updatedAt = now; this.records.set(key, current); this.stats.samples += 1; this.dirty = true; this._prune(); this._event('PARTY_SAMPLE_COMPLETED', { encounterKey, partyKey, score: current.scoreEwma, samples: current.samples }); return this.profile(encounterKey, partyKey);
+  }
+  profile(encounterKey, partyKey) {
+    const raw = this.records.get(this._key(encounterKey, partyKey)); if (!raw) return null; const hours = raw.combatSeconds / 3600; const ageMs = Math.max(0, this.now() - raw.updatedAt); const freshness = Math.pow(0.5, ageMs / this.halfLifeMs); const evidence = 1 - Math.exp(-Math.max(raw.combatSeconds / 900, raw.samples / 8)); const confidence = clamp01(evidence * freshness);
+    return { ...raw, xpPerHour: hours > 0 ? raw.xp / hours : 0, goldPerHour: hours > 0 ? raw.gold / hours : 0, deathsPerHour: hours > 0 ? raw.deaths / hours : 0, retreatsPerHour: hours > 0 ? raw.retreats / hours : 0, recoverySecondsPerHour: hours > 0 ? raw.recoverySeconds / hours : 0, hpPotionsPerHour: hours > 0 ? raw.hpPotions / hours : 0, mpPotionsPerHour: hours > 0 ? raw.mpPotions / hours : 0, avgSafetyMargin: raw.safetyMarginSamples > 0 ? raw.safetyMarginSum / raw.safetyMarginSamples : null, freshness, confidence, uncertainty: 1 - confidence, ageMs };
+  }
+  save(options = {}) {
+    if (!this.dirty && options.force !== true) return false; if (!options.force && this.now() - this.lastSavedAt < this.minSaveMs) return false; const backend = this._backend(); if (!backend) return false;
+    try { const serialized = JSON.stringify({ schemaVersion: PARTY_PERFORMANCE_SCHEMA_VERSION, savedAt: this.now(), records: [...this.records.values()] }); backend.set(this.key, serialized); this.lastSavedAt = this.now(); this.dirty = false; this.stats.saves += 1; this._event('PARTY_PERFORMANCE_SAVED', { records: this.records.size, bytes: serialized.length }); return true; }
+    catch (error) { this.stats.saveFailures += 1; this._event('PARTY_PERFORMANCE_SAVE_FAILED', { message: String(error && error.message || error) }, 'warn', 'PERSISTENCE_WRITE_ERROR'); return false; }
+  }
+  status(limit = 32) { const rows = [...this.records.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, Math.max(0, Math.min(128, Number(limit) || 32))); return { schemaVersion: PARTY_PERFORMANCE_SCHEMA_VERSION, capacity: this.capacity, size: this.records.size, halfLifeMs: this.halfLifeMs, loaded: this.loaded, dirty: this.dirty, stats: { ...this.stats }, recent: rows.map((row) => this.profile(row.encounterKey, row.partyKey)) }; }
+}
+module.exports = { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION };
+
+},
+"src/party/orchestrator.js": function(require,module,exports){
+'use strict';
+
+const { createPartyFingerprint, createEncounterFingerprint } = require('./fingerprints');
+const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
+const DEFAULT_WEIGHTS = Object.freeze({ survival: 0.45, progress: 0.30, controllability: 0.15, synergy: 0.10 });
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
+function avg(values) { return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; }
+function combinations(items, count, start = 0, acc = [], out = []) { if (acc.length === count) { out.push(acc.slice()); return out; } for (let i = start; i <= items.length - (count - acc.length); i += 1) { acc.push(items[i]); combinations(items, count, i + 1, acc, out); acc.pop(); } return out; }
+function hasSkill(party, skill) { return party.some((member) => Array.isArray(member.skillUnlocks) && member.skillUnlocks.includes(skill)); }
+function countClass(party, ctype) { return party.filter((member) => member.ctype === ctype).length; }
+
+class PartyOrchestrator {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now()); this.log = options.log || null; const rawWeights = { ...DEFAULT_WEIGHTS, ...(options.weights || {}) }; const sum = Object.values(rawWeights).reduce((a, b) => a + Math.max(0, finite(b)), 0) || 1;
+    this.weights = Object.fromEntries(Object.entries(rawWeights).map(([key, value]) => [key, Math.max(0, finite(value)) / sum])); this.minScoreGain = Math.max(0.01, Math.min(0.3, finite(options.minScoreGain, 0.06))); this.minSwitchIntervalMs = Math.max(60000, Math.min(24 * 60 * 60 * 1000, finite(options.minSwitchIntervalMs, 15 * 60 * 1000))); this.minRecommendedConfidence = Math.max(0, Math.min(1, finite(options.minRecommendedConfidence, 0.25))); this.maxCandidates = Math.max(4, Math.min(256, finite(options.maxCandidates, 96))); this.explorationEnabled = options.explorationEnabled === true; this.lastDecision = null; this.lastSwitchAt = 0;
+  }
+  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-orchestrator', event, severity, reason, data }); }
+  candidates(registryStatus) {
+    const chars = (registryStatus && registryStatus.characters || []).filter((entry) => entry && entry.dead !== true && entry.available !== false && entry.stateConfidence >= 0.3 && (entry.online === true || entry.primarySource === 'configured' || entry.presence === 'OFFLINE'));
+    const merchants = chars.filter((entry) => entry.ctype === 'merchant'); const combat = chars.filter((entry) => COMBAT_CLASSES.has(entry.ctype)); const out = [];
+    for (const merchant of merchants) for (const group of combinations(combat, 3)) { const members = [merchant, ...group]; const fingerprint = createPartyFingerprint(members); out.push({ id: fingerprint.key, merchant, combat: group, members, fingerprint }); if (out.length >= this.maxCandidates) return out; }
+    return out;
+  }
+  _theory(candidate, encounter) {
+    const party = candidate.combat; const monster = encounter.monster || {}; const damageType = String(monster.damageType || '').toLowerCase(); const known = !!encounter.monster?.mtype && encounter.contentDisposition !== 'QUARANTINED' && encounter.contentDisposition !== 'UNKNOWN'; const avgConfidence = avg(candidate.members.map((member) => clamp01(member.stateConfidence))); const avgLevel = avg(party.map((member) => Math.max(0, finite(member.level))));
+    const survivalStats = avg(party.map((member) => { const hp = Math.max(0, finite(member.stats && member.stats.max_hp, finite(member.stats && member.stats.hp, 0))); const armor = Math.max(0, finite(member.stats && member.stats.armor, 0)); const resistance = Math.max(0, finite(member.stats && member.stats.resistance, 0)); return clamp01((hp / 6000) * 0.4 + (armor / 1000) * 0.3 + (resistance / 1000) * 0.3); }));
+    let survival = 0.35 + survivalStats * 0.30; let progress = 0.35; let controllability = 0.55; let synergy = 0.30; const reasons = [];
+    const rangers = countClass(party, 'ranger'); const paladins = countClass(party, 'paladin'); const priests = countClass(party, 'priest'); const mages = countClass(party, 'mage'); const warriors = countClass(party, 'warrior'); const rogues = countClass(party, 'rogue');
+    progress += rangers * 0.11 + mages * 0.105 + rogues * 0.11 + warriors * 0.075 + paladins * 0.065 + priests * 0.035; controllability += rangers * 0.06 + mages * 0.05 + priests * 0.04 + paladins * 0.035 + warriors * 0.025; survival += paladins * 0.10 + priests * 0.13 + warriors * 0.09; synergy += paladins * 0.08 + priests * 0.08 + mages * 0.06 + warriors * 0.04;
+    if (hasSkill(party, 'huntersmark')) { synergy += 0.07; reasons.push('HUNTERS_MARK_AVAILABLE'); } if (hasSkill(party, 'energize')) { synergy += 0.08; reasons.push('MAGE_MP_SUPPORT_EXPECTED'); } if (hasSkill(party, 'darkblessing')) { synergy += 0.06; reasons.push('DARK_BLESSING_AVAILABLE'); } if (hasSkill(party, 'warcry')) { synergy += 0.05; reasons.push('WAR_CRY_AVAILABLE'); } if (hasSkill(party, 'guardians_oath') || hasSkill(party, 'guardian_oath')) { survival += 0.08; synergy += 0.04; reasons.push('GUARDIANS_OATH_AVAILABLE'); } if (hasSkill(party, 'paladin_aura')) { survival += 0.08; synergy += 0.06; reasons.push('PALADIN_AURA_AVAILABLE'); }
+    if (damageType === 'physical' && (paladins || warriors)) { survival += 0.10; reasons.push('PHYSICAL_DAMAGE_PRESSURE'); } if (damageType === 'magical' && (paladins || priests)) { survival += 0.10; reasons.push('MAGICAL_DAMAGE_PRESSURE'); } if (finite(monster.armor) > 500 && mages) { progress += 0.10; reasons.push('NEED_MAGIC_DAMAGE'); } if (finite(monster.resistance) > 500 && rangers) { progress += 0.07; reasons.push('NEED_RANGED_DAMAGE'); } if (!known) { survival += paladins * 0.06 + priests * 0.08; progress -= 0.12; reasons.push('UNKNOWN_CONTENT'); } if (rangers === 3 && known) { progress += 0.08; controllability += 0.05; reasons.push('V2_TRIPLE_RANGER_PRIOR'); } if (avgLevel < 40) synergy *= 0.9;
+    return { survival: clamp01(survival), progress: clamp01(progress), controllability: clamp01(controllability), synergy: clamp01(synergy), confidence: clamp01(0.18 + avgConfidence * 0.32 + (rangers === 3 && known ? 0.12 : 0)), reasons };
+  }
+  _measured(profile) {
+    if (!profile) return null; const survival = clamp01(1 - Math.min(1, profile.deathsPerHour / 1.0) * 0.55 - Math.min(1, profile.retreatsPerHour / 6) * 0.20 - Math.min(1, profile.recoverySecondsPerHour / 900) * 0.15 + (profile.avgSafetyMargin == null ? 0 : profile.avgSafetyMargin * 0.10)); const progress = clamp01(Math.log1p(Math.max(0, profile.xpPerHour)) / Math.log(6000001)); const resourcePenalty = Math.min(0.25, (profile.hpPotionsPerHour + profile.mpPotionsPerHour) / 5000); const controllability = clamp01(1 - resourcePenalty - Math.min(0.25, profile.movementFailures / Math.max(1, profile.samples)) - Math.min(0.25, profile.skillFailures / Math.max(1, profile.samples))); return { survival, progress, controllability, synergy: clamp01(profile.scoreEwma), confidence: clamp01(profile.confidence) };
+  }
+  score(candidate, context = {}) {
+    const encounter = context.encounter || createEncounterFingerprint(context); const profile = context.performanceStore && context.performanceStore.profile(encounter.key, candidate.fingerprint.key); const theory = this._theory(candidate, encounter); const measured = this._measured(profile); const blend = measured ? measured.confidence : 0; const components = {};
+    for (const key of ['survival', 'progress', 'controllability', 'synergy']) components[key] = clamp01(theory[key] * (1 - blend) + (measured ? measured[key] : 0) * blend);
+    const confidence = clamp01(Math.max(theory.confidence * (1 - blend), measured ? measured.confidence : 0)); const highRiskUnknown = encounter.contentDisposition === 'QUARANTINED' || encounter.contentDisposition === 'UNKNOWN'; const empiricallyUnsafe = profile && (profile.deathsPerHour >= 1 || profile.retreatsPerHour >= 8 || (profile.avgSafetyMargin != null && profile.avgSafetyMargin < 0.2)); const hardSafetyRejected = !!empiricallyUnsafe; let total = Object.entries(this.weights).reduce((sum, [key, weight]) => sum + components[key] * weight, 0); if (highRiskUnknown) total *= 0.86; if (hardSafetyRejected) total = 0; if (this.explorationEnabled && !highRiskUnknown && confidence < 0.5 && components.survival >= 0.65) total += Math.min(0.025, (0.5 - confidence) * 0.05); total = clamp01(total);
+    return { candidate, encounter, profile, theory, measured, components, confidence, uncertainty: 1 - confidence, score: total, hardSafetyRejected, reasons: [...new Set(theory.reasons.concat(empiricallyUnsafe ? ['HIGH_DEATH_RATE'] : []))] };
+  }
+  decide(context = {}) {
+    const registryStatus = context.registryStatus || { characters: [] }; const encounter = context.encounter || createEncounterFingerprint(context); const candidates = this.candidates(registryStatus); const scored = candidates.map((candidate) => this.score(candidate, { ...context, encounter })).sort((a, b) => b.score - a.score || b.confidence - a.confidence || a.candidate.id.localeCompare(b.candidate.id)); const currentNames = new Set((context.currentMembers || []).map((member) => typeof member === 'string' ? member : member.name)); const current = scored.find((row) => row.candidate.members.every((member) => currentNames.has(member.name)) && currentNames.size === row.candidate.members.length) || null; const best = scored.find((row) => !row.hardSafetyRejected) || null;
+    let decision = 'WOULD_KEEP'; const reasons = []; const projectedGain = best && current ? best.score - current.score : best ? best.score : 0; const switchCostScore = Math.min(0.15, Math.max(0, finite(context.switchCostSeconds, 180)) / 3600 * 0.35);
+    if (!best) reasons.push('NO_ELIGIBLE_PARTY'); else if (!current) { decision = 'WOULD_SWITCH'; reasons.push('CURRENT_PARTY_NOT_MODELED'); } else if (best.candidate.id === current.candidate.id) reasons.push('CURRENT_PARTY_BEST'); else if (best.confidence < this.minRecommendedConfidence) reasons.push('INSUFFICIENT_CONFIDENCE'); else if (this.now() - this.lastSwitchAt < this.minSwitchIntervalMs) reasons.push('SWITCH_COOLDOWN'); else if (projectedGain <= this.minScoreGain + switchCostScore) reasons.push('GAIN_BELOW_SWITCH_THRESHOLD'); else { decision = 'WOULD_SWITCH'; reasons.push(...best.reasons); } if (encounter.contentDisposition === 'QUARANTINED' || encounter.contentDisposition === 'UNKNOWN') reasons.push('UNKNOWN_CONTENT');
+    const result = { at: this.now(), mode: 'shadow-recommendation', actionAuthority: false, decision, current: current ? this._summary(current) : null, recommended: best ? this._summary(best) : null, projectedGain, switchCostSeconds: Math.max(0, finite(context.switchCostSeconds, 180)), switchCostScore, reasons: [...new Set(reasons)], encounter, candidateCount: scored.length, top: scored.slice(0, 8).map((row) => this._summary(row)) };
+    const changed = !this.lastDecision || this.lastDecision.decision !== result.decision || this.lastDecision.recommended?.partyKey !== result.recommended?.partyKey; this.lastDecision = result; this._event(changed ? 'PARTY_RECOMMENDATION_CHANGED' : 'PARTY_SCORE_CALCULATED', { decision: result.decision, current: result.current && result.current.partyKey, recommended: result.recommended && result.recommended.partyKey, gain: result.projectedGain, reasons: result.reasons }); return result;
+  }
+  _summary(row) { return { partyKey: row.candidate.fingerprint.key, semantic: row.candidate.fingerprint.semantic, members: row.candidate.members.map((member) => ({ name: member.name, ctype: member.ctype, level: member.level })), score: row.score, confidence: row.confidence, uncertainty: row.uncertainty, components: row.components, hardSafetyRejected: row.hardSafetyRejected, reasons: row.reasons }; }
+  noteSwitch() { this.lastSwitchAt = this.now(); }
+  setExplorationEnabled(enabled) { this.explorationEnabled = enabled === true; return this.explorationEnabled; }
+  status() { return { mode: 'shadow-recommendation', actionAuthority: false, directActionAccess: false, executorBypassAllowed: false, weights: { ...this.weights }, minScoreGain: this.minScoreGain, minSwitchIntervalMs: this.minSwitchIntervalMs, minRecommendedConfidence: this.minRecommendedConfidence, explorationEnabled: this.explorationEnabled, lastSwitchAt: this.lastSwitchAt || null, lastDecision: this.lastDecision }; }
+}
+module.exports = { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, combinations };
+
+},
+"src/party/paladin-aura-policy.js": function(require,module,exports){
+'use strict';
+
+const AURAS = Object.freeze(['bulwark', 'sanctuary', 'zeal', 'warding']);
+class PaladinAuraPolicy {
+  constructor(options = {}) { this.now = options.now || (() => Date.now()); this.minHoldMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.minHoldMs) || 30000)); this.lastAura = null; this.lastChangedAt = 0; this.lastDecision = null; }
+  recommend(context = {}) {
+    const paladin = context.paladin || null; const encounter = context.encounter || {}; const risk = context.risk || {};
+    if (!paladin || paladin.ctype !== 'paladin' || Number(paladin.level) < 60 || !Array.isArray(paladin.skillUnlocks) || !paladin.skillUnlocks.includes('paladin_aura')) { this.lastDecision = { aura: null, reason: 'PALADIN_AURA_UNAVAILABLE', canSwitch: false }; return this.lastDecision; }
+    const monster = encounter.monster || {}; const damageType = String(monster.damageType || '').toLowerCase(); let aura = 'zeal'; let reason = 'SAFE_OFFENSE';
+    if (risk.unknown || risk.highRisk || risk.lowSurvivalMargin) { aura = damageType === 'magical' ? 'sanctuary' : 'bulwark'; reason = damageType === 'magical' ? 'MAGICAL_DAMAGE_PRESSURE' : 'LOW_SURVIVAL_MARGIN'; }
+    else if (risk.statusPressure || risk.elementalPressure || risk.mpStarvation) { aura = 'warding'; reason = risk.mpStarvation ? 'MP_STARVATION' : 'STATUS_OR_ELEMENTAL_PRESSURE'; }
+    else if (damageType === 'magical' && risk.mediumRisk) { aura = 'sanctuary'; reason = 'MAGICAL_DAMAGE_PRESSURE'; }
+    else if (damageType === 'physical' && risk.mediumRisk) { aura = 'bulwark'; reason = 'PHYSICAL_DAMAGE_PRESSURE'; }
+    const now = this.now(); const held = this.lastAura && this.lastAura !== aura && now - this.lastChangedAt < this.minHoldMs; const resolved = held ? this.lastAura : aura;
+    this.lastDecision = { aura: resolved, proposedAura: aura, reason: held ? 'AURA_HYSTERESIS_HOLD' : reason, canSwitch: !held, minHoldMs: this.minHoldMs }; return this.lastDecision;
+  }
+  noteApplied(aura) { if (!AURAS.includes(aura)) return false; if (this.lastAura !== aura) { this.lastAura = aura; this.lastChangedAt = this.now(); } return true; }
+  status() { return { auras: AURAS.slice(), lastAura: this.lastAura, lastChangedAt: this.lastChangedAt || null, lastDecision: this.lastDecision, minHoldMs: this.minHoldMs }; }
+}
+module.exports = { PaladinAuraPolicy, AURAS };
+
+},
+"src/party/telemetry-bridge.js": function(require,module,exports){
+'use strict';
+
+const TELEMETRY_PROTOCOL = 1;
+function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
+function clamp(value, min, max) { const n = finite(value); return n == null ? min : Math.max(min, Math.min(max, n)); }
+class PartyTelemetryBridge {
+  constructor(options = {}) {
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0 }; this.installed = false; this.previousOnCm = null;
+  }
+  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
+  setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
+  setMerchantName(name) { this.merchantName = name ? String(name) : null; return this.merchantName; }
+  _character() { return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null; }
+  installReceiver() { if (this.installed) return false; const root = this.root; if (!root) return false; this.previousOnCm = typeof root.on_cm === 'function' ? root.on_cm : null; const self = this; root.on_cm = function onPartyTelemetry(name, data) { try { self.receive(name, data); } catch (_) {} if (self.previousOnCm) return self.previousOnCm.apply(this, arguments); return undefined; }; this.installed = true; return true; }
+  uninstallReceiver() { if (!this.installed || !this.root) return false; if (this.root.on_cm && this.root.on_cm.name === 'onPartyTelemetry') this.root.on_cm = this.previousOnCm || undefined; this.installed = false; return true; }
+  _cleanReport(report, sender) {
+    if (!report || report.type !== 'aio-v3-party-report' || Number(report.protocol) !== TELEMETRY_PROTOCOL) return null; const name = String(sender || report.name || ''); if (!name || (this.trustedNames.size && !this.trustedNames.has(name))) return null; const at = finite(report.at); if (at == null || Math.abs(this.now() - at) > this.reportTtlMs * 2) return null; const rates = report.rates && typeof report.rates === 'object' ? report.rates : {}; const safety = report.safety && typeof report.safety === 'object' ? report.safety : {};
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype: String(report.ctype || 'unknown').toLowerCase(), level: Math.max(0, finite(report.level) || 0), map: report.map == null ? null : String(report.map), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, at };
+  }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; return true; }
+  buildLocalReport(runtime) {
+    const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null;
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, at: this.now() };
+  }
+  tick(runtime) {
+    this.prune(); const c = this._character(); if (!c || !this.merchantName || c.name === this.merchantName || this.now() - this.lastSentAt < this.sendIntervalMs) return false; const send = this.root && (this.root.send_cm || (this.root.parent && this.root.parent.send_cm)); if (typeof send !== 'function') return false; const report = this.buildLocalReport(runtime); if (!report) return false; this.lastSentAt = this.now();
+    try { const pending = send.call(this.root, this.merchantName, report); Promise.resolve(pending).catch((error) => { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); }); this.stats.sent += 1; return true; }
+    catch (error) { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); return false; }
+  }
+  prune() { const now = this.now(); for (const [name, report] of this.reports) if (now - report.at > this.reportTtlMs) { this.reports.delete(name); this.stats.expired += 1; } }
+  aggregate(names = []) {
+    this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
+    for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
+  }
+  status() { this.prune(); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports: [...this.reports.values()].sort((a, b) => b.at - a.at), stats: { ...this.stats } }; }
+}
+module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL };
+
+},
+"src/party/transition-controller.js": function(require,module,exports){
+'use strict';
+
+const TransitionState = Object.freeze({
+  IDLE: 'IDLE',
+  PREFLIGHT: 'PREFLIGHT',
+  STOPPING: 'STOPPING',
+  STARTING: 'STARTING',
+  PARTYING: 'PARTYING',
+  VERIFYING: 'VERIFYING',
+  COMPLETED: 'COMPLETED',
+  ABORTED: 'ABORTED',
+  RECOVERING: 'RECOVERING',
+  RECOVERED: 'RECOVERED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function namesOf(members) {
+  return (members || [])
+    .map((member) => typeof member === 'string' ? member : member && member.name)
+    .filter(Boolean)
+    .map(String);
+}
+
+class PartyTransitionController {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.liveEnabled = options.liveEnabled === true;
+    this.merchantName = options.merchantName || null;
+    this.codeSlots = { ...(options.codeSlots || {}) };
+    this.controlLease = options.controlLease || null;
+    this.stepTimeoutMs = Math.max(3000, Math.min(120000, Number(options.stepTimeoutMs) || 20000));
+    this.transitionLeaseMs = Math.max(15000, Math.min(10 * 60 * 1000, Number(options.transitionLeaseMs) || 90000));
+    this.pollMs = Math.max(100, Math.min(5000, Number(options.pollMs) || 500));
+    this.state = TransitionState.IDLE;
+    this.active = null;
+    this.lastResult = null;
+    this.history = [];
+    this.historyCapacity = Math.max(10, Math.min(100, Number(options.historyCapacity) || 30));
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'party-transition', event, severity, reason, data });
+    }
+  }
+
+  setLiveEnabled(enabled) {
+    this.liveEnabled = enabled === true;
+    return this.liveEnabled;
+  }
+
+  setMerchantName(name) {
+    this.merchantName = name ? String(name) : null;
+    if (this.controlLease && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
+    return this.merchantName;
+  }
+
+  setCodeSlots(slots) {
+    this.codeSlots = { ...(slots || {}) };
+    return { ...this.codeSlots };
+  }
+
+  setControlLease(controlLease) {
+    this.controlLease = controlLease || null;
+    if (this.controlLease && typeof this.controlLease.setMerchantName === 'function') this.controlLease.setMerchantName(this.merchantName);
+    return !!this.controlLease;
+  }
+
+  _function(name) {
+    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
+  }
+
+  _localCharacter() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _activeCharacters() {
+    const fn = this._function('get_active_characters');
+    if (typeof fn !== 'function') return null;
+    try {
+      const value = fn.call(this.root);
+      return value && typeof value === 'object' ? value : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _partyNames() {
+    const parent = this.root && (this.root.parent || this.root);
+    return Object.keys(parent && parent.party || {});
+  }
+
+  _isPresentState(value) {
+    return ['self', 'starting', 'loading', 'active', 'code'].includes(String(value));
+  }
+
+  _isRunningState(value) {
+    return ['self', 'active', 'code'].includes(String(value));
+  }
+
+  _controlLeaseStatus() {
+    if (!this.controlLease || typeof this.controlLease.status !== 'function') return null;
+    try { return this.controlLease.status(); } catch (_) { return null; }
+  }
+
+  preflight(plan, context = {}) {
+    const local = this._localCharacter();
+    const targetNames = namesOf(plan && plan.members);
+    const currentNames = namesOf(context.currentMembers);
+    const desiredMerchant = plan && plan.merchant && plan.merchant.name || this.merchantName;
+    const registry = context.registryStatus || { characters: [] };
+    const byName = new Map((registry.characters || []).map((entry) => [entry.name, entry]));
+    const slotRequired = [...new Set(currentNames.concat(targetNames))].filter((name) => name !== desiredMerchant);
+    const missingSlots = slotRequired.filter((name) => !this.codeSlots[name]);
+    const unsafeOutgoing = currentNames
+      .filter((name) => name !== desiredMerchant)
+      .map((name) => byName.get(name))
+      .filter((row) => row && (
+        row.dead ||
+        row.available !== true ||
+        (row.stats && row.stats.hp != null && row.stats.max_hp > 0 && row.stats.hp / row.stats.max_hp < 0.6)
+      ));
+    const reasons = [];
+
+    if (!this.liveEnabled) reasons.push('TRANSITIONS_DISABLED');
+    if (context.runtimeMode !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
+    if (!local || !desiredMerchant || local.name !== desiredMerchant) reasons.push('MERCHANT_CONTROLLER_REQUIRED');
+    if (context.inCombat) reasons.push('ACTIVE_COMBAT');
+    if (context.emergency) reasons.push('EMERGENCY_RECOVERY');
+    if (!targetNames.includes(desiredMerchant)) reasons.push('MERCHANT_MUST_REMAIN');
+    if (targetNames.length !== 4) reasons.push('PARTY_SIZE_MUST_BE_FOUR');
+    if (new Set(targetNames).size !== targetNames.length) reasons.push('DUPLICATE_CHARACTER_NAME');
+    if (missingSlots.length) reasons.push('MISSING_CODE_SLOT');
+    if (unsafeOutgoing.length) reasons.push('UNSAFE_OUTGOING_CHARACTER');
+    const active = this._activeCharacters();
+    if (!active) reasons.push('ACTIVE_CHARACTER_STATE_UNAVAILABLE');
+    if (context.requiresCrossMapRouting) reasons.push('CROSS_MAP_ROUTING_NOT_ALLOWED');
+
+    const control = this._controlLeaseStatus();
+    if (this.controlLease) {
+      if (!control || control.installed !== true) reasons.push('PARTY_CONTROL_LEASE_NOT_READY');
+      if (control && control.merchantName !== desiredMerchant) reasons.push('PARTY_CONTROL_MERCHANT_MISMATCH');
+    }
+
+    return {
+      allowed: reasons.length === 0,
+      reasons,
+      targetNames,
+      currentNames,
+      merchantName: desiredMerchant,
+      missingSlots,
+      activeCharacters: active,
+      controlLease: control
+    };
+  }
+
+  async _waitUntil(predicate, timeoutMs, reason) {
+    const started = this.now();
+    while (this.now() - started <= timeoutMs) {
+      try {
+        if (predicate()) return true;
+      } catch (_) {}
+      await sleep(this.pollMs);
+    }
+    throw new Error(reason || 'TRANSITION_STEP_TIMEOUT');
+  }
+
+  async _stop(name) {
+    const fn = this._function('stop_character');
+    if (typeof fn !== 'function') throw new Error('STOP_CHARACTER_UNAVAILABLE');
+    fn.call(this.root, name);
+    await this._waitUntil(() => {
+      const active = this._activeCharacters();
+      return active && !this._isPresentState(active[name]);
+    }, this.stepTimeoutMs, `STOP_VERIFY_TIMEOUT:${name}`);
+  }
+
+  async _start(name) {
+    const fn = this._function('start_character');
+    if (typeof fn !== 'function') throw new Error('START_CHARACTER_UNAVAILABLE');
+    const slot = this.codeSlots[name];
+    if (!slot) throw new Error(`MISSING_CODE_SLOT:${name}`);
+    await Promise.resolve(fn.call(this.root, name, slot));
+    await this._waitUntil(() => {
+      const active = this._activeCharacters();
+      return active && this._isRunningState(active[name]);
+    }, this.stepTimeoutMs, `START_VERIFY_TIMEOUT:${name}`);
+  }
+
+  async _authorizeInvite(name, transactionId) {
+    if (!this.controlLease || typeof this.controlLease.authorizeIncoming !== 'function') return { authorized: true, legacy: true };
+    return this.controlLease.authorizeIncoming(name, transactionId);
+  }
+
+  async _invite(name, transactionId) {
+    await this._authorizeInvite(name, transactionId);
+    const fn = this._function('send_party_invite');
+    if (typeof fn !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
+    await Promise.resolve(fn.call(this.root, name));
+  }
+
+  async _recover(oldNames, newStarted, merchantName, transactionId) {
+    this.state = TransitionState.RECOVERING;
+    this._event('PARTY_SWITCH_RECOVERY', { oldNames, newStarted }, 'warn');
+
+    for (const name of newStarted.slice().reverse()) {
+      if (name === merchantName || oldNames.includes(name)) continue;
+      try { await this._stop(name); } catch (_) {}
+    }
+
+    for (const name of oldNames) {
+      if (name === merchantName) continue;
+      const active = this._activeCharacters();
+      if (active && this._isRunningState(active[name])) continue;
+      try {
+        await this._start(name);
+      } catch (error) {
+        this.state = TransitionState.FAILED_SAFE;
+        return {
+          recovered: false,
+          reason: `ROLLBACK_START_FAILED:${name}`,
+          error: String(error && error.message || error)
+        };
+      }
+    }
+
+    try {
+      for (const name of oldNames) {
+        if (name === merchantName || this._partyNames().includes(name)) continue;
+        await this._invite(name, `${transactionId}:rollback`);
+      }
+      await this._waitUntil(() => {
+        const party = new Set(this._partyNames().concat(merchantName));
+        return oldNames.every((name) => party.has(name));
+      }, this.stepTimeoutMs, 'ROLLBACK_PARTY_VERIFY_TIMEOUT');
+    } catch (error) {
+      this.state = TransitionState.FAILED_SAFE;
+      return {
+        recovered: false,
+        reason: 'ROLLBACK_PARTY_FAILED',
+        error: String(error && error.message || error)
+      };
+    }
+
+    this.state = TransitionState.RECOVERED;
+    return { recovered: true };
+  }
+
+  async execute(plan, context = {}) {
+    if (this.active) return { executed: false, reason: 'TRANSITION_ALREADY_RUNNING' };
+    this.state = TransitionState.PREFLIGHT;
+    const preflight = this.preflight(plan, context);
+    if (!preflight.allowed) {
+      this.state = TransitionState.ABORTED;
+      const result = {
+        executed: false,
+        state: this.state,
+        reason: preflight.reasons[0],
+        reasons: preflight.reasons,
+        preflight
+      };
+      this._finish(result);
+      this._event('PARTY_SWITCH_SUPPRESSED', { reasons: preflight.reasons }, 'warn', preflight.reasons[0]);
+      return result;
+    }
+
+    const transaction = {
+      id: `party-transition-${this.now()}`,
+      startedAt: this.now(),
+      targetNames: preflight.targetNames,
+      oldNames: preflight.currentNames,
+      stopped: [],
+      started: []
+    };
+    this.active = transaction;
+    this._event('PARTY_SWITCH_STARTED', { id: transaction.id, from: transaction.oldNames, to: transaction.targetNames });
+
+    try {
+      const deadline = transaction.startedAt + this.transitionLeaseMs;
+      const target = new Set(transaction.targetNames);
+      const outgoing = transaction.oldNames.filter((name) => name !== preflight.merchantName && !target.has(name));
+      const incoming = transaction.targetNames.filter((name) => name !== preflight.merchantName && !transaction.oldNames.includes(name));
+
+      this.state = TransitionState.STOPPING;
+      for (const name of outgoing) {
+        if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+        await this._stop(name);
+        transaction.stopped.push(name);
+      }
+
+      this.state = TransitionState.STARTING;
+      for (const name of incoming) {
+        if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+        await this._start(name);
+        transaction.started.push(name);
+      }
+
+      this.state = TransitionState.PARTYING;
+      for (const name of transaction.targetNames) {
+        if (name === preflight.merchantName) continue;
+        if (!this._partyNames().includes(name)) {
+          if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+          try {
+            await this._invite(name, transaction.id);
+          } catch (error) {
+            throw new Error(`PARTY_INVITE_FAILED:${name}:${String(error && error.message || error)}`);
+          }
+        }
+      }
+
+      this.state = TransitionState.VERIFYING;
+      await this._waitUntil(() => {
+        const active = this._activeCharacters();
+        if (!active) return false;
+        const activeOk = transaction.targetNames.every((name) => name === preflight.merchantName || this._isRunningState(active[name]));
+        const party = new Set(this._partyNames().concat(preflight.merchantName));
+        const partyOk = transaction.targetNames.every((name) => party.has(name));
+        const stateOk = typeof context.verifyTargetState === 'function'
+          ? context.verifyTargetState(transaction.targetNames) === true
+          : true;
+        return activeOk && partyOk && stateOk;
+      }, Math.min(this.stepTimeoutMs, Math.max(this.pollMs, deadline - this.now())), 'POSTCONDITION_VERIFY_TIMEOUT');
+
+      if (this.now() > deadline) throw new Error('TRANSITION_LEASE_EXPIRED');
+      this.state = TransitionState.COMPLETED;
+      const result = {
+        executed: true,
+        state: this.state,
+        id: transaction.id,
+        from: transaction.oldNames,
+        to: transaction.targetNames,
+        durationMs: this.now() - transaction.startedAt
+      };
+      this._finish(result);
+      this._event('PARTY_SWITCH_COMPLETED', result);
+      return result;
+    } catch (error) {
+      this.state = TransitionState.ABORTED;
+      const reason = String(error && error.message || error);
+      this._event('PARTY_SWITCH_ABORTED', { id: transaction.id, reason }, 'error', reason);
+      const recovery = await this._recover(transaction.oldNames, transaction.started, preflight.merchantName, transaction.id);
+      const result = {
+        executed: false,
+        state: this.state,
+        id: transaction.id,
+        reason,
+        recovery,
+        durationMs: this.now() - transaction.startedAt
+      };
+      this._finish(result);
+      return result;
+    }
+  }
+
+  _finish(result) {
+    this.lastResult = result;
+    this.history.push(result);
+    if (this.history.length > this.historyCapacity) this.history.splice(0, this.history.length - this.historyCapacity);
+    this.active = null;
+  }
+
+  status() {
+    return {
+      liveEnabled: this.liveEnabled,
+      state: this.state,
+      merchantName: this.merchantName,
+      transitionLeaseMs: this.transitionLeaseMs,
+      stepTimeoutMs: this.stepTimeoutMs,
+      configuredCodeSlots: Object.keys(this.codeSlots).sort(),
+      controlLeaseBound: !!this.controlLease,
+      controlLease: this._controlLeaseStatus(),
+      crossMapRoutingAllowed: false,
+      serverChangeAllowed: false,
+      smartMoveAllowed: false,
+      active: this.active ? { ...this.active } : null,
+      lastResult: this.lastResult,
+      recent: this.history.slice(-10)
+    };
+  }
+}
+
+module.exports = { PartyTransitionController, TransitionState };
+
+},
+"src/ops/background-execution-guard.js": function(require,module,exports){
+'use strict';
+
+class BackgroundExecutionGuard {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.expectedTickMs = Math.max(100, Number(options.expectedTickMs) || 250);
+    this.driftThresholdMs = Math.max(1000, Math.min(60000, Number(options.driftThresholdMs) || 3000));
+    this.rearmCooldownMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.rearmCooldownMs) || 30000));
+    this.enabled = options.enabled !== false;
+    this.lastTickAt = null;
+    this.lastArmAt = 0;
+    this.lastDriftMs = 0;
+    this.stats = { armAttempts: 0, armSuccess: 0, armFailures: 0, driftEvents: 0, focusRearms: 0 };
+    this.listenersInstalled = false;
+    this.boundRearm = () => {
+      if (!this.enabled) return;
+      const now = this.now();
+      if (this.lastArmAt && now - this.lastArmAt < Math.min(this.rearmCooldownMs, 5000)) return;
+      this.stats.focusRearms += 1;
+      this.arm('FOCUS_OR_VISIBILITY');
+    };
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'background-execution', event, severity, reason, data });
+    }
+  }
+
+  _fn() {
+    if (!this.root) return null;
+    return this.root.performance_trick || (this.root.parent && this.root.parent.performance_trick) || null;
+  }
+
+  arm(reason = 'MANUAL') {
+    if (!this.enabled) return { armed: false, reason: 'DISABLED' };
+    const fn = this._fn();
+    this.stats.armAttempts += 1;
+    if (typeof fn !== 'function') {
+      this.stats.armFailures += 1;
+      return { armed: false, reason: 'PERFORMANCE_TRICK_UNAVAILABLE' };
+    }
+    try {
+      const pending = fn.call(this.root);
+      this.lastArmAt = this.now();
+      this.stats.armSuccess += 1;
+      this._event('BACKGROUND_EXECUTION_GUARD_ARMED', { reason, strategy: 'adventure-land-performance-trick' });
+      if (pending && typeof pending.then === 'function') {
+        Promise.resolve(pending).catch((error) => {
+          this.stats.armFailures += 1;
+          this._event('BACKGROUND_EXECUTION_GUARD_FAILED', { reason, message: String(error && error.message || error) }, 'warn', 'PERFORMANCE_TRICK_ASYNC_FAILED');
+        });
+      }
+      return { armed: true, reason, strategy: 'adventure-land-performance-trick' };
+    } catch (error) {
+      this.stats.armFailures += 1;
+      this._event('BACKGROUND_EXECUTION_GUARD_FAILED', { reason, message: String(error && error.message || error) }, 'warn', 'PERFORMANCE_TRICK_FAILED');
+      return { armed: false, reason: 'PERFORMANCE_TRICK_FAILED' };
+    }
+  }
+
+  installListeners() {
+    if (this.listenersInstalled || !this.root) return false;
+    const doc = this.root.document;
+    if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('visibilitychange', this.boundRearm);
+    if (typeof this.root.addEventListener === 'function') this.root.addEventListener('focus', this.boundRearm);
+    this.listenersInstalled = !!((doc && typeof doc.addEventListener === 'function') || typeof this.root.addEventListener === 'function');
+    return this.listenersInstalled;
+  }
+
+  removeListeners() {
+    if (!this.listenersInstalled || !this.root) return false;
+    const doc = this.root.document;
+    try {
+      if (doc && typeof doc.removeEventListener === 'function') doc.removeEventListener('visibilitychange', this.boundRearm);
+      if (typeof this.root.removeEventListener === 'function') this.root.removeEventListener('focus', this.boundRearm);
+    } catch (_) {}
+    this.listenersInstalled = false;
+    return true;
+  }
+
+  noteTick() {
+    const now = this.now();
+    if (this.lastTickAt != null) {
+      const drift = Math.max(0, now - this.lastTickAt - this.expectedTickMs);
+      this.lastDriftMs = drift;
+      if (drift >= this.driftThresholdMs) {
+        this.stats.driftEvents += 1;
+        this._event('BACKGROUND_EXECUTION_DRIFT', { driftMs: drift, expectedTickMs: this.expectedTickMs }, 'warn', 'TIMER_DRIFT');
+        if (now - this.lastArmAt >= this.rearmCooldownMs) this.arm('TIMER_DRIFT');
+      }
+    }
+    this.lastTickAt = now;
+  }
+
+  start() {
+    this.installListeners();
+    return this.arm('RUNTIME_START');
+  }
+
+  stop() {
+    this.removeListeners();
+    this.lastTickAt = null;
+    return true;
+  }
+
+  setEnabled(enabled) {
+    this.enabled = enabled === true;
+    return this.enabled;
+  }
+
+  status() {
+    return {
+      enabled: this.enabled,
+      strategy: 'adventure-land-performance-trick',
+      guarantee: false,
+      listenersInstalled: this.listenersInstalled,
+      functionAvailable: typeof this._fn() === 'function',
+      lastArmAt: this.lastArmAt || null,
+      lastDriftMs: this.lastDriftMs,
+      expectedTickMs: this.expectedTickMs,
+      driftThresholdMs: this.driftThresholdMs,
+      rearmCooldownMs: this.rearmCooldownMs,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { BackgroundExecutionGuard };
+
+},
+"src/party/control-lease.js": function(require,module,exports){
+'use strict';
+
+const PARTY_CONTROL_PROTOCOL = 1;
+const PARTY_CONTROL_TYPE = 'aio-v3-party-control';
+const PartyControlAction = Object.freeze({
+  ALLOW_PARTY_INVITE: 'ALLOW_PARTY_INVITE',
+  LEASE_ACK: 'LEASE_ACK'
+});
+
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
+function cleanName(value) { const name = String(value == null ? '' : value).trim(); return name || null; }
+function cleanTransactionId(value) {
+  const id = String(value == null ? '' : value).trim();
+  if (!id || id.length > 128) return null;
+  return id;
+}
+
+class PartyControlLease {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.merchantName = cleanName(options.merchantName);
+    this.trustedNames = new Set((options.trustedNames || []).map(cleanName).filter(Boolean));
+    this.leaseMs = Math.max(5000, Math.min(60000, Number(options.leaseMs) || 15000));
+    this.ackTimeoutMs = Math.max(1000, Math.min(15000, Number(options.ackTimeoutMs) || 5000));
+    this.pollMs = Math.max(50, Math.min(1000, Number(options.pollMs) || 100));
+    this.maxClockSkewMs = Math.max(1000, Math.min(10000, Number(options.maxClockSkewMs) || 3000));
+    this.activeLease = null;
+    this.acks = new Map();
+    this.installed = false;
+    this.previousOnCm = null;
+    this.previousOnPartyInvite = null;
+    this.stats = {
+      leasesSent: 0,
+      leasesReceived: 0,
+      leaseAcksSent: 0,
+      leaseAcksReceived: 0,
+      controlRejected: 0,
+      inviteAccepted: 0,
+      inviteRejected: 0,
+      acceptFailures: 0,
+      ackTimeouts: 0
+    };
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'party-control', event, severity, reason, data });
+    }
+  }
+
+  _function(name) {
+    if (!this.root) return null;
+    return this.root[name] || (this.root.parent && this.root.parent[name]) || null;
+  }
+
+  _character() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _localName() {
+    const character = this._character();
+    return cleanName(character && character.name);
+  }
+
+  setMerchantName(name) {
+    this.merchantName = cleanName(name);
+    return this.merchantName;
+  }
+
+  setTrustedNames(names) {
+    this.trustedNames = new Set((names || []).map(cleanName).filter(Boolean));
+    return [...this.trustedNames].sort();
+  }
+
+  _isTrusted(name) {
+    const resolved = cleanName(name);
+    return !!resolved && this.trustedNames.has(resolved);
+  }
+
+  _isControlMessage(data) {
+    return !!data && data.type === PARTY_CONTROL_TYPE && Number(data.protocol) === PARTY_CONTROL_PROTOCOL;
+  }
+
+  _ackKey(transactionId, target) {
+    return `${transactionId}:${target}`;
+  }
+
+  _prune() {
+    const now = this.now();
+    if (this.activeLease && this.activeLease.expiresAt <= now) {
+      this._event('PARTY_CONTROL_LEASE_EXPIRED', { transactionId: this.activeLease.transactionId, target: this.activeLease.target }, 'warn', 'LEASE_EXPIRED');
+      this.activeLease = null;
+    }
+    for (const [key, at] of this.acks) {
+      if (now - at > this.ackTimeoutMs * 2) this.acks.delete(key);
+    }
+  }
+
+  _reject(reason, data = {}) {
+    this.stats.controlRejected += 1;
+    this._event('PARTY_CONTROL_REJECTED', data, 'warn', reason);
+    return false;
+  }
+
+  async _send(name, payload) {
+    const send = this._function('send_cm');
+    if (typeof send !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    return Promise.resolve(send.call(this.root, name, payload));
+  }
+
+  _validateLeaseEnvelope(sender, data) {
+    const now = this.now();
+    const localName = this._localName();
+    const senderName = cleanName(sender);
+    const target = cleanName(data && data.target);
+    const transactionId = cleanTransactionId(data && data.transactionId);
+    const issuedAt = finite(data && data.issuedAt);
+    const expiresAt = finite(data && data.expiresAt);
+    if (!localName) return { ok: false, reason: 'LOCAL_CHARACTER_UNAVAILABLE' };
+    if (!this.merchantName || senderName !== this.merchantName) return { ok: false, reason: 'UNTRUSTED_MERCHANT' };
+    if (!this._isTrusted(senderName) || !this._isTrusted(localName)) return { ok: false, reason: 'UNTRUSTED_ROSTER_MEMBER' };
+    if (!target || target !== localName) return { ok: false, reason: 'LEASE_TARGET_MISMATCH' };
+    if (!transactionId) return { ok: false, reason: 'INVALID_TRANSACTION_ID' };
+    if (issuedAt == null || expiresAt == null) return { ok: false, reason: 'INVALID_LEASE_TIME' };
+    if (issuedAt > now + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_FROM_FUTURE' };
+    if (now - issuedAt > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_TOO_OLD' };
+    if (expiresAt <= now) return { ok: false, reason: 'LEASE_EXPIRED' };
+    if (expiresAt - issuedAt > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_TOO_LONG' };
+    if (expiresAt - now > this.leaseMs + this.maxClockSkewMs) return { ok: false, reason: 'LEASE_EXPIRY_TOO_FAR' };
+    return { ok: true, senderName, localName, target, transactionId, issuedAt, expiresAt };
+  }
+
+  receive(sender, data) {
+    if (!this._isControlMessage(data)) return false;
+    this._prune();
+    const action = String(data.action || '');
+    if (action === PartyControlAction.ALLOW_PARTY_INVITE) {
+      const validation = this._validateLeaseEnvelope(sender, data);
+      if (!validation.ok) return this._reject(validation.reason, { sender: cleanName(sender), action, target: cleanName(data.target) });
+      this.activeLease = {
+        merchantName: validation.senderName,
+        target: validation.target,
+        transactionId: validation.transactionId,
+        issuedAt: validation.issuedAt,
+        expiresAt: validation.expiresAt
+      };
+      this.stats.leasesReceived += 1;
+      this._event('PARTY_CONTROL_LEASE_RECEIVED', { transactionId: validation.transactionId, target: validation.target, expiresAt: validation.expiresAt });
+      const ack = {
+        type: PARTY_CONTROL_TYPE,
+        protocol: PARTY_CONTROL_PROTOCOL,
+        action: PartyControlAction.LEASE_ACK,
+        merchantName: validation.senderName,
+        target: validation.target,
+        transactionId: validation.transactionId,
+        at: this.now()
+      };
+      try {
+        const pending = this._send(validation.senderName, ack);
+        this.stats.leaseAcksSent += 1;
+        Promise.resolve(pending).catch((error) => {
+          this._event('PARTY_CONTROL_ACK_SEND_FAILED', { transactionId: validation.transactionId, message: String(error && error.message || error) }, 'warn', 'ACK_SEND_FAILED');
+        });
+      } catch (error) {
+        this._event('PARTY_CONTROL_ACK_SEND_FAILED', { transactionId: validation.transactionId, message: String(error && error.message || error) }, 'warn', 'ACK_SEND_FAILED');
+      }
+      return true;
+    }
+
+    if (action === PartyControlAction.LEASE_ACK) {
+      const localName = this._localName();
+      const senderName = cleanName(sender);
+      const target = cleanName(data.target);
+      const transactionId = cleanTransactionId(data.transactionId);
+      if (!localName || !this.merchantName || localName !== this.merchantName) return this._reject('ACK_NOT_ON_MERCHANT', { sender: senderName, target });
+      if (!senderName || senderName !== target || !this._isTrusted(senderName) || !this._isTrusted(localName)) return this._reject('ACK_UNTRUSTED_TARGET', { sender: senderName, target });
+      if (cleanName(data.merchantName) !== localName || !transactionId) return this._reject('ACK_MISMATCH', { sender: senderName, target });
+      const at = finite(data.at);
+      if (at == null || Math.abs(this.now() - at) > this.leaseMs + this.maxClockSkewMs) return this._reject('ACK_STALE', { sender: senderName, target });
+      this.acks.set(this._ackKey(transactionId, senderName), this.now());
+      this.stats.leaseAcksReceived += 1;
+      this._event('PARTY_CONTROL_ACK_RECEIVED', { transactionId, target: senderName });
+      return true;
+    }
+
+    return this._reject('UNKNOWN_CONTROL_ACTION', { action, sender: cleanName(sender) });
+  }
+
+  async authorizeIncoming(targetName, transactionId) {
+    this._prune();
+    const target = cleanName(targetName);
+    const tx = cleanTransactionId(transactionId);
+    const localName = this._localName();
+    if (!target || !tx) throw new Error('INVALID_PARTY_CONTROL_REQUEST');
+    if (!this.merchantName || localName !== this.merchantName) throw new Error('MERCHANT_CONTROLLER_REQUIRED');
+    if (!this._isTrusted(localName) || !this._isTrusted(target)) throw new Error(`UNTRUSTED_PARTY_CONTROL_TARGET:${target}`);
+    if (target === localName) return { authorized: true, target, transactionId: tx, local: true };
+    const issuedAt = this.now();
+    const expiresAt = issuedAt + this.leaseMs;
+    const key = this._ackKey(tx, target);
+    this.acks.delete(key);
+    await this._send(target, {
+      type: PARTY_CONTROL_TYPE,
+      protocol: PARTY_CONTROL_PROTOCOL,
+      action: PartyControlAction.ALLOW_PARTY_INVITE,
+      merchantName: localName,
+      target,
+      transactionId: tx,
+      issuedAt,
+      expiresAt
+    });
+    this.stats.leasesSent += 1;
+    this._event('PARTY_CONTROL_LEASE_SENT', { transactionId: tx, target, expiresAt });
+    const startedAt = this.now();
+    while (this.now() - startedAt <= this.ackTimeoutMs) {
+      this._prune();
+      if (this.acks.has(key)) {
+        this.acks.delete(key);
+        return { authorized: true, target, transactionId: tx, expiresAt };
+      }
+      await sleep(this.pollMs);
+    }
+    this.stats.ackTimeouts += 1;
+    this._event('PARTY_CONTROL_ACK_TIMEOUT', { transactionId: tx, target }, 'warn', 'ACK_TIMEOUT');
+    throw new Error(`PARTY_CONTROL_ACK_TIMEOUT:${target}`);
+  }
+
+  _validInviteLease(inviter) {
+    this._prune();
+    const inviterName = cleanName(inviter);
+    const localName = this._localName();
+    const lease = this.activeLease;
+    return !!lease && !!localName && inviterName === lease.merchantName && inviterName === this.merchantName && localName === lease.target && this._isTrusted(inviterName) && this._isTrusted(localName) && lease.expiresAt > this.now();
+  }
+
+  _handleInvite(inviter) {
+    const inviterName = cleanName(inviter);
+    if (!this.merchantName || inviterName !== this.merchantName) return false;
+    if (!this._validInviteLease(inviterName)) {
+      this.stats.inviteRejected += 1;
+      this._event('PARTY_CONTROL_INVITE_REJECTED', { inviter: inviterName, target: this._localName() }, 'warn', 'NO_VALID_CONTROL_LEASE');
+      return true;
+    }
+    const lease = this.activeLease;
+    this.activeLease = null;
+    const accept = this._function('accept_party_invite');
+    if (typeof accept !== 'function') {
+      this.stats.acceptFailures += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId }, 'error', 'ACCEPT_PARTY_INVITE_UNAVAILABLE');
+      return true;
+    }
+    try {
+      const pending = accept.call(this.root, inviterName);
+      this.stats.inviteAccepted += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPTED', { inviter: inviterName, target: lease.target, transactionId: lease.transactionId });
+      Promise.resolve(pending).catch((error) => {
+        this.stats.acceptFailures += 1;
+        this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId, message: String(error && error.message || error) }, 'error', 'ACCEPT_PARTY_INVITE_FAILED');
+      });
+    } catch (error) {
+      this.stats.acceptFailures += 1;
+      this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId, message: String(error && error.message || error) }, 'error', 'ACCEPT_PARTY_INVITE_FAILED');
+    }
+    return true;
+  }
+
+  install() {
+    if (this.installed || !this.root) return false;
+    const self = this;
+    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
+    this.root.on_cm = function onPartyControlMessage(name, data) {
+      if (self._isControlMessage(data)) {
+        self.receive(name, data);
+        return undefined;
+      }
+      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
+      return undefined;
+    };
+    this.root.on_party_invite = function onPartyControlInvite(name) {
+      if (self._handleInvite(name)) return undefined;
+      if (self.previousOnPartyInvite) return self.previousOnPartyInvite.apply(this, arguments);
+      return undefined;
+    };
+    this.installed = true;
+    return true;
+  }
+
+  uninstall() {
+    if (!this.installed || !this.root) return false;
+    if (this.root.on_cm && this.root.on_cm.name === 'onPartyControlMessage') this.root.on_cm = this.previousOnCm || undefined;
+    if (this.root.on_party_invite && this.root.on_party_invite.name === 'onPartyControlInvite') this.root.on_party_invite = this.previousOnPartyInvite || undefined;
+    this.installed = false;
+    this.activeLease = null;
+    this.acks.clear();
+    return true;
+  }
+
+  status() {
+    this._prune();
+    return {
+      protocol: PARTY_CONTROL_PROTOCOL,
+      type: PARTY_CONTROL_TYPE,
+      installed: this.installed,
+      merchantName: this.merchantName,
+      trustedNames: [...this.trustedNames].sort(),
+      leaseMs: this.leaseMs,
+      ackTimeoutMs: this.ackTimeoutMs,
+      activeLease: this.activeLease ? { ...this.activeLease } : null,
+      pendingAcks: this.acks.size,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  PartyControlLease,
+  PARTY_CONTROL_PROTOCOL,
+  PARTY_CONTROL_TYPE,
+  PartyControlAction
 };
 
 },
