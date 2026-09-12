@@ -19,14 +19,45 @@ A dashboard is a client of the same host/runtime surfaces. It is never the autho
 
 The public browser bundle exposes the host contract under `AIO_V3.operations`:
 
-- `hostHeartbeat()` returns the current `AIO_V3_HOST_WATCHDOG_BEACON`
-- `pendingAlerts(limit)` reads pending bot alerts without mutating them
-- `claimAlerts(ids)` marks only the exact persisted alert IDs as handed off
-- `peekAlerts(limit)` is an observational alert view
-- `acknowledgeAlert(id, options)` remains an explicit operator acknowledgement path
+- `hostHeartbeat()` returns the current `AIO_V3_HOST_WATCHDOG_BEACON`;
+- `pendingAlerts(limit)` reads pending bot alerts without mutating them;
+- `claimAlerts(ids)` marks only the exact persist-before-claim alert IDs as handed off;
+- `reconciliationStatus()` returns bot-owned, observation-only restart reconciliation evidence;
+- `peekAlerts(limit)` remains an observational operator/debug view;
+- `acknowledgeAlert(id, options)` remains an explicit operator acknowledgement path;
 - `configureSafeRecovery(config)` and `safeRecoveryStatus()` expose the already-bounded gameplay-side safety-reduction layer.
 
+The external `BrowserBotClient` is deliberately narrower than the complete `AIO_V3.operations` object. It may dispatch only the first four host-contract methods above. It has no public generic `evaluate`, `invoke` or `call` surface.
+
 The recommended host poll order is heartbeat first, then alert ingest. Host polling failure must not block the gameplay loop.
+
+## Bot-owned reconciliation evidence
+
+The host must never infer that gameplay state is safe merely because a browser process restarted or a new page loaded. `AIO_V3.operations.reconciliationStatus()` is computed inside the deterministic v3 runtime and always reports:
+
+- `actionAuthority:false`;
+- `rawGameplayActionAuthority:false`;
+- an explicit bounded blocker list;
+- `observedClean:true` only when the required runtime status surfaces are available and no unresolved active/recovering operation is observed.
+
+The evidence currently fails closed for unresolved economy transactions, bank expansion, Merchant-space recovery, bank consolidation, travel, party-lifecycle work, a running Alpha.20 live gate and an active safe-recovery incident. Missing or throwing required status surfaces are blockers, not assumed-clean state.
+
+The host may observe this result after a fresh run. It may not use the result to replay, resume or manufacture gameplay actions.
+
+## Narrow browser bridge
+
+`BrowserBotClient` accepts an injected Page/Frame-like execution context and exposes only:
+
+- `hostHeartbeat()`;
+- `pendingAlerts(limit)`;
+- `claimAlerts(ids)`;
+- `reconciliationStatus()`.
+
+The browser execution context is kept private to the bridge. The in-page dispatcher is a hard-coded allowlist switch; arbitrary operation names such as attack, movement, Merchant actions or `smart_move` fail closed. Claim IDs, result sizes and pending-alert limits are bounded. Production origins are HTTPS-only and default to `https://adventure.land`.
+
+Only one page evaluation may be in flight. If an evaluation reaches its timeout, the bridge reports the timeout but continues treating the underlying evaluation as in flight until it actually settles; this prevents a stalled browser context from accumulating parallel requests.
+
+This bridge is a **contract adapter**, not yet the production browser/session driver. A later deployment layer must still launch or attach to the intended browser, identify the correct Adventure Land page/frame, handle navigation/reconnect/login/session lifecycle and then supply that validated execution context to `BrowserBotClient`. That driver must not expose generic browser evaluation as a remote-control API.
 
 ## Dead-man / process watchdog
 
@@ -76,9 +107,10 @@ Alpha.20.5 now includes a concrete **production host harness foundation** under 
 - `createWebhookAlertTransport` as a host-secret-backed HTTPS transport adapter foundation;
 - `HostWatchdogSupervisor` and `HeadlessHostController` for external dead-man supervision and bounded process-only restart authority;
 - `RestartReconciliationObserver` for fresh-run, observation-only post-restart reconciliation evidence;
+- `BrowserBotClient` for the four-method, origin-locked browser contract bridge;
 - `ProductionHostHarness` for wiring those pieces together without adding gameplay authority.
 
-This is intentionally **not yet a turnkey unattended deployment package**. `ProductionHostHarness` receives an injected `botClient`; this slice does not yet implement the real browser/page bridge that evaluates `AIO_V3.operations` inside an Adventure Land session. It also does not provision login/session bootstrapping, operating-system service supervision, production secrets, provider accounts, durable-directory lifecycle/backups or machine-specific browser installation.
+`ProductionHostHarness` may still receive a prebuilt `botClient`, or it can construct `BrowserBotClient` from an injected validated browser Page/Frame-like context. This remains intentionally **not yet a turnkey unattended deployment package**: it does not yet own browser/session discovery and login bootstrapping, operating-system service supervision, production secrets, provider accounts, durable-directory lifecycle/backups or machine-specific browser installation.
 
 The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
 
@@ -86,7 +118,8 @@ The concrete deployment and operating procedure is documented in `PRODUCTION_HOS
 
 Before the unattended overnight gate, the deployed stack must prove all of the following with real production evidence:
 
-- a real browser/page `botClient` bridge can read `hostHeartbeat()`, `pendingAlerts()`, exact `claimAlerts(ids)` and reconciliation status without acquiring gameplay authority;
+- a concrete production browser/session driver can supply the correct Adventure Land execution context to `BrowserBotClient` without exposing generic page-evaluation or gameplay authority;
+- all four narrow bridge calls work against a real Adventure Land session, including bot-owned `reconciliationStatus()`;
 - live beacon/dead-man detection continues outside the browser process;
 - bounded real browser/process restart and restart-circuit behavior work under the target operating system/service manager;
 - after restart, a fresh run is observed and deterministic bot reconciliation completes before the host considers recovery clean;
@@ -97,4 +130,4 @@ Before the unattended overnight gate, the deployed stack must prove all of the f
 - no blind transaction, travel or party resume occurs after restart;
 - no unexpected raw gameplay action occurs during the reliability soak.
 
-The existence of the host classes or a green synthetic soak alone does **not** make the bot overnight-ready. Restart authority remains default-off until the deployment canary explicitly enables `ALPHA20_5_HOST_RESTART`.
+The existence of the host classes, narrow browser bridge or a green synthetic soak alone does **not** make the bot overnight-ready. Restart authority remains default-off until the deployment canary explicitly enables `ALPHA20_5_HOST_RESTART`.
