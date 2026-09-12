@@ -19,8 +19,8 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.9.0');
-assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.9.0');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.10.0');
+assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.10.0');
 assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.status().combatRisk);
 assert.equal(typeof sandbox.AIO_V3.status().combatRisk.threshold, 'number');
@@ -82,7 +82,6 @@ assert.equal(sandbox.AIO_V3.farmer.status().targetPolicy, 'allow');
 assert.equal(typeof sandbox.AIO_V3.saveWorld, 'function');
 assert.equal(typeof sandbox.AIO_V3.showStatus, 'function');
 
-// Alpha.8 stability freeze contract remains intact.
 const stability = sandbox.AIO_V3.status().stability;
 assert.ok(stability);
 assert.equal(stability.stableScheduler, true);
@@ -104,7 +103,6 @@ assert.equal(sandbox.AIO_V3.status().persistence.retryBaseMs, 5000);
 assert.equal(sandbox.AIO_V3.status().persistence.retryMaxMs, 120000);
 assert.equal(typeof sandbox.AIO_V3.status().persistence.saveCircuitOpen, 'boolean');
 
-// Alpha.9 same-map local farming contract.
 assert.ok(sandbox.AIO_V3.localFarming);
 assert.equal(typeof sandbox.AIO_V3.localFarming.status, 'function');
 const localFarming = sandbox.AIO_V3.status().localFarming;
@@ -124,7 +122,22 @@ assert.ok(localFarming.config.maxStep <= 120);
 assert.ok(localFarming.config.planLeaseMs >= 30000);
 assert.ok(localFarming.config.noProgressMs >= 5000);
 
-// Headless contract: no DOM or game_log is supplied by this VM sandbox.
+assert.ok(sandbox.AIO_V3.brain);
+assert.equal(typeof sandbox.AIO_V3.brain.status, 'function');
+assert.equal(typeof sandbox.AIO_V3.brain.replay, 'function');
+const brain = sandbox.AIO_V3.status().brain;
+assert.ok(brain);
+assert.equal(brain.mode, 'shadow');
+assert.equal(brain.actionAuthority, false);
+assert.equal(brain.directActionAccess, false);
+assert.equal(brain.executorBypassAllowed, false);
+assert.equal(brain.encoder.schemaVersion, 1);
+assert.ok(Array.isArray(brain.encoder.featureNames));
+assert.ok(brain.encoder.featureNames.length > 0);
+assert.ok(brain.replay.capacity >= 32);
+assert.equal(typeof brain.quality.state, 'string');
+assert.doesNotThrow(() => JSON.stringify(brain));
+
 assert.equal(typeof sandbox.document, 'undefined');
 assert.equal(typeof sandbox.game_log, 'undefined');
 assert.ok(sandbox.AIO_V3.operations);
