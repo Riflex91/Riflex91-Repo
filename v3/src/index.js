@@ -3,6 +3,12 @@
 const { Runtime } = require('./runtime');
 const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
+const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
+const { LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns } = require('./autonomy/local-farming');
+const { StrategyBrain } = require('./brain/strategy-brain');
+const { ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom } = require('./brain/model');
+const { BrainQualityMonitor, BrainLeague, BrainDiary } = require('./brain/governance');
+const { StrategicRewardModel } = require('./brain/reward');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { StableScheduler } = require('./core/stable-scheduler');
@@ -29,7 +35,7 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new StabilityRuntime({ ...options, root });
+  const runtime = new Alpha9Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -51,6 +57,8 @@ function install(root = globalThis, options = {}) {
     const base = JSON.parse(runtime.exportDiagnostics());
     base.context = base.context || {};
     base.context.operations = operations.status();
+    base.context.localFarming = runtime.status().localFarming;
+    base.context.brain = runtime.status().brain;
     return JSON.stringify(base, null, 2);
   }
 
@@ -65,7 +73,10 @@ function install(root = globalThis, options = {}) {
     showStatus: () => { runtime.showStatus(); return status(); },
     getEvents: (query = 100) => typeof query === 'number' ? runtime.log.list(query) : runtime.log.query(query),
     exportDiagnostics,
-    saveWorld: () => runtime.persistence.maybeSave(runtime.world, { force: true }),
+    saveWorld: () => {
+      if (typeof runtime._persistBrainMaybe === 'function') runtime._persistBrainMaybe(true);
+      return runtime.persistence.maybeSave(runtime.world, { force: true });
+    },
     operations: {
       status: () => operations.status(),
       submit: (command) => operations.submit(command),
@@ -88,6 +99,18 @@ function install(root = globalThis, options = {}) {
       approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype),
       quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype)
     },
+    localFarming: {
+      status: () => runtime.status().localFarming,
+      reset: (reason = 'OPERATOR_RESET') => runtime.localFarming.reset(reason)
+    },
+    brain: {
+      status: () => runtime.brain.status(),
+      features: () => runtime.brain.lastFeatures ? runtime.brain.lastFeatures.slice() : null,
+      submitTeacher: (recommendation) => runtime.submitBrainTeacher(recommendation),
+      setInfluenceEnabled: (enabled) => runtime.setBrainInfluenceEnabled(enabled),
+      preference: () => runtime.brain.preference(),
+      researchSummary: () => runtime.brain.researchSummary()
+    },
     createTask,
     TaskState
   };
@@ -97,11 +120,14 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
-  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
+  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor,
+  LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns,
+  StrategyBrain, ACTIONS, FEATURE_NAMES, StrategicFeatureEncoder, StudentNetwork, PrioritizedReplayBuffer, SeededRandom,
+  BrainQualityMonitor, BrainLeague, BrainDiary, StrategicRewardModel
 };
