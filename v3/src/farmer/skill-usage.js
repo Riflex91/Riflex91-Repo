@@ -29,6 +29,7 @@ class SkillUsagePolicy {
     this.mpReserveRatio = clamp01(options.mpReserveRatio == null ? 0.30 : options.mpReserveRatio);
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
     this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
+    this.failureBackoffMs = Math.max(500, Math.min(10000, finite(options.failureBackoffMs, 2000)));
     this.retryableCommandReasons = new Set(['COMMAND_FAILED']);
   }
 
@@ -75,6 +76,9 @@ class SkillUsagePolicy {
     const skippedSkillIds = new Set(
       Array.isArray(options.skipSkillIds) ? options.skipSkillIds.map((id) => String(id)) : []
     );
+    const backoffSkillIds = new Set(
+      Array.isArray(options.backoffSkillIds) ? options.backoffSkillIds.map((id) => String(id)) : []
+    );
     const mp = Math.max(0, finite(character.mp, 0));
     const maxMp = Math.max(0, finite(character.max_mp, mp));
     const reserveMp = maxMp * this.mpReserveRatio;
@@ -87,6 +91,8 @@ class SkillUsagePolicy {
 
       if (skippedSkillIds.has(String(skill.id))) {
         rejectionReason = 'PREVIOUS_COMMAND_FAILED';
+      } else if (backoffSkillIds.has(String(skill.id))) {
+        rejectionReason = 'SKILL_COMMAND_BACKOFF';
       } else if (mpAfter < reserveMp) {
         rejectionReason = 'MP_RESERVE';
       } else if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(skill.id)) {
@@ -142,6 +148,9 @@ class SkillUsagePolicy {
       executionFallbackEnabled: true,
       maxCommandAttempts: this.maxCommandAttempts,
       retryableCommandReasons: [...this.retryableCommandReasons],
+      failureBackoffEnabled: true,
+      failureBackoffMs: this.failureBackoffMs,
+      backoffReason: 'SKILL_COMMAND_BACKOFF',
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }
