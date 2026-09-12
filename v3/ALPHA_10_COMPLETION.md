@@ -124,3 +124,21 @@ Alpha.10 becomes `CONFIRMED` only after all of the following are true:
 10. final real runtime is restored to `shadow`.
 
 Only after the FULL phase gate is confirmed may the next autonomy phase begin.
+
+## Confirmation record
+
+**Status: FULL CONFIRMED**
+
+Confirmed on `2026-09-12` after the combined Adventure Land FULL phase certification returned:
+
+`[Alpha.10 FULL] ✅ PASS | Version=3.0.0-alpha.10.0 | modeAfter=shadow`
+
+Release lineage:
+
+- PR: `#44` — `v3: Alpha.10 Shadow Strategic Brain Foundation`
+- exact validated final PR head: `3f886e2d148ce3c005eaa563c5b8f319fca940e4`
+- merged `main`: `8e7c51e7fd985ff037a439bf06926830c456eb4f`
+- merge parents: previous Alpha.9 main `e245f208ab634f8e0b35f6f2d5a91b7b2463ec09` and validated Alpha.10 head `3f886e2d148ce3c005eaa563c5b8f319fca940e4`
+- post-test runtime mode: `shadow`
+
+This confirmation closes the Alpha.10 freeze and authorizes the next bounded phase.

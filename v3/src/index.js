@@ -5,6 +5,7 @@ const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
 const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
 const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
+const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -26,6 +27,7 @@ const { FarmerController, FarmerState, TargetPolicy } = require('./farmer/farmer
 const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-safety');
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
+const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -36,7 +38,7 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha10Runtime({ ...options, root });
+  const runtime = new Alpha11Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -89,6 +91,11 @@ function install(root = globalThis, options = {}) {
       status: () => runtime.brain.status(),
       replay: (limit = 32) => runtime.brain.replay(limit)
     },
+    party: {
+      status: () => runtime.status().party,
+      registry: () => runtime.characterRegistry.status(),
+      character: (name) => runtime.characterRegistry.get(name)
+    },
     localFarming: {
       status: () => runtime.localFarming.status()
     },
@@ -111,11 +118,11 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
-  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
+  ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
