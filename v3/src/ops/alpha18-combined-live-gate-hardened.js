@@ -46,6 +46,10 @@ class Alpha18CombinedLiveGate extends BaseAlpha18CombinedLiveGate {
         result.confirmationBlockers = clone(result.confirmationBlockers || []);
       }
     }
+
+    // Base run() snapshots lastResult immediately before _publish(). Re-snapshot the
+    // hardened result here so status()/result()/global text all expose identical evidence.
+    this.lastResult = clone(result);
     return super._publish(result);
   }
 }
