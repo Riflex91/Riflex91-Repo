@@ -52,8 +52,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       enabled: options.autoRespawnEnabled !== false,
       deathGraceMs: options.autoRespawnDeathGraceMs,
       retryMs: options.autoRespawnRetryMs,
-      maxAttempts: options.autoRespawnMaxAttempts,
-      breakerMs: options.autoRespawnBreakerMs
+      maxAttempts: options.autoRespawnMaxAttempts
     });
 
     this.preFarmingReliability = installPreFarmingReliability(this);
