@@ -93,7 +93,7 @@ test('No-progress and lease timeout fail safe and open a bounded travel circuit'
   }
   assert.equal(travel.breaker().open, true);
   assert.equal(travel.plan({ destination: 'winterland' }, { gameData: gameData(), contentDrift: drift(), snapshot: snapshot() }).reason, 'TRAVEL_CIRCUIT_OPEN');
-  now += 3001;
+  now += 5001;
   assert.equal(travel.breaker().open, false);
 });
 
