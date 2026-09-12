@@ -14,9 +14,9 @@ function memoryStorage(seed = {}) {
 
 function baseCharacters(extra = []) {
   return [
-    { name: 'RangerA', ctype: 'ranger', level: 80, active: true, currentScore: 0.82, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.96, xpPerHour: 1000, projectedScore: 0.84, projectedProgress: 0.84, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
-    { name: 'RangerB', ctype: 'ranger', level: 79, active: true, currentScore: 0.80, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.95, xpPerHour: 980, projectedScore: 0.82, projectedProgress: 0.82, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
-    { name: 'RangerC', ctype: 'ranger', level: 78, active: true, currentScore: 0.78, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.94, xpPerHour: 950, projectedScore: 0.80, projectedProgress: 0.80, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
+    { name: 'RangerA', ctype: 'ranger', level: 80, active: true, currentScore: 0.82, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.96, xpPerHour: 1000, projectedScore: 0.84, projectedProgress: 0.84, trainingSafetyScore: 0.96, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
+    { name: 'RangerB', ctype: 'ranger', level: 79, active: true, currentScore: 0.80, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.95, xpPerHour: 980, projectedScore: 0.82, projectedProgress: 0.82, trainingSafetyScore: 0.95, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
+    { name: 'RangerC', ctype: 'ranger', level: 78, active: true, currentScore: 0.78, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.94, xpPerHour: 950, projectedScore: 0.80, projectedProgress: 0.80, trainingSafetyScore: 0.94, expectedTrainingXpRatio: 1, gearReady: true, contentSafe: true },
     ...extra
   ];
 }
@@ -33,12 +33,36 @@ function evaluate(store, extra, overrides = {}) {
   });
 }
 
+function controlledPartyFixture(options = {}) {
+  const currentMembers = [
+    { name: 'MerchantA', ctype: 'merchant', level: 80, available: true },
+    { name: 'RangerA', ctype: 'ranger', level: 80, available: true },
+    { name: 'RangerB', ctype: 'ranger', level: 79, available: true },
+    { name: 'RangerC', ctype: 'ranger', level: 78, available: true }
+  ];
+  const incoming = { name: 'RogueA', ctype: 'rogue', level: 76, available: true, dead: false };
+  const registryStatus = { characters: currentMembers.concat(incoming) };
+  const rows = [
+    { name: 'RangerA', state: PartyLifecycleState.ACTIVE, active: true, currentScore: 0.84, projectedScore: 0.85 },
+    { name: 'RangerB', state: PartyLifecycleState.ACTIVE, active: true, currentScore: 0.82, projectedScore: 0.83 },
+    { name: 'RangerC', state: PartyLifecycleState.ACTIVE, active: true, currentScore: 0.78, projectedScore: 0.80 },
+    options.development
+      ? { name: 'RogueA', state: PartyLifecycleState.DEVELOPMENT, active: false, currentScore: null, projectedScore: 0.92, expectedTrainingXpRatio: 0.82 }
+      : { name: 'RogueA', state: PartyLifecycleState.PROMOTION_CANDIDATE, active: false, currentScore: 0.89, projectedScore: 0.92, expectedTrainingXpRatio: 1.05 }
+  ];
+  return {
+    currentMembers,
+    registryStatus,
+    lifecycle: { status: () => ({ characters: rows, thresholds: { minTrainingExpectedXpRatio: 0.75 } }) }
+  };
+}
+
 test('projected superiority creates DEVELOPMENT only and can never directly promote', () => {
   const store = new PartyLifecycleStore({ storage: memoryStorage(), minCurrentSamples: 8, promotionWindowsRequired: 3 });
   evaluate(store, [{
     name: 'RogueDev', ctype: 'rogue', level: 34, active: false,
     currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, xpPerHour: 0,
-    projectedScore: 0.93, projectedProgress: 0.76, expectedTrainingXpRatio: 0.95,
+    projectedScore: 0.93, projectedProgress: 0.76, trainingSafetyScore: 0.95, expectedTrainingXpRatio: 0.95,
     gearReady: false, contentSafe: true
   }]);
   const rogue = store.get('RogueDev');
@@ -48,11 +72,28 @@ test('projected superiority creates DEVELOPMENT only and can never directly prom
   assert.ok(rogue.reasons.includes('CURRENT_EVIDENCE_NOT_READY'));
 });
 
+test('projected superiority without explicit >=90% training safety remains BENCH', () => {
+  const store = new PartyLifecycleStore({ storage: memoryStorage(), minTrainingSafety: 0.90 });
+  const candidate = {
+    name: 'RogueUnsafe', ctype: 'rogue', level: 50, active: false,
+    currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, xpPerHour: 0,
+    projectedScore: 0.94, projectedProgress: 0.82, expectedTrainingXpRatio: 0.95,
+    gearReady: false, contentSafe: true
+  };
+  evaluate(store, [candidate]);
+  assert.equal(store.get('RogueUnsafe').state, PartyLifecycleState.BENCH);
+  assert.ok(store.get('RogueUnsafe').reasons.includes('TRAINING_SAFETY_GATE'));
+  evaluate(store, [{ ...candidate, trainingSafetyScore: 0.899 }]);
+  assert.equal(store.get('RogueUnsafe').state, PartyLifecycleState.BENCH);
+  evaluate(store, [{ ...candidate, trainingSafetyScore: 0.90 }]);
+  assert.equal(store.get('RogueUnsafe').state, PartyLifecycleState.DEVELOPMENT);
+});
+
 test('only one DEVELOPMENT slot is ever assigned', () => {
   const store = new PartyLifecycleStore({ storage: memoryStorage() });
   evaluate(store, [
-    { name: 'RogueA', ctype: 'rogue', level: 40, active: false, currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, projectedScore: 0.94, projectedProgress: 0.78, expectedTrainingXpRatio: 0.97, gearReady: false, contentSafe: true },
-    { name: 'MageA', ctype: 'mage', level: 45, active: false, currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, projectedScore: 0.90, projectedProgress: 0.77, expectedTrainingXpRatio: 0.96, gearReady: false, contentSafe: true }
+    { name: 'RogueA', ctype: 'rogue', level: 40, active: false, currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, projectedScore: 0.94, projectedProgress: 0.78, trainingSafetyScore: 0.95, expectedTrainingXpRatio: 0.97, gearReady: false, contentSafe: true },
+    { name: 'MageA', ctype: 'mage', level: 45, active: false, currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, projectedScore: 0.90, projectedProgress: 0.77, trainingSafetyScore: 0.96, expectedTrainingXpRatio: 0.96, gearReady: false, contentSafe: true }
   ]);
   const development = store.list().filter((row) => row.state === PartyLifecycleState.DEVELOPMENT);
   assert.equal(development.length, 1);
@@ -65,7 +106,7 @@ test('permanent promotion requires real current superiority for sustained window
   const candidate = {
     name: 'RogueReady', ctype: 'rogue', level: 76, active: false,
     currentScore: 0.88, currentConfidence: 0.82, currentSamples: 18, survivalScore: 0.96, xpPerHour: 920,
-    projectedScore: 0.91, projectedProgress: 0.90, expectedTrainingXpRatio: 1.1, gearReady: true, contentSafe: true
+    projectedScore: 0.91, projectedProgress: 0.90, trainingSafetyScore: 0.96, expectedTrainingXpRatio: 1.1, gearReady: true, contentSafe: true
   };
   evaluate(store, [candidate]);
   assert.notEqual(store.get('RogueReady').state, PartyLifecycleState.PROMOTION_CANDIDATE);
@@ -80,7 +121,7 @@ test('permanent promotion requires real current superiority for sustained window
 
 test('high-risk or economy emergency context suppresses development and resets promotion streak', () => {
   const store = new PartyLifecycleStore({ storage: memoryStorage(), promotionWindowsRequired: 2 });
-  const candidate = { name: 'RogueA', ctype: 'rogue', level: 70, active: false, currentScore: 0.9, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.98, xpPerHour: 1000, projectedScore: 0.95, projectedProgress: 0.9, expectedTrainingXpRatio: 1.1, gearReady: true, contentSafe: true };
+  const candidate = { name: 'RogueA', ctype: 'rogue', level: 70, active: false, currentScore: 0.9, currentConfidence: 0.9, currentSamples: 20, survivalScore: 0.98, xpPerHour: 1000, projectedScore: 0.95, projectedProgress: 0.9, trainingSafetyScore: 0.98, expectedTrainingXpRatio: 1.1, gearReady: true, contentSafe: true };
   evaluate(store, [candidate]);
   assert.equal(store.get('RogueA').promotionStreak, 1);
   evaluate(store, [candidate], { highRisk: true });
@@ -102,6 +143,73 @@ test('controlled lifecycle is default-off, exact-ack gated and has independent d
   coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true });
   assert.equal(coordinator.status().transitionAuthority, true);
   assert.equal(coordinator.status().developmentRotationAuthority, false);
+});
+
+test('promotion planner uses current measured superiority and selects the weakest incumbent', () => {
+  const fixture = controlledPartyFixture();
+  const coordinator = new ControlledPartyLifecycleCoordinator({
+    root: { character: { name: 'MerchantA', ctype: 'merchant', level: 80 }, parent: { party: {} } },
+    now: () => 1_000_000,
+    storage: memoryStorage(),
+    lifecycle: fixture.lifecycle,
+    transitions: { setLiveEnabled() {} },
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true });
+  const plan = coordinator.plan(fixture.currentMembers, fixture.registryStatus, {});
+  assert.equal(plan.planned, true);
+  assert.equal(plan.kind, 'PROMOTION');
+  assert.equal(plan.incoming, 'RogueA');
+  assert.equal(plan.outgoing, 'RangerC');
+  assert.equal(plan.targetNames.length, 4);
+  assert.equal(new Set(plan.targetNames).size, 4);
+});
+
+test('DEVELOPMENT rotation cannot plan without its own explicit authority', () => {
+  const fixture = controlledPartyFixture({ development: true });
+  const coordinator = new ControlledPartyLifecycleCoordinator({
+    root: { character: { name: 'MerchantA', ctype: 'merchant', level: 80 }, parent: { party: {} } },
+    now: () => 1_000_000,
+    storage: memoryStorage(),
+    lifecycle: fixture.lifecycle,
+    transitions: { setLiveEnabled() {} },
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true, allowDevelopmentRotation: false });
+  assert.equal(coordinator.plan(fixture.currentMembers, fixture.registryStatus, {}).planned, false);
+  coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true, allowDevelopmentRotation: true });
+  const plan = coordinator.plan(fixture.currentMembers, fixture.registryStatus, {});
+  assert.equal(plan.planned, true);
+  assert.equal(plan.kind, 'DEVELOPMENT_ROTATION');
+});
+
+test('transition failure always removes child live authority and records an abort', async () => {
+  const fixture = controlledPartyFixture();
+  let childLive = false;
+  let executeCalls = 0;
+  const transitions = {
+    setLiveEnabled(value) { childLive = value === true; },
+    async execute() { executeCalls += 1; return { executed: false, reason: 'POSTCONDITION_VERIFY_TIMEOUT', recovery: { recovered: true } }; }
+  };
+  const coordinator = new ControlledPartyLifecycleCoordinator({
+    root: { character: { name: 'MerchantA', ctype: 'merchant', level: 80 }, parent: { party: {} } },
+    now: () => 1_000_000,
+    storage: memoryStorage(),
+    lifecycle: fixture.lifecycle,
+    transitions,
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true });
+  const plan = coordinator.plan(fixture.currentMembers, fixture.registryStatus, {});
+  const result = await coordinator.executePlan(plan, fixture.currentMembers, fixture.registryStatus, {});
+  assert.equal(result.executed, false);
+  assert.equal(result.operation.state, PartyLifecycleOperationState.ABORTED);
+  assert.equal(executeCalls, 1);
+  assert.equal(childLive, false);
+  assert.equal(coordinator.status().busy, false);
 });
 
 test('restart reconciliation never blindly retries an uncertain transition', () => {
@@ -183,7 +291,7 @@ test('3000-cycle lifecycle soak stays bounded and never allocates more than one 
     for (let j = 0; j < 8; j += 1) extras.push({
       name: `Bench${j}`, ctype: j % 2 ? 'rogue' : 'mage', level: 30 + j, active: false,
       currentScore: null, currentConfidence: 0, currentSamples: 0, survivalScore: null, xpPerHour: 0,
-      projectedScore: 0.86 + j / 1000, projectedProgress: 0.70 + j / 100, expectedTrainingXpRatio: 0.8 + j / 100,
+      projectedScore: 0.86 + j / 1000, projectedProgress: 0.70 + j / 100, trainingSafetyScore: 0.91 + j / 1000, expectedTrainingXpRatio: 0.8 + j / 100,
       gearReady: false, contentSafe: true
     });
     evaluate(store, extras);
@@ -193,4 +301,31 @@ test('3000-cycle lifecycle soak stays bounded and never allocates more than one 
   const status = store.status();
   assert.equal(status.stats.evaluations, 3000);
   assert.ok(status.characters.length <= 16);
+});
+
+test('2200-cycle controlled planner soak never creates malformed party targets or bypasses authority', () => {
+  const fixture = controlledPartyFixture({ development: true });
+  let now = 1_000_000;
+  const coordinator = new ControlledPartyLifecycleCoordinator({
+    root: { character: { name: 'MerchantA', ctype: 'merchant', level: 80 }, parent: { party: {} } },
+    now: () => now++,
+    storage: memoryStorage(),
+    lifecycle: fixture.lifecycle,
+    transitions: { setLiveEnabled() {} },
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  coordinator.configure({ enabled: true, ack: CONTROLLED_PARTY_LIFECYCLE_ACK, allowTransitions: true, allowDevelopmentRotation: true });
+  for (let i = 0; i < 2200; i += 1) {
+    const plan = coordinator.plan(fixture.currentMembers, fixture.registryStatus, {});
+    assert.equal(plan.planned, true);
+    assert.equal(plan.kind, 'DEVELOPMENT_ROTATION');
+    assert.equal(plan.targetNames.length, 4);
+    assert.equal(new Set(plan.targetNames).size, 4);
+    assert.ok(plan.targetNames.includes('MerchantA'));
+  }
+  coordinator.disable('SOAK_COMPLETE');
+  assert.equal(coordinator.status().actionAuthority, false);
+  assert.equal(coordinator.status().transitionAuthority, false);
+  assert.equal(coordinator.status().developmentRotationAuthority, false);
 });
