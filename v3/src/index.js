@@ -16,6 +16,7 @@ const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime'
 const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
 const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
 const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK } = require('./autonomy/alpha20-5-merchant-runtime');
+const { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE } = require('./autonomy/alpha20-5-farm-readiness-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -80,7 +81,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20_5MerchantRuntime({ ...options, root });
+  const runtime = new Alpha20_5FarmReadinessRuntime({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -323,24 +324,34 @@ function install(root = globalThis, options = {}) {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
       status: () => runtime.farmerStatus(),
+      lootStatus: () => runtime.controlledFarmerLoot.status(),
       setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy),
       addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value),
       removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value),
       approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype),
       quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype)
     },
+    autoRespawn: { status: () => runtime.controlledAutoRespawn.status() },
     createTask,
     TaskState
   };
 
   root.AIO_V3 = api;
   if (options.debugMonitorVisible !== false) debugUI.show();
-  if (root.AIO_V3_AUTOSTART !== false) runtime.start();
+  const autostartRequested = options.autostart === true || root.AIO_V3_AUTOSTART === true;
+  if (autostartRequested) runtime.start();
+  else runtime.log.emit({
+    component: 'runtime',
+    event: 'RUNTIME_INSTALLED_STOPPED',
+    severity: 'info',
+    reason: 'OPERATOR_START_REQUIRED',
+    data: { mode: runtime.adapter.mode, guiStartAvailable: !!debugUI.runControl }
+  });
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,

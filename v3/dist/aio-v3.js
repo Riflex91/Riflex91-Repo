@@ -21,6 +21,7 @@ const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime'
 const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
 const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
 const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK } = require('./autonomy/alpha20-5-merchant-runtime');
+const { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE } = require('./autonomy/alpha20-5-farm-readiness-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -85,7 +86,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20_5MerchantRuntime({ ...options, root });
+  const runtime = new Alpha20_5FarmReadinessRuntime({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -328,24 +329,34 @@ function install(root = globalThis, options = {}) {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
       status: () => runtime.farmerStatus(),
+      lootStatus: () => runtime.controlledFarmerLoot.status(),
       setTargetPolicy: (policy) => runtime.setFarmerTargetPolicy(policy),
       addTargetExclusion: (value) => runtime.addFarmerTargetExclusion(value),
       removeTargetExclusion: (value) => runtime.removeFarmerTargetExclusion(value),
       approveMonsterContent: (mtype) => runtime.combatRisk.approveMonsterType(runtime.world, mtype),
       quarantineMonsterContent: (mtype) => runtime.combatRisk.quarantineMonsterType(runtime.world, mtype)
     },
+    autoRespawn: { status: () => runtime.controlledAutoRespawn.status() },
     createTask,
     TaskState
   };
 
   root.AIO_V3 = api;
   if (options.debugMonitorVisible !== false) debugUI.show();
-  if (root.AIO_V3_AUTOSTART !== false) runtime.start();
+  const autostartRequested = options.autostart === true || root.AIO_V3_AUTOSTART === true;
+  if (autostartRequested) runtime.start();
+  else runtime.log.emit({
+    component: 'runtime',
+    event: 'RUNTIME_INSTALLED_STOPPED',
+    severity: 'info',
+    reason: 'OPERATOR_START_REQUIRED',
+    data: { mode: runtime.adapter.mode, guiStartAvailable: !!debugUI.runControl }
+  });
   return api;
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -19750,6 +19761,541 @@ class RouteCostEstimator {
 }
 
 module.exports = { RouteCostEstimator, ROUTE_COST_MODE };
+
+},
+"src/autonomy/alpha20-5-farm-readiness-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha20_5MerchantRuntime } = require('./alpha20-5-merchant-runtime');
+const { ControlledFarmerLoot } = require('../farmer/controlled-farmer-loot');
+const { ControlledAutoRespawn } = require('../ops/controlled-auto-respawn');
+
+const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
+  constructor(options = {}) {
+    super(options);
+    this.controlledFarmerLoot = options.controlledFarmerLoot || new ControlledFarmerLoot({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      getMode: () => this.adapter.mode,
+      enabled: options.farmerLootEnabled !== false,
+      intervalMs: options.farmerLootIntervalMs,
+      noChestPollMs: options.farmerLootNoChestPollMs,
+      fullInventoryIntervalMs: options.farmerLootFullInventoryIntervalMs,
+      failureBackoffMs: options.farmerLootFailureBackoffMs,
+      verifyDelayMs: options.farmerLootVerifyDelayMs
+    });
+    this.controlledAutoRespawn = options.controlledAutoRespawn || new ControlledAutoRespawn({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      getMode: () => this.adapter.mode,
+      enabled: options.autoRespawnEnabled !== false,
+      deathGraceMs: options.autoRespawnDeathGraceMs,
+      retryMs: options.autoRespawnRetryMs,
+      maxAttempts: options.autoRespawnMaxAttempts
+    });
+  }
+
+  tick() {
+    super.tick();
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return;
+    this.controlledAutoRespawn.tick(snapshot);
+    this.controlledFarmerLoot.tick(snapshot);
+  }
+
+  farmReadinessStatus() {
+    return {
+      schemaVersion: 1,
+      mode: ALPHA20_5_FARM_READINESS_MODE,
+      farmerLoot: this.controlledFarmerLoot.status(),
+      autoRespawn: this.controlledAutoRespawn.status(),
+      startupPolicy: {
+        recommendedMode: 'active',
+        recommendedInitialRuntimeState: 'stopped',
+        oneClickStartUsesExistingOperatorRunControl: true,
+        startDoesNotGrantMerchantServiceAuthority: true,
+        startDoesNotGrantPartyOrEconomyAuthority: true
+      }
+    };
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      farmerLoot: this.controlledFarmerLoot.status(),
+      autoRespawn: this.controlledAutoRespawn.status(),
+      alpha20_5: {
+        ...(base.alpha20_5 || {}),
+        farmReadiness: true,
+        farmerLootDefaultOn: true,
+        autoRespawnDefaultOn: true,
+        autoRespawnBounded: true,
+        autoRespawnRequiresActiveMode: true,
+        lootMerchantExcluded: true
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.farmReadiness = clone(this.farmReadinessStatus());
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE };
+
+},
+"src/farmer/controlled-farmer-loot.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, min, max, fallback) {
+  const number = finite(value, fallback);
+  return Math.max(min, Math.min(max, number));
+}
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+class ControlledFarmerLoot {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.getMode = options.getMode || (() => 'shadow');
+    this.enabled = options.enabled !== false;
+    this.intervalMs = Math.floor(clamp(options.intervalMs, 500, 10000, 900));
+    this.noChestPollMs = Math.floor(clamp(options.noChestPollMs, 250, 10000, 700));
+    this.fullInventoryIntervalMs = Math.floor(clamp(options.fullInventoryIntervalMs, this.intervalMs, 30000, 4000));
+    this.failureBackoffMs = Math.floor(clamp(options.failureBackoffMs, 1000, 60000, 5000));
+    this.verifyDelayMs = Math.floor(clamp(options.verifyDelayMs, 100, 5000, 500));
+    this.nextAttemptAt = 0;
+    this.requestSequence = 0;
+    this.pendingObservation = null;
+    this.lastAttempt = null;
+    this.lastObservation = null;
+    this.state = 'IDLE';
+    this.failureStreak = 0;
+    this.stats = {
+      ticks: 0,
+      chestPolls: 0,
+      noChestSkips: 0,
+      requests: 0,
+      rawActions: 0,
+      failures: 0,
+      observedDeltas: 0,
+      fullInventoryRequests: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'controlled-farmer-loot', event, severity, reason, data });
+  }
+
+  _binding(name) {
+    if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
+    if (this.root && this.root.parent && typeof this.root.parent[name] === 'function') return { fn: this.root.parent[name], owner: this.root.parent };
+    return null;
+  }
+
+  _metrics(snapshot) {
+    const c = snapshot && snapshot.character || {};
+    const inventory = Array.isArray(c.inventory) ? c.inventory : [];
+    const isize = Math.max(0, Math.floor(finite(c.isize, inventory.length) || 0));
+    const bounded = inventory.slice(0, isize);
+    let occupied = 0;
+    let quantity = 0;
+    for (const item of bounded) {
+      if (!item) continue;
+      occupied += 1;
+      quantity += Math.max(1, finite(item.q, 1));
+    }
+    return {
+      gold: finite(c.gold, 0),
+      occupied,
+      quantity,
+      freeSlots: Math.max(0, isize - occupied)
+    };
+  }
+
+  _chestCount() {
+    const binding = this._binding('get_chests');
+    if (!binding) return null;
+    this.stats.chestPolls += 1;
+    try {
+      const value = binding.fn.call(binding.owner);
+      if (Array.isArray(value)) return value.length;
+      if (value && typeof value === 'object') return Object.keys(value).length;
+      return null;
+    } catch (error) {
+      this._event('FARMER_LOOT_CHEST_QUERY_FAILED', 'warn', 'CHEST_QUERY_FAILED', { message: String(error && error.message || error).slice(0, 160) });
+      return null;
+    }
+  }
+
+  _observePending(snapshot) {
+    if (!this.pendingObservation) return null;
+    const now = this.now();
+    if (now - this.pendingObservation.at < this.verifyDelayMs) return null;
+    const after = this._metrics(snapshot);
+    const before = this.pendingObservation.before;
+    const requestId = this.pendingObservation.requestId;
+    const delta = {
+      gold: after.gold - before.gold,
+      occupied: after.occupied - before.occupied,
+      quantity: after.quantity - before.quantity,
+      freeSlots: after.freeSlots - before.freeSlots
+    };
+    const observedDelta = delta.gold !== 0 || delta.occupied !== 0 || delta.quantity !== 0 || delta.freeSlots !== 0;
+    this.lastObservation = { at: now, requestId, requestedAt: this.pendingObservation.at, observedDelta, delta, before, after };
+    if (observedDelta) {
+      this.stats.observedDeltas += 1;
+      this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { requestId, delta, freeSlots: after.freeSlots });
+    }
+    this.pendingObservation = null;
+    return clone(this.lastObservation);
+  }
+
+  tick(snapshot) {
+    this.stats.ticks += 1;
+    if (snapshot && snapshot.character) this._observePending(snapshot);
+    if (!this.enabled) { this.state = 'DISABLED'; return { executed: false, reason: 'LOOT_DISABLED' }; }
+    if (!snapshot || !snapshot.character) { this.state = 'WAITING'; return { executed: false, reason: 'SNAPSHOT_UNAVAILABLE' }; }
+
+    const c = snapshot.character;
+    if (String(c.ctype || '').toLowerCase() === 'merchant') {
+      this.state = 'NOT_FARMER';
+      return { executed: false, reason: 'MERCHANT_EXCLUDED' };
+    }
+    if (c.rip === true) {
+      this.state = 'DEAD';
+      return { executed: false, reason: 'CHARACTER_DEAD' };
+    }
+    if (this.getMode() !== 'active') {
+      this.state = 'SHADOW';
+      return { executed: false, shadow: true, reason: 'RUNTIME_NOT_ACTIVE' };
+    }
+
+    const now = this.now();
+    if (now < this.nextAttemptAt) return { executed: false, reason: 'LOOT_RATE_LIMITED', nextAttemptAt: this.nextAttemptAt };
+
+    const chestCount = this._chestCount();
+    if (chestCount === 0) {
+      this.state = 'IDLE_NO_CHESTS';
+      this.stats.noChestSkips += 1;
+      this.nextAttemptAt = now + this.noChestPollMs;
+      return { executed: false, reason: 'NO_CHESTS' };
+    }
+
+    const binding = this._binding('loot');
+    if (!binding) {
+      this.state = 'BLOCKED';
+      this.failureStreak += 1;
+      this.stats.failures += 1;
+      this.nextAttemptAt = now + this.failureBackoffMs;
+      this.lastAttempt = { at: now, executed: false, reason: 'LOOT_UNAVAILABLE' };
+      this._event('FARMER_LOOT_FAILED_SAFE', 'warn', 'LOOT_UNAVAILABLE');
+      return clone(this.lastAttempt);
+    }
+
+    const before = this._metrics(snapshot);
+    const requestId = ++this.requestSequence;
+    try {
+      const value = binding.fn.call(binding.owner);
+      this.stats.requests += 1;
+      this.stats.rawActions += 1;
+      if (before.freeSlots <= 0) this.stats.fullInventoryRequests += 1;
+      this.failureStreak = 0;
+      this.state = 'REQUESTED';
+      this.nextAttemptAt = now + (before.freeSlots <= 0 ? this.fullInventoryIntervalMs : this.intervalMs);
+      this.pendingObservation = { at: now, requestId, before };
+      this.lastAttempt = { at: now, requestId, executed: true, reason: 'LOOT_REQUESTED', chestCount, freeSlots: before.freeSlots };
+      this._event('FARMER_LOOT_REQUESTED', 'info', 'CHEST_AVAILABLE', { requestId, chestCount, freeSlots: before.freeSlots, rawActions: this.stats.rawActions });
+      if (value && typeof value.then === 'function') {
+        Promise.resolve(value).catch((error) => {
+          this.failureStreak += 1;
+          this.stats.failures += 1;
+          this.nextAttemptAt = Math.max(this.nextAttemptAt, this.now() + this.failureBackoffMs);
+          this._event('FARMER_LOOT_ASYNC_REJECTED', 'warn', 'LOOT_PROMISE_REJECTED', {
+            requestId,
+            message: String(error && error.message || error).slice(0, 160)
+          });
+        });
+      }
+      return clone(this.lastAttempt);
+    } catch (error) {
+      this.state = 'BACKOFF';
+      this.failureStreak += 1;
+      this.stats.failures += 1;
+      this.nextAttemptAt = now + this.failureBackoffMs;
+      this.lastAttempt = { at: now, requestId, executed: false, reason: 'LOOT_CALL_FAILED', error: String(error && error.message || error).slice(0, 160) };
+      this._event('FARMER_LOOT_FAILED_SAFE', 'warn', 'LOOT_CALL_FAILED', { requestId, message: this.lastAttempt.error });
+      return clone(this.lastAttempt);
+    }
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_FARMER_LOOT_MODE,
+      enabled: this.enabled,
+      state: this.state,
+      directCombatAuthority: false,
+      directEconomyAuthority: false,
+      lootAuthority: true,
+      intervalMs: this.intervalMs,
+      nextAttemptAt: this.nextAttemptAt || null,
+      requestSequence: this.requestSequence,
+      failureStreak: this.failureStreak,
+      pendingObservation: clone(this.pendingObservation),
+      lastAttempt: clone(this.lastAttempt),
+      lastObservation: clone(this.lastObservation),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { ControlledFarmerLoot, CONTROLLED_FARMER_LOOT_MODE };
+
+},
+"src/ops/controlled-auto-respawn.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_AUTO_RESPAWN_MODE = 'controlled-auto-respawn';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, min, max, fallback) {
+  const number = finite(value, fallback);
+  return Math.max(min, Math.min(max, number));
+}
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+class ControlledAutoRespawn {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.getMode = options.getMode || (() => 'shadow');
+    this.enabled = options.enabled !== false;
+    this.deathGraceMs = Math.floor(clamp(options.deathGraceMs, 500, 15000, 1500));
+    this.retryMs = Math.floor(clamp(options.retryMs, 1000, 30000, 3000));
+    this.maxAttempts = Math.floor(clamp(options.maxAttempts, 1, 8, 5));
+    this.state = 'IDLE';
+    this.deathStartedAt = null;
+    this.deathSequence = 0;
+    this.attempts = 0;
+    this.nextAttemptAt = null;
+    this.lastAttemptAt = null;
+    this.lastRecoveredAt = null;
+    this.lastError = null;
+    this.exhaustedLogged = false;
+    this.stats = { deathsObserved: 0, respawnRequests: 0, rawActions: 0, recoveriesVerified: 0, failures: 0, exhausted: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'controlled-auto-respawn', event, severity, reason, data });
+  }
+
+  _character() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _respawnBinding() {
+    if (this.root && typeof this.root.respawn === 'function') return { fn: this.root.respawn, owner: this.root };
+    if (this.root && this.root.parent && typeof this.root.parent.respawn === 'function') return { fn: this.root.parent.respawn, owner: this.root.parent };
+    return null;
+  }
+
+  _dead(snapshot) {
+    if (snapshot && snapshot.character) return snapshot.character.rip === true;
+    const c = this._character();
+    return !!(c && c.rip === true);
+  }
+
+  _beginDeath(now, snapshot) {
+    this.deathStartedAt = now;
+    this.deathSequence += 1;
+    this.attempts = 0;
+    this.nextAttemptAt = now + this.deathGraceMs;
+    this.lastAttemptAt = null;
+    this.lastError = null;
+    this.exhaustedLogged = false;
+    this.state = 'DEAD_WAIT';
+    this.stats.deathsObserved += 1;
+    const c = snapshot && snapshot.character || this._character() || {};
+    this._event('AUTO_RESPAWN_DEATH_OBSERVED', 'warn', 'CHARACTER_DEAD', {
+      deathSequence: this.deathSequence,
+      character: c.name || null,
+      ctype: c.ctype || null,
+      map: c.map || null,
+      graceMs: this.deathGraceMs
+    });
+  }
+
+  _verifyRecovered(now, snapshot) {
+    if (this.deathStartedAt == null) {
+      this.state = 'IDLE';
+      return false;
+    }
+    const c = snapshot && snapshot.character || this._character() || {};
+    this.state = 'IDLE';
+    this.lastRecoveredAt = now;
+    this.stats.recoveriesVerified += 1;
+    this._event('AUTO_RESPAWN_RECOVERY_VERIFIED', 'info', 'CHARACTER_ALIVE', {
+      deathSequence: this.deathSequence,
+      attempts: this.attempts,
+      character: c.name || null,
+      map: c.map || null,
+      elapsedMs: Math.max(0, now - this.deathStartedAt)
+    });
+    this.deathStartedAt = null;
+    this.attempts = 0;
+    this.nextAttemptAt = null;
+    this.exhaustedLogged = false;
+    return true;
+  }
+
+  tick(snapshot) {
+    const now = this.now();
+    const dead = this._dead(snapshot);
+    if (!dead) {
+      const recovered = this._verifyRecovered(now, snapshot);
+      return { executed: false, reason: recovered ? 'RECOVERY_VERIFIED' : 'CHARACTER_ALIVE' };
+    }
+
+    if (this.deathStartedAt == null) this._beginDeath(now, snapshot);
+    if (!this.enabled) {
+      this.state = 'DISABLED';
+      return { executed: false, reason: 'AUTO_RESPAWN_DISABLED' };
+    }
+    if (this.getMode() !== 'active') {
+      this.state = 'MODE_BLOCKED';
+      return { executed: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    }
+    if (this.attempts >= this.maxAttempts) {
+      this.state = 'EXHAUSTED';
+      if (!this.exhaustedLogged) {
+        this.exhaustedLogged = true;
+        this.stats.exhausted += 1;
+        this._event('AUTO_RESPAWN_EXHAUSTED', 'error', 'RESPAWN_ATTEMPT_BUDGET_EXHAUSTED', {
+          deathSequence: this.deathSequence,
+          attempts: this.attempts,
+          maxAttempts: this.maxAttempts
+        });
+      }
+      return { executed: false, reason: 'RESPAWN_ATTEMPT_BUDGET_EXHAUSTED', attempts: this.attempts };
+    }
+    if (this.nextAttemptAt != null && now < this.nextAttemptAt) {
+      this.state = this.attempts > 0 ? 'VERIFYING' : 'DEAD_WAIT';
+      return { executed: false, reason: 'RESPAWN_WAIT', nextAttemptAt: this.nextAttemptAt };
+    }
+
+    const binding = this._respawnBinding();
+    if (!binding) {
+      this.state = 'BLOCKED';
+      this.lastError = 'RESPAWN_UNAVAILABLE';
+      this.nextAttemptAt = now + this.retryMs;
+      this.stats.failures += 1;
+      this._event('AUTO_RESPAWN_FAILED_SAFE', 'error', 'RESPAWN_UNAVAILABLE');
+      return { executed: false, reason: 'RESPAWN_UNAVAILABLE' };
+    }
+
+    this.attempts += 1;
+    const attempt = this.attempts;
+    const deathSequence = this.deathSequence;
+    this.lastAttemptAt = now;
+    this.nextAttemptAt = now + this.retryMs;
+    this.stats.respawnRequests += 1;
+    this.stats.rawActions += 1;
+    this.state = 'VERIFYING';
+    this.lastError = null;
+
+    try {
+      const value = binding.fn.call(binding.owner);
+      this._event('AUTO_RESPAWN_REQUESTED', 'warn', 'RESPAWN_REQUESTED', {
+        deathSequence,
+        attempt,
+        maxAttempts: this.maxAttempts,
+        rawActions: this.stats.rawActions
+      });
+      if (value && typeof value.then === 'function') {
+        Promise.resolve(value)
+          .then(() => {
+            this._event('AUTO_RESPAWN_CALL_SETTLED', 'info', 'RESPAWN_CALL_RESOLVED', { deathSequence, attempt });
+          })
+          .catch((error) => {
+            const message = String(error && error.message || error).slice(0, 160);
+            this.stats.failures += 1;
+            if (this.deathSequence === deathSequence && this.deathStartedAt != null) this.lastError = message;
+            this._event('AUTO_RESPAWN_CALL_REJECTED', 'warn', 'RESPAWN_CALL_REJECTED', { deathSequence, attempt, message });
+          });
+      }
+      return { executed: true, reason: 'RESPAWN_REQUESTED', deathSequence, attempt, nextAttemptAt: this.nextAttemptAt };
+    } catch (error) {
+      const message = String(error && error.message || error).slice(0, 160);
+      this.lastError = message;
+      this.stats.failures += 1;
+      this.state = 'VERIFYING';
+      this._event('AUTO_RESPAWN_CALL_FAILED', 'warn', 'RESPAWN_CALL_FAILED', { deathSequence, attempt, message });
+      return { executed: false, reason: 'RESPAWN_CALL_FAILED', deathSequence, attempt, error: message };
+    }
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_AUTO_RESPAWN_MODE,
+      enabled: this.enabled,
+      state: this.state,
+      respawnAuthority: true,
+      otherGameplayAuthority: false,
+      directEconomyAuthority: false,
+      deathGraceMs: this.deathGraceMs,
+      retryMs: this.retryMs,
+      maxAttempts: this.maxAttempts,
+      deathStartedAt: this.deathStartedAt,
+      deathSequence: this.deathSequence,
+      attempts: this.attempts,
+      nextAttemptAt: this.nextAttemptAt,
+      lastAttemptAt: this.lastAttemptAt,
+      lastRecoveredAt: this.lastRecoveredAt,
+      lastError: this.lastError,
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
