@@ -43,6 +43,10 @@ function asSet(value) {
   return new Set(Array.isArray(value) ? value.map(String) : []);
 }
 
+function uniqueStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).map((value) => String(value || '')).filter(Boolean))];
+}
+
 class InventoryLedger {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
@@ -57,6 +61,7 @@ class InventoryLedger {
     this.sellAllowlist = asSet(options.sellAllowlist);
     this.bankAllowlist = asSet(options.bankAllowlist);
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
+    this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
     this.entries = new Map();
     this.lastObservedAt = null;
@@ -77,6 +82,11 @@ class InventoryLedger {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (!this.log || typeof this.log.emit !== 'function') return;
     this.log.emit({ component: 'inventory-ledger', event, severity, reason, data });
+  }
+
+  setSellSafetyResolver(resolver) {
+    this.sellSafetyResolver = typeof resolver === 'function' ? resolver : null;
+    return this.sellSafetyResolver !== null;
   }
 
   setProgressionReservations(reservations) {
@@ -111,6 +121,23 @@ class InventoryLedger {
     return false;
   }
 
+  _resolveSellBlockers(row, meta, gameData, contentDrift) {
+    let blockers = sellProtectionReasons(meta);
+    if (!this.sellSafetyResolver) return blockers;
+    try {
+      const resolved = this.sellSafetyResolver({ row: clone(row), meta, gameData, contentDrift });
+      const extra = Array.isArray(resolved)
+        ? resolved
+        : resolved && Array.isArray(resolved.blockers)
+          ? resolved.blockers
+          : [];
+      blockers = uniqueStrings([...blockers, ...extra]);
+    } catch (_) {
+      blockers = uniqueStrings([...blockers, 'SELL_SAFETY_RESOLVER_FAILED']);
+    }
+    return blockers;
+  }
+
   _baseDisposition(row, gameData, contentDrift, counts) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
@@ -131,7 +158,7 @@ class InventoryLedger {
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
     if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
     if (this.sellAllowlist.has(row.name)) {
-      const blockers = sellProtectionReasons(meta);
+      const blockers = this._resolveSellBlockers(row, meta, gameData, contentDrift);
       if (blockers.length) {
         return {
           disposition: ItemDisposition.UNDECIDED,
@@ -312,6 +339,7 @@ class InventoryLedger {
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
         defaultDisposition: ItemDisposition.UNDECIDED,
+        sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
         sellSafety: sellSafetyStatus()
       },
       stats: clone(this.stats)
