@@ -3,8 +3,11 @@
 class KnowledgeAgingPolicy {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
-    this.freshMs = Math.max(60000, Number(options.freshMs) || 6 * 60 * 60 * 1000);
-    this.staleMs = Math.max(this.freshMs + 60000, Number(options.staleMs) || 72 * 60 * 60 * 1000);
+    // Production defaults remain deliberately long-lived (6h fresh / 72h stale),
+    // while explicit configurations may use short windows for deterministic tests
+    // and future controlled revalidation experiments.
+    this.freshMs = Math.max(100, Number(options.freshMs) || 6 * 60 * 60 * 1000);
+    this.staleMs = Math.max(this.freshMs + 100, Number(options.staleMs) || 72 * 60 * 60 * 1000);
     this.minFreshness = Math.max(0.05, Math.min(0.5, Number(options.minFreshness) || 0.15));
   }
 
