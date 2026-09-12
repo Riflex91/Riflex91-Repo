@@ -31,7 +31,7 @@ function gameData(monsters = [
       crab: { xp: 500 },
       unknownboss: { xp: 999999 }
     },
-    maps: { main: { monsters } },
+    maps: { main: { monsters }, other: { monsters: [] } },
     skills: {}
   };
 }
@@ -148,6 +148,7 @@ test('LocalFarmOrchestrator always yields to any visible live monster, including
   const world = new WorldModel();
   approve(world, 'goo');
   const adapter = {
+    mode: 'active',
     stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
     command() { calls += 1; return { executed: true }; }
   };
@@ -169,6 +170,7 @@ test('LocalFarmOrchestrator does not reposition while HP recovery is required', 
   const world = new WorldModel();
   approve(world, 'goo');
   const adapter = {
+    mode: 'active',
     stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
     command() { calls += 1; return { executed: true }; }
   };
@@ -189,6 +191,7 @@ test('LocalFarmOrchestrator respects the alpha.8 movement circuit', () => {
   const world = new WorldModel();
   approve(world, 'goo');
   const adapter = {
+    mode: 'active',
     stabilityStatus: () => ({ movement: { circuitOpen: true, pendingOutcomeId: null, circuitUntil: 20000 } }),
     command() { calls += 1; return { executed: true }; }
   };
@@ -207,6 +210,7 @@ test('LocalFarmOrchestrator aborts a plan after bounded no-progress and enters r
   const world = new WorldModel();
   approve(world, 'goo');
   const adapter = {
+    mode: 'active',
     stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
     command() { return { executed: true, outcomeId: `m-${now}`, outcomeState: 'PENDING' }; }
   };
@@ -247,6 +251,7 @@ test('LocalFarmOrchestrator holds a plan through minimum hold time and only swit
     }
   };
   const adapter = {
+    mode: 'shadow',
     stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
     command() { return { executed: false, shadow: true }; }
   };
@@ -264,6 +269,55 @@ test('LocalFarmOrchestrator holds a plan through minimum hold time and only swit
   orchestrator.tick(context);
   assert.notEqual(orchestrator.status().currentPlan.id, firstId);
   assert.equal(orchestrator.status().currentPlan.monster, 'crab');
+});
+
+test('LocalFarmOrchestrator aborts a stale plan immediately after a map change without issuing another move', () => {
+  let now = 10000;
+  let calls = 0;
+  const world = new WorldModel();
+  approve(world, 'goo');
+  const adapter = {
+    mode: 'shadow',
+    stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
+    command() { calls += 1; return { executed: false, shadow: true }; }
+  };
+  const orchestrator = new LocalFarmOrchestrator({ now: () => now, moveCooldownMs: 500 });
+  const runtime = fakeRuntime(adapter);
+  orchestrator.tick({ runtime, snapshot: snapshot(), world, party: { fingerprint: 'solo:ranger' }, gameData: gameData() });
+  assert.equal(orchestrator.status().currentPlan.map, 'main');
+  assert.equal(calls, 1);
+  now += 1000;
+  const changed = snapshot({ character: { map: 'other' } });
+  const decision = orchestrator.tick({ runtime, snapshot: changed, world, party: { fingerprint: 'solo:ranger' }, gameData: gameData() });
+  assert.equal(decision.reason, 'NO_APPROVED_LOCAL_SPAWN');
+  assert.equal(orchestrator.status().currentPlan, null);
+  assert.equal(orchestrator.status().lastAbort.abortReason, 'MAP_CHANGED');
+  assert.equal(calls, 1);
+});
+
+test('LocalFarmOrchestrator aborts a plan when its monster policy is quarantined', () => {
+  let now = 10000;
+  let calls = 0;
+  const world = new WorldModel();
+  const gate = new ContentSafetyGate({ now: () => now });
+  gate.approve(world, 'goo');
+  const adapter = {
+    mode: 'shadow',
+    stabilityStatus: () => ({ movement: { circuitOpen: false, pendingOutcomeId: null } }),
+    command() { calls += 1; return { executed: false, shadow: true }; }
+  };
+  const orchestrator = new LocalFarmOrchestrator({ now: () => now, moveCooldownMs: 500 });
+  const runtime = fakeRuntime(adapter);
+  const context = { runtime, snapshot: snapshot(), world, party: { fingerprint: 'solo:ranger' }, gameData: gameData() };
+  orchestrator.tick(context);
+  assert.equal(orchestrator.status().currentPlan.monster, 'goo');
+  gate.quarantine(world, 'goo');
+  now += 1000;
+  const decision = orchestrator.tick(context);
+  assert.equal(decision.reason, 'NO_APPROVED_LOCAL_SPAWN');
+  assert.equal(orchestrator.status().currentPlan, null);
+  assert.equal(orchestrator.status().lastAbort.abortReason, 'PLAN_NO_LONGER_ELIGIBLE');
+  assert.equal(calls, 1);
 });
 
 test('Alpha9Runtime exposes dashboard-safe local farming status and previews a known spawn in shadow', () => {
