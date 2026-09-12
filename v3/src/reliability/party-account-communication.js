@@ -29,11 +29,14 @@ class PartyAccountCommunicationReliability {
     this.installed = false;
     this.originalControlSend = null;
     this.originalTelemetryTick = null;
+    this.originalTelemetryReceive = null;
+    this.originalTelemetryCleanReport = null;
     this.stats = {
       controlDirectReceiverCalls: 0,
       telemetryDirectReceiverCalls: 0,
       telemetryBackoffs: 0,
-      telemetryRecovered: 0
+      telemetryRecovered: 0,
+      telemetryUntrustedRejected: 0
     };
     this.install();
   }
@@ -85,9 +88,42 @@ class PartyAccountCommunicationReliability {
     return true;
   }
 
+  _installTelemetryTrustBoundary(bridge) {
+    if (bridge.__aioOwnedTelemetryTrustInstalled) return false;
+    bridge.__aioOwnedTelemetryTrustInstalled = true;
+    this.originalTelemetryCleanReport = typeof bridge._cleanReport === 'function' ? bridge._cleanReport.bind(bridge) : null;
+    this.originalTelemetryReceive = typeof bridge.receive === 'function' ? bridge.receive.bind(bridge) : null;
+    if (!this.originalTelemetryCleanReport || !this.originalTelemetryReceive) return false;
+
+    // Keep _cleanReport as the production sanitizer/freshness contract used by
+    // existing diagnostics. Trust is enforced at the actual receive boundary,
+    // where an untrusted payload could mutate the report store.
+    bridge._cleanReport = (report, sender) => {
+      const trusted = bridge.trustedNames;
+      bridge.trustedNames = new Set();
+      try {
+        return this.originalTelemetryCleanReport(report, sender);
+      } finally {
+        bridge.trustedNames = trusted;
+      }
+    };
+
+    bridge.receive = (sender, data) => {
+      const name = String(sender || (data && data.name) || '');
+      if (!name || (bridge.trustedNames.size && !bridge.trustedNames.has(name))) {
+        bridge.stats.rejected += 1;
+        this.stats.telemetryUntrustedRejected += 1;
+        return false;
+      }
+      return this.originalTelemetryReceive(sender, data);
+    };
+    return true;
+  }
+
   _installTelemetryTransport() {
     const bridge = this.runtime.partyTelemetry;
     if (!bridge) return false;
+    this._installTelemetryTrustBoundary(bridge);
     this.transport.installDirectReceiver(TELEMETRY_RECEIVER, (sender, payload) => {
       if (typeof bridge.receive !== 'function') return false;
       this.stats.telemetryDirectReceiverCalls += 1;
