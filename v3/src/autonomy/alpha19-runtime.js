@@ -1,18 +1,18 @@
 'use strict';
 
 const { Alpha18Runtime } = require('./alpha18-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { MerchantSpaceRecoveryJournal } = require('../economy/merchant-space-recovery-journal');
 const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('../economy/controlled-bank-consolidation-executor');
 const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery-hardened');
 const { Alpha19CombinedLiveGate, ALPHA19_LIVE_GATE_ACK } = require('../ops/alpha19-combined-live-gate');
 
+const ALPHA19_VERSION = '3.0.0-alpha.19.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 class Alpha19Runtime extends Alpha18Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA19_VERSION;
     this.merchantSpaceRecoveryJournal = options.merchantSpaceRecoveryJournal || new MerchantSpaceRecoveryJournal({
       now: this.now,
       log: this.log,
@@ -66,7 +66,7 @@ class Alpha19Runtime extends Alpha18Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA19_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -74,10 +74,7 @@ class Alpha19Runtime extends Alpha18Runtime {
 
   _economyStatus() {
     const base = super._economyStatus();
-    return {
-      ...base,
-      merchantSpaceRecovery: this.controlledMerchantSpaceRecovery.status()
-    };
+    return { ...base, merchantSpaceRecovery: this.controlledMerchantSpaceRecovery.status() };
   }
 
   _guardControlledAuthority() {
@@ -92,10 +89,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     return { ...result, merchantSpaceRecoveryGuardReason: reason };
   }
 
-  tick() {
-    super.tick();
-    this.merchantSpaceRecoveryJournal.tick();
-  }
+  tick() { super.tick(); this.merchantSpaceRecoveryJournal.tick(); }
 
   setMode(mode) {
     const resolved = super.setMode(mode);
@@ -106,9 +100,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     return resolved;
   }
 
-  planMerchantSpaceRecovery(request = {}) {
-    return this.controlledMerchantSpaceRecovery.plan(request);
-  }
+  planMerchantSpaceRecovery(request = {}) { return this.controlledMerchantSpaceRecovery.plan(request); }
 
   configureControlledMerchantSpaceRecovery(config = {}) {
     if (config.enabled === true) {
@@ -125,14 +117,8 @@ class Alpha19Runtime extends Alpha18Runtime {
     return this.controlledMerchantSpaceRecovery.configure(config);
   }
 
-  executeMerchantSpaceRecovery(id) {
-    return this.controlledMerchantSpaceRecovery.execute(id);
-  }
-
-  reconcileMerchantSpaceRecovery(id) {
-    return this.controlledMerchantSpaceRecovery.reconcile(id);
-  }
-
+  executeMerchantSpaceRecovery(id) { return this.controlledMerchantSpaceRecovery.execute(id); }
+  reconcileMerchantSpaceRecovery(id) { return this.controlledMerchantSpaceRecovery.reconcile(id); }
   runAlpha19CombinedLiveGate(config = {}) { return this.alpha19LiveGate.run(config); }
   alpha19LiveGateStatus() { return this.alpha19LiveGate.status(); }
   alpha19LiveGateResult() { return this.alpha19LiveGate.result(); }
@@ -149,7 +135,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA19_VERSION,
       economy: this._economyStatus(),
       alpha19: {
         merchantSpaceRecovery: true,
@@ -178,14 +164,10 @@ class Alpha19Runtime extends Alpha18Runtime {
   exportDiagnostics() {
     const base = JSON.parse(super.exportDiagnostics());
     base.context = base.context || {};
-    base.context.merchantSpaceRecovery = {
-      status: this.controlledMerchantSpaceRecovery.status(),
-      journal: this.merchantSpaceRecoveryJournal.list(100),
-      consolidation: this.controlledBankConsolidation.status()
-    };
+    base.context.merchantSpaceRecovery = { status: this.controlledMerchantSpaceRecovery.status(), journal: this.merchantSpaceRecoveryJournal.list(100), consolidation: this.controlledBankConsolidation.status() };
     base.context.alpha19LiveGate = this.alpha19LiveGate.status();
     return JSON.stringify(base, null, 2);
   }
 }
 
-module.exports = { Alpha19Runtime };
+module.exports = { Alpha19Runtime, ALPHA19_VERSION };
