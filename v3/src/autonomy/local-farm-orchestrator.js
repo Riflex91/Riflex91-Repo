@@ -274,7 +274,7 @@ class LocalFarmOrchestrator {
       return this.lastDecision;
     }
 
-    if (now - plan.lastProgressAt >= this.config.noProgressMs && plan.moveAttempts > 0) {
+    if (runtime && runtime.adapter && runtime.adapter.mode !== 'shadow' && now - plan.lastProgressAt >= this.config.noProgressMs && plan.moveAttempts > 0) {
       this._abort('NO_PROGRESS', now, { distance: Math.round(progress.distance), moveAttempts: plan.moveAttempts });
       this.lastDecision = { at: now, action: 'ABORT', reason: 'NO_PROGRESS' };
       return this.lastDecision;
