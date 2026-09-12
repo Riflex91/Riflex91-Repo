@@ -85,24 +85,32 @@ class BrowserBotClient {
     return CONTEXT.get(this) || null;
   }
 
-  _origin() {
+  _readOrigin() {
     const page = this._page();
     if (!page) throw new Error('BROWSER_CONTEXT_UNAVAILABLE');
     if (typeof page.isClosed === 'function' && page.isClosed()) throw new Error('BROWSER_CONTEXT_CLOSED');
     let value = null;
-    try { value = typeof page.url === 'function' ? page.url() : page.url; } catch (_) { throw new Error('BROWSER_CONTEXT_URL_UNAVAILABLE'); }
+    try { value = typeof page.url === 'function' ? page.url() : page.url; }
+    catch (_) { throw new Error('BROWSER_CONTEXT_URL_UNAVAILABLE'); }
     let parsed;
-    try { parsed = new URL(String(value || '')); } catch (_) { throw new Error('BROWSER_CONTEXT_URL_INVALID'); }
-    if (!this.allowedOrigins.has(parsed.origin)) {
+    try { parsed = new URL(String(value || '')); }
+    catch (_) { throw new Error('BROWSER_CONTEXT_URL_INVALID'); }
+    return parsed.origin;
+  }
+
+  _assertOrigin() {
+    const origin = this._readOrigin();
+    if (!this.allowedOrigins.has(origin)) {
       this.stats.originRejects += 1;
       throw new Error('BROWSER_CONTEXT_ORIGIN_REJECTED');
     }
-    return parsed.origin;
+    return origin;
   }
 
   _sanitizeResult(value) {
     let json;
-    try { json = JSON.stringify(value); } catch (_) {
+    try { json = JSON.stringify(value); }
+    catch (_) {
       this.stats.resultRejects += 1;
       throw new Error('BROWSER_RESULT_NOT_SERIALIZABLE');
     }
@@ -129,7 +137,9 @@ class BrowserBotClient {
       this.stats.busyRejects += 1;
       throw this._recordError(new Error('BROWSER_BRIDGE_BUSY'));
     }
-    this._origin();
+    try { this._assertOrigin(); }
+    catch (error) { throw this._recordError(error); }
+
     const page = this._page();
     const request = { operation, ...payload };
     this.stats.calls += 1;
@@ -146,7 +156,6 @@ class BrowserBotClient {
       });
     const timeout = new Promise((resolve) => {
       timer = setTimeout(() => resolve({ timeout: true }), this.timeoutMs);
-      if (timer && typeof timer.unref === 'function') timer.unref();
     });
 
     const settled = await Promise.race([evaluation, timeout]);
@@ -176,14 +185,14 @@ class BrowserBotClient {
     return this._call('PENDING_ALERTS', { limit: n });
   }
 
-  claimAlerts(ids = []) {
+  async claimAlerts(ids = []) {
     let validated;
     try { validated = validateClaimIds(ids); }
     catch (error) {
       this.stats.inputRejects += 1;
       throw this._recordError(error);
     }
-    if (!validated.length) return Promise.resolve([]);
+    if (!validated.length) return [];
     return this._call('CLAIM_ALERTS', { ids: validated });
   }
 
@@ -193,10 +202,11 @@ class BrowserBotClient {
 
   status() {
     let origin = null;
-    try { origin = this._origin(); } catch (_) {}
+    try { origin = this._readOrigin(); } catch (_) {}
     return {
       mode: 'narrow-browser-bot-client',
       origin,
+      originAllowed: origin == null ? false : this.allowedOrigins.has(origin),
       timeoutMs: this.timeoutMs,
       maxResultBytes: this.maxResultBytes,
       inFlight: this.inFlight ? { operation: this.inFlight.operation, startedAt: this.inFlight.startedAt } : null,
