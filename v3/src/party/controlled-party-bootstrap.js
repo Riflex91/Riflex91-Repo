@@ -475,7 +475,7 @@ class ControlledPartyBootstrap {
     }
     if (observation.foreignPartyNames.length) {
       this.stats.foreignPartyBlocks += 1;
-      this._setState('BLOCKED', 'FOREIGN_PARTY_MEMBER_PRESENT', false);
+      this._setState('BLOCKED', 'FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT', false);
       return this.status();
     }
     if (observation.full) {
