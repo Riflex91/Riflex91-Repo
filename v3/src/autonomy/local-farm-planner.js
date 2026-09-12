@@ -1,5 +1,7 @@
 'use strict';
 
+const NON_FARM_MONSTER_TYPES = new Set(['target']);
+
 function finite(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -76,6 +78,11 @@ function isApprovedDisposition(value) {
   return value === 'APPROVED' || value === 'LEGACY_ALLOWED';
 }
 
+function isFarmableMonsterType(mtype) {
+  const normalized = String(mtype == null ? '' : mtype).trim().toLowerCase();
+  return !!normalized && !NON_FARM_MONSTER_TYPES.has(normalized);
+}
+
 class LocalFarmPlanner {
   constructor(options = {}) {
     this.log = options.log || null;
@@ -98,7 +105,7 @@ class LocalFarmPlanner {
       const entry = entries[index];
       const mtype = spawnType(entry);
       const center = spawnCenter(entry);
-      if (!mtype || !center) continue;
+      if (!mtype || !center || !isFarmableMonsterType(mtype)) continue;
       const disposition = contentDisposition(world, mtype);
       if (!isApprovedDisposition(disposition)) continue;
       const learned = world && typeof world.performanceFor === 'function'
@@ -149,8 +156,10 @@ class LocalFarmPlanner {
 
 module.exports = {
   LocalFarmPlanner,
+  NON_FARM_MONSTER_TYPES,
   spawnType,
   spawnCenter,
   contentDisposition,
-  isApprovedDisposition
+  isApprovedDisposition,
+  isFarmableMonsterType
 };
