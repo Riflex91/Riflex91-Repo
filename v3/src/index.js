@@ -3,6 +3,9 @@
 const { Runtime } = require('./runtime');
 const { VERSION } = require('./version');
 const { StabilityRuntime } = require('./stability/stability-runtime');
+const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
+const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
+const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { StableScheduler } = require('./core/stable-scheduler');
@@ -29,7 +32,7 @@ const { CombatStabilitySupervisor } = require('./stability/combat-stability-supe
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new StabilityRuntime({ ...options, root });
+  const runtime = new Alpha9Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -78,6 +81,9 @@ function install(root = globalThis, options = {}) {
     scheduler: runtime.scheduler,
     performance: runtime.performance,
     research: runtime.research,
+    localFarming: {
+      status: () => runtime.localFarming.status()
+    },
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
       disable: () => runtime.setFarmerEnabled(false),
@@ -97,10 +103,10 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
+  FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor

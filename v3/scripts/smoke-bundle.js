@@ -19,8 +19,8 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.8.20');
-assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.8.20');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.9.0');
+assert.equal(sandbox.AIO_V3.status().version, '3.0.0-alpha.9.0');
 assert.equal(sandbox.AIO_V3.status().mode, 'shadow');
 assert.ok(sandbox.AIO_V3.status().combatRisk);
 assert.equal(typeof sandbox.AIO_V3.status().combatRisk.threshold, 'number');
@@ -82,7 +82,7 @@ assert.equal(sandbox.AIO_V3.farmer.status().targetPolicy, 'allow');
 assert.equal(typeof sandbox.AIO_V3.saveWorld, 'function');
 assert.equal(typeof sandbox.AIO_V3.showStatus, 'function');
 
-// Alpha.8 stability freeze contract.
+// Alpha.8 stability freeze contract remains intact.
 const stability = sandbox.AIO_V3.status().stability;
 assert.ok(stability);
 assert.equal(stability.stableScheduler, true);
@@ -103,6 +103,26 @@ assert.ok(sandbox.AIO_V3.status().persistence);
 assert.equal(sandbox.AIO_V3.status().persistence.retryBaseMs, 5000);
 assert.equal(sandbox.AIO_V3.status().persistence.retryMaxMs, 120000);
 assert.equal(typeof sandbox.AIO_V3.status().persistence.saveCircuitOpen, 'boolean');
+
+// Alpha.9 same-map local farming contract.
+assert.ok(sandbox.AIO_V3.localFarming);
+assert.equal(typeof sandbox.AIO_V3.localFarming.status, 'function');
+const localFarming = sandbox.AIO_V3.status().localFarming;
+assert.ok(localFarming);
+assert.equal(localFarming.enabled, true);
+assert.equal(localFarming.scope, 'same-map-known-approved-spawns-only');
+assert.equal(localFarming.navigation, 'bounded-local-move-only');
+assert.equal(localFarming.smartMoveAllowed, false);
+assert.equal(localFarming.mapChangeAllowed, false);
+assert.equal(localFarming.currentPlan, null);
+assert.equal(typeof localFarming.config.minHoldMs, 'number');
+assert.equal(typeof localFarming.config.planLeaseMs, 'number');
+assert.equal(typeof localFarming.config.noProgressMs, 'number');
+assert.equal(typeof localFarming.config.replanCooldownMs, 'number');
+assert.equal(typeof localFarming.config.maxStep, 'number');
+assert.ok(localFarming.config.maxStep <= 120);
+assert.ok(localFarming.config.planLeaseMs >= 30000);
+assert.ok(localFarming.config.noProgressMs >= 5000);
 
 // Headless contract: no DOM or game_log is supplied by this VM sandbox.
 assert.equal(typeof sandbox.document, 'undefined');
