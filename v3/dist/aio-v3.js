@@ -11584,6 +11584,8 @@ module.exports = { Alpha17Runtime };
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
 'use strict';
 
+const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -11670,6 +11672,7 @@ class ControlledMerchantExecutor {
       timeouts: 0,
       verificationRetries: 0,
       inventoryIndexRejected: 0,
+      sellSafetyRejected: 0,
       bankServerAckCommits: 0,
       bankLocalEvidenceCommits: 0,
       bankLocalObservationMisses: 0,
@@ -11784,7 +11787,16 @@ class ControlledMerchantExecutor {
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
-    if (tx.type === 'SELL' && typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+    if (tx.type === 'SELL') {
+      const gameData = this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || {};
+      const meta = gameData && gameData.items && gameData.items[tx.item];
+      const blockers = sellProtectionReasons(meta);
+      if (blockers.length) {
+        this.stats.sellSafetyRejected += 1;
+        return { ok: false, reason: 'SELL_ITEM_NOT_LOW_RISK', sellProtectionReasons: blockers };
+      }
+      if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+    }
     if (tx.type === 'BANK') {
       if (typeof this.root.bank_store !== 'function') return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
       if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
@@ -11894,14 +11906,16 @@ class ControlledMerchantExecutor {
         type: tx && tx.type || null,
         supervisorState: check.supervisorState || null,
         index: check.index == null ? tx && tx.index : check.index,
-        inventorySize: check.inventorySize == null ? null : check.inventorySize
+        inventorySize: check.inventorySize == null ? null : check.inventorySize,
+        sellProtectionReasons: check.sellProtectionReasons || null
       });
       return {
         executed: false,
         committed: false,
         reason: check.reason,
         index: check.index == null ? undefined : check.index,
-        inventorySize: check.inventorySize == null ? undefined : check.inventorySize
+        inventorySize: check.inventorySize == null ? undefined : check.inventorySize,
+        sellProtectionReasons: check.sellProtectionReasons || undefined
       };
     }
 
@@ -12036,6 +12050,7 @@ class ControlledMerchantExecutor {
         fallbackSource: 'items.length',
         validRange: '0..isize-1'
       },
+      sellSafety: sellSafetyStatus(),
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
