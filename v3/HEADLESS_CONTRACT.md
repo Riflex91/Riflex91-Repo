@@ -18,6 +18,41 @@ Required host behavior:
 - tolerate dropped old telemetry when the bounded queue overflows
 - never block Adventure Land commands while telemetry is offline
 
+## Flight-recorder boundary
+
+Alpha.20.5 adds a bounded in-process Flight Recorder to the headless operations layer. It records compact runtime, character, group-liveness, watchdog and active-operation observations plus bounded warning/error incidents. It is observational only and has no gameplay action authority.
+
+The Flight Recorder is deliberately bounded. Old samples and incidents are dropped when capacity is exceeded rather than allowing unattended memory growth. A future external host may periodically persist or forward selected windows; transport failure must never block the gameplay runtime.
+
+## Runtime watchdog boundary
+
+The Alpha.20.5 runtime watchdog distinguishes runtime freshness from expected gameplay progress:
+
+- stale snapshots or heartbeats can move health to `WATCH`/`DEGRADED`
+- progress stalls are evaluated only when activity is actually expected
+- shadow/idle operation is not treated as a stuck bot merely because position/XP do not change
+- clock anomalies are surfaced as degraded evidence
+- group-liveness degradation is surfaced without granting recovery authority
+
+The watchdog is recommendation-only in this foundation. `automaticRecovery:false` and `actionAuthority:false` are binding. Recommendations such as reobserve, replan, safe mode or restart are evidence for the later recovery manager/external supervisor; this layer does not execute them itself.
+
+## Group-liveness boundary
+
+The Merchant-side group-liveness monitor observes the real local party plus Character Registry evidence. A four-character-ready group means exactly one Merchant plus three supported combat characters, all fresh, available, online and alive. Stale/offline/dead/unavailable members fail the readiness check.
+
+Group liveness is observational only. It cannot invite, stop/start, route, revive or replace characters.
+
+## Reliability-checkpoint boundary
+
+Alpha.20.5 adds a compact A/B reliability checkpoint with checksum validation and pointer-last writes. If the latest slot is corrupt or torn, loading may fall back to the other valid slot.
+
+Every reliability checkpoint is explicitly evidence-only:
+
+- `resumeAllowed:false`
+- `reconciliationRequired:true`
+
+A checkpoint may describe a nonterminal transaction, travel operation, lifecycle operation or Development session, but it can never authorize a blind retry or automatic resume. After restart, the owning deterministic subsystem must reobserve current game state and reconcile according to its existing safety rules before any new raw action.
+
 ## Remote-control boundary
 
 Remote control uses explicit command envelopes only:
@@ -49,10 +84,12 @@ A host may persist these replicas to a database/object store and maintain last-k
 - `DEGRADED`
 - snapshot age
 - runtime heartbeat age
+- activity-aware watchdog state and recovery recommendation
+- observed group-liveness state
 
-The external host is responsible for detecting a dead browser/process and restarting it. Internal bot logic cannot recover if the whole browser process no longer exists.
+The external host is responsible for detecting a dead browser/process and restarting it. Internal bot logic cannot recover if the whole browser process no longer exists. Alpha.20.5 therefore does not claim dead-man coverage merely because the internal watchdog exists.
 
-Future supervisor work will add restart/reconnect reconciliation, but the interface is intentionally host-agnostic so the bot can later run under Docker, systemd, Kubernetes, a VM service, or another headless-browser supervisor.
+Future supervisor work will add bounded restart/reconnect reconciliation and alert escalation, but the interface is intentionally host-agnostic so the bot can later run under Docker, systemd, Kubernetes, a VM service, or another headless-browser supervisor.
 
 ## Dashboard design rule
 
