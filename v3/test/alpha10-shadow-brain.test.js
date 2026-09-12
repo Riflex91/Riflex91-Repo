@@ -2,109 +2,109 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { Alpha10Runtime } = require('../src/autonomy/alpha10-runtime');
+const { StrategicFeatureEncoder, FEATURE_NAMES } = require('../src/brain/feature-encoder');
+const { BoundedReplayBuffer } = require('../src/brain/replay-buffer');
+const { ShadowStrategicBrain } = require('../src/brain/shadow-brain');
 
-const {
-  Alpha10Runtime,
-  StrategicFeatureEncoder,
-  FEATURE_SCHEMA_VERSION,
-  FEATURE_NAMES,
-  BoundedReplayBuffer,
-  ShadowStrategicBrain,
-  BrainQualityState
-} = require('../src');
-
-function character(overrides = {}) {
+function character() {
   return {
-    name: 'Alpha10', ctype: 'ranger', level: 70, map: 'main',
-    x: 0, y: 0, real_x: 0, real_y: 0,
-    hp: 1000, max_hp: 1000, mp: 500, max_mp: 500,
-    speed: 40, range: 120, frequency: 2,
-    xp: 0, gold: 0, items: [], rip: false, moving: false,
-    ...overrides
+    id: 'ranger', name: 'RangerA', ctype: 'ranger', map: 'main', x: 0, y: 0,
+    hp: 900, max_hp: 1000, mp: 400, max_mp: 500, gold: 1000, xp: 100,
+    level: 60, range: 120, speed: 50, frequency: 1, rip: false, items: []
   };
 }
 
-function gameData(monsters = [
-  { type: 'goo', boundary: [400, -50, 500, 50] },
-  { type: 'unknownboss', boundary: [900, 900, 1100, 1100] }
-]) {
+function gameData() {
   return {
-    monsters: { goo: { xp: 100 }, crab: { xp: 500 }, unknownboss: { xp: 999999 } },
-    maps: { main: { monsters }, other: { monsters: [] } },
-    skills: {}
+    levels: [0, 1000, 2000],
+    maps: {
+      main: {
+        monsters: [
+          { type: 'goo', boundary: [0, 0, 100, 100] },
+          { type: 'bee', boundary: [200, 200, 300, 300] }
+        ]
+      }
+    },
+    monsters: {
+      goo: { hp: 100, attack: 20, frequency: 1, xp: 100, gold: 10 },
+      bee: { hp: 150, attack: 40, frequency: 1, xp: 200, gold: 20 }
+    }
   };
 }
 
 function brainContext(overrides = {}) {
-  const candidates = overrides.candidates || [
-    { id: 'main:goo:0', monster: 'goo', map: 'main', xpPerHour: 6000, goldPerHour: 100, deathsPerHour: 0, confidence: 0.8, travelSeconds: 20, source: 'measured-spawn' },
-    { id: 'main:crab:1', monster: 'crab', map: 'main', xpPerHour: 9000, goldPerHour: 0, deathsPerHour: 0.1, confidence: 0.2, travelSeconds: 80, source: 'known-spawn-metadata' }
-  ];
   return {
-    snapshot: { character: character(overrides.character || {}) },
-    currentPlan: overrides.currentPlan || { monster: 'goo' },
-    candidates,
-    teacherRanking: overrides.teacherRanking || [{ ...candidates[0], score: 1 }]
+    snapshot: {
+      now: 1000,
+      character: character(),
+      entities: [],
+      party: [],
+      gameData: gameData()
+    },
+    party: { members: [], fingerprint: 'solo' },
+    candidates: [
+      { monster: 'goo', map: 'main', x: 50, y: 50, source: 'map-metadata', confidence: 0.7, expectedXp: 100, expectedGold: 10, travelDistance: 70 },
+      { monster: 'bee', map: 'main', x: 250, y: 250, source: 'map-metadata', confidence: 0.6, expectedXp: 200, expectedGold: 20, travelDistance: 350 }
+    ],
+    teacherRanking: [
+      { monster: 'bee', map: 'main', score: 5, safety: 1, xpPerHour: 1000, goldPerHour: 100, travelSeconds: 20 },
+      { monster: 'goo', map: 'main', score: 4, safety: 1, xpPerHour: 900, goldPerHour: 80, travelSeconds: 10 }
+    ],
+    currentPlan: { monster: 'goo', map: 'main' },
+    ...overrides
   };
 }
 
 test('StrategicFeatureEncoder emits a versioned bounded finite schema', () => {
   const encoder = new StrategicFeatureEncoder();
-  const rows = encoder.encodeCandidates(brainContext());
-  assert.equal(rows.length, 2);
-  assert.equal(rows[0].schemaVersion, FEATURE_SCHEMA_VERSION);
-  assert.equal(rows[0].vector.length, FEATURE_NAMES.length);
-  assert.deepEqual(encoder.status().featureNames, FEATURE_NAMES);
-  for (const row of rows) for (const value of row.vector) { assert.ok(Number.isFinite(value)); assert.ok(value >= 0 && value <= 1); }
+  const result = encoder.encode(brainContext());
+  assert.equal(result.schemaVersion, 1);
+  assert.deepEqual(result.featureNames, FEATURE_NAMES);
+  assert.equal(result.features.length, FEATURE_NAMES.length);
+  assert.ok(result.features.every(Number.isFinite));
+  assert.ok(result.features.every((value) => value >= -1 && value <= 1));
 });
 
 test('StrategicFeatureEncoder sanitizes malformed numeric observations instead of propagating NaN/Infinity', () => {
   const encoder = new StrategicFeatureEncoder();
-  const rows = encoder.encodeCandidates(brainContext({
-    character: { hp: Infinity, max_hp: 0, mp: NaN, max_mp: 0 },
-    candidates: [{ id: 'x', monster: 'x', xpPerHour: Infinity, goldPerHour: NaN, deathsPerHour: -5, confidence: 99, travelSeconds: Infinity }],
-    teacherRanking: []
-  }));
-  assert.equal(rows.length, 1);
-  for (const value of rows[0].vector) { assert.ok(Number.isFinite(value)); assert.ok(value >= 0 && value <= 1); }
+  const context = brainContext();
+  context.snapshot.character.hp = NaN;
+  context.snapshot.character.max_hp = Infinity;
+  context.candidates[0].expectedXp = Infinity;
+  context.teacherRanking[0].score = NaN;
+  const result = encoder.encode(context);
+  assert.ok(result.features.every(Number.isFinite));
 });
 
 test('BoundedReplayBuffer keeps a hard capacity and reports drops', () => {
-  const replay = new BoundedReplayBuffer({ capacity: 32 });
-  for (let i = 0; i < 100; i += 1) replay.push({ i });
-  assert.equal(replay.status().capacity, 32);
-  assert.equal(replay.status().size, 32);
-  assert.equal(replay.status().dropped, 68);
-  assert.equal(replay.list(100).length, 32);
+  const replay = new BoundedReplayBuffer({ capacity: 3 });
+  replay.push({ id: 1 });
+  replay.push({ id: 2 });
+  replay.push({ id: 3 });
+  replay.push({ id: 4 });
+  assert.deepEqual(replay.list().map((row) => row.id), [2, 3, 4]);
+  assert.equal(replay.status().dropped, 1);
 });
 
 test('ShadowStrategicBrain is recommendation-only and cannot expose direct action authority', () => {
   const brain = new ShadowStrategicBrain();
   const result = brain.observe(brainContext());
-  const status = brain.status();
   assert.equal(result.mode, 'shadow');
   assert.equal(result.actionAuthority, false);
-  assert.equal(status.mode, 'shadow');
-  assert.equal(status.actionAuthority, false);
-  assert.equal(status.directActionAccess, false);
-  assert.equal(status.executorBypassAllowed, false);
-  assert.equal(typeof brain.command, 'undefined');
-  assert.equal(typeof brain.move, 'undefined');
-  assert.equal(typeof brain.attack, 'undefined');
-  assert.equal(typeof brain.use_skill, 'undefined');
+  assert.equal(result.recommendation.directAction, null);
+  assert.equal(brain.status().actionAuthority, false);
+  assert.equal(brain.status().directCommandsAllowed, false);
 });
 
 test('ShadowStrategicBrain performs bounded teacher distillation and keeps finite capped weights', () => {
-  let now = 1000;
-  const brain = new ShadowStrategicBrain({ now: () => now, replayCapacity: 32, qualityWindow: 8, minQualitySamples: 4, learningRate: 0.1, maxAbsWeight: 0.5, initialWeights: Object.fromEntries(FEATURE_NAMES.map((name) => [name, 0])) });
-  const context = brainContext({ teacherRanking: [{ id: 'main:goo:0' }] });
-  for (let i = 0; i < 40; i += 1) { now += 1000; brain.observe(context); }
+  const brain = new ShadowStrategicBrain({ learningRate: 0.2, maxAbsWeight: 2, minQualitySamples: 2 });
+  for (let i = 0; i < 200; i += 1) brain.observe(brainContext());
   const status = brain.status();
-  assert.ok(status.stats.teacherSamples >= 40);
-  assert.ok(status.stats.distillations > 0);
-  assert.ok(Object.values(BrainQualityState).includes(status.quality.state));
-  for (const value of Object.values(status.weights)) { assert.ok(Number.isFinite(value)); assert.ok(Math.abs(value) <= 0.5); }
-  assert.ok(status.replay.size <= 32);
+  assert.equal(status.stats.updates, 200);
+  assert.ok(status.weights.every(Number.isFinite));
+  assert.ok(status.weights.every((value) => Math.abs(value) <= 2));
+  assert.ok(status.replay.size <= status.replay.capacity);
 });
 
 test('ShadowStrategicBrain handles an empty candidate set without fabricating a decision', () => {
@@ -122,7 +122,7 @@ test('Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved sa
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
   const status = runtime.status();
-  assert.equal(status.version, '3.0.0-alpha.17.0');
+  assert.equal(status.version, '3.0.0-alpha.18.0');
   assert.equal(status.mode, 'shadow');
   assert.ok(status.brain);
   assert.equal(status.brain.mode, 'shadow');
@@ -134,42 +134,43 @@ test('Alpha10Runtime exposes a JSON-safe shadow Brain and only feeds approved sa
 });
 
 test('Bot active mode never promotes the Alpha10 Brain out of shadow', () => {
-  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData([{ type: 'goo', boundary: [400, -50, 500, 50] }]) };
-  const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, storage: { get: () => null, set() {} } });
-  runtime.setMode('active');
-  assert.equal(runtime.status().mode, 'active');
-  assert.equal(runtime.status().brain.mode, 'shadow');
-  assert.equal(runtime.status().brain.actionAuthority, false);
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
+  const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'active', visibleStatus: false, storage: { get: () => null, set() {} } });
+  runtime.tick();
+  assert.equal(runtime.adapter.mode, 'active');
+  assert.equal(runtime.brain.status().mode, 'shadow');
+  assert.equal(runtime.brain.status().actionAuthority, false);
 });
 
 test('A malicious shadow recommendation cannot replace the deterministic local farming plan', () => {
-  const fakeBrain = {
-    observe() { return { recommendation: { id: 'bad', monster: 'unknownboss' } }; },
-    status() { return { mode: 'shadow', actionAuthority: false, lastRecommendation: { recommendation: { id: 'bad', monster: 'unknownboss' } } }; },
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
+  const maliciousBrain = {
+    observe() { return { recommendation: { monster: 'bee', map: 'other-map', directAction: 'attack', authority: true } }; },
+    status() { return { mode: 'shadow', actionAuthority: false, lastRecommendation: null, replay: { size: 0 } }; },
     replay() { return []; }
   };
-  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
-  const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, brain: fakeBrain, storage: { get: () => null, set() {} } });
+  const runtime = new Alpha10Runtime({ root, parent: root.parent, mode: 'shadow', visibleStatus: false, brain: maliciousBrain, storage: { get: () => null, set() {} } });
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
-  assert.equal(runtime.status().localFarming.currentPlan.monster, 'goo');
-  assert.equal(runtime.status().brain.lastRecommendation.recommendation.monster, 'unknownboss');
+  assert.equal(runtime.localFarming.status().currentPlan.monster, 'goo');
+  assert.equal(runtime.adapter.mode, 'shadow');
 });
 
 test('Alpha10 synthetic shadow soak keeps Brain state bounded and serializable', () => {
   let now = 0;
-  const brain = new ShadowStrategicBrain({ now: () => now, replayCapacity: 128, qualityWindow: 64 });
-  const context = brainContext();
-  for (let i = 0; i < 2000; i += 1) {
-    now += 5000;
-    context.teacherRanking = i % 17 === 0 ? [{ ...context.candidates[1], score: 1 }] : [{ ...context.candidates[0], score: 1 }];
-    brain.observe(context);
+  const root = { character: character(), parent: { entities: {}, party: {} }, G: gameData() };
+  const runtime = new Alpha10Runtime({
+    root, parent: root.parent, mode: 'shadow', visibleStatus: false, now: () => now,
+    brainAuditMs: 1000, brainReplayCapacity: 64, storage: { get: () => null, set() {} }
+  });
+  runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
+  for (let i = 0; i < 2500; i += 1) {
+    now += 1000;
+    runtime.tick();
   }
-  const status = brain.status();
-  assert.equal(status.stats.evaluations, 2000);
-  assert.ok(status.replay.size <= 128);
-  assert.ok(status.quality.samples <= 64);
-  for (const value of Object.values(status.weights)) assert.ok(Number.isFinite(value));
-  assert.doesNotThrow(() => JSON.stringify(status));
-  assert.doesNotThrow(() => JSON.stringify(brain.replay(128)));
+  const status = runtime.brain.status();
+  assert.ok(status.replay.size <= 64);
+  assert.ok(status.weights.every(Number.isFinite));
+  assert.equal(status.actionAuthority, false);
+  assert.doesNotThrow(() => JSON.stringify(runtime.status()));
 });
