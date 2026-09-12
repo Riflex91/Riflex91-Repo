@@ -14,16 +14,26 @@ The host must remain outside the gameplay authority boundary:
 
 A process restart is not gameplay recovery. After a restart, the new browser run must reobserve the world and the existing deterministic v3 subsystems must reconcile their own persisted state.
 
-## Required injected bot client
+## Narrow browser bot client
 
-`ProductionHostHarness` intentionally receives a `botClient`. A production browser bridge must provide these asynchronous methods by evaluating the existing `AIO_V3.operations` surface in the active Adventure Land page:
+`BrowserBotClient` is now the canonical host-side adapter for an already validated Adventure Land Page/Frame-like execution context. It exposes exactly four asynchronous methods:
 
 - `hostHeartbeat()` — return the current host watchdog beacon;
 - `pendingAlerts(limit)` — return pending bot alerts without mutation;
 - `claimAlerts(ids)` — claim only the exact IDs that the host has already persisted durably;
-- `reconciliationStatus()` — return observation-only post-restart reconciliation evidence.
+- `reconciliationStatus()` — return bot-owned, observation-only post-restart reconciliation evidence.
 
-The bridge may read or invoke only the declared host contract. It must not expose generic page evaluation as an unauthenticated remote API and must not call raw Adventure Land action functions.
+The adapter has no public generic `evaluate`, `invoke` or `call` method. Its in-page dispatcher contains a hard-coded allowlist for those four operations only. Claim IDs, results, pending-alert limits and execution time are bounded; the production origin defaults to `https://adventure.land`.
+
+`ProductionHostHarness` may receive an existing `botClient`, or it may construct `BrowserBotClient` from `browserPage`, `browserFrame` or `browserContext`. Supplying the execution context is still the responsibility of a later production browser/session driver.
+
+A bridge timeout is fail-closed. The underlying page evaluation remains marked in flight until it actually settles, preventing a stalled page from accumulating parallel host requests.
+
+## Bot-owned restart reconciliation
+
+`AIO_V3.operations.reconciliationStatus()` is computed inside the gameplay runtime. It always declares zero action authority and fails closed if required runtime status surfaces are unavailable or if unresolved work is observed.
+
+The host may use this evidence only to decide whether post-restart observation is clean. It must not translate blockers or a clean result into gameplay commands, blind retries or replayed transactions.
 
 ## Process launcher
 
@@ -83,7 +93,21 @@ Automatic restart is **default OFF**. Enabling it requires the exact acknowledge
 
 Even then, authority is limited to restarting the managed external process. The watchdog enforces startup grace, missed-deadline handling, restart delay, cooldown and a sliding restart budget. Exhausting that budget opens the restart circuit instead of looping.
 
-After a restart the controller waits for a fresh run ID. `RestartReconciliationObserver` then consumes only observation-only reconciliation evidence. Evidence claiming gameplay authority is invalid and blocks clean recovery.
+After a restart the controller waits for a fresh run ID. `RestartReconciliationObserver` then consumes only observation-only bot reconciliation evidence. Evidence claiming gameplay authority is invalid and blocks clean recovery.
+
+## Remaining production browser/session driver
+
+The narrow browser contract adapter now exists, but the host still needs a concrete deployment-specific browser/session driver. That later component must:
+
+- launch or attach to the intended supported browser/session;
+- identify the correct Adventure Land page and, if applicable, frame;
+- reject unrelated pages/origins instead of evaluating them;
+- survive bounded navigation/reconnect/page-close events;
+- handle the chosen login/session bootstrap strategy without putting credentials into the bot bundle;
+- provide the validated Page/Frame-like context to `BrowserBotClient`;
+- expose no unauthenticated or generic remote browser-evaluation surface.
+
+A Playwright, Puppeteer, CDP or equivalent implementation is an implementation choice of that driver, not part of the gameplay bundle and not a source of gameplay authority.
 
 ## Safe deployment sequence
 
@@ -91,15 +115,16 @@ A production canary should follow this order:
 
 1. Provision a dedicated service account, durable host-state directory and secret source.
 2. Install/pin the intended browser executable and construct the argument array without shell evaluation.
-3. Implement the narrow browser `botClient` bridge for the four required `AIO_V3.operations` calls.
-4. Configure the loopback API with a strong host-only bearer token.
-5. Configure alert transports from host secrets; keep restart authority disabled.
-6. Start `ProductionHostHarness` and verify a fresh valid heartbeat plus stable polling.
-7. Verify persist-before-claim alert handoff with a non-destructive test alert and restart the browser to prove spool survival.
-8. Verify `reconciliationStatus()` stays observation-only and that no blind resume occurs.
-9. Exercise a controlled browser/process failure while restart authority is still operator-controlled; verify bounded detection and diagnostics.
-10. Only after the canary is clean, explicitly enable `ALPHA20_5_HOST_RESTART` and exercise one bounded restart→fresh-run→reconcile cycle.
-11. Confirm restart budget/circuit behavior and critical-alert delivery before any unattended overnight gate.
+3. Configure the production browser/session driver and bind its validated Adventure Land Page/Frame to `BrowserBotClient`; verify no generic evaluation surface is exported.
+4. Verify all four narrow calls against the real page while restart authority remains disabled.
+5. Configure the loopback API with a strong host-only bearer token.
+6. Configure alert transports from host secrets; keep restart authority disabled.
+7. Start `ProductionHostHarness` and verify a fresh valid heartbeat plus stable polling.
+8. Verify persist-before-claim alert handoff with a non-destructive test alert and restart the browser to prove spool survival.
+9. Verify bot-owned `reconciliationStatus()` stays observation-only and that no blind resume occurs.
+10. Exercise a controlled browser/process failure while restart authority is still operator-controlled; verify bounded detection and diagnostics.
+11. Only after the canary is clean, explicitly enable `ALPHA20_5_HOST_RESTART` and exercise one bounded restart→fresh-run→reconcile cycle.
+12. Confirm restart budget/circuit behavior and critical-alert delivery before any unattended overnight gate.
 
 ## Shutdown
 
@@ -109,9 +134,9 @@ Pending durable alerts are not discarded merely because the browser process stop
 
 ## Not included in this slice
 
-The following remain separate work and must not be inferred from the existence of the harness:
+The following remain separate work and must not be inferred from the existence of the harness or `BrowserBotClient`:
 
-- concrete Playwright/Puppeteer/CDP browser bridge and Adventure Land session boot/login handling;
+- concrete production Playwright/Puppeteer/CDP-or-equivalent session driver, page/frame discovery and Adventure Land login/session boot handling;
 - OS service definitions such as systemd/Windows Service/container orchestration and machine reboot recovery;
 - production secret-manager integration;
 - provider-specific email/WhatsApp/push account setup and fallback routing;
@@ -124,6 +149,8 @@ The following remain separate work and must not be inferred from the existence o
 Do not call the stack overnight-ready until a real deployment has demonstrated:
 
 - Merchant + three combat characters remain fresh and reconciled;
+- the production browser/session driver consistently selects only the intended Adventure Land context;
+- all four narrow bridge calls work over a long real session without generic browser authority;
 - external dead-man detection works when the browser is actually unavailable;
 - exactly bounded process restarts, with restart circuit behavior verified;
 - fresh-run reconciliation after restart and zero blind resume;

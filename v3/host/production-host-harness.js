@@ -4,6 +4,7 @@ const { ManagedProcessLauncher } = require('./managed-process-launcher');
 const { HeadlessHostController } = require('./headless-host-controller');
 const { HostApiServer } = require('./host-api-server');
 const { JsonFileStateStore } = require('./json-file-state-store');
+const { BrowserBotClient } = require('./browser-bot-client');
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -28,13 +29,22 @@ class ProductionHostHarness {
       stopGraceMs: options.stopGraceMs,
       outputCapacity: options.outputCapacity
     });
+    const browserContext = options.browserPage || options.browserFrame || options.browserContext || null;
+    this.botClient = options.botClient || (browserContext ? new BrowserBotClient({
+      page: browserContext,
+      now: this.now,
+      timeoutMs: options.browserBridgeTimeoutMs,
+      maxResultBytes: options.browserBridgeMaxResultBytes,
+      allowedOrigins: options.browserAllowedOrigins,
+      allowInsecureLoopbackForTests: options.browserAllowInsecureLoopbackForTests === true
+    }) : null);
     this.alertStore = options.alertStore || (options.alertStatePath ? new JsonFileStateStore({
       filePath: options.alertStatePath,
       maxBytes: options.alertStateMaxBytes
     }) : null);
     this.controller = options.controller || new HeadlessHostController({
       now: this.now,
-      botClient: options.botClient,
+      botClient: this.botClient,
       alertStore: this.alertStore,
       alertTransports: options.alertTransports,
       alertSpoolCapacity: options.alertSpoolCapacity,
@@ -124,6 +134,7 @@ class ProductionHostHarness {
   }
 
   status() {
+    const botClientStatus = this.botClient && typeof this.botClient.status === 'function' ? this.botClient.status() : null;
     return {
       mode: 'production-host-harness-foundation',
       running: !!this.timer,
@@ -133,7 +144,9 @@ class ProductionHostHarness {
       gameplayActionAuthority: false,
       rawGameplayActionAuthority: false,
       dashboardDecisionAuthority: false,
-      browserProtocolOwnedByInjectedBotClient: true,
+      browserProtocolOwnedByInjectedBotClient: !!this.botClient,
+      narrowBrowserBridge: !!(botClientStatus && botClientStatus.mode === 'narrow-browser-bot-client'),
+      botClient: botClientStatus,
       launcher: this.launcher.status(),
       controller: this.controller.status(),
       api: this.api.status(),
