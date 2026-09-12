@@ -3,6 +3,7 @@
 const RECONCILIATION_STATUS_SCHEMA_VERSION = 1;
 const RECONCILIATION_STATUS_TYPE = 'AIO_V3_RECONCILIATION_STATUS';
 const ACTIVE_LIFECYCLE_STATES = new Set(['RESERVED', 'EXECUTING', 'VERIFYING', 'RECOVERING']);
+const ACTIVE_MERCHANT_SERVICE_STATES = new Set(['RESERVED', 'EXECUTING', 'VERIFYING', 'RECOVERING']);
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -61,6 +62,8 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
   const consolidation = safeStatus(runtime.controlledBankConsolidation);
   const travel = safeStatus(runtime.safeTravel);
   const lifecycle = safeStatus(runtime.controlledPartyLifecycle);
+  const hasMerchantService = Object.prototype.hasOwnProperty.call(runtime, 'controlledMerchantService');
+  const merchantService = hasMerchantService ? safeStatus(runtime.controlledMerchantService) : null;
   const recoveryStatus = safeStatus(recoveryTarget);
 
   if (!economy) add('ECONOMY_STATUS_UNAVAILABLE');
@@ -95,6 +98,15 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
     if (lifecycle.busy === true) add('PARTY_LIFECYCLE_BUSY');
     const lifecycleState = bounded(lifecycle.operation && lifecycle.operation.state || '', 32);
     if (ACTIVE_LIFECYCLE_STATES.has(lifecycleState)) add('PARTY_LIFECYCLE_RECOVERY_REQUIRED');
+  }
+
+  if (hasMerchantService) {
+    if (!merchantService) add('MERCHANT_SERVICE_STATUS_UNAVAILABLE');
+    else {
+      if (merchantService.busy === true) add('MERCHANT_SERVICE_BUSY');
+      const serviceState = bounded(merchantService.activeOperation && merchantService.activeOperation.state || '', 32);
+      if (ACTIVE_MERCHANT_SERVICE_STATES.has(serviceState)) add('MERCHANT_SERVICE_RECOVERY_REQUIRED');
+    }
   }
 
   let liveGate = null;
@@ -132,6 +144,11 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
         operationState: bounded(lifecycle.operation && lifecycle.operation.state || '', 32) || null,
         developmentSessionActive: !!lifecycle.developmentSession
       } : null,
+      merchantService: hasMerchantService ? (merchantService ? {
+        busy: merchantService.busy === true,
+        enabled: merchantService.enabled === true,
+        operationState: bounded(merchantService.activeOperation && merchantService.activeOperation.state || '', 32) || null
+      } : null) : null,
       liveGate: liveGate ? { running: liveGate.running === true, phase: bounded(liveGate.phase || '', 48) || null } : null,
       safeRecovery: recoveryStatus ? {
         enabled: recoveryStatus.enabled === true,
