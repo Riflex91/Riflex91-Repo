@@ -2,20 +2,15 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  BrowserBotClient,
-  browserDispatcher
-} = require('../host/browser-bot-client');
+const { BrowserBotClient, browserDispatcher } = require('../host/browser-bot-client');
 const { ProductionHostHarness } = require('../host/production-host-harness');
-const {
-  buildReconciliationStatus,
-  RECONCILIATION_STATUS_TYPE
-} = require('../src/ops/reconciliation-status');
+const { HeadlessHostController } = require('../host/headless-host-controller');
+const { buildReconciliationStatus, RECONCILIATION_STATUS_TYPE } = require('../src/ops/reconciliation-status');
 
 function pageWithOperations(operations, options = {}) {
   const calls = [];
   let closed = false;
-  const page = {
+  return {
     calls,
     url: () => options.url || 'https://adventure.land/game',
     isClosed: () => closed,
@@ -32,11 +27,10 @@ function pageWithOperations(operations, options = {}) {
       }
     }
   };
-  return page;
 }
 
 function cleanRuntime(overrides = {}) {
-  const runtime = {
+  return Object.assign({
     transactionEngine: { status: () => ({ active: 0, recovering: 0 }) },
     bankExpansionTransactions: { status: () => ({ active: 0, recovering: 0 }) },
     merchantSpaceRecoveryJournal: { status: () => ({ active: 0, recovering: 0, states: { RECOVERING: 0 } }) },
@@ -45,8 +39,7 @@ function cleanRuntime(overrides = {}) {
     safeTravel: { status: () => ({ active: 0 }) },
     controlledPartyLifecycle: { status: () => ({ enabled: false, busy: false, operation: null, developmentSession: null }) },
     alpha20LiveGateStatus: () => ({ running: false, phase: 'COMPLETE' })
-  };
-  return Object.assign(runtime, overrides);
+  }, overrides);
 }
 
 function validBeacon(clock, seq = 1, runId = 'bridge-run') {
@@ -103,10 +96,12 @@ test('BrowserBotClient exposes exactly the four host operations and no generic e
   assert.equal(client.evaluate, undefined);
   assert.equal(client.invoke, undefined);
   assert.equal(client.call, undefined);
-  assert.equal(client.status().arbitraryEvaluateExposed, false);
-  assert.equal(client.status().genericInvokeExposed, false);
-  assert.equal(client.status().gameplayActionAuthority, false);
-  assert.equal(client.status().rawGameplayActionAuthority, false);
+  const status = client.status();
+  assert.equal(status.arbitraryEvaluateExposed, false);
+  assert.equal(status.genericInvokeExposed, false);
+  assert.equal(status.gameplayActionAuthority, false);
+  assert.equal(status.rawGameplayActionAuthority, false);
+  assert.equal(status.originAllowed, true);
 });
 
 test('browser dispatcher rejects missing operations and every non-host operation', () => {
@@ -124,7 +119,7 @@ test('browser dispatcher rejects missing operations and every non-host operation
   }
 });
 
-test('claim validation fails before page evaluation and prevents duplicate, oversized or excessive IDs', async () => {
+test('claim validation rejects asynchronously before page evaluation', async () => {
   const page = pageWithOperations({ claimAlerts: () => { throw new Error('must not execute'); } });
   const client = new BrowserBotClient({ page });
   await assert.rejects(() => client.claimAlerts('a1'), /CLAIM_IDS_ARRAY_REQUIRED/);
@@ -133,21 +128,38 @@ test('claim validation fails before page evaluation and prevents duplicate, over
   await assert.rejects(() => client.claimAlerts(Array.from({ length: 101 }, (_, i) => `a${i}`)), /CLAIM_IDS_LIMIT_EXCEEDED/);
   assert.equal(page.calls.length, 0);
   assert.equal(client.status().stats.inputRejects, 4);
-});
-
-test('bridge fails closed on wrong origin, insecure origin and closed browser context', async () => {
-  const wrong = new BrowserBotClient({ page: pageWithOperations({}, { url: 'https://example.com/' }) });
-  await assert.rejects(() => wrong.hostHeartbeat(), /BROWSER_CONTEXT_ORIGIN_REJECTED/);
-  assert.throws(() => new BrowserBotClient({ page: pageWithOperations({}, { url: 'http://adventure.land/' }), allowedOrigins: ['http://adventure.land'] }), /BROWSER_BRIDGE_HTTPS_ORIGIN_REQUIRED/);
-  const page = pageWithOperations({ hostHeartbeat: () => ({}) });
-  page.closeForTest();
-  const closed = new BrowserBotClient({ page });
-  await assert.rejects(() => closed.hostHeartbeat(), /BROWSER_CONTEXT_CLOSED/);
+  assert.equal(client.status().stats.failures, 4);
+  assert.deepEqual(await client.claimAlerts([]), []);
   assert.equal(page.calls.length, 0);
 });
 
+test('bridge fails closed on wrong origin, insecure origin and closed browser context without status side effects', async () => {
+  const wrongPage = pageWithOperations({}, { url: 'https://example.com/' });
+  const wrong = new BrowserBotClient({ page: wrongPage });
+  assert.equal(wrong.status().origin, 'https://example.com');
+  assert.equal(wrong.status().stats.originRejects, 0);
+  await assert.rejects(() => wrong.hostHeartbeat(), /BROWSER_CONTEXT_ORIGIN_REJECTED/);
+  assert.equal(wrong.status().stats.originRejects, 1);
+  assert.equal(wrong.status().stats.failures, 1);
+  assert.equal(wrongPage.calls.length, 0);
+
+  assert.throws(
+    () => new BrowserBotClient({ page: pageWithOperations({}, { url: 'http://adventure.land/' }), allowedOrigins: ['http://adventure.land'] }),
+    /BROWSER_BRIDGE_HTTPS_ORIGIN_REQUIRED/
+  );
+
+  const closedPage = pageWithOperations({ hostHeartbeat: () => ({}) });
+  closedPage.closeForTest();
+  const closed = new BrowserBotClient({ page: closedPage });
+  await assert.rejects(() => closed.hostHeartbeat(), /BROWSER_CONTEXT_CLOSED/);
+  assert.equal(closedPage.calls.length, 0);
+});
+
 test('bridge rejects oversized and non-serializable browser results without exposing page state', async () => {
-  const huge = new BrowserBotClient({ page: pageWithOperations({ hostHeartbeat: () => ({ data: 'x'.repeat(5000) }) }), maxResultBytes: 4096 });
+  const huge = new BrowserBotClient({
+    page: pageWithOperations({ hostHeartbeat: () => ({ data: 'x'.repeat(5000) }) }),
+    maxResultBytes: 4096
+  });
   await assert.rejects(() => huge.hostHeartbeat(), /BROWSER_RESULT_TOO_LARGE/);
   assert.equal(huge.status().stats.resultRejects, 1);
 
@@ -160,15 +172,17 @@ test('bridge rejects oversized and non-serializable browser results without expo
   assert.equal(JSON.stringify(client.status()).includes('cyclic'), false);
 });
 
-test('bridge timeout keeps the underlying evaluation single-flight until it actually settles', async () => {
+test('bridge timeout stays live and keeps the underlying evaluation single-flight until it actually settles', async () => {
   let release;
   const pending = new Promise((resolve) => { release = resolve; });
   const page = pageWithOperations({}, { evaluate: async () => pending });
   const client = new BrowserBotClient({ page, timeoutMs: 250 });
+
   await assert.rejects(() => client.hostHeartbeat(), /BROWSER_BRIDGE_TIMEOUT/);
   assert.equal(client.status().inFlight.operation, 'HOST_HEARTBEAT');
   await assert.rejects(() => client.reconciliationStatus(), /BROWSER_BRIDGE_BUSY/);
-  assert.equal(page.calls.length, 2, 'fake page records before custom evaluate; busy must not add a third evaluation');
+  assert.equal(page.calls.length, 1, 'busy rejection must not start a second page evaluation');
+
   release({ ok: true });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(client.status().inFlight, null);
@@ -176,8 +190,12 @@ test('bridge timeout keeps the underlying evaluation single-flight until it actu
   assert.equal(client.status().stats.busyRejects, 1);
 });
 
-test('reconciliation evidence is observation-only, fail-closed and blocks every unresolved action family', () => {
-  let result = buildReconciliationStatus(cleanRuntime(), () => 12345, { status: () => ({ enabled: false, degradedSince: null, lastPlan: { stage: 'NONE' } }) });
+test('reconciliation evidence is observation-only and blocks every unresolved action family', () => {
+  let result = buildReconciliationStatus(
+    cleanRuntime(),
+    () => 12345,
+    { status: () => ({ enabled: false, degradedSince: null, lastPlan: { stage: 'NONE' } }) }
+  );
   assert.equal(result.type, RECONCILIATION_STATUS_TYPE);
   assert.equal(result.observedAt, 12345);
   assert.equal(result.observedClean, true);
@@ -195,7 +213,11 @@ test('reconciliation evidence is observation-only, fail-closed and blocks every 
     controlledPartyLifecycle: { status: () => ({ busy: true, operation: { state: 'RECOVERING' }, developmentSession: { candidate: 'Rogue' } }) },
     alpha20LiveGateStatus: () => ({ running: true, phase: 'PASSIVE_OBSERVATION' })
   });
-  result = buildReconciliationStatus(runtime, () => 20000, { status: () => ({ enabled: true, degradedSince: 19000, lastPlan: { stage: 'REOBSERVE' } }) });
+  result = buildReconciliationStatus(
+    runtime,
+    () => 20000,
+    { status: () => ({ enabled: true, degradedSince: 19000, lastPlan: { stage: 'REOBSERVE' } }) }
+  );
   assert.equal(result.observedClean, false);
   for (const blocker of [
     'ECONOMY_TRANSACTION_ACTIVE', 'ECONOMY_TRANSACTION_RECOVERING',
@@ -215,15 +237,21 @@ test('reconciliation evidence fails closed when required runtime status surfaces
     alpha20LiveGateStatus: () => null
   }, () => 1);
   assert.equal(result.observedClean, false);
-  assert.equal(result.blockers.includes('ECONOMY_STATUS_UNAVAILABLE'), true);
-  assert.equal(result.blockers.includes('BANK_EXPANSION_STATUS_UNAVAILABLE'), true);
-  assert.equal(result.blockers.includes('MERCHANT_SPACE_RECOVERY_STATUS_UNAVAILABLE'), true);
-  assert.equal(result.blockers.includes('TRAVEL_STATUS_UNAVAILABLE'), true);
-  assert.equal(result.blockers.includes('PARTY_LIFECYCLE_STATUS_UNAVAILABLE'), true);
-  assert.equal(result.blockers.includes('ALPHA20_LIVE_GATE_STATUS_UNAVAILABLE'), true);
+  for (const blocker of [
+    'ECONOMY_STATUS_UNAVAILABLE',
+    'BANK_EXPANSION_STATUS_UNAVAILABLE',
+    'MERCHANT_SPACE_RECOVERY_STATUS_UNAVAILABLE',
+    'CONTROLLED_SPACE_RECOVERY_STATUS_UNAVAILABLE',
+    'BANK_CONSOLIDATION_STATUS_UNAVAILABLE',
+    'TRAVEL_STATUS_UNAVAILABLE',
+    'PARTY_LIFECYCLE_STATUS_UNAVAILABLE',
+    'ALPHA20_LIVE_GATE_STATUS_UNAVAILABLE'
+  ]) assert.equal(result.blockers.includes(blocker), true, blocker);
+  assert.equal(result.actionAuthority, false);
+  assert.equal(result.rawGameplayActionAuthority, false);
 });
 
-test('ProductionHostHarness can construct the narrow client from an injected Adventure Land execution context', () => {
+test('ProductionHostHarness constructs only the narrow client from an injected Adventure Land execution context', () => {
   const page = pageWithOperations({});
   const harness = new ProductionHostHarness({ browserPage: page, alertStore: memoryStateStore() });
   const status = harness.status();
@@ -233,9 +261,10 @@ test('ProductionHostHarness can construct the narrow client from an injected Adv
   assert.equal(status.rawGameplayActionAuthority, false);
   assert.equal(typeof harness.botClient.hostHeartbeat, 'function');
   assert.equal(harness.botClient.evaluate, undefined);
+  assert.equal(harness.botClient.invoke, undefined);
 });
 
-test('Headless host controller can poll and persist/claim through BrowserBotClient without generic page authority', async () => {
+test('HeadlessHostController polls and persist-before-claims through BrowserBotClient without generic page authority', async () => {
   const clock = { value: 1000 };
   const claimed = [];
   let pending = [{ id: 'alert-bridge-1', severity: 'CRITICAL', type: 'BRIDGE_TEST', reason: 'TEST', at: 1000 }];
@@ -247,10 +276,16 @@ test('Headless host controller can poll and persist/claim through BrowserBotClie
       pending = pending.filter((row) => !ids.includes(row.id));
       return ids.map((id) => ({ id, claimed: true }));
     },
-    reconciliationStatus: () => ({ schemaVersion: 1, type: RECONCILIATION_STATUS_TYPE, observedClean: true, blockers: [], actionAuthority: false, rawGameplayActionAuthority: false })
+    reconciliationStatus: () => ({
+      schemaVersion: 1,
+      type: RECONCILIATION_STATUS_TYPE,
+      observedClean: true,
+      blockers: [],
+      actionAuthority: false,
+      rawGameplayActionAuthority: false
+    })
   };
   const client = new BrowserBotClient({ page: pageWithOperations(operations) });
-  const { HeadlessHostController } = require('../host/headless-host-controller');
   const controller = new HeadlessHostController({
     now: () => clock.value,
     botClient: client,
@@ -273,18 +308,21 @@ test('3000-call browser bridge soak remains bounded, origin-locked and gameplay-
     reconciliationStatus: () => ({ observedClean: true, blockers: [], actionAuthority: false, rawGameplayActionAuthority: false })
   });
   const client = new BrowserBotClient({ page });
+
   for (let i = 0; i < 3000; i += 1) {
     const mode = i % 3;
     if (mode === 0) assert.equal((await client.hostHeartbeat()).actionAuthority, false);
     else if (mode === 1) assert.deepEqual(await client.pendingAlerts(25), []);
     else assert.equal((await client.reconciliationStatus()).observedClean, true);
   }
+
   const status = client.status();
   assert.equal(status.stats.calls, 3000);
   assert.equal(status.stats.successes, 3000);
   assert.equal(status.stats.failures, 0);
   assert.equal(status.inFlight, null);
   assert.equal(status.origin, 'https://adventure.land');
+  assert.equal(status.originAllowed, true);
   assert.equal(status.allowedOperations.length, 4);
   assert.equal(status.gameplayActionAuthority, false);
   assert.equal(status.rawGameplayActionAuthority, false);
