@@ -4,11 +4,14 @@ Release target: `3.0.0-alpha.19.0`
 
 ## Phase status
 
-- Core implementation: in progress on the Alpha.19 implementation PR.
+- Core implementation: **MERGED** via PR #68.
+- Core merge commit: `5a1274d4f37703abc90c8c1a88e0efbf794e46c1`.
+- Exact certified core PR head: `8d73ed95f26433edcf759e9fef6c788b7a107ee3`.
 - FULL production confirmation: **NOT YET CONFIRMED**.
 - Default runtime remains `shadow`.
 - `productionReplacement=false` remains unchanged.
 - Controlled Alpha.19 execution is default-off and requires exact `ALPHA19_SPACE_RECOVERY` acknowledgement.
+- Paid expansion and Emergency Reclaim additionally require their own explicit per-enable budgets.
 - No broad Travel, Craft, Upgrade, Compound, Exchange or Brain gameplay authority is introduced.
 
 ## Goal
@@ -90,6 +93,9 @@ Expansion is eligible only when:
 - the gold reserve remains protected
 - the expansion circuit is closed
 - the official `open_bank_pack()` call and post-unlock verification pass
+- the Alpha.19 parent enable explicitly sets `allowExpansionPurchase:true`
+
+The ordinary `ALPHA19_SPACE_RECOVERY` acknowledgement alone cannot authorize a gold-spending expansion.
 
 Alpha.19 grants no Travel authority. An expansion that requires another bank floor is not followed automatically. The recovery operation falls through only to independently safe lower-priority recovery or selective blocking.
 
@@ -111,6 +117,9 @@ Requirements immediately before SELL:
 - protected minimum reserve remains preserved
 - requested quantity is exactly `1`
 - controlled SELL executor is explicitly scoped to SELL only
+- the Alpha.19 parent enable explicitly sets `allowEmergencyReclaim:true`
+
+The ordinary `ALPHA19_SPACE_RECOVERY` acknowledgement alone cannot authorize SELL.
 
 Hard limits:
 
@@ -147,8 +156,8 @@ Alpha.19 orchestrates existing controlled executors; it does not gain unrestrict
 During one explicitly enabled operation it may temporarily scope:
 
 - Controlled Merchant to `BANK` only, or
-- Controlled Merchant to `SELL` only for the one-unit reclaim, or
-- Controlled Bank Expansion for one same-floor expansion, or
+- Controlled Merchant to `SELL` only for the one-unit reclaim when the separate reclaim budget is true, or
+- Controlled Bank Expansion for one same-floor expansion when the separate purchase budget is true, or
 - Controlled Bank Consolidation for the verified retrieve/store pair
 
 All child executors are disabled in `finally` paths.
@@ -174,9 +183,10 @@ Combat, party, monitoring and other independent non-inventory work may continue 
 
 ## Internal test gate
 
-`alpha19-merchant-space-recovery.test.js` covers at minimum:
+Alpha.19 automated coverage includes:
 
 - default-off and wrong-ack rejection
+- separate expansion-purchase and Emergency-Reclaim budgets default-off
 - restart recovery with no blind retry
 - consolidation no-workspace fail-closed behavior
 - exact retrieve/store consolidation and quantity conservation
@@ -186,11 +196,77 @@ Combat, party, monitoring and other independent non-inventory work may continue 
 - selective non-global blocking
 - parent circuit breaker
 - 2500-cycle bounded journal soak and active-operation dedupe
+- combined live-gate source selection, real BANK canary, zero-action unauthorized paths and passive error detection
 
-The exact final implementation PR head must pass the complete repository test suite, generated browser bundle verification, browser bundle smoke and diff check before merge.
+The exact final live-gate preparation PR head must pass the complete repository test suite, generated browser bundle verification, browser bundle smoke and diff check before merge.
 
-## Confirmation still required after implementation merge
+## Combined production live confirmation gate
 
-Merging the Alpha.19 core implementation does **not** make the phase FULL CONFIRMED.
+The Alpha.19 combined live gate is deliberately evidence-driven. It never fabricates inventory pressure, fills the bank artificially, creates disposable items, or forces a SELL/expansion merely to obtain coverage.
 
-After merge we still require a combined production live gate with bounded real evidence, log review, then a separate documentation-only confirmation PR certified and merged against its exact final head.
+Required gate acknowledgement:
+
+`ALPHA19_FULL_LIVE_GATE`
+
+Production observation window is fixed at **10 minutes**. Test-mode shortened windows are never confirmation-eligible.
+
+The gate:
+
+1. normalizes runtime to `shadow`, Farmer off and every controlled child executor off
+2. verifies Merchant/alive/bank/no-combat/Supervisor/circuit/default-off invariants
+3. proves a wrong Alpha.19 parent acknowledgement cannot enable authority
+4. refreshes Inventory Ledger and chooses only a real, fresh item already classified `BANK`
+5. reserves exactly one Alpha.19 parent recovery operation from that real source
+6. optionally executes that one operation only when `allowControlledRecovery:true`
+7. requires separate `allowExpansionPurchase:true` before a justified same-floor bank purchase
+8. requires separate `allowEmergencyReclaim:true` before a justified one-unit SELL
+9. never grants Travel authority for a cross-floor expansion
+10. returns to `shadow`/default-off before the 10-minute passive window
+11. fails closed on error events, opened circuits, authority leakage, unexpected action attempts or safety invariant violations
+
+Recommended first production run keeps Emergency Reclaim disabled:
+
+```js
+AIO_V3.__runtime.runAlpha19CombinedLiveGate({
+  ack: "ALPHA19_FULL_LIVE_GATE",
+  allowControlledRecovery: true,
+  allowExpansionPurchase: true,
+  allowEmergencyReclaim: false
+});
+```
+
+`allowExpansionPurchase:true` does not force a purchase. It only permits one if the real planner independently justifies a safe same-floor expansion and all preflight rules still pass.
+
+`allowEmergencyReclaim:false` means a real situation that genuinely requires reclaim will remain safe but will not satisfy FULL-confirmation coverage. Do not manufacture such a situation. A later deliberate rerun may explicitly allow one-unit reclaim only if the live evidence and operator intent justify it.
+
+A preferred low-risk live canary is a real item that the operator already intends to bank. It must first be positively classified `BANK` through the existing Inventory Action Policy. The gate never changes that policy itself.
+
+While the gate is running, leave the Merchant in the bank and do not manually enable Farmer, active mode, Travel or controlled executors.
+
+Status while running:
+
+```js
+AIO_V3.__runtime.alpha19LiveGateStatus()
+```
+
+Final result if the console block is missed:
+
+```js
+AIO_V3.__runtime.alpha19LiveGateResultText()
+```
+
+Expected result markers:
+
+```text
+=== ALPHA19 FULL LIVE GATE RESULT BEGIN ===
+...
+=== ALPHA19 FULL LIVE GATE RESULT END ===
+```
+
+A production result is confirmation-eligible only when `pass === true`, `confirmationEligible === true`, the complete 10-minute observation is satisfied, the selected real recovery coverage committed, no error events or unexpected action deltas occurred, all circuits remain closed, and the final state is shadow/default-off.
+
+## Confirmation still required after live-gate preparation merge
+
+Merging the Alpha.19 live-gate preparation does **not** make the phase FULL CONFIRMED.
+
+After that merge we still require the actual combined production live result, log review, then a separate documentation-only confirmation PR certified and merged against its exact final head.

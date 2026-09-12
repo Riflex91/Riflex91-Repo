@@ -78,6 +78,8 @@ test('Alpha.19 runtime reports .19 while every new live authority remains defaul
   assert.equal(status.alpha19.shellExpansionAuthority, false);
   assert.equal(status.economy.merchantSpaceRecovery.enabled, false);
   assert.equal(status.economy.merchantSpaceRecovery.actionAuthority, false);
+  assert.equal(status.economy.merchantSpaceRecovery.expansionPurchaseAuthority, false);
+  assert.equal(status.economy.merchantSpaceRecovery.emergencyReclaimAuthority, false);
   assert.doesNotThrow(() => JSON.stringify(status));
   assert.doesNotThrow(() => JSON.parse(runtime.exportDiagnostics()));
 });
@@ -121,7 +123,7 @@ test('cross-floor expansion can fall through to one freshly revalidated reclaim 
   const planned = recovery.plan({ character: 'MerchantA', index: 0, item: 'scrap', depositBlocked: true });
   assert.equal(planned.accepted, true);
   assert.equal(planned.plan.action, 'EXPAND_BANK_PACK');
-  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK });
+  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK, allowEmergencyReclaim: true });
   const result = await recovery.execute(planned.operation.id);
   assert.equal(result.committed, true);
   assert.equal(sellCalls, 1);
@@ -129,6 +131,75 @@ test('cross-floor expansion can fall through to one freshly revalidated reclaim 
   assert.ok(planCalls >= 2);
   assert.equal(result.operation.emergencyReclaimCount, 1);
   assert.equal(result.operation.rawActionCount, 1);
+});
+
+test('cross-floor fallback cannot SELL without explicit emergency reclaim budget', async () => {
+  const r = root();
+  let sellCalls = 0;
+  const candidate = reclaimCandidate();
+  const manager = {
+    planSpace: () => ({ planned: true, action: 'EXPAND_BANK_PACK', reason: 'BANK_EXPANSION_SAFE', pack: 'items9', map: 'bank_b', currency: 'gold', cost: 475000000, requiresTravel: true }),
+    _reclaim: () => candidate
+  };
+  const journal = new MerchantSpaceRecoveryJournal();
+  const recovery = new HardenedControlledMerchantSpaceRecovery({
+    root: r,
+    journal,
+    manager,
+    transactionEngine: { plan: () => { throw new Error('SELL transaction must not be planned without reclaim budget'); } },
+    ledger: {},
+    controlledMerchant: childExecutor(async () => { sellCalls += 1; return { executed: true, committed: true }; }),
+    expansionTransactions: {},
+    controlledExpansion: childExecutor(),
+    controlledConsolidation: childExecutor(),
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    observeBank: () => ({ packs: [], totals: { free: 0 } }),
+    getGameData: () => r.G
+  });
+
+  const planned = recovery.plan({ character: 'MerchantA', index: 0, item: 'scrap', depositBlocked: true });
+  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK });
+  assert.equal(recovery.status().emergencyReclaimAuthority, false);
+  const result = await recovery.execute(planned.operation.id);
+  assert.equal(result.blocked, true);
+  assert.equal(result.reason, 'EMERGENCY_RECLAIM_NOT_AUTHORIZED');
+  assert.equal(sellCalls, 0);
+  assert.equal(result.operation.rawActionCount, 0);
+  assert.equal(result.operation.emergencyReclaimCount, 0);
+});
+
+test('same-floor expansion cannot spend gold without explicit expansion purchase budget', async () => {
+  const r = root();
+  let expansionCalls = 0;
+  const manager = {
+    planSpace: () => ({ planned: true, action: 'EXPAND_BANK_PACK', reason: 'BANK_EXPANSION_SAFE', pack: 'items1', map: 'bank', currency: 'gold', cost: 500, requiresTravel: false })
+  };
+  const journal = new MerchantSpaceRecoveryJournal();
+  const recovery = new HardenedControlledMerchantSpaceRecovery({
+    root: r,
+    journal,
+    manager,
+    transactionEngine: {},
+    ledger: {},
+    controlledMerchant: childExecutor(),
+    expansionTransactions: { plan: () => { throw new Error('expansion transaction must not be planned without purchase budget'); } },
+    controlledExpansion: childExecutor(async () => { expansionCalls += 1; return { executed: true, committed: true, rawActions: 1 }; }),
+    controlledConsolidation: childExecutor(),
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    observeBank: () => ({ packs: [], totals: { free: 0 } }),
+    getGameData: () => r.G
+  });
+
+  const planned = recovery.plan({ character: 'MerchantA', index: 0, item: 'scrap', depositBlocked: true });
+  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK });
+  assert.equal(recovery.status().expansionPurchaseAuthority, false);
+  const result = await recovery.execute(planned.operation.id);
+  assert.equal(result.blocked, true);
+  assert.equal(result.reason, 'EXPANSION_PURCHASE_NOT_AUTHORIZED');
+  assert.equal(expansionCalls, 0);
+  assert.equal(result.operation.rawActionCount, 0);
 });
 
 test('no-workspace consolidation can fall through safely to one reclaim and never calls consolidation raw APIs', async () => {
@@ -160,7 +231,7 @@ test('no-workspace consolidation can fall through safely to one reclaim and neve
   });
 
   const planned = recovery.plan({ character: 'MerchantA', index: 0, item: 'scrap', depositBlocked: true });
-  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK });
+  recovery.configure({ enabled: true, ack: CONTROLLED_SPACE_RECOVERY_ACK, allowEmergencyReclaim: true });
   const result = await recovery.execute(planned.operation.id);
   assert.equal(result.committed, true);
   assert.equal(consolidationCalls, 1);

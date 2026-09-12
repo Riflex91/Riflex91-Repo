@@ -5,6 +5,7 @@ const { RELEASE_VERSION } = require('../release-version');
 const { MerchantSpaceRecoveryJournal } = require('../economy/merchant-space-recovery-journal');
 const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('../economy/controlled-bank-consolidation-executor');
 const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery-hardened');
+const { Alpha19CombinedLiveGate, ALPHA19_LIVE_GATE_ACK } = require('../ops/alpha19-combined-live-gate');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
@@ -52,6 +53,15 @@ class Alpha19Runtime extends Alpha18Runtime {
       observeBank: () => this._observeBankCapacity(),
       getGameData: () => this.adapter.getGameData() || {},
       getContentDrift: () => this.contentDrift
+    });
+    this.alpha19LiveGate = options.alpha19LiveGate || new Alpha19CombinedLiveGate({
+      runtime: this,
+      root: this.root,
+      now: this.now,
+      testMode: options.alpha19LiveGateTestMode === true,
+      observationMs: options.alpha19LiveGateObservationMs,
+      sampleMs: options.alpha19LiveGateSampleMs,
+      sleep: options.alpha19LiveGateSleep
     });
   }
 
@@ -123,6 +133,11 @@ class Alpha19Runtime extends Alpha18Runtime {
     return this.controlledMerchantSpaceRecovery.reconcile(id);
   }
 
+  runAlpha19CombinedLiveGate(config = {}) { return this.alpha19LiveGate.run(config); }
+  alpha19LiveGateStatus() { return this.alpha19LiveGate.status(); }
+  alpha19LiveGateResult() { return this.alpha19LiveGate.result(); }
+  alpha19LiveGateResultText() { return this.alpha19LiveGate.resultText(); }
+
   stop() {
     this.controlledMerchantSpaceRecovery.disable('RUNTIME_STOP');
     this.controlledBankConsolidation.disable('RUNTIME_STOP');
@@ -140,10 +155,14 @@ class Alpha19Runtime extends Alpha18Runtime {
         merchantSpaceRecovery: true,
         controlledSpaceRecoveryAck: CONTROLLED_SPACE_RECOVERY_ACK,
         controlledConsolidationAck: CONTROLLED_BANK_CONSOLIDATION_ACK,
+        liveGateAck: ALPHA19_LIVE_GATE_ACK,
+        liveGate: this.alpha19LiveGate.status(),
         maxRawActionsPerOperation: MAX_RAW_ACTIONS_PER_OPERATION,
         emergencyReclaimMaxUnitsPerOperation: 1,
         emergencyReclaimBulkAllowed: false,
         emergencyReclaimRequiresFreshReobservation: true,
+        separateExpansionPurchaseBudget: true,
+        separateEmergencyReclaimBudget: true,
         travelAuthority: false,
         shellExpansionAuthority: false,
         craftingAuthority: false,
@@ -164,6 +183,7 @@ class Alpha19Runtime extends Alpha18Runtime {
       journal: this.merchantSpaceRecoveryJournal.list(100),
       consolidation: this.controlledBankConsolidation.status()
     };
+    base.context.alpha19LiveGate = this.alpha19LiveGate.status();
     return JSON.stringify(base, null, 2);
   }
 }
