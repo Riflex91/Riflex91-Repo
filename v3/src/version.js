@@ -1,5 +1,5 @@
 'use strict';
 
-const VERSION = '3.0.0-alpha.11.0';
+const { RELEASE_VERSION: VERSION } = require('./release-version');
 
 module.exports = { VERSION };
