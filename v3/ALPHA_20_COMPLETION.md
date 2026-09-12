@@ -10,9 +10,15 @@ Release: `3.0.0-alpha.20.0`
 - Alpha.20 core merge on `main`: `63d16e2798f1275a7f1bcc8f9028c27d0789e0a6`.
 - Alpha.20 core merge tree: `0778b2b6e76d47f3f7cede46d91c0c38471a1661`.
 - Core merge parents: previous confirmed `main` `144d83a92cf00d178fb8902e9cd6c70b10e5c2ea` + exact certified PR head `6e2ba60b05dcf14e338e2a8bf5ecd8eceebeaede`.
-- Alpha.20 combined four-character live-gate preparation: **IN PREPARATION / NOT YET MERGED**.
-- Alpha.20 production confirmation: **NOT YET CONFIRMED**.
-- Alpha.20 remains **NOT FULL CONFIRMED** until live-gate preparation is exact-head certified and merged, one genuine four-character production run is reviewed, and a separate confirmation PR is exact-head certified and merged.
+- Alpha.20 combined four-character live-gate preparation: **MERGED** via PR #72.
+- Alpha.20 exact certified live-gate prep head: `8d3dce7f5a5dda11eb532e64addf152343da8b3f`.
+- Alpha.20 live-gate prep merge on `main`: `bce44c2e12b779222e414e754bb7412ee6168e21`.
+- Alpha.20 live-gate prep merge tree: `d06bd7aa9d17f4a87892e28e891ff5a936633930`.
+- Live-gate prep merge parents: core `main` `63d16e2798f1275a7f1bcc8f9028c27d0789e0a6` + exact certified prep head `8d3dce7f5a5dda11eb532e64addf152343da8b3f`.
+- Alpha.20 genuine four-character production live gate: **PASSED / CONFIRMATION ELIGIBLE**.
+- Production result: `pass:true`, `confirmationEligible:true`, `confirmationBlockers:[]`.
+- Separate documentation-only confirmation PR: **IN PROGRESS**.
+- Alpha.20 remains **NOT FULL CONFIRMED** until the confirmation PR exact final head passes full CI, is SHA-bound merged, and final `main`/tree/both parents are verified.
 
 Default runtime remains `shadow`. Party transition, Development rotation and Paladin aura authority remain independently default-off. Strategic Brain gameplay authority, cross-map party routing, broad `smart_move()` autonomy and server changes remain disabled.
 
@@ -148,55 +154,51 @@ Production gates emit:
 
 Countdown reporting is observation-only and cannot change gate timing or pass/fail semantics.
 
-## Recommended first production run
+## Production live result — 2026-09-12
 
-Run the gate on the **Merchant** after live-gate preparation has been exact-head certified and merged to `main`:
+The first genuine Merchant-hosted four-character production run completed successfully against merged `main` `bce44c2e12b779222e414e754bb7412ee6168e21`.
 
-```js
-AIO_V3.__runtime.runAlpha20CombinedLiveGate({
-  ack: "ALPHA20_FULL_LIVE_GATE",
-  allowControlledPartyTransition: true,
-  allowDevelopmentRotation: false
-});
-```
+Reviewed result:
 
-This first production run permits one genuinely measured permanent Promotion if the real lifecycle already justifies it, but it **does not authorize a Development training rotation**.
+- release `3.0.0-alpha.20.0`
+- `pass:true`
+- `confirmationEligible:true`
+- `confirmationBlockers:[]`
+- production/testMode `false`
+- precheck passed with a real Merchant + three combat characters
+- all four members online, fresh/present, alive and available
+- wrong lifecycle/aura acknowledgements rejected
+- candidate probe: `NO_CHANGE_JUSTIFIED`
+- Promotion candidates: `0`
+- Development candidates: `0`
+- transition canary: `NOT_JUSTIFIED`
+- raw party transition attempts: `0`
+- passive elapsed: `601676 ms`
+- passive samples: `121`
+- full-duration coverage satisfied
+- four-character coverage satisfied
+- lifecycle evaluation coverage satisfied
+- passive violations: `[]`
+- error events: `[]`
+- every unexpected controlled action delta: `0`
+- countdown completed
+- Merchant remained alive and out of combat
+- cancellation was never requested
+- monitored circuits remained closed
+- final runtime returned/remained `shadow`
+- Farmer and all controlled party/aura/economy/travel authorities were off
+- legacy transition/aura bypasses were off
+- final violations: `[]`
 
-Status while running:
+The Supervisor remained `WATCH` due `CONTENT_REVALIDATION_REQUIRED`, which is an explicitly allowed gate state. No economy emergency occurred.
 
-```js
-console.log(AIO_V3.__runtime.alpha20LiveGateStatus());
-```
+Zero party transitions are the correct result for this run because the measured lifecycle had no genuine Promotion or Development change to execute. The gate correctly did not fabricate a candidate for coverage.
 
-Explicit safe abort if truly required:
-
-```js
-AIO_V3.__runtime.cancelAlpha20CombinedLiveGate("OPERATOR_CANCELLED");
-```
-
-An aborted run is not confirmation eligible and must later be rerun from the beginning.
-
-After completion:
-
-```js
-console.log(AIO_V3.__runtime.alpha20LiveGateResultText());
-```
-
-Copy the complete block between:
-
-`=== ALPHA20 FULL LIVE GATE RESULT BEGIN ===`
-
-and
-
-`=== ALPHA20 FULL LIVE GATE RESULT END ===`
-
-for review.
-
-Do not manually enable Farmer, Travel, controlled economy, party lifecycle, aura automation or legacy transition authority during the passive observation. Do not force a Promotion/Development candidate merely to obtain coverage.
+Full evidence is recorded in `v3/ALPHA_20_LIVE_CONFIRMATION.md`.
 
 ## Live-gate automated coverage
 
-Live-gate preparation adds tests for:
+Live-gate preparation added tests for:
 
 - exact gate acknowledgement
 - real Merchant + three combat party requirement
@@ -214,7 +216,7 @@ Live-gate preparation adds tests for:
 - Merchant death/combat during passive observation fails closed
 - public Alpha20Runtime exposes hardened gate status/result/cancel surfaces
 
-The current integrated prep branch passes **368/368** tests with browser bundle **92 modules / 892018 bytes**, bundle smoke OK and diff check clean. Exact PR-head certification is still required before merge.
+The exact live-gate preparation PR #72 head `8d3dce7f5a5dda11eb532e64addf152343da8b3f` passed the complete release workflow with **368/368** tests, browser bundle **92 modules / 892018 bytes**, bundle smoke OK, generated-bundle verification and diff check clean before SHA-bound merge.
 
 ## FULL CONFIRMED definition
 
@@ -222,12 +224,12 @@ Alpha.20 becomes **FULL CONFIRMED** only after:
 
 1. core exact-head certified and SHA-bound merged — **DONE**
 2. core `main`/tree/both parents verified — **DONE**
-3. combined four-character live-gate preparation exact-head certified and SHA-bound merged
-4. one genuine production four-character live gate completes with `confirmationEligible:true`
-5. complete result/log review confirms lifecycle, transition, aura-boundary, circuit, default-off and unexpected-action invariants
-6. separate documentation-only confirmation PR records the evidence
-7. confirmation PR exact final head passes full CI
-8. confirmation PR is SHA-bound merged
-9. final `main`, tree and both parents are verified
+3. combined four-character live-gate preparation exact-head certified and SHA-bound merged — **DONE**
+4. one genuine production four-character live gate completes with `confirmationEligible:true` — **DONE**
+5. complete result/log review confirms lifecycle, transition, aura-boundary, circuit, default-off and unexpected-action invariants — **DONE**
+6. separate documentation-only confirmation PR records the evidence — **IN PROGRESS**
+7. confirmation PR exact final head passes full CI — **PENDING**
+8. confirmation PR is SHA-bound merged — **PENDING**
+9. final `main`, tree and both parents are verified — **PENDING**
 
 Until step 9, Alpha.20 must not be described as FULL CONFIRMED.
