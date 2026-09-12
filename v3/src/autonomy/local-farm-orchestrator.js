@@ -58,7 +58,7 @@ class LocalFarmOrchestrator {
       noProgressAborts: 0,
       leaseAborts: 0,
       circuitWaits: 0,
-      safeVisibleTargetYields: 0
+      visibleMonsterYields: 0
     };
   }
 
@@ -77,14 +77,14 @@ class LocalFarmOrchestrator {
     });
   }
 
-  _safeVisibleMonsters(runtime, snapshot, gameData, party) {
-    if (!runtime || !snapshot) return [];
-    try {
-      const filtered = runtime._farmSnapshot(snapshot, gameData || {}, party || {});
-      return (filtered && filtered.entities || []).filter((entity) => entity && entity.mtype && !entity.dead && (entity.hp == null || Number(entity.hp) > 0));
-    } catch (_) {
-      return [];
-    }
+  _visibleMonsters(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c) return [];
+    return (snapshot.entities || []).filter((entity) => {
+      if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
+      if (entity.map && c.map && entity.map !== c.map) return false;
+      return true;
+    });
   }
 
   _selfAggro(snapshot) {
@@ -93,14 +93,14 @@ class LocalFarmOrchestrator {
     return (snapshot.entities || []).filter((entity) => entity && entity.mtype && !entity.dead && entity.target === name);
   }
 
-  _canReposition(runtime, snapshot, safeVisible) {
+  _canReposition(runtime, snapshot, visibleMonsters) {
     if (!this.enabled) return { allowed: false, reason: 'LOCAL_FARMING_DISABLED' };
     if (!snapshot || !snapshot.character) return { allowed: false, reason: 'SNAPSHOT_UNAVAILABLE' };
     const c = snapshot.character;
     if (c.rip) return { allowed: false, reason: 'CHARACTER_DEAD' };
     if (ratio(c.hp, c.max_hp) < this.config.engageHpRatio) return { allowed: false, reason: 'HP_RECOVERY_REQUIRED' };
     if (this._selfAggro(snapshot).length) return { allowed: false, reason: 'SELF_AGGRO_PRESENT' };
-    if (safeVisible && safeVisible.length) return { allowed: false, reason: 'SAFE_VISIBLE_TARGET_AVAILABLE' };
+    if (visibleMonsters && visibleMonsters.length) return { allowed: false, reason: 'VISIBLE_MONSTER_PRESENT' };
     const farmer = runtime && runtime.farmer;
     if (farmer && farmer.targetId) return { allowed: false, reason: 'FARMER_TARGET_ACTIVE' };
     if (farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state)) return { allowed: false, reason: `FARMER_${farmer.state}` };
@@ -241,15 +241,15 @@ class LocalFarmOrchestrator {
     const party = context.party;
     const gameData = context.gameData || runtime && runtime.adapter && runtime.adapter.getGameData && runtime.adapter.getGameData() || {};
     const now = this.now();
-    const safeVisible = this._safeVisibleMonsters(runtime, snapshot, gameData, party);
+    const visibleMonsters = this._visibleMonsters(snapshot);
 
-    if (safeVisible.length) {
-      this.stats.safeVisibleTargetYields += 1;
-      this.lastDecision = { at: now, action: 'YIELD', reason: 'SAFE_VISIBLE_TARGET_AVAILABLE', visibleCount: safeVisible.length };
+    if (visibleMonsters.length) {
+      this.stats.visibleMonsterYields += 1;
+      this.lastDecision = { at: now, action: 'YIELD', reason: 'VISIBLE_MONSTER_PRESENT', visibleCount: visibleMonsters.length };
       return this.lastDecision;
     }
 
-    const gate = this._canReposition(runtime, snapshot, safeVisible);
+    const gate = this._canReposition(runtime, snapshot, visibleMonsters);
     if (!gate.allowed) {
       if (gate.reason === 'MOVEMENT_CIRCUIT_OPEN') this.stats.circuitWaits += 1;
       this.lastDecision = { at: now, action: 'WAIT', reason: gate.reason };
