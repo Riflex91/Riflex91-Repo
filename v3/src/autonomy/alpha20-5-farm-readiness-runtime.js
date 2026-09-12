@@ -13,6 +13,7 @@ const { installLiveNavigationHotfix } = require('../reliability/live-navigation-
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
+const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
 const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
 const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
 const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
@@ -57,10 +58,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
 
-    // 2026-09 live diagnostics: special fairies inherited LEGACY_ALLOWED,
-    // direct Farmer travel requested very large raw moves, content-drift writes
-    // exhausted localStorage, and send_cm therefore failed repeatedly. Keep the
-    // fixes modular so the proven Alpha.20 action boundaries remain unchanged.
+    // Live reliability fixes remain modular so the proven Alpha.20 action
+    // boundaries are unchanged. Persistence failure may reduce observability,
+    // but must never rewrite combat-safety semantics.
     this.dangerousContentHotfix = installDangerousContentHotfix(this);
     this.farmerTravelSafetyHotfix = installFarmerTravelSafetyHotfix(this, {
       minStep: options.farmerTravelMinStep,
@@ -71,6 +71,11 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxRecordsAfterQuota: options.contentDriftQuotaMaxRecords,
       retryBaseMs: options.contentDriftQuotaRetryBaseMs,
       retryMaxMs: options.contentDriftQuotaRetryMaxMs
+    });
+    this.contentDriftSemanticRecovery = installContentDriftSemanticRecovery(this, {
+      minHistoricalLeadMs: options.contentDriftRecoveryHistoricalLeadMs,
+      maxAutoQuarantineLagMs: options.contentDriftRecoveryAutoQuarantineLagMs,
+      intervalMs: options.contentDriftRecoveryIntervalMs
     });
     this.partyAccountCommunication = installPartyAccountCommunication(this, {
       telemetryBaseBackoffMs: options.partyTelemetryFailureBackoffMs,
@@ -106,6 +111,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
   }
 
   tick() {
+    this.contentDriftSemanticRecovery.beforeTick();
     this.dangerousContentHotfix.beforeTick();
     this.partyBootstrap.tick();
     this.preFarmingReliability.beforeTick();
@@ -128,6 +134,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      contentDriftSemanticRecovery: this.contentDriftSemanticRecovery.status(),
       partyAccountCommunication: this.partyAccountCommunication.status(),
       partyBootstrap: this.partyBootstrap.status(),
       partyBootstrapMerchantDiscoveryHotfix: this.partyBootstrapMerchantDiscoveryHotfix.status(),
@@ -162,6 +169,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      contentDriftSemanticRecovery: this.contentDriftSemanticRecovery.status(),
       partyBootstrapFarmerGate: this.partyBootstrapFarmerGate.status(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
@@ -179,11 +187,12 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
-        partyTrustUsesActiveOwnedCharacters: true,
+        partyTrustUsesExplicitRoster: true,
         partyBootstrapEnabled: true,
-        partyBootstrapRequiresFullPartyForFarming: true,
-        partyCommunicationPrefersCommandCharacter: true,
-        contentDriftQuotaRecoveryBounded: true,
+        partyBootstrapDoesNotGateTrustedFarmerProgress: true,
+        partyCommunicationDirectRequiresObservedActive: true,
+        contentDriftQuotaRecoveryMutatesSafetyKnowledge: false,
+        contentDriftFalseNoveltyRecoveryRequiresHistoricalEvidence: true,
         incompleteSupplyFailClosed: true,
         incompleteLocationFailClosed: true,
         stableContentFingerprintProfile: true,
