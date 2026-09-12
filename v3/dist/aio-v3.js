@@ -18744,6 +18744,23 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     this.log.emit({ component: 'merchant-service', event: 'MERCHANT_SERVICE_PLAN', severity: plan.kind === MerchantServicePlanKind.RESTOCK_REQUIRED || plan.kind === MerchantServicePlanKind.COLLECTION_REQUIRED ? 'warn' : 'info', reason: plan.reason, data: { kind: plan.kind, target: plan.target || null, need: plan.need || null } });
   }
 
+  _merchantServiceAuditData(plan, result) {
+    const delivery = plan && plan.delivery || {};
+    const target = plan && plan.target || {};
+    return {
+      planId: plan && plan.id || null,
+      kind: plan && plan.kind || null,
+      targetName: result && result.targetName || target.name || null,
+      itemName: result && result.itemName || delivery.itemName || null,
+      quantity: finite(result && result.quantity, finite(delivery.quantity)),
+      sourceReportAt: finite(result && result.sourceReportAt, finite(plan && plan.sourceReportAt)),
+      standSlot: finite(result && result.standSlot),
+      committed: result && result.committed === true,
+      executed: result && result.executed === true,
+      route: result && result.route ? clone(result.route) : null
+    };
+  }
+
   async _executeMerchantTravel(plan) {
     if (!this.merchantServiceAllowTravel) return { executed: false, reason: 'MERCHANT_SERVICE_TRAVEL_AUTHORITY_DISABLED' };
     if (!this.controlledTravel || !this.controlledTravel.status().enabled) return { executed: false, reason: 'CONTROLLED_TRAVEL_NOT_ENABLED' };
@@ -18768,7 +18785,18 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     this.merchantServiceExecutionPending = true;
     const pending = plan.kind === MerchantServicePlanKind.SERVICE_TRAVEL ? this._executeMerchantTravel(plan) : this.controlledMerchantService.execute(plan);
     Promise.resolve(pending)
-      .then((result) => { this.lastMerchantServiceExecution = { at: this.now(), planId: plan.id, kind: plan.kind, result: clone(result) }; })
+      .then((result) => {
+        this.lastMerchantServiceExecution = { at: this.now(), planId: plan.id, kind: plan.kind, result: clone(result) };
+        if (result && result.committed === true) {
+          this.log.emit({
+            component: 'merchant-service',
+            event: 'MERCHANT_SERVICE_EXECUTION_COMMITTED',
+            severity: 'info',
+            reason: result.reason || 'COMMITTED',
+            data: this._merchantServiceAuditData(plan, result)
+          });
+        }
+      })
       .catch((error) => {
         this.lastMerchantServiceExecution = { at: this.now(), planId: plan.id, kind: plan.kind, result: { executed: false, reason: 'UNHANDLED_MERCHANT_SERVICE_ERROR', error: String(error && error.message || error) } };
         this.log.emit({ component: 'merchant-service', event: 'MERCHANT_SERVICE_EXECUTION_ERROR', severity: 'error', reason: 'UNHANDLED_MERCHANT_SERVICE_ERROR', data: { message: String(error && error.message || error) } });
@@ -18897,7 +18925,6 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
 }
 
 module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
-
 },
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
 'use strict';
