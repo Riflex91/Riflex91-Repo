@@ -20,6 +20,7 @@ const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime');
 const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
 const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
+const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK } = require('./autonomy/alpha20-5-merchant-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -65,6 +66,9 @@ const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE,
 const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('./economy/controlled-merchant-space-recovery-hardened');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
+const { RouteCostEstimator, ROUTE_COST_MODE } = require('./travel/route-cost-estimator');
+const { MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE } = require('./merchant/merchant-service-planner');
+const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE } = require('./merchant/controlled-merchant-service-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -81,7 +85,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20Runtime({ ...options, root });
+  const runtime = new Alpha20_5MerchantRuntime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -266,6 +270,13 @@ function install(root = globalThis, options = {}) {
         abort: (reason) => runtime.abortControlledTravel(reason)
       }
     },
+    merchantService: {
+      status: () => runtime.merchantServiceStatus(),
+      configure: (config = {}) => runtime.configureMerchantService(config),
+      disable: (reason) => runtime.disableMerchantService(reason),
+      reconcile: () => runtime.reconcileMerchantService(),
+      evaluate: () => runtime._merchantServiceCycle()
+    },
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
@@ -334,7 +345,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -358,12 +369,13 @@ module.exports = {
   ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE, CONTROLLED_BANK_CONSOLIDATION_ACK,
   HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION,
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
+  RouteCostEstimator, ROUTE_COST_MODE,
+  MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE, ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard, MinuteCountdownReporter,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
 };
-
 },
 "src/runtime.js": function(require,module,exports){
 'use strict';
@@ -18595,6 +18607,1022 @@ class MinuteCountdownReporter {
 }
 
 module.exports = { MinuteCountdownReporter };
+
+},
+"src/autonomy/alpha20-5-merchant-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha20Runtime } = require('./alpha20-runtime');
+const { MerchantServicePlanner, MerchantServicePlanKind } = require('../merchant/merchant-service-planner');
+const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_ACK } = require('../merchant/controlled-merchant-service-executor');
+const { RouteCostEstimator } = require('../travel/route-cost-estimator');
+
+const ALPHA20_5_MERCHANT_RUNTIME_MODE = 'alpha20.5-merchant-service-foundation';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
+class Alpha20_5MerchantRuntime extends Alpha20Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
+      now: this.now,
+      reportTtlMs: options.merchantServiceReportTtlMs,
+      criticalPotionCount: options.merchantServiceCriticalPotionCount,
+      lowPotionCount: options.merchantServiceLowPotionCount,
+      targetPotionCount: options.merchantServiceTargetPotionCount,
+      merchantPotionReserve: options.merchantServicePotionReserve,
+      maxDeliveryQuantity: options.merchantServiceMaxDeliveryQuantity,
+      criticalFreeSlots: options.merchantServiceCriticalFreeSlots,
+      lowFreeSlots: options.merchantServiceLowFreeSlots,
+      standWhenIdle: options.merchantServiceStandWhenIdle
+    });
+    this.merchantRouteEstimator = options.merchantRouteEstimator || new RouteCostEstimator({
+      minTownSavingsMs: options.merchantRouteMinTownSavingsMs,
+      defaultUncertaintyMs: options.merchantRouteUncertaintyMs
+    });
+    this.controlledMerchantService = options.controlledMerchantService || new ControlledMerchantServiceExecutor({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      storage: options.merchantServiceStorage || options.storage,
+      storageKey: options.merchantServiceStorageKey,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      getEconomyEmergency: () => this._alpha20EconomyEmergency(),
+      getTrustedNames: () => this.partyTelemetry && this.partyTelemetry.status ? this.partyTelemetry.status().trustedNames : [],
+      timeoutMs: options.merchantServiceTimeoutMs,
+      verifyDelayMs: options.merchantServiceVerifyDelayMs,
+      verifyAttempts: options.merchantServiceVerifyAttempts,
+      maxDeliveryDistance: options.merchantServiceMaxDeliveryDistance,
+      failureThreshold: options.merchantServiceFailureThreshold,
+      failureWindowMs: options.merchantServiceFailureWindowMs,
+      circuitCooldownMs: options.merchantServiceCircuitCooldownMs,
+      actionWindowMs: options.merchantServiceActionWindowMs,
+      maxActionsPerWindow: options.merchantServiceMaxActionsPerWindow
+    });
+    this.merchantServiceIntervalMs = Math.max(500, Math.min(30000, finite(options.merchantServiceIntervalMs, 2000)));
+    this.lastMerchantServiceAt = -Infinity;
+    this.lastMerchantServicePlan = null;
+    this.lastMerchantServiceExecution = null;
+    this.lastMerchantRouteDecision = null;
+    this.merchantServiceAllowTravel = false;
+    this.merchantTownEtaMs = finite(options.merchantTownEtaMs);
+    this.merchantServiceExecutionPending = false;
+    this.merchantServiceNoticeKey = null;
+  }
+
+  _localMerchant() {
+    const c = this.lastSnapshot && this.lastSnapshot.character;
+    return !!(c && String(c.ctype || '').toLowerCase() === 'merchant');
+  }
+
+  _merchantInCombat() {
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return false;
+    const c = snapshot.character;
+    if (c.target) return true;
+    return (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.target === c.name);
+  }
+
+  _controlledMerchantBusy() {
+    return !!(
+      this.controlledMerchantService && this.controlledMerchantService.status().busy ||
+      this.controlledTravel && this.controlledTravel.status().busy ||
+      this.controlledMerchant && this.controlledMerchant.status().busy ||
+      this.controlledMerchantSpaceRecovery && this.controlledMerchantSpaceRecovery.status().busy ||
+      this.controlledPartyLifecycle && this.controlledPartyLifecycle.status().busy
+    );
+  }
+
+  _standOpen() {
+    const c = this.root && (this.root.character || (this.root.parent && this.root.parent.character));
+    return !!(c && c.stand);
+  }
+
+  _routeDecision(plan) {
+    if (!plan || plan.kind !== MerchantServicePlanKind.SERVICE_TRAVEL || !plan.target) return null;
+    const c = this.lastSnapshot && this.lastSnapshot.character || {};
+    const sameMap = c.map && plan.target.map && String(c.map) === String(plan.target.map);
+    const cx = finite(c.x); const cy = finite(c.y); const tx = finite(plan.target.x); const ty = finite(plan.target.y);
+    const distance = sameMap && cx != null && cy != null && tx != null && ty != null ? Math.hypot(cx - tx, cy - ty) : null;
+    const directEtaMs = distance != null && finite(c.speed) > 0 ? distance / finite(c.speed) * 1000 : null;
+    const needPriority = plan.need && Number(plan.need.priority) >= 95 ? 'CRITICAL' : 'NORMAL';
+    return this.merchantRouteEstimator.choose({
+      directEtaMs,
+      distance,
+      speed: finite(c.speed),
+      townAvailable: !!(this.root && typeof this.root.town === 'function'),
+      townEtaMs: this.merchantTownEtaMs,
+      urgency: needPriority
+    });
+  }
+
+  _servicePlanInput() {
+    const snapshot = this.lastSnapshot;
+    const telemetry = this.partyTelemetry && this.partyTelemetry.status ? this.partyTelemetry.status() : { reports: [] };
+    return {
+      merchant: snapshot && snapshot.character || {},
+      reports: telemetry.reports || [],
+      standOpen: this._standOpen(),
+      inCombat: this._merchantInCombat(),
+      economyEmergency: this._alpha20EconomyEmergency(),
+      controlledBusy: this._controlledMerchantBusy(),
+      deliveryDistance: this.controlledMerchantService.status().maxDeliveryDistance
+    };
+  }
+
+  _noteMerchantServicePlan(plan) {
+    if (!plan) return;
+    const key = `${plan.kind}:${plan.reason}:${plan.target && plan.target.name || '-'}`;
+    if (key === this.merchantServiceNoticeKey) return;
+    this.merchantServiceNoticeKey = key;
+    this.log.emit({ component: 'merchant-service', event: 'MERCHANT_SERVICE_PLAN', severity: plan.kind === MerchantServicePlanKind.RESTOCK_REQUIRED || plan.kind === MerchantServicePlanKind.COLLECTION_REQUIRED ? 'warn' : 'info', reason: plan.reason, data: { kind: plan.kind, target: plan.target || null, need: plan.need || null } });
+  }
+
+  async _executeMerchantTravel(plan) {
+    if (!this.merchantServiceAllowTravel) return { executed: false, reason: 'MERCHANT_SERVICE_TRAVEL_AUTHORITY_DISABLED' };
+    if (!this.controlledTravel || !this.controlledTravel.status().enabled) return { executed: false, reason: 'CONTROLLED_TRAVEL_NOT_ENABLED' };
+    if (!plan.target || !plan.target.map || finite(plan.target.x) == null || finite(plan.target.y) == null) return { executed: false, reason: 'SERVICE_TARGET_POSITION_UNAVAILABLE' };
+    if (this.lastMerchantRouteDecision && this.lastMerchantRouteDecision.route === 'TOWN') {
+      return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
+    }
+    const planned = this.planTravel({
+      destination: { map: plan.target.map, x: plan.target.x, y: plan.target.y },
+      metadata: { source: 'MERCHANT_SERVICE', servicePlanId: plan.id, targetName: plan.target.name }
+    });
+    if (!planned || planned.accepted !== true || !planned.plan) return { executed: false, reason: planned && planned.reason || 'SERVICE_TRAVEL_PLAN_REJECTED' };
+    return this.executeTravelPlan(planned.plan.id);
+  }
+
+  _scheduleMerchantServiceExecution(plan) {
+    if (this.merchantServiceExecutionPending || !plan) return false;
+    const controlled = this.controlledMerchantService.status();
+    if (!controlled.enabled) return false;
+    const executable = [MerchantServicePlanKind.STAND_OPEN, MerchantServicePlanKind.STAND_CLOSE, MerchantServicePlanKind.SERVICE_DELIVERY, MerchantServicePlanKind.SERVICE_TRAVEL].includes(plan.kind);
+    if (!executable) return false;
+    this.merchantServiceExecutionPending = true;
+    const pending = plan.kind === MerchantServicePlanKind.SERVICE_TRAVEL ? this._executeMerchantTravel(plan) : this.controlledMerchantService.execute(plan);
+    Promise.resolve(pending)
+      .then((result) => { this.lastMerchantServiceExecution = { at: this.now(), planId: plan.id, kind: plan.kind, result: clone(result) }; })
+      .catch((error) => {
+        this.lastMerchantServiceExecution = { at: this.now(), planId: plan.id, kind: plan.kind, result: { executed: false, reason: 'UNHANDLED_MERCHANT_SERVICE_ERROR', error: String(error && error.message || error) } };
+        this.log.emit({ component: 'merchant-service', event: 'MERCHANT_SERVICE_EXECUTION_ERROR', severity: 'error', reason: 'UNHANDLED_MERCHANT_SERVICE_ERROR', data: { message: String(error && error.message || error) } });
+      })
+      .finally(() => { this.merchantServiceExecutionPending = false; });
+    return true;
+  }
+
+  _merchantServiceCycle() {
+    if (!this._localMerchant()) return null;
+    const plan = this.merchantServicePlanner.plan(this._servicePlanInput());
+    this.lastMerchantServicePlan = plan;
+    this.lastMerchantRouteDecision = this._routeDecision(plan);
+    this._noteMerchantServicePlan(plan);
+    this._scheduleMerchantServiceExecution(plan);
+    return plan;
+  }
+
+  tick() {
+    super.tick();
+    const now = this.now();
+    if (now - this.lastMerchantServiceAt >= this.merchantServiceIntervalMs) {
+      this.lastMerchantServiceAt = now;
+      this._merchantServiceCycle();
+    }
+  }
+
+  configureMerchantService(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        this.controlledMerchantService.disable(gate.reason);
+        this.merchantServiceAllowTravel = false;
+        return { ...this.merchantServiceStatus(), enableRejected: gate.reason };
+      }
+    }
+    const controlled = this.controlledMerchantService.configure({
+      enabled: config.enabled === true,
+      ack: config.ack,
+      allowStand: config.allowStand === true,
+      allowDelivery: config.allowDelivery === true
+    });
+    this.merchantServiceAllowTravel = controlled.enabled && config.ack === CONTROLLED_MERCHANT_SERVICE_ACK && config.allowTravel === true;
+    return this.merchantServiceStatus();
+  }
+
+  disableMerchantService(reason = 'OPERATOR_DISABLED') {
+    this.merchantServiceAllowTravel = false;
+    this.controlledMerchantService.disable(reason);
+    return this.merchantServiceStatus();
+  }
+
+  reconcileMerchantService() {
+    return this.controlledMerchantService.reconcile();
+  }
+
+  merchantServiceStatus() {
+    return {
+      schemaVersion: 1,
+      mode: ALPHA20_5_MERCHANT_RUNTIME_MODE,
+      planner: this.merchantServicePlanner.status(),
+      controlled: this.controlledMerchantService.status(),
+      allowTravel: this.merchantServiceAllowTravel,
+      liveTownAuthority: false,
+      liveBuyAuthority: false,
+      liveCollectionAuthority: false,
+      routeEstimator: this.merchantRouteEstimator.status(),
+      lastPlan: clone(this.lastMerchantServicePlan),
+      lastRouteDecision: clone(this.lastMerchantRouteDecision),
+      lastExecution: clone(this.lastMerchantServiceExecution),
+      executionPending: this.merchantServiceExecutionPending,
+      intervalMs: this.merchantServiceIntervalMs,
+      explicitAckRequired: CONTROLLED_MERCHANT_SERVICE_ACK
+    };
+  }
+
+  _guardControlledAuthority() {
+    const base = super._guardControlledAuthority();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (this.controlledMerchantService.breaker().open) reason = 'MERCHANT_SERVICE_CIRCUIT_OPEN';
+    else if (this._alpha20EconomyEmergency()) reason = 'ECONOMY_EMERGENCY';
+    if (reason && this.controlledMerchantService.status().enabled) this.disableMerchantService(reason);
+    return { ...base, merchantServiceGuardReason: reason };
+  }
+
+  setMode(mode) {
+    const resolved = super.setMode(mode);
+    if (resolved !== 'active') this.disableMerchantService('RUNTIME_LEFT_ACTIVE_MODE');
+    return resolved;
+  }
+
+  stop() {
+    this.disableMerchantService('RUNTIME_STOP');
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      merchantService: this.merchantServiceStatus(),
+      alpha20_5: {
+        ...(base.alpha20_5 || {}),
+        merchantServiceFoundation: true,
+        farmerSupplyTelemetry: true,
+        standControlledDefaultOff: true,
+        potionDeliveryControlledDefaultOff: true,
+        serviceTravelRequiresExistingControlledTravel: true,
+        inventoryCollectionPlanningOnly: true,
+        potionRestockPlanningOnly: true,
+        townRouteComparisonShadowOnly: true,
+        directGameplayAuthorityAddedToBrain: false
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.merchantService = this.merchantServiceStatus();
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+
+},
+"src/merchant/merchant-service-planner.js": function(require,module,exports){
+'use strict';
+
+const MERCHANT_SERVICE_PLANNER_MODE = 'shadow-merchant-service-planner';
+
+const MerchantServicePlanKind = Object.freeze({
+  HOLD: 'HOLD',
+  STAND_OPEN: 'STAND_OPEN',
+  STAND_CLOSE: 'STAND_CLOSE',
+  SERVICE_TRAVEL: 'SERVICE_TRAVEL',
+  SERVICE_DELIVERY: 'SERVICE_DELIVERY',
+  COLLECTION_REQUIRED: 'COLLECTION_REQUIRED',
+  RESTOCK_REQUIRED: 'RESTOCK_REQUIRED'
+});
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function itemQuantity(inventory, name) {
+  return (Array.isArray(inventory) ? inventory : []).reduce((sum, item) => {
+    if (!item || String(item.name || '') !== String(name || '')) return sum;
+    return sum + Math.max(0, finite(item.q, 1));
+  }, 0);
+}
+
+function familyItems(inventory, family) {
+  const prefix = family === 'hp' ? 'hpot' : 'mpot';
+  const rows = new Map();
+  for (const item of Array.isArray(inventory) ? inventory : []) {
+    if (!item || !String(item.name || '').toLowerCase().startsWith(prefix)) continue;
+    const name = String(item.name);
+    rows.set(name, (rows.get(name) || 0) + Math.max(0, finite(item.q, 1)));
+  }
+  return [...rows.entries()].map(([name, quantity]) => ({ name, quantity })).sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name));
+}
+
+class MerchantServicePlanner {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.reportTtlMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.reportTtlMs, 25000)));
+    this.criticalPotionCount = Math.max(0, Math.min(5000, finite(options.criticalPotionCount, 40)));
+    this.lowPotionCount = Math.max(this.criticalPotionCount, Math.min(10000, finite(options.lowPotionCount, 120)));
+    this.targetPotionCount = Math.max(this.lowPotionCount, Math.min(20000, finite(options.targetPotionCount, 240)));
+    this.merchantPotionReserve = Math.max(0, Math.min(10000, finite(options.merchantPotionReserve, 80)));
+    this.maxDeliveryQuantity = Math.max(1, Math.min(1000, finite(options.maxDeliveryQuantity, 200)));
+    this.criticalFreeSlots = Math.max(0, Math.min(20, finite(options.criticalFreeSlots, 2)));
+    this.lowFreeSlots = Math.max(this.criticalFreeSlots, Math.min(30, finite(options.lowFreeSlots, 5)));
+    this.standWhenIdle = options.standWhenIdle !== false;
+    this.sequence = 0;
+    this.lastPlan = null;
+    this.stats = { plans: 0, service: 0, stand: 0, holds: 0, staleReports: 0, unsafeTargets: 0 };
+  }
+
+  _id() {
+    this.sequence += 1;
+    return `merchant-service-${this.now().toString(36)}-${this.sequence.toString(36)}`;
+  }
+
+  _plan(kind, reason, data = {}) {
+    const plan = {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      kind,
+      reason,
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      ...clone(data)
+    };
+    this.lastPlan = plan;
+    this.stats.plans += 1;
+    if (kind === MerchantServicePlanKind.HOLD) this.stats.holds += 1;
+    else if (kind === MerchantServicePlanKind.STAND_OPEN || kind === MerchantServicePlanKind.STAND_CLOSE) this.stats.stand += 1;
+    else this.stats.service += 1;
+    return clone(plan);
+  }
+
+  _need(report) {
+    if (!report || !report.supplies) return null;
+    const supplies = report.supplies;
+    const hp = Math.max(0, finite(supplies.hpPotions, 0));
+    const mp = Math.max(0, finite(supplies.mpPotions, 0));
+    const freeSlots = Math.max(0, finite(supplies.freeSlots, 0));
+    const potionRate = Math.max(0, finite(report.rates && report.rates.potionsPerHour, 0));
+    const hpRunwayMinutes = potionRate > 0 ? hp / potionRate * 60 : null;
+    const mpRunwayMinutes = potionRate > 0 ? mp / potionRate * 60 : null;
+
+    const rows = [];
+    if (hp <= this.criticalPotionCount) rows.push({ family: 'hp', priority: 100, count: hp, preferred: supplies.preferredHpPotion || null, runwayMinutes: hpRunwayMinutes, reason: 'HP_POTIONS_CRITICAL' });
+    else if (hp <= this.lowPotionCount) rows.push({ family: 'hp', priority: 80, count: hp, preferred: supplies.preferredHpPotion || null, runwayMinutes: hpRunwayMinutes, reason: 'HP_POTIONS_LOW' });
+    if (mp <= this.criticalPotionCount) rows.push({ family: 'mp', priority: 100, count: mp, preferred: supplies.preferredMpPotion || null, runwayMinutes: mpRunwayMinutes, reason: 'MP_POTIONS_CRITICAL' });
+    else if (mp <= this.lowPotionCount) rows.push({ family: 'mp', priority: 80, count: mp, preferred: supplies.preferredMpPotion || null, runwayMinutes: mpRunwayMinutes, reason: 'MP_POTIONS_LOW' });
+    if (freeSlots <= this.criticalFreeSlots) rows.push({ family: 'inventory', priority: 95, count: freeSlots, reason: 'INVENTORY_CRITICAL' });
+    else if (freeSlots <= this.lowFreeSlots) rows.push({ family: 'inventory', priority: 70, count: freeSlots, reason: 'INVENTORY_LOW' });
+    if (!rows.length) return null;
+    rows.sort((a, b) => b.priority - a.priority || (finite(a.runwayMinutes, Infinity) - finite(b.runwayMinutes, Infinity)));
+    return rows[0];
+  }
+
+  _delivery(merchantInventory, need) {
+    if (!need || !['hp', 'mp'].includes(need.family)) return null;
+    const family = familyItems(merchantInventory, need.family);
+    if (!family.length) return null;
+    const preferred = need.preferred && family.find((row) => row.name === need.preferred);
+    const source = preferred || family[0];
+    const available = Math.max(0, source.quantity - this.merchantPotionReserve);
+    if (available <= 0) return null;
+    const wanted = Math.max(1, this.targetPotionCount - Math.max(0, need.count));
+    const quantity = Math.max(1, Math.min(this.maxDeliveryQuantity, available, wanted));
+    return { family: need.family, itemName: source.name, quantity, sourceQuantity: source.quantity, merchantReserve: this.merchantPotionReserve };
+  }
+
+  plan(input = {}) {
+    const merchant = input.merchant || {};
+    const ctype = String(merchant.ctype || merchant.type || '').toLowerCase();
+    if (ctype !== 'merchant') return this._plan(MerchantServicePlanKind.HOLD, 'MERCHANT_REQUIRED');
+    if (merchant.rip === true || merchant.dead === true) return this._plan(MerchantServicePlanKind.HOLD, 'MERCHANT_DEAD');
+    if (input.inCombat === true) return this._plan(MerchantServicePlanKind.HOLD, 'MERCHANT_IN_COMBAT');
+    if (input.economyEmergency === true) return this._plan(MerchantServicePlanKind.HOLD, 'ECONOMY_EMERGENCY');
+    if (input.controlledBusy === true) return this._plan(MerchantServicePlanKind.HOLD, 'CONTROLLED_SUBSYSTEM_BUSY');
+
+    const now = this.now();
+    const candidates = [];
+    for (const report of Array.isArray(input.reports) ? input.reports : []) {
+      if (!report || !report.name || String(report.ctype || '').toLowerCase() === 'merchant') continue;
+      if (finite(report.at) == null || now - Number(report.at) > this.reportTtlMs) {
+        this.stats.staleReports += 1;
+        continue;
+      }
+      if (report.rip === true || report.active === false) continue;
+      const need = this._need(report);
+      if (!need) continue;
+      if (report.safety && (report.safety.emergency === true || report.safety.retreat === true)) {
+        this.stats.unsafeTargets += 1;
+        continue;
+      }
+      candidates.push({ report, need });
+    }
+
+    candidates.sort((a, b) => b.need.priority - a.need.priority || Number(a.report.at) - Number(b.report.at) || String(a.report.name).localeCompare(String(b.report.name)));
+    const selected = candidates[0] || null;
+    const standOpen = input.standOpen === true;
+
+    if (!selected) {
+      if (this.standWhenIdle && !standOpen) return this._plan(MerchantServicePlanKind.STAND_OPEN, 'NO_SERVICE_NEED');
+      return this._plan(MerchantServicePlanKind.HOLD, standOpen ? 'STAND_IDLE' : 'NO_SERVICE_NEED');
+    }
+
+    if (standOpen) {
+      return this._plan(MerchantServicePlanKind.STAND_CLOSE, 'SERVICE_PREEMPTS_STAND', {
+        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
+        need: selected.need
+      });
+    }
+
+    if (selected.need.family === 'inventory') {
+      const sameMap = merchant.map && selected.report.map && String(merchant.map) === String(selected.report.map);
+      const hasPosition = finite(selected.report.x) != null && finite(selected.report.y) != null;
+      if (!sameMap || !hasPosition) {
+        return this._plan(MerchantServicePlanKind.SERVICE_TRAVEL, selected.need.reason, {
+          target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
+          need: selected.need,
+          afterTravel: MerchantServicePlanKind.COLLECTION_REQUIRED
+        });
+      }
+      return this._plan(MerchantServicePlanKind.COLLECTION_REQUIRED, selected.need.reason, {
+        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
+        need: selected.need
+      });
+    }
+
+    const delivery = this._delivery(merchant.inventory || [], selected.need);
+    if (!delivery) {
+      return this._plan(MerchantServicePlanKind.RESTOCK_REQUIRED, `MERCHANT_${selected.need.family.toUpperCase()}_POTION_STOCK_LOW`, {
+        target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
+        need: selected.need
+      });
+    }
+
+    const sameMap = merchant.map && selected.report.map && String(merchant.map) === String(selected.report.map);
+    const hasPosition = finite(selected.report.x) != null && finite(selected.report.y) != null;
+    const mx = finite(merchant.x != null ? merchant.x : merchant.real_x);
+    const my = finite(merchant.y != null ? merchant.y : merchant.real_y);
+    const distance = sameMap && hasPosition && mx != null && my != null ? Math.hypot(mx - Number(selected.report.x), my - Number(selected.report.y)) : null;
+    const nearby = sameMap && distance != null && distance <= Math.max(50, finite(input.deliveryDistance, 400));
+    const base = {
+      target: { name: selected.report.name, map: selected.report.map || null, x: finite(selected.report.x), y: finite(selected.report.y) },
+      need: selected.need,
+      delivery,
+      distance
+    };
+    if (!nearby) return this._plan(MerchantServicePlanKind.SERVICE_TRAVEL, selected.need.reason, { ...base, afterTravel: MerchantServicePlanKind.SERVICE_DELIVERY });
+    return this._plan(MerchantServicePlanKind.SERVICE_DELIVERY, selected.need.reason, base);
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: MERCHANT_SERVICE_PLANNER_MODE,
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      thresholds: {
+        reportTtlMs: this.reportTtlMs,
+        criticalPotionCount: this.criticalPotionCount,
+        lowPotionCount: this.lowPotionCount,
+        targetPotionCount: this.targetPotionCount,
+        merchantPotionReserve: this.merchantPotionReserve,
+        maxDeliveryQuantity: this.maxDeliveryQuantity,
+        criticalFreeSlots: this.criticalFreeSlots,
+        lowFreeSlots: this.lowFreeSlots,
+        standWhenIdle: this.standWhenIdle
+      },
+      lastPlan: clone(this.lastPlan),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE, itemQuantity, familyItems };
+
+},
+"src/merchant/controlled-merchant-service-executor.js": function(require,module,exports){
+'use strict';
+
+const { MerchantServicePlanKind, itemQuantity } = require('./merchant-service-planner');
+
+const CONTROLLED_MERCHANT_SERVICE_MODE = 'controlled-merchant-service-default-off';
+const CONTROLLED_MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const TERMINAL = new Set(['COMMITTED', 'ABORTED', 'FAILED_SAFE']);
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class ControlledMerchantServiceExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-merchant-service-operation-v1';
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
+    this.getTrustedNames = options.getTrustedNames || (() => []);
+    this.timeoutMs = Math.max(1000, Math.min(60000, finite(options.timeoutMs, 8000)));
+    this.verifyDelayMs = Math.max(25, Math.min(2000, finite(options.verifyDelayMs, 150)));
+    this.verifyAttempts = Math.max(1, Math.min(10, Math.floor(finite(options.verifyAttempts, 4))));
+    this.maxDeliveryDistance = Math.max(50, Math.min(800, finite(options.maxDeliveryDistance, 400)));
+    this.failureThreshold = Math.max(1, Math.min(10, Math.floor(finite(options.failureThreshold, 3))));
+    this.failureWindowMs = Math.max(5000, Math.min(30 * 60 * 1000, finite(options.failureWindowMs, 120000)));
+    this.circuitCooldownMs = Math.max(5000, Math.min(30 * 60 * 1000, finite(options.circuitCooldownMs, 120000)));
+    this.actionWindowMs = Math.max(5000, Math.min(10 * 60 * 1000, finite(options.actionWindowMs, 60000)));
+    this.maxActionsPerWindow = Math.max(1, Math.min(30, Math.floor(finite(options.maxActionsPerWindow, 8))));
+    this.enabled = false;
+    this.allowStand = false;
+    this.allowDelivery = false;
+    this.busy = false;
+    this.activeOperation = null;
+    this.lastAction = null;
+    this.history = [];
+    this.failures = [];
+    this.circuit = null;
+    this.actionTimes = [];
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, standActions: 0, deliveries: 0, rawActions: 0 };
+    this._load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-merchant-service', event, severity, reason, data });
+  }
+
+  _readStorage() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const local = this.root && this.root.localStorage;
+      if (local && typeof local.getItem === 'function') return local.getItem(this.storageKey);
+    } catch (_) {}
+    return null;
+  }
+
+  _writeStorage(value) {
+    const encoded = JSON.stringify(value);
+    try {
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, encoded) !== false;
+      const local = this.root && this.root.localStorage;
+      if (local && typeof local.setItem === 'function') { local.setItem(this.storageKey, encoded); return true; }
+    } catch (_) { return false; }
+    return false;
+  }
+
+  _persist() {
+    return this._writeStorage({ schemaVersion: 1, activeOperation: this.activeOperation, history: this.history.slice(-32) });
+  }
+
+  _load() {
+    const raw = this._readStorage();
+    if (!raw) return false;
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!parsed || Number(parsed.schemaVersion) !== 1) return false;
+      this.history = Array.isArray(parsed.history) ? parsed.history.slice(-32) : [];
+      const op = parsed.activeOperation && typeof parsed.activeOperation === 'object' ? clone(parsed.activeOperation) : null;
+      if (op && !TERMINAL.has(op.state)) {
+        op.state = 'RECOVERING';
+        op.reason = 'RESTART_RECONCILIATION_REQUIRED';
+        op.updatedAt = this.now();
+        this.activeOperation = op;
+        this._persist();
+      } else this.activeOperation = op;
+      return true;
+    } catch (_) {
+      this.activeOperation = { schemaVersion: 1, state: 'FAILED_SAFE', reason: 'CORRUPT_PERSISTED_SERVICE_OPERATION', updatedAt: this.now() };
+      return false;
+    }
+  }
+
+  _character() { return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null; }
+  _entities() { return this.root && this.root.parent && this.root.parent.entities || this.root && this.root.entities || {}; }
+  _inventory() { const c = this._character(); return c && Array.isArray(c.items) ? c.items : []; }
+  _standOpen() { const c = this._character(); return !!(c && c.stand); }
+  _inventorySnapshot() {
+    const c = this._character();
+    const items = c && Array.isArray(c.items) ? c.items : [];
+    const size = c && Number.isFinite(Number(c.isize)) ? Math.max(0, Math.floor(Number(c.isize))) : items.length;
+    return items.slice(0, size).map((item, index) => item ? { index, name: item.name, q: Math.max(1, finite(item.q, 1)), level: Math.max(0, finite(item.level, 0)) } : null);
+  }
+
+  _inCombat() {
+    const c = this._character();
+    if (!c) return false;
+    if (c.target) return true;
+    const names = new Set([c.name, c.id].filter(Boolean).map(String));
+    return Object.values(this._entities()).some((entity) => entity && entity.target && names.has(String(entity.target)));
+  }
+
+  _trusted(name) {
+    const wanted = String(name || '');
+    if (!wanted) return false;
+    return new Set((this.getTrustedNames() || []).filter(Boolean).map(String)).has(wanted);
+  }
+
+  _visibleTarget(name) {
+    const wanted = String(name || '');
+    return Object.values(this._entities()).find((entity) => entity && String(entity.name || '') === wanted) || null;
+  }
+
+  _distanceTo(entity) {
+    const c = this._character();
+    const cx = finite(c && (c.real_x != null ? c.real_x : c.x));
+    const cy = finite(c && (c.real_y != null ? c.real_y : c.y));
+    const tx = finite(entity && (entity.real_x != null ? entity.real_x : entity.x));
+    const ty = finite(entity && (entity.real_y != null ? entity.real_y : entity.y));
+    if (cx == null || cy == null || tx == null || ty == null) return null;
+    return Math.hypot(cx - tx, cy - ty);
+  }
+
+  _pruneFailures(now = this.now()) {
+    this.failures = this.failures.filter((row) => now - row.at <= this.failureWindowMs);
+    if (this.circuit && this.circuit.openUntil <= now) this.circuit = null;
+  }
+
+  breaker() {
+    const now = this.now();
+    this._pruneFailures(now);
+    return { open: !!this.circuit, openUntil: this.circuit ? this.circuit.openUntil : null, reason: this.circuit ? this.circuit.reason : null, failuresInWindow: this.failures.length, threshold: this.failureThreshold };
+  }
+
+  _failure(reason) {
+    const now = this.now();
+    this._pruneFailures(now);
+    this.failures.push({ at: now, reason: String(reason || 'SERVICE_FAILURE') });
+    if (this.failures.length >= this.failureThreshold) this.circuit = { openedAt: now, openUntil: now + this.circuitCooldownMs, reason: String(reason || 'SERVICE_FAILURE_BUDGET') };
+  }
+
+  _rawBudget() {
+    const now = this.now();
+    this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs);
+    return { allowed: this.actionTimes.length < this.maxActionsPerWindow, used: this.actionTimes.length, max: this.maxActionsPerWindow };
+  }
+
+  configure(config = {}) {
+    if (config.enabled === true && config.ack !== CONTROLLED_MERCHANT_SERVICE_ACK) {
+      this.enabled = false;
+      this.allowStand = false;
+      this.allowDelivery = false;
+      this._event('MERCHANT_SERVICE_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = config.enabled === true;
+    this.allowStand = this.enabled && config.allowStand === true;
+    this.allowDelivery = this.enabled && config.allowDelivery === true;
+    this._event('MERCHANT_SERVICE_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowStand: this.allowStand, allowDelivery: this.allowDelivery });
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this.allowStand = false;
+    this.allowDelivery = false;
+    this._event('MERCHANT_SERVICE_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  _preflight(plan) {
+    if (!plan || !plan.kind) return { ok: false, reason: 'SERVICE_PLAN_REQUIRED' };
+    if (!this.enabled) return { ok: false, reason: 'MERCHANT_SERVICE_DISABLED' };
+    if (this.busy) return { ok: false, reason: 'MERCHANT_SERVICE_BUSY' };
+    if (this.activeOperation && !TERMINAL.has(this.activeOperation.state)) return { ok: false, reason: 'SERVICE_RECONCILIATION_REQUIRED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    if (this.getEconomyEmergency() === true) return { ok: false, reason: 'ECONOMY_EMERGENCY' };
+    if (this.breaker().open) return { ok: false, reason: 'MERCHANT_SERVICE_CIRCUIT_OPEN' };
+    if (!this._rawBudget().allowed) return { ok: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
+    const c = this._character();
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (c.rip === true || c.dead === true) return { ok: false, reason: 'MERCHANT_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'MERCHANT_IN_COMBAT' };
+    if ([MerchantServicePlanKind.STAND_OPEN, MerchantServicePlanKind.STAND_CLOSE].includes(plan.kind) && !this.allowStand) return { ok: false, reason: 'STAND_AUTHORITY_DISABLED' };
+    if (plan.kind === MerchantServicePlanKind.SERVICE_DELIVERY && !this.allowDelivery) return { ok: false, reason: 'DELIVERY_AUTHORITY_DISABLED' };
+    return { ok: true };
+  }
+
+  _startOperation(plan, details) {
+    const now = this.now();
+    this.activeOperation = { schemaVersion: 1, id: String(plan.id || `service-${now}`), planKind: plan.kind, state: 'RESERVED', reason: 'PERSISTED_BEFORE_ACTION', createdAt: now, updatedAt: now, ...clone(details) };
+    if (!this._persist()) {
+      this.activeOperation.state = 'FAILED_SAFE';
+      this.activeOperation.reason = 'PERSIST_BEFORE_ACTION_FAILED';
+      this.activeOperation.updatedAt = this.now();
+      return false;
+    }
+    return true;
+  }
+
+  _transition(state, reason) {
+    if (!this.activeOperation) return false;
+    this.activeOperation.state = state;
+    this.activeOperation.reason = String(reason || state);
+    this.activeOperation.updatedAt = this.now();
+    this._persist();
+    if (TERMINAL.has(state)) {
+      this.history.push(clone(this.activeOperation));
+      this.history = this.history.slice(-32);
+      this._persist();
+    }
+    return true;
+  }
+
+  _delay(ms) {
+    const setTimer = this.root && this.root.setTimeout || setTimeout;
+    return new Promise((resolve) => setTimer(resolve, ms));
+  }
+
+  _timeout(promise) {
+    const setTimer = this.root && this.root.setTimeout || setTimeout;
+    const clearTimer = this.root && this.root.clearTimeout || clearTimeout;
+    let timer = null;
+    const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error('MERCHANT_SERVICE_RAW_TIMEOUT')), this.timeoutMs); });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
+  }
+
+  async _verify(predicate) {
+    for (let attempt = 0; attempt < this.verifyAttempts; attempt += 1) {
+      if (predicate()) return true;
+      if (attempt + 1 < this.verifyAttempts) await this._delay(this.verifyDelayMs);
+    }
+    return false;
+  }
+
+  _commit(kind, reason, extra = {}) {
+    this._transition('COMMITTED', reason);
+    this.stats.committed += 1;
+    this.failures = [];
+    this.circuit = null;
+    this.lastAction = { at: this.now(), kind, result: 'COMMITTED', reason, ...clone(extra) };
+    return { executed: true, committed: true, reason, ...clone(extra) };
+  }
+
+  _failed(kind, reason, extra = {}) {
+    this._transition('FAILED_SAFE', reason);
+    this.stats.failedSafe += 1;
+    this._failure(reason);
+    this.lastAction = { at: this.now(), kind, result: 'FAILED_SAFE', reason, ...clone(extra) };
+    this._event('MERCHANT_SERVICE_FAILED_SAFE', 'error', reason, this.lastAction);
+    return { executed: true, committed: false, reason, ...clone(extra) };
+  }
+
+  async _executeStand(plan, open) {
+    const fnName = open ? 'open_stand' : 'close_stand';
+    const fn = this.root && (this.root[fnName] || (this.root.parent && this.root.parent[fnName]));
+    if (typeof fn !== 'function') return { executed: false, committed: false, reason: `${fnName.toUpperCase()}_API_UNAVAILABLE` };
+    const before = this._standOpen();
+    if (before === open) return { executed: false, committed: true, reason: open ? 'STAND_ALREADY_OPEN' : 'STAND_ALREADY_CLOSED' };
+    if (!this._startOperation(plan, { action: fnName, beforeStandOpen: before, expectedStandOpen: open })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+    this._transition('EXECUTING', 'RAW_ACTION_STARTING');
+    this.actionTimes.push(this.now());
+    this.stats.rawActions += 1;
+    this.stats.standActions += 1;
+    try {
+      const response = await this._timeout(fn.call(this.root));
+      if (response && response.success === false && response.reason) return this._failed(plan.kind, `STAND_API_REJECTED:${response.reason}`);
+      this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+      if (!await this._verify(() => this._standOpen() === open)) return this._failed(plan.kind, 'STAND_STATE_VERIFICATION_FAILED');
+      return this._commit(plan.kind, open ? 'STAND_OPEN_VERIFIED' : 'STAND_CLOSE_VERIFIED');
+    } catch (error) {
+      return this._failed(plan.kind, String(error && error.message || error || 'STAND_ACTION_FAILED'));
+    }
+  }
+
+  _sourceFor(itemName, quantity) {
+    const wanted = String(itemName || '');
+    const needed = Math.max(1, Math.floor(finite(quantity, 1)));
+    const items = this._inventory();
+    const c = this._character();
+    const size = c && Number.isFinite(Number(c.isize)) ? Math.max(0, Math.floor(Number(c.isize))) : items.length;
+    for (let index = 0; index < Math.min(size, items.length); index += 1) {
+      const item = items[index];
+      if (!item || String(item.name || '') !== wanted) continue;
+      const q = Math.max(1, finite(item.q, 1));
+      if (q >= needed) return { index, quantity: q, name: wanted };
+    }
+    return null;
+  }
+
+  async _executeDelivery(plan) {
+    const targetName = plan.target && String(plan.target.name || '');
+    const delivery = plan.delivery || {};
+    const itemName = String(delivery.itemName || '');
+    const quantity = Math.max(1, Math.min(1000, Math.floor(finite(delivery.quantity, 1))));
+    if (!this._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
+    if (!/^hpot|^mpot/i.test(itemName)) return { executed: false, committed: false, reason: 'DELIVERY_ITEM_NOT_POTION' };
+    const target = this._visibleTarget(targetName);
+    if (!target) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_NOT_VISIBLE' };
+    const c = this._character();
+    if (target.map && c && c.map && String(target.map) !== String(c.map)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_CROSS_MAP' };
+    const distance = this._distanceTo(target);
+    if (distance == null || distance > this.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
+    const source = this._sourceFor(itemName, quantity);
+    if (!source) return { executed: false, committed: false, reason: 'DELIVERY_SOURCE_UNAVAILABLE' };
+    const beforeInventory = this._inventorySnapshot();
+    const beforeTotal = itemQuantity(beforeInventory, itemName);
+    const fn = this.root && (this.root.send_item || (this.root.parent && this.root.parent.send_item));
+    if (typeof fn !== 'function') return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
+    if (!this._startOperation(plan, { action: 'send_item', targetName, itemName, quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+    this._transition('EXECUTING', 'RAW_ACTION_STARTING');
+    this.actionTimes.push(this.now());
+    this.stats.rawActions += 1;
+    this.stats.deliveries += 1;
+    try {
+      const response = await this._timeout(fn.call(this.root, targetName, source.index, quantity));
+      if (response && response.success === false) return this._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, quantity });
+      this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+      const verified = await this._verify(() => itemQuantity(this._inventorySnapshot(), itemName) === beforeTotal - quantity);
+      if (!verified) return this._failed(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFICATION_FAILED', { targetName, itemName, quantity });
+      return this._commit(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFIED', { targetName, itemName, quantity });
+    } catch (error) {
+      return this._failed(plan.kind, String(error && error.message || error || 'SEND_ITEM_FAILED'), { targetName, itemName, quantity });
+    }
+  }
+
+  async execute(plan) {
+    const check = this._preflight(plan);
+    if (!check.ok) {
+      this.stats.rejected += 1;
+      this._event('MERCHANT_SERVICE_EXECUTION_REJECTED', 'warn', check.reason, { planId: plan && plan.id || null, kind: plan && plan.kind || null });
+      return { executed: false, committed: false, reason: check.reason };
+    }
+    this.busy = true;
+    this.stats.attempts += 1;
+    try {
+      if (plan.kind === MerchantServicePlanKind.STAND_OPEN) return await this._executeStand(plan, true);
+      if (plan.kind === MerchantServicePlanKind.STAND_CLOSE) return await this._executeStand(plan, false);
+      if (plan.kind === MerchantServicePlanKind.SERVICE_DELIVERY) return await this._executeDelivery(plan);
+      this.stats.rejected += 1;
+      return { executed: false, committed: false, reason: 'SERVICE_PLAN_KIND_NOT_EXECUTABLE' };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  reconcile() {
+    const op = this.activeOperation;
+    if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_SERVICE_OPERATION' };
+    if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'SERVICE_OPERATION_NOT_RECOVERING' };
+    let committed = false;
+    if (op.action === 'open_stand' || op.action === 'close_stand') committed = this._standOpen() === op.expectedStandOpen;
+    else if (op.action === 'send_item') committed = itemQuantity(this._inventorySnapshot(), op.itemName) === Number(op.expectedAfterTotal);
+    if (committed) {
+      this._transition('COMMITTED', 'RESTART_RECONCILIATION_VERIFIED');
+      this.stats.recovered += 1;
+      this.stats.committed += 1;
+      return { reconciled: true, committed: true, reason: 'RESTART_RECONCILIATION_VERIFIED' };
+    }
+    this._transition('FAILED_SAFE', 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY');
+    this.stats.failedSafe += 1;
+    this._failure('RESTART_OUTCOME_UNCERTAIN_NO_RETRY');
+    return { reconciled: true, committed: false, reason: 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY' };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: CONTROLLED_MERCHANT_SERVICE_MODE,
+      enabled: this.enabled,
+      actionAuthority: this.enabled && (this.allowStand || this.allowDelivery),
+      allowStand: this.allowStand,
+      allowDelivery: this.allowDelivery,
+      rawActionFamilies: ['OPEN_STAND', 'CLOSE_STAND', 'SEND_POTION'],
+      arbitraryItemTransferAllowed: false,
+      arbitraryTradeAllowed: false,
+      buyAllowed: false,
+      sellAllowed: false,
+      upgradeAllowed: false,
+      compoundAllowed: false,
+      busy: this.busy,
+      maxDeliveryDistance: this.maxDeliveryDistance,
+      actionBudget: { ...this._rawBudget(), windowMs: this.actionWindowMs },
+      circuit: this.breaker(),
+      activeOperation: clone(this.activeOperation),
+      lastAction: clone(this.lastAction),
+      history: this.history.slice(-16).map(clone),
+      stats: clone(this.stats),
+      explicitAckRequired: CONTROLLED_MERCHANT_SERVICE_ACK
+    };
+  }
+}
+
+module.exports = { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+
+},
+"src/travel/route-cost-estimator.js": function(require,module,exports){
+'use strict';
+
+const ROUTE_COST_MODE = 'shadow-route-cost-estimator';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
+class RouteCostEstimator {
+  constructor(options = {}) {
+    this.minTownSavingsMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.minTownSavingsMs, 30000)));
+    this.defaultUncertaintyMs = Math.max(0, Math.min(5 * 60 * 1000, finite(options.defaultUncertaintyMs, 10000)));
+    this.lastDecision = null;
+    this.stats = { decisions: 0, direct: 0, town: 0, unknown: 0 };
+  }
+
+  estimateDirect(input = {}) {
+    const supplied = finite(input.directEtaMs);
+    if (supplied != null && supplied >= 0) return supplied;
+    const distance = finite(input.distance);
+    const speed = finite(input.speed);
+    if (distance == null || speed == null || speed <= 0) return null;
+    return Math.max(0, distance / speed * 1000);
+  }
+
+  estimateTown(input = {}) {
+    if (input.townAvailable === false) return null;
+    const supplied = finite(input.townEtaMs);
+    if (supplied != null && supplied >= 0) return supplied;
+    const castMs = finite(input.townCastMs);
+    const postTownEtaMs = finite(input.postTownEtaMs);
+    if (castMs == null || postTownEtaMs == null) return null;
+    return Math.max(0, castMs + postTownEtaMs);
+  }
+
+  choose(input = {}) {
+    const directEtaMs = this.estimateDirect(input);
+    const townEtaMs = this.estimateTown(input);
+    const urgency = String(input.urgency || 'NORMAL').toUpperCase();
+    const minSavingsMs = urgency === 'CRITICAL' ? Math.max(5000, this.minTownSavingsMs / 2) : this.minTownSavingsMs;
+    let route = 'UNKNOWN';
+    let reason = 'ROUTE_COST_INCOMPLETE';
+    if (directEtaMs != null && townEtaMs == null) { route = 'DIRECT'; reason = 'TOWN_COST_UNKNOWN'; }
+    else if (directEtaMs == null && townEtaMs != null) { route = 'TOWN'; reason = 'DIRECT_COST_UNKNOWN'; }
+    else if (directEtaMs != null && townEtaMs != null) {
+      if (townEtaMs + minSavingsMs < directEtaMs) { route = 'TOWN'; reason = 'TOWN_MATERIALLY_FASTER'; }
+      else { route = 'DIRECT'; reason = 'DIRECT_FASTER_OR_HYSTERESIS'; }
+    }
+    const decision = {
+      schemaVersion: 1,
+      mode: ROUTE_COST_MODE,
+      actionAuthority: false,
+      route,
+      reason,
+      directEtaMs,
+      townEtaMs,
+      expectedSavingsMs: directEtaMs != null && townEtaMs != null ? directEtaMs - townEtaMs : null,
+      minTownSavingsMs: minSavingsMs,
+      uncertaintyMs: Math.max(0, finite(input.uncertaintyMs, this.defaultUncertaintyMs))
+    };
+    this.lastDecision = decision;
+    this.stats.decisions += 1;
+    if (route === 'DIRECT') this.stats.direct += 1;
+    else if (route === 'TOWN') this.stats.town += 1;
+    else this.stats.unknown += 1;
+    return clone(decision);
+  }
+
+  status() {
+    return { schemaVersion: 1, mode: ROUTE_COST_MODE, actionAuthority: false, minTownSavingsMs: this.minTownSavingsMs, lastDecision: clone(this.lastDecision), stats: clone(this.stats) };
+  }
+}
+
+module.exports = { RouteCostEstimator, ROUTE_COST_MODE };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
