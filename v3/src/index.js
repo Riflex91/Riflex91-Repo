@@ -13,7 +13,8 @@ const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
 const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
 const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime');
-const { Alpha19Runtime } = require('./autonomy/alpha19-runtime');
+const { Alpha19Runtime, ALPHA19_VERSION } = require('./autonomy/alpha19-runtime');
+const { Alpha20Runtime } = require('./autonomy/alpha20-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -44,6 +45,9 @@ const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
 const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
 const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
 const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
+const { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE } = require('./party/lifecycle-store');
+const { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState } = require('./party/controlled-lifecycle-coordinator');
+const { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK } = require('./party/controlled-paladin-aura-executor');
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
@@ -61,6 +65,7 @@ const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
 const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
+const { MinuteCountdownReporter } = require('./ops/minute-countdown-reporter');
 const { SessionMonitor, MONITOR_SCHEMA_VERSION } = require('./ops/session-monitor');
 const { DebugMonitorUI } = require('./ops/debug-monitor-ui');
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
@@ -70,7 +75,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha19Runtime({ ...options, root });
+  const runtime = new Alpha20Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -105,12 +110,7 @@ function install(root = globalThis, options = {}) {
   });
 
   function status() {
-    return {
-      ...runtime.status(),
-      operations: operations.status(),
-      monitor: monitor.status(),
-      debugUI: debugUI.status()
-    };
+    return { ...runtime.status(), operations: operations.status(), monitor: monitor.status(), debugUI: debugUI.status() };
   }
   function exportDiagnostics() {
     const base = JSON.parse(runtime.exportDiagnostics());
@@ -234,9 +234,7 @@ function install(root = globalThis, options = {}) {
           disable: (reason) => runtime.controlledMerchantSpaceRecovery.disable(reason),
           execute: (id) => runtime.executeMerchantSpaceRecovery(id)
         },
-        consolidation: {
-          status: () => runtime.controlledBankConsolidation.status()
-        }
+        consolidation: { status: () => runtime.controlledBankConsolidation.status() }
       }
     },
     travel: {
@@ -276,6 +274,20 @@ function install(root = globalThis, options = {}) {
       transition: () => runtime.partyTransitions.status(),
       controlLease: () => runtime.partyControlLease ? runtime.partyControlLease.status() : null,
       aura: () => runtime.status().party.aura,
+      lifecycle: {
+        status: () => runtime.partyLifecycle.status(),
+        characters: () => runtime.partyLifecycle.list(),
+        character: (name) => runtime.partyLifecycle.get(name),
+        controlled: {
+          status: () => runtime.controlledPartyLifecycle.status(),
+          configure: (config) => runtime.configureControlledPartyLifecycle(config),
+          disable: (reason) => runtime.configureControlledPartyLifecycle({ enabled: false, reason }),
+          reconcile: () => runtime.reconcilePartyLifecycle()
+        },
+        aura: {
+          status: () => runtime.controlledPaladinAura.status()
+        }
+      },
       setTransitionsEnabled: (enabled) => runtime.setPartyTransitionsEnabled(enabled),
       setAuraAutomationEnabled: (enabled) => runtime.setPartyAuraAutomationEnabled(enabled),
       setExplorationEnabled: (enabled) => runtime.setPartyExplorationEnabled(enabled),
@@ -308,7 +320,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -318,6 +330,9 @@ module.exports = {
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
+  PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE,
+  ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState,
+  ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK,
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
@@ -331,6 +346,6 @@ module.exports = {
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard, MinuteCountdownReporter,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
 };

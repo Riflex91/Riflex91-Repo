@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { install, Alpha19Runtime, VERSION } = require('../src');
+const { install, Alpha19Runtime, Alpha20Runtime, VERSION } = require('../src');
 
 function storage() {
   const rows = new Map();
@@ -26,13 +26,14 @@ function root() {
   return value;
 }
 
-test('public install uses Alpha19Runtime and exposes bounded space recovery API default-off', () => {
+test('public install advances to Alpha20Runtime while Alpha.19 economy remains bounded/default-off', () => {
   const r = root();
   const api = install(r, { mode: 'shadow', visibleStatus: false, debugMonitorVisible: false, storage: storage() });
-  assert.equal(VERSION, '3.0.0-alpha.19.0');
-  assert.equal(api.version, '3.0.0-alpha.19.0');
+  assert.equal(VERSION, '3.0.0-alpha.20.0');
+  assert.equal(api.version, '3.0.0-alpha.20.0');
+  assert.ok(api.__runtime instanceof Alpha20Runtime);
   assert.ok(api.__runtime instanceof Alpha19Runtime);
-  assert.equal(api.status().version, '3.0.0-alpha.19.0');
+  assert.equal(api.status().version, '3.0.0-alpha.20.0');
   assert.equal(api.economy.spaceRecovery.status().enabled, false);
   assert.equal(api.economy.spaceRecovery.status().actionAuthority, false);
   assert.equal(api.economy.spaceRecovery.consolidation.status().enabled, false);
@@ -42,6 +43,31 @@ test('public install uses Alpha19Runtime and exposes bounded space recovery API 
   const rejected = api.economy.spaceRecovery.controlled.configure({ enabled: true, ack: 'ALPHA19_SPACE_RECOVERY' });
   assert.equal(rejected.enabled, false);
   assert.equal(rejected.enableRejected, 'RUNTIME_NOT_ACTIVE');
+});
+
+test('public Alpha.20 lifecycle API is default-off and legacy direct party switches cannot bypass it', () => {
+  const r = root();
+  const api = install(r, { mode: 'shadow', visibleStatus: false, debugMonitorVisible: false, storage: storage() });
+  const status = api.party.lifecycle.status();
+  const controlled = api.party.lifecycle.controlled.status();
+  assert.equal(status.actionAuthority, false);
+  assert.equal(status.maxDevelopmentSlots, 1);
+  assert.equal(controlled.enabled, false);
+  assert.equal(controlled.actionAuthority, false);
+  assert.equal(controlled.transitionAuthority, false);
+  assert.equal(controlled.developmentRotationAuthority, false);
+  assert.equal(api.party.lifecycle.aura.status().enabled, false);
+  assert.equal(api.party.lifecycle.aura.status().actionAuthority, false);
+  assert.equal(api.party.setTransitionsEnabled(true), false);
+  assert.equal(api.party.setAuraAutomationEnabled(true), false);
+  assert.equal(api.status().party.legacyTransitionBypassAllowed, false);
+  assert.equal(api.status().party.legacyAuraBypassAllowed, false);
+});
+
+test('Alpha.19 runtime version remains frozen when instantiated directly after public Alpha.20 release bump', () => {
+  const r = root();
+  const runtime = new Alpha19Runtime({ root: r, parent: r.parent, mode: 'shadow', visibleStatus: false, storage: storage() });
+  assert.equal(runtime.status().version, '3.0.0-alpha.19.0');
 });
 
 test('leaving active mode disables Alpha.19 parent and consolidation child authority', () => {
