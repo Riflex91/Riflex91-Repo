@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.12.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.13.0 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -12,6 +12,7 @@ const { Alpha9Runtime } = require('./autonomy/alpha9-runtime');
 const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
 const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
+const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -26,6 +27,7 @@ const { WorldPersistence } = require('./world/persistence');
 const { ResilientWorldPersistence } = require('./world/resilient-persistence');
 const { KnowledgeAgingPolicy } = require('./world/knowledge-aging');
 const { DiscoveryService } = require('./world/discovery');
+const { ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint } = require('./world/content-drift');
 const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
 const { FarmPlanner } = require('./planner/farm-planner');
@@ -49,10 +51,11 @@ const { BackgroundExecutionGuard } = require('./ops/background-execution-guard')
 const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
+const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha12Runtime({ ...options, root });
+  const runtime = new Alpha13Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -101,6 +104,19 @@ function install(root = globalThis, options = {}) {
     brain: {
       status: () => runtime.brain.status(),
       replay: (limit = 32) => runtime.brain.replay(limit)
+    },
+    supervisor: {
+      status: () => runtime.globalSupervisor.status(),
+      setSafeActionsEnabled: (enabled) => runtime.setSupervisorSafeActionsEnabled(enabled),
+      quarantineSubsystem: (name, reason) => runtime.quarantineSubsystem(name, reason),
+      clearSubsystemQuarantine: (name) => runtime.clearSubsystemQuarantine(name)
+    },
+    contentDrift: {
+      status: () => runtime.contentDrift.status(),
+      records: (limit = 100) => runtime.contentDrift.list(limit),
+      requiresRevalidation: (category, id) => runtime.contentDrift.requiresRevalidation(category, id),
+      markRevalidated: (category, id) => runtime.markContentRevalidated(category, id),
+      save: () => runtime.contentDrift.save({ force: true })
     },
     party: {
       status: () => runtime.status().party,
@@ -155,9 +171,10 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
+  ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
@@ -166,7 +183,7 @@ module.exports = {
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
-  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
+  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
 };
 
 },
@@ -4501,7 +4518,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.12.0';
+const RELEASE_VERSION = '3.0.0-alpha.13.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -7374,12 +7391,14 @@ module.exports = {
 'use strict';
 
 const { Alpha12Runtime: BaseAlpha12Runtime } = require('./alpha12-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { PartyControlLease } = require('../party/control-lease');
+
+const ALPHA12_VERSION = '3.0.0-alpha.12.0';
 
 class Alpha12Runtime extends BaseAlpha12Runtime {
   constructor(options = {}) {
     super(options);
+    this.log.version = ALPHA12_VERSION;
     const roster = this.characterRegistry.status().characters || [];
     const merchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || this.partyTransitions.merchantName || null;
     this.partyControlLease = options.partyControlLease || new PartyControlLease({
@@ -7399,8 +7418,10 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
-    return super._announce(normalized, event);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA12_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
   }
 
   syncPartyControlConfig() {
@@ -7442,7 +7463,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA12_VERSION,
       party: {
         ...(base.party || {}),
         controlLease: this.partyControlLease ? this.partyControlLease.status() : null,
@@ -7455,7 +7476,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 }
 
-module.exports = { Alpha12Runtime };
+module.exports = { Alpha12Runtime, ALPHA12_VERSION };
 
 },
 "src/autonomy/alpha12-runtime.js": function(require,module,exports){
@@ -8625,6 +8646,857 @@ module.exports = {
   PARTY_CONTROL_PROTOCOL,
   PARTY_CONTROL_TYPE,
   PartyControlAction
+};
+
+},
+"src/autonomy/alpha13-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha12Runtime } = require('./alpha12-hardened-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { GlobalSupervisor } = require('../stability/global-supervisor');
+const { ContentDriftMonitor } = require('../world/content-drift');
+
+class Alpha13Runtime extends Alpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+    this.contentDriftScanMs = Math.max(1000, Math.min(60000, Number(options.contentDriftScanMs) || 5000));
+    this.supervisorIntervalMs = Math.max(500, Math.min(30000, Number(options.globalSupervisorIntervalMs) || 1000));
+    this.lastContentDriftScanAt = -Infinity;
+    this.lastSupervisorAt = -Infinity;
+    this.lastContentDriftResult = null;
+    this.lastSupervisorResult = null;
+
+    this.contentDrift = options.contentDrift || new ContentDriftMonitor({
+      root: this.root,
+      storage: options.contentDriftStorage || options.storage,
+      now: this.now,
+      log: this.log,
+      capacity: options.contentDriftCapacity,
+      scanBudget: options.contentDriftScanBudget,
+      minObservedSamples: options.contentDriftMinObservedSamples,
+      minSaveMs: options.contentDriftSaveMs
+    });
+    this.contentDrift.load();
+
+    this.globalSupervisor = options.globalSupervisor || new GlobalSupervisor({
+      now: this.now,
+      log: this.log,
+      safeActionsEnabled: options.globalSupervisorSafeActionsEnabled === true,
+      watchAfterMs: options.globalSupervisorWatchAfterMs,
+      degradedAfterMs: options.globalSupervisorDegradedAfterMs,
+      safeModeAfterMs: options.globalSupervisorSafeModeAfterMs,
+      quarantineAfterMs: options.globalSupervisorQuarantineAfterMs,
+      minMovementProgress: options.globalSupervisorMinMovementProgress,
+      recoveryCooldownMs: options.globalSupervisorRecoveryCooldownMs,
+      recoveryWindowMs: options.globalSupervisorRecoveryWindowMs,
+      maxRecoveriesPerWindow: options.globalSupervisorMaxRecoveriesPerWindow
+    });
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
+  _scanContentDrift() {
+    if (!this.lastSnapshot || !this.lastSnapshot.character) return null;
+    const gameData = this.adapter.getGameData() || {};
+    const result = this.contentDrift.scan(this.lastSnapshot, gameData);
+    this.lastContentDriftResult = result;
+    for (const change of result && result.changes || []) {
+      if (change.category !== 'monsters') continue;
+      if (change.kind !== 'DRIFT' && change.kind !== 'NOVELTY') continue;
+      try {
+        this.combatRisk.quarantineMonsterType(this.world, change.id);
+        this.log.emit({
+          component: 'content-drift',
+          event: 'CONTENT_MONSTER_FAIL_CLOSED',
+          severity: 'warn',
+          reason: change.kind === 'DRIFT' ? 'MONSTER_DEFINITION_CHANGED' : 'NEW_MONSTER_AFTER_BASELINE',
+          data: { monster: change.id, fingerprint: change.fingerprint }
+        });
+      } catch (error) {
+        this.log.emit({
+          component: 'content-drift',
+          event: 'CONTENT_MONSTER_FAIL_CLOSED_FAILED',
+          severity: 'error',
+          reason: 'QUARANTINE_WRITE_FAILED',
+          data: { monster: change.id, message: String(error && error.message || error) }
+        });
+      }
+    }
+    return result;
+  }
+
+  _evaluateGlobalSupervisor() {
+    const baseStatus = super.status();
+    const result = this.globalSupervisor.observe({
+      runtime: this,
+      status: baseStatus,
+      contentDrift: this.contentDrift.status()
+    });
+    this.lastSupervisorResult = result;
+    return result;
+  }
+
+  tick() {
+    super.tick();
+    const now = this.now();
+    if (now - this.lastContentDriftScanAt >= this.contentDriftScanMs) {
+      this.lastContentDriftScanAt = now;
+      this._scanContentDrift();
+    }
+    if (now - this.lastSupervisorAt >= this.supervisorIntervalMs) {
+      this.lastSupervisorAt = now;
+      this._evaluateGlobalSupervisor();
+    }
+  }
+
+  stop() {
+    if (this.contentDrift) this.contentDrift.save({ force: true });
+    return super.stop();
+  }
+
+  setSupervisorSafeActionsEnabled(enabled) {
+    return this.globalSupervisor.setSafeActionsEnabled(enabled);
+  }
+
+  quarantineSubsystem(name, reason) {
+    return this.globalSupervisor.quarantineSubsystem(name, reason);
+  }
+
+  clearSubsystemQuarantine(name) {
+    return this.globalSupervisor.clearSubsystemQuarantine(name);
+  }
+
+  markContentRevalidated(category, id) {
+    return this.contentDrift.markRevalidated(category, id);
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      supervisor: this.globalSupervisor.status(),
+      contentDrift: this.contentDrift.status()
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.supervisor = this.globalSupervisor.status();
+    base.context.contentDrift = {
+      status: this.contentDrift.status(),
+      recent: this.contentDrift.list(200)
+    };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha13Runtime };
+
+},
+"src/stability/global-supervisor.js": function(require,module,exports){
+'use strict';
+
+const HealthState = Object.freeze({
+  HEALTHY: 'HEALTHY',
+  WATCH: 'WATCH',
+  DEGRADED: 'DEGRADED',
+  RECOVERY: 'RECOVERY',
+  SAFE_MODE: 'SAFE_MODE',
+  QUARANTINE: 'QUARANTINE'
+});
+
+const RANK = Object.freeze({
+  [HealthState.HEALTHY]: 0,
+  [HealthState.WATCH]: 1,
+  [HealthState.DEGRADED]: 2,
+  [HealthState.RECOVERY]: 3,
+  [HealthState.SAFE_MODE]: 4,
+  [HealthState.QUARANTINE]: 5
+});
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, finite(value, min)));
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class GlobalSupervisor {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.safeActionsEnabled = options.safeActionsEnabled === true;
+    this.watchAfterMs = clamp(options.watchAfterMs || 15000, 1000, 30 * 60 * 1000);
+    this.degradedAfterMs = clamp(options.degradedAfterMs || 45000, this.watchAfterMs, 60 * 60 * 1000);
+    this.safeModeAfterMs = clamp(options.safeModeAfterMs || 120000, this.degradedAfterMs, 2 * 60 * 60 * 1000);
+    this.quarantineAfterMs = clamp(options.quarantineAfterMs || 300000, this.safeModeAfterMs, 6 * 60 * 60 * 1000);
+    this.minMovementProgress = clamp(options.minMovementProgress || 25, 5, 500);
+    this.recoveryCooldownMs = clamp(options.recoveryCooldownMs || 30000, 1000, 30 * 60 * 1000);
+    this.recoveryWindowMs = clamp(options.recoveryWindowMs || 10 * 60 * 1000, this.recoveryCooldownMs, 24 * 60 * 60 * 1000);
+    this.maxRecoveriesPerWindow = Math.max(1, Math.min(20, Math.floor(finite(options.maxRecoveriesPerWindow, 3))));
+    this.state = HealthState.HEALTHY;
+    this.reasons = [];
+    this.subsystems = {};
+    this.lastEvaluatedAt = null;
+    this.lastProgressAt = null;
+    this.progressAnchor = null;
+    this.lastRecoveryAt = null;
+    this.recoveries = [];
+    this.manualQuarantines = new Map();
+    this.stats = { evaluations: 0, transitions: 0, safeFallbacks: 0, safeFallbackFailures: 0, budgetBlocks: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'global-supervisor', event, severity, reason, data });
+  }
+
+  _probe(status) {
+    const c = status && status.character;
+    if (!c) return null;
+    return {
+      map: c.map || null,
+      x: finite(c.x != null ? c.x : c.real_x, 0),
+      y: finite(c.y != null ? c.y : c.real_y, 0),
+      xp: finite(c.xp, 0),
+      gold: finite(c.gold, 0),
+      rip: c.rip === true
+    };
+  }
+
+  _activeWork(status) {
+    if (!status || status.running !== true || status.mode !== 'active') return false;
+    const c = status.character;
+    if (!c || c.rip === true) return false;
+    const farmer = status.farmer || {};
+    const transition = status.party && status.party.transition;
+    const partyActive = !!(transition && (transition.active === true || !['IDLE', 'READY', 'COMPLETED'].includes(String(transition.state || 'IDLE'))));
+    return farmer.enabled === true || partyActive;
+  }
+
+  _noteProgress(status) {
+    const now = this.now();
+    const probe = this._probe(status);
+    if (!probe || !this._activeWork(status)) {
+      this.progressAnchor = probe;
+      this.lastProgressAt = now;
+      return { active: false, progressed: true, ageMs: 0 };
+    }
+    if (!this.progressAnchor) {
+      this.progressAnchor = probe;
+      this.lastProgressAt = now;
+      return { active: true, progressed: true, ageMs: 0 };
+    }
+    const anchor = this.progressAnchor;
+    const distance = Math.hypot(probe.x - anchor.x, probe.y - anchor.y);
+    const progressed = probe.map !== anchor.map || probe.xp > anchor.xp || probe.gold > anchor.gold || distance >= this.minMovementProgress;
+    if (progressed) {
+      this.progressAnchor = probe;
+      this.lastProgressAt = now;
+    }
+    if (this.lastProgressAt == null) this.lastProgressAt = now;
+    return { active: true, progressed, ageMs: Math.max(0, now - this.lastProgressAt), distance };
+  }
+
+  _progressState(progress) {
+    if (!progress.active) return { state: HealthState.HEALTHY, reasons: [] };
+    const age = progress.ageMs;
+    if (age >= this.quarantineAfterMs) return { state: HealthState.QUARANTINE, reasons: ['NO_PROGRESS_QUARANTINE'] };
+    if (age >= this.safeModeAfterMs) return { state: HealthState.SAFE_MODE, reasons: ['NO_PROGRESS_SAFE_MODE'] };
+    if (age >= this.degradedAfterMs) return { state: HealthState.DEGRADED, reasons: ['NO_PROGRESS_DEGRADED'] };
+    if (age >= this.watchAfterMs) return { state: HealthState.WATCH, reasons: ['NO_PROGRESS_WATCH'] };
+    return { state: HealthState.HEALTHY, reasons: [] };
+  }
+
+  _subsystemState(status, contentDrift, progress) {
+    const result = {};
+    const movement = status && status.stability && status.stability.commandOutcomes && status.stability.commandOutcomes.movement;
+    result.combat = movement && movement.circuitOpen
+      ? { state: HealthState.DEGRADED, reasons: ['MOVEMENT_CIRCUIT_OPEN'] }
+      : { state: HealthState.HEALTHY, reasons: [] };
+
+    const persistence = status && status.persistence || {};
+    if (finite(persistence.loadFailureStreak) >= 5 || finite(persistence.saveFailureStreak) >= 8) {
+      result.persistence = { state: HealthState.SAFE_MODE, reasons: ['PERSISTENCE_FAILURE_BUDGET_EXCEEDED'] };
+    } else if (persistence.saveCircuitOpen === true || finite(persistence.loadFailureStreak) >= 3 || finite(persistence.saveFailureStreak) >= 3) {
+      result.persistence = { state: HealthState.DEGRADED, reasons: ['PERSISTENCE_UNHEALTHY'] };
+    } else result.persistence = { state: HealthState.HEALTHY, reasons: [] };
+
+    const transition = status && status.party && status.party.transition || {};
+    if (String(transition.state || '') === 'FAILED_SAFE') result.party = { state: HealthState.QUARANTINE, reasons: ['PARTY_TRANSITION_FAILED_SAFE'] };
+    else if (transition.active === true && transition.leaseExpired === true) result.party = { state: HealthState.DEGRADED, reasons: ['PARTY_TRANSITION_LEASE_EXPIRED'] };
+    else result.party = { state: HealthState.HEALTHY, reasons: [] };
+
+    const brain = status && status.brain || {};
+    result.brain = String(brain.quality && brain.quality.state || brain.qualityState || brain.quality || '').toUpperCase().includes('QUARANTINED')
+      ? { state: HealthState.QUARANTINE, reasons: ['BRAIN_QUARANTINED'] }
+      : { state: HealthState.HEALTHY, reasons: [] };
+
+    const quarantined = finite(contentDrift && contentDrift.counts && contentDrift.counts.QUARANTINED, 0);
+    result.content = quarantined > 0
+      ? { state: HealthState.WATCH, reasons: ['CONTENT_REVALIDATION_REQUIRED'] }
+      : { state: HealthState.HEALTHY, reasons: [] };
+
+    result.progress = this._progressState(progress);
+
+    for (const [name, record] of this.manualQuarantines.entries()) {
+      result[name] = { state: HealthState.QUARANTINE, reasons: ['MANUAL_QUARANTINE', record.reason].filter(Boolean) };
+    }
+    return result;
+  }
+
+  _overall(subsystems) {
+    let state = HealthState.HEALTHY;
+    const reasons = [];
+    const critical = ['progress', 'combat', 'persistence'];
+    for (const name of critical) {
+      const row = subsystems[name];
+      if (!row) continue;
+      if (RANK[row.state] > RANK[state]) state = row.state;
+      reasons.push(...row.reasons);
+    }
+    const party = subsystems.party;
+    if (party) {
+      const capped = party.state === HealthState.QUARANTINE ? HealthState.DEGRADED : party.state;
+      if (RANK[capped] > RANK[state]) state = capped;
+      reasons.push(...party.reasons);
+    }
+    for (const name of ['brain', 'content']) {
+      const row = subsystems[name];
+      if (!row) continue;
+      const capped = row.state === HealthState.HEALTHY ? HealthState.HEALTHY : HealthState.WATCH;
+      if (RANK[capped] > RANK[state]) state = capped;
+      reasons.push(...row.reasons);
+    }
+    for (const [name, row] of Object.entries(subsystems)) {
+      if (['progress', 'combat', 'persistence', 'party', 'brain', 'content'].includes(name)) continue;
+      if (RANK[row.state] > RANK[state]) state = row.state;
+      reasons.push(...row.reasons);
+    }
+    return { state, reasons: [...new Set(reasons)] };
+  }
+
+  _pruneRecoveries(now) {
+    this.recoveries = this.recoveries.filter((row) => now - row.at <= this.recoveryWindowMs);
+  }
+
+  _canRecover(now) {
+    this._pruneRecoveries(now);
+    if (this.lastRecoveryAt != null && now - this.lastRecoveryAt < this.recoveryCooldownMs) return { allowed: false, reason: 'RECOVERY_COOLDOWN' };
+    if (this.recoveries.length >= this.maxRecoveriesPerWindow) return { allowed: false, reason: 'RECOVERY_BUDGET_EXHAUSTED' };
+    return { allowed: true, reason: null };
+  }
+
+  _applySafeFallback(runtime, triggerState, reasons) {
+    const now = this.now();
+    const budget = this._canRecover(now);
+    if (!budget.allowed) {
+      this.stats.budgetBlocks += 1;
+      this._event('SUPERVISOR_RECOVERY_SUPPRESSED', 'warn', budget.reason, { triggerState, reasons, recoveriesInWindow: this.recoveries.length });
+      return { executed: false, reason: budget.reason, actions: [] };
+    }
+    const actions = [];
+    const call = (name, fn) => {
+      try {
+        if (typeof fn !== 'function') return;
+        fn();
+        actions.push(name);
+      } catch (error) {
+        this.stats.safeFallbackFailures += 1;
+        this._event('SUPERVISOR_SAFE_ACTION_FAILED', 'error', name, { message: String(error && error.message || error) });
+      }
+    };
+    call('PARTY_TRANSITIONS_OFF', runtime && typeof runtime.setPartyTransitionsEnabled === 'function' ? () => runtime.setPartyTransitionsEnabled(false) : null);
+    call('PARTY_AURA_OFF', runtime && typeof runtime.setPartyAuraAutomationEnabled === 'function' ? () => runtime.setPartyAuraAutomationEnabled(false) : null);
+    call('PARTY_EXPLORATION_OFF', runtime && typeof runtime.setPartyExplorationEnabled === 'function' ? () => runtime.setPartyExplorationEnabled(false) : null);
+    call('FARMER_OFF', runtime && typeof runtime.setFarmerEnabled === 'function' ? () => runtime.setFarmerEnabled(false) : null);
+    call('RUNTIME_SHADOW', runtime && typeof runtime.setMode === 'function' ? () => runtime.setMode('shadow') : null);
+    this.lastRecoveryAt = now;
+    const row = { at: now, triggerState, reasons: reasons.slice(0, 16), actions };
+    this.recoveries.push(row);
+    this.stats.safeFallbacks += 1;
+    this._event('SUPERVISOR_SAFE_FALLBACK_APPLIED', 'warn', 'SAFETY_REDUCTION_ONLY', row);
+    return { executed: true, reason: 'SAFETY_REDUCTION_ONLY', actions };
+  }
+
+  observe(context = {}) {
+    const now = this.now();
+    const status = context.status || {};
+    const progress = this._noteProgress(status);
+    const subsystems = this._subsystemState(status, context.contentDrift || null, progress);
+    const overall = this._overall(subsystems);
+    let recovery = { executed: false, reason: this.safeActionsEnabled ? 'NOT_REQUIRED' : 'SAFE_ACTIONS_DISABLED', actions: [] };
+    if (this.safeActionsEnabled && RANK[overall.state] >= RANK[HealthState.SAFE_MODE]) recovery = this._applySafeFallback(context.runtime, overall.state, overall.reasons);
+
+    const previous = this.state;
+    this.state = overall.state;
+    if (overall.state === HealthState.HEALTHY && this.lastRecoveryAt != null && now - this.lastRecoveryAt < this.recoveryCooldownMs) this.state = HealthState.RECOVERY;
+    this.reasons = overall.reasons;
+    this.subsystems = subsystems;
+    this.lastEvaluatedAt = now;
+    this.stats.evaluations += 1;
+    if (previous !== this.state) {
+      this.stats.transitions += 1;
+      this._event('SUPERVISOR_STATE_CHANGED', this.state === HealthState.HEALTHY ? 'info' : 'warn', this.reasons[0] || null, { from: previous, to: this.state, reasons: this.reasons });
+    }
+    return { state: this.state, reasons: this.reasons.slice(), progress, recovery };
+  }
+
+  setSafeActionsEnabled(enabled) {
+    this.safeActionsEnabled = enabled === true;
+    this._event('SUPERVISOR_SAFE_ACTIONS_CHANGED', 'info', null, { enabled: this.safeActionsEnabled });
+    return this.safeActionsEnabled;
+  }
+
+  quarantineSubsystem(name, reason = 'MANUAL') {
+    const key = String(name || '').trim();
+    if (!key) return false;
+    this.manualQuarantines.set(key, { at: this.now(), reason: String(reason || 'MANUAL') });
+    this._event('SUPERVISOR_SUBSYSTEM_QUARANTINED', 'warn', reason, { subsystem: key });
+    return true;
+  }
+
+  clearSubsystemQuarantine(name) {
+    const key = String(name || '').trim();
+    const cleared = this.manualQuarantines.delete(key);
+    if (cleared) this._event('SUPERVISOR_SUBSYSTEM_QUARANTINE_CLEARED', 'info', null, { subsystem: key });
+    return cleared;
+  }
+
+  status() {
+    const now = this.now();
+    this._pruneRecoveries(now);
+    return {
+      schemaVersion: 1,
+      state: this.state,
+      reasons: this.reasons.slice(),
+      safeActionsEnabled: this.safeActionsEnabled,
+      actionAuthority: this.safeActionsEnabled,
+      actionScope: 'safety-reduction-only',
+      directGameplayActionAccess: false,
+      thresholds: {
+        watchAfterMs: this.watchAfterMs,
+        degradedAfterMs: this.degradedAfterMs,
+        safeModeAfterMs: this.safeModeAfterMs,
+        quarantineAfterMs: this.quarantineAfterMs,
+        minMovementProgress: this.minMovementProgress
+      },
+      progress: {
+        lastProgressAt: this.lastProgressAt,
+        ageMs: this.lastProgressAt == null ? null : Math.max(0, now - this.lastProgressAt),
+        anchor: clone(this.progressAnchor)
+      },
+      subsystems: clone(this.subsystems),
+      manualQuarantines: [...this.manualQuarantines.entries()].map(([name, value]) => ({ name, ...value })),
+      recovery: {
+        lastRecoveryAt: this.lastRecoveryAt,
+        cooldownMs: this.recoveryCooldownMs,
+        windowMs: this.recoveryWindowMs,
+        maxPerWindow: this.maxRecoveriesPerWindow,
+        inWindow: this.recoveries.length,
+        recent: clone(this.recoveries.slice(-10))
+      },
+      lastEvaluatedAt: this.lastEvaluatedAt,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { GlobalSupervisor, HealthState };
+
+},
+"src/world/content-drift.js": function(require,module,exports){
+'use strict';
+
+const CONTENT_DRIFT_SCHEMA_VERSION = 1;
+const ContentLifecycle = Object.freeze({
+  BASELINE: 'BASELINE',
+  OBSERVED: 'OBSERVED',
+  QUARANTINED: 'QUARANTINED'
+});
+
+const DEFAULT_CATEGORIES = Object.freeze(['monsters', 'maps', 'npcs', 'items', 'skills', 'events']);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalize(value, depth = 0) {
+  if (depth > 6) return '[depth-limit]';
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > 512 ? value.slice(0, 512) : value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'function' || typeof value === 'undefined' || typeof value === 'symbol') return undefined;
+  if (Array.isArray(value)) return value.slice(0, 128).map((item) => normalize(item, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    const keys = Object.keys(value).sort().slice(0, 256);
+    for (const key of keys) {
+      const normalized = normalize(value[key], depth + 1);
+      if (normalized !== undefined) out[key] = normalized;
+    }
+    return out;
+  }
+  return String(value);
+}
+
+function stableStringify(value) {
+  return JSON.stringify(normalize(value));
+}
+
+function hashString(input) {
+  let hash = 0x811c9dc5;
+  const text = String(input || '');
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function fingerprint(value) {
+  const canonical = stableStringify(value);
+  return { hash: hashString(canonical), bytes: canonical.length };
+}
+
+function recordKey(category, id) {
+  return `${category}:${String(id)}`;
+}
+
+class ContentDriftMonitor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.key = options.key || 'aio-v3-content-drift-v1';
+    this.capacity = Math.max(64, Math.min(10000, Math.floor(finite(options.capacity, 2048))));
+    this.scanBudget = Math.max(6, Math.min(512, Math.floor(finite(options.scanBudget, 96))));
+    this.minObservedSamples = Math.max(2, Math.min(20, Math.floor(finite(options.minObservedSamples, 2))));
+    this.minSaveMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.minSaveMs, 30000)));
+    this.categories = Array.isArray(options.categories) && options.categories.length ? [...new Set(options.categories.map(String))] : DEFAULT_CATEGORIES.slice();
+    this.records = new Map();
+    this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
+    this.loaded = false;
+    this.lastSavedAt = 0;
+    this.lastScanAt = null;
+    this.lastScan = null;
+    this.stats = { scans: 0, observed: 0, baselineRecords: 0, novelty: 0, drift: 0, revalidated: 0, pruned: 0, loadErrors: 0, saveErrors: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'content-drift', event, severity, reason, data });
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    const ls = this.root && this.root.localStorage;
+    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
+      return { get: (key) => ls.getItem(key), set: (key, value) => ls.setItem(key, value) };
+    }
+    return null;
+  }
+
+  _catalogState(category) {
+    if (!this.catalog.has(category)) this.catalog.set(category, { cursor: 0, baselineComplete: false, cycles: 0 });
+    return this.catalog.get(category);
+  }
+
+  _prune() {
+    if (this.records.size <= this.capacity) return 0;
+    const rows = [...this.records.entries()].sort((a, b) => {
+      const aq = a[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
+      const bq = b[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
+      if (aq !== bq) return aq - bq;
+      return finite(a[1].lastSeenAt) - finite(b[1].lastSeenAt);
+    });
+    const count = this.records.size - this.capacity;
+    for (let i = 0; i < count; i += 1) this.records.delete(rows[i][0]);
+    this.stats.pruned += count;
+    if (count > 0) this._event('CONTENT_DRIFT_RECORDS_PRUNED', 'warn', 'CAPACITY_LIMIT', { count, capacity: this.capacity });
+    return count;
+  }
+
+  _observe(category, id, value, options = {}) {
+    if (!category || id == null) return null;
+    const now = this.now();
+    const key = recordKey(category, id);
+    const fp = fingerprint(value);
+    const current = this.records.get(key);
+    const baselineAllowed = options.baselineAllowed === true;
+    this.stats.observed += 1;
+
+    if (!current) {
+      const lifecycle = baselineAllowed ? ContentLifecycle.BASELINE : ContentLifecycle.QUARANTINED;
+      const record = {
+        schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+        key,
+        category: String(category),
+        id: String(id),
+        lifecycle,
+        fingerprint: fp.hash,
+        baselineFingerprint: fp.hash,
+        previousFingerprint: null,
+        bytes: fp.bytes,
+        samples: 1,
+        changeCount: 0,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        lastChangedAt: null,
+        source: options.source || 'catalog'
+      };
+      this.records.set(key, record);
+      if (baselineAllowed) this.stats.baselineRecords += 1;
+      else {
+        this.stats.novelty += 1;
+        this._event('CONTENT_NOVELTY_DETECTED', 'warn', 'NEW_CONTENT_AFTER_BASELINE', { category, id: String(id), fingerprint: fp.hash, source: record.source });
+      }
+      this._prune();
+      return { kind: baselineAllowed ? 'BASELINE' : 'NOVELTY', record: clone(record) };
+    }
+
+    current.samples += 1;
+    current.lastSeenAt = now;
+    current.source = options.source || current.source;
+    current.bytes = fp.bytes;
+    if (current.fingerprint !== fp.hash) {
+      current.previousFingerprint = current.fingerprint;
+      current.fingerprint = fp.hash;
+      current.changeCount += 1;
+      current.lastChangedAt = now;
+      current.lifecycle = ContentLifecycle.QUARANTINED;
+      this.stats.drift += 1;
+      this._event('CONTENT_DRIFT_DETECTED', 'warn', 'FINGERPRINT_CHANGED', {
+        category,
+        id: String(id),
+        previousFingerprint: current.previousFingerprint,
+        fingerprint: current.fingerprint,
+        changeCount: current.changeCount,
+        source: current.source
+      });
+      return { kind: 'DRIFT', record: clone(current) };
+    }
+
+    if (current.lifecycle === ContentLifecycle.BASELINE && current.samples >= this.minObservedSamples) current.lifecycle = ContentLifecycle.OBSERVED;
+    return { kind: 'UNCHANGED', record: clone(current) };
+  }
+
+  _entries(gameData, category) {
+    const source = gameData && gameData[category];
+    if (!source) return [];
+    if (Array.isArray(source)) return source.map((value, index) => [String(index), value]);
+    if (typeof source !== 'object') return [];
+    return Object.keys(source).sort().map((key) => [key, source[key]]);
+  }
+
+  _priority(snapshot, gameData, changes) {
+    if (!snapshot || !snapshot.character) return;
+    const map = snapshot.character.map;
+    if (map && gameData && gameData.maps && gameData.maps[map]) {
+      const state = this._catalogState('maps');
+      const row = this._observe('maps', map, gameData.maps[map], { baselineAllowed: !state.baselineComplete, source: 'current-map' });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+    }
+    const monsters = new Set();
+    for (const entity of snapshot.entities || []) if (entity && entity.mtype) monsters.add(entity.mtype);
+    for (const mtype of [...monsters].sort().slice(0, 32)) {
+      const value = gameData && gameData.monsters && gameData.monsters[mtype];
+      if (!value) continue;
+      const state = this._catalogState('monsters');
+      const row = this._observe('monsters', mtype, value, { baselineAllowed: !state.baselineComplete, source: 'visible-monster' });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+    }
+  }
+
+  _scanCategory(gameData, category, budget, changes) {
+    const entries = this._entries(gameData, category);
+    const state = this._catalogState(category);
+    if (!entries.length) {
+      state.cursor = 0;
+      state.baselineComplete = true;
+      state.cycles = Math.max(1, state.cycles);
+      return 0;
+    }
+    if (state.cursor >= entries.length) state.cursor = 0;
+    let used = 0;
+    while (used < budget && entries.length) {
+      const [id, value] = entries[state.cursor];
+      const row = this._observe(category, id, value, { baselineAllowed: !state.baselineComplete, source: `catalog:${category}` });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+      used += 1;
+      state.cursor += 1;
+      if (state.cursor >= entries.length) {
+        state.cursor = 0;
+        state.baselineComplete = true;
+        state.cycles += 1;
+        break;
+      }
+    }
+    return used;
+  }
+
+  scan(snapshot, gameData = {}) {
+    const now = this.now();
+    const changes = [];
+    this._priority(snapshot, gameData, changes);
+    let remaining = this.scanBudget;
+    for (const category of this.categories) {
+      if (remaining <= 0) break;
+      const categoriesLeft = Math.max(1, this.categories.length - this.categories.indexOf(category));
+      const budget = Math.max(1, Math.floor(remaining / categoriesLeft));
+      remaining -= this._scanCategory(gameData, category, budget, changes);
+    }
+    this.stats.scans += 1;
+    this.lastScanAt = now;
+    this.lastScan = {
+      at: now,
+      map: snapshot && snapshot.character && snapshot.character.map || null,
+      changes: changes.map((row) => ({ kind: row.kind, category: row.record.category, id: row.record.id, lifecycle: row.record.lifecycle, fingerprint: row.record.fingerprint })),
+      baselineComplete: Object.fromEntries(this.categories.map((category) => [category, this._catalogState(category).baselineComplete]))
+    };
+    if (changes.length) this._event('CONTENT_SCAN_COMPLETED', 'warn', 'CONTENT_CHANGE_DETECTED', { changes: this.lastScan.changes });
+    this.save({ force: changes.length > 0 });
+    return clone(this.lastScan);
+  }
+
+  markRevalidated(category, id) {
+    const record = this.records.get(recordKey(category, id));
+    if (!record) return false;
+    record.lifecycle = ContentLifecycle.OBSERVED;
+    record.baselineFingerprint = record.fingerprint;
+    record.previousFingerprint = null;
+    record.lastSeenAt = this.now();
+    this.stats.revalidated += 1;
+    this._event('CONTENT_REVALIDATED', 'info', null, { category: record.category, id: record.id, fingerprint: record.fingerprint });
+    this.save({ force: true });
+    return true;
+  }
+
+  requiresRevalidation(category, id) {
+    const record = this.records.get(recordKey(category, id));
+    return !!record && record.lifecycle === ContentLifecycle.QUARANTINED;
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.key);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== CONTENT_DRIFT_SCHEMA_VERSION || !Array.isArray(data.records)) throw new Error('unsupported content drift schema');
+      this.records = new Map(data.records.filter((row) => Array.isArray(row) && row.length === 2));
+      if (data.catalog && typeof data.catalog === 'object') {
+        for (const [category, state] of Object.entries(data.catalog)) {
+          if (!this.categories.includes(category)) continue;
+          this.catalog.set(category, {
+            cursor: Math.max(0, Math.floor(finite(state.cursor, 0))),
+            baselineComplete: state.baselineComplete === true,
+            cycles: Math.max(0, Math.floor(finite(state.cycles, 0)))
+          });
+        }
+      }
+      this._prune();
+      this._event('CONTENT_DRIFT_RESTORED', 'info', null, { records: this.records.size });
+      return true;
+    } catch (error) {
+      this.records.clear();
+      this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
+      this.stats.loadErrors += 1;
+      this._event('CONTENT_DRIFT_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  serialize() {
+    return JSON.stringify({
+      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+      savedAt: this.now(),
+      records: [...this.records.entries()],
+      catalog: Object.fromEntries(this.catalog.entries())
+    });
+  }
+
+  save(options = {}) {
+    const backend = this._backend();
+    if (!backend) return false;
+    const now = this.now();
+    if (options.force !== true && now - this.lastSavedAt < this.minSaveMs) return false;
+    try {
+      backend.set(this.key, this.serialize());
+      this.lastSavedAt = now;
+      return true;
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('CONTENT_DRIFT_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  list(limit = 100) {
+    const n = Math.max(0, Math.min(this.capacity, Math.floor(finite(limit, 100))));
+    return [...this.records.values()]
+      .sort((a, b) => finite(b.lastChangedAt || b.lastSeenAt) - finite(a.lastChangedAt || a.lastSeenAt))
+      .slice(0, n)
+      .map(clone);
+  }
+
+  status() {
+    const counts = { BASELINE: 0, OBSERVED: 0, QUARANTINED: 0 };
+    for (const record of this.records.values()) counts[record.lifecycle] = (counts[record.lifecycle] || 0) + 1;
+    return {
+      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+      mode: 'observation-first',
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      records: this.records.size,
+      capacity: this.capacity,
+      scanBudget: this.scanBudget,
+      counts,
+      baseline: Object.fromEntries(this.categories.map((category) => {
+        const state = this._catalogState(category);
+        return [category, { baselineComplete: state.baselineComplete, cursor: state.cursor, cycles: state.cycles }];
+      })),
+      lastScanAt: this.lastScanAt,
+      lastScan: clone(this.lastScan),
+      persistence: { available: !!this._backend(), lastSavedAt: this.lastSavedAt || null, key: this.key },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  ContentDriftMonitor,
+  ContentLifecycle,
+  CONTENT_DRIFT_SCHEMA_VERSION,
+  stableStringify,
+  fingerprint
 };
 
 },
