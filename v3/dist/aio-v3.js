@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.8.10 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.8.11 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -79,7 +79,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.10';
+const VERSION = '3.0.0-alpha.8.11';
 
 class Runtime {
   constructor(options = {}) {
@@ -109,6 +109,9 @@ class Runtime {
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
       skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
       skillUsageFailureBackoffMs: options.farmerSkillUsageFailureBackoffMs,
+      skillUsageFailureBackoffMultiplier: options.farmerSkillUsageFailureBackoffMultiplier,
+      skillUsageFailureBackoffMaxMs: options.farmerSkillUsageFailureBackoffMaxMs,
+      skillUsageFailureStreakResetMs: options.farmerSkillUsageFailureStreakResetMs,
       targetReassessmentEnabled: options.farmerTargetReassessmentEnabled !== false,
       targetReassessmentMinIntervalMs: options.farmerTargetReassessmentMinIntervalMs,
       targetReassessmentSwitchCooldownMs: options.farmerTargetReassessmentSwitchCooldownMs,
