@@ -64,6 +64,7 @@ const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
+const { buildReconciliationStatus } = require('./ops/reconciliation-status');
 const { BackgroundExecutionGuard } = require('./ops/background-execution-guard');
 const { MinuteCountdownReporter } = require('./ops/minute-countdown-reporter');
 const { SessionMonitor, MONITOR_SCHEMA_VERSION } = require('./ops/session-monitor');
@@ -157,6 +158,7 @@ function install(root = globalThis, options = {}) {
       acknowledgeAlert: (id, options = {}) => operations.acknowledgeAlert(id, options),
       configureSafeRecovery: (config = {}) => operations.configureSafeRecovery(config),
       safeRecoveryStatus: () => operations.safeRecoveryStatus(),
+      reconciliationStatus: () => buildReconciliationStatus(runtime, runtime.now, operations.recovery),
       hostHeartbeat: () => operations.hostHeartbeat()
     },
     world: runtime.world,
