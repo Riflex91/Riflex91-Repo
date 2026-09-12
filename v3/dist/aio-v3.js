@@ -8005,7 +8005,7 @@ class PartyTelemetryBridge {
   }
   receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; return true; }
   buildLocalReport(runtime) {
-    const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const size = Math.max(0, finite(c.isize) == null ? inventory.length : finite(c.isize)); const used = inventory.filter(Boolean).length; const potions = potionSummary(inventory);
+    const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
     return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, at: this.now() };
   }
   tick(runtime) {
@@ -21561,6 +21561,7 @@ module.exports = { HostWatchdogBeacon, HOST_WATCHDOG_SCHEMA_VERSION };
 const RECONCILIATION_STATUS_SCHEMA_VERSION = 1;
 const RECONCILIATION_STATUS_TYPE = 'AIO_V3_RECONCILIATION_STATUS';
 const ACTIVE_LIFECYCLE_STATES = new Set(['RESERVED', 'EXECUTING', 'VERIFYING', 'RECOVERING']);
+const ACTIVE_MERCHANT_SERVICE_STATES = new Set(['RESERVED', 'EXECUTING', 'VERIFYING', 'RECOVERING']);
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -21619,6 +21620,8 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
   const consolidation = safeStatus(runtime.controlledBankConsolidation);
   const travel = safeStatus(runtime.safeTravel);
   const lifecycle = safeStatus(runtime.controlledPartyLifecycle);
+  const hasMerchantService = Object.prototype.hasOwnProperty.call(runtime, 'controlledMerchantService');
+  const merchantService = hasMerchantService ? safeStatus(runtime.controlledMerchantService) : null;
   const recoveryStatus = safeStatus(recoveryTarget);
 
   if (!economy) add('ECONOMY_STATUS_UNAVAILABLE');
@@ -21653,6 +21656,15 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
     if (lifecycle.busy === true) add('PARTY_LIFECYCLE_BUSY');
     const lifecycleState = bounded(lifecycle.operation && lifecycle.operation.state || '', 32);
     if (ACTIVE_LIFECYCLE_STATES.has(lifecycleState)) add('PARTY_LIFECYCLE_RECOVERY_REQUIRED');
+  }
+
+  if (hasMerchantService) {
+    if (!merchantService) add('MERCHANT_SERVICE_STATUS_UNAVAILABLE');
+    else {
+      if (merchantService.busy === true) add('MERCHANT_SERVICE_BUSY');
+      const serviceState = bounded(merchantService.activeOperation && merchantService.activeOperation.state || '', 32);
+      if (ACTIVE_MERCHANT_SERVICE_STATES.has(serviceState)) add('MERCHANT_SERVICE_RECOVERY_REQUIRED');
+    }
   }
 
   let liveGate = null;
@@ -21690,6 +21702,11 @@ function buildReconciliationStatus(runtime, now = () => Date.now(), recoveryTarg
         operationState: bounded(lifecycle.operation && lifecycle.operation.state || '', 32) || null,
         developmentSessionActive: !!lifecycle.developmentSession
       } : null,
+      merchantService: hasMerchantService ? (merchantService ? {
+        busy: merchantService.busy === true,
+        enabled: merchantService.enabled === true,
+        operationState: bounded(merchantService.activeOperation && merchantService.activeOperation.state || '', 32) || null
+      } : null) : null,
       liveGate: liveGate ? { running: liveGate.running === true, phase: bounded(liveGate.phase || '', 48) || null } : null,
       safeRecovery: recoveryStatus ? {
         enabled: recoveryStatus.enabled === true,
