@@ -173,3 +173,23 @@ Alpha.12 becomes `CONFIRMED` only after all of the following are true:
 13. final real runtime is restored to `shadow` with live Party controls disabled.
 
 Only after item 12 is observed may Alpha.12 be marked FULL CONFIRMED.
+
+## FULL confirmation
+
+Status: **FULL CONFIRMED**
+
+Confirmation date: `2026-09-12`
+
+Certified release: `3.0.0-alpha.12.0`
+
+Validated PR: `#46`
+
+Validated final PR head: `e4bc920656073d9b70b194816b6f4ca485c38ee7`
+
+Merged implementation main: `46a994c0fee7b760fda068820e70b698e218aaa8`
+
+Internal certification completed with `192/192` tests passing, browser-bundle smoke verification passing, and the pull-request workflow green on the exact final PR head before merge.
+
+After merge, the operator reported **PASS** for the single combined safe Adventure Land Alpha.12 FULL certification test. The certification script explicitly forced Party transitions, aura automation and exploration off, restored runtime mode to `shadow` in its final safety path, and treated the run as PASS only when the required Alpha.12 runtime/safety contracts held.
+
+The Alpha.12 release gate is therefore complete. Alpha.12 is frozen as **FULL CONFIRMED**. This confirmation does not expand gameplay authority: Party transitions, aura automation and exploration remain default-off, and the strategic Brain remains shadow-only.
