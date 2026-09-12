@@ -5724,7 +5724,9 @@ module.exports = { CombatStabilitySupervisor };
 
 const { StabilityRuntime } = require('../stability/stability-runtime');
 const { EvidenceKind } = require('../world/world-model');
-const { LocalSpawnNavigator, ProgressWatchdog } = require('./local-farming');
+const { FarmPlanner } = require('../planner/farm-planner');
+const { ProgressWatchdog } = require('./local-farming');
+const { SafeLocalSpawnNavigator } = require('./safe-local-farming');
 const { StrategyBrain } = require('../brain/strategy-brain');
 
 function ratio(value, max) {
@@ -5736,10 +5738,17 @@ function ratio(value, max) {
 class Alpha9Runtime extends StabilityRuntime {
   constructor(options = {}) {
     super(options);
-    this.localFarming = options.localFarming || new LocalSpawnNavigator({
+    this.localFarmPlanner = options.localFarmPlanner || new FarmPlanner({
+      log: null,
+      maxDeathsPerHour: this.planner && this.planner.maxDeathsPerHour,
+      maxTravelSeconds: this.planner && this.planner.maxTravelSeconds,
+      explorationWeight: this.planner && this.planner.explorationWeight
+    });
+    this.localFarming = options.localFarming || new SafeLocalSpawnNavigator({
       now: this.now,
       log: this.log,
-      planner: this.planner,
+      planner: this.localFarmPlanner,
+      minLearnedConfidence: options.localFarmMinLearnedConfidence,
       maxStep: options.localFarmMaxStep,
       arrivalRadius: options.localFarmArrivalRadius,
       moveCooldownMs: options.localFarmMoveCooldownMs,
@@ -5768,10 +5777,12 @@ class Alpha9Runtime extends StabilityRuntime {
     });
     this.lastFarmSnapshot = null;
     this.lastLocalFarmStep = null;
+    this.lastBrainSafetyIncidentAt = 0;
     this.brainStateRestored = false;
     this.brainStateRestoreAttempted = false;
     this.brainStateLastSavedAt = 0;
     this.brainStateLastSavedUpdates = -1;
+    this.brainStateLastSerialized = null;
     this.brainPersistenceIntervalMs = Math.max(10000, Number(options.brainPersistenceIntervalMs) || 60000);
     this.brainStateMaxBytes = Math.max(50000, Math.min(750000, Number(options.brainStateMaxBytes) || 350000));
     this.brainStateLastError = null;
@@ -5823,9 +5834,15 @@ class Alpha9Runtime extends StabilityRuntime {
       this.log.emit({ component: 'brain', event: 'BRAIN_STATE_SAVE_SKIPPED', severity: 'warn', reason: 'BRAIN_STATE_SIZE_LIMIT', data: { bytes: serialized.length, maxBytes: this.brainStateMaxBytes } });
       return false;
     }
+    if (!force && serialized === this.brainStateLastSerialized) {
+      this.brainStateLastSavedAt = now;
+      this.brainStateLastSavedUpdates = this.brain.student.updates;
+      return false;
+    }
     this.world.observeEntity('brain', 'strategy', { schemaVersion: 1, state }, { evidence: EvidenceKind.INFERRED, confidence: 1 });
     this.brainStateLastSavedAt = now;
     this.brainStateLastSavedUpdates = this.brain.student.updates;
+    this.brainStateLastSerialized = serialized;
     this.brainStateLastError = null;
     this.log.emit({ component: 'brain', event: 'BRAIN_STATE_STAGED_FOR_PERSISTENCE', data: { bytes: serialized.length, updates: this.brain.student.updates, forced: force } });
     return true;
@@ -5875,6 +5892,15 @@ class Alpha9Runtime extends StabilityRuntime {
     return true;
   }
 
+  _propagateSafetyIncident() {
+    const emergency = this.lastEmergencyDisengage;
+    const at = emergency && Number(emergency.at) || 0;
+    if (!at || at <= this.lastBrainSafetyIncidentAt) return false;
+    this.lastBrainSafetyIncidentAt = at;
+    this.brain.recordSafetyIncident(`COMBAT_EMERGENCY:${emergency.reason || 'UNKNOWN'}`);
+    return true;
+  }
+
   setBrainInfluenceEnabled(enabled) {
     const resolved = this.brain.setInfluenceEnabled(enabled === true);
     this._announce(`[AIO v3] BRAIN INFLUENCE | ${resolved ? 'enabled' : 'disabled'} | strategic local preference only`, 'VISIBLE_BRAIN_INFLUENCE_CHANGED');
@@ -5897,6 +5923,7 @@ class Alpha9Runtime extends StabilityRuntime {
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return;
     this._restoreBrainOnce();
+    this._propagateSafetyIncident();
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
     const paused = this.adapter.mode !== 'active' || !this.farmer.enabled || snapshot.character.rip === true;
@@ -6361,6 +6388,56 @@ class ProgressWatchdog {
 module.exports = { LocalSpawnNavigator, ProgressWatchdog, extractSameMapSpawns, SAFE_DISPOSITIONS };
 
 },
+"src/autonomy/safe-local-farming.js": function(require,module,exports){
+'use strict';
+
+const { LocalSpawnNavigator } = require('./local-farming');
+
+class SafeLocalSpawnNavigator extends LocalSpawnNavigator {
+  constructor(options = {}) {
+    super(options);
+    this.minLearnedConfidence = Math.max(0.02, Math.min(1, Number(options.minLearnedConfidence) || 0.10));
+    this.evaluationMode = null;
+  }
+
+  _withMode(context, callback) {
+    const previous = this.evaluationMode;
+    this.evaluationMode = context && context.adapter && context.adapter.mode || null;
+    try { return callback(); } finally { this.evaluationMode = previous; }
+  }
+
+  _safeSpawns(snapshot, gameData, world, party) {
+    const rows = super._safeSpawns(snapshot, gameData, world, party);
+    return rows.filter((row) => {
+      const disposition = row && row.spawn && row.spawn.disposition;
+      if (disposition === 'APPROVED') return true;
+      if (disposition !== 'LEGACY_ALLOWED') return false;
+      if (Number(row.confidence) >= this.minLearnedConfidence && row.source === 'measured-spawn') return true;
+      return this.evaluationMode === 'shadow';
+    });
+  }
+
+  candidates(context = {}) {
+    return this._withMode(context, () => super.candidates(context));
+  }
+
+  step(context = {}, preference = null) {
+    return this._withMode(context, () => super.step(context, preference));
+  }
+
+  status(context = null) {
+    return this._withMode(context, () => ({
+      ...super.status(context),
+      legacyRequiresLearnedConfidence: true,
+      minLearnedConfidence: this.minLearnedConfidence,
+      unlearnedLegacyShadowPreviewOnly: true
+    }));
+  }
+}
+
+module.exports = { SafeLocalSpawnNavigator };
+
+},
 "src/brain/strategy-brain.js": function(require,module,exports){
 'use strict';
 
@@ -6550,9 +6627,7 @@ class StrategyBrain {
     if (result.changed) {
       this.diary.add(result.reason === 'FIRST_CHAMPION' ? 'promotion' : 'challenge', { reason: result.reason, league: this.league.status() });
       this._event('BRAIN_LEAGUE_CHANGED', 'info', result.reason, this.league.status());
-      if (result.reason === 'FIRST_CHAMPION') {
-        this.quality.setHealthyChampion(this.league.champion);
-      }
+      if (result.reason === 'FIRST_CHAMPION') this.quality.setHealthyChampion(this.league.champion);
     }
     return result;
   }
@@ -6581,7 +6656,7 @@ class StrategyBrain {
     for (const pending of this.pendingOutcomes) {
       if (now < pending.expiresAt) { remaining.push(pending); continue; }
       const after = this.rewardModel.metrics(context);
-      const safetyIncident = after.rip === true || (context.progress && context.progress.state === 'DEGRADED' && pending.before.progressHealthy > 0);
+      const safetyIncident = after.rip === true;
       const evaluated = this.rewardModel.evaluate(pending.before, after, { safetyIncident });
       const index = actionIndex(pending.action);
       const targetIndex = evaluated.reward >= 0 ? index : 0;
@@ -6607,7 +6682,7 @@ class StrategyBrain {
   _modelPredictionFromSnapshot(snapshot, features, mask) {
     if (!snapshot) return null;
     try {
-      const model = new StudentNetwork({ hiddenSize: this.student.hiddenSize, learningRate: this.student.learningRate, seed: 1 });
+      const model = new StudentNetwork({ hiddenSize: this.student.hiddenSize, learningRate: this.student.learningRate, l2: this.student.l2, gradientClip: this.student.gradientClip, seed: 1 });
       model.restore(snapshot);
       return model.predict(features, mask);
     } catch (error) {
@@ -6711,15 +6786,71 @@ class StrategyBrain {
   restoreState(data) {
     try {
       if (!data || data.schemaVersion !== 1) throw new Error('unsupported brain state schema');
-      this.student.restore(data.student);
-      this.replay.restore(data.replay || { schemaVersion: 1, samples: [] });
-      this.quality.restore(data.quality || { schemaVersion: 1, outcomes: [] });
-      this.league.restore(data.league || { schemaVersion: 1, state: 'shadow' });
-      this.diary.restore(data.diary || { schemaVersion: 1, entries: [] });
-      this.teacher = { received: 0, accepted: 0, rejected: 0, agreements: 0, ...(data.teacher || {}) };
-      this.outcomes = { completed: 0, safetyIncidents: 0, rewardSum: 0, ...(data.outcomes || {}) };
-      this.lastTeacher = data.lastTeacher || null;
-      this.lastOutcome = data.lastOutcome || null;
+
+      const student = new StudentNetwork({
+        hiddenSize: this.student.hiddenSize,
+        learningRate: this.student.learningRate,
+        l2: this.student.l2,
+        gradientClip: this.student.gradientClip,
+        seed: 1
+      });
+      student.restore(data.student);
+
+      const replay = new PrioritizedReplayBuffer({ capacity: this.replay.capacity, alpha: this.replay.alpha, seed: 1 });
+      replay.restore(data.replay || { schemaVersion: 1, samples: [] });
+
+      const quality = new BrainQualityMonitor({
+        now: this.now,
+        windowSize: this.quality.windowSize,
+        minOutcomes: this.quality.minOutcomes,
+        overconfidenceThreshold: this.quality.overconfidenceThreshold,
+        rewardDropThreshold: this.quality.rewardDropThreshold,
+        quarantineMs: this.quality.quarantineMs
+      });
+      quality.restore(data.quality || { schemaVersion: 1, outcomes: [] });
+
+      const league = new BrainLeague({
+        now: this.now,
+        minSamples: this.league.minSamples,
+        minUpdates: this.league.minUpdates,
+        minTeacherAgreement: this.league.minTeacherAgreement,
+        minOutcomes: this.league.minOutcomes,
+        challengerTraffic: this.league.challengerTraffic,
+        challengeMinOutcomes: this.league.challengeMinOutcomes,
+        probationMinOutcomes: this.league.probationMinOutcomes,
+        rollbackRewardDrop: this.league.rollbackRewardDrop,
+        validationImprovement: this.league.validationImprovement
+      });
+      league.restore(data.league || { schemaVersion: 1, state: 'shadow' });
+
+      const diary = new BrainDiary({ now: this.now, capacity: this.diary.capacity, enabled: this.diary.enabled });
+      diary.restore(data.diary || { schemaVersion: 1, entries: [] });
+
+      const teacher = {
+        received: Math.max(0, finite(data.teacher && data.teacher.received)),
+        accepted: Math.max(0, finite(data.teacher && data.teacher.accepted)),
+        rejected: Math.max(0, finite(data.teacher && data.teacher.rejected)),
+        agreements: Math.max(0, finite(data.teacher && data.teacher.agreements))
+      };
+      const outcomes = {
+        completed: Math.max(0, finite(data.outcomes && data.outcomes.completed)),
+        safetyIncidents: Math.max(0, finite(data.outcomes && data.outcomes.safetyIncidents)),
+        rewardSum: finite(data.outcomes && data.outcomes.rewardSum)
+      };
+
+      this.student = student;
+      this.replay = replay;
+      this.quality = quality;
+      this.league = league;
+      this.diary = diary;
+      this.teacher = teacher;
+      this.outcomes = outcomes;
+      this.lastTeacher = data.lastTeacher ? sanitize(data.lastTeacher) : null;
+      this.lastOutcome = data.lastOutcome ? sanitize(data.lastOutcome) : null;
+      this.pendingOutcomes = [];
+      this.lastFeatures = null;
+      this.lastPrediction = null;
+      this.lastDecision = null;
       this.influenceEnabled = false;
       this.currentPreference = null;
       this.lastRestoreError = null;
@@ -6730,7 +6861,7 @@ class StrategyBrain {
       this.lastRestoreError = String(error && error.message || error);
       this.influenceEnabled = false;
       this.currentPreference = null;
-      this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError });
+      this._event('BRAIN_STATE_RESTORE_FAILED', 'warn', 'BRAIN_STATE_INVALID', { message: this.lastRestoreError, statePreserved: true });
       return false;
     }
   }
