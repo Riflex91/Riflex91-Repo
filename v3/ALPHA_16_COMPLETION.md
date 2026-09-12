@@ -54,4 +54,4 @@ Defaults remain `shadow`, `productionReplacement=false`, Party live controls OFF
 
 The first real Travel execution is intentionally deferred to Alpha.17 where it is coupled to controlled Merchant transactions and the monitoring/log GUI.
 
-Freeze status: implementation candidate pending branch and exact PR-head CI.
+Freeze status: implementation complete; full branch CI pending on this exact candidate.
