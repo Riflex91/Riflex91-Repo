@@ -9,6 +9,7 @@ const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
 const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
 const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
+const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -41,6 +42,7 @@ const { PartyTransitionController, TransitionState } = require('./party/transiti
 const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
 const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
+const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -53,7 +55,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha14Runtime({ ...options, root });
+  const runtime = new Alpha15Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -126,6 +128,19 @@ function install(root = globalThis, options = {}) {
       goals: (limit = 100) => runtime.gearProgression.list(limit),
       save: () => runtime.gearProgression.save({ force: true })
     },
+    economy: {
+      status: () => runtime.status().economy,
+      transactions: {
+        status: () => runtime.transactionEngine.status(),
+        list: (limit = 100) => runtime.transactionEngine.list(limit),
+        get: (id) => runtime.transactionEngine.get(id),
+        plan: (request) => runtime.planEconomyTransaction(request),
+        cancel: (id, reason) => runtime.transactionEngine.cancel(id, reason),
+        reconcile: (id) => runtime.reconcileEconomyTransaction(id),
+        breaker: (family) => runtime.transactionEngine.breaker(family),
+        save: () => runtime.transactionEngine.save()
+      }
+    },
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
@@ -179,7 +194,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -191,6 +206,7 @@ module.exports = {
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
+  EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState

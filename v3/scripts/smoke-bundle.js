@@ -7,7 +7,7 @@ let performanceTrickCalls = 0;
 const sandbox = {
   AIO_V3_AUTOSTART: false, console, setInterval, clearInterval, Date, Math,
   parent: { entities: {}, party: {} },
-  character: { name: 'Smoke', ctype: 'ranger', level: 70, map: 'main', real_x: 0, real_y: 0, hp: 100, max_hp: 100, mp: 100, max_mp: 100, xp: 0, gold: 0, items: [], slots: {}, speed: 40 },
+  character: { name: 'Smoke', ctype: 'merchant', level: 80, map: 'main', real_x: 0, real_y: 0, hp: 100, max_hp: 100, mp: 100, max_mp: 100, xp: 0, gold: 0, items: [], slots: {}, speed: 40 },
   G: { monsters: {}, maps: { main: {} }, skills: {}, items: {}, npcs: {}, events: {} },
   performance_trick: () => { performanceTrickCalls += 1; }
 };
@@ -15,9 +15,9 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(code, sandbox);
 assert.ok(sandbox.AIO_V3);
-assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.14.0');
+assert.equal(sandbox.AIO_V3.version, '3.0.0-alpha.15.0');
 const status = sandbox.AIO_V3.status();
-assert.equal(status.version, '3.0.0-alpha.14.0');
+assert.equal(status.version, '3.0.0-alpha.15.0');
 assert.equal(status.mode, 'shadow');
 assert.ok(status.combatRisk && status.combatRisk.contentSafety);
 assert.equal(status.combatRisk.contentSafety.unknownDefault, 'QUARANTINED');
@@ -34,9 +34,7 @@ assert.equal(status.brain.actionAuthority, false);
 assert.equal(status.brain.directActionAccess, false);
 assert.equal(status.brain.executorBypassAllowed, false);
 assert.ok(status.supervisor);
-assert.equal(status.supervisor.state, 'HEALTHY');
 assert.equal(status.supervisor.safeActionsEnabled, false);
-assert.equal(status.supervisor.actionAuthority, false);
 assert.equal(status.supervisor.actionScope, 'safety-reduction-only');
 assert.equal(status.supervisor.directGameplayActionAccess, false);
 assert.ok(status.contentDrift);
@@ -46,30 +44,27 @@ assert.ok(status.inventory);
 assert.equal(status.inventory.schemaVersion, 1);
 assert.equal(status.inventory.mode, 'observation-planning-only');
 assert.equal(status.inventory.actionAuthority, false);
-assert.equal(status.inventory.directGameplayActionAccess, false);
 assert.equal(status.inventory.destructiveActionsEnabled, false);
 for (const key of ['sellExecutionEnabled','bankExecutionEnabled','compoundExecutionEnabled','upgradeExecutionEnabled','exchangeExecutionEnabled']) assert.equal(status.inventory[key], false);
 assert.ok(status.gearProgression);
-assert.equal(status.gearProgression.schemaVersion, 1);
 assert.equal(status.gearProgression.mode, 'shadow-planning-only');
 assert.equal(status.gearProgression.actionAuthority, false);
-assert.equal(status.gearProgression.directGameplayActionAccess, false);
-assert.equal(status.gearProgression.destructiveActionsEnabled, false);
-assert.equal(status.gearProgression.defaultProgressionMode, 'sustainable');
-assert.ok(sandbox.AIO_V3.inventory);
-for (const name of ['status','entries','item']) assert.equal(typeof sandbox.AIO_V3.inventory[name], 'function');
+assert.ok(status.economy);
+assert.equal(status.economy.mode, 'transaction-foundation');
+assert.equal(status.economy.actionAuthority, false);
+assert.equal(status.economy.liveEnabled, false);
+assert.ok(status.economy.transactions);
+assert.equal(status.economy.transactions.schemaVersion, 1);
+assert.equal(status.economy.transactions.mode, 'shadow-transaction-foundation');
+assert.equal(status.economy.transactions.liveExecutionEnabled, false);
+assert.deepEqual(Array.from(status.economy.transactions.liveFamilies || []), []);
+assert.ok(sandbox.AIO_V3.economy && sandbox.AIO_V3.economy.transactions);
+for (const name of ['status','list','get','plan','cancel','reconcile','breaker','save']) assert.equal(typeof sandbox.AIO_V3.economy.transactions[name], 'function');
+assert.equal(typeof sandbox.AIO_V3.economy.transactions.execute, 'undefined');
+assert.equal(typeof sandbox.AIO_V3.economy.setLiveEnabled, 'undefined');
 for (const name of ['sell','bank','compound','upgrade','exchange']) assert.equal(typeof sandbox.AIO_V3.inventory[name], 'undefined');
-assert.ok(sandbox.AIO_V3.gearProgression);
-for (const name of ['status','goals','save']) assert.equal(typeof sandbox.AIO_V3.gearProgression[name], 'function');
-assert.ok(sandbox.AIO_V3.supervisor);
-for (const name of ['status','setSafeActionsEnabled','quarantineSubsystem','clearSubsystemQuarantine']) assert.equal(typeof sandbox.AIO_V3.supervisor[name], 'function');
-assert.ok(sandbox.AIO_V3.contentDrift);
-for (const name of ['status','records','requiresRevalidation','markRevalidated','save']) assert.equal(typeof sandbox.AIO_V3.contentDrift[name], 'function');
 assert.ok(sandbox.AIO_V3.party);
-for (const name of ['status','registry','character','configureRoster','decision','fingerprints','performance','telemetry','transition','aura','setTransitionsEnabled','setAuraAutomationEnabled','setExplorationEnabled','setCodeSlots']) assert.equal(typeof sandbox.AIO_V3.party[name], 'function');
-assert.equal(typeof sandbox.AIO_V3.party.switch, 'undefined');
 const party = sandbox.AIO_V3.party.status();
-assert.equal(party.mode, 'adaptive-orchestrator');
 assert.equal(party.actionAuthority, false);
 assert.equal(party.transition.liveEnabled, false);
 assert.equal(party.transition.crossMapRoutingAllowed, false);

@@ -1,14 +1,15 @@
 'use strict';
 
 const { Alpha13Runtime } = require('./alpha13-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { InventoryLedger } = require('../economy/inventory-ledger');
 const { GearProgressionEvaluator } = require('../economy/gear-progression');
+
+const ALPHA14_VERSION = '3.0.0-alpha.14.0';
 
 class Alpha14Runtime extends Alpha13Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA14_VERSION;
     this.inventoryPlanningIntervalMs = Math.max(1000, Math.min(60000, Number(options.inventoryPlanningIntervalMs) || 3000));
     this.lastInventoryPlanningAt = -Infinity;
     this.lastInventoryPlanningResult = null;
@@ -39,7 +40,7 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA14_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -87,7 +88,7 @@ class Alpha14Runtime extends Alpha13Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA14_VERSION,
       inventory: this.inventoryLedger.status(),
       gearProgression: this.gearProgression.status()
     };
@@ -108,4 +109,4 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 }
 
-module.exports = { Alpha14Runtime };
+module.exports = { Alpha14Runtime, ALPHA14_VERSION };
