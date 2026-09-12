@@ -1239,7 +1239,19 @@ class GameAdapter {
         dead: !!entity.dead
       });
     }
-    const inventory = (c.items || []).map((item, index) => item ? ({ index, name: item.name, level: Number(item.level) || 0, q: Number(item.q) || 1, locked: !!item.l, special: !!item.p }) : null);
+    const rawItems = Array.isArray(c.items) ? c.items : [];
+    const reportedIsize = finite(c.isize);
+    const inventorySize = reportedIsize == null
+      ? rawItems.length
+      : Math.max(0, Math.floor(reportedIsize));
+    const inventory = rawItems.slice(0, inventorySize).map((item, index) => item ? ({
+      index,
+      name: item.name,
+      level: Number(item.level) || 0,
+      q: Number(item.q) || 1,
+      locked: !!item.l,
+      special: !!item.p
+    }) : null);
     const snap = {
       observedAt: this.now(),
       character: {
@@ -1256,6 +1268,7 @@ class GameAdapter {
         moving: !!c.moving,
         target: c.target || null,
         rip: !!c.rip,
+        isize: inventorySize,
         inventory
       },
       entities,
@@ -9751,7 +9764,16 @@ class InventoryLedger {
     this.entries = new Map();
     this.lastObservedAt = null;
     this.lastSummary = null;
-    this.stats = { observations: 0, items: 0, truncated: 0, undecided: 0, reserved: 0, sellCandidates: 0 };
+    this.stats = {
+      observations: 0,
+      items: 0,
+      truncated: 0,
+      invalidIndexes: 0,
+      outOfRangeRejected: 0,
+      undecided: 0,
+      reserved: 0,
+      sellCandidates: 0
+    };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -9820,15 +9842,35 @@ class InventoryLedger {
     const registryRows = this._registryRows(context.registry);
     const gameData = context.gameData || {};
     const contentDrift = context.contentDrift || null;
+    const liveCharacter = context.liveCharacter && typeof context.liveCharacter === 'object' ? context.liveCharacter : null;
+    const selfName = liveCharacter && normalizeName(liveCharacter.name);
+    const reportedIsize = liveCharacter ? finite(liveCharacter.isize) : null;
+    const fallbackLength = liveCharacter && Array.isArray(liveCharacter.items) ? liveCharacter.items.length : null;
+    const authoritativeCapacity = reportedIsize == null
+      ? fallbackLength
+      : Math.max(0, Math.floor(reportedIsize));
+    const capacitySource = reportedIsize == null ? 'items.length-fallback' : 'character.isize';
     const raw = [];
+    let invalidIndexes = 0;
+    let outOfRangeRejected = 0;
+
     for (const character of registryRows.slice(0, 128)) {
       const name = normalizeName(character && character.name);
       if (!name || !Array.isArray(character.inventory)) continue;
       for (const item of character.inventory) {
         if (!item || !item.name) continue;
+        const index = finite(item.index);
+        if (index == null || !Number.isInteger(index) || index < 0) {
+          invalidIndexes += 1;
+          continue;
+        }
+        if (selfName && name === selfName && authoritativeCapacity != null && index >= authoritativeCapacity) {
+          outOfRangeRejected += 1;
+          continue;
+        }
         raw.push({
           character: name,
-          index: finite(item.index),
+          index,
           name: String(item.name),
           level: Math.max(0, Math.floor(finite(item.level, 0))),
           q: Math.max(1, Math.floor(finite(item.q, 1))),
@@ -9838,7 +9880,7 @@ class InventoryLedger {
         });
       }
     }
-    raw.sort((a, b) => a.character.localeCompare(b.character) || finite(a.index, 1e9) - finite(b.index, 1e9) || a.name.localeCompare(b.name));
+    raw.sort((a, b) => a.character.localeCompare(b.character) || a.index - b.index || a.name.localeCompare(b.name));
     const counts = new Map();
     for (const row of raw) counts.set(stackKey(row.name, row.level), (counts.get(stackKey(row.name, row.level)) || 0) + row.q);
 
@@ -9876,11 +9918,9 @@ class InventoryLedger {
       this.entries.set(entry.key, entry);
     }
 
-    const selfName = context.liveCharacter && normalizeName(context.liveCharacter.name);
-    const capacity = context.liveCharacter && Array.isArray(context.liveCharacter.items) ? context.liveCharacter.items.length : null;
     const selfOccupied = selfName ? [...this.entries.values()].filter((row) => row.character === selfName).length : null;
-    const freeSlots = capacity == null || selfOccupied == null ? null : Math.max(0, capacity - selfOccupied);
-    const pressure = capacity && selfOccupied != null ? Math.max(0, Math.min(1, selfOccupied / capacity)) : null;
+    const freeSlots = authoritativeCapacity == null || selfOccupied == null ? null : Math.max(0, authoritativeCapacity - selfOccupied);
+    const pressure = authoritativeCapacity && selfOccupied != null ? Math.max(0, Math.min(1, selfOccupied / authoritativeCapacity)) : null;
     const dispositionCounts = {};
     for (const value of Object.values(ItemDisposition)) dispositionCounts[value] = 0;
     for (const row of this.entries.values()) dispositionCounts[row.disposition] = (dispositionCounts[row.disposition] || 0) + 1;
@@ -9889,6 +9929,8 @@ class InventoryLedger {
     this.stats.observations += 1;
     this.stats.items = this.entries.size;
     this.stats.truncated += truncated;
+    this.stats.invalidIndexes += invalidIndexes;
+    this.stats.outOfRangeRejected += outOfRangeRejected;
     this.stats.undecided = dispositionCounts.UNDECIDED || 0;
     this.stats.reserved = [...this.entries.values()].filter((row) => String(row.disposition).startsWith('RESERVE_') || row.disposition === ItemDisposition.KEEP).length;
     this.stats.sellCandidates = dispositionCounts.SELL || 0;
@@ -9899,9 +9941,26 @@ class InventoryLedger {
       quantity: [...this.entries.values()].reduce((sum, row) => sum + row.q, 0),
       dispositions: dispositionCounts,
       groupReserve: { hpRequired: this.groupPotionReserve.hp, hpObservedReserved: hpReserved, mpRequired: this.groupPotionReserve.mp, mpObservedReserved: mpReserved },
-      selfInventory: { name: selfName, capacity, occupied: selfOccupied, freeSlots, pressure, workspaceSlots: this.workspaceSlots, workspaceAvailable: freeSlots == null ? null : freeSlots >= this.workspaceSlots }
+      selfInventory: {
+        name: selfName,
+        capacity: authoritativeCapacity,
+        capacitySource,
+        occupied: selfOccupied,
+        freeSlots,
+        pressure,
+        workspaceSlots: this.workspaceSlots,
+        workspaceAvailable: freeSlots == null ? null : freeSlots >= this.workspaceSlots,
+        invalidIndexesRejected: invalidIndexes,
+        outOfRangeRejected
+      }
     };
     if (truncated) this._event('INVENTORY_LEDGER_TRUNCATED', 'warn', 'CAPACITY_LIMIT', { capacity: this.capacity, dropped: truncated });
+    if (invalidIndexes) this._event('INVENTORY_INDEX_INVALID', 'warn', 'INVALID_INVENTORY_INDEX', { rejected: invalidIndexes });
+    if (outOfRangeRejected) this._event('INVENTORY_INDEX_OUT_OF_RANGE', 'warn', 'CHARACTER_ISIZE_BOUND', {
+      character: selfName,
+      isize: authoritativeCapacity,
+      rejected: outOfRangeRejected
+    });
     if (freeSlots != null && freeSlots < this.workspaceSlots) this._event('INVENTORY_PRESSURE_HIGH', 'warn', 'WORKSPACE_RESERVE_VIOLATED', { freeSlots, workspaceSlots: this.workspaceSlots });
     return this.status();
   }
@@ -11543,6 +11602,7 @@ class ControlledMerchantExecutor {
       failedSafe: 0,
       timeouts: 0,
       verificationRetries: 0,
+      inventoryIndexRejected: 0,
       bankServerAckCommits: 0,
       bankLocalEvidenceCommits: 0,
       bankLocalObservationMisses: 0,
@@ -11627,6 +11687,23 @@ class ControlledMerchantExecutor {
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
 
+    const items = Array.isArray(character.items) ? character.items : [];
+    const txIndex = Number(tx.index);
+    const reportedIsize = Number(character.isize);
+    const inventorySize = Number.isFinite(reportedIsize)
+      ? Math.max(0, Math.floor(reportedIsize))
+      : items.length;
+    if (!Number.isInteger(txIndex) || txIndex < 0 || txIndex >= inventorySize) {
+      this.stats.inventoryIndexRejected += 1;
+      return {
+        ok: false,
+        reason: 'INVENTORY_INDEX_OUT_OF_RANGE',
+        index: tx.index,
+        inventorySize,
+        inventorySizeSource: Number.isFinite(reportedIsize) ? 'character.isize' : 'items.length-fallback'
+      };
+    }
+
     const ledgerStatus = this.ledger && typeof this.ledger.status === 'function' ? this.ledger.status() : null;
     if (!ledgerStatus || ledgerStatus.stale === true) return { ok: false, reason: 'LEDGER_UNAVAILABLE_OR_STALE' };
     const entry = this._ledgerEntry(tx);
@@ -11636,8 +11713,7 @@ class ControlledMerchantExecutor {
     if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
     if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
 
-    const items = Array.isArray(character.items) ? character.items : [];
-    const liveItem = itemSnapshot(items[tx.index]);
+    const liveItem = itemSnapshot(items[txIndex]);
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
@@ -11650,7 +11726,7 @@ class ControlledMerchantExecutor {
 
     this._pruneActions();
     if (this.actionTimes.length >= this.maxActionsPerWindow) return { ok: false, reason: 'ACTION_BUDGET_EXHAUSTED' };
-    return { ok: true, entry, liveItem, supervisor };
+    return { ok: true, entry, liveItem, supervisor, txIndex, inventorySize };
   }
 
   _timeout(promise, label) {
@@ -11746,8 +11822,20 @@ class ControlledMerchantExecutor {
     if (!check.ok) {
       if (tx && check.reason === 'TRANSACTION_LEASE_EXPIRED' && this.engine) this.engine.cancel(tx.id, check.reason);
       this.stats.rejected += 1;
-      this._event('CONTROLLED_MERCHANT_EXECUTION_REJECTED', 'warn', check.reason, { transactionId, type: tx && tx.type || null, supervisorState: check.supervisorState || null });
-      return { executed: false, committed: false, reason: check.reason };
+      this._event('CONTROLLED_MERCHANT_EXECUTION_REJECTED', 'warn', check.reason, {
+        transactionId,
+        type: tx && tx.type || null,
+        supervisorState: check.supervisorState || null,
+        index: check.index == null ? tx && tx.index : check.index,
+        inventorySize: check.inventorySize == null ? null : check.inventorySize
+      });
+      return {
+        executed: false,
+        committed: false,
+        reason: check.reason,
+        index: check.index == null ? undefined : check.index,
+        inventorySize: check.inventorySize == null ? undefined : check.inventorySize
+      };
     }
 
     this.busy = true;
@@ -11755,7 +11843,7 @@ class ControlledMerchantExecutor {
     this.actionTimes.push(this.now());
     const character = this.root.character;
     const before = {
-      item: itemSnapshot(character.items[tx.index]),
+      item: itemSnapshot(character.items[check.txIndex]),
       gold: finite(character.gold, 0),
       at: this.now(),
       inventoryQuantity: identityQuantity(character.items, tx.item, tx.level),
@@ -11764,11 +11852,11 @@ class ControlledMerchantExecutor {
     this.engine.transition(tx.id, 'EXECUTING', 'CONTROLLED_EXECUTION_STARTED');
     this.engine.save();
     this._event('CONTROLLED_MERCHANT_EXECUTION_STARTED', 'warn', 'CONTROLLED_CANARY', {
-      transactionId: tx.id, type: tx.type, item: tx.item, quantity: tx.quantity, index: tx.index
+      transactionId: tx.id, type: tx.type, item: tx.item, quantity: tx.quantity, index: check.txIndex
     });
 
     try {
-      const call = tx.type === 'SELL' ? this.root.sell(tx.index, tx.quantity) : this.root.bank_store(tx.index);
+      const call = tx.type === 'SELL' ? this.root.sell(check.txIndex, tx.quantity) : this.root.bank_store(check.txIndex);
       const response = await this._timeout(call, tx.type);
       if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
       this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
@@ -11875,6 +11963,12 @@ class ControlledMerchantExecutor {
       explicitAckRequired: LIVE_ACK,
       busy: this.busy,
       timeoutMs: this.timeoutMs,
+      inventoryIndexGuard: {
+        enabled: true,
+        authoritativeSource: 'character.isize',
+        fallbackSource: 'items.length',
+        validRange: '0..isize-1'
+      },
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
@@ -11893,6 +11987,7 @@ class ControlledMerchantExecutor {
 }
 
 module.exports = { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK: LIVE_ACK };
+
 },
 "src/travel/controlled-travel-executor.js": function(require,module,exports){
 'use strict';
