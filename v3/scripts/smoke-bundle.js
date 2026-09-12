@@ -144,7 +144,7 @@ assert.equal(brain.league.thresholds.minSamples, 80);
 assert.equal(brain.league.thresholds.minUpdates, 120);
 assert.equal(brain.league.thresholds.minTeacherAgreement, 0.6);
 assert.equal(brain.league.thresholds.challengerTraffic, 0.2);
-assert.equal(brain.persistence.maxBytes, 350000);
+assert.equal(sandbox.AIO_V3.status().brain.persistence.maxBytes, 350000);
 
 // Headless contract: no DOM or game_log is supplied by this VM sandbox.
 assert.equal(typeof sandbox.document, 'undefined');
