@@ -18875,6 +18875,9 @@ const { FlightRecorder } = require('./flight-recorder');
 const { GroupLivenessMonitor } = require('./group-liveness');
 const { RuntimeProgressWatchdog } = require('./runtime-watchdog');
 const { ReliabilityCheckpointStore } = require('./reliability-checkpoint');
+const { AlertEscalationManager } = require('./alert-escalation-manager');
+const { SafeRecoveryCoordinator } = require('./safe-recovery-coordinator');
+const { HostWatchdogBeacon } = require('./host-watchdog-beacon');
 
 function safeCall(fn, fallback = null) {
   try { return typeof fn === 'function' ? fn() : fallback; } catch (_) { return fallback; }
@@ -18943,10 +18946,36 @@ class HeadlessOperations {
       baseKey: options.checkpointBaseKey,
       maxBytes: options.checkpointMaxBytes
     });
+    this.alerts = options.alerts || new AlertEscalationManager({
+      now: this.now,
+      capacity: options.alertCapacity,
+      dedupeWindowMs: options.alertDedupeWindowMs,
+      warningEscalateAfterMs: options.alertWarningEscalateAfterMs,
+      maxNewPerWindow: options.alertMaxNewPerWindow,
+      rateWindowMs: options.alertRateWindowMs
+    });
+    this.recovery = options.recovery || new SafeRecoveryCoordinator({
+      runtime: this.runtime,
+      now: this.now,
+      reobserveAfterMs: options.recoveryReobserveAfterMs,
+      replanAfterMs: options.recoveryReplanAfterMs,
+      circuitAfterMs: options.recoveryCircuitAfterMs,
+      safeModeAfterMs: options.recoverySafeModeAfterMs,
+      hostRestartAfterMs: options.recoveryHostRestartAfterMs,
+      windowMs: options.recoveryWindowMs,
+      maxSafeModesPerWindow: options.recoveryMaxSafeModesPerWindow,
+      safeModeCooldownMs: options.recoverySafeModeCooldownMs,
+      maxHistory: options.recoveryHistory
+    });
+    this.hostWatchdog = options.hostWatchdog || new HostWatchdogBeacon({
+      now: this.now,
+      leaseMs: options.hostWatchdogLeaseMs
+    });
     this.checkpointIntervalMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.checkpointIntervalMs) || 30000));
     this.lastCheckpointAttemptAt = null;
     this.previousCheckpoint = this.checkpoint.load();
     this.lastReliability = null;
+    this.lastGroupState = null;
     this.captureErrors = 0;
     this.observing = false;
     this._installEventSink();
@@ -18979,15 +19008,34 @@ class HeadlessOperations {
     return true;
   }
 
+  _alertSeverity(severity) {
+    const value = String(severity || '').toLowerCase();
+    if (value === 'error' || value === 'fatal') return 'CRITICAL';
+    if (value === 'warn' || value === 'warning') return 'WARNING';
+    return 'INFO';
+  }
+
+  _emitAlert(input = {}) {
+    return this.alerts.emit(input);
+  }
+
   _onEvent(event) {
     if (this.observing || !event) return;
     const severity = String(event.severity || '').toLowerCase();
-    if (severity === 'warn' || severity === 'error' || severity === 'fatal') {
+    if (severity === 'warn' || severity === 'warning' || severity === 'error' || severity === 'fatal') {
       this.flightRecorder.markIncident({
         at: Date.parse(event.ts) || this.now(),
         severity: severity || 'warn',
         type: event.event || 'EVENT',
         reason: event.reason || null,
+        data: { component: event.component || null, character: event.character || null, taskId: event.taskId || null }
+      });
+      this._emitAlert({
+        at: Date.parse(event.ts) || this.now(),
+        severity: this._alertSeverity(severity),
+        type: event.event || 'EVENT',
+        reason: event.reason || null,
+        dedupeKey: `${event.component || 'unknown'}:${event.event || 'EVENT'}:${event.reason || ''}`,
         data: { component: event.component || null, character: event.character || null, taskId: event.taskId || null }
       });
     }
@@ -19037,6 +19085,8 @@ class HeadlessOperations {
         heartbeatAgeMs: watchdog.heartbeatAgeMs,
         progressAgeMs: watchdog.progressAgeMs
       } : null,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status(),
       partyLifecycle: {
         enabled: lifecycle.enabled === true,
         operation: lifecycle.operation || null,
@@ -19064,6 +19114,18 @@ class HeadlessOperations {
     try {
       const group = this.groupLiveness.evaluate(this.runtime);
       const watchdog = this.watchdog.observe(this.runtime, group);
+
+      if (this.lastGroupState != null && group.state !== this.lastGroupState && group.state !== 'HEALTHY') {
+        this._emitAlert({
+          severity: group.state === 'DEGRADED' ? 'CRITICAL' : 'WARNING',
+          type: 'GROUP_LIVENESS_STATE_CHANGED',
+          reason: group.reasons && group.reasons[0] || group.state,
+          dedupeKey: `group-liveness:${group.state}:${(group.invalidMembers || []).join(',')}`,
+          data: { previous: this.lastGroupState, state: group.state, invalidMembers: group.invalidMembers, fourCharacterReady: group.fourCharacterReady }
+        });
+      }
+      this.lastGroupState = group.state;
+
       if (watchdog.transition) {
         const incident = this.flightRecorder.markIncident({
           at: watchdog.transition.at,
@@ -19072,6 +19134,16 @@ class HeadlessOperations {
           reason: watchdog.transition.reason,
           data: watchdog.transition
         });
+        if (watchdog.transition.state !== 'HEALTHY') {
+          this._emitAlert({
+            at: watchdog.transition.at,
+            severity: watchdog.transition.state === 'DEGRADED' ? 'CRITICAL' : 'WARNING',
+            type: 'RUNTIME_WATCHDOG_STATE_CHANGED',
+            reason: watchdog.transition.reason,
+            dedupeKey: `runtime-watchdog:${watchdog.transition.state}:${watchdog.transition.reason || ''}`,
+            data: { previous: watchdog.transition.previous, state: watchdog.transition.state, recommendation: watchdog.recoveryRecommendation }
+          });
+        }
         if (this.log && typeof this.log.emit === 'function') this.log.emit({
           component: 'reliability',
           event: 'RUNTIME_WATCHDOG_STATE_CHANGED',
@@ -19080,12 +19152,34 @@ class HeadlessOperations {
           data: { previous: watchdog.transition.previous, state: watchdog.transition.state, recommendation: watchdog.recoveryRecommendation }
         });
       }
+
+      const recoveryPlan = this.recovery.observe(watchdog, group);
+      if (recoveryPlan && recoveryPlan.execution && recoveryPlan.execution.executed) {
+        this._emitAlert({
+          severity: 'CRITICAL',
+          type: 'RELIABILITY_SAFE_MODE_APPLIED',
+          reason: recoveryPlan.execution.reason,
+          dedupeKey: `recovery-safe-mode:${recoveryPlan.incidentId}`,
+          data: { incidentId: recoveryPlan.incidentId, watchdogReason: recoveryPlan.watchdogReason, failures: recoveryPlan.execution.failures }
+        });
+      }
+      if (recoveryPlan && recoveryPlan.stage === 'HOST_RESTART') {
+        this._emitAlert({
+          severity: 'CRITICAL',
+          type: 'EXTERNAL_RESTART_REQUIRED',
+          reason: recoveryPlan.reason,
+          dedupeKey: `external-restart:${recoveryPlan.incidentId}`,
+          data: { incidentId: recoveryPlan.incidentId, elapsedMs: recoveryPlan.elapsedMs, watchdogReason: recoveryPlan.watchdogReason }
+        });
+      }
+      this.alerts.sweep();
+
       const sample = this.flightRecorder.capture(this.runtime, { group, watchdog }, { force: options.forceSample === true });
       const checkpoint = this._maybeCheckpoint(group, watchdog, {
         force: options.forceCheckpoint === true,
         reason: options.forceCheckpoint ? 'RUNTIME_STOP' : 'PERIODIC'
       });
-      this.lastReliability = { at: this.now(), group, watchdog, sample, checkpoint };
+      this.lastReliability = { at: this.now(), group, watchdog, recoveryPlan, sample, checkpoint };
       return this.lastReliability;
     } catch (_) {
       this.captureErrors += 1;
@@ -19131,7 +19225,9 @@ class HeadlessOperations {
       watchAfterMs: this.watchAfterMs,
       degradedAfterMs: this.degradedAfterMs,
       watchdog,
-      groupLiveness: group
+      groupLiveness: group,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status()
     };
   }
 
@@ -19149,24 +19245,49 @@ class HeadlessOperations {
   flightRecorderWindow(windowMs = 10 * 60 * 1000) { this._capture(); return this.flightRecorder.recent(windowMs); }
   reliabilityIncidents(limit = 50) { this._capture(); return this.flightRecorder.listIncidents(limit); }
   reliabilityCheckpoint() { this._capture(); return this.checkpoint.latestEvidence(); }
+  peekAlerts(limit = 100) { this._capture(); return this.alerts.peek(limit); }
+  drainAlerts(limit = 100) { this._capture(); return this.alerts.drain(limit); }
+  acknowledgeAlert(id, options = {}) { return this.alerts.acknowledge(id, options); }
+  configureSafeRecovery(config = {}) { return this.recovery.configure(config); }
+  safeRecoveryStatus() { this._capture(); return this.recovery.status(); }
+  hostHeartbeat() {
+    this._capture();
+    const health = this._healthStatus();
+    return this.hostWatchdog.emit(this.runtime, {
+      health,
+      watchdog: health.watchdog,
+      group: health.groupLiveness,
+      recovery: this.recovery.status(),
+      alerting: this.alerts.status()
+    });
+  }
 
   status() {
     this._capture();
+    const group = this.groupLiveness.evaluate(this.runtime);
+    const watchdog = this.watchdog.status(this.runtime, group);
     return {
-      contractVersion: 2,
+      contractVersion: 3,
       transport: 'host-provided',
       captureErrors: this.captureErrors,
       telemetry: this.telemetry.status(),
       control: this.control.status(),
       stateReplica: this.replica.status(),
+      alerts: this.alerts.status(),
+      hostWatchdog: this.hostWatchdog.status(),
       health: this._healthStatus(),
       reliability: {
-        mode: 'observational-read-only',
-        actionAuthority: false,
-        automaticRecovery: false,
+        mode: 'observational-plus-explicit-safe-recovery',
+        actionAuthority: this.recovery.enabled,
+        actionScope: 'safety-reduction-only',
+        rawGameplayActionAuthority: false,
+        automaticRecovery: this.recovery.enabled,
         flightRecorder: this.flightRecorder.status(),
-        watchdog: this.watchdog.status(this.runtime, this.groupLiveness.evaluate(this.runtime)),
-        groupLiveness: this.groupLiveness.evaluate(this.runtime),
+        watchdog,
+        groupLiveness: group,
+        recovery: this.recovery.status(),
+        alerting: this.alerts.status(),
+        externalWatchdog: this.hostWatchdog.status(),
         checkpoint: this.checkpoint.status(),
         previousCheckpoint: this.previousCheckpoint ? {
           slot: this.previousCheckpoint.slot || null,
@@ -19833,6 +19954,546 @@ class ReliabilityCheckpointStore {
 }
 
 module.exports = { ReliabilityCheckpointStore, RELIABILITY_CHECKPOINT_SCHEMA_VERSION, checksum };
+
+},
+"src/ops/alert-escalation-manager.js": function(require,module,exports){
+'use strict';
+
+const ALERT_SCHEMA_VERSION = 1;
+const SEVERITIES = new Set(['INFO', 'WARNING', 'CRITICAL']);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+function boundedText(value, max = 256) {
+  return value == null ? null : String(value).slice(0, max);
+}
+function compactData(value, maxBytes = 4096) {
+  if (value == null) return {};
+  try {
+    const text = JSON.stringify(value);
+    if (text.length <= maxBytes) return JSON.parse(text);
+    return { truncated: true, originalBytes: text.length };
+  } catch (_) {
+    return { serializationFailed: true };
+  }
+}
+
+class AlertEscalationManager {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.capacity = Math.max(20, Math.min(2000, Math.floor(finite(options.capacity, 250))));
+    this.dedupeWindowMs = Math.max(1000, Math.min(60 * 60 * 1000, finite(options.dedupeWindowMs, 60000)));
+    this.warningEscalateAfterMs = Math.max(5000, Math.min(24 * 60 * 60 * 1000, finite(options.warningEscalateAfterMs, 10 * 60 * 1000)));
+    this.maxNewPerWindow = Math.max(1, Math.min(500, Math.floor(finite(options.maxNewPerWindow, 30))));
+    this.rateWindowMs = Math.max(1000, Math.min(60 * 60 * 1000, finite(options.rateWindowMs, 60000)));
+    this.alerts = [];
+    this.sequence = 0;
+    this.windowStarts = [];
+    this.stats = {
+      emitted: 0,
+      deduped: 0,
+      suppressed: 0,
+      escalated: 0,
+      acknowledged: 0,
+      delivered: 0,
+      dropped: 0
+    };
+  }
+
+  _pruneRateWindow(now) {
+    const cutoff = now - this.rateWindowMs;
+    while (this.windowStarts.length && this.windowStarts[0] <= cutoff) this.windowStarts.shift();
+  }
+
+  _findDedupe(key, now) {
+    if (!key) return null;
+    for (let i = this.alerts.length - 1; i >= 0; i -= 1) {
+      const row = this.alerts[i];
+      if (row.dedupeKey !== key) continue;
+      if (now - row.lastAt > this.dedupeWindowMs) return null;
+      return row;
+    }
+    return null;
+  }
+
+  emit(input = {}) {
+    const now = finite(input.at, this.now());
+    const severity = SEVERITIES.has(String(input.severity || '').toUpperCase())
+      ? String(input.severity).toUpperCase() : 'INFO';
+    const type = boundedText(input.type || input.event || 'ALERT', 128) || 'ALERT';
+    const reason = boundedText(input.reason, 256);
+    const dedupeKey = boundedText(input.dedupeKey || `${type}:${reason || ''}`, 256);
+    const existing = this._findDedupe(dedupeKey, now);
+    if (existing) {
+      existing.lastAt = now;
+      existing.occurrences += 1;
+      existing.lastData = compactData(input.data);
+      if (severity === 'CRITICAL' && existing.severity !== 'CRITICAL') {
+        existing.severity = 'CRITICAL';
+        existing.escalatedAt = now;
+        existing.pendingDelivery = true;
+        this.stats.escalated += 1;
+      }
+      this.stats.deduped += 1;
+      return { accepted: true, deduped: true, alert: clone(existing) };
+    }
+
+    this._pruneRateWindow(now);
+    if (this.windowStarts.length >= this.maxNewPerWindow) {
+      this.stats.suppressed += 1;
+      return { accepted: false, reason: 'ALERT_RATE_LIMIT', suppressed: true };
+    }
+    this.windowStarts.push(now);
+
+    const alert = {
+      schemaVersion: ALERT_SCHEMA_VERSION,
+      id: `alert-${++this.sequence}`,
+      createdAt: now,
+      lastAt: now,
+      severity,
+      type,
+      reason,
+      dedupeKey,
+      occurrences: 1,
+      data: compactData(input.data),
+      lastData: null,
+      pendingDelivery: true,
+      deliveryCount: 0,
+      deliveredAt: null,
+      acknowledgedAt: null,
+      acknowledgedBy: null,
+      escalatedAt: null
+    };
+    this.alerts.push(alert);
+    this.stats.emitted += 1;
+    if (this.alerts.length > this.capacity) {
+      const overflow = this.alerts.length - this.capacity;
+      this.alerts.splice(0, overflow);
+      this.stats.dropped += overflow;
+    }
+    return { accepted: true, deduped: false, alert: clone(alert) };
+  }
+
+  sweep(at = this.now()) {
+    const now = finite(at, this.now());
+    let escalated = 0;
+    for (const row of this.alerts) {
+      if (row.severity !== 'WARNING' || row.acknowledgedAt != null || row.escalatedAt != null) continue;
+      if (now - row.createdAt < this.warningEscalateAfterMs) continue;
+      row.severity = 'CRITICAL';
+      row.escalatedAt = now;
+      row.pendingDelivery = true;
+      escalated += 1;
+      this.stats.escalated += 1;
+    }
+    return { escalated, at: now };
+  }
+
+  acknowledge(id, options = {}) {
+    const wanted = String(id || '');
+    const row = this.alerts.find((alert) => alert.id === wanted);
+    if (!row) return { acknowledged: false, reason: 'ALERT_NOT_FOUND' };
+    if (row.acknowledgedAt != null) return { acknowledged: true, duplicate: true, alert: clone(row) };
+    row.acknowledgedAt = this.now();
+    row.acknowledgedBy = boundedText(options.by || 'operator', 128);
+    row.pendingDelivery = false;
+    this.stats.acknowledged += 1;
+    return { acknowledged: true, duplicate: false, alert: clone(row) };
+  }
+
+  peek(limit = 100) {
+    this.sweep();
+    const n = Math.max(0, Math.min(this.alerts.length, Math.floor(finite(limit, 0))));
+    return this.alerts.slice(this.alerts.length - n).map(clone);
+  }
+
+  pending(limit = 100) {
+    this.sweep();
+    const n = Math.max(0, Math.floor(finite(limit, 0)));
+    return this.alerts.filter((row) => row.pendingDelivery && row.acknowledgedAt == null).slice(0, n).map(clone);
+  }
+
+  drain(limit = 100) {
+    const now = this.now();
+    const rows = this.pending(limit);
+    const ids = new Set(rows.map((row) => row.id));
+    for (const row of this.alerts) {
+      if (!ids.has(row.id)) continue;
+      row.pendingDelivery = false;
+      row.deliveryCount += 1;
+      row.deliveredAt = now;
+      this.stats.delivered += 1;
+    }
+    return rows;
+  }
+
+  status() {
+    const pending = this.alerts.filter((row) => row.pendingDelivery && row.acknowledgedAt == null);
+    return {
+      schemaVersion: ALERT_SCHEMA_VERSION,
+      mode: 'host-transported-alerts',
+      actionAuthority: false,
+      transportOwnedByHost: true,
+      capacity: this.capacity,
+      retained: this.alerts.length,
+      pending: pending.length,
+      pendingCritical: pending.filter((row) => row.severity === 'CRITICAL').length,
+      dedupeWindowMs: this.dedupeWindowMs,
+      warningEscalateAfterMs: this.warningEscalateAfterMs,
+      maxNewPerWindow: this.maxNewPerWindow,
+      rateWindowMs: this.rateWindowMs,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { AlertEscalationManager, ALERT_SCHEMA_VERSION, SEVERITIES };
+
+},
+"src/ops/safe-recovery-coordinator.js": function(require,module,exports){
+'use strict';
+
+const SAFE_RECOVERY_SCHEMA_VERSION = 1;
+const SAFE_RECOVERY_ACK = 'ALPHA20_5_SAFE_RECOVERY';
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class SafeRecoveryCoordinator {
+  constructor(options = {}) {
+    this.runtime = options.runtime || null;
+    this.now = options.now || (() => Date.now());
+    this.enabled = false;
+    this.reobserveAfterMs = Math.max(1000, finite(options.reobserveAfterMs, 15000));
+    this.replanAfterMs = Math.max(this.reobserveAfterMs, finite(options.replanAfterMs, 45000));
+    this.circuitAfterMs = Math.max(this.replanAfterMs, finite(options.circuitAfterMs, 90000));
+    this.safeModeAfterMs = Math.max(this.circuitAfterMs, finite(options.safeModeAfterMs, 120000));
+    this.hostRestartAfterMs = Math.max(this.safeModeAfterMs, finite(options.hostRestartAfterMs, 300000));
+    this.windowMs = Math.max(60000, finite(options.windowMs, 10 * 60 * 1000));
+    this.maxSafeModesPerWindow = Math.max(1, Math.min(10, Math.floor(finite(options.maxSafeModesPerWindow, 2))));
+    this.safeModeCooldownMs = Math.max(10000, finite(options.safeModeCooldownMs, 120000));
+    this.degradedSince = null;
+    this.incidentId = 0;
+    this.safeModeAppliedIncident = null;
+    this.safeModeTimes = [];
+    this.lastPlan = null;
+    this.lastResult = null;
+    this.history = [];
+    this.maxHistory = Math.max(20, Math.min(500, Math.floor(finite(options.maxHistory, 100))));
+    this.stats = { observations: 0, safeModeAttempts: 0, safeModeApplied: 0, budgetBlocks: 0, rejectedEnables: 0 };
+  }
+
+  configure(config = {}) {
+    if (config.enabled === true) {
+      if (config.ack !== SAFE_RECOVERY_ACK) {
+        this.enabled = false;
+        this.stats.rejectedEnables += 1;
+        return { ...this.status(), enableRejected: 'WRONG_ACK' };
+      }
+      this.enabled = true;
+    } else {
+      this.enabled = false;
+    }
+    return this.status();
+  }
+
+  disable() {
+    this.enabled = false;
+    return this.status();
+  }
+
+  _record(row) {
+    this.history.push(clone(row));
+    if (this.history.length > this.maxHistory) this.history.splice(0, this.history.length - this.maxHistory);
+  }
+
+  _pruneBudget(now) {
+    const cutoff = now - this.windowMs;
+    this.safeModeTimes = this.safeModeTimes.filter((at) => at > cutoff);
+  }
+
+  _stage(elapsedMs, state) {
+    if (state === 'WATCH') return 'REOBSERVE';
+    if (elapsedMs >= this.hostRestartAfterMs) return 'HOST_RESTART';
+    if (elapsedMs >= this.safeModeAfterMs) return 'SAFE_MODE';
+    if (elapsedMs >= this.circuitAfterMs) return 'CIRCUIT';
+    if (elapsedMs >= this.replanAfterMs) return 'REPLAN';
+    return 'REOBSERVE';
+  }
+
+  _disableAuthority(runtime, name, method = 'disable') {
+    const target = runtime && runtime[name];
+    if (!target || typeof target[method] !== 'function') return { name, attempted: false, ok: true };
+    try {
+      target[method]('ALPHA20_5_RELIABILITY_SAFE_MODE');
+      return { name, attempted: true, ok: true };
+    } catch (error) {
+      return { name, attempted: true, ok: false, error: String(error && error.message || error) };
+    }
+  }
+
+  _applySafeMode(reason) {
+    const runtime = this.runtime;
+    this.stats.safeModeAttempts += 1;
+    if (!runtime) return { executed: false, reason: 'RUNTIME_UNAVAILABLE', actions: [] };
+    const actions = [];
+    const invoke = (name, fn) => {
+      try {
+        fn();
+        actions.push({ name, ok: true });
+      } catch (error) {
+        actions.push({ name, ok: false, error: String(error && error.message || error) });
+      }
+    };
+
+    if (typeof runtime.alpha20LiveGateStatus === 'function' && typeof runtime.cancelAlpha20CombinedLiveGate === 'function') {
+      let gate = null;
+      try { gate = runtime.alpha20LiveGateStatus(); } catch (_) {}
+      if (gate && gate.running === true) invoke('cancelAlpha20LiveGate', () => runtime.cancelAlpha20CombinedLiveGate('RELIABILITY_SAFE_MODE'));
+    }
+    if (typeof runtime.setFarmerEnabled === 'function') invoke('disableFarmer', () => runtime.setFarmerEnabled(false));
+    if (runtime.partyTransitions && typeof runtime.partyTransitions.setLiveEnabled === 'function') invoke('disableLegacyPartyTransition', () => runtime.partyTransitions.setLiveEnabled(false));
+    actions.push(this._disableAuthority(runtime, 'controlledPartyLifecycle'));
+    actions.push(this._disableAuthority(runtime, 'controlledPaladinAura'));
+    actions.push(this._disableAuthority(runtime, 'controlledMerchantSpaceRecovery'));
+    actions.push(this._disableAuthority(runtime, 'controlledBankConsolidation'));
+    actions.push(this._disableAuthority(runtime, 'controlledBankExpansion'));
+    actions.push(this._disableAuthority(runtime, 'controlledMerchant'));
+    actions.push(this._disableAuthority(runtime, 'controlledTravel'));
+    if (typeof runtime.setMode === 'function') invoke('setShadowMode', () => runtime.setMode('shadow'));
+    else if (runtime.adapter && typeof runtime.adapter.setMode === 'function') invoke('setShadowMode', () => runtime.adapter.setMode('shadow'));
+
+    const failed = actions.filter((row) => row && row.attempted !== false && row.ok === false);
+    const executed = actions.some((row) => row && (row.attempted === true || row.name === 'disableFarmer' || row.name === 'setShadowMode' || row.name === 'cancelAlpha20LiveGate'));
+    if (executed && failed.length === 0) this.stats.safeModeApplied += 1;
+    return {
+      executed,
+      reason: failed.length ? 'SAFE_MODE_PARTIAL_FAILURE' : 'SAFE_MODE_APPLIED',
+      trigger: reason || null,
+      actionScope: 'safety-reduction-only',
+      rawGameplayActions: 0,
+      actions,
+      failures: failed
+    };
+  }
+
+  observe(watchdog = {}, group = null) {
+    const now = this.now();
+    this.stats.observations += 1;
+    const state = String(watchdog.state || 'HEALTHY');
+    if (state === 'HEALTHY') {
+      this.degradedSince = null;
+      this.safeModeAppliedIncident = null;
+      this.lastPlan = { at: now, state, stage: 'NONE', elapsedMs: 0, automaticActionEligible: false };
+      return clone(this.lastPlan);
+    }
+
+    if (this.degradedSince == null) {
+      this.degradedSince = now;
+      this.incidentId += 1;
+      this.safeModeAppliedIncident = null;
+    }
+    const elapsedMs = Math.max(0, now - this.degradedSince);
+    const stage = this._stage(elapsedMs, state);
+    const plan = {
+      at: now,
+      incidentId: this.incidentId,
+      state,
+      watchdogReason: watchdog.reason || null,
+      groupState: group && group.state || null,
+      elapsedMs,
+      stage,
+      recommendation: stage,
+      enabled: this.enabled,
+      automaticActionEligible: false,
+      actionScope: 'safety-reduction-only',
+      rawGameplayActionAuthority: false
+    };
+
+    if (stage === 'SAFE_MODE') {
+      this._pruneBudget(now);
+      const cooldownSatisfied = !this.safeModeTimes.length || now - this.safeModeTimes[this.safeModeTimes.length - 1] >= this.safeModeCooldownMs;
+      const budgetSatisfied = this.safeModeTimes.length < this.maxSafeModesPerWindow;
+      const notAlreadyApplied = this.safeModeAppliedIncident !== this.incidentId;
+      plan.automaticActionEligible = this.enabled && cooldownSatisfied && budgetSatisfied && notAlreadyApplied;
+      plan.cooldownSatisfied = cooldownSatisfied;
+      plan.budgetSatisfied = budgetSatisfied;
+      if (this.enabled && !budgetSatisfied) this.stats.budgetBlocks += 1;
+      if (plan.automaticActionEligible) {
+        const result = this._applySafeMode(watchdog.reason || 'WATCHDOG_DEGRADED');
+        this.lastResult = { at: now, incidentId: this.incidentId, stage, ...clone(result) };
+        this._record(this.lastResult);
+        if (result.executed) {
+          this.safeModeTimes.push(now);
+          this.safeModeAppliedIncident = this.incidentId;
+        }
+        plan.execution = clone(this.lastResult);
+      }
+    }
+
+    if (stage === 'HOST_RESTART') {
+      plan.automaticActionEligible = false;
+      plan.hostActionRequired = true;
+      plan.reason = 'PROCESS_RESTART_REQUIRES_EXTERNAL_SUPERVISOR';
+    }
+    if (stage === 'CIRCUIT') {
+      plan.automaticActionEligible = false;
+      plan.reason = 'OWNING_SUBSYSTEM_CIRCUIT_OR_SAFE_MODE_RECOMMENDED';
+    }
+
+    this.lastPlan = clone(plan);
+    return clone(plan);
+  }
+
+  status() {
+    const now = this.now();
+    this._pruneBudget(now);
+    return {
+      schemaVersion: SAFE_RECOVERY_SCHEMA_VERSION,
+      mode: 'bounded-safety-reduction',
+      requiredAck: SAFE_RECOVERY_ACK,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      actionScope: 'safety-reduction-only',
+      rawGameplayActionAuthority: false,
+      automaticRestart: false,
+      thresholds: {
+        reobserveAfterMs: this.reobserveAfterMs,
+        replanAfterMs: this.replanAfterMs,
+        circuitAfterMs: this.circuitAfterMs,
+        safeModeAfterMs: this.safeModeAfterMs,
+        hostRestartAfterMs: this.hostRestartAfterMs
+      },
+      budget: {
+        windowMs: this.windowMs,
+        maxSafeModesPerWindow: this.maxSafeModesPerWindow,
+        inWindow: this.safeModeTimes.length,
+        cooldownMs: this.safeModeCooldownMs
+      },
+      degradedSince: this.degradedSince,
+      incidentId: this.incidentId,
+      lastPlan: clone(this.lastPlan),
+      lastResult: clone(this.lastResult),
+      recent: this.history.slice(-10).map(clone),
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { SafeRecoveryCoordinator, SAFE_RECOVERY_SCHEMA_VERSION, SAFE_RECOVERY_ACK };
+
+},
+"src/ops/host-watchdog-beacon.js": function(require,module,exports){
+'use strict';
+
+const HOST_WATCHDOG_SCHEMA_VERSION = 1;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class HostWatchdogBeacon {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.leaseMs = Math.max(5000, Math.min(5 * 60 * 1000, finite(options.leaseMs, 30000)));
+    this.sequence = 0;
+    this.lastBeacon = null;
+    this.stats = { beacons: 0 };
+  }
+
+  emit(runtime, context = {}) {
+    const at = this.now();
+    const snapshot = runtime && runtime.lastSnapshot || null;
+    const character = snapshot && snapshot.character || null;
+    const status = runtime && typeof runtime.status === 'function' ? (() => {
+      try { return runtime.status(); } catch (_) { return {}; }
+    })() : {};
+    const health = context.health || {};
+    const watchdog = context.watchdog || health.watchdog || {};
+    const group = context.group || health.groupLiveness || {};
+    const recovery = context.recovery || {};
+    const alerting = context.alerting || {};
+    const beacon = {
+      schemaVersion: HOST_WATCHDOG_SCHEMA_VERSION,
+      type: 'AIO_V3_HOST_WATCHDOG_BEACON',
+      seq: ++this.sequence,
+      at,
+      deadlineAt: at + this.leaseMs,
+      leaseMs: this.leaseMs,
+      runId: runtime && runtime.log && runtime.log.runId || null,
+      release: status.version || null,
+      character: character ? { name: character.name || null, ctype: character.ctype || null, map: character.map || null, rip: character.rip === true } : null,
+      runtime: {
+        mode: runtime && runtime.adapter && runtime.adapter.mode || status.mode || null,
+        heartbeatAt: finite(runtime && runtime.lastHeartbeat),
+        snapshotAt: finite(snapshot && snapshot.observedAt)
+      },
+      health: {
+        state: health.state || null,
+        watchdogState: watchdog.state || null,
+        watchdogReason: watchdog.reason || null,
+        groupState: group.state || null,
+        fourCharacterReady: group.fourCharacterReady === true
+      },
+      recovery: {
+        enabled: recovery.enabled === true,
+        stage: recovery.lastPlan && recovery.lastPlan.stage || null,
+        rawGameplayActionAuthority: false,
+        automaticRestart: false
+      },
+      alerts: {
+        pending: finite(alerting.pending, 0),
+        pendingCritical: finite(alerting.pendingCritical, 0)
+      },
+      contract: {
+        externalDeadManRequired: true,
+        hostMustTreatMissedDeadlineAsUnhealthy: true,
+        hostOwnsRestart: true,
+        authenticationOwnedByHost: true,
+        actionAuthority: false
+      }
+    };
+    this.lastBeacon = beacon;
+    this.stats.beacons += 1;
+    return clone(beacon);
+  }
+
+  peek() { return clone(this.lastBeacon); }
+
+  status() {
+    return {
+      schemaVersion: HOST_WATCHDOG_SCHEMA_VERSION,
+      mode: 'external-dead-man-contract',
+      actionAuthority: false,
+      hostOwnsRestart: true,
+      externalDeadManRequired: true,
+      leaseMs: this.leaseMs,
+      sequence: this.sequence,
+      lastBeaconAt: this.lastBeacon && this.lastBeacon.at || null,
+      lastDeadlineAt: this.lastBeacon && this.lastBeacon.deadlineAt || null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { HostWatchdogBeacon, HOST_WATCHDOG_SCHEMA_VERSION };
 
 },
 "src/ops/session-monitor.js": function(require,module,exports){
