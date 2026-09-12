@@ -5,6 +5,7 @@ const { RELEASE_VERSION } = require('../release-version');
 const { PartyLifecycleStore } = require('../party/lifecycle-store');
 const { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_ACK } = require('../party/controlled-lifecycle-coordinator');
 const { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_ACK } = require('../party/controlled-paladin-aura-executor');
+const { HardenedAlpha20CombinedLiveGate, ALPHA20_LIVE_GATE_ACK } = require('../ops/alpha20-combined-live-gate-hardened');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
@@ -67,6 +68,12 @@ class Alpha20Runtime extends Alpha19Runtime {
       getMode: () => this.adapter.mode,
       getSupervisorStatus: () => this.globalSupervisor.status(),
       getEconomyEmergency: () => this._alpha20EconomyEmergency()
+    });
+
+    this.alpha20LiveGate = options.alpha20LiveGate || new HardenedAlpha20CombinedLiveGate({
+      runtime: this,
+      root: this.root,
+      now: this.now
     });
     this.lastLifecyclePlan = null;
     this.lastLifecycleExecution = null;
@@ -262,6 +269,26 @@ class Alpha20Runtime extends Alpha19Runtime {
     return { lifecycle, aura };
   }
 
+  runAlpha20CombinedLiveGate(config = {}) {
+    return this.alpha20LiveGate.run(config);
+  }
+
+  cancelAlpha20CombinedLiveGate(reason = 'OPERATOR_CANCELLED') {
+    return this.alpha20LiveGate.cancel(reason);
+  }
+
+  alpha20LiveGateStatus() {
+    return this.alpha20LiveGate.status();
+  }
+
+  alpha20LiveGateResult() {
+    return this.alpha20LiveGate.result();
+  }
+
+  alpha20LiveGateResultText() {
+    return this.alpha20LiveGate.resultText();
+  }
+
   reconcilePartyLifecycle() {
     const snapshot = this.lastSnapshot;
     const names = snapshot ? this._currentMembers(snapshot).map((row) => row.name) : [];
@@ -302,6 +329,7 @@ class Alpha20Runtime extends Alpha19Runtime {
   }
 
   stop() {
+    if (this.alpha20LiveGate && this.alpha20LiveGate.status().running) this.alpha20LiveGate.cancel('RUNTIME_STOP');
     this.controlledPartyLifecycle.disable('RUNTIME_STOP');
     this.controlledPaladinAura.disable('RUNTIME_STOP');
     this.partyLifecycle.save({ force: true });
@@ -337,6 +365,8 @@ class Alpha20Runtime extends Alpha19Runtime {
         partyTransitionCircuitBreaker: true,
         controlledLifecycleAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
         controlledAuraAck: CONTROLLED_PALADIN_AURA_ACK,
+        liveGateAck: ALPHA20_LIVE_GATE_ACK,
+        liveGate: this.alpha20LiveGate.status(),
         transitionAuthorityDefault: false,
         developmentRotationAuthorityDefault: false,
         auraAuthorityDefault: false,
@@ -354,6 +384,7 @@ class Alpha20Runtime extends Alpha19Runtime {
     base.context.partyLifecycle = this.partyLifecycle.status();
     base.context.controlledPartyLifecycle = this.controlledPartyLifecycle.status();
     base.context.controlledPaladinAura = this.controlledPaladinAura.status();
+    base.context.alpha20LiveGate = this.alpha20LiveGate.status();
     return JSON.stringify(base, null, 2);
   }
 }
