@@ -20,6 +20,27 @@ function itemSnapshot(item) {
     q: Math.max(1, Math.floor(finite(item.q, 1)))
   };
 }
+function identityQuantity(items, name, level) {
+  if (!Array.isArray(items)) return 0;
+  const wantedName = String(name || '');
+  const wantedLevel = Math.max(0, Math.floor(finite(level, 0)));
+  let total = 0;
+  for (const item of items) {
+    const snapshot = itemSnapshot(item);
+    if (!snapshot || snapshot.name !== wantedName || snapshot.level !== wantedLevel) continue;
+    total += snapshot.q;
+  }
+  return total;
+}
+function bankIdentityQuantity(bank, name, level) {
+  if (!bank || typeof bank !== 'object') return 0;
+  let total = 0;
+  for (const pack of Object.values(bank)) {
+    if (!Array.isArray(pack)) continue;
+    total += identityQuantity(pack, name, level);
+  }
+  return total;
+}
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
@@ -32,8 +53,8 @@ class ControlledMerchantExecutor {
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
     this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
-    this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 100)));
-    this.verifyAttempts = Math.max(1, Math.min(5, Math.floor(finite(options.verifyAttempts, 3))));
+    this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 200)));
+    this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
     this.actionWindowMs = Math.max(10000, Math.min(30 * 60 * 1000, finite(options.actionWindowMs, 60000)));
     this.maxActionsPerWindow = Math.max(1, Math.min(10, Math.floor(finite(options.maxActionsPerWindow, 3))));
     this.enabled = false;
@@ -168,18 +189,51 @@ class ControlledMerchantExecutor {
 
   _verify(tx, before) {
     const character = this.root && this.root.character || {};
-    const after = itemSnapshot(Array.isArray(character.items) ? character.items[tx.index] : null);
+    const items = Array.isArray(character.items) ? character.items : [];
+    const afterItem = itemSnapshot(items[tx.index]);
     const afterGold = finite(character.gold, before.gold);
     const quantity = Math.max(1, Math.floor(finite(tx.quantity, 1)));
+    const afterInventoryQuantity = identityQuantity(items, tx.item, tx.level);
+    const expectedInventoryQuantity = Math.max(0, before.inventoryQuantity - quantity);
+
     if (tx.type === 'SELL') {
-      const expectedQ = before.item.q - quantity;
-      const itemOk = expectedQ <= 0
-        ? after == null
-        : !!after && after.name === before.item.name && after.level === before.item.level && after.q === expectedQ;
-      return { ok: itemOk && afterGold >= before.gold, afterItem: after, afterGold, expectedQ };
+      const inventoryOk = afterInventoryQuantity === expectedInventoryQuantity;
+      return {
+        ok: inventoryOk && afterGold >= before.gold,
+        afterItem,
+        afterGold,
+        inventoryQuantityBefore: before.inventoryQuantity,
+        afterInventoryQuantity,
+        expectedInventoryQuantity
+      };
     }
-    if (tx.type === 'BANK') return { ok: after == null, afterItem: after, afterGold, expectedQ: 0 };
-    return { ok: false, afterItem: after, afterGold, expectedQ: null };
+
+    if (tx.type === 'BANK') {
+      const afterBankQuantity = bankIdentityQuantity(character.bank, tx.item, tx.level);
+      const expectedBankQuantity = before.bankQuantity + quantity;
+      const inventoryOk = afterInventoryQuantity === expectedInventoryQuantity;
+      const bankOk = afterBankQuantity === expectedBankQuantity;
+      return {
+        ok: inventoryOk && bankOk,
+        afterItem,
+        afterGold,
+        inventoryQuantityBefore: before.inventoryQuantity,
+        afterInventoryQuantity,
+        expectedInventoryQuantity,
+        bankQuantityBefore: before.bankQuantity,
+        afterBankQuantity,
+        expectedBankQuantity
+      };
+    }
+
+    return {
+      ok: false,
+      afterItem,
+      afterGold,
+      inventoryQuantityBefore: before.inventoryQuantity,
+      afterInventoryQuantity,
+      expectedInventoryQuantity
+    };
   }
 
   async _verifyEventually(tx, before) {
@@ -206,7 +260,13 @@ class ControlledMerchantExecutor {
     this.stats.attempts += 1;
     this.actionTimes.push(this.now());
     const character = this.root.character;
-    const before = { item: itemSnapshot(character.items[tx.index]), gold: finite(character.gold, 0), at: this.now() };
+    const before = {
+      item: itemSnapshot(character.items[tx.index]),
+      gold: finite(character.gold, 0),
+      at: this.now(),
+      inventoryQuantity: identityQuantity(character.items, tx.item, tx.level),
+      bankQuantity: tx.type === 'BANK' ? bankIdentityQuantity(character.bank, tx.item, tx.level) : 0
+    };
     this.engine.transition(tx.id, 'EXECUTING', 'CONTROLLED_EXECUTION_STARTED');
     this.engine.save();
     this._event('CONTROLLED_MERCHANT_EXECUTION_STARTED', 'warn', 'CONTROLLED_CANARY', {
@@ -263,7 +323,12 @@ class ControlledMerchantExecutor {
       explicitAckRequired: LIVE_ACK,
       busy: this.busy,
       timeoutMs: this.timeoutMs,
-      verification: { attempts: this.verifyAttempts, delayMs: this.verifyDelayMs },
+      verification: {
+        attempts: this.verifyAttempts,
+        delayMs: this.verifyDelayMs,
+        maxPollingMs: Math.max(0, this.verifyAttempts - 1) * this.verifyDelayMs,
+        strategy: 'identity-balance-delta'
+      },
       actionBudget: { maxPerWindow: this.maxActionsPerWindow, windowMs: this.actionWindowMs, inWindow: this.actionTimes.length },
       lastAction: clone(this.lastAction),
       stats: clone(this.stats)
