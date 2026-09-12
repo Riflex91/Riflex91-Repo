@@ -6,6 +6,7 @@ const CONTROLLED_MERCHANT_SERVICE_MODE = 'controlled-merchant-service-default-of
 const CONTROLLED_MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 const TERMINAL = new Set(['COMMITTED', 'ABORTED', 'FAILED_SAFE']);
+const MAX_SERVED_REPORTS = 32;
 
 function finite(value, fallback = null) {
   const number = Number(value);
@@ -44,10 +45,11 @@ class ControlledMerchantServiceExecutor {
     this.activeOperation = null;
     this.lastAction = null;
     this.history = [];
+    this.servedReports = new Map();
     this.failures = [];
     this.circuit = null;
     this.actionTimes = [];
-    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, standActions: 0, deliveries: 0, rawActions: 0 };
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, standActions: 0, deliveries: 0, rawActions: 0, duplicateReportsRejected: 0 };
     this._load();
   }
 
@@ -74,8 +76,36 @@ class ControlledMerchantServiceExecutor {
     return false;
   }
 
+  _servedRows() {
+    return [...this.servedReports.entries()]
+      .map(([name, at]) => ({ name, at }))
+      .sort((a, b) => b.at - a.at || a.name.localeCompare(b.name))
+      .slice(0, MAX_SERVED_REPORTS);
+  }
+
   _persist() {
-    return this._writeStorage({ schemaVersion: 1, activeOperation: this.activeOperation, history: this.history.slice(-32) });
+    return this._writeStorage({
+      schemaVersion: 1,
+      activeOperation: this.activeOperation,
+      history: this.history.slice(-32),
+      servedReports: this._servedRows()
+    });
+  }
+
+  _loadServedReports(rows) {
+    this.servedReports.clear();
+    const cleaned = [];
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const name = String(row && row.name || '').slice(0, 64);
+      const at = finite(row && row.at);
+      if (!name || at == null || at < 0) continue;
+      cleaned.push({ name, at });
+    }
+    cleaned.sort((a, b) => b.at - a.at || a.name.localeCompare(b.name));
+    for (const row of cleaned.slice(0, MAX_SERVED_REPORTS)) {
+      const previous = this.servedReports.get(row.name);
+      if (previous == null || row.at > previous) this.servedReports.set(row.name, row.at);
+    }
   }
 
   _load() {
@@ -85,6 +115,7 @@ class ControlledMerchantServiceExecutor {
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (!parsed || Number(parsed.schemaVersion) !== 1) return false;
       this.history = Array.isArray(parsed.history) ? parsed.history.slice(-32) : [];
+      this._loadServedReports(parsed.servedReports);
       const op = parsed.activeOperation && typeof parsed.activeOperation === 'object' ? clone(parsed.activeOperation) : null;
       if (op && !TERMINAL.has(op.state)) {
         op.state = 'RECOVERING';
@@ -103,12 +134,52 @@ class ControlledMerchantServiceExecutor {
   _character() { return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null; }
   _entities() { return this.root && this.root.parent && this.root.parent.entities || this.root && this.root.entities || {}; }
   _inventory() { const c = this._character(); return c && Array.isArray(c.items) ? c.items : []; }
+  _gameData() { return this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || null; }
   _standOpen() { const c = this._character(); return !!(c && c.stand); }
-  _inventorySnapshot() {
+
+  _inventorySize() {
     const c = this._character();
     const items = c && Array.isArray(c.items) ? c.items : [];
-    const size = c && Number.isFinite(Number(c.isize)) ? Math.max(0, Math.floor(Number(c.isize))) : items.length;
+    return c && Number.isFinite(Number(c.isize)) ? Math.max(0, Math.floor(Number(c.isize))) : items.length;
+  }
+
+  _inventorySnapshot() {
+    const items = this._inventory();
+    const size = this._inventorySize();
     return items.slice(0, size).map((item, index) => item ? { index, name: item.name, q: Math.max(1, finite(item.q, 1)), level: Math.max(0, finite(item.level, 0)) } : null);
+  }
+
+  _standSlot() {
+    const items = this._inventory();
+    const size = Math.min(this._inventorySize(), items.length);
+    const gameData = this._gameData();
+    const definitions = gameData && gameData.items;
+    if (!definitions || typeof definitions !== 'object') return null;
+    for (let index = 0; index < size; index += 1) {
+      const item = items[index];
+      if (!item || !item.name) continue;
+      const definition = definitions[item.name];
+      if (definition && definition.stand) return index;
+    }
+    return null;
+  }
+
+  _servedReportAt(name) {
+    const at = this.servedReports.get(String(name || ''));
+    return at == null ? null : at;
+  }
+
+  _markServedReport(name, at) {
+    const targetName = String(name || '').slice(0, 64);
+    const reportAt = finite(at);
+    if (!targetName || reportAt == null || reportAt < 0) return false;
+    const previous = this._servedReportAt(targetName);
+    if (previous == null || reportAt > previous) this.servedReports.set(targetName, reportAt);
+    if (this.servedReports.size > MAX_SERVED_REPORTS) {
+      const keep = this._servedRows();
+      this.servedReports = new Map(keep.map((row) => [row.name, row.at]));
+    }
+    return this._persist();
   }
 
   _inCombat() {
@@ -203,13 +274,33 @@ class ControlledMerchantServiceExecutor {
     if (c.rip === true || c.dead === true) return { ok: false, reason: 'MERCHANT_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'MERCHANT_IN_COMBAT' };
     if ([MerchantServicePlanKind.STAND_OPEN, MerchantServicePlanKind.STAND_CLOSE].includes(plan.kind) && !this.allowStand) return { ok: false, reason: 'STAND_AUTHORITY_DISABLED' };
-    if (plan.kind === MerchantServicePlanKind.SERVICE_DELIVERY && !this.allowDelivery) return { ok: false, reason: 'DELIVERY_AUTHORITY_DISABLED' };
+    if (plan.kind === MerchantServicePlanKind.SERVICE_DELIVERY) {
+      if (!this.allowDelivery) return { ok: false, reason: 'DELIVERY_AUTHORITY_DISABLED' };
+      const targetName = plan.target && String(plan.target.name || '');
+      const sourceReportAt = finite(plan.sourceReportAt);
+      if (!targetName || sourceReportAt == null || sourceReportAt < 0) return { ok: false, reason: 'DELIVERY_SOURCE_REPORT_REQUIRED' };
+      const servedAt = this._servedReportAt(targetName);
+      if (servedAt != null && sourceReportAt <= servedAt) {
+        this.stats.duplicateReportsRejected += 1;
+        return { ok: false, reason: 'SERVICE_REPORT_ALREADY_SERVED' };
+      }
+    }
     return { ok: true };
   }
 
   _startOperation(plan, details) {
     const now = this.now();
-    this.activeOperation = { schemaVersion: 1, id: String(plan.id || `service-${now}`), planKind: plan.kind, state: 'RESERVED', reason: 'PERSISTED_BEFORE_ACTION', createdAt: now, updatedAt: now, ...clone(details) };
+    this.activeOperation = {
+      schemaVersion: 1,
+      id: String(plan.id || `service-${now}`),
+      planKind: plan.kind,
+      sourceReportAt: finite(plan.sourceReportAt),
+      state: 'RESERVED',
+      reason: 'PERSISTED_BEFORE_ACTION',
+      createdAt: now,
+      updatedAt: now,
+      ...clone(details)
+    };
     if (!this._persist()) {
       this.activeOperation.state = 'FAILED_SAFE';
       this.activeOperation.reason = 'PERSIST_BEFORE_ACTION_FAILED';
@@ -278,17 +369,19 @@ class ControlledMerchantServiceExecutor {
     if (typeof fn !== 'function') return { executed: false, committed: false, reason: `${fnName.toUpperCase()}_API_UNAVAILABLE` };
     const before = this._standOpen();
     if (before === open) return { executed: false, committed: true, reason: open ? 'STAND_ALREADY_OPEN' : 'STAND_ALREADY_CLOSED' };
-    if (!this._startOperation(plan, { action: fnName, beforeStandOpen: before, expectedStandOpen: open })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+    const standSlot = open ? this._standSlot() : null;
+    if (open && standSlot == null) return { executed: false, committed: false, reason: 'VALID_STAND_ITEM_REQUIRED' };
+    if (!this._startOperation(plan, { action: fnName, standSlot, beforeStandOpen: before, expectedStandOpen: open })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
     this._transition('EXECUTING', 'RAW_ACTION_STARTING');
     this.actionTimes.push(this.now());
     this.stats.rawActions += 1;
     this.stats.standActions += 1;
     try {
-      const response = await this._timeout(fn.call(this.root));
+      const response = await this._timeout(open ? fn.call(this.root, standSlot) : fn.call(this.root));
       if (response && response.success === false && response.reason) return this._failed(plan.kind, `STAND_API_REJECTED:${response.reason}`);
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       if (!await this._verify(() => this._standOpen() === open)) return this._failed(plan.kind, 'STAND_STATE_VERIFICATION_FAILED');
-      return this._commit(plan.kind, open ? 'STAND_OPEN_VERIFIED' : 'STAND_CLOSE_VERIFIED');
+      return this._commit(plan.kind, open ? 'STAND_OPEN_VERIFIED' : 'STAND_CLOSE_VERIFIED', open ? { standSlot } : {});
     } catch (error) {
       return this._failed(plan.kind, String(error && error.message || error || 'STAND_ACTION_FAILED'));
     }
@@ -298,8 +391,7 @@ class ControlledMerchantServiceExecutor {
     const wanted = String(itemName || '');
     const needed = Math.max(1, Math.floor(finite(quantity, 1)));
     const items = this._inventory();
-    const c = this._character();
-    const size = c && Number.isFinite(Number(c.isize)) ? Math.max(0, Math.floor(Number(c.isize))) : items.length;
+    const size = this._inventorySize();
     for (let index = 0; index < Math.min(size, items.length); index += 1) {
       const item = items[index];
       if (!item || String(item.name || '') !== wanted) continue;
@@ -311,6 +403,7 @@ class ControlledMerchantServiceExecutor {
 
   async _executeDelivery(plan) {
     const targetName = plan.target && String(plan.target.name || '');
+    const sourceReportAt = finite(plan.sourceReportAt);
     const delivery = plan.delivery || {};
     const itemName = String(delivery.itemName || '');
     const quantity = Math.max(1, Math.min(1000, Math.floor(finite(delivery.quantity, 1))));
@@ -328,20 +421,21 @@ class ControlledMerchantServiceExecutor {
     const beforeTotal = itemQuantity(beforeInventory, itemName);
     const fn = this.root && (this.root.send_item || (this.root.parent && this.root.parent.send_item));
     if (typeof fn !== 'function') return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-    if (!this._startOperation(plan, { action: 'send_item', targetName, itemName, quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+    if (!this._startOperation(plan, { action: 'send_item', targetName, sourceReportAt, itemName, quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
     this._transition('EXECUTING', 'RAW_ACTION_STARTING');
     this.actionTimes.push(this.now());
     this.stats.rawActions += 1;
     this.stats.deliveries += 1;
     try {
       const response = await this._timeout(fn.call(this.root, targetName, source.index, quantity));
-      if (response && response.success === false) return this._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, quantity });
+      if (response && response.success === false) return this._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, quantity, sourceReportAt });
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       const verified = await this._verify(() => itemQuantity(this._inventorySnapshot(), itemName) === beforeTotal - quantity);
-      if (!verified) return this._failed(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFICATION_FAILED', { targetName, itemName, quantity });
-      return this._commit(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFIED', { targetName, itemName, quantity });
+      if (!verified) return this._failed(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFICATION_FAILED', { targetName, itemName, quantity, sourceReportAt });
+      if (!this._markServedReport(targetName, sourceReportAt)) return this._failed(plan.kind, 'DELIVERY_DEDUPE_PERSIST_FAILED', { targetName, itemName, quantity, sourceReportAt });
+      return this._commit(plan.kind, 'DELIVERY_LOCAL_DELTA_VERIFIED', { targetName, itemName, quantity, sourceReportAt });
     } catch (error) {
-      return this._failed(plan.kind, String(error && error.message || error || 'SEND_ITEM_FAILED'), { targetName, itemName, quantity });
+      return this._failed(plan.kind, String(error && error.message || error || 'SEND_ITEM_FAILED'), { targetName, itemName, quantity, sourceReportAt });
     }
   }
 
@@ -373,6 +467,12 @@ class ControlledMerchantServiceExecutor {
     if (op.action === 'open_stand' || op.action === 'close_stand') committed = this._standOpen() === op.expectedStandOpen;
     else if (op.action === 'send_item') committed = itemQuantity(this._inventorySnapshot(), op.itemName) === Number(op.expectedAfterTotal);
     if (committed) {
+      if (op.action === 'send_item' && !this._markServedReport(op.targetName, op.sourceReportAt)) {
+        this._transition('FAILED_SAFE', 'RESTART_DEDUPE_PERSIST_FAILED_NO_RETRY');
+        this.stats.failedSafe += 1;
+        this._failure('RESTART_DEDUPE_PERSIST_FAILED_NO_RETRY');
+        return { reconciled: true, committed: false, reason: 'RESTART_DEDUPE_PERSIST_FAILED_NO_RETRY' };
+      }
       this._transition('COMMITTED', 'RESTART_RECONCILIATION_VERIFIED');
       this.stats.recovered += 1;
       this.stats.committed += 1;
@@ -405,6 +505,7 @@ class ControlledMerchantServiceExecutor {
       circuit: this.breaker(),
       activeOperation: clone(this.activeOperation),
       lastAction: clone(this.lastAction),
+      servedReports: this._servedRows(),
       history: this.history.slice(-16).map(clone),
       stats: clone(this.stats),
       explicitAckRequired: CONTROLLED_MERCHANT_SERVICE_ACK
