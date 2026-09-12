@@ -5700,7 +5700,7 @@ module.exports = { CombatStabilitySupervisor };
 
 },
 "src/autonomy/alpha9-runtime.js": function(require,module,exports){
-' strict';
+'use strict';
 
 const { StabilityRuntime } = require('../stability/stability-runtime');
 const { LocalFarmPlanner } = require('./local-farm-planner');
