@@ -1,11 +1,16 @@
 'use strict';
 
-const { Runtime, VERSION } = require('./runtime');
+const { Runtime } = require('./runtime');
+const { VERSION } = require('./version');
+const { StabilityRuntime } = require('./stability/stability-runtime');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
+const { StableScheduler } = require('./core/stable-scheduler');
 const { TaskState, createTask } = require('./core/task');
 const { WorldModel, KnowledgeState, EvidenceKind } = require('./world/world-model');
 const { WorldPersistence } = require('./world/persistence');
+const { ResilientWorldPersistence } = require('./world/resilient-persistence');
+const { KnowledgeAgingPolicy } = require('./world/knowledge-aging');
 const { DiscoveryService } = require('./world/discovery');
 const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
@@ -18,10 +23,13 @@ const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
+const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
+const { StabilityGameAdapter } = require('./game/stability-adapter');
+const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Runtime({ ...options, root });
+  const runtime = new StabilityRuntime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -89,10 +97,11 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
-  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
+  install, Runtime, StabilityRuntime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
+  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
 };
