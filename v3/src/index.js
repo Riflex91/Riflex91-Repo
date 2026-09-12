@@ -12,6 +12,7 @@ const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
 const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
+const { Alpha18Runtime } = require('./autonomy/alpha18-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -46,6 +47,9 @@ const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE,
 const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS } = require('./economy/transaction-engine');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK } = require('./economy/controlled-merchant-executor');
+const { BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction } = require('./economy/bank-capacity-manager');
+const { BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState } = require('./economy/bank-expansion-transactions');
+const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK } = require('./economy/controlled-bank-expansion-executor');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
@@ -62,7 +66,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha17Runtime({ ...options, root });
+  const runtime = new Alpha18Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -190,6 +194,27 @@ function install(root = globalThis, options = {}) {
         reconcile: (id) => runtime.reconcileEconomyTransaction(id),
         breaker: (family) => runtime.transactionEngine.breaker(family),
         save: () => runtime.transactionEngine.save()
+      },
+      bankCapacity: {
+        status: () => runtime.bankCapacity.status(),
+        observe: () => runtime._observeBankCapacity(),
+        planSpace: (request = {}) => runtime.planBankSpace(request),
+        workGate: () => runtime.bankCapacity.status().workGate
+      },
+      bankExpansion: {
+        status: () => runtime.bankExpansionTransactions.status(),
+        list: (limit = 100) => runtime.bankExpansionTransactions.list(limit),
+        get: (id) => runtime.bankExpansionTransactions.get(id),
+        plan: (request = {}) => runtime.planBankExpansion(request),
+        reconcile: (id) => runtime.bankExpansionTransactions.reconcile(id, runtime._observeBankCapacity()),
+        breaker: () => runtime.bankExpansionTransactions.breaker(),
+        save: () => runtime.bankExpansionTransactions.save(),
+        controlled: {
+          status: () => runtime.controlledBankExpansion.status(),
+          configure: (config) => runtime.configureControlledBankExpansion(config),
+          disable: (reason) => runtime.controlledBankExpansion.disable(reason),
+          execute: (id) => runtime.executeBankExpansion(id)
+        }
       }
     },
     travel: {
@@ -261,7 +286,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -275,6 +300,9 @@ module.exports = {
   GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   EconomyTransactionEngine, TRANSACTION_SCHEMA_VERSION, TRANSACTION_MODE, TransactionType, TransactionState, EXPECTED_DISPOSITIONS,
   ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK,
+  BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction,
+  BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState,
+  ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK,
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,

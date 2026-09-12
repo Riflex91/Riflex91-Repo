@@ -177,7 +177,7 @@ test('Alpha11Runtime integrates party observation while preserving Alpha.10 Brai
   runtime.combatRisk.approveMonsterType(runtime.world, 'goo');
   runtime.tick();
   const status = runtime.status();
-  assert.equal(status.version, '3.0.0-alpha.17.0');
+  assert.equal(status.version, '3.0.0-alpha.18.0');
   assert.equal(status.mode, 'shadow');
   assert.equal(status.brain.mode, 'shadow');
   assert.equal(status.brain.actionAuthority, false);

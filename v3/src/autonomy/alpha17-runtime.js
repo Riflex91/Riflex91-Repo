@@ -1,11 +1,11 @@
 'use strict';
 
 const { Alpha16Runtime } = require('./alpha16-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../economy/controlled-merchant-executor');
 const { sellMetadataConsensus, rawSellProtectionReasons } = require('../economy/sell-safety');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_ACK } = require('../travel/controlled-travel-executor');
 
+const ALPHA17_VERSION = '3.0.0-alpha.17.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) {
@@ -21,7 +21,7 @@ function registryName(value) {
 class Alpha17Runtime extends Alpha16Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA17_VERSION;
     if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
       this.inventoryLedger.setSellSafetyResolver(({ row }) => {
         const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
@@ -97,7 +97,7 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA17_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -271,7 +271,7 @@ class Alpha17Runtime extends Alpha16Runtime {
     const controlledSubsystems = this._controlledSubsystemHealth();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA17_VERSION,
       economy: this._economyStatus(),
       travel: this._travelStatus(),
       supervisor: { ...base.supervisor, controlledSubsystems },
@@ -300,4 +300,4 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 }
 
-module.exports = { Alpha17Runtime };
+module.exports = { Alpha17Runtime, ALPHA17_VERSION };
