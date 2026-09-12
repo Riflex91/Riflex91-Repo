@@ -15,6 +15,7 @@ const { installDangerousContentHotfix } = require('../reliability/dangerous-cont
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
 const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
 const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
+const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -53,10 +54,6 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     });
 
     this.preFarmingReliability = installPreFarmingReliability(this);
-    // Install after the pre-farming wrapper: live logs showed that the old
-    // safe-entity cache still left ordinary visible monsters as navigation
-    // blockers. This replacement asks the existing TargetSafety + CombatRisk
-    // boundaries directly on every Local Farm arbitration pass.
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
 
@@ -94,6 +91,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxAttempts: options.partyBootstrapMaxAttempts,
       breakerMs: options.partyBootstrapBreakerMs
     });
+    this.partyBootstrapMerchantDiscoveryHotfix = installPartyBootstrapMerchantDiscoveryHotfix(this.partyBootstrap);
     this.partyBootstrapFarmerGate = installPartyBootstrapFarmerGate(this, this.partyBootstrap);
   }
 
@@ -132,6 +130,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
       partyAccountCommunication: this.partyAccountCommunication.status(),
       partyBootstrap: this.partyBootstrap.status(),
+      partyBootstrapMerchantDiscoveryHotfix: this.partyBootstrapMerchantDiscoveryHotfix.status(),
       partyBootstrapFarmerGate: this.partyBootstrapFarmerGate.status(),
       startupPolicy: {
         recommendedMode: 'active',
@@ -152,6 +151,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       party: {
         ...(base.party || {}),
         bootstrap: this.partyBootstrap.status(),
+        bootstrapMerchantDiscovery: this.partyBootstrapMerchantDiscoveryHotfix.status(),
         accountCommunication: this.partyAccountCommunication.status()
       },
       farmerLoot: this.controlledFarmerLoot.status(),
