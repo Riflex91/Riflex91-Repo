@@ -5,8 +5,9 @@ Release target: `3.0.0-alpha.18.0`
 ## Phase status
 
 - Core Alpha.18 implementation: merged via PR #65.
-- Combined live-confirmation runner: prepared as a separate follow-up change; it does not itself confirm the phase.
-- FULL confirmation: **NOT YET CONFIRMED**.
+- Combined live-confirmation runner: merged via PR #66.
+- Combined production live gate: **PASS** on 2026-09-12.
+- FULL confirmation: **FULL CONFIRMED**.
 - Default runtime mode remains `shadow`.
 - `productionReplacement=false` remains unchanged.
 - Normal automatic destructive Economy autonomy remains disabled.
@@ -198,6 +199,47 @@ and is also stored as `AIO_V3_ALPHA18_LIVE_GATE_RESULT_TEXT` in the Adventure La
 
 A live result is eligible for the later confirmation PR only when `pass=true`, `confirmationEligible=true`, the full observation duration is satisfied, no final violations remain, and any genuinely justified same-floor expansion has verified commit evidence.
 
+## Production live confirmation evidence — 2026-09-12
+
+The combined Alpha.18 production live gate completed successfully against release `3.0.0-alpha.18.0`.
+
+Confirmation evidence:
+
+- `pass=true`
+- `confirmationEligible=true`
+- `testMode=false`
+- explicit gate acknowledgement was required and the wrong controlled-canary acknowledgement probe was rejected as expected
+- forced capacity pressure was disabled
+- `EMERGENCY_RECLAIM` execution authority remained disabled
+- required observation window: `600000 ms`
+- configured observation window: `600000 ms`
+- `confirmationDurationSatisfied=true`
+- passive samples: `121`
+- precheck: PASS
+- Supervisor remained within the allowed `WATCH` state; the only WATCH reason was `CONTENT_REVALIDATION_REQUIRED`
+- live Bank Capacity observation retained `actionAuthority=false`
+- live planner selected `DEPOSIT_FREE_SLOT` because safe free bank capacity already existed
+- controlled expansion therefore correctly reported `NOT_JUSTIFIED`; no artificial capacity crisis was created and no bank-pack purchase was attempted
+- `expansionCoverageSatisfied=true`
+- passive-window violations: none
+- passive-window error events: none
+- unexpected Bank Expansion attempts: `0`
+- unexpected Controlled Merchant attempts: `0`
+- unexpected Controlled Travel attempts: `0`
+- SELL, BANK, TRAVEL and Bank Expansion circuits remained closed
+- final runtime mode: `shadow`
+- final Farmer state: disabled
+- final Controlled Merchant state: disabled
+- final Controlled Travel state: disabled
+- final Controlled Bank Expansion state: disabled
+- final Bank Capacity action authority: disabled
+- final violations: none
+- confirmation blockers: none
+
+The live bank had sufficient safe capacity, so a real expansion transaction was neither required nor permitted by the planner. This is the intended non-destructive confirmation path: the gate must not spend resources merely to manufacture expansion coverage.
+
+This production result satisfies the Alpha.18 combined live-confirmation criteria. Alpha.18 is therefore **FULL CONFIRMED** once this documentation-only confirmation PR is exact-head CI-certified and merged.
+
 ## Internal tests
 
 `alpha18-bank-capacity.test.js` covers:
@@ -233,8 +275,8 @@ A live result is eligible for the later confirmation PR only when `pass=true`, `
 - justified same-floor expansion left unexecuted remains a confirmation blocker across returned, stored and printable result surfaces
 - passive-window error-event detection and fail-closed result
 
-Full repository tests, browser bundle smoke, generated bundle verification and diff check are required on the exact final live-gate preparation PR head before merge.
+Full repository tests, browser bundle smoke, generated bundle verification and diff check are required on the exact final confirmation PR head before merge.
 
-## Confirmation still required after the live run
+## Confirmation result
 
-Alpha.18 must **not** be called FULL CONFIRMED merely because the combined runner exists or because its preparation PR passes CI. The live result must first be reviewed against the criteria above. Only a later documentation-only confirmation PR may then mark Alpha.18 FULL CONFIRMED.
+The production combined live gate passed and the resulting documentation-only confirmation PR records the verified evidence. After exact-head CI certification and merge, Alpha.18 is **FULL CONFIRMED**.
