@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { install, Alpha20_5FarmReadinessRuntime } = require('../src');
+const { install, Alpha20_5FarmReadinessRuntime, TELEMETRY_PROTOCOL } = require('../src');
 
 function localStorage() {
   const rows = new Map();
@@ -60,14 +60,26 @@ test('production Alpha20.5 runtime treats missing bank and Farmer service eviden
   const api = install(fixture.root, { debugMonitorVisible: false, visibleStatus: false });
   const runtime = api.__runtime;
 
-  const bank = runtime.bankCapacity.observe({ character: fixture.root.character, observedAt: 1000 });
+  const bank = runtime.bankCapacity.observe({ character: fixture.root.character, observedAt: runtime.now() });
   assert.equal(bank.observationState, 'NOT_OBSERVABLE');
   assert.equal(bank.totals.free, null);
   assert.equal(bank.pressureNow, false);
 
+  // Exercise the real production telemetry contract rather than bypassing its
+  // trust/freshness envelope. The payload is valid protocol evidence whose
+  // service fields are intentionally absent, so the reliability layer must
+  // preserve UNKNOWN/null instead of fabricating zero values.
   const report = runtime.partyTelemetry._cleanReport({
-    name: 'FarmerA', ctype: 'ranger', level: 60, at: 1000, map: 'main', supplies: {}
+    type: 'aio-v3-party-report',
+    protocol: TELEMETRY_PROTOCOL,
+    name: 'FarmerA',
+    ctype: 'ranger',
+    level: 60,
+    at: runtime.now(),
+    map: 'main',
+    supplies: {}
   }, 'FarmerA');
+  assert.ok(report);
   assert.equal(report.x, null);
   assert.equal(report.y, null);
   assert.equal(report.supplies.hpPotions, null);
