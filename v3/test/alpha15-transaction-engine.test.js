@@ -18,7 +18,7 @@ function gameData() {
   return {
     monsters: {}, maps: { main: {} }, npcs: {}, events: {}, skills: {},
     items: {
-      junk: { type: 'material', g: 1 },
+      junk: { type: 'material', s: 999, g: 1 },
       bankme: { type: 'material', g: 2 },
       citem: { type: 'ring', compound: true, dex: 2 },
       hpot1: { type: 'pot', gives: [['hp', 400]] }
