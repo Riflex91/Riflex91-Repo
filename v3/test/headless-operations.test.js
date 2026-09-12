@@ -79,6 +79,9 @@ test('HeadlessOperations safe control works with no DOM or game_log and always e
   const runtime = {
     log,
     world: new WorldModel({ now: () => now }),
+    lastHeartbeat: now,
+    lastSnapshot: { observedAt: now },
+    startedAt: now,
     setMode: (mode) => mode,
     setFarmerEnabled: (enabled) => enabled,
     setFarmerTargetPolicy: (policy) => policy,
@@ -91,8 +94,12 @@ test('HeadlessOperations safe control works with no DOM or game_log and always e
   const ops = new HeadlessOperations({ runtime, log, now: () => now });
   const result = ops.submit({ commandId: 'remote-1', action: 'SET_MODE', params: { mode: 'shadow' }, issuedAt: 9000, expiresAt: 11000 });
   assert.equal(result.status, 'EXECUTED');
-  ops.capture(runtime.world);
   const events = ops.drainTelemetry(20);
   assert.ok(events.some((event) => event.event === 'CONTROL_COMMAND_EXECUTED'));
-  assert.equal(ops.status().transport, 'host-provided');
+  const status = ops.status();
+  assert.equal(status.transport, 'host-provided');
+  assert.equal(status.health.state, 'HEALTHY');
+  assert.equal(status.health.domRequired, false);
+  assert.equal(status.health.gameLogRequired, false);
+  assert.equal(status.health.dashboardRequired, false);
 });
