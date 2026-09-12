@@ -17,7 +17,7 @@ function character(overrides = {}) {
   };
 }
 function gameData() {
-  return { monsters: {}, maps: { main: {}, winterland: {}, bank: {} }, npcs: {}, items: { junk: { type: 'material' }, bankme: { type: 'material' } }, skills: {}, events: {} };
+  return { monsters: {}, maps: { main: {}, winterland: {}, bank: {} }, npcs: {}, items: { junk: { type: 'material', s: 999 }, bankme: { type: 'material', s: 999 } }, skills: {}, events: {} };
 }
 function runtimeRoot(overrides = {}) {
   const root = {

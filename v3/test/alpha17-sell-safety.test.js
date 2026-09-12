@@ -17,7 +17,7 @@ function registry(characters) {
 function protectedGameData() {
   return {
     items: {
-      junk: { type: 'material', g: 1 },
+      junk: { type: 'material', s: 999, g: 1 },
       gear: { type: 'ring', g: 100 },
       questitem: { type: 'quest', quest: 'q1', g: 1 },
       exchangeitem: { type: 'gem', e: 1, g: 1 },
@@ -67,7 +67,7 @@ test('SELL allowlist cannot override protected equipment/quest/exchange/event/ca
 
   const status = ledger.status();
   assert.equal(status.policy.sellSafety.allowlistCannotOverride, true);
-  assert.deepEqual(status.policy.sellSafety.allowedMetadataTypes, ['material', 'misc']);
+  assert.deepEqual(status.policy.sellSafety.allowedMetadataTypes, ['material']);
   assert.equal(status.stats.sellProtected, inventory.length - 1);
 });
 
@@ -120,7 +120,7 @@ test('Controlled Merchant still permits an explicitly allowlisted low-risk mater
   });
   const root = {
     character: {
-      name: 'MerchantA', ctype: 'merchant', isize: 1, items: [{ name: 'junk', level: 0, q: 2 }],
+      name: 'MerchantA', ctype: 'merchant', isize: 1, items: [{ name: 'junk', q: 2 }],
       gold: 100, rip: false
     },
     parent: { entities: {} },

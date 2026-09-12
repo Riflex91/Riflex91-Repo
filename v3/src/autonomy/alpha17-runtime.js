@@ -3,6 +3,7 @@
 const { Alpha16Runtime } = require('./alpha16-runtime');
 const { RELEASE_VERSION } = require('../release-version');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../economy/controlled-merchant-executor');
+const { sellMetadataConsensus, rawSellProtectionReasons } = require('../economy/sell-safety');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_ACK } = require('../travel/controlled-travel-executor');
 
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -21,6 +22,20 @@ class Alpha17Runtime extends Alpha16Runtime {
   constructor(options = {}) {
     super(options);
     this.log.version = RELEASE_VERSION;
+    if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
+      this.inventoryLedger.setSellSafetyResolver(({ row }) => {
+        const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
+        const character = this.root && this.root.character;
+        const sameCharacter = character && row && String(character.name || '') === String(row.character || '');
+        if (sameCharacter) {
+          const items = Array.isArray(character.items) ? character.items : [];
+          const index = Number(row.index);
+          const rawItem = Number.isInteger(index) && index >= 0 ? items[index] : null;
+          blockers.push(...rawSellProtectionReasons(rawItem));
+        }
+        return [...new Set(blockers)];
+      });
+    }
     this.controlledMerchant = options.controlledMerchant || new ControlledMerchantExecutor({
       root: this.root,
       engine: this.transactionEngine,

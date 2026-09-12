@@ -1,6 +1,6 @@
 'use strict';
 
-const { sellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
+const { sellMetadataConsensus, rawSellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
 
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
@@ -199,17 +199,22 @@ class ControlledMerchantExecutor {
     if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
     if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
 
-    const liveItem = itemSnapshot(items[txIndex]);
+    const rawLiveItem = items[txIndex];
+    const liveItem = itemSnapshot(rawLiveItem);
     if (!liveItem || liveItem.name !== tx.item || liveItem.level !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' };
     if (liveItem.q < finite(tx.quantity, 1)) return { ok: false, reason: 'LIVE_ITEM_QUANTITY_MISMATCH' };
 
     if (tx.type === 'SELL') {
-      const gameData = this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || {};
-      const meta = gameData && gameData.items && gameData.items[tx.item];
-      const blockers = sellProtectionReasons(meta);
+      const consensus = sellMetadataConsensus(this.root, tx.item);
+      const blockers = [...new Set([...rawSellProtectionReasons(rawLiveItem), ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
-        return { ok: false, reason: 'SELL_ITEM_NOT_LOW_RISK', sellProtectionReasons: blockers };
+        return {
+          ok: false,
+          reason: 'SELL_ITEM_NOT_LOW_RISK',
+          sellProtectionReasons: blockers,
+          sellMetadataSources: consensus.sources
+        };
       }
       if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
     }
@@ -323,7 +328,8 @@ class ControlledMerchantExecutor {
         supervisorState: check.supervisorState || null,
         index: check.index == null ? tx && tx.index : check.index,
         inventorySize: check.inventorySize == null ? null : check.inventorySize,
-        sellProtectionReasons: check.sellProtectionReasons || null
+        sellProtectionReasons: check.sellProtectionReasons || null,
+        sellMetadataSources: check.sellMetadataSources || null
       });
       return {
         executed: false,
@@ -331,7 +337,8 @@ class ControlledMerchantExecutor {
         reason: check.reason,
         index: check.index == null ? undefined : check.index,
         inventorySize: check.inventorySize == null ? undefined : check.inventorySize,
-        sellProtectionReasons: check.sellProtectionReasons || undefined
+        sellProtectionReasons: check.sellProtectionReasons || undefined,
+        sellMetadataSources: check.sellMetadataSources || undefined
       };
     }
 

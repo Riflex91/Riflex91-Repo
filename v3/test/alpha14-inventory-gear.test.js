@@ -28,7 +28,7 @@ function G() {
       hpot1: { type: 'pot', gives: [['hp', 400]] },
       mpot1: { type: 'pot', gives: [['mp', 500]] },
       citem: { type: 'ring', compound: true, dex: 2 },
-      junk: { type: 'material', g: 1 },
+      junk: { type: 'material', s: 999, g: 1 },
       unknownsafe: { type: 'material', g: 2 }
     }
   };
