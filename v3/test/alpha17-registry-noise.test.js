@@ -85,7 +85,8 @@ test('Alpha17 registry filtering prevents crowded-map add/evict log churn over 2
   assert.equal(registry.stats.evicted, 0);
   assert.equal(registry.stats.added, 3);
   assert.equal(runtime.status().registryVisibility.foreignVisibleIgnored, 20000);
-  assert.ok((summary.components['party-registry'] || 0) <= 4);
+  assert.equal(summary.counts.CHARACTER_REGISTRY_MEMBER_EVICTED || 0, 0);
+  assert.equal(summary.counts.CHARACTER_REGISTRY_MEMBER_ADDED || 0, 3);
   assert.ok(summary.retained < 100);
   assert.doesNotThrow(() => JSON.parse(runtime.exportDiagnostics()));
 });
