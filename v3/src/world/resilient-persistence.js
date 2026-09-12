@@ -1,6 +1,6 @@
 'use strict';
 
-const { WorldPersistence } = require('./persistence');
+const { WorldPersistence, isQuotaError } = require('./persistence');
 
 class ResilientWorldPersistence extends WorldPersistence {
   constructor(options = {}) {
@@ -113,6 +113,8 @@ class ResilientWorldPersistence extends WorldPersistence {
   }
 
   maybeSave(world, options = {}) {
+    if (this.quotaBlocked) return false;
+
     const force = options.force === true;
     const now = this.now();
     if (!force && this.saveCircuitUntil > now) return false;
@@ -146,14 +148,35 @@ class ResilientWorldPersistence extends WorldPersistence {
       return false;
     }
 
+    const projectedChars = this._localStorageProjectedChars(serialized);
+    if (projectedChars != null && projectedChars >= this.storageHighWatermarkChars) {
+      this.preflightQuotaBlocks += 1;
+      this.lastSaveError = 'PERSISTENCE_QUOTA_PRESSURE';
+      return this._blockQuota('PERSISTENCE_QUOTA_PRESSURE', null, {
+        projectedChars,
+        highWatermarkChars: this.storageHighWatermarkChars,
+        bytes: serialized.length,
+        revision: world.revision
+      });
+    }
+
     try {
       backend.set(this.key, serialized);
       this.lastSavedAt = now;
       this.lastSavedRevision = world.revision;
+      this.lastWriteError = null;
       this._resetSaveFailures();
       if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVED', data: { backend: this.backendName, bytes: serialized.length, revision: world.revision, forced: force } });
       return true;
     } catch (error) {
+      this.writeFailures += 1;
+      if (isQuotaError(error)) {
+        this.lastSaveError = String(error && error.message || error);
+        return this._blockQuota('PERSISTENCE_QUOTA_EXCEEDED', error, {
+          bytes: serialized.length,
+          revision: world.revision
+        });
+      }
       if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'PERSISTENCE_WRITE_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
       this._recordSaveFailure('PERSISTENCE_WRITE_ERROR', error);
       return false;
