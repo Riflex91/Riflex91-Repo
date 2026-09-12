@@ -17,7 +17,8 @@ const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { Alpha15Runtime } = require('./autonomy/alpha15-runtime');
 const { Alpha16Runtime, ALPHA16_VERSION } = require('./autonomy/alpha16-runtime');
 const { Alpha17Runtime } = require('./autonomy/alpha17-runtime');
-const { Alpha18Runtime } = require('./autonomy/alpha18-runtime');
+const { Alpha18Runtime, ALPHA18_VERSION } = require('./autonomy/alpha18-runtime');
+const { Alpha19Runtime } = require('./autonomy/alpha19-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -55,6 +56,9 @@ const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHAN
 const { BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction } = require('./economy/bank-capacity-manager');
 const { BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState } = require('./economy/bank-expansion-transactions');
 const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK } = require('./economy/controlled-bank-expansion-executor');
+const { MerchantSpaceRecoveryJournal, MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION, MERCHANT_SPACE_RECOVERY_MODE, MerchantSpaceRecoveryState } = require('./economy/merchant-space-recovery-journal');
+const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('./economy/controlled-bank-consolidation-executor');
+const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('./economy/controlled-merchant-space-recovery-hardened');
 const { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState } = require('./travel/safe-travel');
 const { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK } = require('./travel/controlled-travel-executor');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
@@ -71,7 +75,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha18Runtime({ ...options, root });
+  const runtime = new Alpha19Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -220,6 +224,24 @@ function install(root = globalThis, options = {}) {
           disable: (reason) => runtime.controlledBankExpansion.disable(reason),
           execute: (id) => runtime.executeBankExpansion(id)
         }
+      },
+      spaceRecovery: {
+        status: () => runtime.controlledMerchantSpaceRecovery.status(),
+        list: (limit = 100) => runtime.merchantSpaceRecoveryJournal.list(limit),
+        get: (id) => runtime.merchantSpaceRecoveryJournal.get(id),
+        plan: (request = {}) => runtime.planMerchantSpaceRecovery(request),
+        reconcile: (id) => runtime.reconcileMerchantSpaceRecovery(id),
+        breaker: () => runtime.merchantSpaceRecoveryJournal.breaker(),
+        save: () => runtime.merchantSpaceRecoveryJournal.save(),
+        controlled: {
+          status: () => runtime.controlledMerchantSpaceRecovery.status(),
+          configure: (config) => runtime.configureControlledMerchantSpaceRecovery(config),
+          disable: (reason) => runtime.controlledMerchantSpaceRecovery.disable(reason),
+          execute: (id) => runtime.executeMerchantSpaceRecovery(id)
+        },
+        consolidation: {
+          status: () => runtime.controlledBankConsolidation.status()
+        }
       }
     },
     travel: {
@@ -291,7 +313,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -308,6 +330,9 @@ module.exports = {
   BankCapacityManager, BANK_CAPACITY_SCHEMA_VERSION, BANK_CAPACITY_MODE, BankSpaceAction,
   BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState,
   ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK,
+  MerchantSpaceRecoveryJournal, MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION, MERCHANT_SPACE_RECOVERY_MODE, MerchantSpaceRecoveryState,
+  ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_MODE, CONTROLLED_BANK_CONSOLIDATION_ACK,
+  HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_MODE, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION,
   SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK,
   SessionMonitor, MONITOR_SCHEMA_VERSION, DebugMonitorUI,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
@@ -4660,7 +4685,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.18.0';
+const RELEASE_VERSION = '3.0.0-alpha.19.0';
 
 module.exports = { RELEASE_VERSION };
 
@@ -4859,7 +4884,11 @@ module.exports = { StabilityRuntime };
 "src/version.js": function(require,module,exports){
 'use strict';
 
-const { RELEASE_VERSION: VERSION } = require('./release-version');
+// StabilityRuntime and the historical Alpha.9-Alpha.13 lineage intentionally
+// remain frozen at the last release that used this shared legacy version
+// surface. Current releases use release-version.js directly in their phase
+// runtime and public index.
+const VERSION = '3.0.0-alpha.18.0';
 
 module.exports = { VERSION };
 
@@ -12484,12 +12513,12 @@ module.exports = { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_
 'use strict';
 
 const { Alpha17Runtime } = require('./alpha17-runtime');
-const { RELEASE_VERSION } = require('../release-version');
 const { BankCapacityManager } = require('../economy/bank-capacity-manager');
 const { BankExpansionTransactionEngine } = require('../economy/bank-expansion-transactions');
 const { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_ACK } = require('../economy/controlled-bank-expansion-executor');
 const { Alpha18CombinedLiveGate, ALPHA18_LIVE_GATE_ACK } = require('../ops/alpha18-combined-live-gate-hardened');
 
+const ALPHA18_VERSION = '3.0.0-alpha.18.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
@@ -12497,7 +12526,7 @@ function clone(value) { return value == null ? value : JSON.parse(JSON.stringify
 class Alpha18Runtime extends Alpha17Runtime {
   constructor(options = {}) {
     super(options);
-    this.log.version = RELEASE_VERSION;
+    this.log.version = ALPHA18_VERSION;
     this.bankCapacityObservationIntervalMs = Math.max(1000, Math.min(60000, Number(options.bankCapacityObservationIntervalMs) || 3000));
     this.lastBankCapacityObservationAt = -Infinity;
 
@@ -12545,7 +12574,7 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 
   _announce(message, event) {
-    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${ALPHA18_VERSION}]`);
     this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
     this._gameLog(normalized);
     return true;
@@ -12664,7 +12693,7 @@ class Alpha18Runtime extends Alpha17Runtime {
     const base = super.status();
     return {
       ...base,
-      version: RELEASE_VERSION,
+      version: ALPHA18_VERSION,
       economy: this._economyStatus(),
       alpha18: {
         bankCapacityFoundation: true,
@@ -12692,7 +12721,7 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 }
 
-module.exports = { Alpha18Runtime };
+module.exports = { Alpha18Runtime, ALPHA18_VERSION };
 
 },
 "src/economy/bank-capacity-manager.js": function(require,module,exports){
@@ -14093,6 +14122,1396 @@ module.exports = {
   Alpha18CombinedLiveGate,
   ALPHA18_LIVE_GATE_ACK,
   REQUIRED_OBSERVATION_MS
+};
+
+},
+"src/autonomy/alpha19-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Alpha18Runtime } = require('./alpha18-runtime');
+const { RELEASE_VERSION } = require('../release-version');
+const { MerchantSpaceRecoveryJournal } = require('../economy/merchant-space-recovery-journal');
+const { ControlledBankConsolidationExecutor, CONTROLLED_BANK_CONSOLIDATION_ACK } = require('../economy/controlled-bank-consolidation-executor');
+const { HardenedControlledMerchantSpaceRecovery, CONTROLLED_SPACE_RECOVERY_ACK, MAX_RAW_ACTIONS_PER_OPERATION } = require('../economy/controlled-merchant-space-recovery-hardened');
+
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+class Alpha19Runtime extends Alpha18Runtime {
+  constructor(options = {}) {
+    super(options);
+    this.log.version = RELEASE_VERSION;
+    this.merchantSpaceRecoveryJournal = options.merchantSpaceRecoveryJournal || new MerchantSpaceRecoveryJournal({
+      now: this.now,
+      log: this.log,
+      storage: options.merchantSpaceRecoveryStorage || options.storage,
+      storageKey: options.merchantSpaceRecoveryStorageKey,
+      capacity: options.merchantSpaceRecoveryCapacity,
+      leaseMs: options.merchantSpaceRecoveryLeaseMs,
+      failureWindowMs: options.merchantSpaceRecoveryFailureWindowMs,
+      failureThreshold: options.merchantSpaceRecoveryFailureThreshold,
+      circuitCooldownMs: options.merchantSpaceRecoveryCircuitCooldownMs
+    });
+    this.merchantSpaceRecoveryJournal.load();
+    this.controlledBankConsolidation = options.controlledBankConsolidation || new ControlledBankConsolidationExecutor({
+      root: this.root,
+      log: this.log,
+      now: this.now,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      getGameData: () => this.adapter.getGameData() || {},
+      timeoutMs: options.controlledBankConsolidationTimeoutMs,
+      verifyDelayMs: options.controlledBankConsolidationVerifyDelayMs,
+      verifyAttempts: options.controlledBankConsolidationVerifyAttempts
+    });
+    this.controlledMerchantSpaceRecovery = options.controlledMerchantSpaceRecovery || new HardenedControlledMerchantSpaceRecovery({
+      root: this.root,
+      log: this.log,
+      now: this.now,
+      journal: this.merchantSpaceRecoveryJournal,
+      manager: this.bankCapacity,
+      transactionEngine: this.transactionEngine,
+      ledger: this.inventoryLedger,
+      controlledMerchant: this.controlledMerchant,
+      expansionTransactions: this.bankExpansionTransactions,
+      controlledExpansion: this.controlledBankExpansion,
+      controlledConsolidation: this.controlledBankConsolidation,
+      getMode: () => this.adapter.mode,
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      observeBank: () => this._observeBankCapacity(),
+      getGameData: () => this.adapter.getGameData() || {},
+      getContentDrift: () => this.contentDrift
+    });
+  }
+
+  _announce(message, event) {
+    const normalized = String(message).replace(/\[AIO v3 [^\]]+\]/g, `[AIO v3 ${RELEASE_VERSION}]`);
+    this.log.emit({ component: 'runtime', event, data: { message: normalized, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(normalized);
+    return true;
+  }
+
+  _economyStatus() {
+    const base = super._economyStatus();
+    return {
+      ...base,
+      merchantSpaceRecovery: this.controlledMerchantSpaceRecovery.status()
+    };
+  }
+
+  _guardControlledAuthority() {
+    const result = super._guardControlledAuthority();
+    const supervisor = this.globalSupervisor.status();
+    let reason = null;
+    if (this.adapter.mode !== 'active') reason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reason = 'SUPERVISOR_NOT_HEALTHY';
+    else if (this.merchantSpaceRecoveryJournal.breaker().open) reason = 'SPACE_RECOVERY_CIRCUIT_OPEN';
+    if (reason && this.controlledMerchantSpaceRecovery.status().enabled) this.controlledMerchantSpaceRecovery.disable(reason);
+    if (reason && this.controlledBankConsolidation.status().enabled) this.controlledBankConsolidation.disable(reason);
+    return { ...result, merchantSpaceRecoveryGuardReason: reason };
+  }
+
+  tick() {
+    super.tick();
+    this.merchantSpaceRecoveryJournal.tick();
+  }
+
+  setMode(mode) {
+    const resolved = super.setMode(mode);
+    if (resolved !== 'active') {
+      this.controlledMerchantSpaceRecovery.disable('RUNTIME_LEFT_ACTIVE_MODE');
+      this.controlledBankConsolidation.disable('RUNTIME_LEFT_ACTIVE_MODE');
+    }
+    return resolved;
+  }
+
+  planMerchantSpaceRecovery(request = {}) {
+    return this.controlledMerchantSpaceRecovery.plan(request);
+  }
+
+  configureControlledMerchantSpaceRecovery(config = {}) {
+    if (config.enabled === true) {
+      const gate = this._liveEnableGate();
+      if (!gate.allowed) {
+        this.controlledMerchantSpaceRecovery.disable(gate.reason);
+        return { ...this.controlledMerchantSpaceRecovery.status(), enableRejected: gate.reason };
+      }
+      if (this.merchantSpaceRecoveryJournal.breaker().open) {
+        this.controlledMerchantSpaceRecovery.disable('SPACE_RECOVERY_CIRCUIT_OPEN');
+        return { ...this.controlledMerchantSpaceRecovery.status(), enableRejected: 'SPACE_RECOVERY_CIRCUIT_OPEN' };
+      }
+    }
+    return this.controlledMerchantSpaceRecovery.configure(config);
+  }
+
+  executeMerchantSpaceRecovery(id) {
+    return this.controlledMerchantSpaceRecovery.execute(id);
+  }
+
+  reconcileMerchantSpaceRecovery(id) {
+    return this.controlledMerchantSpaceRecovery.reconcile(id);
+  }
+
+  stop() {
+    this.controlledMerchantSpaceRecovery.disable('RUNTIME_STOP');
+    this.controlledBankConsolidation.disable('RUNTIME_STOP');
+    this.merchantSpaceRecoveryJournal.save();
+    return super.stop();
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      version: RELEASE_VERSION,
+      economy: this._economyStatus(),
+      alpha19: {
+        merchantSpaceRecovery: true,
+        controlledSpaceRecoveryAck: CONTROLLED_SPACE_RECOVERY_ACK,
+        controlledConsolidationAck: CONTROLLED_BANK_CONSOLIDATION_ACK,
+        maxRawActionsPerOperation: MAX_RAW_ACTIONS_PER_OPERATION,
+        emergencyReclaimMaxUnitsPerOperation: 1,
+        emergencyReclaimBulkAllowed: false,
+        emergencyReclaimRequiresFreshReobservation: true,
+        travelAuthority: false,
+        shellExpansionAuthority: false,
+        craftingAuthority: false,
+        upgradeAuthority: false,
+        compoundAuthority: false,
+        exchangeAuthority: false,
+        globalStopOnNoSpace: false,
+        liveExecutionDefault: false
+      }
+    };
+  }
+
+  exportDiagnostics() {
+    const base = JSON.parse(super.exportDiagnostics());
+    base.context = base.context || {};
+    base.context.merchantSpaceRecovery = {
+      status: this.controlledMerchantSpaceRecovery.status(),
+      journal: this.merchantSpaceRecoveryJournal.list(100),
+      consolidation: this.controlledBankConsolidation.status()
+    };
+    return JSON.stringify(base, null, 2);
+  }
+}
+
+module.exports = { Alpha19Runtime };
+
+},
+"src/economy/merchant-space-recovery-journal.js": function(require,module,exports){
+'use strict';
+
+const MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION = 1;
+const MERCHANT_SPACE_RECOVERY_MODE = 'controlled-orchestration-default-off';
+
+const MerchantSpaceRecoveryState = Object.freeze({
+  RESERVED: 'RESERVED',
+  EXECUTING: 'EXECUTING',
+  REOBSERVING: 'REOBSERVING',
+  RECOVERING: 'RECOVERING',
+  COMMITTED: 'COMMITTED',
+  BLOCKED: 'BLOCKED',
+  ABORTED: 'ABORTED',
+  FAILED_SAFE: 'FAILED_SAFE'
+});
+
+const TERMINAL = new Set([
+  MerchantSpaceRecoveryState.COMMITTED,
+  MerchantSpaceRecoveryState.BLOCKED,
+  MerchantSpaceRecoveryState.ABORTED,
+  MerchantSpaceRecoveryState.FAILED_SAFE
+]);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+function storageGet(storage, key) {
+  if (!storage) return null;
+  if (typeof storage.get === 'function') return storage.get(key);
+  if (typeof storage.getItem === 'function') return storage.getItem(key);
+  return null;
+}
+function storageSet(storage, key, value) {
+  if (!storage) return false;
+  if (typeof storage.set === 'function') return storage.set(key, value) !== false;
+  if (typeof storage.setItem === 'function') { storage.setItem(key, value); return true; }
+  return false;
+}
+
+class MerchantSpaceRecoveryJournal {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.storage = options.storage || null;
+    this.storageKey = String(options.storageKey || 'aio-v3-alpha19-space-recovery');
+    this.capacity = Math.max(16, Math.min(1024, Math.floor(finite(options.capacity, 256))));
+    this.leaseMs = Math.max(5000, Math.min(10 * 60 * 1000, finite(options.leaseMs, 60000)));
+    this.failureWindowMs = Math.max(10000, Math.min(60 * 60 * 1000, finite(options.failureWindowMs, 120000)));
+    this.failureThreshold = Math.max(1, Math.min(20, Math.floor(finite(options.failureThreshold, 3))));
+    this.circuitCooldownMs = Math.max(10000, Math.min(60 * 60 * 1000, finite(options.circuitCooldownMs, 120000)));
+    this.operations = new Map();
+    this.reservations = new Map();
+    this.sequence = 0;
+    this.failures = [];
+    this.circuit = null;
+    this.lastSavedAt = null;
+    this.stats = {
+      planned: 0,
+      rejected: 0,
+      committed: 0,
+      blocked: 0,
+      aborted: 0,
+      failedSafe: 0,
+      expired: 0,
+      reconciled: 0,
+      capacityEvictions: 0,
+      saveErrors: 0,
+      loadErrors: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') {
+      this.log.emit({ component: 'merchant-space-recovery', event, severity, reason, data });
+    }
+  }
+
+  _id() {
+    this.sequence += 1;
+    return `space-${this.now().toString(36)}-${this.sequence.toString(36)}`;
+  }
+
+  _reservationKey(request = {}) {
+    const character = String(request.character || '').trim();
+    const index = Number(request.index);
+    if (character && Number.isInteger(index) && index >= 0) return `${character}:${index}`;
+    const item = String(request.item || request.name || '').trim();
+    return `${character || 'unknown'}:capacity:${item || 'generic'}`;
+  }
+
+  _pruneFailures(now = this.now()) {
+    this.failures = this.failures.filter((row) => now - finite(row.at) <= this.failureWindowMs);
+    if (this.circuit && finite(this.circuit.openUntil) <= now) this.circuit = null;
+    return this.failures;
+  }
+
+  breaker() {
+    const now = this.now();
+    this._pruneFailures(now);
+    return {
+      open: !!(this.circuit && this.circuit.openUntil > now),
+      openUntil: this.circuit ? this.circuit.openUntil : null,
+      reason: this.circuit ? this.circuit.reason : null,
+      failuresInWindow: this.failures.length,
+      threshold: this.failureThreshold,
+      windowMs: this.failureWindowMs,
+      cooldownMs: this.circuitCooldownMs
+    };
+  }
+
+  noteFailure(reason = 'SPACE_RECOVERY_FAILURE') {
+    const now = this.now();
+    this._pruneFailures(now);
+    this.failures.push({ at: now, reason: String(reason || 'SPACE_RECOVERY_FAILURE') });
+    if (this.failures.length >= this.failureThreshold) {
+      this.circuit = { openedAt: now, openUntil: now + this.circuitCooldownMs, reason: String(reason || 'FAILURE_BUDGET_EXHAUSTED') };
+      this._event('SPACE_RECOVERY_CIRCUIT_OPENED', 'warn', this.circuit.reason, { failures: this.failures.length, openUntil: this.circuit.openUntil });
+    }
+    this.save();
+    return this.breaker();
+  }
+
+  noteSuccess() {
+    this.failures = [];
+    this.circuit = null;
+    this.save();
+    return this.breaker();
+  }
+
+  _release(row) {
+    if (row && row.reservationKey && this.reservations.get(row.reservationKey) === row.id) this.reservations.delete(row.reservationKey);
+  }
+
+  _evictIfNeeded() {
+    if (this.operations.size < this.capacity) return;
+    const candidate = [...this.operations.values()]
+      .filter((row) => TERMINAL.has(row.state))
+      .sort((a, b) => finite(a.updatedAt) - finite(b.updatedAt))[0];
+    if (!candidate) return;
+    this.operations.delete(candidate.id);
+    this.stats.capacityEvictions += 1;
+  }
+
+  plan(request = {}, plan = null) {
+    if (this.breaker().open) return this._reject('SPACE_RECOVERY_CIRCUIT_OPEN');
+    if (!plan || plan.planned !== true || !plan.action) return this._reject('SPACE_RECOVERY_PLAN_REQUIRED');
+    const character = String(request.character || '').trim();
+    if (!character) return this._reject('SPACE_RECOVERY_CHARACTER_REQUIRED');
+    const reservationKey = this._reservationKey(request);
+    const existing = this.reservations.get(reservationKey);
+    if (existing) return this._reject('SPACE_RECOVERY_ALREADY_ACTIVE', { operationId: existing });
+    this._evictIfNeeded();
+    if (this.operations.size >= this.capacity) return this._reject('SPACE_RECOVERY_CAPACITY_EXHAUSTED');
+    const now = this.now();
+    const row = {
+      schemaVersion: MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION,
+      id: this._id(),
+      state: MerchantSpaceRecoveryState.RESERVED,
+      createdAt: now,
+      updatedAt: now,
+      leaseExpiresAt: now + this.leaseMs,
+      reservationKey,
+      request: clone(request),
+      plan: clone(plan),
+      reason: 'SPACE_RECOVERY_RESERVED',
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      rawActionCount: 0,
+      emergencyReclaimCount: 0,
+      reobservations: 0,
+      restartReconcileRequired: false,
+      evidence: []
+    };
+    this.operations.set(row.id, row);
+    this.reservations.set(reservationKey, row.id);
+    this.stats.planned += 1;
+    this._event('SPACE_RECOVERY_RESERVED', 'info', row.reason, { operationId: row.id, action: plan.action, reservationKey });
+    this.save();
+    return { accepted: true, operation: clone(row) };
+  }
+
+  _reject(reason, data = {}) {
+    this.stats.rejected += 1;
+    this._event('SPACE_RECOVERY_REJECTED', 'warn', reason, data);
+    return { accepted: false, reason: String(reason) };
+  }
+
+  transition(id, nextState, reason = null) {
+    const row = this.operations.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    if (![MerchantSpaceRecoveryState.EXECUTING, MerchantSpaceRecoveryState.REOBSERVING].includes(nextState)) return false;
+    row.state = nextState;
+    row.reason = reason || nextState;
+    row.updatedAt = this.now();
+    this.save();
+    return true;
+  }
+
+  addEvidence(id, kind, data = {}, rawActions = 0) {
+    const row = this.operations.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    const count = Math.max(0, Math.floor(finite(rawActions, 0)));
+    row.rawActionCount += count;
+    row.evidence.push({ at: this.now(), kind: String(kind || 'EVIDENCE'), data: clone(data), rawActions: count });
+    row.updatedAt = this.now();
+    this.save();
+    return true;
+  }
+
+  noteReobservation(id, observation, plan = null) {
+    const row = this.operations.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.reobservations += 1;
+    row.updatedAt = this.now();
+    row.evidence.push({ at: this.now(), kind: 'REOBSERVATION', data: { observation: clone(observation), plan: clone(plan) }, rawActions: 0 });
+    this.save();
+    return true;
+  }
+
+  noteEmergencyReclaim(id) {
+    const row = this.operations.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.emergencyReclaimCount += 1;
+    row.updatedAt = this.now();
+    this.save();
+    return true;
+  }
+
+  _terminal(id, state, reason, evidence = {}) {
+    const row = this.operations.get(String(id));
+    if (!row || TERMINAL.has(row.state)) return false;
+    row.state = state;
+    row.reason = String(reason || state);
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    row.restartReconcileRequired = false;
+    row.finalEvidence = clone(evidence);
+    this._release(row);
+    if (state === MerchantSpaceRecoveryState.COMMITTED) {
+      this.stats.committed += 1;
+      this.noteSuccess();
+    } else if (state === MerchantSpaceRecoveryState.BLOCKED) {
+      this.stats.blocked += 1;
+    } else if (state === MerchantSpaceRecoveryState.ABORTED) {
+      this.stats.aborted += 1;
+    } else if (state === MerchantSpaceRecoveryState.FAILED_SAFE) {
+      this.stats.failedSafe += 1;
+      this.noteFailure(row.reason);
+    }
+    this.save();
+    this._event('SPACE_RECOVERY_TERMINAL', state === MerchantSpaceRecoveryState.FAILED_SAFE ? 'error' : state === MerchantSpaceRecoveryState.BLOCKED ? 'warn' : 'info', row.reason, { operationId: row.id, state, rawActionCount: row.rawActionCount, emergencyReclaimCount: row.emergencyReclaimCount });
+    return true;
+  }
+
+  markCommitted(id, reason = 'SPACE_RECOVERY_VERIFIED_COMMIT', evidence = {}) { return this._terminal(id, MerchantSpaceRecoveryState.COMMITTED, reason, evidence); }
+  markBlocked(id, reason = 'SPACE_RECOVERY_BLOCKED', evidence = {}) { return this._terminal(id, MerchantSpaceRecoveryState.BLOCKED, reason, evidence); }
+  markFailedSafe(id, reason = 'SPACE_RECOVERY_FAILED_SAFE', evidence = {}) { return this._terminal(id, MerchantSpaceRecoveryState.FAILED_SAFE, reason, evidence); }
+  cancel(id, reason = 'SPACE_RECOVERY_CANCELLED') { return this._terminal(id, MerchantSpaceRecoveryState.ABORTED, reason, {}); }
+
+  reconcile(id) {
+    const row = this.operations.get(String(id));
+    if (!row) return { reconciled: false, reason: 'SPACE_RECOVERY_NOT_FOUND' };
+    if (row.state !== MerchantSpaceRecoveryState.RECOVERING) return { reconciled: false, reason: 'SPACE_RECOVERY_NOT_RECOVERING', operation: clone(row) };
+    row.state = MerchantSpaceRecoveryState.ABORTED;
+    row.reason = 'RESTART_REOBSERVE_AND_REPLAN_REQUIRED_NO_BLIND_RETRY';
+    row.updatedAt = this.now();
+    row.leaseExpiresAt = null;
+    row.restartReconcileRequired = false;
+    this._release(row);
+    this.stats.reconciled += 1;
+    this.stats.aborted += 1;
+    this.save();
+    this._event('SPACE_RECOVERY_RESTART_RECONCILED', 'warn', row.reason, { operationId: row.id, rawActionCount: row.rawActionCount });
+    return { reconciled: true, operation: clone(row) };
+  }
+
+  tick() {
+    const now = this.now();
+    let expired = 0;
+    for (const row of this.operations.values()) {
+      if (TERMINAL.has(row.state) || row.state === MerchantSpaceRecoveryState.RECOVERING) continue;
+      if (row.leaseExpiresAt != null && now > finite(row.leaseExpiresAt)) {
+        row.state = MerchantSpaceRecoveryState.ABORTED;
+        row.reason = 'SPACE_RECOVERY_LEASE_EXPIRED';
+        row.updatedAt = now;
+        row.leaseExpiresAt = null;
+        this._release(row);
+        this.stats.expired += 1;
+        this.stats.aborted += 1;
+        expired += 1;
+      }
+    }
+    this._pruneFailures(now);
+    if (expired) this.save();
+    return { expired };
+  }
+
+  get(id) {
+    const row = this.operations.get(String(id));
+    return row ? clone(row) : null;
+  }
+
+  list(limit = 100) {
+    const rows = [...this.operations.values()].sort((a, b) => finite(a.createdAt) - finite(b.createdAt));
+    const n = Math.max(0, Math.min(rows.length, Math.floor(finite(limit, 100))));
+    return rows.slice(rows.length - n).map(clone);
+  }
+
+  save() {
+    if (!this.storage) return false;
+    try {
+      const payload = JSON.stringify({
+        schemaVersion: MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION,
+        savedAt: this.now(),
+        sequence: this.sequence,
+        operations: this.list(this.capacity),
+        failures: clone(this.failures),
+        circuit: clone(this.circuit)
+      });
+      const ok = storageSet(this.storage, this.storageKey, payload);
+      if (ok) this.lastSavedAt = this.now();
+      return ok;
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('SPACE_RECOVERY_SAVE_FAILED', 'error', 'PERSISTENCE_WRITE_FAILED', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  load() {
+    this.operations.clear();
+    this.reservations.clear();
+    if (!this.storage) return false;
+    try {
+      const raw = storageGet(this.storage, this.storageKey);
+      if (!raw) return false;
+      const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!payload || payload.schemaVersion !== MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION || !Array.isArray(payload.operations)) throw new Error('UNSUPPORTED_SPACE_RECOVERY_SCHEMA');
+      this.sequence = Math.max(0, Math.floor(finite(payload.sequence, 0)));
+      for (const candidate of payload.operations.slice(-this.capacity)) {
+        if (!candidate || !candidate.id) continue;
+        const row = clone(candidate);
+        if (!TERMINAL.has(row.state)) {
+          row.state = MerchantSpaceRecoveryState.RECOVERING;
+          row.reason = 'RESTART_RECONCILE_REQUIRED';
+          row.restartReconcileRequired = true;
+          row.leaseExpiresAt = null;
+          if (row.reservationKey) this.reservations.set(row.reservationKey, row.id);
+        }
+        this.operations.set(row.id, row);
+      }
+      this.failures = Array.isArray(payload.failures) ? clone(payload.failures) : [];
+      this.circuit = payload.circuit ? clone(payload.circuit) : null;
+      this._event('SPACE_RECOVERY_STATE_LOADED', 'info', null, { operations: this.operations.size, recovering: [...this.operations.values()].filter((row) => row.state === MerchantSpaceRecoveryState.RECOVERING).length });
+      return true;
+    } catch (error) {
+      this.operations.clear();
+      this.reservations.clear();
+      this.failures = [];
+      this.circuit = null;
+      this.stats.loadErrors += 1;
+      this._event('SPACE_RECOVERY_LOAD_FAILED', 'error', 'PERSISTENCE_CORRUPT_FAIL_CLOSED', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  status() {
+    const rows = [...this.operations.values()];
+    const states = {};
+    for (const state of Object.values(MerchantSpaceRecoveryState)) states[state] = rows.filter((row) => row.state === state).length;
+    return {
+      schemaVersion: MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION,
+      mode: MERCHANT_SPACE_RECOVERY_MODE,
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      defaultEnabled: false,
+      leaseMs: this.leaseMs,
+      capacity: this.capacity,
+      operations: rows.length,
+      active: rows.filter((row) => !TERMINAL.has(row.state) && row.state !== MerchantSpaceRecoveryState.RECOVERING).length,
+      recovering: states.RECOVERING || 0,
+      reservations: this.reservations.size,
+      states,
+      breaker: this.breaker(),
+      lastSavedAt: this.lastSavedAt,
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  MerchantSpaceRecoveryJournal,
+  MERCHANT_SPACE_RECOVERY_SCHEMA_VERSION,
+  MERCHANT_SPACE_RECOVERY_MODE,
+  MerchantSpaceRecoveryState
+};
+
+},
+"src/economy/controlled-bank-consolidation-executor.js": function(require,module,exports){
+'use strict';
+
+const CONTROLLED_BANK_CONSOLIDATION_MODE = 'controlled-live-default-off';
+const CONTROLLED_BANK_CONSOLIDATION_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+function snap(item) {
+  if (!item || !item.name) return null;
+  return {
+    name: String(item.name),
+    level: Math.max(0, Math.floor(finite(item.level, 0))),
+    q: Math.max(1, Math.floor(finite(item.q, 1))),
+    locked: item.l === true || item.locked === true,
+    special: !!(item.p || item.special)
+  };
+}
+function sameIdentity(a, b) {
+  return !!a && !!b && a.name === b.name && a.level === b.level;
+}
+function identityQuantity(items, name, level) {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce((sum, item) => {
+    const row = snap(item);
+    return row && row.name === name && row.level === level ? sum + row.q : sum;
+  }, 0);
+}
+
+class ControlledBankConsolidationExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.getGameData = options.getGameData || (() => ({}));
+    this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
+    this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 150)));
+    this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
+    this.enabled = false;
+    this.busy = false;
+    this.lastAction = null;
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, rawCalls: 0, verificationRetries: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-bank-consolidation', event, severity, reason, data });
+  }
+
+  configure(config = {}) {
+    const wantsLive = config.enabled === true;
+    if (wantsLive && config.ack !== CONTROLLED_BANK_CONSOLIDATION_ACK) {
+      this.enabled = false;
+      this._event('CONTROLLED_BANK_CONSOLIDATION_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = wantsLive;
+    this._event('CONTROLLED_BANK_CONSOLIDATION_CONFIG_CHANGED', 'warn', wantsLive ? 'EXPLICIT_CANARY_ENABLE' : 'DISABLED', { enabled: this.enabled });
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this._event('CONTROLLED_BANK_CONSOLIDATION_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  _inCombat() {
+    const character = this.root && this.root.character || {};
+    if (character.target) return true;
+    const entities = this.root && ((this.root.parent && this.root.parent.entities) || this.root.entities) || {};
+    const self = new Set([character.name, character.id].filter(Boolean).map(String));
+    return Object.values(entities).some((entity) => entity && entity.target && self.has(String(entity.target)));
+  }
+
+  _inventoryWorkspace(character) {
+    const items = Array.isArray(character.items) ? character.items : [];
+    const reported = Number(character.isize);
+    const size = Number.isFinite(reported) ? Math.max(0, Math.floor(reported)) : items.length;
+    for (let i = 0; i < size; i += 1) if (!items[i]) return i;
+    return -1;
+  }
+
+  _preflight(plan) {
+    if (!this.enabled) return { ok: false, reason: 'CONTROLLED_BANK_CONSOLIDATION_DISABLED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (this.busy) return { ok: false, reason: 'CONTROLLED_BANK_CONSOLIDATION_BUSY' };
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    const character = this.root && this.root.character;
+    if (!character || String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
+    if (!plan || plan.action !== 'CONSOLIDATE_BANK_STACKS' || !plan.pack || !plan.move) return { ok: false, reason: 'CONSOLIDATION_PLAN_REQUIRED' };
+    if (typeof this.root.bank_retrieve !== 'function' || typeof this.root.bank_store !== 'function') return { ok: false, reason: 'OFFICIAL_BANK_API_UNAVAILABLE' };
+    const pack = character.bank[plan.pack];
+    if (!Array.isArray(pack)) return { ok: false, reason: 'BANK_PACK_NOT_UNLOCKED' };
+    const fromIndex = Number(plan.move.fromIndex);
+    const toIndex = Number(plan.move.toIndex);
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex < 0 || toIndex < 0 || fromIndex === toIndex || fromIndex >= pack.length || toIndex >= pack.length) return { ok: false, reason: 'CONSOLIDATION_INDEX_INVALID' };
+    const source = snap(pack[fromIndex]);
+    const target = snap(pack[toIndex]);
+    if (!source || !target || !sameIdentity(source, target)) return { ok: false, reason: 'CONSOLIDATION_IDENTITY_CHANGED' };
+    if (source.locked || source.special || target.locked || target.special) return { ok: false, reason: 'CONSOLIDATION_ITEM_PROTECTED' };
+    if (source.name !== String(plan.move.name || '') || source.level !== Math.max(0, Math.floor(finite(plan.move.level, 0)))) return { ok: false, reason: 'CONSOLIDATION_PLAN_STALE' };
+    const gameData = this.getGameData() || {};
+    const meta = gameData.items && gameData.items[source.name];
+    const stackMax = Math.max(1, Math.floor(finite(meta && meta.s, 1)));
+    if (!meta || stackMax <= 1) return { ok: false, reason: 'CONSOLIDATION_STACK_METADATA_UNAVAILABLE' };
+    if (source.q + target.q > stackMax) return { ok: false, reason: 'CONSOLIDATION_STACK_OVERFLOW' };
+    const workspace = this._inventoryWorkspace(character);
+    if (workspace < 0) return { ok: false, reason: 'NO_INVENTORY_WORKSPACE' };
+    const bankPacks = this.root.bank_packs || (this.root.parent && this.root.parent.bank_packs) || {};
+    const catalog = bankPacks && bankPacks[plan.pack];
+    const owningMap = Array.isArray(catalog) ? catalog[0] : catalog && (catalog.map || catalog.place);
+    if (owningMap && String(owningMap) !== String(character.map || '')) return { ok: false, reason: 'WRONG_BANK_FLOOR' };
+    return { ok: true, character, pack, fromIndex, toIndex, source, target, workspace, stackMax };
+  }
+
+  _timeout(promise, label) {
+    let timer;
+    const setTimer = this.root && this.root.setTimeout || setTimeout;
+    const clearTimer = this.root && this.root.clearTimeout || clearTimeout;
+    const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error(`${label}_TIMEOUT`)), this.timeoutMs); });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
+  }
+
+  _sleep(ms) {
+    if (ms <= 0) return Promise.resolve();
+    const setTimer = this.root && this.root.setTimeout || setTimeout;
+    return new Promise((resolve) => setTimer(resolve, ms));
+  }
+
+  async _eventually(check) {
+    let result = check();
+    for (let attempt = 1; !result.ok && attempt < this.verifyAttempts; attempt += 1) {
+      this.stats.verificationRetries += 1;
+      await this._sleep(this.verifyDelayMs);
+      result = check();
+    }
+    return result;
+  }
+
+  _afterRetrieve(check, beforeTotal) {
+    const character = this.root.character;
+    const pack = character.bank && character.bank[check.packName];
+    const inventoryItem = snap(character.items && character.items[check.workspace]);
+    const sourceAfter = Array.isArray(pack) ? snap(pack[check.fromIndex]) : null;
+    const bankTotal = Array.isArray(pack) ? identityQuantity(pack, check.name, check.level) : -1;
+    const inventoryTotal = identityQuantity(character.items, check.name, check.level);
+    return {
+      ok: !sourceAfter && inventoryItem && inventoryItem.name === check.name && inventoryItem.level === check.level && inventoryItem.q === check.sourceQ && bankTotal + inventoryTotal === beforeTotal,
+      sourceAfter,
+      inventoryItem,
+      bankTotal,
+      inventoryTotal,
+      beforeTotal
+    };
+  }
+
+  _afterStore(check, beforeTotal) {
+    const character = this.root.character;
+    const pack = character.bank && character.bank[check.packName];
+    const sourceAfter = Array.isArray(pack) ? snap(pack[check.fromIndex]) : null;
+    const targetAfter = Array.isArray(pack) ? snap(pack[check.toIndex]) : null;
+    const workspaceAfter = snap(character.items && character.items[check.workspace]);
+    const bankTotal = Array.isArray(pack) ? identityQuantity(pack, check.name, check.level) : -1;
+    const inventoryTotal = identityQuantity(character.items, check.name, check.level);
+    return {
+      ok: !sourceAfter && targetAfter && targetAfter.name === check.name && targetAfter.level === check.level && targetAfter.q === check.combinedQ && !workspaceAfter && bankTotal + inventoryTotal === beforeTotal,
+      sourceAfter,
+      targetAfter,
+      workspaceAfter,
+      bankTotal,
+      inventoryTotal,
+      beforeTotal
+    };
+  }
+
+  async execute(plan) {
+    const preflight = this._preflight(plan);
+    if (!preflight.ok) {
+      this.stats.rejected += 1;
+      this._event('CONTROLLED_BANK_CONSOLIDATION_REJECTED', 'warn', preflight.reason);
+      return { executed: false, committed: false, reason: preflight.reason, rawActions: 0 };
+    }
+    this.busy = true;
+    this.stats.attempts += 1;
+    const name = preflight.source.name;
+    const level = preflight.source.level;
+    const beforeTotal = identityQuantity(preflight.pack, name, level) + identityQuantity(preflight.character.items, name, level);
+    const proof = {
+      packName: String(plan.pack),
+      fromIndex: preflight.fromIndex,
+      toIndex: preflight.toIndex,
+      workspace: preflight.workspace,
+      name,
+      level,
+      sourceQ: preflight.source.q,
+      targetQ: preflight.target.q,
+      combinedQ: preflight.source.q + preflight.target.q
+    };
+    let rawActions = 0;
+    try {
+      this._event('CONTROLLED_BANK_CONSOLIDATION_STARTED', 'warn', 'CONTROLLED_CANARY', clone(proof));
+      const retrieveResponse = await this._timeout(this.root.bank_retrieve(proof.packName, proof.fromIndex, proof.workspace), 'BANK_RETRIEVE');
+      rawActions += 1;
+      this.stats.rawCalls += 1;
+      if (retrieveResponse && retrieveResponse.failed === true) throw new Error(String(retrieveResponse.reason || 'BANK_RETRIEVE_FAILED'));
+      const retrieved = await this._eventually(() => this._afterRetrieve(proof, beforeTotal));
+      if (!retrieved.ok) {
+        this.stats.failedSafe += 1;
+        this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'RETRIEVE_STATE_UNCONFIRMED', rawActions, proof: clone(proof), verification: clone(retrieved) };
+        this._event('CONTROLLED_BANK_CONSOLIDATION_FAILED_SAFE', 'error', this.lastAction.reason, this.lastAction);
+        return { executed: true, committed: false, reason: this.lastAction.reason, rawActions, verification: retrieved };
+      }
+      const storeResponse = await this._timeout(this.root.bank_store(proof.workspace, proof.packName, proof.toIndex), 'BANK_STORE');
+      rawActions += 1;
+      this.stats.rawCalls += 1;
+      if (storeResponse && storeResponse.failed === true) throw new Error(String(storeResponse.reason || 'BANK_STORE_FAILED'));
+      const stored = await this._eventually(() => this._afterStore(proof, beforeTotal));
+      if (!stored.ok) {
+        this.stats.failedSafe += 1;
+        this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'CONSOLIDATION_STATE_UNCONFIRMED', rawActions, proof: clone(proof), verification: clone(stored) };
+        this._event('CONTROLLED_BANK_CONSOLIDATION_FAILED_SAFE', 'error', this.lastAction.reason, this.lastAction);
+        return { executed: true, committed: false, reason: this.lastAction.reason, rawActions, verification: stored };
+      }
+      this.stats.committed += 1;
+      this.lastAction = { at: this.now(), result: 'COMMITTED', reason: 'VERIFIED_CONSOLIDATION', rawActions, proof: clone(proof), verification: clone(stored) };
+      this._event('CONTROLLED_BANK_CONSOLIDATION_COMMITTED', 'info', this.lastAction.reason, this.lastAction);
+      return { executed: true, committed: true, reason: this.lastAction.reason, rawActions, verification: stored, proof: clone(proof) };
+    } catch (error) {
+      this.stats.failedSafe += 1;
+      const reason = String(error && error.message || error || 'CONSOLIDATION_FAILED_SAFE');
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, rawActions, proof: clone(proof) };
+      this._event('CONTROLLED_BANK_CONSOLIDATION_FAILED_SAFE', 'error', reason, this.lastAction);
+      return { executed: rawActions > 0, committed: false, reason, rawActions, proof: clone(proof) };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  status() {
+    return {
+      mode: CONTROLLED_BANK_CONSOLIDATION_MODE,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      explicitAckRequired: CONTROLLED_BANK_CONSOLIDATION_ACK,
+      rawActionAttemptLimit: 2,
+      strategy: 'bank_retrieve-verify-targeted-bank_store-verify',
+      busy: this.busy,
+      lastAction: clone(this.lastAction),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  ControlledBankConsolidationExecutor,
+  CONTROLLED_BANK_CONSOLIDATION_MODE,
+  CONTROLLED_BANK_CONSOLIDATION_ACK
+};
+
+},
+"src/economy/controlled-merchant-space-recovery-hardened.js": function(require,module,exports){
+'use strict';
+
+const {
+  ControlledMerchantSpaceRecovery,
+  CONTROLLED_SPACE_RECOVERY_MODE,
+  CONTROLLED_SPACE_RECOVERY_ACK,
+  MAX_RAW_ACTIONS_PER_OPERATION
+} = require('./controlled-merchant-space-recovery');
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+class HardenedControlledMerchantSpaceRecovery extends ControlledMerchantSpaceRecovery {
+  _freshReclaimPlan(operation, originalPlan, observation) {
+    if (originalPlan && originalPlan.reason === 'ALPHA19_MINIMAL_RECLAIM_FALLBACK') {
+      // Re-evaluate the same executable Alpha.19 authority scope. A cross-floor
+      // expansion or consolidation without inventory workspace must not become
+      // Travel/undocumented authority merely because we are revalidating SELL.
+      return this._fallbackPlan(operation.request, observation, { skipExpansion: true });
+    }
+    return this.manager.planSpace(operation.request, this._context(observation, operation.request));
+  }
+
+  async _reclaim(operation, plan) {
+    if (operation.emergencyReclaimCount >= 1 || plan.exactlyOneUnit !== true || plan.bulkSellForbidden !== true || !plan.candidate || Number(plan.candidate.quantity) !== 1) {
+      return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_BOUNDARY_INVALID', rawActions: 0 };
+    }
+
+    const freshObservation = this.observeBank();
+    const freshPlan = this._freshReclaimPlan(operation, plan, freshObservation);
+    this.journal.noteReobservation(operation.id, freshObservation, freshPlan);
+    if (freshPlan.action !== 'EMERGENCY_RECLAIM' || !this._sameCandidate(plan.candidate, freshPlan.candidate) || Number(freshPlan.candidate.quantity) !== 1) {
+      return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_FRESH_PLAN_CHANGED', rawActions: 0, freshPlan };
+    }
+
+    const candidate = freshPlan.candidate;
+    const planned = this.transactionEngine.plan({
+      type: 'SELL',
+      character: candidate.character,
+      index: candidate.index,
+      quantity: 1,
+      metadata: {
+        alpha19SpaceRecovery: operation.id,
+        emergencyReclaim: true,
+        exactlyOneUnit: true,
+        protectedMinimumReserve: candidate.protectedMinimumReserve
+      }
+    }, { ledger: this.ledger });
+    if (!planned.accepted) return { ok: false, blocked: true, reason: `RECLAIM_TRANSACTION_${planned.reason}`, rawActions: 0 };
+
+    this.controlledMerchant.configure({ enabled: true, ack: 'CONTROLLED_CANARY', sell: true, bank: false });
+    try {
+      const result = await this.controlledMerchant.execute(planned.transaction.id);
+      if (!result.executed) return { ok: false, blocked: true, reason: `RECLAIM_EXECUTION_${result.reason}`, rawActions: 0, transactionId: planned.transaction.id, result };
+      if (!result.committed) return { ok: false, failedSafe: true, reason: `RECLAIM_EXECUTION_${result.reason}`, rawActions: 1, transactionId: planned.transaction.id, result };
+
+      this.journal.noteEmergencyReclaim(operation.id);
+      this.stats.emergencyReclaims += 1;
+      const afterObservation = this.observeBank();
+      const afterPlan = this.manager.planSpace(operation.request, this._context(afterObservation, operation.request));
+      this.journal.noteReobservation(operation.id, afterObservation, afterPlan);
+      return {
+        ok: true,
+        reclaim: true,
+        reason: 'EMERGENCY_RECLAIM_ONE_UNIT_COMMITTED',
+        rawActions: 1,
+        transactionId: planned.transaction.id,
+        result,
+        afterObservation,
+        afterPlan
+      };
+    } finally {
+      this.controlledMerchant.disable('ALPHA19_CHILD_SCOPE_COMPLETE');
+    }
+  }
+
+  _finishBlocked(id, reason, evidence = {}) {
+    const before = this.journal.get(id);
+    const didExecute = !!(before && finite(before.rawActionCount, 0) > 0);
+    this.journal.markBlocked(id, reason, { ...JSON.parse(JSON.stringify(evidence || {})), globalBotStop: false });
+    this.stats.blocked += 1;
+    this.lastResult = {
+      executed: didExecute,
+      committed: false,
+      blocked: true,
+      reason,
+      operation: this.journal.get(id)
+    };
+    return JSON.parse(JSON.stringify(this.lastResult));
+  }
+
+  _finishFailedSafe(id, reason, evidence = {}) {
+    const before = this.journal.get(id);
+    const didExecute = !!(before && finite(before.rawActionCount, 0) > 0);
+    this.journal.markFailedSafe(id, reason, evidence);
+    this.stats.failedSafe += 1;
+    this.lastResult = {
+      executed: didExecute,
+      committed: false,
+      failedSafe: true,
+      reason,
+      operation: this.journal.get(id)
+    };
+    return JSON.parse(JSON.stringify(this.lastResult));
+  }
+}
+
+module.exports = {
+  HardenedControlledMerchantSpaceRecovery,
+  CONTROLLED_SPACE_RECOVERY_MODE,
+  CONTROLLED_SPACE_RECOVERY_ACK,
+  MAX_RAW_ACTIONS_PER_OPERATION
+};
+
+},
+"src/economy/controlled-merchant-space-recovery.js": function(require,module,exports){
+'use strict';
+
+const { BankSpaceAction } = require('./bank-capacity-manager');
+
+const CONTROLLED_SPACE_RECOVERY_MODE = 'controlled-live-default-off';
+const CONTROLLED_SPACE_RECOVERY_ACK = 'ALPHA19_SPACE_RECOVERY';
+const CHILD_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const MAX_RAW_ACTIONS_PER_OPERATION = 3;
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+class ControlledMerchantSpaceRecovery {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.log = options.log || null;
+    this.now = options.now || (() => Date.now());
+    this.journal = options.journal;
+    this.manager = options.manager;
+    this.transactionEngine = options.transactionEngine;
+    this.ledger = options.ledger;
+    this.controlledMerchant = options.controlledMerchant;
+    this.expansionTransactions = options.expansionTransactions;
+    this.controlledExpansion = options.controlledExpansion;
+    this.controlledConsolidation = options.controlledConsolidation;
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.observeBank = options.observeBank || (() => null);
+    this.getGameData = options.getGameData || (() => ({}));
+    this.getContentDrift = options.getContentDrift || (() => null);
+    this.enabled = false;
+    this.busy = false;
+    this.lastResult = null;
+    this.stats = { plans: 0, attempts: 0, committed: 0, blocked: 0, failedSafe: 0, rejected: 0, emergencyReclaims: 0, expansionExecutions: 0, consolidationExecutions: 0, bankDeposits: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-space-recovery', event, severity, reason, data });
+  }
+
+  configure(config = {}) {
+    const wantsLive = config.enabled === true;
+    if (wantsLive && config.ack !== CONTROLLED_SPACE_RECOVERY_ACK) {
+      this.enabled = false;
+      this._event('SPACE_RECOVERY_ENABLE_REJECTED', 'warn', 'ACK_REQUIRED');
+      return this.status();
+    }
+    this.enabled = wantsLive;
+    this._event('SPACE_RECOVERY_CONFIG_CHANGED', 'warn', wantsLive ? 'EXPLICIT_ALPHA19_ENABLE' : 'DISABLED', { enabled: this.enabled });
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this._disableChildren(`SPACE_RECOVERY_${reason}`);
+    this._event('SPACE_RECOVERY_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  _liveCharacter() {
+    return this.root && this.root.character || null;
+  }
+
+  _inCombat() {
+    const character = this._liveCharacter() || {};
+    if (character.target) return true;
+    const entities = this.root && ((this.root.parent && this.root.parent.entities) || this.root.entities) || {};
+    const self = new Set([character.name, character.id].filter(Boolean).map(String));
+    return Object.values(entities).some((entity) => entity && entity.target && self.has(String(entity.target)));
+  }
+
+  _preflight(operation) {
+    if (!operation) return { ok: false, reason: 'SPACE_RECOVERY_NOT_FOUND' };
+    if (!this.enabled) return { ok: false, reason: 'SPACE_RECOVERY_DISABLED' };
+    if (this.busy) return { ok: false, reason: 'SPACE_RECOVERY_BUSY' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (operation.state !== 'RESERVED') return { ok: false, reason: 'SPACE_RECOVERY_NOT_RESERVED' };
+    if (operation.leaseExpiresAt != null && this.now() > finite(operation.leaseExpiresAt)) return { ok: false, reason: 'SPACE_RECOVERY_LEASE_EXPIRED' };
+    if (this.journal && this.journal.breaker().open) return { ok: false, reason: 'SPACE_RECOVERY_CIRCUIT_OPEN' };
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    const character = this._liveCharacter();
+    if (!character || String(character.name || '') !== String(operation.request.character || '')) return { ok: false, reason: 'CONTROLLED_CHARACTER_MISMATCH' };
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
+    if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
+    if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    const childStates = this._childStates();
+    if (childStates.merchant || childStates.expansion || childStates.consolidation) return { ok: false, reason: 'CHILD_EXECUTOR_ALREADY_ENABLED', childStates };
+    return { ok: true, character, supervisor };
+  }
+
+  _childStates() {
+    return {
+      merchant: !!(this.controlledMerchant && this.controlledMerchant.status && this.controlledMerchant.status().enabled),
+      expansion: !!(this.controlledExpansion && this.controlledExpansion.status && this.controlledExpansion.status().enabled),
+      consolidation: !!(this.controlledConsolidation && this.controlledConsolidation.status && this.controlledConsolidation.status().enabled)
+    };
+  }
+
+  _disableChildren(reason) {
+    try { if (this.controlledMerchant && typeof this.controlledMerchant.disable === 'function') this.controlledMerchant.disable(reason); } catch (_) {}
+    try { if (this.controlledExpansion && typeof this.controlledExpansion.disable === 'function') this.controlledExpansion.disable(reason); } catch (_) {}
+    try { if (this.controlledConsolidation && typeof this.controlledConsolidation.disable === 'function') this.controlledConsolidation.disable(reason); } catch (_) {}
+  }
+
+  _context(observation, request) {
+    const character = this._liveCharacter() || {};
+    return {
+      observation,
+      character,
+      bankPacks: this.root.bank_packs || (this.root.parent && this.root.parent.bank_packs) || {},
+      gameData: this.getGameData() || {},
+      contentDrift: this.getContentDrift(),
+      ledger: this.ledger,
+      minimumReserves: request.minimumReserves || {},
+      gold: Math.max(0, finite(character.gold, 0)),
+      shells: Math.max(0, finite(character.shells, 0)),
+      currentMap: character.map || null
+    };
+  }
+
+  _normalizeRequest(request = {}) {
+    const character = this._liveCharacter() || {};
+    const index = request.index == null ? null : Number(request.index);
+    const liveItem = Number.isInteger(index) && Array.isArray(character.items) ? character.items[index] : null;
+    return {
+      ...clone(request),
+      character: String(request.character || character.name || ''),
+      index: Number.isInteger(index) ? index : null,
+      item: String(request.item || request.name || (liveItem && liveItem.name) || ''),
+      name: String(request.item || request.name || (liveItem && liveItem.name) || ''),
+      level: Math.max(0, Math.floor(finite(request.level, liveItem && liveItem.level || 0))),
+      quantity: Math.max(1, Math.floor(finite(request.quantity, liveItem && liveItem.q || 1))),
+      depositBlocked: request.depositBlocked !== false,
+      minimumReserves: request.minimumReserves && typeof request.minimumReserves === 'object' ? clone(request.minimumReserves) : {}
+    };
+  }
+
+  plan(request = {}) {
+    const normalized = this._normalizeRequest(request);
+    if (!normalized.character) return { accepted: false, reason: 'SPACE_RECOVERY_CHARACTER_REQUIRED' };
+    const observation = this.observeBank();
+    if (!observation) return { accepted: false, reason: 'BANK_OBSERVATION_UNAVAILABLE' };
+    const plan = this.manager.planSpace(normalized, this._context(observation, normalized));
+    const reserved = this.journal.plan(normalized, plan);
+    if (reserved.accepted) this.stats.plans += 1;
+    return { ...reserved, plan: clone(plan), observation: clone(observation) };
+  }
+
+  _fallbackPlan(request, observation, options = {}) {
+    const context = this._context(observation, request);
+    if (!options.skipExpansion && this.manager && typeof this.manager._expansion === 'function') {
+      const expansion = this.manager._expansion(observation, context);
+      if (expansion && !expansion.requiresTravel) return { at: this.now(), planned: true, reason: 'ALPHA19_EXECUTABLE_EXPANSION_FALLBACK', ...expansion };
+    }
+    if (this.manager && typeof this.manager._reclaim === 'function') {
+      const candidate = this.manager._reclaim(context);
+      if (candidate) return {
+        at: this.now(), planned: true, reason: 'ALPHA19_MINIMAL_RECLAIM_FALLBACK', action: BankSpaceAction.EMERGENCY_RECLAIM,
+        candidate, destructive: true, exactlyOneUnit: true, reobserveRequiredBeforeNextDecision: true, bulkSellForbidden: true, executionAuthority: false
+      };
+    }
+    return {
+      at: this.now(), planned: true, reason: 'NO_EXECUTABLE_SAFE_SPACE_RECOVERY_ACTION', action: BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK,
+      blockInventoryProducingWork: true, globalBotStop: false,
+      independentSubsystemsMayContinue: ['combat', 'party', 'monitoring', 'travel-without-loot', 'safe-non-inventory-work'], executionAuthority: false
+    };
+  }
+
+  _sourceItem(request) {
+    const character = this._liveCharacter() || {};
+    const index = Number(request.index);
+    if (!Number.isInteger(index) || index < 0 || !Array.isArray(character.items) || !character.items[index]) return null;
+    return character.items[index];
+  }
+
+  async _deposit(operation, plan) {
+    const request = operation.request;
+    const source = this._sourceItem(request);
+    if (!source) return { ok: false, blocked: true, reason: 'DEPOSIT_SOURCE_ITEM_UNAVAILABLE', rawActions: 0 };
+    const quantity = Math.max(1, Math.floor(finite(source.q, 1)));
+    const planned = this.transactionEngine.plan({
+      type: 'BANK', character: request.character, index: request.index, quantity,
+      metadata: { alpha19SpaceRecovery: operation.id, plannedBankAction: plan.action, plannedPack: plan.pack || null, plannedSlot: plan.slot == null ? null : plan.slot }
+    }, { ledger: this.ledger });
+    if (!planned.accepted) return { ok: false, blocked: true, reason: `BANK_TRANSACTION_${planned.reason}`, rawActions: 0 };
+    this.controlledMerchant.configure({ enabled: true, ack: CHILD_ACK, bank: true, sell: false });
+    try {
+      const result = await this.controlledMerchant.execute(planned.transaction.id);
+      if (!result.executed) return { ok: false, blocked: true, reason: `BANK_EXECUTION_${result.reason}`, rawActions: 0, transactionId: planned.transaction.id, result };
+      if (!result.committed) return { ok: false, failedSafe: true, reason: `BANK_EXECUTION_${result.reason}`, rawActions: 1, transactionId: planned.transaction.id, result };
+      this.stats.bankDeposits += 1;
+      return { ok: true, reason: 'BANK_DEPOSIT_COMMITTED', rawActions: 1, transactionId: planned.transaction.id, result };
+    } finally {
+      this.controlledMerchant.disable('ALPHA19_CHILD_SCOPE_COMPLETE');
+    }
+  }
+
+  async _expand(operation, plan, observation) {
+    if (plan.requiresTravel) return { ok: false, blocked: true, reason: 'EXPANSION_REQUIRES_TRAVEL_NOT_AUTHORIZED', rawActions: 0 };
+    const planned = this.expansionTransactions.plan(plan, { observation });
+    if (!planned.accepted) return { ok: false, blocked: true, reason: `EXPANSION_TRANSACTION_${planned.reason}`, rawActions: 0 };
+    this.controlledExpansion.configure({ enabled: true, ack: CHILD_ACK });
+    try {
+      const result = await this.controlledExpansion.execute(planned.transaction.id);
+      if (!result.executed) return { ok: false, blocked: true, reason: `EXPANSION_EXECUTION_${result.reason}`, rawActions: 0, transactionId: planned.transaction.id, result };
+      if (!result.committed) return { ok: false, failedSafe: true, reason: `EXPANSION_EXECUTION_${result.reason}`, rawActions: 1, transactionId: planned.transaction.id, result };
+      this.stats.expansionExecutions += 1;
+      return { ok: true, reason: 'BANK_EXPANSION_COMMITTED', rawActions: 1, transactionId: planned.transaction.id, result };
+    } finally {
+      this.controlledExpansion.disable('ALPHA19_CHILD_SCOPE_COMPLETE');
+    }
+  }
+
+  async _consolidate(operation, plan) {
+    this.controlledConsolidation.configure({ enabled: true, ack: CHILD_ACK });
+    try {
+      const result = await this.controlledConsolidation.execute(plan);
+      if (!result.executed && result.reason === 'NO_INVENTORY_WORKSPACE') return { ok: false, fallback: true, reason: result.reason, rawActions: 0, result };
+      if (!result.executed) return { ok: false, blocked: true, reason: `CONSOLIDATION_${result.reason}`, rawActions: 0, result };
+      if (!result.committed) return { ok: false, failedSafe: true, reason: `CONSOLIDATION_${result.reason}`, rawActions: result.rawActions || 1, result };
+      this.stats.consolidationExecutions += 1;
+      return { ok: true, reason: 'BANK_CONSOLIDATION_COMMITTED', rawActions: result.rawActions || 2, result };
+    } finally {
+      this.controlledConsolidation.disable('ALPHA19_CHILD_SCOPE_COMPLETE');
+    }
+  }
+
+  _sameCandidate(a, b) {
+    if (!a || !b) return false;
+    return String(a.character || '') === String(b.character || '') && Number(a.index) === Number(b.index) && String(a.item || '') === String(b.item || '') && Math.max(0, Math.floor(finite(a.level, 0))) === Math.max(0, Math.floor(finite(b.level, 0)));
+  }
+
+  async _reclaim(operation, plan) {
+    if (operation.emergencyReclaimCount >= 1 || plan.exactlyOneUnit !== true || plan.bulkSellForbidden !== true || !plan.candidate || Number(plan.candidate.quantity) !== 1) {
+      return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_BOUNDARY_INVALID', rawActions: 0 };
+    }
+    const freshObservation = this.observeBank();
+    const freshPlan = this.manager.planSpace(operation.request, this._context(freshObservation, operation.request));
+    this.journal.noteReobservation(operation.id, freshObservation, freshPlan);
+    if (freshPlan.action !== BankSpaceAction.EMERGENCY_RECLAIM || !this._sameCandidate(plan.candidate, freshPlan.candidate) || Number(freshPlan.candidate.quantity) !== 1) {
+      return { ok: false, blocked: true, reason: 'EMERGENCY_RECLAIM_FRESH_PLAN_CHANGED', rawActions: 0, freshPlan };
+    }
+    const candidate = freshPlan.candidate;
+    const planned = this.transactionEngine.plan({
+      type: 'SELL', character: candidate.character, index: candidate.index, quantity: 1,
+      metadata: { alpha19SpaceRecovery: operation.id, emergencyReclaim: true, exactlyOneUnit: true, protectedMinimumReserve: candidate.protectedMinimumReserve }
+    }, { ledger: this.ledger });
+    if (!planned.accepted) return { ok: false, blocked: true, reason: `RECLAIM_TRANSACTION_${planned.reason}`, rawActions: 0 };
+    this.controlledMerchant.configure({ enabled: true, ack: CHILD_ACK, sell: true, bank: false });
+    try {
+      const result = await this.controlledMerchant.execute(planned.transaction.id);
+      if (!result.executed) return { ok: false, blocked: true, reason: `RECLAIM_EXECUTION_${result.reason}`, rawActions: 0, transactionId: planned.transaction.id, result };
+      if (!result.committed) return { ok: false, failedSafe: true, reason: `RECLAIM_EXECUTION_${result.reason}`, rawActions: 1, transactionId: planned.transaction.id, result };
+      this.journal.noteEmergencyReclaim(operation.id);
+      this.stats.emergencyReclaims += 1;
+      const after = this.observeBank();
+      const afterPlan = this.manager.planSpace(operation.request, this._context(after, operation.request));
+      this.journal.noteReobservation(operation.id, after, afterPlan);
+      return { ok: true, reclaim: true, reason: 'EMERGENCY_RECLAIM_ONE_UNIT_COMMITTED', rawActions: 1, transactionId: planned.transaction.id, result, afterObservation: after, afterPlan };
+    } finally {
+      this.controlledMerchant.disable('ALPHA19_CHILD_SCOPE_COMPLETE');
+    }
+  }
+
+  _rawBudget(operation, additional) {
+    return finite(operation.rawActionCount, 0) + Math.max(0, Math.floor(finite(additional, 0))) <= MAX_RAW_ACTIONS_PER_OPERATION;
+  }
+
+  _recordChild(operationId, kind, result) {
+    const current = this.journal.get(operationId);
+    const rawActions = Math.max(0, Math.floor(finite(result && result.rawActions, 0)));
+    if (!this._rawBudget(current, rawActions)) return false;
+    return this.journal.addEvidence(operationId, kind, result, rawActions);
+  }
+
+  _finishBlocked(id, reason, evidence = {}) {
+    this.journal.markBlocked(id, reason, { ...clone(evidence), globalBotStop: false });
+    this.stats.blocked += 1;
+    this.lastResult = { executed: false, committed: false, blocked: true, reason, operation: this.journal.get(id) };
+    return clone(this.lastResult);
+  }
+
+  _finishFailedSafe(id, reason, evidence = {}) {
+    this.journal.markFailedSafe(id, reason, evidence);
+    this.stats.failedSafe += 1;
+    this.lastResult = { executed: true, committed: false, failedSafe: true, reason, operation: this.journal.get(id) };
+    return clone(this.lastResult);
+  }
+
+  _finishCommitted(id, reason, evidence = {}) {
+    this.journal.markCommitted(id, reason, evidence);
+    this.stats.committed += 1;
+    this.lastResult = { executed: true, committed: true, reason, operation: this.journal.get(id) };
+    return clone(this.lastResult);
+  }
+
+  async execute(operationId) {
+    let operation = this.journal && this.journal.get(String(operationId));
+    const preflight = this._preflight(operation);
+    if (!preflight.ok) {
+      if (operation && preflight.reason === 'SPACE_RECOVERY_LEASE_EXPIRED') this.journal.cancel(operation.id, preflight.reason);
+      this.stats.rejected += 1;
+      return { executed: false, committed: false, reason: preflight.reason, childStates: preflight.childStates };
+    }
+    this.busy = true;
+    this.stats.attempts += 1;
+    this.journal.transition(operation.id, 'EXECUTING', 'ALPHA19_EXECUTION_STARTED');
+    this._event('SPACE_RECOVERY_EXECUTION_STARTED', 'warn', 'ALPHA19_CONTROLLED_SCOPE', { operationId: operation.id, action: operation.plan.action });
+    try {
+      let plan = clone(operation.plan);
+      let observation = this.observeBank();
+      this.journal.noteReobservation(operation.id, observation, plan);
+
+      if (plan.action === BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK) return this._finishBlocked(operation.id, plan.reason || 'NO_SAFE_SPACE_RECOVERY_ACTION', { plan });
+
+      if (plan.action === BankSpaceAction.CONSOLIDATE_BANK_STACKS) {
+        const consolidated = await this._consolidate(operation, plan);
+        if (consolidated.fallback) {
+          plan = this._fallbackPlan(operation.request, observation, { skipExpansion: false });
+          this.journal.addEvidence(operation.id, 'CONSOLIDATION_SKIPPED_NO_WORKSPACE', { fallbackPlan: plan }, 0);
+        } else {
+          if (!this._recordChild(operation.id, 'CONSOLIDATION', consolidated)) return this._finishFailedSafe(operation.id, 'RAW_ACTION_BUDGET_EXCEEDED', { consolidated });
+          if (consolidated.failedSafe) return this._finishFailedSafe(operation.id, consolidated.reason, consolidated);
+          if (!consolidated.ok) return this._finishBlocked(operation.id, consolidated.reason, consolidated);
+          observation = this.observeBank();
+          plan = this.manager.planSpace(operation.request, this._context(observation, operation.request));
+          this.journal.noteReobservation(operation.id, observation, plan);
+        }
+      }
+
+      if (plan.action === BankSpaceAction.EXPAND_BANK_PACK) {
+        if (plan.requiresTravel) {
+          plan = this._fallbackPlan(operation.request, observation, { skipExpansion: true });
+          this.journal.addEvidence(operation.id, 'EXPANSION_SKIPPED_TRAVEL_NOT_AUTHORIZED', { fallbackPlan: plan }, 0);
+        } else {
+          const expanded = await this._expand(operation, plan, observation);
+          if (!this._recordChild(operation.id, 'EXPANSION', expanded)) return this._finishFailedSafe(operation.id, 'RAW_ACTION_BUDGET_EXCEEDED', { expanded });
+          if (expanded.failedSafe) return this._finishFailedSafe(operation.id, expanded.reason, expanded);
+          if (!expanded.ok) return this._finishBlocked(operation.id, expanded.reason, expanded);
+          observation = this.observeBank();
+          plan = this.manager.planSpace(operation.request, this._context(observation, operation.request));
+          this.journal.noteReobservation(operation.id, observation, plan);
+        }
+      }
+
+      if ([BankSpaceAction.DEPOSIT_STACK, BankSpaceAction.DEPOSIT_FREE_SLOT].includes(plan.action)) {
+        const deposited = await this._deposit(operation, plan);
+        if (!this._recordChild(operation.id, 'BANK_DEPOSIT', deposited)) return this._finishFailedSafe(operation.id, 'RAW_ACTION_BUDGET_EXCEEDED', { deposited });
+        if (deposited.failedSafe) return this._finishFailedSafe(operation.id, deposited.reason, deposited);
+        if (!deposited.ok) return this._finishBlocked(operation.id, deposited.reason, deposited);
+        observation = this.observeBank();
+        this.journal.noteReobservation(operation.id, observation, null);
+        return this._finishCommitted(operation.id, 'SPACE_RECOVERY_DEPOSIT_COMMITTED', { finalObservation: observation, plan });
+      }
+
+      if (plan.action === BankSpaceAction.EMERGENCY_RECLAIM) {
+        const reclaimed = await this._reclaim(this.journal.get(operation.id), plan);
+        if (!this._recordChild(operation.id, 'EMERGENCY_RECLAIM', reclaimed)) return this._finishFailedSafe(operation.id, 'RAW_ACTION_BUDGET_EXCEEDED', { reclaimed });
+        if (reclaimed.failedSafe) return this._finishFailedSafe(operation.id, reclaimed.reason, reclaimed);
+        if (!reclaimed.ok) return this._finishBlocked(operation.id, reclaimed.reason, reclaimed);
+        return this._finishCommitted(operation.id, 'EMERGENCY_RECLAIM_ONE_UNIT_VERIFIED_REOBSERVED', {
+          exactlyOneUnit: true,
+          bulkSellForbidden: true,
+          reobserveRequiredBeforeNextDecision: true,
+          afterObservation: reclaimed.afterObservation,
+          afterPlan: reclaimed.afterPlan
+        });
+      }
+
+      if (plan.action === BankSpaceAction.BLOCK_INVENTORY_PRODUCING_WORK) return this._finishBlocked(operation.id, plan.reason || 'NO_SAFE_SPACE_RECOVERY_ACTION', { plan });
+      return this._finishBlocked(operation.id, 'UNSUPPORTED_OR_NON_EXECUTABLE_SPACE_RECOVERY_PLAN', { plan });
+    } catch (error) {
+      return this._finishFailedSafe(operation.id, 'SPACE_RECOVERY_EXCEPTION', { message: String(error && error.message || error) });
+    } finally {
+      this._disableChildren('ALPHA19_OPERATION_FINALIZE');
+      this.busy = false;
+    }
+  }
+
+  reconcile(operationId) {
+    this._disableChildren('ALPHA19_RESTART_RECONCILE');
+    return this.journal.reconcile(operationId);
+  }
+
+  status() {
+    return {
+      mode: CONTROLLED_SPACE_RECOVERY_MODE,
+      enabled: this.enabled,
+      actionAuthority: this.enabled,
+      directGameplayActionAccess: false,
+      explicitAckRequired: CONTROLLED_SPACE_RECOVERY_ACK,
+      childAck: CHILD_ACK,
+      maxRawActionsPerOperation: MAX_RAW_ACTIONS_PER_OPERATION,
+      emergencyReclaimMaxUnitsPerOperation: 1,
+      bulkEmergencyReclaimAllowed: false,
+      travelAuthority: false,
+      shellExpansionAuthority: false,
+      busy: this.busy,
+      journal: this.journal && this.journal.status ? this.journal.status() : null,
+      consolidation: this.controlledConsolidation && this.controlledConsolidation.status ? this.controlledConsolidation.status() : null,
+      lastResult: clone(this.lastResult),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  ControlledMerchantSpaceRecovery,
+  CONTROLLED_SPACE_RECOVERY_MODE,
+  CONTROLLED_SPACE_RECOVERY_ACK,
+  MAX_RAW_ACTIONS_PER_OPERATION
 };
 
 },
