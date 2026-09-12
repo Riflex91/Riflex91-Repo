@@ -127,4 +127,4 @@ Alpha.14 becomes `CONFIRMED` only after:
 13. one combined safe Adventure Land Alpha.14 FULL certification passes after merge;
 14. final runtime is restored to `shadow` with all live Party/economy controls disabled.
 
-Freeze candidate: implementation in progress.
+Freeze candidate: source implementation complete; full branch CI pending.
