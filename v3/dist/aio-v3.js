@@ -6,11 +6,15 @@ var modules={
 'use strict';
 
 const { Runtime, VERSION } = require('./runtime');
+const { StabilityRuntime } = require('./stability/stability-runtime');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
+const { StableScheduler } = require('./core/stable-scheduler');
 const { TaskState, createTask } = require('./core/task');
 const { WorldModel, KnowledgeState, EvidenceKind } = require('./world/world-model');
 const { WorldPersistence } = require('./world/persistence');
+const { ResilientWorldPersistence } = require('./world/resilient-persistence');
+const { KnowledgeAgingPolicy } = require('./world/knowledge-aging');
 const { DiscoveryService } = require('./world/discovery');
 const { PerformanceTracker } = require('./telemetry/performance-tracker');
 const { ResearchJournal, ExperimentState } = require('./research/research');
@@ -23,10 +27,13 @@ const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
 const { HeadlessOperations } = require('./ops/headless-operations');
+const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-outcomes');
+const { StabilityGameAdapter } = require('./game/stability-adapter');
+const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Runtime({ ...options, root });
+  const runtime = new StabilityRuntime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -94,12 +101,13 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, VERSION, EventLog, Scheduler, TaskState, createTask,
-  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, DiscoveryService,
+  install, Runtime, StabilityRuntime, VERSION, EventLog, Scheduler, StableScheduler, TaskState, createTask,
+  WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   PerformanceTracker, ResearchJournal, ExperimentState,
   FarmPlanner, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor,
-  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations
+  TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations,
+  CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor
 };
 
 },
@@ -4429,6 +4437,1126 @@ class CombatEmergencyGate {
 }
 
 module.exports = { CombatEmergencyGate };
+
+},
+"src/stability/stability-runtime.js": function(require,module,exports){
+'use strict';
+
+const { Runtime } = require('../runtime');
+const { TaskState } = require('../core/task');
+const { StabilityGameAdapter } = require('../game/stability-adapter');
+const { StableScheduler } = require('../core/stable-scheduler');
+const { ResilientWorldPersistence } = require('../world/resilient-persistence');
+const { KnowledgeAgingPolicy, installKnowledgeAging, installStaleRiskGuard } = require('../world/knowledge-aging');
+const { CombatStabilitySupervisor } = require('./combat-stability-supervisor');
+
+class StabilityRuntime extends Runtime {
+  constructor(options = {}) {
+    super(options);
+
+    if (!options.adapter) {
+      this.adapter = new StabilityGameAdapter({
+        root: this.root,
+        parent: options.parent,
+        log: this.log,
+        mode: options.mode || 'shadow',
+        now: this.now,
+        commandOutcomeCapacity: options.commandOutcomeCapacity,
+        commandOutcomePendingCapacity: options.commandOutcomePendingCapacity,
+        commandOutcomeTimeoutMs: options.commandOutcomeTimeoutMs,
+        commandOutcomeMoveMinDelta: options.commandOutcomeMoveMinDelta,
+        movementMaxFailures: options.movementMaxFailures,
+        movementCircuitMs: options.movementCircuitMs
+      });
+    }
+
+    if (!options.scheduler) {
+      this.scheduler = new StableScheduler({
+        now: this.now,
+        log: this.log,
+        completedCapacity: options.schedulerCompletedCapacity
+      });
+    }
+
+    if (!options.persistence) {
+      this.persistence = new ResilientWorldPersistence({
+        root: this.root,
+        storage: options.storage,
+        now: this.now,
+        log: this.log,
+        minIntervalMs: options.persistenceIntervalMs || 30000,
+        maxBytes: options.persistenceMaxBytes,
+        retryBaseMs: options.persistenceRetryBaseMs,
+        retryMaxMs: options.persistenceRetryMaxMs,
+        saveCircuitAfter: options.persistenceSaveCircuitAfter,
+        saveCircuitMs: options.persistenceSaveCircuitMs
+      });
+      this.worldLoaded = false;
+    }
+
+    this.knowledgeAging = new KnowledgeAgingPolicy({
+      now: this.now,
+      freshMs: options.knowledgeFreshMs,
+      staleMs: options.knowledgeStaleMs,
+      minFreshness: options.knowledgeMinFreshness
+    });
+    installKnowledgeAging(this.world, this.knowledgeAging);
+    installStaleRiskGuard(this.combatRisk, this.world, this.knowledgeAging, {
+      weight: options.staleKnowledgeRiskWeight
+    });
+
+    this.stability = new CombatStabilitySupervisor({
+      runtime: this,
+      adapter: this.adapter,
+      log: this.log,
+      now: this.now,
+      capacity: options.stabilityOutcomeCapacity
+    });
+
+    this._installFarmerStableWaitContract();
+    this._installKitingCircuitGuard();
+  }
+
+  _installFarmerStableWaitContract() {
+    const farmer = this.farmer;
+    if (!farmer || farmer.__stableWaitContractInstalled) return;
+    const baseStep = farmer.step.bind(farmer);
+    farmer.step = (context) => {
+      const result = baseStep(context) || { state: TaskState.RUNNING };
+      const snapshot = context && context.snapshot;
+      const character = snapshot && snapshot.character;
+      if (!character) return { state: TaskState.WAITING, reason: 'SNAPSHOT_UNAVAILABLE', stableWait: true };
+      if (character.rip) return { state: TaskState.WAITING, reason: 'CHARACTER_DEAD', stableWait: true };
+      if (farmer.state === 'BLOCKED') {
+        return { state: TaskState.WAITING, reason: farmer.stateReason || 'FARMER_BLOCKED', stableWait: true };
+      }
+      if (result.state === TaskState.WAITING) return { ...result, stableWait: true };
+      return result;
+    };
+    farmer.__stableWaitContractInstalled = true;
+  }
+
+  _installKitingCircuitGuard() {
+    const farmer = this.farmer;
+    if (!farmer || farmer.__kitingCircuitGuardInstalled || typeof farmer._engage !== 'function') return;
+    const baseEngage = farmer._engage.bind(farmer);
+    farmer._engage = (context, target) => {
+      const snapshot = context && context.snapshot;
+      const adapter = context && context.adapter;
+      if (snapshot && snapshot.character && target && farmer.kiting && adapter && typeof adapter.stabilityStatus === 'function') {
+        const decision = farmer.kiting.evaluate(snapshot.character, target);
+        const movement = adapter.stabilityStatus().movement;
+        if (decision && decision.shouldMove && movement && movement.circuitOpen) {
+          if (typeof farmer._event === 'function') {
+            farmer._event('FARMER_KITE_SUPPRESSED', 'warn', 'MOVEMENT_CIRCUIT_OPEN', {
+              circuitUntil: movement.circuitUntil,
+              failureStreak: movement.failureStreak,
+              targetId: target.id || null,
+              targetType: target.mtype || null
+            });
+          }
+          return;
+        }
+      }
+      return baseEngage(context, target);
+    };
+    farmer.__kitingCircuitGuardInstalled = true;
+  }
+
+  _announce(message, event) {
+    this.log.emit({ component: 'runtime', event, data: { message, visibleMirror: !!this.visibleStatusEnabled } });
+    this._gameLog(message);
+    return true;
+  }
+
+  _restoreWorldOnce() {
+    if (this.worldLoaded) return;
+    this.persistence.load(this.world);
+    const status = this.persistence.status();
+    this.worldLoaded = status.loadComplete === true || (status.loaded === true && status.loadComplete == null);
+  }
+
+  _armEmergencyRetreat(snapshot, entity, emergency, at) {
+    if (this.adapter && typeof this.adapter.supersedeMovement === 'function') {
+      this.adapter.supersedeMovement('EMERGENCY_RETREAT_OVERRIDE');
+    }
+    return super._armEmergencyRetreat(snapshot, entity, emergency, at);
+  }
+
+  tick() {
+    super.tick();
+    this.stability.process();
+  }
+
+  status() {
+    const base = super.status();
+    return {
+      ...base,
+      stability: {
+        commandOutcomes: this.adapter && typeof this.adapter.stabilityStatus === 'function'
+          ? this.adapter.stabilityStatus()
+          : null,
+        combat: this.stability.status(),
+        knowledgeAging: this.knowledgeAging.status(this.world),
+        stableScheduler: this.scheduler instanceof StableScheduler
+      }
+    };
+  }
+}
+
+module.exports = { StabilityRuntime };
+
+},
+"src/game/stability-adapter.js": function(require,module,exports){
+'use strict';
+
+const { GameAdapter } = require('./adapter');
+const { CommandOutcomeTracker, CommandOutcomeState, entityById, inventoryCount } = require('./command-outcomes');
+
+class StabilityGameAdapter extends GameAdapter {
+  constructor(options = {}) {
+    super(options);
+    this.outcomes = options.outcomes || new CommandOutcomeTracker({
+      now: this.now,
+      log: this.log,
+      capacity: options.commandOutcomeCapacity,
+      pendingCapacity: options.commandOutcomePendingCapacity,
+      defaultTimeoutMs: options.commandOutcomeTimeoutMs,
+      moveMinDelta: options.commandOutcomeMoveMinDelta
+    });
+    this.movementMaxFailures = Math.max(1, Number(options.movementMaxFailures) || 3);
+    this.movementCircuitMs = Math.max(1000, Number(options.movementCircuitMs) || 15000);
+    this.movementFailureStreak = 0;
+    this.movementCircuitUntil = 0;
+    this.pendingMovementOutcomeId = null;
+    this.lastMovementOutcome = null;
+    this.lastMovementFailure = null;
+  }
+
+  _beforeState(action, args) {
+    const snapshot = this.lastSnapshot || super.snapshot();
+    if (!snapshot || !snapshot.character) return null;
+    const c = snapshot.character;
+    const targetId = action === 'attack' ? args[0] : (action === 'use_skill' ? args[1] : null);
+    const target = entityById(snapshot, targetId);
+    return {
+      observedAt: snapshot.observedAt,
+      map: c.map || null,
+      x: c.x,
+      y: c.y,
+      moving: !!c.moving,
+      hp: c.hp,
+      mp: c.mp,
+      hpPotionCount: inventoryCount(snapshot, 'hpot'),
+      mpPotionCount: inventoryCount(snapshot, 'mpot'),
+      targetId: targetId == null ? null : String(targetId),
+      targetPresent: !!target,
+      targetHp: target && target.hp != null ? Number(target.hp) : null
+    };
+  }
+
+  _movementCircuitOpen(now = this.now()) {
+    if (this.movementCircuitUntil && now >= this.movementCircuitUntil) {
+      this.movementCircuitUntil = 0;
+      this.movementFailureStreak = 0;
+      if (this.log) this.log.emit({ component: 'adapter', event: 'MOVEMENT_CIRCUIT_CLOSED' });
+    }
+    return this.movementCircuitUntil > now;
+  }
+
+  _recordMovementFailure(reason, outcome = null) {
+    const now = this.now();
+    this.movementFailureStreak += 1;
+    this.lastMovementFailure = {
+      at: now,
+      reason: reason || 'MOVEMENT_FAILED',
+      failureStreak: this.movementFailureStreak,
+      outcomeId: outcome && outcome.id || null
+    };
+    if (this.movementFailureStreak >= this.movementMaxFailures) {
+      this.movementCircuitUntil = Math.max(this.movementCircuitUntil, now + this.movementCircuitMs);
+      if (this.log) this.log.emit({
+        component: 'adapter',
+        event: 'MOVEMENT_CIRCUIT_OPENED',
+        severity: 'warn',
+        reason: this.lastMovementFailure.reason,
+        data: {
+          failureStreak: this.movementFailureStreak,
+          maxFailures: this.movementMaxFailures,
+          circuitUntil: this.movementCircuitUntil,
+          circuitMs: this.movementCircuitMs
+        }
+      });
+    }
+  }
+
+  _reconcileMovement() {
+    if (!this.pendingMovementOutcomeId) return null;
+    const outcome = this.outcomes.get(this.pendingMovementOutcomeId);
+    if (!outcome || outcome.state === CommandOutcomeState.PENDING) return outcome;
+    this.pendingMovementOutcomeId = null;
+    this.lastMovementOutcome = outcome;
+    if (outcome.state === CommandOutcomeState.CONFIRMED) {
+      this.movementFailureStreak = 0;
+      this.lastMovementFailure = null;
+    } else {
+      this._recordMovementFailure(outcome.reason || 'MOVE_OUTCOME_TIMEOUT', outcome);
+    }
+    return outcome;
+  }
+
+  supersedeMovement(reason = 'SUPERSEDED') {
+    if (!this.pendingMovementOutcomeId) return false;
+    const id = this.pendingMovementOutcomeId;
+    this.pendingMovementOutcomeId = null;
+    if (this.log) this.log.emit({
+      component: 'adapter',
+      event: 'MOVEMENT_OUTCOME_SUPERSEDED',
+      severity: 'warn',
+      reason,
+      data: { outcomeId: id }
+    });
+    return true;
+  }
+
+  snapshot() {
+    const snapshot = super.snapshot();
+    this.outcomes.observe(snapshot);
+    this._reconcileMovement();
+    return snapshot;
+  }
+
+  command(action, args = []) {
+    const now = this.now();
+    const isMovement = action === 'move' || action === 'smart_move' || action === 'town';
+    if (isMovement) {
+      this._reconcileMovement();
+      if (this._movementCircuitOpen(now)) {
+        return {
+          executed: false,
+          accepted: false,
+          reason: 'MOVEMENT_CIRCUIT_OPEN',
+          circuitUntil: this.movementCircuitUntil
+        };
+      }
+      if (this.pendingMovementOutcomeId) {
+        const pending = this.outcomes.get(this.pendingMovementOutcomeId);
+        if (pending && pending.state === CommandOutcomeState.PENDING) {
+          return {
+            executed: true,
+            accepted: false,
+            coalesced: true,
+            reason: 'MOVE_OUTCOME_PENDING',
+            outcomeId: pending.id,
+            outcomeState: pending.state
+          };
+        }
+        this.pendingMovementOutcomeId = null;
+      }
+    }
+
+    const before = this.mode === 'active' ? this._beforeState(action, args) : null;
+    const result = super.command(action, args);
+
+    if (!result.executed) {
+      if (isMovement && !result.shadow && !result.coalesced) this._recordMovementFailure(result.reason || 'MOVE_COMMAND_FAILED');
+      return result;
+    }
+
+    const outcome = this.outcomes.issue({ action, args, before });
+    if (isMovement) this.pendingMovementOutcomeId = outcome.id;
+    return {
+      ...result,
+      accepted: true,
+      verified: false,
+      outcomeId: outcome.id,
+      outcomeState: outcome.state
+    };
+  }
+
+  commandOutcome(id) {
+    return this.outcomes.get(id);
+  }
+
+  takeCommandOutcomes(limit = 100) {
+    return this.outcomes.drainTerminal(limit);
+  }
+
+  stabilityStatus() {
+    const now = this.now();
+    this._reconcileMovement();
+    return {
+      outcomes: this.outcomes.status(),
+      movement: {
+        pendingOutcomeId: this.pendingMovementOutcomeId,
+        failureStreak: this.movementFailureStreak,
+        maxFailures: this.movementMaxFailures,
+        circuitOpen: this._movementCircuitOpen(now),
+        circuitUntil: this.movementCircuitUntil || null,
+        circuitRemainingMs: Math.max(0, this.movementCircuitUntil - now),
+        lastOutcome: this.lastMovementOutcome,
+        lastFailure: this.lastMovementFailure
+      }
+    };
+  }
+}
+
+module.exports = { StabilityGameAdapter };
+
+},
+"src/game/command-outcomes.js": function(require,module,exports){
+'use strict';
+
+const CommandOutcomeState = Object.freeze({
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  TIMED_OUT: 'TIMED_OUT'
+});
+
+function finite(value) {
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function entityById(snapshot, id) {
+  if (!snapshot || id == null) return null;
+  const wanted = String(id);
+  return (snapshot.entities || []).find((entity) => entity && String(entity.id) === wanted) || null;
+}
+
+function inventoryCount(snapshot, prefix) {
+  const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
+  return inventory.reduce((sum, item) => {
+    if (!item || !String(item.name || '').startsWith(prefix)) return sum;
+    return sum + Math.max(0, Number(item.q) || 1);
+  }, 0);
+}
+
+class CommandOutcomeTracker {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.capacity = Math.max(50, Number(options.capacity) || 500);
+    this.pendingCapacity = Math.max(10, Number(options.pendingCapacity) || 100);
+    this.moveMinDelta = Math.max(1, Number(options.moveMinDelta) || 4);
+    this.defaultTimeoutMs = Math.max(500, Number(options.defaultTimeoutMs) || 2500);
+    this.nextId = 1;
+    this.nextTerminalSeq = 1;
+    this.pending = new Map();
+    this.history = [];
+    this.terminalQueue = [];
+    this.droppedPending = 0;
+    this.droppedHistory = 0;
+  }
+
+  _timeoutFor(action) {
+    if (action === 'attack') return 2000;
+    if (action === 'stop') return 1500;
+    if (action === 'smart_move' || action === 'town') return 5000;
+    return this.defaultTimeoutMs;
+  }
+
+  issue(spec = {}) {
+    const now = this.now();
+    if (this.pending.size >= this.pendingCapacity) {
+      const oldest = [...this.pending.values()].sort((a, b) => a.issuedAt - b.issuedAt)[0];
+      if (oldest) {
+        this.pending.delete(oldest.id);
+        this.droppedPending += 1;
+        this._terminal(oldest, CommandOutcomeState.TIMED_OUT, 'PENDING_CAPACITY_EVICTION', now);
+      }
+    }
+
+    const record = {
+      id: spec.id || `outcome-${now}-${this.nextId++}`,
+      action: String(spec.action || ''),
+      args: Array.isArray(spec.args) ? spec.args.map((value) => {
+        if (value && typeof value === 'object') return value.id || value.name || '[object]';
+        return value;
+      }) : [],
+      issuedAt: now,
+      expiresAt: now + Math.max(500, Number(spec.timeoutMs) || this._timeoutFor(spec.action)),
+      state: CommandOutcomeState.PENDING,
+      reason: 'AWAITING_OBSERVED_EFFECT',
+      before: spec.before || null,
+      confirmedAt: null,
+      observed: null,
+      terminalSeq: null
+    };
+    this.pending.set(record.id, record);
+    if (this.log) this.log.emit({
+      component: 'adapter',
+      event: 'COMMAND_OUTCOME_PENDING',
+      data: { outcomeId: record.id, action: record.action, expiresAt: record.expiresAt }
+    });
+    return { ...record };
+  }
+
+  _effect(record, snapshot) {
+    if (!snapshot || !snapshot.character || !record.before) return null;
+    const before = record.before;
+    const c = snapshot.character;
+    const action = record.action;
+
+    if (action === 'move' || action === 'smart_move' || action === 'town') {
+      if (before.map && c.map && before.map !== c.map) return { kind: 'MAP_CHANGED', map: c.map };
+      const bx = finite(before.x);
+      const by = finite(before.y);
+      const x = finite(c.x);
+      const y = finite(c.y);
+      if (bx != null && by != null && x != null && y != null) {
+        const delta = Math.hypot(x - bx, y - by);
+        if (delta >= this.moveMinDelta) return { kind: 'POSITION_CHANGED', delta: Number(delta.toFixed(2)), x, y };
+      }
+      if ((action === 'smart_move' || action === 'town') && c.moving && !before.moving) return { kind: 'MOVEMENT_STARTED' };
+      return null;
+    }
+
+    if (action === 'stop') {
+      if (before.moving && !c.moving) return { kind: 'MOVEMENT_STOPPED' };
+      if (!before.moving && !c.moving) return { kind: 'ALREADY_STOPPED' };
+      return null;
+    }
+
+    if (action === 'attack' || action === 'use_skill') {
+      const targetId = action === 'attack' ? record.args[0] : record.args[1];
+      const target = entityById(snapshot, targetId);
+      if (before.targetPresent && !target) return { kind: 'TARGET_GONE', targetId: targetId || null };
+      if (target && (target.dead || (target.hp != null && Number(target.hp) <= 0))) return { kind: 'TARGET_DEAD', targetId: target.id };
+      if (target && before.targetHp != null && target.hp != null && Number(target.hp) < Number(before.targetHp)) {
+        return { kind: 'TARGET_HP_DECREASED', targetId: target.id, beforeHp: before.targetHp, afterHp: Number(target.hp) };
+      }
+      if (action === 'use_skill' && before.mp != null && c.mp != null && Number(c.mp) < Number(before.mp)) {
+        return { kind: 'MP_DECREASED', beforeMp: before.mp, afterMp: Number(c.mp) };
+      }
+      return null;
+    }
+
+    if (action === 'use_hp') {
+      if (before.hp != null && c.hp != null && Number(c.hp) > Number(before.hp)) return { kind: 'HP_INCREASED', beforeHp: before.hp, afterHp: Number(c.hp) };
+      if (inventoryCount(snapshot, 'hpot') < Number(before.hpPotionCount || 0)) return { kind: 'HP_POTION_CONSUMED' };
+      return null;
+    }
+
+    if (action === 'use_mp') {
+      if (before.mp != null && c.mp != null && Number(c.mp) > Number(before.mp)) return { kind: 'MP_INCREASED', beforeMp: before.mp, afterMp: Number(c.mp) };
+      if (inventoryCount(snapshot, 'mpot') < Number(before.mpPotionCount || 0)) return { kind: 'MP_POTION_CONSUMED' };
+      return null;
+    }
+
+    if (action === 'use_hp_or_mp') {
+      if (before.hp != null && c.hp != null && Number(c.hp) > Number(before.hp)) return { kind: 'HP_INCREASED' };
+      if (before.mp != null && c.mp != null && Number(c.mp) > Number(before.mp)) return { kind: 'MP_INCREASED' };
+      const beforePotions = Number(before.hpPotionCount || 0) + Number(before.mpPotionCount || 0);
+      const afterPotions = inventoryCount(snapshot, 'hpot') + inventoryCount(snapshot, 'mpot');
+      if (afterPotions < beforePotions) return { kind: 'POTION_CONSUMED' };
+      return null;
+    }
+
+    return null;
+  }
+
+  _terminal(record, state, reason, at, observed = null) {
+    this.pending.delete(record.id);
+    record.state = state;
+    record.reason = reason;
+    record.confirmedAt = at;
+    record.observed = observed;
+    record.terminalSeq = this.nextTerminalSeq++;
+    const stored = { ...record };
+    this.history.push(stored);
+    this.terminalQueue.push(stored);
+    if (this.history.length > this.capacity) {
+      const drop = this.history.length - this.capacity;
+      this.history.splice(0, drop);
+      this.droppedHistory += drop;
+    }
+    if (this.terminalQueue.length > this.capacity) this.terminalQueue.splice(0, this.terminalQueue.length - this.capacity);
+    if (this.log) this.log.emit({
+      component: 'adapter',
+      event: state === CommandOutcomeState.CONFIRMED ? 'COMMAND_OUTCOME_CONFIRMED' : 'COMMAND_OUTCOME_TIMED_OUT',
+      severity: state === CommandOutcomeState.CONFIRMED ? 'info' : 'warn',
+      reason,
+      data: { outcomeId: record.id, action: record.action, observed }
+    });
+    return stored;
+  }
+
+  observe(snapshot) {
+    const now = this.now();
+    const completed = [];
+    for (const record of [...this.pending.values()]) {
+      const effect = this._effect(record, snapshot);
+      if (effect) {
+        completed.push(this._terminal(record, CommandOutcomeState.CONFIRMED, effect.kind, now, effect));
+        continue;
+      }
+      if (now >= record.expiresAt) completed.push(this._terminal(record, CommandOutcomeState.TIMED_OUT, 'OBSERVED_EFFECT_TIMEOUT', now));
+    }
+    return completed;
+  }
+
+  get(id) {
+    if (!id) return null;
+    const pending = this.pending.get(String(id));
+    if (pending) return { ...pending };
+    const terminal = [...this.history].reverse().find((record) => record.id === String(id));
+    return terminal ? { ...terminal } : null;
+  }
+
+  drainTerminal(limit = 100) {
+    const count = Math.max(0, Math.min(this.terminalQueue.length, Number(limit) || 0));
+    return this.terminalQueue.splice(0, count).map((record) => ({ ...record }));
+  }
+
+  status() {
+    const counts = { PENDING: this.pending.size, CONFIRMED: 0, TIMED_OUT: 0 };
+    for (const record of this.history) counts[record.state] = (counts[record.state] || 0) + 1;
+    return {
+      counts,
+      pendingCapacity: this.pendingCapacity,
+      historyCapacity: this.capacity,
+      historySize: this.history.length,
+      droppedPending: this.droppedPending,
+      droppedHistory: this.droppedHistory,
+      recent: this.history.slice(-20).map((record) => ({
+        id: record.id,
+        action: record.action,
+        state: record.state,
+        reason: record.reason,
+        issuedAt: record.issuedAt,
+        confirmedAt: record.confirmedAt
+      }))
+    };
+  }
+}
+
+module.exports = { CommandOutcomeTracker, CommandOutcomeState, inventoryCount, entityById };
+
+},
+"src/core/stable-scheduler.js": function(require,module,exports){
+'use strict';
+
+const { Scheduler } = require('./scheduler');
+const { TaskState } = require('./task');
+
+class StableScheduler extends Scheduler {
+  constructor(options = {}) {
+    super(options);
+    this.stableWaitTransitions = 0;
+    this.resumedTransitions = 0;
+  }
+
+  _run(task, context, now) {
+    if (now - task.startedAt > task.timeoutMs) {
+      task.state = TaskState.FAILED_RETRYABLE;
+      task.reason = 'TASK_TIMEOUT';
+      this._event(task, 'TASK_FAILED', 'warn', task.reason);
+      this._retryOrFinish(task, now);
+      return;
+    }
+
+    this._observeProgress(task, context, now);
+
+    let result;
+    try {
+      result = task.step(context, task);
+    } catch (error) {
+      task.state = TaskState.FAILED_RETRYABLE;
+      task.reason = `STEP_ERROR:${error && error.message || error}`;
+      this._event(task, 'TASK_FAILED', 'error', task.reason);
+      this._retryOrFinish(task, now);
+      return;
+    }
+
+    task.updatedAt = now;
+    const state = typeof result === 'string' ? result : result && result.state;
+    const reason = result && typeof result === 'object' ? result.reason || null : null;
+    const stableWait = !!(result && typeof result === 'object' && result.stableWait === true);
+
+    if (!state || state === TaskState.RUNNING || state === TaskState.WAITING) {
+      if (state === TaskState.WAITING && stableWait) {
+        const entering = task.state !== TaskState.WAITING || task.reason !== reason || task.stableWait !== true;
+        task.state = TaskState.WAITING;
+        task.reason = reason || 'STABLE_WAIT';
+        task.stableWait = true;
+        task.waitingSince = task.waitingSince || now;
+        if (entering) {
+          this.stableWaitTransitions += 1;
+          this._event(task, 'TASK_STABLE_WAIT', 'info', task.reason, { waitingSince: task.waitingSince });
+        }
+        return;
+      }
+
+      if (task.stableWait) {
+        task.stableWait = false;
+        task.waitingSince = null;
+        task.lastProgressAt = now;
+        this.resumedTransitions += 1;
+        this._event(task, 'TASK_RESUMED', 'info', reason || 'STABLE_WAIT_RESOLVED');
+      }
+
+      task.state = state === TaskState.WAITING ? TaskState.WAITING : TaskState.RUNNING;
+      task.reason = reason;
+
+      if (now - task.lastProgressAt > task.stallMs) {
+        task.state = TaskState.FAILED_RETRYABLE;
+        task.reason = 'NO_PROGRESS';
+        this._event(task, 'TASK_STALLED', 'warn', task.reason, {
+          stallMs: now - task.lastProgressAt,
+          progress: task.lastProgressToken
+        });
+        this._retryOrFinish(task, now);
+      }
+      return;
+    }
+
+    if (!Object.values(TaskState).includes(state)) throw new Error(`unknown task state ${state}`);
+    task.stableWait = false;
+    task.waitingSince = null;
+    task.state = state;
+    task.reason = reason;
+    if (state === TaskState.SUCCEEDED) this._event(task, 'TASK_SUCCEEDED', 'info', reason);
+    else if (state === TaskState.CANCELLED) this._event(task, 'TASK_CANCELLED', 'warn', reason);
+    else this._event(task, 'TASK_FAILED', state === TaskState.FAILED_FATAL ? 'error' : 'warn', reason);
+    this._retryOrFinish(task, now);
+  }
+
+  snapshot() {
+    const base = super.snapshot();
+    base.active = base.active.map((row) => {
+      const task = this.activeByOwner.get(row.owner);
+      return {
+        ...row,
+        stableWait: !!(task && task.stableWait),
+        waitingSince: task && task.waitingSince || null
+      };
+    });
+    base.stability = {
+      stableWaitTransitions: this.stableWaitTransitions,
+      resumedTransitions: this.resumedTransitions
+    };
+    return base;
+  }
+}
+
+module.exports = { StableScheduler };
+
+},
+"src/world/resilient-persistence.js": function(require,module,exports){
+'use strict';
+
+const { WorldPersistence } = require('./persistence');
+
+class ResilientWorldPersistence extends WorldPersistence {
+  constructor(options = {}) {
+    super(options);
+    this.retryBaseMs = Math.max(1000, Number(options.retryBaseMs) || 5000);
+    this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 120000);
+    this.saveCircuitAfter = Math.max(2, Number(options.saveCircuitAfter) || 5);
+    this.saveCircuitMs = Math.max(10000, Number(options.saveCircuitMs) || 120000);
+    this.loadComplete = false;
+    this.loadAttempts = 0;
+    this.loadFailureStreak = 0;
+    this.nextLoadAttemptAt = 0;
+    this.lastLoadError = null;
+    this.saveFailureStreak = 0;
+    this.nextSaveAttemptAt = 0;
+    this.saveCircuitUntil = 0;
+    this.lastSaveError = null;
+  }
+
+  _backoff(streak) {
+    const exponent = Math.max(0, Number(streak) - 1);
+    return Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, exponent));
+  }
+
+  _recordLoadFailure(reason, error = null) {
+    const now = this.now();
+    this.loadFailureStreak += 1;
+    this.lastLoadError = error ? String(error && error.message || error) : reason;
+    const backoffMs = this._backoff(this.loadFailureStreak);
+    this.nextLoadAttemptAt = now + backoffMs;
+    this.loaded = false;
+    if (this.log) this.log.emit({
+      component: 'persistence',
+      event: 'WORLD_MODEL_RESTORE_RETRY_SCHEDULED',
+      severity: 'warn',
+      reason,
+      data: { failureStreak: this.loadFailureStreak, backoffMs, nextAttemptAt: this.nextLoadAttemptAt, message: this.lastLoadError }
+    });
+  }
+
+  _recordSaveFailure(reason, error = null) {
+    const now = this.now();
+    this.saveFailureStreak += 1;
+    this.lastSaveError = error ? String(error && error.message || error) : reason;
+    const backoffMs = this._backoff(this.saveFailureStreak);
+    this.nextSaveAttemptAt = now + backoffMs;
+    if (this.saveFailureStreak >= this.saveCircuitAfter) {
+      this.saveCircuitUntil = Math.max(this.saveCircuitUntil, now + this.saveCircuitMs);
+      if (this.log) this.log.emit({
+        component: 'persistence',
+        event: 'WORLD_MODEL_SAVE_CIRCUIT_OPENED',
+        severity: 'warn',
+        reason,
+        data: { failureStreak: this.saveFailureStreak, circuitUntil: this.saveCircuitUntil, circuitMs: this.saveCircuitMs }
+      });
+    }
+    if (this.log) this.log.emit({
+      component: 'persistence',
+      event: 'WORLD_MODEL_SAVE_RETRY_SCHEDULED',
+      severity: 'warn',
+      reason,
+      data: { failureStreak: this.saveFailureStreak, backoffMs, nextAttemptAt: this.nextSaveAttemptAt, message: this.lastSaveError }
+    });
+  }
+
+  _resetSaveFailures() {
+    this.saveFailureStreak = 0;
+    this.nextSaveAttemptAt = 0;
+    this.saveCircuitUntil = 0;
+    this.lastSaveError = null;
+  }
+
+  load(world) {
+    if (this.loadComplete) return false;
+    const now = this.now();
+    if (now < this.nextLoadAttemptAt) return false;
+    this.loadAttempts += 1;
+    const backend = this._backend();
+    if (!backend) {
+      this._logUnavailable();
+      this._recordLoadFailure('NO_SUPPORTED_STORAGE');
+      return false;
+    }
+
+    try {
+      const serialized = backend.get(this.key);
+      if (serialized == null || serialized === '') {
+        this.loadComplete = true;
+        this.loaded = true;
+        this.loadFailureStreak = 0;
+        this.nextLoadAttemptAt = 0;
+        this.lastLoadError = null;
+        if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_STORAGE_EMPTY', data: { backend: this.backendName } });
+        return false;
+      }
+      world.restore(serialized);
+      this.lastSavedRevision = world.revision;
+      this.loadComplete = true;
+      this.loaded = true;
+      this.loadFailureStreak = 0;
+      this.nextLoadAttemptAt = 0;
+      this.lastLoadError = null;
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_RESTORED', data: { backend: this.backendName, bytes: String(serialized).length, revision: world.revision, attempts: this.loadAttempts } });
+      return true;
+    } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_RESTORE_FAILED', severity: 'warn', reason: 'PERSISTENCE_READ_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
+      this._recordLoadFailure('PERSISTENCE_READ_ERROR', error);
+      return false;
+    }
+  }
+
+  maybeSave(world, options = {}) {
+    const force = options.force === true;
+    const now = this.now();
+    if (!force && this.saveCircuitUntil > now) return false;
+    if (!force && this.nextSaveAttemptAt > now) return false;
+    if (this.saveCircuitUntil && now >= this.saveCircuitUntil) {
+      this.saveCircuitUntil = 0;
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_CIRCUIT_CLOSED' });
+    }
+
+    const backend = this._backend();
+    if (!backend) {
+      this._logUnavailable();
+      this._recordSaveFailure('NO_SUPPORTED_STORAGE');
+      return false;
+    }
+    if (!force && world.revision === this.lastSavedRevision) return false;
+    if (!force && now - this.lastSavedAt < this.minIntervalMs) return false;
+
+    let serialized;
+    try {
+      serialized = world.serialize();
+    } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'SERIALIZE_ERROR', data: { message: String(error && error.message || error) } });
+      this._recordSaveFailure('SERIALIZE_ERROR', error);
+      return false;
+    }
+
+    if (serialized.length > this.maxBytes) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_SKIPPED', severity: 'warn', reason: 'PERSISTENCE_SIZE_LIMIT', data: { bytes: serialized.length, maxBytes: this.maxBytes, revision: world.revision } });
+      this._recordSaveFailure('PERSISTENCE_SIZE_LIMIT');
+      return false;
+    }
+
+    try {
+      backend.set(this.key, serialized);
+      this.lastSavedAt = now;
+      this.lastSavedRevision = world.revision;
+      this._resetSaveFailures();
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVED', data: { backend: this.backendName, bytes: serialized.length, revision: world.revision, forced: force } });
+      return true;
+    } catch (error) {
+      if (this.log) this.log.emit({ component: 'persistence', event: 'WORLD_MODEL_SAVE_FAILED', severity: 'warn', reason: 'PERSISTENCE_WRITE_ERROR', data: { backend: this.backendName, message: String(error && error.message || error) } });
+      this._recordSaveFailure('PERSISTENCE_WRITE_ERROR', error);
+      return false;
+    }
+  }
+
+  status() {
+    const now = this.now();
+    return {
+      ...super.status(),
+      loadComplete: this.loadComplete,
+      loadAttempts: this.loadAttempts,
+      loadFailureStreak: this.loadFailureStreak,
+      nextLoadAttemptAt: this.nextLoadAttemptAt || null,
+      loadRetryRemainingMs: Math.max(0, this.nextLoadAttemptAt - now),
+      lastLoadError: this.lastLoadError,
+      saveFailureStreak: this.saveFailureStreak,
+      nextSaveAttemptAt: this.nextSaveAttemptAt || null,
+      saveRetryRemainingMs: Math.max(0, this.nextSaveAttemptAt - now),
+      saveCircuitOpen: this.saveCircuitUntil > now,
+      saveCircuitUntil: this.saveCircuitUntil || null,
+      saveCircuitRemainingMs: Math.max(0, this.saveCircuitUntil - now),
+      lastSaveError: this.lastSaveError,
+      retryBaseMs: this.retryBaseMs,
+      retryMaxMs: this.retryMaxMs
+    };
+  }
+}
+
+module.exports = { ResilientWorldPersistence };
+
+},
+"src/world/knowledge-aging.js": function(require,module,exports){
+'use strict';
+
+class KnowledgeAgingPolicy {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.freshMs = Math.max(60000, Number(options.freshMs) || 6 * 60 * 60 * 1000);
+    this.staleMs = Math.max(this.freshMs + 60000, Number(options.staleMs) || 72 * 60 * 60 * 1000);
+    this.minFreshness = Math.max(0.05, Math.min(0.5, Number(options.minFreshness) || 0.15));
+  }
+
+  freshness(ageMs) {
+    const age = Math.max(0, Number(ageMs) || 0);
+    if (age <= this.freshMs) return 1;
+    if (age >= this.staleMs) return this.minFreshness;
+    const span = this.staleMs - this.freshMs;
+    const t = (age - this.freshMs) / span;
+    return 1 - t * (1 - this.minFreshness);
+  }
+
+  apply(record) {
+    if (!record) return null;
+    const now = this.now();
+    const updatedAt = Number(record.updatedAt) || 0;
+    const ageMs = updatedAt > 0 ? Math.max(0, now - updatedAt) : Infinity;
+    const freshness = Number.isFinite(ageMs) ? this.freshness(ageMs) : this.minFreshness;
+    const baseConfidence = Math.max(0, Math.min(1, Number(record.confidence) || 0));
+    return {
+      ...record,
+      baseConfidence,
+      confidence: Number((baseConfidence * freshness).toFixed(6)),
+      freshness: Number(freshness.toFixed(6)),
+      ageMs: Number.isFinite(ageMs) ? ageMs : null,
+      stale: !Number.isFinite(ageMs) || ageMs >= this.staleMs,
+      needsRevalidation: !Number.isFinite(ageMs) || ageMs > this.freshMs
+    };
+  }
+
+  status(world) {
+    let fresh = 0;
+    let aging = 0;
+    let stale = 0;
+    if (world && world.performance instanceof Map) {
+      for (const record of world.performance.values()) {
+        const ageMs = record && record.updatedAt ? Math.max(0, this.now() - Number(record.updatedAt)) : Infinity;
+        if (!Number.isFinite(ageMs) || ageMs >= this.staleMs) stale += 1;
+        else if (ageMs > this.freshMs) aging += 1;
+        else fresh += 1;
+      }
+    }
+    return { freshMs: this.freshMs, staleMs: this.staleMs, minFreshness: this.minFreshness, profiles: { fresh, aging, stale } };
+  }
+}
+
+function installKnowledgeAging(world, policy) {
+  if (!world || !policy || world.__knowledgeAgingInstalled) return false;
+  const basePerformanceFor = world.performanceFor.bind(world);
+  world.performanceFor = (monster, fingerprint) => policy.apply(basePerformanceFor(monster, fingerprint));
+  world.__knowledgeAgingInstalled = true;
+  return true;
+}
+
+function installStaleRiskGuard(combatRisk, world, policy, options = {}) {
+  if (!combatRisk || !world || !policy || combatRisk.__staleRiskGuardInstalled) return false;
+  const weight = Math.max(0, Math.min(0.5, Number(options.weight) || 0.25));
+  const baseEvaluate = combatRisk.evaluate.bind(combatRisk);
+  combatRisk.evaluate = (entity, snapshot, currentWorld, party) => {
+    const result = baseEvaluate(entity, snapshot, currentWorld, party);
+    if (!entity || !entity.mtype || entity.target || !result || !result.allowed) return result;
+    const fingerprint = party && party.fingerprint || null;
+    let learned = null;
+    try { learned = (currentWorld || world).performanceFor(entity.mtype, fingerprint); } catch (_) { learned = null; }
+    if (!learned || !learned.needsRevalidation) return result;
+    const baseConfidence = Math.max(0, Math.min(1, Number(learned.baseConfidence) || Number(learned.confidence) || 0));
+    const contribution = weight * Math.max(0.25, baseConfidence);
+    const score = Math.min(1, Math.max(0, Number(result.score) || 0) + contribution);
+    const allowed = score < Number(result.threshold || combatRisk.threshold || 0.65);
+    return {
+      ...result,
+      allowed,
+      score: Number(score.toFixed(3)),
+      reason: allowed ? 'RISK_ACCEPTABLE_STALE_KNOWLEDGE' : 'STALE_KNOWLEDGE_REVALIDATION_REQUIRED',
+      signals: {
+        ...(result.signals || {}),
+        performanceAgeMs: learned.ageMs,
+        performanceFreshness: learned.freshness,
+        performanceNeedsRevalidation: true,
+        staleKnowledgeContribution: Number(contribution.toFixed(3))
+      }
+    };
+  };
+  combatRisk.__staleRiskGuardInstalled = true;
+  combatRisk.staleKnowledgeWeight = weight;
+  const baseStatus = combatRisk.status.bind(combatRisk);
+  combatRisk.status = () => ({ ...baseStatus(), staleKnowledgeWeight: weight, knowledgeAging: policy.status(world) });
+  return true;
+}
+
+module.exports = { KnowledgeAgingPolicy, installKnowledgeAging, installStaleRiskGuard };
+
+},
+"src/stability/combat-stability-supervisor.js": function(require,module,exports){
+'use strict';
+
+const { CommandOutcomeState } = require('../game/command-outcomes');
+
+class CombatStabilitySupervisor {
+  constructor(options = {}) {
+    this.runtime = options.runtime || null;
+    this.adapter = options.adapter || this.runtime && this.runtime.adapter || null;
+    this.log = options.log || this.runtime && this.runtime.log || null;
+    this.now = options.now || (() => Date.now());
+    this.capacity = Math.max(20, Number(options.capacity) || 100);
+    this.recent = [];
+    this.counts = { CONFIRMED: 0, TIMED_OUT: 0 };
+    this.skillTimeouts = 0;
+    this.attackTimeoutStreak = 0;
+    this.lastAttackOutcome = null;
+  }
+
+  _event(event, severity, reason, data) {
+    if (!this.log) return;
+    this.log.emit({ component: 'stability', event, severity: severity || 'info', reason: reason || null, data: data || {} });
+  }
+
+  _remember(outcome) {
+    this.recent.push({
+      id: outcome.id,
+      action: outcome.action,
+      state: outcome.state,
+      reason: outcome.reason,
+      issuedAt: outcome.issuedAt,
+      confirmedAt: outcome.confirmedAt,
+      observed: outcome.observed || null
+    });
+    if (this.recent.length > this.capacity) this.recent.splice(0, this.recent.length - this.capacity);
+  }
+
+  _restorePreviousSkillStreak(skillId, outcome) {
+    const farmer = this.runtime && this.runtime.farmer;
+    if (!farmer || !farmer.skillFailureHistory || !skillId) return;
+    const recovery = farmer.lastSkillFailureRecovery;
+    if (!recovery || String(recovery.skill) !== String(skillId)) return;
+    if (Number(recovery.at) < Number(outcome.issuedAt) - 50) return;
+    const previous = Math.max(0, Number(recovery.previousFailureStreak) || 0);
+    if (!previous) return;
+    farmer.skillFailureHistory.set(String(skillId), {
+      skill: String(skillId),
+      failureStreak: previous,
+      firstFailureAt: Number(outcome.issuedAt) - 1,
+      lastFailureAt: Number(outcome.issuedAt) - 1,
+      lastBackoffMs: farmer.skillUsage && farmer.skillUsage.failureBackoffForStreak
+        ? farmer.skillUsage.failureBackoffForStreak(previous)
+        : 0
+    });
+  }
+
+  _handleSkill(outcome) {
+    const farmer = this.runtime && this.runtime.farmer;
+    const skillId = outcome.args && outcome.args[0] != null ? String(outcome.args[0]) : null;
+    if (!farmer || !skillId) return;
+
+    if (outcome.state === CommandOutcomeState.CONFIRMED) {
+      if (typeof farmer._resetSkillFailureState === 'function') farmer._resetSkillFailureState({ id: skillId }, this.now());
+      this._event('SKILL_OUTCOME_CONFIRMED', 'info', outcome.reason, { outcomeId: outcome.id, skill: skillId, observed: outcome.observed || null });
+      return;
+    }
+
+    if (outcome.state === CommandOutcomeState.TIMED_OUT) {
+      this.skillTimeouts += 1;
+      this._restorePreviousSkillStreak(skillId, outcome);
+      let backoff = null;
+      if (typeof farmer._armSkillFailureBackoff === 'function') {
+        backoff = farmer._armSkillFailureBackoff({ id: skillId }, { executed: false, reason: 'COMMAND_FAILED' }, this.now());
+      }
+      this._event('SKILL_OUTCOME_TIMED_OUT', 'warn', 'COMMAND_OUTCOME_TIMEOUT', {
+        outcomeId: outcome.id,
+        skill: skillId,
+        backoffArmed: !!backoff,
+        failureStreak: backoff && backoff.failureStreak || 0,
+        backoffMs: backoff && backoff.backoffMs || 0
+      });
+    }
+  }
+
+  _handleAttack(outcome) {
+    this.lastAttackOutcome = {
+      id: outcome.id,
+      state: outcome.state,
+      reason: outcome.reason,
+      at: outcome.confirmedAt
+    };
+    if (outcome.state === CommandOutcomeState.CONFIRMED) this.attackTimeoutStreak = 0;
+    else if (outcome.state === CommandOutcomeState.TIMED_OUT) this.attackTimeoutStreak += 1;
+    this._event(
+      outcome.state === CommandOutcomeState.CONFIRMED ? 'ATTACK_OUTCOME_CONFIRMED' : 'ATTACK_OUTCOME_TIMED_OUT',
+      outcome.state === CommandOutcomeState.CONFIRMED ? 'info' : 'warn',
+      outcome.reason,
+      { outcomeId: outcome.id, timeoutStreak: this.attackTimeoutStreak }
+    );
+  }
+
+  process() {
+    if (!this.adapter || typeof this.adapter.takeCommandOutcomes !== 'function') return [];
+    const outcomes = this.adapter.takeCommandOutcomes(200);
+    for (const outcome of outcomes) {
+      this._remember(outcome);
+      this.counts[outcome.state] = (this.counts[outcome.state] || 0) + 1;
+      if (outcome.action === 'use_skill') this._handleSkill(outcome);
+      if (outcome.action === 'attack') this._handleAttack(outcome);
+    }
+    return outcomes;
+  }
+
+  status() {
+    return {
+      counts: { ...this.counts },
+      skillTimeouts: this.skillTimeouts,
+      attackTimeoutStreak: this.attackTimeoutStreak,
+      lastAttackOutcome: this.lastAttackOutcome,
+      recent: this.recent.slice()
+    };
+  }
+}
+
+module.exports = { CombatStabilitySupervisor };
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
