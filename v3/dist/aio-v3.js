@@ -22101,6 +22101,8 @@ module.exports = { SessionMonitor, MONITOR_SCHEMA_VERSION };
 "src/ops/debug-monitor-ui.js": function(require,module,exports){
 'use strict';
 
+const { OperatorRunControl } = require('./operator-run-control');
+
 function safeText(value) {
   if (value == null) return '—';
   if (typeof value === 'string') return value;
@@ -22127,14 +22129,21 @@ class DebugMonitorUI {
     this.body = null;
     this.logBox = null;
     this.copyButton = null;
+    this.runButton = null;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this.timer = null;
     this.minimized = false;
     this.lastCopy = null;
+    this.lastRunControlError = null;
     this.documentScope = 'none';
     this._interactionCleanup = null;
     this._expandedLayout = null;
+    this.runControl = options.runControl || (
+      this.monitor && this.monitor.runtime
+        ? new OperatorRunControl({ runtime: this.monitor.runtime, log: this.log, now: this.monitor.now })
+        : null
+    );
   }
 
   _doc() {
@@ -22402,6 +22411,59 @@ class DebugMonitorUI {
     }
   }
 
+  _runStatus() {
+    if (!this.runControl || typeof this.runControl.status !== 'function') return null;
+    try { return this.runControl.status(); } catch (error) {
+      this.lastRunControlError = String(error && error.message || error);
+      return null;
+    }
+  }
+
+  _runButtonText(status) {
+    if (!status) return 'Start/Stop';
+    if (status.state === 'STOPPING') return 'Stoppt…';
+    if (status.state === 'STARTING') return 'Startet…';
+    if (status.state === 'RUNNING') return 'Stoppen';
+    if (status.state === 'STOPPED_BLOCKED') return 'Start blockiert';
+    return 'Starten';
+  }
+
+  _updateRunButton(status = this._runStatus()) {
+    if (!this.runButton) return;
+    this.runButton.textContent = this._runButtonText(status);
+    this.runButton.disabled = !status || status.state === 'STOPPING' || status.state === 'STARTING' || status.state === 'STOPPED_BLOCKED';
+    this.runButton.title = status && status.state === 'STOPPED_BLOCKED'
+      ? `Start blockiert: ${(status.blockers || []).slice(0, 3).join(', ') || 'Reconciliation erforderlich'}`
+      : 'Bot sicher starten oder stoppen';
+  }
+
+  async _toggleRun() {
+    if (!this.runControl) return { ok: false, reason: 'SAFE_RUN_CONTROL_UNAVAILABLE' };
+    const before = this._runStatus();
+    if (!before) return { ok: false, reason: 'SAFE_RUN_CONTROL_STATUS_UNAVAILABLE' };
+    if (before.state === 'STOPPING' || before.state === 'STARTING') return { ok: false, reason: 'CONTROL_TRANSITION_IN_PROGRESS' };
+    this._updateRunButton({ ...before, state: before.running ? 'STOPPING' : 'STARTING' });
+    let result;
+    try {
+      result = before.running ? await this.runControl.stop('GUI_BUTTON') : await this.runControl.start('GUI_BUTTON');
+      this.lastRunControlError = result && result.ok === false ? result.reason || null : null;
+    } catch (error) {
+      this.lastRunControlError = String(error && error.message || error);
+      result = { ok: false, reason: 'GUI_RUN_CONTROL_FAILED', error: this.lastRunControlError };
+    }
+    this.refresh();
+    this._updateRunButton();
+    return result;
+  }
+
+  _formatDuration(ms) {
+    const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    return `${hours > 0 ? `${hours}h ` : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
   _eventsText() {
     if (!this.log || typeof this.log.list !== 'function') return 'Keine Events';
     const rows = this.log.list(16);
@@ -22425,13 +22487,34 @@ class DebugMonitorUI {
     const inventory = summary.inventory || {};
     const controlledEconomy = economy.controlled || {};
     const controlledTravel = travel.controlled || {};
+    const runStatus = this._runStatus();
+    let runtimeStatus = null;
+    try { runtimeStatus = this.monitor.runtime && typeof this.monitor.runtime.status === 'function' ? this.monitor.runtime.status() : null; } catch (_) {}
+    const merchantService = runtimeStatus && runtimeStatus.merchantService || null;
+    const controlledService = merchantService && merchantService.controlled || {};
+    const serviceExecution = merchantService && merchantService.lastExecution || controlledService.lastAction || null;
+    const serviceKind = serviceExecution && (serviceExecution.kind || serviceExecution.planKind || serviceExecution.action) || '—';
+    const serviceRaw = Number(controlledService.stats && controlledService.stats.rawActions) || 0;
+    const serviceCircuit = controlledService.circuit && controlledService.circuit.open ? 'OPEN' : 'ok';
+    const standOpen = !!(this.root && this.root.character && this.root.character.stand);
+    const sessionDuration = Math.max(0, Number(summary.generatedAt || 0) - Number(summary.startedAt || 0));
+    const runLabel = runStatus
+      ? `${runStatus.state}${runStatus.state === 'STOPPED_BLOCKED' && runStatus.blockers.length ? ` · ${runStatus.blockers.slice(0, 2).join(', ')}` : ''}`
+      : (summary.running ? 'RUNNING' : 'STOPPED');
+    const serviceLabel = !merchantService ? '—' : controlledService.enabled
+      ? `AN · Stand:${controlledService.allowStand ? 'on' : 'off'}${standOpen ? '/offen' : '/zu'} · Delivery:${controlledService.allowDelivery ? 'on' : 'off'}${controlledService.busy ? ' · BUSY' : ''}`
+      : `AUS · Stand:${standOpen ? 'offen' : 'zu'}`;
 
     const rows = [
       ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
+      ['Bot', runLabel],
+      ['Session', this._formatDuration(sessionDuration)],
       ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
       ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
       ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
       ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
+      ['Merchant Service', serviceLabel],
+      ['Service Aktion', merchantService ? `${serviceKind} · Raw ${serviceRaw} · Circuit ${serviceCircuit}` : '—'],
       ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
       ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
       ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
@@ -22440,6 +22523,7 @@ class DebugMonitorUI {
     ];
     for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
     if (this.logBox) this.logBox.textContent = this._eventsText();
+    this._updateRunButton(runStatus);
     return true;
   }
 
@@ -22481,12 +22565,14 @@ class DebugMonitorUI {
       if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
     };
     this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
+    if (this.runControl) this.runButton = this._button(doc, 'Start/Stop', () => { this._toggleRun(); });
     const minimize = this._button(doc, '–', () => {
       this._setMinimized(!this.minimized);
       minimize.textContent = this.minimized ? '+' : '–';
     });
     const close = this._button(doc, '×', () => this.hide());
     buttons.appendChild(this.copyButton);
+    if (this.runButton) buttons.appendChild(this.runButton);
     buttons.appendChild(minimize);
     buttons.appendChild(close);
     header.appendChild(title);
@@ -22549,6 +22635,7 @@ class DebugMonitorUI {
     this.body = null;
     this.logBox = null;
     this.copyButton = null;
+    this.runButton = null;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this._expandedLayout = null;
@@ -22557,11 +22644,16 @@ class DebugMonitorUI {
 
   status() {
     const rect = this._rect();
+    const runStatus = this._runStatus();
     return {
       schemaVersion: 1,
-      mode: 'read-only-debug-ui',
+      mode: this.runControl ? 'operator-control-debug-ui' : 'read-only-debug-ui',
       actionAuthority: false,
       directGameplayActionAccess: false,
+      runtimeControlAuthority: !!this.runControl,
+      safeStartStop: !!this.runControl,
+      runControl: runStatus,
+      lastRunControlError: this.lastRunControlError,
       domAvailable: !!this._doc(),
       documentScope: this.documentScope,
       visible: !!(this.container && this.container.style.display !== 'none'),
@@ -22582,6 +22674,228 @@ class DebugMonitorUI {
 }
 
 module.exports = { DebugMonitorUI };
+},
+"src/ops/operator-run-control.js": function(require,module,exports){
+'use strict';
+
+const { buildReconciliationStatus } = require('./reconciliation-status');
+
+const OPERATOR_RUN_CONTROL_SCHEMA_VERSION = 1;
+const OPERATOR_RUN_CONTROL_MODE = 'operator-safe-run-control';
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, finite(value, min)));
+}
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function bounded(value, max = 160) {
+  return String(value == null ? '' : value).slice(0, max);
+}
+
+class OperatorRunControl {
+  constructor(options = {}) {
+    this.runtime = options.runtime || null;
+    this.log = options.log || (this.runtime && this.runtime.log) || null;
+    this.now = options.now || (this.runtime && this.runtime.now) || (() => Date.now());
+    this.stopGraceMs = Math.floor(clamp(options.stopGraceMs, 250, 30000) || 5000);
+    if (!Number.isFinite(Number(options.stopGraceMs))) this.stopGraceMs = 5000;
+    this.pollMs = Math.floor(clamp(options.pollMs, 25, 1000) || 100);
+    if (!Number.isFinite(Number(options.pollMs))) this.pollMs = 100;
+    this.sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.getReconciliationStatus = options.getReconciliationStatus || (() => buildReconciliationStatus(this.runtime, this.now));
+    this.transition = null;
+    this.lastTransition = null;
+    this.sequence = 0;
+  }
+
+  _event(event, severity = 'info', reason = null, data = null) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'operator-run-control', event, severity, reason, data });
+  }
+
+  _runtimeStatus() {
+    try {
+      if (!this.runtime || typeof this.runtime.status !== 'function') return null;
+      const status = this.runtime.status();
+      return status && typeof status === 'object' ? status : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _running() {
+    const status = this._runtimeStatus();
+    return !!(status && status.running === true);
+  }
+
+  _reconciliation() {
+    try {
+      const status = this.getReconciliationStatus();
+      if (!status || typeof status !== 'object') throw new Error('RECONCILIATION_STATUS_UNAVAILABLE');
+      return {
+        observedClean: status.observedClean === true,
+        blockers: Array.isArray(status.blockers) ? status.blockers.slice(0, 32).map((row) => bounded(row, 96)) : [],
+        observedAt: Number.isFinite(Number(status.observedAt)) ? Number(status.observedAt) : null,
+        actionAuthority: status.actionAuthority === true,
+        rawGameplayActionAuthority: status.rawGameplayActionAuthority === true
+      };
+    } catch (error) {
+      return {
+        observedClean: false,
+        blockers: ['RECONCILIATION_STATUS_UNAVAILABLE'],
+        observedAt: null,
+        actionAuthority: false,
+        rawGameplayActionAuthority: false,
+        error: bounded(error && error.message || error || 'RECONCILIATION_STATUS_UNAVAILABLE', 160)
+      };
+    }
+  }
+
+  _record(kind, result) {
+    this.lastTransition = {
+      id: `operator-run-${++this.sequence}`,
+      kind,
+      at: finite(this.now(), Date.now()),
+      ...clone(result)
+    };
+    return clone(this.lastTransition);
+  }
+
+  status() {
+    const running = this._running();
+    const reconciliation = this._reconciliation();
+    let state;
+    if (this.transition === 'STOPPING') state = 'STOPPING';
+    else if (this.transition === 'STARTING') state = 'STARTING';
+    else if (running) state = 'RUNNING';
+    else state = reconciliation.observedClean ? 'STOPPED' : 'STOPPED_BLOCKED';
+    return {
+      schemaVersion: OPERATOR_RUN_CONTROL_SCHEMA_VERSION,
+      mode: OPERATOR_RUN_CONTROL_MODE,
+      runtimeControlAuthority: true,
+      directGameplayActionAccess: false,
+      rawGameplayActionAuthority: false,
+      state,
+      running,
+      transition: this.transition,
+      startBlocked: !running && reconciliation.observedClean !== true,
+      reconciliationObservedClean: reconciliation.observedClean === true,
+      blockers: reconciliation.blockers.slice(),
+      stopGraceMs: this.stopGraceMs,
+      pollMs: this.pollMs,
+      lastTransition: clone(this.lastTransition)
+    };
+  }
+
+  async stop(reason = 'GUI_OPERATOR_STOP') {
+    if (this.transition) return { ok: false, stopped: !this._running(), reason: 'CONTROL_TRANSITION_IN_PROGRESS', state: this.status().state };
+    if (!this.runtime || typeof this.runtime.stop !== 'function') return { ok: false, stopped: false, reason: 'RUNTIME_STOP_UNAVAILABLE' };
+
+    if (!this._running()) {
+      const reconciliation = this._reconciliation();
+      const result = {
+        ok: reconciliation.observedClean === true,
+        stopped: true,
+        reason: reconciliation.observedClean ? 'ALREADY_STOPPED' : 'ALREADY_STOPPED_RECONCILIATION_REQUIRED',
+        blockers: reconciliation.blockers.slice()
+      };
+      this._record('STOP', result);
+      return result;
+    }
+
+    this.transition = 'STOPPING';
+    this._event('OPERATOR_STOP_REQUESTED', 'warn', bounded(reason, 96));
+    try {
+      const stopResult = this.runtime.stop();
+      if (stopResult && typeof stopResult.then === 'function') await stopResult;
+    } catch (error) {
+      const result = { ok: false, stopped: !this._running(), reason: 'RUNTIME_STOP_FAILED', error: bounded(error && error.message || error, 160) };
+      this.transition = null;
+      this._record('STOP', result);
+      this._event('OPERATOR_STOP_FAILED', 'error', result.reason, { error: result.error });
+      return result;
+    }
+
+    const maxPolls = Math.max(1, Math.ceil(this.stopGraceMs / this.pollMs) + 1);
+    const startedAt = finite(this.now(), Date.now());
+    let reconciliation = this._reconciliation();
+    let polls = 0;
+    while (!reconciliation.observedClean && polls < maxPolls) {
+      const elapsed = Math.max(0, finite(this.now(), startedAt) - startedAt);
+      if (elapsed >= this.stopGraceMs) break;
+      polls += 1;
+      await this.sleep(this.pollMs);
+      reconciliation = this._reconciliation();
+    }
+
+    const clean = reconciliation.observedClean === true;
+    const result = {
+      ok: clean,
+      stopped: !this._running(),
+      reason: clean ? 'RUNTIME_STOPPED_RECONCILED' : 'RUNTIME_STOPPED_RECONCILIATION_REQUIRED',
+      blockers: reconciliation.blockers.slice(),
+      polls
+    };
+    this.transition = null;
+    this._record('STOP', result);
+    this._event(clean ? 'OPERATOR_STOPPED' : 'OPERATOR_STOPPED_BLOCKED', clean ? 'info' : 'warn', result.reason, { blockers: result.blockers, polls });
+    return result;
+  }
+
+  async start(reason = 'GUI_OPERATOR_START') {
+    if (this.transition) return { ok: false, started: this._running(), reason: 'CONTROL_TRANSITION_IN_PROGRESS', state: this.status().state };
+    if (!this.runtime || typeof this.runtime.start !== 'function') return { ok: false, started: false, reason: 'RUNTIME_START_UNAVAILABLE' };
+    if (this._running()) {
+      const result = { ok: true, started: true, reason: 'ALREADY_RUNNING' };
+      this._record('START', result);
+      return result;
+    }
+
+    const reconciliation = this._reconciliation();
+    if (!reconciliation.observedClean) {
+      const result = { ok: false, started: false, reason: 'START_BLOCKED_RECONCILIATION_REQUIRED', blockers: reconciliation.blockers.slice() };
+      this._record('START', result);
+      this._event('OPERATOR_START_BLOCKED', 'warn', result.reason, { blockers: result.blockers });
+      return result;
+    }
+
+    this.transition = 'STARTING';
+    this._event('OPERATOR_START_REQUESTED', 'info', bounded(reason, 96));
+    try {
+      const startResult = this.runtime.start();
+      if (startResult && typeof startResult.then === 'function') await startResult;
+    } catch (error) {
+      const result = { ok: false, started: this._running(), reason: 'RUNTIME_START_FAILED', error: bounded(error && error.message || error, 160) };
+      this.transition = null;
+      this._record('START', result);
+      this._event('OPERATOR_START_FAILED', 'error', result.reason, { error: result.error });
+      return result;
+    }
+
+    const started = this._running();
+    const result = { ok: started, started, reason: started ? 'RUNTIME_STARTED_AFTER_CLEAN_PREFLIGHT' : 'RUNTIME_START_DID_NOT_REPORT_RUNNING' };
+    this.transition = null;
+    this._record('START', result);
+    this._event(started ? 'OPERATOR_STARTED' : 'OPERATOR_START_FAILED', started ? 'info' : 'error', result.reason);
+    return result;
+  }
+}
+
+module.exports = {
+  OperatorRunControl,
+  OPERATOR_RUN_CONTROL_SCHEMA_VERSION,
+  OPERATOR_RUN_CONTROL_MODE
+};
+
 }
 };
 var cache={};
