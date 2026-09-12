@@ -8,6 +8,7 @@ const { Alpha10Runtime } = require('./autonomy/alpha10-runtime');
 const { Alpha11Runtime } = require('./autonomy/alpha11-runtime');
 const { Alpha12Runtime } = require('./autonomy/alpha12-hardened-runtime');
 const { Alpha13Runtime } = require('./autonomy/alpha13-runtime');
+const { Alpha14Runtime } = require('./autonomy/alpha14-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
@@ -38,6 +39,8 @@ const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
 const { PartyTelemetryBridge, TELEMETRY_PROTOCOL } = require('./party/telemetry-bridge');
 const { PartyTransitionController, TransitionState } = require('./party/transition-controller');
 const { PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction } = require('./party/control-lease');
+const { InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey } = require('./economy/inventory-ledger');
+const { GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots } = require('./economy/gear-progression');
 const { TelemetryOutbox } = require('./ops/telemetry-outbox');
 const { ControlGateway } = require('./ops/control-gateway');
 const { StateReplica, HeadlessHealth } = require('./ops/state-replica');
@@ -50,7 +53,7 @@ const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha13Runtime({ ...options, root });
+  const runtime = new Alpha14Runtime({ ...options, root });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -113,6 +116,16 @@ function install(root = globalThis, options = {}) {
       markRevalidated: (category, id) => runtime.markContentRevalidated(category, id),
       save: () => runtime.contentDrift.save({ force: true })
     },
+    inventory: {
+      status: () => runtime.inventoryLedger.status(),
+      entries: (limit = 100) => runtime.inventoryLedger.list(limit),
+      item: (character, index) => runtime.inventoryLedger.get(character, index)
+    },
+    gearProgression: {
+      status: () => runtime.gearProgression.status(),
+      goals: (limit = 100) => runtime.gearProgression.list(limit),
+      save: () => runtime.gearProgression.save({ force: true })
+    },
     party: {
       status: () => runtime.status().party,
       registry: () => runtime.characterRegistry.status(),
@@ -166,7 +179,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, VERSION,
+  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -176,6 +189,8 @@ module.exports = {
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
+  InventoryLedger, INVENTORY_LEDGER_SCHEMA_VERSION, INVENTORY_LEDGER_MODE, ItemDisposition, stackKey,
+  GearProgressionEvaluator, GEAR_PROGRESSION_SCHEMA_VERSION, GEAR_PROGRESSION_MODE, CLASS_WEIGHTS, effectiveStats, scoreItem, candidateSlots,
   StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES, BoundedReplayBuffer, ShadowStrategicBrain, BrainQualityState,
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
