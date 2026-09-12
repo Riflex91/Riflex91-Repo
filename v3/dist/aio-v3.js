@@ -19979,6 +19979,7 @@ const { installLiveNavigationHotfix } = require('../reliability/live-navigation-
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
+const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
 const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
 const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
 const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
@@ -20023,10 +20024,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     this.liveNavigationHotfix = installLiveNavigationHotfix(this);
     this.farmerLocalPlanPriority = installFarmerLocalPlanPriority(this);
 
-    // 2026-09 live diagnostics: special fairies inherited LEGACY_ALLOWED,
-    // direct Farmer travel requested very large raw moves, content-drift writes
-    // exhausted localStorage, and send_cm therefore failed repeatedly. Keep the
-    // fixes modular so the proven Alpha.20 action boundaries remain unchanged.
+    // Live reliability fixes remain modular so the proven Alpha.20 action
+    // boundaries are unchanged. Persistence failure may reduce observability,
+    // but must never rewrite combat-safety semantics.
     this.dangerousContentHotfix = installDangerousContentHotfix(this);
     this.farmerTravelSafetyHotfix = installFarmerTravelSafetyHotfix(this, {
       minStep: options.farmerTravelMinStep,
@@ -20037,6 +20037,11 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxRecordsAfterQuota: options.contentDriftQuotaMaxRecords,
       retryBaseMs: options.contentDriftQuotaRetryBaseMs,
       retryMaxMs: options.contentDriftQuotaRetryMaxMs
+    });
+    this.contentDriftSemanticRecovery = installContentDriftSemanticRecovery(this, {
+      minHistoricalLeadMs: options.contentDriftRecoveryHistoricalLeadMs,
+      maxAutoQuarantineLagMs: options.contentDriftRecoveryAutoQuarantineLagMs,
+      intervalMs: options.contentDriftRecoveryIntervalMs
     });
     this.partyAccountCommunication = installPartyAccountCommunication(this, {
       telemetryBaseBackoffMs: options.partyTelemetryFailureBackoffMs,
@@ -20072,6 +20077,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
   }
 
   tick() {
+    this.contentDriftSemanticRecovery.beforeTick();
     this.dangerousContentHotfix.beforeTick();
     this.partyBootstrap.tick();
     this.preFarmingReliability.beforeTick();
@@ -20094,6 +20100,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      contentDriftSemanticRecovery: this.contentDriftSemanticRecovery.status(),
       partyAccountCommunication: this.partyAccountCommunication.status(),
       partyBootstrap: this.partyBootstrap.status(),
       partyBootstrapMerchantDiscoveryHotfix: this.partyBootstrapMerchantDiscoveryHotfix.status(),
@@ -20128,6 +20135,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
+      contentDriftSemanticRecovery: this.contentDriftSemanticRecovery.status(),
       partyBootstrapFarmerGate: this.partyBootstrapFarmerGate.status(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
@@ -20145,11 +20153,12 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
-        partyTrustUsesActiveOwnedCharacters: true,
+        partyTrustUsesExplicitRoster: true,
         partyBootstrapEnabled: true,
-        partyBootstrapRequiresFullPartyForFarming: true,
-        partyCommunicationPrefersCommandCharacter: true,
-        contentDriftQuotaRecoveryBounded: true,
+        partyBootstrapDoesNotGateTrustedFarmerProgress: true,
+        partyCommunicationDirectRequiresObservedActive: true,
+        contentDriftQuotaRecoveryMutatesSafetyKnowledge: false,
+        contentDriftFalseNoveltyRecoveryRequiresHistoricalEvidence: true,
         incompleteSupplyFailClosed: true,
         incompleteLocationFailClosed: true,
         stableContentFingerprintProfile: true,
@@ -21219,6 +21228,7 @@ class AccountCharacterTransport {
     this.stats = {
       directSent: 0,
       directFailed: 0,
+      directSkippedUnobserved: 0,
       fallbackSent: 0,
       fallbackFailed: 0,
       rejectedNotOwned: 0,
@@ -21275,9 +21285,6 @@ class AccountCharacterTransport {
   }
 
   ownedNames(options = {}) {
-    // An explicit roster is the strongest trust source. get_active_characters()
-    // is retained only as an observational fallback because live Adventure Land
-    // runners may expose only the local character from that API.
     if (this.trustedNames.size) return this.trustedRosterNames();
     return this.activeNames(options);
   }
@@ -21332,8 +21339,13 @@ class AccountCharacterTransport {
       throw new Error(`TARGET_NOT_TRUSTED_OWN_CHARACTER:${target}`);
     }
 
+    // Adventure Land can surface "Character not found" as an in-game message
+    // without rejecting the JS call. Therefore command_character is only safe to
+    // use when get_active_characters() actually observes this target in this runner.
+    const observedActive = this.activeNames();
+    const directObserved = observedActive.includes(target);
     const commandCharacter = this._function('command_character');
-    if (receiver && typeof commandCharacter === 'function') {
+    if (receiver && typeof commandCharacter === 'function' && directObserved) {
       try {
         const code = this._directCode(receiver, sender, payload);
         await Promise.resolve(commandCharacter.call(this.root, target, code));
@@ -21347,6 +21359,13 @@ class AccountCharacterTransport {
           message: boundedMessage(error)
         });
       }
+    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
+      this.stats.directSkippedUnobserved += 1;
+      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
+        target,
+        sender,
+        observedActive
+      });
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
@@ -21369,8 +21388,8 @@ class AccountCharacterTransport {
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'same-account-command-character-first',
+      schemaVersion: 2,
+      mode: 'observed-active-command-character-else-cm',
       localName: this.localName(),
       trustSource: this.trustedNames.size ? 'explicit-roster' : 'get_active_characters-fallback',
       trustedNames: this.trustedRosterNames(),
@@ -21378,6 +21397,7 @@ class AccountCharacterTransport {
       observedRunningNames: this.activeNames({ runningOnly: true }),
       activeOwnedNames: this.ownedNames(),
       runningOwnedNames: this.ownedNames({ runningOnly: true }),
+      directRequiresObservedActive: true,
       fallbackEnabled: this.fallbackEnabled,
       stats: { ...this.stats }
     };
@@ -22415,15 +22435,17 @@ class ContentDriftStorageHotfix {
     this.monitor = runtime.contentDrift;
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
-    this.maxRecordsAfterQuota = Math.max(128, Math.min(1024, Number(options.maxRecordsAfterQuota) || 384));
-    this.retryBaseMs = Math.max(5000, Number(options.retryBaseMs) || 10000);
-    this.retryMaxMs = Math.max(this.retryBaseMs, Number(options.retryMaxMs) || 300000);
-    this.failureStreak = 0;
-    this.backoffUntil = 0;
-    this.compacted = false;
     this.originalCapacity = Number(this.monitor.capacity) || null;
     this.originalSave = this.monitor.save.bind(this.monitor);
-    this.stats = { quotaFailures: 0, compactions: 0, retrySuccesses: 0, backoffSkips: 0 };
+    this.sessionWriteBlocked = false;
+    this.blockedAt = 0;
+    this.lastError = null;
+    this.stats = {
+      quotaFailures: 0,
+      persistenceFailures: 0,
+      blockedWrites: 0,
+      semanticCompactionsPrevented: 0
+    };
     this._install();
   }
 
@@ -22432,41 +22454,19 @@ class ContentDriftStorageHotfix {
     this.log.emit({ component: 'content-drift-storage-hotfix', event, severity, reason, data });
   }
 
-  _compact() {
-    const monitor = this.monitor;
-    if (!(monitor.records instanceof Map)) return false;
-    const quarantined = [...monitor.records.values()].filter((row) => row && row.lifecycle === 'QUARANTINED').length;
-    const target = Math.max(this.maxRecordsAfterQuota, quarantined);
-    const previousCapacity = Number(monitor.capacity) || monitor.records.size;
-    monitor.capacity = Math.min(previousCapacity, target);
-    const before = monitor.records.size;
-    if (typeof monitor._prune === 'function') monitor._prune();
-    const after = monitor.records.size;
-    this.compacted = true;
-    this.stats.compactions += 1;
-    this._event('CONTENT_DRIFT_STORAGE_COMPACTED', 'warn', 'STORAGE_QUOTA_RECOVERY', {
-      before,
-      after,
-      previousCapacity,
-      capacity: monitor.capacity,
-      quarantinedPreserved: quarantined
+  _blockWrites(error) {
+    this.sessionWriteBlocked = true;
+    this.blockedAt = this.now();
+    this.lastError = String(error && error.message || error || 'PERSISTENCE_WRITE_ERROR').slice(0, 240);
+    this.stats.persistenceFailures += 1;
+    if (/quota|storage|setitem/i.test(this.lastError)) this.stats.quotaFailures += 1;
+    this.stats.semanticCompactionsPrevented += 1;
+    this._event('CONTENT_DRIFT_STORAGE_SESSION_BLOCKED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
+      message: this.lastError,
+      recordsPreserved: this.monitor.records instanceof Map ? this.monitor.records.size : null,
+      capacityPreserved: Number(this.monitor.capacity) || null,
+      policy: 'never-delete-semantic-drift-records-for-storage-recovery'
     });
-    return after < before || monitor.capacity < previousCapacity;
-  }
-
-  _armBackoff() {
-    this.failureStreak += 1;
-    const delay = Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, Math.max(0, this.failureStreak - 1)));
-    this.backoffUntil = this.now() + delay;
-    this._event('CONTENT_DRIFT_STORAGE_BACKOFF_ARMED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
-      failureStreak: this.failureStreak,
-      delayMs: delay
-    });
-  }
-
-  _clearFailure() {
-    this.failureStreak = 0;
-    this.backoffUntil = 0;
   }
 
   _install() {
@@ -22474,53 +22474,36 @@ class ContentDriftStorageHotfix {
     if (monitor.__aioQuotaHotfixInstalled) return;
     monitor.__aioQuotaHotfixInstalled = true;
     monitor.save = (options = {}) => {
-      const now = this.now();
-      if (now < this.backoffUntil && options.overrideBackoff !== true) {
-        this.stats.backoffSkips += 1;
+      if (this.sessionWriteBlocked) {
+        this.stats.blockedWrites += 1;
         return false;
       }
 
       const beforeErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-      const first = this.originalSave(options);
+      const result = this.originalSave(options);
       const afterErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-      if (afterErrors <= beforeErrors) {
-        if (first === true) this._clearFailure();
-        return first;
+      if (afterErrors > beforeErrors) {
+        // The previous implementation reduced monitor.capacity and pruned records
+        // here. That changed safety semantics: pruned baseline entries were seen as
+        // NOVELTY on the next scan and eventually quarantined the whole catalog.
+        // Persistence loss must never mutate the in-memory safety knowledge.
+        this._blockWrites('CONTENT_DRIFT_STORAGE_WRITE_FAILED');
+        return false;
       }
-
-      this.stats.quotaFailures += 1;
-      const compacted = this._compact();
-      if (compacted) {
-        const retryErrors = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-        const retry = this.originalSave({ ...options, force: true });
-        const retryErrorsAfter = Number(monitor.stats && monitor.stats.saveErrors) || 0;
-        if (retry === true && retryErrorsAfter === retryErrors) {
-          this.stats.retrySuccesses += 1;
-          this._clearFailure();
-          this._event('CONTENT_DRIFT_STORAGE_RECOVERED', 'info', 'COMPACT_RETRY_SUCCEEDED', {
-            records: monitor.records instanceof Map ? monitor.records.size : null,
-            capacity: monitor.capacity
-          });
-          return true;
-        }
-      }
-
-      this._armBackoff();
-      return false;
+      return result;
     };
   }
 
   status() {
     return {
-      schemaVersion: 1,
-      mode: 'content-drift-quota-recovery-v1',
+      schemaVersion: 2,
+      mode: 'content-drift-persistence-isolation-v2',
       originalCapacity: this.originalCapacity,
       currentCapacity: Number(this.monitor.capacity) || null,
-      maxRecordsAfterQuota: this.maxRecordsAfterQuota,
-      compacted: this.compacted,
-      failureStreak: this.failureStreak,
-      backoffUntil: this.backoffUntil || null,
-      backoffRemainingMs: Math.max(0, this.backoffUntil - this.now()),
+      sessionWriteBlocked: this.sessionWriteBlocked,
+      blockedAt: this.blockedAt || null,
+      lastError: this.lastError,
+      semanticRecordPruningAllowedForQuotaRecovery: false,
       stats: { ...this.stats }
     };
   }
@@ -22531,6 +22514,169 @@ function installContentDriftStorageHotfix(runtime, options = {}) {
 }
 
 module.exports = { ContentDriftStorageHotfix, installContentDriftStorageHotfix };
+
+},
+"src/reliability/content-drift-semantic-recovery.js": function(require,module,exports){
+'use strict';
+
+const { EvidenceKind } = require('../world/world-model');
+const {
+  ContentDisposition,
+  BUILT_IN_DANGEROUS_MONSTERS
+} = require('../farmer/content-safety');
+
+const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+class ContentDriftSemanticRecovery {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.world || !runtime.contentDrift || !runtime.combatRisk) {
+      throw new Error('runtime world, contentDrift and combatRisk required');
+    }
+    this.runtime = runtime;
+    this.world = runtime.world;
+    this.monitor = runtime.contentDrift;
+    this.contentSafety = runtime.combatRisk.contentSafety;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.minHistoricalLeadMs = Math.max(1000, Number(options.minHistoricalLeadMs) || 15000);
+    this.maxAutoQuarantineLagMs = Math.max(1000, Number(options.maxAutoQuarantineLagMs) || 30000);
+    this.intervalMs = Math.max(1000, Number(options.intervalMs) || 5000);
+    this.lastRunAt = -Infinity;
+    this.lastResult = null;
+    this.stats = {
+      runs: 0,
+      inspected: 0,
+      recovered: 0,
+      skippedDangerous: 0,
+      skippedRealDrift: 0,
+      skippedNoHistoricalEvidence: 0,
+      skippedPolicyMismatch: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'content-drift-semantic-recovery', event, severity, reason, data });
+  }
+
+  _fact(id, name) {
+    const fact = this.world.fact('monster-policy', id, name);
+    return fact && fact.value != null ? fact.value : null;
+  }
+
+  _recoverPolicy(id, at) {
+    this.world.observeEntity('monster-policy', id, {
+      contentSafetyDisposition: ContentDisposition.LEGACY_ALLOWED,
+      contentSafetyReason: 'RECOVERED_PRUNED_BASELINE',
+      contentSafetyUpdatedAt: at
+    }, { evidence: EvidenceKind.INFERRED, confidence: 1 });
+  }
+
+  _eligible(record) {
+    if (!record || record.category !== 'monsters' || record.lifecycle !== 'QUARANTINED') return false;
+    this.stats.inspected += 1;
+    const id = String(record.id || '');
+    if (!id) return false;
+    if (DANGEROUS.has(id)) {
+      this.stats.skippedDangerous += 1;
+      return false;
+    }
+
+    // A genuine definition change must never be auto-recovered. The corruption
+    // observed live was a missing baseline record being re-created as NOVELTY:
+    // no previous fingerprint and changeCount === 0.
+    if (record.previousFingerprint || Number(record.changeCount) > 0) {
+      this.stats.skippedRealDrift += 1;
+      return false;
+    }
+
+    const monster = typeof this.world.entity === 'function' ? this.world.entity('monster', id) : null;
+    const monsterFirstSeen = finite(monster && monster.firstSeenAt);
+    const noveltyFirstSeen = finite(record.firstSeenAt);
+    if (monsterFirstSeen == null || noveltyFirstSeen == null
+      || noveltyFirstSeen - monsterFirstSeen < this.minHistoricalLeadMs) {
+      this.stats.skippedNoHistoricalEvidence += 1;
+      return false;
+    }
+
+    const disposition = this._fact(id, 'contentSafetyDisposition');
+    const reason = this._fact(id, 'contentSafetyReason');
+    const policyUpdatedAt = finite(this._fact(id, 'contentSafetyUpdatedAt'));
+    if (disposition !== ContentDisposition.QUARANTINED
+      || reason !== 'OPERATOR_QUARANTINED'
+      || policyUpdatedAt == null
+      || Math.abs(policyUpdatedAt - noveltyFirstSeen) > this.maxAutoQuarantineLagMs) {
+      this.stats.skippedPolicyMismatch += 1;
+      return false;
+    }
+    return true;
+  }
+
+  beforeTick() {
+    const at = this.now();
+    if (at - this.lastRunAt < this.intervalMs) return this.lastResult;
+    this.lastRunAt = at;
+    this.stats.runs += 1;
+    const recovered = [];
+    if (!(this.monitor.records instanceof Map)) {
+      this.lastResult = { at, recovered, reason: 'CONTENT_DRIFT_RECORDS_UNAVAILABLE' };
+      return this.lastResult;
+    }
+
+    for (const record of this.monitor.records.values()) {
+      if (!this._eligible(record)) continue;
+      const id = String(record.id);
+      this._recoverPolicy(id, at);
+      record.lifecycle = 'OBSERVED';
+      record.baselineFingerprint = record.fingerprint;
+      record.previousFingerprint = null;
+      record.lastSeenAt = at;
+      if (this.monitor.stats) this.monitor.stats.revalidated = (Number(this.monitor.stats.revalidated) || 0) + 1;
+      recovered.push(id);
+      this.stats.recovered += 1;
+      this._event('CONTENT_FALSE_NOVELTY_RECOVERED', 'warn', 'PRUNED_BASELINE_FALSE_NOVELTY', {
+        monster: id,
+        historicalFirstSeenAt: this.world.entity('monster', id).firstSeenAt,
+        falseNoveltyFirstSeenAt: record.firstSeenAt
+      });
+    }
+
+    this.lastResult = {
+      at,
+      recovered,
+      recoveredCount: recovered.length,
+      policy: 'historical-world-evidence-plus-no-real-drift-plus-auto-quarantine-timing'
+    };
+    return this.lastResult;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'content-drift-semantic-recovery-v1',
+      minHistoricalLeadMs: this.minHistoricalLeadMs,
+      maxAutoQuarantineLagMs: this.maxAutoQuarantineLagMs,
+      dangerousNeverRecovered: [...DANGEROUS].sort(),
+      lastRunAt: Number.isFinite(this.lastRunAt) ? this.lastRunAt : null,
+      lastResult: this.lastResult ? { ...this.lastResult, recovered: this.lastResult.recovered.slice() } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installContentDriftSemanticRecovery(runtime, options = {}) {
+  return new ContentDriftSemanticRecovery(runtime, options);
+}
+
+module.exports = {
+  ContentDriftSemanticRecovery,
+  installContentDriftSemanticRecovery
+};
 
 },
 "src/reliability/party-account-communication.js": function(require,module,exports){
