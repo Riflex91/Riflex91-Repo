@@ -14,6 +14,11 @@ class CombatStabilitySupervisor {
     this.skillTimeouts = 0;
     this.attackTimeoutStreak = 0;
     this.lastAttackOutcome = null;
+    this.trackedRetreatAt = null;
+    this.pendingRetreatOutcomeId = null;
+    this.retreatConfirmed = 0;
+    this.retreatTimedOut = 0;
+    this.lastRetreatOutcome = null;
   }
 
   _event(event, severity, reason, data) {
@@ -32,6 +37,92 @@ class CombatStabilitySupervisor {
       observed: outcome.observed || null
     });
     if (this.recent.length > this.capacity) this.recent.splice(0, this.recent.length - this.capacity);
+  }
+
+  _trackRetreatRequest() {
+    const farmer = this.runtime && this.runtime.farmer;
+    if (!farmer || !farmer.lastSafeRetreatMove || !this.adapter || typeof this.adapter.stabilityStatus !== 'function') return;
+    const retreatAt = Number(farmer.lastSafeRetreatMove.at) || 0;
+    if (!retreatAt || retreatAt === this.trackedRetreatAt) return;
+    const movement = this.adapter.stabilityStatus().movement;
+    if (!movement || !movement.pendingOutcomeId) return;
+    this.trackedRetreatAt = retreatAt;
+    this.pendingRetreatOutcomeId = String(movement.pendingOutcomeId);
+    farmer.lastSafeRetreatMove = {
+      ...farmer.lastSafeRetreatMove,
+      verified: false,
+      outcomeId: this.pendingRetreatOutcomeId,
+      verificationState: 'PENDING'
+    };
+    this._event('SAFE_RETREAT_OUTCOME_PENDING', 'warn', 'AWAITING_OBSERVED_MOVEMENT', {
+      outcomeId: this.pendingRetreatOutcomeId,
+      retreatAt,
+      emergencyReason: farmer.lastSafeRetreatMove.emergencyReason || null
+    });
+  }
+
+  _handleRetreat(outcome) {
+    if (!this.pendingRetreatOutcomeId || String(outcome.id) !== String(this.pendingRetreatOutcomeId)) return false;
+    const farmer = this.runtime && this.runtime.farmer;
+    this.pendingRetreatOutcomeId = null;
+    this.lastRetreatOutcome = {
+      id: outcome.id,
+      state: outcome.state,
+      reason: outcome.reason,
+      at: outcome.confirmedAt,
+      observed: outcome.observed || null
+    };
+
+    if (outcome.state === CommandOutcomeState.CONFIRMED) {
+      this.retreatConfirmed += 1;
+      if (farmer && farmer.lastSafeRetreatMove) {
+        farmer.lastSafeRetreatMove = {
+          ...farmer.lastSafeRetreatMove,
+          verified: true,
+          verificationState: 'CONFIRMED',
+          verifiedAt: outcome.confirmedAt,
+          observed: outcome.observed || null
+        };
+        farmer.lastSafeRetreatFailure = null;
+      }
+      this._event('SAFE_RETREAT_OUTCOME_CONFIRMED', 'info', outcome.reason, {
+        outcomeId: outcome.id,
+        observed: outcome.observed || null
+      });
+      return true;
+    }
+
+    if (outcome.state === CommandOutcomeState.TIMED_OUT) {
+      this.retreatTimedOut += 1;
+      if (farmer) {
+        const failure = {
+          at: this.now(),
+          reason: 'SAFE_RETREAT_OUTCOME_TIMEOUT',
+          outcomeId: outcome.id,
+          commandOutcomeReason: outcome.reason,
+          emergencyReason: farmer.lastSafeRetreatMove && farmer.lastSafeRetreatMove.emergencyReason || null,
+          sourceTargetId: farmer.lastSafeRetreatMove && farmer.lastSafeRetreatMove.sourceTargetId || null,
+          sourceTargetType: farmer.lastSafeRetreatMove && farmer.lastSafeRetreatMove.sourceTargetType || null
+        };
+        farmer.lastSafeRetreatFailure = failure;
+        if (farmer.lastSafeRetreatMove) {
+          farmer.lastSafeRetreatMove = {
+            ...farmer.lastSafeRetreatMove,
+            verified: false,
+            verificationState: 'TIMED_OUT',
+            verifiedAt: outcome.confirmedAt
+          };
+        }
+        if (typeof farmer._transition === 'function') farmer._transition('RECOVER', 'EMERGENCY_RETREAT_UNCONFIRMED');
+        if (typeof farmer._event === 'function') farmer._event('FARMER_SAFE_RETREAT_UNCONFIRMED', 'warn', failure.reason, failure);
+      }
+      this._event('SAFE_RETREAT_OUTCOME_TIMED_OUT', 'warn', 'SAFE_RETREAT_OUTCOME_TIMEOUT', {
+        outcomeId: outcome.id,
+        commandOutcomeReason: outcome.reason
+      });
+      return true;
+    }
+    return false;
   }
 
   _restorePreviousSkillStreak(skillId, outcome) {
@@ -100,10 +191,12 @@ class CombatStabilitySupervisor {
 
   process() {
     if (!this.adapter || typeof this.adapter.takeCommandOutcomes !== 'function') return [];
+    this._trackRetreatRequest();
     const outcomes = this.adapter.takeCommandOutcomes(200);
     for (const outcome of outcomes) {
       this._remember(outcome);
       this.counts[outcome.state] = (this.counts[outcome.state] || 0) + 1;
+      this._handleRetreat(outcome);
       if (outcome.action === 'use_skill') this._handleSkill(outcome);
       if (outcome.action === 'attack') this._handleAttack(outcome);
     }
@@ -116,6 +209,12 @@ class CombatStabilitySupervisor {
       skillTimeouts: this.skillTimeouts,
       attackTimeoutStreak: this.attackTimeoutStreak,
       lastAttackOutcome: this.lastAttackOutcome,
+      retreat: {
+        pendingOutcomeId: this.pendingRetreatOutcomeId,
+        confirmed: this.retreatConfirmed,
+        timedOut: this.retreatTimedOut,
+        lastOutcome: this.lastRetreatOutcome
+      },
       recent: this.recent.slice()
     };
   }
