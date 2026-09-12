@@ -12,6 +12,11 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function registryName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
 class Alpha17Runtime extends Alpha16Runtime {
   constructor(options = {}) {
     super(options);
@@ -41,6 +46,39 @@ class Alpha17Runtime extends Alpha16Runtime {
       timeoutMs: options.controlledTravelTimeoutMs
     });
     this.lastControlledGuardReason = null;
+    this.registryVisibility = { foreignVisibleIgnored: 0, lastObservedAt: null };
+  }
+
+  _partyObservation() {
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return null;
+
+    const selfName = registryName(snapshot.character.name);
+    const partyNames = new Set((snapshot.party || []).map((member) => registryName(member && member.name)).filter(Boolean));
+    if (selfName) partyNames.add(selfName);
+    const knownNames = new Set(
+      (this.characterRegistry && typeof this.characterRegistry.list === 'function' ? this.characterRegistry.list() : [])
+        .map((member) => registryName(member && member.name))
+        .filter(Boolean)
+    );
+
+    let ignored = 0;
+    const entities = (snapshot.entities || []).filter((entity) => {
+      const name = registryName(entity && entity.name);
+      if (!name) return false;
+      const allowed = name === selfName || partyNames.has(name) || knownNames.has(name);
+      if (!allowed) ignored += 1;
+      return allowed;
+    });
+
+    this.registryVisibility.foreignVisibleIgnored += ignored;
+    this.registryVisibility.lastObservedAt = snapshot.observedAt || this.now();
+
+    return this.characterRegistry.observe({
+      snapshot: { ...snapshot, entities },
+      gameData: this.adapter.getGameData() || {},
+      liveCharacter: this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null
+    });
   }
 
   _announce(message, event) {
@@ -222,6 +260,7 @@ class Alpha17Runtime extends Alpha16Runtime {
       economy: this._economyStatus(),
       travel: this._travelStatus(),
       supervisor: { ...base.supervisor, controlledSubsystems },
+      registryVisibility: clone(this.registryVisibility),
       controlledCanary: {
         explicitAck: CONTROLLED_MERCHANT_ACK,
         merchantAck: CONTROLLED_MERCHANT_ACK,
@@ -241,6 +280,7 @@ class Alpha17Runtime extends Alpha16Runtime {
       supervisor: this._controlledSubsystemHealth(),
       guardReason: this.lastControlledGuardReason
     };
+    base.context.registryVisibility = clone(this.registryVisibility);
     return JSON.stringify(base, null, 2);
   }
 }
