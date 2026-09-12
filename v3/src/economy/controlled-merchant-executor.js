@@ -41,6 +41,14 @@ function bankIdentityQuantity(bank, name, level) {
   }
   return total;
 }
+function bankStoreAcknowledged(response) {
+  return !!response
+    && typeof response === 'object'
+    && response.failed !== true
+    && response.success === true
+    && String(response.place || '') === 'bank'
+    && String(response.bank_action || '') === 'store';
+}
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
@@ -63,7 +71,17 @@ class ControlledMerchantExecutor {
     this.busy = false;
     this.actionTimes = [];
     this.lastAction = null;
-    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, timeouts: 0, verificationRetries: 0 };
+    this.stats = {
+      attempts: 0,
+      committed: 0,
+      rejected: 0,
+      failedSafe: 0,
+      timeouts: 0,
+      verificationRetries: 0,
+      bankServerAckCommits: 0,
+      bankLocalObservationMisses: 0,
+      bankInvalidServerAcks: 0
+    };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -246,6 +264,16 @@ class ControlledMerchantExecutor {
     return result;
   }
 
+  _failSafe(tx, reason, extra = {}) {
+    this.engine.markFailedSafe(tx.id, reason);
+    this.stats.failedSafe += 1;
+    this.lastAction = {
+      at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason, ...clone(extra)
+    };
+    this._event('CONTROLLED_MERCHANT_FAILED_SAFE', 'error', reason, this.lastAction);
+    return { executed: true, committed: false, reason, ...clone(extra) };
+  }
+
   async execute(transactionId) {
     const tx = this.engine && this.engine.get(String(transactionId));
     const check = this._preflight(tx);
@@ -279,13 +307,59 @@ class ControlledMerchantExecutor {
       if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
       this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
       this.engine.save();
+
+      if (tx.type === 'BANK') {
+        if (!bankStoreAcknowledged(response)) {
+          this.stats.bankInvalidServerAcks += 1;
+          const localObservation = this._verify(tx, before);
+          return this._failSafe(tx, 'BANK_SERVER_ACK_INVALID', {
+            serverResponse: clone(response),
+            serverAcknowledged: false,
+            localObservationConfirmed: localObservation.ok === true,
+            verification: localObservation
+          });
+        }
+
+        const localObservation = await this._verifyEventually(tx, before);
+        const verification = {
+          ...localObservation,
+          serverAcknowledged: true,
+          localObservationConfirmed: localObservation.ok === true,
+          commitBasis: 'SERVER_ACK'
+        };
+        if (!localObservation.ok) {
+          this.stats.bankLocalObservationMisses += 1;
+          this._event('CONTROLLED_BANK_LOCAL_STATE_UNCONFIRMED', 'warn', 'SERVER_ACK_LOCAL_CACHE_MISMATCH', {
+            transactionId: tx.id,
+            type: tx.type,
+            verification: clone(verification)
+          });
+        }
+
+        this.engine.markCommitted(tx.id, {
+          serverResponse: clone(response),
+          before: clone(before),
+          verification: clone(verification)
+        });
+        this.stats.committed += 1;
+        this.stats.bankServerAckCommits += 1;
+        this.lastAction = {
+          at: this.now(), transactionId: tx.id, type: tx.type, result: 'COMMITTED',
+          reason: 'SERVER_ACK_COMMIT', verification: clone(verification)
+        };
+        this._event('CONTROLLED_MERCHANT_COMMITTED', 'info', 'SERVER_ACK_COMMIT', this.lastAction);
+        return {
+          executed: true,
+          committed: true,
+          reason: 'SERVER_ACK_COMMIT',
+          verification,
+          response: clone(response)
+        };
+      }
+
       const verification = await this._verifyEventually(tx, before);
       if (!verification.ok) {
-        this.engine.markFailedSafe(tx.id, 'INVENTORY_DELTA_MISMATCH');
-        this.stats.failedSafe += 1;
-        this.lastAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason: 'INVENTORY_DELTA_MISMATCH', verification };
-        this._event('CONTROLLED_MERCHANT_FAILED_SAFE', 'error', 'INVENTORY_DELTA_MISMATCH', this.lastAction);
-        return { executed: true, committed: false, reason: 'INVENTORY_DELTA_MISMATCH', verification };
+        return this._failSafe(tx, 'INVENTORY_DELTA_MISMATCH', { verification });
       }
       this.engine.markCommitted(tx.id, { serverResponse: clone(response), before: clone(before), verification: clone(verification) });
       this.stats.committed += 1;
@@ -295,11 +369,7 @@ class ControlledMerchantExecutor {
     } catch (error) {
       const reason = String(error && error.message || error || 'CONTROLLED_EXECUTION_FAILED');
       if (reason.includes('_TIMEOUT')) this.stats.timeouts += 1;
-      this.engine.markFailedSafe(tx.id, reason);
-      this.stats.failedSafe += 1;
-      this.lastAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason };
-      this._event('CONTROLLED_MERCHANT_FAILED_SAFE', 'error', reason, this.lastAction);
-      return { executed: true, committed: false, reason };
+      return this._failSafe(tx, reason);
     } finally {
       this.busy = false;
     }
@@ -327,7 +397,10 @@ class ControlledMerchantExecutor {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
         maxPollingMs: Math.max(0, this.verifyAttempts - 1) * this.verifyDelayMs,
-        strategy: 'identity-balance-delta'
+        strategy: 'server-ack-bank-with-local-identity-balance-diagnostic',
+        bankCommitBasis: 'SERVER_ACK',
+        bankRequiredAck: { success: true, place: 'bank', bank_action: 'store' },
+        sellCommitBasis: 'IDENTITY_BALANCE_DELTA'
       },
       actionBudget: { maxPerWindow: this.maxActionsPerWindow, windowMs: this.actionWindowMs, inWindow: this.actionTimes.length },
       lastAction: clone(this.lastAction),
