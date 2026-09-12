@@ -2,6 +2,7 @@
 
 const { HostWatchdogSupervisor } = require('./host-watchdog-supervisor');
 const { AlertRelay } = require('./alert-relay');
+const { RestartReconciliationObserver } = require('./restart-reconciliation-observer');
 
 function clone(value) {
   if (value == null) return value;
@@ -33,10 +34,12 @@ class HeadlessHostController {
       baseBackoffMs: options.alertBaseBackoffMs,
       maxBackoffMs: options.alertMaxBackoffMs
     });
+    this.reconciliation = options.reconciliation || new RestartReconciliationObserver({ now: this.now, botClient: this.botClient });
     this.lastTickAt = null;
     this.lastHeartbeatError = null;
     this.lastAlertError = null;
-    this.stats = { ticks: 0, heartbeatFailures: 0, alertFailures: 0 };
+    this.lastRestartRunId = null;
+    this.stats = { ticks: 0, heartbeatFailures: 0, alertFailures: 0, reconciliationPolls: 0 };
   }
 
   configureRestart(config = {}) {
@@ -57,6 +60,11 @@ class HeadlessHostController {
         this.stats.heartbeatFailures += 1;
       } else {
         this.lastHeartbeatError = null;
+        if (this.reconciliation.status().state === 'WAITING_FOR_FRESH_RUN') {
+          const currentRunId = this.watchdog.status().lastRunId;
+          const fresh = this.reconciliation.observeFreshRun(currentRunId);
+          if (!fresh.accepted) this.lastHeartbeatError = { at: this.now(), code: fresh.reason };
+        }
       }
       return result;
     } catch (error) {
@@ -64,6 +72,13 @@ class HeadlessHostController {
       this.stats.heartbeatFailures += 1;
       return { accepted: false, reason: 'BOT_HEARTBEAT_FAILED' };
     }
+  }
+
+  async _serviceReconciliation() {
+    const state = this.reconciliation.status().state;
+    if (state !== 'WAITING_FOR_RECONCILIATION_EVIDENCE' && state !== 'BLOCKED') return null;
+    this.stats.reconciliationPolls += 1;
+    return this.reconciliation.observe();
   }
 
   async _serviceAlerts() {
@@ -83,6 +98,7 @@ class HeadlessHostController {
     this.stats.ticks += 1;
     this.lastTickAt = this.now();
     const heartbeat = await this._pollHeartbeat();
+    const beforeWatchdog = this.watchdog.status();
 
     let watchdog;
     try {
@@ -92,8 +108,14 @@ class HeadlessHostController {
       watchdog.tickError = String(error && error.message || error).slice(0, 256);
     }
 
+    if (watchdog.state === 'RESTARTING' && beforeWatchdog.state !== 'RESTARTING') {
+      this.lastRestartRunId = beforeWatchdog.lastRunId || this.lastRestartRunId || null;
+      this.reconciliation.begin(this.lastRestartRunId);
+    }
+
+    const reconciliation = await this._serviceReconciliation();
     const alerts = await this._serviceAlerts();
-    return { heartbeat, watchdog, alerts, status: this.status() };
+    return { heartbeat, watchdog, reconciliation, alerts, status: this.status() };
   }
 
   status() {
@@ -107,6 +129,7 @@ class HeadlessHostController {
       lastHeartbeatError: clone(this.lastHeartbeatError),
       lastAlertError: clone(this.lastAlertError),
       watchdog: this.watchdog.status(),
+      reconciliation: this.reconciliation.status(),
       alertRelay: this.alertRelay.status(),
       stats: { ...this.stats }
     };
