@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "aio-bot-dashboard",
-  "main": "src/worker-alpha20-21.js",
+  "main": "src/worker-alpha20-22.js",
   "compatibility_date": "2026-09-10",
   "workers_dev": true,
   "ai": { "binding": "AI" },
