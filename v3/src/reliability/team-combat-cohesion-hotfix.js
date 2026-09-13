@@ -237,6 +237,11 @@ class TeamCombatCohesionHotfix {
     return Array.isArray(rows) && rows.some((row) => row && String(row.id) === String(target.id));
   }
 
+  _isSharedAggroTarget(context, team, target) {
+    if (!target || !target.target || !team || !team.names.includes(String(target.target))) return false;
+    return this._candidateAllowed(context, target);
+  }
+
   _sharedAggro(context, team) {
     const names = new Set(team.names);
     const candidates = (this.farmer._safeLiveMonsters(context.snapshot, context.party) || [])
@@ -364,7 +369,9 @@ class TeamCombatCohesionHotfix {
     if (!team.complete || !team.alive || !team.sameMap || !team.positionsKnown) return { allowed: false, team, reason: 'TEAM_NOT_READY' };
     if (!team.cohesive) return { allowed: false, team, reason: 'TEAM_NOT_COHESIVE' };
     if (team.selfName !== team.leaderName) {
-      if (!team.leaderTargetId || !target || String(target.id) !== String(team.leaderTargetId)) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
+      const matchesLeader = !!(team.leaderTargetId && target && String(target.id) === String(team.leaderTargetId));
+      const sharedAggro = this._isSharedAggroTarget(context, team, target);
+      if (!matchesLeader && !sharedAggro) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
     }
     return { allowed: true, team, reason: null, phase };
   }
