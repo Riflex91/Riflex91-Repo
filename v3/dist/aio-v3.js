@@ -4867,7 +4867,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.15';
+const RELEASE_VERSION = '3.0.0-alpha.20.19';
 
 module.exports = { RELEASE_VERSION };
 
@@ -24324,6 +24324,7 @@ module.exports = {
 
 const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
 const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+const { installIntegratedPartyControl } = require('./integrated-party-control');
 
 const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v1';
 
@@ -24344,29 +24345,24 @@ class TeamCohesionDeadlockHotfix {
     this.previousFollowRadius = finite(this.team.followRadius, 85);
     this.cohesionRadius = Math.max(90, finite(this.team.cohesionRadius, 150));
 
-    // The previous 85 follow radius could place two followers on opposite sides
-    // of the leader at almost 170 distance while the pairwise cohesion gate was
-    // 150. That creates a stable deadlock: both followers think they are close
-    // enough to the leader while the leader still sees a non-cohesive party.
-    // Keep the stricter pairwise gate and make every steady follower position
-    // geometrically capable of satisfying it instead.
     this.maxPairwiseSafeLeaderRadius = Math.max(35, (this.cohesionRadius - this.margin) / 2);
     this.appliedFollowRadius = Math.min(this.previousFollowRadius, this.requestedFollowRadius, this.maxPairwiseSafeLeaderRadius);
     this.team.followRadius = this.appliedFollowRadius;
-
-    // A formation step larger than the full desired diameter can overshoot a
-    // compact regroup in crowded terrain. Keep the existing bounded path search
-    // but cap one regroup step to a conservative multiple of the new radius.
     this.previousFollowStep = finite(this.team.followStep, 70);
     this.appliedFollowStep = Math.max(25, Math.min(this.previousFollowStep, this.appliedFollowRadius * 1.1));
     this.team.followStep = this.appliedFollowStep;
 
-    // Alpha20.15 is intentionally installed from this already-proven hook so it
-    // runs after team target selection exists but before party logistics is
-    // constructed. That lets us harden synthetic team rankings and patch the
-    // bounded logistics prototype without widening generic economy authority.
+    // Keep the proven Alpha20.15 fixes first. The integrated suite then patches
+    // communication/logistics/farm prototypes before those instances are created
+    // later in the production runtime constructor, while tactical combat,
+    // movement and skills wrap the already-created Farmer/team controllers.
+    // Minimal test/runtime fixtures intentionally omit Farmer/local-farm surfaces;
+    // diagnostics must not turn that absence into a startup failure.
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
     this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
+    const hasIntegratedRuntimeSurfaces = !!(runtime.farmer && runtime.localFarming);
+    this.alpha20_16_19 = hasIntegratedRuntimeSurfaces ? installIntegratedPartyControl(runtime) : null;
+    this.alpha20_16_19SkippedReason = hasIntegratedRuntimeSurfaces ? null : 'INTEGRATED_RUNTIME_SURFACES_UNAVAILABLE';
 
     this.installedAt = this.now();
     this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
@@ -24379,7 +24375,7 @@ class TeamCohesionDeadlockHotfix {
 
   status() {
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       mode: TEAM_COHESION_DEADLOCK_MODE,
       installedAt: this.installedAt || null,
       cohesionRadius: this.cohesionRadius,
@@ -24393,7 +24389,9 @@ class TeamCohesionDeadlockHotfix {
       appliedFollowStep: this.appliedFollowStep,
       pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
       alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
-      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness
+      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness,
+      alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null,
+      alpha20_16_19SkippedReason: this.alpha20_16_19SkippedReason
     };
   }
 }
@@ -24402,11 +24400,7 @@ function installTeamCohesionDeadlockHotfix(runtime, options = {}) {
   return new TeamCohesionDeadlockHotfix(runtime, options);
 }
 
-module.exports = {
-  TeamCohesionDeadlockHotfix,
-  installTeamCohesionDeadlockHotfix,
-  TEAM_COHESION_DEADLOCK_MODE
-};
+module.exports = { TeamCohesionDeadlockHotfix, installTeamCohesionDeadlockHotfix, TEAM_COHESION_DEADLOCK_MODE };
 
 },
 "src/reliability/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
@@ -25650,6 +25644,581 @@ module.exports = {
 };
 
 },
+"src/reliability/integrated-party-control.js": function(require,module,exports){
+'use strict';
+
+const { installAlpha2019AccountTransportHotfix } = require('./alpha20-19-account-transport-hotfix');
+const { patchAlpha2019LogisticsStabilization } = require('./alpha20-19-logistics-stabilization');
+const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
+const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
+const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
+const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
+
+const INTEGRATED_PARTY_CONTROL_MODE = 'alpha20.16-20.19-integrated-party-control-v1';
+
+class IntegratedPartyControl {
+  constructor(runtime, components = {}) {
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.installedAt = this.now();
+    this.transportPatched = components.transportPatched === true;
+    this.logisticsPatched = components.logisticsPatched === true;
+    this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
+    this.tacticalPartyCombat = components.tacticalPartyCombat || null;
+    this.advancedPartyMovement = components.advancedPartyMovement || null;
+    this.partySkillEngine = components.partySkillEngine || null;
+    this._event('INTEGRATED_PARTY_CONTROL_INSTALLED', 'warn', 'ALPHA20_16_TO_20_19_ACTIVE', this.status());
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'integrated-party-control', event, severity, reason, data }); } catch (_) {}
+  }
+
+  status() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    const farm = this.runtime.farmAreaPressureHotfix;
+    return {
+      schemaVersion: 1,
+      mode: INTEGRATED_PARTY_CONTROL_MODE,
+      installedAt: this.installedAt,
+      groupAuthority: {
+        commonLeader: true,
+        commonTarget: true,
+        commonFarmDirection: true,
+        followerSoloPulls: false,
+        followerIndependentFarmTravel: false,
+        formationBoundKiting: true
+      },
+      alpha20_16: farm && typeof farm.status === 'function' ? farm.status().alpha20_16 || null : { prototypePatched: this.adaptiveFarmPatched, awaitingFarmAreaInstance: true },
+      alpha20_17: this.tacticalPartyCombat && this.tacticalPartyCombat.status ? this.tacticalPartyCombat.status() : null,
+      alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
+      alpha20_19: {
+        transportPrototypePatched: this.transportPatched,
+        logisticsPrototypePatched: this.logisticsPatched,
+        logistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_19 || null : null,
+        skillEngine: this.partySkillEngine && this.partySkillEngine.status ? this.partySkillEngine.status() : null
+      }
+    };
+  }
+}
+
+function installIntegratedPartyControl(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.integratedPartyControl) return runtime.integratedPartyControl;
+  const transportPatched = installAlpha2019AccountTransportHotfix();
+  const logisticsPatched = patchAlpha2019LogisticsStabilization();
+  const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
+  const tacticalPartyCombat = installTacticalPartyCombat(runtime, options.tacticalPartyCombat || {});
+  runtime.tacticalPartyCombat = tacticalPartyCombat;
+  const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
+  runtime.advancedPartyMovement = advancedPartyMovement;
+  const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
+  runtime.partySkillEngine = partySkillEngine;
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  runtime.integratedPartyControl = controller;
+  return controller;
+}
+
+module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGRATED_PARTY_CONTROL_MODE };
+
+},
+"src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
+'use strict';
+
+const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
+const DIRECT_BACKOFF_MS = 15000;
+
+function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
+function boundedMessage(error) { return String(error && error.message || error || 'unknown').slice(0, 240); }
+function fn(instance, name) {
+  const root = instance && instance.root;
+  return root && (root[name] || (root.parent && root.parent[name])) || null;
+}
+
+function strongLiveEvidence(instance, name) {
+  const target = cleanName(name);
+  if (!target || !instance || !instance.isOwned(target)) return { live: false, source: null };
+  if (target === instance.localName()) return { live: true, source: 'local' };
+  if (instance.activeNames().includes(target)) return { live: true, source: 'observed-active' };
+  const getPlayer = fn(instance, 'get_player');
+  if (typeof getPlayer === 'function') {
+    try {
+      const row = getPlayer.call(instance.root, target);
+      if (row && typeof row === 'object' && row.dead !== true && row.rip !== true) return { live: true, source: 'get-player' };
+    } catch (_) {}
+  }
+  const root = instance.root;
+  const parent = root && root.parent || root;
+  for (const collection of [root && root.entities, parent && parent.entities]) {
+    if (!collection || typeof collection !== 'object') continue;
+    for (const row of Object.values(collection)) {
+      if (!row || typeof row !== 'object' || cleanName(row.name) !== target) continue;
+      const playerLike = !!row.ctype || row.player === true || String(row.type || '').toLowerCase() === 'character' || !row.mtype;
+      if (playerLike && row.dead !== true && row.rip !== true) return { live: true, source: 'entity' };
+    }
+  }
+  for (const party of [root && root.party, parent && parent.party]) {
+    if (!party || typeof party !== 'object') continue;
+    const row = party[target] || Object.values(party).find((entry) => cleanName(entry && entry.name) === target);
+    if (!row || typeof row !== 'object') continue;
+    const liveShape = row.map != null || (finite(row.x) != null && finite(row.y) != null) || finite(row.hp) != null;
+    if (liveShape && row.dead !== true && row.rip !== true) return { live: true, source: 'party' };
+  }
+  return { live: false, source: null };
+}
+
+function state(instance) {
+  if (!instance.__alpha2019DirectBackoff) instance.__alpha2019DirectBackoff = new Map();
+  const stats = instance.stats || (instance.stats = {});
+  for (const key of ['directSkippedBackoff','directEvidenceObservedActive','directEvidenceGetPlayer','directEvidenceEntity','directEvidenceParty']) {
+    if (!Number.isFinite(Number(stats[key]))) stats[key] = 0;
+  }
+  return instance.__alpha2019DirectBackoff;
+}
+
+function installAlpha2019AccountTransportHotfix() {
+  const proto = AccountCharacterTransport && AccountCharacterTransport.prototype;
+  if (!proto || proto[PATCH]) return false;
+  Object.defineProperty(proto, PATCH, { value: true, enumerable: false });
+  const baseStatus = proto.status;
+
+  proto.strongLiveEvidence = function(name) { return strongLiveEvidence(this, name); };
+  proto.visibleOwnedNames = function() { return this.ownedNames().filter((name) => strongLiveEvidence(this, name).live); };
+
+  proto.send = async function(targetName, payload, options = {}) {
+    const target = cleanName(targetName);
+    const sender = cleanName(options.sender) || this.localName();
+    const receiver = cleanName(options.receiver);
+    if (!target || !sender) throw new Error('ACCOUNT_TRANSPORT_INVALID_ENDPOINT');
+    if (target === this.localName() && receiver && this.root && typeof this.root[receiver] === 'function') {
+      this.root[receiver](sender, payload); this.stats.localDelivered += 1;
+      return { delivered: true, transport: 'local', target, sender };
+    }
+    if (!this.isOwned(target)) {
+      this.stats.rejectedNotOwned += 1;
+      this._event('ACCOUNT_TRANSPORT_REJECTED', 'warn', 'TARGET_NOT_TRUSTED_OWN_CHARACTER', { target, sender });
+      throw new Error(`TARGET_NOT_TRUSTED_OWN_CHARACTER:${target}`);
+    }
+
+    const backoff = state(this);
+    const now = this.now();
+    const until = Number(backoff.get(target)) || 0;
+    if (until && until <= now) backoff.delete(target);
+    const evidence = strongLiveEvidence(this, target);
+    const commandCharacter = fn(this, 'command_character');
+    if (receiver && typeof commandCharacter === 'function' && evidence.live && until <= now) {
+      const statKey = { 'observed-active':'directEvidenceObservedActive', 'get-player':'directEvidenceGetPlayer', entity:'directEvidenceEntity', party:'directEvidenceParty' }[evidence.source];
+      if (statKey) this.stats[statKey] += 1;
+      try {
+        await Promise.resolve(commandCharacter.call(this.root, target, this._directCode(receiver, sender, payload)));
+        this.stats.directSent += 1; backoff.delete(target);
+        return { delivered: true, transport: 'command_character', target, sender, evidence: evidence.source };
+      } catch (error) {
+        this.stats.directFailed += 1; backoff.set(target, now + DIRECT_BACKOFF_MS);
+        this._event('ACCOUNT_TRANSPORT_DIRECT_FAILED', 'warn', 'COMMAND_CHARACTER_FAILED', { target, sender, evidence: evidence.source, backoffMs: DIRECT_BACKOFF_MS, message: boundedMessage(error) });
+      }
+    } else if (receiver && typeof commandCharacter === 'function' && until > now) {
+      this.stats.directSkippedBackoff += 1;
+      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
+    } else if (receiver && typeof commandCharacter === 'function' && !evidence.live) {
+      this.stats.directSkippedUnobserved += 1;
+      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_HAS_NO_STRONG_LIVE_EVIDENCE', { target, sender, observedActive: this.activeNames() });
+    }
+
+    if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
+    const sendCm = fn(this, 'send_cm');
+    if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    try {
+      await Promise.resolve(sendCm.call(this.root, target, payload));
+      this.stats.fallbackSent += 1;
+      return { delivered: true, transport: 'send_cm', target, sender };
+    } catch (error) {
+      this.stats.fallbackFailed += 1;
+      this._event('ACCOUNT_TRANSPORT_FALLBACK_FAILED', 'warn', 'SEND_CM_FAILED', { target, sender, message: boundedMessage(error) });
+      throw error;
+    }
+  };
+
+  proto.status = function() {
+    const base = baseStatus.call(this); const now = this.now(); const backoff = state(this);
+    return { ...base, schemaVersion: 3, mode: 'strong-live-evidence-command-character-else-cm', visibleOwnedNames: this.visibleOwnedNames(), directRequiresObservedActive: false, directRequiresStrongLiveEvidence: true, directFailureBackoffMs: DIRECT_BACKOFF_MS, directBackoffs: [...backoff.entries()].filter(([, until]) => Number(until) > now).map(([name, until]) => ({ name, until, remainingMs: Number(until) - now })), stats: { ...this.stats } };
+  };
+  return true;
+}
+
+module.exports = { DIRECT_BACKOFF_MS, strongLiveEvidence, installAlpha2019AccountTransportHotfix };
+
+},
+"src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
+'use strict';
+
+const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
+
+const PATCH = Symbol.for('AIO_V3_ALPHA20_19_LOGISTICS_STABILIZATION');
+const OFFER_TTL_MS = 15000;
+const MERCHANT_POTION_RESERVE = 300;
+
+function ensureStats(instance) {
+  for (const key of ['offerTransportFailures', 'staleOffersCleared', 'falseDeliveryResults']) {
+    if (!Number.isFinite(Number(instance.stats[key]))) instance.stats[key] = 0;
+  }
+}
+
+function offerMatches(instance, data) {
+  return !!(instance.pendingOffer && data && String(instance.pendingOffer.offerId || '') === String(data.offerId || ''));
+}
+
+function clearFailedOffer(instance, data, reason) {
+  if (!offerMatches(instance, data)) return false;
+  instance.pendingOffer = null;
+  instance.pendingGrant = null;
+  instance.backoffUntil = Math.max(Number(instance.backoffUntil) || 0, instance.now() + Math.min(5000, Number(instance.config.failureBackoffMs) || 3000));
+  ensureStats(instance);
+  instance.stats.offerTransportFailures += 1;
+  instance.lastDecision = { at: instance.now(), action: 'HOLD', reason, offerId: data.offerId };
+  if (typeof instance._event === 'function') instance._event('PARTY_LOGISTICS_OFFER_RELEASED', 'warn', reason, { offerId: data.offerId });
+  return true;
+}
+
+function patchAlpha2019LogisticsStabilization() {
+  const proto = ControlledPartyLogistics && ControlledPartyLogistics.prototype;
+  if (!proto || proto[PATCH]) return false;
+  Object.defineProperty(proto, PATCH, { value: true, enumerable: false });
+
+  const baseInstall = proto.install;
+  const baseSend = proto._send;
+  const basePrune = proto._prune;
+  const baseStatusPayload = proto._statusPayload;
+  const baseStatus = proto.status;
+
+  proto.install = function alpha2019Install() {
+    const result = baseInstall.apply(this, arguments);
+    this.config.farmerPotionLow = 50;
+    this.config.farmerPotionTarget = 5000;
+    this.config.maxSupplyBatch = 5000;
+    this.config.merchantPotionReserve = MERCHANT_POTION_RESERVE;
+    this.config.farmerGoldReserve = 0;
+    this.config.maxGoldBatch = Number.MAX_SAFE_INTEGER;
+    this.__alpha2019OfferTtlMs = OFFER_TTL_MS;
+    ensureStats(this);
+    return result;
+  };
+
+  proto._send = function alpha2019Send(target, action, data = {}) {
+    const promise = baseSend.call(this, target, action, data);
+    return Promise.resolve(promise).then((result) => {
+      ensureStats(this);
+      const nestedFalse = !!(result && result.result && result.result.delivered === false);
+      const failed = !result || result.delivered === false || nestedFalse;
+      if (!failed) return result;
+      if (nestedFalse) this.stats.falseDeliveryResults += 1;
+      if (action === Action.LOOT_OFFER || action === Action.GOLD_OFFER) {
+        clearFailedOffer(this, data, 'OFFER_TRANSPORT_FAILED');
+      }
+      return { ...(result || {}), delivered: false, reason: result && result.reason || (nestedFalse ? 'TRANSPORT_REPORTED_NOT_DELIVERED' : 'TRANSPORT_FAILED') };
+    }).catch((error) => {
+      if (action === Action.LOOT_OFFER || action === Action.GOLD_OFFER) clearFailedOffer(this, data, 'OFFER_TRANSPORT_REJECTED');
+      return { delivered: false, reason: 'TRANSPORT_REJECTED', error };
+    });
+  };
+
+  proto._prune = function alpha2019Prune() {
+    const result = basePrune.apply(this, arguments);
+    const now = this.now();
+    const offer = this.pendingOffer;
+    if (offer && !this.pendingGrant && now - Number(offer.at || 0) >= (this.__alpha2019OfferTtlMs || OFFER_TTL_MS)) {
+      ensureStats(this);
+      const stale = { kind: offer.kind || null, offerId: offer.offerId || null, ageMs: now - Number(offer.at || 0) };
+      this.pendingOffer = null;
+      this.stats.staleOffersCleared += 1;
+      this.backoffUntil = Math.max(Number(this.backoffUntil) || 0, now + Math.min(3000, Number(this.config.failureBackoffMs) || 3000));
+      this.lastDecision = { at: now, action: 'HOLD', reason: 'STALE_OFFER_RELEASED', ...stale };
+      if (typeof this._event === 'function') this._event('PARTY_LOGISTICS_STALE_OFFER_RELEASED', 'warn', 'OFFER_GRANT_TIMEOUT', stale);
+    }
+    return result;
+  };
+
+  proto._statusPayload = function alpha2019StatusPayload(snapshot) {
+    const payload = baseStatusPayload.call(this, snapshot);
+    return {
+      ...payload,
+      lootSignal: payload.acceptingLoot ? 'ACCEPTING_LOOT' : 'OKAY_STOP_MERCHANT_INVENTORY_FULL',
+      merchantPotionReservePerType: MERCHANT_POTION_RESERVE
+    };
+  };
+
+  proto.status = function alpha2019Status() {
+    ensureStats(this);
+    const base = baseStatus.call(this);
+    const merchantCapacity = this._isMerchant() && this.adapter && this.adapter.snapshot ? this._merchantCapacity(this.adapter.snapshot()) : null;
+    return {
+      ...base,
+      mode: 'bounded-owned-party-logistics-v3',
+      alpha20_19: {
+        offerTtlMs: this.__alpha2019OfferTtlMs || OFFER_TTL_MS,
+        staleOfferProtection: true,
+        failedOfferReleasesChannel: true,
+        transportFalseIsFailure: true,
+        merchantPotionReservePerType: this.config.merchantPotionReserve,
+        potionRequestBelow: this.config.farmerPotionLow,
+        potionTargetPerType: this.config.farmerPotionTarget,
+        maxSupplyBatch: this.config.maxSupplyBatch,
+        farmerGoldReserve: this.config.farmerGoldReserve,
+        lootSignal: merchantCapacity ? (merchantCapacity.acceptingLoot ? 'ACCEPTING_LOOT' : 'OKAY_STOP_MERCHANT_INVENTORY_FULL') : (this.lastMerchantStatus && this.lastMerchantStatus.lootSignal || null),
+        stats: {
+          offerTransportFailures: this.stats.offerTransportFailures,
+          staleOffersCleared: this.stats.staleOffersCleared,
+          falseDeliveryResults: this.stats.falseDeliveryResults
+        }
+      }
+    };
+  };
+
+  return true;
+}
+
+module.exports = {
+  OFFER_TTL_MS,
+  MERCHANT_POTION_RESERVE,
+  clearFailedOffer,
+  patchAlpha2019LogisticsStabilization
+};
+
+},
+"src/autonomy/adaptive-farm-intelligence.js": function(require,module,exports){
+'use strict';
+
+const { FarmAreaPressureHotfix, areaKey } = require('../reliability/farm-area-pressure-hotfix');
+
+const PATCH = Symbol.for('AIO_V3_ALPHA20_16_ADAPTIVE_FARM_INTELLIGENCE');
+const STORAGE_KEY = 'aio_v3_farm_intelligence_v2';
+const MAX_HISTORY = 96;
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp(value, lo, hi) { return Math.max(lo, Math.min(hi, value)); }
+function average(rows, key) { return rows.length ? rows.reduce((sum, row) => sum + finite(row[key]), 0) / rows.length : 0; }
+
+function storageFor(instance) {
+  const root = instance.runtime && instance.runtime.root;
+  const parent = root && root.parent || root;
+  return root && root.localStorage || parent && parent.localStorage || null;
+}
+
+function serverHourKey(instance) {
+  const root = instance.runtime && instance.runtime.root;
+  const parent = root && root.parent || root;
+  const region = String(root && root.server_region || parent && parent.server_region || 'unknown');
+  const server = String(root && root.server_identifier || parent && parent.server_identifier || 'unknown');
+  const hour = new Date(instance.now()).getUTCHours();
+  return `${region}:${server}:utc${String(hour).padStart(2, '0')}`;
+}
+
+function ensure(instance) {
+  if (instance.__adaptiveFarmIntel) return instance.__adaptiveFarmIntel;
+  const state = {
+    area: null,
+    previousMonsters: new Map(),
+    lastXp: null,
+    waitStartedAt: null,
+    history: new Map(),
+    persistenceBlocked: false,
+    persistenceError: null,
+    persistenceWrites: 0,
+    persistenceFailures: 0,
+    loaded: false,
+    lastPersistAt: -Infinity
+  };
+  instance.__adaptiveFarmIntel = state;
+  loadHistory(instance, state);
+  return state;
+}
+
+function loadHistory(instance, state) {
+  if (state.loaded) return;
+  state.loaded = true;
+  const storage = storageFor(instance);
+  if (!storage || typeof storage.getItem !== 'function') return;
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    for (const row of Array.isArray(parsed && parsed.rows) ? parsed.rows.slice(0, MAX_HISTORY) : []) {
+      if (row && row.key) state.history.set(String(row.key), row);
+    }
+  } catch (_) {}
+}
+
+function persistHistory(instance, state) {
+  if (state.persistenceBlocked || instance.now() - state.lastPersistAt < 30000) return false;
+  const storage = storageFor(instance);
+  if (!storage || typeof storage.setItem !== 'function') return false;
+  state.lastPersistAt = instance.now();
+  try {
+    const rows = [...state.history.values()].sort((a, b) => finite(b.updatedAt) - finite(a.updatedAt)).slice(0, MAX_HISTORY);
+    storage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 2, rows }));
+    state.persistenceWrites += 1;
+    return true;
+  } catch (error) {
+    state.persistenceBlocked = true;
+    state.persistenceFailures += 1;
+    state.persistenceError = String(error && error.message || error || 'storage write failed').slice(0, 180);
+    if (typeof instance._event === 'function') instance._event('FARM_INTELLIGENCE_PERSISTENCE_BLOCKED', 'warn', 'STORAGE_WRITE_FAILED_SESSION_BLOCKED', { message: state.persistenceError });
+    return false;
+  }
+}
+
+function updateHistory(instance, evaluation) {
+  if (!evaluation || !evaluation.key) return;
+  const state = ensure(instance);
+  const key = `${serverHourKey(instance)}:${evaluation.key}`;
+  const prior = state.history.get(key) || { key, areaKey: evaluation.key, serverHour: serverHourKey(instance), visits: 0, overpopulation: 0, starvation: 0 };
+  const visits = finite(prior.visits) + 1;
+  const blend = (oldValue, next) => visits <= 1 ? finite(next) : finite(oldValue) * 0.75 + finite(next) * 0.25;
+  const row = {
+    ...prior, visits, updatedAt: instance.now(),
+    killsPerMin: blend(prior.killsPerMin, evaluation.killsPerMin),
+    xpPerMin: blend(prior.xpPerMin, evaluation.xpPerMin),
+    spawnRatePerMin: blend(prior.spawnRatePerMin, evaluation.spawnRatePerMin),
+    monsterUptimeRatio: blend(prior.monsterUptimeRatio, evaluation.monsterUptimeRatio),
+    averageWaitMs: blend(prior.averageWaitMs, evaluation.averageWaitMs),
+    contestedLossRatio: blend(prior.contestedLossRatio, evaluation.contestedLossRatio),
+    overpopulation: finite(prior.overpopulation) + (evaluation.classification === 'AREA_OVERPOPULATED' ? 1 : 0),
+    starvation: finite(prior.starvation) + (evaluation.classification === 'AREA_SPAWN_STARVED' ? 1 : 0)
+  };
+  state.history.set(key, row);
+  if (state.history.size > MAX_HISTORY) {
+    const oldest = [...state.history.values()].sort((a, b) => finite(a.updatedAt) - finite(b.updatedAt))[0];
+    if (oldest) state.history.delete(oldest.key);
+  }
+  persistHistory(instance, state);
+}
+
+function empiricalBonus(instance, row) {
+  const state = ensure(instance);
+  const exact = state.history.get(`${serverHourKey(instance)}:${areaKey(row)}`);
+  if (!exact || finite(exact.visits) < 1) return 0;
+  const productive = clamp(finite(exact.killsPerMin) / 8, 0, 1) * 0.04 + clamp(finite(exact.xpPerMin) / 5000, 0, 1) * 0.04;
+  const waiting = clamp(finite(exact.averageWaitMs) / 20000, 0, 1) * 0.04;
+  const contested = clamp(finite(exact.contestedLossRatio), 0, 1) * 0.05;
+  return clamp(productive - waiting - contested, -0.08, 0.08);
+}
+
+function patchAdaptiveFarmIntelligence() {
+  const proto = FarmAreaPressureHotfix && FarmAreaPressureHotfix.prototype;
+  if (!proto || proto[PATCH]) return false;
+  Object.defineProperty(proto, PATCH, { value: true, enumerable: false });
+  const baseInstall = proto.install;
+  const baseResetForArea = proto._resetForArea;
+  const baseSample = proto._sample;
+  const baseEvaluate = proto._evaluate;
+  const baseStatus = proto.status;
+
+  proto.install = function alpha2016Install() {
+    const result = baseInstall.apply(this, arguments);
+    const state = ensure(this);
+    this.config.contestedLossThreshold = 0.30;
+    this.config.minSpawnRatePerMin = 2.5;
+    this.config.maxAverageWaitMs = 9000;
+    this.config.minKillsPerMin = 1.5;
+    if (!this.planner.__adaptiveFarmIntelRankInstalled) {
+      const pressureRank = this.planner.rank.bind(this.planner);
+      this.planner.rank = (...args) => {
+        const rows = pressureRank(...args) || [];
+        return rows.map((row) => ({ ...row, empiricalFarmBonus: empiricalBonus(this, row), score: finite(row.score) + empiricalBonus(this, row) }))
+          .sort((a, b) => finite(b.score) - finite(a.score));
+      };
+      this.planner.__adaptiveFarmIntelRankInstalled = true;
+    }
+    state.area = null;
+    return result;
+  };
+
+  proto._resetForArea = function alpha2016Reset(key) {
+    const result = baseResetForArea.call(this, key);
+    const state = ensure(this);
+    state.area = key;
+    state.previousMonsters = new Map();
+    state.lastXp = null;
+    state.waitStartedAt = null;
+    return result;
+  };
+
+  proto._sample = function alpha2016Sample(snapshot, plan) {
+    const base = baseSample.call(this, snapshot, plan);
+    const state = ensure(this);
+    const trusted = this._trustedNames();
+    const now = this.now();
+    const monsters = (snapshot.entities || []).filter((entity) => entity && entity.mtype === plan.monster && !entity.dead && finite(entity.hp, 1) > 0 && this._nearPlan(entity, plan));
+    const current = new Map(monsters.map((entity) => [String(entity.id), entity]));
+    let spawnAppearances = 0;
+    let partyKills = 0;
+    let contestedLosses = 0;
+    for (const id of current.keys()) if (!state.previousMonsters.has(id)) spawnAppearances += 1;
+    for (const [id, old] of state.previousMonsters.entries()) {
+      if (current.has(id)) continue;
+      const partyOwned = trusted.has(String(old && old.target || '')) || String(this.runtime.farmer && this.runtime.farmer.targetId || '') === id || String(snapshot.character && snapshot.character.target || '') === id;
+      if (partyOwned) partyKills += 1;
+      else if (base.foreignPlayers > 0) contestedLosses += 1;
+    }
+    state.previousMonsters = current;
+    const xp = finite(snapshot.character && snapshot.character.xp, null);
+    const xpDelta = state.lastXp == null || xp == null ? 0 : Math.max(0, xp - state.lastXp);
+    state.lastXp = xp;
+    const hasOpportunity = base.targetActive || base.matchingMonsters > 0;
+    let waitCompletedMs = 0;
+    if (!hasOpportunity && state.waitStartedAt == null) state.waitStartedAt = now;
+    if (hasOpportunity && state.waitStartedAt != null) {
+      waitCompletedMs = Math.max(0, now - state.waitStartedAt);
+      state.waitStartedAt = null;
+    }
+    return { ...base, xpDelta, spawnAppearances, partyKills, contestedLosses, waitCompletedMs, waitCompleted: waitCompletedMs > 0 ? 1 : 0, currentWaitMs: state.waitStartedAt == null ? 0 : now - state.waitStartedAt };
+  };
+
+  proto._evaluate = function alpha2016Evaluate(plan) {
+    const basic = baseEvaluate.call(this, plan);
+    if (!basic) return null;
+    const rows = this.samples.filter((row) => row.areaKey === basic.key);
+    const elapsedMin = Math.max(1 / 60, (finite(basic.dwellMs) || this.config.windowMs) / 60000);
+    const monsterUptimeRatio = rows.filter((row) => finite(row.matchingMonsters) > 0).length / Math.max(1, rows.length);
+    const noTargetRatio = rows.filter((row) => !row.targetActive).length / Math.max(1, rows.length);
+    const killsPerMin = rows.reduce((sum, row) => sum + finite(row.partyKills), 0) / elapsedMin;
+    const xpPerMin = rows.reduce((sum, row) => sum + finite(row.xpDelta), 0) / elapsedMin;
+    const spawnRatePerMin = rows.reduce((sum, row) => sum + finite(row.spawnAppearances), 0) / elapsedMin;
+    const contested = rows.reduce((sum, row) => sum + finite(row.contestedLosses), 0);
+    const partyKills = rows.reduce((sum, row) => sum + finite(row.partyKills), 0);
+    const contestedLossRatio = contested / Math.max(1, contested + partyKills);
+    const completedWaits = rows.reduce((sum, row) => sum + finite(row.waitCompleted), 0);
+    const totalWait = rows.reduce((sum, row) => sum + finite(row.waitCompletedMs), 0);
+    const currentWait = rows.length ? finite(rows[rows.length - 1].currentWaitMs) : 0;
+    const averageWaitMs = completedWaits ? totalWait / completedWaits : currentWait;
+    const weak = noTargetRatio >= 0.55 && (killsPerMin < this.config.minKillsPerMin || averageWaitMs >= this.config.maxAverageWaitMs || monsterUptimeRatio < 0.25);
+    const enoughTheoreticalSpawn = spawnRatePerMin >= this.config.minSpawnRatePerMin || monsterUptimeRatio >= 0.20;
+    const competition = basic.foreignPresenceRatio >= 0.25 || contestedLossRatio >= this.config.contestedLossThreshold;
+    const legacyOverpopulationEvidence = basic.pressured && basic.classification === 'AREA_OVERPOPULATED';
+    let classification = 'AREA_HEALTHY';
+    if (weak && competition && (enoughTheoreticalSpawn || legacyOverpopulationEvidence)) classification = 'AREA_OVERPOPULATED';
+    else if (weak && (!enoughTheoreticalSpawn || monsterUptimeRatio < 0.18)) classification = 'AREA_SPAWN_STARVED';
+    else if (basic.pressured) classification = basic.classification;
+    const evaluation = { ...basic, monsterUptimeRatio, noTargetRatio, killsPerMin, xpPerMin, spawnRatePerMin, contestedLossRatio, averageWaitMs, averageForeignPlayers: average(rows, 'foreignPlayers'), pressured: classification !== 'AREA_HEALTHY', classification, serverHour: serverHourKey(this) };
+    this.lastEvaluation = evaluation;
+    updateHistory(this, evaluation);
+    return evaluation;
+  };
+
+  proto.status = function alpha2016Status() {
+    const base = baseStatus.call(this); const state = ensure(this);
+    return { ...base, schemaVersion: 2, mode: 'adaptive-farm-intelligence-v2', alpha20_16: { leaderOnlyAreaAuthority: true, partyWideReplan: true, metrics: ['monsterUptimeRatio','noTargetRatio','killsPerMin','xpPerMin','spawnRatePerMin','foreignPresenceRatio','contestedLossRatio','averageWaitMs'], classification: ['AREA_OVERPOPULATED','AREA_SPAWN_STARVED','AREA_HEALTHY'], serverHour: serverHourKey(this), learnedAreas: state.history.size, persistence: { storageKey: STORAGE_KEY, blocked: state.persistenceBlocked, error: state.persistenceError, writes: state.persistenceWrites, failures: state.persistenceFailures }, lastEvaluation: this.lastEvaluation } };
+  };
+
+  return true;
+}
+
+module.exports = { STORAGE_KEY, MAX_HISTORY, empiricalBonus, patchAdaptiveFarmIntelligence };
+
+},
 "src/reliability/farm-area-pressure-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -25955,6 +26524,647 @@ module.exports = {
   FARM_AREA_PRESSURE_MODE,
   areaKey
 };
+
+},
+"src/autonomy/tactical-party-combat.js": function(require,module,exports){
+'use strict';
+
+const TACTICAL_PARTY_COMBAT_MODE = 'leader-owned-tactical-encounter-v1';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clamp(value, lo, hi) { return Math.max(lo, Math.min(hi, value)); }
+function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+function distance(a, b) {
+  const ax = finite(a && a.x, NaN); const ay = finite(a && a.y, NaN); const bx = finite(b && b.x, NaN); const by = finite(b && b.y, NaN);
+  return [ax, ay, bx, by].every(Number.isFinite) ? Math.hypot(ax - bx, ay - by) : Infinity;
+}
+
+class TacticalPartyCombat {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.farmer || !runtime.teamCombatCohesionHotfix) throw new Error('farmer and team combat cohesion required');
+    this.runtime = runtime;
+    this.farmer = runtime.farmer;
+    this.team = runtime.teamCombatCohesionHotfix;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.config = {
+      targetLockMs: Math.max(3000, finite(options.targetLockMs, 8000)),
+      betterTargetScoreDelta: Math.max(10, finite(options.betterTargetScoreDelta, 25)),
+      maxRoutineTtkSeconds: Math.max(15, finite(options.maxRoutineTtkSeconds, 45)),
+      maxProjectedTeamDamageRatio: clamp(finite(options.maxProjectedTeamDamageRatio, 0.80), 0.35, 1.5),
+      maxAvoidance: clamp(finite(options.maxAvoidance, 0.70), 0.30, 0.95)
+    };
+    this.encounter = null;
+    this.lastEvaluation = null;
+    this.lastDecision = null;
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0 };
+    this.installed = false;
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'tactical-party-combat', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _monsterMeta(target) {
+    const game = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
+    return game.monsters && target && game.monsters[target.mtype] || {};
+  }
+
+  _specialFreshPull(target) {
+    if (!target || target.target) return false;
+    const meta = this._monsterMeta(target);
+    return meta.boss === true || meta.special === true || meta.event === true || meta.global === true || meta.cooperative === true || target.boss === true || target.special === true;
+  }
+
+  _memberLiveRow(snapshot, name) {
+    if (snapshot && snapshot.character && snapshot.character.name === name) return snapshot.character;
+    return (snapshot && snapshot.entities || []).find((row) => row && row.name === name && !row.mtype) || null;
+  }
+
+  _partyDps(team, snapshot) {
+    let total = 0;
+    for (const member of team && team.members || []) {
+      const row = this._memberLiveRow(snapshot, member.name) || member;
+      const attack = finite(row.attack, 0);
+      const frequency = Math.max(0.25, finite(row.frequency, 0));
+      const base = attack > 0 ? attack * frequency : 200;
+      const ctype = lower(row.ctype || member.ctype);
+      const classFactor = ctype === 'ranger' || ctype === 'mage' || ctype === 'rogue' ? 1.08 : 1;
+      total += Math.max(80, base * classFactor);
+    }
+    return Math.max(1, total);
+  }
+
+  _targetDps(target) {
+    const meta = this._monsterMeta(target);
+    const attack = Math.max(0, finite(target && target.attack, finite(meta.attack, 0)));
+    const frequency = Math.max(0.2, finite(target && target.frequency, finite(meta.frequency, 1)));
+    return attack * frequency;
+  }
+
+  _avoidance(target) {
+    const meta = this._monsterMeta(target);
+    return clamp(Math.max(finite(target && target.evasion, 0), finite(target && target.avoidance, 0), finite(meta.evasion, 0), finite(meta.avoidance, 0)), 0, 1);
+  }
+
+  _rangeScore(target, snapshot, team) {
+    if (!snapshot || !snapshot.character || !target) return 0;
+    const localDistance = distance(snapshot.character, target);
+    const ranges = (team && team.members || []).map((member) => {
+      const row = this._memberLiveRow(snapshot, member.name) || member;
+      return finite(row.range, 100);
+    });
+    const averageRange = ranges.length ? ranges.reduce((a, b) => a + b, 0) / ranges.length : 100;
+    if (!Number.isFinite(localDistance)) return 0;
+    return clamp((averageRange * 1.5 - localDistance) / Math.max(1, averageRange * 1.5), -1, 1);
+  }
+
+  evaluateTarget(target, team, snapshot = this.runtime.lastSnapshot) {
+    this.stats.evaluations += 1;
+    if (!target) return { allowed: false, reason: 'TARGET_MISSING', score: -Infinity };
+    const names = new Set(team && team.names || []);
+    const partyAggro = !!(target.target && names.has(String(target.target)));
+    if (this._specialFreshPull(target) && !partyAggro) {
+      const result = { allowed: false, reason: 'FRESH_BOSS_OR_SPECIAL_PULL_FORBIDDEN', score: -Infinity, targetId: String(target.id), targetType: target.mtype };
+      this.stats.specialPullBlocks += 1; this.lastEvaluation = result; return result;
+    }
+    const partyDps = this._partyDps(team, snapshot);
+    const hp = Math.max(1, finite(target.hp, finite(target.max_hp, 1)));
+    const ttkSeconds = hp / partyDps;
+    const targetDps = this._targetDps(target);
+    const totalTeamHp = Math.max(1, (team && team.members || []).reduce((sum, row) => sum + Math.max(0, finite(row.hp, finite(row.max_hp, 0))), 0));
+    const projectedDamage = targetDps * ttkSeconds;
+    const projectedDamageRatio = projectedDamage / totalTeamHp;
+    const avoidance = this._avoidance(target);
+    const aggroBonus = partyAggro ? 30 : 0;
+    const rangeScore = this._rangeScore(target, snapshot, team);
+    const hpRatio = finite(target.max_hp, hp) > 0 ? hp / finite(target.max_hp, hp) : 1;
+    const score = 100 - ttkSeconds * 1.5 - projectedDamageRatio * 45 - avoidance * 30 + aggroBonus + rangeScore * 8 + (1 - hpRatio) * 10;
+    let allowed = true; let reason = partyAggro ? 'PARTY_MEMBER_UNDER_ATTACK' : 'TACTICAL_ROUTINE_TARGET';
+    if (!partyAggro && avoidance > this.config.maxAvoidance) { allowed = false; reason = 'TARGET_AVOIDANCE_TOO_HIGH'; }
+    else if (!partyAggro && ttkSeconds > this.config.maxRoutineTtkSeconds && projectedDamageRatio > this.config.maxProjectedTeamDamageRatio) { allowed = false; reason = 'PROJECTED_COMBAT_RISK_TOO_HIGH'; }
+    const result = { allowed, reason, score, targetId: String(target.id), targetType: target.mtype, partyDps, targetDps, ttkSeconds, projectedDamage, projectedDamageRatio, avoidance, rangeScore, hpRatio, partyAggro };
+    if (allowed) this.stats.routineAllowed += 1; else this.stats.unsafeRejected += 1;
+    this.lastEvaluation = result;
+    return result;
+  }
+
+  _setEncounter(target, evaluation, reason) {
+    this.encounter = { targetId: String(target.id), targetType: target.mtype || null, selectedAt: this.now(), updatedAt: this.now(), reason, score: finite(evaluation && evaluation.score), plan: evaluation ? { ttkSeconds: finite(evaluation.ttkSeconds), partyDps: finite(evaluation.partyDps), targetDps: finite(evaluation.targetDps), projectedDamageRatio: finite(evaluation.projectedDamageRatio), avoidance: finite(evaluation.avoidance), rangeScore: finite(evaluation.rangeScore) } : null };
+    this.lastDecision = { at: this.now(), action: 'ENCOUNTER_TARGET', reason, ...this.encounter };
+    return this.encounter;
+  }
+
+  _currentEntity(snapshot) {
+    if (!this.encounter) return null;
+    return (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === this.encounter.targetId && !row.dead && finite(row.hp, 1) > 0) || null;
+  }
+
+  _selection(target, source, evaluation) {
+    return { target, ranking: { monster: target.mtype || null, score: finite(evaluation && evaluation.score), travelSeconds: 0, xpPerHour: 0, goldPerHour: 0, deathsPerHour: 0, confidence: 1, source } };
+  }
+
+  install() {
+    if (this.installed || this.farmer.__tacticalPartyCombatInstalled) return false;
+    const self = this;
+    this.team._oversizedNewTarget = function tacticalRiskGate(target, team) {
+      return !self.evaluateTarget(target, team, self.__selectionSnapshot || self.runtime.lastSnapshot).allowed;
+    };
+
+    const baseSelect = this.farmer._selectTarget.bind(this.farmer);
+    this.farmer._selectTarget = (context) => {
+      const snapshot = context && context.snapshot;
+      const team = this.team._team(snapshot);
+      this.__selectionSnapshot = snapshot;
+      try {
+        if (team && team.selfName === team.leaderName && this.encounter) {
+          const current = this._currentEntity(snapshot);
+          if (current && this.team._candidateAllowed(context, current)) {
+            const shared = this.team._sharedAggro(context, team);
+            if (!shared || String(shared.id) === String(current.id)) {
+              const evaluation = this.evaluateTarget(current, team, snapshot);
+              if (evaluation.allowed) {
+                this.stats.targetLocks += 1;
+                this.encounter.updatedAt = this.now();
+                return this._selection(current, 'tactical-encounter-lock', evaluation);
+              }
+            }
+          }
+          this.encounter = null;
+        }
+        const selection = baseSelect(context);
+        if (selection && selection.target && team && team.selfName === team.leaderName) {
+          const evaluation = this.evaluateTarget(selection.target, team, snapshot);
+          if (!evaluation.allowed) {
+            this.lastDecision = { at: this.now(), action: 'TARGET_HOLD', reason: evaluation.reason, targetId: String(selection.target.id), targetType: selection.target.mtype };
+            return null;
+          }
+          this._setEncounter(selection.target, evaluation, evaluation.partyAggro ? 'PARTY_MEMBER_UNDER_ATTACK' : 'LEADER_TACTICAL_SELECTION');
+        }
+        return selection;
+      } finally { this.__selectionSnapshot = null; }
+    };
+
+    if (typeof this.farmer._maybeReassessTarget === 'function') {
+      const baseReassess = this.farmer._maybeReassessTarget.bind(this.farmer);
+      this.farmer._maybeReassessTarget = (context, target) => {
+        const snapshot = context && context.snapshot;
+        const team = this.team._team(snapshot);
+        if (!team || !team.complete) return baseReassess(context, target);
+        if (team.selfName !== team.leaderName) {
+          this.stats.followerReassessmentBlocks += 1;
+          return target;
+        }
+        const shared = this.team._sharedAggro(context, team);
+        if (shared && String(shared.id) !== String(target && target.id)) {
+          const evaluation = this.evaluateTarget(shared, team, snapshot);
+          if (evaluation.allowed) {
+            this.stats.sharedAggroSwitches += 1;
+            this._setEncounter(shared, evaluation, 'PARTY_MEMBER_UNDER_ATTACK');
+            return shared;
+          }
+        }
+        if (target && !target.dead && finite(target.hp, 1) > 0) {
+          const currentEval = this.evaluateTarget(target, team, snapshot);
+          if (currentEval.allowed && this.encounter && this.now() - this.encounter.selectedAt < this.config.targetLockMs) return target;
+          if (currentEval.allowed) {
+            const candidates = this.farmer._safeLiveMonsters(snapshot, context.party) || [];
+            let best = null;
+            for (const candidate of candidates) {
+              if (!candidate || String(candidate.id) === String(target.id)) continue;
+              const evaluation = this.evaluateTarget(candidate, team, snapshot);
+              if (!evaluation.allowed) continue;
+              if (!best || evaluation.score > best.evaluation.score) best = { candidate, evaluation };
+            }
+            if (!best || best.evaluation.score < currentEval.score + this.config.betterTargetScoreDelta) return target;
+            this.stats.betterTargetSwitches += 1;
+            this._setEncounter(best.candidate, best.evaluation, 'CLEARLY_BETTER_TEAM_TARGET');
+            return best.candidate;
+          }
+        }
+        return baseReassess(context, target);
+      };
+    }
+
+    this.farmer.__tacticalPartyCombatInstalled = true;
+    this.installed = true;
+    this._event('TACTICAL_PARTY_COMBAT_INSTALLED', 'info', null, { ...this.config });
+    return true;
+  }
+
+  status() {
+    return { schemaVersion: 1, mode: TACTICAL_PARTY_COMBAT_MODE, installed: this.installed, leaderOwnsEncounter: true, followerIndependentReassessment: false, freshBossSpecialPullsForbidden: true, config: { ...this.config }, encounter: this.encounter ? { ...this.encounter } : null, lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null, lastDecision: this.lastDecision ? { ...this.lastDecision } : null, stats: { ...this.stats } };
+  }
+}
+
+function installTacticalPartyCombat(runtime, options = {}) { return new TacticalPartyCombat(runtime, options); }
+module.exports = { TacticalPartyCombat, installTacticalPartyCombat, TACTICAL_PARTY_COMBAT_MODE };
+
+},
+"src/autonomy/advanced-party-movement.js": function(require,module,exports){
+'use strict';
+
+const ADVANCED_PARTY_MOVEMENT_MODE = 'class-aware-group-formation-v1';
+
+function finite(value, fallback = null) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+function distance(a, b) {
+  const ax = finite(a && a.x); const ay = finite(a && a.y); const bx = finite(b && b.x); const by = finite(b && b.y);
+  return ax == null || ay == null || bx == null || by == null ? Infinity : Math.hypot(ax - bx, ay - by);
+}
+function clamp(value, lo, hi) { return Math.max(lo, Math.min(hi, value)); }
+
+class AdvancedPartyMovement {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.teamCombatCohesionHotfix || !runtime.farmerTerrainNavigationHotfix) throw new Error('team cohesion and terrain navigation required');
+    this.runtime = runtime;
+    this.team = runtime.teamCombatCohesionHotfix;
+    this.terrain = runtime.farmerTerrainNavigationHotfix;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.config = {
+      maxStep: clamp(finite(options.maxStep, 120), 50, 120),
+      slotTolerance: clamp(finite(options.slotTolerance, 22), 10, 45),
+      stuckMs: Math.max(2500, finite(options.stuckMs, 5000)),
+      stuckDistance: clamp(finite(options.stuckDistance, 95), 70, 135),
+      orbitStepDeg: clamp(finite(options.orbitStepDeg, 18), 8, 35),
+      rangerOrbitOffsetDeg: clamp(finite(options.rangerOrbitOffsetDeg, 22), 10, 35)
+    };
+    this.sharedOrbitDirection = 1;
+    this.memberMotion = new Map();
+    this.stuckMembers = [];
+    this.lastFormation = null;
+    this.lastKite = null;
+    this.stats = { formationWaypoints: 0, terrainAlternatives: 0, orbitWaypoints: 0, orbitReversals: 0, stuckDetections: 0, regroupHolds: 0, pathSteps: 0 };
+    this.installed = false;
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'advanced-party-movement', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _canMoveTo(x, y) {
+    const root = this.runtime.root || globalThis; const parent = root && root.parent || root;
+    const fn = root && root.can_move_to || parent && parent.can_move_to;
+    if (typeof fn !== 'function') return true;
+    try { return fn.call(root, x, y) !== false; } catch (_) { return false; }
+  }
+
+  _targetForTeam(team) {
+    const snapshot = this.runtime.lastSnapshot;
+    const id = this.runtime.tacticalPartyCombat && this.runtime.tacticalPartyCombat.encounter && this.runtime.tacticalPartyCombat.encounter.targetId || team && team.leaderTargetId;
+    if (!id) return null;
+    return (snapshot && snapshot.entities || []).find((row) => row && String(row.id) === String(id)) || null;
+  }
+
+  _facing(team) {
+    const target = this._targetForTeam(team);
+    if (target && team && team.leader && finite(target.x) != null && finite(target.y) != null) return Math.atan2(Number(target.y) - Number(team.leader.y), Number(target.x) - Number(team.leader.x));
+    const plan = this.runtime.localFarming && this.runtime.localFarming.currentPlan;
+    if (plan && team && team.leader && finite(plan.x) != null && finite(plan.y) != null) return Math.atan2(Number(plan.y) - Number(team.leader.y), Number(plan.x) - Number(team.leader.x));
+    return 0;
+  }
+
+  _slot(team, member) {
+    const ctype = lower(member && member.ctype);
+    const followers = (team.members || []).filter((row) => row.name !== team.leaderName);
+    const sameClass = followers.filter((row) => lower(row.ctype) === ctype).sort((a, b) => a.name.localeCompare(b.name));
+    const classIndex = Math.max(0, sameClass.findIndex((row) => row.name === member.name));
+    const side = classIndex % 2 === 0 ? -1 : 1;
+    let forward = -25; let lateral = side * 28;
+    if (ctype === 'warrior' || ctype === 'paladin') { forward = 32; lateral = side * 20; }
+    else if (ctype === 'rogue') { forward = 10; lateral = side * 32; }
+    else if (ctype === 'priest') { forward = -55; lateral = side * 16; }
+    else if (ctype === 'ranger' || ctype === 'mage') { forward = -38; lateral = side * 32; }
+    return { forward, lateral, ctype };
+  }
+
+  _desiredFormationPoint(team, member) {
+    const facing = this._facing(team); const slot = this._slot(team, member);
+    const fx = Math.cos(facing); const fy = Math.sin(facing); const lx = -fy; const ly = fx;
+    return { x: Number(team.leader.x) + fx * slot.forward + lx * slot.lateral, y: Number(team.leader.y) + fy * slot.forward + ly * slot.lateral, facing, ...slot };
+  }
+
+  _boundedReachableStep(character, desired) {
+    const d = distance(character, desired);
+    if (!Number.isFinite(d) || d <= this.config.slotTolerance) return null;
+    const step = Math.min(this.config.maxStep, Math.max(8, d));
+    const base = Math.atan2(desired.y - Number(character.y), desired.x - Number(character.x));
+    for (const offsetDeg of [0, 15, -15, 30, -30, 45, -45, 65, -65, 90, -90]) {
+      const angle = base + offsetDeg * Math.PI / 180;
+      const x = Number(character.x) + Math.cos(angle) * step;
+      const y = Number(character.y) + Math.sin(angle) * step;
+      if (!this._canMoveTo(x, y)) continue;
+      if (offsetDeg) this.stats.terrainAlternatives += 1;
+      return { x, y, step, offsetDeg, distance: d };
+    }
+    return null;
+  }
+
+  _observeMotion(team) {
+    const now = this.now(); const stuck = [];
+    for (const member of team && team.members || []) {
+      const prior = this.memberMotion.get(member.name);
+      const moved = prior && distance(prior, member) > 3;
+      const row = { x: member.x, y: member.y, at: now, lastMovedAt: moved ? now : (prior && prior.lastMovedAt || now) };
+      this.memberMotion.set(member.name, row);
+      if (member.name !== team.leaderName && distance(member, team.leader) >= this.config.stuckDistance && now - row.lastMovedAt >= this.config.stuckMs) stuck.push(member.name);
+    }
+    const newDetection = stuck.length && !this.stuckMembers.length;
+    this.stuckMembers = stuck;
+    if (newDetection) {
+      this.stats.stuckDetections += 1;
+      this._event('PARTY_FORMATION_STUCK_DETECTED', 'warn', 'GROUP_REGROUP_REQUIRED', { stuckMembers: stuck.slice() });
+    }
+    return stuck;
+  }
+
+  _orbitPoint(character, target, team) {
+    const range = Math.max(1, finite(character.range, 100));
+    const radius = clamp(range * 0.78, 55, 115);
+    const leaderAngle = Math.atan2(Number(team.leader.y) - Number(target.y), Number(team.leader.x) - Number(target.x));
+    const followers = (team.members || []).filter((row) => row.name !== team.leaderName).sort((a, b) => a.name.localeCompare(b.name));
+    const index = followers.findIndex((row) => row.name === team.selfName);
+    const offset = team.selfName === team.leaderName ? 0 : (index % 2 === 0 ? -this.config.rangerOrbitOffsetDeg : this.config.rangerOrbitOffsetDeg);
+    const angle = leaderAngle + (offset + this.sharedOrbitDirection * this.config.orbitStepDeg) * Math.PI / 180;
+    return { x: Number(target.x) + Math.cos(angle) * radius, y: Number(target.y) + Math.sin(angle) * radius, radius, angle, offsetDeg: offset };
+  }
+
+  _boundedPoint(character, point) {
+    const d = distance(character, point); if (!Number.isFinite(d)) return null;
+    if (d <= this.config.maxStep) return { ...point, step: d };
+    const angle = Math.atan2(point.y - Number(character.y), point.x - Number(character.x));
+    return { ...point, x: Number(character.x) + Math.cos(angle) * this.config.maxStep, y: Number(character.y) + Math.sin(angle) * this.config.maxStep, step: this.config.maxStep };
+  }
+
+  _reachableOrbit(character, target, team) {
+    const desired = this._orbitPoint(character, target, team);
+    const bounded = this._boundedPoint(character, desired);
+    if (bounded && this._canMoveTo(bounded.x, bounded.y)) return bounded;
+    for (const extra of [15, -15, 30, -30, 45, -45]) {
+      const angle = desired.angle + extra * Math.PI / 180;
+      const alternate = this._boundedPoint(character, { ...desired, x: Number(target.x) + Math.cos(angle) * desired.radius, y: Number(target.y) + Math.sin(angle) * desired.radius, angle });
+      if (alternate && this._canMoveTo(alternate.x, alternate.y)) { this.stats.terrainAlternatives += 1; return alternate; }
+    }
+    this.sharedOrbitDirection *= -1; this.stats.orbitReversals += 1;
+    const reversed = this._boundedPoint(character, this._orbitPoint(character, target, team));
+    return reversed && this._canMoveTo(reversed.x, reversed.y) ? reversed : null;
+  }
+
+  install() {
+    if (this.installed || this.team.__advancedPartyMovementInstalled) return false;
+    const baseTeam = this.team._team.bind(this.team);
+    this.team._team = (snapshot) => {
+      const result = baseTeam(snapshot);
+      const stuck = this._observeMotion(result);
+      if (stuck.length && result && result.cohesive) {
+        result.cohesive = false;
+        result.regroupRequired = true;
+        result.stuckMembers = stuck.slice();
+        this.stats.regroupHolds += result.selfName === result.leaderName ? 1 : 0;
+      }
+      return result;
+    };
+
+    const baseFollow = this.team._followWaypoint.bind(this.team);
+    this.team._followWaypoint = (character, leader) => {
+      const state = this.team.lastTeam;
+      if (!state || !state.self || state.selfName === state.leaderName || state.leaderName !== leader.name) return baseFollow(character, leader);
+      const desired = this._desiredFormationPoint(state, state.self);
+      const waypoint = this._boundedReachableStep(character, desired);
+      if (!waypoint) return distance(character, desired) <= this.config.slotTolerance ? null : baseFollow(character, leader);
+      this.stats.formationWaypoints += 1; this.stats.pathSteps += 1;
+      this.lastFormation = { at: this.now(), member: state.selfName, leader: state.leaderName, desired, waypoint };
+      return waypoint;
+    };
+
+    const kiting = this.runtime.farmer && this.runtime.farmer.kiting;
+    if (kiting && typeof kiting.evaluate === 'function') {
+      const baseKite = kiting.evaluate.bind(kiting);
+      kiting.evaluate = (character, target) => {
+        const decision = baseKite(character, target);
+        if (!decision || !decision.shouldMove) return decision;
+        const snapshot = this.runtime.lastSnapshot;
+        const team = snapshot && snapshot.character ? this.team._team(snapshot) : null;
+        if (!team || !team.complete || !team.self || !target) return decision;
+        for (const member of team.members) this.terrain.orbitDirectionByCharacter.set(member.name, this.sharedOrbitDirection);
+        const waypoint = this._reachableOrbit(character, target, team);
+        if (!waypoint) return { ...decision, shouldMove: false, reason: 'GROUP_ORBIT_TERRAIN_BLOCKED', terrainBlocked: true };
+        this.stats.orbitWaypoints += 1; this.stats.pathSteps += 1;
+        this.lastKite = { at: this.now(), targetId: target.id || null, member: team.selfName, leader: team.leaderName, sharedOrbitDirection: this.sharedOrbitDirection, x: waypoint.x, y: waypoint.y, radius: waypoint.radius, step: waypoint.step };
+        return { ...decision, x: waypoint.x, y: waypoint.y, step: waypoint.step, reason: 'GROUP_FORMATION_ORBIT', groupOrbit: true };
+      };
+    }
+
+    this.team.__advancedPartyMovementInstalled = true;
+    this.installed = true;
+    this._event('ADVANCED_PARTY_MOVEMENT_INSTALLED', 'info', null, { ...this.config });
+    return true;
+  }
+
+  status() {
+    return { schemaVersion: 1, mode: ADVANCED_PARTY_MOVEMENT_MODE, installed: this.installed, merchantExcludedFromCombatFormation: true, boundedLocalPathfinder: true, maxStep: this.config.maxStep, sharedOrbitDirection: this.sharedOrbitDirection, stuckMembers: this.stuckMembers.slice(), lastFormation: this.lastFormation, lastKite: this.lastKite, config: { ...this.config }, stats: { ...this.stats } };
+  }
+}
+
+function installAdvancedPartyMovement(runtime, options = {}) { return new AdvancedPartyMovement(runtime, options); }
+module.exports = { AdvancedPartyMovement, installAdvancedPartyMovement, ADVANCED_PARTY_MOVEMENT_MODE };
+
+},
+"src/autonomy/party-skill-engine.js": function(require,module,exports){
+'use strict';
+
+const PARTY_SKILL_ENGINE_MODE = 'party-aware-skill-engine-v1';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function ratio(value, max) { const m = finite(max); return m > 0 ? Math.max(0, Math.min(1, finite(value) / m)) : 1; }
+function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+
+const CLASS_PRIORITY = {
+  ranger: { supershot: 90, huntersmark: 35 },
+  mage: { burst: 55, cburst: 50 },
+  rogue: { quickpunch: 45, quickstab: 45, mentalburst: 55 },
+  warrior: { cleave: 45, stomp: 35 },
+  priest: { darkblessing: 20 }
+};
+
+class PartySkillEngine {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.farmer || !runtime.teamCombatCohesionHotfix) throw new Error('farmer and team combat required');
+    this.runtime = runtime;
+    this.farmer = runtime.farmer;
+    this.team = runtime.teamCombatCohesionHotfix;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.config = {
+      minTargetHpForMark: Math.max(500, finite(options.minTargetHpForMark, 2500)),
+      supportHpRatio: Math.max(0.25, Math.min(0.80, finite(options.supportHpRatio, 0.55))),
+      emergencyHpRatio: Math.max(0.15, Math.min(0.60, finite(options.emergencyHpRatio, 0.35))),
+      overkillNormalAttackFactor: Math.max(0.8, finite(options.overkillNormalAttackFactor, 1.10)),
+      expensiveMpRatio: Math.max(0.05, Math.min(0.50, finite(options.expensiveMpRatio, 0.15)))
+    };
+    this.lastDecision = null;
+    this.lastUse = null;
+    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
+    this.installed = false;
+    this.install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'party-skill-engine', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _gameData(context) {
+    return context && context.adapter && context.adapter.getGameData ? context.adapter.getGameData() || {} : {};
+  }
+
+  _skillMeta(gameData, id) { return gameData && gameData.skills && gameData.skills[id] || null; }
+
+  _classAllowed(meta, character) {
+    if (!meta || !character) return false;
+    const classes = Array.isArray(meta.class) ? meta.class : null;
+    return !classes || !classes.length || classes.includes(character.ctype);
+  }
+
+  _canUse(context, id, targetId = null) {
+    const adapter = context && context.adapter;
+    if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(id)) { this.stats.cooldownSkips += 1; return false; }
+    if (targetId != null && adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(targetId, id)) { this.stats.rangeSkips += 1; return false; }
+    return true;
+  }
+
+  _supportDecision(context, target, team) {
+    const snapshot = context.snapshot; const c = snapshot.character; const game = this._gameData(context); const ctype = lower(c.ctype);
+    const members = team && team.members || [];
+    const lowest = members.slice().sort((a, b) => ratio(a.hp, a.max_hp) - ratio(b.hp, b.max_hp))[0] || null;
+    const lowestRatio = lowest ? ratio(lowest.hp, lowest.max_hp) : 1;
+
+    if (ctype === 'priest' && lowest && lowestRatio < this.config.supportHpRatio) {
+      const partyHeal = this._skillMeta(game, 'partyheal');
+      if (partyHeal && this._classAllowed(partyHeal, c) && finite(c.mp) >= finite(partyHeal.mp) && this._canUse(context, 'partyheal')) return { id: 'partyheal', args: ['partyheal'], kind: 'support', reason: 'PARTY_HP_LOW', utility: 200 };
+      const heal = this._skillMeta(game, 'heal');
+      if (heal && this._classAllowed(heal, c) && finite(c.mp) >= finite(heal.mp) && this._canUse(context, 'heal', lowest.name)) return { id: 'heal', args: ['heal', lowest.name], kind: 'support', reason: 'LOWEST_PARTY_MEMBER_HP', utility: 190 };
+    }
+
+    if (ctype === 'warrior') {
+      const selfRatio = ratio(c.hp, c.max_hp);
+      const shell = this._skillMeta(game, 'hardshell');
+      if (selfRatio < this.config.emergencyHpRatio && shell && this._classAllowed(shell, c) && finite(c.mp) >= finite(shell.mp) && this._canUse(context, 'hardshell')) return { id: 'hardshell', args: ['hardshell'], kind: 'defensive', reason: 'WARRIOR_HP_EMERGENCY', utility: 180 };
+      const taunt = this._skillMeta(game, 'taunt');
+      if (target && target.target && target.target !== c.name && members.some((row) => row.name === target.target) && taunt && this._classAllowed(taunt, c) && finite(c.mp) >= finite(taunt.mp) && this._canUse(context, 'taunt', target.id)) return { id: 'taunt', args: ['taunt', String(target.id)], kind: 'support', reason: 'PROTECT_PARTY_TARGET', utility: 160 };
+    }
+
+    if (ctype === 'rogue' && ratio(c.hp, c.max_hp) < this.config.emergencyHpRatio) {
+      const invis = this._skillMeta(game, 'invis');
+      if (invis && this._classAllowed(invis, c) && finite(c.mp) >= finite(invis.mp) && this._canUse(context, 'invis')) return { id: 'invis', args: ['invis'], kind: 'defensive', reason: 'ROGUE_HP_EMERGENCY', utility: 170 };
+    }
+
+    if (ctype === 'ranger' && target && finite(target.hp) >= this.config.minTargetHpForMark) {
+      const mark = this._skillMeta(game, 'huntersmark');
+      if (mark && this._classAllowed(mark, c) && finite(c.mp) >= finite(mark.mp) && this._canUse(context, 'huntersmark', target.id)) return { id: 'huntersmark', args: ['huntersmark', String(target.id)], kind: 'support', reason: 'LONG_ENCOUNTER_MARK', utility: 75 };
+    }
+
+    return null;
+  }
+
+  _directDecision(context, target, team) {
+    const snapshot = context.snapshot; const c = snapshot.character; const game = this._gameData(context);
+    const candidates = this.farmer.skillUsage && typeof this.farmer.skillUsage.candidates === 'function' ? this.farmer.skillUsage.candidates(c, game) : [];
+    if (!candidates.length) return null;
+    const normalDamage = Math.max(1, finite(c.attack, 100));
+    const normalWouldKill = finite(target.hp, Infinity) <= normalDamage * this.config.overkillNormalAttackFactor;
+    const maxMp = Math.max(1, finite(c.max_mp, finite(c.mp, 1)));
+    const priorities = CLASS_PRIORITY[lower(c.ctype)] || {};
+    const aligned = team && team.members && team.members.every((row) => !row.target || String(row.target) === String(target.id));
+    const scored = [];
+
+    for (const skill of candidates) {
+      const mpAfter = finite(c.mp) - finite(skill.mp);
+      if (mpAfter < maxMp * finite(this.farmer.skillUsage.mpReserveRatio, 0)) { this.stats.mpSkips += 1; continue; }
+      if (!this._canUse(context, skill.id, target.id)) continue;
+      const expensive = finite(skill.mp) >= maxMp * this.config.expensiveMpRatio;
+      if (normalWouldKill && expensive) { this.stats.overkillSkips += 1; continue; }
+      const estimatedDamage = normalDamage * Math.max(1, finite(skill.damageMultiplier, 1));
+      const extremeOverkill = estimatedDamage > Math.max(1, finite(target.hp)) * 2 && expensive;
+      if (extremeOverkill) { this.stats.overkillSkips += 1; continue; }
+      const dpsGain = normalDamage * Math.max(0, finite(skill.damageMultiplier, 1) - 1) * Math.max(0.25, finite(c.frequency, 1));
+      const mpPenalty = finite(skill.mp) / maxMp * 45;
+      const utility = dpsGain * 0.20 + finite(priorities[skill.id]) - mpPenalty + (aligned ? 8 : 0) + (skill.id === 'supershot' ? 25 : 0);
+      scored.push({ skill, utility, estimatedDamage, mpAfter });
+    }
+    scored.sort((a, b) => b.utility - a.utility || b.skill.damageMultiplier - a.skill.damageMultiplier || a.skill.id.localeCompare(b.skill.id));
+    const best = scored[0];
+    if (!best) return null;
+    return { id: best.skill.id, args: [best.skill.id, String(target.id)], kind: 'damage', reason: best.skill.id === 'supershot' ? 'RANGER_SUPERSHOT_PRIORITY' : 'MAX_EXPECTED_SAFE_DPS_GAIN', utility: best.utility, skill: best.skill, mpAfter: best.mpAfter, estimatedDamage: best.estimatedDamage };
+  }
+
+  decide(context, target) {
+    this.stats.decisions += 1;
+    const snapshot = context && context.snapshot; const c = snapshot && snapshot.character;
+    if (!snapshot || !c || !target) return null;
+    const team = this.team._team(snapshot);
+    const gate = this.team._combatGate(context, target, 'SKILL_ENGINE');
+    if (!gate.allowed) { this.stats.teamGateBlocks += 1; this.lastDecision = { at: this.now(), action: 'HOLD', reason: gate.reason }; return null; }
+    const recovery = this.farmer._needsRecovery(snapshot);
+    if (c.rip || recovery.hpUnsafe || !this.farmer._targetAllowed(target, snapshot, context.party)) return null;
+    const support = this._supportDecision(context, target, team);
+    const direct = this._directDecision(context, target, team);
+    const decision = support && (!direct || support.utility >= direct.utility) ? support : direct;
+    this.lastDecision = decision ? { at: this.now(), action: 'USE_SKILL', targetId: target.id || null, targetType: target.mtype || null, ...decision } : { at: this.now(), action: 'ATTACK_OR_MOVE', reason: 'NO_HIGHER_VALUE_SKILL' };
+    return decision;
+  }
+
+  _execute(context, target, decision) {
+    if (!decision) return false;
+    const now = this.now();
+    const minInterval = this.farmer.skillUsage ? this.farmer.skillUsage.minIntervalMs : 250;
+    if (now - finite(this.farmer.lastSkillAttemptAt, -Infinity) < minInterval) return false;
+    const result = context.adapter.command('use_skill', decision.args);
+    if (!result || (!result.executed && !result.shadow)) return false;
+    this.farmer.lastSkillAttemptAt = now;
+    // Prevent an additional basic attack in the same command turn, while the
+    // existing kiting layer is still free to issue its independent move.
+    this.farmer.lastActionAt = now;
+    if (decision.kind === 'damage') this.stats.directSkills += 1;
+    else if (decision.kind === 'defensive') this.stats.defensiveSkills += 1;
+    else this.stats.supportSkills += 1;
+    if (decision.id === 'supershot') this.stats.supershots += 1;
+    this.lastUse = { at: now, skill: decision.id, kind: decision.kind, reason: decision.reason, targetId: target.id || null, targetType: target.mtype || null, executed: !!result.executed, shadow: !!result.shadow };
+    if (this.farmer.lastSkillUse != null) this.farmer.lastSkillUse = { ...this.lastUse, selectionReason: decision.reason };
+    this._event('PARTY_SKILL_USED', 'info', decision.reason, this.lastUse);
+    return true;
+  }
+
+  install() {
+    if (this.installed || this.farmer.__partySkillEngineInstalled) return false;
+    const baseEngage = this.farmer._engage.bind(this.farmer);
+    this.farmer._engage = (context, target) => {
+      const decision = this.decide(context, target);
+      const used = this._execute(context, target, decision);
+      if (used) this.stats.parallelSkillMovesEnabled += 1;
+      // The proven team gate/kiting pipeline remains authoritative. Because the
+      // successful skill sets lastActionAt, it may kite in this same tick but it
+      // will not issue a second damage command.
+      return baseEngage(context, target);
+    };
+    this.farmer.__partySkillEngineInstalled = true;
+    this.installed = true;
+    this._event('PARTY_SKILL_ENGINE_INSTALLED', 'info', null, { ...this.config });
+    return true;
+  }
+
+  status() {
+    return { schemaVersion: 1, mode: PARTY_SKILL_ENGINE_MODE, installed: this.installed, classes: ['ranger','warrior','priest','rogue','mage','paladin'], rangerSupershotPriority: true, overkillAvoidance: true, movementParallel: true, supportAndDefensiveSkills: true, config: { ...this.config }, lastDecision: this.lastDecision, lastUse: this.lastUse, stats: { ...this.stats } };
+  }
+}
+
+function installPartySkillEngine(runtime, options = {}) { return new PartySkillEngine(runtime, options); }
+module.exports = { PartySkillEngine, installPartySkillEngine, PARTY_SKILL_ENGINE_MODE, CLASS_PRIORITY };
 
 },
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
