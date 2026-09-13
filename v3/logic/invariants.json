@@ -21,7 +21,7 @@
       "severity": "block",
       "statement": "Unknown monster content remains fail-closed until explicitly classified safe.",
       "enforcement": ["test"],
-      "tests": ["test/unknown-content-safety.test.js", "test/logic-guardian-liveness.test.js"]
+      "tests": ["test/unknown-content-safety.test.js", "test/logic-guardian-liveness.test.js", "test/alpha21-progression-liveness.test.js"]
     },
     {
       "id": "DANGEROUS_AND_CUSTOM_EXCLUSIONS_FAIL_CLOSED",
@@ -42,7 +42,7 @@
       "severity": "block",
       "statement": "When useful work is expected, attack rejection plus navigation rejection must still leave a safe alternate action or an explicit safe stop.",
       "enforcement": ["test"],
-      "tests": ["test/logic-guardian-liveness.test.js", "test/logic-guardian-property.test.js"]
+      "tests": ["test/logic-guardian-liveness.test.js", "test/logic-guardian-property.test.js", "test/alpha21-progression-liveness.test.js"]
     },
     {
       "id": "FARMER_BOUNDED_LIVENESS",
@@ -50,6 +50,41 @@
       "statement": "In a healthy actionable fixture, the Farmer state machine reaches travel, engage, attack, navigation, or an explicit safe stop within a bounded number of ticks.",
       "enforcement": ["test"],
       "tests": ["test/logic-guardian-liveness.test.js", "test/farmer-local-plan-priority.test.js"]
+    },
+    {
+      "id": "FARMER_TEAM_COHESION_MUST_MAKE_PROGRESS",
+      "severity": "block",
+      "statement": "A healthy complete team waiting only for cohesion must have a bounded leader recovery move that reduces pairwise distance instead of waiting forever.",
+      "enforcement": ["test"],
+      "tests": ["test/alpha21-progression-liveness.test.js"]
+    },
+    {
+      "id": "MERCHANT_RENDEZVOUS_REQUIRES_REAL_WORK",
+      "severity": "block",
+      "statement": "Merchant rendezvous movement may only be created by real transfer or supply work, never by ordinary status traffic or an empty outbound queue.",
+      "enforcement": ["test"],
+      "tests": ["test/alpha21-progression-liveness.test.js"]
+    },
+    {
+      "id": "MERCHANT_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE",
+      "severity": "block",
+      "statement": "A blocked or failed merchant rendezvous must be deferred so bank, market, gear, restock, and other home service can continue.",
+      "enforcement": ["test"],
+      "tests": ["test/alpha21-progression-liveness.test.js"]
+    },
+    {
+      "id": "ALPHA21_PROGRESSION_REQUIRES_LIVE_EVIDENCE",
+      "severity": "block",
+      "statement": "Alpha21 may promote a farm objective only from measured party performance and approved content after bounded stable evidence, never from a hard-coded level guide.",
+      "enforcement": ["test"],
+      "tests": ["test/alpha21-progression-liveness.test.js"]
+    },
+    {
+      "id": "ALPHA21_CROSS_MAP_NEVER_BYPASSES_TRAVEL_AUTHORITY",
+      "severity": "block",
+      "statement": "Alpha21 may recommend a better cross-map farm area but must not acquire direct smart-move or other new travel authority to execute it.",
+      "enforcement": ["test"],
+      "tests": ["test/alpha21-progression-liveness.test.js"]
     },
     {
       "id": "SHADOW_PLAN_MUST_ADVANCE",

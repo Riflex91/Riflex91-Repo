@@ -24326,11 +24326,82 @@ const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-l
 const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
 const { installIntegratedPartyControl } = require('./integrated-party-control');
 
-const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v1';
+const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v2';
 
 function finite(value, fallback = null) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function distance(a, b) {
+  const ax = finite(a && a.x);
+  const ay = finite(a && a.y);
+  const bx = finite(b && b.x);
+  const by = finite(b && b.y);
+  if ([ax, ay, bx, by].some((value) => value == null)) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function maxPairDistance(members = [], overrideName = null, overridePoint = null) {
+  let max = 0;
+  for (let i = 0; i < members.length; i += 1) {
+    for (let j = i + 1; j < members.length; j += 1) {
+      const a = overrideName && members[i].name === overrideName ? { ...members[i], ...overridePoint } : members[i];
+      const b = overrideName && members[j].name === overrideName ? { ...members[j], ...overridePoint } : members[j];
+      const d = distance(a, b);
+      if (!Number.isFinite(d)) return Infinity;
+      max = Math.max(max, d);
+    }
+  }
+  return max;
+}
+
+function bestLeaderRecoveryWaypoint(team, options = {}) {
+  if (!team || !team.leaderName || !team.self || team.selfName !== team.leaderName) return null;
+  const members = Array.isArray(team.members) ? team.members.filter((row) => row && finite(row.x) != null && finite(row.y) != null) : [];
+  if (members.length < 2) return null;
+  const leader = members.find((row) => row.name === team.leaderName) || team.self;
+  const currentMax = maxPairDistance(members);
+  const cohesionRadius = Math.max(60, finite(options.cohesionRadius, 150));
+  if (!Number.isFinite(currentMax) || currentMax <= cohesionRadius) return null;
+
+  const maxStep = Math.max(20, finite(options.maxStep, 60));
+  const minImprovement = Math.max(2, finite(options.minImprovement, 6));
+  const canMoveTo = typeof options.canMoveTo === 'function' ? options.canMoveTo : () => true;
+  const followers = members.filter((row) => row.name !== team.leaderName);
+  if (!followers.length) return null;
+
+  const centroid = {
+    x: followers.reduce((sum, row) => sum + Number(row.x), 0) / followers.length,
+    y: followers.reduce((sum, row) => sum + Number(row.y), 0) / followers.length
+  };
+  const farthest = followers.slice().sort((a, b) => distance(leader, b) - distance(leader, a))[0];
+  const targets = [farthest, centroid];
+  const candidates = [];
+
+  for (const target of targets) {
+    const base = Math.atan2(Number(target.y) - Number(leader.y), Number(target.x) - Number(leader.x));
+    const required = Math.max(8, currentMax - cohesionRadius + minImprovement);
+    const step = Math.min(maxStep, required);
+    for (const offsetDeg of [0, 15, -15, 30, -30, 45, -45, 65, -65, 90, -90]) {
+      const angle = base + offsetDeg * Math.PI / 180;
+      const point = {
+        x: Number(leader.x) + Math.cos(angle) * step,
+        y: Number(leader.y) + Math.sin(angle) * step
+      };
+      if (!canMoveTo(point.x, point.y)) continue;
+      const nextMax = maxPairDistance(members, team.leaderName, point);
+      const improvement = currentMax - nextMax;
+      if (improvement < minImprovement) continue;
+      candidates.push({ ...point, step, offsetDeg, currentMax, nextMax, improvement });
+    }
+  }
+
+  return candidates.sort((a, b) =>
+    b.improvement - a.improvement ||
+    a.nextMax - b.nextMax ||
+    Math.abs(a.offsetDeg) - Math.abs(b.offsetDeg)
+  )[0] || null;
 }
 
 class TeamCohesionDeadlockHotfix {
@@ -24352,6 +24423,19 @@ class TeamCohesionDeadlockHotfix {
     this.appliedFollowStep = Math.max(25, Math.min(this.previousFollowStep, this.appliedFollowRadius * 1.1));
     this.team.followStep = this.appliedFollowStep;
 
+    this.leaderRecoveryMaxStep = Math.max(25, Math.min(90, finite(options.leaderRecoveryMaxStep, 60)));
+    this.leaderRecoveryCooldownMs = Math.max(600, finite(options.leaderRecoveryCooldownMs, 1200));
+    this.leaderRecoveryMinImprovement = Math.max(3, finite(options.leaderRecoveryMinImprovement, 6));
+    this.lastLeaderRecoveryAt = -Infinity;
+    this.lastLeaderRecovery = null;
+    this.stats = {
+      leaderRecoveryAttempts: 0,
+      leaderRecoveryMoves: 0,
+      leaderRecoveryShadowMoves: 0,
+      leaderRecoveryTerrainHolds: 0,
+      leaderRecoverySafetyHolds: 0
+    };
+
     // Keep the proven Alpha20.15 fixes first. The integrated suite then patches
     // communication/logistics/farm prototypes before those instances are created
     // later in the production runtime constructor, while tactical combat,
@@ -24363,9 +24447,10 @@ class TeamCohesionDeadlockHotfix {
     const hasIntegratedRuntimeSurfaces = !!(runtime.farmer && runtime.localFarming);
     this.alpha20_16_19 = hasIntegratedRuntimeSurfaces ? installIntegratedPartyControl(runtime) : null;
     this.alpha20_16_19SkippedReason = hasIntegratedRuntimeSurfaces ? null : 'INTEGRATED_RUNTIME_SURFACES_UNAVAILABLE';
+    if (hasIntegratedRuntimeSurfaces) this._installLeaderRecovery();
 
     this.installedAt = this.now();
-    this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
+    this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_AND_BOUNDED_LEADER_RECOVERY', this.status());
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -24373,9 +24458,111 @@ class TeamCohesionDeadlockHotfix {
     try { this.log.emit({ component: 'team-cohesion-deadlock-hotfix', event, severity, reason, data }); } catch (_) {}
   }
 
+  _canMoveTo(x, y) {
+    const root = this.runtime.root || globalThis;
+    const parent = root && root.parent || root;
+    const fn = root && root.can_move_to || parent && parent.can_move_to;
+    if (typeof fn !== 'function') return true;
+    try { return fn.call(root, x, y) !== false; } catch (_) { return false; }
+  }
+
+  _movementAvailable() {
+    const adapter = this.runtime.adapter;
+    if (!adapter || typeof adapter.command !== 'function') return false;
+    if (typeof adapter.stabilityStatus !== 'function') return true;
+    try {
+      const movement = adapter.stabilityStatus().movement || {};
+      return movement.circuitOpen !== true && !movement.pendingOutcomeId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _combatOrSafetyBusy(snapshot) {
+    if (!snapshot || !snapshot.character || snapshot.character.rip || snapshot.character.dead) return true;
+    if (this.runtime.pendingEmergencyRetreat) return true;
+    const c = snapshot.character;
+    if (c.target) return true;
+    if ((snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && String(entity.target || '') === String(c.name || ''))) return true;
+    const farmer = this.runtime.farmer;
+    return !!(farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state));
+  }
+
+  _installLeaderRecovery() {
+    const local = this.runtime.localFarming;
+    if (!local || typeof local.tick !== 'function' || local.__teamLeaderDeadlockRecoveryInstalled) return false;
+    const baseTick = local.tick.bind(local);
+    local.tick = (context = {}) => {
+      const result = baseTick(context);
+      if (!result || result.reason !== 'WAITING_FOR_TEAM_COHESION') return result;
+      const snapshot = context.snapshot || this.runtime.lastSnapshot;
+      if (!snapshot || !snapshot.character) return result;
+
+      let team = null;
+      try { team = typeof this.team._team === 'function' ? this.team._team(snapshot) : this.team.lastTeam; } catch (_) {}
+      if (!team || team.selfName !== team.leaderName || !team.complete || !team.alive || !team.sameMap || !team.positionsKnown || team.cohesive) return result;
+
+      if (this._combatOrSafetyBusy(snapshot) || !this._movementAvailable()) {
+        this.stats.leaderRecoverySafetyHolds += 1;
+        return result;
+      }
+      if (this.now() - this.lastLeaderRecoveryAt < this.leaderRecoveryCooldownMs) return result;
+
+      const waypoint = bestLeaderRecoveryWaypoint(team, {
+        cohesionRadius: this.cohesionRadius,
+        maxStep: this.leaderRecoveryMaxStep,
+        minImprovement: this.leaderRecoveryMinImprovement,
+        canMoveTo: (x, y) => this._canMoveTo(x, y)
+      });
+      this.stats.leaderRecoveryAttempts += 1;
+      if (!waypoint) {
+        this.stats.leaderRecoveryTerrainHolds += 1;
+        return result;
+      }
+
+      const command = this.runtime.adapter.command('move', [waypoint.x, waypoint.y]);
+      this.lastLeaderRecoveryAt = this.now();
+      if (command && (command.executed || command.coalesced)) this.stats.leaderRecoveryMoves += 1;
+      if (command && command.shadow) this.stats.leaderRecoveryShadowMoves += 1;
+      this.lastLeaderRecovery = {
+        at: this.now(),
+        leaderName: team.leaderName,
+        currentMaxPairDistance: waypoint.currentMax,
+        projectedMaxPairDistance: waypoint.nextMax,
+        improvement: waypoint.improvement,
+        x: waypoint.x,
+        y: waypoint.y,
+        step: waypoint.step,
+        executed: !!(command && command.executed),
+        shadow: !!(command && command.shadow),
+        coalesced: !!(command && command.coalesced),
+        resultReason: command && command.reason || null
+      };
+      const decision = {
+        at: this.now(),
+        action: command && command.shadow ? 'SHADOW_MOVE' : command && (command.executed || command.coalesced) ? 'MOVE' : 'HOLD',
+        reason: 'TEAM_COHESION_LEADER_RECOVERY',
+        leaderName: team.leaderName,
+        maxPairDistance: waypoint.currentMax,
+        projectedMaxPairDistance: waypoint.nextMax
+      };
+      local.lastDecision = decision;
+      this.team.lastDecision = {
+        ...decision,
+        action: 'FORMATION_LEADER_RECOVERY',
+        x: waypoint.x,
+        y: waypoint.y
+      };
+      this._event('TEAM_COHESION_LEADER_RECOVERY', 'info', 'BOUNDED_PROGRESS_TOWARD_COHESION', this.lastLeaderRecovery);
+      return decision;
+    };
+    local.__teamLeaderDeadlockRecoveryInstalled = true;
+    return true;
+  }
+
   status() {
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       mode: TEAM_COHESION_DEADLOCK_MODE,
       installedAt: this.installedAt || null,
       cohesionRadius: this.cohesionRadius,
@@ -24388,6 +24575,14 @@ class TeamCohesionDeadlockHotfix {
       previousFollowStep: this.previousFollowStep,
       appliedFollowStep: this.appliedFollowStep,
       pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
+      boundedLeaderRecovery: {
+        enabled: !!(this.runtime.localFarming && this.runtime.localFarming.__teamLeaderDeadlockRecoveryInstalled),
+        maxStep: this.leaderRecoveryMaxStep,
+        cooldownMs: this.leaderRecoveryCooldownMs,
+        minProjectedImprovement: this.leaderRecoveryMinImprovement,
+        last: this.lastLeaderRecovery ? { ...this.lastLeaderRecovery } : null,
+        stats: { ...this.stats }
+      },
       alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
       alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness,
       alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null,
@@ -24400,7 +24595,13 @@ function installTeamCohesionDeadlockHotfix(runtime, options = {}) {
   return new TeamCohesionDeadlockHotfix(runtime, options);
 }
 
-module.exports = { TeamCohesionDeadlockHotfix, installTeamCohesionDeadlockHotfix, TEAM_COHESION_DEADLOCK_MODE };
+module.exports = {
+  TeamCohesionDeadlockHotfix,
+  installTeamCohesionDeadlockHotfix,
+  TEAM_COHESION_DEADLOCK_MODE,
+  maxPairDistance,
+  bestLeaderRecoveryWaypoint
+};
 
 },
 "src/reliability/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
@@ -25653,8 +25854,10 @@ const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-int
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
 const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
+const { patchAlpha21LivenessGuards, ALPHA21_LIVENESS_MODE } = require('./alpha21-liveness-guards');
+const { installAlpha21ProgressionIntelligence } = require('./alpha21-progression-intelligence');
 
-const INTEGRATED_PARTY_CONTROL_MODE = 'alpha20.16-20.19-integrated-party-control-v1';
+const INTEGRATED_PARTY_CONTROL_MODE = 'alpha20.16-20.19-integrated-party-control-v2';
 
 class IntegratedPartyControl {
   constructor(runtime, components = {}) {
@@ -25665,10 +25868,12 @@ class IntegratedPartyControl {
     this.transportPatched = components.transportPatched === true;
     this.logisticsPatched = components.logisticsPatched === true;
     this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
+    this.alpha21Liveness = components.alpha21Liveness || null;
+    this.progressionIntelligence = components.progressionIntelligence || null;
     this.tacticalPartyCombat = components.tacticalPartyCombat || null;
     this.advancedPartyMovement = components.advancedPartyMovement || null;
     this.partySkillEngine = components.partySkillEngine || null;
-    this._event('INTEGRATED_PARTY_CONTROL_INSTALLED', 'warn', 'ALPHA20_16_TO_20_19_ACTIVE', this.status());
+    this._event('INTEGRATED_PARTY_CONTROL_INSTALLED', 'warn', 'ALPHA20_16_TO_ALPHA21_ACTIVE', this.status());
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -25680,7 +25885,7 @@ class IntegratedPartyControl {
     const logistics = this.runtime.controlledPartyLogistics;
     const farm = this.runtime.farmAreaPressureHotfix;
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: INTEGRATED_PARTY_CONTROL_MODE,
       installedAt: this.installedAt,
       groupAuthority: {
@@ -25699,7 +25904,14 @@ class IntegratedPartyControl {
         logisticsPrototypePatched: this.logisticsPatched,
         logistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_19 || null : null,
         skillEngine: this.partySkillEngine && this.partySkillEngine.status ? this.partySkillEngine.status() : null
-      }
+      },
+      alpha21Liveness: {
+        mode: ALPHA21_LIVENESS_MODE,
+        ...(this.alpha21Liveness || {})
+      },
+      alpha21Progression: this.progressionIntelligence && typeof this.progressionIntelligence.status === 'function'
+        ? this.progressionIntelligence.status()
+        : null
     };
   }
 }
@@ -25710,13 +25922,15 @@ function installIntegratedPartyControl(runtime, options = {}) {
   const transportPatched = installAlpha2019AccountTransportHotfix();
   const logisticsPatched = patchAlpha2019LogisticsStabilization();
   const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
+  const alpha21Liveness = patchAlpha21LivenessGuards();
+  const progressionIntelligence = installAlpha21ProgressionIntelligence(runtime, options.progressionIntelligence || {});
   const tacticalPartyCombat = installTacticalPartyCombat(runtime, options.tacticalPartyCombat || {});
   runtime.tacticalPartyCombat = tacticalPartyCombat;
   const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }
@@ -27197,6 +27411,970 @@ function installPartySkillEngine(runtime, options = {}) { return new PartySkillE
 module.exports = { PartySkillEngine, installPartySkillEngine, PARTY_SKILL_ENGINE_MODE, CLASS_PRIORITY };
 
 },
+"src/reliability/alpha21-liveness-guards.js": function(require,module,exports){
+'use strict';
+
+const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
+const { EconomyEquipmentAutonomyV2, HomePhase } = require('./economy-equipment-autonomy-v2');
+
+const ALPHA21_LIVENESS_MODE = 'alpha21-farmer-merchant-liveness-guards-v2';
+const ACTIONABLE_RENDEZVOUS_ACTIONS = new Set([
+  Action.RENDEZVOUS,
+  Action.SUPPLY_REQUEST,
+  Action.LOOT_OFFER,
+  Action.GOLD_OFFER
+]);
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function distance(a, b) {
+  const ax = finite(a && (a.real_x != null ? a.real_x : a.x));
+  const ay = finite(a && (a.real_y != null ? a.real_y : a.y));
+  const bx = finite(b && (b.real_x != null ? b.real_x : b.x));
+  const by = finite(b && (b.real_y != null ? b.real_y : b.y));
+  if ([ax, ay, bx, by].some((v) => v == null)) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function outboundWork(logistics, snapshot) {
+  if (!logistics || !snapshot || !snapshot.character) return { hasWork: false, goldSurplus: 0, item: null };
+  const goldSurplus = Math.max(
+    0,
+    Math.floor(finite(snapshot.character.gold, 0) - finite(logistics.config && logistics.config.farmerGoldReserve, 0))
+  );
+  let item = null;
+  try {
+    item = typeof logistics._safeLootCandidate === 'function' ? logistics._safeLootCandidate(snapshot) : null;
+  } catch (_) {
+    item = null;
+  }
+  return { hasWork: goldSurplus > 0 || !!item, goldSurplus, item };
+}
+
+function canMoveTo(runtime, x, y) {
+  const root = runtime && runtime.root || globalThis;
+  const parent = root && root.parent || root;
+  const fn = root && root.can_move_to || parent && parent.can_move_to;
+  if (typeof fn !== 'function') return true;
+  try { return fn.call(root, x, y) !== false; } catch (_) { return false; }
+}
+
+function movementCircuitOpen(adapter) {
+  if (!adapter || typeof adapter.stabilityStatus !== 'function') return false;
+  try {
+    const movement = adapter.stabilityStatus().movement || {};
+    return movement.circuitOpen === true || !!movement.pendingOutcomeId;
+  } catch (_) {
+    return true;
+  }
+}
+
+function boundedReachableMove(from, target, options = {}) {
+  const d = distance(from, target);
+  if (!Number.isFinite(d) || d <= finite(options.stopDistance, 0)) return null;
+  const maxStep = Math.max(20, finite(options.maxStep, 120));
+  const stopDistance = Math.max(0, finite(options.stopDistance, 0));
+  const step = Math.min(maxStep, Math.max(0, d - stopDistance));
+  if (step < 2) return null;
+  const cx = finite(from && (from.real_x != null ? from.real_x : from.x));
+  const cy = finite(from && (from.real_y != null ? from.real_y : from.y));
+  const tx = finite(target && (target.real_x != null ? target.real_x : target.x));
+  const ty = finite(target && (target.real_y != null ? target.real_y : target.y));
+  if ([cx, cy, tx, ty].some((v) => v == null)) return null;
+  const base = Math.atan2(ty - cy, tx - cx);
+  const reachable = typeof options.canMoveTo === 'function' ? options.canMoveTo : () => true;
+  for (const offsetDeg of [0, 15, -15, 30, -30, 45, -45, 65, -65, 90, -90]) {
+    const angle = base + offsetDeg * Math.PI / 180;
+    const x = cx + Math.cos(angle) * step;
+    const y = cy + Math.sin(angle) * step;
+    if (!reachable(x, y)) continue;
+    const nextDistance = Math.hypot(tx - x, ty - y);
+    if (nextDistance >= d - 1) continue;
+    return { x, y, step, offsetDeg, distance: d, nextDistance, improvement: d - nextDistance };
+  }
+  return null;
+}
+
+function patchControlledPartyLogisticsRendezvous() {
+  const proto = ControlledPartyLogistics && ControlledPartyLogistics.prototype;
+  if (!proto || proto.__alpha21RendezvousPatched) return false;
+
+  if (typeof proto._rememberRendezvous === 'function') {
+    const baseRemember = proto._rememberRendezvous;
+    proto._rememberRendezvous = function alpha21RememberRendezvous(sender, data) {
+      const action = String(data && data.action || '');
+      if (!ACTIONABLE_RENDEZVOUS_ACTIONS.has(action)) {
+        this.__alpha21IgnoredNonWorkRendezvous = (this.__alpha21IgnoredNonWorkRendezvous || 0) + 1;
+        return false;
+      }
+      const result = baseRemember.call(this, sender, data);
+      const row = this.rendezvousRequests && this.rendezvousRequests.get(sender);
+      if (row) {
+        row.action = action;
+        row.workReason = action === Action.RENDEZVOUS
+          ? String(data && data.reason || 'OUTBOUND_TRANSFER')
+          : action;
+        row.blockedUntil = finite(row.blockedUntil, 0);
+      }
+      return result;
+    };
+  }
+
+  if (typeof proto._offerOutbound === 'function') {
+    const baseOfferOutbound = proto._offerOutbound;
+    proto._offerOutbound = function alpha21OfferOutbound(snapshot) {
+      if (!this.pendingOffer && !this.pendingGrant && !this.pendingOutbound) {
+        const work = outboundWork(this, snapshot);
+        if (!work.hasWork) {
+          this.lastDecision = {
+            at: this.now(),
+            action: 'HOLD',
+            reason: 'NO_OUTBOUND_TRANSFER_WORK'
+          };
+          this.__alpha21EmptyRendezvousSuppressed = (this.__alpha21EmptyRendezvousSuppressed || 0) + 1;
+          return false;
+        }
+      }
+      return baseOfferOutbound.call(this, snapshot);
+    };
+  }
+
+  if (typeof proto._rendezvousMerchant === 'function') {
+    proto._rendezvousMerchant = function alpha21RendezvousMerchant(snapshot) {
+      const now = this.now();
+      if (now - this.lastRendezvousMoveAt < this.config.rendezvousCooldownMs) return false;
+      if (!snapshot || !snapshot.character || !this.rendezvousRequests) return false;
+      if (movementCircuitOpen(this.adapter)) {
+        this.lastDecision = { at: now, action: 'HOLD', reason: 'LOGISTICS_RENDEZVOUS_MOVEMENT_BUSY' };
+        return false;
+      }
+
+      const here = snapshot.character;
+      const rows = [];
+      for (const [name, row] of this.rendezvousRequests.entries()) {
+        if (!row || now - finite(row.at, 0) > this.config.rendezvousRequestTtlMs) {
+          this.rendezvousRequests.delete(name);
+          continue;
+        }
+        if (finite(row.blockedUntil, 0) > now) continue;
+        if (typeof this._withinTransferRange === 'function' && this._withinTransferRange(here, row)) {
+          this.rendezvousRequests.delete(name);
+          continue;
+        }
+        rows.push(row);
+      }
+      if (!rows.length) return false;
+
+      const sameMap = rows.filter((row) => !row.map || !here.map || row.map === here.map);
+      if (!sameMap.length) {
+        this.stats.rendezvousCrossMap += 1;
+        this.lastDecision = { at: now, action: 'HOLD', reason: 'LOGISTICS_RENDEZVOUS_CROSS_MAP_UNSUPPORTED' };
+        return false;
+      }
+
+      const centroid = {
+        map: here.map,
+        x: sameMap.reduce((sum, row) => sum + finite(row.x, 0), 0) / sameMap.length,
+        y: sameMap.reduce((sum, row) => sum + finite(row.y, 0), 0) / sameMap.length
+      };
+      const d = distance(here, centroid);
+      if (!Number.isFinite(d) || d <= this.config.rendezvousDistance) {
+        for (const row of sameMap) this.rendezvousRequests.delete(row.name);
+        return false;
+      }
+
+      const waypoint = boundedReachableMove(here, centroid, {
+        maxStep: this.config.rendezvousStep,
+        stopDistance: this.config.rendezvousDistance * 0.75,
+        canMoveTo: (x, y) => canMoveTo(this.runtime, x, y)
+      });
+      if (!waypoint) {
+        const blockedUntil = now + Math.max(3000, finite(this.config.rendezvousCooldownMs, 2500) * 2);
+        for (const row of sameMap) {
+          const stored = this.rendezvousRequests.get(row.name);
+          if (stored) stored.blockedUntil = blockedUntil;
+        }
+        this.__alpha21RendezvousTerrainBlocks = (this.__alpha21RendezvousTerrainBlocks || 0) + 1;
+        this.lastDecision = {
+          at: now,
+          action: 'HOLD',
+          reason: 'LOGISTICS_RENDEZVOUS_TERRAIN_BLOCKED',
+          blockedUntil
+        };
+        return false;
+      }
+
+      const result = this.adapter && typeof this.adapter.command === 'function'
+        ? this.adapter.command('move', [waypoint.x, waypoint.y])
+        : { executed: false, reason: 'ADAPTER_UNAVAILABLE' };
+      this.lastRendezvousMoveAt = now;
+      if (result.executed || result.coalesced || result.shadow) this.stats.rendezvousMoves += 1;
+      if (!result.executed && !result.coalesced && !result.shadow) {
+        const blockedUntil = now + Math.max(3000, finite(this.config.rendezvousCooldownMs, 2500) * 2);
+        for (const row of sameMap) {
+          const stored = this.rendezvousRequests.get(row.name);
+          if (stored) stored.blockedUntil = blockedUntil;
+        }
+      }
+      this.lastDecision = {
+        at: now,
+        action: 'MERCHANT_RENDEZVOUS',
+        reason: 'ACTIONABLE_PARTY_LOGISTICS_PENDING',
+        distance: d,
+        projectedDistance: waypoint.nextDistance,
+        x: waypoint.x,
+        y: waypoint.y,
+        terrainOffsetDeg: waypoint.offsetDeg,
+        executed: !!result.executed,
+        resultReason: result.reason || null
+      };
+      return !!(result.executed || result.coalesced || result.shadow);
+    };
+  }
+
+  if (typeof proto.status === 'function') {
+    const baseStatus = proto.status;
+    proto.status = function alpha21RendezvousStatus() {
+      const status = baseStatus.call(this);
+      return {
+        ...status,
+        alpha21: {
+          emptyRendezvousSuppressed: this.__alpha21EmptyRendezvousSuppressed || 0,
+          ignoredNonWorkRendezvous: this.__alpha21IgnoredNonWorkRendezvous || 0,
+          terrainBlockedRendezvous: this.__alpha21RendezvousTerrainBlocks || 0,
+          onlyActionableWorkCreatesRendezvous: true,
+          statusRequestsNeverCreateRendezvous: true,
+          directRendezvousMovesRequireReachableStep: true
+        }
+      };
+    };
+  }
+
+  proto.__alpha21RendezvousPatched = true;
+  return true;
+}
+
+function actionableRendezvousRows(logistics, now) {
+  if (!logistics || !logistics.rendezvousRequests) return [];
+  const current = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+  const ttl = finite(logistics.config && logistics.config.rendezvousRequestTtlMs, 15000);
+  return [...logistics.rendezvousRequests.values()].filter((row) =>
+    row &&
+    ACTIONABLE_RENDEZVOUS_ACTIONS.has(String(row.action || Action.RENDEZVOUS)) &&
+    current - finite(row.at, 0) <= ttl &&
+    finite(row.blockedUntil, 0) <= current
+  );
+}
+
+function patchEconomyV2PartyStarvation() {
+  const proto = EconomyEquipmentAutonomyV2 && EconomyEquipmentAutonomyV2.prototype;
+  if (!proto || proto.__alpha21PartyStarvationPatched) return false;
+
+  if (typeof proto._need === 'function') {
+    const baseNeed = proto._need;
+    proto._need = function alpha21Need() {
+      const need = baseNeed.call(this);
+      if (!need || need.reason !== 'LOGISTICS_RENDEZVOUS') return need;
+      const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+      const actionable = actionableRendezvousRows(logistics, this.now());
+      if (!actionable.length) return null;
+      if (need.report && actionable.some((row) => row.name === need.report.name)) return need;
+      const row = actionable[0];
+      return {
+        report: { name: row.name, map: row.map, x: row.x, y: row.y, at: row.at },
+        priority: 75,
+        reason: 'LOGISTICS_RENDEZVOUS'
+      };
+    };
+  }
+
+  if (typeof proto._partyService === 'function') {
+    const basePartyService = proto._partyService;
+    proto._partyService = async function alpha21PartyService(need) {
+      if (!need || need.reason !== 'LOGISTICS_RENDEZVOUS') return basePartyService.call(this, need);
+
+      const logistics = this.runtime && this.runtime.controlledPartyLogistics;
+      const snapshot = this.runtime && this.runtime.lastSnapshot;
+      const row = logistics && logistics.rendezvousRequests &&
+        need.report && logistics.rendezvousRequests.get(need.report.name);
+      const blocked = !row ||
+        finite(row.blockedUntil, 0) > this.now() ||
+        movementCircuitOpen(this.runtime && this.runtime.adapter);
+
+      let moved = false;
+      if (!blocked && logistics && typeof logistics._rendezvousMerchant === 'function' && snapshot) {
+        moved = logistics._rendezvousMerchant(snapshot) === true;
+      }
+
+      if (moved) {
+        this.stats.partyPreemptions += 1;
+        this.lastDecision = {
+          at: this.now(),
+          action: 'PARTY_SERVICE',
+          reason: need.reason,
+          target: need.report && need.report.name || null,
+          priority: need.priority,
+          movementOwner: 'CONTROLLED_PARTY_LOGISTICS'
+        };
+        return true;
+      }
+
+      if (row) row.blockedUntil = Math.max(finite(row.blockedUntil, 0), this.now() + 5000);
+      this._transition(HomePhase.TOWN_RETURN, 'RENDEZVOUS_DEFERRED_HOME_SERVICE_CONTINUES', {
+        target: need.report && need.report.name || null
+      });
+      this.lastDecision = {
+        at: this.now(),
+        action: 'HOME_SERVICE',
+        reason: 'FAILED_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE',
+        target: need.report && need.report.name || null
+      };
+      return false;
+    };
+  }
+
+  proto.__alpha21PartyStarvationPatched = true;
+  return true;
+}
+
+function patchAlpha21LivenessGuards() {
+  return {
+    logistics: patchControlledPartyLogisticsRendezvous(),
+    economyV2: patchEconomyV2PartyStarvation()
+  };
+}
+
+module.exports = {
+  ALPHA21_LIVENESS_MODE,
+  ACTIONABLE_RENDEZVOUS_ACTIONS,
+  outboundWork,
+  boundedReachableMove,
+  actionableRendezvousRows,
+  patchControlledPartyLogisticsRendezvous,
+  patchEconomyV2PartyStarvation,
+  patchAlpha21LivenessGuards
+};
+
+},
+"src/reliability/economy-equipment-autonomy-v2.js": function(require,module,exports){
+'use strict';
+
+const { PersistentMarketHistory, MARKET_HISTORY_MODE, itemKey, levelOf, finite, clone, storageOf } = require('./economy-v2-market-history');
+const { AccountItemPool, GlobalGearOptimizer, qtyOf } = require('./economy-v2-planning');
+
+const ECONOMY_V2_MODE = 'economy-equipment-autonomy-v2';
+const HOME_SERVICE_MODE = 'merchant-home-service-state-machine-v1';
+const HomePhase = Object.freeze({ BOOTSTRAP:'BOOTSTRAP', PARTY_SERVICE:'PARTY_SERVICE', TOWN_RETURN:'TOWN_RETURN', TOWN_SERVICE:'TOWN_SERVICE', BANK_TRAVEL:'BANK_TRAVEL', BANK_SERVICE:'BANK_SERVICE', MARKET_TRAVEL:'MARKET_TRAVEL', MARKET_SERVICE:'MARKET_SERVICE', PROGRESSION_SERVICE:'PROGRESSION_SERVICE', RESTOCK_SERVICE:'RESTOCK_SERVICE', STANDBY:'STANDBY' });
+function rows(character) { const items = character && (character.inventory || character.items); return Array.isArray(items) ? items.map((item,index)=>item && item.index == null ? {...item,index}:item).filter(Boolean) : []; }
+function inventoryCount(character,name,level=null) { return rows(character).reduce((sum,item)=>item && item.name===name && (level==null || levelOf(item)===level) ? sum+qtyOf(item):sum,0); }
+function freeSlots(character) { const inv=rows(character), capacity=Math.max(0,Math.floor(finite(character&&character.isize,inv.length)||0)), occupied=inv.filter((x)=>x.index<capacity).length; return {capacity,occupied,free:Math.max(0,capacity-occupied)}; }
+
+class EconomyEquipmentAutonomyV2 {
+  constructor(runtime, options={}) {
+    if(!runtime) throw new Error('runtime required'); this.runtime=runtime; this.root=runtime.root||globalThis; this.now=runtime.now||(()=>Date.now()); this.log=runtime.log||null; this.base=runtime.merchantEconomyAutonomy||null; this.oracle=runtime.marketValueOracle||this.base&&this.base.oracle||null;
+    this.intervalMs=Math.max(500,Number(options.intervalMs)||900); this.marketRefreshMs=Math.max(5000,Number(options.marketRefreshMs)||15000); this.homeStateKey=options.homeStateKey||'aio-v3:economy-v2-home-state:v1';
+    this.lastTick=-Infinity; this.lastMarketServiceAt=-Infinity; this.busy=false; this.pool=new AccountItemPool(runtime); this.optimizer=new GlobalGearOptimizer(runtime,this.pool); this.marketHistory=new PersistentMarketHistory({root:this.root,oracle:this.oracle,now:this.now,...(options.marketHistory||{})});
+    this.phase=HomePhase.BOOTSTRAP; this.phaseSince=this.now(); this.phaseReason='INITIAL'; this.sequence=0; this.transferQueue=new Map(); this.lastDecision=null; this.lastCapacityPlan=null; this.lastMarketDecisions=[];
+    this.stats={cycles:0,phaseTransitions:0,partyPreemptions:0,marketScans:0,capacityPlans:0,gearPlans:0,multiHopQueued:0,multiHopReady:0,gearDeliveryAttempts:0,gearDeliveriesObserved:0,bankActions:0,progressionActions:0,restockActions:0,persistenceErrors:0};
+    this._load(); this._patchBaseTick();
+  }
+  _event(event,severity='info',reason=null,data={}) { if(this.log&&typeof this.log.emit==='function') try{this.log.emit({component:'economy-equipment-autonomy-v2',event,severity,reason,data});}catch(_){} }
+  _c(){return this.root&&(this.root.character||this.root.parent&&this.root.parent.character)||null;} _merchant(){const c=this._c();return !!(c&&String(c.ctype||c.type||'').toLowerCase()==='merchant');} _active(){return !!(this.runtime.adapter&&String(this.runtime.adapter.mode)==='active');}
+  _combat(){const c=this._c(),p=this.root.parent||this.root;if(!c)return false;return !!c.target||Object.values(p&&p.entities||{}).some((x)=>x&&x.mtype&&!x.dead&&String(x.target||'')===String(c.name||''));}
+  _load(){const s=storageOf(this.root);if(!s)return false;try{const x=JSON.parse(s.getItem(this.homeStateKey)||'null');if(!x||x.schemaVersion!==1||!Object.values(HomePhase).includes(x.phase))return false;this.phase=x.phase;this.phaseSince=finite(x.phaseSince,this.now());this.phaseReason=x.phaseReason||'RESTORED';this.sequence=Math.max(0,finite(x.sequence,0));for(const q of Array.isArray(x.transferQueue)?x.transferQueue:[])if(q&&q.key)this.transferQueue.set(q.key,q);return true;}catch(_){this.stats.persistenceErrors+=1;return false;}}
+  _save(){const s=storageOf(this.root);if(!s)return false;try{s.setItem(this.homeStateKey,JSON.stringify({schemaVersion:1,mode:HOME_SERVICE_MODE,phase:this.phase,phaseSince:this.phaseSince,phaseReason:this.phaseReason,sequence:this.sequence,transferQueue:[...this.transferQueue.values()].slice(-64)}));return true;}catch(_){this.stats.persistenceErrors+=1;return false;}}
+  _transition(next,reason,data={}){if(!Object.values(HomePhase).includes(next))throw new Error(`unknown phase ${next}`);if(this.phase===next&&this.phaseReason===reason)return false;const from=this.phase;this.phase=next;this.phaseSince=this.now();this.phaseReason=reason||null;this.sequence+=1;this.stats.phaseTransitions+=1;this.lastDecision={at:this.now(),from,to:next,reason,...clone(data)};this._save();this._event('HOME_SERVICE_PHASE_CHANGED','info',reason,this.lastDecision);return true;}
+  _patchBaseTick(){if(!this.base||this.base.__economyEquipmentAutonomyV2Patched)return false;this.base.__economyV2OriginalTick=typeof this.base.tick==='function'?this.base.tick.bind(this.base):null;this.base.tick=()=>this.tick();this.base.__economyEquipmentAutonomyV2Patched=true;return true;}
+  _need(){try{return this.base&&typeof this.base._need==='function'?this.base._need():null;}catch(_){return null;}}
+  _reservations(){const goals=this.optimizer.goals();return {goals,keys:new Set(goals.filter(Boolean).map((g)=>itemKey(g.item,Number(g.observedLevel)||0)))};}
+  _capacity(){const m=freeSlots(this._c());let reserved=0;try{const s=this.runtime.controlledPartyLogistics&&this.runtime.controlledPartyLogistics.status&&this.runtime.controlledPartyLogistics.status();reserved=Math.max(0,finite(s&&s.lastMerchantStatus&&s.lastMerchantStatus.reservedIncomingSlots,0));}catch(_){} const target=Math.max(8,finite(this.base&&this.base.cfg&&this.base.cfg.targetSlots,14)),low=Math.max(4,finite(this.base&&this.base.cfg&&this.base.cfg.lowSlots,8)),effective=Math.max(0,m.free-reserved);const plan={at:this.now(),capacity:m.capacity,occupied:m.occupied,freeSlots:m.free,reservedIncomingSlots:reserved,effectiveFreeSlots:effective,lowFreeSlots:low,targetFreeSlots:target,incomingBudget:Math.max(0,target-effective),shouldBank:effective<=low,shouldCreateWorkspace:effective<target};this.lastCapacityPlan=plan;this.stats.capacityPlans+=1;return plan;}
+  _syncQueue(plan){const live=new Set(),c=this._c();for(const a of plan.assignments){const key=`${a.character}:${a.slot}:${a.item}:${a.level}`;live.add(key);const old=this.transferQueue.get(key)||{key,createdAt:this.now(),attempts:0}, merchantHas=c&&a.merchant&&c.name===a.merchant&&inventoryCount(c,a.item,a.level)>0;let state=a.route==='LOCAL_EQUIP'?'LOCAL_EQUIP_RECOMMENDATION':merchantHas?'READY_MERCHANT_TO_TARGET':a.route==='SOURCE_TO_MERCHANT_TO_TARGET'?'AWAITING_SOURCE_TO_MERCHANT':'AWAITING_MERCHANT_INVENTORY';if(!old.route&&a.route==='SOURCE_TO_MERCHANT_TO_TARGET')this.stats.multiHopQueued+=1;if(old.state!=='READY_MERCHANT_TO_TARGET'&&state==='READY_MERCHANT_TO_TARGET')this.stats.multiHopReady+=1;this.transferQueue.set(key,{...old,...clone(a),key,state,updatedAt:this.now()});}for(const [k,row] of this.transferQueue)if(!live.has(k)&&row.state!=='DELIVERED')this.transferQueue.delete(k);this._save();}
+  _marketItems(pool){const out=pool.items.filter((x)=>x.location==='inventory'||x.location==='bank').map((x)=>({name:x.name,level:x.level}));for(const g of this.optimizer.goals())if(g&&g.item)out.push({name:g.item,level:Number(g.observedLevel)||0});return out;}
+  _marketAttractive(item){const a=this.marketHistory.analysis(item.name,levelOf(item)),gd=this.runtime.adapter&&this.runtime.adapter.getGameData?this.runtime.adapter.getGameData()||{}:{},meta=gd.items&&gd.items[item.name]||{},vendor=finite(meta.g!=null?meta.g:meta.gold,0)||0,premium=a.currentFairValue!=null&&vendor>0?a.currentFairValue/vendor:0;return {analysis:a,premium,attractive:a.marketObservations>=2&&a.confidence>=.5&&a.liquidity>=.18&&premium>=1.8&&(a.spreadPct==null||a.spreadPct<=.45)};}
+  _marketDecisions(){const c=this._c();if(!c||!this.base||typeof this.base.classifyItem!=='function')return[];const reservations=this._reservations(),queue=new Set([...this.transferQueue.values()].filter((x)=>!['DELIVERED','LOCAL_EQUIP_RECOMMENDATION'].includes(x.state)).map((x)=>itemKey(x.item,x.level))),goals=new Map(),gd=this.runtime.adapter&&this.runtime.adapter.getGameData?this.runtime.adapter.getGameData()||{}:{},counts=new Map();for(const g of reservations.goals){if(!g||!g.item)continue;const k=itemKey(g.item,Number(g.observedLevel)||0),a=goals.get(k)||[];a.push(g);goals.set(k,a);}for(const x of rows(c))counts.set(itemKey(x.name,levelOf(x)),(counts.get(itemKey(x.name,levelOf(x)))||0)+qtyOf(x));const out=[];for(const item of rows(c)){let cls;try{cls=this.base.classifyItem(item,reservations);}catch(_){cls={disposition:'KEEP',reason:'CLASSIFIER_FAILED_SAFE'};}const key=itemKey(item.name,levelOf(item)),m=this._marketAttractive(item),gs=goals.get(key)||[],meta=gd.items&&gd.items[item.name]||{},upgrade=gs.find((g)=>g.projectedUpgradeRequired&&Number(g.targetLevel)>levelOf(item)),compound=!!(meta.compound&&(counts.get(key)||0)>=3&&!queue.has(key));let action=cls.disposition,reason=cls.reason;if(queue.has(key)){action='TRANSFER';reason='GLOBAL_GEAR_ASSIGNMENT';}else if(upgrade){action='UPGRADE';reason='GLOBAL_GEAR_TARGET_REQUIRES_BOUNDED_UPGRADE';}else if(compound&&m.analysis.currentFairValue!=null&&m.analysis.currentFairValue<=finite(this.base.cfg&&this.base.cfg.compoundCap,500000)){action='COMPOUND';reason='SAFE_COMPOUND_SURPLUS_VALUE_WITHIN_CAP';}else if(cls.disposition==='SELL'&&m.attractive){action='PLAYER_MARKET';reason='PLAYER_MARKET_PREMIUM_AND_LIQUIDITY';}else if(cls.disposition==='SELL')action='NPC_SELL';else if(cls.disposition==='BANK')action='BANK';out.push({index:item.index,name:item.name,level:levelOf(item),quantity:qtyOf(item),action,reason,fairValue:m.analysis.currentFairValue,trendPct:m.analysis.trendPct,liquidity:m.analysis.liquidity,spreadPct:m.analysis.spreadPct,marketConfidence:m.analysis.confidence,playerMarketPremium:m.premium,gearGoalCount:gs.length});}this.lastMarketDecisions=out;return out;}
+  async _partyService(need){if(!need){this._transition(HomePhase.TOWN_RETURN,'PARTY_SERVICE_COMPLETE');return false;}this.stats.partyPreemptions+=1;if(this.base&&typeof this.base._move==='function')this.base._move(need.report,need.reason);this.lastDecision={at:this.now(),action:'PARTY_SERVICE',reason:need.reason,target:need.report&&need.report.name||null,priority:need.priority};return true;}
+  async _townReturn(){const c=this._c();if(!c)return false;if(c.map==='main'){this._transition(HomePhase.TOWN_SERVICE,'TOWN_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('main','HOME_SERVICE_RETURN_TOWN');return true;}
+  async _townService(){const capacity=this._capacity(),plan=this.optimizer.plan();this.stats.gearPlans+=1;this._syncQueue(plan);const pool=this.pool.lastSnapshot||this.pool.snapshot();this.marketHistory.observeMany(this._marketItems(pool));this._marketDecisions();this._transition(capacity.shouldCreateWorkspace?HomePhase.BANK_TRAVEL:HomePhase.MARKET_TRAVEL,capacity.shouldCreateWorkspace?'INVENTORY_WORKSPACE_REQUIRED':'TOWN_SORT_COMPLETE',{effectiveFreeSlots:capacity.effectiveFreeSlots});return false;}
+  async _bankTravel(){const c=this._c();if(!c)return false;if(c.bank&&typeof c.bank==='object'){this._transition(HomePhase.BANK_SERVICE,'BANK_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('bank','HOME_SERVICE_BANK');return true;}
+  async _bankService(){const capacity=this._capacity();if(!capacity.shouldCreateWorkspace){this._transition(HomePhase.MARKET_TRAVEL,'BANK_CAPACITY_HEALTHY');return false;}if(this.base&&typeof this.base._drain==='function'&&await this.base._drain(this._reservations())){this.stats.bankActions+=1;return true;}this._transition(HomePhase.MARKET_TRAVEL,'NO_MORE_SAFE_BANK_ACTIONS');return false;}
+  async _marketTravel(){const c=this._c();if(!c)return false;if(c.map==='main'){this._transition(HomePhase.MARKET_SERVICE,'MARKET_OBSERVATION_ZONE_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('main','HOME_SERVICE_MARKET');return true;}
+  async _marketService(){if(this.oracle&&typeof this.oracle.observe==='function')this.oracle.observe();const pool=this.pool.snapshot();this.marketHistory.observeMany(this._marketItems(pool));this.marketHistory.save(false);this._marketDecisions();this.lastMarketServiceAt=this.now();this.stats.marketScans+=1;this._transition(HomePhase.PROGRESSION_SERVICE,'MARKET_ANALYSIS_COMPLETE');return false;}
+  _deliveryGoals(){const now=this.now();return[...this.transferQueue.values()].filter((q)=>q.state==='READY_MERCHANT_TO_TARGET'&&!q.projectedUpgradeRequired&&q.lastSeenAt!=null&&now-q.lastSeenAt<=30000).sort((a,b)=>finite(b.survivalImprovement,0)-finite(a.survivalImprovement,0)||finite(b.improvement,0)-finite(a.improvement,0)).map((q)=>({id:q.id,character:q.character,ctype:q.ctype,slot:q.slot,sourceCharacter:q.merchant,item:q.item,observedLevel:q.level,targetLevel:q.targetLevel,currentItem:q.currentItem,currentLevel:q.currentLevel,improvement:q.improvement,survivalImprovement:q.survivalImprovement,projectedUpgradeRequired:false,lastSeenAt:q.lastSeenAt}));}
+  async _progression(){if(!this.base){this._transition(HomePhase.RESTOCK_SERVICE,'BASE_ECONOMY_UNAVAILABLE');return false;}const c=this._c(),goals=this._deliveryGoals();if(goals.length&&typeof this.base._gearTransfer==='function'){const first=goals[0],before=inventoryCount(c,first.item,Number(first.observedLevel)||0);this.stats.gearDeliveryAttempts+=1;const acted=await this.base._gearTransfer({goals,keys:new Set(goals.map((g)=>itemKey(g.item,g.observedLevel)))}),after=inventoryCount(this._c(),first.item,Number(first.observedLevel)||0);if(after<before){const key=`${first.character}:${first.slot}:${first.item}:${first.observedLevel}`,row=this.transferQueue.get(key);if(row)this.transferQueue.set(key,{...row,state:'DELIVERED',deliveredAt:this.now(),updatedAt:this.now()});this.stats.gearDeliveriesObserved+=1;this._save();}if(acted){this.stats.progressionActions+=1;return true;}}const r=this._reservations();if(typeof this.base._upgrade==='function'&&await this.base._upgrade(r)){this.stats.progressionActions+=1;return true;}if(typeof this.base._compound==='function'&&await this.base._compound(r)){this.stats.progressionActions+=1;return true;}this._transition(HomePhase.RESTOCK_SERVICE,'PROGRESSION_PASS_COMPLETE');return false;}
+  async _restock(){if(this.base&&typeof this.base._restockPotions==='function'&&await this.base._restockPotions()){this.stats.restockActions+=1;return true;}this._transition(HomePhase.STANDBY,'HOME_SERVICE_CYCLE_COMPLETE');return false;}
+  async _standby(){const capacity=this._capacity();if(capacity.shouldCreateWorkspace){this._transition(HomePhase.TOWN_RETURN,'CAPACITY_SERVICE_DUE');return false;}if(this.now()-this.lastMarketServiceAt>=this.marketRefreshMs){this._transition(HomePhase.MARKET_TRAVEL,'MARKET_REFRESH_DUE');return false;}this.lastDecision={at:this.now(),action:'STANDBY',reason:'HOME_SERVICE_HEALTHY',capacity};return false;}
+  async cycle(){if(!this._active()||!this._merchant()||this._combat()||this.busy)return false;this.busy=true;this.stats.cycles+=1;try{const need=this._need();if(need&&this.phase!==HomePhase.PARTY_SERVICE)this._transition(HomePhase.PARTY_SERVICE,'PARTY_NEED_PREEMPTS_HOME_SERVICE',{target:need.report&&need.report.name||null,needReason:need.reason});switch(this.phase){case HomePhase.BOOTSTRAP:this._transition(need?HomePhase.PARTY_SERVICE:HomePhase.TOWN_RETURN,need?'BOOTSTRAP_PARTY_NEED':'BOOTSTRAP_HOME_SERVICE');return false;case HomePhase.PARTY_SERVICE:return this._partyService(need);case HomePhase.TOWN_RETURN:return this._townReturn();case HomePhase.TOWN_SERVICE:return this._townService();case HomePhase.BANK_TRAVEL:return this._bankTravel();case HomePhase.BANK_SERVICE:return this._bankService();case HomePhase.MARKET_TRAVEL:return this._marketTravel();case HomePhase.MARKET_SERVICE:return this._marketService();case HomePhase.PROGRESSION_SERVICE:return this._progression();case HomePhase.RESTOCK_SERVICE:return this._restock();case HomePhase.STANDBY:return this._standby();default:this._transition(HomePhase.BOOTSTRAP,'UNKNOWN_PHASE_RECOVERY');return false;}}catch(error){this.lastDecision={at:this.now(),action:'FAILED_SAFE',reason:'UNHANDLED_ECONOMY_V2_ERROR',error:String(error&&error.message||error).slice(0,220)};this._event('ECONOMY_V2_FAILED_SAFE','warn','UNHANDLED_ECONOMY_V2_ERROR',this.lastDecision);return false;}finally{this.busy=false;}}
+  tick(){if(this.now()-this.lastTick<this.intervalMs)return false;this.lastTick=this.now();Promise.resolve(this.cycle()).catch(()=>{this.busy=false;});return true;}
+  status(){const plan=this.optimizer.lastPlan;return{schemaVersion:1,mode:ECONOMY_V2_MODE,active:this._active()&&this._merchant(),busy:this.busy,homeService:{schemaVersion:1,mode:HOME_SERVICE_MODE,phase:this.phase,phaseSince:this.phaseSince,phaseReason:this.phaseReason,sequence:this.sequence,lastDecision:clone(this.lastDecision)},capacityPlan:clone(this.lastCapacityPlan),accountItemPool:this.pool.status(),gearOptimization:this.optimizer.status(),transferQueue:{total:this.transferQueue.size,awaitingSourceToMerchant:[...this.transferQueue.values()].filter((x)=>x.state==='AWAITING_SOURCE_TO_MERCHANT').length,readyMerchantToTarget:[...this.transferQueue.values()].filter((x)=>x.state==='READY_MERCHANT_TO_TARGET').length,delivered:[...this.transferQueue.values()].filter((x)=>x.state==='DELIVERED').length,rows:[...this.transferQueue.values()].slice(-24).map(clone)},marketHistory:this.marketHistory.status(),marketDecisions:this.lastMarketDecisions.slice(-32).map(clone),latestGearPlanAt:plan&&plan.at||null,stats:{...this.stats},policies:{partyServicePreemptsHomeService:true,durableTownBankMarketPhases:true,accountWideFourCharacterPool:true,globalGearAssignmentUsesMaxWeightCapacityMatching:true,multiHopUsesMerchantAsSafeHub:true,nonMerchantFirstHopWaitsForExistingControlledLootLogistics:true,marketHistoryPersistentAndQuotaBounded:true,playerMarketIsDecisionSourceNotUnverifiedWriteAuthority:true,upgradeAndCompoundReuseExistingJournaledExecutors:true,inventoryCapacityIsForecasted:true}};}
+}
+function installEconomyEquipmentAutonomyV2(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.economyEquipmentAutonomyV2)return runtime.economyEquipmentAutonomyV2;const x=new EconomyEquipmentAutonomyV2(runtime,options);runtime.economyEquipmentAutonomyV2=x;return x;}
+module.exports={HomePhase,EconomyEquipmentAutonomyV2,installEconomyEquipmentAutonomyV2,ECONOMY_V2_MODE,HOME_SERVICE_MODE,MARKET_HISTORY_MODE};
+
+},
+"src/reliability/economy-v2-market-history.js": function(require,module,exports){
+'use strict';
+
+const MARKET_HISTORY_MODE = 'persistent-market-history-v1';
+function finite(value, fallback = null) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function levelOf(item) { return Math.max(0, Math.floor(finite(item && item.level, 0) || 0)); }
+function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+function itemKey(name, level = 0) { return `${String(name || '')}:${Math.max(0, Number(level) || 0)}`; }
+function storageOf(root) { const s = root && root.localStorage; return s && typeof s.getItem === 'function' && typeof s.setItem === 'function' ? s : null; }
+
+class PersistentMarketHistory {
+  constructor({ root = globalThis, oracle = null, now = () => Date.now(), key = 'aio-v3:economy-v2-market-history:v1', maxItems = 96, maxSamplesPerItem = 48, saveIntervalMs = 15000, maxSerializedBytes = 180000 } = {}) {
+    this.root = root; this.oracle = oracle; this.now = now; this.key = key;
+    this.maxItems = Math.max(16, Math.min(256, Number(maxItems) || 96));
+    this.maxSamplesPerItem = Math.max(8, Math.min(128, Number(maxSamplesPerItem) || 48));
+    this.saveIntervalMs = Math.max(5000, Number(saveIntervalMs) || 15000);
+    this.maxSerializedBytes = Math.max(40000, Number(maxSerializedBytes) || 180000);
+    this.history = new Map(); this.loaded = false; this.persistenceDisabled = false; this.lastSavedAt = null; this.lastObservedAt = null;
+    this.stats = { loads: 0, loadErrors: 0, observations: 0, saves: 0, saveErrors: 0, quotaCompactions: 0, prunedItems: 0, prunedSamples: 0 };
+    this.load();
+  }
+  load() {
+    if (this.loaded) return false; this.loaded = true; const s = storageOf(this.root); if (!s) return false;
+    try { const parsed = JSON.parse(s.getItem(this.key) || 'null'); if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.items)) return false;
+      for (const row of parsed.items) if (row && row.key && Array.isArray(row.samples)) this.history.set(row.key, row.samples.slice(-this.maxSamplesPerItem));
+      this.stats.loads += 1; return true;
+    } catch (_) { this.stats.loadErrors += 1; return false; }
+  }
+  _compact() {
+    for (const [key, samples] of this.history) if (samples.length > this.maxSamplesPerItem) { this.stats.prunedSamples += samples.length - this.maxSamplesPerItem; this.history.set(key, samples.slice(-this.maxSamplesPerItem)); }
+    if (this.history.size <= this.maxItems) return;
+    const ordered = [...this.history.entries()].sort((a, b) => finite(a[1].at(-1) && a[1].at(-1).at, 0) - finite(b[1].at(-1) && b[1].at(-1).at, 0));
+    while (this.history.size > this.maxItems && ordered.length) { this.history.delete(ordered.shift()[0]); this.stats.prunedItems += 1; }
+  }
+  _payload() { return { schemaVersion: 1, mode: MARKET_HISTORY_MODE, savedAt: this.now(), items: [...this.history.entries()].map(([key, samples]) => ({ key, samples })) }; }
+  save(force = false) {
+    if (this.persistenceDisabled) return false; const now = this.now(); if (!force && this.lastSavedAt != null && now - this.lastSavedAt < this.saveIntervalMs) return false;
+    const s = storageOf(this.root); if (!s) return false; this._compact();
+    const write = () => { const payload = JSON.stringify(this._payload()); if (payload.length > this.maxSerializedBytes) throw new Error('MARKET_HISTORY_SIZE_CAP'); s.setItem(this.key, payload); this.lastSavedAt = now; this.stats.saves += 1; return true; };
+    try { return write(); } catch (_) {
+      this.stats.saveErrors += 1;
+      try { for (const [key, samples] of this.history) this.history.set(key, samples.slice(-8)); this.stats.quotaCompactions += 1; return write(); }
+      catch (_) { this.stats.saveErrors += 1; this.persistenceDisabled = true; return false; }
+    }
+  }
+  observe(itemName, level = 0) {
+    if (!itemName || !this.oracle || typeof this.oracle.quote !== 'function') return null; const quote = this.oracle.quote(itemName, level); if (!quote) return null;
+    const sample = { at: this.now(), fairValue: finite(quote.fairValue), medianAsk: finite(quote.medianAsk), maxBid: finite(quote.maxBid), sampleCount: Math.max(0, finite(quote.sampleCount, 0)), confidence: Math.max(0, Math.min(1, finite(quote.confidence, 0))), source: quote.source || 'unknown', marketBacked: /^market-/.test(String(quote.source || '')) };
+    const key = itemKey(itemName, level), list = this.history.get(key) || [], previous = list.at(-1);
+    if (!previous || previous.fairValue !== sample.fairValue || previous.medianAsk !== sample.medianAsk || previous.maxBid !== sample.maxBid || previous.sampleCount !== sample.sampleCount || sample.at - previous.at >= 30000) { list.push(sample); this.history.set(key, list.slice(-this.maxSamplesPerItem)); this.stats.observations += 1; this.lastObservedAt = sample.at; }
+    this._compact(); return this.analysis(itemName, level);
+  }
+  observeMany(items = []) { const seen = new Set(), out = []; for (const item of items) { if (!item || !item.name) continue; const key = itemKey(item.name, levelOf(item)); if (seen.has(key)) continue; seen.add(key); const row = this.observe(item.name, levelOf(item)); if (row) out.push(row); } this.save(false); return out; }
+  analysis(itemName, level = 0) {
+    const key = itemKey(itemName, level), samples = this.history.get(key) || [], market = samples.filter((x) => x.marketBacked && x.fairValue != null), latest = samples.at(-1) || null;
+    let trendPct = null; if (market.length >= 2 && market[0].fairValue > 0) trendPct = (market.at(-1).fairValue - market[0].fairValue) / market[0].fairValue;
+    const spreadPct = latest && latest.medianAsk != null && latest.maxBid != null && latest.medianAsk > 0 ? (latest.medianAsk - latest.maxBid) / latest.medianAsk : null;
+    const volumeEvidence = market.reduce((sum, x) => sum + Math.max(1, x.sampleCount || 0), 0);
+    const liquidity = Math.max(0, Math.min(1, volumeEvidence / 24)) * (spreadPct == null ? 0.7 : Math.max(0.15, 1 - Math.max(0, spreadPct)));
+    return { key, name: itemName, level: Math.max(0, Number(level) || 0), observations: samples.length, marketObservations: market.length, currentFairValue: latest && latest.fairValue != null ? latest.fairValue : null, trendPct, spreadPct, liquidity: Number(liquidity.toFixed(4)), confidence: latest ? latest.confidence : 0, latest: clone(latest) };
+  }
+  status() { return { schemaVersion: 1, mode: MARKET_HISTORY_MODE, trackedItems: this.history.size, lastObservedAt: this.lastObservedAt, lastSavedAt: this.lastSavedAt, persistenceDisabled: this.persistenceDisabled, stats: { ...this.stats } }; }
+}
+
+module.exports = { PersistentMarketHistory, MARKET_HISTORY_MODE, itemKey, levelOf, finite, clone, storageOf };
+
+},
+"src/reliability/economy-v2-planning.js": function(require,module,exports){
+'use strict';
+
+const { finite, levelOf, itemKey, clone } = require('./economy-v2-market-history');
+function qtyOf(item) { return Math.max(1, Math.floor(finite(item && item.q, 1) || 1)); }
+
+class AccountItemPool {
+  constructor(runtime) { this.runtime = runtime; this.lastSnapshot = null; }
+  _characters() { try { const s = this.runtime.characterRegistry && this.runtime.characterRegistry.status(); return Array.isArray(s && s.characters) ? s.characters : []; } catch (_) { return []; } }
+  snapshot() {
+    const characters = this._characters(), items = [];
+    for (const c of characters) {
+      if (!c || !c.name) continue;
+      for (const item of Array.isArray(c.inventory) ? c.inventory : []) if (item && item.name) items.push({ owner: c.name, ctype: c.ctype || null, location: 'inventory', index: item.index, name: item.name, level: levelOf(item), quantity: qtyOf(item), locked: !!(item.locked || item.l), special: !!(item.special || item.p) });
+      for (const [slot, item] of Object.entries(c.gear && typeof c.gear === 'object' ? c.gear : {})) if (item && item.name) items.push({ owner: c.name, ctype: c.ctype || null, location: 'equipped', slot, name: item.name, level: levelOf(item), quantity: 1, locked: true, special: !!(item.special || item.p) });
+    }
+    const root = this.runtime.root || globalThis, local = root.character || root.parent && root.parent.character;
+    if (local && local.bank && typeof local.bank === 'object') for (const [pack, entries] of Object.entries(local.bank)) if (Array.isArray(entries)) for (let i = 0; i < entries.length; i += 1) { const item = entries[i]; if (item && item.name) items.push({ owner: local.name, ctype: local.ctype || null, location: 'bank', pack, index: i, name: item.name, level: levelOf(item), quantity: qtyOf(item), locked: !!(item.locked || item.l), special: !!(item.special || item.p) }); }
+    const grouped = new Map();
+    for (const item of items) { const key = itemKey(item.name, item.level), row = grouped.get(key) || { key, name: item.name, level: item.level, quantity: 0, owners: {}, locations: {} }; row.quantity += item.quantity; row.owners[item.owner] = (row.owners[item.owner] || 0) + item.quantity; row.locations[item.location] = (row.locations[item.location] || 0) + item.quantity; grouped.set(key, row); }
+    this.lastSnapshot = { at: this.runtime.now ? this.runtime.now() : Date.now(), characterCount: characters.length, itemCount: items.length, uniqueItems: grouped.size, characters: characters.map((c) => ({ name: c.name, ctype: c.ctype, level: c.level, map: c.map })), items, grouped: [...grouped.values()] };
+    return this.lastSnapshot;
+  }
+  status() { const s = this.lastSnapshot || this.snapshot(); return { at: s.at, characterCount: s.characterCount, itemCount: s.itemCount, uniqueItems: s.uniqueItems, characters: clone(s.characters) }; }
+}
+
+class GlobalGearOptimizer {
+  constructor(runtime, pool) { this.runtime = runtime; this.pool = pool; this.lastPlan = null; }
+  goals() { try { return this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(256) || [] : []; } catch (_) { return []; } }
+  _freshGoals() { const now = this.runtime.now ? this.runtime.now() : Date.now(); return this.goals().filter((g) => g && g.character && g.slot && g.item && finite(g.lastSeenAt) != null && g.lastSeenAt <= now + 5000 && now - g.lastSeenAt <= 30000); }
+  _select(goals, stock) {
+    const capacity = new Map(); for (const item of stock) capacity.set(itemKey(item.name, item.level), (capacity.get(itemKey(item.name, item.level)) || 0) + item.remaining);
+    const best = new Map();
+    for (const goal of goals) { const ikey = itemKey(goal.item, Number(goal.observedLevel) || 0); if (!capacity.has(ikey)) continue; const skey = `${goal.character}:${goal.slot}`, ckey = `${ikey}|${skey}`, weight = Math.max(0, finite(goal.improvement, 0)) + Math.max(0, finite(goal.survivalImprovement, 0)) * 0.25; const row = { goal, ikey, skey, weight }; if (!best.has(ckey) || weight > best.get(ckey).weight) best.set(ckey, row); }
+    const candidates = [...best.values()]; if (!candidates.length) return [];
+    const itemKeys = [...new Set(candidates.map((x) => x.ikey))], slotKeys = [...new Set(candidates.map((x) => x.skey))], source = 0, itemOffset = 1, slotOffset = 1 + itemKeys.length, sink = slotOffset + slotKeys.length;
+    const graph = Array.from({ length: sink + 1 }, () => []), add = (u, v, cap, cost, meta = null) => { const a = { to: v, rev: graph[v].length, cap, initialCap: cap, cost, meta }, b = { to: u, rev: graph[u].length, cap: 0, initialCap: 0, cost: -cost, meta: null }; graph[u].push(a); graph[v].push(b); };
+    const iNode = new Map(itemKeys.map((k, i) => [k, itemOffset + i])), sNode = new Map(slotKeys.map((k, i) => [k, slotOffset + i]));
+    for (const key of itemKeys) add(source, iNode.get(key), capacity.get(key), 0); for (const row of candidates) add(iNode.get(row.ikey), sNode.get(row.skey), 1, -row.weight, row); for (const key of slotKeys) add(sNode.get(key), sink, 1, 0);
+    while (true) {
+      const d = Array(graph.length).fill(Infinity), pn = Array(graph.length).fill(-1), pe = Array(graph.length).fill(-1); d[source] = 0;
+      for (let pass = 0; pass < graph.length - 1; pass += 1) { let changed = false; for (let u = 0; u < graph.length; u += 1) if (Number.isFinite(d[u])) for (let ei = 0; ei < graph[u].length; ei += 1) { const e = graph[u][ei]; if (e.cap > 0 && d[u] + e.cost < d[e.to] - 1e-9) { d[e.to] = d[u] + e.cost; pn[e.to] = u; pe[e.to] = ei; changed = true; } } if (!changed) break; }
+      if (!Number.isFinite(d[sink]) || d[sink] >= -1e-9) break; let v = sink; while (v !== source) { const u = pn[v], ei = pe[v]; if (u < 0) break; const e = graph[u][ei]; e.cap -= 1; graph[v][e.rev].cap += 1; v = u; }
+    }
+    const selected = []; for (const node of iNode.values()) for (const e of graph[node]) if (e.meta && e.initialCap === 1 && e.cap === 0) selected.push(e.meta.goal); return selected;
+  }
+  plan() {
+    const pool = this.pool.snapshot(), merchant = (pool.characters.find((c) => String(c.ctype || '').toLowerCase() === 'merchant') || {}).name || null;
+    const stock = pool.items.filter((x) => x.location === 'inventory' && !x.locked && !x.special).map((x) => ({ ...x, remaining: x.quantity })), goals = this._freshGoals(), selected = this._select(goals, stock), assignments = [];
+    for (const goal of selected) { const level = Math.max(0, Number(goal.observedLevel) || 0), candidates = stock.filter((x) => x.remaining > 0 && x.name === goal.item && x.level === level).sort((a, b) => { const rank = (x) => x.owner === merchant ? 0 : x.owner === goal.sourceCharacter ? 1 : x.owner === goal.character ? 3 : 2; return rank(a) - rank(b) || String(a.owner).localeCompare(String(b.owner)); }), source = candidates[0]; if (!source) continue; source.remaining -= 1;
+      const route = source.owner === goal.character ? 'LOCAL_EQUIP' : source.owner === merchant ? 'MERCHANT_TO_TARGET' : 'SOURCE_TO_MERCHANT_TO_TARGET';
+      assignments.push({ id: goal.id || `${goal.character}:${goal.slot}:${goal.item}:${goal.targetLevel || level}`, character: goal.character, ctype: goal.ctype || null, slot: goal.slot, item: goal.item, level, targetLevel: Math.max(level, Number(goal.targetLevel) || level), sourceCharacter: source.owner, sourceIndex: source.index, merchant, route, improvement: finite(goal.improvement, 0), survivalImprovement: finite(goal.survivalImprovement, 0), projectedUpgradeRequired: !!goal.projectedUpgradeRequired, lastSeenAt: finite(goal.lastSeenAt), currentItem: goal.currentItem || null, currentLevel: finite(goal.currentLevel, 0) });
+    }
+    this.lastPlan = { at: this.runtime.now ? this.runtime.now() : Date.now(), merchant, assignments, consideredGoals: goals.length, unassignedGoals: Math.max(0, goals.length - assignments.length) }; return this.lastPlan;
+  }
+  status() { const p = this.lastPlan || this.plan(); return { at: p.at, merchant: p.merchant, assignments: p.assignments.length, consideredGoals: p.consideredGoals, multiHop: p.assignments.filter((x) => x.route === 'SOURCE_TO_MERCHANT_TO_TARGET').length, direct: p.assignments.filter((x) => x.route === 'MERCHANT_TO_TARGET').length, localEquip: p.assignments.filter((x) => x.route === 'LOCAL_EQUIP').length, unassignedGoals: p.unassignedGoals }; }
+}
+
+module.exports = { AccountItemPool, GlobalGearOptimizer, qtyOf };
+
+},
+"src/reliability/alpha21-progression-intelligence.js": function(require,module,exports){
+'use strict';
+
+const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition, isFarmableMonsterType } = require('../autonomy/local-farm-planner');
+
+const ALPHA21_PROGRESSION_MODE = 'alpha21-live-progression-intelligence-v2';
+const PROGRESSION_RECEIVER = '__AIO_V3_ALPHA21_PROGRESSION';
+const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
+
+const finite = (v, fallback = 0) => Number.isFinite(Number(v)) ? Number(v) : fallback;
+const clamp01 = (v) => Math.max(0, Math.min(1, finite(v)));
+const clone = (v) => { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return null; } };
+
+function monsterDifficulty(meta = {}) {
+  return Math.pow(Math.max(1, finite(meta.hp, 1)), 0.58) *
+    Math.pow(Math.max(1, finite(meta.attack, 1)), 0.32) *
+    Math.pow(Math.max(0.2, finite(meta.frequency, 1)), 0.10);
+}
+
+function relativeMonsterDifficulty(current = {}, candidate = {}) {
+  return Math.max(0.15, Math.min(6, monsterDifficulty(candidate) / Math.max(0.001, monsterDifficulty(current))));
+}
+
+function readinessBottleneck(scores = {}) {
+  const rows = [['DPS', finite(scores.dps, 1)], ['SURVIVAL', finite(scores.survival, 1)], ['SUSTAIN', finite(scores.sustain, 1)]]
+    .sort((a, b) => a[1] - b[1]);
+  return rows[0][1] >= 0.82 ? 'NONE' : rows[0][0];
+}
+
+function evaluateProgressionReadiness(input = {}, options = {}) {
+  const current = input.currentProfile || {};
+  const candidate = input.candidateProfile || null;
+  const currentMeta = input.currentMeta || {};
+  const candidateMeta = input.candidateMeta || {};
+  const minWindows = Math.max(2, Math.floor(finite(options.minWindows, 3)));
+  const minConfidence = Math.max(0.05, finite(options.minConfidence, 0.18));
+  const maxDeaths = Math.max(0.05, finite(options.maxDeathsPerHour, 0.25));
+  const softTtk = Math.max(5, finite(options.softKillSeconds, 30));
+  const hardTtk = Math.max(softTtk + 1, finite(options.hardKillSeconds, 75));
+  const difficulty = relativeMonsterDifficulty(currentMeta, candidateMeta);
+  const historical = !!candidate && finite(candidate.windows, 0) >= Math.max(2, minWindows - 1) && clamp01(candidate.confidence) >= minConfidence;
+  const currentTtk = finite(current.killsPerHour, 0) > 0 ? 3600 / finite(current.killsPerHour) : Infinity;
+  const projectedTtk = historical && finite(candidate.killsPerHour, 0) > 0 ? 3600 / finite(candidate.killsPerHour) : currentTtk * difficulty;
+  const deaths = historical ? Math.max(0, finite(candidate.deathsPerHour)) : Math.max(0, finite(current.deathsPerHour)) * Math.max(0.7, difficulty);
+  const damage = historical ? Math.max(0, finite(candidate.damageTakenPerHour)) : Math.max(0, finite(current.damageTakenPerHour)) * Math.max(0.7, difficulty);
+  const potions = historical ? Math.max(0, finite(candidate.potionsPerHour)) : Math.max(0, finite(current.potionsPerHour)) * Math.max(0.7, Math.sqrt(difficulty));
+  const hpPoolsPerMinute = damage / Math.max(1, finite(input.teamMaxHp, 1)) / 60;
+  const survival = clamp01(1 - (deaths / maxDeaths) * 0.68 - Math.min(1, hpPoolsPerMinute / 2) * 0.32);
+  const sustain = clamp01(1 - Math.min(1, potions / 360) * 0.55 - Math.min(1, hpPoolsPerMinute / 2.5) * 0.45);
+  const dps = !Number.isFinite(projectedTtk) ? 0 : projectedTtk <= softTtk ? 1 : projectedTtk >= hardTtk ? 0 : 1 - (projectedTtk - softTtk) / (hardTtk - softTtk);
+  const rewardRatio = Math.max(0, finite(candidateMeta.xp)) / Math.max(1, finite(currentMeta.xp, 1));
+  const efficiencyRatio = historical && finite(current.xpPerHour) > 0 && finite(candidate.xpPerHour) > 0
+    ? finite(candidate.xpPerHour) / finite(current.xpPerHour)
+    : rewardRatio / Math.max(0.25, difficulty);
+  const efficiency = clamp01((efficiencyRatio - 0.75) / 0.65);
+  const evidenceReady = finite(current.windows) >= minWindows && clamp01(current.confidence) >= minConfidence;
+  const evidence = clamp01((finite(current.windows) / minWindows) * 0.45 + clamp01(current.confidence) * 0.55);
+  const scores = { dps, survival, sustain, efficiency, evidence };
+  const readinessScore = clamp01(dps * 0.31 + survival * 0.31 + sustain * 0.14 + efficiency * 0.14 + evidence * 0.10);
+  return {
+    ready: evidenceReady && difficulty <= finite(options.maxDifficultyStep, 1.85) && projectedTtk <= hardTtk &&
+      deaths <= maxDeaths && survival >= 0.62 && sustain >= 0.52 &&
+      efficiencyRatio >= finite(options.minEfficiencyGain, 1.06) && readinessScore >= finite(options.minReadinessScore, 0.70),
+    readinessScore,
+    bottleneck: readinessBottleneck(scores),
+    evidenceReady,
+    historicalCandidateReady: historical,
+    difficultyRatio: difficulty,
+    projectedTtkSeconds: Number.isFinite(projectedTtk) ? projectedTtk : null,
+    projectedEfficiencyRatio: efficiencyRatio,
+    projectedDeathsPerHour: deaths,
+    projectedDamagePoolsPerMinute: hpPoolsPerMinute,
+    projectedPotionsPerHour: potions,
+    scores
+  };
+}
+
+function progressionGoalScore(goal, bottleneck) {
+  const gain = finite(goal && goal.improvement);
+  const survival = finite(goal && goal.survivalImprovement);
+  if (bottleneck === 'SURVIVAL') return survival * 3 + gain * 0.65;
+  if (bottleneck === 'SUSTAIN') return survival * 2 + gain * 0.85;
+  if (bottleneck === 'DPS') return gain * 2.2 + survival * 0.35;
+  return gain + survival;
+}
+
+function enumerateProgressionCandidates(gameData, world, fingerprint, current, options = {}) {
+  if (!current || !current.monster || !world || typeof world.performanceFor !== 'function') return [];
+  const monsters = gameData && gameData.monsters || {};
+  const maps = gameData && gameData.maps || {};
+  const currentProfile = world.performanceFor(current.monster, fingerprint);
+  if (!currentProfile || !monsters[current.monster]) return [];
+  const rows = [];
+  for (const [map, meta] of Object.entries(maps)) {
+    const raw = meta && meta.monsters;
+    const spawns = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? Object.values(raw) : [];
+    for (let i = 0; i < spawns.length; i += 1) {
+      const monster = spawnType(spawns[i]);
+      const center = spawnCenter(spawns[i]);
+      if (!monster || !center || !isFarmableMonsterType(monster) || !monsters[monster]) continue;
+      const disposition = contentDisposition(world, monster);
+      if (!isApprovedDisposition(disposition)) continue;
+      if (map === current.map && monster === current.monster && i === current.spawnIndex) continue;
+      const candidateProfile = world.performanceFor(monster, fingerprint);
+      const readiness = evaluateProgressionReadiness({
+        currentProfile,
+        candidateProfile,
+        currentMeta: monsters[current.monster],
+        candidateMeta: monsters[monster],
+        teamMaxHp: options.teamMaxHp
+      }, options);
+      rows.push({
+        id: `${map}:${monster}:${i}`,
+        map,
+        monster: String(monster),
+        spawnIndex: i,
+        x: center.x,
+        y: center.y,
+        progressionDirection: readiness.difficultyRatio > 1.05 ? 'ADVANCE' : readiness.difficultyRatio < 0.92 ? 'EASIER' : 'SIDEGRADE',
+        contentDisposition: disposition,
+        readiness,
+        score: readiness.readinessScore + Math.min(0.35, Math.max(-0.25, (readiness.projectedEfficiencyRatio - 1) * 0.42)) - (map === current.map ? 0 : 0.04)
+      });
+    }
+  }
+  return rows.sort((a, b) => Number(b.readiness.ready) - Number(a.readiness.ready) || b.score - a.score || a.id.localeCompare(b.id));
+}
+
+class ProgressionIntelligence {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.localFarming || !runtime.localFarming.planner) throw new Error('runtime local farming required');
+    this.runtime = runtime;
+    this.parent = runtime.root && runtime.root.parent || runtime.root || globalThis;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.options = {
+      minWindows: Math.max(2, finite(options.minWindows, 3)),
+      minConfidence: finite(options.minConfidence, 0.18),
+      minReadinessScore: finite(options.minReadinessScore, 0.70),
+      minEfficiencyGain: finite(options.minEfficiencyGain, 1.06),
+      maxDifficultyStep: finite(options.maxDifficultyStep, 1.85),
+      maxDeathsPerHour: finite(options.maxDeathsPerHour, 0.25),
+      softKillSeconds: finite(options.softKillSeconds, 30),
+      hardKillSeconds: finite(options.hardKillSeconds, 75),
+      evaluationIntervalMs: Math.max(5000, finite(options.evaluationIntervalMs, 15000)),
+      stableEvaluations: Math.max(2, finite(options.stableEvaluations, 3)),
+      switchCooldownMs: Math.max(30000, finite(options.switchCooldownMs, 120000)),
+      objectiveTtlMs: Math.max(60000, finite(options.objectiveTtlMs, 300000))
+    };
+    this.lastEvaluationAt = -Infinity;
+    this.lastSwitchAt = -Infinity;
+    this.lastEvaluation = null;
+    this.lastDecision = null;
+    this.objective = null;
+    this.candidateKey = null;
+    this.candidateStableCount = 0;
+    this.receiverInstalled = false;
+    this.stats = {
+      evaluations: 0,
+      evidenceHolds: 0,
+      readyDetections: 0,
+      promotions: 0,
+      sameMapReplans: 0,
+      crossMapRecommendations: 0,
+      objectivesPublished: 0,
+      objectivesReceived: 0,
+      gearGoalReorders: 0
+    };
+    this._installPlannerPreference();
+    this._installGearPriority();
+    this._installRuntimeHook();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log) this.log.emit({ component: 'alpha21-progression', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _team(snapshot) {
+    try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
+  }
+
+  _party(snapshot) {
+    try { return this.runtime._partyProfile(snapshot); } catch (_) { return { fingerprint: 'unknown-party' }; }
+  }
+
+  _plan() {
+    const plan = this.runtime.localFarming.currentPlan;
+    return plan && plan.state === 'HOLDING' ? plan : null;
+  }
+
+  _busy(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c || c.rip || c.dead || c.target || this.runtime.pendingEmergencyRetreat) return true;
+    return (snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && String(entity.target || '') === String(c.name || ''));
+  }
+
+  _teamMaxHp(team, snapshot) {
+    const total = (team && team.members || []).reduce((sum, member) => sum + Math.max(0, finite(member.max_hp)), 0);
+    return total || Math.max(1, finite(snapshot.character.max_hp, 1));
+  }
+
+  _freshObjective() {
+    if (this.objective && this.objective.expiresAt > this.now()) return this.objective;
+    this.objective = null;
+    return null;
+  }
+
+  _ensureReceiver() {
+    if (this.receiverInstalled) return true;
+    const transport = this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport;
+    if (!transport || typeof transport.installDirectReceiver !== 'function') return false;
+    transport.installDirectReceiver(PROGRESSION_RECEIVER, (sender, payload) => {
+      const snapshot = this.runtime.lastSnapshot;
+      const team = snapshot && this._team(snapshot);
+      if (!team || String(sender) !== String(team.leaderName) || !payload || payload.leaderName !== team.leaderName || payload.expiresAt <= this.now()) return false;
+      if (!snapshot.character || payload.map !== snapshot.character.map) return false;
+      const gameData = this.runtime.adapter.getGameData() || {};
+      if (!gameData.monsters || !gameData.monsters[payload.monster] || !isApprovedDisposition(contentDisposition(this.runtime.world, payload.monster))) return false;
+      this.objective = clone(payload);
+      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(payload);
+      this.stats.objectivesReceived += 1;
+      return true;
+    });
+    this.receiverInstalled = true;
+    return true;
+  }
+
+  _publish(team, objective) {
+    this.objective = clone(objective);
+    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    this.stats.objectivesPublished += 1;
+    const transport = this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport;
+    if (!transport || typeof transport.send !== 'function') return;
+    for (const member of team.members || []) {
+      if (!member.name || member.name === team.leaderName) continue;
+      Promise.resolve(transport.send(member.name, objective, { receiver: PROGRESSION_RECEIVER, sender: team.leaderName })).catch(() => {});
+    }
+  }
+
+  _syncShared() {
+    const shared = this.parent && this.parent[SHARED_OBJECTIVE];
+    const snapshot = this.runtime.lastSnapshot;
+    if (!this._freshObjective() && shared && shared.expiresAt > this.now() && snapshot && snapshot.character && shared.map === snapshot.character.map) {
+      this.objective = clone(shared);
+    }
+  }
+
+  _installPlannerPreference() {
+    const planner = this.runtime.localFarming.planner;
+    if (planner.__alpha21ProgressionPreferenceInstalled) return;
+    const base = planner.rank.bind(planner);
+    planner.rank = (...args) => {
+      const rows = base(...args) || [];
+      this._syncShared();
+      const objective = this._freshObjective();
+      const character = args[0] && args[0].character;
+      if (!objective || !character || character.map !== objective.map) return rows;
+      const wanted = `${objective.map}:${objective.monster}:${objective.spawnIndex}`;
+      return rows.slice().sort((a, b) => {
+        const aWanted = `${a.map}:${a.monster}:${a.spawnIndex}` === wanted;
+        const bWanted = `${b.map}:${b.monster}:${b.spawnIndex}` === wanted;
+        if (aWanted !== bWanted) return aWanted ? -1 : 1;
+        return finite(b.score) - finite(a.score);
+      });
+    };
+    planner.__alpha21ProgressionPreferenceInstalled = true;
+  }
+
+  _installGearPriority() {
+    const gear = this.runtime.gearProgression;
+    if (!gear || gear.__alpha21ProgressionPriorityInstalled || typeof gear.list !== 'function') return;
+    const base = gear.list.bind(gear);
+    gear.list = (limit = 100) => {
+      const goals = base(limit) || [];
+      const bottleneck = this.lastEvaluation && this.lastEvaluation.selected && this.lastEvaluation.selected.readiness.bottleneck || 'NONE';
+      if (bottleneck === 'NONE') return goals;
+      this.stats.gearGoalReorders += 1;
+      return goals
+        .map((goal) => ({ ...goal, progressionBottleneck: bottleneck, progressionPriorityScore: progressionGoalScore(goal, bottleneck) }))
+        .sort((a, b) => finite(b.progressionPriorityScore) - finite(a.progressionPriorityScore));
+    };
+    gear.__alpha21ProgressionPriorityInstalled = true;
+  }
+
+  _installRuntimeHook() {
+    if (this.runtime.__alpha21ProgressionTickInstalled) return;
+    const base = this.runtime.tick.bind(this.runtime);
+    this.runtime.tick = (...args) => {
+      const result = base(...args);
+      try { this.tick(this.runtime.lastSnapshot); } catch (error) {
+        this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'PROGRESSION_FAILED_SAFE', error: String(error && error.message || error).slice(0, 180) };
+      }
+      return result;
+    };
+    this.runtime.__alpha21ProgressionTickInstalled = true;
+  }
+
+  tick(snapshot) {
+    this._ensureReceiver();
+    this._syncShared();
+    if (!snapshot || !snapshot.character || String(snapshot.character.ctype || '').toLowerCase() === 'merchant') return null;
+    if (this.now() - this.lastEvaluationAt < this.options.evaluationIntervalMs) return this.lastDecision;
+    this.lastEvaluationAt = this.now();
+
+    const team = this._team(snapshot);
+    if (!team || team.selfName !== team.leaderName) return this.lastDecision;
+    if (!team.complete || !team.alive || !team.sameMap || !team.positionsKnown || !team.cohesive || this._busy(snapshot)) return this.lastDecision;
+    const current = this._plan();
+    if (!current) return this.lastDecision;
+    const party = this._party(snapshot);
+    const profile = this.runtime.world.performanceFor(current.monster, party.fingerprint);
+    if (!profile || finite(profile.windows) < this.options.minWindows || clamp01(profile.confidence) < this.options.minConfidence) {
+      this.stats.evidenceHolds += 1;
+      this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'MORE_LIVE_EVIDENCE_REQUIRED' };
+      return this.lastDecision;
+    }
+
+    const gameData = this.runtime.adapter.getGameData() || {};
+    const ranked = enumerateProgressionCandidates(gameData, this.runtime.world, party.fingerprint, current, {
+      ...this.options,
+      teamMaxHp: this._teamMaxHp(team, snapshot)
+    });
+    const selected = ranked[0] || null;
+    this.stats.evaluations += 1;
+    this.lastEvaluation = {
+      at: this.now(),
+      current: { map: current.map, monster: current.monster, spawnIndex: current.spawnIndex, profile: clone(profile) },
+      selected: clone(selected),
+      candidates: ranked.slice(0, 8).map(clone)
+    };
+
+    if (!selected || !selected.readiness.ready) {
+      this.candidateKey = null;
+      this.candidateStableCount = 0;
+      this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'NO_AREA_READY_YET', bottleneck: selected && selected.readiness.bottleneck || null };
+      return this.lastDecision;
+    }
+
+    this.stats.readyDetections += 1;
+    this.candidateStableCount = selected.id === this.candidateKey ? this.candidateStableCount + 1 : 1;
+    this.candidateKey = selected.id;
+    this._event('ALPHA21_AREA_READY', 'info', 'LIVE_READINESS_CONFIRMED', {
+      target: selected.id,
+      readinessScore: selected.readiness.readinessScore,
+      bottleneck: selected.readiness.bottleneck,
+      stableEvaluations: this.candidateStableCount
+    });
+
+    if (this.candidateStableCount < this.options.stableEvaluations || this.now() - this.lastSwitchAt < this.options.switchCooldownMs) return this.lastDecision;
+
+    if (selected.map !== snapshot.character.map) {
+      this.stats.crossMapRecommendations += 1;
+      this.lastDecision = {
+        at: this.now(),
+        action: 'RECOMMEND',
+        reason: 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL',
+        target: clone(selected)
+      };
+      return this.lastDecision;
+    }
+
+    const objective = {
+      id: `alpha21-${this.now()}-${selected.id}`,
+      leaderName: team.leaderName,
+      partyFingerprint: party.fingerprint,
+      map: selected.map,
+      monster: selected.monster,
+      spawnIndex: selected.spawnIndex,
+      x: selected.x,
+      y: selected.y,
+      createdAt: this.now(),
+      expiresAt: this.now() + this.options.objectiveTtlMs,
+      readiness: clone(selected.readiness)
+    };
+    this._publish(team, objective);
+    this.lastSwitchAt = this.now();
+    this.stats.promotions += 1;
+    if (typeof this.runtime.localFarming._abort === 'function') {
+      this.runtime.localFarming._abort('ALPHA21_PROGRESSION_REPLAN', this.now(), { nextArea: selected.id });
+    }
+    this.stats.sameMapReplans += 1;
+    this.lastDecision = { at: this.now(), action: 'REPLAN', reason: 'PARTY_READY_FOR_BETTER_AREA', target: clone(objective) };
+    this._event('ALPHA21_PROGRESSION_PROMOTED', 'warn', 'PARTY_READY_FOR_BETTER_AREA', { objective: clone(objective) });
+    return this.lastDecision;
+  }
+
+  status() {
+    return {
+      schemaVersion: 2,
+      mode: ALPHA21_PROGRESSION_MODE,
+      policy: {
+        hardLevelGuide: false,
+        livePerformanceDriven: true,
+        deterministicLeaderOwnsPromotion: true,
+        followerIndependentPromotion: false,
+        unknownContentFailClosed: true,
+        sameMapPromotionAutomatic: true,
+        crossMapPromotionRecommendationOnly: true,
+        directSmartMoveAuthority: false,
+        gearGoalsFollowLiveBottleneck: true
+      },
+      objective: clone(this._freshObjective()),
+      lastEvaluation: clone(this.lastEvaluation),
+      lastDecision: clone(this.lastDecision),
+      stableCandidate: this.candidateKey,
+      stableEvaluations: this.candidateStableCount,
+      receiverInstalled: this.receiverInstalled,
+      options: { ...this.options },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installAlpha21ProgressionIntelligence(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.progressionIntelligence) return runtime.progressionIntelligence;
+  return (runtime.progressionIntelligence = new ProgressionIntelligence(runtime, options));
+}
+
+module.exports = {
+  ALPHA21_PROGRESSION_MODE,
+  PROGRESSION_RECEIVER,
+  ProgressionIntelligence,
+  installAlpha21ProgressionIntelligence,
+  monsterDifficulty,
+  relativeMonsterDifficulty,
+  evaluateProgressionReadiness,
+  readinessBottleneck,
+  progressionGoalScore,
+  enumerateProgressionCandidates
+};
+
+},
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -27983,189 +29161,6 @@ class Alpha23CombatStabilityHotfix {
 }
 function installAlpha23CombatStabilityHotfix(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.alpha23CombatStabilityHotfix)return runtime.alpha23CombatStabilityHotfix;const x=new Alpha23CombatStabilityHotfix(runtime,options);runtime.alpha23CombatStabilityHotfix=x;return x;}
 module.exports={installCohesionInvariantRepair,installCommittedPullContinuation,installCombatFormationHold,installAggroAuthoritativeKiting,Alpha23CombatStabilityHotfix,installAlpha23CombatStabilityHotfix,ALPHA23_COMBAT_STABILITY_MODE};
-
-},
-"src/reliability/economy-equipment-autonomy-v2.js": function(require,module,exports){
-'use strict';
-
-const { PersistentMarketHistory, MARKET_HISTORY_MODE, itemKey, levelOf, finite, clone, storageOf } = require('./economy-v2-market-history');
-const { AccountItemPool, GlobalGearOptimizer, qtyOf } = require('./economy-v2-planning');
-
-const ECONOMY_V2_MODE = 'economy-equipment-autonomy-v2';
-const HOME_SERVICE_MODE = 'merchant-home-service-state-machine-v1';
-const HomePhase = Object.freeze({ BOOTSTRAP:'BOOTSTRAP', PARTY_SERVICE:'PARTY_SERVICE', TOWN_RETURN:'TOWN_RETURN', TOWN_SERVICE:'TOWN_SERVICE', BANK_TRAVEL:'BANK_TRAVEL', BANK_SERVICE:'BANK_SERVICE', MARKET_TRAVEL:'MARKET_TRAVEL', MARKET_SERVICE:'MARKET_SERVICE', PROGRESSION_SERVICE:'PROGRESSION_SERVICE', RESTOCK_SERVICE:'RESTOCK_SERVICE', STANDBY:'STANDBY' });
-function rows(character) { const items = character && (character.inventory || character.items); return Array.isArray(items) ? items.map((item,index)=>item && item.index == null ? {...item,index}:item).filter(Boolean) : []; }
-function inventoryCount(character,name,level=null) { return rows(character).reduce((sum,item)=>item && item.name===name && (level==null || levelOf(item)===level) ? sum+qtyOf(item):sum,0); }
-function freeSlots(character) { const inv=rows(character), capacity=Math.max(0,Math.floor(finite(character&&character.isize,inv.length)||0)), occupied=inv.filter((x)=>x.index<capacity).length; return {capacity,occupied,free:Math.max(0,capacity-occupied)}; }
-
-class EconomyEquipmentAutonomyV2 {
-  constructor(runtime, options={}) {
-    if(!runtime) throw new Error('runtime required'); this.runtime=runtime; this.root=runtime.root||globalThis; this.now=runtime.now||(()=>Date.now()); this.log=runtime.log||null; this.base=runtime.merchantEconomyAutonomy||null; this.oracle=runtime.marketValueOracle||this.base&&this.base.oracle||null;
-    this.intervalMs=Math.max(500,Number(options.intervalMs)||900); this.marketRefreshMs=Math.max(5000,Number(options.marketRefreshMs)||15000); this.homeStateKey=options.homeStateKey||'aio-v3:economy-v2-home-state:v1';
-    this.lastTick=-Infinity; this.lastMarketServiceAt=-Infinity; this.busy=false; this.pool=new AccountItemPool(runtime); this.optimizer=new GlobalGearOptimizer(runtime,this.pool); this.marketHistory=new PersistentMarketHistory({root:this.root,oracle:this.oracle,now:this.now,...(options.marketHistory||{})});
-    this.phase=HomePhase.BOOTSTRAP; this.phaseSince=this.now(); this.phaseReason='INITIAL'; this.sequence=0; this.transferQueue=new Map(); this.lastDecision=null; this.lastCapacityPlan=null; this.lastMarketDecisions=[];
-    this.stats={cycles:0,phaseTransitions:0,partyPreemptions:0,marketScans:0,capacityPlans:0,gearPlans:0,multiHopQueued:0,multiHopReady:0,gearDeliveryAttempts:0,gearDeliveriesObserved:0,bankActions:0,progressionActions:0,restockActions:0,persistenceErrors:0};
-    this._load(); this._patchBaseTick();
-  }
-  _event(event,severity='info',reason=null,data={}) { if(this.log&&typeof this.log.emit==='function') try{this.log.emit({component:'economy-equipment-autonomy-v2',event,severity,reason,data});}catch(_){} }
-  _c(){return this.root&&(this.root.character||this.root.parent&&this.root.parent.character)||null;} _merchant(){const c=this._c();return !!(c&&String(c.ctype||c.type||'').toLowerCase()==='merchant');} _active(){return !!(this.runtime.adapter&&String(this.runtime.adapter.mode)==='active');}
-  _combat(){const c=this._c(),p=this.root.parent||this.root;if(!c)return false;return !!c.target||Object.values(p&&p.entities||{}).some((x)=>x&&x.mtype&&!x.dead&&String(x.target||'')===String(c.name||''));}
-  _load(){const s=storageOf(this.root);if(!s)return false;try{const x=JSON.parse(s.getItem(this.homeStateKey)||'null');if(!x||x.schemaVersion!==1||!Object.values(HomePhase).includes(x.phase))return false;this.phase=x.phase;this.phaseSince=finite(x.phaseSince,this.now());this.phaseReason=x.phaseReason||'RESTORED';this.sequence=Math.max(0,finite(x.sequence,0));for(const q of Array.isArray(x.transferQueue)?x.transferQueue:[])if(q&&q.key)this.transferQueue.set(q.key,q);return true;}catch(_){this.stats.persistenceErrors+=1;return false;}}
-  _save(){const s=storageOf(this.root);if(!s)return false;try{s.setItem(this.homeStateKey,JSON.stringify({schemaVersion:1,mode:HOME_SERVICE_MODE,phase:this.phase,phaseSince:this.phaseSince,phaseReason:this.phaseReason,sequence:this.sequence,transferQueue:[...this.transferQueue.values()].slice(-64)}));return true;}catch(_){this.stats.persistenceErrors+=1;return false;}}
-  _transition(next,reason,data={}){if(!Object.values(HomePhase).includes(next))throw new Error(`unknown phase ${next}`);if(this.phase===next&&this.phaseReason===reason)return false;const from=this.phase;this.phase=next;this.phaseSince=this.now();this.phaseReason=reason||null;this.sequence+=1;this.stats.phaseTransitions+=1;this.lastDecision={at:this.now(),from,to:next,reason,...clone(data)};this._save();this._event('HOME_SERVICE_PHASE_CHANGED','info',reason,this.lastDecision);return true;}
-  _patchBaseTick(){if(!this.base||this.base.__economyEquipmentAutonomyV2Patched)return false;this.base.__economyV2OriginalTick=typeof this.base.tick==='function'?this.base.tick.bind(this.base):null;this.base.tick=()=>this.tick();this.base.__economyEquipmentAutonomyV2Patched=true;return true;}
-  _need(){try{return this.base&&typeof this.base._need==='function'?this.base._need():null;}catch(_){return null;}}
-  _reservations(){const goals=this.optimizer.goals();return {goals,keys:new Set(goals.filter(Boolean).map((g)=>itemKey(g.item,Number(g.observedLevel)||0)))};}
-  _capacity(){const m=freeSlots(this._c());let reserved=0;try{const s=this.runtime.controlledPartyLogistics&&this.runtime.controlledPartyLogistics.status&&this.runtime.controlledPartyLogistics.status();reserved=Math.max(0,finite(s&&s.lastMerchantStatus&&s.lastMerchantStatus.reservedIncomingSlots,0));}catch(_){} const target=Math.max(8,finite(this.base&&this.base.cfg&&this.base.cfg.targetSlots,14)),low=Math.max(4,finite(this.base&&this.base.cfg&&this.base.cfg.lowSlots,8)),effective=Math.max(0,m.free-reserved);const plan={at:this.now(),capacity:m.capacity,occupied:m.occupied,freeSlots:m.free,reservedIncomingSlots:reserved,effectiveFreeSlots:effective,lowFreeSlots:low,targetFreeSlots:target,incomingBudget:Math.max(0,target-effective),shouldBank:effective<=low,shouldCreateWorkspace:effective<target};this.lastCapacityPlan=plan;this.stats.capacityPlans+=1;return plan;}
-  _syncQueue(plan){const live=new Set(),c=this._c();for(const a of plan.assignments){const key=`${a.character}:${a.slot}:${a.item}:${a.level}`;live.add(key);const old=this.transferQueue.get(key)||{key,createdAt:this.now(),attempts:0}, merchantHas=c&&a.merchant&&c.name===a.merchant&&inventoryCount(c,a.item,a.level)>0;let state=a.route==='LOCAL_EQUIP'?'LOCAL_EQUIP_RECOMMENDATION':merchantHas?'READY_MERCHANT_TO_TARGET':a.route==='SOURCE_TO_MERCHANT_TO_TARGET'?'AWAITING_SOURCE_TO_MERCHANT':'AWAITING_MERCHANT_INVENTORY';if(!old.route&&a.route==='SOURCE_TO_MERCHANT_TO_TARGET')this.stats.multiHopQueued+=1;if(old.state!=='READY_MERCHANT_TO_TARGET'&&state==='READY_MERCHANT_TO_TARGET')this.stats.multiHopReady+=1;this.transferQueue.set(key,{...old,...clone(a),key,state,updatedAt:this.now()});}for(const [k,row] of this.transferQueue)if(!live.has(k)&&row.state!=='DELIVERED')this.transferQueue.delete(k);this._save();}
-  _marketItems(pool){const out=pool.items.filter((x)=>x.location==='inventory'||x.location==='bank').map((x)=>({name:x.name,level:x.level}));for(const g of this.optimizer.goals())if(g&&g.item)out.push({name:g.item,level:Number(g.observedLevel)||0});return out;}
-  _marketAttractive(item){const a=this.marketHistory.analysis(item.name,levelOf(item)),gd=this.runtime.adapter&&this.runtime.adapter.getGameData?this.runtime.adapter.getGameData()||{}:{},meta=gd.items&&gd.items[item.name]||{},vendor=finite(meta.g!=null?meta.g:meta.gold,0)||0,premium=a.currentFairValue!=null&&vendor>0?a.currentFairValue/vendor:0;return {analysis:a,premium,attractive:a.marketObservations>=2&&a.confidence>=.5&&a.liquidity>=.18&&premium>=1.8&&(a.spreadPct==null||a.spreadPct<=.45)};}
-  _marketDecisions(){const c=this._c();if(!c||!this.base||typeof this.base.classifyItem!=='function')return[];const reservations=this._reservations(),queue=new Set([...this.transferQueue.values()].filter((x)=>!['DELIVERED','LOCAL_EQUIP_RECOMMENDATION'].includes(x.state)).map((x)=>itemKey(x.item,x.level))),goals=new Map(),gd=this.runtime.adapter&&this.runtime.adapter.getGameData?this.runtime.adapter.getGameData()||{}:{},counts=new Map();for(const g of reservations.goals){if(!g||!g.item)continue;const k=itemKey(g.item,Number(g.observedLevel)||0),a=goals.get(k)||[];a.push(g);goals.set(k,a);}for(const x of rows(c))counts.set(itemKey(x.name,levelOf(x)),(counts.get(itemKey(x.name,levelOf(x)))||0)+qtyOf(x));const out=[];for(const item of rows(c)){let cls;try{cls=this.base.classifyItem(item,reservations);}catch(_){cls={disposition:'KEEP',reason:'CLASSIFIER_FAILED_SAFE'};}const key=itemKey(item.name,levelOf(item)),m=this._marketAttractive(item),gs=goals.get(key)||[],meta=gd.items&&gd.items[item.name]||{},upgrade=gs.find((g)=>g.projectedUpgradeRequired&&Number(g.targetLevel)>levelOf(item)),compound=!!(meta.compound&&(counts.get(key)||0)>=3&&!queue.has(key));let action=cls.disposition,reason=cls.reason;if(queue.has(key)){action='TRANSFER';reason='GLOBAL_GEAR_ASSIGNMENT';}else if(upgrade){action='UPGRADE';reason='GLOBAL_GEAR_TARGET_REQUIRES_BOUNDED_UPGRADE';}else if(compound&&m.analysis.currentFairValue!=null&&m.analysis.currentFairValue<=finite(this.base.cfg&&this.base.cfg.compoundCap,500000)){action='COMPOUND';reason='SAFE_COMPOUND_SURPLUS_VALUE_WITHIN_CAP';}else if(cls.disposition==='SELL'&&m.attractive){action='PLAYER_MARKET';reason='PLAYER_MARKET_PREMIUM_AND_LIQUIDITY';}else if(cls.disposition==='SELL')action='NPC_SELL';else if(cls.disposition==='BANK')action='BANK';out.push({index:item.index,name:item.name,level:levelOf(item),quantity:qtyOf(item),action,reason,fairValue:m.analysis.currentFairValue,trendPct:m.analysis.trendPct,liquidity:m.analysis.liquidity,spreadPct:m.analysis.spreadPct,marketConfidence:m.analysis.confidence,playerMarketPremium:m.premium,gearGoalCount:gs.length});}this.lastMarketDecisions=out;return out;}
-  async _partyService(need){if(!need){this._transition(HomePhase.TOWN_RETURN,'PARTY_SERVICE_COMPLETE');return false;}this.stats.partyPreemptions+=1;if(this.base&&typeof this.base._move==='function')this.base._move(need.report,need.reason);this.lastDecision={at:this.now(),action:'PARTY_SERVICE',reason:need.reason,target:need.report&&need.report.name||null,priority:need.priority};return true;}
-  async _townReturn(){const c=this._c();if(!c)return false;if(c.map==='main'){this._transition(HomePhase.TOWN_SERVICE,'TOWN_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('main','HOME_SERVICE_RETURN_TOWN');return true;}
-  async _townService(){const capacity=this._capacity(),plan=this.optimizer.plan();this.stats.gearPlans+=1;this._syncQueue(plan);const pool=this.pool.lastSnapshot||this.pool.snapshot();this.marketHistory.observeMany(this._marketItems(pool));this._marketDecisions();this._transition(capacity.shouldCreateWorkspace?HomePhase.BANK_TRAVEL:HomePhase.MARKET_TRAVEL,capacity.shouldCreateWorkspace?'INVENTORY_WORKSPACE_REQUIRED':'TOWN_SORT_COMPLETE',{effectiveFreeSlots:capacity.effectiveFreeSlots});return false;}
-  async _bankTravel(){const c=this._c();if(!c)return false;if(c.bank&&typeof c.bank==='object'){this._transition(HomePhase.BANK_SERVICE,'BANK_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('bank','HOME_SERVICE_BANK');return true;}
-  async _bankService(){const capacity=this._capacity();if(!capacity.shouldCreateWorkspace){this._transition(HomePhase.MARKET_TRAVEL,'BANK_CAPACITY_HEALTHY');return false;}if(this.base&&typeof this.base._drain==='function'&&await this.base._drain(this._reservations())){this.stats.bankActions+=1;return true;}this._transition(HomePhase.MARKET_TRAVEL,'NO_MORE_SAFE_BANK_ACTIONS');return false;}
-  async _marketTravel(){const c=this._c();if(!c)return false;if(c.map==='main'){this._transition(HomePhase.MARKET_SERVICE,'MARKET_OBSERVATION_ZONE_REACHED');return false;}if(this.base&&typeof this.base._serviceMove==='function')this.base._serviceMove('main','HOME_SERVICE_MARKET');return true;}
-  async _marketService(){if(this.oracle&&typeof this.oracle.observe==='function')this.oracle.observe();const pool=this.pool.snapshot();this.marketHistory.observeMany(this._marketItems(pool));this.marketHistory.save(false);this._marketDecisions();this.lastMarketServiceAt=this.now();this.stats.marketScans+=1;this._transition(HomePhase.PROGRESSION_SERVICE,'MARKET_ANALYSIS_COMPLETE');return false;}
-  _deliveryGoals(){const now=this.now();return[...this.transferQueue.values()].filter((q)=>q.state==='READY_MERCHANT_TO_TARGET'&&!q.projectedUpgradeRequired&&q.lastSeenAt!=null&&now-q.lastSeenAt<=30000).sort((a,b)=>finite(b.survivalImprovement,0)-finite(a.survivalImprovement,0)||finite(b.improvement,0)-finite(a.improvement,0)).map((q)=>({id:q.id,character:q.character,ctype:q.ctype,slot:q.slot,sourceCharacter:q.merchant,item:q.item,observedLevel:q.level,targetLevel:q.targetLevel,currentItem:q.currentItem,currentLevel:q.currentLevel,improvement:q.improvement,survivalImprovement:q.survivalImprovement,projectedUpgradeRequired:false,lastSeenAt:q.lastSeenAt}));}
-  async _progression(){if(!this.base){this._transition(HomePhase.RESTOCK_SERVICE,'BASE_ECONOMY_UNAVAILABLE');return false;}const c=this._c(),goals=this._deliveryGoals();if(goals.length&&typeof this.base._gearTransfer==='function'){const first=goals[0],before=inventoryCount(c,first.item,Number(first.observedLevel)||0);this.stats.gearDeliveryAttempts+=1;const acted=await this.base._gearTransfer({goals,keys:new Set(goals.map((g)=>itemKey(g.item,g.observedLevel)))}),after=inventoryCount(this._c(),first.item,Number(first.observedLevel)||0);if(after<before){const key=`${first.character}:${first.slot}:${first.item}:${first.observedLevel}`,row=this.transferQueue.get(key);if(row)this.transferQueue.set(key,{...row,state:'DELIVERED',deliveredAt:this.now(),updatedAt:this.now()});this.stats.gearDeliveriesObserved+=1;this._save();}if(acted){this.stats.progressionActions+=1;return true;}}const r=this._reservations();if(typeof this.base._upgrade==='function'&&await this.base._upgrade(r)){this.stats.progressionActions+=1;return true;}if(typeof this.base._compound==='function'&&await this.base._compound(r)){this.stats.progressionActions+=1;return true;}this._transition(HomePhase.RESTOCK_SERVICE,'PROGRESSION_PASS_COMPLETE');return false;}
-  async _restock(){if(this.base&&typeof this.base._restockPotions==='function'&&await this.base._restockPotions()){this.stats.restockActions+=1;return true;}this._transition(HomePhase.STANDBY,'HOME_SERVICE_CYCLE_COMPLETE');return false;}
-  async _standby(){const capacity=this._capacity();if(capacity.shouldCreateWorkspace){this._transition(HomePhase.TOWN_RETURN,'CAPACITY_SERVICE_DUE');return false;}if(this.now()-this.lastMarketServiceAt>=this.marketRefreshMs){this._transition(HomePhase.MARKET_TRAVEL,'MARKET_REFRESH_DUE');return false;}this.lastDecision={at:this.now(),action:'STANDBY',reason:'HOME_SERVICE_HEALTHY',capacity};return false;}
-  async cycle(){if(!this._active()||!this._merchant()||this._combat()||this.busy)return false;this.busy=true;this.stats.cycles+=1;try{const need=this._need();if(need&&this.phase!==HomePhase.PARTY_SERVICE)this._transition(HomePhase.PARTY_SERVICE,'PARTY_NEED_PREEMPTS_HOME_SERVICE',{target:need.report&&need.report.name||null,needReason:need.reason});switch(this.phase){case HomePhase.BOOTSTRAP:this._transition(need?HomePhase.PARTY_SERVICE:HomePhase.TOWN_RETURN,need?'BOOTSTRAP_PARTY_NEED':'BOOTSTRAP_HOME_SERVICE');return false;case HomePhase.PARTY_SERVICE:return this._partyService(need);case HomePhase.TOWN_RETURN:return this._townReturn();case HomePhase.TOWN_SERVICE:return this._townService();case HomePhase.BANK_TRAVEL:return this._bankTravel();case HomePhase.BANK_SERVICE:return this._bankService();case HomePhase.MARKET_TRAVEL:return this._marketTravel();case HomePhase.MARKET_SERVICE:return this._marketService();case HomePhase.PROGRESSION_SERVICE:return this._progression();case HomePhase.RESTOCK_SERVICE:return this._restock();case HomePhase.STANDBY:return this._standby();default:this._transition(HomePhase.BOOTSTRAP,'UNKNOWN_PHASE_RECOVERY');return false;}}catch(error){this.lastDecision={at:this.now(),action:'FAILED_SAFE',reason:'UNHANDLED_ECONOMY_V2_ERROR',error:String(error&&error.message||error).slice(0,220)};this._event('ECONOMY_V2_FAILED_SAFE','warn','UNHANDLED_ECONOMY_V2_ERROR',this.lastDecision);return false;}finally{this.busy=false;}}
-  tick(){if(this.now()-this.lastTick<this.intervalMs)return false;this.lastTick=this.now();Promise.resolve(this.cycle()).catch(()=>{this.busy=false;});return true;}
-  status(){const plan=this.optimizer.lastPlan;return{schemaVersion:1,mode:ECONOMY_V2_MODE,active:this._active()&&this._merchant(),busy:this.busy,homeService:{schemaVersion:1,mode:HOME_SERVICE_MODE,phase:this.phase,phaseSince:this.phaseSince,phaseReason:this.phaseReason,sequence:this.sequence,lastDecision:clone(this.lastDecision)},capacityPlan:clone(this.lastCapacityPlan),accountItemPool:this.pool.status(),gearOptimization:this.optimizer.status(),transferQueue:{total:this.transferQueue.size,awaitingSourceToMerchant:[...this.transferQueue.values()].filter((x)=>x.state==='AWAITING_SOURCE_TO_MERCHANT').length,readyMerchantToTarget:[...this.transferQueue.values()].filter((x)=>x.state==='READY_MERCHANT_TO_TARGET').length,delivered:[...this.transferQueue.values()].filter((x)=>x.state==='DELIVERED').length,rows:[...this.transferQueue.values()].slice(-24).map(clone)},marketHistory:this.marketHistory.status(),marketDecisions:this.lastMarketDecisions.slice(-32).map(clone),latestGearPlanAt:plan&&plan.at||null,stats:{...this.stats},policies:{partyServicePreemptsHomeService:true,durableTownBankMarketPhases:true,accountWideFourCharacterPool:true,globalGearAssignmentUsesMaxWeightCapacityMatching:true,multiHopUsesMerchantAsSafeHub:true,nonMerchantFirstHopWaitsForExistingControlledLootLogistics:true,marketHistoryPersistentAndQuotaBounded:true,playerMarketIsDecisionSourceNotUnverifiedWriteAuthority:true,upgradeAndCompoundReuseExistingJournaledExecutors:true,inventoryCapacityIsForecasted:true}};}
-}
-function installEconomyEquipmentAutonomyV2(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.economyEquipmentAutonomyV2)return runtime.economyEquipmentAutonomyV2;const x=new EconomyEquipmentAutonomyV2(runtime,options);runtime.economyEquipmentAutonomyV2=x;return x;}
-module.exports={HomePhase,EconomyEquipmentAutonomyV2,installEconomyEquipmentAutonomyV2,ECONOMY_V2_MODE,HOME_SERVICE_MODE,MARKET_HISTORY_MODE};
-
-},
-"src/reliability/economy-v2-market-history.js": function(require,module,exports){
-'use strict';
-
-const MARKET_HISTORY_MODE = 'persistent-market-history-v1';
-function finite(value, fallback = null) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
-function levelOf(item) { return Math.max(0, Math.floor(finite(item && item.level, 0) || 0)); }
-function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
-function itemKey(name, level = 0) { return `${String(name || '')}:${Math.max(0, Number(level) || 0)}`; }
-function storageOf(root) { const s = root && root.localStorage; return s && typeof s.getItem === 'function' && typeof s.setItem === 'function' ? s : null; }
-
-class PersistentMarketHistory {
-  constructor({ root = globalThis, oracle = null, now = () => Date.now(), key = 'aio-v3:economy-v2-market-history:v1', maxItems = 96, maxSamplesPerItem = 48, saveIntervalMs = 15000, maxSerializedBytes = 180000 } = {}) {
-    this.root = root; this.oracle = oracle; this.now = now; this.key = key;
-    this.maxItems = Math.max(16, Math.min(256, Number(maxItems) || 96));
-    this.maxSamplesPerItem = Math.max(8, Math.min(128, Number(maxSamplesPerItem) || 48));
-    this.saveIntervalMs = Math.max(5000, Number(saveIntervalMs) || 15000);
-    this.maxSerializedBytes = Math.max(40000, Number(maxSerializedBytes) || 180000);
-    this.history = new Map(); this.loaded = false; this.persistenceDisabled = false; this.lastSavedAt = null; this.lastObservedAt = null;
-    this.stats = { loads: 0, loadErrors: 0, observations: 0, saves: 0, saveErrors: 0, quotaCompactions: 0, prunedItems: 0, prunedSamples: 0 };
-    this.load();
-  }
-  load() {
-    if (this.loaded) return false; this.loaded = true; const s = storageOf(this.root); if (!s) return false;
-    try { const parsed = JSON.parse(s.getItem(this.key) || 'null'); if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.items)) return false;
-      for (const row of parsed.items) if (row && row.key && Array.isArray(row.samples)) this.history.set(row.key, row.samples.slice(-this.maxSamplesPerItem));
-      this.stats.loads += 1; return true;
-    } catch (_) { this.stats.loadErrors += 1; return false; }
-  }
-  _compact() {
-    for (const [key, samples] of this.history) if (samples.length > this.maxSamplesPerItem) { this.stats.prunedSamples += samples.length - this.maxSamplesPerItem; this.history.set(key, samples.slice(-this.maxSamplesPerItem)); }
-    if (this.history.size <= this.maxItems) return;
-    const ordered = [...this.history.entries()].sort((a, b) => finite(a[1].at(-1) && a[1].at(-1).at, 0) - finite(b[1].at(-1) && b[1].at(-1).at, 0));
-    while (this.history.size > this.maxItems && ordered.length) { this.history.delete(ordered.shift()[0]); this.stats.prunedItems += 1; }
-  }
-  _payload() { return { schemaVersion: 1, mode: MARKET_HISTORY_MODE, savedAt: this.now(), items: [...this.history.entries()].map(([key, samples]) => ({ key, samples })) }; }
-  save(force = false) {
-    if (this.persistenceDisabled) return false; const now = this.now(); if (!force && this.lastSavedAt != null && now - this.lastSavedAt < this.saveIntervalMs) return false;
-    const s = storageOf(this.root); if (!s) return false; this._compact();
-    const write = () => { const payload = JSON.stringify(this._payload()); if (payload.length > this.maxSerializedBytes) throw new Error('MARKET_HISTORY_SIZE_CAP'); s.setItem(this.key, payload); this.lastSavedAt = now; this.stats.saves += 1; return true; };
-    try { return write(); } catch (_) {
-      this.stats.saveErrors += 1;
-      try { for (const [key, samples] of this.history) this.history.set(key, samples.slice(-8)); this.stats.quotaCompactions += 1; return write(); }
-      catch (_) { this.stats.saveErrors += 1; this.persistenceDisabled = true; return false; }
-    }
-  }
-  observe(itemName, level = 0) {
-    if (!itemName || !this.oracle || typeof this.oracle.quote !== 'function') return null; const quote = this.oracle.quote(itemName, level); if (!quote) return null;
-    const sample = { at: this.now(), fairValue: finite(quote.fairValue), medianAsk: finite(quote.medianAsk), maxBid: finite(quote.maxBid), sampleCount: Math.max(0, finite(quote.sampleCount, 0)), confidence: Math.max(0, Math.min(1, finite(quote.confidence, 0))), source: quote.source || 'unknown', marketBacked: /^market-/.test(String(quote.source || '')) };
-    const key = itemKey(itemName, level), list = this.history.get(key) || [], previous = list.at(-1);
-    if (!previous || previous.fairValue !== sample.fairValue || previous.medianAsk !== sample.medianAsk || previous.maxBid !== sample.maxBid || previous.sampleCount !== sample.sampleCount || sample.at - previous.at >= 30000) { list.push(sample); this.history.set(key, list.slice(-this.maxSamplesPerItem)); this.stats.observations += 1; this.lastObservedAt = sample.at; }
-    this._compact(); return this.analysis(itemName, level);
-  }
-  observeMany(items = []) { const seen = new Set(), out = []; for (const item of items) { if (!item || !item.name) continue; const key = itemKey(item.name, levelOf(item)); if (seen.has(key)) continue; seen.add(key); const row = this.observe(item.name, levelOf(item)); if (row) out.push(row); } this.save(false); return out; }
-  analysis(itemName, level = 0) {
-    const key = itemKey(itemName, level), samples = this.history.get(key) || [], market = samples.filter((x) => x.marketBacked && x.fairValue != null), latest = samples.at(-1) || null;
-    let trendPct = null; if (market.length >= 2 && market[0].fairValue > 0) trendPct = (market.at(-1).fairValue - market[0].fairValue) / market[0].fairValue;
-    const spreadPct = latest && latest.medianAsk != null && latest.maxBid != null && latest.medianAsk > 0 ? (latest.medianAsk - latest.maxBid) / latest.medianAsk : null;
-    const volumeEvidence = market.reduce((sum, x) => sum + Math.max(1, x.sampleCount || 0), 0);
-    const liquidity = Math.max(0, Math.min(1, volumeEvidence / 24)) * (spreadPct == null ? 0.7 : Math.max(0.15, 1 - Math.max(0, spreadPct)));
-    return { key, name: itemName, level: Math.max(0, Number(level) || 0), observations: samples.length, marketObservations: market.length, currentFairValue: latest && latest.fairValue != null ? latest.fairValue : null, trendPct, spreadPct, liquidity: Number(liquidity.toFixed(4)), confidence: latest ? latest.confidence : 0, latest: clone(latest) };
-  }
-  status() { return { schemaVersion: 1, mode: MARKET_HISTORY_MODE, trackedItems: this.history.size, lastObservedAt: this.lastObservedAt, lastSavedAt: this.lastSavedAt, persistenceDisabled: this.persistenceDisabled, stats: { ...this.stats } }; }
-}
-
-module.exports = { PersistentMarketHistory, MARKET_HISTORY_MODE, itemKey, levelOf, finite, clone, storageOf };
-
-},
-"src/reliability/economy-v2-planning.js": function(require,module,exports){
-'use strict';
-
-const { finite, levelOf, itemKey, clone } = require('./economy-v2-market-history');
-function qtyOf(item) { return Math.max(1, Math.floor(finite(item && item.q, 1) || 1)); }
-
-class AccountItemPool {
-  constructor(runtime) { this.runtime = runtime; this.lastSnapshot = null; }
-  _characters() { try { const s = this.runtime.characterRegistry && this.runtime.characterRegistry.status(); return Array.isArray(s && s.characters) ? s.characters : []; } catch (_) { return []; } }
-  snapshot() {
-    const characters = this._characters(), items = [];
-    for (const c of characters) {
-      if (!c || !c.name) continue;
-      for (const item of Array.isArray(c.inventory) ? c.inventory : []) if (item && item.name) items.push({ owner: c.name, ctype: c.ctype || null, location: 'inventory', index: item.index, name: item.name, level: levelOf(item), quantity: qtyOf(item), locked: !!(item.locked || item.l), special: !!(item.special || item.p) });
-      for (const [slot, item] of Object.entries(c.gear && typeof c.gear === 'object' ? c.gear : {})) if (item && item.name) items.push({ owner: c.name, ctype: c.ctype || null, location: 'equipped', slot, name: item.name, level: levelOf(item), quantity: 1, locked: true, special: !!(item.special || item.p) });
-    }
-    const root = this.runtime.root || globalThis, local = root.character || root.parent && root.parent.character;
-    if (local && local.bank && typeof local.bank === 'object') for (const [pack, entries] of Object.entries(local.bank)) if (Array.isArray(entries)) for (let i = 0; i < entries.length; i += 1) { const item = entries[i]; if (item && item.name) items.push({ owner: local.name, ctype: local.ctype || null, location: 'bank', pack, index: i, name: item.name, level: levelOf(item), quantity: qtyOf(item), locked: !!(item.locked || item.l), special: !!(item.special || item.p) }); }
-    const grouped = new Map();
-    for (const item of items) { const key = itemKey(item.name, item.level), row = grouped.get(key) || { key, name: item.name, level: item.level, quantity: 0, owners: {}, locations: {} }; row.quantity += item.quantity; row.owners[item.owner] = (row.owners[item.owner] || 0) + item.quantity; row.locations[item.location] = (row.locations[item.location] || 0) + item.quantity; grouped.set(key, row); }
-    this.lastSnapshot = { at: this.runtime.now ? this.runtime.now() : Date.now(), characterCount: characters.length, itemCount: items.length, uniqueItems: grouped.size, characters: characters.map((c) => ({ name: c.name, ctype: c.ctype, level: c.level, map: c.map })), items, grouped: [...grouped.values()] };
-    return this.lastSnapshot;
-  }
-  status() { const s = this.lastSnapshot || this.snapshot(); return { at: s.at, characterCount: s.characterCount, itemCount: s.itemCount, uniqueItems: s.uniqueItems, characters: clone(s.characters) }; }
-}
-
-class GlobalGearOptimizer {
-  constructor(runtime, pool) { this.runtime = runtime; this.pool = pool; this.lastPlan = null; }
-  goals() { try { return this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(256) || [] : []; } catch (_) { return []; } }
-  _freshGoals() { const now = this.runtime.now ? this.runtime.now() : Date.now(); return this.goals().filter((g) => g && g.character && g.slot && g.item && finite(g.lastSeenAt) != null && g.lastSeenAt <= now + 5000 && now - g.lastSeenAt <= 30000); }
-  _select(goals, stock) {
-    const capacity = new Map(); for (const item of stock) capacity.set(itemKey(item.name, item.level), (capacity.get(itemKey(item.name, item.level)) || 0) + item.remaining);
-    const best = new Map();
-    for (const goal of goals) { const ikey = itemKey(goal.item, Number(goal.observedLevel) || 0); if (!capacity.has(ikey)) continue; const skey = `${goal.character}:${goal.slot}`, ckey = `${ikey}|${skey}`, weight = Math.max(0, finite(goal.improvement, 0)) + Math.max(0, finite(goal.survivalImprovement, 0)) * 0.25; const row = { goal, ikey, skey, weight }; if (!best.has(ckey) || weight > best.get(ckey).weight) best.set(ckey, row); }
-    const candidates = [...best.values()]; if (!candidates.length) return [];
-    const itemKeys = [...new Set(candidates.map((x) => x.ikey))], slotKeys = [...new Set(candidates.map((x) => x.skey))], source = 0, itemOffset = 1, slotOffset = 1 + itemKeys.length, sink = slotOffset + slotKeys.length;
-    const graph = Array.from({ length: sink + 1 }, () => []), add = (u, v, cap, cost, meta = null) => { const a = { to: v, rev: graph[v].length, cap, initialCap: cap, cost, meta }, b = { to: u, rev: graph[u].length, cap: 0, initialCap: 0, cost: -cost, meta: null }; graph[u].push(a); graph[v].push(b); };
-    const iNode = new Map(itemKeys.map((k, i) => [k, itemOffset + i])), sNode = new Map(slotKeys.map((k, i) => [k, slotOffset + i]));
-    for (const key of itemKeys) add(source, iNode.get(key), capacity.get(key), 0); for (const row of candidates) add(iNode.get(row.ikey), sNode.get(row.skey), 1, -row.weight, row); for (const key of slotKeys) add(sNode.get(key), sink, 1, 0);
-    while (true) {
-      const d = Array(graph.length).fill(Infinity), pn = Array(graph.length).fill(-1), pe = Array(graph.length).fill(-1); d[source] = 0;
-      for (let pass = 0; pass < graph.length - 1; pass += 1) { let changed = false; for (let u = 0; u < graph.length; u += 1) if (Number.isFinite(d[u])) for (let ei = 0; ei < graph[u].length; ei += 1) { const e = graph[u][ei]; if (e.cap > 0 && d[u] + e.cost < d[e.to] - 1e-9) { d[e.to] = d[u] + e.cost; pn[e.to] = u; pe[e.to] = ei; changed = true; } } if (!changed) break; }
-      if (!Number.isFinite(d[sink]) || d[sink] >= -1e-9) break; let v = sink; while (v !== source) { const u = pn[v], ei = pe[v]; if (u < 0) break; const e = graph[u][ei]; e.cap -= 1; graph[v][e.rev].cap += 1; v = u; }
-    }
-    const selected = []; for (const node of iNode.values()) for (const e of graph[node]) if (e.meta && e.initialCap === 1 && e.cap === 0) selected.push(e.meta.goal); return selected;
-  }
-  plan() {
-    const pool = this.pool.snapshot(), merchant = (pool.characters.find((c) => String(c.ctype || '').toLowerCase() === 'merchant') || {}).name || null;
-    const stock = pool.items.filter((x) => x.location === 'inventory' && !x.locked && !x.special).map((x) => ({ ...x, remaining: x.quantity })), goals = this._freshGoals(), selected = this._select(goals, stock), assignments = [];
-    for (const goal of selected) { const level = Math.max(0, Number(goal.observedLevel) || 0), candidates = stock.filter((x) => x.remaining > 0 && x.name === goal.item && x.level === level).sort((a, b) => { const rank = (x) => x.owner === merchant ? 0 : x.owner === goal.sourceCharacter ? 1 : x.owner === goal.character ? 3 : 2; return rank(a) - rank(b) || String(a.owner).localeCompare(String(b.owner)); }), source = candidates[0]; if (!source) continue; source.remaining -= 1;
-      const route = source.owner === goal.character ? 'LOCAL_EQUIP' : source.owner === merchant ? 'MERCHANT_TO_TARGET' : 'SOURCE_TO_MERCHANT_TO_TARGET';
-      assignments.push({ id: goal.id || `${goal.character}:${goal.slot}:${goal.item}:${goal.targetLevel || level}`, character: goal.character, ctype: goal.ctype || null, slot: goal.slot, item: goal.item, level, targetLevel: Math.max(level, Number(goal.targetLevel) || level), sourceCharacter: source.owner, sourceIndex: source.index, merchant, route, improvement: finite(goal.improvement, 0), survivalImprovement: finite(goal.survivalImprovement, 0), projectedUpgradeRequired: !!goal.projectedUpgradeRequired, lastSeenAt: finite(goal.lastSeenAt), currentItem: goal.currentItem || null, currentLevel: finite(goal.currentLevel, 0) });
-    }
-    this.lastPlan = { at: this.runtime.now ? this.runtime.now() : Date.now(), merchant, assignments, consideredGoals: goals.length, unassignedGoals: Math.max(0, goals.length - assignments.length) }; return this.lastPlan;
-  }
-  status() { const p = this.lastPlan || this.plan(); return { at: p.at, merchant: p.merchant, assignments: p.assignments.length, consideredGoals: p.consideredGoals, multiHop: p.assignments.filter((x) => x.route === 'SOURCE_TO_MERCHANT_TO_TARGET').length, direct: p.assignments.filter((x) => x.route === 'MERCHANT_TO_TARGET').length, localEquip: p.assignments.filter((x) => x.route === 'LOCAL_EQUIP').length, unassignedGoals: p.unassignedGoals }; }
-}
-
-module.exports = { AccountItemPool, GlobalGearOptimizer, qtyOf };
 
 },
 "src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js": function(require,module,exports){

@@ -13,7 +13,8 @@ const LOGIC_TESTS = Object.freeze([
   'test/release-safety-invariants.test.js',
   'test/alpha20-23-idle-deadlock-recovery.test.js',
   'test/unknown-content-safety.test.js',
-  'test/farmer-local-plan-priority.test.js'
+  'test/farmer-local-plan-priority.test.js',
+  'test/alpha21-progression-liveness.test.js'
 ]);
 
 function fail(message) {
