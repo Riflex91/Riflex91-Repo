@@ -7,6 +7,8 @@ const TEACHER_MIN_INTERVAL_MS = 10 * 60 * 1000;
 const TEACHER_DEDUPE_MS = 30 * 60 * 1000;
 const HARD_NEURON_LIMIT = 10000;
 const RESERVED_NEURONS = 1500;
+const CONSUMED_TEACHER_STATUSES = Object.freeze(['success', 'budget-overrun-blocked']);
+const CONSUMED_TEACHER_STATUS_SQL = CONSUMED_TEACHER_STATUSES.map((status) => `'${status}'`).join(',');
 const ALLOWED_NAMESPACES = new Set(['brain', 'gear', 'market', 'party-performance']);
 
 function number(v, fallback = 0) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
@@ -53,7 +55,7 @@ export async function ensureAlpha2021Db(env) {
 export async function rollingTeacherUsage(env, now = Date.now(), hardLimit = HARD_NEURON_LIMIT) {
   await ensureAlpha2021Db(env);
   const cutoff = now - ROLLING_WINDOW_MS;
-  const row = await env.DB.prepare(`SELECT COALESCE(SUM(CASE WHEN status='success' THEN neurons ELSE 0 END),0) neurons, COUNT(*) requests, MAX(created_at) last_at, MAX(CASE WHEN status='quota' THEN 1 ELSE 0 END) quota FROM brain_teacher_attempts WHERE created_at>=?`).bind(cutoff).first() || {};
+  const row = await env.DB.prepare(`SELECT COALESCE(SUM(CASE WHEN status IN (${CONSUMED_TEACHER_STATUS_SQL}) THEN neurons ELSE 0 END),0) neurons, COUNT(*) requests, MAX(created_at) last_at, MAX(CASE WHEN status='quota' THEN 1 ELSE 0 END) quota FROM brain_teacher_attempts WHERE created_at>=?`).bind(cutoff).first() || {};
   const limit = Math.min(HARD_NEURON_LIMIT, Math.max(0, number(hardLimit, HARD_NEURON_LIMIT)));
   const neurons = number(row.quota) ? limit : Math.max(0, number(row.neurons));
   return { window: 'rolling-24h', windowMs: ROLLING_WINDOW_MS, neurons, requests: Math.max(0, number(row.requests)), lastAttemptAt: number(row.last_at) || null, hardLimit: limit, reserve: Math.min(RESERVED_NEURONS, limit), usableLimit: Math.max(0, limit - RESERVED_NEURONS), quotaObserved: !!number(row.quota) };
@@ -121,14 +123,18 @@ export async function handleTeacher2021(request, env) {
     return json({ ok: false, error: 'AI inference failed: ' + message }, 502, cors || {});
   }
   const usageInfo = result && result.usage || {}, inputTokens = number(usageInfo.prompt_tokens || usageInfo.input_tokens, tokenEstimate(system + state)), outputTokens = number(usageInfo.completion_tokens || usageInfo.output_tokens, tokenEstimate(JSON.stringify(result && result.response || ''))), neurons = inputTokens * INPUT_NEURONS_PER_TOKEN + outputTokens * OUTPUT_NEURONS_PER_TOKEN;
-  if (usage.neurons + neurons > usage.usableLimit + 1e-9) { await env.DB.prepare('UPDATE brain_teacher_attempts SET status=?,neurons=?,updated_at=? WHERE request_key=? AND created_at=?').bind('budget-overrun-blocked', neurons, Date.now(), requestKey, now).run(); return json({ ok: true, blocked: true, reason: 'post-inference budget overrun blocked from teacher ingestion', neurons, ...usage }, 200, cors || {}); }
-  const decision = cleanDecision(parseBrainText(result));
-  await env.DB.prepare('UPDATE brain_teacher_attempts SET status=?,neurons=?,decision=?,updated_at=? WHERE request_key=? AND created_at=?').bind('success', neurons, decision ? JSON.stringify(decision) : null, Date.now(), requestKey, now).run();
   const day = new Date(now).toISOString().slice(0, 10);
   await env.DB.prepare('INSERT INTO brain_usage(day,neurons,requests,updated_at) VALUES(?,?,1,?) ON CONFLICT(day) DO UPDATE SET neurons=brain_usage.neurons+excluded.neurons,requests=brain_usage.requests+1,updated_at=excluded.updated_at').bind(day, neurons, Date.now()).run();
+  if (usage.neurons + neurons > usage.usableLimit + 1e-9) {
+    await env.DB.prepare('UPDATE brain_teacher_attempts SET status=?,neurons=?,updated_at=? WHERE request_key=? AND created_at=?').bind('budget-overrun-blocked', neurons, Date.now(), requestKey, now).run();
+    const overrunUsage = await rollingTeacherUsage(env, Date.now(), hardLimit);
+    return json({ ok: true, blocked: true, reason: 'post-inference budget overrun blocked from teacher ingestion', neurons, usedRolling24h: overrunUsage.neurons, requests: overrunUsage.requests, hardLimit: overrunUsage.hardLimit, reserve: overrunUsage.reserve, usableLimit: overrunUsage.usableLimit }, 200, cors || {});
+  }
+  const decision = cleanDecision(parseBrainText(result));
+  await env.DB.prepare('UPDATE brain_teacher_attempts SET status=?,neurons=?,decision=?,updated_at=? WHERE request_key=? AND created_at=?').bind('success', neurons, decision ? JSON.stringify(decision) : null, Date.now(), requestKey, now).run();
   if (decision) await env.DB.prepare('INSERT INTO brain_decisions(account,character,trigger,decision,neurons,created_at) VALUES(?,?,?,?,?,?)').bind(account, character, text(body.state && body.state.trigger, 80), JSON.stringify(decision), neurons, Date.now()).run();
   const nextUsage = await rollingTeacherUsage(env, Date.now(), hardLimit);
   return json({ ok: true, blocked: false, cached: false, decision, neurons, inputTokens, outputTokens, usedRolling24h: nextUsage.neurons, requests: nextUsage.requests, hardLimit: nextUsage.hardLimit, reserve: nextUsage.reserve, usableLimit: nextUsage.usableLimit }, 200, cors || {});
 }
 
-export { HARD_NEURON_LIMIT, RESERVED_NEURONS, TEACHER_MIN_INTERVAL_MS, TEACHER_DEDUPE_MS, ROLLING_WINDOW_MS };
+export { HARD_NEURON_LIMIT, RESERVED_NEURONS, TEACHER_MIN_INTERVAL_MS, TEACHER_DEDUPE_MS, ROLLING_WINDOW_MS, CONSUMED_TEACHER_STATUSES };
