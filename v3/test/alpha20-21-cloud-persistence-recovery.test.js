@@ -144,9 +144,10 @@ test('update quiesce blocks new work but preserves updater safety and enables au
   const status = runtime.safeAutoUpdater.status(); assert.equal(status.policies.safetyStillRequiredBeforeApply, true); assert.equal(status.policies.autoStartAfterSuccessfulReload, true);
 });
 
-test('server teacher budget keeps 1500-neuron reserve under 10000 hard cap', async () => {
+test('server teacher budget keeps 1500-neuron reserve under 10000 hard cap and counts post-inference overruns as consumed', async () => {
   const mod = await import('../../cloudflare-dashboard/src/alpha20-21-control-plane.js');
   assert.equal(mod.HARD_NEURON_LIMIT, 10000); assert.equal(mod.RESERVED_NEURONS, 1500);
+  assert.deepEqual(mod.CONSUMED_TEACHER_STATUSES, ['success', 'budget-overrun-blocked']);
   const open = mod.teacherBudgetPlan(0, 1000, 10000, 200); assert.equal(open.usableLimit, 8500); assert.equal(open.allowed, true);
   const closed = mod.teacherBudgetPlan(8499, 5000, 10000, 200); assert.equal(closed.allowed, false); assert.ok(closed.used + closed.available <= 8500);
 });
