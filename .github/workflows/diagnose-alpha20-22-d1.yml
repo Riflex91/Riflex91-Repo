@@ -1,0 +1,35 @@
+name: diagnose-alpha20-22-d1
+on:
+  push:
+    branches: ["v3/alpha20-22-live-smoke-recovery"]
+    paths:
+      - ".github/workflows/diagnose-alpha20-22-d1.yml"
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Cloudflare tooling
+        working-directory: cloudflare-dashboard
+        run: npm install --ignore-scripts
+      - name: Inspect production D1 schema read-only
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute aio-bot-dashboard --remote --command "SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name LIKE 'v3_%' OR name LIKE 'brain_%' ORDER BY type,name;" --json > schema-live.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync('schema-live.json','utf8'));
+          const rows = Array.isArray(payload) ? payload.flatMap(x => x && x.results || []) : [];
+          for (const row of rows) console.log(JSON.stringify({type:row.type,name:row.name,tbl_name:row.tbl_name,sql:row.sql}));
+          NODE
+          rm -f schema-live.json
