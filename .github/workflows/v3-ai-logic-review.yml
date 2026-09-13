@@ -19,20 +19,30 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       final_message: ${{ steps.codex.outputs.final-message }}
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
+      - name: Detect AI review credential
+        id: ai-key
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: AI review unavailable without OPENAI_API_KEY
-        if: env.OPENAI_API_KEY == ''
+        if: steps.ai-key.outputs.available != 'true'
         run: echo 'AI logic review skipped; deterministic Logic Guardian remains enforced.'
 
       - name: Prepare trusted policy and PR diff
-        if: env.OPENAI_API_KEY != '' && github.event_name == 'pull_request'
+        if: steps.ai-key.outputs.available == 'true' && github.event_name == 'pull_request'
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -43,7 +53,7 @@ jobs:
           git diff --no-ext-diff --unified=80 "$BASE_SHA...$HEAD_SHA" > /tmp/v3-pr.diff
 
       - name: Prepare trusted policy and manual diff
-        if: env.OPENAI_API_KEY != '' && github.event_name == 'workflow_dispatch'
+        if: steps.ai-key.outputs.available == 'true' && github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           cp .github/codex/v3-logic-review.md /tmp/trusted-v3-logic-review.md
@@ -51,7 +61,7 @@ jobs:
           git show --no-ext-diff --unified=80 --format=fuller HEAD > /tmp/v3-pr.diff
 
       - name: Run read-only adversarial Codex review
-        if: env.OPENAI_API_KEY != ''
+        if: steps.ai-key.outputs.available == 'true'
         id: codex
         uses: openai/codex-action@v1
         with:
