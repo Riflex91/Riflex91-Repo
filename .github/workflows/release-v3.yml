@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install v3 guard dependencies
+        working-directory: v3
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
       - name: Release + Logic Guardian preflight
         working-directory: v3
         run: npm run preflight

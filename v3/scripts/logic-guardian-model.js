@@ -9,6 +9,29 @@ const LogicOutcome = Object.freeze({
   DEADLOCK: 'DEADLOCK'
 });
 
+/**
+ * @typedef {Object} CrossModuleDecisionInput
+ * @property {boolean} [workExpected]
+ * @property {boolean} [attackAllowed]
+ * @property {boolean} [safeTargetAvailable]
+ * @property {boolean} [planAvailable]
+ * @property {boolean} [navigationBlocked]
+ * @property {boolean} [explicitSafetyStop]
+ * @property {boolean} [alternateProgress]
+ */
+
+/**
+ * @typedef {Object} ProgressStep
+ * @property {unknown} [signature]
+ * @property {unknown} [action]
+ * @property {unknown} [explicitSafetyStop]
+ * @property {unknown} [progressed]
+ */
+
+/**
+ * @param {CrossModuleDecisionInput} [input]
+ * @returns {(typeof LogicOutcome)[keyof typeof LogicOutcome]}
+ */
 function classifyCrossModuleDecision(input = {}) {
   const workExpected = input.workExpected === true;
   const attackAllowed = input.attackAllowed === true;
@@ -27,6 +50,11 @@ function classifyCrossModuleDecision(input = {}) {
   return LogicOutcome.WAIT;
 }
 
+/**
+ * @param {ProgressStep[]} trace
+ * @param {number} [maxStagnantSteps]
+ * @returns {boolean}
+ */
 function traceHasBoundedProgress(trace, maxStagnantSteps = 6) {
   if (!Array.isArray(trace) || trace.length === 0) return false;
   let stagnant = 0;

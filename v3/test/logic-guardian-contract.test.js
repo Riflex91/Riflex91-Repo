@@ -7,12 +7,13 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const contractPath = path.join(root, 'logic', 'invariants.json');
+const architectureConfigPath = path.join(root, '.dependency-cruiser.cjs');
 
 function loadContract() {
   return JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 }
 
-test('logic invariant registry is unique, explicit and points at real deterministic tests', () => {
+test('logic invariant registry is unique, explicit and points at real enforcement', () => {
   const contract = loadContract();
   assert.equal(contract.schemaVersion, 1);
   assert.ok(Array.isArray(contract.invariants));
@@ -26,13 +27,16 @@ test('logic invariant registry is unique, explicit and points at real determinis
     assert.ok(['block', 'warn'].includes(invariant.severity));
     assert.ok(String(invariant.statement || '').length >= 20);
     assert.ok(Array.isArray(invariant.enforcement) && invariant.enforcement.length > 0);
-    assert.ok(invariant.enforcement.every((entry) => ['test', 'manual-review'].includes(entry)));
+    assert.ok(invariant.enforcement.every((entry) => ['test', 'static-analysis', 'manual-review'].includes(entry)));
     assert.ok(Array.isArray(invariant.tests));
     if (invariant.enforcement.includes('test')) {
       assert.ok(invariant.tests.length > 0, `${invariant.id} claims test enforcement without a test`);
       for (const relative of invariant.tests) {
         assert.ok(fs.existsSync(path.join(root, relative)), `${invariant.id} references missing ${relative}`);
       }
+    }
+    if (invariant.enforcement.includes('static-analysis')) {
+      assert.ok(fs.existsSync(architectureConfigPath), `${invariant.id} claims static-analysis without dependency-cruiser config`);
     }
   }
 
@@ -42,6 +46,8 @@ test('logic invariant registry is unique, explicit and points at real determinis
     'UNKNOWN_CONTENT_FAIL_CLOSED',
     'NO_HIDDEN_CROSS_MODULE_DEADLOCK',
     'FARMER_BOUNDED_LIVENESS',
-    'SHADOW_PLAN_MUST_ADVANCE'
+    'SHADOW_PLAN_MUST_ADVANCE',
+    'MERCHANT_ROLE_BOUNDARY',
+    'NO_CIRCULAR_CRITICAL_RUNTIME_DEPENDENCIES'
   ]) assert.ok(ids.has(required), `missing critical invariant ${required}`);
 });

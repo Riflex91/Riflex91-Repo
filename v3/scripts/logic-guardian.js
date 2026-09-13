@@ -9,6 +9,7 @@ const CONTRACT = path.join(ROOT, 'logic', 'invariants.json');
 const LOGIC_TESTS = Object.freeze([
   'test/logic-guardian-contract.test.js',
   'test/logic-guardian-liveness.test.js',
+  'test/logic-guardian-property.test.js',
   'test/release-safety-invariants.test.js',
   'test/alpha20-23-idle-deadlock-recovery.test.js',
   'test/unknown-content-safety.test.js',
@@ -46,7 +47,7 @@ function runLogicGuardian() {
   for (const file of ['scripts/logic-guardian.js', 'scripts/logic-guardian-model.js']) {
     runNode(['--check', file], `syntax check ${file}`);
   }
-  runNode(['--test', ...LOGIC_TESTS], 'logic invariant + liveness suite');
+  runNode(['--test', ...LOGIC_TESTS], 'logic invariant + liveness + property suite');
   const hard = contract.invariants.filter((row) => row.severity === 'block').length;
   process.stdout.write(`[logic-guardian] PASS ${contract.invariants.length} invariants (${hard} blocking)\n`);
   return contract;
