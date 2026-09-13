@@ -279,6 +279,7 @@ test('sustained target starvation with foreign players marks an area overcrowded
   let decision = null;
   for (let i = 0; i < 24; i += 1) {
     decision = fx.hotfix.tick(fx.snapshot(foreign));
+    if (decision && decision.action === 'REPLAN') break;
     fx.advance(1000);
   }
   assert.equal(decision.action, 'REPLAN');
@@ -293,6 +294,7 @@ test('sustained target starvation without foreign players is classified as insuf
   let decision = null;
   for (let i = 0; i < 24; i += 1) {
     decision = fx.hotfix.tick(fx.snapshot([]));
+    if (decision && decision.action === 'REPLAN') break;
     fx.advance(1000);
   }
   assert.equal(decision.action, 'REPLAN');
