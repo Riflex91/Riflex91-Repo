@@ -13,7 +13,9 @@ const { installLiveNavigationHotfix } = require('../reliability/live-navigation-
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
 const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
 const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-terrain-navigation-hotfix');
+const { installFarmerResourceTopoffHotfix } = require('../reliability/farmer-resource-topoff-hotfix');
 const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
+const { installTeamCombatCohesionHotfix } = require('../reliability/team-combat-cohesion-hotfix');
 const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
@@ -82,6 +84,11 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       blockedTargetMs: options.farmerTerrainBlockedTargetMs,
       minProgress: options.farmerTerrainMinProgress
     });
+    this.farmerResourceTopoffHotfix = installFarmerResourceTopoffHotfix(this, {
+      targetRatio: options.farmerResourceTopoffRatio,
+      criticalHpRatio: options.farmerResourceCriticalHpRatio,
+      cooldownMs: options.farmerResourcePotionCooldownMs
+    });
     this.partyFocusFireHotfix = installPartyFocusFireHotfix(this, {
       maxFocusDistance: options.partyFocusMaxDistance
     });
@@ -119,6 +126,18 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     });
     this.partyBootstrapMerchantDiscoveryHotfix = installPartyBootstrapMerchantDiscoveryHotfix(this.partyBootstrap);
     this.partyBootstrapFarmerGate = installPartyBootstrapFarmerGate(this, this.partyBootstrap);
+    this.teamCombatCohesionHotfix = installTeamCombatCohesionHotfix(this, {
+      resourceTopoff: this.farmerResourceTopoffHotfix,
+      requiredCombatMembers: options.teamCombatRequiredMembers,
+      cohesionRadius: options.teamCombatCohesionRadius,
+      followRadius: options.teamCombatFollowRadius,
+      kiteFormationRadius: options.teamCombatKiteFormationRadius,
+      followStep: options.teamCombatFollowStep,
+      followCooldownMs: options.teamCombatFollowCooldownMs,
+      minNewFightHpRatio: options.teamCombatMinHpRatio,
+      minNewFightMpRatio: options.teamCombatMinMpRatio,
+      maxNewTargetHpVsTeam: options.teamCombatMaxTargetHpVsTeam
+    });
   }
 
   start() {
@@ -154,7 +173,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
+      farmerResourceTopoffHotfix: this.farmerResourceTopoffHotfix.status(),
       partyFocusFireHotfix: this.partyFocusFireHotfix.status(),
+      teamCombatCohesionHotfix: this.teamCombatCohesionHotfix.status(),
       partyPersistenceQuotaHotfix: this.partyPersistenceQuotaHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
@@ -186,6 +207,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         bootstrapMerchantDiscovery: this.partyBootstrapMerchantDiscoveryHotfix.status(),
         accountCommunication: this.partyAccountCommunication.status(),
         focusFire: this.partyFocusFireHotfix.status(),
+        teamCombat: this.teamCombatCohesionHotfix.status(),
         persistenceQuota: this.partyPersistenceQuotaHotfix.status()
       },
       farmerLoot: this.controlledFarmerLoot.status(),
@@ -195,6 +217,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
+      farmerResourceTopoffHotfix: this.farmerResourceTopoffHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -220,6 +243,13 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         movementFailureReselectsInsteadOfGlobalFarmerBlock: true,
         safeVisiblePartyFocusFire: true,
         partyFocusDoesNotUseCm: true,
+        teamCombatCohesionFirst: true,
+        teamLeaderOwnsFarmDirection: true,
+        followersNeverOpenIndependentTargets: true,
+        teamSharedAggroAssistance: true,
+        incompletePotionSupplyHoldsCombat: true,
+        aggressivePreciseResourceTopoff: true,
+        reducedTeamKitingRadius: true,
         extremeEvasionFarmTargetsRejected: true,
         extremeAvoidanceFarmTargetsRejected: true,
         farmEfficiencySeparateFromNavigationSafety: true,
