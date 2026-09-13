@@ -16,6 +16,9 @@ const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-
 const { installFarmerResourceTopoffHotfix } = require('../reliability/farmer-resource-topoff-hotfix');
 const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
 const { installTeamCombatCohesionHotfix } = require('../reliability/team-combat-cohesion-hotfix');
+const { installTeamCohesionDeadlockHotfix } = require('../reliability/team-cohesion-deadlock-hotfix');
+const { installControlledPartyLogistics } = require('../reliability/controlled-party-logistics');
+const { installFarmAreaPressureHotfix } = require('../reliability/farm-area-pressure-hotfix');
 const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
@@ -138,6 +141,36 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       minNewFightMpRatio: options.teamCombatMinMpRatio,
       maxNewTargetHpVsTeam: options.teamCombatMaxTargetHpVsTeam
     });
+    this.teamCohesionDeadlockHotfix = installTeamCohesionDeadlockHotfix(this, {
+      followRadius: options.teamCombatPairwiseSafeFollowRadius,
+      margin: options.teamCombatPairwiseSafetyMargin
+    });
+    this.controlledPartyLogistics = installControlledPartyLogistics(this, {
+      statusIntervalMs: options.partyLogisticsStatusIntervalMs,
+      statusFreshMs: options.partyLogisticsStatusFreshMs,
+      merchantReserveSlots: options.partyLogisticsMerchantReserveSlots,
+      farmerPotionLow: options.partyLogisticsFarmerPotionLow,
+      farmerPotionTarget: options.partyLogisticsFarmerPotionTarget,
+      merchantPotionReserve: options.partyLogisticsMerchantPotionReserve,
+      maxSupplyBatch: options.partyLogisticsMaxSupplyBatch,
+      farmerGoldReserve: options.partyLogisticsFarmerGoldReserve,
+      maxGoldBatch: options.partyLogisticsMaxGoldBatch,
+      maxTransferDistance: options.partyLogisticsMaxTransferDistance,
+      rendezvousDistance: options.partyLogisticsRendezvousDistance,
+      rendezvousStep: options.partyLogisticsRendezvousStep
+    });
+    this.farmAreaPressureHotfix = installFarmAreaPressureHotfix(this, {
+      sampleIntervalMs: options.farmAreaPressureSampleIntervalMs,
+      windowMs: options.farmAreaPressureWindowMs,
+      minDwellMs: options.farmAreaPressureMinDwellMs,
+      minSamples: options.farmAreaPressureMinSamples,
+      availabilityThreshold: options.farmAreaPressureAvailabilityThreshold,
+      idleThreshold: options.farmAreaPressureIdleThreshold,
+      foreignPresenceThreshold: options.farmAreaPressureForeignPresenceThreshold,
+      observationRadius: options.farmAreaPressureObservationRadius,
+      exclusionMs: options.farmAreaPressureExclusionMs,
+      switchCooldownMs: options.farmAreaPressureSwitchCooldownMs
+    });
   }
 
   start() {
@@ -160,6 +193,8 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     if (!snapshot || !snapshot.character) return;
     this.controlledAutoRespawn.tick(snapshot);
     this.controlledFarmerLoot.tick(snapshot);
+    this.controlledPartyLogistics.tick(snapshot);
+    this.farmAreaPressureHotfix.tick(snapshot);
   }
 
   farmReadinessStatus() {
@@ -176,6 +211,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerResourceTopoffHotfix: this.farmerResourceTopoffHotfix.status(),
       partyFocusFireHotfix: this.partyFocusFireHotfix.status(),
       teamCombatCohesionHotfix: this.teamCombatCohesionHotfix.status(),
+      teamCohesionDeadlockHotfix: this.teamCohesionDeadlockHotfix.status(),
+      controlledPartyLogistics: this.controlledPartyLogistics.status(),
+      farmAreaPressureHotfix: this.farmAreaPressureHotfix.status(),
       partyPersistenceQuotaHotfix: this.partyPersistenceQuotaHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
@@ -192,7 +230,8 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         startDoesNotGrantMerchantServiceAuthority: true,
         startDoesNotGrantPartyLifecycleAuthority: true,
         startDoesNotGrantEconomyAuthority: true,
-        partyBootstrapAuthority: 'bounded-active-owned-invites-only'
+        partyBootstrapAuthority: 'bounded-active-owned-invites-only',
+        partyLogisticsAuthority: 'bounded-owned-party-potions-loot-gold-only'
       }
     };
   }
@@ -208,6 +247,8 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         accountCommunication: this.partyAccountCommunication.status(),
         focusFire: this.partyFocusFireHotfix.status(),
         teamCombat: this.teamCombatCohesionHotfix.status(),
+        teamCohesionDeadlock: this.teamCohesionDeadlockHotfix.status(),
+        logistics: this.controlledPartyLogistics.status(),
         persistenceQuota: this.partyPersistenceQuotaHotfix.status()
       },
       farmerLoot: this.controlledFarmerLoot.status(),
@@ -218,6 +259,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
       farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
       farmerResourceTopoffHotfix: this.farmerResourceTopoffHotfix.status(),
+      farmAreaPressureHotfix: this.farmAreaPressureHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -250,6 +292,15 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         incompletePotionSupplyHoldsCombat: true,
         aggressivePreciseResourceTopoff: true,
         reducedTeamKitingRadius: true,
+        pairwiseCohesionDeadlockFixed: true,
+        boundedMerchantPotionResupply: true,
+        boundedFarmerLootToMerchant: true,
+        boundedFarmerGoldToMerchant: true,
+        merchantCapacityStopHandshake: true,
+        merchantLogisticsRendezvous: true,
+        adaptiveFarmAreaPressureDetection: true,
+        overcrowdedAreaReplan: true,
+        spawnStarvationAreaReplan: true,
         extremeEvasionFarmTargetsRejected: true,
         extremeAvoidanceFarmTargetsRejected: true,
         farmEfficiencySeparateFromNavigationSafety: true,
