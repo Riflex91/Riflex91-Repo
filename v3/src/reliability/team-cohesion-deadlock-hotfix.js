@@ -1,6 +1,7 @@
 'use strict';
 
 const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
 
 const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v1';
 
@@ -43,6 +44,7 @@ class TeamCohesionDeadlockHotfix {
     // constructed. That lets us harden synthetic team rankings and patch the
     // bounded logistics prototype without widening generic economy authority.
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
+    this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
 
     this.installedAt = this.now();
     this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
@@ -68,7 +70,8 @@ class TeamCohesionDeadlockHotfix {
       previousFollowStep: this.previousFollowStep,
       appliedFollowStep: this.appliedFollowStep,
       pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
-      alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null
+      alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
+      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness
     };
   }
 }
