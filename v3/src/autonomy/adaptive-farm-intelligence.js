@@ -206,8 +206,9 @@ function patchAdaptiveFarmIntelligence() {
     const weak = noTargetRatio >= 0.55 && (killsPerMin < this.config.minKillsPerMin || averageWaitMs >= this.config.maxAverageWaitMs || monsterUptimeRatio < 0.25);
     const enoughTheoreticalSpawn = spawnRatePerMin >= this.config.minSpawnRatePerMin || monsterUptimeRatio >= 0.20;
     const competition = basic.foreignPresenceRatio >= 0.25 || contestedLossRatio >= this.config.contestedLossThreshold;
+    const legacyOverpopulationEvidence = basic.pressured && basic.classification === 'AREA_OVERPOPULATED';
     let classification = 'AREA_HEALTHY';
-    if (weak && competition && enoughTheoreticalSpawn) classification = 'AREA_OVERPOPULATED';
+    if (weak && competition && (enoughTheoreticalSpawn || legacyOverpopulationEvidence)) classification = 'AREA_OVERPOPULATED';
     else if (weak && (!enoughTheoreticalSpawn || monsterUptimeRatio < 0.18)) classification = 'AREA_SPAWN_STARVED';
     else if (basic.pressured) classification = basic.classification;
     const evaluation = { ...basic, monsterUptimeRatio, noTargetRatio, killsPerMin, xpPerMin, spawnRatePerMin, contestedLossRatio, averageWaitMs, averageForeignPlayers: average(rows, 'foreignPlayers'), pressured: classification !== 'AREA_HEALTHY', classification, serverHour: serverHourKey(this) };
