@@ -3,6 +3,7 @@
 const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
 const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
 const { installIntegratedPartyControl } = require('./integrated-party-control');
+const { installAlpha27CombatMerchantConvergence } = require('./alpha27-combat-merchant-convergence');
 
 const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v2';
 
@@ -114,12 +115,6 @@ class TeamCohesionDeadlockHotfix {
       leaderRecoverySafetyHolds: 0
     };
 
-    // Keep the proven Alpha20.15 fixes first. The integrated suite then patches
-    // communication/logistics/farm prototypes before those instances are created
-    // later in the production runtime constructor, while tactical combat,
-    // movement and skills wrap the already-created Farmer/team controllers.
-    // Minimal test/runtime fixtures intentionally omit Farmer/local-farm surfaces;
-    // diagnostics must not turn that absence into a startup failure.
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
     this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
     const hasIntegratedRuntimeSurfaces = !!(runtime.farmer && runtime.localFarming);
@@ -270,7 +265,24 @@ class TeamCohesionDeadlockHotfix {
 }
 
 function installTeamCohesionDeadlockHotfix(runtime, options = {}) {
-  return new TeamCohesionDeadlockHotfix(runtime, options);
+  const hotfix = new TeamCohesionDeadlockHotfix(runtime, options);
+  // Bind the completed hotfix before Alpha27 installs its ownership patch.
+  // The caller's property assignment happens only after this function returns.
+  if (runtime) runtime.teamCohesionDeadlockHotfix = hotfix;
+  try {
+    installAlpha27CombatMerchantConvergence(runtime, { ...(options.alpha27 || {}), deadlock: hotfix });
+  } catch (error) {
+    if (runtime && runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'alpha27-combat-merchant-convergence',
+        event: 'ALPHA27_INSTALL_FAILED_SAFE',
+        severity: 'error',
+        reason: 'INSTALLATION_FAILED',
+        data: { message: String(error && error.message || error).slice(0, 240) }
+      });
+    }
+  }
+  return hotfix;
 }
 
 module.exports = {

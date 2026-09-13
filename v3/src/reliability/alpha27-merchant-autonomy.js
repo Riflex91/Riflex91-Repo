@@ -1,0 +1,114 @@
+'use strict';
+
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
+const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
+const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
+
+class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
+  async cycle() {
+    this.stats.autonomousMerchantCycles += 1;
+    if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
+    this.ensureAutonomousAuthorities();
+    if (this.atomic.serviceTravelBusy || this.atomic.merchantBusy) return false;
+    if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
+    const service = this.runtime.controlledMerchantService;
+    if (service && service.activeOperation && service.activeOperation.state === 'RECOVERING' && typeof service.reconcile === 'function') { service.reconcile(); return true; }
+    if (await this.restockPartyPotions()) return true;
+    if (await this.deliverGearGoal()) return true;
+    if (this.reconcileRecovering()) return true;
+    const active = this.activeTransaction();
+    if (active) {
+      if (active.state === 'RESERVED') {
+        const result = await this.runtime.controlledMerchant.execute(active.id);
+        this.lastMerchantAction = { at: this.now(), transactionId: active.id, type: active.type, result: clone(result) };
+        return true;
+      }
+      return false;
+    }
+
+    let request = this.planUpgrade();
+    if (!request) request = this.planCompound();
+    if (!request) request = this.planSellOrBank();
+    if (!request) { this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' }; return false; }
+    if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+
+    if (request.type === 'BANK') {
+      const c = characterOf(this.runtime);
+      if (!c.bank || typeof c.bank !== 'object') {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
+        await this.atomic.namedServiceTravel('bank');
+        return true;
+      }
+    }
+    if (request.type === 'SELL') {
+      const canSell = rawFunction(this.root, 'can_sell');
+      let near = !canSell;
+      if (canSell) { try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; } }
+      if (!near) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'SELL_VENDOR_REQUIRED', destination: 'scroll0' };
+        await this.atomic.namedServiceTravel('scroll0');
+        return true;
+      }
+    }
+
+    const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
+      ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
+      : this.runtime.planEconomyTransaction(request);
+    if (!planned || planned.accepted !== true || !planned.transaction) {
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
+      return false;
+    }
+    this.stats.autonomousMerchantPlans += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
+    const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
+    return true;
+  }
+
+  tick() {
+    if (!this.atomic.merchantActive() || this.now() - this.lastMerchantAt < this.options.merchantIntervalMs) return false;
+    this.lastMerchantAt = this.now();
+    Promise.resolve(this.cycle()).catch((error) => {
+      this.atomic.merchantBusy = false;
+      this.stats.failedSafe += 1;
+      this.lastMerchantAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'UNHANDLED_ALPHA27_MERCHANT_ERROR', error: String(error && error.message || error).slice(0, 220) };
+      this._event('ALPHA27_MERCHANT_FAILED_SAFE', 'error', 'UNHANDLED_ALPHA27_MERCHANT_ERROR', this.lastMerchantAction);
+    });
+    return true;
+  }
+
+  status() {
+    return {
+      autonomous: true,
+      centralLedgerPlanner: true,
+      autonomousLowRiskDisposition: true,
+      autonomousPotionRestock: true,
+      autonomousGearGoalDelivery: true,
+      atomicTransactions: true,
+      realUpgrade: true,
+      realCompound: true,
+      blindMutationRetryAllowed: false,
+      merchantBusy: this.atomic.merchantBusy,
+      serviceTravelBusy: this.atomic.serviceTravelBusy,
+      lastPlan: clone(this.lastMerchantPlan),
+      lastAction: clone(this.lastMerchantAction || this.atomic.lastMerchantAction),
+      ...this.atomic.status(),
+      risk: {
+        goldReserve: this.options.goldReserve,
+        upgradeValueCap: this.options.upgradeValueCap,
+        compoundValueCap: this.options.compoundValueCap,
+        keepValue: this.options.keepValue,
+        merchantPotionTarget: this.options.merchantPotionTarget,
+        mutationAttemptWindowMs: this.options.mutationAttemptWindowMs,
+        maxUpgradeAttemptsPerWindow: this.options.maxUpgradeAttemptsPerWindow,
+        maxCompoundAttemptsPerWindow: this.options.maxCompoundAttemptsPerWindow,
+        gearDeliveryDistance: this.options.gearDeliveryDistance,
+        maxUpgradeLevel: this.options.maxUpgradeLevel,
+        maxCompoundLevel: this.options.maxCompoundLevel
+      }
+    };
+  }
+}
+
+module.exports = { Alpha27MerchantAutonomy };
