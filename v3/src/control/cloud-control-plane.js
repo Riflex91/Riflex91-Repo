@@ -1,14 +1,51 @@
 'use strict';
 
 const CLOUD_STORAGE_KEY = 'aio-v3:cloud-control:v1';
+const LEGACY_V2_STABLE_PREFIX = 'ALBOT27:stable-config:';
 
 function finite(value, fallback = 0) { if (value == null || value === '') return fallback; const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function text(value, max = 200) { return String(value == null ? '' : value).trim().slice(0, max); }
 function safeClone(value) { try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+function parseObject(value) { try { const out = JSON.parse(String(value || 'null')); return out && typeof out === 'object' ? out : null; } catch (_) { return null; } }
 function storage(root) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
 function characterOf(runtime) { return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null; }
 function isMerchant(runtime) { return String(characterOf(runtime) && characterOf(runtime).ctype || '').toLowerCase() === 'merchant'; }
 function normalizeBaseUrl(value) { const v = text(value, 400).replace(/\/+$/, ''); return /^https:\/\//i.test(v) || /^http:\/\/localhost(?::\d+)?$/i.test(v) ? v : ''; }
+function validCredentials(value) { return !!(value && normalizeBaseUrl(value.baseUrl || '') && text(value.writeKey || '', 500)); }
+
+function legacyV2DashboardCredentials(store, runtime, root) {
+  if (!store) return null;
+  const candidates = [];
+  const addConfig = (config, source) => {
+    if (!config || typeof config !== 'object') return;
+    const baseUrl = normalizeBaseUrl(config.webDashboardConnectionUrl || config.webDashboardUrl || config.dashboardUrl || '');
+    const writeKey = text(config.webDashboardWriteKey || config.dashboardWriteKey || '', 500);
+    if (!baseUrl || !writeKey) return;
+    candidates.push({ baseUrl, writeKey, account: 'default', source });
+  };
+  const localCharacter = text(characterOf(runtime) && characterOf(runtime).name || root && root.character && root.character.name || root && root.parent && root.parent.character && root.parent.character.name || '', 80);
+  if (localCharacter) {
+    try {
+      const stable = parseObject(store.getItem(LEGACY_V2_STABLE_PREFIX + localCharacter));
+      addConfig(stable && stable.config, 'v2-stable-config');
+    } catch (_) {}
+  }
+  if (!candidates.length && typeof store.length === 'number' && typeof store.key === 'function') {
+    const count = Math.min(Math.max(0, store.length), 250);
+    for (let i = 0; i < count; i += 1) {
+      let key = '';
+      try { key = String(store.key(i) || ''); } catch (_) { continue; }
+      if (!key.startsWith('ALBOT27:')) continue;
+      let parsed = null;
+      try { parsed = parseObject(store.getItem(key)); } catch (_) { continue; }
+      if (!parsed) continue;
+      if (key.startsWith(LEGACY_V2_STABLE_PREFIX)) addConfig(parsed.config, 'v2-stable-config-scan');
+      else if (key.endsWith(':config')) addConfig(parsed, 'v2-account-config');
+      if (candidates.length) break;
+    }
+  }
+  return candidates[0] || null;
+}
 
 class CloudControlPlane {
   constructor(options = {}) {
@@ -22,7 +59,10 @@ class CloudControlPlane {
     this.onSettingsChanged = typeof options.onSettingsChanged === 'function' ? options.onSettingsChanged : null;
     this.fetchFn = options.fetch || this.root && this.root.fetch || (typeof fetch === 'function' ? fetch : null);
     this.credentials = { baseUrl: '', writeKey: '', account: 'default' };
+    this.credentialSource = 'none';
     this.explicitGlobalConfig = false;
+    this.legacyCredentialsMigrated = false;
+    this.autoEnableSuggested = false;
     this.lastRuntimePushAt = 0;
     this.lastConfigPullAt = 0;
     this.lastTeacherAt = 0;
@@ -32,37 +72,56 @@ class CloudControlPlane {
     this.pendingFeedback = [];
     this.remoteRevision = 0;
     this.remoteUpdatedAt = 0;
-    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0 };
+    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0 };
     this._load();
   }
 
   _storage() { return storage(this.root); }
 
   _load() {
-    const s = this._storage();
+    const store = this._storage();
     let stored = null;
-    try { stored = s ? JSON.parse(s.getItem(CLOUD_STORAGE_KEY) || 'null') : null; } catch (_) {}
+    try { stored = store ? parseObject(store.getItem(CLOUD_STORAGE_KEY)) : null; } catch (_) {}
     const globalCfg = this.root && this.root.AIO_V3_CLOUD_CONFIG && typeof this.root.AIO_V3_CLOUD_CONFIG === 'object' ? this.root.AIO_V3_CLOUD_CONFIG : {};
-    this.explicitGlobalConfig = !!(normalizeBaseUrl(globalCfg.baseUrl || '') && text(globalCfg.writeKey || '', 500));
-    this.credentials.baseUrl = normalizeBaseUrl(globalCfg.baseUrl || stored && stored.baseUrl || '');
-    this.credentials.writeKey = text(globalCfg.writeKey || stored && stored.writeKey || '', 500);
-    this.credentials.account = text(globalCfg.account || stored && stored.account || 'default', 100) || 'default';
+    const globalCredentials = { baseUrl: normalizeBaseUrl(globalCfg.baseUrl || ''), writeKey: text(globalCfg.writeKey || '', 500), account: text(globalCfg.account || 'default', 100) || 'default' };
+    const storedCredentials = { baseUrl: normalizeBaseUrl(stored && stored.baseUrl || ''), writeKey: text(stored && stored.writeKey || '', 500), account: text(stored && stored.account || 'default', 100) || 'default' };
+    const legacy = legacyV2DashboardCredentials(store, this.runtime, this.root);
+    this.explicitGlobalConfig = validCredentials(globalCredentials);
+    if (this.explicitGlobalConfig) {
+      this.credentials = globalCredentials;
+      this.credentialSource = 'global-v3-config';
+    } else if (validCredentials(storedCredentials)) {
+      this.credentials = storedCredentials;
+      this.credentialSource = 'local-v3-storage';
+    } else if (validCredentials(legacy)) {
+      this.credentials = { baseUrl: legacy.baseUrl, writeKey: legacy.writeKey, account: legacy.account || 'default' };
+      this.credentialSource = legacy.source || 'v2-legacy';
+      this.legacyCredentialsMigrated = true;
+      this.stats.legacyCredentialMigrations += 1;
+      try { if (store) store.setItem(CLOUD_STORAGE_KEY, JSON.stringify(this.credentials)); } catch (_) {}
+      if (this.log) this.log.emit({ component: 'cloud-control-plane', event: 'V2_CLOUD_CREDENTIALS_MIGRATED', data: { source: this.credentialSource, baseUrl: this.credentials.baseUrl, writeKeyMigrated: true, secretExposed: false } });
+    }
+    this.autoEnableSuggested = this.explicitGlobalConfig || this.legacyCredentialsMigrated;
   }
 
   configure(input = {}) {
     if (input.baseUrl != null) this.credentials.baseUrl = normalizeBaseUrl(input.baseUrl);
     if (input.writeKey != null) this.credentials.writeKey = text(input.writeKey, 500);
     if (input.account != null) this.credentials.account = text(input.account, 100) || 'default';
-    const s = this._storage();
-    try { if (s) s.setItem(CLOUD_STORAGE_KEY, JSON.stringify(this.credentials)); } catch (_) {}
+    this.credentialSource = 'runtime-configure';
+    const store = this._storage();
+    try { if (store) store.setItem(CLOUD_STORAGE_KEY, JSON.stringify(this.credentials)); } catch (_) {}
     return this.status();
   }
 
   clearCredentials() {
     this.credentials = { baseUrl: '', writeKey: '', account: 'default' };
+    this.credentialSource = 'none';
     this.explicitGlobalConfig = false;
-    const s = this._storage();
-    try { if (s) s.removeItem(CLOUD_STORAGE_KEY); } catch (_) {}
+    this.legacyCredentialsMigrated = false;
+    this.autoEnableSuggested = false;
+    const store = this._storage();
+    try { if (store) store.removeItem(CLOUD_STORAGE_KEY); } catch (_) {}
     return this.status();
   }
 
@@ -175,12 +234,12 @@ class CloudControlPlane {
 
   status() {
     return {
-      schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig,
+      schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig, legacyCredentialsMigrated: this.legacyCredentialsMigrated, credentialSource: this.credentialSource,
       configured: { baseUrl: this.credentials.baseUrl || null, account: this.credentials.account, writeKeyPresent: !!this.credentials.writeKey },
       busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
-      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true }
+      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true }
     };
   }
 }
 
-module.exports = { CLOUD_STORAGE_KEY, CloudControlPlane, normalizeBaseUrl };
+module.exports = { CLOUD_STORAGE_KEY, LEGACY_V2_STABLE_PREFIX, CloudControlPlane, normalizeBaseUrl, legacyV2DashboardCredentials };
