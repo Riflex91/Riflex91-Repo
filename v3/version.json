@@ -1,8 +1,8 @@
 {
-  "version": "3.0.0-alpha.17.0",
+  "version": "3.0.0-alpha.22.0",
   "channel": "alpha",
   "schemaVersion": 1,
   "defaultMode": "shadow",
-  "build": "2026-09-12",
+  "build": "2026-09-13",
   "productionReplacement": false
 }
