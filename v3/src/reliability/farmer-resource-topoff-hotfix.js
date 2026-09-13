@@ -30,7 +30,7 @@ class FarmerResourceTopoffHotfix {
     this.parent = this.root && this.root.parent || this.root;
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
-    this.targetRatio = Math.max(0.90, Math.min(1, Number(options.targetRatio) || 0.985));
+    this.targetRatio = Math.max(0.90, Math.min(1, options.targetRatio == null ? 1 : Number(options.targetRatio)));
     this.criticalHpRatio = Math.max(0.40, Math.min(0.90, Number(options.criticalHpRatio) || 0.72));
     this.cooldownMs = Math.max(600, Math.min(3000, Number(options.cooldownMs) || 650));
     this.lastAttemptAt = -Infinity;
