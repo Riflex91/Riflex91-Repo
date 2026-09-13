@@ -16,9 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Release guardian preflight
+        working-directory: v3
+        run: npm run preflight
       - name: Build and test v3
         working-directory: v3
-        run: npm run check
+        run: npm run check:full
       - name: Commit generated browser bundle
         if: github.event_name == 'push'
         shell: bash
