@@ -26,7 +26,7 @@ test('logic invariant registry is unique, explicit and points at real determinis
     assert.ok(['block', 'warn'].includes(invariant.severity));
     assert.ok(String(invariant.statement || '').length >= 20);
     assert.ok(Array.isArray(invariant.enforcement) && invariant.enforcement.length > 0);
-    assert.ok(invariant.enforcement.every((entry) => ['test', 'ai-review'].includes(entry)));
+    assert.ok(invariant.enforcement.every((entry) => ['test', 'manual-review'].includes(entry)));
     assert.ok(Array.isArray(invariant.tests));
     if (invariant.enforcement.includes('test')) {
       assert.ok(invariant.tests.length > 0, `${invariant.id} claims test enforcement without a test`);

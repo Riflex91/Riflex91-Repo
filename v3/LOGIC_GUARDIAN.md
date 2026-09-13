@@ -14,11 +14,7 @@ The liveness suite explicitly covers the Alpha20.23 failure class: an attack dec
 
 It also checks bounded Farmer progress in healthy fixtures and verifies that shadow planning advances rather than remaining indefinitely at revision zero.
 
-## AI adversarial review
-
-Pull requests can additionally run a read-only Codex review from `.github/workflows/v3-ai-logic-review.yml`. The reviewer reads `.github/codex/v3-logic-review.md`, the invariant registry, and the PR diff. Its job is to construct counterexamples across TargetSafety, navigation, Farmer FSM, supervisor, party control, Merchant authority, local-plan priority and live gates.
-
-The AI reviewer is advisory and never edits, pushes, approves or merges. Deterministic tests remain the hard gate. If `OPENAI_API_KEY` is not configured as a repository Actions secret, the AI job exits successfully with an explicit skip message; normal CI is unaffected.
+Invariants that cannot yet be proven by the fast deterministic suite may be marked `manual-review`. This keeps architecture boundaries explicit without introducing an external AI dependency into CI.
 
 ## Local commands
 

@@ -6,70 +6,70 @@
       "id": "TARGET_AUTOMATRON_NEVER_ATTACK",
       "severity": "block",
       "statement": "Target Automatron is never an attackable combat target.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/release-safety-invariants.test.js", "test/alpha20-23-idle-deadlock-recovery.test.js"]
     },
     {
       "id": "PASSIVE_UNRELATED_AUTOMATRON_MUST_NOT_NAV_DEADLOCK",
       "severity": "block",
       "statement": "A passive, unrelated Target Automatron may not be the sole reason farming navigation cannot progress.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/logic-guardian-liveness.test.js", "test/alpha20-23-idle-deadlock-recovery.test.js"]
     },
     {
       "id": "UNKNOWN_CONTENT_FAIL_CLOSED",
       "severity": "block",
       "statement": "Unknown monster content remains fail-closed until explicitly classified safe.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/unknown-content-safety.test.js", "test/logic-guardian-liveness.test.js"]
     },
     {
       "id": "DANGEROUS_AND_CUSTOM_EXCLUSIONS_FAIL_CLOSED",
       "severity": "block",
       "statement": "Dangerous special fairies and custom target exclusions remain blocked for attack and navigation release.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/release-safety-invariants.test.js", "test/alpha20-23-idle-deadlock-recovery.test.js"]
     },
     {
       "id": "SELF_AGGRO_SELECTED_PLANNED_NEVER_NAV_RELEASED",
       "severity": "block",
       "statement": "Self-aggro, selected, or planned monsters are never silently removed from navigation blockers by the Automatron recovery.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/alpha20-23-idle-deadlock-recovery.test.js", "test/logic-guardian-liveness.test.js"]
     },
     {
       "id": "NO_HIDDEN_CROSS_MODULE_DEADLOCK",
       "severity": "block",
       "statement": "When useful work is expected, attack rejection plus navigation rejection must still leave a safe alternate action or an explicit safe stop.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/logic-guardian-liveness.test.js"]
     },
     {
       "id": "FARMER_BOUNDED_LIVENESS",
       "severity": "block",
       "statement": "In a healthy actionable fixture, the Farmer state machine reaches travel, engage, attack, navigation, or an explicit safe stop within a bounded number of ticks.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/logic-guardian-liveness.test.js", "test/farmer-local-plan-priority.test.js"]
     },
     {
       "id": "SHADOW_PLAN_MUST_ADVANCE",
       "severity": "warn",
       "statement": "A running shadow Farmer must periodically advance shadowPlanRevision rather than remain permanently at zero.",
-      "enforcement": ["test", "ai-review"],
+      "enforcement": ["test"],
       "tests": ["test/logic-guardian-liveness.test.js"]
     },
     {
       "id": "MERCHANT_ROLE_BOUNDARY",
       "severity": "block",
       "statement": "Merchant control/economy authority must not implicitly acquire Farmer combat authority.",
-      "enforcement": ["ai-review"],
+      "enforcement": ["manual-review"],
       "tests": []
     },
     {
       "id": "SUPERVISOR_STOPS_BUT_NEVER_BYPASSES_SAFETY",
       "severity": "block",
       "statement": "Supervisors may halt or degrade automation but must never bypass TargetSafety or fail-closed content boundaries to manufacture progress.",
-      "enforcement": ["ai-review"],
+      "enforcement": ["manual-review"],
       "tests": []
     }
   ]
