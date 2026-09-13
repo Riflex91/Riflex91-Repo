@@ -9,6 +9,7 @@ const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-ad
 const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('./alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha2021CloudPersistenceRecovery } = require('./alpha20-21-cloud-persistence-recovery');
+const { installAlpha2022LiveSmokeRecovery } = require('./alpha20-22-live-smoke-recovery');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -69,6 +70,7 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
       if (!this.runtime.alpha26CloudUpdateLogisticsUiHotfix) installAlpha26CloudUpdateLogisticsUiHotfix(this.runtime);
       if (!this.runtime.alpha2021CloudPersistenceRecovery) installAlpha2021CloudPersistenceRecovery(this.runtime);
+      if (!this.runtime.alpha2022LiveSmokeRecovery) installAlpha2022LiveSmokeRecovery(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -96,6 +98,11 @@ class DangerousContentHotfix {
         this.autonomyInstallError = `Alpha20.21 tick: ${String(error && error.message || error).slice(0, 200)}`;
       }
     }
+    if (this.runtime.alpha2022LiveSmokeRecovery && typeof this.runtime.alpha2022LiveSmokeRecovery.beforeTick === 'function') {
+      try { this.runtime.alpha2022LiveSmokeRecovery.beforeTick(); } catch (error) {
+        this.autonomyInstallError = `Alpha20.22 tick: ${String(error && error.message || error).slice(0, 200)}`;
+      }
+    }
     if (this.revalidated) return false;
     const gate = this.runtime.contentSafety;
     const world = this.runtime.world;
@@ -107,8 +114,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 8,
-      mode: 'dangerous-content-hotfix-v8',
+      schemaVersion: 9,
+      mode: 'dangerous-content-hotfix-v9',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -122,7 +129,8 @@ class DangerousContentHotfix {
         adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null,
         controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null,
         releaseManager: this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status === 'function' ? this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status() : null,
-        cloudPersistenceRecovery: this.runtime.alpha2021CloudPersistenceRecovery && typeof this.runtime.alpha2021CloudPersistenceRecovery.status === 'function' ? this.runtime.alpha2021CloudPersistenceRecovery.status() : null
+        cloudPersistenceRecovery: this.runtime.alpha2021CloudPersistenceRecovery && typeof this.runtime.alpha2021CloudPersistenceRecovery.status === 'function' ? this.runtime.alpha2021CloudPersistenceRecovery.status() : null,
+        liveSmokeRecovery: this.runtime.alpha2022LiveSmokeRecovery && typeof this.runtime.alpha2022LiveSmokeRecovery.status === 'function' ? this.runtime.alpha2022LiveSmokeRecovery.status() : null
       }
     };
   }
