@@ -1,7 +1,7 @@
 'use strict';
 
 const SAFE_AUTO_UPDATER_MODE = 'safe-github-auto-updater-v1';
-const DEFAULT_REPO_RAW = 'https://raw.githubusercontent.com/Riflex91/Adventure-Land---The-Code-MMORPG---Bot--public/main/v3';
+const DEFAULT_REPO_RAW = 'https://adventure-land---the-code-mmorpg---bot--public.pages.dev/v3';
 
 function finite(value, fallback = 0) {
   if (value == null || value === '') return fallback;
