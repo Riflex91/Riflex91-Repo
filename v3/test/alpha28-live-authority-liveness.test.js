@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const { FarmPlanner } = require('../src/planner/farm-planner');
 const { Alpha27AtomicLedger } = require('../src/reliability/alpha27-atomic-ledger');
 const { Alpha28LedgerFarmerFixes } = require('../src/reliability/alpha28-ledger-farmer-fixes');
 const { Alpha28MerchantTransfers } = require('../src/reliability/alpha28-merchant-transfers');
@@ -62,16 +63,24 @@ test('Alpha28 preserves semantic regroup and suppresses false area pressure', ()
   assert.equal(fixes.status().semanticRegroupPreserved, true);
 });
 
-test('Alpha28 planned-target fallback is leader-only and same-snapshot safety-owned', () => {
+test('Alpha28 planned-target fallback preserves native ranking contract and remains leader-only', () => {
   const snapshot = {
     observedAt: 30,
-    character: { name: 'Leader', map: 'main', x: 0, y: 0 },
+    character: { name: 'Leader', map: 'main', x: 0, y: 0, speed: 50 },
     entities: [
       { id: 'safe', mtype: 'crab', map: 'main', x: 10, y: 0, hp: 100 },
       { id: 'unsafe', mtype: 'crab', map: 'main', x: 1, y: 0, hp: 100 }
     ]
   };
-  const farmer = { _selectTarget: () => null, _targetAllowed: () => true };
+  const farmer = {
+    planner: new FarmPlanner(),
+    _selectTarget: () => null,
+    _targetAllowed: () => true,
+    _candidateRows: () => ({
+      rows: [{ id: 'crab', monster: 'crab', xpPerHour: 6000, goldPerHour: 500, deathsPerHour: 0, confidence: 0.8, travelSeconds: 0.2, source: 'estimate-live' }],
+      monsters: snapshot.entities
+    })
+  };
   const runtime = {
     now: () => 30,
     inventoryLedger: null,
@@ -81,9 +90,17 @@ test('Alpha28 planned-target fallback is leader-only and same-snapshot safety-ow
     teamCombatCohesionHotfix: { _team: () => ({ selfName: 'Leader', leaderName: 'Leader', complete: true, alive: true, sameMap: true, positionsKnown: true, cohesive: true }) }
   };
   new Alpha28LedgerFarmerFixes(runtime, shared(() => 30));
-  assert.equal(farmer._selectTarget({ snapshot, party: {} }).target.id, 'safe');
+  const selected = farmer._selectTarget({ snapshot, party: { fingerprint: 'party:test' } });
+  assert.equal(selected.target.id, 'safe');
+  assert.equal(selected.ranking.source, 'alpha28-safe-planned-fallback');
+  assert.equal(Number.isFinite(selected.ranking.score), true);
+  assert.equal(Number.isFinite(selected.ranking.travelSeconds), true);
+  assert.doesNotThrow(() => {
+    selected.ranking.score.toFixed(5);
+    selected.ranking.travelSeconds.toFixed(2);
+  });
   runtime.teamCombatCohesionHotfix._team = () => ({ selfName: 'Follower', leaderName: 'Leader', complete: true, alive: true, sameMap: true, positionsKnown: true, cohesive: true });
-  assert.equal(farmer._selectTarget({ snapshot, party: {} }), null);
+  assert.equal(farmer._selectTarget({ snapshot, party: { fingerprint: 'party:test' } }), null);
 });
 
 test('Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before-action', async () => {
