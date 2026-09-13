@@ -28394,6 +28394,7 @@ const { finite, clone, farmerOwnedCombatBusy, isPoisonedPerformanceProfile } = r
 const { Alpha27CombatOwnership } = require('./alpha27-combat-ownership');
 const { Alpha27AtomicEconomy } = require('./alpha27-atomic-economy');
 const { Alpha27MerchantAutonomy } = require('./alpha27-merchant-autonomy');
+const { installAlpha28LiveAuthorityLiveness } = require('./alpha28-live-authority-liveness');
 
 const ALPHA27_MODE = 'alpha27-combat-merchant-convergence-v1';
 
@@ -28469,6 +28470,7 @@ class Alpha27CombatMerchantConvergence {
     this.atomic = new Alpha27AtomicEconomy(runtime, shared);
     this.merchant = new Alpha27MerchantAutonomy(runtime, this.atomic, shared);
     this._patchRuntimeTick();
+    this.alpha28 = installAlpha28LiveAuthorityLiveness(runtime, { parentAlpha27: this });
     this._event('ALPHA27_CONVERGENCE_INSTALLED', 'warn', 'CENTRAL_TARGET_AND_MERCHANT_AUTHORITY', this.status());
   }
 
@@ -28542,6 +28544,7 @@ class Alpha27CombatMerchantConvergence {
           maxCompoundLevel: this.options.maxCompoundLevel
         }
       },
+      alpha28: this.alpha28 && typeof this.alpha28.status === 'function' ? this.alpha28.status() : null,
       policies: {
         supervisorRequired: true,
         combatBlocksMerchantMutation: true,
@@ -29561,9 +29564,11 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     const ledger = this.runtime.inventoryLedger;
     if (!ledger || ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
     const baseDisposition = ledger._baseDisposition.bind(ledger);
-    ledger._baseDisposition = (row, meta, context = {}) => {
-      const base = baseDisposition(row, meta, context);
+    ledger._baseDisposition = (row, gameData, contentDrift, counts) => {
+      const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
+      const base = baseDisposition(row, gameData, contentDrift, safeCounts);
       if (!base || base.disposition !== 'UNDECIDED') return base;
+      const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
@@ -29573,7 +29578,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       let blockers = [];
       try {
         blockers = typeof ledger._resolveSellBlockers === 'function'
-          ? ledger._resolveSellBlockers(row, meta, context.gameData || gameDataOf(this.runtime), context.contentDrift || this.runtime.contentDrift)
+          ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const rawValue = meta.g != null ? Number(meta.g) : Number(meta.gold);
@@ -30165,6 +30170,765 @@ class Alpha27MerchantCore {
 }
 
 module.exports = { Alpha27MerchantCore };
+
+},
+"src/reliability/alpha28-live-authority-liveness.js": function(require,module,exports){
+'use strict';
+
+const { Alpha28LedgerFarmerFixes } = require('./alpha28-ledger-farmer-fixes');
+const { Alpha28MerchantTransfers } = require('./alpha28-merchant-transfers');
+const { Alpha28CrossMapFarmerProgression } = require('./alpha28-cross-map-farmer');
+const { Alpha28BrainCloud } = require('./alpha28-brain-cloud');
+
+const ALPHA28_MODE = 'alpha28-live-authority-liveness-v1';
+
+class Alpha28LiveAuthorityLiveness {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.stats = {
+      ledgerSignatureFixes: 0, ledgerRecoveredSellClassifications: 0, ledgerRecoveredBankClassifications: 0,
+      semanticRegroupPreserved: 0, falseAreaPressureSuppressed: 0, plannedTargetFallbackSelections: 0,
+      arbitraryTransferRequests: 0, arbitraryTransferAttempts: 0, arbitraryTransfersCommitted: 0, arbitraryTransferExpired: 0,
+      crossMapObjectivesPublished: 0, crossMapObjectivesReceived: 0, crossMapTravelAttempts: 0, crossMapTravelCompleted: 0, crossMapTravelFailedSafe: 0,
+      brainCloudSettingPatches: 0, brainCanaryPlannerDecisions: 0, tickErrors: 0
+    };
+    const shared = { now: this.now, log: this.log, stats: this.stats, options };
+    this.fixes = new Alpha28LedgerFarmerFixes(runtime, shared);
+    this.transfers = new Alpha28MerchantTransfers(runtime, shared);
+    this.crossMap = new Alpha28CrossMapFarmerProgression(runtime, shared);
+    this.brainCloud = new Alpha28BrainCloud(runtime, shared);
+    this._patchRuntimeTick();
+    this._event('ALPHA28_LIVE_AUTHORITY_LIVENESS_INSTALLED', 'warn', 'OPERATOR_REQUESTED_AUTHORITY_ON', this.status());
+  }
+  _event(event, severity='info', reason=null, data={}) { try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component:'alpha28-live-authority', event, severity, reason, data }); } catch (_) {} }
+  _patchRuntimeTick() {
+    if (this.runtime.__alpha28TickInstalled || typeof this.runtime.tick !== 'function') return false;
+    const base = this.runtime.tick.bind(this.runtime);
+    this.runtime.tick = (...args) => {
+      const result = base(...args);
+      try { this.fixes.ensurePatches(); } catch (_) { this.stats.tickErrors += 1; }
+      try { this.brainCloud.tick(); } catch (_) { this.stats.tickErrors += 1; }
+      try { this.crossMap.tick(); } catch (_) { this.stats.tickErrors += 1; }
+      Promise.resolve().then(() => this.transfers.tick()).catch(() => { this.stats.tickErrors += 1; });
+      return result;
+    };
+    this.runtime.__alpha28TickInstalled = true;
+    return true;
+  }
+  status() {
+    return { schemaVersion:1, mode:ALPHA28_MODE, fixes:this.fixes.status(), merchantTransfers:this.transfers.status(), crossMapFarmer:this.crossMap.status(), brainCloud:this.brainCloud.status(), policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false }, stats:{...this.stats} };
+  }
+}
+
+function installAlpha28LiveAuthorityLiveness(runtime, options={}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.alpha28LiveAuthorityLiveness) return runtime.alpha28LiveAuthorityLiveness;
+  const module = new Alpha28LiveAuthorityLiveness(runtime, options);
+  runtime.alpha28LiveAuthorityLiveness = module;
+  return module;
+}
+module.exports = { ALPHA28_MODE, Alpha28LiveAuthorityLiveness, installAlpha28LiveAuthorityLiveness };
+
+},
+"src/reliability/alpha28-ledger-farmer-fixes.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function distance(a, b) {
+  const ax = finite(a && (a.real_x != null ? a.real_x : a.x), NaN), ay = finite(a && (a.real_y != null ? a.real_y : a.y), NaN);
+  const bx = finite(b && (b.real_x != null ? b.real_x : b.x), NaN), by = finite(b && (b.real_y != null ? b.real_y : b.y), NaN);
+  return [ax, ay, bx, by].every(Number.isFinite) ? Math.hypot(ax - bx, ay - by) : Infinity;
+}
+
+class Alpha28LedgerFarmerFixes {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.patchLedger();
+    this.patchCohesionSemantics();
+    this.patchAreaPressure();
+    this.patchFarmerTargetLiveness();
+  }
+
+  event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-liveness', event, severity, reason, data }); } catch (_) {}
+  }
+
+  patchLedger() {
+    const ledger = this.runtime.inventoryLedger;
+    if (!ledger || ledger.__alpha28LedgerSignatureVerified) return false;
+    if (!ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
+    // Alpha27 now preserves InventoryLedger's native four-argument contract:
+    // (row, gameData, contentDrift, counts). Alpha28 only records that the
+    // repaired central planner is active; it must not replace/reclassify it.
+    ledger.__alpha28LedgerSignatureVerified = true;
+    this.stats.ledgerSignatureFixes += 1;
+    this.event('ALPHA28_LEDGER_SIGNATURE_VERIFIED', 'info', 'ALPHA27_FOUR_ARGUMENT_CONTRACT_ACTIVE');
+    return true;
+  }
+
+  patchCohesionSemantics() {
+    const team = this.runtime.teamCombatCohesionHotfix;
+    if (!team || team.__alpha28SemanticRegroupPreserved || typeof team._team !== 'function') return false;
+    const base = team._team.bind(team);
+    team._team = (snapshot) => {
+      const state = base(snapshot);
+      if (!state) return state;
+      const semanticRegroup = state.regroupRequired === true || (Array.isArray(state.stuckMembers) && state.stuckMembers.length > 0);
+      if (semanticRegroup && state.cohesive === true) {
+        state.cohesive = false;
+        this.stats.semanticRegroupPreserved += 1;
+      }
+      return state;
+    };
+    team.__alpha28SemanticRegroupPreserved = true;
+    return true;
+  }
+
+  patchAreaPressure() {
+    const pressure = this.runtime.farmAreaPressureHotfix;
+    if (!pressure || pressure.__alpha28CombatAcquisitionPressureFix || typeof pressure._evaluate !== 'function') return false;
+    const base = pressure._evaluate.bind(pressure);
+    pressure._evaluate = (...args) => {
+      const result = base(...args);
+      if (!result || result.pressured !== true || String(result.classification || '') !== 'AREA_OVERPOPULATED') return result;
+      const uptime = finite(result.monsterUptimeRatio, finite(result.availabilityRatio, 0));
+      const contested = finite(result.contestedLossRatio, 0);
+      if (uptime >= 0.70 && contested < 0.20) {
+        this.stats.falseAreaPressureSuppressed += 1;
+        return { ...result, pressured: false, classification: 'AREA_HEALTHY', alpha28Classification: 'COMBAT_ACQUISITION_STALLED', alpha28SuppressedOverpopulation: true };
+      }
+      return result;
+    };
+    pressure.__alpha28CombatAcquisitionPressureFix = true;
+    return true;
+  }
+
+  patchFarmerTargetLiveness() {
+    const farmer = this.runtime.farmer;
+    if (!farmer || farmer.__alpha28PlannedTargetFallback || typeof farmer._selectTarget !== 'function') return false;
+    const base = farmer._selectTarget.bind(farmer);
+    farmer._selectTarget = (context) => {
+      const selected = base(context);
+      if (selected) return selected;
+      const snapshot = context && context.snapshot;
+      const teamModule = this.runtime.teamCombatCohesionHotfix;
+      const local = this.runtime.localFarming;
+      const plan = local && local.currentPlan;
+      if (!snapshot || !snapshot.character || !plan || !plan.monster) return null;
+      let team = null;
+      try { team = teamModule && typeof teamModule._team === 'function' ? teamModule._team(snapshot) : null; } catch (_) {}
+      if (!team || team.selfName !== team.leaderName || !team.complete || !team.alive || !team.sameMap || !team.positionsKnown || !team.cohesive) return null;
+      const reliability = this.runtime.preFarmingReliability;
+      const safeIds = reliability && reliability.safeEntityIds;
+      if (!(safeIds instanceof Set)) return null;
+      if (reliability.safeEntitySnapshotAt != null && snapshot.observedAt != null && Number(reliability.safeEntitySnapshotAt) !== Number(snapshot.observedAt)) return null;
+      const candidates = (snapshot.entities || []).filter((entity) => {
+        if (!entity || entity.id == null || !entity.mtype || entity.dead || entity.rip || (entity.hp != null && Number(entity.hp) <= 0)) return false;
+        if (String(entity.mtype) !== String(plan.monster)) return false;
+        if (!safeIds.has(String(entity.id))) return false;
+        if (entity.map && snapshot.character.map && String(entity.map) !== String(snapshot.character.map)) return false;
+        return typeof farmer._targetAllowed !== 'function' || farmer._targetAllowed(entity, snapshot, context.party);
+      }).sort((a, b) => distance(snapshot.character, a) - distance(snapshot.character, b));
+      const target = candidates[0];
+      if (!target) return null;
+      this.stats.plannedTargetFallbackSelections += 1;
+      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', 'SAFE_PLANNED_MONSTER_VISIBLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null });
+      return { target, ranking: { id: target.mtype, monster: target.mtype, source: 'alpha28-safe-planned-fallback' } };
+    };
+    farmer.__alpha28PlannedTargetFallback = true;
+    return true;
+  }
+
+  ensurePatches() {
+    this.patchLedger();
+    this.patchCohesionSemantics();
+    this.patchAreaPressure();
+    this.patchFarmerTargetLiveness();
+  }
+
+  status() {
+    return {
+      ledgerSignatureFixed: !!(this.runtime.inventoryLedger && this.runtime.inventoryLedger.__alpha28LedgerSignatureVerified),
+      semanticRegroupPreserved: !!(this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix.__alpha28SemanticRegroupPreserved),
+      areaPressureCombatStallFix: !!(this.runtime.farmAreaPressureHotfix && this.runtime.farmAreaPressureHotfix.__alpha28CombatAcquisitionPressureFix),
+      plannedTargetFallback: !!(this.runtime.farmer && this.runtime.farmer.__alpha28PlannedTargetFallback)
+    };
+  }
+}
+
+module.exports = { Alpha28LedgerFarmerFixes };
+
+},
+"src/reliability/alpha28-merchant-transfers.js": function(require,module,exports){
+'use strict';
+
+const { finite, clone, levelOf, inventoryOf, characterOf, identityQuantity, rawFunction, gameDataOf } = require('./alpha27-utils');
+
+const PROTECTED_META = ['quest','q','event','cash','cash_item','soulbound','soul_bound'];
+
+class Alpha28MerchantTransfers {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.queue = [];
+    this.maxQueue = 32;
+    this.patchService();
+    this.installApi();
+  }
+
+  event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-merchant-transfer', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _isMerchant() {
+    const c = characterOf(this.runtime);
+    return String(c && (c.ctype || c.type) || '').toLowerCase() === 'merchant';
+  }
+
+  _trusted(targetName) {
+    const service = this.runtime.controlledMerchantService;
+    if (service && typeof service._trusted === 'function') return service._trusted(targetName);
+    const transport = this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport;
+    return !!(transport && typeof transport.isOwned === 'function' && transport.isOwned(targetName));
+  }
+
+  _findSource(request) {
+    const items = inventoryOf(this.root);
+    const wantedIndex = request.index == null ? null : Math.floor(finite(request.index, -1));
+    const wantedName = request.itemName == null ? null : String(request.itemName);
+    const wantedLevel = request.itemLevel == null ? null : Math.max(0, Math.floor(finite(request.itemLevel, 0)));
+    return items.find((item) => item &&
+      (wantedIndex == null || item.index === wantedIndex) &&
+      (wantedName == null || item.name === wantedName) &&
+      (wantedLevel == null || levelOf(item) === wantedLevel)) || null;
+  }
+
+  _validateSource(source, quantity) {
+    if (!source || !source.name) return { ok: false, reason: 'TRANSFER_SOURCE_UNAVAILABLE' };
+    if (source.locked || source.l || source.special || source.p) return { ok: false, reason: 'TRANSFER_SOURCE_PROTECTED_RAW' };
+    const gameData = gameDataOf(this.runtime);
+    const meta = gameData.items && gameData.items[source.name];
+    if (!meta) return { ok: false, reason: 'TRANSFER_ITEM_METADATA_UNKNOWN' };
+    if (PROTECTED_META.some((key) => meta[key])) return { ok: false, reason: 'TRANSFER_ITEM_PROTECTED_METADATA' };
+    if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', source.name)) return { ok: false, reason: 'TRANSFER_ITEM_REQUIRES_REVALIDATION' };
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger && typeof this.runtime.inventoryLedger.get === 'function' ? this.runtime.inventoryLedger.get(c && c.name, source.index) : null;
+    if (!ledger) return { ok: false, reason: 'TRANSFER_LEDGER_ENTRY_REQUIRED' };
+    if (String(ledger.disposition || '').startsWith('RESERVE_')) return { ok: false, reason: 'TRANSFER_ITEM_RESERVED', disposition: ledger.disposition };
+    const q = Math.max(1, Math.floor(finite(source.q, 1)));
+    if (quantity < 1 || quantity > q) return { ok: false, reason: 'TRANSFER_QUANTITY_INVALID' };
+    return { ok: true, ledger, meta };
+  }
+
+  request(input = {}) {
+    if (!this._isMerchant()) return { accepted: false, reason: 'MERCHANT_REQUIRED' };
+    const targetName = String(input.targetName || '').trim();
+    if (!targetName || !this._trusted(targetName)) return { accepted: false, reason: 'TRUSTED_PARTY_TARGET_REQUIRED' };
+    if (this.queue.length >= this.maxQueue) return { accepted: false, reason: 'TRANSFER_QUEUE_FULL' };
+    const source = this._findSource(input);
+    if (!source) return { accepted: false, reason: 'TRANSFER_SOURCE_UNAVAILABLE' };
+    const quantity = Math.max(1, Math.floor(finite(input.quantity, 1)));
+    const safe = this._validateSource(source, quantity);
+    if (!safe.ok) return { accepted: false, reason: safe.reason };
+    const row = {
+      id: `alpha28-transfer-${this.now()}-${this.queue.length + 1}`,
+      createdAt: this.now(),
+      expiresAt: this.now() + Math.max(30000, finite(input.ttlMs, 120000)),
+      targetName,
+      itemName: source.name,
+      itemLevel: levelOf(source),
+      quantity,
+      sourceIndex: source.index
+    };
+    this.queue.push(row);
+    this.stats.arbitraryTransferRequests += 1;
+    this.event('ALPHA28_ARBITRARY_TRANSFER_QUEUED', 'info', 'TRUSTED_PARTY_REQUEST', clone(row));
+    return { accepted: true, request: clone(row) };
+  }
+
+  installApi() {
+    if (this.runtime.requestMerchantItemTransfer) return false;
+    this.runtime.requestMerchantItemTransfer = (request) => this.request(request);
+    this.runtime.listMerchantItemTransfers = () => this.queue.map(clone);
+    return true;
+  }
+
+  patchService() {
+    const service = this.runtime.controlledMerchantService;
+    if (!service || service.__alpha28ArbitraryTransferPatched || typeof service._executeDelivery !== 'function') return false;
+    const base = service._executeDelivery.bind(service);
+    service._executeDelivery = async (plan) => {
+      if (!(plan && plan.metadata && plan.metadata.alpha28ArbitraryTransfer === true)) return base(plan);
+      const delivery = plan.delivery || {};
+      const targetName = plan.target && String(plan.target.name || '');
+      if (!this._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
+      const target = typeof service._visibleTarget === 'function' ? service._visibleTarget(targetName) : null;
+      if (!target) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_NOT_VISIBLE' };
+      const c = characterOf(this.runtime);
+      if (target.map && c && c.map && String(target.map) !== String(c.map)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_CROSS_MAP' };
+      const distance = typeof service._distanceTo === 'function' ? service._distanceTo(target) : null;
+      if (distance == null || distance > finite(service.maxDeliveryDistance, 400)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
+      const source = this._findSource({ index: plan.metadata.sourceIndex, itemName: delivery.itemName, itemLevel: plan.metadata.itemLevel });
+      const quantity = Math.max(1, Math.floor(finite(delivery.quantity, 1)));
+      const safe = this._validateSource(source, quantity);
+      if (!safe.ok) return { executed: false, committed: false, reason: safe.reason };
+      const beforeTotal = identityQuantity(inventoryOf(this.root), source.name, levelOf(source));
+      const send = rawFunction(this.root, 'send_item');
+      if (!send) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
+      if (!service._startOperation(plan, { action: 'send_item', alpha28ArbitraryTransfer: true, targetName, sourceReportAt: finite(plan.sourceReportAt, this.now()), itemName: source.name, itemLevel: levelOf(source), quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+      service._transition('EXECUTING', 'RAW_ACTION_STARTING');
+      service.actionTimes.push(this.now());
+      service.stats.rawActions += 1;
+      service.stats.deliveries += 1;
+      this.stats.arbitraryTransferAttempts += 1;
+      try {
+        const response = await service._timeout(send.fn.call(send.owner, targetName, source.index, quantity));
+        if (response && response.success === false) return service._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName: source.name, quantity });
+        service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+        const verified = await service._verify(() => identityQuantity(inventoryOf(this.root), source.name, levelOf(source)) === beforeTotal - quantity);
+        if (!verified) return service._failed(plan.kind, 'ARBITRARY_TRANSFER_LOCAL_DELTA_VERIFICATION_FAILED', { targetName, itemName: source.name, quantity });
+        this.stats.arbitraryTransfersCommitted += 1;
+        return service._commit(plan.kind, 'ARBITRARY_TRANSFER_LOCAL_DELTA_VERIFIED', { targetName, itemName: source.name, itemLevel: levelOf(source), quantity });
+      } catch (error) {
+        return service._failed(plan.kind, String(error && error.message || error || 'SEND_ITEM_FAILED'), { targetName, itemName: source.name, quantity });
+      }
+    };
+    if (typeof service.reconcile === 'function') {
+      const baseReconcile = service.reconcile.bind(service);
+      service.reconcile = () => {
+        const op = service.activeOperation;
+        if (!op || op.alpha28ArbitraryTransfer !== true || op.state !== 'RECOVERING') return baseReconcile();
+        const committed = identityQuantity(inventoryOf(this.root), op.itemName, op.itemLevel) === Number(op.expectedAfterTotal);
+        if (committed) {
+          // Arbitrary transfer operations use their persisted active operation as
+          // their idempotency record. Do not advance the normal party-service
+          // served-report watermark, or a transfer could starve a later potion
+          // service report for the same character.
+          service._transition('COMMITTED', 'RESTART_ARBITRARY_TRANSFER_RECONCILIATION_VERIFIED');
+          service.stats.recovered += 1; service.stats.committed += 1; this.stats.arbitraryTransfersCommitted += 1;
+          return { reconciled: true, committed: true, reason: 'RESTART_ARBITRARY_TRANSFER_RECONCILIATION_VERIFIED' };
+        }
+        service._transition('FAILED_SAFE', 'RESTART_ARBITRARY_TRANSFER_OUTCOME_UNCERTAIN_NO_RETRY');
+        service.stats.failedSafe += 1;
+        if (typeof service._failure === 'function') service._failure('RESTART_ARBITRARY_TRANSFER_OUTCOME_UNCERTAIN_NO_RETRY');
+        return { reconciled: true, committed: false, reason: 'RESTART_ARBITRARY_TRANSFER_OUTCOME_UNCERTAIN_NO_RETRY' };
+      };
+    }
+    if (typeof service.status === 'function') {
+      const baseStatus = service.status.bind(service);
+      service.status = () => {
+        const status = baseStatus();
+        return {
+          ...status,
+          rawActionFamilies: [...new Set([...(status.rawActionFamilies || []), 'SEND_ITEM'])],
+          alpha28ArbitraryItemTransfer: true,
+          arbitraryItemTransferConfigured: true,
+          arbitraryItemTransferAllowed: status.enabled === true && status.allowDelivery === true,
+          arbitraryItemTransferScope: 'TRUSTED_PARTY_KNOWN_UNRESERVED_ITEMS_ONLY'
+        };
+      };
+    }
+    if (typeof this.runtime.merchantServiceStatus === 'function' && !this.runtime.__alpha28ArbitraryTransferStatusPatched) {
+      const baseRuntimeStatus = this.runtime.merchantServiceStatus.bind(this.runtime);
+      this.runtime.merchantServiceStatus = () => {
+        const status = baseRuntimeStatus();
+        const live = service.status();
+        return { ...status, arbitraryItemTransferConfigured: true, arbitraryItemTransferAuthority: live.enabled === true && live.allowDelivery === true, arbitraryItemTransferScope: 'TRUSTED_PARTY_KNOWN_UNRESERVED_ITEMS_ONLY' };
+      };
+      this.runtime.__alpha28ArbitraryTransferStatusPatched = true;
+    }
+    service.__alpha28ArbitraryTransferPatched = true;
+    return true;
+  }
+
+  async tick() {
+    this.patchService();
+    if (!this._isMerchant() || !this.queue.length) return false;
+    const now = this.now();
+    while (this.queue.length && this.queue[0].expiresAt <= now) { this.queue.shift(); this.stats.arbitraryTransferExpired += 1; }
+    const request = this.queue[0];
+    if (!request) return false;
+    const service = this.runtime.controlledMerchantService;
+    if (!service || (typeof service.status === 'function' && service.status().busy)) return false;
+    const plan = {
+      schemaVersion: 1,
+      id: request.id,
+      at: now,
+      kind: 'SERVICE_DELIVERY',
+      reason: 'ALPHA28_ARBITRARY_TRUSTED_PARTY_TRANSFER',
+      target: { name: request.targetName },
+      sourceReportAt: request.createdAt,
+      delivery: { itemName: request.itemName, quantity: request.quantity },
+      metadata: { alpha28ArbitraryTransfer: true, sourceIndex: request.sourceIndex, itemLevel: request.itemLevel },
+      actionAuthority: false,
+      liveExecutionAllowed: false
+    };
+    const result = await service.execute(plan);
+    if (result && (result.committed === true || result.executed === true || String(result.reason || '').includes('FAILED'))) this.queue.shift();
+    return !!result;
+  }
+
+  status() {
+    const service = this.runtime.controlledMerchantService;
+    const serviceStatus = service && typeof service.status === 'function' ? service.status() : null;
+    return {
+      arbitraryItemTransferAuthority: this._isMerchant() && !!(serviceStatus && serviceStatus.enabled && serviceStatus.allowDelivery),
+      configuredOn: true,
+      scope: 'TRUSTED_PARTY_KNOWN_UNRESERVED_ITEMS_ONLY',
+      queued: this.queue.length,
+      maxQueue: this.maxQueue,
+      restartUncertainNoBlindRetry: true,
+      protectedMetadataBlocked: true
+    };
+  }
+}
+
+module.exports = { Alpha28MerchantTransfers };
+
+},
+"src/reliability/alpha28-cross-map-farmer.js": function(require,module,exports){
+'use strict';
+
+const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+
+const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
+const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+function characterOf(runtime) { return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || runtime && runtime.root && runtime.root.character || null; }
+
+class Alpha28CrossMapFarmerProgression {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.parent = this.root && this.root.parent || this.root;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.busy = false;
+    this.activePlanId = null;
+    this.activeObjectiveId = null;
+    this.lastAction = null;
+    this.timeoutMs = 120000;
+    this.receiverInstalled = false;
+    this.receivedObjective = null;
+    this.patchProgressionStatus();
+  }
+
+  event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-farmer-travel', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _progression() { return this.runtime.progressionIntelligence || null; }
+
+  patchProgressionStatus() {
+    const progression = this._progression();
+    if (!progression || progression.__alpha28CrossMapStatusPatched || typeof progression.status !== 'function') return false;
+    const base = progression.status.bind(progression);
+    progression.status = () => {
+      const status = base();
+      return { ...status, policy: { ...(status.policy || {}), crossMapPromotionRecommendationOnly: false, crossMapPromotionAutomatic: true, directSmartMoveAuthority: false, controlledFarmerTravelAuthority: true } };
+    };
+    progression.__alpha28CrossMapStatusPatched = true;
+    return true;
+  }
+  _team(snapshot) {
+    try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
+  }
+  _transport() {
+    return this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport || null;
+  }
+  _ensureReceiver() {
+    if (this.receiverInstalled) return true;
+    const transport = this._transport();
+    if (!transport || typeof transport.installDirectReceiver !== 'function') return false;
+    transport.installDirectReceiver(CROSS_MAP_RECEIVER, (sender, payload) => {
+      const snapshot = this.runtime.lastSnapshot;
+      const team = snapshot && this._team(snapshot);
+      if (!team || team.selfName === team.leaderName) return false;
+      if (String(sender || '') !== String(team.leaderName || '')) return false;
+      if (!payload || payload.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
+      if (!this._objectiveValid(payload, team)) return false;
+      this.receivedObjective = clone(payload);
+      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(payload);
+      this.stats.crossMapObjectivesReceived += 1;
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED', 'info', 'VALIDATED_LEADER_OBJECTIVE', { objectiveId: payload.id, leaderName: team.leaderName, map: payload.map, monster: payload.monster });
+      return true;
+    });
+    this.receiverInstalled = true;
+    return true;
+  }
+  _publishCrossMap(team, objective) {
+    const transport = this._transport();
+    if (!transport || typeof transport.send !== 'function') return false;
+    for (const member of team.members || []) {
+      if (!member || !member.name || String(member.name) === String(team.leaderName)) continue;
+      Promise.resolve(transport.send(member.name, objective, { receiver: CROSS_MAP_RECEIVER, sender: team.leaderName })).catch(() => {});
+    }
+    return true;
+  }
+  _supervisorAllowed() {
+    try { const s = this.runtime.globalSupervisor && this.runtime.globalSupervisor.status(); return !!(s && SUPERVISOR_ALLOWED.has(String(s.state || ''))); } catch (_) { return false; }
+  }
+  _inCombat(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c) return true;
+    if (c.rip || c.dead || this.runtime.pendingEmergencyRetreat) return true;
+    const farmer = this.runtime.farmer;
+    if (farmer && farmer.state === 'ENGAGE' && farmer.targetId != null) return true;
+    return (snapshot.entities || []).some((e) => e && e.mtype && !e.dead && !e.rip && String(e.target || '') === String(c.name || ''));
+  }
+  _objectiveValid(objective, team) {
+    if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
+    if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
+    const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
+    if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
+    if (!gameData.monsters || !gameData.monsters[objective.monster]) return false;
+    if (!isApprovedDisposition(contentDisposition(this.runtime.world, objective.monster))) return false;
+    if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('maps', objective.map)) return false;
+    return true;
+  }
+
+  _makeLeaderObjective(snapshot, team) {
+    const progression = this._progression();
+    const decision = progression && progression.lastDecision;
+    const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
+    if (!selected || selected.map === snapshot.character.map) return null;
+    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (existing && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+    const objective = {
+      id: `alpha28-crossmap-${this.now()}-${selected.id}`,
+      leaderName: team.leaderName,
+      partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
+      map: selected.map,
+      monster: selected.monster,
+      spawnIndex: selected.spawnIndex,
+      x: selected.x,
+      y: selected.y,
+      createdAt: this.now(),
+      expiresAt: this.now() + Math.max(60000, finite(progression && progression.options && progression.options.objectiveTtlMs, 300000)),
+      readiness: clone(selected.readiness),
+      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+    };
+    if (!this._objectiveValid(objective, team)) return null;
+    if (progression && typeof progression._publish === 'function') progression._publish(team, objective);
+    else if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    this._publishCrossMap(team, objective);
+    this.stats.crossMapObjectivesPublished += 1;
+    this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'LIVE_READINESS_AND_CONTROLLED_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+    return objective;
+  }
+
+  _sharedObjective(team) {
+    if (this._objectiveValid(this.receivedObjective, team)) return clone(this.receivedObjective);
+    const objective = this.parent && this.parent[SHARED_OBJECTIVE];
+    return this._objectiveValid(objective, team) ? clone(objective) : null;
+  }
+
+  _startControlled(plan) {
+    const controller = this.runtime.safeTravel;
+    if (!controller) return { started: false, reason: 'SAFE_TRAVEL_UNAVAILABLE' };
+    if (typeof controller.startControlled === 'function') return controller.startControlled(plan.id);
+    const row = controller.plans && controller.plans.get(String(plan.id));
+    if (!row || row.state !== 'PLANNED') return { started: false, reason: 'PLAN_NOT_STARTABLE' };
+    if (controller.breaker().open) return { started: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
+    row.state = 'TRAVELLING'; row.updatedAt = this.now(); row.lastProgressAt = row.updatedAt; row.reason = 'ALPHA28_FARMER_CONTROLLED_EXECUTION_STARTED';
+    controller.stats.controlledStarts = (controller.stats.controlledStarts || 0) + 1;
+    return { started: true, plan: clone(row) };
+  }
+
+  _snapshot() {
+    const c = this.root.character || {};
+    return { observedAt: this.now(), character: { name: c.name, ctype: c.ctype || c.type, map: c.map, x: c.x != null ? c.x : c.real_x, y: c.y != null ? c.y : c.real_y, real_x: c.real_x, real_y: c.real_y, hp: c.hp, max_hp: c.max_hp, rip: c.rip === true } };
+  }
+  _failSafe(planId, reason) {
+    const controller = this.runtime.safeTravel;
+    if (!controller) return false;
+    if (typeof controller.failSafe === 'function') return controller.failSafe(planId, reason);
+    const row = controller.plans && typeof controller.plans.get === 'function' ? controller.plans.get(String(planId)) : null;
+    if (!row || ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(String(row.state || ''))) return false;
+    row.state = 'FAILED_SAFE';
+    row.reason = String(reason || 'FARMER_TRAVEL_FAILED_SAFE');
+    row.updatedAt = this.now();
+    controller.stats.failedSafe = (controller.stats.failedSafe || 0) + 1;
+    if (typeof controller._failure === 'function') controller._failure(row.reason, row);
+    if (typeof controller._event === 'function') controller._event('TRAVEL_FAILED_SAFE', 'error', row.reason, { planId: row.id, alpha28FarmerCrossMap: true });
+    return true;
+  }
+
+  async _execute(objective, snapshot) {
+    const controller = this.runtime.safeTravel;
+    if (!controller || typeof controller.plan !== 'function') return false;
+    const planned = controller.plan({ destination: { map: objective.map, x: objective.x, y: objective.y }, metadata: { alpha28FarmerCrossMap: true, objectiveId: objective.id, leaderName: objective.leaderName, monster: objective.monster } }, { snapshot, gameData: this.runtime.adapter.getGameData() || {}, contentDrift: this.runtime.contentDrift });
+    if (!planned || !planned.accepted || !planned.plan) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: planned && planned.reason || 'TRAVEL_PLAN_REJECTED' }; return false; }
+    const plan = planned.plan;
+    const started = this._startControlled(plan);
+    if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE' }; return false; }
+    const smartMove = this.root.smart_move || this.root.smartMove;
+    const stop = this.root.stop;
+    if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
+    this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
+    this.event('ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
+    let timer;
+    try {
+      const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
+      const response = await Promise.race([Promise.resolve(smartMove.call(this.root, { map: objective.map, x: objective.x, y: objective.y })), timeout]);
+      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+      controller.observe(this._snapshot());
+      const final = controller.get(plan.id);
+      if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
+      this.stats.crossMapTravelCompleted += 1;
+      this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, map: objective.map, monster: objective.monster };
+      const progression = this._progression();
+      if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
+      if (this.runtime.localFarming && typeof this.runtime.localFarming._abort === 'function') this.runtime.localFarming._abort('ALPHA28_CROSS_MAP_ARRIVED_REPLAN', this.now(), { objectiveId: objective.id });
+      this.event('ALPHA28_FARMER_CROSS_MAP_COMPLETED', 'info', 'ARRIVAL_VERIFIED', clone(this.lastAction));
+      return true;
+    } catch (error) {
+      const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
+      try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
+      this._failSafe(plan.id, reason);
+      this.stats.crossMapTravelFailedSafe += 1;
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, planId: plan.id, objectiveId: objective.id };
+      this.event('ALPHA28_FARMER_CROSS_MAP_FAILED_SAFE', 'error', reason, clone(this.lastAction));
+      return false;
+    } finally {
+      if (timer != null) (this.root.clearTimeout || clearTimeout)(timer);
+      this.busy = false; this.activePlanId = null; this.activeObjectiveId = null;
+    }
+  }
+
+  tick() {
+    this.patchProgressionStatus();
+    this._ensureReceiver();
+    if (this.busy) return false;
+    const snapshot = this.runtime.lastSnapshot;
+    const c = snapshot && snapshot.character;
+    if (!c || String(c.ctype || '').toLowerCase() === 'merchant' || String(this.runtime.adapter && this.runtime.adapter.mode || '') !== 'active') return false;
+    if (!this._supervisorAllowed() || this._inCombat(snapshot)) return false;
+    const team = this._team(snapshot);
+    if (!team || !team.complete || !team.alive || !team.positionsKnown) return false;
+    const isLeader = team.selfName === team.leaderName;
+    if (isLeader && (!team.sameMap || !team.cohesive)) return false;
+    let objective = isLeader ? this._makeLeaderObjective(snapshot, team) : this._sharedObjective(team);
+    if (!objective || objective.map === c.map) return false;
+    if (this.lastAction && this.lastAction.objectiveId === objective.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
+    Promise.resolve(this._execute(objective, snapshot)).catch((error) => {
+      this.stats.crossMapTravelFailedSafe += 1;
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: objective.id };
+    });
+    return true;
+  }
+
+  status() {
+    return { automaticCrossMapFarmerProgression: true, directAlpha21SmartMoveAuthority: false, controlledFarmerSmartMoveAuthority: true, leaderOwnsObjective: true, followersOnlyFollowValidatedLeaderObjective: true, crossMapReceiverInstalled: this.receiverInstalled, busy: this.busy, activePlanId: this.activePlanId, activeObjectiveId: this.activeObjectiveId, lastAction: clone(this.lastAction) };
+  }
+}
+
+module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER };
+
+},
+"src/reliability/alpha28-brain-cloud.js": function(require,module,exports){
+'use strict';
+
+function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+
+class Alpha28BrainCloud {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.configured = false;
+    this.plannerPatched = false;
+    this.lastDecision = null;
+    this.lastBrainAt = -Infinity;
+  }
+  event(event, severity = 'info', reason = null, data = {}) { try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-brain-cloud', event, severity, reason, data }); } catch (_) {} }
+
+  ensureSettings() {
+    const alpha25 = this.runtime.alpha25ControlCenterBrain;
+    const cp = this.runtime.controlPlane;
+    if (!alpha25 || !cp || typeof alpha25.patchSettings !== 'function') return false;
+    const needs = {};
+    if (cp.get('brain.mode', 'shadow') !== 'canary') needs['brain.mode'] = 'canary';
+    if (cp.get('cloud.enabled', false) !== true) needs['cloud.enabled'] = true;
+    if (Object.keys(needs).length) {
+      const result = alpha25.patchSettings(needs, 'alpha28-explicit-live-authority');
+      this.stats.brainCloudSettingPatches += Object.keys(needs).length;
+      this.event('ALPHA28_BRAIN_CLOUD_ENABLED', 'warn', 'OPERATOR_REQUESTED_ON', { requested: needs, result: clone(result) });
+    }
+    this.configured = cp.get('brain.mode') === 'canary' && cp.get('cloud.enabled') === true;
+    this.patchPlanner();
+    return this.configured;
+  }
+
+  patchPlanner() {
+    const planner = this.runtime.planner;
+    const brain = this.runtime.strategicBrainV2;
+    const cp = this.runtime.controlPlane;
+    if (!planner || !brain || !cp || this.plannerPatched || planner.__alpha28BrainCanaryRanking) return false;
+    if (typeof planner.rank !== 'function' || typeof brain.observe !== 'function') return false;
+    const base = planner.rank.bind(planner);
+    planner.rank = (candidates, context = {}) => {
+      const safeRows = base(candidates, context) || [];
+      if (cp.get('brain.mode', 'shadow') !== 'canary' || !safeRows.length) return safeRows;
+      let observation = null;
+      const auditMs = Math.max(1000, Number(cp.get('runtime.brainAuditMs', 5000)) || 5000);
+      if (this.now() - this.lastBrainAt >= auditMs) {
+        try {
+          observation = brain.observe({ ...context, candidates: safeRows, teacherRanking: safeRows, currentPlan: this.runtime.localFarming && this.runtime.localFarming.currentPlan || null, snapshot: this.runtime.lastSnapshot });
+          this.lastBrainAt = this.now();
+        } catch (_) { return safeRows; }
+      } else observation = brain.lastObservation || null;
+      const quality = observation && observation.quality && observation.quality.state;
+      if (!observation || ['quarantine','degraded'].includes(String(quality || ''))) return safeRows;
+      const action = observation.student && observation.student.action;
+      const wanted = observation.teacher && String(observation.teacher.target || '').trim();
+      if (!['change_farm_target','explore'].includes(action) || !wanted) return safeRows;
+      const index = safeRows.findIndex((row) => String(row && (row.monster || row.id) || '') === wanted);
+      if (index <= 0) return safeRows;
+      const reordered = safeRows.slice();
+      const [selected] = reordered.splice(index, 1); reordered.unshift(selected);
+      this.stats.brainCanaryPlannerDecisions += 1;
+      this.lastDecision = { at: this.now(), action, target: wanted, confidence: observation.student.confidence, authority: 'SAFE_CANDIDATE_REORDER_ONLY' };
+      this.event('ALPHA28_BRAIN_CANARY_APPLIED', 'info', 'SAFE_CANDIDATE_REORDER_ONLY', clone(this.lastDecision));
+      return reordered;
+    };
+    planner.__alpha28BrainCanaryRanking = true;
+    this.plannerPatched = true;
+    return true;
+  }
+
+  tick() { this.ensureSettings(); return false; }
+  status() {
+    const cp = this.runtime.controlPlane;
+    const cloud = this.runtime.cloudControlPlane && this.runtime.cloudControlPlane.status ? this.runtime.cloudControlPlane.status() : null;
+    return {
+      brainCanaryEnabled: !!(cp && cp.get('brain.mode') === 'canary'),
+      brainAuthority: 'SAFE_CANDIDATE_REORDER_ONLY',
+      brainDirectExecutorAccess: false,
+      cloudEnabled: !!(cp && cp.get('cloud.enabled') === true),
+      cloudReady: !!(cloud && cloud.ready),
+      cloudOfflineSafe: true,
+      plannerPatched: this.plannerPatched,
+      lastDecision: clone(this.lastDecision)
+    };
+  }
+}
+
+module.exports = { Alpha28BrainCloud };
 
 },
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
