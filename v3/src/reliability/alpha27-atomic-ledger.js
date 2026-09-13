@@ -9,9 +9,11 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     const ledger = this.runtime.inventoryLedger;
     if (!ledger || ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
     const baseDisposition = ledger._baseDisposition.bind(ledger);
-    ledger._baseDisposition = (row, meta, context = {}) => {
-      const base = baseDisposition(row, meta, context);
+    ledger._baseDisposition = (row, gameData, contentDrift, counts) => {
+      const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
+      const base = baseDisposition(row, gameData, contentDrift, safeCounts);
       if (!base || base.disposition !== 'UNDECIDED') return base;
+      const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
@@ -21,7 +23,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       let blockers = [];
       try {
         blockers = typeof ledger._resolveSellBlockers === 'function'
-          ? ledger._resolveSellBlockers(row, meta, context.gameData || gameDataOf(this.runtime), context.contentDrift || this.runtime.contentDrift)
+          ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const rawValue = meta.g != null ? Number(meta.g) : Number(meta.gold);
