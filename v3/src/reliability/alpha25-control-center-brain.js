@@ -26,7 +26,10 @@ class Alpha25ControlCenterBrain {
     this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
-    if (this.cloud.explicitGlobalConfig && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) this.patchSettings({ 'cloud.enabled': true }, 'global-cloud-config');
+    if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
+      const source = this.cloud.legacyCredentialsMigrated ? 'v2-cloud-credential-migration' : 'global-cloud-config';
+      this.patchSettings({ 'cloud.enabled': true }, source);
+    }
     if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'ALPHA25_CONTROL_CENTER_BRAIN_INSTALLED', data: this.status() });
   }
 
@@ -105,6 +108,8 @@ class Alpha25ControlCenterBrain {
         remoteExtendedSettingsReachLiveSubsystems: true,
         outcomeEvaluationHasSingleOwner: true,
         explicitGlobalCloudConfigEnablesControlPlane: true,
+        legacyV2DashboardCredentialsAutoMigrate: true,
+        migratedCloudCredentialsAutoEnableControlPlane: true,
         cloudCannotBypassSafety: true,
         brainStrategicOnly: true,
         brainDirectExecutorAccess: false,

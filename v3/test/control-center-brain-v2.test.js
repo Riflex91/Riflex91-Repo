@@ -174,3 +174,42 @@ test('brain outcome evaluation has one owner and cloud cycle never evaluates it 
   assert.equal(calls, 1);
   assert.equal(alpha25.status().policies.outcomeEvaluationHasSingleOwner, true);
 });
+
+test('v3 migrates the existing v2 stable dashboard URL and write key locally and auto-enables cloud sync', () => {
+  const runtime = runtimeFixture();
+  runtime.root.localStorage.setItem('ALBOT27:stable-config:My_Merchant', JSON.stringify({
+    schema: 1,
+    version: '2.14.38',
+    at: runtime.now() - 1000,
+    config: {
+      webDashboardEnabled: true,
+      webDashboardConnectionUrl: 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/',
+      webDashboardWriteKey: 'legacy-v2-write-secret'
+    }
+  }));
+  const alpha25 = new Alpha25ControlCenterBrain(runtime);
+  const status = alpha25.status();
+  assert.equal(status.cloud.legacyCredentialsMigrated, true);
+  assert.equal(status.cloud.credentialSource, 'v2-stable-config');
+  assert.equal(status.cloud.configured.baseUrl, 'https://aio-bot-dashboard.hansijuergenlul.workers.dev');
+  assert.equal(status.cloud.configured.writeKeyPresent, true);
+  assert.equal(alpha25.controlPlane.get('cloud.enabled'), true);
+  assert.equal(JSON.stringify(status).includes('legacy-v2-write-secret'), false);
+  const migrated = JSON.parse(runtime.root.localStorage.getItem('aio-v3:cloud-control:v1'));
+  assert.equal(migrated.writeKey, 'legacy-v2-write-secret');
+  assert.ok(runtime.log.rows.some((row) => row.event === 'V2_CLOUD_CREDENTIALS_MIGRATED'));
+});
+
+test('existing v3 cloud credentials take precedence over legacy v2 credentials', () => {
+  const runtime = runtimeFixture();
+  runtime.root.localStorage.setItem('aio-v3:cloud-control:v1', JSON.stringify({ baseUrl: 'https://new.example.workers.dev', writeKey: 'new-v3-secret', account: 'new-account' }));
+  runtime.root.localStorage.setItem('ALBOT27:stable-config:My_Merchant', JSON.stringify({ config: { webDashboardConnectionUrl: 'https://old.example.workers.dev', webDashboardWriteKey: 'old-v2-secret' } }));
+  const alpha25 = new Alpha25ControlCenterBrain(runtime);
+  const status = alpha25.status();
+  assert.equal(status.cloud.legacyCredentialsMigrated, false);
+  assert.equal(status.cloud.credentialSource, 'local-v3-storage');
+  assert.equal(status.cloud.configured.baseUrl, 'https://new.example.workers.dev');
+  assert.equal(status.cloud.configured.account, 'new-account');
+  assert.equal(JSON.stringify(status).includes('new-v3-secret'), false);
+  assert.equal(JSON.stringify(status).includes('old-v2-secret'), false);
+});
