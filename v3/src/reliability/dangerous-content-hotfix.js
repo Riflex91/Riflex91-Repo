@@ -5,6 +5,7 @@ const { installAlpha2020Alpha22Autonomy } = require('./alpha20-20-alpha22-autono
 const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regression-hotfix');
 const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stability-hotfix');
 const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
+const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -40,6 +41,7 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
       if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
       if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
+      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -63,8 +65,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 4,
-      mode: 'dangerous-content-hotfix-v4',
+      schemaVersion: 5,
+      mode: 'dangerous-content-hotfix-v5',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -74,7 +76,8 @@ class DangerousContentHotfix {
         status: this.runtime.alpha2020Alpha22Autonomy && typeof this.runtime.alpha2020Alpha22Autonomy.status === 'function' ? this.runtime.alpha2020Alpha22Autonomy.status() : null,
         liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function' ? this.runtime.alpha2020LiveRegressionHotfix.status() : null,
         combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
-        economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null
+        economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null,
+        adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null
       }
     };
   }
