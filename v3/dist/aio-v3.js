@@ -25738,6 +25738,9 @@ function fn(instance, name) {
   return root && (root[name] || (root.parent && root.parent[name])) || null;
 }
 
+// Broader visibility is diagnostic only. In Adventure Land, a character can be
+// visible through party/get_player/entities while command_character still emits
+// "Character not found". Never use this function as direct action authority.
 function strongLiveEvidence(instance, name) {
   const target = cleanName(name);
   if (!target || !instance || !instance.isOwned(target)) return { live: false, source: null };
@@ -25787,6 +25790,10 @@ function installAlpha2019AccountTransportHotfix() {
 
   proto.strongLiveEvidence = function(name) { return strongLiveEvidence(this, name); };
   proto.visibleOwnedNames = function() { return this.ownedNames().filter((name) => strongLiveEvidence(this, name).live); };
+  proto.directEligibleOwnedNames = function() {
+    const observed = new Set(this.activeNames());
+    return this.ownedNames().filter((name) => observed.has(name));
+  };
 
   proto.send = async function(targetName, payload, options = {}) {
     const target = cleanName(targetName);
@@ -25807,25 +25814,36 @@ function installAlpha2019AccountTransportHotfix() {
     const now = this.now();
     const until = Number(backoff.get(target)) || 0;
     if (until && until <= now) backoff.delete(target);
-    const evidence = strongLiveEvidence(this, target);
+
+    // Direct routing authority is deliberately narrower than general visibility.
+    // get_player, entity and party rows cannot prove command_character routability.
+    const observedActive = this.activeNames();
+    const directObserved = observedActive.includes(target);
+    const broadEvidence = strongLiveEvidence(this, target);
     const commandCharacter = fn(this, 'command_character');
-    if (receiver && typeof commandCharacter === 'function' && evidence.live && until <= now) {
-      const statKey = { 'observed-active':'directEvidenceObservedActive', 'get-player':'directEvidenceGetPlayer', entity:'directEvidenceEntity', party:'directEvidenceParty' }[evidence.source];
-      if (statKey) this.stats[statKey] += 1;
+
+    if (receiver && typeof commandCharacter === 'function' && directObserved && until <= now) {
+      this.stats.directEvidenceObservedActive += 1;
       try {
         await Promise.resolve(commandCharacter.call(this.root, target, this._directCode(receiver, sender, payload)));
         this.stats.directSent += 1; backoff.delete(target);
-        return { delivered: true, transport: 'command_character', target, sender, evidence: evidence.source };
+        return { delivered: true, transport: 'command_character', target, sender, evidence: 'observed-active' };
       } catch (error) {
         this.stats.directFailed += 1; backoff.set(target, now + DIRECT_BACKOFF_MS);
-        this._event('ACCOUNT_TRANSPORT_DIRECT_FAILED', 'warn', 'COMMAND_CHARACTER_FAILED', { target, sender, evidence: evidence.source, backoffMs: DIRECT_BACKOFF_MS, message: boundedMessage(error) });
+        this._event('ACCOUNT_TRANSPORT_DIRECT_FAILED', 'warn', 'COMMAND_CHARACTER_FAILED', { target, sender, evidence: 'observed-active', backoffMs: DIRECT_BACKOFF_MS, message: boundedMessage(error) });
       }
-    } else if (receiver && typeof commandCharacter === 'function' && until > now) {
+    } else if (receiver && typeof commandCharacter === 'function' && directObserved && until > now) {
       this.stats.directSkippedBackoff += 1;
       this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
-    } else if (receiver && typeof commandCharacter === 'function' && !evidence.live) {
+    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
-      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_HAS_NO_STRONG_LIVE_EVIDENCE', { target, sender, observedActive: this.activeNames() });
+      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
+        target,
+        sender,
+        observedActive,
+        broaderVisibility: broadEvidence.live,
+        broaderVisibilitySource: broadEvidence.source
+      });
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
@@ -25844,7 +25862,19 @@ function installAlpha2019AccountTransportHotfix() {
 
   proto.status = function() {
     const base = baseStatus.call(this); const now = this.now(); const backoff = state(this);
-    return { ...base, schemaVersion: 3, mode: 'strong-live-evidence-command-character-else-cm', visibleOwnedNames: this.visibleOwnedNames(), directRequiresObservedActive: false, directRequiresStrongLiveEvidence: true, directFailureBackoffMs: DIRECT_BACKOFF_MS, directBackoffs: [...backoff.entries()].filter(([, until]) => Number(until) > now).map(([name, until]) => ({ name, until, remainingMs: Number(until) - now })), stats: { ...this.stats } };
+    return {
+      ...base,
+      schemaVersion: 4,
+      mode: 'observed-active-command-character-else-cm-with-backoff',
+      visibleOwnedNames: this.visibleOwnedNames(),
+      directEligibleOwnedNames: this.directEligibleOwnedNames(),
+      directRequiresObservedActive: true,
+      directRequiresStrongLiveEvidence: false,
+      broaderVisibilityIsDiagnosticOnly: true,
+      directFailureBackoffMs: DIRECT_BACKOFF_MS,
+      directBackoffs: [...backoff.entries()].filter(([, until]) => Number(until) > now).map(([name, until]) => ({ name, until, remainingMs: Number(until) - now })),
+      stats: { ...this.stats }
+    };
   };
   return true;
 }
