@@ -6,8 +6,10 @@ const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-int
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
 const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
+const { patchAlpha21LivenessGuards, ALPHA21_LIVENESS_MODE } = require('./alpha21-liveness-guards');
+const { installAlpha21ProgressionIntelligence } = require('./alpha21-progression-intelligence');
 
-const INTEGRATED_PARTY_CONTROL_MODE = 'alpha20.16-20.19-integrated-party-control-v1';
+const INTEGRATED_PARTY_CONTROL_MODE = 'alpha20.16-20.19-integrated-party-control-v2';
 
 class IntegratedPartyControl {
   constructor(runtime, components = {}) {
@@ -18,10 +20,12 @@ class IntegratedPartyControl {
     this.transportPatched = components.transportPatched === true;
     this.logisticsPatched = components.logisticsPatched === true;
     this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
+    this.alpha21Liveness = components.alpha21Liveness || null;
+    this.progressionIntelligence = components.progressionIntelligence || null;
     this.tacticalPartyCombat = components.tacticalPartyCombat || null;
     this.advancedPartyMovement = components.advancedPartyMovement || null;
     this.partySkillEngine = components.partySkillEngine || null;
-    this._event('INTEGRATED_PARTY_CONTROL_INSTALLED', 'warn', 'ALPHA20_16_TO_20_19_ACTIVE', this.status());
+    this._event('INTEGRATED_PARTY_CONTROL_INSTALLED', 'warn', 'ALPHA20_16_TO_ALPHA21_ACTIVE', this.status());
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -33,7 +37,7 @@ class IntegratedPartyControl {
     const logistics = this.runtime.controlledPartyLogistics;
     const farm = this.runtime.farmAreaPressureHotfix;
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: INTEGRATED_PARTY_CONTROL_MODE,
       installedAt: this.installedAt,
       groupAuthority: {
@@ -52,7 +56,14 @@ class IntegratedPartyControl {
         logisticsPrototypePatched: this.logisticsPatched,
         logistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_19 || null : null,
         skillEngine: this.partySkillEngine && this.partySkillEngine.status ? this.partySkillEngine.status() : null
-      }
+      },
+      alpha21Liveness: {
+        mode: ALPHA21_LIVENESS_MODE,
+        ...(this.alpha21Liveness || {})
+      },
+      alpha21Progression: this.progressionIntelligence && typeof this.progressionIntelligence.status === 'function'
+        ? this.progressionIntelligence.status()
+        : null
     };
   }
 }
@@ -63,13 +74,15 @@ function installIntegratedPartyControl(runtime, options = {}) {
   const transportPatched = installAlpha2019AccountTransportHotfix();
   const logisticsPatched = patchAlpha2019LogisticsStabilization();
   const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
+  const alpha21Liveness = patchAlpha21LivenessGuards();
+  const progressionIntelligence = installAlpha21ProgressionIntelligence(runtime, options.progressionIntelligence || {});
   const tacticalPartyCombat = installTacticalPartyCombat(runtime, options.tacticalPartyCombat || {});
   runtime.tacticalPartyCombat = tacticalPartyCombat;
   const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }
