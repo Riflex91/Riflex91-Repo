@@ -20011,6 +20011,9 @@ const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-
 const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
 const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-terrain-navigation-hotfix');
+const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
+const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
 const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
@@ -20071,6 +20074,16 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxStep: options.farmerTravelMaxStep,
       stepSeconds: options.farmerTravelStepSeconds
     });
+    this.farmerTerrainNavigationHotfix = installFarmerTerrainNavigationHotfix(this, {
+      minStep: options.farmerTravelMinStep,
+      maxStep: options.farmerTravelMaxStep,
+      stepSeconds: options.farmerTravelStepSeconds,
+      blockedTargetMs: options.farmerTerrainBlockedTargetMs,
+      minProgress: options.farmerTerrainMinProgress
+    });
+    this.partyFocusFireHotfix = installPartyFocusFireHotfix(this, {
+      maxFocusDistance: options.partyFocusMaxDistance
+    });
     this.contentDriftStorageHotfix = installContentDriftStorageHotfix(this, {
       maxRecordsAfterQuota: options.contentDriftQuotaMaxRecords,
       retryBaseMs: options.contentDriftQuotaRetryBaseMs,
@@ -20080,6 +20093,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       minHistoricalLeadMs: options.contentDriftRecoveryHistoricalLeadMs,
       maxAutoQuarantineLagMs: options.contentDriftRecoveryAutoQuarantineLagMs,
       intervalMs: options.contentDriftRecoveryIntervalMs
+    });
+    this.partyPersistenceQuotaHotfix = installPartyPersistenceQuotaHotfix(this, {
+      storageHighWatermarkChars: options.partyPersistenceStorageHighWatermarkChars
     });
     this.partyAccountCommunication = installPartyAccountCommunication(this, {
       telemetryBaseBackoffMs: options.partyTelemetryFailureBackoffMs,
@@ -20136,6 +20152,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
+      farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
+      partyFocusFireHotfix: this.partyFocusFireHotfix.status(),
+      partyPersistenceQuotaHotfix: this.partyPersistenceQuotaHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -20164,7 +20183,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         ...(base.party || {}),
         bootstrap: this.partyBootstrap.status(),
         bootstrapMerchantDiscovery: this.partyBootstrapMerchantDiscoveryHotfix.status(),
-        accountCommunication: this.partyAccountCommunication.status()
+        accountCommunication: this.partyAccountCommunication.status(),
+        focusFire: this.partyFocusFireHotfix.status(),
+        persistenceQuota: this.partyPersistenceQuotaHotfix.status()
       },
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
@@ -20172,6 +20193,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
+      farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -20193,6 +20215,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
+        terrainAwareBoundedFarmerTravel: true,
+        movementFailureReselectsInsteadOfGlobalFarmerBlock: true,
+        safeVisiblePartyFocusFire: true,
+        partyFocusDoesNotUseCm: true,
         extremeEvasionFarmTargetsRejected: true,
         extremeAvoidanceFarmTargetsRejected: true,
         farmEfficiencySeparateFromNavigationSafety: true,
@@ -20200,6 +20226,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         partyBootstrapEnabled: true,
         partyBootstrapDoesNotGateTrustedFarmerProgress: true,
         partyCommunicationDirectRequiresObservedActive: true,
+        partyPersistenceQuotaNonAuthoritative: true,
         contentDriftQuotaRecoveryMutatesSafetyKnowledge: false,
         contentDriftFalseNoveltyRecoveryRequiresHistoricalEvidence: true,
         incompleteSupplyFailClosed: true,
@@ -22747,6 +22774,646 @@ module.exports = {
   evaluateTargetEfficiency,
   resolveMonsterType
 };
+
+},
+"src/reliability/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
+'use strict';
+
+const FARMER_TERRAIN_NAVIGATION_MODE = 'terrain-aware-bounded-farmer-navigation-v1';
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function distance(a, b) {
+  const ax = finite(a && a.x);
+  const ay = finite(a && a.y);
+  const bx = finite(b && b.x);
+  const by = finite(b && b.y);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+class FarmerTerrainNavigationHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.farmer) throw new Error('runtime farmer required');
+    this.runtime = runtime;
+    this.farmer = runtime.farmer;
+    this.root = runtime.root || globalThis;
+    this.parent = this.root && this.root.parent || this.root;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.minStep = Math.max(20, Number(options.minStep) || 50);
+    this.maxStep = Math.max(this.minStep, Number(options.maxStep) || 120);
+    this.stepSeconds = Math.max(0.5, Math.min(4, Number(options.stepSeconds) || 2));
+    this.blockedTargetMs = Math.max(2000, Number(options.blockedTargetMs) || 12000);
+    this.minProgress = Math.max(2, Number(options.minProgress) || 8);
+    this.blockedTargets = new Map();
+    this.lastDecision = null;
+    this.stats = {
+      travelCalls: 0,
+      directWaypoints: 0,
+      alternateWaypoints: 0,
+      noReachableWaypoint: 0,
+      movementCircuitReselects: 0,
+      temporarilyFilteredTargets: 0
+    };
+    this.installed = false;
+    this._install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'farmer-terrain-navigation', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _canMoveFn() {
+    const fn = this.root && this.root.can_move_to || this.parent && this.parent.can_move_to;
+    return typeof fn === 'function' ? fn : null;
+  }
+
+  _canMoveTo(x, y) {
+    const fn = this._canMoveFn();
+    if (!fn) return null;
+    try { return fn.call(this.root, x, y) !== false; } catch (_) { return false; }
+  }
+
+  _boundedStep(character, travel) {
+    const speed = Math.max(1, Number(character && character.speed) || 40);
+    const desired = Math.max(this.minStep, Math.min(this.maxStep, speed * this.stepSeconds));
+    return Math.min(Math.max(0, travel), desired);
+  }
+
+  _pruneBlocked() {
+    const now = this.now();
+    for (const [id, until] of this.blockedTargets.entries()) if (until <= now) this.blockedTargets.delete(id);
+  }
+
+  _markTargetBlocked(target, reason) {
+    if (!target || target.id == null) return;
+    const id = String(target.id);
+    const until = this.now() + this.blockedTargetMs;
+    this.blockedTargets.set(id, until);
+    this.lastDecision = { at: this.now(), reason, targetId: id, targetType: target.mtype || null, blockedUntil: until };
+    this._event('FARMER_TARGET_PATH_TEMPORARILY_BLOCKED', 'warn', reason, { ...this.lastDecision });
+  }
+
+  _waypoint(character, target, step) {
+    const cx = Number(character.x);
+    const cy = Number(character.y);
+    const tx = Number(target.x);
+    const ty = Number(target.y);
+    const dx = tx - cx;
+    const dy = ty - cy;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const baseAngle = Math.atan2(dy, dx);
+    const direct = { x: cx + Math.cos(baseAngle) * step, y: cy + Math.sin(baseAngle) * step, offsetDeg: 0, step };
+    const directAllowed = this._canMoveTo(direct.x, direct.y);
+    if (directAllowed !== false) {
+      this.stats.directWaypoints += 1;
+      return direct;
+    }
+
+    const offsets = [15, -15, 30, -30, 45, -45, 60, -60, 90, -90];
+    const scales = [1, 0.75, 0.5];
+    const currentDistance = Math.hypot(tx - cx, ty - cy);
+    let best = null;
+    for (const scale of scales) {
+      const scaledStep = Math.max(Math.min(step * scale, this.maxStep), Math.min(this.minStep, step));
+      for (const offsetDeg of offsets) {
+        const angle = baseAngle + offsetDeg * Math.PI / 180;
+        const x = cx + Math.cos(angle) * scaledStep;
+        const y = cy + Math.sin(angle) * scaledStep;
+        if (this._canMoveTo(x, y) !== true) continue;
+        const afterDistance = Math.hypot(tx - x, ty - y);
+        const progress = currentDistance - afterDistance;
+        if (progress < this.minProgress) continue;
+        const candidate = { x, y, offsetDeg, step: scaledStep, progress };
+        if (!best || candidate.progress > best.progress || (candidate.progress === best.progress && Math.abs(candidate.offsetDeg) < Math.abs(best.offsetDeg))) best = candidate;
+      }
+    }
+    if (best) this.stats.alternateWaypoints += 1;
+    return best;
+  }
+
+  _installTargetFilter() {
+    const farmer = this.farmer;
+    if (typeof farmer._safeLiveMonsters !== 'function' || farmer.__terrainTargetFilterInstalled) return;
+    const base = farmer._safeLiveMonsters.bind(farmer);
+    farmer._safeLiveMonsters = (snapshot, party) => {
+      this._pruneBlocked();
+      const rows = base(snapshot, party);
+      if (!Array.isArray(rows) || !this.blockedTargets.size) return rows;
+      const filtered = rows.filter((entity) => !entity || entity.id == null || !this.blockedTargets.has(String(entity.id)));
+      this.stats.temporarilyFilteredTargets += Math.max(0, rows.length - filtered.length);
+      return filtered;
+    };
+    farmer.__terrainTargetFilterInstalled = true;
+  }
+
+  _installTravel() {
+    const farmer = this.farmer;
+    if (farmer.__terrainNavigationHotfixInstalled) return;
+    farmer.__terrainNavigationHotfixInstalled = true;
+    farmer._travel = (context, target) => {
+      this.stats.travelCalls += 1;
+      const snapshot = context && context.snapshot;
+      const c = snapshot && snapshot.character;
+      if (!snapshot || !c) {
+        farmer._block('TARGET_POSITION_UNKNOWN');
+        return;
+      }
+      if (!target || target.dead || (target.hp != null && Number(target.hp) <= 0)) {
+        farmer._clearTarget('TARGET_GONE');
+        farmer._transition('REASSESS', 'TARGET_GONE');
+        return;
+      }
+      if (!farmer._targetAllowed(target, snapshot, context.party)) {
+        farmer._clearTarget('TARGET_POLICY_REJECTED');
+        farmer._transition('REASSESS', 'TARGET_POLICY_REJECTED');
+        return;
+      }
+
+      const engageRange = farmer._engagementRange(snapshot);
+      const d = distance(c, target);
+      if (d <= engageRange) {
+        farmer._transition('ENGAGE', 'IN_RANGE', { distance: Math.round(d), engageRange: Math.round(engageRange) });
+        return;
+      }
+      if (!Number.isFinite(d) || target.x == null || target.y == null || c.x == null || c.y == null) {
+        farmer._block('TARGET_POSITION_UNKNOWN');
+        return;
+      }
+
+      const now = farmer.now();
+      if (now - farmer.lastActionAt < farmer.config.moveCooldownMs) return;
+      const desiredRange = Math.max(20, engageRange * 0.9);
+      const rawTravel = Math.max(0, d - desiredRange);
+      const step = this._boundedStep(c, rawTravel);
+      const waypoint = this._waypoint(c, target, step);
+      if (!waypoint) {
+        this.stats.noReachableWaypoint += 1;
+        this._markTargetBlocked(target, 'NO_REACHABLE_BOUNDED_WAYPOINT');
+        farmer._clearTarget('TARGET_PATH_LOCALLY_BLOCKED');
+        farmer._transition('REASSESS', 'TARGET_PATH_LOCALLY_BLOCKED');
+        return;
+      }
+
+      const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
+      farmer.lastActionAt = now;
+      if (!result.executed && !result.shadow && !result.coalesced) {
+        if (result.reason === 'MOVEMENT_CIRCUIT_OPEN' || result.reason === 'COMMAND_FAILED') {
+          this.stats.movementCircuitReselects += 1;
+          this._markTargetBlocked(target, result.reason);
+          farmer._clearTarget('MOVEMENT_FAILURE_RESELECT');
+          farmer._transition('REASSESS', 'MOVEMENT_FAILURE_RESELECT');
+          return;
+        }
+        farmer._block(result.reason === 'COMMAND_UNAVAILABLE' ? 'MOVE_COMMAND_UNAVAILABLE' : 'MOVE_COMMAND_FAILED');
+        return;
+      }
+
+      this.lastDecision = {
+        at: now,
+        reason: waypoint.offsetDeg ? 'ALTERNATE_REACHABLE_WAYPOINT' : 'DIRECT_REACHABLE_WAYPOINT',
+        targetId: target.id == null ? null : String(target.id),
+        targetType: target.mtype || null,
+        distance: d,
+        engageRange,
+        rawTravel,
+        step: waypoint.step,
+        x: waypoint.x,
+        y: waypoint.y,
+        offsetDeg: waypoint.offsetDeg,
+        coalesced: !!result.coalesced
+      };
+      farmer._event('FARMER_MOVE_REQUESTED', 'info', 'TARGET_OUT_OF_RANGE', {
+        x: Math.round(waypoint.x),
+        y: Math.round(waypoint.y),
+        distance: Math.round(d),
+        engageRange: Math.round(engageRange),
+        boundedStep: Math.round(waypoint.step),
+        rawTravel: Math.round(rawTravel),
+        terrainOffsetDeg: waypoint.offsetDeg
+      });
+    };
+  }
+
+  _install() {
+    this._installTargetFilter();
+    this._installTravel();
+    this.installed = true;
+    this._event('FARMER_TERRAIN_NAVIGATION_HOTFIX_INSTALLED', 'info');
+  }
+
+  status() {
+    this._pruneBlocked();
+    return {
+      schemaVersion: 1,
+      mode: FARMER_TERRAIN_NAVIGATION_MODE,
+      installed: this.installed,
+      canMoveToAvailable: !!this._canMoveFn(),
+      blockedTargetMs: this.blockedTargetMs,
+      minProgress: this.minProgress,
+      blockedTargets: [...this.blockedTargets.entries()].map(([id, until]) => ({ id, until, remainingMs: Math.max(0, until - this.now()) })),
+      lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installFarmerTerrainNavigationHotfix(runtime, options = {}) {
+  return new FarmerTerrainNavigationHotfix(runtime, options);
+}
+
+module.exports = { FarmerTerrainNavigationHotfix, installFarmerTerrainNavigationHotfix, FARMER_TERRAIN_NAVIGATION_MODE };
+
+},
+"src/reliability/party-focus-fire-hotfix.js": function(require,module,exports){
+'use strict';
+
+const PARTY_FOCUS_FIRE_MODE = 'safe-visible-party-focus-v1';
+
+function distance(a, b) {
+  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
+  return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
+}
+
+class PartyFocusFireHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime || !runtime.farmer) throw new Error('runtime farmer required');
+    this.runtime = runtime;
+    this.farmer = runtime.farmer;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.maxFocusDistance = Math.max(100, Number(options.maxFocusDistance) || 320);
+    this.lastDecision = null;
+    this.stats = {
+      selectionFocusHits: 0,
+      reassessmentFocusSwitches: 0,
+      anchorUnavailable: 0,
+      unsafeOrInvisibleFocusRejected: 0,
+      selfDefenseOverrides: 0,
+      distanceRejected: 0
+    };
+    this.installed = false;
+    this._install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'party-focus-fire', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _combatNames(snapshot) {
+    const rows = [];
+    const self = snapshot && snapshot.character;
+    if (self && self.name && self.ctype !== 'merchant') rows.push({ name: String(self.name), type: self.ctype || null });
+    for (const member of snapshot && snapshot.party || []) {
+      if (!member || !member.name) continue;
+      const type = member.type || null;
+      if (type === 'merchant') continue;
+      rows.push({ name: String(member.name), type });
+    }
+    return [...new Map(rows.map((row) => [row.name, row])).values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _anchorName(snapshot) {
+    const rows = this._combatNames(snapshot);
+    return rows.length ? rows[0].name : null;
+  }
+
+  _anchorTargetId(snapshot, anchorName) {
+    if (!snapshot || !snapshot.character || !anchorName) return null;
+    if (snapshot.character.name === anchorName) return snapshot.character.target == null ? null : String(snapshot.character.target);
+    const entity = (snapshot.entities || []).find((row) => row && row.name === anchorName);
+    return entity && entity.target != null ? String(entity.target) : null;
+  }
+
+  _safeCandidateSet(context) {
+    const farmer = this.farmer;
+    if (!farmer || typeof farmer._candidateRows !== 'function') return { rows: [], monsters: [] };
+    try {
+      const result = farmer._candidateRows(context) || {};
+      return {
+        rows: Array.isArray(result.rows) ? result.rows : [],
+        monsters: Array.isArray(result.monsters) ? result.monsters : []
+      };
+    } catch (_) {
+      return { rows: [], monsters: [] };
+    }
+  }
+
+  _focusTarget(context) {
+    const snapshot = context && context.snapshot;
+    const self = snapshot && snapshot.character;
+    if (!snapshot || !self) return null;
+    const anchorName = this._anchorName(snapshot);
+    if (!anchorName || anchorName === self.name) return null;
+    const targetId = this._anchorTargetId(snapshot, anchorName);
+    if (!targetId) {
+      this.stats.anchorUnavailable += 1;
+      return null;
+    }
+
+    const { rows, monsters } = this._safeCandidateSet(context);
+    const target = monsters.find((row) => row && String(row.id) === targetId) || null;
+    if (!target) {
+      this.stats.unsafeOrInvisibleFocusRejected += 1;
+      return null;
+    }
+    const d = distance(self, target);
+    if (!Number.isFinite(d) || d > this.maxFocusDistance) {
+      this.stats.distanceRejected += 1;
+      return null;
+    }
+
+    let ranking = rows.find((row) => row && String(row.monster || row.id) === String(target.mtype)) || null;
+    if (this.farmer.planner && typeof this.farmer.planner.rank === 'function' && rows.length) {
+      try {
+        const ranked = this.farmer.planner.rank(rows, {
+          character: self.name,
+          partyFingerprint: context.party && context.party.fingerprint || null
+        });
+        ranking = ranked.find((row) => row && String(row.monster || row.id) === String(target.mtype)) || ranking;
+      } catch (_) {}
+    }
+    ranking = {
+      ...(ranking || {}),
+      id: ranking && ranking.id || target.mtype,
+      monster: ranking && ranking.monster || target.mtype,
+      score: Number.isFinite(Number(ranking && ranking.score)) ? Number(ranking.score) : 0,
+      source: `party-focus:${ranking && ranking.source || 'live'}`,
+      confidence: Number.isFinite(Number(ranking && ranking.confidence)) ? Number(ranking.confidence) : 0,
+      travelSeconds: Number.isFinite(Number(ranking && ranking.travelSeconds)) ? Number(ranking.travelSeconds) : d / Math.max(1, Number(self.speed) || 40)
+    };
+    return { anchorName, target, ranking, distance: d };
+  }
+
+  _currentIsSelfDefense(snapshot, target) {
+    return !!(snapshot && snapshot.character && target && target.target === snapshot.character.name);
+  }
+
+  _installSelection() {
+    const farmer = this.farmer;
+    if (typeof farmer._selectTarget !== 'function' || farmer.__partyFocusSelectionInstalled) return;
+    const base = farmer._selectTarget.bind(farmer);
+    farmer._selectTarget = (context) => {
+      const normal = base(context);
+      const focus = this._focusTarget(context);
+      if (!focus) return normal;
+      if (normal && normal.target && this._currentIsSelfDefense(context.snapshot, normal.target)) {
+        this.stats.selfDefenseOverrides += 1;
+        return normal;
+      }
+      this.stats.selectionFocusHits += 1;
+      this.lastDecision = {
+        at: this.now(),
+        reason: 'VISIBLE_SAFE_PARTY_ANCHOR_TARGET',
+        anchorName: focus.anchorName,
+        targetId: String(focus.target.id),
+        targetType: focus.target.mtype || null,
+        distance: focus.distance
+      };
+      this._event('FARMER_PARTY_FOCUS_SELECTED', 'info', this.lastDecision.reason, { ...this.lastDecision });
+      return { target: focus.target, ranking: focus.ranking };
+    };
+    farmer.__partyFocusSelectionInstalled = true;
+  }
+
+  _installReassessment() {
+    const farmer = this.farmer;
+    if (typeof farmer._maybeReassessTarget !== 'function' || farmer.__partyFocusReassessmentInstalled) return;
+    const base = farmer._maybeReassessTarget.bind(farmer);
+    farmer._maybeReassessTarget = (context, target) => {
+      const normal = base(context, target);
+      const snapshot = context && context.snapshot;
+      if (this._currentIsSelfDefense(snapshot, target) || this._currentIsSelfDefense(snapshot, normal)) {
+        this.stats.selfDefenseOverrides += 1;
+        return normal;
+      }
+      const focus = this._focusTarget(context);
+      if (!focus || !focus.target || String(focus.target.id) === String(normal && normal.id)) return normal;
+
+      const cooldown = farmer.targetReassessment && Number(farmer.targetReassessment.switchCooldownMs) || 2500;
+      if (Number.isFinite(Number(farmer.lastTargetSwitchAt)) && this.now() - Number(farmer.lastTargetSwitchAt) < cooldown) return normal;
+
+      const previous = normal || target;
+      farmer.targetId = String(focus.target.id);
+      farmer.targetType = focus.target.mtype || null;
+      farmer.lastTargetSwitchAt = this.now();
+      farmer.lastTargetSwitch = {
+        at: this.now(),
+        reason: 'PARTY_FOCUS_ANCHOR',
+        fromTargetId: previous && previous.id || null,
+        fromTargetType: previous && previous.mtype || null,
+        toTargetId: focus.target.id || null,
+        toTargetType: focus.target.mtype || null,
+        anchorName: focus.anchorName,
+        distance: focus.distance
+      };
+      this.stats.reassessmentFocusSwitches += 1;
+      this.lastDecision = { ...farmer.lastTargetSwitch };
+      farmer._event('FARMER_PARTY_FOCUS_SWITCHED', 'info', 'PARTY_FOCUS_ANCHOR', { ...farmer.lastTargetSwitch });
+      return focus.target;
+    };
+    farmer.__partyFocusReassessmentInstalled = true;
+  }
+
+  _install() {
+    this._installSelection();
+    this._installReassessment();
+    this.installed = true;
+    this._event('PARTY_FOCUS_FIRE_HOTFIX_INSTALLED', 'info', null, { maxFocusDistance: this.maxFocusDistance });
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: PARTY_FOCUS_FIRE_MODE,
+      installed: this.installed,
+      maxFocusDistance: this.maxFocusDistance,
+      strategy: 'lexicographically-first-visible-combat-member-anchor',
+      selfDefensePriority: true,
+      communicationRequired: false,
+      lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installPartyFocusFireHotfix(runtime, options = {}) {
+  return new PartyFocusFireHotfix(runtime, options);
+}
+
+module.exports = { PartyFocusFireHotfix, installPartyFocusFireHotfix, PARTY_FOCUS_FIRE_MODE };
+
+},
+"src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
+'use strict';
+
+const { isQuotaError } = require('../world/persistence');
+
+const PARTY_PERSISTENCE_QUOTA_MODE = 'party-persistence-quota-isolation-v1';
+
+class PartyPersistenceQuotaHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.storageHighWatermarkChars = Math.max(500000, Number(options.storageHighWatermarkChars) || 4000000);
+    this.states = new Map();
+    this.installed = false;
+    this._install();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'party-persistence-quota', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _storage() {
+    return this.root && this.root.localStorage || this.root && this.root.parent && this.root.parent.localStorage || null;
+  }
+
+  _backendKind(store) {
+    if (store && store.storage && typeof store.storage.get === 'function' && typeof store.storage.set === 'function') return 'custom';
+    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') return 'adventure-land';
+    const storage = this._storage();
+    if (storage && typeof storage.getItem === 'function' && typeof storage.setItem === 'function') return 'localStorage';
+    return 'unknown';
+  }
+
+  _physicalKey(kind, logicalKey) {
+    if (kind === 'adventure-land') return `store_${logicalKey}`;
+    if (kind === 'localStorage') return String(logicalKey);
+    return null;
+  }
+
+  _projectedChars(kind, logicalKey, value) {
+    if (kind !== 'adventure-land' && kind !== 'localStorage') return null;
+    const storage = this._storage();
+    if (!storage || typeof storage.getItem !== 'function' || typeof storage.key !== 'function') return null;
+    const physicalKey = this._physicalKey(kind, logicalKey);
+    if (!physicalKey) return null;
+    try {
+      let total = 0;
+      for (let index = 0; index < Number(storage.length || 0); index += 1) {
+        const key = storage.key(index);
+        if (key == null) continue;
+        const current = storage.getItem(key);
+        total += String(key).length + String(current == null ? '' : current).length;
+      }
+      const previous = storage.getItem(physicalKey);
+      if (previous != null) total -= String(physicalKey).length + String(previous).length;
+      total += String(physicalKey).length + String(value == null ? '' : value).length;
+      return Math.max(0, total);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _block(state, reason, error = null) {
+    if (!state.quotaBlocked) {
+      state.quotaBlocked = true;
+      state.quotaBlockedAt = this.now();
+      state.reason = reason;
+      state.lastError = error ? String(error && error.message || error) : null;
+      this._event('PARTY_PERSISTENCE_QUOTA_BLOCKED', 'warn', reason, {
+        store: state.name,
+        key: state.key,
+        error: state.lastError
+      });
+    }
+  }
+
+  _wrapStore(name, store) {
+    if (!store || typeof store._backend !== 'function' || typeof store.save !== 'function' || store.__partyPersistenceQuotaHotfixInstalled) return false;
+    const state = {
+      name,
+      key: store.key || null,
+      backend: this._backendKind(store),
+      quotaBlocked: false,
+      quotaBlockedAt: 0,
+      reason: null,
+      lastError: null,
+      preflightBlocks: 0,
+      quotaWriteFailures: 0,
+      bypassedSaves: 0
+    };
+    this.states.set(name, state);
+
+    const baseBackend = store._backend.bind(store);
+    store._backend = () => {
+      const backend = baseBackend();
+      if (!backend) return backend;
+      return {
+        get: (key) => backend.get(key),
+        set: (key, value) => {
+          if (state.quotaBlocked) {
+            const error = new Error(`PARTY_PERSISTENCE_QUOTA_BLOCKED:${name}`);
+            error.code = 'PARTY_PERSISTENCE_QUOTA_BLOCKED';
+            throw error;
+          }
+          const projected = this._projectedChars(state.backend, key, value);
+          if (projected != null && projected >= this.storageHighWatermarkChars) {
+            state.preflightBlocks += 1;
+            this._block(state, 'PERSISTENCE_QUOTA_PRESSURE');
+            const error = new Error(`PARTY_PERSISTENCE_QUOTA_PRESSURE:${name}`);
+            error.code = 'PARTY_PERSISTENCE_QUOTA_BLOCKED';
+            throw error;
+          }
+          try {
+            return backend.set(key, value);
+          } catch (error) {
+            if (isQuotaError(error)) {
+              state.quotaWriteFailures += 1;
+              this._block(state, 'PERSISTENCE_QUOTA_EXCEEDED', error);
+            }
+            throw error;
+          }
+        }
+      };
+    };
+
+    const baseSave = store.save.bind(store);
+    store.save = (...args) => {
+      if (state.quotaBlocked) {
+        state.bypassedSaves += 1;
+        return false;
+      }
+      return baseSave(...args);
+    };
+    store.__partyPersistenceQuotaHotfixInstalled = true;
+    return true;
+  }
+
+  _install() {
+    const performance = this._wrapStore('partyPerformance', this.runtime.partyPerformance);
+    const lifecycle = this._wrapStore('partyLifecycle', this.runtime.partyLifecycle);
+    this.installed = performance || lifecycle;
+    this._event('PARTY_PERSISTENCE_QUOTA_HOTFIX_INSTALLED', 'info', null, { performance, lifecycle, storageHighWatermarkChars: this.storageHighWatermarkChars });
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: PARTY_PERSISTENCE_QUOTA_MODE,
+      installed: this.installed,
+      storageHighWatermarkChars: this.storageHighWatermarkChars,
+      stores: Object.fromEntries([...this.states.entries()].map(([name, state]) => [name, { ...state }]))
+    };
+  }
+}
+
+function installPartyPersistenceQuotaHotfix(runtime, options = {}) {
+  return new PartyPersistenceQuotaHotfix(runtime, options);
+}
+
+module.exports = { PartyPersistenceQuotaHotfix, installPartyPersistenceQuotaHotfix, PARTY_PERSISTENCE_QUOTA_MODE };
 
 },
 "src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
