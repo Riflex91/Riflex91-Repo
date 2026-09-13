@@ -32,11 +32,15 @@ class TeamCohesionDeadlockHotfix {
 
     // Keep the proven Alpha20.15 fixes first. The integrated suite then patches
     // communication/logistics/farm prototypes before those instances are created
-    // later in the runtime constructor, while tactical combat/movement/skills can
-    // immediately wrap the already-created Farmer and team controllers.
+    // later in the production runtime constructor, while tactical combat,
+    // movement and skills wrap the already-created Farmer/team controllers.
+    // Minimal test/runtime fixtures intentionally omit Farmer/local-farm surfaces;
+    // diagnostics must not turn that absence into a startup failure.
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
     this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
-    this.alpha20_16_19 = installIntegratedPartyControl(runtime);
+    const hasIntegratedRuntimeSurfaces = !!(runtime.farmer && runtime.localFarming);
+    this.alpha20_16_19 = hasIntegratedRuntimeSurfaces ? installIntegratedPartyControl(runtime) : null;
+    this.alpha20_16_19SkippedReason = hasIntegratedRuntimeSurfaces ? null : 'INTEGRATED_RUNTIME_SURFACES_UNAVAILABLE';
 
     this.installedAt = this.now();
     this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
@@ -64,7 +68,8 @@ class TeamCohesionDeadlockHotfix {
       pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
       alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
       alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness,
-      alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null
+      alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null,
+      alpha20_16_19SkippedReason: this.alpha20_16_19SkippedReason
     };
   }
 }
