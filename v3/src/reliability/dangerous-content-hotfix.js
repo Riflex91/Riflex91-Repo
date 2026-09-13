@@ -2,6 +2,7 @@
 
 const { BUILT_IN_DANGEROUS_MONSTERS } = require('../farmer/content-safety');
 const { installAlpha2020Alpha22Autonomy } = require('./alpha20-20-alpha22-autonomy');
+const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regression-hotfix');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -31,16 +32,14 @@ class DangerousContentHotfix {
   }
 
   _installClosedLoopAutonomy() {
-    if (this.autonomyInstalled || this.runtime.alpha2020Alpha22Autonomy) {
-      this.autonomyInstalled = true;
-      return false;
-    }
     if (!this.runtime.controlledPartyLogistics || !this.runtime.teamCombatCohesionHotfix || !this.runtime.partyAccountCommunication) return false;
     try {
-      installAlpha2020Alpha22Autonomy(this.runtime);
+      if (!this.runtime.alpha2020Alpha22Autonomy) installAlpha2020Alpha22Autonomy(this.runtime);
+      if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
+      const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
-      return true;
+      return newlyInstalled;
     } catch (error) {
       this.autonomyInstallError = String(error && error.message || error).slice(0, 240);
       return false;
@@ -60,8 +59,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 2,
-      mode: 'dangerous-content-hotfix-v2',
+      schemaVersion: 3,
+      mode: 'dangerous-content-hotfix-v3',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -70,6 +69,9 @@ class DangerousContentHotfix {
         installError: this.autonomyInstallError,
         status: this.runtime.alpha2020Alpha22Autonomy && typeof this.runtime.alpha2020Alpha22Autonomy.status === 'function'
           ? this.runtime.alpha2020Alpha22Autonomy.status()
+          : null,
+        liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function'
+          ? this.runtime.alpha2020LiveRegressionHotfix.status()
           : null
       }
     };
