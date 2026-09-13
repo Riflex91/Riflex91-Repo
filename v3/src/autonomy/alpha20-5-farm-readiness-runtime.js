@@ -12,6 +12,9 @@ const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-
 const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
 const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
 const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-terrain-navigation-hotfix');
+const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
+const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
 const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
 const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
 const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
@@ -72,6 +75,16 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxStep: options.farmerTravelMaxStep,
       stepSeconds: options.farmerTravelStepSeconds
     });
+    this.farmerTerrainNavigationHotfix = installFarmerTerrainNavigationHotfix(this, {
+      minStep: options.farmerTravelMinStep,
+      maxStep: options.farmerTravelMaxStep,
+      stepSeconds: options.farmerTravelStepSeconds,
+      blockedTargetMs: options.farmerTerrainBlockedTargetMs,
+      minProgress: options.farmerTerrainMinProgress
+    });
+    this.partyFocusFireHotfix = installPartyFocusFireHotfix(this, {
+      maxFocusDistance: options.partyFocusMaxDistance
+    });
     this.contentDriftStorageHotfix = installContentDriftStorageHotfix(this, {
       maxRecordsAfterQuota: options.contentDriftQuotaMaxRecords,
       retryBaseMs: options.contentDriftQuotaRetryBaseMs,
@@ -81,6 +94,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       minHistoricalLeadMs: options.contentDriftRecoveryHistoricalLeadMs,
       maxAutoQuarantineLagMs: options.contentDriftRecoveryAutoQuarantineLagMs,
       intervalMs: options.contentDriftRecoveryIntervalMs
+    });
+    this.partyPersistenceQuotaHotfix = installPartyPersistenceQuotaHotfix(this, {
+      storageHighWatermarkChars: options.partyPersistenceStorageHighWatermarkChars
     });
     this.partyAccountCommunication = installPartyAccountCommunication(this, {
       telemetryBaseBackoffMs: options.partyTelemetryFailureBackoffMs,
@@ -137,6 +153,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
+      farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
+      partyFocusFireHotfix: this.partyFocusFireHotfix.status(),
+      partyPersistenceQuotaHotfix: this.partyPersistenceQuotaHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -165,7 +184,9 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         ...(base.party || {}),
         bootstrap: this.partyBootstrap.status(),
         bootstrapMerchantDiscovery: this.partyBootstrapMerchantDiscoveryHotfix.status(),
-        accountCommunication: this.partyAccountCommunication.status()
+        accountCommunication: this.partyAccountCommunication.status(),
+        focusFire: this.partyFocusFireHotfix.status(),
+        persistenceQuota: this.partyPersistenceQuotaHotfix.status()
       },
       farmerLoot: this.controlledFarmerLoot.status(),
       autoRespawn: this.controlledAutoRespawn.status(),
@@ -173,6 +194,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       liveNavigationHotfix: this.liveNavigationHotfix.status(),
       farmerLocalPlanPriority: this.farmerLocalPlanPriority.status(),
       farmerTargetEfficiencyHotfix: this.farmerTargetEfficiencyHotfix.status(),
+      farmerTerrainNavigationHotfix: this.farmerTerrainNavigationHotfix.status(),
       dangerousContentHotfix: this.dangerousContentHotfix.status(),
       farmerTravelSafetyHotfix: this.farmerTravelSafetyHotfix.status(),
       contentDriftStorageHotfix: this.contentDriftStorageHotfix.status(),
@@ -194,6 +216,10 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         trainingTargetPresenceDoesNotPinNavigation: true,
         dangerousSpecialFairiesFailClosed: true,
         farmerTargetTravelBounded: true,
+        terrainAwareBoundedFarmerTravel: true,
+        movementFailureReselectsInsteadOfGlobalFarmerBlock: true,
+        safeVisiblePartyFocusFire: true,
+        partyFocusDoesNotUseCm: true,
         extremeEvasionFarmTargetsRejected: true,
         extremeAvoidanceFarmTargetsRejected: true,
         farmEfficiencySeparateFromNavigationSafety: true,
@@ -201,6 +227,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
         partyBootstrapEnabled: true,
         partyBootstrapDoesNotGateTrustedFarmerProgress: true,
         partyCommunicationDirectRequiresObservedActive: true,
+        partyPersistenceQuotaNonAuthoritative: true,
         contentDriftQuotaRecoveryMutatesSafetyKnowledge: false,
         contentDriftFalseNoveltyRecoveryRequiresHistoricalEvidence: true,
         incompleteSupplyFailClosed: true,
