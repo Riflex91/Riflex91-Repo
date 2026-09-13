@@ -10,6 +10,7 @@ const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-b
 const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('./alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha2021CloudPersistenceRecovery } = require('./alpha20-21-cloud-persistence-recovery');
 const { installAlpha2022LiveSmokeRecovery } = require('./alpha20-22-live-smoke-recovery');
+const { installAlpha2023IdleDeadlockRecovery } = require('./alpha20-23-idle-deadlock-recovery');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -71,6 +72,7 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha26CloudUpdateLogisticsUiHotfix) installAlpha26CloudUpdateLogisticsUiHotfix(this.runtime);
       if (!this.runtime.alpha2021CloudPersistenceRecovery) installAlpha2021CloudPersistenceRecovery(this.runtime);
       if (!this.runtime.alpha2022LiveSmokeRecovery) installAlpha2022LiveSmokeRecovery(this.runtime);
+      if (!this.runtime.alpha2023IdleDeadlockRecovery) installAlpha2023IdleDeadlockRecovery(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -114,8 +116,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 9,
-      mode: 'dangerous-content-hotfix-v9',
+      schemaVersion: 10,
+      mode: 'dangerous-content-hotfix-v10',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -130,7 +132,8 @@ class DangerousContentHotfix {
         controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null,
         releaseManager: this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status === 'function' ? this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status() : null,
         cloudPersistenceRecovery: this.runtime.alpha2021CloudPersistenceRecovery && typeof this.runtime.alpha2021CloudPersistenceRecovery.status === 'function' ? this.runtime.alpha2021CloudPersistenceRecovery.status() : null,
-        liveSmokeRecovery: this.runtime.alpha2022LiveSmokeRecovery && typeof this.runtime.alpha2022LiveSmokeRecovery.status === 'function' ? this.runtime.alpha2022LiveSmokeRecovery.status() : null
+        liveSmokeRecovery: this.runtime.alpha2022LiveSmokeRecovery && typeof this.runtime.alpha2022LiveSmokeRecovery.status === 'function' ? this.runtime.alpha2022LiveSmokeRecovery.status() : null,
+        idleDeadlockRecovery: this.runtime.alpha2023IdleDeadlockRecovery && typeof this.runtime.alpha2023IdleDeadlockRecovery.status === 'function' ? this.runtime.alpha2023IdleDeadlockRecovery.status() : null
       }
     };
   }
