@@ -20,16 +20,34 @@ jobs:
       - name: Install Cloudflare tooling
         working-directory: cloudflare-dashboard
         run: npm install --ignore-scripts
+      - name: Resolve production D1 config
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > d1-list.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const rows=JSON.parse(fs.readFileSync('d1-list.json','utf8'));
+          const db=(Array.isArray(rows)?rows:[]).find(x=>x&&x.name==='aio-bot-dashboard');
+          if(!db||!db.uuid) throw new Error('D1 database aio-bot-dashboard not found');
+          const src=fs.readFileSync('wrangler.jsonc','utf8');
+          fs.writeFileSync('wrangler.diagnostic.jsonc',src.replace('REPLACE_WITH_D1_DATABASE_ID',db.uuid));
+          NODE
+          rm -f d1-list.json
       - name: Inspect production D1 schema read-only
         working-directory: cloudflare-dashboard
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler d1 execute aio-bot-dashboard --remote --command "SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name LIKE 'v3_%' OR name LIKE 'brain_%' ORDER BY type,name;" --json > schema-live.json
+          npx wrangler d1 execute DB --config wrangler.diagnostic.jsonc --remote --command "SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name LIKE 'v3_%' OR name LIKE 'brain_%' ORDER BY type,name;" --json > schema-live.json
           node - <<'NODE'
           const fs = require('fs');
           const payload = JSON.parse(fs.readFileSync('schema-live.json','utf8'));
           const rows = Array.isArray(payload) ? payload.flatMap(x => x && x.results || []) : [];
           for (const row of rows) console.log(JSON.stringify({type:row.type,name:row.name,tbl_name:row.tbl_name,sql:row.sql}));
           NODE
-          rm -f schema-live.json
+      - name: Cleanup
+        if: always()
+        working-directory: cloudflare-dashboard
+        run: rm -f wrangler.diagnostic.jsonc schema-live.json d1-list.json
