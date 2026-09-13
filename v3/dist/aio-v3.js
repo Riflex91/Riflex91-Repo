@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.17.0 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.20 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -4867,7 +4867,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.19';
+const RELEASE_VERSION = '3.0.0-alpha.20.20';
 
 module.exports = { RELEASE_VERSION };
 
@@ -27373,6 +27373,7 @@ const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stabil
 const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
 const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
 const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
+const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('./alpha26-cloud-update-logistics-ui-hotfix');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -27385,6 +27386,9 @@ class DangerousContentHotfix {
     this.autonomyInstalled = false;
     this.autonomyInstallError = null;
     this._installPlannerFilter();
+    // The monitor is created immediately after the runtime. Schedule a zero-delay
+    // collapse so its very first visible frame is the compact title bar.
+    scheduleGuiCollapsedStart(this.runtime);
   }
 
   _installPlannerFilter() {
@@ -27428,6 +27432,7 @@ class DangerousContentHotfix {
       // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
       if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
       if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
+      if (!this.runtime.alpha26CloudUpdateLogisticsUiHotfix) installAlpha26CloudUpdateLogisticsUiHotfix(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -27445,6 +27450,11 @@ class DangerousContentHotfix {
         this.autonomyInstallError = `Alpha25 tick: ${String(error && error.message || error).slice(0, 200)}`;
       }
     }
+    if (this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.beforeTick === 'function') {
+      try { this.runtime.alpha26CloudUpdateLogisticsUiHotfix.beforeTick(); } catch (error) {
+        this.autonomyInstallError = `Alpha26 tick: ${String(error && error.message || error).slice(0, 200)}`;
+      }
+    }
     if (this.revalidated) return false;
     const gate = this.runtime.contentSafety;
     const world = this.runtime.world;
@@ -27456,8 +27466,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 6,
-      mode: 'dangerous-content-hotfix-v6',
+      schemaVersion: 7,
+      mode: 'dangerous-content-hotfix-v7',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -27469,7 +27479,8 @@ class DangerousContentHotfix {
         combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
         economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null,
         adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null,
-        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null
+        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null,
+        releaseManager: this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status === 'function' ? this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status() : null
       }
     };
   }
@@ -29804,6 +29815,559 @@ class StrategicBrainV2 {
 
 module.exports = { BRAIN_V2_MODE, BRAIN_V2_ACTIONS, BRAIN_V2_INPUT_NAMES, TinyStrategyNetwork, BrainStateEncoderV2, StrategicBrainV2, scoreVector };
 
+},
+"src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js": function(require,module,exports){
+'use strict';
+
+const { RELEASE_VERSION } = require('../release-version');
+const { installSafeAutoUpdater } = require('../ops/safe-auto-updater');
+
+const ALPHA26_MODE = 'alpha26-cloud-update-logistics-ui-v1';
+
+function finite(value, fallback = 0) {
+  if (value == null || value === '') return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function hasOutboundTransferWork(logistics, snapshot) {
+  if (!logistics || !snapshot || !snapshot.character) return false;
+  const c = snapshot.character;
+  const gold = Math.max(0, finite(c.gold, 0));
+  const reserve = Math.max(0, finite(logistics.config && logistics.config.farmerGoldReserve, 0));
+  if (gold > reserve) return true;
+  const inventory = Array.isArray(c.inventory) ? c.inventory : [];
+  if (typeof logistics._safeLootDescriptor !== 'function') return false;
+  for (const item of inventory) {
+    if (!item) continue;
+    try {
+      const safe = logistics._safeLootDescriptor(item);
+      if (safe && safe.ok) return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+function scheduleGuiCollapsedStart(runtime, stats = null) {
+  const root = runtime && runtime.root || globalThis;
+  const setTimer = root && root.setTimeout || (typeof setTimeout === 'function' ? setTimeout : null);
+  if (!setTimer || root.__AIO_V3_GUI_COLLAPSE_SCHEDULED) return false;
+  root.__AIO_V3_GUI_COLLAPSE_SCHEDULED = true;
+  const tryCollapse = () => {
+    let ui = null;
+    try { ui = root && root.AIO_V3 && root.AIO_V3.__debugUI || null; } catch (_) {}
+    if (!ui) return false;
+    if (!ui.__alpha26CollapsedShowPatched && typeof ui.show === 'function') {
+      const baseShow = ui.show.bind(ui);
+      ui.show = (...args) => {
+        const result = baseShow(...args);
+        try {
+          if (typeof ui._setMinimized === 'function') ui._setMinimized(true);
+          ui.minimized = true;
+        } catch (_) {}
+        return result;
+      };
+      ui.__alpha26CollapsedShowPatched = true;
+    }
+    try {
+      if (ui.container && typeof ui._setMinimized === 'function') ui._setMinimized(true);
+      ui.minimized = true;
+      if (stats) stats.guiCollapseApplies += 1;
+    } catch (_) {}
+    return true;
+  };
+  for (const delay of [0, 25, 100, 400, 1200]) {
+    try { setTimer(tryCollapse, delay); } catch (_) {}
+  }
+  return true;
+}
+
+function installCloudTransportAuthority(runtime, stats) {
+  const cloud = runtime && runtime.cloudControlPlane;
+  const control = runtime && runtime.controlPlane;
+  const alpha25 = runtime && runtime.alpha25ControlCenterBrain;
+  if (!cloud || !control) return false;
+
+  if (!control.__alpha26CloudTransportLocalAuthority && typeof control.patch === 'function') {
+    const basePatch = control.patch.bind(control);
+    control.patch = (input = {}, meta = {}) => {
+      let next = input;
+      if (String(meta && meta.source || '') === 'cloudflare-d1' && Object.prototype.hasOwnProperty.call(input || {}, 'cloud.enabled')) {
+        next = { ...input };
+        delete next['cloud.enabled'];
+        stats.remoteCloudTransportOverridesIgnored += 1;
+      }
+      return basePatch(next, meta);
+    };
+    control.__alpha26CloudTransportLocalAuthority = true;
+  }
+
+  let ready = false;
+  try { ready = !!(cloud.status && cloud.status().ready); } catch (_) {}
+  cloud.autoEnableSuggested = ready;
+  if (ready && control.get('cloud.enabled', false) !== true) {
+    if (alpha25 && typeof alpha25.patchSettings === 'function') alpha25.patchSettings({ 'cloud.enabled': true }, 'alpha26-valid-cloud-credentials');
+    else control.patch({ 'cloud.enabled': true }, { source: 'alpha26-valid-cloud-credentials' });
+    stats.cloudAutoEnables += 1;
+  }
+  return true;
+}
+
+function installDemandDrivenRendezvous(runtime, stats) {
+  const logistics = runtime && runtime.controlledPartyLogistics;
+  if (!logistics || logistics.__alpha26DemandDrivenRendezvous || typeof logistics._send !== 'function') return false;
+  const baseSend = logistics._send.bind(logistics);
+  logistics._send = (target, action, data = {}) => {
+    if (String(action || '') === 'RENDEZVOUS' && !logistics._isMerchant()) {
+      let snapshot = null;
+      try { snapshot = logistics.adapter && typeof logistics.adapter.snapshot === 'function' ? logistics.adapter.snapshot() : runtime.lastSnapshot; } catch (_) {}
+      if (!hasOutboundTransferWork(logistics, snapshot)) {
+        stats.emptyRendezvousBlocks += 1;
+        logistics.lastDecision = { at: logistics.now(), action: 'HOLD', reason: 'NO_OUTBOUND_TRANSFER_WORK' };
+        return Promise.resolve({ delivered: false, reason: 'NO_OUTBOUND_TRANSFER_WORK' });
+      }
+    }
+    return baseSend(target, action, data);
+  };
+  logistics.__alpha26DemandDrivenRendezvous = true;
+  return true;
+}
+
+class Alpha26CloudUpdateLogisticsUiHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.installedAt = this.now();
+    this.lastUpdaterCycleAt = 0;
+    this.updaterBusy = false;
+    this.stats = {
+      cloudAutoEnables: 0,
+      remoteCloudTransportOverridesIgnored: 0,
+      emptyRendezvousBlocks: 0,
+      guiCollapseApplies: 0,
+      updaterCycles: 0,
+      updaterErrors: 0
+    };
+    scheduleGuiCollapsedStart(runtime, this.stats);
+    this.cloudAuthorityInstalled = installCloudTransportAuthority(runtime, this.stats);
+    this.rendezvousGuardInstalled = installDemandDrivenRendezvous(runtime, this.stats);
+    this.updater = installSafeAutoUpdater(runtime, { ...options, localVersion: RELEASE_VERSION });
+  }
+
+  beforeTick() {
+    if (!this.cloudAuthorityInstalled) this.cloudAuthorityInstalled = installCloudTransportAuthority(this.runtime, this.stats);
+    if (!this.rendezvousGuardInstalled) this.rendezvousGuardInstalled = installDemandDrivenRendezvous(this.runtime, this.stats);
+    if (!this.updater || this.updaterBusy || this.now() - this.lastUpdaterCycleAt < 1000) return false;
+    this.lastUpdaterCycleAt = this.now();
+    this.updaterBusy = true;
+    this.stats.updaterCycles += 1;
+    Promise.resolve(this.updater.cycle()).catch((error) => {
+      this.stats.updaterErrors += 1;
+      if (this.log && typeof this.log.emit === 'function') {
+        this.log.emit({ component: 'alpha26-release-manager', event: 'SAFE_AUTO_UPDATE_CYCLE_FAILED', severity: 'warn', reason: String(error && error.message || error).slice(0, 240) });
+      }
+    }).finally(() => { this.updaterBusy = false; });
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: ALPHA26_MODE,
+      installedAt: this.installedAt,
+      cloudAuthorityInstalled: this.cloudAuthorityInstalled,
+      rendezvousGuardInstalled: this.rendezvousGuardInstalled,
+      updater: this.updater && this.updater.status ? this.updater.status() : null,
+      stats: { ...this.stats },
+      policies: {
+        validStoredCloudCredentialsAutoEnable: true,
+        remoteD1CannotDisableCloudTransport: true,
+        cloudTransportStillLocallyDisableable: true,
+        rendezvousRequiresRealTransferWork: true,
+        guiStartsCollapsed: true,
+        autoUpdateChecksGitHubMain: true,
+        autoUpdateApplyRequiresStableSafety: true,
+        autoUpdateNeverWidensCharacterAuthority: true,
+        dangerousContentStillAbsolute: true,
+        commandCharacterAuthorityWidened: false
+      }
+    };
+  }
+}
+
+function installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options = {}) {
+  if (runtime.alpha26CloudUpdateLogisticsUiHotfix) return runtime.alpha26CloudUpdateLogisticsUiHotfix;
+  const module = new Alpha26CloudUpdateLogisticsUiHotfix(runtime, options);
+  runtime.alpha26CloudUpdateLogisticsUiHotfix = module;
+  return module;
+}
+
+module.exports = {
+  ALPHA26_MODE,
+  Alpha26CloudUpdateLogisticsUiHotfix,
+  installAlpha26CloudUpdateLogisticsUiHotfix,
+  installCloudTransportAuthority,
+  installDemandDrivenRendezvous,
+  scheduleGuiCollapsedStart,
+  hasOutboundTransferWork
+};
+
+},
+"src/ops/safe-auto-updater.js": function(require,module,exports){
+'use strict';
+
+const SAFE_AUTO_UPDATER_MODE = 'safe-github-auto-updater-v1';
+const DEFAULT_REPO_RAW = 'https://adventure-land---the-code-mmorpg---bot--public.pages.dev/v3';
+
+function finite(value, fallback = 0) {
+  if (value == null || value === '') return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function text(value, max = 300) {
+  return String(value == null ? '' : value).trim().slice(0, max);
+}
+
+function versionParts(value) {
+  const matches = String(value || '').match(/\d+/g) || [];
+  return matches.map((x) => Number(x) || 0);
+}
+
+function compareVersions(a, b) {
+  const aa = versionParts(a), bb = versionParts(b);
+  const length = Math.max(aa.length, bb.length);
+  for (let i = 0; i < length; i += 1) {
+    const av = aa[i] || 0, bv = bb[i] || 0;
+    if (av > bv) return 1;
+    if (av < bv) return -1;
+  }
+  return 0;
+}
+
+function releaseVersionFromSource(source) {
+  const match = String(source || '').match(/RELEASE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/);
+  return match ? match[1] : null;
+}
+
+function characterOf(runtime) {
+  return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null;
+}
+
+function entitiesOf(runtime) {
+  return runtime && runtime.lastSnapshot && Array.isArray(runtime.lastSnapshot.entities)
+    ? runtime.lastSnapshot.entities
+    : [];
+}
+
+class SafeAutoUpdater {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = options.root || runtime.root || globalThis;
+    this.parent = this.root && this.root.parent || this.root;
+    this.now = options.now || runtime.now || (() => Date.now());
+    this.log = options.log || runtime.log || null;
+    this.fetchFn = options.fetch || this.root && this.root.fetch || (typeof fetch === 'function' ? fetch : null);
+    const globalConfig = this.root && this.root.AIO_V3_AUTO_UPDATE_CONFIG && typeof this.root.AIO_V3_AUTO_UPDATE_CONFIG === 'object'
+      ? this.root.AIO_V3_AUTO_UPDATE_CONFIG : {};
+    this.config = {
+      enabled: globalConfig.enabled !== false,
+      rawBaseUrl: text(globalConfig.rawBaseUrl || DEFAULT_REPO_RAW, 700).replace(/\/+$/, ''),
+      checkIntervalMs: Math.max(60000, finite(globalConfig.checkIntervalMs, 300000)),
+      safeHoldMs: Math.max(3000, finite(globalConfig.safeHoldMs, 8000)),
+      minHpRatio: Math.max(0.7, Math.min(1, finite(globalConfig.minHpRatio, 0.90))),
+      emergencyCooldownMs: Math.max(5000, finite(globalConfig.emergencyCooldownMs, 20000)),
+      maxBundleBytes: Math.max(250000, finite(globalConfig.maxBundleBytes, 6000000)),
+      autoApply: globalConfig.autoApply !== false
+    };
+    this.localVersion = text(options.localVersion || this.root && this.root.AIO_V3 && this.root.AIO_V3.version || '', 80) || '0.0.0';
+    this.lastCheckAt = 0;
+    this.lastCheckError = null;
+    this.remoteVersion = null;
+    this.pendingVersion = null;
+    this.pendingSince = 0;
+    this.safeSince = 0;
+    this.lastSafety = { safe: false, reasons: ['NOT_EVALUATED'] };
+    this.lastApply = null;
+    this.busy = false;
+    this.stats = {
+      checks: 0,
+      updatesFound: 0,
+      safeDeferrals: 0,
+      downloads: 0,
+      validations: 0,
+      saves: 0,
+      reloads: 0,
+      rollbacks: 0,
+      failures: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'safe-auto-updater', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _binding(name) {
+    if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
+    if (this.parent && typeof this.parent[name] === 'function') return { fn: this.parent[name], owner: this.parent };
+    return null;
+  }
+
+  _recentEmergency() {
+    const row = this.runtime.lastEmergencyDisengage;
+    const at = finite(row && (row.at || row.ts), 0);
+    return !!at && this.now() - at < this.config.emergencyCooldownMs;
+  }
+
+  _economyBusy() {
+    const tx = this.runtime.transactionEngine && typeof this.runtime.transactionEngine.status === 'function'
+      ? this.runtime.transactionEngine.status() : null;
+    if (tx && (finite(tx.active, 0) > 0 || finite(tx.recovering, 0) > 0)) return true;
+    const economy = this.runtime.economyEquipmentAutonomyV2;
+    const status = economy && typeof economy.status === 'function' ? economy.status() : null;
+    if (status && status.busy) return true;
+    const logistics = this.runtime.controlledPartyLogistics;
+    const logisticsStatus = logistics && typeof logistics.status === 'function' ? logistics.status() : null;
+    return !!(logisticsStatus && (logisticsStatus.pendingSupply || logisticsStatus.pendingGrant || logisticsStatus.pendingOutbound));
+  }
+
+  safety() {
+    const c = characterOf(this.runtime) || {};
+    const reasons = [];
+    const hpRatio = finite(c.max_hp, 0) > 0 ? finite(c.hp, 0) / finite(c.max_hp, 1) : 0;
+    if (!c.name) reasons.push('CHARACTER_UNKNOWN');
+    if (c.rip || c.dead) reasons.push('CHARACTER_DEAD');
+    if (hpRatio < this.config.minHpRatio) reasons.push('HP_BELOW_UPDATE_THRESHOLD');
+    const self = String(c.name || '');
+    const threats = entitiesOf(this.runtime).filter((row) => row && row.mtype && !row.dead && !row.rip && String(row.target || '') === self);
+    if (threats.length) reasons.push('ACTIVE_AGGRO');
+    const targetId = c.target != null ? String(c.target) : '';
+    if (targetId && entitiesOf(this.runtime).some((row) => row && String(row.id || '') === targetId && row.mtype && !row.dead && !row.rip)) reasons.push('ACTIVE_COMBAT_TARGET');
+    const farmer = this.runtime.farmer && typeof this.runtime.farmer.status === 'function' ? this.runtime.farmer.status() : null;
+    if (farmer && ['ENGAGE', 'RETREAT', 'RECOVER'].includes(String(farmer.state || '').toUpperCase())) reasons.push(`FARMER_${String(farmer.state).toUpperCase()}`);
+    if (this._recentEmergency()) reasons.push('RECENT_EMERGENCY');
+    if (this._economyBusy()) reasons.push('ECONOMY_OR_TRANSFER_BUSY');
+    const safe = reasons.length === 0;
+    this.lastSafety = { at: this.now(), safe, hpRatio: Number(hpRatio.toFixed(3)), threats: threats.length, reasons };
+    if (safe) {
+      if (!this.safeSince) this.safeSince = this.now();
+    } else {
+      this.safeSince = 0;
+    }
+    return this.lastSafety;
+  }
+
+  _stableSafe() {
+    const safety = this.safety();
+    return safety.safe && this.safeSince > 0 && this.now() - this.safeSince >= this.config.safeHoldMs;
+  }
+
+  async _fetchText(url, timeoutMs = 12000) {
+    if (!this.fetchFn) throw new Error('fetch unavailable');
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const response = await this.fetchFn.call(this.root, url, { cache: 'no-store', signal: controller && controller.signal });
+      if (!response || !response.ok) throw new Error(`HTTP ${response && response.status}`);
+      return await response.text();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async check() {
+    if (!this.config.enabled || this.busy || !this.fetchFn) return false;
+    this.busy = true;
+    try {
+      const source = await this._fetchText(`${this.config.rawBaseUrl}/src/release-version.js`);
+      const version = releaseVersionFromSource(source);
+      if (!version) throw new Error('REMOTE_RELEASE_VERSION_INVALID');
+      this.stats.checks += 1;
+      this.lastCheckAt = this.now();
+      this.remoteVersion = version;
+      this.lastCheckError = null;
+      if (compareVersions(version, this.localVersion) > 0) {
+        if (this.pendingVersion !== version) {
+          this.pendingVersion = version;
+          this.pendingSince = this.now();
+          this.stats.updatesFound += 1;
+          this._event('AUTO_UPDATE_AVAILABLE', 'info', 'NEWER_RELEASE_FOUND', { localVersion: this.localVersion, remoteVersion: version });
+        }
+        return true;
+      }
+      if (this.pendingVersion && compareVersions(version, this.localVersion) <= 0) {
+        this.pendingVersion = null;
+        this.pendingSince = 0;
+      }
+      return false;
+    } catch (error) {
+      this.stats.failures += 1;
+      this.lastCheckError = { at: this.now(), message: text(error && error.message || error, 240) };
+      this._event('AUTO_UPDATE_CHECK_FAILED', 'warn', 'REMOTE_CHECK_FAILED', this.lastCheckError);
+      return false;
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  _validateBundle(code, version) {
+    const body = String(code || '');
+    const bytes = body.length;
+    const ok = bytes >= 10000
+      && bytes <= this.config.maxBundleBytes
+      && body.includes('Adventure Land AiO Bot')
+      && body.includes(String(version))
+      && body.includes('AIO_V3');
+    this.stats.validations += 1;
+    return { ok, bytes, reason: ok ? null : 'BUNDLE_VALIDATION_FAILED' };
+  }
+
+  _activeSlot() {
+    const binding = this._binding('get_active_code_slot');
+    if (!binding) return null;
+    try {
+      const value = binding.fn.call(binding.owner);
+      if (value && typeof value === 'object') {
+        return { slot: value.slot != null ? value.slot : value.id != null ? value.id : value.name, name: value.name || null, raw: value };
+      }
+      return { slot: value, name: null, raw: value };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async _saveCode(slotInfo, code) {
+    const api = this.parent && this.parent.api_call;
+    if (typeof api !== 'function') throw new Error('SAVE_CODE_API_UNAVAILABLE');
+    const slot = slotInfo && slotInfo.slot;
+    if (slot == null || slot === '') throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
+    const payload = { slot, name: slotInfo.name || `AIO v3 ${slot}`, code };
+    const result = api.call(this.parent, 'save_code', payload);
+    if (result && typeof result.then === 'function') await result;
+    this.stats.saves += 1;
+    return true;
+  }
+
+  async _reloadSavedCode(slotInfo) {
+    const load = this._binding('load_code');
+    if (!load) throw new Error('LOAD_CODE_UNAVAILABLE');
+    const oldApi = this.root && this.root.AIO_V3;
+    let oldStopped = false;
+    try {
+      if (oldApi && typeof oldApi.stop === 'function') {
+        oldApi.stop();
+        oldStopped = true;
+      }
+    } catch (_) {}
+    try { if (this.root) this.root.AIO_V3 = null; } catch (_) {}
+    try {
+      const result = load.fn.call(load.owner, slotInfo.slot);
+      if (result && typeof result.then === 'function') await result;
+      this.stats.reloads += 1;
+      return true;
+    } catch (error) {
+      try { if (this.root && !this.root.AIO_V3) this.root.AIO_V3 = oldApi; } catch (_) {}
+      if (oldStopped && oldApi && typeof oldApi.start === 'function') {
+        try {
+          const restart = oldApi.start();
+          if (restart && typeof restart.then === 'function') await restart;
+          this.stats.rollbacks += 1;
+          this._event('AUTO_UPDATE_RUNTIME_ROLLBACK', 'warn', 'NEW_RELEASE_RELOAD_FAILED', { slot: slotInfo && slotInfo.slot, oldVersion: this.localVersion });
+        } catch (_) {}
+      }
+      throw error;
+    }
+  }
+
+  async applyPending() {
+    if (!this.pendingVersion || !this.config.autoApply || this.busy) return false;
+    if (!this._stableSafe()) {
+      this.stats.safeDeferrals += 1;
+      return false;
+    }
+    this.busy = true;
+    const version = this.pendingVersion;
+    try {
+      const code = await this._fetchText(`${this.config.rawBaseUrl}/dist/aio-v3.js`, 20000);
+      this.stats.downloads += 1;
+      const validation = this._validateBundle(code, version);
+      if (!validation.ok) throw new Error(validation.reason);
+      if (!this._stableSafe()) throw new Error('SAFETY_CHANGED_DURING_DOWNLOAD');
+      const slot = this._activeSlot();
+      if (!slot) throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
+      await this._saveCode(slot, code);
+      this.lastApply = { at: this.now(), from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes, saved: true, reloaded: false };
+      this._event('AUTO_UPDATE_SAVED', 'info', 'SAFE_RELEASE_PERSISTED', { from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes });
+      await this._reloadSavedCode(slot);
+      this.lastApply.reloaded = true;
+      return true;
+    } catch (error) {
+      this.stats.failures += 1;
+      this.lastApply = { at: this.now(), from: this.localVersion, to: version, saved: !!(this.lastApply && this.lastApply.saved), reloaded: false, error: text(error && error.message || error, 240) };
+      this._event('AUTO_UPDATE_APPLY_FAILED', 'warn', 'SAFE_UPDATE_FAILED', this.lastApply);
+      return false;
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  async cycle() {
+    if (!this.config.enabled) return false;
+    this.safety();
+    const now = this.now();
+    if (!this.pendingVersion && now - this.lastCheckAt >= this.config.checkIntervalMs) await this.check();
+    if (this.pendingVersion) return this.applyPending();
+    return false;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: SAFE_AUTO_UPDATER_MODE,
+      localVersion: this.localVersion,
+      remoteVersion: this.remoteVersion,
+      pendingVersion: this.pendingVersion,
+      pendingSince: this.pendingSince || null,
+      safeSince: this.safeSince || null,
+      lastSafety: { ...this.lastSafety },
+      lastCheckAt: this.lastCheckAt || null,
+      lastCheckError: this.lastCheckError,
+      lastApply: this.lastApply,
+      busy: this.busy,
+      config: { ...this.config },
+      stats: { ...this.stats },
+      policies: {
+        checksMayRunWhileUnsafe: true,
+        applyRequiresStableSafeWindow: true,
+        noDowngrades: true,
+        bundleValidatedBeforeSave: true,
+        activeCodeSlotOnly: true,
+        failedReloadRestartsPreviousRuntime: true,
+        noRemoteGameplayAuthority: true,
+        updateCannotBypassCombatSafety: true
+      }
+    };
+  }
+}
+
+function installSafeAutoUpdater(runtime, options = {}) {
+  if (runtime.safeAutoUpdater) return runtime.safeAutoUpdater;
+  const updater = new SafeAutoUpdater(runtime, options);
+  runtime.safeAutoUpdater = updater;
+  return updater;
+}
+
+module.exports = {
+  SAFE_AUTO_UPDATER_MODE,
+  SafeAutoUpdater,
+  installSafeAutoUpdater,
+  compareVersions,
+  releaseVersionFromSource
+};
 },
 "src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
 'use strict';
