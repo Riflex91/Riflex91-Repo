@@ -59,13 +59,24 @@ test('follower team target uses trusted Farmer-owned leader target instead of ra
 
 test('central ledger auto-sells only known low-risk level-zero surplus and banks progression/value risk', () => {
   const ledger = makeLedger([]);
-  const runtime = makeRuntime({ ledger, gameData: { items: {}, monsters: {}, maps: {} } });
+  const gameData = {
+    items: {
+      material: { g: 10 },
+      sword: { g: 10, upgrade: true },
+      rare: { g: 20000 },
+      scroll0: { g: 100 }
+    },
+    monsters: {}, maps: {}
+  };
+  const runtime = makeRuntime({ ledger, gameData });
   new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000 });
-  assert.equal(ledger._baseDisposition({ name: 'material', level: 0 }, { g: 10 }, {}).disposition, 'SELL');
-  assert.equal(ledger._baseDisposition({ name: 'sword', level: 0 }, { g: 10, upgrade: true }, {}).disposition, 'BANK');
-  assert.equal(ledger._baseDisposition({ name: 'rare', level: 0 }, { g: 20000 }, {}).disposition, 'BANK');
-  assert.equal(ledger._baseDisposition({ name: 'scroll0', level: 0 }, { g: 100 }, {}).disposition, 'KEEP');
-  assert.equal(ledger._baseDisposition({ name: 'unknown', level: 0 }, null, {}).disposition, 'UNDECIDED');
+  const counts = new Map();
+  const classify = (name) => ledger._baseDisposition({ name, level: 0 }, gameData, runtime.contentDrift, counts).disposition;
+  assert.equal(classify('material'), 'SELL');
+  assert.equal(classify('sword'), 'BANK');
+  assert.equal(classify('rare'), 'BANK');
+  assert.equal(classify('scroll0'), 'KEEP');
+  assert.equal(classify('unknown'), 'UNDECIDED');
 });
 
 test('atomic compound reserves and releases all three inputs together', () => {

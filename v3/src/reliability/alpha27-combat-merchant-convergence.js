@@ -4,6 +4,7 @@ const { finite, clone, farmerOwnedCombatBusy, isPoisonedPerformanceProfile } = r
 const { Alpha27CombatOwnership } = require('./alpha27-combat-ownership');
 const { Alpha27AtomicEconomy } = require('./alpha27-atomic-economy');
 const { Alpha27MerchantAutonomy } = require('./alpha27-merchant-autonomy');
+const { installAlpha28LiveAuthorityLiveness } = require('./alpha28-live-authority-liveness');
 
 const ALPHA27_MODE = 'alpha27-combat-merchant-convergence-v1';
 
@@ -79,6 +80,7 @@ class Alpha27CombatMerchantConvergence {
     this.atomic = new Alpha27AtomicEconomy(runtime, shared);
     this.merchant = new Alpha27MerchantAutonomy(runtime, this.atomic, shared);
     this._patchRuntimeTick();
+    this.alpha28 = installAlpha28LiveAuthorityLiveness(runtime, { parentAlpha27: this });
     this._event('ALPHA27_CONVERGENCE_INSTALLED', 'warn', 'CENTRAL_TARGET_AND_MERCHANT_AUTHORITY', this.status());
   }
 
@@ -152,6 +154,7 @@ class Alpha27CombatMerchantConvergence {
           maxCompoundLevel: this.options.maxCompoundLevel
         }
       },
+      alpha28: this.alpha28 && typeof this.alpha28.status === 'function' ? this.alpha28.status() : null,
       policies: {
         supervisorRequired: true,
         combatBlocksMerchantMutation: true,
