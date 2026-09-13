@@ -33,7 +33,9 @@ function runtimeFixture(nowRef = { value: 1_000_000 }) {
     },
     performance,
     combatRisk: { threshold: 0.65 },
-    farmer: { status: () => ({ state: 'ASSESS' }), setTargetPolicy(v) { this.targetPolicy = v; return v; } },
+    farmer: { status: () => ({ state: 'ASSESS' }), config: {}, setTargetPolicy(v) { this.targetPolicy = v; return v; } },
+    merchantEconomyAutonomy: { cfg: {} },
+    economyEquipmentAutonomyV2: { marketHistory: { maxItems: 96, maxSamplesPerItem: 48 }, status: () => ({ marketDecisions: [], homeService: { phase: 'STANDBY' } }) },
     characterRegistry: { status: () => ({ characters: [{ name: 'My_Merchant', ctype: 'merchant' }, { name: 'My_Ranger1', ctype: 'ranger' }, { name: 'My_Ranger2', ctype: 'ranger' }, { name: 'My_Ranger3', ctype: 'ranger' }] }) },
     gearProgression: { list: () => [] },
     world: { status: () => ({ confidence: 0.8 }) },
@@ -129,4 +131,46 @@ test('Alpha25 exposes control, brain and cloud status without exposing write key
   assert.equal(cloud.configured.writeKeyPresent, true);
   assert.equal(JSON.stringify(cloud).includes('super-secret-write-key'), false);
   assert.equal(alpha25.controlPlane.get('cloud.enabled'), true);
+});
+
+test('explicit global cloud config enables the control plane without exposing the write key', () => {
+  const runtime = runtimeFixture();
+  runtime.root.AIO_V3_CLOUD_CONFIG = { baseUrl: 'https://example.workers.dev', writeKey: 'global-super-secret', account: 'prod' };
+  const alpha25 = new Alpha25ControlCenterBrain(runtime);
+  const status = alpha25.status();
+  assert.equal(alpha25.controlPlane.get('cloud.enabled'), true);
+  assert.equal(status.cloud.explicitGlobalConfig, true);
+  assert.equal(status.cloud.ready, true);
+  assert.equal(JSON.stringify(status).includes('global-super-secret'), false);
+});
+
+test('remote settings reuse the same extended live-apply path as local settings', async () => {
+  const runtime = runtimeFixture();
+  const alpha25 = new Alpha25ControlCenterBrain(runtime);
+  alpha25.configureCloud({ baseUrl: 'https://example.workers.dev', writeKey: 'remote-secret', account: 'test' });
+  alpha25.cloud.fetchFn = async (url) => {
+    if (url.endsWith('/api/v3/sync')) return { ok: true, json: async () => ({ ok: true, settings: { revision: 2, updatedAt: runtime.now(), values: { 'merchant.potionLow': 321, 'merchant.targetFreeSlots': 17, 'economy.keepValue': 7654321 } } }) };
+    return { ok: true, json: async () => ({ ok: true }) };
+  };
+  await alpha25.cloud.syncState();
+  assert.equal(runtime.merchantEconomyAutonomy.cfg.potionLow, 321);
+  assert.equal(runtime.merchantEconomyAutonomy.cfg.targetSlots, 17);
+  assert.equal(runtime.merchantEconomyAutonomy.cfg.keepValue, 7654321);
+  assert.equal(alpha25.cloud.status().stats.extendedConfigChanges, 3);
+});
+
+test('brain outcome evaluation has one owner and cloud cycle never evaluates it again', async () => {
+  const runtime = runtimeFixture();
+  const alpha25 = new Alpha25ControlCenterBrain(runtime);
+  let calls = 0;
+  alpha25.brain.tickOutcome = () => { calls += 1; return null; };
+  alpha25.beforeTick();
+  assert.equal(calls, 1);
+  alpha25.configureCloud({ baseUrl: 'https://example.workers.dev', writeKey: 'single-owner-secret', account: 'test' });
+  alpha25.cloud.lastRuntimePushAt = runtime.now();
+  alpha25.cloud.lastConfigPullAt = runtime.now();
+  alpha25.brain.shouldAskTeacher = () => false;
+  await alpha25.cloud.cycle();
+  assert.equal(calls, 1);
+  assert.equal(alpha25.status().policies.outcomeEvaluationHasSingleOwner, true);
 });
