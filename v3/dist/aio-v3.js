@@ -30337,9 +30337,35 @@ class Alpha28LedgerFarmerFixes {
       }).sort((a, b) => distance(snapshot.character, a) - distance(snapshot.character, b));
       const target = candidates[0];
       if (!target) return null;
+
+      // FarmerController consumes selection.ranking as the native FarmPlanner row
+      // and formats score/travelSeconds with toFixed(). Never manufacture a partial
+      // ranking object here: recover the planned monster's candidate row and pass it
+      // through the existing planner so Alpha28 preserves that contract exactly.
+      let ranking = null;
+      try {
+        const candidateState = typeof farmer._candidateRows === 'function' ? farmer._candidateRows(context) : null;
+        const row = candidateState && Array.isArray(candidateState.rows)
+          ? candidateState.rows.find((candidate) => candidate && String(candidate.monster || candidate.id) === String(plan.monster))
+          : null;
+        const ranked = row && farmer.planner && typeof farmer.planner.rank === 'function'
+          ? farmer.planner.rank([row], {
+            character: snapshot.character.name,
+            partyFingerprint: context.party && context.party.fingerprint || null
+          })
+          : [];
+        ranking = Array.isArray(ranked) && ranked.length ? ranked[0] : null;
+      } catch (_) {}
+      const score = ranking && Number(ranking.score);
+      const travelSeconds = ranking && Number(ranking.travelSeconds);
+      if (!ranking || !Number.isFinite(score) || !Number.isFinite(travelSeconds)) {
+        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_BLOCKED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null });
+        return null;
+      }
+      const fallbackRanking = { ...ranking, score, travelSeconds, source: 'alpha28-safe-planned-fallback' };
       this.stats.plannedTargetFallbackSelections += 1;
-      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', 'SAFE_PLANNED_MONSTER_VISIBLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null });
-      return { target, ranking: { id: target.mtype, monster: target.mtype, source: 'alpha28-safe-planned-fallback' } };
+      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', 'SAFE_PLANNED_MONSTER_VISIBLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null, score, travelSeconds });
+      return { target, ranking: fallbackRanking };
     };
     farmer.__alpha28PlannedTargetFallback = true;
     return true;
