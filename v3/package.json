@@ -1,12 +1,12 @@
 {
   "name": "adventure-land-aio-v3",
-  "version": "3.0.0-alpha.20.21",
+  "version": "3.0.0-alpha.20.22",
   "private": true,
   "description": "Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
-    "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/worker-alpha20-21.js && node --check ../cloudflare-dashboard/src/alpha20-21-control-plane.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
+    "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/worker-alpha20-21.js && node --check ../cloudflare-dashboard/src/worker-alpha20-22.js && node --check ../cloudflare-dashboard/src/alpha20-21-control-plane.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
     "check": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud"
   },
   "engines": { "node": ">=20" }
