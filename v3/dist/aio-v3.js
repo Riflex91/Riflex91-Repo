@@ -29015,18 +29015,115 @@ const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, iden
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicService } = require('./alpha27-atomic-service');
 
+const TRANSIENT_ATOMIC_PREFLIGHT_REASONS = new Set([
+  'CONTROLLED_MERCHANT_DISABLED',
+  'UPGRADE_LIVE_DISABLED',
+  'COMPOUND_LIVE_DISABLED',
+  'MERCHANT_ACTIVE_MODE_REQUIRED',
+  'SUPERVISOR_NOT_HEALTHY',
+  'CONTROLLED_MERCHANT_BUSY',
+  'COMBAT_ACTIVE',
+  'TRANSACTION_CIRCUIT_OPEN',
+  'ACTION_BUDGET_EXHAUSTED',
+  'MUTATION_RISK_BUDGET_EXHAUSTED',
+  'LEDGER_UNAVAILABLE_OR_STALE',
+  'ITEM_REQUIRES_REVALIDATION'
+]);
+const PREFLIGHT_DEFER_BASE_MS = 1000;
+const PREFLIGHT_DEFER_MAX_MS = 15000;
+
 class Alpha27AtomicEconomy extends Alpha27AtomicService {
+  _deferredAtomicResult(tx) {
+    const retryAt = finite(tx && tx.preflightDeferredUntil, 0);
+    if (!tx || tx.state !== 'RESERVED' || retryAt <= this.now()) return null;
+    return {
+      executed: false,
+      committed: false,
+      reason: 'TRANSACTION_PREFLIGHT_DEFERRED',
+      blockedReason: tx.lastPreflightReason || null,
+      retryAt
+    };
+  }
+
+  _handleAtomicPreflightReject(tx, check, executor) {
+    const engine = this.runtime.transactionEngine;
+    const reason = String(check && check.reason || 'ATOMIC_PREFLIGHT_REJECTED');
+    const now = this.now();
+    if (executor && executor.stats) executor.stats.rejected += 1;
+
+    if (tx && reason === 'TRANSACTION_LEASE_EXPIRED') {
+      if (engine && typeof engine.cancel === 'function') engine.cancel(tx.id, reason);
+      this.lastMerchantAction = { at: now, transactionId: tx.id, type: tx.type, result: 'ABORTED', reason };
+      if (executor) executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_PREFLIGHT_ABORTED', 'warn', reason, this.lastMerchantAction);
+      return { executed: false, committed: false, aborted: true, reason };
+    }
+
+    if (tx && TRANSIENT_ATOMIC_PREFLIGHT_REASONS.has(reason)) {
+      const liveTx = engine && engine.transactions && engine.transactions.get(String(tx.id));
+      if (liveTx && liveTx.state === 'RESERVED') {
+        const deferrals = Math.max(0, Math.floor(finite(liveTx.preflightDeferrals, 0))) + 1;
+        const exponent = Math.min(4, deferrals - 1);
+        const backoffMs = Math.min(PREFLIGHT_DEFER_MAX_MS, PREFLIGHT_DEFER_BASE_MS * (2 ** exponent));
+        const leaseExpiresAt = finite(liveTx.leaseExpiresAt, 0);
+        const retryAt = leaseExpiresAt > now ? Math.min(now + backoffMs, leaseExpiresAt) : now + backoffMs;
+        liveTx.preflightDeferrals = deferrals;
+        liveTx.preflightDeferredUntil = retryAt;
+        liveTx.lastPreflightReason = reason;
+        liveTx.reason = `PREFLIGHT_DEFERRED:${reason}`;
+        liveTx.updatedAt = now;
+        if (typeof engine.save === 'function') engine.save();
+        this.lastMerchantAction = { at: now, transactionId: tx.id, type: tx.type, result: 'DEFERRED', reason, retryAt, backoffMs, deferrals };
+        if (executor) executor.lastAction = clone(this.lastMerchantAction);
+        this._event('ALPHA27_MERCHANT_PREFLIGHT_DEFERRED', deferrals === 1 ? 'warn' : 'info', reason, this.lastMerchantAction);
+        return { executed: false, committed: false, deferred: true, reason, retryAt, backoffMs, deferrals };
+      }
+    }
+
+    if (tx && engine && typeof engine.cancel === 'function') {
+      const cancelReason = `PREFLIGHT_ABORTED:${reason}`;
+      engine.cancel(tx.id, cancelReason);
+      this.lastMerchantAction = { at: now, transactionId: tx.id, type: tx.type, result: 'ABORTED', reason, cancelReason };
+      if (executor) executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_PREFLIGHT_ABORTED', 'warn', reason, this.lastMerchantAction);
+      return { executed: false, committed: false, aborted: true, reason };
+    }
+
+    this.lastMerchantAction = { at: now, transactionId: tx && tx.id || null, type: tx && tx.type || null, result: 'REJECTED', reason };
+    if (executor) executor.lastAction = clone(this.lastMerchantAction);
+    return { executed: false, committed: false, reason };
+  }
+
   async executeAtomic(transactionId) {
     const engine = this.runtime.transactionEngine;
     const executor = this.runtime.controlledMerchant;
     const tx = engine && engine.get(String(transactionId));
-    const check = this.atomicPreflight(tx);
-    if (!check.ok) {
-      if (tx && check.reason === 'TRANSACTION_LEASE_EXPIRED') engine.cancel(tx.id, check.reason);
-      if (executor && executor.stats) executor.stats.rejected += 1;
-      this.lastMerchantAction = { at: this.now(), transactionId, type: tx && tx.type || null, result: 'REJECTED', reason: check.reason };
-      return { executed: false, committed: false, reason: check.reason };
+    const deferred = this._deferredAtomicResult(tx);
+    if (deferred) {
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: tx.id,
+        type: tx.type,
+        result: 'DEFERRED',
+        reason: deferred.blockedReason || deferred.reason,
+        retryAt: deferred.retryAt
+      };
+      if (executor) executor.lastAction = clone(this.lastMerchantAction);
+      return deferred;
     }
+
+    const check = this.atomicPreflight(tx);
+    if (!check.ok) return this._handleAtomicPreflightReject(tx, check, executor);
+
+    const livePreflightTx = engine && engine.transactions && tx ? engine.transactions.get(String(tx.id)) : null;
+    if (livePreflightTx && (livePreflightTx.preflightDeferredUntil != null || livePreflightTx.lastPreflightReason != null)) {
+      livePreflightTx.preflightDeferredUntil = null;
+      livePreflightTx.lastPreflightReason = null;
+      livePreflightTx.reason = 'ALPHA27_ATOMIC_PREFLIGHT_OK_RESERVED';
+      livePreflightTx.updatedAt = this.now();
+      if (typeof engine.save === 'function') engine.save();
+    }
+
     this.merchantBusy = true;
     executor.busy = true;
     if (executor.stats) executor.stats.attempts += 1;
@@ -29159,7 +29256,14 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
         boundedActionFamilies: bounded,
         forbiddenActionFamilies: ['EXCHANGE', 'TRADE'],
         atomicMutationVerification: 'STRICT_ITEM_AND_SCROLL_DELTA',
-        blindMutationRetryAllowed: false
+        blindMutationRetryAllowed: false,
+        preflightDeferral: {
+          enabled: true,
+          baseMs: PREFLIGHT_DEFER_BASE_MS,
+          maxMs: PREFLIGHT_DEFER_MAX_MS,
+          extendsTransactionLease: false,
+          stalePreflightAbortsAndReleases: true
+        }
       };
     };
     executor.__alpha27MutationPatched = true;
@@ -29177,7 +29281,7 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
   }
 }
 
-module.exports = { Alpha27AtomicEconomy, CONTROLLED_ACK, EXPECTED_DISPOSITIONS };
+module.exports = { Alpha27AtomicEconomy, CONTROLLED_ACK, EXPECTED_DISPOSITIONS, TRANSIENT_ATOMIC_PREFLIGHT_REASONS };
 
 },
 "src/reliability/alpha27-atomic-constants.js": function(require,module,exports){
