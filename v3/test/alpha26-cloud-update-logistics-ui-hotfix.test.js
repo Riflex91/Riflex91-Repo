@@ -171,3 +171,25 @@ test('safe auto updater never applies while local character has active aggro', a
   assert.ok(updater.safety().reasons.includes('ACTIVE_AGGRO'));
   assert.equal(await updater.applyPending(), false);
 });
+
+test('safe auto updater restarts the previous runtime if loading the saved release fails', async () => {
+  const calls = { stop: 0, start: 0, load: 0 };
+  const oldApi = {
+    version: '3.0.0-alpha.20.20',
+    stop() { calls.stop += 1; },
+    start() { calls.start += 1; return true; }
+  };
+  const root = {
+    AIO_V3: oldApi,
+    get_active_code_slot: () => 9,
+    load_code: async () => { calls.load += 1; throw new Error('synthetic load failure'); }
+  };
+  const runtime = { root, lastSnapshot: { character: { name: 'My_Ranger1', hp: 1, max_hp: 1 }, entities: [] }, log: { emit() {} } };
+  const updater = new SafeAutoUpdater(runtime, { root, localVersion: oldApi.version });
+  await assert.rejects(() => updater._reloadSavedCode({ slot: 9 }), /synthetic load failure/);
+  assert.equal(root.AIO_V3, oldApi);
+  assert.equal(calls.stop, 1);
+  assert.equal(calls.start, 1);
+  assert.equal(calls.load, 1);
+  assert.equal(updater.status().stats.rollbacks, 1);
+});
