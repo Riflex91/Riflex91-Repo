@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
-    "preflight": "node scripts/release-guardian.js",
+    "release:guard": "node scripts/release-guardian.js",
+    "logic:guard": "node scripts/logic-guardian.js",
+    "preflight": "npm run release:guard && npm run logic:guard",
     "version:check": "node scripts/release-guardian.js --version-only",
     "release:patch": "node scripts/release-bump.js patch",
     "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/worker-alpha20-21.js && node --check ../cloudflare-dashboard/src/worker-alpha20-22.js && node --check ../cloudflare-dashboard/src/alpha20-21-control-plane.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
