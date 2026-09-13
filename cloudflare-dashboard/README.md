@@ -1,92 +1,131 @@
-# AiO Bot Dashboard 2.14.0 – Cloudflare Worker + D1 + Workers AI
+# AiO Bot v3 Control Center – Cloudflare Worker + D1 + Workers AI
 
-Das Remote-Dashboard stellt Charakterstatus, Live-Karte und die **lebendig animierte Gehirn-Übersicht** bereit. Der Worker ist zugleich State-Sync-, Teacher- und Brain-Telemetrie-Backend und persistiert außerdem Champion/Challenger-Zustände, Lernqualitäts-/Quarantänestatus sowie das Gehirn-Tagebuch über den Student-State.
+Dieses Verzeichnis ist ab v3 die gemeinsame Web-Verwaltungszentrale für den Adventure-Land-Bot. Die alte v2-Dashboard-Installation kann damit überschrieben werden.
 
-## Bindings und Secrets
+## Funktionen
+
+- Live-Übersicht aller Bot-Charaktere
+- Party-/Combat-/Kiting-Telemetrie
+- Merchant Home-Service, Economy, Gear und Marktstatus
+- vollständige gruppierte Control-Plane-Einstellungen
+- Safety-Locks für nicht abschaltbare Invarianten
+- 🧠 Brain-Ansicht für 32→24→5 Student, Teacher, Replay, Outcomes und Champion/Challenger
+- Gehirn-Tagebuch
+- zusammengeführte Runtime-Events
+- D1-Datenbankübersicht
+- versionierte Settings mit Revision/Audit-Trail
+
+## Cloudflare Bindings und Secrets
 
 `wrangler.jsonc` erwartet:
 
-- D1-Binding `DB` für `aio-bot-dashboard`
+- D1-Binding `DB` auf `aio-bot-dashboard`
 - Workers-AI-Binding `AI`
-- Secret `WRITE_KEY` für Bot-Schreibzugriffe
-- Secret `READ_KEY` für Dashboard-Lesezugriffe
+- `WRITE_KEY` – ausschließlich Bot → Worker
+- `READ_KEY` – Dashboard-Lesezugriff
+- `ADMIN_KEY` – Dashboard-Settings ändern
 
-`WRITE_KEY` und `READ_KEY` werden nicht in Git committed. Der Bot sendet den Schreibschlüssel im POST-Body; das Dashboard sendet den Leseschlüssel als Header und hält ihn nur im `sessionStorage` des Tabs.
-
-## Bestehende Installation auf 2.14.0 aktualisieren
-
-```bash
-cd cloudflare-dashboard
-npm install
-npx wrangler login
-npx wrangler d1 execute aio-bot-dashboard --remote --file=schema.sql
-npm run deploy
-```
-
-Das Schema verwendet `CREATE TABLE/INDEX IF NOT EXISTS`. Neu für Brain v2 ist insbesondere `brain_learning_events` für Outcome-/Reward-Historie. `aio_state` speichert außerdem Student-Gewichte, eingefrorene Champion-/Rollback-Snapshots und Telemetrie.
-
-## Erstinstallation
+Alle drei Secrets müssen unterschiedlich sein und werden **nicht** committed oder in D1 synchronisiert.
 
 ```bash
 cd cloudflare-dashboard
 npm install
 npx wrangler login
-npx wrangler d1 create aio-bot-dashboard
-```
-
-Die ausgegebene `database_id` in `wrangler.jsonc` einsetzen. Danach:
-
-```bash
 npx wrangler d1 execute aio-bot-dashboard --remote --file=schema.sql
 npx wrangler secret put WRITE_KEY
 npx wrangler secret put READ_KEY
+npx wrangler secret put ADMIN_KEY
 npm run deploy
 ```
 
-Für beide Secrets lange, zufällige und unterschiedliche Werte verwenden.
+Bei einer neuen D1-Datenbank zuerst:
 
-## Brain v2 API
-
-- `POST /api/brain` – Qwen-Teacher mit serverseitigem Tagesbudget
-- `POST /api/brain-feedback` – gemessene Outcome-Rewards sowie Champion/Challenger-Ereignisse (Promotion, Rollback, Reject)
-- `POST /api/state` – Config, Lern-/Explorer-Daten und Student-Modell synchronisieren
-- `GET /api/brain-status` – zusammengefasste Gehirn-Telemetrie für das Dashboard
-- `GET /api/status` – Charakterstatus
-- `GET /api/research-brief` – sicher verdichteter Research-/ChatGPT-Analysebrief ohne zusätzlichen Workers-AI-Aufruf
-
-Der Worker begrenzt `dailyLimit` hart auf 10.000. Der Bot verwendet standardmäßig ein Ziel von 99,5 % (= 9.950), damit eine kleine Reserve gegen Schätzabweichungen bleibt. Das verwendete Modell ist fest `@cf/qwen/qwen3-30b-a3b-fp8`, weil die Budgetrechnung auf dessen Kostenmodell abgestimmt ist.
-
-## Gehirn-Übersicht
-
-Das Dashboard zeigt Teacher-Verbrauch, Tagesziel und UTC-Reset sowie Student-Samples, Replay, Updates, Confidence, Entropie, Novelty, Loss, Reward, Teacher-Übereinstimmung, Champion/Challenger-Canary, Bewährung, Promotions/Rollbacks, letzte Entscheidungen und Outcome-Rewards. Ein neuronaler Puls vermittelt den aktuellen Aktivitätszustand des Brains, ohne Entscheidungslogik zu ersetzen. Für ein lebendigeres Gefühl bevorzugt `/api/brain-status` den Brain-Zustand aus den häufigeren Charakter-Status-Pushes; die vollständigen Gewichte bleiben weiterhin nur im State-Sync.
-
-Die vollständigen Gewichtsmatrizen werden nicht an die Dashboard-Ansicht ausgeliefert; `/api/brain-status` gibt nur die zusammengefasste Student-Telemetrie zurück.
-
-### Lernqualität / Selbstkontrolle
-
-Das Dashboard zeigt zusätzlich den vom Bot berechneten Lernqualitätszustand. `/api/brain-status` liefert dafür ausschließlich eine bereinigte Zusammenfassung: Status/Score, aktuelle und historische Reward-/Confidence-Werte, Overconfidence-Fehlerquote, Reward-Instabilität, Loss-Drift, Sicherheitsvorfälle, Teacher-Verstärkung, Lernraten-Skalierung, Autonomie-/Canary-Gates sowie den letzten gesunden Champion-Snapshot als Generationsnummer.
-
-Die eigentliche Qualitätslogik läuft im Merchant und benötigt keine neue D1-Tabelle. Der vollständige Qualitätszustand wird als Teil des bestehenden `student:<character>`-State synchronisiert; neuronale Gewichtsmatrizen werden vom Dashboard-Endpunkt nicht ausgegeben. Der Qualitätswächter erzeugt auch keine eigenen Workers-AI-Anfragen, sondern passt nur die vorhandene Teacher-Kadenz innerhalb des bestehenden Tagesbudgets an.
-
-### Gehirn-Tagebuch
-
-Das Tagebuch benötigt **keine zusätzliche D1-Tabelle**: Es wird als begrenzter Bestandteil des vorhandenen `student:<character>`-State gespeichert. `/api/brain-status` gibt daraus nur bereinigte Einträge (Zeit, Typ, Ton, Titel, Detail, Aktion/Ziel, Reward, Generation und Quelle) zurück. Die Webansicht bevorzugt für die jüngsten Einträge den Live-Status und fällt für die längere Historie auf den D1-Student-State zurück. Dadurch entstehen keine zusätzlichen Workers-AI-Kosten.
-
-### AiO Research Bridge
-
-Die Research Bridge ist ab 2.14.0 direkt in das Web-Dashboard integriert. Der Browser kann **Gesamt**, **Fehler**, **Lernen**, **Farm**, **Merchant** oder **Entwicklung** auswählen, ein Zeitfenster von 1–168 Stunden setzen und die Namensanonymisierung ein-/ausschalten. `GET /api/research-brief` ist mit demselben `READ_KEY` geschützt wie die übrigen Dashboard-Leseendpunkte.
-
-Der Worker verdichtet ausschließlich Daten, die bereits in D1 bzw. im Charakterstatus vorhanden sind: bereinigte Student-/Qualitäts-/League-Telemetrie, Research-Summary, jüngste Teacher-Entscheidungen und Outcome-/League-Ereignisse. Er ruft **nicht** `env.AI.run()` auf; das Erzeugen und Kopieren eines Research-Prompts verbraucht daher keine zusätzlichen Workers-AI-Neurons. Vollständige Student-Gewichte und Secrets werden nicht ausgeliefert.
-
-Der serverseitige Brief weist seine Datenbegrenzung aus: Die vollständige lokale Audit-Historie eines laufenden Adventure-Land-Tabs liegt nicht zwingend in D1. Für die reichhaltigste Fehler-/Entwicklungsanalyse kann deshalb der Ingame-Research-Brief verwendet werden; der Web-Brief erfindet fehlende Informationen nicht.
-
-## Bot verbinden
-
-Im Bot unter **Web-Dashboard** die Worker-HTTPS-Basis-URL und den `WRITE_KEY` eintragen. Das Dashboard selbst fragt beim Öffnen nach dem `READ_KEY`.
-
-Für Headless/caracAL:
-
-```text
-AIO_DASHBOARD_URL=https://aio-bot-dashboard.<dein-subdomain>.workers.dev
-AIO_DASHBOARD_WRITE_KEY=<WRITE_KEY>
+```bash
+npx wrangler d1 create aio-bot-dashboard
 ```
+
+Danach die ausgegebene `database_id` in `wrangler.jsonc` eintragen. Das Repository enthält absichtlich keinen echten D1-Identifier und keine Secrets.
+
+## v3 API
+
+Bot-Endpunkte, geschützt durch `WRITE_KEY` im JSON-Body:
+
+- `POST /api/v3/runtime` – kompakter Runtime-/Combat-/Economy-/Brain-Snapshot + aktuelle Events
+- `POST /api/v3/sync` – Settings abrufen und Brain-State zwischen Tabs/Geräten synchronisieren
+- `POST /api/v3/brain/teacher` – budgetierter Qwen-Teacher
+- `POST /api/v3/brain/feedback` – gemessene Outcome-Rewards
+
+Dashboard-Endpunkte, geschützt durch `X-AIO-Read-Key`:
+
+- `GET /api/v3/overview`
+- `GET /api/v3/settings`
+- `GET /api/v3/brain`
+- `GET /api/v3/events`
+
+Settings schreiben:
+
+- `PATCH /api/v3/settings`
+- benötigt zusätzlich `X-AIO-Admin-Key`
+- verwendet `expectedRevision`, damit parallele Änderungen nicht still überschrieben werden
+
+`GET /api/health` benötigt keinen Schlüssel und zeigt nur Bindings-/Service-Status, niemals Secret-Werte.
+
+## Brain v2 in v3
+
+Das v3-Brain übernimmt die bewährten Ideen aus v2, ist aber an die v3-Safety-Architektur angepasst:
+
+- 32 normalisierte Zustandsinputs
+- 24 Hidden-Neuronen
+- 5 strategische Ausgänge: `continue`, `change_farm_target`, `replan_merchant`, `explore`, `wait`
+- Teacher-Distillation über Cloudflare Workers AI
+- Experience Replay
+- reale Outcome-Rewards
+- Quality Watcher
+- eingefrorener Champion / lernender Challenger
+- Promotion und Rollback anhand Validierungs-Loss und realer Rewards
+- persistentes lokales Brain-State + D1-Sync
+
+Das Brain hat absichtlich **keinen direkten Executor-Zugriff**. Kampf, Retreat, Dangerous-Content, Transaktionen und `command_character`-Autorität bleiben deterministisch und lokal gesichert.
+
+Workers AI verwendet aktuell fest `@cf/qwen/qwen3-30b-a3b-fp8`. Die serverseitige Tagesgrenze ist auf maximal 10.000 Neurons begrenzt; Standardziel ist 99,5 %, sodass eine kleine Reserve verbleibt.
+
+## D1-Langzeitgedächtnis
+
+Neu hinzu kommen unter anderem:
+
+- `v3_runtime_status`
+- `v3_control_settings`
+- `v3_control_audit`
+- `v3_brain_state`
+- `v3_runtime_events`
+- `v3_market_snapshots`
+
+Die bestehenden `brain_usage`, `brain_decisions` und `brain_learning_events` werden weiterverwendet. Alte v2-Tabellen bleiben im Schema erhalten, damit eine vorhandene D1-Datenbank in-place migriert werden kann.
+
+## Bot einmalig verbinden
+
+Nach Deployment auf jedem Bot-Tab einmal die Worker-Basis-URL und denselben `WRITE_KEY` konfigurieren. Die Daten bleiben lokal im Browser und werden nicht in Status oder D1 ausgegeben:
+
+```js
+AIO_V3.__runtime.alpha25ControlCenterBrain.configureCloud({
+  baseUrl: 'https://aio-bot-dashboard.<subdomain>.workers.dev',
+  writeKey: '<WRITE_KEY>',
+  account: 'default'
+});
+```
+
+Danach übernimmt die Control Plane den regelmäßigen Sync. Nur der Merchant nutzt den Workers-AI-Teacher; alle Charaktere können Runtime-Telemetrie synchronisieren.
+
+Alternativ kann vor dem Bot-Start gesetzt werden:
+
+```js
+globalThis.AIO_V3_CLOUD_CONFIG = {
+  baseUrl: 'https://aio-bot-dashboard.<subdomain>.workers.dev',
+  writeKey: '<WRITE_KEY>',
+  account: 'default'
+};
+```
+
+## Lokale Datenquellen
+
+Das Cloud-D1 ersetzt die lokalen v3-Stores nicht. Das Brain kann weiterhin aus World Model, Knowledge Aging, Party Performance, Character Registry, Inventory Ledger, Gear Progression, Market History, Performance Tracker und Event-/Flight-Recorder lernen. D1 ist die gemeinsame Langzeit-/Control-Plane-Ebene darüber.

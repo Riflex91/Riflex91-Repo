@@ -6,6 +6,7 @@ const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regr
 const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stability-hotfix');
 const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
 const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
+const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -34,6 +35,23 @@ class DangerousContentHotfix {
     return true;
   }
 
+  _alpha24Options() {
+    const c = this.runtime.controlPlane;
+    const get = (key, fallback) => c && typeof c.get === 'function' ? c.get(key, fallback) : fallback;
+    return {
+      rangedEngagementFactor: get('ranged.engagementFactor', 0.94),
+      rangedDesiredFactor: get('ranged.desiredFactor', 0.92),
+      rangedTooCloseFactor: get('ranged.tooCloseFactor', 0.84),
+      firePositionTriggerFactor: get('ranged.firePositionTriggerFactor', 0.80),
+      firePositionCooldownMs: get('ranged.moveCooldownMs', 1200),
+      maxKiteAdditionalAggro: get('combat.maxKiteAdditionalAggro', 2),
+      kiteRiskMitigationScale: get('combat.kiteRiskMitigationScale', 0.78),
+      maxKiteDeathsPerHour: get('combat.maxKiteDeathsPerHour', 0.60),
+      hardMaxKillSeconds: get('combat.hardMaxKillSeconds', 75),
+      softKillSeconds: get('combat.softKillSeconds', 30)
+    };
+  }
+
   _installClosedLoopAutonomy() {
     if (!this.runtime.controlledPartyLogistics || !this.runtime.teamCombatCohesionHotfix || !this.runtime.partyAccountCommunication) return false;
     try {
@@ -41,7 +59,9 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
       if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
       if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
-      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime);
+      // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
+      if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
+      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -54,6 +74,11 @@ class DangerousContentHotfix {
 
   beforeTick() {
     this._installClosedLoopAutonomy();
+    if (this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.beforeTick === 'function') {
+      try { this.runtime.alpha25ControlCenterBrain.beforeTick(); } catch (error) {
+        this.autonomyInstallError = `Alpha25 tick: ${String(error && error.message || error).slice(0, 200)}`;
+      }
+    }
     if (this.revalidated) return false;
     const gate = this.runtime.contentSafety;
     const world = this.runtime.world;
@@ -65,8 +90,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 5,
-      mode: 'dangerous-content-hotfix-v5',
+      schemaVersion: 6,
+      mode: 'dangerous-content-hotfix-v6',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -77,7 +102,8 @@ class DangerousContentHotfix {
         liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function' ? this.runtime.alpha2020LiveRegressionHotfix.status() : null,
         combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
         economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null,
-        adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null
+        adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null,
+        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null
       }
     };
   }

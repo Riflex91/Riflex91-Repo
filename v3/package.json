@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
-    "check": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js"
+    "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
+    "check": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud"
   },
   "engines": { "node": ">=20" }
 }

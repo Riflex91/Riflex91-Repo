@@ -27372,6 +27372,7 @@ const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regr
 const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stability-hotfix');
 const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
 const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
+const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -27400,6 +27401,23 @@ class DangerousContentHotfix {
     return true;
   }
 
+  _alpha24Options() {
+    const c = this.runtime.controlPlane;
+    const get = (key, fallback) => c && typeof c.get === 'function' ? c.get(key, fallback) : fallback;
+    return {
+      rangedEngagementFactor: get('ranged.engagementFactor', 0.94),
+      rangedDesiredFactor: get('ranged.desiredFactor', 0.92),
+      rangedTooCloseFactor: get('ranged.tooCloseFactor', 0.84),
+      firePositionTriggerFactor: get('ranged.firePositionTriggerFactor', 0.80),
+      firePositionCooldownMs: get('ranged.moveCooldownMs', 1200),
+      maxKiteAdditionalAggro: get('combat.maxKiteAdditionalAggro', 2),
+      kiteRiskMitigationScale: get('combat.kiteRiskMitigationScale', 0.78),
+      maxKiteDeathsPerHour: get('combat.maxKiteDeathsPerHour', 0.60),
+      hardMaxKillSeconds: get('combat.hardMaxKillSeconds', 75),
+      softKillSeconds: get('combat.softKillSeconds', 30)
+    };
+  }
+
   _installClosedLoopAutonomy() {
     if (!this.runtime.controlledPartyLogistics || !this.runtime.teamCombatCohesionHotfix || !this.runtime.partyAccountCommunication) return false;
     try {
@@ -27407,7 +27425,9 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
       if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
       if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
-      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime);
+      // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
+      if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
+      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -27420,6 +27440,11 @@ class DangerousContentHotfix {
 
   beforeTick() {
     this._installClosedLoopAutonomy();
+    if (this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.beforeTick === 'function') {
+      try { this.runtime.alpha25ControlCenterBrain.beforeTick(); } catch (error) {
+        this.autonomyInstallError = `Alpha25 tick: ${String(error && error.message || error).slice(0, 200)}`;
+      }
+    }
     if (this.revalidated) return false;
     const gate = this.runtime.contentSafety;
     const world = this.runtime.world;
@@ -27431,8 +27456,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 5,
-      mode: 'dangerous-content-hotfix-v5',
+      schemaVersion: 6,
+      mode: 'dangerous-content-hotfix-v6',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -27443,7 +27468,8 @@ class DangerousContentHotfix {
         liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function' ? this.runtime.alpha2020LiveRegressionHotfix.status() : null,
         combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
         economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null,
-        adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null
+        adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null,
+        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null
       }
     };
   }
@@ -28661,6 +28687,1058 @@ module.exports = {
   Alpha24AdaptiveRangeRiskLogisticsHotfix,
   installAlpha24AdaptiveRangeRiskLogisticsHotfix
 };
+
+},
+"src/reliability/alpha25-control-center-brain.js": function(require,module,exports){
+'use strict';
+
+const { ControlPlaneConfig } = require('../control/control-plane-config');
+const { CloudControlPlane } = require('../control/cloud-control-plane');
+const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
+
+const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
+
+class Alpha25ControlCenterBrain {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.installedAt = this.now();
+    this.legacyBrain = runtime.brain || null;
+    this.controlPlane = runtime.controlPlane || new ControlPlaneConfig({ root: runtime.root, now: this.now, log: this.log });
+    runtime.controlPlane = this.controlPlane;
+    this.brain = runtime.strategicBrainV2 || new StrategicBrainV2({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, legacyBrain: this.legacyBrain });
+    runtime.legacyShadowBrain = this.legacyBrain;
+    runtime.strategicBrainV2 = this.brain;
+    runtime.brain = this.brain;
+    this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
+    runtime.cloudControlPlane = this.cloud;
+    this.lastCycleAt = 0;
+    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0 };
+    this.controlPlane.applyHot(runtime);
+    this._applyExtendedSettings();
+    if (this.cloud.explicitGlobalConfig && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) this.patchSettings({ 'cloud.enabled': true }, 'global-cloud-config');
+    if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'ALPHA25_CONTROL_CENTER_BRAIN_INSTALLED', data: this.status() });
+  }
+
+  _applyExtendedSettings(keys = null) {
+    const selected = Array.isArray(keys) ? new Set(keys.map((row) => typeof row === 'string' ? row : row && row.key).filter(Boolean)) : null;
+    const apply = (key, fn) => {
+      if (selected && !selected.has(key)) return;
+      const value = this.controlPlane.get(key);
+      if (value == null) return;
+      try { fn(value); this.stats.extendedSettingsApplied += 1; } catch (_) {}
+    };
+    const farmer = this.runtime.farmer;
+    if (farmer && farmer.config) apply('combat.recoveryHpRatio', (value) => { farmer.config.recoverHpRatio = Number(value); });
+    const base = this.runtime.merchantEconomyAutonomy;
+    if (base && base.cfg) {
+      const map = {
+        'merchant.lowFreeSlots': 'lowSlots', 'merchant.targetFreeSlots': 'targetSlots', 'merchant.potionLow': 'potionLow', 'merchant.potionTarget': 'potionTarget', 'merchant.goldReserve': 'goldReserve', 'merchant.transferRange': 'transferRange',
+        'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap', 'economy.maxUpgrade': 'maxUpgrade', 'economy.maxCompound': 'maxCompound'
+      };
+      for (const [key, property] of Object.entries(map)) apply(key, (value) => { base.cfg[property] = Number(value); });
+    }
+    const economy = this.runtime.economyEquipmentAutonomyV2;
+    if (economy && economy.marketHistory) {
+      apply('economy.marketMaxTrackedItems', (value) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(value) || 96)); });
+      apply('economy.marketMaxSamples', (value) => { economy.marketHistory.maxSamplesPerItem = Math.max(8, Math.min(128, Number(value) || 48)); });
+    }
+    if (this.runtime.combatRisk) apply('combat.riskThreshold', (value) => { this.runtime.combatRisk.threshold = Number(value); });
+    if (selected) this.stats.remoteExtendedPatches += selected.size;
+    return true;
+  }
+
+  beforeTick() {
+    this.stats.ticks += 1;
+    const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
+    if (outcome) {
+      this.stats.outcomes += 1;
+      if (this.cloud && Array.isArray(this.cloud.pendingFeedback)) this.cloud.pendingFeedback.push(outcome);
+    }
+    const now = this.now();
+    if (this.cloud && now - this.lastCycleAt >= 1000) {
+      this.lastCycleAt = now;
+      this.stats.cloudCyclesStarted += 1;
+      Promise.resolve(this.cloud.cycle()).catch((error) => {
+        this.stats.cloudCycleErrors += 1;
+        if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'CLOUD_CONTROL_PROMISE_REJECTED', severity: 'warn', reason: String(error && error.message || error).slice(0, 240) });
+      });
+    }
+    return !!outcome;
+  }
+
+  patchSettings(values = {}, source = 'local-api') {
+    const patch = this.controlPlane.patch(values, { source });
+    const applied = this.controlPlane.applyHot(this.runtime, patch.changed);
+    this._applyExtendedSettings(patch.changed);
+    this.stats.localPatches += patch.changed.length;
+    return { ...patch, ...applied };
+  }
+
+  configureCloud(config = {}) {
+    const cloud = this.cloud.configure(config);
+    if (cloud.ready) this.patchSettings({ 'cloud.enabled': true }, 'cloud-configure');
+    return this.cloud.status();
+  }
+
+  status() {
+    return {
+      schemaVersion: 2,
+      mode: ALPHA25_MODE,
+      installedAt: this.installedAt,
+      controlPlane: this.controlPlane.status(),
+      brain: this.brain.status(),
+      cloud: this.cloud.status(),
+      stats: { ...this.stats },
+      policies: {
+        dashboardSettingsAreLocallyRevalidated: true,
+        remoteExtendedSettingsReachLiveSubsystems: true,
+        outcomeEvaluationHasSingleOwner: true,
+        explicitGlobalCloudConfigEnablesControlPlane: true,
+        cloudCannotBypassSafety: true,
+        brainStrategicOnly: true,
+        brainDirectExecutorAccess: false,
+        dangerousContentFailClosed: true,
+        emergencyRetreatPriorityPreserved: true,
+        commandCharacterAuthorityWidened: false
+      }
+    };
+  }
+}
+
+function installAlpha25ControlCenterBrain(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.alpha25ControlCenterBrain) return runtime.alpha25ControlCenterBrain;
+  const module = new Alpha25ControlCenterBrain(runtime, options);
+  runtime.alpha25ControlCenterBrain = module;
+  return module;
+}
+
+module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
+
+},
+"src/control/control-plane-config.js": function(require,module,exports){
+'use strict';
+
+const CONTROL_SCHEMA_VERSION = 1;
+const STORAGE_KEY = 'aio-v3:control-plane-config:v1';
+
+const DEFINITIONS = Object.freeze([
+  // Runtime
+  { key: 'runtime.tickMs', category: 'Runtime', label: 'Runtime-Tick', description: 'Grundtakt der lokalen Runtime in Millisekunden.', type: 'number', default: 250, min: 100, max: 2000, step: 50, hot: true, option: 'tickMs', runtimePath: 'tickMs' },
+  { key: 'runtime.visibleStatus', category: 'Runtime', label: 'Sichtbare Statusmeldungen', description: 'Schreibt wichtige Zustände zusätzlich in den Adventure-Land-Game-Log.', type: 'boolean', default: true, hot: true, option: 'visibleStatus', runtimePath: 'visibleStatusEnabled' },
+  { key: 'runtime.brainAuditMs', category: 'Runtime', label: 'Brain-Auswertungsintervall', description: 'Wie oft das strategische Gehirn eine neue Situation bewertet.', type: 'number', default: 5000, min: 1000, max: 60000, step: 500, hot: true, option: 'brainAuditMs', runtimePath: 'brainAuditMs' },
+  { key: 'runtime.logCapacity', category: 'Runtime', label: 'Event-Log Kapazität', description: 'Maximale lokale Event-Anzahl. Wirkt nach Neustart.', type: 'number', default: 4000, min: 500, max: 20000, step: 500, hot: false, option: 'logCapacity' },
+
+  // Party / formation
+  { key: 'party.cohesionRadius', category: 'Party & Formation', label: 'Kohäsionsradius', description: 'Maximaler gewünschter Paarabstand der Kampfgruppe.', type: 'number', default: 150, min: 80, max: 280, step: 5, hot: false },
+  { key: 'party.hardRegroupExtraRadius', category: 'Party & Formation', label: 'Hard-Regroup Zusatzradius', description: 'Zusätzlicher Puffer, bevor Formation einen harten Regroup erzwingt.', type: 'number', default: 45, min: 10, max: 140, step: 5, hot: false },
+  { key: 'party.committedPullExtraRadius', category: 'Party & Formation', label: 'Committed-Pull Puffer', description: 'Milde Kohäsionsdrift, die bei bereits sicher begonnenem Pull toleriert wird.', type: 'number', default: 60, min: 0, max: 120, step: 5, hot: false },
+  { key: 'party.committedPullAbsoluteMaxRadius', category: 'Party & Formation', label: 'Committed-Pull Maximalradius', description: 'Absolute Obergrenze für die Pull-Fortsetzung.', type: 'number', default: 220, min: 120, max: 320, step: 5, hot: false },
+  { key: 'party.requireCompleteTeamForFreshPull', category: 'Party & Formation', label: 'Vollständige Gruppe für neue Pulls', description: 'Neue Pulls nur bei vollständiger, lebender und lokalisierter Kampfgruppe.', type: 'boolean', default: true, locked: true, hot: true },
+  { key: 'party.commandCharacterActiveOnly', category: 'Party & Formation', label: 'Remote-Autorität nur für aktive Charaktere', description: 'PR-97 Sicherheitsinvariante: Diagnose-Sichtbarkeit erweitert keine Befehlsautorität.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Combat / risk
+  { key: 'combat.riskThreshold', category: 'Kampf & Risiko', label: 'Risikoschwelle', description: 'Grundschwelle des lokalen Combat-Risk-Gates.', type: 'number', default: 0.65, min: 0.2, max: 0.95, step: 0.01, hot: true, runtimePath: 'combatRisk.threshold', option: 'combatRiskThreshold' },
+  { key: 'combat.recoveryHpRatio', category: 'Kampf & Risiko', label: 'Recovery-HP', description: 'Unterhalb dieses HP-Anteils wird die Auswahl konservativer.', type: 'number', default: 0.75, min: 0.35, max: 0.95, step: 0.01, hot: false, option: 'farmerRecoverHpRatio' },
+  { key: 'combat.emergencyCriticalHpRatio', category: 'Kampf & Risiko', label: 'Kritische HP', description: 'Harte Notfallgrenze für Retreat-/Emergency-Logik.', type: 'number', default: 0.25, min: 0.1, max: 0.6, step: 0.01, hot: false, option: 'combatEmergencyCriticalHpRatio' },
+  { key: 'combat.multiAggroHpRatio', category: 'Kampf & Risiko', label: 'Multi-Aggro HP-Grenze', description: 'HP-Grenze für aggressivere Emergency-Bewertung bei mehreren Gegnern.', type: 'number', default: 0.55, min: 0.25, max: 0.9, step: 0.01, hot: false, option: 'combatEmergencyMultiAggroHpRatio' },
+  { key: 'combat.multiAggroCount', category: 'Kampf & Risiko', label: 'Multi-Aggro Anzahl', description: 'Ab wie vielen Gegnern die Multi-Aggro-Notfalllogik greift.', type: 'number', default: 2, min: 2, max: 8, step: 1, hot: false, option: 'combatEmergencyMultiAggroCount' },
+  { key: 'combat.softKillSeconds', category: 'Kampf & Risiko', label: 'TTK Soft-Limit', description: 'Ab dieser erwarteten Kill-Time wird ein Ziel zunehmend abgewertet.', type: 'number', default: 30, min: 10, max: 75, step: 1, hot: true },
+  { key: 'combat.hardMaxKillSeconds', category: 'Kampf & Risiko', label: 'TTK Hard-Limit', description: 'Ziele oberhalb dieser erwarteten Kill-Time werden für Routine-Farming verworfen.', type: 'number', default: 75, min: 35, max: 120, step: 1, hot: true },
+  { key: 'combat.maxKiteAdditionalAggro', category: 'Kampf & Risiko', label: 'Zusätzliche Kite-Aggro', description: 'Maximale Zusatzgegner, deren Risiko bei starkem Ranged-Kiter reduziert werden darf.', type: 'number', default: 2, min: 1, max: 3, step: 1, hot: true },
+  { key: 'combat.kiteRiskMitigationScale', category: 'Kampf & Risiko', label: 'Kite-Risikominderung', description: 'Wie stark nachgewiesene Kite-Fähigkeit den zusätzlichen Aggro-Anteil reduziert.', type: 'number', default: 0.78, min: 0.45, max: 0.9, step: 0.01, hot: true },
+  { key: 'combat.maxKiteDeathsPerHour', category: 'Kampf & Risiko', label: 'Kite-Todesrate Maximum', description: 'Obergrenze historischer Todesrate für risikofreudige Kite-Entscheidungen.', type: 'number', default: 0.6, min: 0.1, max: 1, step: 0.05, hot: true },
+  { key: 'combat.dangerousContentFailClosed', category: 'Kampf & Risiko', label: 'Gefährlicher Content fail-closed', description: 'Dangerous-/Quarantine-Content kann durch Brain oder Risikominderung niemals freigegeben werden.', type: 'boolean', default: true, locked: true, hot: true },
+  { key: 'combat.emergencyRetreatPriority', category: 'Kampf & Risiko', label: 'Emergency Retreat hat Vorrang', description: 'Notfall-Retreat darf niemals von Brain/Formation/Economy überstimmt werden.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Ranged & kiting
+  { key: 'ranged.engagementFactor', category: 'Fernkampf & Kiting', label: 'Engagement-Range', description: 'Anteil der realen Klassenreichweite, ab dem ein Fernkämpfer feuern darf.', type: 'number', default: 0.94, min: 0.82, max: 0.98, step: 0.01, hot: true },
+  { key: 'ranged.desiredFactor', category: 'Fernkampf & Kiting', label: 'Bevorzugte Feuerdistanz', description: 'Zielabstand zur Nutzung nahezu maximaler Reichweite.', type: 'number', default: 0.92, min: 0.75, max: 0.97, step: 0.01, hot: true },
+  { key: 'ranged.tooCloseFactor', category: 'Fernkampf & Kiting', label: 'Zu-nah Grenze', description: 'Unterhalb dieses Range-Anteils darf der Ranged-Charakter Abstand gewinnen.', type: 'number', default: 0.84, min: 0.6, max: 0.92, step: 0.01, hot: true },
+  { key: 'ranged.firePositionTriggerFactor', category: 'Fernkampf & Kiting', label: 'Feuerpositions-Trigger', description: 'Nicht-Aggro-Ranged repositionieren erst unterhalb dieses Range-Anteils.', type: 'number', default: 0.8, min: 0.6, max: 0.9, step: 0.01, hot: true },
+  { key: 'ranged.moveCooldownMs', category: 'Fernkampf & Kiting', label: 'Range-Move Cooldown', description: 'Mindestabstand zwischen Range-Optimierungsbewegungen.', type: 'number', default: 1200, min: 500, max: 5000, step: 100, hot: true },
+  { key: 'ranged.onlyAggroHolderKites', category: 'Fernkampf & Kiting', label: 'Nur Aggro-Holder kitet', description: 'Verhindert konkurrierende Kite-Controller und Formation-Pingpong.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Skills/resources
+  { key: 'skills.enabled', category: 'Skills & Ressourcen', label: 'Skills verwenden', description: 'Aktiviert die kontrollierte Skill-Rotation.', type: 'boolean', default: true, hot: false, option: 'farmerSkillUsageEnabled' },
+  { key: 'skills.mpReserveRatio', category: 'Skills & Ressourcen', label: 'MP-Reserve', description: 'MP-Anteil, der für wichtige Skills/Notfälle zurückgehalten wird.', type: 'number', default: 0.15, min: 0, max: 0.6, step: 0.01, hot: false, option: 'farmerSkillUsageMpReserveRatio' },
+  { key: 'skills.minIntervalMs', category: 'Skills & Ressourcen', label: 'Skill-Minimumintervall', description: 'Mindestzeit zwischen Skill-Ausführungsversuchen.', type: 'number', default: 120, min: 50, max: 2000, step: 10, hot: false, option: 'farmerSkillUsageMinIntervalMs' },
+  { key: 'skills.failureBackoffMs', category: 'Skills & Ressourcen', label: 'Skill-Fehler Backoff', description: 'Startwert für Backoff nach fehlgeschlagenem Skill.', type: 'number', default: 750, min: 100, max: 10000, step: 50, hot: false, option: 'farmerSkillUsageFailureBackoffMs' },
+  { key: 'skills.failureBackoffMultiplier', category: 'Skills & Ressourcen', label: 'Backoff Multiplikator', description: 'Exponentieller Faktor bei wiederholten Skill-Fehlern.', type: 'number', default: 1.8, min: 1, max: 4, step: 0.1, hot: false, option: 'farmerSkillUsageFailureBackoffMultiplier' },
+
+  // Farming
+  { key: 'farming.targetPolicy', category: 'Farming & Ziele', label: 'Zielrichtlinie', description: 'Grundpolicy für Farmer-Zielauswahl.', type: 'select', values: ['party-only','safe-any'], default: 'party-only', hot: true, runtimeMethod: 'setFarmerTargetPolicy', option: 'farmerTargetPolicy' },
+  { key: 'farming.reassessmentEnabled', category: 'Farming & Ziele', label: 'Ziele neu bewerten', description: 'Erlaubt periodische Neubewertung des aktiven Ziels.', type: 'boolean', default: true, hot: false, option: 'farmerTargetReassessmentEnabled' },
+  { key: 'farming.reassessmentMinIntervalMs', category: 'Farming & Ziele', label: 'Reassessment Intervall', description: 'Minimaler Abstand zwischen Neubewertungen.', type: 'number', default: 1500, min: 500, max: 15000, step: 100, hot: false, option: 'farmerTargetReassessmentMinIntervalMs' },
+  { key: 'farming.switchCooldownMs', category: 'Farming & Ziele', label: 'Target-Switch Cooldown', description: 'Verhindert hektisches Umschalten zwischen ähnlich guten Zielen.', type: 'number', default: 5000, min: 1000, max: 30000, step: 500, hot: false, option: 'farmerTargetReassessmentSwitchCooldownMs' },
+  { key: 'farming.maxTravelSeconds', category: 'Farming & Ziele', label: 'Maximale Farm-Anreise', description: 'Normalisierungslimit für Reiseaufwand in Brain/Planner.', type: 'number', default: 600, min: 30, max: 3600, step: 30, hot: false, option: 'brainMaxTravelSeconds' },
+
+  // Travel/recovery
+  { key: 'recovery.safeRetreatEnabled', category: 'Travel & Recovery', label: 'Safe Retreat', description: 'Aktiviert kontrolliertes lokales Ausweichen bei Notfällen.', type: 'boolean', default: true, hot: false, option: 'farmerSafeRetreatEnabled' },
+  { key: 'recovery.retreatMinStep', category: 'Travel & Recovery', label: 'Retreat Min-Step', description: 'Kleinste Retreat-Bewegung.', type: 'number', default: 25, min: 5, max: 100, step: 5, hot: false, option: 'farmerSafeRetreatMinStep' },
+  { key: 'recovery.retreatMaxStep', category: 'Travel & Recovery', label: 'Retreat Max-Step', description: 'Größte Retreat-Bewegung.', type: 'number', default: 120, min: 30, max: 250, step: 5, hot: false, option: 'farmerSafeRetreatMaxStep' },
+  { key: 'recovery.maxThreats', category: 'Travel & Recovery', label: 'Retreat Threat-Limit', description: 'Maximale Gegnerzahl für die lokale Retreat-Geometrie.', type: 'number', default: 6, min: 1, max: 12, step: 1, hot: false, option: 'farmerSafeRetreatMaxThreats' },
+
+  // Merchant
+  { key: 'merchant.lowFreeSlots', category: 'Merchant & Service', label: 'Inventardruck ab', description: 'Unterhalb dieser freien Slots beginnt Home-/Bank-Service.', type: 'number', default: 8, min: 2, max: 20, step: 1, hot: true },
+  { key: 'merchant.targetFreeSlots', category: 'Merchant & Service', label: 'Ziel freie Slots', description: 'Zielwert nach Bank-/Bereinigungsservice.', type: 'number', default: 14, min: 4, max: 30, step: 1, hot: true },
+  { key: 'merchant.potionLow', category: 'Merchant & Service', label: 'Potion Low', description: 'Unterer Vorrat, ab dem Restock priorisiert wird.', type: 'number', default: 1500, min: 50, max: 10000, step: 50, hot: true },
+  { key: 'merchant.potionTarget', category: 'Merchant & Service', label: 'Potion Ziel', description: 'Zielbestand beim Restock.', type: 'number', default: 6000, min: 100, max: 20000, step: 100, hot: true },
+  { key: 'merchant.goldReserve', category: 'Merchant & Service', label: 'Goldreserve', description: 'Gold, das der Merchant für sichere Operationen zurückhält.', type: 'number', default: 1000000, min: 0, max: 100000000, step: 100000, hot: true },
+  { key: 'merchant.transferRange', category: 'Merchant & Service', label: 'Transferreichweite', description: 'Maximale Distanz für kontrollierte direkte Transfers.', type: 'number', default: 400, min: 100, max: 600, step: 10, hot: true },
+  { key: 'merchant.economyOwnsMovement', category: 'Merchant & Service', label: 'Economy besitzt Movement-Autorität', description: 'Verhindert konkurrierende Logistics-/Home-Service-Bewegung.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Economy
+  { key: 'economy.keepValue', category: 'Economy, Gear & Markt', label: 'High-Value Keep/Bank', description: 'Wertgrenze, oberhalb der Items nicht leichtfertig verkauft werden.', type: 'number', default: 1000000, min: 1000, max: 100000000, step: 50000, hot: true },
+  { key: 'economy.upgradeCap', category: 'Economy, Gear & Markt', label: 'Upgrade Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Upgrade-Kandidaten.', type: 'number', default: 2000000, min: 0, max: 100000000, step: 100000, hot: true },
+  { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
+  { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Routine-Obergrenze für autonome Upgrades.', type: 'number', default: 2, min: 0, max: 4, step: 1, hot: true },
+  { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Routine-Obergrenze für autonome Compounds.', type: 'number', default: 1, min: 0, max: 3, step: 1, hot: true },
+  { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
+  { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
+  { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
+  { key: 'economy.journaledMutationsOnly', category: 'Economy, Gear & Markt', label: 'Nur journaled Mutations', description: 'Upgrade/Compound/Bank-Aktionen bleiben persist-before-action und verifiziert.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Brain
+  { key: 'brain.enabled', category: 'Gehirn & Lernen', label: 'Strategisches Gehirn', description: 'Aktiviert Beobachtung, Student-Lernen und Teacher-Sync.', type: 'boolean', default: true, hot: true },
+  { key: 'brain.mode', category: 'Gehirn & Lernen', label: 'Brain-Modus', description: 'Shadow lernt ohne Strategie-Autorität. Canary ist für spätere kontrollierte Freigabe reserviert.', type: 'select', values: ['shadow','canary'], default: 'shadow', hot: true },
+  { key: 'brain.teacherEnabled', category: 'Gehirn & Lernen', label: 'Cloudflare Teacher', description: 'Erlaubt budgetierte strategische Qwen-Teacher-Abfragen.', type: 'boolean', default: true, hot: true },
+  { key: 'brain.dailyNeuronLimit', category: 'Gehirn & Lernen', label: 'Neurons pro UTC-Tag', description: 'Harte Workers-AI Tagesobergrenze.', type: 'number', default: 10000, min: 500, max: 10000, step: 100, hot: true },
+  { key: 'brain.budgetTargetFraction', category: 'Gehirn & Lernen', label: 'Budget-Zielanteil', description: 'Geplanter Tagesverbrauch; Rest bleibt als Sicherheitsreserve.', type: 'number', default: 0.995, min: 0.5, max: 0.995, step: 0.005, hot: true },
+  { key: 'brain.teacherMinIntervalMs', category: 'Gehirn & Lernen', label: 'Teacher Min-Intervall', description: 'Untergrenze zwischen Cloud-Teacher-Aufrufen.', type: 'number', default: 30000, min: 5000, max: 600000, step: 5000, hot: true },
+  { key: 'brain.teacherMaxIntervalMs', category: 'Gehirn & Lernen', label: 'Teacher Max-Intervall', description: 'Spätestens nach diesem Zeitraum wird bei Budgetverfügbarkeit neu gelehrt.', type: 'number', default: 300000, min: 30000, max: 1800000, step: 10000, hot: true },
+  { key: 'brain.entropyTeacherThreshold', category: 'Gehirn & Lernen', label: 'Unsicherheits-Trigger', description: 'Hohe Student-Entropie priorisiert einen Teacher-Aufruf.', type: 'number', default: 0.72, min: 0.2, max: 0.98, step: 0.01, hot: true },
+  { key: 'brain.noveltyTeacherThreshold', category: 'Gehirn & Lernen', label: 'Novelty-Trigger', description: 'Neue Situationen werden bevorzugt vom Teacher bewertet.', type: 'number', default: 0.45, min: 0.05, max: 0.95, step: 0.01, hot: true },
+  { key: 'brain.replayCapacity', category: 'Gehirn & Lernen', label: 'Experience Replay', description: 'Maximale lokale Lernbeispiele.', type: 'number', default: 512, min: 64, max: 4096, step: 64, hot: false },
+  { key: 'brain.replayBatchSize', category: 'Gehirn & Lernen', label: 'Replay Batch', description: 'Lernbeispiele pro Replay-Trainingsschritt.', type: 'number', default: 12, min: 2, max: 64, step: 1, hot: true },
+  { key: 'brain.learningRate', category: 'Gehirn & Lernen', label: 'Student Lernrate', description: 'SGD-Lernrate des lokalen 32→24→5 Student-Netzes.', type: 'number', default: 0.012, min: 0.001, max: 0.08, step: 0.001, hot: true },
+  { key: 'brain.outcomeWindowMs', category: 'Gehirn & Lernen', label: 'Outcome-Fenster', description: 'Zeitfenster bis eine Strategie anhand realer Wirkung bewertet wird.', type: 'number', default: 60000, min: 15000, max: 600000, step: 5000, hot: true },
+  { key: 'brain.championMinSamples', category: 'Gehirn & Lernen', label: 'Champion Mindest-Samples', description: 'Mindestmenge Training vor erstem eingefrorenen Champion.', type: 'number', default: 120, min: 32, max: 2000, step: 8, hot: true },
+  { key: 'brain.challengerLossImprovement', category: 'Gehirn & Lernen', label: 'Challenger Loss-Vorteil', description: 'Minimaler relativer Validierungs-Loss-Vorteil für Promotion.', type: 'number', default: 0.04, min: 0.005, max: 0.3, step: 0.005, hot: true },
+  { key: 'brain.diaryMaxEntries', category: 'Gehirn & Lernen', label: 'Gehirn-Tagebuch', description: 'Anzahl nachvollziehbarer Lern-/Teacher-/League-Einträge.', type: 'number', default: 100, min: 20, max: 300, step: 10, hot: true },
+  { key: 'brain.directExecutorAccess', category: 'Gehirn & Lernen', label: 'Direkter Executor-Zugriff', description: 'Brain darf niemals lokale Safety-/Executor-Schichten umgehen.', type: 'boolean', default: false, locked: true, hot: true },
+  { key: 'brain.deterministicFallback', category: 'Gehirn & Lernen', label: 'Deterministischer Fallback', description: 'Bei Cloud-/Qualitäts-/Modellfehlern bleibt der bestehende Planner maßgeblich.', type: 'boolean', default: true, locked: true, hot: true },
+
+  // Cloud/telemetry
+  { key: 'cloud.enabled', category: 'Cloud & Telemetrie', label: 'Cloud Control Plane', description: 'Aktiviert D1-Sync, Dashboard-Telemetrie und Teacher-Bridge.', type: 'boolean', default: false, hot: true },
+  { key: 'cloud.runtimePushMs', category: 'Cloud & Telemetrie', label: 'Runtime Push', description: 'Intervall für kompakte Status-Snapshots an D1.', type: 'number', default: 5000, min: 2000, max: 60000, step: 1000, hot: true },
+  { key: 'cloud.configPullMs', category: 'Cloud & Telemetrie', label: 'Config Pull', description: 'Intervall für Dashboard-Konfigurationsabgleich.', type: 'number', default: 15000, min: 5000, max: 300000, step: 5000, hot: true },
+  { key: 'cloud.eventBatchSize', category: 'Cloud & Telemetrie', label: 'Event Batch', description: 'Maximale Eventanzahl pro Cloud-Upload.', type: 'number', default: 80, min: 10, max: 250, step: 10, hot: true },
+  { key: 'cloud.dashboardRefreshMs', category: 'Cloud & Telemetrie', label: 'Dashboard Refresh', description: 'Empfohlenes UI-Live-Refresh-Intervall.', type: 'number', default: 3000, min: 1000, max: 30000, step: 500, hot: true },
+  { key: 'cloud.secretsNeverSync', category: 'Cloud & Telemetrie', label: 'Secrets nie synchronisieren', description: 'READ/WRITE/ADMIN-Key werden weder in D1 noch in Runtime-Status gespeichert.', type: 'boolean', default: true, locked: true, hot: true },
+  { key: 'cloud.offlineSafeLocal', category: 'Cloud & Telemetrie', label: 'Cloud-Ausfall = lokal sicher weiter', description: 'Cloudfehler dürfen lokale Kampf-/Safety-Funktionen nicht blockieren.', type: 'boolean', default: true, locked: true, hot: true }
+]);
+
+const BY_KEY = new Map(DEFINITIONS.map((x) => [x.key, x]));
+
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+function finite(value, fallback) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function getPath(root, path) { let cur = root; for (const p of String(path || '').split('.').filter(Boolean)) { if (cur == null) return undefined; cur = cur[p]; } return cur; }
+function setPath(root, path, value) {
+  const parts = String(path || '').split('.').filter(Boolean); if (!parts.length) return false;
+  let cur = root; for (let i = 0; i < parts.length - 1; i += 1) { if (!cur || !(parts[i] in cur)) return false; cur = cur[parts[i]]; }
+  if (!cur || !(parts[parts.length - 1] in cur)) return false; cur[parts[parts.length - 1]] = value; return true;
+}
+function normalize(def, value) {
+  if (def.locked) return def.default;
+  if (def.type === 'boolean') return value === true || value === 'true' || value === 1;
+  if (def.type === 'number') { let n = finite(value, def.default); if (def.min != null) n = Math.max(def.min, n); if (def.max != null) n = Math.min(def.max, n); return n; }
+  if (def.type === 'select') return Array.isArray(def.values) && def.values.includes(String(value)) ? String(value) : def.default;
+  return value == null ? def.default : String(value);
+}
+function defaults() { const out = {}; for (const def of DEFINITIONS) out[def.key] = def.default; return out; }
+function sanitize(values = {}) { const out = defaults(); for (const [key, value] of Object.entries(values || {})) { const def = BY_KEY.get(key); if (def) out[key] = normalize(def, value); } return out; }
+function storage(root = globalThis) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
+function loadStored(root = globalThis) {
+  const s = storage(root); if (!s) return { values: defaults(), revision: 0, updatedAt: 0 };
+  try { const parsed = JSON.parse(s.getItem(STORAGE_KEY) || '{}'); return { values: sanitize(parsed.values || parsed.config || {}), revision: Math.max(0, finite(parsed.revision, 0)), updatedAt: Math.max(0, finite(parsed.updatedAt, 0)) }; } catch (_) { return { values: defaults(), revision: 0, updatedAt: 0 }; }
+}
+function saveStored(root, state) { const s = storage(root); if (!s) return false; try { s.setItem(STORAGE_KEY, JSON.stringify(state)); return true; } catch (_) { return false; } }
+function bootOptions(root = globalThis, base = {}) {
+  const stored = loadStored(root).values; const next = { ...base };
+  for (const def of DEFINITIONS) if (def.option && stored[def.key] != null) next[def.option] = stored[def.key];
+  return next;
+}
+
+class ControlPlaneConfig {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    const stored = loadStored(this.root);
+    this.values = sanitize({ ...stored.values, ...(options.initial || {}) });
+    this.revision = stored.revision || 0;
+    this.updatedAt = stored.updatedAt || 0;
+    this.lastSource = stored.updatedAt ? 'local-storage' : 'defaults';
+    this.stats = { patches: 0, rejected: 0, hotApplied: 0, restartRequired: 0, saves: 0, saveErrors: 0 };
+  }
+  get(key, fallback) { return this.values[key] == null ? fallback : this.values[key]; }
+  schema() { return DEFINITIONS.map((def) => ({ ...def, current: this.get(def.key, def.default) })); }
+  patch(input = {}, meta = {}) {
+    const next = { ...this.values }; const changed = []; const rejected = [];
+    for (const [key, raw] of Object.entries(input || {})) {
+      const def = BY_KEY.get(key);
+      if (!def) { rejected.push({ key, reason: 'UNKNOWN_SETTING' }); continue; }
+      if (def.locked && raw !== def.default) { rejected.push({ key, reason: 'SAFETY_LOCKED' }); continue; }
+      const value = normalize(def, raw); if (JSON.stringify(next[key]) !== JSON.stringify(value)) { next[key] = value; changed.push({ key, value, hot: def.hot !== false }); }
+    }
+    this.values = next;
+    if (meta.revision != null) this.revision = Math.max(this.revision, finite(meta.revision, this.revision)); else if (changed.length) this.revision += 1;
+    if (changed.length) { this.updatedAt = Math.max(finite(meta.updatedAt, 0), this.now()); this.lastSource = String(meta.source || 'local'); this.stats.patches += 1; }
+    this.stats.rejected += rejected.length;
+    const state = { schemaVersion: CONTROL_SCHEMA_VERSION, revision: this.revision, updatedAt: this.updatedAt, values: this.values };
+    if (saveStored(this.root, state)) this.stats.saves += 1; else this.stats.saveErrors += 1;
+    if (this.log && changed.length) this.log.emit({ component: 'control-plane', event: 'CONTROL_SETTINGS_PATCHED', data: { revision: this.revision, source: this.lastSource, changed: changed.map((x) => x.key), rejected } });
+    return { changed, rejected, revision: this.revision, updatedAt: this.updatedAt };
+  }
+  applyHot(runtime, changes = null) {
+    const rows = Array.isArray(changes) ? changes : DEFINITIONS.filter((x) => x.hot !== false).map((def) => ({ key: def.key, value: this.get(def.key), hot: true }));
+    const applied = [], restartRequired = [];
+    for (const row of rows) {
+      const def = BY_KEY.get(row.key); if (!def || def.locked) continue;
+      if (def.hot === false) { restartRequired.push(row.key); continue; }
+      let ok = false;
+      if (def.runtimeMethod && runtime && typeof runtime[def.runtimeMethod] === 'function') { try { runtime[def.runtimeMethod](row.value); ok = true; } catch (_) {} }
+      if (!ok && def.runtimePath) { try { ok = setPath(runtime, def.runtimePath, row.value); } catch (_) { ok = false; } }
+      if (ok) applied.push(row.key);
+    }
+    this.stats.hotApplied += applied.length; this.stats.restartRequired += restartRequired.length;
+    return { applied, restartRequired };
+  }
+  status() {
+    return { schemaVersion: CONTROL_SCHEMA_VERSION, revision: this.revision, updatedAt: this.updatedAt, lastSource: this.lastSource, values: clone(this.values), stats: { ...this.stats }, policies: { lockedSafetySettingsCannotBeChanged: true, secretsExcluded: true, cloudFailureDoesNotDisableLocalSafety: true } };
+  }
+}
+
+module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CONTROL_DEFINITIONS: DEFINITIONS, ControlPlaneConfig, controlDefaults: defaults, sanitizeControlValues: sanitize, loadStoredControlConfig: loadStored, buildBootOptionsFromControlPlane: bootOptions };
+
+},
+"src/control/cloud-control-plane.js": function(require,module,exports){
+'use strict';
+
+const CLOUD_STORAGE_KEY = 'aio-v3:cloud-control:v1';
+
+function finite(value, fallback = 0) { if (value == null || value === '') return fallback; const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function text(value, max = 200) { return String(value == null ? '' : value).trim().slice(0, max); }
+function safeClone(value) { try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+function storage(root) { try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; } catch (_) { return null; } }
+function characterOf(runtime) { return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null; }
+function isMerchant(runtime) { return String(characterOf(runtime) && characterOf(runtime).ctype || '').toLowerCase() === 'merchant'; }
+function normalizeBaseUrl(value) { const v = text(value, 400).replace(/\/+$/, ''); return /^https:\/\//i.test(v) || /^http:\/\/localhost(?::\d+)?$/i.test(v) ? v : ''; }
+
+class CloudControlPlane {
+  constructor(options = {}) {
+    if (!options.runtime) throw new Error('runtime required');
+    this.runtime = options.runtime;
+    this.control = options.controlPlane || null;
+    this.brain = options.brain || null;
+    this.root = options.root || this.runtime.root || globalThis;
+    this.now = options.now || this.runtime.now || (() => Date.now());
+    this.log = options.log || this.runtime.log || null;
+    this.onSettingsChanged = typeof options.onSettingsChanged === 'function' ? options.onSettingsChanged : null;
+    this.fetchFn = options.fetch || this.root && this.root.fetch || (typeof fetch === 'function' ? fetch : null);
+    this.credentials = { baseUrl: '', writeKey: '', account: 'default' };
+    this.explicitGlobalConfig = false;
+    this.lastRuntimePushAt = 0;
+    this.lastConfigPullAt = 0;
+    this.lastTeacherAt = 0;
+    this.lastSuccessAt = 0;
+    this.lastError = null;
+    this.busy = false;
+    this.pendingFeedback = [];
+    this.remoteRevision = 0;
+    this.remoteUpdatedAt = 0;
+    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0 };
+    this._load();
+  }
+
+  _storage() { return storage(this.root); }
+
+  _load() {
+    const s = this._storage();
+    let stored = null;
+    try { stored = s ? JSON.parse(s.getItem(CLOUD_STORAGE_KEY) || 'null') : null; } catch (_) {}
+    const globalCfg = this.root && this.root.AIO_V3_CLOUD_CONFIG && typeof this.root.AIO_V3_CLOUD_CONFIG === 'object' ? this.root.AIO_V3_CLOUD_CONFIG : {};
+    this.explicitGlobalConfig = !!(normalizeBaseUrl(globalCfg.baseUrl || '') && text(globalCfg.writeKey || '', 500));
+    this.credentials.baseUrl = normalizeBaseUrl(globalCfg.baseUrl || stored && stored.baseUrl || '');
+    this.credentials.writeKey = text(globalCfg.writeKey || stored && stored.writeKey || '', 500);
+    this.credentials.account = text(globalCfg.account || stored && stored.account || 'default', 100) || 'default';
+  }
+
+  configure(input = {}) {
+    if (input.baseUrl != null) this.credentials.baseUrl = normalizeBaseUrl(input.baseUrl);
+    if (input.writeKey != null) this.credentials.writeKey = text(input.writeKey, 500);
+    if (input.account != null) this.credentials.account = text(input.account, 100) || 'default';
+    const s = this._storage();
+    try { if (s) s.setItem(CLOUD_STORAGE_KEY, JSON.stringify(this.credentials)); } catch (_) {}
+    return this.status();
+  }
+
+  clearCredentials() {
+    this.credentials = { baseUrl: '', writeKey: '', account: 'default' };
+    this.explicitGlobalConfig = false;
+    const s = this._storage();
+    try { if (s) s.removeItem(CLOUD_STORAGE_KEY); } catch (_) {}
+    return this.status();
+  }
+
+  _enabled() { return !!(this.control && this.control.get('cloud.enabled', false) && this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn); }
+
+  async _post(path, body, timeoutMs = 10000) {
+    if (!this.fetchFn) throw new Error('fetch unavailable');
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const response = await this.fetchFn.call(this.root, this.credentials.baseUrl + path, {
+        method: 'POST', cache: 'no-store', headers: { 'content-type': 'application/json' }, signal: controller && controller.signal,
+        body: JSON.stringify({ ...body, writeKey: this.credentials.writeKey })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload && payload.ok === false) throw new Error(text(payload && payload.error || `HTTP ${response.status}`, 300));
+      return payload || {};
+    } finally { if (timer) clearTimeout(timer); }
+  }
+
+  _runtimeSnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const perf = this.runtime.performance && this.runtime.performance.status ? this.runtime.performance.status() : null;
+    const alpha23 = this.runtime.alpha23CombatStabilityHotfix && this.runtime.alpha23CombatStabilityHotfix.status ? this.runtime.alpha23CombatStabilityHotfix.status() : null;
+    const alpha24 = this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null;
+    const economy = this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null;
+    let registry = null; try { registry = this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null; } catch (_) {}
+    let events = []; try { events = this.runtime.log && this.runtime.log.list ? this.runtime.log.list(Math.max(10, Math.min(120, finite(this.control && this.control.get('cloud.eventBatchSize', 80), 80)))) : []; } catch (_) {}
+    return {
+      schemaVersion: 2,
+      updatedAt: this.now(),
+      character: { name: c.name || null, ctype: c.ctype || null, level: finite(c.level, 0), map: c.map || null, x: finite(c.x, null), y: finite(c.y, null), hp: finite(c.hp, 0), max_hp: finite(c.max_hp, 0), mp: finite(c.mp, 0), max_mp: finite(c.max_mp, 0), gold: finite(c.gold, 0), rip: !!c.rip, range: finite(c.range, null), speed: finite(c.speed, null), attack: finite(c.attack, null) },
+      mode: this.runtime.adapter && this.runtime.adapter.mode || null,
+      farmer: this.runtime.farmer && this.runtime.farmer.status ? this.runtime.farmer.status() : null,
+      performance: perf,
+      party: registry,
+      combat: { alpha23, alpha24, lastRiskSkip: safeClone(this.runtime.lastRiskSkip), lastEmergencyDisengage: safeClone(this.runtime.lastEmergencyDisengage) },
+      economy,
+      brain: this.brain && this.brain.status ? this.brain.status() : null,
+      control: this.control && this.control.status ? this.control.status() : null,
+      events: safeClone(events) || []
+    };
+  }
+
+  async pushRuntime() {
+    const c = characterOf(this.runtime); if (!c || !c.name) return false;
+    const result = await this._post('/api/v3/runtime', { account: this.credentials.account, character: c.name, status: this._runtimeSnapshot() });
+    this.stats.runtimePushes += 1; this.lastRuntimePushAt = this.now(); this.lastSuccessAt = this.now(); return result;
+  }
+
+  async syncState() {
+    const c = characterOf(this.runtime); if (!c || !c.name) return false;
+    const body = { account: this.credentials.account, character: c.name, configRevision: this.control && this.control.revision || 0, brainState: this.brain && this.brain.exportState ? this.brain.exportState() : null };
+    const result = await this._post('/api/v3/sync', body, 12000);
+    this.stats.configPulls += 1; this.lastConfigPullAt = this.now(); this.lastSuccessAt = this.now();
+    if (result.settings && this.control) {
+      const patch = this.control.patch(result.settings.values || result.settings, { source: 'cloudflare-d1', revision: result.settings.revision, updatedAt: result.settings.updatedAt });
+      const applied = this.control.applyHot(this.runtime, patch.changed);
+      if (patch.changed.length) {
+        this.stats.configChanges += patch.changed.length;
+        if (this.onSettingsChanged) {
+          try { this.onSettingsChanged(patch.changed); this.stats.extendedConfigChanges += patch.changed.length; }
+          catch (error) { if (this.log) this.log.emit({ component: 'cloud-control-plane', event: 'REMOTE_EXTENDED_SETTINGS_FAILED', severity: 'warn', reason: text(error && error.message || error, 240) }); }
+        }
+      }
+      this.remoteRevision = Math.max(this.remoteRevision, finite(result.settings.revision, 0)); this.remoteUpdatedAt = Math.max(this.remoteUpdatedAt, finite(result.settings.updatedAt, 0));
+      if (patch.changed.length && this.log) this.log.emit({ component: 'cloud-control-plane', event: 'REMOTE_SETTINGS_APPLIED', data: { changed: patch.changed.map((row) => row.key), hotApplied: applied.applied, restartRequired: applied.restartRequired, extendedApplied: !!this.onSettingsChanged, revision: this.remoteRevision } });
+    }
+    if (result.brainState && this.brain && this.brain.importState && finite(result.brainState.samples, 0) > finite(this.brain.samples, 0)) {
+      if (this.brain.importState(result.brainState)) this.stats.brainImports += 1;
+    }
+    return result;
+  }
+
+  async askTeacher() {
+    if (!isMerchant(this.runtime) || !this.brain || !this.brain.shouldAskTeacher || !this.brain.shouldAskTeacher()) return false;
+    const requestState = this.brain.teacherRequest('adaptive-budget'); if (!requestState) return false;
+    const result = await this._post('/api/v3/brain/teacher', { account: this.credentials.account, character: characterOf(this.runtime).name, dailyLimit: this.control && this.control.get('brain.dailyNeuronLimit', 10000), budgetTargetFraction: this.control && this.control.get('brain.budgetTargetFraction', 0.995), state: requestState }, 30000);
+    this.stats.teacherCalls += 1; this.lastTeacherAt = this.now(); this.lastSuccessAt = this.now();
+    if (result.blocked) { this.stats.teacherBlocked += 1; return result; }
+    if (result.decision && this.brain.ingestTeacher) this.brain.ingestTeacher(result.decision, { neurons: result.neurons });
+    return result;
+  }
+
+  async pushFeedback(feedback) {
+    if (!feedback) return false;
+    const c = characterOf(this.runtime) || {};
+    const result = await this._post('/api/v3/brain/feedback', { account: this.credentials.account, character: c.name || 'unknown', feedback }, 10000);
+    this.stats.feedbackPushes += 1; this.lastSuccessAt = this.now(); return result;
+  }
+
+  async cycle() {
+    if (this.busy || !this._enabled()) return false;
+    this.busy = true;
+    try {
+      const now = this.now();
+      const pushMs = Math.max(2000, finite(this.control.get('cloud.runtimePushMs', 5000), 5000));
+      const pullMs = Math.max(5000, finite(this.control.get('cloud.configPullMs', 15000), 15000));
+      if (now - this.lastRuntimePushAt >= pushMs) await this.pushRuntime();
+      if (now - this.lastConfigPullAt >= pullMs) await this.syncState();
+      if (isMerchant(this.runtime) && this.brain && this.brain.shouldAskTeacher && this.brain.shouldAskTeacher()) await this.askTeacher();
+      if (this.pendingFeedback.length) { const next = this.pendingFeedback[0]; await this.pushFeedback(next); this.pendingFeedback.shift(); }
+      this.lastError = null; return true;
+    } catch (error) {
+      this.stats.failures += 1; this.lastError = { at: this.now(), message: text(error && error.message || error, 300) };
+      if (this.log) this.log.emit({ component: 'cloud-control-plane', event: 'CLOUD_CONTROL_CYCLE_FAILED', severity: 'warn', reason: this.lastError.message, data: { localSafetyUnaffected: true } });
+      return false;
+    } finally { this.busy = false; }
+  }
+
+  status() {
+    return {
+      schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig,
+      configured: { baseUrl: this.credentials.baseUrl || null, account: this.credentials.account, writeKeyPresent: !!this.credentials.writeKey },
+      busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
+      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true }
+    };
+  }
+}
+
+module.exports = { CLOUD_STORAGE_KEY, CloudControlPlane, normalizeBaseUrl };
+
+},
+"src/brain/strategic-brain-v2.js": function(require,module,exports){
+'use strict';
+
+const { BoundedReplayBuffer } = require('./replay-buffer');
+
+const BRAIN_V2_MODE = 'teacher-student-strategic-brain-v2';
+const BRAIN_V2_ACTIONS = Object.freeze(['continue', 'change_farm_target', 'replan_merchant', 'explore', 'wait']);
+const BRAIN_V2_INPUT_NAMES = Object.freeze([
+  'hpRatio', 'mpRatio', 'levelNorm', 'rangeNorm', 'speedNorm', 'attackNorm', 'partyPresentRatio', 'partyAliveRatio',
+  'partyCohesion', 'selfAggro', 'visibleHostiles', 'targetHpRatio', 'riskHeadroom', 'deathSafety', 'xpRate', 'goldRate',
+  'freeSlotsRatio', 'inventoryHealth', 'merchantIdle', 'marketLiquidity', 'gearHealth', 'travelEfficiency', 'worldConfidence', 'knowledgeFreshness',
+  'errorHealth', 'recoveryHealth', 'currentPlanAffinity', 'targetEfficiency', 'kiteConfidence', 'teacherRecency', 'outcomeHealth', 'novelty'
+]);
+const HIDDEN_SIZE = 24;
+const STORAGE_KEY = 'aio-v3:brain-v2:state:v2';
+
+function finite(value, fallback = 0) {
+  if (value == null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.max(min, Math.min(max, finite(value, min)));
+}
+
+function ratio(value, max, fallback = 0.5) {
+  const denominator = finite(max, 0);
+  return denominator > 0 ? clamp(finite(value, 0) / denominator) : fallback;
+}
+
+function softmax(values) {
+  const max = Math.max(...values);
+  const scaled = values.map((value) => Math.exp(Math.max(-30, Math.min(30, value - max))));
+  const total = scaled.reduce((sum, value) => sum + value, 0) || 1;
+  return scaled.map((value) => value / total);
+}
+
+function entropy(probabilities) {
+  const raw = probabilities.reduce((sum, p) => sum - (p > 0 ? p * Math.log(p) : 0), 0);
+  return clamp(raw / Math.log(Math.max(2, probabilities.length)));
+}
+
+function safeClone(value) {
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function seeded(index) {
+  const raw = Math.sin((index + 1) * 91.173) * 43758.5453;
+  const fraction = ((raw % 1) + 1) % 1;
+  return (fraction - 0.5) * 0.16;
+}
+
+function average(values, fallback = 0) {
+  const usable = (values || []).map(Number).filter(Number.isFinite);
+  return usable.length ? usable.reduce((sum, value) => sum + value, 0) / usable.length : fallback;
+}
+
+function scoreVector(scores) {
+  const raw = BRAIN_V2_ACTIONS.map((action) => Math.max(0, finite(scores && scores[action], 0)));
+  const total = raw.reduce((sum, value) => sum + value, 0);
+  return total > 0 ? raw.map((value) => value / total) : BRAIN_V2_ACTIONS.map(() => 1 / BRAIN_V2_ACTIONS.length);
+}
+
+function targetVector(target) {
+  if (Array.isArray(target)) {
+    const scores = Object.fromEntries(BRAIN_V2_ACTIONS.map((action, index) => [action, finite(target[index], 0)]));
+    return scoreVector(scores);
+  }
+  return scoreVector(target);
+}
+
+function actionFrom(probabilities) {
+  let index = 0;
+  for (let i = 1; i < probabilities.length; i += 1) if (probabilities[i] > probabilities[index]) index = i;
+  return { index, action: BRAIN_V2_ACTIONS[index], confidence: probabilities[index] };
+}
+
+function vectorDistance(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return 1;
+  return Math.sqrt(a.reduce((sum, value, index) => sum + ((value - b[index]) ** 2), 0) / a.length);
+}
+
+function storageOf(root) {
+  try { return root && (root.localStorage || (root.parent && root.parent.localStorage)) || null; } catch (_) { return null; }
+}
+
+function partyRows(snapshot) {
+  const rows = [];
+  const seen = new Set();
+  const add = (row) => {
+    if (!row) return;
+    const name = String(row.name || row.id || '');
+    if (!name || seen.has(name)) return;
+    seen.add(name);
+    rows.push(row);
+  };
+  add(snapshot && snapshot.character);
+  for (const member of snapshot && snapshot.party || []) add(member);
+  return rows;
+}
+
+function freeSlots(character) {
+  const inventory = Array.isArray(character && character.inventory) ? character.inventory : [];
+  const size = Math.max(0, Math.floor(finite(character && character.isize, inventory.length)));
+  const occupied = inventory.slice(0, size || undefined).filter(Boolean).length;
+  return { size, free: Math.max(0, size - occupied), ratio: size ? clamp((size - occupied) / size) : 0.5 };
+}
+
+function performanceStatus(runtime) {
+  try { return runtime && runtime.performance && typeof runtime.performance.status === 'function' ? runtime.performance.status() || {} : {}; } catch (_) { return {}; }
+}
+
+function currentRates(runtime) {
+  const status = performanceStatus(runtime);
+  const current = status.current || (Array.isArray(status.recent) && status.recent[status.recent.length - 1]) || {};
+  return current.rates || {};
+}
+
+function currentMarketLiquidity(runtime) {
+  try {
+    const status = runtime && runtime.economyEquipmentAutonomyV2 && runtime.economyEquipmentAutonomyV2.status && runtime.economyEquipmentAutonomyV2.status();
+    const rows = status && status.marketDecisions || [];
+    return clamp(average(rows.map((row) => row && row.liquidity), 0.25));
+  } catch (_) { return 0.25; }
+}
+
+function worldConfidence(runtime) {
+  try {
+    const status = runtime && runtime.world && runtime.world.status && runtime.world.status();
+    return clamp(finite(status && (status.confidence || status.averageConfidence), 0.5));
+  } catch (_) { return 0.5; }
+}
+
+function currentKiteConfidence(runtime) {
+  try {
+    const module = runtime && runtime.alpha24AdaptiveRangeRiskLogisticsHotfix;
+    const status = module && module.status && module.status();
+    return clamp(finite(status && status.currentTankAssessment && status.currentTankAssessment.kiteConfidence, 0));
+  } catch (_) { return 0; }
+}
+
+function recentErrorHealth(runtime) {
+  try {
+    const rows = runtime && runtime.log && runtime.log.list ? runtime.log.list(80) : [];
+    const failures = rows.filter((row) => row && ['warn', 'error', 'fatal'].includes(String(row.severity))).length;
+    return clamp(1 - failures / 20);
+  } catch (_) { return 0.75; }
+}
+
+function targetCandidate(context) {
+  const ranked = Array.isArray(context && context.teacherRanking) ? context.teacherRanking : [];
+  const candidates = Array.isArray(context && context.candidates) ? context.candidates : [];
+  return ranked[0] || candidates[0] || null;
+}
+
+class TinyStrategyNetwork {
+  constructor(state = null) {
+    this.inputSize = BRAIN_V2_INPUT_NAMES.length;
+    this.hiddenSize = HIDDEN_SIZE;
+    this.outputSize = BRAIN_V2_ACTIONS.length;
+    this.w1 = Array.from({ length: this.hiddenSize }, (_, hidden) => Array.from({ length: this.inputSize }, (_, input) => seeded(hidden * this.inputSize + input)));
+    this.b1 = Array(this.hiddenSize).fill(0);
+    this.w2 = Array.from({ length: this.outputSize }, (_, output) => Array.from({ length: this.hiddenSize }, (_, hidden) => seeded(2000 + output * this.hiddenSize + hidden)));
+    this.b2 = Array(this.outputSize).fill(0);
+    if (state) this.restore(state);
+  }
+
+  forward(input) {
+    const x = BRAIN_V2_INPUT_NAMES.map((_, index) => clamp(input && input[index]));
+    const hidden = this.w1.map((row, hiddenIndex) => Math.tanh(row.reduce((sum, weight, inputIndex) => sum + weight * x[inputIndex], this.b1[hiddenIndex])));
+    const logits = this.w2.map((row, outputIndex) => row.reduce((sum, weight, hiddenIndex) => sum + weight * hidden[hiddenIndex], this.b2[outputIndex]));
+    return { x, hidden, logits, probs: softmax(logits) };
+  }
+
+  train(input, target, learningRate = 0.01) {
+    const forward = this.forward(input);
+    const y = targetVector(target);
+    const deltaOutput = forward.probs.map((probability, index) => probability - y[index]);
+    const deltaHidden = Array(this.hiddenSize).fill(0);
+    for (let output = 0; output < this.outputSize; output += 1) {
+      for (let hidden = 0; hidden < this.hiddenSize; hidden += 1) deltaHidden[hidden] += this.w2[output][hidden] * deltaOutput[output];
+    }
+    for (let output = 0; output < this.outputSize; output += 1) {
+      for (let hidden = 0; hidden < this.hiddenSize; hidden += 1) this.w2[output][hidden] -= learningRate * deltaOutput[output] * forward.hidden[hidden];
+      this.b2[output] -= learningRate * deltaOutput[output];
+    }
+    for (let hidden = 0; hidden < this.hiddenSize; hidden += 1) {
+      const delta = deltaHidden[hidden] * (1 - forward.hidden[hidden] ** 2);
+      for (let inputIndex = 0; inputIndex < this.inputSize; inputIndex += 1) this.w1[hidden][inputIndex] -= learningRate * delta * forward.x[inputIndex];
+      this.b1[hidden] -= learningRate * delta;
+    }
+    return -y.reduce((sum, expected, index) => sum + (expected > 0 ? expected * Math.log(Math.max(1e-9, forward.probs[index])) : 0), 0);
+  }
+
+  snapshot() { return safeClone({ w1: this.w1, b1: this.b1, w2: this.w2, b2: this.b2 }); }
+
+  restore(state) {
+    if (!state || !Array.isArray(state.w1) || state.w1.length !== this.hiddenSize || !Array.isArray(state.w2) || state.w2.length !== this.outputSize) return false;
+    if (!Array.isArray(state.b1) || state.b1.length !== this.hiddenSize || !Array.isArray(state.b2) || state.b2.length !== this.outputSize) return false;
+    try {
+      this.w1 = state.w1.map((row) => row.map(Number));
+      this.b1 = state.b1.map(Number);
+      this.w2 = state.w2.map((row) => row.map(Number));
+      this.b2 = state.b2.map(Number);
+      return this.w1.every((row) => row.length === this.inputSize && row.every(Number.isFinite)) && this.w2.every((row) => row.length === this.hiddenSize && row.every(Number.isFinite));
+    } catch (_) { return false; }
+  }
+}
+
+class BrainStateEncoderV2 {
+  encode(runtime, context = {}, meta = {}) {
+    const snapshot = context.snapshot || runtime && runtime.lastSnapshot || {};
+    const character = snapshot.character || {};
+    const party = partyRows(snapshot);
+    const alive = party.filter((member) => !(member.dead || member.rip));
+    const hostiles = (snapshot.entities || []).filter((entity) => entity && entity.mtype && !entity.dead && (entity.hp == null || finite(entity.hp) > 0));
+    const selfAggro = hostiles.filter((entity) => String(entity.target || '') === String(character.name || '')).length;
+    const target = targetCandidate(context);
+    const liveTarget = target && (snapshot.entities || []).find((entity) => String(entity.id) === String(target.entityId || target.id)) || null;
+    const rates = currentRates(runtime);
+    const slots = freeSlots(character);
+    const candidates = Array.isArray(context.candidates) ? context.candidates : [];
+    const maxXp = Math.max(1, ...candidates.map((row) => Math.max(0, finite(row.xpPerHour, 0))));
+    const maxGold = Math.max(1, ...candidates.map((row) => Math.max(0, finite(row.goldPerHour, 0))));
+    const risk = runtime && runtime.lastRiskSkip;
+    const riskThreshold = finite(runtime && runtime.combatRisk && runtime.combatRisk.threshold, 0.65);
+    const riskScore = finite(risk && risk.score, riskThreshold * 0.5);
+    const deaths = Math.max(0, finite(rates.deathsPerHour, 0));
+    const travelSeconds = Math.max(0, finite(target && target.travelSeconds, 60));
+    const expectedKillSeconds = Math.max(0, finite(target && target.expectedKillSeconds, 25));
+    const currentPlan = context.currentPlan || {};
+    const targetId = target && String(target.id || target.monster || '');
+    const planId = String(currentPlan.id || currentPlan.monster || '');
+    let gearGoals = 0;
+    try { gearGoals = runtime && runtime.gearProgression && runtime.gearProgression.list ? runtime.gearProgression.list(64).length : 0; } catch (_) {}
+    let merchantBusy = false;
+    try {
+      const status = runtime && runtime.economyEquipmentAutonomyV2 && runtime.economyEquipmentAutonomyV2.status && runtime.economyEquipmentAutonomyV2.status();
+      merchantBusy = !!(status && (status.busy || status.homeService && !['STANDBY', 'MARKET_SERVICE'].includes(status.homeService.phase)));
+    } catch (_) {}
+    const values = {
+      hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120), rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
+      partyPresentRatio: clamp(party.length / 4), partyAliveRatio: party.length ? clamp(alive.length / party.length) : 0.25, partyCohesion: meta.partyCohesion == null ? (party.length >= 3 ? 0.8 : 0.4) : clamp(meta.partyCohesion), selfAggro: clamp(selfAggro / 3), visibleHostiles: clamp(hostiles.length / 12),
+      targetHpRatio: liveTarget ? ratio(liveTarget.hp, liveTarget.max_hp || liveTarget.hp, 1) : 0.5, riskHeadroom: clamp((riskThreshold - riskScore + 1) / 1.5), deathSafety: clamp(1 - deaths), xpRate: clamp(Math.max(0, finite(target && target.xpPerHour, finite(rates.xpPerHour, 0))) / maxXp), goldRate: clamp(Math.max(0, finite(target && target.goldPerHour, finite(rates.goldPerHour, 0))) / maxGold),
+      freeSlotsRatio: slots.ratio, inventoryHealth: clamp(0.25 + slots.ratio * 0.75), merchantIdle: merchantBusy ? 0 : 1, marketLiquidity: currentMarketLiquidity(runtime), gearHealth: clamp(1 - gearGoals / 20), travelEfficiency: clamp(1 - travelSeconds / Math.max(30, finite(meta.maxTravelSeconds, 600))), worldConfidence: worldConfidence(runtime), knowledgeFreshness: meta.knowledgeFreshness == null ? 0.7 : clamp(meta.knowledgeFreshness),
+      errorHealth: recentErrorHealth(runtime), recoveryHealth: ratio(character.hp, character.max_hp), currentPlanAffinity: targetId && planId && (targetId === planId || String(target && target.monster || '') === planId) ? 1 : 0, targetEfficiency: clamp(1 - expectedKillSeconds / 90), kiteConfidence: currentKiteConfidence(runtime), teacherRecency: clamp(1 - finite(meta.teacherAgeMs, 300000) / 600000), outcomeHealth: clamp((finite(meta.rewardEma, 0) + 1) / 2), novelty: clamp(finite(meta.novelty, 0.5))
+    };
+    return { names: BRAIN_V2_INPUT_NAMES.slice(), values, vector: BRAIN_V2_INPUT_NAMES.map((name) => clamp(values[name])) };
+  }
+}
+
+function deterministicTeacher(context) {
+  const rows = Array.isArray(context.teacherRanking) ? context.teacherRanking : [];
+  const top = rows[0] || (Array.isArray(context.candidates) ? context.candidates[0] : null) || null;
+  const current = context.currentPlan || null;
+  if (!top) return { action: 'wait', target: '', confidence: 0.8, scores: { continue: 0.04, change_farm_target: 0.02, replan_merchant: 0.04, explore: 0.1, wait: 0.8 }, reason: 'no deterministic candidate', lesson: 'Wait when deterministic safety has no eligible target.', source: 'deterministic' };
+  const topId = String(top.id || top.monster || '');
+  const currentId = String(current && (current.id || current.monster) || '');
+  const same = !!currentId && (currentId === topId || currentId === String(top.monster || ''));
+  const action = same ? 'continue' : 'change_farm_target';
+  const scores = { continue: 0.08, change_farm_target: 0.08, replan_merchant: 0.04, explore: 0.03, wait: 0.02 };
+  scores[action] = 0.75;
+  return { action, target: String(top.monster || top.id || ''), confidence: 0.75, scores, reason: same ? 'deterministic planner confirms current plan' : 'deterministic planner prefers another safe target', lesson: 'Use deterministic planner ranking as safe strategic baseline.', source: 'deterministic' };
+}
+
+class StrategicBrainV2 {
+  constructor(options = {}) {
+    this.runtime = options.runtime || null;
+    this.control = options.controlPlane || null;
+    this.legacy = options.legacyBrain || null;
+    this.root = options.root || this.runtime && this.runtime.root || globalThis;
+    this.now = options.now || this.runtime && this.runtime.now || (() => Date.now());
+    this.log = options.log || this.runtime && this.runtime.log || null;
+    this.encoder = new BrainStateEncoderV2();
+    this.replayBuffer = new BoundedReplayBuffer({ capacity: this._cfg('brain.replayCapacity', 512) });
+    this.network = new TinyStrategyNetwork();
+    this.remoteTeacher = null;
+    this.remoteTeacherAt = 0;
+    this.lastObservation = null;
+    this.pendingOutcome = null;
+    this.rewardEma = 0;
+    this.lossEma = null;
+    this.agreementEma = null;
+    this.overconfidenceFailures = 0;
+    this.samples = 0;
+    this.updates = 0;
+    this.outcomes = 0;
+    this.lastTrainAt = 0;
+    this.lastSaveAt = 0;
+    this.persistenceDisabled = false;
+    this.persistenceError = null;
+    this.diary = [];
+    this.quality = { state: 'warming', score: 0.5, reason: 'collecting evidence' };
+    this.league = { generation: 0, champion: null, championLoss: null, promotions: 0, rollbacks: 0, rejections: 0, lastEvent: null, lastEventAt: 0, lastReason: null };
+    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
+    this._restore();
+    this._diary('learn', '🧠', 'Brain v2 bereit', '32→24→5 Student, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.', 'neutral');
+  }
+
+  _cfg(key, fallback) { return this.control && typeof this.control.get === 'function' ? this.control.get(key, fallback) : fallback; }
+
+  _diary(kind, icon, title, detail, tone = 'neutral', extra = {}) {
+    const row = { id: `brain-${this.now()}-${this.diary.length}`, at: this.now(), kind, icon, title, detail, tone, ...extra };
+    this.diary.push(row);
+    const max = Math.max(20, Math.min(300, Math.floor(this._cfg('brain.diaryMaxEntries', 100))));
+    if (this.diary.length > max) this.diary.splice(0, this.diary.length - max);
+    return row;
+  }
+
+  _restore() {
+    const storage = storageOf(this.root);
+    if (!storage) return false;
+    try {
+      const state = JSON.parse(storage.getItem(STORAGE_KEY) || 'null');
+      if (!state || Number(state.schemaVersion) !== 2) return false;
+      if (state.network) this.network.restore(state.network);
+      this.rewardEma = finite(state.rewardEma, 0);
+      this.lossEma = state.lossEma == null ? null : finite(state.lossEma);
+      this.agreementEma = state.agreementEma == null ? null : finite(state.agreementEma);
+      this.samples = Math.max(0, Math.floor(finite(state.samples, 0)));
+      this.updates = Math.max(0, Math.floor(finite(state.updates, 0)));
+      this.outcomes = Math.max(0, Math.floor(finite(state.outcomes, 0)));
+      this.league = { ...this.league, ...(state.league || {}) };
+      this.diary = Array.isArray(state.diary) ? state.diary.slice(-100) : [];
+      this.stats.restoreSuccess += 1;
+      return true;
+    } catch (error) {
+      this.stats.restoreErrors += 1;
+      this.persistenceError = String(error && error.message || error).slice(0, 240);
+      return false;
+    }
+  }
+
+  _save(force = false) {
+    if (this.persistenceDisabled) return false;
+    const now = this.now();
+    if (!force && now - this.lastSaveAt < 15000) return false;
+    const storage = storageOf(this.root);
+    if (!storage) return false;
+    this.lastSaveAt = now;
+    try {
+      storage.setItem(STORAGE_KEY, JSON.stringify(this.exportState()));
+      this.stats.saves += 1;
+      this.persistenceError = null;
+      return true;
+    } catch (error) {
+      this.stats.persistenceFailures += 1;
+      this.persistenceError = String(error && error.message || error).slice(0, 240);
+      if (/quota|exceed/i.test(this.persistenceError)) this.persistenceDisabled = true;
+      return false;
+    }
+  }
+
+  _novelty(vector) {
+    const rows = this.replayBuffer.list(48).filter((row) => Array.isArray(row.vector));
+    if (!rows.length) return 1;
+    return clamp(Math.min(...rows.map((row) => vectorDistance(vector, row.vector))) * 2.5);
+  }
+
+  _quality() {
+    const minSamples = Math.max(16, Math.floor(this._cfg('brain.championMinSamples', 120) / 3));
+    let state = 'healthy'; let reason = 'stable learning'; let score = 0.75;
+    if (this.samples < minSamples) { state = 'warming'; reason = 'collecting evidence'; score = clamp(this.samples / minSamples * 0.7); }
+    else if (this.rewardEma < -0.35 || this.overconfidenceFailures >= 5) { state = 'quarantine'; reason = 'negative outcomes or repeated overconfidence'; score = 0.1; }
+    else if (this.rewardEma < -0.15 || finite(this.lossEma, 0) > 1.45) { state = 'degraded'; reason = 'reward/loss degraded'; score = 0.3; }
+    else if (this.rewardEma < 0 || finite(this.lossEma, 0) > 1.15) { state = 'watch'; reason = 'learning quality under observation'; score = 0.55; }
+    this.quality = { state, score: Number(score.toFixed(3)), reason, rewardEma: Number(this.rewardEma.toFixed(4)), lossEma: this.lossEma == null ? null : Number(this.lossEma.toFixed(4)), overconfidenceFailures: this.overconfidenceFailures };
+    return this.quality;
+  }
+
+  _train(vector, target, source = 'teacher') {
+    const learningRate = clamp(this._cfg('brain.learningRate', 0.012), 0.001, 0.08);
+    const loss = this.network.train(vector, target, learningRate);
+    this.lossEma = this.lossEma == null ? loss : this.lossEma * 0.94 + loss * 0.06;
+    this.updates += 1;
+    this.lastTrainAt = this.now();
+    this.replayBuffer.push({ at: this.now(), vector: vector.slice(), target: target.slice(), source, loss });
+    return loss;
+  }
+
+  _replayTrain() {
+    const batchSize = Math.max(4, Math.min(64, Math.floor(this._cfg('brain.replayBatchSize', 12))));
+    const rows = this.replayBuffer.list(batchSize);
+    if (!rows.length) return;
+    const learningRate = clamp(this._cfg('brain.learningRate', 0.012), 0.001, 0.08) * 0.35;
+    for (const row of rows) if (Array.isArray(row.vector) && Array.isArray(row.target)) this.network.train(row.vector, row.target, learningRate);
+    this.stats.replayTrains += 1;
+  }
+
+  _teacherFor(context) {
+    const maxAge = Math.max(30000, finite(this._cfg('brain.teacherMaxIntervalMs', 300000), 300000));
+    if (this.remoteTeacher && this.now() - this.remoteTeacherAt <= maxAge) return { ...this.remoteTeacher, source: 'cloudflare' };
+    return deterministicTeacher(context);
+  }
+
+  observe(context = {}) {
+    this.stats.observations += 1;
+    if (this._cfg('brain.enabled', true) !== true) return this.lastObservation;
+    let legacy = null;
+    try { legacy = this.legacy && typeof this.legacy.observe === 'function' ? this.legacy.observe(context) : null; } catch (_) {}
+    const teacherAgeMs = this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : 600000;
+    const preliminary = this.encoder.encode(this.runtime, context, { teacherAgeMs, rewardEma: this.rewardEma, novelty: 0.5, maxTravelSeconds: this._cfg('farming.maxTravelSeconds', 600) });
+    const novelty = this._novelty(preliminary.vector);
+    const encoded = this.encoder.encode(this.runtime, context, { teacherAgeMs, rewardEma: this.rewardEma, novelty, maxTravelSeconds: this._cfg('farming.maxTravelSeconds', 600) });
+    const forward = this.network.forward(encoded.vector);
+    const student = actionFrom(forward.probs);
+    const teacher = this._teacherFor(context);
+    const target = scoreVector(teacher.scores);
+    const teacherAction = actionFrom(target);
+    const loss = this._train(encoded.vector, target, teacher.source);
+    this.samples += 1;
+    this.stats.teacherSamples += 1;
+    if (teacher.source === 'cloudflare') this.stats.remoteTeacherSamples += 1; else this.stats.deterministicTeacherSamples += 1;
+    const agreement = student.action === teacherAction.action;
+    this.agreementEma = this.agreementEma == null ? (agreement ? 1 : 0) : this.agreementEma * 0.94 + (agreement ? 1 : 0) * 0.06;
+    this._replayTrain();
+    const topCandidate = targetCandidate(context);
+    const recommendation = topCandidate ? { id: String(topCandidate.id || topCandidate.monster || ''), monster: String(topCandidate.monster || ''), map: topCandidate.map || null, strategicAction: student.action, confidence: Number(student.confidence.toFixed(4)) } : null;
+    const record = {
+      at: this.now(), mode: 'shadow', actionAuthority: false, directActionAccess: false, candidateCount: Array.isArray(context.candidates) ? context.candidates.length : 0, recommendation,
+      student: { action: student.action, confidence: Number(student.confidence.toFixed(4)), scores: Object.fromEntries(BRAIN_V2_ACTIONS.map((action, index) => [action, Number(forward.probs[index].toFixed(4))])), entropy: Number(entropy(forward.probs).toFixed(4)), novelty: Number(novelty.toFixed(4)) },
+      teacher: { source: teacher.source, action: teacher.action, target: teacher.target || '', confidence: finite(teacher.confidence, teacherAction.confidence), reason: teacher.reason || '', lesson: teacher.lesson || '' }, agreement, loss: Number(loss.toFixed(5)), target: teacher.target || '', quality: this._quality(), legacy: legacy && legacy.recommendation ? { recommendation: legacy.recommendation } : null, inputs: encoded.values
+    };
+    this.lastObservation = record;
+    this.replayBuffer.push({ at: record.at, vector: encoded.vector.slice(), target: target.slice(), source: 'observation', student: record.student, teacher: record.teacher, agreement, loss });
+    if (!this.pendingOutcome) this.pendingOutcome = { startedAt: this.now(), dueAt: this.now() + Math.max(15000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000)), action: student.action, target: teacher.target || '', confidence: student.confidence, baseline: this.captureMetrics() };
+    this._leagueCheck();
+    this._save();
+    if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_OBSERVATION', data: { student: record.student, teacher: record.teacher, agreement, quality: record.quality.state } });
+    return record;
+  }
+
+  ingestTeacher(decision, meta = {}) {
+    if (!decision || !BRAIN_V2_ACTIONS.includes(String(decision.action))) return false;
+    const normalized = scoreVector(decision.scores);
+    const clean = { action: String(decision.action), target: String(decision.target || ''), confidence: clamp(decision.confidence), scores: Object.fromEntries(BRAIN_V2_ACTIONS.map((action, index) => [action, normalized[index]])), reason: String(decision.reason || '').slice(0, 300), lesson: String(decision.lesson || '').slice(0, 400), expected: decision.expected && typeof decision.expected === 'object' ? safeClone(decision.expected) : null, recheckSeconds: Math.max(5, Math.min(1800, finite(decision.recheckSeconds, 60))), source: 'cloudflare', neurons: finite(meta.neurons, 0) };
+    this.remoteTeacher = clean;
+    this.remoteTeacherAt = this.now();
+    this._diary('teacher', '🎓', `Teacher: ${clean.action}`, clean.lesson || clean.reason || 'Neue strategische Lektion.', 'learn', { action: clean.action, target: clean.target });
+    if (this.lastObservation && this.lastObservation.inputs) this._train(BRAIN_V2_INPUT_NAMES.map((name) => clamp(this.lastObservation.inputs[name])), normalized, 'remote-teacher');
+    this._save(true);
+    return true;
+  }
+
+  captureMetrics() {
+    const snapshot = this.runtime && this.runtime.lastSnapshot || {};
+    const character = snapshot.character || {};
+    const rates = currentRates(this.runtime);
+    const slots = freeSlots(character);
+    return { at: this.now(), xpPerHour: finite(rates.xpPerHour, 0), goldPerHour: finite(rates.goldPerHour, 0), deathsPerHour: finite(rates.deathsPerHour, 0), damageTakenPerHour: finite(rates.damageTakenPerHour, 0), hpRatio: ratio(character.hp, character.max_hp), freeSlots: slots.free, freeSlotsRatio: slots.ratio, rip: !!character.rip, errorHealth: recentErrorHealth(this.runtime) };
+  }
+
+  tickOutcome() {
+    if (!this.pendingOutcome || this.now() < this.pendingOutcome.dueAt) return null;
+    const pending = this.pendingOutcome;
+    this.pendingOutcome = null;
+    const before = pending.baseline || {};
+    const after = this.captureMetrics();
+    const relative = (current, prior, scale) => clamp((finite(current) - finite(prior)) / Math.max(scale, Math.abs(finite(prior)), 1), -1, 1);
+    const xp = relative(after.xpPerHour, before.xpPerHour, 250000), gold = relative(after.goldPerHour, before.goldPerHour, 50000), slots = clamp((finite(after.freeSlots) - finite(before.freeSlots)) / 8, -1, 1), safety = clamp((finite(before.deathsPerHour) - finite(after.deathsPerHour)) / 0.5, -1, 1), hp = clamp((finite(after.hpRatio) - finite(before.hpRatio)) * 2, -1, 1), errors = clamp(finite(after.errorHealth) - finite(before.errorHealth), -1, 1);
+    let reward = 0.30 * xp + 0.16 * gold + 0.12 * slots + 0.25 * safety + 0.10 * hp + 0.07 * errors;
+    if (after.rip) reward -= 0.8;
+    reward = clamp(reward, -1, 1);
+    this.rewardEma = this.outcomes ? this.rewardEma * 0.88 + reward * 0.12 : reward;
+    this.outcomes += 1;
+    this.stats.outcomeRewards += 1;
+    if (pending.confidence > 0.72 && reward < -0.25) this.overconfidenceFailures += 1; else if (reward > 0) this.overconfidenceFailures = Math.max(0, this.overconfidenceFailures - 1);
+    const outcome = { at: this.now(), action: pending.action, target: pending.target, confidence: pending.confidence, reward: Number(reward.toFixed(4)), before, after, components: { xp: Number(xp.toFixed(3)), gold: Number(gold.toFixed(3)), slots: Number(slots.toFixed(3)), safety: Number(safety.toFixed(3)), hp: Number(hp.toFixed(3)), errors: Number(errors.toFixed(3)) } };
+    this._diary('outcome', reward > 0.08 ? '✅' : reward < -0.08 ? '⚠️' : '📊', `Outcome ${reward >= 0 ? '+' : ''}${reward.toFixed(3)}`, `${outcome.action}${outcome.target ? ' · ' + outcome.target : ''} · XP ${Math.round(after.xpPerHour)}/h · Gold ${Math.round(after.goldPerHour)}/h`, reward > 0.08 ? 'good' : reward < -0.08 ? 'bad' : 'neutral', { action: outcome.action, target: outcome.target, reward: outcome.reward });
+    this._quality(); this._leagueCheck(outcome); this._save(true);
+    if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_OUTCOME', data: outcome });
+    return outcome;
+  }
+
+  _validationLoss(networkState = null) {
+    const rows = this.replayBuffer.list(64).filter((row) => Array.isArray(row.vector) && Array.isArray(row.target));
+    if (!rows.length) return null;
+    const network = networkState ? new TinyStrategyNetwork(networkState) : this.network;
+    return average(rows.map((row) => { const probabilities = network.forward(row.vector).probs; return -row.target.reduce((sum, expected, index) => sum + (expected > 0 ? expected * Math.log(Math.max(1e-9, probabilities[index])) : 0), 0); }), null);
+  }
+
+  _leagueEvent(kind, reason, tone = 'learn') { this.league.lastEvent = kind; this.league.lastEventAt = this.now(); this.league.lastReason = reason; this._diary('league', kind === 'rollback' ? '↩️' : '🏆', kind, reason, tone); }
+
+  _leagueCheck(outcome = null) {
+    const minimum = Math.max(32, Math.floor(this._cfg('brain.championMinSamples', 120)));
+    if (!this.league.champion && this.samples >= minimum) { this.league.champion = this.network.snapshot(); this.league.championLoss = this._validationLoss(this.league.champion); this.league.generation = 1; this._leagueEvent('first_champion', 'Erster stabiler Student-Snapshot nach Mindest-Samples.', 'good'); return; }
+    if (!this.league.champion) return;
+    if (outcome && outcome.reward < -0.55) { this.network.restore(this.league.champion); this.league.rollbacks += 1; this._leagueEvent('rollback', `Starker negativer Reward ${outcome.reward.toFixed(3)}; Champion wiederhergestellt.`, 'bad'); return; }
+    if (this.updates % 32 !== 0) return;
+    const challengerLoss = this._validationLoss(), championLoss = this._validationLoss(this.league.champion);
+    if (challengerLoss == null || championLoss == null) return;
+    const improvement = (championLoss - challengerLoss) / Math.max(1e-6, championLoss), required = clamp(this._cfg('brain.challengerLossImprovement', 0.04), 0.005, 0.3);
+    if (improvement >= required && this.rewardEma >= -0.03) { this.league.champion = this.network.snapshot(); this.league.championLoss = challengerLoss; this.league.generation += 1; this.league.promotions += 1; this._leagueEvent('promotion', `Challenger verbessert Validierungs-Loss um ${(improvement * 100).toFixed(1)}%.`, 'good'); }
+    else if (improvement < -required * 1.5) { this.league.rejections += 1; this._leagueEvent('challenge_reject', `Challenger-Loss ist ${(Math.abs(improvement) * 100).toFixed(1)}% schlechter als Champion.`, 'warn'); }
+  }
+
+  teacherRequest(trigger = 'periodic') {
+    if (!this.lastObservation) return null;
+    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true } };
+  }
+
+  shouldAskTeacher() {
+    if (!this._cfg('brain.teacherEnabled', true) || !this.lastObservation) return false;
+    const age = this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : Infinity, minInterval = Math.max(5000, finite(this._cfg('brain.teacherMinIntervalMs', 30000), 30000)), maxInterval = Math.max(minInterval, finite(this._cfg('brain.teacherMaxIntervalMs', 300000), 300000));
+    if (age < minInterval) return false;
+    if (age >= maxInterval) return true;
+    return this.lastObservation.student.entropy >= this._cfg('brain.entropyTeacherThreshold', 0.72) || this.lastObservation.student.novelty >= this._cfg('brain.noveltyTeacherThreshold', 0.45) || ['watch', 'degraded', 'quarantine'].includes(this.quality.state);
+  }
+
+  replay(limit = 32) { return this.replayBuffer.list(limit); }
+
+  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
+
+  importState(state) {
+    if (!state || Number(state.schemaVersion) !== 2 || !state.network) return false;
+    const incomingSamples = Math.max(0, Math.floor(finite(state.samples, 0)));
+    if (incomingSamples < this.samples || !this.network.restore(state.network)) return false;
+    this.samples = incomingSamples; this.updates = Math.max(this.updates, Math.floor(finite(state.updates, 0))); this.outcomes = Math.max(this.outcomes, Math.floor(finite(state.outcomes, 0))); this.rewardEma = finite(state.rewardEma, this.rewardEma); this.lossEma = state.lossEma == null ? this.lossEma : finite(state.lossEma); this.agreementEma = state.agreementEma == null ? this.agreementEma : finite(state.agreementEma); this._save(true); return true;
+  }
+
+  status() {
+    const quality = this._quality();
+    return { schemaVersion: 2, mode: BRAIN_V2_MODE, operatingMode: this._cfg('brain.mode', 'shadow'), enabled: this._cfg('brain.enabled', true), actionAuthority: false, directActionAccess: false, executorBypassAllowed: false,
+      architecture: { inputs: BRAIN_V2_INPUT_NAMES.length, inputNames: BRAIN_V2_INPUT_NAMES.slice(), hidden: HIDDEN_SIZE, outputs: BRAIN_V2_ACTIONS.length, actions: BRAIN_V2_ACTIONS.slice() },
+      student: { samples: this.samples, updates: this.updates, outcomes: this.outcomes, lossEma: this.lossEma == null ? null : Number(this.lossEma.toFixed(5)), rewardEma: Number(this.rewardEma.toFixed(5)), agreementEma: this.agreementEma == null ? null : Number(this.agreementEma.toFixed(5)), lastTrainAt: this.lastTrainAt, replay: this.replayBuffer.status() },
+      teacher: { remoteAvailable: !!this.remoteTeacher, lastAt: this.remoteTeacherAt, ageMs: this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : null, lastDecision: safeClone(this.remoteTeacher), shouldAsk: this.shouldAskTeacher() }, quality,
+      league: { generation: this.league.generation, hasChampion: !!this.league.champion, championLoss: this.league.championLoss, promotions: this.league.promotions, rollbacks: this.league.rollbacks, rejections: this.league.rejections, lastEvent: this.league.lastEvent, lastEventAt: this.league.lastEventAt, lastReason: this.league.lastReason },
+      current: this.lastObservation, lastRecommendation: this.lastObservation, pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
+      diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
+  }
+}
+
+module.exports = { BRAIN_V2_MODE, BRAIN_V2_ACTIONS, BRAIN_V2_INPUT_NAMES, TinyStrategyNetwork, BrainStateEncoderV2, StrategicBrainV2, scoreVector };
 
 },
 "src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
