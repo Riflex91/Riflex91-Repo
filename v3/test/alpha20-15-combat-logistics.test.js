@@ -173,6 +173,6 @@ test('Inventory offer skips potions and offers levelled gear while Merchant stil
   assert.equal(sent[0].data.item.level, 4);
 });
 
-test('visible release version matches Alpha20.15', () => {
-  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.15');
+test('visible release version matches integrated Alpha20.19', () => {
+  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.19');
 });
