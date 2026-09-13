@@ -35,6 +35,23 @@ class DangerousContentHotfix {
     return true;
   }
 
+  _alpha24Options() {
+    const c = this.runtime.controlPlane;
+    const get = (key, fallback) => c && typeof c.get === 'function' ? c.get(key, fallback) : fallback;
+    return {
+      rangedEngagementFactor: get('ranged.engagementFactor', 0.94),
+      rangedDesiredFactor: get('ranged.desiredFactor', 0.92),
+      rangedTooCloseFactor: get('ranged.tooCloseFactor', 0.84),
+      firePositionTriggerFactor: get('ranged.firePositionTriggerFactor', 0.80),
+      firePositionCooldownMs: get('ranged.moveCooldownMs', 1200),
+      maxKiteAdditionalAggro: get('combat.maxKiteAdditionalAggro', 2),
+      kiteRiskMitigationScale: get('combat.kiteRiskMitigationScale', 0.78),
+      maxKiteDeathsPerHour: get('combat.maxKiteDeathsPerHour', 0.60),
+      hardMaxKillSeconds: get('combat.hardMaxKillSeconds', 75),
+      softKillSeconds: get('combat.softKillSeconds', 30)
+    };
+  }
+
   _installClosedLoopAutonomy() {
     if (!this.runtime.controlledPartyLogistics || !this.runtime.teamCombatCohesionHotfix || !this.runtime.partyAccountCommunication) return false;
     try {
@@ -42,8 +59,9 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
       if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
       if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
-      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime);
+      // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
       if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
+      if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
