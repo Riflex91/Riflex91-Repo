@@ -1,5 +1,8 @@
 'use strict';
 
+const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+
 const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v1';
 
 function finite(value, fallback = null) {
@@ -36,6 +39,13 @@ class TeamCohesionDeadlockHotfix {
     this.appliedFollowStep = Math.max(25, Math.min(this.previousFollowStep, this.appliedFollowRadius * 1.1));
     this.team.followStep = this.appliedFollowStep;
 
+    // Alpha20.15 is intentionally installed from this already-proven hook so it
+    // runs after team target selection exists but before party logistics is
+    // constructed. That lets us harden synthetic team rankings and patch the
+    // bounded logistics prototype without widening generic economy authority.
+    this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
+    this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
+
     this.installedAt = this.now();
     this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
   }
@@ -47,7 +57,7 @@ class TeamCohesionDeadlockHotfix {
 
   status() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: TEAM_COHESION_DEADLOCK_MODE,
       installedAt: this.installedAt || null,
       cohesionRadius: this.cohesionRadius,
@@ -59,7 +69,9 @@ class TeamCohesionDeadlockHotfix {
       theoreticalOppositeFollowerDistance: this.appliedFollowRadius * 2,
       previousFollowStep: this.previousFollowStep,
       appliedFollowStep: this.appliedFollowStep,
-      pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001
+      pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
+      alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
+      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness
     };
   }
 }

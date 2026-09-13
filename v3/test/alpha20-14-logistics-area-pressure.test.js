@@ -159,7 +159,7 @@ test('merchant automatically resupplies a trusted farmer with missing MP potions
   assert.equal(farmer.logistics.status().lastSupplyResult.committed, true);
 });
 
-test('farmer sends only safe material loot to merchant through a short-lived grant and keeps protected gear', async () => {
+test('farmer drains non-potion inventory before gold and keeps HP/MP potions local', async () => {
   const bus = { characters: {}, transports: {} };
   const clock = { now: 20000 };
   const merchant = makeLogisticsRuntime('My_Merchant', 'merchant', bus, clock, {
@@ -184,10 +184,11 @@ test('farmer sends only safe material loot to merchant through a short-lived gra
   await Promise.resolve();
   assert.equal(farmer.logistics.status().stats.lootVerified, 1);
   assert.ok(merchant.snapshot().character.inventory.some((item) => item && item.name === 'gslime' && item.q === 7));
-  assert.ok(farmer.snapshot().character.inventory.some((item) => item && item.name === 'sword'));
+  assert.ok(farmer.snapshot().character.inventory.some((item) => item && item.name === 'hpot0'));
+  assert.ok(farmer.snapshot().character.inventory.some((item) => item && item.name === 'mpot0'));
 });
 
-test('farmer transfers gold above the configured reserve and keeps the reserve locally', async () => {
+test('farmer transfers its complete gold balance when Merchant is nearby', async () => {
   const bus = { characters: {}, transports: {} };
   const clock = { now: 30000 };
   const merchant = makeLogisticsRuntime('My_Merchant', 'merchant', bus, clock, {
@@ -204,20 +205,20 @@ test('farmer transfers gold above the configured reserve and keeps the reserve l
   assert.equal(farmer.logistics.status().pendingGrant.action, 'GOLD_GRANT');
   clock.now += 50;
   farmer.logistics.tick(farmer.snapshot());
-  assert.equal(farmer.root.character.gold, 250000);
-  assert.equal(merchant.root.character.gold, 1350000);
+  assert.equal(farmer.root.character.gold, 0);
+  assert.equal(merchant.root.character.gold, 1600000);
   clock.now += 400;
   farmer.logistics.tick(farmer.snapshot());
   assert.equal(farmer.logistics.status().stats.goldVerified, 1);
 });
 
-test('merchant says stop and grants no farmer outbound transfer when its logistics workspace is full', async () => {
+test('merchant says stop for item loot only when its actual inventory is full', async () => {
   const bus = { characters: {}, transports: {} };
   const clock = { now: 40000 };
-  const filled = Array.from({ length: 39 }, (_, i) => rawItem(i === 0 ? 'mpot0' : i === 1 ? 'hpot0' : 'gslime', i < 2 ? 1500 : 1));
+  const filled = Array.from({ length: 42 }, (_, i) => rawItem(i === 0 ? 'mpot0' : i === 1 ? 'hpot0' : 'gslime', i < 2 ? 6000 : 1));
   const merchant = makeLogisticsRuntime('My_Merchant', 'merchant', bus, clock, { items: filled, gold: 1000000, x: 0, y: 0 });
   const farmer = makeLogisticsRuntime('My_Ranger1', 'ranger', bus, clock, {
-    items: [rawItem('hpot0', 500), rawItem('mpot0', 500), rawItem('gslime', 7)], gold: 100000, x: 30, y: 0
+    items: [rawItem('hpot0', 500), rawItem('mpot0', 500), rawItem('gslime', 7)], gold: 0, x: 30, y: 0
   });
 
   merchant.logistics.tick(merchant.snapshot());
