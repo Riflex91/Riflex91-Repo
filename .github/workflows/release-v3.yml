@@ -2,10 +2,18 @@ name: release-v3-alpha
 on:
   push:
     branches: ["v3/**"]
-    paths: ["v3/**", ".github/workflows/release-v3.yml"]
+    paths:
+      - "v3/**"
+      - ".github/codex/**"
+      - ".github/workflows/release-v3.yml"
+      - ".github/workflows/v3-ai-logic-review.yml"
   pull_request:
     branches: ["main"]
-    paths: ["v3/**", ".github/workflows/release-v3.yml"]
+    paths:
+      - "v3/**"
+      - ".github/codex/**"
+      - ".github/workflows/release-v3.yml"
+      - ".github/workflows/v3-ai-logic-review.yml"
 permissions:
   contents: write
 jobs:
@@ -16,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Release guardian preflight
+      - name: Release + Logic Guardian preflight
         working-directory: v3
         run: npm run preflight
       - name: Build and test v3
