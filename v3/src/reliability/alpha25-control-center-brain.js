@@ -20,39 +20,41 @@ class Alpha25ControlCenterBrain {
     runtime.legacyShadowBrain = this.legacyBrain;
     runtime.strategicBrainV2 = this.brain;
     runtime.brain = this.brain;
-    this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain });
+    this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
     runtime.cloudControlPlane = this.cloud;
     this.lastCycleAt = 0;
-    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, extendedSettingsApplied: 0 };
+    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
+    if (this.cloud.explicitGlobalConfig && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) this.patchSettings({ 'cloud.enabled': true }, 'global-cloud-config');
     if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'ALPHA25_CONTROL_CENTER_BRAIN_INSTALLED', data: this.status() });
   }
 
   _applyExtendedSettings(keys = null) {
-    const selected = keys ? new Set(keys) : null;
+    const selected = Array.isArray(keys) ? new Set(keys.map((row) => typeof row === 'string' ? row : row && row.key).filter(Boolean)) : null;
     const apply = (key, fn) => {
       if (selected && !selected.has(key)) return;
-      try { fn(this.controlPlane.get(key)); this.stats.extendedSettingsApplied += 1; } catch (_) {}
+      const value = this.controlPlane.get(key);
+      if (value == null) return;
+      try { fn(value); this.stats.extendedSettingsApplied += 1; } catch (_) {}
     };
     const farmer = this.runtime.farmer;
-    if (farmer && farmer.config) {
-      apply('combat.recoveryHpRatio', (v) => { farmer.config.recoverHpRatio = Number(v); });
-    }
+    if (farmer && farmer.config) apply('combat.recoveryHpRatio', (value) => { farmer.config.recoverHpRatio = Number(value); });
     const base = this.runtime.merchantEconomyAutonomy;
     if (base && base.cfg) {
       const map = {
         'merchant.lowFreeSlots': 'lowSlots', 'merchant.targetFreeSlots': 'targetSlots', 'merchant.potionLow': 'potionLow', 'merchant.potionTarget': 'potionTarget', 'merchant.goldReserve': 'goldReserve', 'merchant.transferRange': 'transferRange',
         'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap', 'economy.maxUpgrade': 'maxUpgrade', 'economy.maxCompound': 'maxCompound'
       };
-      for (const [key, prop] of Object.entries(map)) apply(key, (v) => { base.cfg[prop] = Number(v); });
+      for (const [key, property] of Object.entries(map)) apply(key, (value) => { base.cfg[property] = Number(value); });
     }
     const economy = this.runtime.economyEquipmentAutonomyV2;
     if (economy && economy.marketHistory) {
-      apply('economy.marketMaxTrackedItems', (v) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(v) || 96)); });
-      apply('economy.marketMaxSamples', (v) => { economy.marketHistory.maxSamplesPerItem = Math.max(8, Math.min(128, Number(v) || 48)); });
+      apply('economy.marketMaxTrackedItems', (value) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(value) || 96)); });
+      apply('economy.marketMaxSamples', (value) => { economy.marketHistory.maxSamplesPerItem = Math.max(8, Math.min(128, Number(value) || 48)); });
     }
-    if (this.runtime.combatRisk) apply('combat.riskThreshold', (v) => { this.runtime.combatRisk.threshold = Number(v); });
+    if (this.runtime.combatRisk) apply('combat.riskThreshold', (value) => { this.runtime.combatRisk.threshold = Number(value); });
+    if (selected) this.stats.remoteExtendedPatches += selected.size;
     return true;
   }
 
@@ -78,7 +80,7 @@ class Alpha25ControlCenterBrain {
   patchSettings(values = {}, source = 'local-api') {
     const patch = this.controlPlane.patch(values, { source });
     const applied = this.controlPlane.applyHot(this.runtime, patch.changed);
-    this._applyExtendedSettings(patch.changed.map((x) => x.key));
+    this._applyExtendedSettings(patch.changed);
     this.stats.localPatches += patch.changed.length;
     return { ...patch, ...applied };
   }
@@ -91,7 +93,7 @@ class Alpha25ControlCenterBrain {
 
   status() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: ALPHA25_MODE,
       installedAt: this.installedAt,
       controlPlane: this.controlPlane.status(),
@@ -100,6 +102,9 @@ class Alpha25ControlCenterBrain {
       stats: { ...this.stats },
       policies: {
         dashboardSettingsAreLocallyRevalidated: true,
+        remoteExtendedSettingsReachLiveSubsystems: true,
+        outcomeEvaluationHasSingleOwner: true,
+        explicitGlobalCloudConfigEnablesControlPlane: true,
         cloudCannotBypassSafety: true,
         brainStrategicOnly: true,
         brainDirectExecutorAccess: false,
