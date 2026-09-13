@@ -74,24 +74,33 @@ test('Alpha20.17 rejects a fresh boss/special pull but keeps an active encounter
   assert.equal(second.ranking.source, 'tactical-encounter-lock');
 });
 
-test('Alpha20.19 direct transport uses a visible trusted party character even when get_active_characters is local-only', async () => {
+test('Alpha20.19 direct transport requires observed-active even when broader party evidence exists', async () => {
   installAlpha2019AccountTransportHotfix();
   const direct = []; const cm = [];
   const root = {
     character: { name: 'R1' },
     get_active_characters: () => ({ R1: 'self' }),
+    get_player: (name) => name === 'R2' ? { name: 'R2', ctype: 'ranger', map: 'main', hp: 1000 } : null,
     command_character: (name, code) => { direct.push({ name, code }); },
     send_cm: (name, payload) => { cm.push({ name, payload }); },
-    parent: { party: { R2: { name: 'R2', map: 'main', x: 20, y: 0, hp: 1000 } } }
+    parent: {
+      entities: { r2: { name: 'R2', ctype: 'ranger', map: 'main', x: 20, y: 0, hp: 1000 } },
+      party: { R2: { name: 'R2', map: 'main', x: 20, y: 0, hp: 1000 } }
+    }
   };
   const transport = new AccountCharacterTransport({ root, trustedNames: ['R1', 'R2', 'R3'] });
+  assert.equal(transport.strongLiveEvidence('R2').live, true);
   const result = await transport.send('R2', { ok: true }, { receiver: '__rx', sender: 'R1' });
-  assert.equal(result.transport, 'command_character');
-  assert.equal(result.evidence, 'party');
-  assert.equal(direct.length, 1);
-  await transport.send('R3', { ok: true }, { receiver: '__rx', sender: 'R1' });
+  assert.equal(result.transport, 'send_cm');
+  assert.equal(direct.length, 0);
   assert.equal(cm.length, 1);
-  assert.equal(transport.status().directRequiresStrongLiveEvidence, true);
+  await transport.send('R3', { ok: true }, { receiver: '__rx', sender: 'R1' });
+  assert.equal(cm.length, 2);
+  const status = transport.status();
+  assert.equal(status.directRequiresObservedActive, true);
+  assert.equal(status.directRequiresStrongLiveEvidence, false);
+  assert.deepEqual(status.directEligibleOwnedNames, ['R1']);
+  assert.equal(status.stats.directSkippedUnobserved, 2);
 });
 
 test('Alpha20.19 direct failure arms backoff before falling back to CM', async () => {
@@ -99,7 +108,7 @@ test('Alpha20.19 direct failure arms backoff before falling back to CM', async (
   let directCalls = 0; let cmCalls = 0;
   const root = {
     character: { name: 'R1' },
-    get_active_characters: () => ({ R1: 'self' }),
+    get_active_characters: () => ({ R1: 'self', R2: 'active' }),
     command_character: () => { directCalls += 1; throw new Error('direct failed'); },
     send_cm: () => { cmCalls += 1; },
     parent: { party: { R2: { name: 'R2', map: 'main', x: 20, y: 0, hp: 1000 } } }
