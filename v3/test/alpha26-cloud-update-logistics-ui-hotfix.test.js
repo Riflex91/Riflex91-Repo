@@ -100,6 +100,14 @@ test('version parser understands alpha release sequence', () => {
   assert.equal(compareVersions('3.0.0-alpha.20.19', '3.0.0-alpha.20.20'), -1);
 });
 
+test('safe auto updater defaults to the public Cloudflare Pages mirror of GitHub main', () => {
+  const root = {};
+  const runtime = { root, lastSnapshot: { character: { name: 'My_Ranger1', hp: 1, max_hp: 1 }, entities: [] } };
+  const updater = new SafeAutoUpdater(runtime, { root, localVersion: '3.0.0-alpha.20.20', fetch: async () => ({ ok: true, text: async () => '' }) });
+  assert.equal(updater.config.rawBaseUrl, 'https://adventure-land---the-code-mmorpg---bot--public.pages.dev/v3');
+  assert.equal(updater.config.rawBaseUrl.includes('raw.githubusercontent.com'), false);
+});
+
 test('safe auto updater defers in danger, then saves active slot and reloads newer validated bundle', async () => {
   const clock = { value: 1_000_000 };
   const calls = { save: [], load: [], stop: 0 };
