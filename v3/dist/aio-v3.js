@@ -31067,6 +31067,7 @@ module.exports = { Alpha28BrainCloud };
 const { isQuotaError } = require('../world/persistence');
 
 const PARTY_PERSISTENCE_QUOTA_MODE = 'party-persistence-quota-isolation-v1';
+const PARTY_PERFORMANCE_SCHEMA_VERSION = 1;
 
 class PartyPersistenceQuotaHotfix {
   constructor(runtime, options = {}) {
@@ -31076,6 +31077,31 @@ class PartyPersistenceQuotaHotfix {
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
     this.storageHighWatermarkChars = Math.max(500000, Number(options.storageHighWatermarkChars) || 4000000);
+    this.storageRecoveryThresholdChars = Math.max(
+      100000,
+      Math.min(
+        this.storageHighWatermarkChars,
+        Number(options.storageRecoveryThresholdChars) || Math.floor(this.storageHighWatermarkChars * 0.9)
+      )
+    );
+    this.storageRecoveryTargetChars = Math.max(
+      100000,
+      Math.min(
+        this.storageRecoveryThresholdChars,
+        Number(options.storageRecoveryTargetChars) || Math.floor(this.storageHighWatermarkChars * 0.85)
+      )
+    );
+    this.performanceRetentionCeilingRecords = Math.max(
+      64,
+      Math.min(512, Number(options.performanceRetentionCeilingRecords) || 256)
+    );
+    this.performanceRetentionFloorRecords = Math.max(
+      32,
+      Math.min(
+        this.performanceRetentionCeilingRecords,
+        Number(options.performanceRetentionFloorRecords) || 64
+      )
+    );
     this.states = new Map();
     this.installed = false;
     this._install();
@@ -31141,6 +31167,127 @@ class PartyPersistenceQuotaHotfix {
     }
   }
 
+  _performancePayload(value) {
+    if (typeof value !== 'string') return null;
+    try {
+      const data = JSON.parse(value);
+      if (!data || data.schemaVersion !== PARTY_PERFORMANCE_SCHEMA_VERSION || !Array.isArray(data.records)) return null;
+      return { data, records: data.records };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _compactPerformanceValue(value, limit) {
+    const parsed = this._performancePayload(value);
+    if (!parsed) return null;
+    const boundedLimit = Math.max(1, Math.min(parsed.records.length, Math.floor(Number(limit) || 0)));
+    if (parsed.records.length <= boundedLimit) return null;
+    const ranked = parsed.records.map((record, index) => ({
+      record,
+      index,
+      updatedAt: record && Number.isFinite(Number(record.updatedAt)) ? Number(record.updatedAt) : 0
+    })).sort((a, b) => b.updatedAt - a.updatedAt || b.index - a.index);
+    const kept = ranked.slice(0, boundedLimit).sort((a, b) => a.index - b.index).map((row) => row.record);
+    const compacted = JSON.stringify({ ...parsed.data, records: kept });
+    if (compacted.length >= value.length) return null;
+    return {
+      value: compacted,
+      recordsBefore: parsed.records.length,
+      recordsAfter: kept.length,
+      charsBefore: value.length,
+      charsAfter: compacted.length,
+      charsRecovered: value.length - compacted.length
+    };
+  }
+
+  _pressureCompaction(state, key, value) {
+    if (state.name !== 'partyPerformance') return null;
+    const projected = this._projectedChars(state.backend, key, value);
+    if (projected == null && !state.forcePerformanceCompaction) return null;
+    if (projected != null && projected < this.storageRecoveryThresholdChars && !state.forcePerformanceCompaction) return null;
+
+    if (state.forcePerformanceCompaction) {
+      const forced = this._compactPerformanceValue(value, this.performanceRetentionFloorRecords);
+      if (!forced) return null;
+      return { ...forced, projectedChars: this._projectedChars(state.backend, key, forced.value) };
+    }
+
+    // PartyPerformance is decayed historical planner evidence. Under storage pressure,
+    // retaining the newest evidence is intentionally preferred over touching lifecycle,
+    // content-drift, quarantine, or any in-memory safety state.
+    const parsed = this._performancePayload(value);
+    if (!parsed || parsed.records.length <= this.performanceRetentionFloorRecords) return null;
+    const limits = [];
+    let limit = Math.min(parsed.records.length - 1, this.performanceRetentionCeilingRecords);
+    while (limit > this.performanceRetentionFloorRecords) {
+      limits.push(limit);
+      const next = Math.max(this.performanceRetentionFloorRecords, Math.floor(limit * 0.75));
+      if (next === limit) break;
+      limit = next;
+    }
+    limits.push(this.performanceRetentionFloorRecords);
+
+    let best = null;
+    for (const candidateLimit of [...new Set(limits)]) {
+      const candidate = this._compactPerformanceValue(value, candidateLimit);
+      if (!candidate) continue;
+      const candidateProjected = this._projectedChars(state.backend, key, candidate.value);
+      const row = { ...candidate, projectedChars: candidateProjected };
+      best = row;
+      if (candidateProjected != null && candidateProjected <= this.storageRecoveryTargetChars) return row;
+    }
+    return best;
+  }
+
+  _recordCompaction(state, compaction, trigger) {
+    if (!compaction) return;
+    state.historyCompactions += 1;
+    state.historyRecordsDropped += Math.max(0, compaction.recordsBefore - compaction.recordsAfter);
+    state.historyCharsRecovered += Math.max(0, compaction.charsRecovered);
+    if (trigger === 'startup') state.startupCompactions += 1;
+    if (trigger === 'quota-retry') state.quotaRecoveries += 1;
+    this._event('PARTY_PERFORMANCE_HISTORY_COMPACTED', 'info', 'NONCRITICAL_HISTORY_RETENTION', {
+      trigger,
+      store: state.name,
+      key: state.key,
+      recordsBefore: compaction.recordsBefore,
+      recordsAfter: compaction.recordsAfter,
+      charsRecovered: compaction.charsRecovered,
+      projectedChars: compaction.projectedChars
+    });
+  }
+
+  _recoverStoredPerformance(state, baseBackend) {
+    if (!state || state.name !== 'partyPerformance' || !state.key) return false;
+    let backend;
+    let raw;
+    try {
+      backend = baseBackend();
+      if (!backend || typeof backend.get !== 'function' || typeof backend.set !== 'function') return false;
+      raw = backend.get(state.key);
+    } catch (_) {
+      return false;
+    }
+    if (typeof raw !== 'string') return false;
+    const projected = this._projectedChars(state.backend, state.key, raw);
+    if (projected == null || projected < this.storageRecoveryThresholdChars) return false;
+    const compaction = this._pressureCompaction(state, state.key, raw);
+    if (!compaction) return false;
+    try {
+      backend.set(state.key, compaction.value);
+      this._recordCompaction(state, compaction, 'startup');
+      return true;
+    } catch (error) {
+      state.historyCompactionFailures += 1;
+      if (isQuotaError(error)) {
+        state.quotaWriteFailures += 1;
+        this._block(state, 'PERSISTENCE_QUOTA_EXCEEDED', error);
+      }
+      return false;
+    }
+  }
+
   _wrapStore(name, store) {
     if (!store || typeof store._backend !== 'function' || typeof store.save !== 'function' || store.__partyPersistenceQuotaHotfixInstalled) return false;
     const state = {
@@ -31153,7 +31300,14 @@ class PartyPersistenceQuotaHotfix {
       lastError: null,
       preflightBlocks: 0,
       quotaWriteFailures: 0,
-      bypassedSaves: 0
+      bypassedSaves: 0,
+      historyCompactions: 0,
+      historyCompactionFailures: 0,
+      historyRecordsDropped: 0,
+      historyCharsRecovered: 0,
+      startupCompactions: 0,
+      quotaRecoveries: 0,
+      forcePerformanceCompaction: false
     };
     this.states.set(name, state);
 
@@ -31169,7 +31323,20 @@ class PartyPersistenceQuotaHotfix {
             error.code = 'PARTY_PERSISTENCE_QUOTA_BLOCKED';
             throw error;
           }
-          const projected = this._projectedChars(state.backend, key, value);
+
+          const pressureCompaction = this._pressureCompaction(state, key, value);
+          let candidateValue = pressureCompaction ? pressureCompaction.value : value;
+          let projected = this._projectedChars(state.backend, key, candidateValue);
+          if (projected != null && projected >= this.storageHighWatermarkChars) {
+            const floorCompaction = state.name === 'partyPerformance'
+              ? this._compactPerformanceValue(value, this.performanceRetentionFloorRecords)
+              : null;
+            if (floorCompaction && floorCompaction.value !== candidateValue) {
+              candidateValue = floorCompaction.value;
+              projected = this._projectedChars(state.backend, key, candidateValue);
+            }
+          }
+
           if (projected != null && projected >= this.storageHighWatermarkChars) {
             state.preflightBlocks += 1;
             this._block(state, 'PERSISTENCE_QUOTA_PRESSURE');
@@ -31177,13 +31344,45 @@ class PartyPersistenceQuotaHotfix {
             error.code = 'PARTY_PERSISTENCE_QUOTA_BLOCKED';
             throw error;
           }
-          try {
-            return backend.set(key, value);
-          } catch (error) {
-            if (isQuotaError(error)) {
-              state.quotaWriteFailures += 1;
-              this._block(state, 'PERSISTENCE_QUOTA_EXCEEDED', error);
+
+          let successfulCompaction = null;
+          if (candidateValue !== value) {
+            successfulCompaction = this._compactPerformanceValue(
+              value,
+              (this._performancePayload(candidateValue) || { records: [] }).records.length
+            ) || pressureCompaction;
+            if (successfulCompaction) {
+              successfulCompaction.projectedChars = projected;
             }
+          }
+
+          try {
+            const result = backend.set(key, candidateValue);
+            if (successfulCompaction) this._recordCompaction(state, successfulCompaction, 'preflight');
+            return result;
+          } catch (error) {
+            if (!isQuotaError(error)) throw error;
+            state.quotaWriteFailures += 1;
+
+            const retryCompaction = state.name === 'partyPerformance'
+              ? this._compactPerformanceValue(value, this.performanceRetentionFloorRecords)
+              : null;
+            if (retryCompaction && retryCompaction.value !== candidateValue) {
+              try {
+                const result = backend.set(key, retryCompaction.value);
+                state.forcePerformanceCompaction = true;
+                retryCompaction.projectedChars = this._projectedChars(state.backend, key, retryCompaction.value);
+                this._recordCompaction(state, retryCompaction, 'quota-retry');
+                return result;
+              } catch (retryError) {
+                if (isQuotaError(retryError)) state.quotaWriteFailures += 1;
+                state.historyCompactionFailures += 1;
+                this._block(state, isQuotaError(retryError) ? 'PERSISTENCE_QUOTA_EXCEEDED' : 'PERSISTENCE_WRITE_ERROR', retryError);
+                throw retryError;
+              }
+            }
+
+            this._block(state, 'PERSISTENCE_QUOTA_EXCEEDED', error);
             throw error;
           }
         }
@@ -31199,6 +31398,7 @@ class PartyPersistenceQuotaHotfix {
       return baseSave(...args);
     };
     store.__partyPersistenceQuotaHotfixInstalled = true;
+    this._recoverStoredPerformance(state, baseBackend);
     return true;
   }
 
@@ -31206,7 +31406,15 @@ class PartyPersistenceQuotaHotfix {
     const performance = this._wrapStore('partyPerformance', this.runtime.partyPerformance);
     const lifecycle = this._wrapStore('partyLifecycle', this.runtime.partyLifecycle);
     this.installed = performance || lifecycle;
-    this._event('PARTY_PERSISTENCE_QUOTA_HOTFIX_INSTALLED', 'info', null, { performance, lifecycle, storageHighWatermarkChars: this.storageHighWatermarkChars });
+    this._event('PARTY_PERSISTENCE_QUOTA_HOTFIX_INSTALLED', 'info', null, {
+      performance,
+      lifecycle,
+      storageHighWatermarkChars: this.storageHighWatermarkChars,
+      storageRecoveryThresholdChars: this.storageRecoveryThresholdChars,
+      storageRecoveryTargetChars: this.storageRecoveryTargetChars,
+      performanceRetentionCeilingRecords: this.performanceRetentionCeilingRecords,
+      performanceRetentionFloorRecords: this.performanceRetentionFloorRecords
+    });
   }
 
   status() {
@@ -31215,6 +31423,17 @@ class PartyPersistenceQuotaHotfix {
       mode: PARTY_PERSISTENCE_QUOTA_MODE,
       installed: this.installed,
       storageHighWatermarkChars: this.storageHighWatermarkChars,
+      storageRecoveryThresholdChars: this.storageRecoveryThresholdChars,
+      storageRecoveryTargetChars: this.storageRecoveryTargetChars,
+      retention: {
+        partyPerformanceOnly: true,
+        policy: 'recent-noncritical-history-under-storage-pressure',
+        ceilingRecords: this.performanceRetentionCeilingRecords,
+        floorRecords: this.performanceRetentionFloorRecords,
+        mutatesInMemoryState: false,
+        touchesContentDrift: false,
+        touchesPartyLifecycle: false
+      },
       stores: Object.fromEntries([...this.states.entries()].map(([name, state]) => [name, { ...state }]))
     };
   }
