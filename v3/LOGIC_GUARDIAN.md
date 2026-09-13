@@ -14,13 +14,32 @@ The liveness suite explicitly covers the Alpha20.23 failure class: an attack dec
 
 It also checks bounded Farmer progress in healthy fixtures and verifies that shadow planning advances rather than remaining indefinitely at revision zero.
 
-Invariants that cannot yet be proven by the fast deterministic suite may be marked `manual-review`. This keeps architecture boundaries explicit without introducing an external AI dependency into CI.
+## Property-based safety checks
+
+`fast-check` exercises the high-risk logic with reproducible generated states rather than a few hand-written examples. The property suite currently generates 1,000 combinations per property with fixed seeds so every CI failure can be reproduced exactly.
+
+The first properties lock the exact `DEADLOCK` boundary and the Alpha20.23 navigation-release rule: self-aggro, selected, planned, failed TargetSafety evaluation, null safety results, or any reason other than the exact training-target denial must stay fail-closed.
+
+## Static analysis
+
+`npm run static:guard` combines two free deterministic analyzers:
+
+- TypeScript `checkJs` validates the small pure Logic Guardian model with strict JSDoc contracts without converting runtime JavaScript to TypeScript.
+- `dependency-cruiser` blocks circular dependency chains in critical Farmer/reliability/Merchant modules, forbids production runtime imports from tests, and prevents Merchant modules from directly importing Farmer runtime modules.
+
+Invariants enforced this way are marked `static-analysis`. Invariants that still require human architectural judgment may remain `manual-review`.
 
 ## Local commands
 
+Run `npm install` once in `v3/` before using the new guard tools locally.
+
 - `npm run release:guard` — release/version consistency.
-- `npm run logic:guard` — invariant and liveness gate.
-- `npm run preflight` — both guardians, in that order.
+- `npm run logic:guard` — deterministic invariant, liveness and property gate.
+- `npm run test:properties` — property-based tests only.
+- `npm run typecheck:logic` — strict `checkJs` pass over the typed Logic Guardian model.
+- `npm run check:architecture` — dependency-cruiser architecture rules.
+- `npm run static:guard` — typecheck plus architecture analysis.
+- `npm run preflight` — Release Guardian, Logic Guardian and static guard.
 - `npm run check:full` — complete build/test/bundle/cloud checks.
 - `npm run check` — preflight followed by the full suite.
 

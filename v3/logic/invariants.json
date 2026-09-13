@@ -14,7 +14,7 @@
       "severity": "block",
       "statement": "A passive, unrelated Target Automatron may not be the sole reason farming navigation cannot progress.",
       "enforcement": ["test"],
-      "tests": ["test/logic-guardian-liveness.test.js", "test/alpha20-23-idle-deadlock-recovery.test.js"]
+      "tests": ["test/logic-guardian-liveness.test.js", "test/alpha20-23-idle-deadlock-recovery.test.js", "test/logic-guardian-property.test.js"]
     },
     {
       "id": "UNKNOWN_CONTENT_FAIL_CLOSED",
@@ -35,14 +35,14 @@
       "severity": "block",
       "statement": "Self-aggro, selected, or planned monsters are never silently removed from navigation blockers by the Automatron recovery.",
       "enforcement": ["test"],
-      "tests": ["test/alpha20-23-idle-deadlock-recovery.test.js", "test/logic-guardian-liveness.test.js"]
+      "tests": ["test/alpha20-23-idle-deadlock-recovery.test.js", "test/logic-guardian-liveness.test.js", "test/logic-guardian-property.test.js"]
     },
     {
       "id": "NO_HIDDEN_CROSS_MODULE_DEADLOCK",
       "severity": "block",
       "statement": "When useful work is expected, attack rejection plus navigation rejection must still leave a safe alternate action or an explicit safe stop.",
       "enforcement": ["test"],
-      "tests": ["test/logic-guardian-liveness.test.js"]
+      "tests": ["test/logic-guardian-liveness.test.js", "test/logic-guardian-property.test.js"]
     },
     {
       "id": "FARMER_BOUNDED_LIVENESS",
@@ -62,7 +62,14 @@
       "id": "MERCHANT_ROLE_BOUNDARY",
       "severity": "block",
       "statement": "Merchant control/economy authority must not implicitly acquire Farmer combat authority.",
-      "enforcement": ["manual-review"],
+      "enforcement": ["static-analysis"],
+      "tests": []
+    },
+    {
+      "id": "NO_CIRCULAR_CRITICAL_RUNTIME_DEPENDENCIES",
+      "severity": "block",
+      "statement": "Critical Farmer, reliability, and Merchant runtime modules must remain free of circular dependency chains.",
+      "enforcement": ["static-analysis"],
       "tests": []
     },
     {

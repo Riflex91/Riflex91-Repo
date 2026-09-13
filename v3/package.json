@@ -6,14 +6,24 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
+    "test:properties": "node --test test/logic-guardian-property.test.js",
     "release:guard": "node scripts/release-guardian.js",
     "logic:guard": "node scripts/logic-guardian.js",
-    "preflight": "npm run release:guard && npm run logic:guard",
+    "typecheck:logic": "tsc -p tsconfig.logic.json",
+    "check:architecture": "depcruise --config .dependency-cruiser.cjs src",
+    "static:guard": "npm run typecheck:logic && npm run check:architecture",
+    "preflight": "npm run release:guard && npm run logic:guard && npm run static:guard",
     "version:check": "node scripts/release-guardian.js --version-only",
     "release:patch": "node scripts/release-bump.js patch",
     "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/worker-alpha20-21.js && node --check ../cloudflare-dashboard/src/worker-alpha20-22.js && node --check ../cloudflare-dashboard/src/alpha20-21-control-plane.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
     "check:full": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud",
     "check": "npm run preflight && npm run check:full"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "dependency-cruiser": "18.2.0",
+    "fast-check": "4.10.0",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=20"
