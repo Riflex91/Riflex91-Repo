@@ -3,6 +3,8 @@
 const { BUILT_IN_DANGEROUS_MONSTERS } = require('../farmer/content-safety');
 const { installAlpha2020Alpha22Autonomy } = require('./alpha20-20-alpha22-autonomy');
 const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regression-hotfix');
+const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stability-hotfix');
+const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -36,6 +38,8 @@ class DangerousContentHotfix {
     try {
       if (!this.runtime.alpha2020Alpha22Autonomy) installAlpha2020Alpha22Autonomy(this.runtime);
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
+      if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
+      if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -59,27 +63,22 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 3,
-      mode: 'dangerous-content-hotfix-v3',
+      schemaVersion: 4,
+      mode: 'dangerous-content-hotfix-v4',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
       closedLoopAutonomy: {
         installed: this.autonomyInstalled,
         installError: this.autonomyInstallError,
-        status: this.runtime.alpha2020Alpha22Autonomy && typeof this.runtime.alpha2020Alpha22Autonomy.status === 'function'
-          ? this.runtime.alpha2020Alpha22Autonomy.status()
-          : null,
-        liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function'
-          ? this.runtime.alpha2020LiveRegressionHotfix.status()
-          : null
+        status: this.runtime.alpha2020Alpha22Autonomy && typeof this.runtime.alpha2020Alpha22Autonomy.status === 'function' ? this.runtime.alpha2020Alpha22Autonomy.status() : null,
+        liveRegression: this.runtime.alpha2020LiveRegressionHotfix && typeof this.runtime.alpha2020LiveRegressionHotfix.status === 'function' ? this.runtime.alpha2020LiveRegressionHotfix.status() : null,
+        combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
+        economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null
       }
     };
   }
 }
 
-function installDangerousContentHotfix(runtime) {
-  return new DangerousContentHotfix(runtime);
-}
-
+function installDangerousContentHotfix(runtime) { return new DangerousContentHotfix(runtime); }
 module.exports = { DangerousContentHotfix, installDangerousContentHotfix };
