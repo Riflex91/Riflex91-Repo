@@ -7,6 +7,7 @@ const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stabil
 const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
 const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
 const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
+const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('./alpha26-cloud-update-logistics-ui-hotfix');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -19,6 +20,9 @@ class DangerousContentHotfix {
     this.autonomyInstalled = false;
     this.autonomyInstallError = null;
     this._installPlannerFilter();
+    // The monitor is created immediately after the runtime. Schedule a zero-delay
+    // collapse so its very first visible frame is the compact title bar.
+    scheduleGuiCollapsedStart(this.runtime);
   }
 
   _installPlannerFilter() {
@@ -62,6 +66,7 @@ class DangerousContentHotfix {
       // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
       if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
       if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
+      if (!this.runtime.alpha26CloudUpdateLogisticsUiHotfix) installAlpha26CloudUpdateLogisticsUiHotfix(this.runtime);
       const newlyInstalled = !this.autonomyInstalled;
       this.autonomyInstalled = true;
       this.autonomyInstallError = null;
@@ -79,6 +84,11 @@ class DangerousContentHotfix {
         this.autonomyInstallError = `Alpha25 tick: ${String(error && error.message || error).slice(0, 200)}`;
       }
     }
+    if (this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.beforeTick === 'function') {
+      try { this.runtime.alpha26CloudUpdateLogisticsUiHotfix.beforeTick(); } catch (error) {
+        this.autonomyInstallError = `Alpha26 tick: ${String(error && error.message || error).slice(0, 200)}`;
+      }
+    }
     if (this.revalidated) return false;
     const gate = this.runtime.contentSafety;
     const world = this.runtime.world;
@@ -90,8 +100,8 @@ class DangerousContentHotfix {
 
   status() {
     return {
-      schemaVersion: 6,
-      mode: 'dangerous-content-hotfix-v6',
+      schemaVersion: 7,
+      mode: 'dangerous-content-hotfix-v7',
       blockedMonsterTypes: [...DANGEROUS].sort(),
       worldPolicyRevalidated: this.revalidated,
       filteredCandidates: this.filteredCandidates,
@@ -103,7 +113,8 @@ class DangerousContentHotfix {
         combatStability: this.runtime.alpha23CombatStabilityHotfix && typeof this.runtime.alpha23CombatStabilityHotfix.status === 'function' ? this.runtime.alpha23CombatStabilityHotfix.status() : null,
         economyV2: this.runtime.economyEquipmentAutonomyV2 && typeof this.runtime.economyEquipmentAutonomyV2.status === 'function' ? this.runtime.economyEquipmentAutonomyV2.status() : null,
         adaptiveStability: this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && typeof this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status === 'function' ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null,
-        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null
+        controlCenterBrain: this.runtime.alpha25ControlCenterBrain && typeof this.runtime.alpha25ControlCenterBrain.status === 'function' ? this.runtime.alpha25ControlCenterBrain.status() : null,
+        releaseManager: this.runtime.alpha26CloudUpdateLogisticsUiHotfix && typeof this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status === 'function' ? this.runtime.alpha26CloudUpdateLogisticsUiHotfix.status() : null
       }
     };
   }
