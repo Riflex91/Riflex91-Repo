@@ -2,6 +2,7 @@
 
 const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
 const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+const { installIntegratedPartyControl } = require('./integrated-party-control');
 
 const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v1';
 
@@ -22,29 +23,20 @@ class TeamCohesionDeadlockHotfix {
     this.previousFollowRadius = finite(this.team.followRadius, 85);
     this.cohesionRadius = Math.max(90, finite(this.team.cohesionRadius, 150));
 
-    // The previous 85 follow radius could place two followers on opposite sides
-    // of the leader at almost 170 distance while the pairwise cohesion gate was
-    // 150. That creates a stable deadlock: both followers think they are close
-    // enough to the leader while the leader still sees a non-cohesive party.
-    // Keep the stricter pairwise gate and make every steady follower position
-    // geometrically capable of satisfying it instead.
     this.maxPairwiseSafeLeaderRadius = Math.max(35, (this.cohesionRadius - this.margin) / 2);
     this.appliedFollowRadius = Math.min(this.previousFollowRadius, this.requestedFollowRadius, this.maxPairwiseSafeLeaderRadius);
     this.team.followRadius = this.appliedFollowRadius;
-
-    // A formation step larger than the full desired diameter can overshoot a
-    // compact regroup in crowded terrain. Keep the existing bounded path search
-    // but cap one regroup step to a conservative multiple of the new radius.
     this.previousFollowStep = finite(this.team.followStep, 70);
     this.appliedFollowStep = Math.max(25, Math.min(this.previousFollowStep, this.appliedFollowRadius * 1.1));
     this.team.followStep = this.appliedFollowStep;
 
-    // Alpha20.15 is intentionally installed from this already-proven hook so it
-    // runs after team target selection exists but before party logistics is
-    // constructed. That lets us harden synthetic team rankings and patch the
-    // bounded logistics prototype without widening generic economy authority.
+    // Keep the proven Alpha20.15 fixes first. The integrated suite then patches
+    // communication/logistics/farm prototypes before those instances are created
+    // later in the runtime constructor, while tactical combat/movement/skills can
+    // immediately wrap the already-created Farmer and team controllers.
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
     this.alpha20_15_fairness = patchAlpha2015LogisticsFairness();
+    this.alpha20_16_19 = installIntegratedPartyControl(runtime);
 
     this.installedAt = this.now();
     this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_GEOMETRY_FIXED', this.status());
@@ -57,7 +49,7 @@ class TeamCohesionDeadlockHotfix {
 
   status() {
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       mode: TEAM_COHESION_DEADLOCK_MODE,
       installedAt: this.installedAt || null,
       cohesionRadius: this.cohesionRadius,
@@ -71,7 +63,8 @@ class TeamCohesionDeadlockHotfix {
       appliedFollowStep: this.appliedFollowStep,
       pairwiseSteadyFormationFitsGate: this.appliedFollowRadius * 2 <= this.cohesionRadius - this.margin + 0.0001,
       alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
-      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness
+      alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness,
+      alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null
     };
   }
 }
@@ -80,8 +73,4 @@ function installTeamCohesionDeadlockHotfix(runtime, options = {}) {
   return new TeamCohesionDeadlockHotfix(runtime, options);
 }
 
-module.exports = {
-  TeamCohesionDeadlockHotfix,
-  installTeamCohesionDeadlockHotfix,
-  TEAM_COHESION_DEADLOCK_MODE
-};
+module.exports = { TeamCohesionDeadlockHotfix, installTeamCohesionDeadlockHotfix, TEAM_COHESION_DEADLOCK_MODE };
