@@ -1,5 +1,6 @@
 'use strict';
 
+// Guards two live regressions observed in the September 13 session logs.
 const LIVE_REGRESSION_MODE = 'alpha20.20-live-regression-hotfix-v1';
 
 function finite(value, fallback = null) {
