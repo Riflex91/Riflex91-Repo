@@ -115,3 +115,32 @@ CREATE TABLE IF NOT EXISTS v3_market_snapshots (
   observed_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_v3_market_item_at ON v3_market_snapshots(account, item_key, observed_at DESC);
+
+-- Alpha20.21: cloud-primary long-term state. The browser keeps only a bounded
+-- fallback queue; these records are the authoritative durable copy.
+CREATE TABLE IF NOT EXISTS v3_long_term_state (
+  account TEXT NOT NULL,
+  namespace TEXT NOT NULL,
+  state_key TEXT NOT NULL,
+  schema_version INTEGER NOT NULL DEFAULT 1,
+  payload TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY(account, namespace, state_key)
+);
+CREATE INDEX IF NOT EXISTS idx_v3_long_term_state_account_at ON v3_long_term_state(account, updated_at DESC);
+
+-- Alpha20.21: every real remote Teacher attempt is recorded, including failures.
+-- This supports a true rolling-24h global budget and failed-attempt backoff.
+CREATE TABLE IF NOT EXISTS brain_teacher_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  request_key TEXT NOT NULL,
+  account TEXT NOT NULL,
+  character TEXT NOT NULL,
+  status TEXT NOT NULL,
+  neurons REAL NOT NULL DEFAULT 0,
+  decision TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_brain_teacher_attempts_at ON brain_teacher_attempts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_brain_teacher_attempts_key_at ON brain_teacher_attempts(request_key, created_at DESC);
