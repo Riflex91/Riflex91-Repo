@@ -1,0 +1,6 @@
+'use strict';
+
+const MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
+const TERMINAL_TX = new Set(['COMMITTED', 'ABORTED', 'FAILED_SAFE']);
+
+module.exports = { MERCHANT_SERVICE_ACK, TERMINAL_TX };

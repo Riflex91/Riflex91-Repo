@@ -14,7 +14,9 @@ const LOGIC_TESTS = Object.freeze([
   'test/alpha20-23-idle-deadlock-recovery.test.js',
   'test/unknown-content-safety.test.js',
   'test/farmer-local-plan-priority.test.js',
-  'test/alpha21-progression-liveness.test.js'
+  'test/alpha21-progression-liveness.test.js',
+  'test/alpha27-combat-merchant-convergence.test.js',
+  'test/alpha27-combat-merchant-convergence-economy.test.js'
 ]);
 
 function fail(message) {
