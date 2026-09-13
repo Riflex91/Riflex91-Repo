@@ -6,8 +6,14 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
+    "preflight": "node scripts/release-guardian.js",
+    "version:check": "node scripts/release-guardian.js --version-only",
+    "release:patch": "node scripts/release-bump.js patch",
     "check:cloud": "node --check ../cloudflare-dashboard/src/worker.js && node --check ../cloudflare-dashboard/src/worker-alpha20-21.js && node --check ../cloudflare-dashboard/src/worker-alpha20-22.js && node --check ../cloudflare-dashboard/src/alpha20-21-control-plane.js && node --check ../cloudflare-dashboard/src/dashboard.js && node --check ../cloudflare-dashboard/src/settings-schema.js",
-    "check": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud"
+    "check:full": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud",
+    "check": "npm run preflight && npm run check:full"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
