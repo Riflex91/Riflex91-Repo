@@ -83,6 +83,7 @@ class SafeAutoUpdater {
       validations: 0,
       saves: 0,
       reloads: 0,
+      rollbacks: 0,
       failures: 0
     };
   }
@@ -236,10 +237,14 @@ class SafeAutoUpdater {
   async _reloadSavedCode(slotInfo) {
     const load = this._binding('load_code');
     if (!load) throw new Error('LOAD_CODE_UNAVAILABLE');
-    try {
-      if (this.root && this.root.AIO_V3 && typeof this.root.AIO_V3.stop === 'function') this.root.AIO_V3.stop();
-    } catch (_) {}
     const oldApi = this.root && this.root.AIO_V3;
+    let oldStopped = false;
+    try {
+      if (oldApi && typeof oldApi.stop === 'function') {
+        oldApi.stop();
+        oldStopped = true;
+      }
+    } catch (_) {}
     try { if (this.root) this.root.AIO_V3 = null; } catch (_) {}
     try {
       const result = load.fn.call(load.owner, slotInfo.slot);
@@ -248,6 +253,14 @@ class SafeAutoUpdater {
       return true;
     } catch (error) {
       try { if (this.root && !this.root.AIO_V3) this.root.AIO_V3 = oldApi; } catch (_) {}
+      if (oldStopped && oldApi && typeof oldApi.start === 'function') {
+        try {
+          const restart = oldApi.start();
+          if (restart && typeof restart.then === 'function') await restart;
+          this.stats.rollbacks += 1;
+          this._event('AUTO_UPDATE_RUNTIME_ROLLBACK', 'warn', 'NEW_RELEASE_RELOAD_FAILED', { slot: slotInfo && slotInfo.slot, oldVersion: this.localVersion });
+        } catch (_) {}
+      }
       throw error;
     }
   }
@@ -315,6 +328,7 @@ class SafeAutoUpdater {
         noDowngrades: true,
         bundleValidatedBeforeSave: true,
         activeCodeSlotOnly: true,
+        failedReloadRestartsPreviousRuntime: true,
         noRemoteGameplayAuthority: true,
         updateCannotBypassCombatSafety: true
       }
