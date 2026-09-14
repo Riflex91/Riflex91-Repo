@@ -11,20 +11,31 @@ Native Windows control plane for the Adventure Land v3 bot.
 - authenticated Raspberry Pi operations control for start, stop, restart, deploy-main and rollback
 - local configuration in `%APPDATA%/AioBotControlCenter/settings.json`
 - no gameplay authority and no generic remote shell
+- optional Windows-first telemetry bridge in `ops/windows-bridge` for reading the local Adventure Land v3 debug surfaces and forwarding them to Supabase
 
 ## Local build
 
 ```powershell
 dotnet build .\control-center\AioBotControlCenter.csproj -c Release
+dotnet build .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release
 ```
 
-## Publish a standalone Windows build
+## Publish standalone Windows builds
 
 ```powershell
 dotnet publish .\control-center\AioBotControlCenter.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+dotnet publish .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
-## Configuration
+## Windows telemetry bridge
+
+For Windows-only operation, `ops/windows-bridge` attaches to a loopback Chrome/Edge DevTools endpoint, accepts only an `https://adventure.land` page, reads only the existing v3 debug/status surfaces and forwards telemetry to the authenticated Supabase ingest endpoint.
+
+The bridge does not expose arbitrary browser evaluation or gameplay commands. Its token stays in a Windows environment variable and is never written to the repository or bridge status file.
+
+See `ops/windows-bridge/README.md` for setup and the one-cycle Supabase test.
+
+## Raspberry Pi configuration
 
 Start the app once and press **Open settings folder**. Edit `settings.json` locally. Never commit tokens.
 

@@ -1,0 +1,10 @@
+{
+  "cdpEndpoint": "http://127.0.0.1:9222",
+  "allowedOrigin": "https://adventure.land",
+  "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
+  "telemetryTokenEnvironmentVariable": "AIO_V3_DEBUG_TELEMETRY_TOKEN",
+  "botId": "pi-main",
+  "pollIntervalSeconds": 5,
+  "maxBackoffSeconds": 300,
+  "eventLimit": 100
+}

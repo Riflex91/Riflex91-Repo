@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - 'control-center/**'
+      - 'ops/windows-bridge/**'
       - '.github/workflows/control-center.yml'
   pull_request:
     paths:
       - 'control-center/**'
+      - 'ops/windows-bridge/**'
       - '.github/workflows/control-center.yml'
 
 permissions:
@@ -21,15 +23,27 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore
+      - name: Restore control center
         run: dotnet restore .\control-center\AioBotControlCenter.csproj
-      - name: Build
+      - name: Build control center
         run: dotnet build .\control-center\AioBotControlCenter.csproj -c Release --no-restore
-      - name: Publish win-x64
+      - name: Restore Windows bridge
+        run: dotnet restore .\ops\windows-bridge\AioBotWindowsBridge.csproj
+      - name: Build Windows bridge
+        run: dotnet build .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release --no-restore
+      - name: Publish control center win-x64
         run: dotnet publish .\control-center\AioBotControlCenter.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\artifacts\control-center
-      - name: Upload Windows artifact
+      - name: Publish Windows bridge win-x64
+        run: dotnet publish .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\artifacts\windows-bridge
+      - name: Upload Control Center artifact
         uses: actions/upload-artifact@v4
         with:
           name: AioBotControlCenter-win-x64
           path: .\artifacts\control-center\
+          if-no-files-found: error
+      - name: Upload Windows bridge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AioBotWindowsBridge-win-x64
+          path: .\artifacts\windows-bridge\
           if-no-files-found: error
