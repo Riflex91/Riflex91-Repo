@@ -11,6 +11,7 @@ const {
   writePlannedAutoUpdateMarker
 } = require('../src/reliability/alpha26-cloud-update-logistics-ui-hotfix');
 
+// The success event must originate from the newly loaded runtime so the telemetry exporter cannot miss it during the handoff.
 function updaterFixture(overrides = {}) {
   return {
     localVersion: '3.0.0-alpha.20.23',
