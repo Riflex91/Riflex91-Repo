@@ -61,6 +61,9 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Generate v3 browser bundle for validation
+        working-directory: v3
+        run: npm run build
       - name: Release + Logic Guardian preflight
         working-directory: v3
         run: npm run preflight
