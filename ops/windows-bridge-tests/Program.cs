@@ -20,8 +20,21 @@ static void ExpectInvalid(BridgeConfig config, string expected)
 var defaults = new BridgeConfig();
 defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
+Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
+Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
+
+(defaults with { PreferredBrowser = "Brave" }).Validate();
+(defaults with { PreferredBrowser = "Edge" }).Validate();
+(defaults with { PreferredBrowser = "Chrome" }).Validate();
+ExpectInvalid(defaults with { PreferredBrowser = "Firefox" }, "PREFERRED_BROWSER_INVALID");
+
+var browserOrder = BrowserLauncher.BrowserPreferenceOrder("Brave");
+Assert(browserOrder.Count == 3, "BROWSER_ORDER_COUNT");
+Assert(browserOrder[0] == "Brave", "BRAVE_FIRST");
+Assert(browserOrder.Contains("Edge", StringComparer.OrdinalIgnoreCase), "EDGE_FALLBACK");
+Assert(browserOrder.Contains("Chrome", StringComparer.OrdinalIgnoreCase), "CHROME_FALLBACK");
 
 ExpectInvalid(defaults with { CdpEndpoint = "http://192.168.1.10:9222" }, "CDP_ENDPOINT_MUST_BE_LOOPBACK_HTTP");
 ExpectInvalid(defaults with { TelemetryIngestUrl = "http://example.test/ingest" }, "TELEMETRY_HTTPS_REQUIRED");
