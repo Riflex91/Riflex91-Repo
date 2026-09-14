@@ -26,6 +26,19 @@ function distance(a, b) {
 
 function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
 
+function livePlayerRow(row) {
+  if (!row || typeof row !== 'object' || row.mtype) return false;
+  if (row.rip === true || row.dead === true) return false;
+  const hp = finite(row.hp);
+  return hp == null || hp > 0;
+}
+
+function observedCoordinate(row, axis) {
+  if (!row) return null;
+  const real = finite(row[`real_${axis}`]);
+  return real != null ? real : finite(row[axis]);
+}
+
 class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
   _expectedCombatNames() {
     const bootstrap = this.runtime && this.runtime.partyBootstrap;
@@ -52,7 +65,73 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     return {
       ...status,
       requiredCombatMembers: expected ? expected.length : null,
-      topologySource: 'trusted-party-bootstrap'
+      topologySource: 'trusted-party-bootstrap',
+      ownedObservationFallback: true
+    };
+  }
+
+  _trustedOwnedObservation(snapshot, name) {
+    const transport = this.runtime && this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport;
+    const target = String(name || '');
+    if (!target || !transport || typeof transport.isOwned !== 'function') return null;
+    try { if (transport.isOwned(target) !== true) return null; } catch (_) { return null; }
+
+    let evidence = null;
+    try {
+      evidence = typeof transport.strongLiveEvidence === 'function' ? transport.strongLiveEvidence(target) : null;
+    } catch (_) {
+      return null;
+    }
+    if (!evidence || evidence.live !== true) return null;
+
+    const candidates = [];
+    const add = (row, source) => {
+      if (!livePlayerRow(row)) return;
+      if (row.name != null && String(row.name) !== target) return;
+      candidates.push({ row, source });
+    };
+
+    add(this._visiblePlayer(snapshot, target), 'snapshot-entity');
+    for (const owner of [this.root, this.parent]) {
+      if (!owner) continue;
+      if (typeof owner.get_player === 'function') {
+        try { add(owner.get_player(target), 'get-player'); } catch (_) {}
+      }
+      const entities = owner.entities;
+      if (entities && typeof entities === 'object') {
+        const entity = Object.values(entities).find((row) => row && !row.mtype && String(row.name || '') === target);
+        add(entity, 'entity');
+      }
+      const party = owner.party;
+      if (party && typeof party === 'object') add(party[target], 'party');
+    }
+
+    const preferred = candidates.find((candidate) => candidate.source === evidence.source) || candidates[0] || null;
+    return {
+      evidence: { live: true, source: evidence.source || null },
+      row: preferred && preferred.row || null,
+      source: preferred && preferred.source || evidence.source || 'owned-live-evidence'
+    };
+  }
+
+  _mergeOwnedObservation(member, observation) {
+    const row = observation && observation.row;
+    if (!row) return member;
+    const x = observedCoordinate(row, 'x');
+    const y = observedCoordinate(row, 'y');
+    return {
+      ...member,
+      ctype: member.ctype || row.ctype || row.type || null,
+      map: row.map || member.map || null,
+      x: x != null ? x : member.x,
+      y: y != null ? y : member.y,
+      hp: finite(row.hp) != null ? finite(row.hp) : member.hp,
+      max_hp: finite(row.max_hp) != null ? finite(row.max_hp) : member.max_hp,
+      mp: finite(row.mp) != null ? finite(row.mp) : member.mp,
+      max_mp: finite(row.max_mp) != null ? finite(row.max_mp) : member.max_mp,
+      target: row.target != null ? row.target : member.target,
+      rip: member.rip === true || row.rip === true || row.dead === true,
+      ownedObservationSource: observation.source || null
     };
   }
 
@@ -67,15 +146,20 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       const raw = rawParty[name] || null;
       const visible = this._visiblePlayer(snapshot, name);
       const self = String(snapshot.character.name) === name;
+      const ownedObservation = self ? null : this._trustedOwnedObservation(snapshot, name);
+      const observed = ownedObservation && ownedObservation.row;
       const typeHint = self
         ? snapshot.character.ctype
         : partyRow && (partyRow.type || partyRow.ctype)
           || raw && (raw.type || raw.ctype)
           || visible && (visible.type || visible.ctype)
+          || observed && (observed.type || observed.ctype)
           || null;
+      const member = this._mergeOwnedObservation(this._member(snapshot, name, typeHint), ownedObservation);
       return {
-        ...this._member(snapshot, name, typeHint),
-        present: !!(self || partyRow || raw || visible)
+        ...member,
+        present: !!(self || partyRow || raw || visible || ownedObservation && ownedObservation.evidence && ownedObservation.evidence.live),
+        strongOwnedObservation: !!(ownedObservation && ownedObservation.evidence && ownedObservation.evidence.live)
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -128,6 +212,7 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       healthReady,
       manaReady,
       resourcesKnown: knownHpRatios.length + knownMpRatios.length,
+      strongOwnedObservations: members.filter((row) => row.strongOwnedObservation).map((row) => row.name),
       at: this.now()
     };
     this.lastTeam = state;
