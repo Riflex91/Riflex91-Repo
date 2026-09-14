@@ -894,6 +894,31 @@ function cloneSafe(value, depth = 0, seen = new WeakSet()) {
   return String(value);
 }
 
+function normalizeReason(value) {
+  if (value == null) return { reason: null, reasonDetails: null };
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return { reason: String(value), reasonDetails: null };
+  }
+
+  if (typeof value === 'object') {
+    const candidates = [value.code, value.reason, value.type, value.message, value.name];
+    let reason = null;
+    for (const candidate of candidates) {
+      if (candidate == null) continue;
+      if (typeof candidate === 'string' || typeof candidate === 'number' || typeof candidate === 'boolean') {
+        const text = String(candidate).trim();
+        if (text) { reason = text; break; }
+      }
+    }
+    return {
+      reason: reason || 'STRUCTURED_REASON',
+      reasonDetails: cloneSafe(value)
+    };
+  }
+
+  return { reason: String(value), reasonDetails: null };
+}
+
 function makeRunId(now) {
   return `v3-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -910,6 +935,7 @@ class EventLog {
   }
 
   emit(input = {}) {
+    const normalizedReason = normalizeReason(input.reason);
     const event = {
       seq: ++this.sequence,
       ts: new Date(this.now()).toISOString(),
@@ -920,7 +946,8 @@ class EventLog {
       event: input.event || 'EVENT',
       character: input.character || null,
       taskId: input.taskId || null,
-      reason: input.reason || null,
+      reason: normalizedReason.reason,
+      reasonDetails: normalizedReason.reasonDetails,
       data: cloneSafe(input.data || {})
     };
     this.events.push(event);
@@ -990,7 +1017,7 @@ class EventLog {
   }
 }
 
-module.exports = { EventLog, cloneSafe };
+module.exports = { EventLog, cloneSafe, normalizeReason };
 
 },
 "src/core/scheduler.js": function(require,module,exports){
@@ -37358,6 +37385,8 @@ module.exports = { HeadlessOperations };
 "src/ops/flight-recorder.js": function(require,module,exports){
 'use strict';
 
+const { normalizeReason } = require('../core/event-log');
+
 const FLIGHT_RECORDER_SCHEMA_VERSION = 1;
 
 function finite(value, fallback = null) {
@@ -37470,13 +37499,15 @@ class FlightRecorder {
   }
 
   markIncident(input = {}) {
+    const normalizedReason = normalizeReason(input.reason);
     const record = {
       schemaVersion: FLIGHT_RECORDER_SCHEMA_VERSION,
       incidentSeq: ++this.incidentSequence,
       at: finite(input.at, this.now()),
       severity: String(input.severity || 'warn'),
       type: String(input.type || input.event || 'INCIDENT'),
-      reason: input.reason == null ? null : String(input.reason),
+      reason: normalizedReason.reason,
+      reasonDetails: normalizedReason.reasonDetails,
       data: clone(input.data || {})
     };
     this.incidents.push(record);
