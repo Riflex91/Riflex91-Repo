@@ -28416,7 +28416,7 @@ function boundedOptions(options = {}) {
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 2)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
-    maxCompoundLevel: Math.max(0, Math.min(6, Math.floor(finite(options.maxCompoundLevel, 6)))),
+    maxCompoundLevel: Math.max(0, Math.min(10, Math.floor(finite(options.maxCompoundLevel, 10)))),
     serviceTravelTimeoutMs: Math.max(5000, Math.min(180000, finite(options.serviceTravelTimeoutMs, 90000))),
     verifyDelayMs: Math.max(25, Math.min(1000, finite(options.verifyDelayMs, 150))),
     verifyAttempts: Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))))
@@ -28437,7 +28437,7 @@ function synchronizeLegacyUpgradePolicy(runtime, maxUpgradeLevel) {
 function synchronizeLegacyCompoundPolicy(runtime, maxCompoundLevel) {
   const legacy = runtime && runtime.merchantEconomyAutonomy;
   if (!legacy || !legacy.cfg || typeof legacy.cfg !== 'object') return false;
-  const resultCap = Math.max(0, Math.min(6, Math.floor(finite(maxCompoundLevel, 6))));
+  const resultCap = Math.max(0, Math.min(10, Math.floor(finite(maxCompoundLevel, 10))));
   // Alpha20/22 stores the highest source level it may compound and historically
   // used an inclusive check. Keep that legacy path aligned with Alpha27's
   // result-level cap without widening any other economy authority.
