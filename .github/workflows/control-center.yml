@@ -1,0 +1,35 @@
+name: control-center
+
+on:
+  push:
+    paths:
+      - 'control-center/**'
+      - '.github/workflows/control-center.yml'
+  pull_request:
+    paths:
+      - 'control-center/**'
+      - '.github/workflows/control-center.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore .\control-center\AioBotControlCenter.csproj
+      - name: Build
+        run: dotnet build .\control-center\AioBotControlCenter.csproj -c Release --no-restore
+      - name: Publish win-x64
+        run: dotnet publish .\control-center\AioBotControlCenter.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\artifacts\control-center
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AioBotControlCenter-win-x64
+          path: .\artifacts\control-center\
+          if-no-files-found: error
