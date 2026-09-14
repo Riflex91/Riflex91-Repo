@@ -34956,11 +34956,106 @@ const { RELEASE_VERSION } = require('../release-version');
 const { installSafeAutoUpdater } = require('../ops/safe-auto-updater');
 
 const ALPHA26_MODE = 'alpha26-cloud-update-logistics-ui-v1';
+const PLANNED_AUTO_UPDATE_REASON = 'PLANNED_AUTO_UPDATE';
+const PLANNED_AUTO_UPDATE_MARKER = '__AIO_V3_PLANNED_AUTO_UPDATE_RESTART';
+const PLANNED_AUTO_UPDATE_TTL_MS = 10 * 60 * 1000;
 
 function finite(value, fallback = 0) {
   if (value == null || value === '') return fallback;
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function restartHosts(runtime) {
+  const root = runtime && runtime.root || globalThis;
+  const parent = root && root.parent || root;
+  return root === parent ? [root] : [root, parent];
+}
+
+function readPlannedAutoUpdateMarker(runtime) {
+  for (const host of restartHosts(runtime)) {
+    try {
+      const marker = host && host[PLANNED_AUTO_UPDATE_MARKER];
+      if (marker && typeof marker === 'object') return marker;
+    } catch (_) {}
+  }
+  return null;
+}
+
+function writePlannedAutoUpdateMarker(runtime, marker) {
+  for (const host of restartHosts(runtime)) {
+    try { if (host) host[PLANNED_AUTO_UPDATE_MARKER] = marker; } catch (_) {}
+  }
+  return marker;
+}
+
+function clearPlannedAutoUpdateMarker(runtime) {
+  for (const host of restartHosts(runtime)) {
+    try { if (host) delete host[PLANNED_AUTO_UPDATE_MARKER]; } catch (_) {}
+  }
+}
+
+function installAutoUpdateRestartTelemetry(runtime, updater) {
+  if (!runtime || !updater) return false;
+  const now = runtime.now || updater.now || (() => Date.now());
+  const marker = readPlannedAutoUpdateMarker(runtime);
+  if (marker) {
+    const markerAt = finite(marker.at, 0);
+    const ageMs = markerAt > 0 ? Math.max(0, now() - markerAt) : Number.POSITIVE_INFINITY;
+    const targetVersion = String(marker.to || '');
+    if (ageMs > PLANNED_AUTO_UPDATE_TTL_MS) {
+      clearPlannedAutoUpdateMarker(runtime);
+    } else if (targetVersion && targetVersion === String(updater.localVersion || RELEASE_VERSION)) {
+      const lastApply = {
+        at: markerAt || now(),
+        completedAt: now(),
+        from: marker.from || null,
+        to: targetVersion,
+        slot: marker.slot == null ? null : marker.slot,
+        bytes: finite(marker.bytes, 0) || null,
+        saved: true,
+        reloaded: true,
+        restartReason: PLANNED_AUTO_UPDATE_REASON
+      };
+      updater.lastApply = lastApply;
+      clearPlannedAutoUpdateMarker(runtime);
+      if (typeof updater._event === 'function') {
+        updater._event('AUTO_UPDATE_APPLIED', 'info', 'SAFE_RELEASE_RELOADED', { ...lastApply });
+      } else if (runtime.log && typeof runtime.log.emit === 'function') {
+        runtime.log.emit({
+          component: 'safe-auto-updater',
+          event: 'AUTO_UPDATE_APPLIED',
+          severity: 'info',
+          reason: 'SAFE_RELEASE_RELOADED',
+          data: { ...lastApply }
+        });
+      }
+    }
+  }
+
+  if (updater.__alpha26RestartTelemetryInstalled || typeof updater._reloadSavedCode !== 'function') return true;
+  const baseReload = updater._reloadSavedCode.bind(updater);
+  updater._reloadSavedCode = async (slotInfo) => {
+    const apply = updater.lastApply && typeof updater.lastApply === 'object' ? updater.lastApply : {};
+    const handoff = {
+      at: finite(apply.at, 0) || now(),
+      from: apply.from || updater.localVersion || null,
+      to: apply.to || updater.pendingVersion || null,
+      slot: slotInfo && slotInfo.slot != null ? slotInfo.slot : apply.slot == null ? null : apply.slot,
+      bytes: finite(apply.bytes, 0) || null,
+      restartReason: PLANNED_AUTO_UPDATE_REASON
+    };
+    updater.lastApply = { ...apply, restartReason: PLANNED_AUTO_UPDATE_REASON };
+    writePlannedAutoUpdateMarker(runtime, handoff);
+    try {
+      return await baseReload(slotInfo);
+    } catch (error) {
+      clearPlannedAutoUpdateMarker(runtime);
+      throw error;
+    }
+  };
+  updater.__alpha26RestartTelemetryInstalled = true;
+  return true;
 }
 
 function hasOutboundTransferWork(logistics, snapshot) {
@@ -35087,11 +35182,13 @@ class Alpha26CloudUpdateLogisticsUiHotfix {
     this.cloudAuthorityInstalled = installCloudTransportAuthority(runtime, this.stats);
     this.rendezvousGuardInstalled = installDemandDrivenRendezvous(runtime, this.stats);
     this.updater = installSafeAutoUpdater(runtime, { ...options, localVersion: RELEASE_VERSION });
+    this.updateRestartTelemetryInstalled = installAutoUpdateRestartTelemetry(runtime, this.updater);
   }
 
   beforeTick() {
     if (!this.cloudAuthorityInstalled) this.cloudAuthorityInstalled = installCloudTransportAuthority(this.runtime, this.stats);
     if (!this.rendezvousGuardInstalled) this.rendezvousGuardInstalled = installDemandDrivenRendezvous(this.runtime, this.stats);
+    if (!this.updateRestartTelemetryInstalled) this.updateRestartTelemetryInstalled = installAutoUpdateRestartTelemetry(this.runtime, this.updater);
     if (!this.updater || this.updaterBusy || this.now() - this.lastUpdaterCycleAt < 1000) return false;
     this.lastUpdaterCycleAt = this.now();
     this.updaterBusy = true;
@@ -35112,6 +35209,7 @@ class Alpha26CloudUpdateLogisticsUiHotfix {
       installedAt: this.installedAt,
       cloudAuthorityInstalled: this.cloudAuthorityInstalled,
       rendezvousGuardInstalled: this.rendezvousGuardInstalled,
+      updateRestartTelemetryInstalled: this.updateRestartTelemetryInstalled,
       updater: this.updater && this.updater.status ? this.updater.status() : null,
       stats: { ...this.stats },
       policies: {
@@ -35123,6 +35221,7 @@ class Alpha26CloudUpdateLogisticsUiHotfix {
         autoUpdateChecksGitHubMain: true,
         autoUpdateApplyRequiresStableSafety: true,
         autoUpdateNeverWidensCharacterAuthority: true,
+        plannedAutoUpdateRestartIsTelemetryClassified: true,
         dangerousContentStillAbsolute: true,
         commandCharacterAuthorityWidened: false
       }
@@ -35139,14 +35238,20 @@ function installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options = {}) {
 
 module.exports = {
   ALPHA26_MODE,
+  PLANNED_AUTO_UPDATE_REASON,
+  PLANNED_AUTO_UPDATE_MARKER,
+  PLANNED_AUTO_UPDATE_TTL_MS,
   Alpha26CloudUpdateLogisticsUiHotfix,
   installAlpha26CloudUpdateLogisticsUiHotfix,
+  installAutoUpdateRestartTelemetry,
+  readPlannedAutoUpdateMarker,
+  writePlannedAutoUpdateMarker,
+  clearPlannedAutoUpdateMarker,
   installCloudTransportAuthority,
   installDemandDrivenRendezvous,
   scheduleGuiCollapsedStart,
   hasOutboundTransferWork
 };
-
 },
 "src/ops/safe-auto-updater.js": function(require,module,exports){
 'use strict';
