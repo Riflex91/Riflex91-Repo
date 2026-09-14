@@ -1,0 +1,39 @@
+name: windows-bridge
+
+on:
+  push:
+    paths:
+      - 'ops/windows-bridge/**'
+      - 'ops/windows-bridge-tests/**'
+      - '.github/workflows/windows-bridge.yml'
+  pull_request:
+    paths:
+      - 'ops/windows-bridge/**'
+      - 'ops/windows-bridge-tests/**'
+      - '.github/workflows/windows-bridge.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore .\ops\windows-bridge-tests\AioBotWindowsBridge.SmokeTests.csproj
+      - name: Build app
+        run: dotnet build .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release --no-restore
+      - name: Run smoke tests
+        run: dotnet run --project .\ops\windows-bridge-tests\AioBotWindowsBridge.SmokeTests.csproj -c Release --no-restore
+      - name: Publish win-x64
+        run: dotnet publish .\ops\windows-bridge\AioBotWindowsBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\artifacts\windows-bridge
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: AioBotWindowsBridge-win-x64
+          path: .\artifacts\windows-bridge\
+          if-no-files-found: error
