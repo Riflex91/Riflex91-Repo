@@ -33688,6 +33688,7 @@ module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CON
 
 const CLOUD_STORAGE_KEY = 'aio-v3:cloud-control:v1';
 const LEGACY_V2_STABLE_PREFIX = 'ALBOT27:stable-config:';
+const { ACTIVE_CLOUDFLARE_BASE_URL, readCloudRequestBudget, reserveCloudRequest } = require('./cloud-free-tier-budget');
 
 function finite(value, fallback = 0) { if (value == null || value === '') return fallback; const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function text(value, max = 200) { return String(value == null ? '' : value).trim().slice(0, max); }
@@ -33758,7 +33759,7 @@ class CloudControlPlane {
     this.pendingFeedback = [];
     this.remoteRevision = 0;
     this.remoteUpdatedAt = 0;
-    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0 };
+    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0, cloudRequestsReserved: 0, cloudRequestsBlocked: 0 };
     this._load();
   }
 
@@ -33769,8 +33770,10 @@ class CloudControlPlane {
     let stored = null;
     try { stored = store ? parseObject(store.getItem(CLOUD_STORAGE_KEY)) : null; } catch (_) {}
     const globalCfg = this.root && this.root.AIO_V3_CLOUD_CONFIG && typeof this.root.AIO_V3_CLOUD_CONFIG === 'object' ? this.root.AIO_V3_CLOUD_CONFIG : {};
-    const globalCredentials = { baseUrl: normalizeBaseUrl(globalCfg.baseUrl || ''), writeKey: text(globalCfg.writeKey || '', 500), account: text(globalCfg.account || 'default', 100) || 'default' };
-    const storedCredentials = { baseUrl: normalizeBaseUrl(stored && stored.baseUrl || ''), writeKey: text(stored && stored.writeKey || '', 500), account: text(stored && stored.account || 'default', 100) || 'default' };
+    const globalWriteKey = text(globalCfg.writeKey || '', 500);
+    const storedWriteKey = text(stored && stored.writeKey || '', 500);
+    const globalCredentials = { baseUrl: normalizeBaseUrl(globalCfg.baseUrl || '') || (globalWriteKey ? ACTIVE_CLOUDFLARE_BASE_URL : ''), writeKey: globalWriteKey, account: text(globalCfg.account || 'default', 100) || 'default' };
+    const storedCredentials = { baseUrl: normalizeBaseUrl(stored && stored.baseUrl || '') || (storedWriteKey ? ACTIVE_CLOUDFLARE_BASE_URL : ''), writeKey: storedWriteKey, account: text(stored && stored.account || 'default', 100) || 'default' };
     const legacy = legacyV2DashboardCredentials(store, this.runtime, this.root);
     this.explicitGlobalConfig = validCredentials(globalCredentials);
     if (this.explicitGlobalConfig) {
@@ -33793,6 +33796,7 @@ class CloudControlPlane {
   configure(input = {}) {
     if (input.baseUrl != null) this.credentials.baseUrl = normalizeBaseUrl(input.baseUrl);
     if (input.writeKey != null) this.credentials.writeKey = text(input.writeKey, 500);
+    if (!this.credentials.baseUrl && this.credentials.writeKey) this.credentials.baseUrl = ACTIVE_CLOUDFLARE_BASE_URL;
     if (input.account != null) this.credentials.account = text(input.account, 100) || 'default';
     this.credentialSource = 'runtime-configure';
     const store = this._storage();
@@ -33815,6 +33819,16 @@ class CloudControlPlane {
 
   async _post(path, body, timeoutMs = 10000) {
     if (!this.fetchFn) throw new Error('fetch unavailable');
+    const character = text(characterOf(this.runtime) && characterOf(this.runtime).name || 'unknown', 80) || 'unknown';
+    const budget = reserveCloudRequest({ root: this.root, character, now: this.now() });
+    if (!budget.ok) {
+      this.stats.cloudRequestsBlocked += 1;
+      const error = new Error(`CLOUDFLARE_FREE_TIER_GUARD: ${budget.reason}`);
+      error.code = budget.reason;
+      error.freeTierBudget = budget;
+      throw error;
+    }
+    this.stats.cloudRequestsReserved += 1;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
@@ -33922,13 +33936,107 @@ class CloudControlPlane {
     return {
       schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig, legacyCredentialsMigrated: this.legacyCredentialsMigrated, credentialSource: this.credentialSource,
       configured: { baseUrl: this.credentials.baseUrl || null, account: this.credentials.account, writeKeyPresent: !!this.credentials.writeKey },
+      freeTierBudget: readCloudRequestBudget({ root: this.root, character: text(characterOf(this.runtime) && characterOf(this.runtime).name || 'unknown', 80) || 'unknown', now: this.now() }),
       busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
-      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true }
+      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true, cloudRequestsFailClosedAtFreeTierBudget: true, activeCloudflareEndpointDefaultsAutomatically: true }
     };
   }
 }
 
 module.exports = { CLOUD_STORAGE_KEY, LEGACY_V2_STABLE_PREFIX, CloudControlPlane, normalizeBaseUrl, legacyV2DashboardCredentials };
+
+},
+"src/control/cloud-free-tier-budget.js": function(require,module,exports){
+'use strict';
+
+const ACTIVE_CLOUDFLARE_BASE_URL = 'https://aio-bot-dashboard.hansijuergenlul.workers.dev';
+const WORKERS_FREE_DAILY_REQUEST_LIMIT = 100000;
+const SYSTEM_DAILY_REQUEST_TARGET = 95000;
+const INFRASTRUCTURE_DAILY_REQUEST_RESERVE = 5000;
+const BOT_DAILY_REQUEST_BUDGET = SYSTEM_DAILY_REQUEST_TARGET - INFRASTRUCTURE_DAILY_REQUEST_RESERVE;
+const MAX_SUPPORTED_PARTY_SIZE = 4;
+const PER_CHARACTER_DAILY_REQUEST_BUDGET = Math.floor(BOT_DAILY_REQUEST_BUDGET / MAX_SUPPORTED_PARTY_SIZE);
+const STORAGE_KEY = 'aio-v3:cloud-free-tier-budget:v1';
+
+function text(value, max = 120) {
+  return String(value == null ? '' : value).trim().slice(0, max);
+}
+
+function utcDay(now = Date.now()) {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+function storage(root) {
+  try { return root && (root.localStorage || root.parent && root.parent.localStorage) || null; }
+  catch (_) { return null; }
+}
+
+function load(store, now) {
+  if (!store) return null;
+  const day = utcDay(now);
+  try {
+    const raw = store.getItem(STORAGE_KEY);
+    if (raw == null || raw === '') return { day, counts: {} };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(parsed.day || ''))) return null;
+    if (!parsed.counts || typeof parsed.counts !== 'object' || Array.isArray(parsed.counts)) return null;
+    if (parsed.day > day) return null;
+    if (parsed.day < day) return { day, counts: {} };
+    for (const value of Object.values(parsed.counts)) {
+      if (!Number.isSafeInteger(value) || value < 0) return null;
+    }
+    return { day, counts: { ...parsed.counts } };
+  } catch (_) {
+    return null;
+  }
+}
+
+function readCloudRequestBudget({ root, character, now = Date.now(), limit = PER_CHARACTER_DAILY_REQUEST_BUDGET } = {}) {
+  const store = storage(root);
+  const name = text(character || 'unknown', 80) || 'unknown';
+  const state = load(store, now);
+  if (!state) {
+    return { ok: false, reason: 'PERSISTENT_STORAGE_UNAVAILABLE', day: utcDay(now), character: name, used: 0, limit, remaining: 0 };
+  }
+  const used = Math.max(0, Number(state.counts[name]) || 0);
+  return { ok: used < limit, reason: used < limit ? null : 'DAILY_CHARACTER_BUDGET_EXHAUSTED', day: state.day, character: name, used, limit, remaining: Math.max(0, limit - used) };
+}
+
+function reserveCloudRequest({ root, character, now = Date.now(), limit = PER_CHARACTER_DAILY_REQUEST_BUDGET } = {}) {
+  const store = storage(root);
+  const name = text(character || 'unknown', 80) || 'unknown';
+  const state = load(store, now);
+  if (!state) {
+    return { ok: false, reason: 'PERSISTENT_STORAGE_UNAVAILABLE', day: utcDay(now), character: name, used: 0, limit, remaining: 0 };
+  }
+  const used = Math.max(0, Number(state.counts[name]) || 0);
+  if (used >= limit) {
+    return { ok: false, reason: 'DAILY_CHARACTER_BUDGET_EXHAUSTED', day: state.day, character: name, used, limit, remaining: 0 };
+  }
+  const next = used + 1;
+  state.counts[name] = next;
+  try {
+    store.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (_) {
+    return { ok: false, reason: 'PERSISTENT_STORAGE_WRITE_FAILED', day: state.day, character: name, used, limit, remaining: Math.max(0, limit - used) };
+  }
+  return { ok: true, reason: null, day: state.day, character: name, used: next, limit, remaining: Math.max(0, limit - next) };
+}
+
+module.exports = {
+  ACTIVE_CLOUDFLARE_BASE_URL,
+  WORKERS_FREE_DAILY_REQUEST_LIMIT,
+  SYSTEM_DAILY_REQUEST_TARGET,
+  INFRASTRUCTURE_DAILY_REQUEST_RESERVE,
+  BOT_DAILY_REQUEST_BUDGET,
+  MAX_SUPPORTED_PARTY_SIZE,
+  PER_CHARACTER_DAILY_REQUEST_BUDGET,
+  STORAGE_KEY,
+  utcDay,
+  readCloudRequestBudget,
+  reserveCloudRequest
+};
 
 },
 "src/brain/strategic-brain-v2.js": function(require,module,exports){

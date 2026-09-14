@@ -66,6 +66,14 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Cloudflare deploy skipped because R2 bucket aio-v3-logs does not exist yet. Create it with: npx wrangler r2 bucket create aio-v3-logs"
           fi
+      - name: Enforce seven-day R2 log lifecycle
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          npx wrangler r2 bucket lifecycle remove aio-v3-logs --id aio-v3-logs-7d --config wrangler.deploy.jsonc || true
+          npx wrangler r2 bucket lifecycle add aio-v3-logs aio-v3-logs-7d logs/ --expire-days 7 --force --config wrangler.deploy.jsonc
+          npx wrangler r2 bucket lifecycle list aio-v3-logs --config wrangler.deploy.jsonc
       - name: Deploy Worker and dashboard
         if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
