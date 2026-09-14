@@ -28,9 +28,10 @@ function fixture() {
   return runtime;
 }
 
-function snapshot(entities) {
+function snapshot(entities, party = []) {
   return {
     character: { name: 'FarmerA', ctype: 'ranger', map: 'main' },
+    party,
     entities
   };
 }
@@ -52,9 +53,9 @@ test('Alpha20.23 keeps unknown monsters, dangerous fairies and custom exclusions
   const runtime = fixture();
   installAlpha2023IdleDeadlockRecovery(runtime);
   const rows = runtime.localFarming._visibleMonsters(snapshot([
-    { id: 'u1', name: 'Unknown Boss', mtype: 'unknownboss', hp: 100 },
-    { id: 'f1', name: 'Red Fairy', mtype: 'redfairy', hp: 100 },
-    { id: 'c1', name: 'customskip dummy', mtype: 'dummy', hp: 100 }
+    { id: 'u1', name: 'Unknown Boss', mtype: 'unknownboss', target: 'OutsidePlayer', hp: 100 },
+    { id: 'f1', name: 'Red Fairy', mtype: 'redfairy', target: 'OutsidePlayer', hp: 100 },
+    { id: 'c1', name: 'customskip dummy', mtype: 'dummy', target: 'OutsidePlayer', hp: 100 }
   ]));
 
   assert.deepEqual(rows.map((row) => row.id), ['u1', 'f1', 'c1']);
@@ -70,7 +71,7 @@ test('Alpha20.23 never releases a Target Automatron that is attacking the charac
   assert.deepEqual(rows.map((row) => row.id), ['30']);
 });
 
-test('Alpha20.23 never releases a selected or planned target even if TargetSafety rejects its identity', () => {
+test('Alpha20.23 never releases a selected or planned Target Automatron even if TargetSafety rejects its identity', () => {
   const selectedRuntime = fixture();
   selectedRuntime.farmer.targetId = '30';
   installAlpha2023IdleDeadlockRecovery(selectedRuntime);
@@ -86,7 +87,61 @@ test('Alpha20.23 never releases a selected or planned target even if TargetSafet
   ])).map((row) => row.id), ['30']);
 });
 
-test('Alpha20.23 installation is idempotent and TargetSafety failures remain blockers', () => {
+test('Alpha20.23 releases a known safe monster claimed by a player outside the party', () => {
+  const runtime = fixture();
+  runtime.root.G.monsters.crab = { name: 'Crab', hp: 400 };
+  const recovery = installAlpha2023IdleDeadlockRecovery(runtime);
+  const rows = runtime.localFarming._visibleMonsters(snapshot([
+    { id: 'crab-1', name: 'Crab', mtype: 'crab', target: 'OutsidePlayer', hp: 400 }
+  ], [{ name: 'PartyMate' }]));
+
+  assert.deepEqual(rows, []);
+  assert.equal(recovery.status().stats.foreignEngagedReleases, 1);
+  assert.equal(recovery.status().stats.lastRelease.reason, 'FOREIGN_ENGAGED_SAFE_MONSTER');
+  assert.equal(recovery.status().stats.lastRelease.claimedBy, 'OutsidePlayer');
+});
+
+test('Alpha20.23 keeps neutral, self-aggro and party-aggro known monsters as blockers', () => {
+  const runtime = fixture();
+  runtime.root.G.monsters.crab = { name: 'Crab', hp: 400 };
+  installAlpha2023IdleDeadlockRecovery(runtime);
+  const rows = runtime.localFarming._visibleMonsters(snapshot([
+    { id: 'neutral', name: 'Crab', mtype: 'crab', target: null, hp: 400 },
+    { id: 'self', name: 'Crab', mtype: 'crab', target: 'FarmerA', hp: 400 },
+    { id: 'party', name: 'Crab', mtype: 'crab', target: 'PartyMate', hp: 400 }
+  ], [{ name: 'PartyMate' }]));
+
+  assert.deepEqual(rows.map((row) => row.id), ['neutral', 'self', 'party']);
+});
+
+test('Alpha20.23 releases a foreign-engaged safe monster even when its type matches the local travel plan', () => {
+  const runtime = fixture();
+  runtime.root.G.monsters.squigtoad = { name: 'Squigtoad', hp: 600 };
+  installAlpha2023IdleDeadlockRecovery(runtime);
+  const rows = runtime.localFarming._visibleMonsters(snapshot([
+    { id: 'squigtoad-foreign', name: 'Squigtoad', mtype: 'squigtoad', target: 'OutsidePlayer', hp: 600 }
+  ]));
+
+  assert.deepEqual(rows, []);
+});
+
+test('Alpha20.23 keeps content-quarantined foreign monsters fail-closed', () => {
+  const runtime = fixture();
+  runtime.root.G.monsters.crab = { name: 'Crab', hp: 400 };
+  runtime.combatRisk = {
+    contentSafety: {
+      evaluate() { return { allowed: false, reason: 'CONTENT_QUARANTINED' }; }
+    }
+  };
+  installAlpha2023IdleDeadlockRecovery(runtime);
+  const rows = runtime.localFarming._visibleMonsters(snapshot([
+    { id: 'crab-quarantined', name: 'Crab', mtype: 'crab', target: 'OutsidePlayer', hp: 400 }
+  ]));
+
+  assert.deepEqual(rows.map((row) => row.id), ['crab-quarantined']);
+});
+
+test('Alpha20.23 installation is idempotent and safety evaluation failures remain blockers', () => {
   const runtime = fixture();
   runtime.targetSafety = { evaluate() { throw new Error('synthetic safety failure'); } };
   const first = installAlpha2023IdleDeadlockRecovery(runtime);
@@ -98,4 +153,13 @@ test('Alpha20.23 installation is idempotent and TargetSafety failures remain blo
   ]));
   assert.deepEqual(rows.map((row) => row.id), ['30']);
   assert.equal(first.status().stats.targetSafetyEvaluationFailures, 1);
+
+  const contentRuntime = fixture();
+  contentRuntime.root.G.monsters.crab = { name: 'Crab', hp: 400 };
+  contentRuntime.combatRisk = { contentSafety: { evaluate() { throw new Error('synthetic content failure'); } } };
+  const contentRecovery = installAlpha2023IdleDeadlockRecovery(contentRuntime);
+  assert.deepEqual(contentRuntime.localFarming._visibleMonsters(snapshot([
+    { id: 'crab-1', name: 'Crab', mtype: 'crab', target: 'OutsidePlayer', hp: 400 }
+  ])).map((row) => row.id), ['crab-1']);
+  assert.equal(contentRecovery.status().stats.contentSafetyEvaluationFailures, 1);
 });
