@@ -28,6 +28,13 @@ test('a merge that already advanced the release version is not bumped twice', ()
   );
 });
 
+test('a stale workflow retry skips when latest main has already advanced beyond its trigger baseline', () => {
+  assert.deepEqual(
+    decideAutoBump('3.0.0-alpha.20.10', '3.0.0-alpha.20.12'),
+    { shouldBump: false, reason: 'MERGE_ALREADY_ADVANCED_VERSION' }
+  );
+});
+
 test('a version regression on main fails closed', () => {
   assert.throws(
     () => decideAutoBump('3.0.0-alpha.20.11', '3.0.0-alpha.20.10'),
