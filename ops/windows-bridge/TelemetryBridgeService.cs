@@ -9,7 +9,9 @@ public sealed record RuntimeBridgeStatus(
     long LastEventSeq,
     int LastEventCount,
     string? LastError,
-    string? TargetUrl);
+    string? TargetUrl,
+    string WebDashboardState,
+    string? WebDashboardError);
 
 public sealed class TelemetryBridgeService : IAsyncDisposable
 {
@@ -21,16 +23,22 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly BridgeConfig _config;
     private readonly BrowserLauncher _launcher;
     private readonly CdpAdventureLandClient _browser;
+    private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly SupabaseTelemetrySink _sink;
+    private readonly string? _dashboardWriteKey;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
-    public TelemetryBridgeService(HttpClient httpClient, BridgeConfig config, string token)
+    public TelemetryBridgeService(HttpClient httpClient, BridgeConfig config, string token, string? dashboardWriteKey = null)
     {
         _config = config;
         _launcher = new BrowserLauncher(httpClient, config);
         _browser = new CdpAdventureLandClient(httpClient, config);
+        _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
+        _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
+            ? dashboardWriteKey
+            : null;
     }
 
     public event Action<RuntimeBridgeStatus>? StatusChanged;
@@ -53,7 +61,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _loopCts.Dispose();
         _loopCts = null;
         _loopTask = null;
-        Publish(new RuntimeBridgeStatus("STOPPED", false, false, null, null, 0, 0, null, null));
+        Publish(new RuntimeBridgeStatus(
+            "STOPPED", false, false, null, null, 0, 0, null, null,
+            DashboardInitialState(), null));
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -67,12 +77,18 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         {
             var attempt = DateTimeOffset.UtcNow;
             var browserReady = false;
+            var dashboardState = DashboardInitialState();
+            string? dashboardError = null;
             try
             {
-                Publish(new RuntimeBridgeStatus("CONNECTING", false, false, attempt, lastSuccess, state.LastEventSeq, 0, null, null));
+                Publish(new RuntimeBridgeStatus(
+                    "CONNECTING", false, false, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
+                    dashboardState, null));
                 var browserConnection = await _launcher.EnsureReadyAsync(cancellationToken);
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
+
+                (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
 
                 RuntimeBridgeStatus? latestStatus = null;
                 for (var batchIndex = 0; batchIndex < MaxCatchUpBatches; batchIndex++)
@@ -115,7 +131,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         state.LastEventSeq,
                         read.EventCount,
                         null,
-                        read.TargetUrl);
+                        read.TargetUrl,
+                        dashboardState,
+                        dashboardError);
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
@@ -128,7 +146,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 if (latestStatus is null)
                 {
                     latestStatus = new RuntimeBridgeStatus(
-                        "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0, null, browserConnection.State);
+                        "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
+                        dashboardState, dashboardError);
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
                 }
@@ -144,13 +163,59 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 failures++;
                 var message = Bounded(error.Message);
                 var status = new RuntimeBridgeStatus(
-                    "DEGRADED", browserReady, false, attempt, lastSuccess, state.LastEventSeq, 0, message, null);
+                    "DEGRADED", browserReady, false, attempt, lastSuccess, state.LastEventSeq, 0, message, null,
+                    dashboardState, dashboardError);
                 Publish(status);
                 await SaveStatusAsync(status, CancellationToken.None);
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
         }
+    }
+
+    private async Task<(string State, string? Error)> SyncDashboardProfileAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!_config.WebDashboardEnabled)
+            {
+                await _dashboard.ClearAsync(cancellationToken);
+                return ("DISABLED", null);
+            }
+
+            if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
+            {
+                // Fail closed: an old key must not remain active in the dedicated profile after
+                // the DPAPI copy was deleted or became unreadable.
+                await _dashboard.ClearAsync(cancellationToken);
+                return ("WRITE_KEY_MISSING", null);
+            }
+
+            var result = await _dashboard.ApplyAsync(
+                _config.WebDashboardBaseUrl,
+                _config.WebDashboardAccount,
+                _dashboardWriteKey!,
+                cancellationToken);
+            return result.Applied ? ("READY", null) : ("ERROR", "WEB_DASHBOARD_PROFILE_NOT_APPLIED");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            // Dashboard sync is intentionally independent from Supabase telemetry. A profile
+            // injection failure is visible, but it must not block diagnostic uploads.
+            return ("ERROR", Bounded(error.Message));
+        }
+    }
+
+    private string DashboardInitialState()
+    {
+        if (!_config.WebDashboardEnabled) return "DISABLED";
+        return SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
+            ? "PENDING"
+            : "WRITE_KEY_MISSING";
     }
 
     private async Task SaveStatusAsync(RuntimeBridgeStatus status, CancellationToken cancellationToken)
@@ -166,7 +231,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             status.LastEventSeq,
             status.LastEventCount,
             status.LastError,
-            status.TargetUrl).SaveAsync(cancellationToken);
+            status.TargetUrl,
+            status.WebDashboardState,
+            status.WebDashboardError).SaveAsync(cancellationToken);
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
