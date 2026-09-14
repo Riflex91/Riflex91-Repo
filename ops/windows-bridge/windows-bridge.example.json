@@ -1,4 +1,5 @@
 {
+  "configVersion": 2,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -7,7 +8,7 @@
   "botId": "pi-main",
   "telemetryEnabled": false,
   "autoStartBrowser": true,
-  "preferredBrowser": "Edge",
+  "preferredBrowser": "Brave",
   "pollIntervalSeconds": 5,
   "maxBackoffSeconds": 300,
   "eventLimit": 100
