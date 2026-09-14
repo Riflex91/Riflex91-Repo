@@ -1,5 +1,7 @@
 'use strict';
 
+const { assessDebugHealth } = require('./debug-health-assessor');
+
 const DEFAULT_EVENT_LIMIT = 100;
 const DEFAULT_TIMEOUT_MS = 5000;
 const DEFAULT_MIN_INTERVAL_MS = 5000;
@@ -103,6 +105,9 @@ class DebugTelemetryExporter {
       const eventBatch = await botClient.debugEvents(this.lastEventSeq, this.eventLimit);
       const events = Array.isArray(eventBatch && eventBatch.events) ? eventBatch.events : [];
       const maxSeq = events.reduce((max, row) => Math.max(max, Math.floor(finite(row && row.seq, 0))), this.lastEventSeq);
+      const copiedSnapshot = clone(snapshot);
+      const enrichedSnapshot = copiedSnapshot && typeof copiedSnapshot === 'object' && !Array.isArray(copiedSnapshot) ? copiedSnapshot : {};
+      enrichedSnapshot.hostAssessment = assessDebugHealth(enrichedSnapshot, events, host);
       const payload = {
         schemaVersion: 1,
         type: 'AIO_V3_DEBUG_TELEMETRY_BATCH',
@@ -114,7 +119,7 @@ class DebugTelemetryExporter {
           restartCount: Math.max(0, Math.floor(finite(host.restartCount, 0))),
           harnessStartedAt: host.harnessStartedAt == null ? null : finite(host.harnessStartedAt, null)
         },
-        snapshot: clone(snapshot),
+        snapshot: enrichedSnapshot,
         events: clone(events)
       };
       await this._post(payload);
@@ -123,10 +128,16 @@ class DebugTelemetryExporter {
       this.nextAttemptAt = now + this.minIntervalMs;
       this.lastSuccessAt = now;
       this.lastError = null;
-      this.lastPayload = { at: now, eventCount: events.length, maxSeq };
+      this.lastPayload = {
+        at: now,
+        eventCount: events.length,
+        maxSeq,
+        healthState: enrichedSnapshot.hostAssessment.state,
+        healthReasons: enrichedSnapshot.hostAssessment.reasons.slice()
+      };
       this.stats.successes += 1;
       this.stats.eventsSent += events.length;
-      return { sent: true, eventCount: events.length, maxSeq };
+      return { sent: true, eventCount: events.length, maxSeq, healthState: enrichedSnapshot.hostAssessment.state };
     } catch (error) {
       this.stats.failures += 1;
       this.failuresInRow += 1;
