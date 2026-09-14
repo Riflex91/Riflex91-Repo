@@ -11,7 +11,7 @@ function uniqueNames(values) {
   return [...new Set((values || []).map(cleanName).filter(Boolean))];
 }
 
-function resolveMerchantName(options, roster, configuredExplicitly) {
+function resolveMerchantName(options, roster) {
   const explicit = cleanName(options.merchantName);
   if (explicit) return explicit;
   if (roster.includes('My_Merchant')) return 'My_Merchant';
@@ -19,7 +19,7 @@ function resolveMerchantName(options, roster, configuredExplicitly) {
   const root = options.root || options.runtime && options.runtime.root || globalThis;
   const local = root && (root.character || root.parent && root.parent.character);
   if (local && String(local.ctype || '').toLowerCase() === 'merchant' && roster.includes(String(local.name))) return String(local.name);
-  return configuredExplicitly && roster.length ? roster[0] : null;
+  return null;
 }
 
 function resolveRoster(options) {
@@ -35,7 +35,7 @@ function resolveRoster(options) {
         const active = activeFn.call(root);
         const activeNames = active && typeof active === 'object' ? uniqueNames(Object.keys(active)) : [];
         if (activeNames.length >= 2 && activeNames.length <= 4) {
-          const merchant = resolveMerchantName(options, activeNames, false);
+          const merchant = resolveMerchantName(options, activeNames);
           if (merchant && activeNames.includes(merchant)) roster = activeNames;
         }
       } catch (_) {}
@@ -50,7 +50,7 @@ class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
     const resolved = resolveRoster(options);
     const roster = resolved.roster;
     if (roster.length < 2 || roster.length > 4) throw new Error('PARTY_BOOTSTRAP_REQUIRES_TWO_TO_FOUR_TRUSTED_NAMES');
-    const merchantName = resolveMerchantName(options, roster, resolved.configuredExplicitly || roster === base.DEFAULT_PARTY_BOOTSTRAP_ROSTER);
+    const merchantName = resolveMerchantName(options, roster);
     if (!merchantName || !roster.includes(merchantName)) throw new Error('PARTY_BOOTSTRAP_MERCHANT_NOT_IN_ROSTER');
 
     const padded = roster.slice();

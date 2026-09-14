@@ -13,4 +13,11 @@ class PartyBootstrapMerchantDiscoveryHotfix extends base.PartyBootstrapMerchantD
   }
 }
 
-module.exports = { PartyBootstrapMerchantDiscoveryHotfix };
+function installPartyBootstrapMerchantDiscoveryHotfix(bootstrap) {
+  return new PartyBootstrapMerchantDiscoveryHotfix(bootstrap);
+}
+
+module.exports = {
+  PartyBootstrapMerchantDiscoveryHotfix,
+  installPartyBootstrapMerchantDiscoveryHotfix
+};
