@@ -4,7 +4,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 2;
+    public const int CurrentConfigVersion = 3;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -20,6 +20,14 @@ public sealed record BridgeConfig
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
 
+    // The Windows Bridge uses a dedicated Chromium profile. Web-dashboard settings from a
+    // normal browser profile are therefore intentionally not inherited. The non-secret URL
+    // and account stay in settings.json; the write key is stored separately with DPAPI.
+    public bool WebDashboardEnabled { get; init; } = true;
+    public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
+    public string WebDashboardAccount { get; init; } = "default";
+    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "AIO_V3_WEB_DASHBOARD_WRITE_KEY";
+
     public static string AppDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "AioBotWindowsBridge");
@@ -33,6 +41,7 @@ public sealed record BridgeConfig
     public static string StatePath => Path.Combine(AppDirectory, "bridge-state.json");
     public static string StatusPath => Path.Combine(AppDirectory, "bridge-status.json");
     public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token.dpapi");
+    public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key.dpapi");
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -48,13 +57,15 @@ public sealed record BridgeConfig
         var loaded = JsonSerializer.Deserialize<BridgeConfig>(json, JsonOptions) ?? new BridgeConfig();
 
         using var document = JsonDocument.Parse(json);
-        var hasConfigVersion = document.RootElement.TryGetProperty("configVersion", out _);
-        if (!hasConfigVersion)
+        var hasConfigVersion = document.RootElement.TryGetProperty("configVersion", out var versionNode)
+            && versionNode.TryGetInt32(out var storedVersion);
+        var needsMigration = !hasConfigVersion || storedVersion < CurrentConfigVersion;
+        if (needsMigration)
         {
             loaded = loaded with
             {
                 ConfigVersion = CurrentConfigVersion,
-                PreferredBrowser = string.Equals(loaded.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
+                PreferredBrowser = !hasConfigVersion && string.Equals(loaded.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
                     ? "Brave"
                     : loaded.PreferredBrowser
             };
@@ -89,9 +100,14 @@ public sealed record BridgeConfig
 
         ValidateHttps(TelemetryIngestUrl, "TELEMETRY_HTTPS_REQUIRED");
         ValidateHttps(SignalControlUrl, "SIGNAL_CONTROL_HTTPS_REQUIRED");
+        ValidateHttps(WebDashboardBaseUrl, "WEB_DASHBOARD_HTTPS_REQUIRED");
 
         if (string.IsNullOrWhiteSpace(TelemetryTokenEnvironmentVariable))
             throw new InvalidOperationException("TELEMETRY_TOKEN_ENV_REQUIRED");
+        if (string.IsNullOrWhiteSpace(WebDashboardWriteKeyEnvironmentVariable))
+            throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+        if (string.IsNullOrWhiteSpace(WebDashboardAccount) || WebDashboardAccount.Length > 100)
+            throw new InvalidOperationException("WEB_DASHBOARD_ACCOUNT_INVALID");
         if (string.IsNullOrWhiteSpace(BotId) || BotId.Length > 128)
             throw new InvalidOperationException("BOT_ID_INVALID");
         if (!string.Equals(PreferredBrowser, "Brave", StringComparison.OrdinalIgnoreCase)
@@ -161,7 +177,9 @@ public sealed record BridgeStatus(
     long LastEventSeq,
     int? LastEventCount,
     string? LastError,
-    string? TargetUrl)
+    string? TargetUrl,
+    string WebDashboardState,
+    string? WebDashboardError)
 {
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
