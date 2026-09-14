@@ -40,11 +40,13 @@ test('release guardian rejects package and generated-release drift before the fu
   assert.match(failures, /release-version\.js/);
 });
 
-test('patch bump changes only the current release literal and leaves frozen history intact', () => {
-  assert.equal(nextPatchVersion('3.0.0-alpha.20.23'), '3.0.0-alpha.20.24');
-  const source = "current='3.0.0-alpha.20.23'; frozen='3.0.0-alpha.19.0';";
+test('patch bump changes only the requested release literal and leaves frozen history intact', () => {
+  const fromVersion = '3.0.0-alpha.20.10';
+  const toVersion = '3.0.0-alpha.20.11';
+  assert.equal(nextPatchVersion(fromVersion), toVersion);
+  const source = `current='${fromVersion}'; frozen='3.0.0-alpha.19.0';`;
   assert.equal(
-    replaceExactReleaseLiteral(source, '3.0.0-alpha.20.23', '3.0.0-alpha.20.24'),
-    "current='3.0.0-alpha.20.24'; frozen='3.0.0-alpha.19.0';"
+    replaceExactReleaseLiteral(source, fromVersion, toVersion),
+    `current='${toVersion}'; frozen='3.0.0-alpha.19.0';`
   );
 });
