@@ -57,8 +57,9 @@ public sealed record BridgeConfig
         var loaded = JsonSerializer.Deserialize<BridgeConfig>(json, JsonOptions) ?? new BridgeConfig();
 
         using var document = JsonDocument.Parse(json);
+        var storedVersion = 0;
         var hasConfigVersion = document.RootElement.TryGetProperty("configVersion", out var versionNode)
-            && versionNode.TryGetInt32(out var storedVersion);
+            && versionNode.TryGetInt32(out storedVersion);
         var needsMigration = !hasConfigVersion || storedVersion < CurrentConfigVersion;
         if (needsMigration)
         {
