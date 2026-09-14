@@ -33581,8 +33581,8 @@ const DEFINITIONS = Object.freeze([
   { key: 'economy.keepValue', category: 'Economy, Gear & Markt', label: 'High-Value Keep/Bank', description: 'Wertgrenze, oberhalb der Items nicht leichtfertig verkauft werden.', type: 'number', default: 1000000, min: 1000, max: 100000000, step: 50000, hot: true },
   { key: 'economy.upgradeCap', category: 'Economy, Gear & Markt', label: 'Upgrade Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Upgrade-Kandidaten.', type: 'number', default: 2000000, min: 0, max: 100000000, step: 100000, hot: true },
   { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
-  { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Routine-Obergrenze für autonome Upgrades.', type: 'number', default: 2, min: 0, max: 4, step: 1, hot: true },
-  { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Routine-Obergrenze für autonome Compounds.', type: 'number', default: 1, min: 0, max: 3, step: 1, hot: true },
+  { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Maximales Ergebnislevel autonomer Upgrades. Aktuelle v3-Progressionsgrenze: +7.', type: 'number', default: 2, min: 0, max: 7, step: 1, hot: true },
+  { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Maximales Ergebnislevel autonomer Compounds. Aktuelle v3-Progressionsgrenze: +10.', type: 'number', default: 1, min: 0, max: 10, step: 1, hot: true },
   { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
   { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
   { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
@@ -33700,7 +33700,6 @@ class ControlPlaneConfig {
 }
 
 module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CONTROL_DEFINITIONS: DEFINITIONS, ControlPlaneConfig, controlDefaults: defaults, sanitizeControlValues: sanitize, loadStoredControlConfig: loadStored, buildBootOptionsFromControlPlane: bootOptions };
-
 },
 "src/control/cloud-control-plane.js": function(require,module,exports){
 'use strict';
