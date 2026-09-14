@@ -108,7 +108,7 @@ test('safe auto updater defaults to the public Cloudflare Pages mirror of GitHub
   assert.equal(updater.config.rawBaseUrl.includes('raw.githubusercontent.com'), false);
 });
 
-test('safe auto updater defers in danger, then saves active slot and reloads newer validated bundle', async () => {
+test('safe auto updater immediately saves active slot and reloads a newer validated bundle', async () => {
   const clock = { value: 1_000_000 };
   const calls = { save: [], load: [], stop: 0 };
   const remoteVersion = '3.0.0-alpha.20.21';
@@ -144,9 +144,7 @@ test('safe auto updater defers in danger, then saves active slot and reloads new
 
   assert.equal(await updater.check(), true);
   assert.equal(updater.pendingVersion, remoteVersion);
-  assert.equal(await updater.applyPending(), false, 'safe hold window must elapse first');
-  clock.value += 9000;
-  assert.equal(await updater.applyPending(), true);
+  assert.equal(await updater.applyPending(), true, 'validated update must apply without a safe-hold delay');
   assert.equal(calls.save.length, 1);
   assert.equal(calls.save[0].name, 'save_code');
   assert.equal(calls.save[0].payload.slot, 7);
@@ -154,30 +152,49 @@ test('safe auto updater defers in danger, then saves active slot and reloads new
   assert.deepEqual(calls.load, [7]);
   assert.equal(calls.stop, 1);
   assert.equal(updater.status().lastApply.reloaded, true);
+  assert.equal(updater.status().policies.applyRequiresStableSafeWindow, false);
+  assert.equal(updater.status().policies.appliesImmediatelyWhenUpdateAvailable, true);
 });
 
-test('safe auto updater never applies while local character has active aggro', async () => {
+test('safe auto updater reports active aggro but does not let character state gate a validated update', async () => {
   const clock = { value: 2_000_000 };
-  const root = { get_active_code_slot: () => 1, api_call: async () => true, load_code: async () => true };
+  const remoteVersion = '3.0.0-alpha.20.21';
+  const bundle = `/* Adventure Land AiO Bot ${remoteVersion} */\n(function(){ var AIO_V3 = true; })();\n${'x'.repeat(12000)}`;
+  const calls = { save: 0, load: 0 };
+  const root = {
+    get_active_code_slot: () => 1,
+    api_call: async () => { calls.save += 1; return true; },
+    load_code: async () => { calls.load += 1; return true; }
+  };
   const runtime = {
     root,
     now: () => clock.value,
     lastSnapshot: {
-      character: { name: 'My_Ranger1', ctype: 'ranger', hp: 4000, max_hp: 4000, rip: false, target: null },
+      character: { name: 'My_Ranger1', ctype: 'ranger', hp: 1200, max_hp: 4000, rip: false, target: 'm1' },
       entities: [{ id: 'm1', mtype: 'squigtoad', hp: 1000, target: 'My_Ranger1' }]
     },
-    farmer: { status: () => ({ state: 'ASSESS' }) },
-    transactionEngine: { status: () => ({ active: 0, recovering: 0 }) },
-    economyEquipmentAutonomyV2: { status: () => ({ busy: false }) },
-    controlledPartyLogistics: { status: () => ({}) },
+    farmer: { status: () => ({ state: 'ENGAGE' }) },
+    transactionEngine: { status: () => ({ active: 1, recovering: 0 }) },
+    economyEquipmentAutonomyV2: { status: () => ({ busy: true }) },
+    controlledPartyLogistics: { status: () => ({ pendingOutbound: { id: 'x' } }) },
     log: { emit() {} }
   };
-  const updater = new SafeAutoUpdater(runtime, { localVersion: '3.0.0-alpha.20.20', now: runtime.now, root, fetch: async () => ({ ok: true, text: async () => '' }) });
-  updater.pendingVersion = '3.0.0-alpha.20.21';
-  updater.safeSince = clock.value - 60000;
-  assert.equal(updater.safety().safe, false);
-  assert.ok(updater.safety().reasons.includes('ACTIVE_AGGRO'));
-  assert.equal(await updater.applyPending(), false);
+  const updater = new SafeAutoUpdater(runtime, {
+    localVersion: '3.0.0-alpha.20.20',
+    now: runtime.now,
+    root,
+    fetch: async () => ({ ok: true, status: 200, text: async () => bundle })
+  });
+  updater.pendingVersion = remoteVersion;
+  const safety = updater.safety();
+  assert.equal(safety.safe, false);
+  assert.ok(safety.reasons.includes('ACTIVE_AGGRO'));
+  assert.ok(safety.reasons.includes('ACTIVE_COMBAT_TARGET'));
+  assert.ok(safety.reasons.includes('FARMER_ENGAGE'));
+  assert.ok(safety.reasons.includes('ECONOMY_OR_TRANSFER_BUSY'));
+  assert.equal(await updater.applyPending(), true);
+  assert.equal(calls.save, 1);
+  assert.equal(calls.load, 1);
 });
 
 test('safe auto updater restarts the previous runtime if loading the saved release fails', async () => {
