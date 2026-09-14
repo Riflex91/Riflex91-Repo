@@ -57,7 +57,7 @@ test('upgrade result cap defaults to +7 and clamps explicit values at +7', () =>
   assert.equal(boundedOptions({}).maxUpgradeLevel, 7);
   assert.equal(boundedOptions({ maxUpgradeLevel: 99 }).maxUpgradeLevel, 7);
   assert.equal(boundedOptions({ maxUpgradeLevel: 6 }).maxUpgradeLevel, 6);
-  assert.equal(boundedOptions({}).maxCompoundLevel, 6);
+  assert.equal(boundedOptions({}).maxCompoundLevel, 10);
 });
 
 test('legacy economy upgrade cap is synchronized to the +7 result cap', () => {

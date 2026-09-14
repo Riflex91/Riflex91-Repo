@@ -13,23 +13,23 @@ function setCompoundLevel(fixture, level) {
   }
 }
 
-test('compound result cap defaults to +6 and clamps explicit values at +6', () => {
-  assert.equal(boundedOptions({}).maxCompoundLevel, 6);
-  assert.equal(boundedOptions({ maxCompoundLevel: 99 }).maxCompoundLevel, 6);
+test('compound result cap defaults to +10 and clamps explicit values at +10', () => {
+  assert.equal(boundedOptions({}).maxCompoundLevel, 10);
+  assert.equal(boundedOptions({ maxCompoundLevel: 99 }).maxCompoundLevel, 10);
   assert.equal(boundedOptions({ maxCompoundLevel: 4 }).maxCompoundLevel, 4);
 });
 
-test('legacy economy compound source cap is synchronized to the +6 result cap', () => {
+test('legacy economy compound source cap is synchronized to the +10 result cap', () => {
   const runtime = { merchantEconomyAutonomy: { cfg: { maxCompound: 1 } } };
-  assert.equal(synchronizeLegacyCompoundPolicy(runtime, 6), true);
-  assert.equal(runtime.merchantEconomyAutonomy.cfg.maxCompound, 5);
-  assert.equal(runtime.merchantEconomyAutonomy.cfg.maxCompoundResultLevel, 6);
+  assert.equal(synchronizeLegacyCompoundPolicy(runtime, 10), true);
+  assert.equal(runtime.merchantEconomyAutonomy.cfg.maxCompound, 9);
+  assert.equal(runtime.merchantEconomyAutonomy.cfg.maxCompoundResultLevel, 10);
 });
 
-test('level +5 compound selects and purchases the grade-appropriate cscroll2 before reaching +6', async () => {
+test('level +9 compound selects and purchases the grade-appropriate cscroll2 before reaching +10', async () => {
   const fixture = mutationFixture('COMPOUND');
   const { runtime, convergence, engine, ledger, root } = fixture;
-  setCompoundLevel(fixture, 5);
+  setCompoundLevel(fixture, 9);
 
   const gameData = runtime.adapter.getGameData();
   gameData.items.ring.grades = [2, 4];
@@ -46,7 +46,7 @@ test('level +5 compound selects and purchases the grade-appropriate cscroll2 bef
   };
   root.compound = async (a, b, c, scrollIndex) => {
     assert.deepEqual([a, b, c, scrollIndex], [0, 1, 2, 3]);
-    root.character.items[0] = { name: 'ring', level: 6 };
+    root.character.items[0] = { name: 'ring', level: 10 };
     root.character.items[1] = null;
     root.character.items[2] = null;
     root.character.items[3] = null;
@@ -60,13 +60,13 @@ test('level +5 compound selects and purchases the grade-appropriate cscroll2 bef
   assert.equal(result.outcome, 'SUCCESS');
   assert.deepEqual(purchases, [{ name: 'cscroll2', quantity: 1 }]);
   assert.equal(convergence.stats.scrollPurchases, 1);
-  assert.equal(root.character.items[0].level, 6);
+  assert.equal(root.character.items[0].level, 10);
 });
 
-test('level +6 compound is blocked before mutation so the result can never exceed +6', async () => {
+test('level +10 compound is blocked before mutation so the result can never exceed +10', async () => {
   const fixture = mutationFixture('COMPOUND');
   const { convergence, engine, ledger, root } = fixture;
-  setCompoundLevel(fixture, 6);
+  setCompoundLevel(fixture, 10);
 
   let compoundCalls = 0;
   root.compound = async () => { compoundCalls += 1; return { success: true }; };
