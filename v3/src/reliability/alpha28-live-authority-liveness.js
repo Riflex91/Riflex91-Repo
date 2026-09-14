@@ -4,8 +4,92 @@ const { Alpha28LedgerFarmerFixes } = require('./alpha28-ledger-farmer-fixes');
 const { Alpha28MerchantTransfers } = require('./alpha28-merchant-transfers');
 const { Alpha28CrossMapFarmerProgression } = require('./alpha28-cross-map-farmer');
 const { Alpha28BrainCloud } = require('./alpha28-brain-cloud');
+const { installAlpha2023IdleDeadlockRecovery } = require('./alpha20-23-idle-deadlock-recovery');
 
 const ALPHA28_MODE = 'alpha28-live-authority-liveness-v1';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function failureReason(value, fallback = 'CONTROLLED_EXECUTION_FAILED') {
+  if (value == null) return fallback;
+  if (value instanceof Error && value.message) return String(value.message);
+  if (typeof value === 'string') return value.trim() || fallback;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    const code = typeof value.code === 'string' ? value.code.trim() : '';
+    const message = typeof value.message === 'string' ? value.message.trim() : '';
+    if (code && message) return `${code}: ${message}`;
+    if (message) return message;
+    if (code) return code;
+    for (const key of ['reason', 'error']) {
+      const nested = value[key];
+      if (nested == null || nested === value) continue;
+      const resolved = failureReason(nested, '');
+      if (resolved) return resolved;
+    }
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== '{}') return serialized.slice(0, 512);
+    } catch (_) {}
+  }
+  const text = String(value || '');
+  return !text || text === '[object Object]' ? fallback : text;
+}
+
+function installMerchantFailureReasonNormalization(runtime) {
+  const merchant = runtime && runtime.controlledMerchant;
+  if (!merchant || merchant.__alpha28FailureReasonNormalization || typeof merchant._timeout !== 'function') return false;
+  const baseTimeout = merchant._timeout.bind(merchant);
+  merchant._timeout = async (promise, label) => {
+    const response = await baseTimeout(promise, label);
+    if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
+    return { ...response, reason: failureReason(response.reason, `${label || 'CONTROLLED'}_FAILED`) };
+  };
+  merchant.__alpha28FailureReasonNormalization = true;
+  return true;
+}
+
+function installScopedControlledAuthorityGuard(runtime) {
+  if (!runtime || runtime.__alpha28ScopedControlledAuthorityGuard || typeof runtime._controlledSubsystemHealth !== 'function') return false;
+  if (!runtime.controlledMerchant || !runtime.controlledTravel || !runtime.globalSupervisor || !runtime.adapter) return false;
+
+  runtime._guardControlledAuthority = function alpha28ScopedControlledAuthorityGuard() {
+    const health = this._controlledSubsystemHealth();
+    const supervisor = this.globalSupervisor.status();
+    let globalReason = null;
+    if (this.adapter.mode !== 'active') globalReason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) globalReason = 'SUPERVISOR_NOT_HEALTHY';
+
+    const economyReason = globalReason || (health.economy.state === 'DEGRADED' ? 'ECONOMY_CIRCUIT_OPEN' : null);
+    const travelReason = globalReason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
+
+    if (economyReason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(economyReason);
+    if (travelReason && this.controlledTravel.status().enabled) {
+      Promise.resolve(this.controlledTravel.disable(travelReason)).catch((error) => {
+        if (this.log && typeof this.log.emit === 'function') {
+          this.log.emit({
+            component: 'controlled-travel',
+            event: 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED',
+            severity: 'error',
+            reason: travelReason,
+            data: { message: failureReason(error, 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED') }
+          });
+        }
+      });
+    }
+
+    this.lastEconomyGuardReason = economyReason;
+    this.lastTravelGuardReason = travelReason;
+    this.lastControlledGuardReason = economyReason || travelReason;
+    return {
+      reason: this.lastControlledGuardReason,
+      economyGuardReason: economyReason,
+      travelGuardReason: travelReason,
+      health
+    };
+  };
+  runtime.__alpha28ScopedControlledAuthorityGuard = true;
+  return true;
+}
 
 class Alpha28LiveAuthorityLiveness {
   constructor(runtime, options = {}) {
@@ -21,6 +105,9 @@ class Alpha28LiveAuthorityLiveness {
       brainCloudSettingPatches: 0, brainCanaryPlannerDecisions: 0, tickErrors: 0
     };
     const shared = { now: this.now, log: this.log, stats: this.stats, options };
+    this.idleDeadlockRecovery = installAlpha2023IdleDeadlockRecovery(runtime);
+    this.scopedControlledAuthorityGuard = installScopedControlledAuthorityGuard(runtime);
+    this.merchantFailureReasonNormalization = installMerchantFailureReasonNormalization(runtime);
     this.fixes = new Alpha28LedgerFarmerFixes(runtime, shared);
     this.transfers = new Alpha28MerchantTransfers(runtime, shared);
     this.crossMap = new Alpha28CrossMapFarmerProgression(runtime, shared);
@@ -44,7 +131,18 @@ class Alpha28LiveAuthorityLiveness {
     return true;
   }
   status() {
-    return { schemaVersion:1, mode:ALPHA28_MODE, fixes:this.fixes.status(), merchantTransfers:this.transfers.status(), crossMapFarmer:this.crossMap.status(), brainCloud:this.brainCloud.status(), policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false }, stats:{...this.stats} };
+    return {
+      schemaVersion:1,
+      mode:ALPHA28_MODE,
+      fixes:this.fixes.status(),
+      idleDeadlockRecovery:this.idleDeadlockRecovery && this.idleDeadlockRecovery.status ? this.idleDeadlockRecovery.status() : null,
+      controlledAuthority:{ scopedEconomyTravelGuards:this.scopedControlledAuthorityGuard, merchantFailureReasonNormalization:this.merchantFailureReasonNormalization },
+      merchantTransfers:this.transfers.status(),
+      crossMapFarmer:this.crossMap.status(),
+      brainCloud:this.brainCloud.status(),
+      policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false, economyCircuitDisablesTravel:false },
+      stats:{...this.stats}
+    };
   }
 }
 
@@ -55,4 +153,11 @@ function installAlpha28LiveAuthorityLiveness(runtime, options={}) {
   runtime.alpha28LiveAuthorityLiveness = module;
   return module;
 }
-module.exports = { ALPHA28_MODE, Alpha28LiveAuthorityLiveness, installAlpha28LiveAuthorityLiveness };
+module.exports = {
+  ALPHA28_MODE,
+  failureReason,
+  installMerchantFailureReasonNormalization,
+  installScopedControlledAuthorityGuard,
+  Alpha28LiveAuthorityLiveness,
+  installAlpha28LiveAuthorityLiveness
+};

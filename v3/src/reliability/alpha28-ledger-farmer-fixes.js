@@ -102,10 +102,9 @@ class Alpha28LedgerFarmerFixes {
       const target = candidates[0];
       if (!target) return null;
 
-      // FarmerController consumes selection.ranking as the native FarmPlanner row
-      // and formats score/travelSeconds with toFixed(). Never manufacture a partial
-      // ranking object here: recover the planned monster's candidate row and pass it
-      // through the existing planner so Alpha28 preserves that contract exactly.
+      // Prefer the native FarmPlanner row when available. The fallback below is
+      // intentionally liveness-only: target safety, party policy, map, plan type and
+      // pre-farming safeEntityIds have all already been enforced above.
       let ranking = null;
       try {
         const candidateState = typeof farmer._candidateRows === 'function' ? farmer._candidateRows(context) : null;
@@ -123,8 +122,27 @@ class Alpha28LedgerFarmerFixes {
       const score = ranking && Number(ranking.score);
       const travelSeconds = ranking && Number(ranking.travelSeconds);
       if (!ranking || !Number.isFinite(score) || !Number.isFinite(travelSeconds)) {
-        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_BLOCKED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null });
-        return null;
+        const liveDistance = distance(snapshot.character, target);
+        const speed = Math.max(1, finite(snapshot.character.speed, 40));
+        const fallbackTravelSeconds = Number.isFinite(liveDistance) ? liveDistance / speed : 120;
+        const fallbackRanking = {
+          id: String(plan.monster),
+          monster: String(plan.monster),
+          score: 0,
+          xpPerHour: 0,
+          goldPerHour: 0,
+          deathsPerHour: 0,
+          confidence: 0,
+          travelSeconds: fallbackTravelSeconds,
+          source: 'alpha28-safe-live-liveness-fallback'
+        };
+        this.stats.plannedTargetFallbackSelections += 1;
+        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_RECOVERED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE_SAFE_LIVE_FALLBACK', {
+          targetId: String(target.id), monster: target.mtype, planId: plan.id || null,
+          distance: Number.isFinite(liveDistance) ? Math.round(liveDistance) : null,
+          travelSeconds: fallbackTravelSeconds
+        });
+        return { target, ranking: fallbackRanking };
       }
       const fallbackRanking = { ...ranking, score, travelSeconds, source: 'alpha28-safe-planned-fallback' };
       this.stats.plannedTargetFallbackSelections += 1;
