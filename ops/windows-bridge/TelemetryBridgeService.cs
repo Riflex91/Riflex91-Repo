@@ -15,6 +15,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 {
     public const int MaxCatchUpBatches = 8;
     public const int DeepDiagnosticsIntervalSeconds = 30;
+    public const int DeepDiagnosticEventLimit = 40;
     private const int CatchUpDelayMilliseconds = 100;
 
     private readonly BridgeConfig _config;
@@ -78,9 +79,10 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 {
                     var now = DateTimeOffset.UtcNow;
                     var includeDeepDiagnostics = ShouldIncludeDeepDiagnostics(lastDeepDiagnosticsAt, now);
+                    var readLimit = EventLimitForRead(_config.EventLimit, includeDeepDiagnostics);
                     var read = await _browser.ReadAsync(
                         state.LastEventSeq,
-                        _config.EventLimit,
+                        readLimit,
                         includeDeepDiagnostics,
                         cancellationToken);
 
@@ -117,7 +119,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
-                    if (!ShouldCatchUp(read.EventCount, _config.EventLimit, read.HasMoreEvents, batchIndex + 1))
+                    if (!ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
                         break;
 
                     await Task.Delay(TimeSpan.FromMilliseconds(CatchUpDelayMilliseconds), cancellationToken);
@@ -168,6 +170,12 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
+
+    public static int EventLimitForRead(int configuredEventLimit, bool includeDeepDiagnostics)
+    {
+        var bounded = Math.Clamp(configuredEventLimit, 1, 200);
+        return includeDeepDiagnostics ? Math.Min(bounded, DeepDiagnosticEventLimit) : bounded;
+    }
 
     public static bool ShouldCatchUp(int eventCount, int eventLimit, bool hasMoreEvents, int completedBatches)
     {
