@@ -12,7 +12,7 @@ public sealed class PiHostService(HttpClient httpClient)
         if (!Uri.TryCreate(config.PiHostUrl, UriKind.Absolute, out var baseUri))
             return new PiHostStatus("OFFLINE", "UNKNOWN", 0, null, null);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "/status"));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "/v1/status"));
         if (!string.IsNullOrWhiteSpace(config.PiHostToken))
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.PiHostToken);
 

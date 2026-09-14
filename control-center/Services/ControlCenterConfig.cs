@@ -8,6 +8,8 @@ public sealed record ControlCenterConfig
     public string GitHubToken { get; init; } = string.Empty;
     public string PiHostUrl { get; init; } = "http://127.0.0.1:8787";
     public string PiHostToken { get; init; } = string.Empty;
+    public string PiControlUrl { get; init; } = "http://127.0.0.1:8790";
+    public string PiControlToken { get; init; } = string.Empty;
     public string TelemetryReadUrl { get; init; } = string.Empty;
     public string TelemetryReadToken { get; init; } = string.Empty;
 
