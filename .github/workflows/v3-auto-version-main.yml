@@ -1,0 +1,57 @@
+name: v3-auto-version-main
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "v3/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-auto-version-main
+  cancel-in-progress: false
+
+jobs:
+  auto-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install v3 guard dependencies
+        working-directory: v3
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+
+      - name: Refresh main before version decision
+        run: git pull --ff-only origin main
+
+      - name: Decide and prepare automatic release bump
+        id: version
+        working-directory: v3
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: node scripts/auto-version-on-main.js
+
+      - name: Commit automatic v3 release bump
+        if: steps.version.outputs.bumped == 'true'
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A v3
+          git diff --cached --check
+          git commit -m "chore(v3): auto bump release ${{ steps.version.outputs.from_version }} -> ${{ steps.version.outputs.to_version }}"
+          git push origin HEAD:main
+
+      - name: Report pre-bumped merge
+        if: steps.version.outputs.bumped != 'true'
+        run: echo "Release version already advanced by the main push; no additional bump needed."
