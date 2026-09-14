@@ -12,6 +12,30 @@ test('repairs impossible false cohesion when pair distance is within configured 
   assert.equal(stats.cohesionInvariantRepairs, 1);
 });
 
+test('preserves explicit regroup authority inside cohesion radius', () => {
+  const events = [];
+  const team = { cohesionRadius: 150, _team: () => ({ complete: true, alive: true, sameMap: true, positionsKnown: true, cohesive: false, maxPairDistance: 95, regroupRequired: true, stuckMembers: [] }) };
+  const stats = { cohesionInvariantRepairs: 0 };
+  assert.equal(installCohesionInvariantRepair({ teamCombatCohesionHotfix: team, log: { emit: (event) => events.push(event) } }, stats), true);
+  const state = team._team({});
+  assert.equal(state.cohesive, false);
+  assert.equal(state.regroupRequired, true);
+  assert.equal(stats.cohesionInvariantRepairs, 0);
+  assert.equal(events.length, 0);
+});
+
+test('preserves stuck-member cohesion block inside cohesion radius', () => {
+  const events = [];
+  const team = { cohesionRadius: 150, _team: () => ({ complete: true, alive: true, sameMap: true, positionsKnown: true, cohesive: false, maxPairDistance: 95, stuckMembers: ['My_Ranger3'] }) };
+  const stats = { cohesionInvariantRepairs: 0 };
+  assert.equal(installCohesionInvariantRepair({ teamCombatCohesionHotfix: team, log: { emit: (event) => events.push(event) } }, stats), true);
+  const state = team._team({});
+  assert.equal(state.cohesive, false);
+  assert.deepEqual(state.stuckMembers, ['My_Ranger3']);
+  assert.equal(stats.cohesionInvariantRepairs, 0);
+  assert.equal(events.length, 0);
+});
+
 test('committed safe pull continues across mild cohesion drift but untracked fresh target stays blocked', () => {
   const farmer = { targetId: 'tracked-1' };
   const state = { complete: true, alive: true, sameMap: true, positionsKnown: true, cohesive: false, maxPairDistance: 182, selfName: 'My_Ranger1', leaderName: 'My_Ranger1', leaderTargetId: 'tracked-1', names: ['My_Ranger1','My_Ranger2','My_Ranger3'] };
