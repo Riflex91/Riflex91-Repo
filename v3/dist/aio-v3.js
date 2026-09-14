@@ -8132,6 +8132,68 @@ module.exports = { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION };
 "src/party/orchestrator.js": function(require,module,exports){
 'use strict';
 
+const base = require('./orchestrator-base');
+const { createPartyFingerprint } = require('./fingerprints');
+
+function clamp01(value) {
+  const number = Number(value);
+  return Math.max(0, Math.min(1, Number.isFinite(number) ? number : 0));
+}
+
+class PartyOrchestrator extends base.PartyOrchestrator {
+  candidates(registryStatus) {
+    const chars = (registryStatus && registryStatus.characters || []).filter((entry) => entry
+      && entry.dead !== true
+      && entry.available !== false
+      && entry.stateConfidence >= 0.3
+      && (entry.online === true || entry.primarySource === 'configured' || entry.presence === 'OFFLINE'));
+    const merchants = chars.filter((entry) => entry.ctype === 'merchant');
+    const combat = chars.filter((entry) => base.COMBAT_CLASSES.has(entry.ctype));
+    const out = [];
+
+    for (const merchant of merchants) {
+      for (let combatCount = 1; combatCount <= Math.min(3, combat.length); combatCount += 1) {
+        for (const group of base.combinations(combat, combatCount)) {
+          const members = [merchant, ...group];
+          const fingerprint = createPartyFingerprint(members);
+          out.push({ id: fingerprint.key, merchant, combat: group, members, fingerprint });
+          if (out.length >= this.maxCandidates) return out;
+        }
+      }
+    }
+    return out;
+  }
+
+  _theory(candidate, encounter) {
+    const theory = super._theory(candidate, encounter);
+    const combatCount = Array.isArray(candidate && candidate.combat) ? candidate.combat.length : 0;
+    if (combatCount >= 3) return theory;
+    const capacity = clamp01(combatCount / 3);
+
+    // The original priors were calibrated for three combat characters. Keep
+    // those priors, but conservatively discount smaller teams so fixed base
+    // bonuses cannot make a reduced-capability party look artificially best.
+    theory.survival = clamp01(theory.survival * (0.82 + 0.18 * capacity));
+    theory.progress = clamp01(theory.progress * (0.62 + 0.38 * capacity));
+    theory.controllability = clamp01(theory.controllability * (0.88 + 0.12 * capacity));
+    theory.synergy = clamp01(theory.synergy * (0.58 + 0.42 * capacity));
+    theory.confidence = clamp01(theory.confidence * (0.72 + 0.28 * capacity));
+    theory.reasons = [...new Set([...(theory.reasons || []), 'REDUCED_COMBAT_CAPACITY'])];
+    return theory;
+  }
+}
+
+module.exports = {
+  PartyOrchestrator,
+  COMBAT_CLASSES: base.COMBAT_CLASSES,
+  DEFAULT_WEIGHTS: base.DEFAULT_WEIGHTS,
+  combinations: base.combinations
+};
+
+},
+"src/party/orchestrator-base.js": function(require,module,exports){
+'use strict';
+
 const { createPartyFingerprint, createEncounterFingerprint } = require('./fingerprints');
 const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
 const DEFAULT_WEIGHTS = Object.freeze({ survival: 0.45, progress: 0.30, controllability: 0.15, synergy: 0.10 });
@@ -8268,6 +8330,52 @@ module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary };
 
 },
 "src/party/transition-controller.js": function(require,module,exports){
+'use strict';
+
+const base = require('./transition-controller-base');
+
+function memberName(member) {
+  return typeof member === 'string' ? member : member && member.name;
+}
+
+class PartyTransitionController extends base.PartyTransitionController {
+  preflight(plan, context = {}) {
+    const result = super.preflight(plan, context);
+    const reasons = result.reasons.filter((reason) => reason !== 'PARTY_SIZE_MUST_BE_FOUR');
+    const targetMembers = Array.isArray(plan && plan.members) ? plan.members : [];
+    const targetNames = result.targetNames || [];
+    const registry = context.registryStatus || { characters: [] };
+    const byName = new Map((registry.characters || []).filter(Boolean).map((entry) => [String(entry.name), entry]));
+
+    if (targetNames.length < 2) reasons.push('PARTY_SIZE_BELOW_MINIMUM');
+    if (targetNames.length > 4) reasons.push('PARTY_SIZE_ABOVE_MAXIMUM');
+
+    const desiredMerchant = result.merchantName;
+    const merchantNames = new Set();
+    for (const member of targetMembers) {
+      const name = memberName(member);
+      const row = member && typeof member === 'object' ? member : byName.get(String(name || ''));
+      if (row && String(row.ctype || row.type || '').toLowerCase() === 'merchant' && name) merchantNames.add(String(name));
+    }
+    for (const name of targetNames) {
+      const row = byName.get(String(name));
+      if (row && String(row.ctype || row.type || '').toLowerCase() === 'merchant') merchantNames.add(String(name));
+    }
+    if (desiredMerchant && targetNames.includes(desiredMerchant)) merchantNames.add(String(desiredMerchant));
+    if (merchantNames.size !== 1 || (desiredMerchant && !merchantNames.has(String(desiredMerchant)))) {
+      reasons.push('EXACTLY_ONE_MERCHANT_REQUIRED');
+    }
+
+    result.reasons = [...new Set(reasons)];
+    result.allowed = result.reasons.length === 0;
+    return result;
+  }
+}
+
+module.exports = { PartyTransitionController, TransitionState: base.TransitionState };
+
+},
+"src/party/transition-controller-base.js": function(require,module,exports){
 'use strict';
 
 const TransitionState = Object.freeze({
@@ -17180,6 +17288,234 @@ module.exports = { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCH
 "src/party/controlled-lifecycle-coordinator.js": function(require,module,exports){
 'use strict';
 
+const base = require('./controlled-lifecycle-coordinator-base');
+const { PartyLifecycleState } = require('./lifecycle-store');
+
+const SUPPORTED_COMBAT_CLASSES = new Set(['warrior', 'paladin', 'priest', 'ranger', 'rogue', 'mage']);
+
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function uniqueNames(values) { return [...new Set((values || []).map((value) => typeof value === 'string' ? value : value && value.name).filter(Boolean).map(String))]; }
+function validPartySize(names) { return names.length >= 2 && names.length <= 4; }
+
+class ControlledPartyLifecycleCoordinator extends base.ControlledPartyLifecycleCoordinator {
+  _sanitizeDevelopmentSession(value) {
+    if (!value || typeof value !== 'object') return null;
+    const originalNames = uniqueNames(value.originalNames);
+    const trainingNames = uniqueNames(value.trainingNames);
+    if (!value.candidate || !value.incumbent || !validPartySize(originalNames) || trainingNames.length !== originalNames.length) return null;
+    return {
+      schemaVersion: 1,
+      candidate: String(value.candidate),
+      incumbent: String(value.incumbent),
+      originalNames,
+      trainingNames,
+      startedAt: Math.max(0, finite(value.startedAt)),
+      expiresAt: Math.max(0, finite(value.expiresAt)),
+      baselineCurrentScore: value.baselineCurrentScore == null ? null : finite(value.baselineCurrentScore),
+      baselineProjectedScore: value.baselineProjectedScore == null ? null : finite(value.baselineProjectedScore),
+      baselineProjectedProgress: value.baselineProjectedProgress == null ? null : finite(value.baselineProjectedProgress),
+      baselineXpPerHour: Math.max(0, finite(value.baselineXpPerHour)),
+      driftDetectedAt: value.driftDetectedAt == null ? null : Math.max(0, finite(value.driftDetectedAt)),
+      lastObservedAt: value.lastObservedAt == null ? null : Math.max(0, finite(value.lastObservedAt))
+    };
+  }
+
+  _startDevelopmentSession(plan, at = this.now()) {
+    const originalNames = uniqueNames(plan && plan.evidence && plan.evidence.context && plan.evidence.context.currentNames);
+    const trainingNames = uniqueNames(plan && plan.targetNames);
+    if (!plan || plan.kind !== 'DEVELOPMENT_ROTATION' || !validPartySize(originalNames) || trainingNames.length !== originalNames.length) return null;
+    const outgoing = plan.evidence && plan.evidence.outgoing || {};
+    this.developmentSession = this._sanitizeDevelopmentSession({
+      candidate: plan.incoming,
+      incumbent: plan.outgoing,
+      originalNames,
+      trainingNames,
+      startedAt: at,
+      expiresAt: at + this.maxDevelopmentRotationMs,
+      baselineCurrentScore: outgoing.currentScore,
+      baselineProjectedScore: outgoing.projectedScore,
+      baselineProjectedProgress: outgoing.projectedProgress,
+      baselineXpPerHour: outgoing.xpPerHour,
+      lastObservedAt: at
+    });
+    if (this.developmentSession) {
+      this._event('DEVELOPMENT_SESSION_STARTED', clone(this.developmentSession));
+      this.save();
+    }
+    return clone(this.developmentSession);
+  }
+
+  _planDevelopmentSession(currentMembers = [], registryStatus = {}, context = {}) {
+    const session = this.developmentSession;
+    if (!session) return null;
+    const currentNames = uniqueNames(currentMembers);
+    const now = this.now();
+
+    if (this._sameNames(currentNames, session.originalNames)) {
+      this._clearDevelopmentSession('ORIGINAL_PARTY_OBSERVED');
+      return { planned: false, reason: 'DEVELOPMENT_SESSION_RETURN_OBSERVED' };
+    }
+    if (!this._sameNames(currentNames, session.trainingNames)) {
+      if (session.driftDetectedAt == null) {
+        session.driftDetectedAt = now;
+        session.lastObservedAt = now;
+        this.stats.developmentSessionDrifts += 1;
+        this._recordFailure('DEVELOPMENT_SESSION_PARTY_DRIFT');
+        this._event('DEVELOPMENT_SESSION_PARTY_DRIFT', { session: clone(session), currentNames }, 'error', 'NO_BLIND_TRANSITION');
+        this.save();
+      }
+      return { planned: false, reason: 'DEVELOPMENT_SESSION_PARTY_DRIFT', currentNames, expectedTrainingNames: session.trainingNames.slice(), expectedOriginalNames: session.originalNames.slice() };
+    }
+
+    session.lastObservedAt = now;
+    session.driftDetectedAt = null;
+    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [] };
+    const candidate = (life.characters || []).find((row) => row.name === session.candidate) || null;
+    if (candidate && candidate.state === PartyLifecycleState.PROMOTION_CANDIDATE && candidate.active === true) {
+      this.stats.developmentPromotions += 1;
+      this.stats.promotions += 1;
+      this._clearDevelopmentSession('MEASURED_PROMOTION_CONFIRMED');
+      this._event('DEVELOPMENT_PROMOTION_COMMITTED', { candidate: candidate.name, currentScore: candidate.currentScore, promotionStreak: candidate.promotionStreak });
+      return { planned: false, reason: 'DEVELOPMENT_PROMOTION_COMMITTED_NO_RAW_TRANSITION', promoted: true, candidate: candidate.name };
+    }
+
+    if (now < session.expiresAt) {
+      this.save();
+      return { planned: false, reason: 'DEVELOPMENT_WINDOW_ACTIVE', candidate: session.candidate, expiresAt: session.expiresAt, remainingMs: session.expiresAt - now };
+    }
+    if (!this.allowDevelopmentRotation) return { planned: false, reason: 'DEVELOPMENT_RETURN_NOT_AUTHORIZED', candidate: session.candidate };
+
+    const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
+    const merchants = currentMembers.filter((row) => row && row.ctype === 'merchant');
+    if (merchants.length !== 1) return { planned: false, reason: 'EXACTLY_ONE_MERCHANT_REQUIRED' };
+    const merchant = merchants[0];
+    const members = session.originalNames.map((name) => byName.get(name) || currentMembers.find((row) => row && row.name === name)).filter(Boolean);
+    if (members.length !== session.originalNames.length || new Set(members.map((row) => row.name)).size !== session.originalNames.length) return { planned: false, reason: 'DEVELOPMENT_RETURN_STATE_INCOMPLETE' };
+    const incumbent = byName.get(session.incumbent) || members.find((row) => row.name === session.incumbent);
+    if (!incumbent || incumbent.dead === true || incumbent.available === false) return { planned: false, reason: 'DEVELOPMENT_RETURN_INCUMBENT_UNAVAILABLE' };
+
+    return {
+      planned: true,
+      kind: 'DEVELOPMENT_RETURN',
+      destructive: false,
+      incoming: session.incumbent,
+      outgoing: session.candidate,
+      targetNames: session.originalNames.slice(),
+      members,
+      merchant,
+      evidence: { session: clone(session), context: clone(context) }
+    };
+  }
+
+  _selectPlan(currentMembers = [], registryStatus = {}, context = {}) {
+    const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [], thresholds: {} };
+    const rows = life.characters || [];
+    const current = currentMembers.filter(Boolean);
+    if (!validPartySize(uniqueNames(current)) || uniqueNames(current).length !== current.length) return { planned: false, reason: 'CURRENT_PARTY_SIZE_OR_DUPLICATE_INVALID' };
+    const merchants = current.filter((row) => row.ctype === 'merchant');
+    const activeCombat = current.filter((row) => row.ctype !== 'merchant');
+    if (merchants.length !== 1 || activeCombat.length < 1 || activeCombat.length > 3) return { planned: false, reason: 'CURRENT_PARTY_REQUIRES_ONE_MERCHANT_AND_ONE_TO_THREE_COMBAT' };
+    if (activeCombat.some((row) => !SUPPORTED_COMBAT_CLASSES.has(String(row.ctype || '').toLowerCase()))) return { planned: false, reason: 'CURRENT_PARTY_UNSUPPORTED_COMBAT_CLASS' };
+    const merchant = merchants[0];
+    const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
+    const lifecycleByName = new Map(rows.map((row) => [row.name, row]));
+    const promotion = rows.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE && !row.active).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0))[0] || null;
+    const development = rows.filter((row) => row.state === PartyLifecycleState.DEVELOPMENT && !row.active).sort((a, b) => (b.projectedScore || 0) - (a.projectedScore || 0))[0] || null;
+    let incoming = promotion;
+    let kind = 'PROMOTION';
+    if (!incoming && this.allowDevelopmentRotation) { incoming = development; kind = 'DEVELOPMENT_ROTATION'; }
+    if (!incoming) return { planned: false, reason: 'NO_ELIGIBLE_LIFECYCLE_CHANGE' };
+    if (kind === 'DEVELOPMENT_ROTATION' && !this.allowDevelopmentRotation) return { planned: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
+    if (kind === 'PROMOTION' && !this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
+    const incomingRegistry = byName.get(incoming.name);
+    if (!incomingRegistry || incomingRegistry.dead === true || incomingRegistry.available === false) return { planned: false, reason: 'INCOMING_NOT_AVAILABLE' };
+    if (!SUPPORTED_COMBAT_CLASSES.has(String(incomingRegistry.ctype || '').toLowerCase())) return { planned: false, reason: 'INCOMING_UNSUPPORTED_COMBAT_CLASS' };
+
+    const outgoing = activeCombat
+      .map((member) => ({ member, lifecycle: lifecycleByName.get(member.name) || null }))
+      .sort((a, b) => {
+        const as = a.lifecycle && a.lifecycle.currentScore;
+        const bs = b.lifecycle && b.lifecycle.currentScore;
+        if (as == null && bs != null) return -1;
+        if (as != null && bs == null) return 1;
+        return finite(as, 0) - finite(bs, 0) || finite(a.member.level, 0) - finite(b.member.level, 0);
+      })[0];
+    if (!outgoing) return { planned: false, reason: 'NO_OUTGOING_MEMBER' };
+    if (kind === 'PROMOTION') {
+      if (incoming.currentScore == null || !outgoing.lifecycle || outgoing.lifecycle.currentScore == null || incoming.currentScore <= outgoing.lifecycle.currentScore) return { planned: false, reason: 'CURRENT_SUPERIORITY_NOT_PROVEN' };
+    }
+    const minTrainingXpRatio = life.thresholds && Number(life.thresholds.minTrainingExpectedXpRatio);
+    if (kind === 'DEVELOPMENT_ROTATION' && (incoming.expectedTrainingXpRatio == null || !Number.isFinite(minTrainingXpRatio) || incoming.expectedTrainingXpRatio < minTrainingXpRatio)) return { planned: false, reason: 'TRAINING_XP_RATIO_GATE' };
+
+    const targetNames = [merchant.name, ...activeCombat.filter((row) => row.name !== outgoing.member.name).map((row) => row.name), incoming.name];
+    if (new Set(targetNames).size !== current.length || targetNames.length !== current.length) return { planned: false, reason: 'TARGET_PARTY_DUPLICATE_OR_SIZE_DRIFT' };
+    const targetMembers = targetNames.map((name) => byName.get(name) || current.find((row) => row.name === name)).filter(Boolean);
+    if (targetMembers.length !== current.length) return { planned: false, reason: 'TARGET_MEMBER_STATE_INCOMPLETE' };
+    return {
+      planned: true,
+      kind,
+      destructive: false,
+      incoming: incoming.name,
+      outgoing: outgoing.member.name,
+      targetNames,
+      members: targetMembers,
+      merchant,
+      evidence: { incoming: clone(incoming), outgoing: clone(outgoing.lifecycle), context: clone(context) }
+    };
+  }
+
+  reconcile(currentNames = []) {
+    if (!this.operation || this.operation.state !== base.PartyLifecycleOperationState.RECOVERING) return { reconciled: false, reason: 'NO_RECOVERING_OPERATION' };
+    const current = uniqueNames(currentNames);
+    const target = uniqueNames(this.operation.plan && this.operation.plan.targetNames);
+    const old = uniqueNames(this.operation.plan && this.operation.plan.evidence && this.operation.plan.evidence.context && this.operation.plan.evidence.context.currentNames);
+    const topologyValid = validPartySize(target) && old.length === target.length;
+
+    if (topologyValid && this._sameNames(current, target)) {
+      this.operation.state = base.PartyLifecycleOperationState.COMMITTED;
+      this.operation.reason = 'RESTART_TARGET_STATE_OBSERVED';
+      this.operation.updatedAt = this.now();
+      this.lastTransitionAt = this.now();
+      this.stats.committed += 1;
+      if (this.operation.plan.kind === 'DEVELOPMENT_ROTATION' && !this.developmentSession) {
+        this.stats.developmentRotations += 1;
+        this._startDevelopmentSession(this.operation.plan, this.operation.updatedAt);
+      }
+      if (this.operation.plan.kind === 'DEVELOPMENT_RETURN') {
+        this.stats.developmentReturns += 1;
+        this._clearDevelopmentSession('RESTART_RETURN_TARGET_OBSERVED');
+      }
+      if (this.operation.plan.kind === 'PROMOTION') this.stats.promotions += 1;
+    } else if (topologyValid && this._sameNames(current, old)) {
+      this.operation.state = base.PartyLifecycleOperationState.ABORTED;
+      this.operation.reason = 'RESTART_ORIGINAL_STATE_OBSERVED';
+      this.operation.updatedAt = this.now();
+      this.stats.aborted += 1;
+    } else {
+      this.operation.state = base.PartyLifecycleOperationState.FAILED_SAFE;
+      this.operation.reason = 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY';
+      this.operation.updatedAt = this.now();
+      this.stats.failedSafe += 1;
+      this._recordFailure(this.operation.reason);
+    }
+    this.lastResult = clone(this.operation);
+    this.save();
+    return { reconciled: true, operation: clone(this.operation), developmentSession: clone(this.developmentSession) };
+  }
+}
+
+module.exports = {
+  ControlledPartyLifecycleCoordinator,
+  CONTROLLED_PARTY_LIFECYCLE_MODE: base.CONTROLLED_PARTY_LIFECYCLE_MODE,
+  CONTROLLED_PARTY_LIFECYCLE_ACK: base.CONTROLLED_PARTY_LIFECYCLE_ACK,
+  PartyLifecycleOperationState: base.PartyLifecycleOperationState
+};
+
+},
+"src/party/controlled-lifecycle-coordinator-base.js": function(require,module,exports){
+'use strict';
+
 const { PartyLifecycleState } = require('./lifecycle-store');
 
 const CONTROLLED_PARTY_LIFECYCLE_MODE = 'controlled-live-default-off';
@@ -20773,6 +21109,102 @@ module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
 "src/party/controlled-party-bootstrap.js": function(require,module,exports){
 'use strict';
 
+const base = require('./controlled-party-bootstrap-base');
+
+function cleanName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
+function uniqueNames(values) {
+  return [...new Set((values || []).map(cleanName).filter(Boolean))];
+}
+
+function resolveMerchantName(options, roster) {
+  const explicit = cleanName(options.merchantName);
+  if (explicit) return explicit;
+  if (roster.includes('My_Merchant')) return 'My_Merchant';
+  if (roster.includes('Merch')) return 'Merch';
+  const root = options.root || options.runtime && options.runtime.root || globalThis;
+  const local = root && (root.character || root.parent && root.parent.character);
+  if (local && String(local.ctype || '').toLowerCase() === 'merchant' && roster.includes(String(local.name))) return String(local.name);
+  return null;
+}
+
+function resolveRoster(options) {
+  const configured = options.desiredRoster || options.roster || null;
+  const configuredExplicitly = Array.isArray(configured) && configured.length > 0;
+  let roster = configuredExplicitly ? uniqueNames(configured) : [];
+  const root = options.root || options.runtime && options.runtime.root || globalThis;
+
+  if (!roster.length) {
+    const activeFn = root && (root.get_active_characters || root.parent && root.parent.get_active_characters);
+    if (typeof activeFn === 'function') {
+      try {
+        const active = activeFn.call(root);
+        const activeNames = active && typeof active === 'object' ? uniqueNames(Object.keys(active)) : [];
+        if (activeNames.length >= 2 && activeNames.length <= 4) {
+          const merchant = resolveMerchantName(options, activeNames);
+          if (merchant && activeNames.includes(merchant)) roster = activeNames;
+        }
+      } catch (_) {}
+    }
+  }
+  if (!roster.length) roster = uniqueNames(base.DEFAULT_PARTY_BOOTSTRAP_ROSTER);
+  return { roster, configuredExplicitly };
+}
+
+class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
+  constructor(options = {}) {
+    const resolved = resolveRoster(options);
+    const roster = resolved.roster;
+    if (roster.length < 2 || roster.length > 4) throw new Error('PARTY_BOOTSTRAP_REQUIRES_TWO_TO_FOUR_TRUSTED_NAMES');
+    const merchantName = resolveMerchantName(options, roster);
+    if (!merchantName || !roster.includes(merchantName)) throw new Error('PARTY_BOOTSTRAP_MERCHANT_NOT_IN_ROSTER');
+
+    const padded = roster.slice();
+    let suffix = 1;
+    while (padded.length < 4) {
+      let placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
+      while (padded.includes(placeholder)) placeholder = `__AIO_V3_UNUSED_TRUST_SLOT_${suffix++}__`;
+      padded.push(placeholder);
+    }
+
+    super({ ...options, desiredRoster: padded, merchantName });
+    this.desiredRoster = roster.slice();
+    this.merchantName = merchantName;
+    if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
+    this._configureTrust();
+  }
+
+  _observe() {
+    const observation = super._observe();
+    observation.trustSource = 'explicit-variable-party-roster';
+    this.lastObserved = observation;
+    return observation;
+  }
+
+  status() {
+    const status = super.status();
+    status.trustSource = 'explicit-variable-party-roster';
+    if (status.observed) status.observed.trustSource = 'explicit-variable-party-roster';
+    return status;
+  }
+}
+
+module.exports = {
+  ControlledPartyBootstrap,
+  PARTY_BOOTSTRAP_PROTOCOL: base.PARTY_BOOTSTRAP_PROTOCOL,
+  PARTY_BOOTSTRAP_TYPE: base.PARTY_BOOTSTRAP_TYPE,
+  PARTY_BOOTSTRAP_RECEIVER: base.PARTY_BOOTSTRAP_RECEIVER,
+  DEFAULT_PARTY_BOOTSTRAP_ROSTER: base.DEFAULT_PARTY_BOOTSTRAP_ROSTER,
+  PartyBootstrapAction: base.PartyBootstrapAction
+};
+
+},
+"src/party/controlled-party-bootstrap-base.js": function(require,module,exports){
+'use strict';
+
 const { AccountCharacterTransport, uniqueNames } = require('./account-character-transport');
 
 const PARTY_BOOTSTRAP_PROTOCOL = 1;
@@ -23791,6 +24223,156 @@ module.exports = { PartyFocusFireHotfix, installPartyFocusFireHotfix, PARTY_FOCU
 
 },
 "src/reliability/team-combat-cohesion-hotfix.js": function(require,module,exports){
+'use strict';
+
+const base = require('./team-combat-cohesion-hotfix-base');
+
+const SUPPORTED_COMBAT_CLASSES = new Set(['warrior', 'paladin', 'priest', 'ranger', 'rogue', 'mage']);
+
+function finite(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function ratio(value, max) {
+  const denominator = finite(max);
+  if (denominator == null || denominator <= 0) return null;
+  return Math.max(0, Math.min(1, (finite(value) || 0) / denominator));
+}
+
+function distance(a, b) {
+  const ax = finite(a && a.x);
+  const ay = finite(a && a.y);
+  const bx = finite(b && b.x);
+  const by = finite(b && b.y);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+
+class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
+  _expectedCombatNames() {
+    const bootstrap = this.runtime && this.runtime.partyBootstrap;
+    if (!bootstrap || typeof bootstrap.trustedRosterNames !== 'function') return null;
+    let roster;
+    try { roster = [...new Set((bootstrap.trustedRosterNames() || []).map(String).filter(Boolean))]; } catch (_) { return null; }
+    let merchantName = bootstrap.merchantName ? String(bootstrap.merchantName) : null;
+    if (!merchantName) {
+      const rawParty = this._rawParty();
+      const trustedMerchants = roster.filter((name) => {
+        const row = rawParty && rawParty[name];
+        return lower(row && (row.ctype || row.type)) === 'merchant';
+      });
+      if (trustedMerchants.length === 1) merchantName = trustedMerchants[0];
+    }
+    if (!merchantName || roster.length < 2 || roster.length > 4 || !roster.includes(merchantName)) return null;
+    const combatNames = roster.filter((name) => name !== merchantName);
+    return combatNames.length >= 1 && combatNames.length <= 3 ? combatNames.sort() : null;
+  }
+
+  _configStatus() {
+    const status = super._configStatus();
+    const expected = this._expectedCombatNames();
+    return {
+      ...status,
+      requiredCombatMembers: expected ? expected.length : null,
+      topologySource: 'trusted-party-bootstrap'
+    };
+  }
+
+  _combatMembers(snapshot) {
+    if (!snapshot || !snapshot.character) return [];
+    const expected = this._expectedCombatNames();
+    if (!expected) return [];
+    const rawParty = this._rawParty();
+    const snapshotParty = Array.isArray(snapshot.party) ? snapshot.party : [];
+    return expected.map((name) => {
+      const partyRow = snapshotParty.find((row) => row && String(row.name) === name) || null;
+      const raw = rawParty[name] || null;
+      const visible = this._visiblePlayer(snapshot, name);
+      const self = String(snapshot.character.name) === name;
+      const typeHint = self
+        ? snapshot.character.ctype
+        : partyRow && (partyRow.type || partyRow.ctype)
+          || raw && (raw.type || raw.ctype)
+          || visible && (visible.type || visible.ctype)
+          || null;
+      return {
+        ...this._member(snapshot, name, typeHint),
+        present: !!(self || partyRow || raw || visible)
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _team(snapshot) {
+    const expectedNames = this._expectedCombatNames();
+    const members = this._combatMembers(snapshot);
+    const selfName = snapshot && snapshot.character && snapshot.character.name || null;
+    const leader = members[0] || null;
+    const self = members.find((row) => row.name === selfName) || null;
+    const topologyKnown = Array.isArray(expectedNames) && expectedNames.length >= 1 && expectedNames.length <= 3;
+    const combatTypesValid = topologyKnown && members.every((row) => SUPPORTED_COMBAT_CLASSES.has(lower(row.ctype)));
+    const complete = topologyKnown
+      && members.length === expectedNames.length
+      && members.every((row) => row.present === true)
+      && combatTypesValid;
+    const alive = complete && members.every((row) => !row.rip);
+    const sameMap = complete && members.every((row) => !row.map || !snapshot.character.map || row.map === snapshot.character.map);
+    const positionsKnown = complete && members.every((row) => finite(row.x) != null && finite(row.y) != null);
+    let maxPairDistance = Infinity;
+    if (positionsKnown) {
+      maxPairDistance = 0;
+      for (let i = 0; i < members.length; i += 1) {
+        for (let j = i + 1; j < members.length; j += 1) {
+          maxPairDistance = Math.max(maxPairDistance, distance(members[i], members[j]));
+        }
+      }
+    }
+    const cohesive = complete && alive && sameMap && positionsKnown && maxPairDistance <= this.cohesionRadius;
+    const knownHpRatios = members.map((row) => ratio(row.hp, row.max_hp)).filter((value) => value != null);
+    const knownMpRatios = members.map((row) => ratio(row.mp, row.max_mp)).filter((value) => value != null);
+    const healthReady = knownHpRatios.every((value) => value >= this.minNewFightHpRatio);
+    const manaReady = knownMpRatios.every((value) => value >= this.minNewFightMpRatio);
+    const leaderTargetId = leader && leader.target != null ? String(leader.target) : null;
+    const state = {
+      members,
+      names: members.map((row) => row.name),
+      expectedNames: expectedNames ? expectedNames.slice() : [],
+      self,
+      selfName,
+      leader,
+      leaderName: leader && leader.name || null,
+      leaderTargetId,
+      complete,
+      alive,
+      sameMap,
+      positionsKnown,
+      maxPairDistance,
+      cohesive,
+      healthReady,
+      manaReady,
+      resourcesKnown: knownHpRatios.length + knownMpRatios.length,
+      at: this.now()
+    };
+    this.lastTeam = state;
+    this._syncOrbitDirection(state);
+    return state;
+  }
+}
+
+function installTeamCombatCohesionHotfix(runtime, options = {}) {
+  return new TeamCombatCohesionHotfix(runtime, options);
+}
+
+module.exports = {
+  TeamCombatCohesionHotfix,
+  installTeamCombatCohesionHotfix,
+  TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE
+};
+
+},
+"src/reliability/team-combat-cohesion-hotfix-base.js": function(require,module,exports){
 'use strict';
 
 const TEAM_COMBAT_COHESION_MODE = 'cohesion-first-team-combat-v1';
@@ -35983,6 +36565,32 @@ module.exports = { PartyBootstrapFarmerGate, installPartyBootstrapFarmerGate };
 
 },
 "src/reliability/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
+'use strict';
+
+const base = require('./party-bootstrap-merchant-discovery-hotfix-base');
+
+class PartyBootstrapMerchantDiscoveryHotfix extends base.PartyBootstrapMerchantDiscoveryHotfix {
+  constructor(bootstrap) {
+    super(bootstrap);
+    const trusted = typeof bootstrap.trustedRosterNames === 'function' ? bootstrap.trustedRosterNames() : [];
+    this.disabledByExplicitRoster = trusted.length >= 2
+      && trusted.length <= 4
+      && !!bootstrap.merchantName
+      && trusted.includes(bootstrap.merchantName);
+  }
+}
+
+function installPartyBootstrapMerchantDiscoveryHotfix(bootstrap) {
+  return new PartyBootstrapMerchantDiscoveryHotfix(bootstrap);
+}
+
+module.exports = {
+  PartyBootstrapMerchantDiscoveryHotfix,
+  installPartyBootstrapMerchantDiscoveryHotfix
+};
+
+},
+"src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js": function(require,module,exports){
 'use strict';
 
 class PartyBootstrapMerchantDiscoveryHotfix {

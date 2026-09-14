@@ -1,24 +1,15 @@
 'use strict';
 
-class PartyBootstrapMerchantDiscoveryHotfix {
-  constructor(bootstrap) {
-    if (!bootstrap || typeof bootstrap.receive !== 'function') throw new Error('party bootstrap required');
-    this.bootstrap = bootstrap;
-    this.inferred = 0;
-    this.lastInference = null;
-    this.disabledByExplicitRoster = typeof bootstrap.trustedRosterNames === 'function'
-      && bootstrap.trustedRosterNames().length === 4;
-  }
+const base = require('./party-bootstrap-merchant-discovery-hotfix-base');
 
-  status() {
-    return {
-      schemaVersion: 2,
-      mode: 'explicit-roster-merchant-identity-v2',
-      inferred: this.inferred,
-      lastInference: this.lastInference ? { ...this.lastInference } : null,
-      disabledByExplicitRoster: this.disabledByExplicitRoster,
-      merchantName: this.bootstrap.merchantName || null
-    };
+class PartyBootstrapMerchantDiscoveryHotfix extends base.PartyBootstrapMerchantDiscoveryHotfix {
+  constructor(bootstrap) {
+    super(bootstrap);
+    const trusted = typeof bootstrap.trustedRosterNames === 'function' ? bootstrap.trustedRosterNames() : [];
+    this.disabledByExplicitRoster = trusted.length >= 2
+      && trusted.length <= 4
+      && !!bootstrap.merchantName
+      && trusted.includes(bootstrap.merchantName);
   }
 }
 
@@ -26,4 +17,7 @@ function installPartyBootstrapMerchantDiscoveryHotfix(bootstrap) {
   return new PartyBootstrapMerchantDiscoveryHotfix(bootstrap);
 }
 
-module.exports = { PartyBootstrapMerchantDiscoveryHotfix, installPartyBootstrapMerchantDiscoveryHotfix };
+module.exports = {
+  PartyBootstrapMerchantDiscoveryHotfix,
+  installPartyBootstrapMerchantDiscoveryHotfix
+};

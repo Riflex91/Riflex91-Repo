@@ -24,12 +24,17 @@ test('Party and Encounter fingerprints are deterministic, gear/skill/context sen
   assert.doesNotThrow(() => JSON.stringify({ a, geared, e1, e2 }));
 });
 
-test('Candidate generation uses one Merchant plus three distinct realizable combat characters while class duplicates remain legal', () => {
+test('Candidate generation uses one Merchant plus one to three distinct realizable combat characters while class duplicates remain legal', () => {
   const registry = { characters: [member('Merch','merchant'), member('R1','ranger'), member('R2','ranger'), member('R3','ranger'), member('P','paladin',{online:false,presence:'OFFLINE',primarySource:'configured',available:true,stateConfidence:.35})] };
   const orchestrator = new PartyOrchestrator(); const candidates = orchestrator.candidates(registry);
-  assert.ok(candidates.some((row) => row.combat.every((member) => member.ctype === 'ranger')));
+  assert.ok(candidates.some((row) => row.combat.length === 3 && row.combat.every((member) => member.ctype === 'ranger')));
   assert.ok(candidates.some((row) => row.combat.some((member) => member.ctype === 'paladin')));
-  for (const candidate of candidates) { assert.equal(candidate.members.length, 4); assert.equal(candidate.members.filter((row) => row.ctype === 'merchant').length, 1); assert.equal(new Set(candidate.members.map((row) => row.name)).size, 4); }
+  assert.deepEqual([...new Set(candidates.map((row) => row.members.length))].sort((a, b) => a - b), [2, 3, 4]);
+  for (const candidate of candidates) {
+    assert.ok(candidate.members.length >= 2 && candidate.members.length <= 4);
+    assert.equal(candidate.members.filter((row) => row.ctype === 'merchant').length, 1);
+    assert.equal(new Set(candidate.members.map((row) => row.name)).size, candidate.members.length);
+  }
 });
 
 test('v2 triple-Ranger knowledge is only a safe-content bootstrap prior and gains confidence without becoming a universal winner', () => {
@@ -58,7 +63,7 @@ test('Party Performance persistence is schema-safe, bounded, confidence-aged and
   const restored = new PartyPerformanceStore({now:()=>now,storage,halfLifeMs:3600000}); assert.equal(restored.load(),true); assert.ok(restored.profile('e','p'));
   now += 10*3600000; assert.ok(restored.profile('e','p').freshness < .01);
   raw='{broken'; const corrupt=new PartyPerformanceStore({storage}); assert.equal(corrupt.load(),false); assert.equal(corrupt.status().size,0);
-  for(let i=0;i<2000;i++) store.record('e'+i,'p',{seconds:5,score:.5}); assert.ok(store.status().size<=32); assert.doesNotThrow(()=>JSON.stringify(store.status(128)));
+  for(let i=0;i<2000;i++) store.record('e'+i,'p',{seconds:5,score:.5}); assert.ok(store.status().size<=32); assert.doesNotThrow(()=>JSON.stringify(store.status()));
 });
 
 test('Paladin Aura policy uses current official aura states and hysteresis prevents flapping', () => {

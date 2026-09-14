@@ -1,122 +1,21 @@
 'use strict';
 
+const base = require('./controlled-lifecycle-coordinator-base');
 const { PartyLifecycleState } = require('./lifecycle-store');
 
-const CONTROLLED_PARTY_LIFECYCLE_MODE = 'controlled-live-default-off';
-const CONTROLLED_PARTY_LIFECYCLE_ACK = 'ALPHA20_PARTY_LIFECYCLE';
-const PartyLifecycleOperationState = Object.freeze({
-  RESERVED: 'RESERVED',
-  EXECUTING: 'EXECUTING',
-  VERIFYING: 'VERIFYING',
-  RECOVERING: 'RECOVERING',
-  COMMITTED: 'COMMITTED',
-  ABORTED: 'ABORTED',
-  FAILED_SAFE: 'FAILED_SAFE'
-});
-const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const SUPPORTED_COMBAT_CLASSES = new Set(['warrior', 'paladin', 'priest', 'ranger', 'rogue', 'mage']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function uniqueNames(values) { return [...new Set((values || []).map((value) => typeof value === 'string' ? value : value && value.name).filter(Boolean).map(String))]; }
+function validPartySize(names) { return names.length >= 2 && names.length <= 4; }
 
-class ControlledPartyLifecycleCoordinator {
-  constructor(options = {}) {
-    this.root = options.root || globalThis;
-    this.now = options.now || (() => Date.now());
-    this.log = options.log || null;
-    this.storage = options.storage || null;
-    this.storageKey = options.storageKey || 'AIO_V3_PARTY_LIFECYCLE_OPERATION';
-    this.lifecycle = options.lifecycle;
-    this.transitions = options.transitions;
-    this.getMode = options.getMode || (() => 'shadow');
-    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'UNKNOWN' }));
-    this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
-    this.enabled = false;
-    this.allowTransitions = false;
-    this.allowDevelopmentRotation = false;
-    this.minTransitionIntervalMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.minTransitionIntervalMs) || 15 * 60 * 1000));
-    this.maxDevelopmentRotationMs = Math.max(15 * 60 * 1000, Math.min(4 * 60 * 60 * 1000, Number(options.maxDevelopmentRotationMs) || 30 * 60 * 1000));
-    this.failureWindowMs = Math.max(60 * 1000, Math.min(60 * 60 * 1000, Number(options.failureWindowMs) || 10 * 60 * 1000));
-    this.failureThreshold = Math.max(2, Math.min(10, Number(options.failureThreshold) || 3));
-    this.circuitCooldownMs = Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, Number(options.circuitCooldownMs) || 10 * 60 * 1000));
-    this.failureTimestamps = [];
-    this.circuitOpenUntil = 0;
-    this.circuitReason = null;
-    this.lastTransitionAt = 0;
-    this.operation = null;
-    this.developmentSession = null;
-    this.busy = false;
-    this.lastResult = null;
-    this.stats = {
-      plans: 0,
-      attempts: 0,
-      committed: 0,
-      aborted: 0,
-      failedSafe: 0,
-      rejected: 0,
-      developmentRotations: 0,
-      developmentReturns: 0,
-      developmentPromotions: 0,
-      developmentSessionDrifts: 0,
-      promotions: 0,
-      circuitOpens: 0
-    };
-    this.load();
-  }
-
-  _event(event, data = {}, severity = 'info', reason = null) {
-    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-lifecycle-controlled', event, data, severity, reason });
-  }
-
-  _backend() {
-    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
-    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') return { get: (key) => this.root.get(key), set: (key, value) => this.root.set(key, value) };
-    const localStorage = this.root && this.root.localStorage;
-    if (localStorage && typeof localStorage.getItem === 'function' && typeof localStorage.setItem === 'function') return { get: (key) => localStorage.getItem(key), set: (key, value) => localStorage.setItem(key, value) };
-    return null;
-  }
-
-  _pruneFailures(at = this.now()) {
-    const cutoff = at - this.failureWindowMs;
-    this.failureTimestamps = this.failureTimestamps.filter((value) => Number.isFinite(Number(value)) && Number(value) >= cutoff && Number(value) <= at);
-  }
-
-  breaker() {
-    const now = this.now();
-    this._pruneFailures(now);
-    if (this.circuitOpenUntil > 0 && now >= this.circuitOpenUntil) {
-      this.circuitOpenUntil = 0;
-      this.circuitReason = null;
-    }
-    return {
-      open: this.circuitOpenUntil > now,
-      openUntil: this.circuitOpenUntil > now ? this.circuitOpenUntil : null,
-      reason: this.circuitOpenUntil > now ? this.circuitReason : null,
-      failuresInWindow: this.failureTimestamps.length,
-      threshold: this.failureThreshold,
-      windowMs: this.failureWindowMs,
-      cooldownMs: this.circuitCooldownMs
-    };
-  }
-
-  _recordFailure(reason) {
-    const now = this.now();
-    this.failureTimestamps.push(now);
-    this._pruneFailures(now);
-    if (this.failureTimestamps.length >= this.failureThreshold) {
-      this.circuitOpenUntil = Math.max(this.circuitOpenUntil, now + this.circuitCooldownMs);
-      this.circuitReason = String(reason || 'PARTY_TRANSITION_FAILURE_BUDGET_EXCEEDED');
-      this.stats.circuitOpens += 1;
-      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
-      this._event('PARTY_LIFECYCLE_CIRCUIT_OPENED', this.breaker(), 'error', this.circuitReason);
-    }
-  }
-
+class ControlledPartyLifecycleCoordinator extends base.ControlledPartyLifecycleCoordinator {
   _sanitizeDevelopmentSession(value) {
     if (!value || typeof value !== 'object') return null;
     const originalNames = uniqueNames(value.originalNames);
     const trainingNames = uniqueNames(value.trainingNames);
-    if (!value.candidate || !value.incumbent || originalNames.length !== 4 || trainingNames.length !== 4) return null;
+    if (!value.candidate || !value.incumbent || !validPartySize(originalNames) || trainingNames.length !== originalNames.length) return null;
     return {
       schemaVersion: 1,
       candidate: String(value.candidate),
@@ -134,118 +33,10 @@ class ControlledPartyLifecycleCoordinator {
     };
   }
 
-  save() {
-    const backend = this._backend();
-    if (!backend) return false;
-    try {
-      backend.set(this.storageKey, JSON.stringify({
-        schemaVersion: 1,
-        savedAt: this.now(),
-        operation: this.operation,
-        developmentSession: this.developmentSession,
-        lastTransitionAt: this.lastTransitionAt,
-        failureTimestamps: this.failureTimestamps,
-        circuitOpenUntil: this.circuitOpenUntil,
-        circuitReason: this.circuitReason
-      }));
-      return true;
-    } catch (error) {
-      this._event('PARTY_LIFECYCLE_OPERATION_SAVE_FAILED', { message: String(error && error.message || error) }, 'warn', 'PERSISTENCE_WRITE_ERROR');
-      return false;
-    }
-  }
-
-  load() {
-    const backend = this._backend();
-    if (!backend) return false;
-    try {
-      const raw = backend.get(this.storageKey);
-      if (!raw) return false;
-      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (!data || data.schemaVersion !== 1) throw new Error('unsupported lifecycle operation schema');
-      this.lastTransitionAt = Math.max(0, finite(data.lastTransitionAt));
-      this.failureTimestamps = Array.isArray(data.failureTimestamps) ? data.failureTimestamps.map(Number).filter(Number.isFinite) : [];
-      this.circuitOpenUntil = Math.max(0, finite(data.circuitOpenUntil));
-      this.circuitReason = data.circuitReason ? String(data.circuitReason) : null;
-      this.developmentSession = this._sanitizeDevelopmentSession(data.developmentSession);
-      this.breaker();
-      if (data.operation && [PartyLifecycleOperationState.RESERVED, PartyLifecycleOperationState.EXECUTING, PartyLifecycleOperationState.VERIFYING].includes(data.operation.state)) {
-        this.operation = { ...data.operation, state: PartyLifecycleOperationState.RECOVERING, reason: 'RESTART_RECONCILIATION_REQUIRED', updatedAt: this.now() };
-        this._event('PARTY_LIFECYCLE_RESTART_RECOVERY_REQUIRED', { id: this.operation.id }, 'warn', 'NO_BLIND_RETRY');
-        this.save();
-      } else this.operation = data.operation || null;
-      return true;
-    } catch (error) {
-      this.operation = null;
-      this.developmentSession = null;
-      this.failureTimestamps = [];
-      this.circuitOpenUntil = 0;
-      this.circuitReason = null;
-      this._event('PARTY_LIFECYCLE_OPERATION_RESTORE_FAILED', { message: String(error && error.message || error) }, 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA');
-      return false;
-    }
-  }
-
-  configure(config = {}) {
-    if (config.enabled !== true) {
-      this.disable(config.reason || 'OPERATOR_DISABLED');
-      return this.status();
-    }
-    if (config.ack !== CONTROLLED_PARTY_LIFECYCLE_ACK) {
-      this.disable('WRONG_ACK');
-      this.stats.rejected += 1;
-      return { ...this.status(), enableRejected: 'WRONG_ACK' };
-    }
-    if (this.breaker().open) {
-      this.disable('PARTY_LIFECYCLE_CIRCUIT_OPEN');
-      this.stats.rejected += 1;
-      return { ...this.status(), enableRejected: 'PARTY_LIFECYCLE_CIRCUIT_OPEN' };
-    }
-    this.enabled = true;
-    this.allowTransitions = config.allowTransitions === true;
-    this.allowDevelopmentRotation = this.allowTransitions && config.allowDevelopmentRotation === true;
-    this._event('PARTY_LIFECYCLE_CONTROL_ENABLED', { allowTransitions: this.allowTransitions, allowDevelopmentRotation: this.allowDevelopmentRotation });
-    return this.status();
-  }
-
-  disable(reason = 'DISABLED') {
-    this.enabled = false;
-    this.allowTransitions = false;
-    this.allowDevelopmentRotation = false;
-    if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
-    this._event('PARTY_LIFECYCLE_CONTROL_DISABLED', { developmentSessionPreserved: !!this.developmentSession }, 'info', reason);
-    return this.status();
-  }
-
-  _localCharacter() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
-  _sameNames(left, right) {
-    const a = uniqueNames(left);
-    const b = uniqueNames(right);
-    return a.length === b.length && a.every((name) => b.includes(name));
-  }
-
-  _gate(context = {}) {
-    const reasons = [];
-    const local = this._localCharacter();
-    const supervisor = this.getSupervisorStatus() || {};
-    if (!this.enabled) reasons.push('CONTROLLED_PARTY_LIFECYCLE_DISABLED');
-    if (this.breaker().open) reasons.push('PARTY_LIFECYCLE_CIRCUIT_OPEN');
-    if (this.getMode() !== 'active') reasons.push('RUNTIME_NOT_ACTIVE');
-    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) reasons.push('SUPERVISOR_NOT_HEALTHY');
-    if (!local || local.ctype !== 'merchant') reasons.push('MERCHANT_CONTROLLER_REQUIRED');
-    if (context.inCombat === true) reasons.push('ACTIVE_COMBAT');
-    if (context.highRisk === true) reasons.push('HIGH_RISK_CONTEXT');
-    if (context.emergency === true) reasons.push('EMERGENCY_RECOVERY');
-    if (this.getEconomyEmergency() === true) reasons.push('ECONOMY_EMERGENCY');
-    if (this.busy) reasons.push('PARTY_LIFECYCLE_BUSY');
-    if (this.operation && this.operation.state === PartyLifecycleOperationState.RECOVERING) reasons.push('RESTART_RECONCILIATION_REQUIRED');
-    return { allowed: reasons.length === 0, reasons, local, supervisor };
-  }
-
   _startDevelopmentSession(plan, at = this.now()) {
     const originalNames = uniqueNames(plan && plan.evidence && plan.evidence.context && plan.evidence.context.currentNames);
     const trainingNames = uniqueNames(plan && plan.targetNames);
-    if (!plan || plan.kind !== 'DEVELOPMENT_ROTATION' || originalNames.length !== 4 || trainingNames.length !== 4) return null;
+    if (!plan || plan.kind !== 'DEVELOPMENT_ROTATION' || !validPartySize(originalNames) || trainingNames.length !== originalNames.length) return null;
     const outgoing = plan.evidence && plan.evidence.outgoing || {};
     this.developmentSession = this._sanitizeDevelopmentSession({
       candidate: plan.incoming,
@@ -265,14 +56,6 @@ class ControlledPartyLifecycleCoordinator {
       this.save();
     }
     return clone(this.developmentSession);
-  }
-
-  _clearDevelopmentSession(reason) {
-    const previous = clone(this.developmentSession);
-    this.developmentSession = null;
-    this._event('DEVELOPMENT_SESSION_CLEARED', { reason, previous });
-    this.save();
-    return previous;
   }
 
   _planDevelopmentSession(currentMembers = [], registryStatus = {}, context = {}) {
@@ -316,10 +99,11 @@ class ControlledPartyLifecycleCoordinator {
     if (!this.allowDevelopmentRotation) return { planned: false, reason: 'DEVELOPMENT_RETURN_NOT_AUTHORIZED', candidate: session.candidate };
 
     const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
-    const merchant = currentMembers.find((row) => row && row.ctype === 'merchant') || null;
-    if (!merchant) return { planned: false, reason: 'MERCHANT_CONTROLLER_REQUIRED' };
+    const merchants = currentMembers.filter((row) => row && row.ctype === 'merchant');
+    if (merchants.length !== 1) return { planned: false, reason: 'EXACTLY_ONE_MERCHANT_REQUIRED' };
+    const merchant = merchants[0];
     const members = session.originalNames.map((name) => byName.get(name) || currentMembers.find((row) => row && row.name === name)).filter(Boolean);
-    if (members.length !== 4 || new Set(members.map((row) => row.name)).size !== 4) return { planned: false, reason: 'DEVELOPMENT_RETURN_STATE_INCOMPLETE' };
+    if (members.length !== session.originalNames.length || new Set(members.map((row) => row.name)).size !== session.originalNames.length) return { planned: false, reason: 'DEVELOPMENT_RETURN_STATE_INCOMPLETE' };
     const incumbent = byName.get(session.incumbent) || members.find((row) => row.name === session.incumbent);
     if (!incumbent || incumbent.dead === true || incumbent.available === false) return { planned: false, reason: 'DEVELOPMENT_RETURN_INCUMBENT_UNAVAILABLE' };
 
@@ -340,9 +124,12 @@ class ControlledPartyLifecycleCoordinator {
     const life = this.lifecycle && this.lifecycle.status ? this.lifecycle.status() : { characters: [], thresholds: {} };
     const rows = life.characters || [];
     const current = currentMembers.filter(Boolean);
-    const merchant = current.find((row) => row.ctype === 'merchant');
+    if (!validPartySize(uniqueNames(current)) || uniqueNames(current).length !== current.length) return { planned: false, reason: 'CURRENT_PARTY_SIZE_OR_DUPLICATE_INVALID' };
+    const merchants = current.filter((row) => row.ctype === 'merchant');
     const activeCombat = current.filter((row) => row.ctype !== 'merchant');
-    if (!merchant || activeCombat.length !== 3) return { planned: false, reason: 'CURRENT_PARTY_MUST_BE_MERCHANT_PLUS_THREE' };
+    if (merchants.length !== 1 || activeCombat.length < 1 || activeCombat.length > 3) return { planned: false, reason: 'CURRENT_PARTY_REQUIRES_ONE_MERCHANT_AND_ONE_TO_THREE_COMBAT' };
+    if (activeCombat.some((row) => !SUPPORTED_COMBAT_CLASSES.has(String(row.ctype || '').toLowerCase()))) return { planned: false, reason: 'CURRENT_PARTY_UNSUPPORTED_COMBAT_CLASS' };
+    const merchant = merchants[0];
     const byName = new Map((registryStatus.characters || []).map((row) => [row.name, row]));
     const lifecycleByName = new Map(rows.map((row) => [row.name, row]));
     const promotion = rows.filter((row) => row.state === PartyLifecycleState.PROMOTION_CANDIDATE && !row.active).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0))[0] || null;
@@ -355,6 +142,7 @@ class ControlledPartyLifecycleCoordinator {
     if (kind === 'PROMOTION' && !this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
     const incomingRegistry = byName.get(incoming.name);
     if (!incomingRegistry || incomingRegistry.dead === true || incomingRegistry.available === false) return { planned: false, reason: 'INCOMING_NOT_AVAILABLE' };
+    if (!SUPPORTED_COMBAT_CLASSES.has(String(incomingRegistry.ctype || '').toLowerCase())) return { planned: false, reason: 'INCOMING_UNSUPPORTED_COMBAT_CLASS' };
 
     const outgoing = activeCombat
       .map((member) => ({ member, lifecycle: lifecycleByName.get(member.name) || null }))
@@ -373,9 +161,9 @@ class ControlledPartyLifecycleCoordinator {
     if (kind === 'DEVELOPMENT_ROTATION' && (incoming.expectedTrainingXpRatio == null || !Number.isFinite(minTrainingXpRatio) || incoming.expectedTrainingXpRatio < minTrainingXpRatio)) return { planned: false, reason: 'TRAINING_XP_RATIO_GATE' };
 
     const targetNames = [merchant.name, ...activeCombat.filter((row) => row.name !== outgoing.member.name).map((row) => row.name), incoming.name];
-    if (new Set(targetNames).size !== 4) return { planned: false, reason: 'TARGET_PARTY_DUPLICATE' };
+    if (new Set(targetNames).size !== current.length || targetNames.length !== current.length) return { planned: false, reason: 'TARGET_PARTY_DUPLICATE_OR_SIZE_DRIFT' };
     const targetMembers = targetNames.map((name) => byName.get(name) || current.find((row) => row.name === name)).filter(Boolean);
-    if (targetMembers.length !== 4) return { planned: false, reason: 'TARGET_MEMBER_STATE_INCOMPLETE' };
+    if (targetMembers.length !== current.length) return { planned: false, reason: 'TARGET_MEMBER_STATE_INCOMPLETE' };
     return {
       planned: true,
       kind,
@@ -389,129 +177,15 @@ class ControlledPartyLifecycleCoordinator {
     };
   }
 
-  plan(currentMembers = [], registryStatus = {}, context = {}) {
-    this.stats.plans += 1;
-    const gate = this._gate(context);
-    if (!gate.allowed) return { planned: false, reason: gate.reasons[0], reasons: gate.reasons };
-    if (!this.allowTransitions) return { planned: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
-
-    const sessionPlan = this._planDevelopmentSession(currentMembers, registryStatus, context);
-    if (sessionPlan) {
-      if (sessionPlan.planned && this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { planned: false, reason: 'TRANSITION_HYSTERESIS_HOLD', sessionPlan };
-      return sessionPlan;
-    }
-
-    if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { planned: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
-    return this._selectPlan(currentMembers, registryStatus, context);
-  }
-
-  _reserve(plan) {
-    const now = this.now();
-    this.operation = {
-      schemaVersion: 1,
-      id: `party-life-${now}`,
-      state: PartyLifecycleOperationState.RESERVED,
-      createdAt: now,
-      updatedAt: now,
-      plan: clone(plan),
-      rawActionAuthority: false,
-      directGameplayActionAccess: false,
-      reason: 'PARTY_LIFECYCLE_RESERVED'
-    };
-    this.save();
-    return this.operation;
-  }
-
-  _commitOperation(op, plan, result) {
-    op.state = PartyLifecycleOperationState.COMMITTED;
-    op.reason = 'PARTY_LIFECYCLE_TRANSITION_COMMITTED';
-    op.result = clone(result);
-    op.updatedAt = this.now();
-    this.lastTransitionAt = this.now();
-    this.stats.committed += 1;
-    if (plan.kind === 'PROMOTION') this.stats.promotions += 1;
-    if (plan.kind === 'DEVELOPMENT_ROTATION') {
-      this.stats.developmentRotations += 1;
-      this._startDevelopmentSession(plan, op.updatedAt);
-    }
-    if (plan.kind === 'DEVELOPMENT_RETURN') {
-      this.stats.developmentReturns += 1;
-      this._clearDevelopmentSession('BOUNDED_DEVELOPMENT_RETURN_COMMITTED');
-    }
-    this.lastResult = clone(op);
-    this.save();
-    this._event('PARTY_LIFECYCLE_TRANSITION_COMMITTED', { id: op.id, kind: plan.kind, incoming: plan.incoming, outgoing: plan.outgoing });
-  }
-
-  async executePlan(plan, currentMembers = [], registryStatus = {}, context = {}) {
-    const gate = this._gate(context);
-    if (!gate.allowed) { this.stats.rejected += 1; return { executed: false, reason: gate.reasons[0], reasons: gate.reasons }; }
-    if (!plan || plan.planned !== true) return { executed: false, reason: 'INVALID_PLAN' };
-    if (!this.allowTransitions) return { executed: false, reason: 'TRANSITIONS_NOT_AUTHORIZED' };
-    if ((plan.kind === 'DEVELOPMENT_ROTATION' || plan.kind === 'DEVELOPMENT_RETURN') && !this.allowDevelopmentRotation) return { executed: false, reason: 'DEVELOPMENT_ROTATION_NOT_AUTHORIZED' };
-    if (this.now() - this.lastTransitionAt < this.minTransitionIntervalMs) return { executed: false, reason: 'TRANSITION_HYSTERESIS_HOLD' };
-    this.busy = true;
-    this.stats.attempts += 1;
-    const op = this._reserve(plan);
-    try {
-      op.state = PartyLifecycleOperationState.EXECUTING;
-      op.updatedAt = this.now();
-      this.save();
-      this.transitions.setLiveEnabled(true);
-      const result = await this.transitions.execute({ members: plan.members, merchant: plan.merchant }, {
-        runtimeMode: this.getMode(),
-        currentMembers,
-        registryStatus,
-        inCombat: context.inCombat === true,
-        emergency: context.emergency === true || context.highRisk === true || this.getEconomyEmergency() === true,
-        requiresCrossMapRouting: context.requiresCrossMapRouting === true,
-        verifyTargetState: context.verifyTargetState
-      });
-      this.transitions.setLiveEnabled(false);
-      if (result && result.executed === true) {
-        this._commitOperation(op, plan, result);
-        return { executed: true, operation: clone(op), transition: result, developmentSession: clone(this.developmentSession) };
-      }
-      op.state = result && result.recovery && result.recovery.recovered === false ? PartyLifecycleOperationState.FAILED_SAFE : PartyLifecycleOperationState.ABORTED;
-      op.reason = result && result.reason || 'TRANSITION_ABORTED';
-      op.result = clone(result);
-      op.updatedAt = this.now();
-      if (op.state === PartyLifecycleOperationState.FAILED_SAFE) this.stats.failedSafe += 1; else this.stats.aborted += 1;
-      this._recordFailure(op.reason);
-      this.lastResult = clone(op);
-      this.save();
-      return { executed: false, operation: clone(op), transition: result, reason: op.reason };
-    } catch (error) {
-      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
-      op.state = PartyLifecycleOperationState.FAILED_SAFE;
-      op.reason = 'UNHANDLED_PARTY_LIFECYCLE_ERROR';
-      op.error = String(error && error.message || error);
-      op.updatedAt = this.now();
-      this.stats.failedSafe += 1;
-      this._recordFailure(op.reason);
-      this.lastResult = clone(op);
-      this.save();
-      this._event('PARTY_LIFECYCLE_TRANSITION_FAILED_SAFE', { id: op.id, error: op.error }, 'error', op.reason);
-      return { executed: false, reason: op.reason, operation: clone(op) };
-    } finally {
-      this.busy = false;
-      if (this.transitions && typeof this.transitions.setLiveEnabled === 'function') this.transitions.setLiveEnabled(false);
-    }
-  }
-
-  async maybeExecute(currentMembers = [], registryStatus = {}, context = {}) {
-    const plan = this.plan(currentMembers, registryStatus, context);
-    if (!plan.planned) return plan;
-    return this.executePlan(plan, currentMembers, registryStatus, context);
-  }
-
   reconcile(currentNames = []) {
-    if (!this.operation || this.operation.state !== PartyLifecycleOperationState.RECOVERING) return { reconciled: false, reason: 'NO_RECOVERING_OPERATION' };
+    if (!this.operation || this.operation.state !== base.PartyLifecycleOperationState.RECOVERING) return { reconciled: false, reason: 'NO_RECOVERING_OPERATION' };
     const current = uniqueNames(currentNames);
     const target = uniqueNames(this.operation.plan && this.operation.plan.targetNames);
     const old = uniqueNames(this.operation.plan && this.operation.plan.evidence && this.operation.plan.evidence.context && this.operation.plan.evidence.context.currentNames);
-    if (target.length === 4 && this._sameNames(current, target)) {
-      this.operation.state = PartyLifecycleOperationState.COMMITTED;
+    const topologyValid = validPartySize(target) && old.length === target.length;
+
+    if (topologyValid && this._sameNames(current, target)) {
+      this.operation.state = base.PartyLifecycleOperationState.COMMITTED;
       this.operation.reason = 'RESTART_TARGET_STATE_OBSERVED';
       this.operation.updatedAt = this.now();
       this.lastTransitionAt = this.now();
@@ -525,13 +199,13 @@ class ControlledPartyLifecycleCoordinator {
         this._clearDevelopmentSession('RESTART_RETURN_TARGET_OBSERVED');
       }
       if (this.operation.plan.kind === 'PROMOTION') this.stats.promotions += 1;
-    } else if (old.length === 4 && this._sameNames(current, old)) {
-      this.operation.state = PartyLifecycleOperationState.ABORTED;
+    } else if (topologyValid && this._sameNames(current, old)) {
+      this.operation.state = base.PartyLifecycleOperationState.ABORTED;
       this.operation.reason = 'RESTART_ORIGINAL_STATE_OBSERVED';
       this.operation.updatedAt = this.now();
       this.stats.aborted += 1;
     } else {
-      this.operation.state = PartyLifecycleOperationState.FAILED_SAFE;
+      this.operation.state = base.PartyLifecycleOperationState.FAILED_SAFE;
       this.operation.reason = 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY';
       this.operation.updatedAt = this.now();
       this.stats.failedSafe += 1;
@@ -541,33 +215,11 @@ class ControlledPartyLifecycleCoordinator {
     this.save();
     return { reconciled: true, operation: clone(this.operation), developmentSession: clone(this.developmentSession) };
   }
-
-  status() {
-    const breaker = this.breaker();
-    const authority = this.enabled && !breaker.open;
-    return {
-      mode: CONTROLLED_PARTY_LIFECYCLE_MODE,
-      requiredAck: CONTROLLED_PARTY_LIFECYCLE_ACK,
-      enabled: this.enabled,
-      actionAuthority: authority && this.allowTransitions,
-      directGameplayActionAccess: false,
-      transitionAuthority: authority && this.allowTransitions,
-      developmentRotationAuthority: authority && this.allowDevelopmentRotation,
-      maxDevelopmentSlots: 1,
-      maxDevelopmentRotationMs: this.maxDevelopmentRotationMs,
-      minTransitionIntervalMs: this.minTransitionIntervalMs,
-      lastTransitionAt: this.lastTransitionAt || null,
-      busy: this.busy,
-      operation: clone(this.operation),
-      developmentSession: clone(this.developmentSession),
-      lastResult: clone(this.lastResult),
-      breaker,
-      serverChangeAllowed: false,
-      smartMoveAllowed: false,
-      crossMapRoutingAllowed: false,
-      stats: { ...this.stats }
-    };
-  }
 }
 
-module.exports = { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState };
+module.exports = {
+  ControlledPartyLifecycleCoordinator,
+  CONTROLLED_PARTY_LIFECYCLE_MODE: base.CONTROLLED_PARTY_LIFECYCLE_MODE,
+  CONTROLLED_PARTY_LIFECYCLE_ACK: base.CONTROLLED_PARTY_LIFECYCLE_ACK,
+  PartyLifecycleOperationState: base.PartyLifecycleOperationState
+};
