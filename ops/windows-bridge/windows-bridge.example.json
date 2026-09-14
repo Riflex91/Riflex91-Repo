@@ -1,5 +1,5 @@
 {
-  "configVersion": 2,
+  "configVersion": 3,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -11,5 +11,9 @@
   "preferredBrowser": "Brave",
   "pollIntervalSeconds": 5,
   "maxBackoffSeconds": 300,
-  "eventLimit": 100
+  "eventLimit": 100,
+  "webDashboardEnabled": true,
+  "webDashboardBaseUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev",
+  "webDashboardAccount": "default",
+  "webDashboardWriteKeyEnvironmentVariable": "AIO_V3_WEB_DASHBOARD_WRITE_KEY"
 }
