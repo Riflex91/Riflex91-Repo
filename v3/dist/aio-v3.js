@@ -33357,8 +33357,10 @@ module.exports = {
 const { ControlPlaneConfig } = require('../control/control-plane-config');
 const { CloudControlPlane } = require('../control/cloud-control-plane');
 const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
+const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoundPolicy } = require('./alpha27-combat-merchant-convergence');
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
+const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
 
 class Alpha25ControlCenterBrain {
   constructor(runtime, options = {}) {
@@ -33377,7 +33379,8 @@ class Alpha25ControlCenterBrain {
     this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
     runtime.cloudControlPlane = this.cloud;
     this.lastCycleAt = 0;
-    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0 };
+    this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
+    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -33401,10 +33404,27 @@ class Alpha25ControlCenterBrain {
     if (base && base.cfg) {
       const map = {
         'merchant.lowFreeSlots': 'lowSlots', 'merchant.targetFreeSlots': 'targetSlots', 'merchant.potionLow': 'potionLow', 'merchant.potionTarget': 'potionTarget', 'merchant.goldReserve': 'goldReserve', 'merchant.transferRange': 'transferRange',
-        'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap', 'economy.maxUpgrade': 'maxUpgrade', 'economy.maxCompound': 'maxCompound'
+        'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap'
       };
       for (const [key, property] of Object.entries(map)) apply(key, (value) => { base.cfg[property] = Number(value); });
     }
+
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    apply('economy.maxUpgrade', (value) => {
+      const current = alpha27 && alpha27.options && typeof alpha27.options === 'object' ? alpha27.options : {};
+      const limit = boundedOptions({ ...current, maxUpgradeLevel: Number(value) }).maxUpgradeLevel;
+      if (alpha27 && alpha27.options) alpha27.options.maxUpgradeLevel = limit;
+      const synchronized = synchronizeLegacyUpgradePolicy(this.runtime, limit);
+      if (alpha27) alpha27.legacyUpgradePolicySynchronized = synchronized;
+    });
+    apply('economy.maxCompound', (value) => {
+      const current = alpha27 && alpha27.options && typeof alpha27.options === 'object' ? alpha27.options : {};
+      const limit = boundedOptions({ ...current, maxCompoundLevel: Number(value) }).maxCompoundLevel;
+      if (alpha27 && alpha27.options) alpha27.options.maxCompoundLevel = limit;
+      const synchronized = synchronizeLegacyCompoundPolicy(this.runtime, limit);
+      if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
+    });
+
     const economy = this.runtime.economyEquipmentAutonomyV2;
     if (economy && economy.marketHistory) {
       apply('economy.marketMaxTrackedItems', (value) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(value) || 96)); });
@@ -33415,8 +33435,19 @@ class Alpha25ControlCenterBrain {
     return true;
   }
 
+  _syncLateProgressionPolicy() {
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence || null;
+    if (!alpha27 || alpha27 === this.progressionPolicyTarget) return false;
+    this.progressionPolicyTarget = alpha27;
+    this._applyExtendedSettings(PROGRESSION_SETTING_KEYS);
+    this.stats.lateProgressionPolicySyncs += 1;
+    if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'ALPHA27_PROGRESSION_POLICY_RESYNCED', data: { maxUpgradeLevel: alpha27.options && alpha27.options.maxUpgradeLevel, maxCompoundLevel: alpha27.options && alpha27.options.maxCompoundLevel } });
+    return true;
+  }
+
   beforeTick() {
     this.stats.ticks += 1;
+    this._syncLateProgressionPolicy();
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
     if (outcome) {
       this.stats.outcomes += 1;
@@ -33460,6 +33491,9 @@ class Alpha25ControlCenterBrain {
       policies: {
         dashboardSettingsAreLocallyRevalidated: true,
         remoteExtendedSettingsReachLiveSubsystems: true,
+        progressionSettingsReachCurrentAlpha27Policy: true,
+        lateAlpha27InstallReceivesStoredProgressionSettings: true,
+        compoundDashboardLimitUsesResultLevelSemantics: true,
         outcomeEvaluationHasSingleOwner: true,
         explicitGlobalCloudConfigEnablesControlPlane: true,
         legacyV2DashboardCredentialsAutoMigrate: true,
@@ -33484,7 +33518,6 @@ function installAlpha25ControlCenterBrain(runtime, options = {}) {
 }
 
 module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
-
 },
 "src/control/control-plane-config.js": function(require,module,exports){
 'use strict';
@@ -33562,8 +33595,8 @@ const DEFINITIONS = Object.freeze([
   { key: 'economy.keepValue', category: 'Economy, Gear & Markt', label: 'High-Value Keep/Bank', description: 'Wertgrenze, oberhalb der Items nicht leichtfertig verkauft werden.', type: 'number', default: 1000000, min: 1000, max: 100000000, step: 50000, hot: true },
   { key: 'economy.upgradeCap', category: 'Economy, Gear & Markt', label: 'Upgrade Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Upgrade-Kandidaten.', type: 'number', default: 2000000, min: 0, max: 100000000, step: 100000, hot: true },
   { key: 'economy.compoundCap', category: 'Economy, Gear & Markt', label: 'Compound Kostenlimit', description: 'Maximaler konservativer Budgetrahmen für Compound-Kandidaten.', type: 'number', default: 500000, min: 0, max: 100000000, step: 50000, hot: true },
-  { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Routine-Obergrenze für autonome Upgrades.', type: 'number', default: 2, min: 0, max: 4, step: 1, hot: true },
-  { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Routine-Obergrenze für autonome Compounds.', type: 'number', default: 1, min: 0, max: 3, step: 1, hot: true },
+  { key: 'economy.maxUpgrade', category: 'Economy, Gear & Markt', label: 'Max Upgrade Level', description: 'Maximales Ergebnislevel autonomer Upgrades. Aktuelle v3-Progressionsgrenze: +7.', type: 'number', default: 2, min: 0, max: 7, step: 1, hot: true },
+  { key: 'economy.maxCompound', category: 'Economy, Gear & Markt', label: 'Max Compound Level', description: 'Maximales Ergebnislevel autonomer Compounds. Aktuelle v3-Progressionsgrenze: +10.', type: 'number', default: 1, min: 0, max: 10, step: 1, hot: true },
   { key: 'economy.marketMaxTrackedItems', category: 'Economy, Gear & Markt', label: 'Markt-History Items', description: 'Maximal persistent beobachtete Item-Arten.', type: 'number', default: 96, min: 24, max: 256, step: 8, hot: false },
   { key: 'economy.marketMaxSamples', category: 'Economy, Gear & Markt', label: 'Markt-Samples/Item', description: 'Maximale historische Beobachtungen je Item.', type: 'number', default: 48, min: 8, max: 128, step: 4, hot: false },
   { key: 'economy.gearGoalFreshMs', category: 'Economy, Gear & Markt', label: 'Gear-Goal Frische', description: 'Maximales Alter eines Ausrüstungsziels für Transfers.', type: 'number', default: 30000, min: 5000, max: 180000, step: 5000, hot: false },
@@ -33681,7 +33714,6 @@ class ControlPlaneConfig {
 }
 
 module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CONTROL_DEFINITIONS: DEFINITIONS, ControlPlaneConfig, controlDefaults: defaults, sanitizeControlValues: sanitize, loadStoredControlConfig: loadStored, buildBootOptionsFromControlPlane: bootOptions };
-
 },
 "src/control/cloud-control-plane.js": function(require,module,exports){
 'use strict';
