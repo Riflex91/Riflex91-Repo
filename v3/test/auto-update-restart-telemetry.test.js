@@ -14,7 +14,7 @@ const {
 // The success event must originate from the newly loaded runtime so the telemetry exporter cannot miss it during the handoff.
 function updaterFixture(overrides = {}) {
   return {
-    localVersion: '3.0.0-alpha.20.23',
+    localVersion: '3.0.0-alpha.20.24',
     pendingVersion: '3.0.0-alpha.20.24',
     lastApply: null,
     async _reloadSavedCode() { return true; },
@@ -30,7 +30,7 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
   const firstUpdater = updaterFixture({
     lastApply: {
       at: 1_000_000,
-      from: '3.0.0-alpha.20.23',
+      from: '3.0.0-alpha.20.24',
       to: '3.0.0-alpha.20.24',
       slot: 7,
       bytes: 1_234_567,
@@ -48,7 +48,7 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
 
   assert.equal(firstUpdater.lastApply.restartReason, PLANNED_AUTO_UPDATE_REASON);
   assert.equal(markerSeenDuringReload.restartReason, PLANNED_AUTO_UPDATE_REASON);
-  assert.equal(markerSeenDuringReload.from, '3.0.0-alpha.20.23');
+  assert.equal(markerSeenDuringReload.from, '3.0.0-alpha.20.24');
   assert.equal(markerSeenDuringReload.to, '3.0.0-alpha.20.24');
   assert.equal(markerSeenDuringReload.slot, 7);
   assert.equal(root[PLANNED_AUTO_UPDATE_MARKER].restartReason, PLANNED_AUTO_UPDATE_REASON);
@@ -65,7 +65,7 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
   assert.equal(root[PLANNED_AUTO_UPDATE_MARKER], undefined);
   assert.equal(secondUpdater.lastApply.reloaded, true);
   assert.equal(secondUpdater.lastApply.restartReason, PLANNED_AUTO_UPDATE_REASON);
-  assert.equal(secondUpdater.lastApply.from, '3.0.0-alpha.20.23');
+  assert.equal(secondUpdater.lastApply.from, '3.0.0-alpha.20.24');
   assert.equal(secondUpdater.lastApply.to, '3.0.0-alpha.20.24');
   assert.equal(secondUpdater.lastApply.slot, 7);
   assert.equal(events.length, 1);
@@ -82,7 +82,7 @@ test('failed reload clears the planned restart handoff so it cannot masquerade a
   const updater = updaterFixture({
     lastApply: {
       at: 2_000_000,
-      from: '3.0.0-alpha.20.23',
+      from: '3.0.0-alpha.20.24',
       to: '3.0.0-alpha.20.24',
       slot: 3,
       bytes: 500_000,
