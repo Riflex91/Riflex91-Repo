@@ -1,5 +1,7 @@
 'use strict';
 
+const { normalizeReason } = require('../core/event-log');
+
 const FLIGHT_RECORDER_SCHEMA_VERSION = 1;
 
 function finite(value, fallback = null) {
@@ -112,13 +114,15 @@ class FlightRecorder {
   }
 
   markIncident(input = {}) {
+    const normalizedReason = normalizeReason(input.reason);
     const record = {
       schemaVersion: FLIGHT_RECORDER_SCHEMA_VERSION,
       incidentSeq: ++this.incidentSequence,
       at: finite(input.at, this.now()),
       severity: String(input.severity || 'warn'),
       type: String(input.type || input.event || 'INCIDENT'),
-      reason: input.reason == null ? null : String(input.reason),
+      reason: normalizedReason.reason,
+      reasonDetails: normalizedReason.reasonDetails,
       data: clone(input.data || {})
     };
     this.incidents.push(record);
