@@ -243,9 +243,10 @@ public partial class MainWindow : Window
                 try
                 {
                     var cdp = new CdpAdventureLandClient(_httpClient, _config);
-                    var target = await cdp.FindTargetUrlAsync(cts.Token);
+                    var target = await cdp.FindBotTargetUrlAsync(cts.Token);
                     TargetUrlText.Text = target;
                     BotStateText.Text = "GEFUNDEN";
+                    TelemetryErrorText.Text = string.Empty;
                 }
                 catch (Exception error)
                 {
