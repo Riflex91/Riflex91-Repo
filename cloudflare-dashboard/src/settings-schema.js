@@ -1,4 +1,4 @@
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 const n = (key, category, label, description, value, min, max, step, hot = true) => ({ key, category, label, description, type: 'number', default: value, min, max, step, hot });
 const b = (key, category, label, description, value, locked = false, hot = true) => ({ key, category, label, description, type: 'boolean', default: value, locked, hot });
@@ -52,7 +52,7 @@ export const SETTINGS_SCHEMA = Object.freeze([
   b('recovery.safeRetreatEnabled','Travel & Recovery','Sicherer Rückzug','Erlaubt dem Bot bei gefährlichen Situationen kontrolliert auszuweichen, statt einfach stehen zu bleiben.',true,false,false),
   n('recovery.retreatMinStep','Travel & Recovery','Rückzug Mindestschritt','Kleinste Bewegung, die der Bot bei einem Notfall-Rückzug versucht.',25,5,100,5,false),
   n('recovery.retreatMaxStep','Travel & Recovery','Rückzug Maximalschritt','Größte einzelne Bewegung, die der Bot bei einem Notfall-Rückzug versucht.',120,30,250,5,false),
-  n('recovery.maxThreats','Travel & Recovery','Rückzug Gegnerlimit','Wie viele angreifende Gegner bei der Berechnung eines sicheren Rückzugs höchstens berücksichtigt werden.',6,1,12,1,false),
+  n('recovery.maxThreats','Travel & Recovery','Rückzug Gegnerlimit','Wie viele angreifenden Gegner bei der Berechnung eines sicheren Rückzugs höchstens berücksichtigt werden.',6,1,12,1,false),
 
   n('merchant.lowFreeSlots','Merchant & Service','Inventardruck ab','Wenn der Merchant weniger freie Inventarplätze hat, beginnt er mit Aufräumen, Bank- oder Servicearbeit.',8,2,20,1,true),
   n('merchant.targetFreeSlots','Merchant & Service','Ziel freie Slots','So viele freie Inventarplätze versucht der Merchant nach dem Aufräumen wiederherzustellen.',14,4,30,1,true),
@@ -65,8 +65,8 @@ export const SETTINGS_SCHEMA = Object.freeze([
   n('economy.keepValue','Economy, Gear & Markt','Wertvolle Items behalten','Items oberhalb dieses geschätzten Wertes werden vorsichtig behandelt und eher behalten oder eingelagert statt verkauft.',1000000,1000,100000000,50000,true),
   n('economy.upgradeCap','Economy, Gear & Markt','Upgrade Kostenlimit','So viel Gold darf ein automatisches Ausrüstungs-Upgrade höchstens innerhalb des vorgesehenen Budgets kosten.',2000000,0,100000000,100000,true),
   n('economy.compoundCap','Economy, Gear & Markt','Compound Kostenlimit','So viel Gold darf ein automatisches Zusammenfügen von Items höchstens innerhalb des vorgesehenen Budgets kosten.',500000,0,100000000,50000,true),
-  n('economy.maxUpgrade','Economy, Gear & Markt','Max Upgrade Level','Bis zu diesem Upgrade-Level darf der Bot normale, freigegebene Upgrades automatisch durchführen.',2,0,4,1,true),
-  n('economy.maxCompound','Economy, Gear & Markt','Max Compound Level','Bis zu diesem Compound-Level darf der Bot normale, freigegebene Compounds automatisch durchführen.',1,0,3,1,true),
+  n('economy.maxUpgrade','Economy, Gear & Markt','Max Upgrade Level','Bis zu diesem Ergebnis-Level darf der Bot normale, freigegebene Upgrades automatisch durchführen. Die aktuelle v3-Progressionspolicy erlaubt höchstens +7.',2,0,7,1,true),
+  n('economy.maxCompound','Economy, Gear & Markt','Max Compound Level','Bis zu diesem Ergebnis-Level darf der Bot normale, freigegebene Compounds automatisch durchführen. Die aktuelle v3-Progressionspolicy erlaubt höchstens +10.',1,0,10,1,true),
   n('economy.marketMaxTrackedItems','Economy, Gear & Markt','Beobachtete Markt-Items','Wie viele verschiedene Item-Arten der Bot gleichzeitig mit Preisverlauf speichern darf.',96,24,256,8,false),
   n('economy.marketMaxSamples','Economy, Gear & Markt','Preisbeobachtungen pro Item','Wie viele ältere Preisbeobachtungen pro Item für Marktwert und Preisentwicklung gespeichert werden.',48,8,128,4,false),
   n('economy.gearGoalFreshMs','Economy, Gear & Markt','Alter von Ausrüstungszielen','Wie lange ein berechnetes Ausrüstungsziel ohne neue Bestätigung als aktuell gilt.',30000,5000,180000,5000,false),
