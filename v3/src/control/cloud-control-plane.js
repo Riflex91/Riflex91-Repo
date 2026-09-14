@@ -2,6 +2,7 @@
 
 const CLOUD_STORAGE_KEY = 'aio-v3:cloud-control:v1';
 const LEGACY_V2_STABLE_PREFIX = 'ALBOT27:stable-config:';
+const { ACTIVE_CLOUDFLARE_BASE_URL, readCloudRequestBudget, reserveCloudRequest } = require('./cloud-free-tier-budget');
 
 function finite(value, fallback = 0) { if (value == null || value === '') return fallback; const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function text(value, max = 200) { return String(value == null ? '' : value).trim().slice(0, max); }
@@ -72,7 +73,7 @@ class CloudControlPlane {
     this.pendingFeedback = [];
     this.remoteRevision = 0;
     this.remoteUpdatedAt = 0;
-    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0 };
+    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0, cloudRequestsReserved: 0, cloudRequestsBlocked: 0 };
     this._load();
   }
 
@@ -83,8 +84,10 @@ class CloudControlPlane {
     let stored = null;
     try { stored = store ? parseObject(store.getItem(CLOUD_STORAGE_KEY)) : null; } catch (_) {}
     const globalCfg = this.root && this.root.AIO_V3_CLOUD_CONFIG && typeof this.root.AIO_V3_CLOUD_CONFIG === 'object' ? this.root.AIO_V3_CLOUD_CONFIG : {};
-    const globalCredentials = { baseUrl: normalizeBaseUrl(globalCfg.baseUrl || ''), writeKey: text(globalCfg.writeKey || '', 500), account: text(globalCfg.account || 'default', 100) || 'default' };
-    const storedCredentials = { baseUrl: normalizeBaseUrl(stored && stored.baseUrl || ''), writeKey: text(stored && stored.writeKey || '', 500), account: text(stored && stored.account || 'default', 100) || 'default' };
+    const globalWriteKey = text(globalCfg.writeKey || '', 500);
+    const storedWriteKey = text(stored && stored.writeKey || '', 500);
+    const globalCredentials = { baseUrl: normalizeBaseUrl(globalCfg.baseUrl || '') || (globalWriteKey ? ACTIVE_CLOUDFLARE_BASE_URL : ''), writeKey: globalWriteKey, account: text(globalCfg.account || 'default', 100) || 'default' };
+    const storedCredentials = { baseUrl: normalizeBaseUrl(stored && stored.baseUrl || '') || (storedWriteKey ? ACTIVE_CLOUDFLARE_BASE_URL : ''), writeKey: storedWriteKey, account: text(stored && stored.account || 'default', 100) || 'default' };
     const legacy = legacyV2DashboardCredentials(store, this.runtime, this.root);
     this.explicitGlobalConfig = validCredentials(globalCredentials);
     if (this.explicitGlobalConfig) {
@@ -107,6 +110,7 @@ class CloudControlPlane {
   configure(input = {}) {
     if (input.baseUrl != null) this.credentials.baseUrl = normalizeBaseUrl(input.baseUrl);
     if (input.writeKey != null) this.credentials.writeKey = text(input.writeKey, 500);
+    if (!this.credentials.baseUrl && this.credentials.writeKey) this.credentials.baseUrl = ACTIVE_CLOUDFLARE_BASE_URL;
     if (input.account != null) this.credentials.account = text(input.account, 100) || 'default';
     this.credentialSource = 'runtime-configure';
     const store = this._storage();
@@ -129,6 +133,16 @@ class CloudControlPlane {
 
   async _post(path, body, timeoutMs = 10000) {
     if (!this.fetchFn) throw new Error('fetch unavailable');
+    const character = text(characterOf(this.runtime) && characterOf(this.runtime).name || 'unknown', 80) || 'unknown';
+    const budget = reserveCloudRequest({ root: this.root, character, now: this.now() });
+    if (!budget.ok) {
+      this.stats.cloudRequestsBlocked += 1;
+      const error = new Error(`CLOUDFLARE_FREE_TIER_GUARD: ${budget.reason}`);
+      error.code = budget.reason;
+      error.freeTierBudget = budget;
+      throw error;
+    }
+    this.stats.cloudRequestsReserved += 1;
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
@@ -236,8 +250,9 @@ class CloudControlPlane {
     return {
       schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig, legacyCredentialsMigrated: this.legacyCredentialsMigrated, credentialSource: this.credentialSource,
       configured: { baseUrl: this.credentials.baseUrl || null, account: this.credentials.account, writeKeyPresent: !!this.credentials.writeKey },
+      freeTierBudget: readCloudRequestBudget({ root: this.root, character: text(characterOf(this.runtime) && characterOf(this.runtime).name || 'unknown', 80) || 'unknown', now: this.now() }),
       busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
-      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true }
+      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true, cloudRequestsFailClosedAtFreeTierBudget: true, activeCloudflareEndpointDefaultsAutomatically: true }
     };
   }
 }
