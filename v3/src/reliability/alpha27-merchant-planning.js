@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction, gradeForLevel } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantService } = require('./alpha27-merchant-service');
@@ -92,11 +92,14 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const c = characterOf(this.runtime);
     const ledger = this.runtime.inventoryLedger;
     const gear = this.runtime.gearProgression;
+    const gd = gameDataOf(this.runtime);
     if (!c || !ledger || !gear || typeof gear.list !== 'function') return null;
     const goals = gear.list(200).filter((goal) => goal && goal.sourceCharacter === c.name && goal.projectedUpgradeRequired && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0));
     for (const goal of goals) {
       const entry = ledger.list(1000).find((row) => row && row.character === c.name && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && EXPECTED_DISPOSITIONS.UPGRADE.has(String(row.disposition || '')));
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
+      const meta = gd.items && gd.items[entry.name];
+      if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
       return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character } };
     }
     return null;
@@ -105,11 +108,15 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
   planCompound() {
     const c = characterOf(this.runtime);
     const ledger = this.runtime.inventoryLedger;
+    const gd = gameDataOf(this.runtime);
     if (!c || !ledger) return null;
     const groups = new Map();
     for (const row of ledger.list(1000)) {
       if (!row || row.character !== c.name || row.disposition !== 'RESERVE_COMPOUND' || this.atomic.mutationRetryBlocked(row, 'COMPOUND')) continue;
-      const key = `${row.name}:${levelOf(row)}`;
+      const level = levelOf(row);
+      const meta = gd.items && gd.items[row.name];
+      if (!meta || !meta.compound || level >= this.options.maxCompoundLevel || gradeForLevel(meta, level) >= 4) continue;
+      const key = `${row.name}:${level}`;
       const list = groups.get(key) || [];
       list.push(row);
       groups.set(key, list);

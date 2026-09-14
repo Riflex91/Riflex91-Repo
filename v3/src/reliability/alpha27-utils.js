@@ -40,10 +40,12 @@ function findItem(root, name, level = null) {
   return inventoryOf(root).find((item) => item && String(item.name || '') === String(name || '') && (level == null || levelOf(item) === levelOf({ level }))) || null;
 }
 function gradeForLevel(meta, level) {
-  const grades = Array.isArray(meta && meta.grades) ? meta.grades.map(Number).filter(Number.isFinite) : [];
+  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
   const l = levelOf({ level });
-  if (grades.length > 1 && l >= grades[1]) return 2;
-  if (grades.length && l >= grades[0]) return 1;
+  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
+    const threshold = Number(grades[index]);
+    if (Number.isFinite(threshold) && l >= threshold) return index + 1;
+  }
   return 0;
 }
 function levelRequirement(gameData, level) {

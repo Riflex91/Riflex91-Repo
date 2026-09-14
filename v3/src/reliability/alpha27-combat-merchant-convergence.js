@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, farmerOwnedCombatBusy, isPoisonedPerformanceProfile } = require('./alpha27-utils');
+const { finite, clone, farmerOwnedCombatBusy, isPoisonedPerformanceProfile, levelOf, gradeForLevel } = require('./alpha27-utils');
 const { Alpha27CombatOwnership } = require('./alpha27-combat-ownership');
 const { Alpha27AtomicEconomy } = require('./alpha27-atomic-economy');
 const { Alpha27MerchantAutonomy } = require('./alpha27-merchant-autonomy');
@@ -25,12 +25,23 @@ function boundedOptions(options = {}) {
     maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 3)))),
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 2)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
-    maxUpgradeLevel: Math.max(0, Math.min(4, Math.floor(finite(options.maxUpgradeLevel, 2)))),
+    maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
     maxCompoundLevel: Math.max(0, Math.min(6, Math.floor(finite(options.maxCompoundLevel, 6)))),
     serviceTravelTimeoutMs: Math.max(5000, Math.min(180000, finite(options.serviceTravelTimeoutMs, 90000))),
     verifyDelayMs: Math.max(25, Math.min(1000, finite(options.verifyDelayMs, 150))),
     verifyAttempts: Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))))
   };
+}
+
+function synchronizeLegacyUpgradePolicy(runtime, maxUpgradeLevel) {
+  const legacy = runtime && runtime.merchantEconomyAutonomy;
+  if (!legacy || !legacy.cfg || typeof legacy.cfg !== 'object') return false;
+  const resultCap = Math.max(0, Math.min(7, Math.floor(finite(maxUpgradeLevel, 7))));
+  // Alpha20/22 already uses an exclusive source-level check for upgrades, so
+  // the stored value can match Alpha27's result-level cap directly.
+  legacy.cfg.maxUpgrade = resultCap;
+  legacy.cfg.maxUpgradeResultLevel = resultCap;
+  return true;
 }
 
 function synchronizeLegacyCompoundPolicy(runtime, maxCompoundLevel) {
@@ -43,6 +54,82 @@ function synchronizeLegacyCompoundPolicy(runtime, maxCompoundLevel) {
   legacy.cfg.maxCompound = resultCap - 1;
   legacy.cfg.maxCompoundResultLevel = resultCap;
   return true;
+}
+
+function selectedLegacyUpgradeGrade(legacy, res) {
+  try {
+    const c = legacy && typeof legacy._c === 'function' ? legacy._c() : null;
+    const goals = res && Array.isArray(res.goals) ? res.goals : [];
+    if (!c) return null;
+    const goal = goals
+      .filter((row) => row && row.sourceCharacter === c.name && row.projectedUpgradeRequired && Number(row.observedLevel) < Number(row.targetLevel) && Number(row.observedLevel) < finite(legacy.cfg && legacy.cfg.maxUpgrade, 0))
+      .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0))[0];
+    if (!goal) return null;
+    const item = typeof legacy._inv === 'function' ? legacy._inv().find((row) => row && row.name === goal.item && levelOf(row) === Number(goal.observedLevel || 0)) : null;
+    const gd = typeof legacy._g === 'function' ? legacy._g() : {};
+    const meta = gd && gd.items && gd.items[goal.item];
+    if (!item || !meta || !meta.upgrade || item.locked || item.l || item.special || item.p) return null;
+    const quote = legacy.oracle && typeof legacy.oracle.quote === 'function' ? legacy.oracle.quote(goal.item, levelOf(item)) : null;
+    if (quote && quote.fairValue != null && quote.fairValue > finite(legacy.cfg && legacy.cfg.upgradeCap, Infinity)) return null;
+    return gradeForLevel(meta, levelOf(item));
+  } catch (_) { return null; }
+}
+
+function selectedLegacyCompoundGrade(legacy, res) {
+  try {
+    const groups = new Map();
+    const gd = typeof legacy._g === 'function' ? legacy._g() : {};
+    const reserved = res && res.keys && typeof res.keys.has === 'function' ? res.keys : new Set();
+    const items = typeof legacy._inv === 'function' ? legacy._inv() : [];
+    for (const item of items) {
+      if (!item || !item.name || item.locked || item.l || item.special || item.p) continue;
+      const level = levelOf(item);
+      const meta = gd && gd.items && gd.items[item.name];
+      if (!meta || !meta.compound || level > finite(legacy.cfg && legacy.cfg.maxCompound, -1) || reserved.has(`${item.name}:${level}`)) continue;
+      const quote = legacy.oracle && typeof legacy.oracle.quote === 'function' ? legacy.oracle.quote(item.name, level) : null;
+      if (quote && quote.fairValue != null && quote.fairValue > finite(legacy.cfg && legacy.cfg.compoundCap, Infinity)) continue;
+      const key = `${item.name}:${level}`;
+      const group = groups.get(key) || [];
+      group.push(item);
+      groups.set(key, group);
+    }
+    const group = [...groups.values()].find((rows) => rows.length >= 3);
+    if (!group) return null;
+    const meta = gd && gd.items && gd.items[group[0].name];
+    return meta ? gradeForLevel(meta, levelOf(group[0])) : null;
+  } catch (_) { return null; }
+}
+
+function installLegacyProgressionGradeGuard(runtime) {
+  const legacy = runtime && runtime.merchantEconomyAutonomy;
+  if (!legacy || legacy.__alpha27ProgressionGradeGuardInstalled) return false;
+  let installed = false;
+  if (typeof legacy._upgrade === 'function') {
+    const baseUpgrade = legacy._upgrade.bind(legacy);
+    legacy._upgrade = async (res) => {
+      const grade = selectedLegacyUpgradeGrade(legacy, res);
+      if (grade != null && grade >= 3) {
+        legacy.lastDecision = { at: typeof legacy.now === 'function' ? legacy.now() : Date.now(), action: 'DEFER_TO_ALPHA27', reason: grade >= 4 ? 'UPGRADE_ITEM_EXALTED' : 'LEGENDARY_SCROLL_REQUIRES_ALPHA27', grade };
+        return false;
+      }
+      return baseUpgrade(res);
+    };
+    installed = true;
+  }
+  if (typeof legacy._compound === 'function') {
+    const baseCompound = legacy._compound.bind(legacy);
+    legacy._compound = async (res) => {
+      const grade = selectedLegacyCompoundGrade(legacy, res);
+      if (grade != null && grade >= 3) {
+        legacy.lastDecision = { at: typeof legacy.now === 'function' ? legacy.now() : Date.now(), action: 'DEFER_TO_ALPHA27', reason: grade >= 4 ? 'COMPOUND_ITEM_EXALTED' : 'LEGENDARY_SCROLL_REQUIRES_ALPHA27', grade };
+        return false;
+      }
+      return baseCompound(res);
+    };
+    installed = true;
+  }
+  if (installed) legacy.__alpha27ProgressionGradeGuardInstalled = true;
+  return installed;
 }
 
 function initialStats() {
@@ -86,7 +173,9 @@ class Alpha27CombatMerchantConvergence {
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
     this.options = boundedOptions(options);
+    this.legacyUpgradePolicySynchronized = synchronizeLegacyUpgradePolicy(runtime, this.options.maxUpgradeLevel);
     this.legacyCompoundPolicySynchronized = synchronizeLegacyCompoundPolicy(runtime, this.options.maxCompoundLevel);
+    this.legacyProgressionGradeGuardInstalled = installLegacyProgressionGradeGuard(runtime);
     this.stats = initialStats();
     const shared = { now: this.now, log: this.log, options: this.options, stats: this.stats };
     this.combat = new Alpha27CombatOwnership(runtime, shared);
@@ -151,7 +240,9 @@ class Alpha27CombatMerchantConvergence {
         realUpgrade: true,
         realCompound: true,
         blindMutationRetryAllowed: false,
+        legacyUpgradePolicySynchronized: this.legacyUpgradePolicySynchronized,
         legacyCompoundPolicySynchronized: this.legacyCompoundPolicySynchronized,
+        legacyProgressionGradeGuardInstalled: this.legacyProgressionGradeGuardInstalled,
         ...merchant,
         risk: {
           goldReserve: this.options.goldReserve,
@@ -181,6 +272,8 @@ class Alpha27CombatMerchantConvergence {
         mutationAttemptBudgetPersisted: true,
         scrollPurchasePreservesGoldReserve: true,
         unknownItemsFailClosed: true,
+        legendaryProgressionOwnedByAlpha27: true,
+        exaltedProgressionMutationBlocked: true,
         targetSafetyBypassAdded: false,
         farmerSmartMoveAuthorityAdded: false,
         merchantServiceTravelOnly: true
@@ -205,5 +298,7 @@ module.exports = {
   farmerOwnedCombatBusy,
   isPoisonedPerformanceProfile,
   boundedOptions,
-  synchronizeLegacyCompoundPolicy
+  synchronizeLegacyUpgradePolicy,
+  synchronizeLegacyCompoundPolicy,
+  installLegacyProgressionGradeGuard
 };

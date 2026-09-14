@@ -70,17 +70,21 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     if (tx.type === 'UPGRADE') {
       if (!meta.upgrade) return { ok: false, reason: 'ITEM_NOT_UPGRADEABLE' };
       if (levelOf(tx) >= this.options.maxUpgradeLevel) return { ok: false, reason: 'UPGRADE_LEVEL_RISK_CAP' };
+      const grade = gradeForLevel(meta, tx.level);
+      if (grade >= 4) return { ok: false, reason: 'UPGRADE_ITEM_EXALTED' };
       if (value > this.options.upgradeValueCap) return { ok: false, reason: 'UPGRADE_VALUE_RISK_CAP' };
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       if (!goal) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
-      return { ok: true, inputs, meta, goal, value, scroll: `scroll${gradeForLevel(meta, tx.level)}` };
+      return { ok: true, inputs, meta, goal, value, grade, scroll: `scroll${grade}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
+    const grade = gradeForLevel(meta, tx.level);
+    if (grade >= 4) return { ok: false, reason: 'COMPOUND_ITEM_EXALTED' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
-    return { ok: true, inputs, meta, value, scroll: `cscroll${gradeForLevel(meta, tx.level)}` };
+    return { ok: true, inputs, meta, value, grade, scroll: `cscroll${grade}` };
   }
 }
 
