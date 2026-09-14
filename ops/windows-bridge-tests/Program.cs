@@ -1,4 +1,5 @@
 using AioBotWindowsBridge;
+using System.Text.Json;
 
 static void Assert(bool condition, string message)
 {
@@ -43,6 +44,33 @@ ExpectInvalid(defaults with { SignalControlUrl = "http://example.test/control" }
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 2) == 10, "BACKOFF_2");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 20) == 300, "BACKOFF_CAP");
+
+Assert(TelemetryBridgeService.ShouldCatchUp(100, 100, false, 1), "CATCHUP_FULL_BATCH");
+Assert(TelemetryBridgeService.ShouldCatchUp(10, 100, true, 1), "CATCHUP_HAS_MORE");
+Assert(!TelemetryBridgeService.ShouldCatchUp(10, 100, false, 1), "CATCHUP_STOPS_WHEN_DRAINED");
+Assert(!TelemetryBridgeService.ShouldCatchUp(100, 100, true, TelemetryBridgeService.MaxCatchUpBatches), "CATCHUP_BATCH_CAP");
+
+var diagnosticNow = DateTimeOffset.UtcNow;
+Assert(TelemetryBridgeService.ShouldIncludeDeepDiagnostics(null, diagnosticNow), "DIAGNOSTICS_INITIAL");
+Assert(!TelemetryBridgeService.ShouldIncludeDeepDiagnostics(diagnosticNow, diagnosticNow.AddSeconds(10)), "DIAGNOSTICS_THROTTLED");
+Assert(TelemetryBridgeService.ShouldIncludeDeepDiagnostics(
+    diagnosticNow,
+    diagnosticNow.AddSeconds(TelemetryBridgeService.DeepDiagnosticsIntervalSeconds)), "DIAGNOSTICS_INTERVAL");
+
+using (var snapshotDocument = JsonDocument.Parse("{}"))
+using (var eventsDocument = JsonDocument.Parse("[]"))
+{
+    var restarted = new DebugReadResult(
+        snapshotDocument.RootElement.Clone(),
+        eventsDocument.RootElement.Clone(),
+        RequestedAfterSeq: 500,
+        EffectiveAfterSeq: 0,
+        MaxSeq: 0,
+        LastCapturedSeq: 12,
+        HasMoreEvents: false,
+        TargetUrl: "https://adventure.land/");
+    Assert(restarted.CursorWasReset, "CURSOR_RESET_DETECTED");
+}
 
 var temporaryDirectory = Path.Combine(Path.GetTempPath(), "aio-windows-bridge-tests-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(temporaryDirectory);

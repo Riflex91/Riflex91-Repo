@@ -13,6 +13,10 @@ public sealed record RuntimeBridgeStatus(
 
 public sealed class TelemetryBridgeService : IAsyncDisposable
 {
+    public const int MaxCatchUpBatches = 8;
+    public const int DeepDiagnosticsIntervalSeconds = 30;
+    private const int CatchUpDelayMilliseconds = 100;
+
     private readonly BridgeConfig _config;
     private readonly BrowserLauncher _launcher;
     private readonly CdpAdventureLandClient _browser;
@@ -55,6 +59,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     {
         var state = await BridgeState.LoadAsync(cancellationToken);
         DateTimeOffset? lastSuccess = null;
+        DateTimeOffset? lastDeepDiagnosticsAt = null;
         var failures = 0;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -68,16 +73,64 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
 
-                var read = await _browser.ReadAsync(state.LastEventSeq, _config.EventLimit, cancellationToken);
-                await _sink.SendAsync(read, state.LastEventSeq, cancellationToken);
-                state = new BridgeState(read.MaxSeq);
-                await state.SaveAsync(cancellationToken);
-                failures = 0;
-                lastSuccess = DateTimeOffset.UtcNow;
-                var status = new RuntimeBridgeStatus(
-                    "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, read.EventCount, null, read.TargetUrl);
-                Publish(status);
-                await SaveStatusAsync(status, cancellationToken);
+                RuntimeBridgeStatus? latestStatus = null;
+                for (var batchIndex = 0; batchIndex < MaxCatchUpBatches; batchIndex++)
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    var includeDeepDiagnostics = ShouldIncludeDeepDiagnostics(lastDeepDiagnosticsAt, now);
+                    var read = await _browser.ReadAsync(
+                        state.LastEventSeq,
+                        _config.EventLimit,
+                        includeDeepDiagnostics,
+                        cancellationToken);
+
+                    // During catch-up an empty second read is only a probe that the backlog is gone.
+                    // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
+                    if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
+                        break;
+
+                    // Supabase acceptance is the commit point. We never acknowledge browser telemetry before this succeeds.
+                    await _sink.SendAsync(read, read.EffectiveAfterSeq, cancellationToken);
+
+                    state = new BridgeState(read.MaxSeq);
+                    await state.SaveAsync(cancellationToken);
+
+                    // Sequence-aware acknowledgement is best effort for older bot bundles and exact for new bundles.
+                    // If the bot has not updated yet, Supported=false and the external cursor still prevents duplicates.
+                    if (state.LastEventSeq > 0)
+                        await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
+
+                    failures = 0;
+                    lastSuccess = DateTimeOffset.UtcNow;
+                    if (includeDeepDiagnostics) lastDeepDiagnosticsAt = lastSuccess;
+
+                    latestStatus = new RuntimeBridgeStatus(
+                        read.HasMoreEvents ? "CATCHING_UP" : "HEALTHY",
+                        true,
+                        true,
+                        attempt,
+                        lastSuccess,
+                        state.LastEventSeq,
+                        read.EventCount,
+                        null,
+                        read.TargetUrl);
+                    Publish(latestStatus);
+                    await SaveStatusAsync(latestStatus, cancellationToken);
+
+                    if (!ShouldCatchUp(read.EventCount, _config.EventLimit, read.HasMoreEvents, batchIndex + 1))
+                        break;
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(CatchUpDelayMilliseconds), cancellationToken);
+                }
+
+                if (latestStatus is null)
+                {
+                    latestStatus = new RuntimeBridgeStatus(
+                        "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0, null, browserConnection.State);
+                    Publish(latestStatus);
+                    await SaveStatusAsync(latestStatus, cancellationToken);
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -115,6 +168,19 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
+
+    public static bool ShouldCatchUp(int eventCount, int eventLimit, bool hasMoreEvents, int completedBatches)
+    {
+        if (completedBatches >= MaxCatchUpBatches) return false;
+        var boundedLimit = Math.Max(1, eventLimit);
+        return hasMoreEvents || eventCount >= boundedLimit;
+    }
+
+    public static bool ShouldIncludeDeepDiagnostics(DateTimeOffset? lastDeepDiagnosticsAt, DateTimeOffset now)
+    {
+        if (!lastDeepDiagnosticsAt.HasValue) return true;
+        return now - lastDeepDiagnosticsAt.Value >= TimeSpan.FromSeconds(DeepDiagnosticsIntervalSeconds);
+    }
 
     public static int ComputeBackoffSeconds(int pollIntervalSeconds, int maxBackoffSeconds, int failures)
     {
