@@ -8,6 +8,7 @@ const FAST_SAFETY_TESTS = Object.freeze([
   'test/release-guardian.test.js',
   'test/release-safety-invariants.test.js',
   'test/alpha20-23-idle-deadlock-recovery.test.js',
+  'test/alpha20-24-owned-party-liveness.test.js',
   'test/unknown-content-safety.test.js'
 ]);
 
