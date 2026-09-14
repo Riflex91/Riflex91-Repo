@@ -267,6 +267,10 @@ class SafeAutoUpdater {
 
   async applyPending() {
     if (!this.pendingVersion || !this.config.autoApply || this.busy) return false;
+    if (!this._stableSafe()) {
+      this.stats.safeDeferrals += 1;
+      return false;
+    }
     this.busy = true;
     const version = this.pendingVersion;
     try {
@@ -274,6 +278,7 @@ class SafeAutoUpdater {
       this.stats.downloads += 1;
       const validation = this._validateBundle(code, version);
       if (!validation.ok) throw new Error(validation.reason);
+      if (!this._stableSafe()) throw new Error('SAFETY_CHANGED_DURING_DOWNLOAD');
       const slot = this._activeSlot();
       if (!slot) throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
       await this._saveCode(slot, code);
@@ -319,14 +324,13 @@ class SafeAutoUpdater {
       stats: { ...this.stats },
       policies: {
         checksMayRunWhileUnsafe: true,
-        applyRequiresStableSafeWindow: false,
-        appliesImmediatelyWhenUpdateAvailable: true,
+        applyRequiresStableSafeWindow: true,
         noDowngrades: true,
         bundleValidatedBeforeSave: true,
         activeCodeSlotOnly: true,
         failedReloadRestartsPreviousRuntime: true,
         noRemoteGameplayAuthority: true,
-        updateCannotBypassCombatSafety: false
+        updateCannotBypassCombatSafety: true
       }
     };
   }
