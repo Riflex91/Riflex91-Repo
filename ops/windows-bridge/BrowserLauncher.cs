@@ -25,8 +25,9 @@ public sealed class BrowserLauncher
         if (!_config.AutoStartBrowser)
             return new BrowserConnectionStatus(false, "BROWSER_NOT_RUNNING");
 
-        var browserPath = FindBrowserPath(_config.PreferredBrowser)
-            ?? FindBrowserPath(string.Equals(_config.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase) ? "Chrome" : "Edge");
+        var browserPath = BrowserPreferenceOrder(_config.PreferredBrowser)
+            .Select(FindBrowserPath)
+            .FirstOrDefault(path => path is not null);
         if (browserPath is null)
             return new BrowserConnectionStatus(false, "BROWSER_NOT_FOUND");
 
@@ -72,20 +73,44 @@ public sealed class BrowserLauncher
         }
     }
 
+    internal static IReadOnlyList<string> BrowserPreferenceOrder(string preferred)
+    {
+        var order = new[] { preferred, "Brave", "Edge", "Chrome" };
+        return order
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private static string? FindBrowserPath(string browser)
     {
-        var candidates = string.Equals(browser, "Chrome", StringComparison.OrdinalIgnoreCase)
-            ? new[]
-            {
+        string[] candidates;
+        if (string.Equals(browser, "Brave", StringComparison.OrdinalIgnoreCase))
+        {
+            candidates =
+            [
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BraveSoftware", "Brave-Browser", "Application", "brave.exe")
+            ];
+        }
+        else if (string.Equals(browser, "Chrome", StringComparison.OrdinalIgnoreCase))
+        {
+            candidates =
+            [
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "Application", "chrome.exe")
-            }
-            : new[]
-            {
+            ];
+        }
+        else
+        {
+            candidates =
+            [
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "Edge", "Application", "msedge.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "Edge", "Application", "msedge.exe")
-            };
+            ];
+        }
 
         return candidates.FirstOrDefault(File.Exists);
     }
