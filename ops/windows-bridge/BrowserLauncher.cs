@@ -1,0 +1,92 @@
+using System.Diagnostics;
+
+namespace AioBotWindowsBridge;
+
+public sealed record BrowserConnectionStatus(bool Ready, string State, string? BrowserPath = null);
+
+public sealed class BrowserLauncher
+{
+    private readonly HttpClient _httpClient;
+    private readonly BridgeConfig _config;
+    private readonly Uri _versionUri;
+
+    public BrowserLauncher(HttpClient httpClient, BridgeConfig config)
+    {
+        _httpClient = httpClient;
+        _config = config;
+        _versionUri = new Uri(new Uri(config.CdpEndpoint.TrimEnd('/') + "/"), "json/version");
+    }
+
+    public async Task<BrowserConnectionStatus> EnsureReadyAsync(CancellationToken cancellationToken)
+    {
+        if (await ProbeAsync(cancellationToken))
+            return new BrowserConnectionStatus(true, "CONNECTED");
+
+        if (!_config.AutoStartBrowser)
+            return new BrowserConnectionStatus(false, "BROWSER_NOT_RUNNING");
+
+        var browserPath = FindBrowserPath(_config.PreferredBrowser)
+            ?? FindBrowserPath(string.Equals(_config.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase) ? "Chrome" : "Edge");
+        if (browserPath is null)
+            return new BrowserConnectionStatus(false, "BROWSER_NOT_FOUND");
+
+        Directory.CreateDirectory(BridgeConfig.BrowserProfileDirectory);
+        var port = new Uri(_config.CdpEndpoint).Port;
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = browserPath,
+            UseShellExecute = false,
+            ArgumentList =
+            {
+                $"--remote-debugging-port={port}",
+                $"--user-data-dir={BridgeConfig.BrowserProfileDirectory}",
+                _config.AllowedOrigin
+            }
+        });
+
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            if (await ProbeAsync(cancellationToken))
+                return new BrowserConnectionStatus(true, "CONNECTED", browserPath);
+        }
+
+        return new BrowserConnectionStatus(false, "BROWSER_DEBUG_ENDPOINT_TIMEOUT", browserPath);
+    }
+
+    public async Task<bool> ProbeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, _versionUri);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
+
+    private static string? FindBrowserPath(string browser)
+    {
+        var candidates = string.Equals(browser, "Chrome", StringComparison.OrdinalIgnoreCase)
+            ? new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "Application", "chrome.exe")
+            }
+            : new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "Edge", "Application", "msedge.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "Edge", "Application", "msedge.exe")
+            };
+
+        return candidates.FirstOrDefault(File.Exists);
+    }
+}
