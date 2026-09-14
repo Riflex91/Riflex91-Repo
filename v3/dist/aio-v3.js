@@ -31015,8 +31015,92 @@ const { Alpha28LedgerFarmerFixes } = require('./alpha28-ledger-farmer-fixes');
 const { Alpha28MerchantTransfers } = require('./alpha28-merchant-transfers');
 const { Alpha28CrossMapFarmerProgression } = require('./alpha28-cross-map-farmer');
 const { Alpha28BrainCloud } = require('./alpha28-brain-cloud');
+const { installAlpha2023IdleDeadlockRecovery } = require('./alpha20-23-idle-deadlock-recovery');
 
 const ALPHA28_MODE = 'alpha28-live-authority-liveness-v1';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function failureReason(value, fallback = 'CONTROLLED_EXECUTION_FAILED') {
+  if (value == null) return fallback;
+  if (value instanceof Error && value.message) return String(value.message);
+  if (typeof value === 'string') return value.trim() || fallback;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    const code = typeof value.code === 'string' ? value.code.trim() : '';
+    const message = typeof value.message === 'string' ? value.message.trim() : '';
+    if (code && message) return `${code}: ${message}`;
+    if (message) return message;
+    if (code) return code;
+    for (const key of ['reason', 'error']) {
+      const nested = value[key];
+      if (nested == null || nested === value) continue;
+      const resolved = failureReason(nested, '');
+      if (resolved) return resolved;
+    }
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== '{}') return serialized.slice(0, 512);
+    } catch (_) {}
+  }
+  const text = String(value || '');
+  return !text || text === '[object Object]' ? fallback : text;
+}
+
+function installMerchantFailureReasonNormalization(runtime) {
+  const merchant = runtime && runtime.controlledMerchant;
+  if (!merchant || merchant.__alpha28FailureReasonNormalization || typeof merchant._timeout !== 'function') return false;
+  const baseTimeout = merchant._timeout.bind(merchant);
+  merchant._timeout = async (promise, label) => {
+    const response = await baseTimeout(promise, label);
+    if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
+    return { ...response, reason: failureReason(response.reason, `${label || 'CONTROLLED'}_FAILED`) };
+  };
+  merchant.__alpha28FailureReasonNormalization = true;
+  return true;
+}
+
+function installScopedControlledAuthorityGuard(runtime) {
+  if (!runtime || runtime.__alpha28ScopedControlledAuthorityGuard || typeof runtime._controlledSubsystemHealth !== 'function') return false;
+  if (!runtime.controlledMerchant || !runtime.controlledTravel || !runtime.globalSupervisor || !runtime.adapter) return false;
+
+  runtime._guardControlledAuthority = function alpha28ScopedControlledAuthorityGuard() {
+    const health = this._controlledSubsystemHealth();
+    const supervisor = this.globalSupervisor.status();
+    let globalReason = null;
+    if (this.adapter.mode !== 'active') globalReason = 'RUNTIME_NOT_ACTIVE';
+    else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) globalReason = 'SUPERVISOR_NOT_HEALTHY';
+
+    const economyReason = globalReason || (health.economy.state === 'DEGRADED' ? 'ECONOMY_CIRCUIT_OPEN' : null);
+    const travelReason = globalReason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
+
+    if (economyReason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(economyReason);
+    if (travelReason && this.controlledTravel.status().enabled) {
+      Promise.resolve(this.controlledTravel.disable(travelReason)).catch((error) => {
+        if (this.log && typeof this.log.emit === 'function') {
+          this.log.emit({
+            component: 'controlled-travel',
+            event: 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED',
+            severity: 'error',
+            reason: travelReason,
+            data: { message: failureReason(error, 'CONTROLLED_TRAVEL_GUARD_DISABLE_FAILED') }
+          });
+        }
+      });
+    }
+
+    this.lastEconomyGuardReason = economyReason;
+    this.lastTravelGuardReason = travelReason;
+    this.lastControlledGuardReason = economyReason || travelReason;
+    return {
+      reason: this.lastControlledGuardReason,
+      economyGuardReason: economyReason,
+      travelGuardReason: travelReason,
+      health
+    };
+  };
+  runtime.__alpha28ScopedControlledAuthorityGuard = true;
+  return true;
+}
 
 class Alpha28LiveAuthorityLiveness {
   constructor(runtime, options = {}) {
@@ -31032,6 +31116,9 @@ class Alpha28LiveAuthorityLiveness {
       brainCloudSettingPatches: 0, brainCanaryPlannerDecisions: 0, tickErrors: 0
     };
     const shared = { now: this.now, log: this.log, stats: this.stats, options };
+    this.idleDeadlockRecovery = installAlpha2023IdleDeadlockRecovery(runtime);
+    this.scopedControlledAuthorityGuard = installScopedControlledAuthorityGuard(runtime);
+    this.merchantFailureReasonNormalization = installMerchantFailureReasonNormalization(runtime);
     this.fixes = new Alpha28LedgerFarmerFixes(runtime, shared);
     this.transfers = new Alpha28MerchantTransfers(runtime, shared);
     this.crossMap = new Alpha28CrossMapFarmerProgression(runtime, shared);
@@ -31055,7 +31142,18 @@ class Alpha28LiveAuthorityLiveness {
     return true;
   }
   status() {
-    return { schemaVersion:1, mode:ALPHA28_MODE, fixes:this.fixes.status(), merchantTransfers:this.transfers.status(), crossMapFarmer:this.crossMap.status(), brainCloud:this.brainCloud.status(), policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false }, stats:{...this.stats} };
+    return {
+      schemaVersion:1,
+      mode:ALPHA28_MODE,
+      fixes:this.fixes.status(),
+      idleDeadlockRecovery:this.idleDeadlockRecovery && this.idleDeadlockRecovery.status ? this.idleDeadlockRecovery.status() : null,
+      controlledAuthority:{ scopedEconomyTravelGuards:this.scopedControlledAuthorityGuard, merchantFailureReasonNormalization:this.merchantFailureReasonNormalization },
+      merchantTransfers:this.transfers.status(),
+      crossMapFarmer:this.crossMap.status(),
+      brainCloud:this.brainCloud.status(),
+      policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false, economyCircuitDisablesTravel:false },
+      stats:{...this.stats}
+    };
   }
 }
 
@@ -31066,7 +31164,14 @@ function installAlpha28LiveAuthorityLiveness(runtime, options={}) {
   runtime.alpha28LiveAuthorityLiveness = module;
   return module;
 }
-module.exports = { ALPHA28_MODE, Alpha28LiveAuthorityLiveness, installAlpha28LiveAuthorityLiveness };
+module.exports = {
+  ALPHA28_MODE,
+  failureReason,
+  installMerchantFailureReasonNormalization,
+  installScopedControlledAuthorityGuard,
+  Alpha28LiveAuthorityLiveness,
+  installAlpha28LiveAuthorityLiveness
+};
 
 },
 "src/reliability/alpha28-ledger-farmer-fixes.js": function(require,module,exports){
@@ -31174,10 +31279,9 @@ class Alpha28LedgerFarmerFixes {
       const target = candidates[0];
       if (!target) return null;
 
-      // FarmerController consumes selection.ranking as the native FarmPlanner row
-      // and formats score/travelSeconds with toFixed(). Never manufacture a partial
-      // ranking object here: recover the planned monster's candidate row and pass it
-      // through the existing planner so Alpha28 preserves that contract exactly.
+      // Prefer the native FarmPlanner row when available. The fallback below is
+      // intentionally liveness-only: target safety, party policy, map, plan type and
+      // pre-farming safeEntityIds have all already been enforced above.
       let ranking = null;
       try {
         const candidateState = typeof farmer._candidateRows === 'function' ? farmer._candidateRows(context) : null;
@@ -31195,8 +31299,27 @@ class Alpha28LedgerFarmerFixes {
       const score = ranking && Number(ranking.score);
       const travelSeconds = ranking && Number(ranking.travelSeconds);
       if (!ranking || !Number.isFinite(score) || !Number.isFinite(travelSeconds)) {
-        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_BLOCKED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null });
-        return null;
+        const liveDistance = distance(snapshot.character, target);
+        const speed = Math.max(1, finite(snapshot.character.speed, 40));
+        const fallbackTravelSeconds = Number.isFinite(liveDistance) ? liveDistance / speed : 120;
+        const fallbackRanking = {
+          id: String(plan.monster),
+          monster: String(plan.monster),
+          score: 0,
+          xpPerHour: 0,
+          goldPerHour: 0,
+          deathsPerHour: 0,
+          confidence: 0,
+          travelSeconds: fallbackTravelSeconds,
+          source: 'alpha28-safe-live-liveness-fallback'
+        };
+        this.stats.plannedTargetFallbackSelections += 1;
+        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_RECOVERED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE_SAFE_LIVE_FALLBACK', {
+          targetId: String(target.id), monster: target.mtype, planId: plan.id || null,
+          distance: Number.isFinite(liveDistance) ? Math.round(liveDistance) : null,
+          travelSeconds: fallbackTravelSeconds
+        });
+        return { target, ranking: fallbackRanking };
       }
       const fallbackRanking = { ...ranking, score, travelSeconds, source: 'alpha28-safe-planned-fallback' };
       this.stats.plannedTargetFallbackSelections += 1;
@@ -31791,6 +31914,225 @@ class Alpha28BrainCloud {
 }
 
 module.exports = { Alpha28BrainCloud };
+
+},
+"src/reliability/alpha20-23-idle-deadlock-recovery.js": function(require,module,exports){
+'use strict';
+
+const ALPHA20_23_IDLE_DEADLOCK_MODE = 'alpha20.23-idle-deadlock-recovery-v2';
+const NAVIGATION_RELEASE_REASONS = new Set(['TRAINING_TARGET_AUTOMATRON', 'FOREIGN_ENGAGED_SAFE_MONSTER']);
+
+function text(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function gameDataOf(runtime, snapshot) {
+  if (snapshot && snapshot.gameData && typeof snapshot.gameData === 'object') return snapshot.gameData;
+  const root = runtime && runtime.root;
+  if (root && root.G && typeof root.G === 'object') return root.G;
+  if (root && root.parent && root.parent.G && typeof root.parent.G === 'object') return root.parent.G;
+  return {};
+}
+
+function addPartyNames(names, party) {
+  if (!party) return;
+  if (Array.isArray(party)) {
+    for (const member of party) {
+      const name = text(typeof member === 'string' ? member : member && member.name);
+      if (name) names.add(name);
+    }
+    return;
+  }
+  if (typeof party !== 'object') return;
+  for (const [key, member] of Object.entries(party)) {
+    const name = text(member && member.name || key);
+    if (name) names.add(name);
+  }
+}
+
+function friendlyNamesOf(runtime, snapshot) {
+  const names = new Set();
+  const character = snapshot && snapshot.character || runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null;
+  const selfName = text(character && character.name);
+  if (selfName) names.add(selfName);
+  addPartyNames(names, snapshot && snapshot.party);
+  const root = runtime && runtime.root;
+  addPartyNames(names, root && root.party);
+  if (root && root.parent && root.parent !== root) addPartyNames(names, root.parent.party);
+  return names;
+}
+
+function knownMonster(gameData, entity) {
+  return Boolean(entity && entity.mtype && gameData && gameData.monsters && gameData.monsters[entity.mtype]);
+}
+
+function contentAllowsNavigationRelease(runtime, entity, stats) {
+  const gate = runtime && runtime.combatRisk && runtime.combatRisk.contentSafety;
+  if (!gate || typeof gate.evaluate !== 'function') return true;
+  try {
+    const result = gate.evaluate(entity, runtime.world || gate.lastWorld || null);
+    return Boolean(result && result.allowed === true);
+  } catch (_) {
+    stats.contentSafetyEvaluationFailures += 1;
+    return false;
+  }
+}
+
+function recordRelease(runtime, stats, entity, reason, safety) {
+  stats.navigationDeadlocksReleased += 1;
+  if (reason === 'FOREIGN_ENGAGED_SAFE_MONSTER') stats.foreignEngagedReleases += 1;
+  stats.lastRelease = {
+    at: runtime.now ? runtime.now() : Date.now(),
+    entityId: entity.id == null ? null : String(entity.id),
+    entityName: entity.name || null,
+    monsterType: entity.mtype || null,
+    claimedBy: entity.target || null,
+    reason,
+    token: safety && safety.token || null,
+    source: safety && safety.source || null
+  };
+}
+
+function installNeverTargetNavigationRelease(runtime, stats) {
+  const local = runtime && runtime.localFarming;
+  const farmer = runtime && runtime.farmer;
+  const targetSafety = runtime && runtime.targetSafety;
+  if (!local || !farmer || !targetSafety || typeof local._visibleMonsters !== 'function' || typeof targetSafety.evaluate !== 'function') return false;
+  if (local.__alpha2023NeverTargetNavigationReleaseInstalled) return true;
+
+  const baseVisible = local._visibleMonsters.bind(local);
+  local._visibleMonsters = (snapshot) => {
+    const rows = baseVisible(snapshot);
+    if (!Array.isArray(rows) || !rows.length) return rows;
+
+    const character = snapshot && snapshot.character || runtime.lastSnapshot && runtime.lastSnapshot.character || null;
+    const selfName = text(character && character.name);
+    const friendlyNames = friendlyNamesOf(runtime, snapshot);
+    const selectedTargetId = farmer.targetId == null ? null : String(farmer.targetId);
+    const plannedMonster = local.currentPlan && local.currentPlan.monster ? String(local.currentPlan.monster) : null;
+    const gameData = gameDataOf(runtime, snapshot);
+
+    return rows.filter((entity) => {
+      if (!entity || !entity.mtype) return true;
+
+      const claimedBy = text(entity.target);
+
+      // Hard safety invariants always win over the deadlock release.
+      if (selfName && claimedBy === selfName) return true;
+      if (claimedBy && friendlyNames.has(claimedBy)) return true;
+      if (selectedTargetId != null && entity.id != null && String(entity.id) === selectedTargetId) return true;
+
+      // Preserve the existing fail-closed invariant for a neutral monster type that
+      // LocalFarming explicitly plans to approach. Do this before TargetSafety so a
+      // safety-evaluation failure cannot alter the protected-state accounting.
+      // A foreign-engaged monster of the same type intentionally continues below so
+      // it can be released from navigation blocking when all safety gates approve it.
+      if (!claimedBy && plannedMonster && String(entity.mtype) === plannedMonster) return true;
+
+      let safety;
+      try {
+        safety = targetSafety.evaluate(entity, gameData);
+      } catch (_) {
+        stats.targetSafetyEvaluationFailures += 1;
+        return true;
+      }
+
+      // Preserve the existing Target Automatron release. A planned technical target
+      // remains a blocker so explicit operator/test plans are never bypassed.
+      if (safety && safety.allowed === false && NAVIGATION_RELEASE_REASONS.has(String(safety.reason || ''))) {
+        if (plannedMonster && String(entity.mtype) === plannedMonster) return true;
+        recordRelease(runtime, stats, entity, String(safety.reason), safety);
+        return false;
+      }
+
+      // Everything TargetSafety rejects (dangerous fairies, custom exclusions, etc.)
+      // remains fail-closed.
+      if (!safety || safety.allowed !== true) return true;
+
+      // Neutral monsters are actionable under party-only and must remain visible to
+      // the farmer. Only a monster already claimed by somebody outside our party can
+      // be ignored for navigation, because the farmer itself is forbidden to select it.
+      if (!claimedBy || friendlyNames.has(claimedBy)) return true;
+
+      // Do not widen safety for unknown or content-quarantined monster types.
+      if (!knownMonster(gameData, entity)) return true;
+      if (!contentAllowsNavigationRelease(runtime, entity, stats)) return true;
+
+      recordRelease(runtime, stats, entity, 'FOREIGN_ENGAGED_SAFE_MONSTER', safety);
+      return false;
+    });
+  };
+
+  local.__alpha2023NeverTargetNavigationReleaseInstalled = true;
+  return true;
+}
+
+class Alpha2023IdleDeadlockRecovery {
+  constructor(runtime) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.installedAt = this.now();
+    this.stats = {
+      navigationDeadlocksReleased: 0,
+      foreignEngagedReleases: 0,
+      targetSafetyEvaluationFailures: 0,
+      contentSafetyEvaluationFailures: 0,
+      lastRelease: null
+    };
+    this.navigationReleaseInstalled = installNeverTargetNavigationRelease(runtime, this.stats);
+    if (runtime.log && typeof runtime.log.emit === 'function') {
+      try {
+        runtime.log.emit({
+          component: 'alpha20-23-idle-deadlock-recovery',
+          event: 'ALPHA20_23_IDLE_DEADLOCK_RECOVERY_INSTALLED',
+          severity: 'info',
+          data: this.status()
+        });
+      } catch (_) {}
+    }
+  }
+
+  status() {
+    return {
+      schemaVersion: 2,
+      mode: ALPHA20_23_IDLE_DEADLOCK_MODE,
+      installedAt: this.installedAt,
+      navigationReleaseInstalled: this.navigationReleaseInstalled,
+      releasedReasons: [...NAVIGATION_RELEASE_REASONS],
+      stats: { ...this.stats },
+      policies: {
+        unknownVisibleMonsterStillBlocksNavigation: true,
+        dangerousSpecialFairyStillBlocksNavigation: true,
+        customTargetExclusionStillBlocksNavigation: true,
+        selfAggroAlwaysBlocksNavigation: true,
+        partyAggroAlwaysBlocksNavigation: true,
+        selectedTargetAlwaysBlocksNavigation: true,
+        neutralKnownMonsterStillBlocksNavigation: true,
+        foreignEngagedKnownSafeMonsterMayNotDeadlockNavigation: true,
+        nonHostileTrainingAutomatronMayNotDeadlockNavigation: true,
+        targetSafetyFailClosed: true,
+        contentSafetyFailClosed: true
+      }
+    };
+  }
+}
+
+function installAlpha2023IdleDeadlockRecovery(runtime) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.alpha2023IdleDeadlockRecovery) return runtime.alpha2023IdleDeadlockRecovery;
+  const recovery = new Alpha2023IdleDeadlockRecovery(runtime);
+  runtime.alpha2023IdleDeadlockRecovery = recovery;
+  return recovery;
+}
+
+module.exports = {
+  ALPHA20_23_IDLE_DEADLOCK_MODE,
+  NAVIGATION_RELEASE_REASONS,
+  installNeverTargetNavigationRelease,
+  Alpha2023IdleDeadlockRecovery,
+  installAlpha2023IdleDeadlockRecovery
+};
 
 },
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
@@ -35961,225 +36303,6 @@ class Alpha2022LiveSmokeRecovery {
 function installAlpha2022LiveSmokeRecovery(runtime) { if (runtime.alpha2022LiveSmokeRecovery) return runtime.alpha2022LiveSmokeRecovery; return runtime.alpha2022LiveSmokeRecovery = new Alpha2022LiveSmokeRecovery(runtime); }
 
 module.exports = { ALPHA20_22_MODE, CM_QUOTA_BACKOFF_MS, Alpha2022LiveSmokeRecovery, installAlpha2022LiveSmokeRecovery, installLocalFarmTerrainGuard, installCloudBackoff, installPersistenceBackoff, installCmQuotaBackoff, isD1QuotaMessage, isStorageQuotaMessage };
-
-},
-"src/reliability/alpha20-23-idle-deadlock-recovery.js": function(require,module,exports){
-'use strict';
-
-const ALPHA20_23_IDLE_DEADLOCK_MODE = 'alpha20.23-idle-deadlock-recovery-v2';
-const NAVIGATION_RELEASE_REASONS = new Set(['TRAINING_TARGET_AUTOMATRON', 'FOREIGN_ENGAGED_SAFE_MONSTER']);
-
-function text(value) {
-  return String(value == null ? '' : value).trim();
-}
-
-function gameDataOf(runtime, snapshot) {
-  if (snapshot && snapshot.gameData && typeof snapshot.gameData === 'object') return snapshot.gameData;
-  const root = runtime && runtime.root;
-  if (root && root.G && typeof root.G === 'object') return root.G;
-  if (root && root.parent && root.parent.G && typeof root.parent.G === 'object') return root.parent.G;
-  return {};
-}
-
-function addPartyNames(names, party) {
-  if (!party) return;
-  if (Array.isArray(party)) {
-    for (const member of party) {
-      const name = text(typeof member === 'string' ? member : member && member.name);
-      if (name) names.add(name);
-    }
-    return;
-  }
-  if (typeof party !== 'object') return;
-  for (const [key, member] of Object.entries(party)) {
-    const name = text(member && member.name || key);
-    if (name) names.add(name);
-  }
-}
-
-function friendlyNamesOf(runtime, snapshot) {
-  const names = new Set();
-  const character = snapshot && snapshot.character || runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null;
-  const selfName = text(character && character.name);
-  if (selfName) names.add(selfName);
-  addPartyNames(names, snapshot && snapshot.party);
-  const root = runtime && runtime.root;
-  addPartyNames(names, root && root.party);
-  if (root && root.parent && root.parent !== root) addPartyNames(names, root.parent.party);
-  return names;
-}
-
-function knownMonster(gameData, entity) {
-  return Boolean(entity && entity.mtype && gameData && gameData.monsters && gameData.monsters[entity.mtype]);
-}
-
-function contentAllowsNavigationRelease(runtime, entity, stats) {
-  const gate = runtime && runtime.combatRisk && runtime.combatRisk.contentSafety;
-  if (!gate || typeof gate.evaluate !== 'function') return true;
-  try {
-    const result = gate.evaluate(entity, runtime.world || gate.lastWorld || null);
-    return Boolean(result && result.allowed === true);
-  } catch (_) {
-    stats.contentSafetyEvaluationFailures += 1;
-    return false;
-  }
-}
-
-function recordRelease(runtime, stats, entity, reason, safety) {
-  stats.navigationDeadlocksReleased += 1;
-  if (reason === 'FOREIGN_ENGAGED_SAFE_MONSTER') stats.foreignEngagedReleases += 1;
-  stats.lastRelease = {
-    at: runtime.now ? runtime.now() : Date.now(),
-    entityId: entity.id == null ? null : String(entity.id),
-    entityName: entity.name || null,
-    monsterType: entity.mtype || null,
-    claimedBy: entity.target || null,
-    reason,
-    token: safety && safety.token || null,
-    source: safety && safety.source || null
-  };
-}
-
-function installNeverTargetNavigationRelease(runtime, stats) {
-  const local = runtime && runtime.localFarming;
-  const farmer = runtime && runtime.farmer;
-  const targetSafety = runtime && runtime.targetSafety;
-  if (!local || !farmer || !targetSafety || typeof local._visibleMonsters !== 'function' || typeof targetSafety.evaluate !== 'function') return false;
-  if (local.__alpha2023NeverTargetNavigationReleaseInstalled) return true;
-
-  const baseVisible = local._visibleMonsters.bind(local);
-  local._visibleMonsters = (snapshot) => {
-    const rows = baseVisible(snapshot);
-    if (!Array.isArray(rows) || !rows.length) return rows;
-
-    const character = snapshot && snapshot.character || runtime.lastSnapshot && runtime.lastSnapshot.character || null;
-    const selfName = text(character && character.name);
-    const friendlyNames = friendlyNamesOf(runtime, snapshot);
-    const selectedTargetId = farmer.targetId == null ? null : String(farmer.targetId);
-    const plannedMonster = local.currentPlan && local.currentPlan.monster ? String(local.currentPlan.monster) : null;
-    const gameData = gameDataOf(runtime, snapshot);
-
-    return rows.filter((entity) => {
-      if (!entity || !entity.mtype) return true;
-
-      const claimedBy = text(entity.target);
-
-      // Hard safety invariants always win over the deadlock release.
-      if (selfName && claimedBy === selfName) return true;
-      if (claimedBy && friendlyNames.has(claimedBy)) return true;
-      if (selectedTargetId != null && entity.id != null && String(entity.id) === selectedTargetId) return true;
-
-      // Preserve the existing fail-closed invariant for a neutral monster type that
-      // LocalFarming explicitly plans to approach. Do this before TargetSafety so a
-      // safety-evaluation failure cannot alter the protected-state accounting.
-      // A foreign-engaged monster of the same type intentionally continues below so
-      // it can be released from navigation blocking when all safety gates approve it.
-      if (!claimedBy && plannedMonster && String(entity.mtype) === plannedMonster) return true;
-
-      let safety;
-      try {
-        safety = targetSafety.evaluate(entity, gameData);
-      } catch (_) {
-        stats.targetSafetyEvaluationFailures += 1;
-        return true;
-      }
-
-      // Preserve the existing Target Automatron release. A planned technical target
-      // remains a blocker so explicit operator/test plans are never bypassed.
-      if (safety && safety.allowed === false && NAVIGATION_RELEASE_REASONS.has(String(safety.reason || ''))) {
-        if (plannedMonster && String(entity.mtype) === plannedMonster) return true;
-        recordRelease(runtime, stats, entity, String(safety.reason), safety);
-        return false;
-      }
-
-      // Everything TargetSafety rejects (dangerous fairies, custom exclusions, etc.)
-      // remains fail-closed.
-      if (!safety || safety.allowed !== true) return true;
-
-      // Neutral monsters are actionable under party-only and must remain visible to
-      // the farmer. Only a monster already claimed by somebody outside our party can
-      // be ignored for navigation, because the farmer itself is forbidden to select it.
-      if (!claimedBy || friendlyNames.has(claimedBy)) return true;
-
-      // Do not widen safety for unknown or content-quarantined monster types.
-      if (!knownMonster(gameData, entity)) return true;
-      if (!contentAllowsNavigationRelease(runtime, entity, stats)) return true;
-
-      recordRelease(runtime, stats, entity, 'FOREIGN_ENGAGED_SAFE_MONSTER', safety);
-      return false;
-    });
-  };
-
-  local.__alpha2023NeverTargetNavigationReleaseInstalled = true;
-  return true;
-}
-
-class Alpha2023IdleDeadlockRecovery {
-  constructor(runtime) {
-    if (!runtime) throw new Error('runtime required');
-    this.runtime = runtime;
-    this.now = runtime.now || (() => Date.now());
-    this.installedAt = this.now();
-    this.stats = {
-      navigationDeadlocksReleased: 0,
-      foreignEngagedReleases: 0,
-      targetSafetyEvaluationFailures: 0,
-      contentSafetyEvaluationFailures: 0,
-      lastRelease: null
-    };
-    this.navigationReleaseInstalled = installNeverTargetNavigationRelease(runtime, this.stats);
-    if (runtime.log && typeof runtime.log.emit === 'function') {
-      try {
-        runtime.log.emit({
-          component: 'alpha20-23-idle-deadlock-recovery',
-          event: 'ALPHA20_23_IDLE_DEADLOCK_RECOVERY_INSTALLED',
-          severity: 'info',
-          data: this.status()
-        });
-      } catch (_) {}
-    }
-  }
-
-  status() {
-    return {
-      schemaVersion: 2,
-      mode: ALPHA20_23_IDLE_DEADLOCK_MODE,
-      installedAt: this.installedAt,
-      navigationReleaseInstalled: this.navigationReleaseInstalled,
-      releasedReasons: [...NAVIGATION_RELEASE_REASONS],
-      stats: { ...this.stats },
-      policies: {
-        unknownVisibleMonsterStillBlocksNavigation: true,
-        dangerousSpecialFairyStillBlocksNavigation: true,
-        customTargetExclusionStillBlocksNavigation: true,
-        selfAggroAlwaysBlocksNavigation: true,
-        partyAggroAlwaysBlocksNavigation: true,
-        selectedTargetAlwaysBlocksNavigation: true,
-        neutralKnownMonsterStillBlocksNavigation: true,
-        foreignEngagedKnownSafeMonsterMayNotDeadlockNavigation: true,
-        nonHostileTrainingAutomatronMayNotDeadlockNavigation: true,
-        targetSafetyFailClosed: true,
-        contentSafetyFailClosed: true
-      }
-    };
-  }
-}
-
-function installAlpha2023IdleDeadlockRecovery(runtime) {
-  if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha2023IdleDeadlockRecovery) return runtime.alpha2023IdleDeadlockRecovery;
-  const recovery = new Alpha2023IdleDeadlockRecovery(runtime);
-  runtime.alpha2023IdleDeadlockRecovery = recovery;
-  return recovery;
-}
-
-module.exports = {
-  ALPHA20_23_IDLE_DEADLOCK_MODE,
-  NAVIGATION_RELEASE_REASONS,
-  installNeverTargetNavigationRelease,
-  Alpha2023IdleDeadlockRecovery,
-  installAlpha2023IdleDeadlockRecovery
-};
 
 },
 "src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
