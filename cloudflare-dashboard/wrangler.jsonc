@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "aio-bot-dashboard",
-  "main": "src/worker-alpha20-22.js",
+  "main": "src/worker-r2-logs.js",
   "compatibility_date": "2026-09-10",
   "workers_dev": true,
   "ai": { "binding": "AI" },
@@ -13,6 +13,12 @@
       "binding": "DB",
       "database_name": "aio-bot-dashboard",
       "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "LOG_ARCHIVE",
+      "bucket_name": "aio-v3-logs"
     }
   ]
 }

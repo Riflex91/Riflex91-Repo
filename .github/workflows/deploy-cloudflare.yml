@@ -21,8 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate Worker source
-        run: node --check cloudflare-dashboard/src/worker.js
+      - name: Validate Worker source and R2 log policy tests
+        working-directory: cloudflare-dashboard
+        run: npm run check
       - name: Check Cloudflare credentials
         id: credentials
         shell: bash
@@ -53,12 +54,24 @@ jobs:
           fs.writeFileSync('wrangler.deploy.jsonc',src.replace('REPLACE_WITH_D1_DATABASE_ID',db.uuid));
           NODE
           rm -f d1-list.json
-      - name: Deploy Worker and dashboard
+      - name: Check R2 log bucket
+        id: r2
         if: steps.credentials.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          if npx wrangler r2 bucket info aio-v3-logs --config wrangler.deploy.jsonc >/dev/null 2>&1; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Cloudflare deploy skipped because R2 bucket aio-v3-logs does not exist yet. Create it with: npx wrangler r2 bucket create aio-v3-logs"
+          fi
+      - name: Deploy Worker and dashboard
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
         run: npx wrangler deploy --config wrangler.deploy.jsonc
       - name: Verify Cloudflare deployment record
-        if: steps.credentials.outputs.ready == 'true'
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
         run: npx wrangler deployments list --config wrangler.deploy.jsonc
       - name: Remove temporary deploy config
