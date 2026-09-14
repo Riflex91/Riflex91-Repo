@@ -10,6 +10,8 @@ class TelemetryOutbox {
     this.capacity = Math.max(100, Number(options.capacity) || 2000);
     this.queue = [];
     this.lastCapturedSeq = 0;
+    this.lastAcknowledgedSeq = 0;
+    this.acknowledged = 0;
     this.dropped = 0;
   }
 
@@ -39,12 +41,46 @@ class TelemetryOutbox {
     return this.queue.slice(0, n).map(cloneJson);
   }
 
+  ackThrough(maxSeq) {
+    const requested = Number(maxSeq);
+    if (!Number.isFinite(requested) || requested < 0) throw new Error('TELEMETRY_ACK_SEQ_INVALID');
+
+    let count = 0;
+    let lastRemovedSeq = null;
+    while (count < this.queue.length) {
+      const row = this.queue[count];
+      const seq = Number(row && row.seq);
+      if (!Number.isFinite(seq) || seq > requested) break;
+      lastRemovedSeq = seq;
+      count += 1;
+    }
+
+    if (count > 0) {
+      this.queue.splice(0, count);
+      this.acknowledged += count;
+      this.lastAcknowledgedSeq = Math.max(this.lastAcknowledgedSeq, Number(lastRemovedSeq) || 0);
+    }
+
+    return {
+      requestedSeq: requested,
+      acknowledged: count,
+      lastAcknowledgedSeq: this.lastAcknowledgedSeq || null,
+      remaining: this.queue.length
+    };
+  }
+
   status() {
+    const oldest = this.queue.length ? Number(this.queue[0] && this.queue[0].seq) : null;
+    const newest = this.queue.length ? Number(this.queue[this.queue.length - 1] && this.queue[this.queue.length - 1].seq) : null;
     return {
       queued: this.queue.length,
       capacity: this.capacity,
       dropped: this.dropped,
-      lastCapturedSeq: this.lastCapturedSeq || null
+      acknowledged: this.acknowledged,
+      lastCapturedSeq: this.lastCapturedSeq || null,
+      lastAcknowledgedSeq: this.lastAcknowledgedSeq || null,
+      oldestQueuedSeq: Number.isFinite(oldest) ? oldest : null,
+      newestQueuedSeq: Number.isFinite(newest) ? newest : null
     };
   }
 }
