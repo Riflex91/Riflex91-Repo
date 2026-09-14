@@ -39892,5 +39892,5 @@ function load(id){
   return module.exports;
 }
 var api=load("src/index.js");
-api.install(root);
+api.install(root,{autostart:root.AIO_V3_AUTOSTART!==false});
 })(typeof globalThis!=='undefined'?globalThis:(typeof window!=='undefined'?window:this));
