@@ -103,6 +103,13 @@ function installNeverTargetNavigationRelease(runtime, stats) {
       if (claimedBy && friendlyNames.has(claimedBy)) return true;
       if (selectedTargetId != null && entity.id != null && String(entity.id) === selectedTargetId) return true;
 
+      // Preserve the existing fail-closed invariant for a neutral monster type that
+      // LocalFarming explicitly plans to approach. Do this before TargetSafety so a
+      // safety-evaluation failure cannot alter the protected-state accounting.
+      // A foreign-engaged monster of the same type intentionally continues below so
+      // it can be released from navigation blocking when all safety gates approve it.
+      if (!claimedBy && plannedMonster && String(entity.mtype) === plannedMonster) return true;
+
       let safety;
       try {
         safety = targetSafety.evaluate(entity, gameData);
