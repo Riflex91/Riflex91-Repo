@@ -6,8 +6,10 @@ public partial class MainWindow : Window
 {
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
     private readonly SecureTokenStore _tokenStore = new();
+    private readonly SecureDashboardWriteKeyStore _dashboardKeyStore = new();
     private BridgeConfig _config = new();
     private string? _token;
+    private string? _dashboardWriteKey;
     private TelemetryBridgeService? _bridge;
     private bool _initializing = true;
     private bool _changingSignal;
@@ -34,12 +36,16 @@ public partial class MainWindow : Window
             BotIdText.Text = _config.BotId;
             DetailBotIdText.Text = _config.BotId;
             IngestUrlText.Text = _config.TelemetryIngestUrl;
+            DashboardUrlText.Text = _config.WebDashboardBaseUrl;
             ConfigPathText.Text = BridgeConfig.ConfigPath;
 
             _token = await _tokenStore.LoadAsync(_config.TelemetryTokenEnvironmentVariable);
             TokenStateText.Text = SecureTokenStore.IsValidToken(_token)
                 ? "Token vorhanden und für diesen Windows-Benutzer geschützt gespeichert."
                 : "Kein Token gefunden. Einmalig einfügen oder als AIO_V3_DEBUG_TELEMETRY_TOKEN setzen.";
+
+            _dashboardWriteKey = await _dashboardKeyStore.LoadAsync(_config.WebDashboardWriteKeyEnvironmentVariable);
+            UpdateDashboardCredentialStatus();
 
             TelemetryToggle.IsChecked = _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token);
             if (_config.TelemetryEnabled && !SecureTokenStore.IsValidToken(_token))
@@ -53,24 +59,16 @@ public partial class MainWindow : Window
         {
             TelemetryErrorText.Text = Bounded(error.Message);
             SupabaseStateText.Text = "FEHLER";
+            DashboardStateText.Text = "FEHLER";
         }
         finally
         {
             _initializing = false;
         }
 
-        if (SecureTokenStore.IsValidToken(_token))
-        {
-            await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled);
-            if (_config.TelemetryEnabled) await StartBridgeAsync();
-        }
-        else
-        {
-            BrowserStateText.Text = "BEREIT";
-            BotStateText.Text = "TOKEN FEHLT";
-            SupabaseStateText.Text = "TOKEN FEHLT";
-            SetSignalToggle(false, false, "Token fehlt");
-        }
+        await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token));
+        if (_config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token))
+            await StartBridgeAsync();
     }
 
     private async void MainWindow_Closed(object? sender, EventArgs e)
@@ -113,7 +111,7 @@ public partial class MainWindow : Window
         if (_bridge is not null && _bridge.IsRunning) return;
 
         if (_bridge is not null) await _bridge.DisposeAsync();
-        _bridge = new TelemetryBridgeService(_httpClient, _config, _token!);
+        _bridge = new TelemetryBridgeService(_httpClient, _config, _token!, _dashboardWriteKey);
         _bridge.StatusChanged += OnBridgeStatusChanged;
         await _bridge.StartAsync();
         TelemetryDetailText.Text = "Aktiv · verbindet automatisch";
@@ -142,6 +140,7 @@ public partial class MainWindow : Window
             TelemetryDetailText.Text = status.State switch
             {
                 "HEALTHY" => "Aktiv · Upload erfolgreich",
+                "CATCHING_UP" => "Aktiv · Telemetrie wird aufgeholt",
                 "CONNECTING" => "Aktiv · Verbindung wird hergestellt",
                 "DEGRADED" => "Aktiv · Wiederholungsversuch mit Backoff",
                 _ => status.State
@@ -150,6 +149,8 @@ public partial class MainWindow : Window
             TargetUrlText.Text = status.TargetUrl ?? TargetUrlText.Text;
             EventCountText.Text = $"{status.LastEventCount} Events";
             LastUploadText.Text = status.LastSuccessAt?.LocalDateTime.ToString("HH:mm:ss") ?? "—";
+            DashboardStateText.Text = DashboardStateLabel(status.WebDashboardState);
+            DashboardErrorText.Text = status.WebDashboardError ?? string.Empty;
         });
     }
 
@@ -181,6 +182,59 @@ public partial class MainWindow : Window
         {
             SignalToggle.IsEnabled = true;
         }
+    }
+
+    private async void SaveDashboardWriteKey_Click(object sender, RoutedEventArgs e)
+    {
+        var writeKey = DashboardWriteKeyBox.Password.Trim();
+        try
+        {
+            await _dashboardKeyStore.SaveAsync(writeKey);
+            _dashboardWriteKey = writeKey;
+            DashboardWriteKeyBox.Clear();
+            UpdateDashboardCredentialStatus("Write-Key sicher mit Windows-DPAPI gespeichert.");
+
+            var restartTelemetry = _bridge is not null && _bridge.IsRunning;
+            if (restartTelemetry) await StopBridgeAsync();
+            await RefreshConnectionsAsync(startBrowser: true);
+            if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
+        }
+        catch (Exception error)
+        {
+            DashboardKeyStateText.Text = "Write-Key konnte nicht gespeichert werden: " + Bounded(error.Message);
+            DashboardStateText.Text = "FEHLER";
+        }
+    }
+
+    private async void DeleteDashboardWriteKey_Click(object sender, RoutedEventArgs e)
+    {
+        var restartTelemetry = _bridge is not null && _bridge.IsRunning;
+        if (restartTelemetry) await StopBridgeAsync();
+
+        try
+        {
+            // Clear the dedicated browser profile first when it is already reachable. If it is
+            // offline, the telemetry service will clear stale dashboard storage before the next bot read.
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            var launcher = new BrowserLauncher(_httpClient, _config with { AutoStartBrowser = false });
+            if (await launcher.ProbeAsync(cts.Token))
+            {
+                var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
+                await dashboard.ClearAsync(cts.Token);
+            }
+        }
+        catch (Exception error)
+        {
+            DashboardErrorText.Text = "Profil-Bereinigung wird beim nächsten Start erneut versucht: " + Bounded(error.Message);
+        }
+
+        await _dashboardKeyStore.DeleteAsync();
+        _dashboardWriteKey = null;
+        DashboardWriteKeyBox.Clear();
+        UpdateDashboardCredentialStatus("Write-Key gelöscht.");
+        DashboardStateText.Text = _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
+
+        if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
     }
 
     private async void SaveToken_Click(object sender, RoutedEventArgs e)
@@ -225,12 +279,6 @@ public partial class MainWindow : Window
 
     private async Task RefreshConnectionsAsync(bool startBrowser)
     {
-        if (!SecureTokenStore.IsValidToken(_token))
-        {
-            SupabaseStateText.Text = "TOKEN FEHLT";
-            return;
-        }
-
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try
         {
@@ -240,6 +288,7 @@ public partial class MainWindow : Window
             BrowserStateText.Text = browser.Ready ? "VERBUNDEN" : "OFFLINE";
             if (browser.Ready)
             {
+                await SyncDashboardProfileAsync(cts.Token);
                 try
                 {
                     var cdp = new CdpAdventureLandClient(_httpClient, _config);
@@ -257,6 +306,9 @@ public partial class MainWindow : Window
             else
             {
                 BotStateText.Text = "OFFLINE";
+                DashboardStateText.Text = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
+                    ? "WARTET AUF BROWSER"
+                    : _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
             }
         }
         catch (Exception error)
@@ -264,6 +316,13 @@ public partial class MainWindow : Window
             BrowserStateText.Text = "FEHLER";
             BotStateText.Text = "OFFLINE";
             TelemetryErrorText.Text = Bounded(error.Message);
+        }
+
+        if (!SecureTokenStore.IsValidToken(_token))
+        {
+            SupabaseStateText.Text = "TOKEN FEHLT";
+            SetSignalToggle(false, false, "Token fehlt");
+            return;
         }
 
         try
@@ -278,6 +337,54 @@ public partial class MainWindow : Window
             SupabaseStateText.Text = "FEHLER";
             SetSignalToggle(false, true, "Fehler: " + Bounded(error.Message));
         }
+    }
+
+    private async Task SyncDashboardProfileAsync(CancellationToken cancellationToken)
+    {
+        var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
+        try
+        {
+            if (!_config.WebDashboardEnabled)
+            {
+                await dashboard.ClearAsync(cancellationToken);
+                DashboardStateText.Text = "DEAKTIVIERT";
+                DashboardErrorText.Text = string.Empty;
+                return;
+            }
+
+            if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
+            {
+                await dashboard.ClearAsync(cancellationToken);
+                DashboardStateText.Text = "WRITE-KEY FEHLT";
+                DashboardErrorText.Text = string.Empty;
+                return;
+            }
+
+            var result = await dashboard.ApplyAsync(
+                _config.WebDashboardBaseUrl,
+                _config.WebDashboardAccount,
+                _dashboardWriteKey!,
+                cancellationToken);
+            DashboardStateText.Text = result.Applied ? "BEREIT · PROFIL SYNCHRONISIERT" : "FEHLER";
+            DashboardErrorText.Text = string.Empty;
+        }
+        catch (Exception error)
+        {
+            DashboardStateText.Text = "FEHLER";
+            DashboardErrorText.Text = Bounded(error.Message);
+        }
+    }
+
+    private void UpdateDashboardCredentialStatus(string? overrideText = null)
+    {
+        var keyPresent = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey);
+        DashboardKeyStateText.Text = overrideText ?? (keyPresent
+            ? "Write-Key vorhanden und für diesen Windows-Benutzer geschützt gespeichert."
+            : $"Kein Write-Key gefunden. Einmalig einfügen oder als {_config.WebDashboardWriteKeyEnvironmentVariable} setzen.");
+        DashboardStateText.Text = !_config.WebDashboardEnabled
+            ? "DEAKTIVIERT"
+            : keyPresent ? "BEREIT · WARTET AUF BROWSER" : "WRITE-KEY FEHLT";
+        if (!keyPresent) DashboardErrorText.Text = string.Empty;
     }
 
     private void SetSignalToggle(bool enabled, bool controlEnabled, string? detail)
@@ -296,6 +403,16 @@ public partial class MainWindow : Window
         TelemetryToggle.Content = TelemetryToggle.IsChecked == true ? "TELEMETRIE AN" : "TELEMETRIE AUS";
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
     }
+
+    private static string DashboardStateLabel(string state) => state switch
+    {
+        "READY" => "BEREIT · PROFIL SYNCHRONISIERT",
+        "PENDING" => "BEREIT · WARTET AUF BROWSER",
+        "WRITE_KEY_MISSING" => "WRITE-KEY FEHLT",
+        "DISABLED" => "DEAKTIVIERT",
+        "ERROR" => "FEHLER",
+        _ => state
+    };
 
     private static string Bounded(string? value)
     {
