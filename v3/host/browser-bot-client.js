@@ -4,6 +4,7 @@ const CONTEXT = new WeakMap();
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze(['https://adventure.land']);
 const MAX_CLAIM_IDS = 100;
 const MAX_ID_LENGTH = 160;
+const MAX_DEBUG_EVENTS = 200;
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -31,6 +32,28 @@ function browserDispatcher(payload) {
     case 'RECONCILIATION_STATUS':
       if (typeof operations.reconciliationStatus !== 'function') throw new Error('RECONCILIATION_STATUS_UNAVAILABLE');
       return operations.reconciliationStatus();
+    case 'DEBUG_SNAPSHOT': {
+      if (typeof operations.status !== 'function') throw new Error('DEBUG_STATUS_UNAVAILABLE');
+      if (typeof operations.hostHeartbeat !== 'function') throw new Error('DEBUG_HEARTBEAT_UNAVAILABLE');
+      if (typeof operations.reconciliationStatus !== 'function') throw new Error('DEBUG_RECONCILIATION_UNAVAILABLE');
+      return {
+        schemaVersion: 1,
+        type: 'AIO_V3_DEBUG_SNAPSHOT',
+        status: operations.status(),
+        heartbeat: operations.hostHeartbeat(),
+        reconciliation: operations.reconciliationStatus()
+      };
+    }
+    case 'DEBUG_EVENTS': {
+      if (typeof operations.peekTelemetry !== 'function') throw new Error('DEBUG_EVENTS_UNAVAILABLE');
+      const limit = Math.max(1, Math.min(200, Math.floor(Number(payload.limit) || 100)));
+      const afterSeq = Math.max(0, Math.floor(Number(payload.afterSeq) || 0));
+      const rows = operations.peekTelemetry(2000);
+      const events = Array.isArray(rows)
+        ? rows.filter((row) => row && Number(row.seq) > afterSeq).slice(0, limit)
+        : [];
+      return { schemaVersion: 1, type: 'AIO_V3_DEBUG_EVENTS', afterSeq, events };
+    }
     default:
       throw new Error('HOST_OPERATION_NOT_ALLOWED');
   }
@@ -200,9 +223,21 @@ class BrowserBotClient {
     return this._call('RECONCILIATION_STATUS');
   }
 
+  debugSnapshot() {
+    return this._call('DEBUG_SNAPSHOT');
+  }
+
+  debugEvents(afterSeq = 0, limit = 100) {
+    const seq = Math.max(0, Math.floor(finite(afterSeq, 0)));
+    const n = Math.max(1, Math.min(MAX_DEBUG_EVENTS, Math.floor(finite(limit, 100))));
+    return this._call('DEBUG_EVENTS', { afterSeq: seq, limit: n });
+  }
+
   status() {
     let origin = null;
     try { origin = this._readOrigin(); } catch (_) {}
+    const allowedOperations = ['HOST_HEARTBEAT', 'PENDING_ALERTS', 'CLAIM_ALERTS', 'RECONCILIATION_STATUS'];
+    const readOnlyDebugOperations = ['DEBUG_SNAPSHOT', 'DEBUG_EVENTS'];
     return {
       mode: 'narrow-browser-bot-client',
       origin,
@@ -210,7 +245,9 @@ class BrowserBotClient {
       timeoutMs: this.timeoutMs,
       maxResultBytes: this.maxResultBytes,
       inFlight: this.inFlight ? { operation: this.inFlight.operation, startedAt: this.inFlight.startedAt } : null,
-      allowedOperations: ['HOST_HEARTBEAT', 'PENDING_ALERTS', 'CLAIM_ALERTS', 'RECONCILIATION_STATUS'],
+      allowedOperations,
+      readOnlyDebugOperations,
+      allAllowedOperations: allowedOperations.concat(readOnlyDebugOperations),
       arbitraryEvaluateExposed: false,
       genericInvokeExposed: false,
       gameplayActionAuthority: false,
@@ -227,6 +264,7 @@ module.exports = {
   DEFAULT_ALLOWED_ORIGINS,
   MAX_CLAIM_IDS,
   MAX_ID_LENGTH,
+  MAX_DEBUG_EVENTS,
   browserDispatcher,
   validateClaimIds
 };

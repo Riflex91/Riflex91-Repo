@@ -5,6 +5,7 @@ const { HeadlessHostController } = require('./headless-host-controller');
 const { HostApiServer } = require('./host-api-server');
 const { JsonFileStateStore } = require('./json-file-state-store');
 const { BrowserBotClient } = require('./browser-bot-client');
+const { DebugTelemetryExporter } = require('./debug-telemetry-exporter');
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -68,16 +69,43 @@ class ProductionHostHarness {
       token: options.apiToken,
       serverFactory: options.serverFactory
     });
+    const env = options.env || (typeof process !== 'undefined' && process.env) || {};
+    this.telemetryExporter = options.telemetryExporter || new DebugTelemetryExporter({
+      now: this.now,
+      fetch: options.telemetryFetch,
+      endpoint: options.telemetryIngestUrl || env.AIO_V3_DEBUG_TELEMETRY_URL,
+      token: options.telemetryIngestToken || env.AIO_V3_DEBUG_TELEMETRY_TOKEN,
+      botId: options.telemetryBotId || env.AIO_V3_DEBUG_TELEMETRY_BOT_ID,
+      eventLimit: options.telemetryEventLimit,
+      timeoutMs: options.telemetryTimeoutMs,
+      minIntervalMs: options.telemetryMinIntervalMs,
+      maxBackoffMs: options.telemetryMaxBackoffMs,
+      allowInsecureLoopbackForTests: options.telemetryAllowInsecureLoopbackForTests === true
+    });
     this.timer = null;
     this.tickInFlight = false;
     this.startedAt = null;
     this.lastTickResult = null;
     this.lastTickError = null;
-    this.stats = { starts: 0, stops: 0, ticks: 0, skippedOverlaps: 0, tickFailures: 0 };
+    this.lastTelemetryResult = null;
+    this.stats = { starts: 0, stops: 0, ticks: 0, skippedOverlaps: 0, tickFailures: 0, telemetryTicks: 0 };
   }
 
   configureRestart(config = {}) {
     return this.controller.configureRestart(config);
+  }
+
+  async _tickTelemetry() {
+    if (!this.telemetryExporter || typeof this.telemetryExporter.tick !== 'function') return null;
+    this.stats.telemetryTicks += 1;
+    const launcher = this.launcher && typeof this.launcher.status === 'function' ? this.launcher.status() : {};
+    const result = await this.telemetryExporter.tick(this.botClient, {
+      processRunning: launcher && launcher.running === true,
+      restartCount: launcher && launcher.stats && launcher.stats.restarts || 0,
+      harnessStartedAt: this.startedAt
+    });
+    this.lastTelemetryResult = clone(result);
+    return result;
   }
 
   async tick() {
@@ -91,6 +119,9 @@ class ProductionHostHarness {
       const result = await this.controller.tick();
       this.lastTickResult = clone(result);
       this.lastTickError = null;
+      try { await this._tickTelemetry(); } catch (error) {
+        this.lastTelemetryResult = { sent: false, reason: 'DEBUG_TELEMETRY_ISOLATED_FAILURE', error: String(error && error.message || error).slice(0, 256) };
+      }
       return result;
     } catch (error) {
       this.stats.tickFailures += 1;
@@ -151,6 +182,8 @@ class ProductionHostHarness {
       controller: this.controller.status(),
       api: this.api.status(),
       alertStore: this.alertStore && typeof this.alertStore.status === 'function' ? this.alertStore.status() : null,
+      debugTelemetry: this.telemetryExporter && typeof this.telemetryExporter.status === 'function' ? this.telemetryExporter.status() : null,
+      lastTelemetryResult: clone(this.lastTelemetryResult),
       lastTickError: clone(this.lastTickError),
       stats: { ...this.stats }
     };
