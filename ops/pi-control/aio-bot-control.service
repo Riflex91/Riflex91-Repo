@@ -1,0 +1,23 @@
+[Unit]
+Description=AIO Bot Pi Control Daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/aio-bot
+EnvironmentFile=/etc/aio-bot/control.env
+ExecStart=/usr/bin/node /opt/aio-bot/ops/pi-control/pi-control-daemon.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/aio-bot
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
