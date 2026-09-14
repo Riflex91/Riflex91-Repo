@@ -16,6 +16,13 @@ function bounded(value, max = 256) {
 
 function browserDispatcher(payload) {
   const aio = globalThis.AIO_V3;
+  if (payload && payload.operation === 'DEBUG_DIAGNOSTICS') {
+    if (!aio || typeof aio.exportDiagnostics !== 'function') throw new Error('DEBUG_DIAGNOSTICS_UNAVAILABLE');
+    const raw = aio.exportDiagnostics();
+    if (typeof raw !== 'string') return raw;
+    try { return JSON.parse(raw); }
+    catch (_) { throw new Error('DEBUG_DIAGNOSTICS_INVALID_JSON'); }
+  }
   const operations = aio && aio.operations;
   if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
   switch (payload && payload.operation) {
@@ -200,6 +207,10 @@ class BrowserBotClient {
     return this._call('RECONCILIATION_STATUS');
   }
 
+  debugDiagnostics() {
+    return this._call('DEBUG_DIAGNOSTICS');
+  }
+
   status() {
     let origin = null;
     try { origin = this._readOrigin(); } catch (_) {}
@@ -210,7 +221,7 @@ class BrowserBotClient {
       timeoutMs: this.timeoutMs,
       maxResultBytes: this.maxResultBytes,
       inFlight: this.inFlight ? { operation: this.inFlight.operation, startedAt: this.inFlight.startedAt } : null,
-      allowedOperations: ['HOST_HEARTBEAT', 'PENDING_ALERTS', 'CLAIM_ALERTS', 'RECONCILIATION_STATUS'],
+      allowedOperations: ['HOST_HEARTBEAT', 'PENDING_ALERTS', 'CLAIM_ALERTS', 'RECONCILIATION_STATUS', 'DEBUG_DIAGNOSTICS'],
       arbitraryEvaluateExposed: false,
       genericInvokeExposed: false,
       gameplayActionAuthority: false,

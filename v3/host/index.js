@@ -10,6 +10,12 @@ const { createWebhookAlertTransport, validateWebhookUrl } = require('./alert-tra
 const { RestartReconciliationObserver } = require('./restart-reconciliation-observer');
 const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH } = require('./browser-bot-client');
 const { ProductionHostHarness } = require('./production-host-harness');
+const {
+  SupabaseDebugTelemetrySink,
+  sanitizeDebugPayload,
+  DEBUG_TELEMETRY_SCHEMA_VERSION,
+  DEFAULT_DEBUG_TELEMETRY_TABLE
+} = require('./supabase-debug-telemetry');
 
 module.exports = {
   HostWatchdogSupervisor,
@@ -30,5 +36,9 @@ module.exports = {
   DEFAULT_ALLOWED_ORIGINS,
   MAX_CLAIM_IDS,
   MAX_ID_LENGTH,
-  ProductionHostHarness
+  ProductionHostHarness,
+  SupabaseDebugTelemetrySink,
+  sanitizeDebugPayload,
+  DEBUG_TELEMETRY_SCHEMA_VERSION,
+  DEFAULT_DEBUG_TELEMETRY_TABLE
 };

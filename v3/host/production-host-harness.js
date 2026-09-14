@@ -5,6 +5,7 @@ const { HeadlessHostController } = require('./headless-host-controller');
 const { HostApiServer } = require('./host-api-server');
 const { JsonFileStateStore } = require('./json-file-state-store');
 const { BrowserBotClient } = require('./browser-bot-client');
+const { SupabaseDebugTelemetrySink, DEBUG_TELEMETRY_SCHEMA_VERSION } = require('./supabase-debug-telemetry');
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -13,6 +14,9 @@ function finite(value, fallback = 0) {
 function clone(value) {
   if (value == null) return value;
   return JSON.parse(JSON.stringify(value));
+}
+function bounded(value, max = 256) {
+  return String(value == null ? '' : value).slice(0, max);
 }
 
 class ProductionHostHarness {
@@ -68,16 +72,119 @@ class ProductionHostHarness {
       token: options.apiToken,
       serverFactory: options.serverFactory
     });
+
+    const hostEnv = options.hostEnv || process.env || {};
+    this.telemetryIntervalMs = Math.max(5000, Math.min(10 * 60 * 1000, finite(
+      options.telemetryIntervalMs,
+      finite(hostEnv.AIO_V3_DEBUG_TELEMETRY_INTERVAL_MS, 15000)
+    )));
+    this.telemetrySink = options.telemetrySink || SupabaseDebugTelemetrySink.fromEnv({
+      env: hostEnv,
+      now: this.now,
+      fetch: options.telemetryFetch,
+      timeoutMs: options.telemetryTimeoutMs,
+      maxPayloadBytes: options.telemetryMaxPayloadBytes,
+      source: options.telemetrySource
+    });
+    this.telemetryInFlight = null;
+    this.lastTelemetryAttemptAt = null;
+    this.lastTelemetryResult = null;
+    this.lastTelemetryError = null;
+
     this.timer = null;
     this.tickInFlight = false;
     this.startedAt = null;
     this.lastTickResult = null;
     this.lastTickError = null;
-    this.stats = { starts: 0, stops: 0, ticks: 0, skippedOverlaps: 0, tickFailures: 0 };
+    this.stats = {
+      starts: 0,
+      stops: 0,
+      ticks: 0,
+      skippedOverlaps: 0,
+      tickFailures: 0,
+      telemetryAttempts: 0,
+      telemetryPublishes: 0,
+      telemetryFailures: 0,
+      telemetrySkips: 0
+    };
   }
 
   configureRestart(config = {}) {
     return this.controller.configureRestart(config);
+  }
+
+  _telemetryEnabled() {
+    return !!(this.telemetrySink && typeof this.telemetrySink.enabled === 'function' && this.telemetrySink.enabled());
+  }
+
+  _debugEnvelope(diagnostics) {
+    return {
+      schemaVersion: DEBUG_TELEMETRY_SCHEMA_VERSION,
+      type: 'AIO_V3_DEBUG_TELEMETRY',
+      collectedAt: this.now(),
+      mode: 'observational-read-only',
+      actionAuthority: false,
+      gameplayActionAuthority: false,
+      bot: diagnostics,
+      host: {
+        running: !!this.timer,
+        startedAt: this.startedAt,
+        tickIntervalMs: this.tickIntervalMs,
+        tickInFlight: this.tickInFlight,
+        launcher: this.launcher && typeof this.launcher.status === 'function' ? this.launcher.status() : null,
+        controller: this.controller && typeof this.controller.status === 'function' ? this.controller.status() : null,
+        stats: {
+          starts: this.stats.starts,
+          stops: this.stats.stops,
+          ticks: this.stats.ticks,
+          skippedOverlaps: this.stats.skippedOverlaps,
+          tickFailures: this.stats.tickFailures
+        }
+      }
+    };
+  }
+
+  _scheduleDebugTelemetry() {
+    const at = this.now();
+    if (!this._telemetryEnabled()) {
+      this.stats.telemetrySkips += 1;
+      return false;
+    }
+    if (!this.botClient || typeof this.botClient.debugDiagnostics !== 'function') {
+      this.stats.telemetrySkips += 1;
+      return false;
+    }
+    if (this.telemetryInFlight) {
+      this.stats.telemetrySkips += 1;
+      return false;
+    }
+    if (this.lastTelemetryAttemptAt != null && at - this.lastTelemetryAttemptAt < this.telemetryIntervalMs) {
+      this.stats.telemetrySkips += 1;
+      return false;
+    }
+
+    this.lastTelemetryAttemptAt = at;
+    this.stats.telemetryAttempts += 1;
+    const work = Promise.resolve()
+      .then(() => this.botClient.debugDiagnostics())
+      .then((diagnostics) => this.telemetrySink.publish(this._debugEnvelope(diagnostics)))
+      .then((result) => {
+        this.lastTelemetryResult = clone(result);
+        this.lastTelemetryError = null;
+        if (result && result.published === true) this.stats.telemetryPublishes += 1;
+        else this.stats.telemetryFailures += 1;
+        return result;
+      })
+      .catch((error) => {
+        this.stats.telemetryFailures += 1;
+        this.lastTelemetryError = { at: this.now(), code: bounded(error && error.message || error || 'DEBUG_TELEMETRY_FAILED', 128) };
+        return { published: false, reason: this.lastTelemetryError.code };
+      })
+      .finally(() => {
+        if (this.telemetryInFlight === work) this.telemetryInFlight = null;
+      });
+    this.telemetryInFlight = work;
+    return true;
   }
 
   async tick() {
@@ -91,10 +198,12 @@ class ProductionHostHarness {
       const result = await this.controller.tick();
       this.lastTickResult = clone(result);
       this.lastTickError = null;
+      this._scheduleDebugTelemetry();
       return result;
     } catch (error) {
       this.stats.tickFailures += 1;
       this.lastTickError = { at: this.now(), message: String(error && error.message || error).slice(0, 256) };
+      this._scheduleDebugTelemetry();
       return { error: clone(this.lastTickError) };
     } finally {
       this.tickInFlight = false;
@@ -151,6 +260,16 @@ class ProductionHostHarness {
       controller: this.controller.status(),
       api: this.api.status(),
       alertStore: this.alertStore && typeof this.alertStore.status === 'function' ? this.alertStore.status() : null,
+      debugTelemetry: {
+        enabled: this._telemetryEnabled(),
+        intervalMs: this.telemetryIntervalMs,
+        inFlight: !!this.telemetryInFlight,
+        lastAttemptAt: this.lastTelemetryAttemptAt,
+        lastResult: clone(this.lastTelemetryResult),
+        lastError: clone(this.lastTelemetryError),
+        sink: this.telemetrySink && typeof this.telemetrySink.status === 'function' ? this.telemetrySink.status() : null,
+        actionAuthority: false
+      },
       lastTickError: clone(this.lastTickError),
       stats: { ...this.stats }
     };
