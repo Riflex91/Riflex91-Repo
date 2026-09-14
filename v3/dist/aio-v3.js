@@ -28416,11 +28416,23 @@ function boundedOptions(options = {}) {
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 2)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(4, Math.floor(finite(options.maxUpgradeLevel, 2)))),
-    maxCompoundLevel: Math.max(0, Math.min(3, Math.floor(finite(options.maxCompoundLevel, 1)))),
+    maxCompoundLevel: Math.max(0, Math.min(6, Math.floor(finite(options.maxCompoundLevel, 6)))),
     serviceTravelTimeoutMs: Math.max(5000, Math.min(180000, finite(options.serviceTravelTimeoutMs, 90000))),
     verifyDelayMs: Math.max(25, Math.min(1000, finite(options.verifyDelayMs, 150))),
     verifyAttempts: Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))))
   };
+}
+
+function synchronizeLegacyCompoundPolicy(runtime, maxCompoundLevel) {
+  const legacy = runtime && runtime.merchantEconomyAutonomy;
+  if (!legacy || !legacy.cfg || typeof legacy.cfg !== 'object') return false;
+  const resultCap = Math.max(0, Math.min(6, Math.floor(finite(maxCompoundLevel, 6))));
+  // Alpha20/22 stores the highest source level it may compound and historically
+  // used an inclusive check. Keep that legacy path aligned with Alpha27's
+  // result-level cap without widening any other economy authority.
+  legacy.cfg.maxCompound = resultCap - 1;
+  legacy.cfg.maxCompoundResultLevel = resultCap;
+  return true;
 }
 
 function initialStats() {
@@ -28464,6 +28476,7 @@ class Alpha27CombatMerchantConvergence {
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
     this.options = boundedOptions(options);
+    this.legacyCompoundPolicySynchronized = synchronizeLegacyCompoundPolicy(runtime, this.options.maxCompoundLevel);
     this.stats = initialStats();
     const shared = { now: this.now, log: this.log, options: this.options, stats: this.stats };
     this.combat = new Alpha27CombatOwnership(runtime, shared);
@@ -28528,6 +28541,7 @@ class Alpha27CombatMerchantConvergence {
         realUpgrade: true,
         realCompound: true,
         blindMutationRetryAllowed: false,
+        legacyCompoundPolicySynchronized: this.legacyCompoundPolicySynchronized,
         ...merchant,
         risk: {
           goldReserve: this.options.goldReserve,
@@ -28580,7 +28594,8 @@ module.exports = {
   installAlpha27CombatMerchantConvergence,
   farmerOwnedCombatBusy,
   isPoisonedPerformanceProfile,
-  boundedOptions
+  boundedOptions,
+  synchronizeLegacyCompoundPolicy
 };
 
 },
@@ -29503,7 +29518,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       return { ok: true, inputs, meta, goal, value, scroll: `scroll${gradeForLevel(meta, tx.level)}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
-    if (levelOf(tx) > this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
+    if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
     return { ok: true, inputs, meta, value, scroll: `cscroll${gradeForLevel(meta, tx.level)}` };
