@@ -46,7 +46,14 @@ public sealed class CdpAdventureLandClient
         throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
     }
 
-    public async Task<DebugReadResult> ReadAsync(long afterSeq, int eventLimit, CancellationToken cancellationToken)
+    public Task<DebugReadResult> ReadAsync(long afterSeq, int eventLimit, CancellationToken cancellationToken) =>
+        ReadAsync(afterSeq, eventLimit, includeDeepDiagnostics: false, cancellationToken);
+
+    public async Task<DebugReadResult> ReadAsync(
+        long afterSeq,
+        int eventLimit,
+        bool includeDeepDiagnostics,
+        CancellationToken cancellationToken)
     {
         var targets = await FindTargetsAsync(cancellationToken);
         foreach (var target in targets)
@@ -58,7 +65,11 @@ public sealed class CdpAdventureLandClient
                 var contextId = await FindOperationsContextAsync(socket, cancellationToken);
                 if (!contextId.HasValue) continue;
 
-                var snapshot = await EvaluateAsync(socket, SnapshotExpression, contextId.Value, cancellationToken);
+                var snapshot = await EvaluateAsync(
+                    socket,
+                    includeDeepDiagnostics ? DeepSnapshotExpression : SnapshotExpression,
+                    contextId.Value,
+                    cancellationToken);
                 var eventBatch = await EvaluateAsync(socket, BuildEventsExpression(afterSeq, eventLimit), contextId.Value, cancellationToken);
 
                 JsonElement events;
@@ -74,7 +85,12 @@ public sealed class CdpAdventureLandClient
                     events = empty.RootElement.Clone();
                 }
 
-                long maxSeq = afterSeq;
+                var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", Math.Max(0, afterSeq));
+                var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
+                var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
+                var hasMoreEvents = ReadBoolean(eventBatch, "hasMore", false);
+
+                long maxSeq = effectiveAfterSeq;
                 foreach (var row in events.EnumerateArray())
                 {
                     if (row.ValueKind == JsonValueKind.Object
@@ -85,11 +101,54 @@ public sealed class CdpAdventureLandClient
                     }
                 }
 
-                return new DebugReadResult(snapshot.Clone(), events, maxSeq, target.Url);
+                return new DebugReadResult(
+                    snapshot.Clone(),
+                    events,
+                    requestedAfterSeq,
+                    effectiveAfterSeq,
+                    maxSeq,
+                    lastCapturedSeq,
+                    hasMoreEvents,
+                    target.Url);
             }
             catch (WebSocketException)
             {
                 // Another same-origin Adventure Land target may contain the running bot.
+            }
+        }
+
+        throw new InvalidOperationException("AIO_V3_OPERATIONS_UNAVAILABLE");
+    }
+
+    public async Task<TelemetryAckResult> AcknowledgeThroughAsync(long maxSeq, CancellationToken cancellationToken)
+    {
+        if (maxSeq <= 0) return TelemetryAckResult.Empty;
+
+        var targets = await FindTargetsAsync(cancellationToken);
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contextId = await FindOperationsContextAsync(socket, cancellationToken);
+                if (!contextId.HasValue) continue;
+
+                var value = await EvaluateAsync(socket, BuildAcknowledgeExpression(maxSeq), contextId.Value, cancellationToken);
+                if (value.ValueKind != JsonValueKind.Object)
+                    return TelemetryAckResult.Empty;
+
+                return new TelemetryAckResult(
+                    ReadBoolean(value, "supported", false),
+                    (int)Math.Clamp(ReadInt64(value, "acknowledged", 0), 0, int.MaxValue),
+                    (int)Math.Clamp(ReadInt64(value, "remaining", 0), 0, int.MaxValue),
+                    ReadInt64(value, "lastAcknowledgedSeq", 0),
+                    ReadInt64(value, "lastCapturedSeq", 0),
+                    (int)Math.Clamp(ReadInt64(value, "dropped", 0), 0, int.MaxValue));
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
             }
         }
 
@@ -275,15 +334,95 @@ public sealed class CdpAdventureLandClient
           const operations = aio && aio.operations;
           if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
           if (typeof operations.peekTelemetry !== 'function') throw new Error('DEBUG_EVENTS_UNAVAILABLE');
-          const afterSeq = {{boundedAfter}};
+          const requestedAfterSeq = {{boundedAfter}};
           const limit = {{boundedLimit}};
           const rows = operations.peekTelemetry(2000);
-          const events = Array.isArray(rows)
-            ? rows.filter((row) => row && Number(row.seq) > afterSeq).slice(0, limit)
+          const internalOutbox = aio && aio.__operations && aio.__operations.telemetry;
+          const telemetry = internalOutbox && typeof internalOutbox.status === 'function'
+            ? internalOutbox.status()
+            : ((operations.status() || {}).telemetry || {});
+          const lastCapturedSeq = Math.max(0, Number(telemetry.lastCapturedSeq) || 0);
+          const effectiveAfterSeq = lastCapturedSeq > 0 && requestedAfterSeq > lastCapturedSeq
+            ? 0
+            : requestedAfterSeq;
+          const candidates = Array.isArray(rows)
+            ? rows.filter((row) => row && Number(row.seq) > effectiveAfterSeq)
             : [];
-          return { schemaVersion: 1, type: 'AIO_V3_DEBUG_EVENTS', afterSeq, events };
+          const events = candidates.slice(0, limit);
+          return {
+            schemaVersion: 2,
+            type: 'AIO_V3_DEBUG_EVENTS',
+            requestedAfterSeq,
+            effectiveAfterSeq,
+            lastCapturedSeq,
+            availableAfterSeq: candidates.length,
+            hasMore: candidates.length > events.length,
+            cursorReset: effectiveAfterSeq !== requestedAfterSeq,
+            telemetry,
+            events
+          };
         })()
         """;
+    }
+
+    private static string BuildAcknowledgeExpression(long maxSeq)
+    {
+        var boundedMax = Math.Max(0, maxSeq);
+        return $$"""
+        (() => {
+          const aio = globalThis.AIO_V3;
+          const operations = aio && aio.operations;
+          if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
+          const internalOutbox = aio && aio.__operations && aio.__operations.telemetry;
+          const status = () => internalOutbox && typeof internalOutbox.status === 'function'
+            ? internalOutbox.status()
+            : ((operations.status() || {}).telemetry || {});
+          if (!internalOutbox || typeof internalOutbox.ackThrough !== 'function') {
+            const telemetry = status();
+            return {
+              schemaVersion: 1,
+              type: 'AIO_V3_TELEMETRY_ACK',
+              supported: false,
+              acknowledged: 0,
+              remaining: Number(telemetry.queued) || 0,
+              lastAcknowledgedSeq: Number(telemetry.lastAcknowledgedSeq) || 0,
+              lastCapturedSeq: Number(telemetry.lastCapturedSeq) || 0,
+              dropped: Number(telemetry.dropped) || 0
+            };
+          }
+          const result = internalOutbox.ackThrough({{boundedMax}});
+          const telemetry = status();
+          return {
+            schemaVersion: 1,
+            type: 'AIO_V3_TELEMETRY_ACK',
+            supported: true,
+            acknowledged: Number(result && result.acknowledged) || 0,
+            remaining: Number(telemetry.queued) || 0,
+            lastAcknowledgedSeq: Number(telemetry.lastAcknowledgedSeq) || 0,
+            lastCapturedSeq: Number(telemetry.lastCapturedSeq) || 0,
+            dropped: Number(telemetry.dropped) || 0
+          };
+        })()
+        """;
+    }
+
+    private static long ReadInt64(JsonElement value, string property, long fallback)
+    {
+        if (value.ValueKind == JsonValueKind.Object
+            && value.TryGetProperty(property, out var node)
+            && node.TryGetInt64(out var result))
+            return result;
+        return fallback;
+    }
+
+    private static bool ReadBoolean(JsonElement value, string property, bool fallback)
+    {
+        if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty(property, out var node))
+        {
+            if (node.ValueKind == JsonValueKind.True) return true;
+            if (node.ValueKind == JsonValueKind.False) return false;
+        }
+        return fallback;
     }
 
     private const string OperationsProbeExpression = """
@@ -307,11 +446,133 @@ public sealed class CdpAdventureLandClient
       if (typeof operations.hostHeartbeat !== 'function') throw new Error('DEBUG_HEARTBEAT_UNAVAILABLE');
       if (typeof operations.reconciliationStatus !== 'function') throw new Error('DEBUG_RECONCILIATION_UNAVAILABLE');
       return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         type: 'AIO_V3_DEBUG_SNAPSHOT',
         status: operations.status(),
         heartbeat: operations.hostHeartbeat(),
-        reconciliation: operations.reconciliationStatus()
+        reconciliation: operations.reconciliationStatus(),
+        diagnostics: null
+      };
+    })()
+    """;
+
+    private const string DeepSnapshotExpression = """
+    (() => {
+      const aio = globalThis.AIO_V3;
+      const operations = aio && aio.operations;
+      if (!operations || typeof operations !== 'object') throw new Error('AIO_V3_OPERATIONS_UNAVAILABLE');
+      if (typeof operations.status !== 'function') throw new Error('DEBUG_STATUS_UNAVAILABLE');
+      if (typeof operations.hostHeartbeat !== 'function') throw new Error('DEBUG_HEARTBEAT_UNAVAILABLE');
+      if (typeof operations.reconciliationStatus !== 'function') throw new Error('DEBUG_RECONCILIATION_UNAVAILABLE');
+
+      const clone = (value) => {
+        if (value === undefined) return null;
+        return value == null ? value : JSON.parse(JSON.stringify(value));
+      };
+      const safe = (fn) => {
+        try { return clone(typeof fn === 'function' ? fn() : null); }
+        catch (error) {
+          const message = String(error && error.message || error || 'DIAGNOSTIC_READ_FAILED');
+          return { unavailable: true, error: message.slice(0, 160) };
+        }
+      };
+
+      const status = operations.status();
+      const heartbeat = operations.hostHeartbeat();
+      const reconciliation = operations.reconciliationStatus();
+      const diagnostics = {
+        schemaVersion: 1,
+        type: 'AIO_V3_AUTONOMY_DIAGNOSTICS',
+        generatedAt: Date.now(),
+        version: aio && aio.version || null,
+        monitor: safe(() => aio.monitor && aio.monitor.summary && aio.monitor.summary()),
+        farmer: {
+          status: safe(() => aio.farmer && aio.farmer.status && aio.farmer.status()),
+          loot: safe(() => aio.farmer && aio.farmer.lootStatus && aio.farmer.lootStatus()),
+          localFarming: safe(() => aio.localFarming && aio.localFarming.status && aio.localFarming.status())
+        },
+        brain: {
+          status: safe(() => aio.brain && aio.brain.status && aio.brain.status()),
+          replay: safe(() => aio.brain && aio.brain.replay && aio.brain.replay(16))
+        },
+        supervisor: safe(() => aio.supervisor && aio.supervisor.status && aio.supervisor.status()),
+        contentDrift: {
+          status: safe(() => aio.contentDrift && aio.contentDrift.status && aio.contentDrift.status()),
+          records: safe(() => aio.contentDrift && aio.contentDrift.records && aio.contentDrift.records(32))
+        },
+        inventory: {
+          status: safe(() => aio.inventory && aio.inventory.status && aio.inventory.status()),
+          entries: safe(() => aio.inventory && aio.inventory.entries && aio.inventory.entries(64))
+        },
+        gearProgression: {
+          status: safe(() => aio.gearProgression && aio.gearProgression.status && aio.gearProgression.status()),
+          goals: safe(() => aio.gearProgression && aio.gearProgression.goals && aio.gearProgression.goals(64))
+        },
+        economy: {
+          status: safe(() => aio.economy && aio.economy.status && aio.economy.status()),
+          transactions: {
+            status: safe(() => aio.economy && aio.economy.transactions && aio.economy.transactions.status && aio.economy.transactions.status()),
+            recent: safe(() => aio.economy && aio.economy.transactions && aio.economy.transactions.list && aio.economy.transactions.list(32))
+          },
+          bankCapacity: safe(() => aio.economy && aio.economy.bankCapacity && aio.economy.bankCapacity.status && aio.economy.bankCapacity.status()),
+          bankExpansion: {
+            status: safe(() => aio.economy && aio.economy.bankExpansion && aio.economy.bankExpansion.status && aio.economy.bankExpansion.status()),
+            recent: safe(() => aio.economy && aio.economy.bankExpansion && aio.economy.bankExpansion.list && aio.economy.bankExpansion.list(16))
+          },
+          spaceRecovery: {
+            status: safe(() => aio.economy && aio.economy.spaceRecovery && aio.economy.spaceRecovery.status && aio.economy.spaceRecovery.status()),
+            recent: safe(() => aio.economy && aio.economy.spaceRecovery && aio.economy.spaceRecovery.list && aio.economy.spaceRecovery.list(16))
+          }
+        },
+        travel: {
+          status: safe(() => aio.travel && aio.travel.status && aio.travel.status()),
+          recent: safe(() => aio.travel && aio.travel.list && aio.travel.list(32))
+        },
+        merchantService: safe(() => aio.merchantService && aio.merchantService.status && aio.merchantService.status()),
+        party: {
+          status: safe(() => aio.party && aio.party.status && aio.party.status()),
+          registry: safe(() => aio.party && aio.party.registry && aio.party.registry()),
+          decision: safe(() => aio.party && aio.party.decision && aio.party.decision()),
+          fingerprints: safe(() => aio.party && aio.party.fingerprints && aio.party.fingerprints()),
+          performance: safe(() => aio.party && aio.party.performance && aio.party.performance()),
+          telemetry: safe(() => aio.party && aio.party.telemetry && aio.party.telemetry()),
+          transition: safe(() => aio.party && aio.party.transition && aio.party.transition()),
+          controlLease: safe(() => aio.party && aio.party.controlLease && aio.party.controlLease()),
+          lifecycle: {
+            status: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.status && aio.party.lifecycle.status()),
+            characters: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.characters && aio.party.lifecycle.characters()),
+            controlled: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.controlled && aio.party.lifecycle.controlled.status && aio.party.lifecycle.controlled.status()),
+            aura: safe(() => aio.party && aio.party.lifecycle && aio.party.lifecycle.aura && aio.party.lifecycle.aura.status && aio.party.lifecycle.aura.status())
+          }
+        },
+        backgroundExecution: safe(() => aio.backgroundExecution && aio.backgroundExecution.status && aio.backgroundExecution.status()),
+        autoRespawn: safe(() => aio.autoRespawn && aio.autoRespawn.status && aio.autoRespawn.status()),
+        alerts: safe(() => operations.peekAlerts && operations.peekAlerts(50)),
+        stateReplica: safe(() => operations.peekStateReplica && operations.peekStateReplica())
+      };
+
+      let approxChars = 0;
+      try { approxChars = JSON.stringify(diagnostics).length; } catch (_) {}
+      if (approxChars > 350000) {
+        diagnostics.sizeLimited = true;
+        diagnostics.stateReplica = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.inventory) diagnostics.inventory.entries = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.gearProgression) diagnostics.gearProgression.goals = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.contentDrift) diagnostics.contentDrift.records = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.brain) diagnostics.brain.replay = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.economy && diagnostics.economy.transactions) diagnostics.economy.transactions.recent = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        if (diagnostics.travel) diagnostics.travel.recent = { omitted: true, reason: 'DIAGNOSTIC_BUNDLE_SIZE_LIMIT' };
+        try { approxChars = JSON.stringify(diagnostics).length; } catch (_) {}
+      }
+      diagnostics.approxChars = approxChars;
+
+      return {
+        schemaVersion: 2,
+        type: 'AIO_V3_DEBUG_SNAPSHOT',
+        status,
+        heartbeat,
+        reconciliation,
+        diagnostics
       };
     })()
     """;
@@ -326,7 +587,27 @@ public sealed class CdpAdventureLandClient
     }
 }
 
-public sealed record DebugReadResult(JsonElement Snapshot, JsonElement Events, long MaxSeq, string TargetUrl)
+public sealed record DebugReadResult(
+    JsonElement Snapshot,
+    JsonElement Events,
+    long RequestedAfterSeq,
+    long EffectiveAfterSeq,
+    long MaxSeq,
+    long LastCapturedSeq,
+    bool HasMoreEvents,
+    string TargetUrl)
 {
     public int EventCount => Events.ValueKind == JsonValueKind.Array ? Events.GetArrayLength() : 0;
+    public bool CursorWasReset => EffectiveAfterSeq != RequestedAfterSeq;
+}
+
+public sealed record TelemetryAckResult(
+    bool Supported,
+    int Acknowledged,
+    int Remaining,
+    long LastAcknowledgedSeq,
+    long LastCapturedSeq,
+    int Dropped)
+{
+    public static TelemetryAckResult Empty { get; } = new(false, 0, 0, 0, 0, 0);
 }
