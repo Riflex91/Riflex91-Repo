@@ -4,6 +4,9 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
+    public const int CurrentConfigVersion = 2;
+
+    public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
     public string AllowedOrigin { get; init; } = "https://adventure.land";
     public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest";
@@ -12,7 +15,7 @@ public sealed record BridgeConfig
     public string BotId { get; init; } = "pi-main";
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
-    public string PreferredBrowser { get; init; } = "Edge";
+    public string PreferredBrowser { get; init; } = "Brave";
     public int PollIntervalSeconds { get; init; } = 5;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
@@ -41,9 +44,24 @@ public sealed record BridgeConfig
             return initial;
         }
 
-        await using var stream = File.OpenRead(ConfigPath);
-        return await JsonSerializer.DeserializeAsync<BridgeConfig>(stream, JsonOptions, cancellationToken)
-            ?? new BridgeConfig();
+        var json = await File.ReadAllTextAsync(ConfigPath, cancellationToken);
+        var loaded = JsonSerializer.Deserialize<BridgeConfig>(json, JsonOptions) ?? new BridgeConfig();
+
+        using var document = JsonDocument.Parse(json);
+        var hasConfigVersion = document.RootElement.TryGetProperty("configVersion", out _);
+        if (!hasConfigVersion)
+        {
+            loaded = loaded with
+            {
+                ConfigVersion = CurrentConfigVersion,
+                PreferredBrowser = string.Equals(loaded.PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
+                    ? "Brave"
+                    : loaded.PreferredBrowser
+            };
+            await loaded.SaveAsync(cancellationToken);
+        }
+
+        return loaded;
     }
 
     public async Task SaveAsync(CancellationToken cancellationToken = default)
@@ -53,7 +71,7 @@ public sealed record BridgeConfig
         var temporaryPath = ConfigPath + ".tmp";
         await using (var stream = File.Create(temporaryPath))
         {
-            await JsonSerializer.SerializeAsync(stream, this, JsonOptions, cancellationToken);
+            await JsonSerializer.SerializeAsync(stream, this with { ConfigVersion = CurrentConfigVersion }, JsonOptions, cancellationToken);
         }
         File.Move(temporaryPath, ConfigPath, true);
     }
@@ -76,7 +94,8 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("TELEMETRY_TOKEN_ENV_REQUIRED");
         if (string.IsNullOrWhiteSpace(BotId) || BotId.Length > 128)
             throw new InvalidOperationException("BOT_ID_INVALID");
-        if (!string.Equals(PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
+        if (!string.Equals(PreferredBrowser, "Brave", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(PreferredBrowser, "Chrome", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("PREFERRED_BROWSER_INVALID");
         if (PollIntervalSeconds is < 2 or > 60)
