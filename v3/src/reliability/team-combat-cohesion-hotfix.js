@@ -32,7 +32,15 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     if (!bootstrap || typeof bootstrap.trustedRosterNames !== 'function') return null;
     let roster;
     try { roster = [...new Set((bootstrap.trustedRosterNames() || []).map(String).filter(Boolean))]; } catch (_) { return null; }
-    const merchantName = bootstrap.merchantName ? String(bootstrap.merchantName) : null;
+    let merchantName = bootstrap.merchantName ? String(bootstrap.merchantName) : null;
+    if (!merchantName) {
+      const rawParty = this._rawParty();
+      const trustedMerchants = roster.filter((name) => {
+        const row = rawParty && rawParty[name];
+        return lower(row && (row.ctype || row.type)) === 'merchant';
+      });
+      if (trustedMerchants.length === 1) merchantName = trustedMerchants[0];
+    }
     if (!merchantName || roster.length < 2 || roster.length > 4 || !roster.includes(merchantName)) return null;
     const combatNames = roster.filter((name) => name !== merchantName);
     return combatNames.length >= 1 && combatNames.length <= 3 ? combatNames.sort() : null;
