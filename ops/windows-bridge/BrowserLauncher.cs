@@ -73,7 +73,7 @@ public sealed class BrowserLauncher
         }
     }
 
-    internal static IReadOnlyList<string> BrowserPreferenceOrder(string preferred)
+    public static IReadOnlyList<string> BrowserPreferenceOrder(string preferred)
     {
         var order = new[] { preferred, "Brave", "Edge", "Chrome" };
         return order
