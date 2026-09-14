@@ -33360,6 +33360,7 @@ const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
 const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoundPolicy } = require('./alpha27-combat-merchant-convergence');
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
+const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
 
 class Alpha25ControlCenterBrain {
   constructor(runtime, options = {}) {
@@ -33378,7 +33379,8 @@ class Alpha25ControlCenterBrain {
     this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
     runtime.cloudControlPlane = this.cloud;
     this.lastCycleAt = 0;
-    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0 };
+    this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
+    this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -33433,8 +33435,19 @@ class Alpha25ControlCenterBrain {
     return true;
   }
 
+  _syncLateProgressionPolicy() {
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence || null;
+    if (!alpha27 || alpha27 === this.progressionPolicyTarget) return false;
+    this.progressionPolicyTarget = alpha27;
+    this._applyExtendedSettings(PROGRESSION_SETTING_KEYS);
+    this.stats.lateProgressionPolicySyncs += 1;
+    if (this.log) this.log.emit({ component: 'alpha25-control-center', event: 'ALPHA27_PROGRESSION_POLICY_RESYNCED', data: { maxUpgradeLevel: alpha27.options && alpha27.options.maxUpgradeLevel, maxCompoundLevel: alpha27.options && alpha27.options.maxCompoundLevel } });
+    return true;
+  }
+
   beforeTick() {
     this.stats.ticks += 1;
+    this._syncLateProgressionPolicy();
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
     if (outcome) {
       this.stats.outcomes += 1;
@@ -33479,6 +33492,7 @@ class Alpha25ControlCenterBrain {
         dashboardSettingsAreLocallyRevalidated: true,
         remoteExtendedSettingsReachLiveSubsystems: true,
         progressionSettingsReachCurrentAlpha27Policy: true,
+        lateAlpha27InstallReceivesStoredProgressionSettings: true,
         compoundDashboardLimitUsesResultLevelSemantics: true,
         outcomeEvaluationHasSingleOwner: true,
         explicitGlobalCloudConfigEnablesControlPlane: true,
