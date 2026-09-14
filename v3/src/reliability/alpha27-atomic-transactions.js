@@ -77,7 +77,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       return { ok: true, inputs, meta, goal, value, scroll: `scroll${gradeForLevel(meta, tx.level)}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
-    if (levelOf(tx) > this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
+    if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
     return { ok: true, inputs, meta, value, scroll: `cscroll${gradeForLevel(meta, tx.level)}` };
