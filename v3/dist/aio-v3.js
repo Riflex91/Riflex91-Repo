@@ -33357,6 +33357,7 @@ module.exports = {
 const { ControlPlaneConfig } = require('../control/control-plane-config');
 const { CloudControlPlane } = require('../control/cloud-control-plane');
 const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
+const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoundPolicy } = require('./alpha27-combat-merchant-convergence');
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
 
@@ -33401,10 +33402,27 @@ class Alpha25ControlCenterBrain {
     if (base && base.cfg) {
       const map = {
         'merchant.lowFreeSlots': 'lowSlots', 'merchant.targetFreeSlots': 'targetSlots', 'merchant.potionLow': 'potionLow', 'merchant.potionTarget': 'potionTarget', 'merchant.goldReserve': 'goldReserve', 'merchant.transferRange': 'transferRange',
-        'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap', 'economy.maxUpgrade': 'maxUpgrade', 'economy.maxCompound': 'maxCompound'
+        'economy.keepValue': 'keepValue', 'economy.upgradeCap': 'upgradeCap', 'economy.compoundCap': 'compoundCap'
       };
       for (const [key, property] of Object.entries(map)) apply(key, (value) => { base.cfg[property] = Number(value); });
     }
+
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    apply('economy.maxUpgrade', (value) => {
+      const current = alpha27 && alpha27.options && typeof alpha27.options === 'object' ? alpha27.options : {};
+      const limit = boundedOptions({ ...current, maxUpgradeLevel: Number(value) }).maxUpgradeLevel;
+      if (alpha27 && alpha27.options) alpha27.options.maxUpgradeLevel = limit;
+      const synchronized = synchronizeLegacyUpgradePolicy(this.runtime, limit);
+      if (alpha27) alpha27.legacyUpgradePolicySynchronized = synchronized;
+    });
+    apply('economy.maxCompound', (value) => {
+      const current = alpha27 && alpha27.options && typeof alpha27.options === 'object' ? alpha27.options : {};
+      const limit = boundedOptions({ ...current, maxCompoundLevel: Number(value) }).maxCompoundLevel;
+      if (alpha27 && alpha27.options) alpha27.options.maxCompoundLevel = limit;
+      const synchronized = synchronizeLegacyCompoundPolicy(this.runtime, limit);
+      if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
+    });
+
     const economy = this.runtime.economyEquipmentAutonomyV2;
     if (economy && economy.marketHistory) {
       apply('economy.marketMaxTrackedItems', (value) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(value) || 96)); });
@@ -33460,6 +33478,8 @@ class Alpha25ControlCenterBrain {
       policies: {
         dashboardSettingsAreLocallyRevalidated: true,
         remoteExtendedSettingsReachLiveSubsystems: true,
+        progressionSettingsReachCurrentAlpha27Policy: true,
+        compoundDashboardLimitUsesResultLevelSemantics: true,
         outcomeEvaluationHasSingleOwner: true,
         explicitGlobalCloudConfigEnablesControlPlane: true,
         legacyV2DashboardCredentialsAutoMigrate: true,
@@ -33484,7 +33504,6 @@ function installAlpha25ControlCenterBrain(runtime, options = {}) {
 }
 
 module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
-
 },
 "src/control/control-plane-config.js": function(require,module,exports){
 'use strict';
