@@ -2,11 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AIO Bot Windows Bridge"
-        Width="1080" Height="760" MinWidth="900" MinHeight="650"
+        Width="1080" Height="860" MinWidth="900" MinHeight="650"
         WindowStartupLocation="CenterScreen">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="28">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
@@ -101,6 +103,29 @@
 
             <Border Grid.Row="6" Style="{StaticResource Card}">
                 <StackPanel>
+                    <TextBlock Text="Webinterface / Cloudflare" FontSize="20" FontWeight="SemiBold" />
+                    <TextBlock Text="Der Bridge-Browser nutzt absichtlich ein eigenes Profil. Speichere den Webinterface-Write-Key hier einmalig; die Bridge überträgt nur die feste AIO-v3-Cloud-Konfiguration nach Adventure Land und aktiviert cloud.enabled im isolierten Profil."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,14" />
+                    <TextBlock x:Name="DashboardStateText" Text="Wird geprüft …" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock x:Name="DashboardErrorText" Text="" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,12" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox x:Name="DashboardWriteKeyBox" Grid.Column="0" Height="40" Padding="10,7" VerticalContentAlignment="Center" />
+                        <Button Grid.Column="2" Content="Write-Key sicher speichern" Click="SaveDashboardWriteKey_Click" MinWidth="190" />
+                        <Button Grid.Column="4" Content="Write-Key löschen" Click="DeleteDashboardWriteKey_Click" MinWidth="140" />
+                    </Grid>
+                    <TextBlock x:Name="DashboardKeyStateText" Text="Write-Key wird geprüft …" Style="{StaticResource MutedText}" Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="8" Style="{StaticResource Card}">
+                <StackPanel>
                     <TextBlock Text="Sichere Supabase-Anmeldung" FontSize="20" FontWeight="SemiBold" />
                     <TextBlock Text="Der Endpunkt und die Bot-ID sind vorkonfiguriert. Ein vorhandener AIO_V3_DEBUG_TELEMETRY_TOKEN wird beim ersten Start automatisch importiert und per Windows-DPAPI geschützt gespeichert."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,16" />
@@ -129,15 +154,18 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Text="Bot-ID" Style="{StaticResource MutedText}" Margin="0,4" />
                             <TextBlock x:Name="DetailBotIdText" Grid.Column="1" Margin="0,4" />
                             <TextBlock Grid.Row="1" Text="Supabase Ingest" Style="{StaticResource MutedText}" Margin="0,4" />
                             <TextBlock x:Name="IngestUrlText" Grid.Row="1" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
-                            <TextBlock Grid.Row="2" Text="Adventure Land" Style="{StaticResource MutedText}" Margin="0,4" />
-                            <TextBlock x:Name="TargetUrlText" Grid.Row="2" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
-                            <TextBlock Grid.Row="3" Text="Lokale Konfiguration" Style="{StaticResource MutedText}" Margin="0,4" />
-                            <TextBlock x:Name="ConfigPathText" Grid.Row="3" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="2" Text="Webinterface" Style="{StaticResource MutedText}" Margin="0,4" />
+                            <TextBlock x:Name="DashboardUrlText" Grid.Row="2" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="3" Text="Adventure Land" Style="{StaticResource MutedText}" Margin="0,4" />
+                            <TextBlock x:Name="TargetUrlText" Grid.Row="3" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="4" Text="Lokale Konfiguration" Style="{StaticResource MutedText}" Margin="0,4" />
+                            <TextBlock x:Name="ConfigPathText" Grid.Row="4" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
                         </Grid>
                     </Expander>
                 </StackPanel>
