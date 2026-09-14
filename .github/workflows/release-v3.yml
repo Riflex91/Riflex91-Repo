@@ -17,9 +17,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Require release bump for runtime source changes
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          runtime_changes="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'v3/src/**' ':(exclude)v3/src/release-version.js')"
+          if [ -z "$runtime_changes" ]; then
+            echo 'No v3 runtime source changes requiring a release bump.'
+            exit 0
+          fi
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- v3/src/release-version.js; then
+            echo 'Runtime source changed without updating v3/src/release-version.js:' >&2
+            printf '%s\n' "$runtime_changes" >&2
+            exit 1
+          fi
+          base_version="$(git show "$BASE_SHA:v3/version.json" | node -e "const fs=require('fs'); process.stdout.write(JSON.parse(fs.readFileSync(0,'utf8')).version)")"
+          head_version="$(node -e "process.stdout.write(require('./v3/version.json').version)")"
+          node - "$base_version" "$head_version" <<'NODE'
+          const [base, head] = process.argv.slice(2);
+          const parse = (value) => {
+            const match = /^3\.0\.0-alpha\.(\d+)\.(\d+)$/.exec(String(value || ''));
+            if (!match) throw new Error(`invalid v3 release version: ${value}`);
+            return [Number(match[1]), Number(match[2])];
+          };
+          const a = parse(base);
+          const b = parse(head);
+          const newer = b[0] > a[0] || (b[0] === a[0] && b[1] > a[1]);
+          if (!newer) {
+            console.error(`v3 runtime changed but release version did not increase: ${base} -> ${head}`);
+            process.exit(1);
+          }
+          console.log(`v3 runtime release bump verified: ${base} -> ${head}`);
+          NODE
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
