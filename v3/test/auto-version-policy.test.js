@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
@@ -40,4 +42,12 @@ test('a version regression on main fails closed', () => {
     () => decideAutoBump('3.0.0-alpha.20.11', '3.0.0-alpha.20.10'),
     /release version regressed/
   );
+});
+
+test('auto-version workflow stages only tracked v3 release files', () => {
+  const workflowPath = path.resolve(__dirname, '..', '..', '.github', 'workflows', 'v3-auto-version-main.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+  assert.match(workflow, /git add -u -- v3/);
+  assert.doesNotMatch(workflow, /git add -A v3/);
 });

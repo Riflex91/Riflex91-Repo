@@ -60,7 +60,7 @@ jobs:
             fi
 
             to_version="$(node -p "require('./v3/version.json').version")"
-            git add -A v3
+            git add -u -- v3
             git diff --cached --check
             git commit -m "chore(v3): auto bump release ${from_version} -> ${to_version}"
 
