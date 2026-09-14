@@ -1,56 +1,59 @@
 'use strict';
 
-const { createPartyFingerprint, createEncounterFingerprint } = require('./fingerprints');
-const COMBAT_CLASSES = new Set(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest']);
-const DEFAULT_WEIGHTS = Object.freeze({ survival: 0.45, progress: 0.30, controllability: 0.15, synergy: 0.10 });
-function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
-function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
-function avg(values) { return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; }
-function combinations(items, count, start = 0, acc = [], out = []) { if (acc.length === count) { out.push(acc.slice()); return out; } for (let i = start; i <= items.length - (count - acc.length); i += 1) { acc.push(items[i]); combinations(items, count, i + 1, acc, out); acc.pop(); } return out; }
-function hasSkill(party, skill) { return party.some((member) => Array.isArray(member.skillUnlocks) && member.skillUnlocks.includes(skill)); }
-function countClass(party, ctype) { return party.filter((member) => member.ctype === ctype).length; }
+const base = require('./orchestrator-base');
+const { createPartyFingerprint } = require('./fingerprints');
 
-class PartyOrchestrator {
-  constructor(options = {}) {
-    this.now = options.now || (() => Date.now()); this.log = options.log || null; const rawWeights = { ...DEFAULT_WEIGHTS, ...(options.weights || {}) }; const sum = Object.values(rawWeights).reduce((a, b) => a + Math.max(0, finite(b)), 0) || 1;
-    this.weights = Object.fromEntries(Object.entries(rawWeights).map(([key, value]) => [key, Math.max(0, finite(value)) / sum])); this.minScoreGain = Math.max(0.01, Math.min(0.3, finite(options.minScoreGain, 0.06))); this.minSwitchIntervalMs = Math.max(60000, Math.min(24 * 60 * 60 * 1000, finite(options.minSwitchIntervalMs, 15 * 60 * 1000))); this.minRecommendedConfidence = Math.max(0, Math.min(1, finite(options.minRecommendedConfidence, 0.25))); this.maxCandidates = Math.max(4, Math.min(256, finite(options.maxCandidates, 96))); this.explorationEnabled = options.explorationEnabled === true; this.lastDecision = null; this.lastSwitchAt = 0;
-  }
-  _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-orchestrator', event, severity, reason, data }); }
+function clamp01(value) {
+  const number = Number(value);
+  return Math.max(0, Math.min(1, Number.isFinite(number) ? number : 0));
+}
+
+class PartyOrchestrator extends base.PartyOrchestrator {
   candidates(registryStatus) {
-    const chars = (registryStatus && registryStatus.characters || []).filter((entry) => entry && entry.dead !== true && entry.available !== false && entry.stateConfidence >= 0.3 && (entry.online === true || entry.primarySource === 'configured' || entry.presence === 'OFFLINE'));
-    const merchants = chars.filter((entry) => entry.ctype === 'merchant'); const combat = chars.filter((entry) => COMBAT_CLASSES.has(entry.ctype)); const out = [];
-    for (const merchant of merchants) for (const group of combinations(combat, 3)) { const members = [merchant, ...group]; const fingerprint = createPartyFingerprint(members); out.push({ id: fingerprint.key, merchant, combat: group, members, fingerprint }); if (out.length >= this.maxCandidates) return out; }
+    const chars = (registryStatus && registryStatus.characters || []).filter((entry) => entry
+      && entry.dead !== true
+      && entry.available !== false
+      && entry.stateConfidence >= 0.3
+      && (entry.online === true || entry.primarySource === 'configured' || entry.presence === 'OFFLINE'));
+    const merchants = chars.filter((entry) => entry.ctype === 'merchant');
+    const combat = chars.filter((entry) => base.COMBAT_CLASSES.has(entry.ctype));
+    const out = [];
+
+    for (const merchant of merchants) {
+      for (let combatCount = 1; combatCount <= Math.min(3, combat.length); combatCount += 1) {
+        for (const group of base.combinations(combat, combatCount)) {
+          const members = [merchant, ...group];
+          const fingerprint = createPartyFingerprint(members);
+          out.push({ id: fingerprint.key, merchant, combat: group, members, fingerprint });
+          if (out.length >= this.maxCandidates) return out;
+        }
+      }
+    }
     return out;
   }
+
   _theory(candidate, encounter) {
-    const party = candidate.combat; const monster = encounter.monster || {}; const damageType = String(monster.damageType || '').toLowerCase(); const known = !!encounter.monster?.mtype && encounter.contentDisposition !== 'QUARANTINED' && encounter.contentDisposition !== 'UNKNOWN'; const avgConfidence = avg(candidate.members.map((member) => clamp01(member.stateConfidence))); const avgLevel = avg(party.map((member) => Math.max(0, finite(member.level))));
-    const survivalStats = avg(party.map((member) => { const hp = Math.max(0, finite(member.stats && member.stats.max_hp, finite(member.stats && member.stats.hp, 0))); const armor = Math.max(0, finite(member.stats && member.stats.armor, 0)); const resistance = Math.max(0, finite(member.stats && member.stats.resistance, 0)); return clamp01((hp / 6000) * 0.4 + (armor / 1000) * 0.3 + (resistance / 1000) * 0.3); }));
-    let survival = 0.35 + survivalStats * 0.30; let progress = 0.35; let controllability = 0.55; let synergy = 0.30; const reasons = [];
-    const rangers = countClass(party, 'ranger'); const paladins = countClass(party, 'paladin'); const priests = countClass(party, 'priest'); const mages = countClass(party, 'mage'); const warriors = countClass(party, 'warrior'); const rogues = countClass(party, 'rogue');
-    progress += rangers * 0.11 + mages * 0.105 + rogues * 0.11 + warriors * 0.075 + paladins * 0.065 + priests * 0.035; controllability += rangers * 0.06 + mages * 0.05 + priests * 0.04 + paladins * 0.035 + warriors * 0.025; survival += paladins * 0.10 + priests * 0.13 + warriors * 0.09; synergy += paladins * 0.08 + priests * 0.08 + mages * 0.06 + warriors * 0.04;
-    if (hasSkill(party, 'huntersmark')) { synergy += 0.07; reasons.push('HUNTERS_MARK_AVAILABLE'); } if (hasSkill(party, 'energize')) { synergy += 0.08; reasons.push('MAGE_MP_SUPPORT_EXPECTED'); } if (hasSkill(party, 'darkblessing')) { synergy += 0.06; reasons.push('DARK_BLESSING_AVAILABLE'); } if (hasSkill(party, 'warcry')) { synergy += 0.05; reasons.push('WAR_CRY_AVAILABLE'); } if (hasSkill(party, 'guardians_oath') || hasSkill(party, 'guardian_oath')) { survival += 0.08; synergy += 0.04; reasons.push('GUARDIANS_OATH_AVAILABLE'); } if (hasSkill(party, 'paladin_aura')) { survival += 0.08; synergy += 0.06; reasons.push('PALADIN_AURA_AVAILABLE'); }
-    if (damageType === 'physical' && (paladins || warriors)) { survival += 0.10; reasons.push('PHYSICAL_DAMAGE_PRESSURE'); } if (damageType === 'magical' && (paladins || priests)) { survival += 0.10; reasons.push('MAGICAL_DAMAGE_PRESSURE'); } if (finite(monster.armor) > 500 && mages) { progress += 0.10; reasons.push('NEED_MAGIC_DAMAGE'); } if (finite(monster.resistance) > 500 && rangers) { progress += 0.07; reasons.push('NEED_RANGED_DAMAGE'); } if (!known) { survival += paladins * 0.06 + priests * 0.08; progress -= 0.12; reasons.push('UNKNOWN_CONTENT'); } if (rangers === 3 && known) { progress += 0.08; controllability += 0.05; reasons.push('V2_TRIPLE_RANGER_PRIOR'); } if (avgLevel < 40) synergy *= 0.9;
-    return { survival: clamp01(survival), progress: clamp01(progress), controllability: clamp01(controllability), synergy: clamp01(synergy), confidence: clamp01(0.18 + avgConfidence * 0.32 + (rangers === 3 && known ? 0.12 : 0)), reasons };
+    const theory = super._theory(candidate, encounter);
+    const combatCount = Array.isArray(candidate && candidate.combat) ? candidate.combat.length : 0;
+    if (combatCount >= 3) return theory;
+    const capacity = clamp01(combatCount / 3);
+
+    // The original priors were calibrated for three combat characters. Keep
+    // those priors, but conservatively discount smaller teams so fixed base
+    // bonuses cannot make a reduced-capability party look artificially best.
+    theory.survival = clamp01(theory.survival * (0.82 + 0.18 * capacity));
+    theory.progress = clamp01(theory.progress * (0.62 + 0.38 * capacity));
+    theory.controllability = clamp01(theory.controllability * (0.88 + 0.12 * capacity));
+    theory.synergy = clamp01(theory.synergy * (0.58 + 0.42 * capacity));
+    theory.confidence = clamp01(theory.confidence * (0.72 + 0.28 * capacity));
+    theory.reasons = [...new Set([...(theory.reasons || []), 'REDUCED_COMBAT_CAPACITY'])];
+    return theory;
   }
-  _measured(profile) {
-    if (!profile) return null; const survival = clamp01(1 - Math.min(1, profile.deathsPerHour / 1.0) * 0.55 - Math.min(1, profile.retreatsPerHour / 6) * 0.20 - Math.min(1, profile.recoverySecondsPerHour / 900) * 0.15 + (profile.avgSafetyMargin == null ? 0 : profile.avgSafetyMargin * 0.10)); const progress = clamp01(Math.log1p(Math.max(0, profile.xpPerHour)) / Math.log(6000001)); const resourcePenalty = Math.min(0.25, (profile.hpPotionsPerHour + profile.mpPotionsPerHour) / 5000); const controllability = clamp01(1 - resourcePenalty - Math.min(0.25, profile.movementFailures / Math.max(1, profile.samples)) - Math.min(0.25, profile.skillFailures / Math.max(1, profile.samples))); return { survival, progress, controllability, synergy: clamp01(profile.scoreEwma), confidence: clamp01(profile.confidence) };
-  }
-  score(candidate, context = {}) {
-    const encounter = context.encounter || createEncounterFingerprint(context); const profile = context.performanceStore && context.performanceStore.profile(encounter.key, candidate.fingerprint.key); const theory = this._theory(candidate, encounter); const measured = this._measured(profile); const blend = measured ? measured.confidence : 0; const components = {};
-    for (const key of ['survival', 'progress', 'controllability', 'synergy']) components[key] = clamp01(theory[key] * (1 - blend) + (measured ? measured[key] : 0) * blend);
-    const confidence = clamp01(Math.max(theory.confidence * (1 - blend), measured ? measured.confidence : 0)); const highRiskUnknown = encounter.contentDisposition === 'QUARANTINED' || encounter.contentDisposition === 'UNKNOWN'; const empiricallyUnsafe = profile && (profile.deathsPerHour >= 1 || profile.retreatsPerHour >= 8 || (profile.avgSafetyMargin != null && profile.avgSafetyMargin < 0.2)); const hardSafetyRejected = !!empiricallyUnsafe; let total = Object.entries(this.weights).reduce((sum, [key, weight]) => sum + components[key] * weight, 0); if (highRiskUnknown) total *= 0.86; if (hardSafetyRejected) total = 0; if (this.explorationEnabled && !highRiskUnknown && confidence < 0.5 && components.survival >= 0.65) total += Math.min(0.025, (0.5 - confidence) * 0.05); total = clamp01(total);
-    return { candidate, encounter, profile, theory, measured, components, confidence, uncertainty: 1 - confidence, score: total, hardSafetyRejected, reasons: [...new Set(theory.reasons.concat(empiricallyUnsafe ? ['HIGH_DEATH_RATE'] : []))] };
-  }
-  decide(context = {}) {
-    const registryStatus = context.registryStatus || { characters: [] }; const encounter = context.encounter || createEncounterFingerprint(context); const candidates = this.candidates(registryStatus); const scored = candidates.map((candidate) => this.score(candidate, { ...context, encounter })).sort((a, b) => b.score - a.score || b.confidence - a.confidence || a.candidate.id.localeCompare(b.candidate.id)); const currentNames = new Set((context.currentMembers || []).map((member) => typeof member === 'string' ? member : member.name)); const current = scored.find((row) => row.candidate.members.every((member) => currentNames.has(member.name)) && currentNames.size === row.candidate.members.length) || null; const best = scored.find((row) => !row.hardSafetyRejected) || null;
-    let decision = 'WOULD_KEEP'; const reasons = []; const projectedGain = best && current ? best.score - current.score : best ? best.score : 0; const switchCostScore = Math.min(0.15, Math.max(0, finite(context.switchCostSeconds, 180)) / 3600 * 0.35);
-    if (!best) reasons.push('NO_ELIGIBLE_PARTY'); else if (!current) { decision = 'WOULD_SWITCH'; reasons.push('CURRENT_PARTY_NOT_MODELED'); } else if (best.candidate.id === current.candidate.id) reasons.push('CURRENT_PARTY_BEST'); else if (best.confidence < this.minRecommendedConfidence) reasons.push('INSUFFICIENT_CONFIDENCE'); else if (this.now() - this.lastSwitchAt < this.minSwitchIntervalMs) reasons.push('SWITCH_COOLDOWN'); else if (projectedGain <= this.minScoreGain + switchCostScore) reasons.push('GAIN_BELOW_SWITCH_THRESHOLD'); else { decision = 'WOULD_SWITCH'; reasons.push(...best.reasons); } if (encounter.contentDisposition === 'QUARANTINED' || encounter.contentDisposition === 'UNKNOWN') reasons.push('UNKNOWN_CONTENT');
-    const result = { at: this.now(), mode: 'shadow-recommendation', actionAuthority: false, decision, current: current ? this._summary(current) : null, recommended: best ? this._summary(best) : null, projectedGain, switchCostSeconds: Math.max(0, finite(context.switchCostSeconds, 180)), switchCostScore, reasons: [...new Set(reasons)], encounter, candidateCount: scored.length, top: scored.slice(0, 8).map((row) => this._summary(row)) };
-    const changed = !this.lastDecision || this.lastDecision.decision !== result.decision || this.lastDecision.recommended?.partyKey !== result.recommended?.partyKey; this.lastDecision = result; this._event(changed ? 'PARTY_RECOMMENDATION_CHANGED' : 'PARTY_SCORE_CALCULATED', { decision: result.decision, current: result.current && result.current.partyKey, recommended: result.recommended && result.recommended.partyKey, gain: result.projectedGain, reasons: result.reasons }); return result;
-  }
-  _summary(row) { return { partyKey: row.candidate.fingerprint.key, semantic: row.candidate.fingerprint.semantic, members: row.candidate.members.map((member) => ({ name: member.name, ctype: member.ctype, level: member.level })), score: row.score, confidence: row.confidence, uncertainty: row.uncertainty, components: row.components, hardSafetyRejected: row.hardSafetyRejected, reasons: row.reasons }; }
-  noteSwitch() { this.lastSwitchAt = this.now(); }
-  setExplorationEnabled(enabled) { this.explorationEnabled = enabled === true; return this.explorationEnabled; }
-  status() { return { mode: 'shadow-recommendation', actionAuthority: false, directActionAccess: false, executorBypassAllowed: false, weights: { ...this.weights }, minScoreGain: this.minScoreGain, minSwitchIntervalMs: this.minSwitchIntervalMs, minRecommendedConfidence: this.minRecommendedConfidence, explorationEnabled: this.explorationEnabled, lastSwitchAt: this.lastSwitchAt || null, lastDecision: this.lastDecision }; }
 }
-module.exports = { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, combinations };
+
+module.exports = {
+  PartyOrchestrator,
+  COMBAT_CLASSES: base.COMBAT_CLASSES,
+  DEFAULT_WEIGHTS: base.DEFAULT_WEIGHTS,
+  combinations: base.combinations
+};
