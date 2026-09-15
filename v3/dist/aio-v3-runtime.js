@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.47 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.48 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -10,6 +10,7 @@ const { installMerchantProduction, CONTROLLED_MERCHANT_PRODUCTION_ACK } = requir
 const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionStepKind } = require('./merchant/merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
 const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
+const { installCloudPresenceDecoupling, CLOUD_PRESENCE_DECOUPLING_MODE } = require('./control/cloud-presence-decoupling');
 
 function replaceOlderRuntime(root) {
   const existing = root && root.AIO_V3;
@@ -36,6 +37,10 @@ function install(root = globalThis, options = {}) {
     ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
   };
   installProductionLiveServices(api, options);
+  const presence = installCloudPresenceDecoupling(runtime);
+  api.cloudPresence = {
+    status: () => presence && typeof presence.status === 'function' ? presence.status() : null
+  };
   root.AIO_V3 = api;
   return api;
 }
@@ -46,6 +51,8 @@ module.exports = {
   replaceOlderRuntime,
   installProductionLiveServices,
   PRODUCTION_LIVE_SERVICES_MODE,
+  installCloudPresenceDecoupling,
+  CLOUD_PRESENCE_DECOUPLING_MODE,
   installMerchantProduction,
   MerchantProductionPlanner,
   MERCHANT_PRODUCTION_PLANNER_MODE,
@@ -929,7 +936,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.47';
+const RELEASE_VERSION = '3.0.0-alpha.20.48';
 
 module.exports = { RELEASE_VERSION };
 
@@ -42569,6 +42576,96 @@ module.exports = {
   alpha27OwnsMerchant,
   installAlpha27MerchantLegacyOwnershipGuard
 };
+
+},
+"src/control/cloud-presence-decoupling.js": function(require,module,exports){
+'use strict';
+
+const CLOUD_PRESENCE_DECOUPLING_MODE = 'cloud-presence-decoupling-v1';
+
+function finite(value, fallback = 0) {
+  if (value == null || value === '') return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function installCloudPresenceDecoupling(runtime) {
+  if (!runtime || !runtime.cloudControlPlane) return null;
+  if (runtime.cloudPresenceDecoupling && runtime.cloudPresenceDecoupling.mode === CLOUD_PRESENCE_DECOUPLING_MODE) {
+    return runtime.cloudPresenceDecoupling;
+  }
+
+  const cloud = runtime.cloudControlPlane;
+  const baseCycle = cloud.cycle.bind(cloud);
+
+  const state = {
+    mode: CLOUD_PRESENCE_DECOUPLING_MODE,
+    installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now(),
+    minRuntimePushMs: 15000,
+    status: () => ({
+      mode: CLOUD_PRESENCE_DECOUPLING_MODE,
+      installedAt: state.installedAt,
+      ready: !!(cloud.credentials && cloud.credentials.baseUrl && cloud.credentials.writeKey && cloud.fetchFn),
+      controlPlaneEnabled: !!(cloud.control && cloud.control.get && cloud.control.get('cloud.enabled', false)),
+      lastRuntimePushAt: finite(cloud.lastRuntimePushAt, 0),
+      lastSuccessAt: finite(cloud.lastSuccessAt, 0),
+      lastError: cloud.lastError || null
+    })
+  };
+
+  cloud.cycle = async (...args) => {
+    const controlEnabled = !!(cloud.control && cloud.control.get && cloud.control.get('cloud.enabled', false));
+    if (controlEnabled) return baseCycle(...args);
+
+    const ready = !!(cloud.credentials && cloud.credentials.baseUrl && cloud.credentials.writeKey && cloud.fetchFn);
+    if (cloud.busy || !ready) return false;
+
+    cloud.busy = true;
+    try {
+      const now = typeof cloud.now === 'function' ? cloud.now() : Date.now();
+      const configuredPushMs = cloud.control && cloud.control.get ? cloud.control.get('cloud.runtimePushMs', 15000) : 15000;
+      const pushMs = Math.max(15000, finite(configuredPushMs, 15000));
+      if (now - finite(cloud.lastRuntimePushAt, 0) >= pushMs) await cloud.pushRuntime();
+      cloud.lastError = null;
+      return true;
+    } catch (error) {
+      if (cloud.stats) cloud.stats.failures = finite(cloud.stats.failures, 0) + 1;
+      cloud.lastError = {
+        at: typeof cloud.now === 'function' ? cloud.now() : Date.now(),
+        message: String(error && error.message || error || 'unknown').slice(0, 300)
+      };
+      try {
+        if (runtime.log && typeof runtime.log.emit === 'function') {
+          runtime.log.emit({
+            component: 'cloud-presence',
+            event: 'CLOUD_PRESENCE_CYCLE_FAILED',
+            severity: 'warn',
+            reason: cloud.lastError.message,
+            data: { localSafetyUnaffected: true }
+          });
+        }
+      } catch (_) {}
+      return false;
+    } finally {
+      cloud.busy = false;
+    }
+  };
+
+  runtime.cloudPresenceDecoupling = state;
+  try {
+    if (runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'cloud-presence',
+        event: 'CLOUD_PRESENCE_DECOUPLING_INSTALLED',
+        data: { mode: CLOUD_PRESENCE_DECOUPLING_MODE, minRuntimePushMs: 15000 }
+      });
+    }
+  } catch (_) {}
+
+  return state;
+}
+
+module.exports = { CLOUD_PRESENCE_DECOUPLING_MODE, installCloudPresenceDecoupling };
 
 }
 };
