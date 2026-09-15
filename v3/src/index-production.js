@@ -5,6 +5,7 @@ const { installMerchantProduction, CONTROLLED_MERCHANT_PRODUCTION_ACK } = requir
 const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionStepKind } = require('./merchant/merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
 const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
+const { installCloudPresenceDecoupling, CLOUD_PRESENCE_DECOUPLING_MODE } = require('./control/cloud-presence-decoupling');
 
 function replaceOlderRuntime(root) {
   const existing = root && root.AIO_V3;
@@ -31,6 +32,10 @@ function install(root = globalThis, options = {}) {
     ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
   };
   installProductionLiveServices(api, options);
+  const presence = installCloudPresenceDecoupling(runtime);
+  api.cloudPresence = {
+    status: () => presence && typeof presence.status === 'function' ? presence.status() : null
+  };
   root.AIO_V3 = api;
   return api;
 }
@@ -41,6 +46,8 @@ module.exports = {
   replaceOlderRuntime,
   installProductionLiveServices,
   PRODUCTION_LIVE_SERVICES_MODE,
+  installCloudPresenceDecoupling,
+  CLOUD_PRESENCE_DECOUPLING_MODE,
   installMerchantProduction,
   MerchantProductionPlanner,
   MERCHANT_PRODUCTION_PLANNER_MODE,
