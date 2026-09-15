@@ -21402,6 +21402,8 @@ class ControlledPartyBootstrap {
     const full = partyNames.length === this.desiredRoster.length
       && this.desiredRoster.every((name) => partyNames.includes(name))
       && foreignPartyNames.length === 0;
+    const observedRunningDesired = this.desiredRoster.filter((name) => active.observedRunning.includes(name));
+    const runtimeLivenessVerified = observedRunningDesired.length === this.desiredRoster.length;
     const leaderWrong = !!leader && partyNames.length > 1 && leader !== this.merchantName;
     const observation = {
       at,
@@ -21412,6 +21414,9 @@ class ControlledPartyBootstrap {
       activeStateAvailable: active.available,
       observedPresentNames: active.observedPresent,
       observedRunningNames: active.observedRunning,
+      observedRunningDesired,
+      runtimeLivenessVerified,
+      readinessScope: runtimeLivenessVerified ? 'party-membership-and-runtime' : 'party-membership-only',
       partyNames,
       foreignPartyNames,
       missingDesired,
@@ -25111,6 +25116,10 @@ class TeamCohesionDeadlockHotfix {
         return result;
       }
       if (this.now() - this.lastLeaderRecoveryAt < this.leaderRecoveryCooldownMs) return result;
+      // Rate-limit attempts as well as successful commands. Previously a
+      // no-waypoint result retried every runtime tick and produced thousands of
+      // hot-loop terrain holds.
+      this.lastLeaderRecoveryAt = this.now();
 
       const waypoint = bestLeaderRecoveryWaypoint(team, {
         cohesionRadius: this.cohesionRadius,
@@ -25125,7 +25134,6 @@ class TeamCohesionDeadlockHotfix {
       }
 
       const command = this.runtime.adapter.command('move', [waypoint.x, waypoint.y]);
-      this.lastLeaderRecoveryAt = this.now();
       if (command && (command.executed || command.coalesced)) this.stats.leaderRecoveryMoves += 1;
       if (command && command.shadow) this.stats.leaderRecoveryShadowMoves += 1;
       this.lastLeaderRecovery = {
@@ -27732,12 +27740,21 @@ class AdvancedPartyMovement {
 
   _observeMotion(team) {
     const now = this.now(); const stuck = [];
+    const cohesionRadius = Math.max(
+      this.config.stuckDistance,
+      finite(this.team && this.team.cohesionRadius, this.config.stuckDistance)
+    );
     for (const member of team && team.members || []) {
       const prior = this.memberMotion.get(member.name);
       const moved = prior && distance(prior, member) > 3;
       const row = { x: member.x, y: member.y, at: now, lastMovedAt: moved ? now : (prior && prior.lastMovedAt || now) };
       this.memberMotion.set(member.name, row);
-      if (member.name !== team.leaderName && distance(member, team.leader) >= this.config.stuckDistance && now - row.lastMovedAt >= this.config.stuckMs) stuck.push(member.name);
+      // A stationary follower inside the accepted team-cohesion radius is not
+      // stuck. Marking it as such used to turn a geometrically valid formation
+      // into a permanent regroup state that the leader recovery could not fix.
+      if (member.name !== team.leaderName
+        && distance(member, team.leader) > cohesionRadius
+        && now - row.lastMovedAt >= this.config.stuckMs) stuck.push(member.name);
     }
     const newDetection = stuck.length && !this.stuckMembers.length;
     this.stuckMembers = stuck;
@@ -27786,8 +27803,7 @@ class AdvancedPartyMovement {
     this.team._team = (snapshot) => {
       const result = baseTeam(snapshot);
       const stuck = this._observeMotion(result);
-      if (stuck.length && result && result.cohesive) {
-        result.cohesive = false;
+      if (stuck.length && result && result.cohesive === false) {
         result.regroupRequired = true;
         result.stuckMembers = stuck.slice();
         this.stats.regroupHolds += result.selfName === result.leaderName ? 1 : 0;
@@ -30534,9 +30550,15 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // longer preempts every ledger-authorized SELL/BANK/UPGRADE/COMPOUND turn.
     if (await this.restockPartyPotions()) return true;
 
-    let request = this.planUpgrade();
-    if (!request) request = this.planCompound();
-    if (!request) request = this.planSellOrBank();
+    // A scoped mutation circuit must not starve independent economy work.
+    // Skip the blocked family and continue with the next ledger-authorized
+    // action instead of reserving the same doomed item every cycle.
+    let request = this.transactionFamilyOpen('UPGRADE') ? null : this.planUpgrade();
+    if (!request && !this.transactionFamilyOpen('COMPOUND')) request = this.planCompound();
+    if (!request) {
+      const lowRiskRequest = this.planSellOrBank();
+      if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) request = lowRiskRequest;
+    }
     if (request) {
       if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
 
@@ -30872,11 +30894,37 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed()) return false;
     if (typeof this.runtime.configureControlledMerchant === 'function' && this.runtime.controlledMerchant) {
       const status = this.runtime.controlledMerchant.status();
-      if (!status.enabled || !status.sellEnabled || !status.bankEnabled || !status.upgradeEnabled || !status.compoundEnabled) this.runtime.configureControlledMerchant({ enabled: true, ack: CONTROLLED_ACK, sell: true, bank: true, upgrade: true, compound: true });
+      const tx = this.runtime.transactionEngine && typeof this.runtime.transactionEngine.status === 'function'
+        ? this.runtime.transactionEngine.status()
+        : null;
+      const sell = !(tx && tx.circuits && tx.circuits.SELL && tx.circuits.SELL.open);
+      const bank = !(tx && tx.circuits && tx.circuits.BANK && tx.circuits.BANK.open);
+      const upgrade = !(tx && tx.circuits && tx.circuits.UPGRADE && tx.circuits.UPGRADE.open);
+      const compound = !(tx && tx.circuits && tx.circuits.COMPOUND && tx.circuits.COMPOUND.open);
+      if (!status.enabled
+        || status.sellEnabled !== sell
+        || status.bankEnabled !== bank
+        || status.upgradeEnabled !== upgrade
+        || status.compoundEnabled !== compound) {
+        this.runtime.configureControlledMerchant({
+          enabled: true,
+          ack: CONTROLLED_ACK,
+          sell,
+          bank,
+          upgrade,
+          compound
+        });
+      }
     }
     if (typeof this.runtime.configureControlledTravel === 'function' && this.runtime.controlledTravel && !this.runtime.controlledTravel.status().enabled) this.runtime.configureControlledTravel({ enabled: true, ack: CONTROLLED_ACK });
     if (typeof this.runtime.configureMerchantService === 'function' && this.runtime.controlledMerchantService && !this.runtime.controlledMerchantService.status().enabled) this.runtime.configureMerchantService({ enabled: true, ack: MERCHANT_SERVICE_ACK, allowStand: true, allowDelivery: true, allowTravel: true });
     return true;
+  }
+
+  transactionFamilyOpen(type) {
+    const engine = this.runtime.transactionEngine;
+    if (!engine || typeof engine.breaker !== 'function') return false;
+    try { return engine.breaker(type).open === true; } catch (_) { return true; }
   }
 
   async ensureStandClosed(reason = 'ALPHA27_ECONOMY_PREEMPT') {
@@ -31091,9 +31139,15 @@ function installMerchantFailureReasonNormalization(runtime) {
   if (!merchant || merchant.__alpha28FailureReasonNormalization || typeof merchant._timeout !== 'function') return false;
   const baseTimeout = merchant._timeout.bind(merchant);
   merchant._timeout = async (promise, label) => {
-    const response = await baseTimeout(promise, label);
-    if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
-    return { ...response, reason: failureReason(response.reason, `${label || 'CONTROLLED'}_FAILED`) };
+    const fallback = `${label || 'CONTROLLED'}_FAILED`;
+    try {
+      const response = await baseTimeout(promise, label);
+      if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
+      return { ...response, reason: failureReason(response.reason, fallback) };
+    } catch (error) {
+      if (error instanceof Error && error.message && error.message !== '[object Object]') throw error;
+      throw new Error(failureReason(error, fallback));
+    }
   };
   merchant.__alpha28FailureReasonNormalization = true;
   return true;
@@ -31110,7 +31164,13 @@ function installScopedControlledAuthorityGuard(runtime) {
     if (this.adapter.mode !== 'active') globalReason = 'RUNTIME_NOT_ACTIVE';
     else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) globalReason = 'SUPERVISOR_NOT_HEALTHY';
 
-    const economyReason = globalReason || (health.economy.state === 'DEGRADED' ? 'ECONOMY_CIRCUIT_OPEN' : null);
+    const economyReasons = health && health.economy && Array.isArray(health.economy.reasons)
+      ? health.economy.reasons.map(String)
+      : [];
+    const scopedFamilyOnly = economyReasons.length > 0
+      && economyReasons.every((reason) => /^(SELL|BANK|UPGRADE|COMPOUND|EXCHANGE)_CIRCUIT_OPEN$/.test(reason));
+    const economyReason = globalReason
+      || (health.economy.state === 'DEGRADED' && !scopedFamilyOnly ? 'ECONOMY_CIRCUIT_OPEN' : null);
     const travelReason = globalReason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
 
     if (economyReason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(economyReason);

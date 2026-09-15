@@ -59,11 +59,37 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed()) return false;
     if (typeof this.runtime.configureControlledMerchant === 'function' && this.runtime.controlledMerchant) {
       const status = this.runtime.controlledMerchant.status();
-      if (!status.enabled || !status.sellEnabled || !status.bankEnabled || !status.upgradeEnabled || !status.compoundEnabled) this.runtime.configureControlledMerchant({ enabled: true, ack: CONTROLLED_ACK, sell: true, bank: true, upgrade: true, compound: true });
+      const tx = this.runtime.transactionEngine && typeof this.runtime.transactionEngine.status === 'function'
+        ? this.runtime.transactionEngine.status()
+        : null;
+      const sell = !(tx && tx.circuits && tx.circuits.SELL && tx.circuits.SELL.open);
+      const bank = !(tx && tx.circuits && tx.circuits.BANK && tx.circuits.BANK.open);
+      const upgrade = !(tx && tx.circuits && tx.circuits.UPGRADE && tx.circuits.UPGRADE.open);
+      const compound = !(tx && tx.circuits && tx.circuits.COMPOUND && tx.circuits.COMPOUND.open);
+      if (!status.enabled
+        || status.sellEnabled !== sell
+        || status.bankEnabled !== bank
+        || status.upgradeEnabled !== upgrade
+        || status.compoundEnabled !== compound) {
+        this.runtime.configureControlledMerchant({
+          enabled: true,
+          ack: CONTROLLED_ACK,
+          sell,
+          bank,
+          upgrade,
+          compound
+        });
+      }
     }
     if (typeof this.runtime.configureControlledTravel === 'function' && this.runtime.controlledTravel && !this.runtime.controlledTravel.status().enabled) this.runtime.configureControlledTravel({ enabled: true, ack: CONTROLLED_ACK });
     if (typeof this.runtime.configureMerchantService === 'function' && this.runtime.controlledMerchantService && !this.runtime.controlledMerchantService.status().enabled) this.runtime.configureMerchantService({ enabled: true, ack: MERCHANT_SERVICE_ACK, allowStand: true, allowDelivery: true, allowTravel: true });
     return true;
+  }
+
+  transactionFamilyOpen(type) {
+    const engine = this.runtime.transactionEngine;
+    if (!engine || typeof engine.breaker !== 'function') return false;
+    try { return engine.breaker(type).open === true; } catch (_) { return true; }
   }
 
   async ensureStandClosed(reason = 'ALPHA27_ECONOMY_PREEMPT') {

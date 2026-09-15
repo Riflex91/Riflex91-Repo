@@ -170,6 +170,8 @@ class ControlledPartyBootstrap {
     const full = partyNames.length === this.desiredRoster.length
       && this.desiredRoster.every((name) => partyNames.includes(name))
       && foreignPartyNames.length === 0;
+    const observedRunningDesired = this.desiredRoster.filter((name) => active.observedRunning.includes(name));
+    const runtimeLivenessVerified = observedRunningDesired.length === this.desiredRoster.length;
     const leaderWrong = !!leader && partyNames.length > 1 && leader !== this.merchantName;
     const observation = {
       at,
@@ -180,6 +182,9 @@ class ControlledPartyBootstrap {
       activeStateAvailable: active.available,
       observedPresentNames: active.observedPresent,
       observedRunningNames: active.observedRunning,
+      observedRunningDesired,
+      runtimeLivenessVerified,
+      readinessScope: runtimeLivenessVerified ? 'party-membership-and-runtime' : 'party-membership-only',
       partyNames,
       foreignPartyNames,
       missingDesired,

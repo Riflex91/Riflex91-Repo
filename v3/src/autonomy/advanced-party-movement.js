@@ -101,12 +101,21 @@ class AdvancedPartyMovement {
 
   _observeMotion(team) {
     const now = this.now(); const stuck = [];
+    const cohesionRadius = Math.max(
+      this.config.stuckDistance,
+      finite(this.team && this.team.cohesionRadius, this.config.stuckDistance)
+    );
     for (const member of team && team.members || []) {
       const prior = this.memberMotion.get(member.name);
       const moved = prior && distance(prior, member) > 3;
       const row = { x: member.x, y: member.y, at: now, lastMovedAt: moved ? now : (prior && prior.lastMovedAt || now) };
       this.memberMotion.set(member.name, row);
-      if (member.name !== team.leaderName && distance(member, team.leader) >= this.config.stuckDistance && now - row.lastMovedAt >= this.config.stuckMs) stuck.push(member.name);
+      // A stationary follower inside the accepted team-cohesion radius is not
+      // stuck. Marking it as such used to turn a geometrically valid formation
+      // into a permanent regroup state that the leader recovery could not fix.
+      if (member.name !== team.leaderName
+        && distance(member, team.leader) > cohesionRadius
+        && now - row.lastMovedAt >= this.config.stuckMs) stuck.push(member.name);
     }
     const newDetection = stuck.length && !this.stuckMembers.length;
     this.stuckMembers = stuck;
@@ -155,8 +164,7 @@ class AdvancedPartyMovement {
     this.team._team = (snapshot) => {
       const result = baseTeam(snapshot);
       const stuck = this._observeMotion(result);
-      if (stuck.length && result && result.cohesive) {
-        result.cohesive = false;
+      if (stuck.length && result && result.cohesive === false) {
         result.regroupRequired = true;
         result.stuckMembers = stuck.slice();
         this.stats.regroupHolds += result.selfName === result.leaderName ? 1 : 0;

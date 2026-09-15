@@ -40,9 +40,15 @@ function installMerchantFailureReasonNormalization(runtime) {
   if (!merchant || merchant.__alpha28FailureReasonNormalization || typeof merchant._timeout !== 'function') return false;
   const baseTimeout = merchant._timeout.bind(merchant);
   merchant._timeout = async (promise, label) => {
-    const response = await baseTimeout(promise, label);
-    if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
-    return { ...response, reason: failureReason(response.reason, `${label || 'CONTROLLED'}_FAILED`) };
+    const fallback = `${label || 'CONTROLLED'}_FAILED`;
+    try {
+      const response = await baseTimeout(promise, label);
+      if (!response || response.failed !== true || response.reason == null || typeof response.reason !== 'object') return response;
+      return { ...response, reason: failureReason(response.reason, fallback) };
+    } catch (error) {
+      if (error instanceof Error && error.message && error.message !== '[object Object]') throw error;
+      throw new Error(failureReason(error, fallback));
+    }
   };
   merchant.__alpha28FailureReasonNormalization = true;
   return true;
@@ -59,7 +65,13 @@ function installScopedControlledAuthorityGuard(runtime) {
     if (this.adapter.mode !== 'active') globalReason = 'RUNTIME_NOT_ACTIVE';
     else if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) globalReason = 'SUPERVISOR_NOT_HEALTHY';
 
-    const economyReason = globalReason || (health.economy.state === 'DEGRADED' ? 'ECONOMY_CIRCUIT_OPEN' : null);
+    const economyReasons = health && health.economy && Array.isArray(health.economy.reasons)
+      ? health.economy.reasons.map(String)
+      : [];
+    const scopedFamilyOnly = economyReasons.length > 0
+      && economyReasons.every((reason) => /^(SELL|BANK|UPGRADE|COMPOUND|EXCHANGE)_CIRCUIT_OPEN$/.test(reason));
+    const economyReason = globalReason
+      || (health.economy.state === 'DEGRADED' && !scopedFamilyOnly ? 'ECONOMY_CIRCUIT_OPEN' : null);
     const travelReason = globalReason || (health.travel.state === 'DEGRADED' ? 'TRAVEL_CIRCUIT_OPEN' : null);
 
     if (economyReason && this.controlledMerchant.status().enabled) this.controlledMerchant.disable(economyReason);
