@@ -42231,6 +42231,7 @@ module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRO
 const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
+const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -42259,7 +42260,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -42267,7 +42268,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
       cloud: alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
       autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
       convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
-      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null
+      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
+      merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null
     })
   };
   api.cloud = {
@@ -42293,15 +42295,17 @@ function installProductionLiveServices(api, options = {}) {
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
+  const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
       cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
       safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
       alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
-      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness
+      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
+      merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
     return runtime.productionLiveServices;
   }
 
@@ -42323,10 +42327,11 @@ function installProductionLiveServices(api, options = {}) {
     safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
     alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
     alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
+    merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -42344,6 +42349,128 @@ module.exports = {
   installProductionLiveServices,
   runService,
   exposeDiagnostics
+};
+
+},
+"src/reliability/alpha27-merchant-legacy-ownership-guard.js": function(require,module,exports){
+'use strict';
+
+const LEGACY_OWNERSHIP_GUARD_MODE = 'alpha27-merchant-legacy-ownership-guard-v1';
+const DELEGATION_REASON = 'ALPHA27_MERCHANT_AUTHORITY_OWNS_LIVE_ACTIONS';
+
+function characterOf(runtime) {
+  const root = runtime && runtime.root;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
+function alpha27OwnsMerchant(runtime) {
+  const c = characterOf(runtime);
+  const convergence = runtime && runtime.alpha27CombatMerchantConvergence;
+  return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant' && convergence && convergence.merchant);
+}
+
+function markDelegated(runtime, controller, controllerName, action = 'DELEGATED') {
+  if (!controller) return false;
+  const now = runtime && typeof runtime.now === 'function' ? runtime.now() : Date.now();
+  controller.lastDecision = {
+    at: now,
+    action,
+    reason: DELEGATION_REASON,
+    owner: 'alpha27',
+    suppressedController: controllerName
+  };
+  return false;
+}
+
+function guardCycle(runtime, controller, controllerName) {
+  if (!controller || typeof controller.cycle !== 'function' || controller.__alpha27OwnershipCycleGuarded) return false;
+  const original = controller.cycle.bind(controller);
+  controller.__alpha27OwnershipOriginalCycle = original;
+  controller.cycle = async (...args) => {
+    if (alpha27OwnsMerchant(runtime)) return markDelegated(runtime, controller, controllerName);
+    return original(...args);
+  };
+  controller.__alpha27OwnershipCycleGuarded = true;
+  return true;
+}
+
+function guardPrimitive(runtime, controller, methodName, controllerName) {
+  if (!controller || typeof controller[methodName] !== 'function') return false;
+  const marker = `__alpha27OwnershipGuarded_${methodName}`;
+  if (controller[marker]) return false;
+  const original = controller[methodName].bind(controller);
+  controller[`__alpha27OwnershipOriginal_${methodName}`] = original;
+  controller[methodName] = (...args) => {
+    if (alpha27OwnsMerchant(runtime)) return markDelegated(runtime, controller, controllerName, `SUPPRESSED_${methodName}`);
+    return original(...args);
+  };
+  controller[marker] = true;
+  return true;
+}
+
+function emitInstalled(runtime, state) {
+  try {
+    if (runtime && runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'alpha27-merchant-legacy-ownership-guard',
+        event: 'ALPHA27_MERCHANT_SINGLE_OWNER_GUARD_INSTALLED',
+        severity: 'info',
+        reason: DELEGATION_REASON,
+        data: { ...state }
+      });
+    }
+  } catch (_) {}
+}
+
+function installAlpha27MerchantLegacyOwnershipGuard(runtime) {
+  if (!runtime) throw new Error('runtime required');
+
+  const v2 = runtime.economyEquipmentAutonomyV2 || null;
+  const legacy = runtime.merchantEconomyAutonomy || null;
+  const changes = {
+    v2Cycle: guardCycle(runtime, v2, 'economy-equipment-autonomy-v2'),
+    legacyCycle: guardCycle(runtime, legacy, 'merchant-economy-autonomy'),
+    legacyMove: guardPrimitive(runtime, legacy, '_move', 'merchant-economy-autonomy'),
+    legacyServiceMove: guardPrimitive(runtime, legacy, '_serviceMove', 'merchant-economy-autonomy')
+  };
+
+  const existing = runtime.alpha27MerchantLegacyOwnershipGuard;
+  const state = existing || {
+    mode: LEGACY_OWNERSHIP_GUARD_MODE,
+    installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now()
+  };
+  Object.assign(state, {
+    reason: DELEGATION_REASON,
+    ownershipActive: alpha27OwnsMerchant(runtime),
+    v2Present: !!v2,
+    legacyPresent: !!legacy,
+    guarded: {
+      v2Cycle: !!(v2 && v2.__alpha27OwnershipCycleGuarded),
+      legacyCycle: !!(legacy && legacy.__alpha27OwnershipCycleGuarded),
+      legacyMove: !!(legacy && legacy.__alpha27OwnershipGuarded__move),
+      legacyServiceMove: !!(legacy && legacy.__alpha27OwnershipGuarded__serviceMove)
+    },
+    status() {
+      return {
+        mode: LEGACY_OWNERSHIP_GUARD_MODE,
+        reason: DELEGATION_REASON,
+        ownershipActive: alpha27OwnsMerchant(runtime),
+        v2Present: !!runtime.economyEquipmentAutonomyV2,
+        legacyPresent: !!runtime.merchantEconomyAutonomy,
+        guarded: { ...state.guarded }
+      };
+    }
+  });
+  runtime.alpha27MerchantLegacyOwnershipGuard = state;
+  if (!existing && Object.values(changes).some(Boolean)) emitInstalled(runtime, state.status());
+  return state;
+}
+
+module.exports = {
+  LEGACY_OWNERSHIP_GUARD_MODE,
+  DELEGATION_REASON,
+  alpha27OwnsMerchant,
+  installAlpha27MerchantLegacyOwnershipGuard
 };
 
 }
