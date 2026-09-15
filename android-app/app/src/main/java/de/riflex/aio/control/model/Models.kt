@@ -14,6 +14,8 @@ data class CharacterStatus(
     val ctype: String,
     val level: Int,
     val map: String,
+    val x: Double? = null,
+    val y: Double? = null,
     val hp: Long,
     val maxHp: Long,
     val mp: Long,
