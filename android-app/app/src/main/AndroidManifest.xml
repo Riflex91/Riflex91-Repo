@@ -5,25 +5,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <application
-        android:allowBackup="false"
-        android:label="AiO Bot Control"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AioControl"
-        android:usesCleartextTraffic="false">
-        <service
-            android:name=".host.AioHostService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+    <application android:allowBackup="false" android:label="AiO Bot Control" android:supportsRtl="true" android:theme="@style/Theme.AioControl" android:usesCleartextTraffic="false">
+        <service android:name=".host.AioHostService" android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false" />
+        <activity android:name=".AdventureLandSessionActivity" android:exported="false" />
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
     </application>
 </manifest>
