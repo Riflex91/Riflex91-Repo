@@ -29,28 +29,29 @@ jobs:
       - name: Build and test v3
         working-directory: v3
         run: npm run check:full
-      - name: Upload generated browser bundle
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: v3-generated-bundle
-          path: v3/dist/aio-v3.js
-          if-no-files-found: error
       - name: Commit generated browser bundle
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         shell: bash
         run: |
           if git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1 && git diff --quiet -- v3/dist/aio-v3.js; then
             echo 'Bundle already current.'
             exit 0
           fi
+          cp v3/dist/aio-v3.js /tmp/aio-v3.js
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BRANCH="$GITHUB_HEAD_REF"
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            cp /tmp/aio-v3.js v3/dist/aio-v3.js
+          else
+            BRANCH="$GITHUB_REF_NAME"
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add v3/dist/aio-v3.js
           git commit -m 'Build AiO Bot v3 browser bundle'
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:"$BRANCH"
       - name: Verify generated bundle on pull requests
-        if: false
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
           git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1
