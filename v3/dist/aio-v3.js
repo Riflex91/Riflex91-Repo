@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.24 | generated | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.26 | generated | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -4894,7 +4894,7 @@ module.exports = { CombatEmergencyGate };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.24';
+const RELEASE_VERSION = '3.0.0-alpha.20.26';
 
 module.exports = { RELEASE_VERSION };
 
@@ -31852,7 +31852,7 @@ class Alpha28BrainCloud {
     if (Object.keys(needs).length) {
       const result = alpha25.patchSettings(needs, 'alpha28-explicit-live-authority');
       this.stats.brainCloudSettingPatches += Object.keys(needs).length;
-      this.event('ALPHA28_BRAIN_CLOUD_ENABLED', 'warn', 'OPERATOR_REQUESTED_ON', { requested: needs, result: clone(result) });
+      this.event('ALPHA28_BRAIN_CLOUD_ENABLED', 'info', 'OPERATOR_REQUESTED_ON', { requested: needs, result: clone(result) });
     }
     this.configured = cp.get('brain.mode') === 'canary' && cp.get('cloud.enabled') === true;
     this.patchPlanner();
@@ -34222,6 +34222,7 @@ class CloudControlPlane {
     const alpha23 = this.runtime.alpha23CombatStabilityHotfix && this.runtime.alpha23CombatStabilityHotfix.status ? this.runtime.alpha23CombatStabilityHotfix.status() : null;
     const alpha24 = this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix && this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status ? this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix.status() : null;
     const economy = this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null;
+    const localCharacter = text(c.name || 'unknown', 80) || 'unknown';
     let registry = null; try { registry = this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null; } catch (_) {}
     let events = []; try { events = this.runtime.log && this.runtime.log.list ? this.runtime.log.list(Math.max(10, Math.min(120, finite(this.control && this.control.get('cloud.eventBatchSize', 80), 80)))) : []; } catch (_) {}
     return {
@@ -34236,6 +34237,13 @@ class CloudControlPlane {
       economy,
       brain: this.brain && this.brain.status ? this.brain.status() : null,
       control: this.control && this.control.status ? this.control.status() : null,
+      cloud: {
+        ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn),
+        enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)),
+        lastSuccessAt: this.lastSuccessAt,
+        lastError: safeClone(this.lastError),
+        freeTierBudget: readCloudRequestBudget({ root: this.root, character: localCharacter, now: this.now() })
+      },
       events: safeClone(events) || []
     };
   }
