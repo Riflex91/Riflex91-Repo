@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction, errorDetails } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
@@ -54,12 +54,30 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       }
       if (request.type === 'SELL') {
         const canSell = rawFunction(this.root, 'can_sell');
-        let near = !canSell;
-        if (canSell) { try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; } }
+        let near = false;
+        if (canSell) {
+          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+        }
+        // Adventure Land does not guarantee a public can_sell() helper. The old
+        // code treated a missing probe as proof that the merchant was already in
+        // range, which produced repeated sell()->distance failures. Unknown
+        // proximity is now fail-closed: travel to a known vendor first, then
+        // execute the already-authorized transaction in the same cycle.
         if (!near) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'SELL_VENDOR_REQUIRED', destination: 'scroll0' };
-          await this.atomic.namedServiceTravel('scroll0');
-          return true;
+          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
+          const travelled = await this.atomic.namedServiceTravel('scroll0');
+          const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
+          if (!travelSucceeded) {
+            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
+            return true;
+          }
+          if (canSell) {
+            try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+            if (!near) {
+              this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
+              return true;
+            }
+          }
         }
       }
 
@@ -92,7 +110,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     Promise.resolve(this.cycle()).catch((error) => {
       this.atomic.merchantBusy = false;
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'UNHANDLED_ALPHA27_MERCHANT_ERROR', error: String(error && error.message || error).slice(0, 220) };
+      this.lastMerchantAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'UNHANDLED_ALPHA27_MERCHANT_ERROR', error: errorDetails(error) };
       this._event('ALPHA27_MERCHANT_FAILED_SAFE', 'error', 'UNHANDLED_ALPHA27_MERCHANT_ERROR', this.lastMerchantAction);
     });
     return true;

@@ -26573,6 +26573,7 @@ module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGR
 const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
+const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
 
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
 function boundedMessage(error) { return String(error && error.message || error || 'unknown').slice(0, 240); }
@@ -26618,11 +26619,25 @@ function strongLiveEvidence(instance, name) {
 
 function state(instance) {
   if (!instance.__alpha2019DirectBackoff) instance.__alpha2019DirectBackoff = new Map();
+  if (!instance.__alpha2019DirectSkipLogAt) instance.__alpha2019DirectSkipLogAt = new Map();
   const stats = instance.stats || (instance.stats = {});
-  for (const key of ['directSkippedBackoff','directEvidenceObservedActive','directEvidenceGetPlayer','directEvidenceEntity','directEvidenceParty']) {
+  for (const key of ['directSkippedBackoff','directEvidenceObservedActive','directEvidenceGetPlayer','directEvidenceEntity','directEvidenceParty','directSkipLogsSuppressed']) {
     if (!Number.isFinite(Number(stats[key]))) stats[key] = 0;
   }
   return instance.__alpha2019DirectBackoff;
+}
+
+function shouldLogDirectSkip(instance, target, reason, now) {
+  state(instance);
+  const key = `${cleanName(target)}:${String(reason || '')}`;
+  const map = instance.__alpha2019DirectSkipLogAt;
+  const previous = Number(map.get(key)) || 0;
+  if (previous && now - previous < DIRECT_SKIP_LOG_INTERVAL_MS) {
+    instance.stats.directSkipLogsSuppressed += 1;
+    return false;
+  }
+  map.set(key, now);
+  return true;
 }
 
 function installAlpha2019AccountTransportHotfix() {
@@ -26677,16 +26692,20 @@ function installAlpha2019AccountTransportHotfix() {
       }
     } else if (receiver && typeof commandCharacter === 'function' && directObserved && until > now) {
       this.stats.directSkippedBackoff += 1;
-      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
+      if (shouldLogDirectSkip(this, target, 'DIRECT_FAILURE_BACKOFF', now)) {
+        this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
+      }
     } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
-      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
-        target,
-        sender,
-        observedActive,
-        broaderVisibility: broadEvidence.live,
-        broaderVisibilitySource: broadEvidence.source
-      });
+      if (shouldLogDirectSkip(this, target, 'TARGET_NOT_OBSERVED_ACTIVE', now)) {
+        this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
+          target,
+          sender,
+          observedActive,
+          broaderVisibility: broadEvidence.live,
+          broaderVisibilitySource: broadEvidence.source
+        });
+      }
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
@@ -26715,6 +26734,7 @@ function installAlpha2019AccountTransportHotfix() {
       directRequiresStrongLiveEvidence: false,
       broaderVisibilityIsDiagnosticOnly: true,
       directFailureBackoffMs: DIRECT_BACKOFF_MS,
+      directSkipLogIntervalMs: DIRECT_SKIP_LOG_INTERVAL_MS,
       directBackoffs: [...backoff.entries()].filter(([, until]) => Number(until) > now).map(([name, until]) => ({ name, until, remainingMs: Number(until) - now })),
       stats: { ...this.stats }
     };
@@ -26722,8 +26742,7 @@ function installAlpha2019AccountTransportHotfix() {
   return true;
 }
 
-module.exports = { DIRECT_BACKOFF_MS, strongLiveEvidence, installAlpha2019AccountTransportHotfix };
-
+module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvidence, shouldLogDirectSkip, installAlpha2019AccountTransportHotfix };
 },
 "src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
@@ -29334,6 +29353,30 @@ function text(value) {
   const s = String(value == null ? '' : value).trim();
   return s || null;
 }
+function errorDetails(error, max = 240) {
+  const limit = Math.max(40, Math.floor(finite(max, 240)));
+  if (error == null) return { reason: 'UNKNOWN_ERROR' };
+  if (typeof error !== 'object') return { reason: String(error).trim().slice(0, limit) || 'UNKNOWN_ERROR' };
+  const rawReason = error.reason != null ? error.reason
+    : error.message != null ? error.message
+      : error.error != null ? error.error
+        : error.code != null ? error.code
+          : error.statusText != null ? error.statusText
+            : null;
+  const reason = rawReason == null ? 'STRUCTURED_ERROR' : String(rawReason).trim().slice(0, limit) || 'STRUCTURED_ERROR';
+  const details = { reason };
+  for (const key of ['failed', 'success', 'code', 'status', 'place', 'response']) {
+    const value = error[key];
+    if (value == null) continue;
+    if (typeof value === 'string') details[key] = value.slice(0, limit);
+    else if (typeof value === 'number' || typeof value === 'boolean') details[key] = value;
+  }
+  return details;
+}
+function errorReason(error, fallback = 'UNKNOWN_ERROR', max = 240) {
+  const details = errorDetails(error, max);
+  return details.reason || fallback;
+}
 function levelOf(item) { return Math.max(0, Math.floor(finite(item && item.level, 0))); }
 function qtyOf(item) { return Math.max(1, Math.floor(finite(item && item.q, 1))); }
 function inventoryOf(root) {
@@ -29440,12 +29483,11 @@ function rawFunction(root, name) {
 }
 
 module.exports = {
-  finite, clone, text, levelOf, qtyOf, inventoryOf, characterOf, gameDataOf,
+  finite, clone, text, errorDetails, errorReason, levelOf, qtyOf, inventoryOf, characterOf, gameDataOf,
   identityQuantity, findItem, gradeForLevel, xpDelta, potionCount, monsterMap,
   isAliveMonster, ownedTargetId, farmerOwnedCombatBusy, isPoisonedPerformanceProfile,
   transactionInputs, rawFunction
 };
-
 },
 "src/reliability/alpha27-combat-ownership.js": function(require,module,exports){
 'use strict';
@@ -29748,7 +29790,7 @@ module.exports = { Alpha27CombatOwnership, TARGET_RECEIVER };
 "src/reliability/alpha27-atomic-economy.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
+const { finite, clone, text, errorDetails, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicService } = require('./alpha27-atomic-service');
 
@@ -29902,7 +29944,7 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
         this.stats.realCompoundsAttempted += 1;
         response = await this._timeout(action.fn.call(action.owner, check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, ensured.scroll.index), 'COMPOUND', 15000);
       }
-      if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
+      if (response && response.failed === true) throw response;
       engine.transition(tx.id, 'VERIFYING', 'ALPHA27_RAW_ACTION_RETURNED');
       engine.save();
       let outcome = null;
@@ -29945,14 +29987,15 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       this._event('ALPHA27_MERCHANT_MUTATION_COMMITTED', outcome === 'SUCCESS' ? 'warn' : 'info', reason, this.lastMerchantAction);
       return { executed: true, committed: true, reason, outcome, evidence, response: clone(response) };
     } catch (error) {
-      const reason = String(error && error.message || error || 'ATOMIC_MUTATION_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'ATOMIC_MUTATION_FAILED';
       engine.markFailedSafe(tx.id, reason);
       if (executor.stats) executor.stats.failedSafe += 1;
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason };
+      this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason, error: details };
       executor.lastAction = clone(this.lastMerchantAction);
       this._event('ALPHA27_MERCHANT_MUTATION_FAILED_SAFE', 'error', reason, this.lastMerchantAction);
-      return { executed: true, committed: false, reason };
+      return { executed: true, committed: false, reason, error: details };
     } finally {
       executor.busy = false;
       this.merchantBusy = false;
@@ -30019,7 +30062,6 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
 }
 
 module.exports = { Alpha27AtomicEconomy, CONTROLLED_ACK, EXPECTED_DISPOSITIONS, TRANSIENT_ATOMIC_PREFLIGHT_REASONS };
-
 },
 "src/reliability/alpha27-atomic-constants.js": function(require,module,exports){
 'use strict';
@@ -30039,7 +30081,7 @@ module.exports = { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS };
 "src/reliability/alpha27-atomic-service.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
+const { finite, clone, text, errorDetails, errorReason, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicTransactions } = require('./alpha27-atomic-transactions');
 
@@ -30097,14 +30139,15 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     this.stats.namedServiceTravels += 1;
     try {
       const response = await this._timeout(smart.fn.call(smart.owner, destination), 'SERVICE_TRAVEL');
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SERVICE_TRAVEL_FAILED'));
+      if (response && response.failed === true) throw response;
       return { ok: true, controlled: false, response: clone(response) };
     } catch (error) {
       try { await Promise.resolve(stop.fn.call(stop.owner, 'smart')); } catch (_) {}
-      const reason = String(error && error.message || error || 'SERVICE_TRAVEL_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'SERVICE_TRAVEL_FAILED';
       if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
-      return { ok: false, reason };
+      return { ok: false, reason, error: details };
     } finally { this.serviceTravelBusy = false; }
   }
 
@@ -30142,23 +30185,23 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
     try {
       const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'BUY_SCROLL_FAILED'));
+      if (response && response.failed === true) throw response;
       const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
       if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
       this.stats.scrollPurchases += 1;
       scroll = findItem(this.root, scrollName);
       return scroll ? { ok: true, scroll } : { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
     } catch (error) {
-      const reason = String(error && error.message || error || 'BUY_SCROLL_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'BUY_SCROLL_FAILED';
       this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
-      return { ok: false, reason };
+      return { ok: false, reason, error: details };
     }
   }
 }
 
 module.exports = { Alpha27AtomicService };
-
 },
 "src/reliability/alpha27-atomic-transactions.js": function(require,module,exports){
 'use strict';
@@ -30518,7 +30561,7 @@ module.exports = { Alpha27AtomicCore };
 "src/reliability/alpha27-merchant-autonomy.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction, errorDetails } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
@@ -30572,12 +30615,30 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       }
       if (request.type === 'SELL') {
         const canSell = rawFunction(this.root, 'can_sell');
-        let near = !canSell;
-        if (canSell) { try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; } }
+        let near = false;
+        if (canSell) {
+          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+        }
+        // Adventure Land does not guarantee a public can_sell() helper. The old
+        // code treated a missing probe as proof that the merchant was already in
+        // range, which produced repeated sell()->distance failures. Unknown
+        // proximity is now fail-closed: travel to a known vendor first, then
+        // execute the already-authorized transaction in the same cycle.
         if (!near) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'SELL_VENDOR_REQUIRED', destination: 'scroll0' };
-          await this.atomic.namedServiceTravel('scroll0');
-          return true;
+          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
+          const travelled = await this.atomic.namedServiceTravel('scroll0');
+          const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
+          if (!travelSucceeded) {
+            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
+            return true;
+          }
+          if (canSell) {
+            try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+            if (!near) {
+              this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
+              return true;
+            }
+          }
         }
       }
 
@@ -30610,7 +30671,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     Promise.resolve(this.cycle()).catch((error) => {
       this.atomic.merchantBusy = false;
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'UNHANDLED_ALPHA27_MERCHANT_ERROR', error: String(error && error.message || error).slice(0, 220) };
+      this.lastMerchantAction = { at: this.now(), result: 'FAILED_SAFE', reason: 'UNHANDLED_ALPHA27_MERCHANT_ERROR', error: errorDetails(error) };
       this._event('ALPHA27_MERCHANT_FAILED_SAFE', 'error', 'UNHANDLED_ALPHA27_MERCHANT_ERROR', this.lastMerchantAction);
     });
     return true;
@@ -30653,7 +30714,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 }
 
 module.exports = { Alpha27MerchantAutonomy };
-
 },
 "src/reliability/alpha27-merchant-constants.js": function(require,module,exports){
 'use strict';
@@ -30835,7 +30895,7 @@ module.exports = { Alpha27MerchantPlanning };
 "src/reliability/alpha27-merchant-service.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction, errorReason } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantCore } = require('./alpha27-merchant-core');
@@ -30843,14 +30903,42 @@ const { Alpha27MerchantCore } = require('./alpha27-merchant-core');
 class Alpha27MerchantService extends Alpha27MerchantCore {
   patchRuntimeEconomyStatus() {
     if (this.runtime.__alpha27EconomyStatusPatched) return false;
+
+    // Alpha20.5 opens the merchant stand whenever the service planner is idle.
+    // Alpha27 owns live economy work and must close that stand before each raw
+    // mutation. Leaving both authorities active creates an OPEN/CLOSE loop that
+    // exhausts the bounded merchant-service action budget without doing useful
+    // work. Alpha27 therefore suppresses only the legacy idle-stand behavior;
+    // explicit stand/service actions remain bounded by the controlled executor.
+    const planner = this.runtime.merchantServicePlanner;
+    if (planner && planner.standWhenIdle !== false) {
+      planner.standWhenIdle = false;
+      this.runtime.__alpha27IdleStandSuppressed = true;
+    }
+
     if (typeof this.runtime._controlledSubsystemHealth === 'function') {
       const baseHealth = this.runtime._controlledSubsystemHealth.bind(this.runtime);
       this.runtime._controlledSubsystemHealth = () => {
         const health = baseHealth();
         const tx = this.runtime.transactionEngine && this.runtime.transactionEngine.status ? this.runtime.transactionEngine.status() : null;
-        const reasons = health && health.economy && Array.isArray(health.economy.reasons) ? health.economy.reasons.slice() : [];
-        for (const family of ['UPGRADE', 'COMPOUND']) if (tx && tx.circuits && tx.circuits[family] && tx.circuits[family].open) reasons.push(`${family}_CIRCUIT_OPEN`);
-        if (health && health.economy && reasons.length) health.economy = { state: 'DEGRADED', reasons: [...new Set(reasons)] };
+        const economy = health && health.economy || null;
+        const reasons = economy && Array.isArray(economy.reasons) ? economy.reasons.slice() : [];
+        const mutationReasons = [];
+        for (const family of ['UPGRADE', 'COMPOUND']) {
+          if (tx && tx.circuits && tx.circuits[family] && tx.circuits[family].open) mutationReasons.push(`${family}_CIRCUIT_OPEN`);
+        }
+        if (economy && mutationReasons.length) {
+          reasons.push(...mutationReasons);
+          const baseState = String(economy.state || 'HEALTHY').toUpperCase();
+          // UPGRADE/COMPOUND are family-scoped in Alpha27. Mark them WATCH so
+          // Alpha17's global authority guard does not disable SELL/BANK and then
+          // fight Alpha27's auto-enable loop. Existing DEGRADED state (notably a
+          // SELL/BANK circuit) remains globally authoritative.
+          health.economy = {
+            state: baseState === 'DEGRADED' ? 'DEGRADED' : 'WATCH',
+            reasons: [...new Set(reasons)]
+          };
+        }
         return health;
       };
     }
@@ -30880,6 +30968,7 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       this.runtime.merchantServiceStatus = () => ({
         ...base(),
         alpha27AutonomousMerchant: true,
+        idleStandSuppressedByAlpha27: true,
         liveBuyAuthority: true,
         liveBuyAuthorityScope: 'PARTY_POTIONS_AND_REQUIRED_MUTATION_SCROLLS_ONLY',
         gearGoalDeliveryAuthority: true,
@@ -30901,11 +30990,15 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       const bank = !(tx && tx.circuits && tx.circuits.BANK && tx.circuits.BANK.open);
       const upgrade = !(tx && tx.circuits && tx.circuits.UPGRADE && tx.circuits.UPGRADE.open);
       const compound = !(tx && tx.circuits && tx.circuits.COMPOUND && tx.circuits.COMPOUND.open);
-      if (!status.enabled
+      const lowRiskCircuitOpen = !sell || !bank;
+      // Alpha17 intentionally treats SELL/BANK circuit failures as a global
+      // controlled-economy hold. Do not immediately re-enable the executor while
+      // that guard is active; doing so caused enable/disable churn every tick.
+      if (!lowRiskCircuitOpen && (!status.enabled
         || status.sellEnabled !== sell
         || status.bankEnabled !== bank
         || status.upgradeEnabled !== upgrade
-        || status.compoundEnabled !== compound) {
+        || status.compoundEnabled !== compound)) {
         this.runtime.configureControlledMerchant({
           enabled: true,
           ack: CONTROLLED_ACK,
@@ -30973,7 +31066,7 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
     const before = have;
     try {
       const response = await this.atomic._timeout(buy.fn.call(buy.owner, itemName, quantity), 'BUY_PARTY_SUPPLY', 15000);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'BUY_PARTY_SUPPLY_FAILED'));
+      if (response && response.failed === true) throw response;
       const verified = await this.atomic.verifyEventually(() => identityQuantity(inventoryOf(this.root), itemName, 0) >= before + quantity);
       if (!verified) throw new Error('PARTY_SUPPLY_PURCHASE_DELTA_NOT_OBSERVED');
       this.stats.potionRestocks += 1;
@@ -30981,14 +31074,13 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       return true;
     } catch (error) {
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), type: 'BUY_SUPPLY', result: 'FAILED_SAFE', reason: String(error && error.message || error) };
+      this.lastMerchantAction = { at: this.now(), type: 'BUY_SUPPLY', result: 'FAILED_SAFE', reason: errorReason(error, 'BUY_PARTY_SUPPLY_FAILED') };
       return true;
     }
   }
 }
 
 module.exports = { Alpha27MerchantService };
-
 },
 "src/reliability/alpha27-merchant-core.js": function(require,module,exports){
 'use strict';
@@ -35408,6 +35500,25 @@ function text(value, max = 300) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }
 
+function errorDetails(error, max = 240) {
+  if (error == null) return { reason: 'UNKNOWN_ERROR' };
+  if (typeof error !== 'object') return { reason: text(error, max) || 'UNKNOWN_ERROR' };
+  const rawReason = error.reason != null ? error.reason
+    : error.message != null ? error.message
+      : error.error != null ? error.error
+        : error.code != null ? error.code
+          : error.statusText != null ? error.statusText
+            : null;
+  const details = { reason: text(rawReason == null ? 'STRUCTURED_ERROR' : rawReason, max) || 'STRUCTURED_ERROR' };
+  for (const key of ['failed', 'success', 'code', 'status', 'place', 'response']) {
+    const value = error[key];
+    if (value == null) continue;
+    if (typeof value === 'string') details[key] = text(value, max);
+    else if (typeof value === 'number' || typeof value === 'boolean') details[key] = value;
+  }
+  return details;
+}
+
 function versionParts(value) {
   const matches = String(value || '').match(/\d+/g) || [];
   return matches.map((x) => Number(x) || 0);
@@ -35450,6 +35561,7 @@ class SafeAutoUpdater {
     this.fetchFn = options.fetch || this.root && this.root.fetch || (typeof fetch === 'function' ? fetch : null);
     const globalConfig = this.root && this.root.AIO_V3_AUTO_UPDATE_CONFIG && typeof this.root.AIO_V3_AUTO_UPDATE_CONFIG === 'object'
       ? this.root.AIO_V3_AUTO_UPDATE_CONFIG : {};
+    const retryBase = Math.max(5000, finite(globalConfig.applyRetryBaseMs, 30000));
     this.config = {
       enabled: globalConfig.enabled !== false,
       rawBaseUrl: text(globalConfig.rawBaseUrl || DEFAULT_REPO_RAW, 700).replace(/\/+$/, ''),
@@ -35458,7 +35570,9 @@ class SafeAutoUpdater {
       minHpRatio: Math.max(0.7, Math.min(1, finite(globalConfig.minHpRatio, 0.90))),
       emergencyCooldownMs: Math.max(5000, finite(globalConfig.emergencyCooldownMs, 20000)),
       maxBundleBytes: Math.max(250000, finite(globalConfig.maxBundleBytes, 6000000)),
-      autoApply: globalConfig.autoApply !== false
+      autoApply: globalConfig.autoApply !== false,
+      applyRetryBaseMs: retryBase,
+      applyRetryMaxMs: Math.max(retryBase, finite(globalConfig.applyRetryMaxMs, 300000))
     };
     this.localVersion = text(options.localVersion || this.root && this.root.AIO_V3 && this.root.AIO_V3.version || '', 80) || '0.0.0';
     this.lastCheckAt = 0;
@@ -35469,11 +35583,14 @@ class SafeAutoUpdater {
     this.safeSince = 0;
     this.lastSafety = { safe: false, reasons: ['NOT_EVALUATED'] };
     this.lastApply = null;
+    this.applyFailureStreak = 0;
+    this.nextApplyAt = 0;
     this.busy = false;
     this.stats = {
       checks: 0,
       updatesFound: 0,
       safeDeferrals: 0,
+      applyBackoffDeferrals: 0,
       downloads: 0,
       validations: 0,
       saves: 0,
@@ -35492,6 +35609,19 @@ class SafeAutoUpdater {
     if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
     if (this.parent && typeof this.parent[name] === 'function') return { fn: this.parent[name], owner: this.parent };
     return null;
+  }
+
+  _resetApplyBackoff() {
+    this.applyFailureStreak = 0;
+    this.nextApplyAt = 0;
+  }
+
+  _scheduleApplyBackoff() {
+    this.applyFailureStreak += 1;
+    const exponent = Math.min(8, this.applyFailureStreak - 1);
+    const delayMs = Math.min(this.config.applyRetryMaxMs, this.config.applyRetryBaseMs * (2 ** exponent));
+    this.nextApplyAt = this.now() + delayMs;
+    return delayMs;
   }
 
   _recentEmergency() {
@@ -35571,6 +35701,7 @@ class SafeAutoUpdater {
         if (this.pendingVersion !== version) {
           this.pendingVersion = version;
           this.pendingSince = this.now();
+          this._resetApplyBackoff();
           this.stats.updatesFound += 1;
           this._event('AUTO_UPDATE_AVAILABLE', 'info', 'NEWER_RELEASE_FOUND', { localVersion: this.localVersion, remoteVersion: version });
         }
@@ -35579,11 +35710,12 @@ class SafeAutoUpdater {
       if (this.pendingVersion && compareVersions(version, this.localVersion) <= 0) {
         this.pendingVersion = null;
         this.pendingSince = 0;
+        this._resetApplyBackoff();
       }
       return false;
     } catch (error) {
       this.stats.failures += 1;
-      this.lastCheckError = { at: this.now(), message: text(error && error.message || error, 240) };
+      this.lastCheckError = { at: this.now(), ...errorDetails(error) };
       this._event('AUTO_UPDATE_CHECK_FAILED', 'warn', 'REMOTE_CHECK_FAILED', this.lastCheckError);
       return false;
     } finally {
@@ -35618,15 +35750,25 @@ class SafeAutoUpdater {
   }
 
   async _saveCode(slotInfo, code) {
-    const api = this.parent && this.parent.api_call;
-    if (typeof api !== 'function') throw new Error('SAVE_CODE_API_UNAVAILABLE');
     const slot = slotInfo && slotInfo.slot;
     if (slot == null || slot === '') throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
-    const payload = { slot, name: slotInfo.name || `AIO v3 ${slot}`, code };
-    const result = api.call(this.parent, 'save_code', payload);
-    if (result && typeof result.then === 'function') await result;
+    const name = slotInfo.name || `AIO v3 ${slot}`;
+    const upload = this._binding('upload_code');
+    let result;
+    let method;
+    if (upload) {
+      method = 'upload_code';
+      result = upload.fn.call(upload.owner, slot, name, code);
+    } else {
+      const api = this.parent && this.parent.api_call;
+      if (typeof api !== 'function') throw new Error('SAVE_CODE_API_UNAVAILABLE');
+      method = 'api_call:save_code';
+      result = api.call(this.parent, 'save_code', { slot, name, code, auto: true, electron: true }, { timeout: 15000 });
+    }
+    if (result && typeof result.then === 'function') result = await result;
+    if (result && result.failed === true) throw result;
     this.stats.saves += 1;
-    return true;
+    return { method, response: result == null ? null : result };
   }
 
   async _reloadSavedCode(slotInfo) {
@@ -35662,29 +35804,48 @@ class SafeAutoUpdater {
 
   async applyPending() {
     if (!this.pendingVersion || !this.config.autoApply || this.busy) return false;
+    if (this.nextApplyAt && this.now() < this.nextApplyAt) {
+      this.stats.applyBackoffDeferrals += 1;
+      return false;
+    }
     if (!this._stableSafe()) {
       this.stats.safeDeferrals += 1;
       return false;
     }
     this.busy = true;
     const version = this.pendingVersion;
+    const attempt = { at: this.now(), from: this.localVersion, to: version, saved: false, reloaded: false };
     try {
       const code = await this._fetchText(`${this.config.rawBaseUrl}/dist/aio-v3.js`, 20000);
       this.stats.downloads += 1;
       const validation = this._validateBundle(code, version);
+      attempt.bytes = validation.bytes;
       if (!validation.ok) throw new Error(validation.reason);
       if (!this._stableSafe()) throw new Error('SAFETY_CHANGED_DURING_DOWNLOAD');
       const slot = this._activeSlot();
       if (!slot) throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
-      await this._saveCode(slot, code);
-      this.lastApply = { at: this.now(), from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes, saved: true, reloaded: false };
-      this._event('AUTO_UPDATE_SAVED', 'info', 'SAFE_RELEASE_PERSISTED', { from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes });
+      attempt.slot = slot.slot;
+      const save = await this._saveCode(slot, code);
+      attempt.saved = true;
+      attempt.saveMethod = save.method;
+      this.lastApply = { ...attempt };
+      this._resetApplyBackoff();
+      this._event('AUTO_UPDATE_SAVED', 'info', 'SAFE_RELEASE_PERSISTED', { from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes, saveMethod: save.method });
       await this._reloadSavedCode(slot);
-      this.lastApply.reloaded = true;
+      attempt.reloaded = true;
+      this.lastApply = { ...attempt };
       return true;
     } catch (error) {
       this.stats.failures += 1;
-      this.lastApply = { at: this.now(), from: this.localVersion, to: version, saved: !!(this.lastApply && this.lastApply.saved), reloaded: false, error: text(error && error.message || error, 240) };
+      const details = errorDetails(error);
+      const retryInMs = this._scheduleApplyBackoff();
+      this.lastApply = {
+        ...attempt,
+        error: details,
+        errorReason: details.reason,
+        retryInMs,
+        nextApplyAt: this.nextApplyAt
+      };
       this._event('AUTO_UPDATE_APPLY_FAILED', 'warn', 'SAFE_UPDATE_FAILED', this.lastApply);
       return false;
     } finally {
@@ -35714,12 +35875,17 @@ class SafeAutoUpdater {
       lastCheckAt: this.lastCheckAt || null,
       lastCheckError: this.lastCheckError,
       lastApply: this.lastApply,
+      applyFailureStreak: this.applyFailureStreak,
+      nextApplyAt: this.nextApplyAt || null,
       busy: this.busy,
       config: { ...this.config },
       stats: { ...this.stats },
       policies: {
         checksMayRunWhileUnsafe: true,
         applyRequiresStableSafeWindow: true,
+        applyFailuresUseExponentialBackoff: true,
+        structuredApiErrorsPreserved: true,
+        publicUploadCodePreferred: true,
         noDowngrades: true,
         bundleValidatedBeforeSave: true,
         activeCodeSlotOnly: true,
@@ -35743,7 +35909,8 @@ module.exports = {
   SafeAutoUpdater,
   installSafeAutoUpdater,
   compareVersions,
-  releaseVersionFromSource
+  releaseVersionFromSource,
+  errorDetails
 };
 },
 "src/reliability/alpha20-21-cloud-persistence-recovery.js": function(require,module,exports){

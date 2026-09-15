@@ -3,6 +3,7 @@
 const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
+const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
 
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
 function boundedMessage(error) { return String(error && error.message || error || 'unknown').slice(0, 240); }
@@ -48,11 +49,25 @@ function strongLiveEvidence(instance, name) {
 
 function state(instance) {
   if (!instance.__alpha2019DirectBackoff) instance.__alpha2019DirectBackoff = new Map();
+  if (!instance.__alpha2019DirectSkipLogAt) instance.__alpha2019DirectSkipLogAt = new Map();
   const stats = instance.stats || (instance.stats = {});
-  for (const key of ['directSkippedBackoff','directEvidenceObservedActive','directEvidenceGetPlayer','directEvidenceEntity','directEvidenceParty']) {
+  for (const key of ['directSkippedBackoff','directEvidenceObservedActive','directEvidenceGetPlayer','directEvidenceEntity','directEvidenceParty','directSkipLogsSuppressed']) {
     if (!Number.isFinite(Number(stats[key]))) stats[key] = 0;
   }
   return instance.__alpha2019DirectBackoff;
+}
+
+function shouldLogDirectSkip(instance, target, reason, now) {
+  state(instance);
+  const key = `${cleanName(target)}:${String(reason || '')}`;
+  const map = instance.__alpha2019DirectSkipLogAt;
+  const previous = Number(map.get(key)) || 0;
+  if (previous && now - previous < DIRECT_SKIP_LOG_INTERVAL_MS) {
+    instance.stats.directSkipLogsSuppressed += 1;
+    return false;
+  }
+  map.set(key, now);
+  return true;
 }
 
 function installAlpha2019AccountTransportHotfix() {
@@ -107,16 +122,20 @@ function installAlpha2019AccountTransportHotfix() {
       }
     } else if (receiver && typeof commandCharacter === 'function' && directObserved && until > now) {
       this.stats.directSkippedBackoff += 1;
-      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
+      if (shouldLogDirectSkip(this, target, 'DIRECT_FAILURE_BACKOFF', now)) {
+        this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
+      }
     } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
-      this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
-        target,
-        sender,
-        observedActive,
-        broaderVisibility: broadEvidence.live,
-        broaderVisibilitySource: broadEvidence.source
-      });
+      if (shouldLogDirectSkip(this, target, 'TARGET_NOT_OBSERVED_ACTIVE', now)) {
+        this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
+          target,
+          sender,
+          observedActive,
+          broaderVisibility: broadEvidence.live,
+          broaderVisibilitySource: broadEvidence.source
+        });
+      }
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
@@ -145,6 +164,7 @@ function installAlpha2019AccountTransportHotfix() {
       directRequiresStrongLiveEvidence: false,
       broaderVisibilityIsDiagnosticOnly: true,
       directFailureBackoffMs: DIRECT_BACKOFF_MS,
+      directSkipLogIntervalMs: DIRECT_SKIP_LOG_INTERVAL_MS,
       directBackoffs: [...backoff.entries()].filter(([, until]) => Number(until) > now).map(([name, until]) => ({ name, until, remainingMs: Number(until) - now })),
       stats: { ...this.stats }
     };
@@ -152,4 +172,4 @@ function installAlpha2019AccountTransportHotfix() {
   return true;
 }
 
-module.exports = { DIRECT_BACKOFF_MS, strongLiveEvidence, installAlpha2019AccountTransportHotfix };
+module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvidence, shouldLogDirectSkip, installAlpha2019AccountTransportHotfix };

@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction, errorReason } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantCore } = require('./alpha27-merchant-core');
@@ -8,14 +8,42 @@ const { Alpha27MerchantCore } = require('./alpha27-merchant-core');
 class Alpha27MerchantService extends Alpha27MerchantCore {
   patchRuntimeEconomyStatus() {
     if (this.runtime.__alpha27EconomyStatusPatched) return false;
+
+    // Alpha20.5 opens the merchant stand whenever the service planner is idle.
+    // Alpha27 owns live economy work and must close that stand before each raw
+    // mutation. Leaving both authorities active creates an OPEN/CLOSE loop that
+    // exhausts the bounded merchant-service action budget without doing useful
+    // work. Alpha27 therefore suppresses only the legacy idle-stand behavior;
+    // explicit stand/service actions remain bounded by the controlled executor.
+    const planner = this.runtime.merchantServicePlanner;
+    if (planner && planner.standWhenIdle !== false) {
+      planner.standWhenIdle = false;
+      this.runtime.__alpha27IdleStandSuppressed = true;
+    }
+
     if (typeof this.runtime._controlledSubsystemHealth === 'function') {
       const baseHealth = this.runtime._controlledSubsystemHealth.bind(this.runtime);
       this.runtime._controlledSubsystemHealth = () => {
         const health = baseHealth();
         const tx = this.runtime.transactionEngine && this.runtime.transactionEngine.status ? this.runtime.transactionEngine.status() : null;
-        const reasons = health && health.economy && Array.isArray(health.economy.reasons) ? health.economy.reasons.slice() : [];
-        for (const family of ['UPGRADE', 'COMPOUND']) if (tx && tx.circuits && tx.circuits[family] && tx.circuits[family].open) reasons.push(`${family}_CIRCUIT_OPEN`);
-        if (health && health.economy && reasons.length) health.economy = { state: 'DEGRADED', reasons: [...new Set(reasons)] };
+        const economy = health && health.economy || null;
+        const reasons = economy && Array.isArray(economy.reasons) ? economy.reasons.slice() : [];
+        const mutationReasons = [];
+        for (const family of ['UPGRADE', 'COMPOUND']) {
+          if (tx && tx.circuits && tx.circuits[family] && tx.circuits[family].open) mutationReasons.push(`${family}_CIRCUIT_OPEN`);
+        }
+        if (economy && mutationReasons.length) {
+          reasons.push(...mutationReasons);
+          const baseState = String(economy.state || 'HEALTHY').toUpperCase();
+          // UPGRADE/COMPOUND are family-scoped in Alpha27. Mark them WATCH so
+          // Alpha17's global authority guard does not disable SELL/BANK and then
+          // fight Alpha27's auto-enable loop. Existing DEGRADED state (notably a
+          // SELL/BANK circuit) remains globally authoritative.
+          health.economy = {
+            state: baseState === 'DEGRADED' ? 'DEGRADED' : 'WATCH',
+            reasons: [...new Set(reasons)]
+          };
+        }
         return health;
       };
     }
@@ -45,6 +73,7 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       this.runtime.merchantServiceStatus = () => ({
         ...base(),
         alpha27AutonomousMerchant: true,
+        idleStandSuppressedByAlpha27: true,
         liveBuyAuthority: true,
         liveBuyAuthorityScope: 'PARTY_POTIONS_AND_REQUIRED_MUTATION_SCROLLS_ONLY',
         gearGoalDeliveryAuthority: true,
@@ -66,11 +95,15 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       const bank = !(tx && tx.circuits && tx.circuits.BANK && tx.circuits.BANK.open);
       const upgrade = !(tx && tx.circuits && tx.circuits.UPGRADE && tx.circuits.UPGRADE.open);
       const compound = !(tx && tx.circuits && tx.circuits.COMPOUND && tx.circuits.COMPOUND.open);
-      if (!status.enabled
+      const lowRiskCircuitOpen = !sell || !bank;
+      // Alpha17 intentionally treats SELL/BANK circuit failures as a global
+      // controlled-economy hold. Do not immediately re-enable the executor while
+      // that guard is active; doing so caused enable/disable churn every tick.
+      if (!lowRiskCircuitOpen && (!status.enabled
         || status.sellEnabled !== sell
         || status.bankEnabled !== bank
         || status.upgradeEnabled !== upgrade
-        || status.compoundEnabled !== compound) {
+        || status.compoundEnabled !== compound)) {
         this.runtime.configureControlledMerchant({
           enabled: true,
           ack: CONTROLLED_ACK,
@@ -138,7 +171,7 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
     const before = have;
     try {
       const response = await this.atomic._timeout(buy.fn.call(buy.owner, itemName, quantity), 'BUY_PARTY_SUPPLY', 15000);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'BUY_PARTY_SUPPLY_FAILED'));
+      if (response && response.failed === true) throw response;
       const verified = await this.atomic.verifyEventually(() => identityQuantity(inventoryOf(this.root), itemName, 0) >= before + quantity);
       if (!verified) throw new Error('PARTY_SUPPLY_PURCHASE_DELTA_NOT_OBSERVED');
       this.stats.potionRestocks += 1;
@@ -146,7 +179,7 @@ class Alpha27MerchantService extends Alpha27MerchantCore {
       return true;
     } catch (error) {
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), type: 'BUY_SUPPLY', result: 'FAILED_SAFE', reason: String(error && error.message || error) };
+      this.lastMerchantAction = { at: this.now(), type: 'BUY_SUPPLY', result: 'FAILED_SAFE', reason: errorReason(error, 'BUY_PARTY_SUPPLY_FAILED') };
       return true;
     }
   }

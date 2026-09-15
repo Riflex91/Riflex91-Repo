@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
+const { finite, clone, text, errorDetails, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicService } = require('./alpha27-atomic-service');
 
@@ -154,7 +154,7 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
         this.stats.realCompoundsAttempted += 1;
         response = await this._timeout(action.fn.call(action.owner, check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, ensured.scroll.index), 'COMPOUND', 15000);
       }
-      if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
+      if (response && response.failed === true) throw response;
       engine.transition(tx.id, 'VERIFYING', 'ALPHA27_RAW_ACTION_RETURNED');
       engine.save();
       let outcome = null;
@@ -197,14 +197,15 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       this._event('ALPHA27_MERCHANT_MUTATION_COMMITTED', outcome === 'SUCCESS' ? 'warn' : 'info', reason, this.lastMerchantAction);
       return { executed: true, committed: true, reason, outcome, evidence, response: clone(response) };
     } catch (error) {
-      const reason = String(error && error.message || error || 'ATOMIC_MUTATION_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'ATOMIC_MUTATION_FAILED';
       engine.markFailedSafe(tx.id, reason);
       if (executor.stats) executor.stats.failedSafe += 1;
       this.stats.failedSafe += 1;
-      this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason };
+      this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason, error: details };
       executor.lastAction = clone(this.lastMerchantAction);
       this._event('ALPHA27_MERCHANT_MUTATION_FAILED_SAFE', 'error', reason, this.lastMerchantAction);
-      return { executed: true, committed: false, reason };
+      return { executed: true, committed: false, reason, error: details };
     } finally {
       executor.busy = false;
       this.merchantBusy = false;

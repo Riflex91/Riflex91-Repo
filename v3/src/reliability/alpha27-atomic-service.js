@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, text, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
+const { finite, clone, text, errorDetails, errorReason, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, findItem, gradeForLevel, transactionInputs, rawFunction } = require('./alpha27-utils');
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicTransactions } = require('./alpha27-atomic-transactions');
 
@@ -58,14 +58,15 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     this.stats.namedServiceTravels += 1;
     try {
       const response = await this._timeout(smart.fn.call(smart.owner, destination), 'SERVICE_TRAVEL');
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SERVICE_TRAVEL_FAILED'));
+      if (response && response.failed === true) throw response;
       return { ok: true, controlled: false, response: clone(response) };
     } catch (error) {
       try { await Promise.resolve(stop.fn.call(stop.owner, 'smart')); } catch (_) {}
-      const reason = String(error && error.message || error || 'SERVICE_TRAVEL_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'SERVICE_TRAVEL_FAILED';
       if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
-      return { ok: false, reason };
+      return { ok: false, reason, error: details };
     } finally { this.serviceTravelBusy = false; }
   }
 
@@ -103,17 +104,18 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
     try {
       const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'BUY_SCROLL_FAILED'));
+      if (response && response.failed === true) throw response;
       const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
       if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
       this.stats.scrollPurchases += 1;
       scroll = findItem(this.root, scrollName);
       return scroll ? { ok: true, scroll } : { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
     } catch (error) {
-      const reason = String(error && error.message || error || 'BUY_SCROLL_FAILED');
+      const details = errorDetails(error);
+      const reason = details.reason || 'BUY_SCROLL_FAILED';
       this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
-      return { ok: false, reason };
+      return { ok: false, reason, error: details };
     }
   }
 }
