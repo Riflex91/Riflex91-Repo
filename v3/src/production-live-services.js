@@ -2,6 +2,7 @@
 
 const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
+const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -30,13 +31,15 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
       mode: PRODUCTION_LIVE_SERVICES_MODE,
       cloud: alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
-      autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null
+      autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
+      convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
+      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null
     })
   };
   api.cloud = {
@@ -54,13 +57,25 @@ function exposeDiagnostics(api, alpha25, alpha26) {
 function installProductionLiveServices(api, options = {}) {
   const runtime = api && api.__runtime;
   if (!runtime) return null;
-  if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
-    exposeDiagnostics(api, runtime.alpha25ControlCenterBrain, runtime.alpha26CloudUpdateLogisticsUiHotfix);
-    return runtime.productionLiveServices;
-  }
 
+  // These installers are idempotent. Run them before the existing-state early
+  // return so a same-version hot reload can repair a runtime that was created by
+  // an older production bundle where Alpha27/28 were present in source but never
+  // actually attached to the live tick chain.
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
+  const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
+
+  if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
+    Object.assign(runtime.productionLiveServices, {
+      cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
+      safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
+      alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
+      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness
+    });
+    exposeDiagnostics(api, alpha25, alpha26, alpha27);
+    return runtime.productionLiveServices;
+  }
 
   if (!runtime.__productionLiveServicesTickPatched) {
     const baseTick = runtime.tick.bind(runtime);
@@ -78,10 +93,12 @@ function installProductionLiveServices(api, options = {}) {
     installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now(),
     cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
     safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
+    alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
+    alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');

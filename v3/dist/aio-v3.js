@@ -30625,6 +30625,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
+    const productionStatus = typeof this.runtime.merchantProductionStatus === 'function' ? this.runtime.merchantProductionStatus() : null;
+    if (productionStatus && (productionStatus.executionPending === true || productionStatus.controlled && productionStatus.controlled.busy === true)) {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'MERCHANT_PRODUCTION_BUSY' };
+      return false;
+    }
     this.ensureAutonomousAuthorities();
     if (this.atomic.serviceTravelBusy || this.atomic.merchantBusy) return false;
     if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
@@ -30769,6 +30775,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 }
 
 module.exports = { Alpha27MerchantAutonomy };
+
 },
 "src/reliability/alpha27-merchant-constants.js": function(require,module,exports){
 'use strict';
@@ -41502,9 +41509,15 @@ function installMerchantProduction(runtime, options = {}) {
   function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
   function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
+  function alpha27Busy() {
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const merchant = convergence && convergence.merchant;
+    const atomic = merchant && merchant.atomic;
+    return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
+  }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
-    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy;
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy();
   }
   function input() {
     return {
@@ -41575,6 +41588,7 @@ function installMerchantProduction(runtime, options = {}) {
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
       executionPending: state.executionPending,
+      alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
@@ -42216,6 +42230,7 @@ module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRO
 
 const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
+const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -42244,13 +42259,15 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
       mode: PRODUCTION_LIVE_SERVICES_MODE,
       cloud: alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
-      autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null
+      autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
+      convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
+      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null
     })
   };
   api.cloud = {
@@ -42268,13 +42285,25 @@ function exposeDiagnostics(api, alpha25, alpha26) {
 function installProductionLiveServices(api, options = {}) {
   const runtime = api && api.__runtime;
   if (!runtime) return null;
-  if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
-    exposeDiagnostics(api, runtime.alpha25ControlCenterBrain, runtime.alpha26CloudUpdateLogisticsUiHotfix);
-    return runtime.productionLiveServices;
-  }
 
+  // These installers are idempotent. Run them before the existing-state early
+  // return so a same-version hot reload can repair a runtime that was created by
+  // an older production bundle where Alpha27/28 were present in source but never
+  // actually attached to the live tick chain.
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
+  const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
+
+  if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
+    Object.assign(runtime.productionLiveServices, {
+      cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
+      safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
+      alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
+      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness
+    });
+    exposeDiagnostics(api, alpha25, alpha26, alpha27);
+    return runtime.productionLiveServices;
+  }
 
   if (!runtime.__productionLiveServicesTickPatched) {
     const baseTick = runtime.tick.bind(runtime);
@@ -42292,10 +42321,12 @@ function installProductionLiveServices(api, options = {}) {
     installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now(),
     cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
     safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
+    alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
+    alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');

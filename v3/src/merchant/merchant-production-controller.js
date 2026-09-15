@@ -53,9 +53,15 @@ function installMerchantProduction(runtime, options = {}) {
   function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
   function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
+  function alpha27Busy() {
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const merchant = convergence && convergence.merchant;
+    const atomic = merchant && merchant.atomic;
+    return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
+  }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
-    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy;
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy();
   }
   function input() {
     return {
@@ -126,6 +132,7 @@ function installMerchantProduction(runtime, options = {}) {
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
       executionPending: state.executionPending,
+      alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK

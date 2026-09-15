@@ -9,6 +9,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
+    const productionStatus = typeof this.runtime.merchantProductionStatus === 'function' ? this.runtime.merchantProductionStatus() : null;
+    if (productionStatus && (productionStatus.executionPending === true || productionStatus.controlled && productionStatus.controlled.busy === true)) {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'MERCHANT_PRODUCTION_BUSY' };
+      return false;
+    }
     this.ensureAutonomousAuthorities();
     if (this.atomic.serviceTravelBusy || this.atomic.merchantBusy) return false;
     if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
