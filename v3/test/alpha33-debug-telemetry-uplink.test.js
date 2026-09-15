@@ -3,7 +3,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { BrowserBotClient, browserDispatcher } = require('../host/browser-bot-client');
-const { DebugTelemetryExporter } = require('../host/debug-telemetry-exporter');
+const {
+  DebugTelemetryExporter,
+  MIN_PRODUCTION_INTERVAL_MS,
+  DEFAULT_MIN_INTERVAL_MS,
+  projectedMonthlyInvocations
+} = require('../host/debug-telemetry-exporter');
 const { ProductionHostHarness } = require('../host/production-host-harness');
 
 function pageWithOperations(operations) {
@@ -97,6 +102,7 @@ test('debug telemetry exporter advances event cursor only after successful authe
   assert.equal(first.sent, true);
   assert.equal(first.maxSeq, 2);
   assert.equal(exporter.status().lastEventSeq, 2);
+  assert.equal(exporter.status().minIntervalMs, MIN_PRODUCTION_INTERVAL_MS);
   assert.equal(posts.length, 1);
   assert.equal(posts[0].request.headers.authorization, 'Bearer host-only-secret');
   const body = JSON.parse(posts[0].request.body);
@@ -107,8 +113,25 @@ test('debug telemetry exporter advances event cursor only after successful authe
   assert.equal(JSON.stringify(exporter.status()).includes('host-only-secret'), false);
 
   now += 1000;
+  const throttled = await exporter.tick(botClient);
+  assert.equal(throttled.reason, 'DEBUG_TELEMETRY_BACKOFF');
+  assert.equal(exporter.status().lastEventSeq, 2);
+  assert.equal(posts.length, 1);
+
+  now += MIN_PRODUCTION_INTERVAL_MS - 1000;
   await exporter.tick(botClient);
   assert.equal(exporter.status().lastEventSeq, 4);
+  assert.equal(posts.length, 2);
+});
+
+test('debug telemetry defaults guarantee the four-exporter monthly invocation budget', () => {
+  const exporter = new DebugTelemetryExporter({ endpoint: 'https://example.supabase.co/functions/v1/bot-debug-ingest', token: 'secret' });
+  const status = exporter.status();
+  assert.equal(status.minIntervalMs, DEFAULT_MIN_INTERVAL_MS);
+  assert.equal(status.quotaPolicy.projectedFourExporters, projectedMonthlyInvocations(DEFAULT_MIN_INTERVAL_MS, 4));
+  assert.equal(status.quotaPolicy.projectedFourExporters, 89280);
+  assert.equal(status.quotaPolicy.withinBudgetAtFourExporters, true);
+  assert.equal(projectedMonthlyInvocations(MIN_PRODUCTION_INTERVAL_MS, 4), 178560);
 });
 
 test('failed telemetry upload keeps cursor, backs off, and never throws into bot host control flow', async () => {
@@ -131,6 +154,7 @@ test('failed telemetry upload keeps cursor, backs off, and never throws into bot
   assert.equal(failed.reason, 'DEBUG_TELEMETRY_FAILED');
   assert.equal(exporter.status().lastEventSeq, 0);
   assert.equal(exporter.status().failuresInRow, 1);
+  assert.equal(exporter.status().minIntervalMs, MIN_PRODUCTION_INTERVAL_MS);
 
   now += 500;
   const backedOff = await exporter.tick(client);
