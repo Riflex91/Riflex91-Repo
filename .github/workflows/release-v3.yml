@@ -23,29 +23,6 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
-      - name: Diagnose update supervisor test
-        working-directory: v3
-        shell: bash
-        run: |
-          {
-            echo '--- update/supervisor files ---'
-            find test src -type f | grep -Ei 'update|supervisor' || true
-            echo '--- failing test title references ---'
-            grep -R -n -C 30 "surfaces guarded apply failure" test src || true
-            echo '--- apply_failed references ---'
-            grep -R -n -C 20 "apply_failed" test src || true
-            echo '--- superseded references ---'
-            grep -R -n -C 20 "superseded" test src || true
-          } > ../update-supervisor-diagnostic.txt
-      - name: Persist temporary diagnosis
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add update-supervisor-diagnostic.txt
-          git commit -m 'Record temporary update supervisor diagnostics' || exit 0
-          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
@@ -54,7 +31,22 @@ jobs:
         run: npm run preflight
       - name: Run v3 unit tests
         working-directory: v3
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee ../unit-test-output.txt
+      - name: Persist temporary unit-test output
+        if: always() && github.event_name == 'push'
+        shell: bash
+        run: |
+          if [ ! -f unit-test-output.txt ]; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add unit-test-output.txt
+          git commit -m 'Record temporary v3 unit-test output' || exit 0
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Verify bootstrap and runtime bundle syntax and smoke tests
         working-directory: v3
         run: node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js
