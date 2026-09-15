@@ -25,12 +25,12 @@ body.mobile-ui .card{padding:13px;border-radius:15px}.mobile-ui .chargrid{gap:10
 body.mobile-ui .brain-stage{padding:15px;border-radius:17px;min-height:0}.mobile-ui .brain-layout{grid-template-columns:1fr;gap:12px}.mobile-ui .neural-core{width:150px;height:150px}.mobile-ui .core-brain{font-size:55px}.mobile-ui .brain-copy h2{font-size:24px}.mobile-ui .signal-flow{grid-template-columns:1fr}.mobile-ui .signal-step:not(:last-child):after{content:"↓";right:50%;top:auto;bottom:-13px;transform:translate(50%,50%)}
 body.mobile-ui .command-banner{grid-template-columns:1fr}.mobile-ui .command-lights{justify-content:flex-start}.mobile-ui .command-toolbar{top:62px;padding:8px}.mobile-ui .settings-search{min-width:100%;max-width:none}.mobile-ui .settings-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.mobile-ui .settings-actions .btn{width:100%}
 body.mobile-ui .event{grid-template-columns:58px 1fr;gap:7px;padding:11px}.mobile-ui .event .sev{grid-column:2}.mobile-ui .event .component{display:none}
-body.mobile-ui .mobile-bottom-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;z-index:75;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));padding:6px;border:1px solid #29495c;border-radius:17px;background:#06131df2;backdrop-filter:blur(22px);box-shadow:0 18px 46px #000c}
+body.mobile-ui.mobile-ready .mobile-bottom-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;z-index:75;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));padding:6px;border:1px solid #29495c;border-radius:17px;background:#06131df2;backdrop-filter:blur(22px);box-shadow:0 18px 46px #000c}
 body.mobile-ui .mobile-bottom-nav button{border:0;background:transparent;color:#708b9d;border-radius:12px;padding:7px 2px 6px;font-size:9px;font-weight:750;display:grid;gap:2px;place-items:center;cursor:pointer}
 body.mobile-ui .mobile-bottom-nav button i{font-style:normal;font-size:17px;line-height:1}
 body.mobile-ui .mobile-bottom-nav button.active{color:#dffefa;background:#10303a;box-shadow:inset 0 0 0 1px #2b5c66}
-body.mobile-ui .mobile-sheet-backdrop.open{display:block;position:fixed;z-index:78;inset:0;background:#0009;backdrop-filter:blur(3px)}
-body.mobile-ui .mobile-more-sheet.open{display:grid;position:fixed;z-index:79;left:10px;right:10px;bottom:86px;gap:7px;padding:12px;border:1px solid #315367;border-radius:17px;background:#081722f8;box-shadow:0 24px 60px #000d}
+body.mobile-ui.mobile-ready .mobile-sheet-backdrop.open{display:block;position:fixed;z-index:78;inset:0;background:#0009;backdrop-filter:blur(3px)}
+body.mobile-ui.mobile-ready .mobile-more-sheet.open{display:grid;position:fixed;z-index:79;left:10px;right:10px;bottom:86px;gap:7px;padding:12px;border:1px solid #315367;border-radius:17px;background:#081722f8;box-shadow:0 24px 60px #000d}
 body.mobile-ui .mobile-more-sheet button{border:1px solid #24475a;border-radius:11px;background:#0b202c;color:#d6e8f2;padding:11px;text-align:left;font-weight:750;cursor:pointer}.mobile-ui .mobile-more-sheet button.danger{color:#ffb8c1;border-color:#65343e;background:#281218}
 @media(max-width:680px){.view-switch{display:inline-flex;align-items:center}.top>.view-switch{margin-left:auto}}
 `;
@@ -53,14 +53,16 @@ export const MOBILE_SCRIPT = `<script>
   var sheet=document.createElement('div');sheet.className='mobile-more-sheet';sheet.innerHTML='<button data-mobile-page="economy">🧳 Merchant & Economy</button><button data-mobile-page="settings">⚙ Einstellungen</button><button data-mobile-page="events">⚠ Events</button><button data-mobile-page="data">☁ Daten & Datenbanken</button><button class="danger" data-mobile-logout="1">↪ Abmelden</button>';document.body.appendChild(sheet);
   function closeMore(){sheet.classList.remove('open');backdrop.classList.remove('open')}
   function activePage(){var page=document.querySelector('.page.active');return page&&page.dataset.page||'overview'}
+  function syncAuth(){var app=document.getElementById('app'),ready=!!(app&&!app.classList.contains('hidden'));document.body.classList.toggle('mobile-ready',ready);if(!ready)closeMore()}
   function syncActive(){var page=activePage(),main=['overview','characters','combat','brain'].indexOf(page)>=0;bottom.querySelectorAll('button').forEach(function(b){b.classList.toggle('active',b.dataset.mobilePage===page||(!main&&b.dataset.mobileMore==='1'))})}
   function go(page){var b=document.querySelector('#nav button[data-page="'+page+'"]');if(b)b.click();closeMore();syncActive();window.scrollTo({top:0,behavior:'smooth'})}
-  function setMobile(on){mobile=!!on;document.body.classList.toggle('mobile-ui',mobile);switcher.textContent=mobile?'🖥 Desktop':'📱 Mobil';switcher.title=mobile?'Zur Desktop-Ansicht wechseln':'Mobile Ansicht öffnen';try{localStorage.setItem(STORAGE_KEY,mobile?'mobile':'desktop')}catch(e){}var url=new URL(location.href);url.searchParams.set('view',mobile?'mobile':'desktop');history.replaceState(null,'',url.pathname+url.search+url.hash);if(!mobile)closeMore();syncActive()}
+  function setMobile(on){mobile=!!on;document.body.classList.toggle('mobile-ui',mobile);switcher.textContent=mobile?'🖥 Desktop':'📱 Mobil';switcher.title=mobile?'Zur Desktop-Ansicht wechseln':'Mobile Ansicht öffnen';try{localStorage.setItem(STORAGE_KEY,mobile?'mobile':'desktop')}catch(e){}var url=new URL(location.href);url.searchParams.set('view',mobile?'mobile':'desktop');history.replaceState(null,'',url.pathname+url.search+url.hash);if(!mobile)closeMore();syncAuth();syncActive()}
   switcher.addEventListener('click',function(){setMobile(!mobile)});
   bottom.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.mobileMore){sheet.classList.toggle('open');backdrop.classList.toggle('open',sheet.classList.contains('open'));return}if(b.dataset.mobilePage)go(b.dataset.mobilePage)});
   sheet.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.mobilePage)go(b.dataset.mobilePage);if(b.dataset.mobileLogout){var logout=document.getElementById('logout');if(logout)logout.click()}});
   backdrop.addEventListener('click',closeMore);
   var nav=document.getElementById('nav');if(nav)new MutationObserver(syncActive).observe(nav,{attributes:true,subtree:true,attributeFilter:['class']});
+  var app=document.getElementById('app');if(app)new MutationObserver(syncAuth).observe(app,{attributes:true,attributeFilter:['class']});
   setMobile(mobile);
 })();
 </script>`;
