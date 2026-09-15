@@ -6,11 +6,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1055 Zeilen**
+**6 Dateien · 1062 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/index-production.js` | 51 |
+| `src/index-production.js` | 58 |
 | `src/index.js` | 384 |
 | `src/production-live-services.js` | 124 |
 | `src/release-version.js` | 5 |
@@ -58,13 +58,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## control
 
-**4 Dateien · 960 Zeilen**
+**5 Dateien · 1047 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/control/cloud-control-plane.js` | 268 |
 | `src/control/cloud-free-tier-budget.js` | 90 |
 | `src/control/cloud-long-term-persistence.js` | 408 |
+| `src/control/cloud-presence-decoupling.js` | 87 |
 | `src/control/control-plane-config.js` | 194 |
 
 ## core

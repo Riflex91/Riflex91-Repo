@@ -8,10 +8,10 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1055 |
+| (root) | 6 | 1062 |
 | autonomy | 21 | 3962 |
 | brain | 4 | 887 |
-| control | 4 | 960 |
+| control | 5 | 1047 |
 | core | 4 | 508 |
 | economy | 12 | 3861 |
 | farmer | 14 | 2582 |
@@ -42,6 +42,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | --- | --- | ---: |
 | (root) | autonomy | 16 |
 | (root) | brain | 3 |
+| (root) | control | 1 |
 | (root) | core | 6 |
 | (root) | economy | 10 |
 | (root) | farmer | 7 |
