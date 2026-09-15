@@ -1,5 +1,6 @@
 'use strict';
 
+const { RELEASE_VERSION } = require('./release-version');
 const { EventLog } = require('./core/event-log');
 const { Scheduler } = require('./core/scheduler');
 const { GameAdapter } = require('./game/adapter');
@@ -15,7 +16,7 @@ const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
 
-const VERSION = '3.0.0-alpha.8.13';
+const VERSION = RELEASE_VERSION;
 
 class Runtime {
   constructor(options = {}) {

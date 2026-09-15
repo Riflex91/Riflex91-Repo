@@ -5,6 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "cloudflare-dashboard/**"
+      - "v3/src/release-version.js"
+      - "v3/dist/aio-v3.js"
+      - "v3/version.json"
       - "version.json"
       - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
@@ -74,6 +77,37 @@ jobs:
           npx wrangler r2 bucket lifecycle remove aio-v3-logs --id aio-v3-logs-7d --config wrangler.deploy.jsonc || true
           npx wrangler r2 bucket lifecycle add aio-v3-logs aio-v3-logs-7d logs/ --expire-days 7 --force --config wrangler.deploy.jsonc
           npx wrangler r2 bucket lifecycle list aio-v3-logs --config wrangler.deploy.jsonc
+      - name: Publish V3 release artifacts to R2
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Publish the bundle first and the version pointer last so readers never observe
+          # a new release version before its matching bundle is available.
+          npx wrangler r2 object put aio-v3-logs/releases/v3/dist/aio-v3.js \
+            --file=../v3/dist/aio-v3.js \
+            --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' \
+            --remote \
+            --config wrangler.deploy.jsonc
+          npx wrangler r2 object put aio-v3-logs/releases/v3/src/release-version.js \
+            --file=../v3/src/release-version.js \
+            --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' \
+            --remote \
+            --config wrangler.deploy.jsonc
+      - name: Verify V3 release artifacts in R2
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f /tmp/aio-v3-release-version.js /tmp/aio-v3.js
+          npx wrangler r2 object get aio-v3-logs/releases/v3/src/release-version.js --file=/tmp/aio-v3-release-version.js --remote --config wrangler.deploy.jsonc
+          npx wrangler r2 object get aio-v3-logs/releases/v3/dist/aio-v3.js --file=/tmp/aio-v3.js --remote --config wrangler.deploy.jsonc
+          cmp ../v3/src/release-version.js /tmp/aio-v3-release-version.js
+          cmp ../v3/dist/aio-v3.js /tmp/aio-v3.js
       - name: Deploy Worker and dashboard
         if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard

@@ -14,6 +14,10 @@ const DEFAULT_PUSH_ORIGINS = ['https://adventure.land', 'https://www.adventure.l
 const MAX_JSON_BYTES = 512 * 1024;
 const R2_LIST_MAX = 200;
 const lastArchiveDigest = new Map();
+const RELEASE_OBJECTS = Object.freeze({
+  '/v3/src/release-version.js': 'releases/v3/src/release-version.js',
+  '/v3/dist/aio-v3.js': 'releases/v3/dist/aio-v3.js'
+});
 
 function number(value, fallback = 0) {
   const parsed = Number(value);
@@ -202,6 +206,24 @@ async function handleRuntime(request, env, ctx) {
   return withArchiveMeta(response, archive);
 }
 
+async function handleReleaseArtifact(request, env, path) {
+  const key = RELEASE_OBJECTS[path];
+  const cors = { 'access-control-allow-origin': '*' };
+  if (!key) return json({ ok: false, error: 'release artifact not found' }, 404, cors);
+  if (!env.LOG_ARCHIVE || typeof env.LOG_ARCHIVE.get !== 'function') {
+    return json({ ok: false, error: 'R2_BINDING_UNAVAILABLE' }, 503, cors);
+  }
+  const object = await env.LOG_ARCHIVE.get(key);
+  if (!object) return json({ ok: false, error: 'release artifact not published' }, 404, cors);
+  const headers = new Headers(securityHeaders());
+  if (typeof object.writeHttpMetadata === 'function') object.writeHttpMetadata(headers);
+  headers.set('content-type', 'application/javascript; charset=utf-8');
+  headers.set('access-control-allow-origin', '*');
+  headers.set('cache-control', 'no-store, max-age=0');
+  if (object.httpEtag || object.etag) headers.set('etag', object.httpEtag || object.etag);
+  return new Response(object.body, { status: 200, headers });
+}
+
 async function handleArchiveList(request, env) {
   if (!(await requireRead(request, env))) return json({ ok: false, error: 'unauthorized' }, 401);
   if (!env.LOG_ARCHIVE || typeof env.LOG_ARCHIVE.list !== 'function') {
@@ -270,6 +292,12 @@ async function handleHealth(request, env, ctx) {
         d1Events: 'important-only',
         listEndpoint: '/api/v3/log-archives',
         objectEndpoint: '/api/v3/log-archive'
+      },
+      v3ReleaseMirror: {
+        enabled: !!env.LOG_ARCHIVE,
+        releaseVersionEndpoint: '/v3/src/release-version.js',
+        bundleEndpoint: '/v3/dist/aio-v3.js',
+        publicReadOnly: true
       }
     }, response.status, Object.fromEntries(response.headers));
   } catch (_) {
@@ -278,8 +306,10 @@ async function handleHealth(request, env, ctx) {
 }
 
 export {
+  RELEASE_OBJECTS,
   archiveRuntimeEvents,
   filteredRuntimeRequest,
+  handleReleaseArtifact,
   handleArchiveList,
   handleArchiveObject
 };
@@ -288,6 +318,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (request.method === 'GET' && RELEASE_OBJECTS[path]) return handleReleaseArtifact(request, env, path);
     if (request.method === 'POST' && path === '/api/v3/runtime') return handleRuntime(request, env, ctx);
     if (request.method === 'GET' && path === '/api/v3/log-archives') return handleArchiveList(request, env);
     if (request.method === 'GET' && path === '/api/v3/log-archive') return handleArchiveObject(request, env);
