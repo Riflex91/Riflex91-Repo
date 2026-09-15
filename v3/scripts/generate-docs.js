@@ -159,17 +159,22 @@ function extractEnvironmentVariables(sourceFiles) {
 
 function extractEvents(sourceFiles) {
   const events = new Map();
-  const pattern = /\.\s*(on|once|emit|trigger)\s*\(\s*["'`]([^"'`]+)["'`]/g;
+  const patterns = [
+    /\.\s*(on|once|emit|trigger)\s*\(\s*"((?:\\.|[^"\\\n])*)"/g,
+    /\.\s*(on|once|emit|trigger)\s*\(\s*'((?:\\.|[^'\\\n])*)'/g,
+  ];
 
   for (const file of sourceFiles) {
     const text = readText(file);
-    pattern.lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      const [, operation, name] = match;
-      if (!events.has(name)) events.set(name, { operations: new Set(), files: new Set() });
-      events.get(name).operations.add(operation);
-      events.get(name).files.add(relativeToRoot(file));
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const [, operation, name] = match;
+        if (!events.has(name)) events.set(name, { operations: new Set(), files: new Set() });
+        events.get(name).operations.add(operation);
+        events.get(name).files.add(relativeToRoot(file));
+      }
     }
   }
 
