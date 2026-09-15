@@ -100,11 +100,11 @@ test('version parser understands alpha release sequence', () => {
   assert.equal(compareVersions('3.0.0-alpha.20.19', '3.0.0-alpha.20.20'), -1);
 });
 
-test('safe auto updater defaults to the public Cloudflare Pages mirror of GitHub main', () => {
+test('safe auto updater defaults to the existing public Cloudflare Worker release mirror', () => {
   const root = {};
   const runtime = { root, lastSnapshot: { character: { name: 'My_Ranger1', hp: 1, max_hp: 1 }, entities: [] } };
   const updater = new SafeAutoUpdater(runtime, { root, localVersion: '3.0.0-alpha.20.20', fetch: async () => ({ ok: true, text: async () => '' }) });
-  assert.equal(updater.config.rawBaseUrl, 'https://adventure-land---the-code-mmorpg---bot--public.pages.dev/v3');
+  assert.equal(updater.config.rawBaseUrl, 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v3');
   assert.equal(updater.config.rawBaseUrl.includes('raw.githubusercontent.com'), false);
 });
 
@@ -112,11 +112,27 @@ test('safe auto updater defers in danger, then saves active slot and reloads new
   const clock = { value: 1_000_000 };
   const calls = { save: [], load: [], stop: 0 };
   const remoteVersion = '3.0.0-alpha.20.21';
-  const bundle = `/* Adventure Land AiO Bot ${remoteVersion} */\n(function(){ var AIO_V3 = true; })();\n${'x'.repeat(12000)}`;
+  const bundle = `/* Adventure Land AiO Bot ${remoteVersion} */\nconst RELEASE_VERSION = '${remoteVersion}';\n(function(){ var AIO_V3 = true; })();\n${'x'.repeat(12000)}`;
+  const oldApi = {
+    version: '3.0.0-alpha.20.20',
+    __runtime: { timer: {}, startedAt: clock.value - 5000, lastHeartbeat: clock.value - 1000 },
+    status() { return { version: this.version, running: !!this.__runtime.timer }; },
+    stop() { calls.stop += 1; this.__runtime.timer = null; }
+  };
   const root = {
-    AIO_V3: { version: '3.0.0-alpha.20.20', stop() { calls.stop += 1; } },
+    AIO_V3: oldApi,
     get_active_code_slot: () => 7,
-    load_code: async (slot) => { calls.load.push(slot); root.AIO_V3 = { version: remoteVersion }; return true; },
+    load_code: async (slot) => {
+      calls.load.push(slot);
+      const nextRuntime = { timer: {}, startedAt: clock.value, lastHeartbeat: clock.value };
+      root.AIO_V3 = {
+        version: remoteVersion,
+        __runtime: nextRuntime,
+        status: () => ({ version: remoteVersion, running: true }),
+        stop() { nextRuntime.timer = null; }
+      };
+      return true;
+    },
     api_call: async (name, payload) => { calls.save.push({ name, payload }); return { success: true }; }
   };
   const runtime = {
@@ -154,6 +170,7 @@ test('safe auto updater defers in danger, then saves active slot and reloads new
   assert.deepEqual(calls.load, [7]);
   assert.equal(calls.stop, 1);
   assert.equal(updater.status().lastApply.reloaded, true);
+  assert.equal(updater.status().lastApply.handshake.apiVersion, remoteVersion);
 });
 
 test('safe auto updater never applies while local character has active aggro', async () => {
