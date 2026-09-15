@@ -6,7 +6,8 @@ import org.json.JSONObject
 class NativeCharacterSession(
     private val config: NativeClientlessConfig,
     val selection: NativeCharacterSelection,
-    private val api: AdventureLandApi = AdventureLandApi()
+    private val api: AdventureLandApi = AdventureLandApi(),
+    private val botLogic: JSONObject? = null
 ) : AutoCloseable {
     private val socket = SocketIoWebSocket()
     @Volatile private var character = JSONObject().put("name", selection.name)
@@ -52,6 +53,8 @@ class NativeCharacterSession(
 
     fun snapshot(): JSONObject = JSONObject()
         .put("name", selection.name).put("role", selection.role).put("ready", ready)
+        .put("logicVersion", botLogic?.optString("version") ?: JSONObject.NULL)
+        .put("roleLogic", botLogic?.optJSONObject("roles")?.optJSONObject(selection.role) ?: JSONObject.NULL)
         .put("startedAt", startedAt).put("character", JSONObject(character.toString()))
         .put("entities", JSONArray(entities.toString())).put("socketConnected", socket.connected)
         .put("lastError", socket.lastError)
