@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const entry = 'src/index.js';
+const entry = 'src/index-production.js';
 const modules = new Map();
 const version = JSON.parse(fs.readFileSync(path.join(root, 'version.json'), 'utf8')).version;
 
