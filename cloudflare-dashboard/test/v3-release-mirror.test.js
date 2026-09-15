@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import freeTierWorker from '../src/worker-free-tier.js';
 import { RELEASE_OBJECTS, handleReleaseArtifact } from '../src/worker-r2-logs.js';
 
 test('public v3 release mirror serves the exact R2 artifact without a read key', async () => {
@@ -26,6 +27,30 @@ test('public v3 release mirror serves the exact R2 artifact without a read key',
   assert.match(response.headers.get('content-type') || '', /application\/javascript/);
   assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0');
   assert.match(await response.text(), /RELEASE_VERSION/);
+});
+
+test('top-level free-tier worker keeps public release reads independent from D1 archive-budget bookkeeping', async () => {
+  const seen = [];
+  const env = {
+    LOG_ARCHIVE: {
+      async get(key) {
+        seen.push(key);
+        return {
+          body: "'use strict';\nconst RELEASE_VERSION = '3.0.0-alpha.live';\n",
+          etag: 'live-release-etag'
+        };
+      }
+    }
+  };
+  const request = new Request('https://example.test/v3/src/release-version.js', {
+    headers: { origin: 'https://adventure.land' }
+  });
+  const response = await freeTierWorker.fetch(request, env, { waitUntil() {} });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(seen, [RELEASE_OBJECTS['/v3/src/release-version.js']]);
+  assert.equal(response.headers.get('access-control-allow-origin'), '*');
+  assert.match(await response.text(), /3\.0\.0-alpha\.live/);
 });
 
 test('release mirror fails closed when an artifact has not been published', async () => {
