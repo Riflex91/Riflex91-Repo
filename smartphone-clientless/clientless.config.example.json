@@ -1,0 +1,14 @@
+{
+  "credentials": {
+    "email": "you@example.com",
+    "password": "DO_NOT_COMMIT_REAL_PASSWORDS",
+    "secure": true
+  },
+  "region": "EU",
+  "identifier": "I",
+  "heartbeatMs": 15000,
+  "characters": [
+    { "characterName": "YourFarmer", "role": "farmer" },
+    { "characterName": "YourMerchant", "role": "merchant" }
+  ]
+}
