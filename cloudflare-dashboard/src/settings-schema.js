@@ -92,8 +92,8 @@ export const SETTINGS_SCHEMA = Object.freeze([
   b('brain.deterministicFallback','Gehirn & Lernen','Sichere lokale Ersatzentscheidung','Wenn Cloud oder Lernsystem ausfallen, entscheidet weiterhin der normale lokale Bot nach festen Regeln.',true,true,true),
 
   b('cloud.enabled','Cloud & Telemetrie','Web-Dashboard verbinden','Aktiviert die Verbindung zum Web-Dashboard für Statusdaten, Einstellungen und – falls eingeschaltet – den KI-Lehrer.',false,false,true),
-  n('cloud.runtimePushMs','Cloud & Telemetrie','Status senden','Wie oft der Bot seinen aktuellen kompakten Status an das Web-Dashboard sendet.',5000,2000,60000,1000,true),
-  n('cloud.configPullMs','Cloud & Telemetrie','Einstellungen abrufen','Wie oft der Bot prüft, ob im Web-Dashboard Einstellungen geändert wurden.',15000,5000,300000,5000,true),
+  n('cloud.runtimePushMs','Cloud & Telemetrie','Status senden','Wie oft der Bot seinen aktuellen kompakten Status an das Web-Dashboard sendet.',15000,15000,60000,5000,true),
+  n('cloud.configPullMs','Cloud & Telemetrie','Einstellungen abrufen','Wie oft der Bot prüft, ob im Web-Dashboard Einstellungen geändert wurden.',30000,30000,300000,5000,true),
   n('cloud.eventBatchSize','Cloud & Telemetrie','Ereignisse pro Upload','Wie viele Bot-Ereignisse höchstens zusammen in einem Upload an das Dashboard übertragen werden.',80,10,250,10,true),
   n('cloud.dashboardRefreshMs','Cloud & Telemetrie','Dashboard Aktualisierung','Empfohlener Abstand, in dem das Web-Dashboard neue Live-Daten anzeigen soll.',3000,1000,30000,500,true),
   b('cloud.secretsNeverSync','Cloud & Telemetrie','Zugangsdaten niemals übertragen','Passwörter und READ/WRITE/ADMIN-Schlüssel werden weder im Dashboard-Status noch in der Cloud-Datenbank gespeichert.',true,true,true),
