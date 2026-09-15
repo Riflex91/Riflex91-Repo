@@ -1,7 +1,6 @@
 package de.riflex.aio.control
 
 import android.os.Bundle
-import android.text.InputType
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Native Adventure Land login. No WebView/browser session is created. */
+@OptIn(ExperimentalMaterial3Api::class)
 class AdventureLandSessionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
