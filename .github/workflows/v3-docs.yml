@@ -9,6 +9,7 @@ on:
     paths:
       - "v3/README.md"
       - "v3/docs/**"
+      - "v3/scripts/generate-docs.js"
   workflow_dispatch:
 
 permissions:
