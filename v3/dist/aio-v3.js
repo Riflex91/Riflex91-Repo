@@ -35040,8 +35040,8 @@ class CloudControlPlane {
     this.busy = true;
     try {
       const now = this.now();
-      const pushMs = Math.max(2000, finite(this.control.get('cloud.runtimePushMs', 5000), 5000));
-      const pullMs = Math.max(5000, finite(this.control.get('cloud.configPullMs', 15000), 15000));
+      const pushMs = Math.max(15000, finite(this.control.get('cloud.runtimePushMs', 15000), 15000));
+      const pullMs = Math.max(30000, finite(this.control.get('cloud.configPullMs', 30000), 30000));
       if (now - this.lastRuntimePushAt >= pushMs) await this.pushRuntime();
       if (now - this.lastConfigPullAt >= pullMs) await this.syncState();
       if (isMerchant(this.runtime) && this.brain && this.brain.shouldAskTeacher && this.brain.shouldAskTeacher()) await this.askTeacher();
