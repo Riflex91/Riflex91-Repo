@@ -24,12 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: v3/package-lock.json
 
       - name: Install v3 dependencies
         working-directory: v3
-        run: npm ci
+        run: npm install
 
       - name: Preflight guards
         working-directory: v3
