@@ -1,0 +1,49 @@
+name: v3 MP Deadlock Full Test
+
+on:
+  push:
+    branches:
+      - fix/farmer-mp-topoff-deadlock
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v3-full-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v3/package-lock.json
+
+      - name: Install v3 dependencies
+        working-directory: v3
+        run: npm ci
+
+      - name: Preflight guards
+        working-directory: v3
+        run: npm run preflight
+
+      - name: Build production bundle
+        working-directory: v3
+        run: npm run build
+
+      - name: Run complete v3 tests
+        working-directory: v3
+        run: npm test
+
+      - name: Validate bundle syntax
+        working-directory: v3
+        run: node --check dist/aio-v3.js
+
+      - name: Smoke production bundle
+        working-directory: v3
+        run: node scripts/smoke-bundle.js
