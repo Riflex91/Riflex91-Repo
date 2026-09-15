@@ -106,18 +106,20 @@ class Alpha28LedgerFarmerFixes {
       let candidates = plannedCandidates;
       let fallbackScope = 'PLANNED_MONSTER';
 
-      if (!candidates.length) {
-        if (isLeader) {
+      if (isLeader) {
+        if (!candidates.length) {
           candidates = allSafeCandidates;
           fallbackScope = 'SAFE_LIVE_LEADER';
-        } else {
-          let friendlyNames = new Set([String(team.leaderName || '')].filter(Boolean));
-          try {
-            if (typeof farmer._friendlyNames === 'function') friendlyNames = farmer._friendlyNames(snapshot, context.party);
-          } catch (_) {}
-          candidates = allSafeCandidates.filter((entity) => entity.target && friendlyNames.has(String(entity.target)));
-          fallbackScope = 'PARTY_ENGAGED_FOLLOWER';
         }
+      } else {
+        let friendlyNames = new Set([String(team.leaderName || '')].filter(Boolean));
+        try {
+          if (typeof farmer._friendlyNames === 'function') friendlyNames = farmer._friendlyNames(snapshot, context.party);
+        } catch (_) {}
+        const engagedCandidates = allSafeCandidates.filter((entity) => entity.target && friendlyNames.has(String(entity.target)));
+        const engagedPlannedCandidates = engagedCandidates.filter((entity) => String(entity.mtype) === String(plan.monster));
+        candidates = engagedPlannedCandidates.length ? engagedPlannedCandidates : engagedCandidates;
+        fallbackScope = 'PARTY_ENGAGED_FOLLOWER';
       }
 
       const target = candidates[0];
