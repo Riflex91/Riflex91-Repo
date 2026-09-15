@@ -16,6 +16,10 @@ concurrency:
 jobs:
   auto-version:
     runs-on: ubuntu-latest
+    outputs:
+      release_sha: ${{ steps.publish.outputs.release_sha }}
+      release_version: ${{ steps.publish.outputs.release_version }}
+      release_bumped: ${{ steps.publish.outputs.release_bumped }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,6 +35,7 @@ jobs:
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
 
       - name: Publish automatic v3 release bump
+        id: publish
         shell: bash
         env:
           ORIGINAL_BEFORE_SHA: ${{ github.event.before }}
@@ -54,7 +59,10 @@ jobs:
             )
 
             if git diff --quiet -- v3; then
-              echo "Latest main already contains a newer release version; no additional bump is required."
+              echo "Latest main already contains the release version for this push; deploying exact main ${base_sha}."
+              echo "release_sha=${base_sha}" >> "$GITHUB_OUTPUT"
+              echo "release_version=${from_version}" >> "$GITHUB_OUTPUT"
+              echo "release_bumped=false" >> "$GITHUB_OUTPUT"
               echo "::endgroup::"
               exit 0
             fi
@@ -75,7 +83,11 @@ jobs:
             fi
 
             if git push origin HEAD:main; then
-              echo "Published automatic v3 release bump ${from_version} -> ${to_version}."
+              release_sha="$(git rev-parse HEAD)"
+              echo "release_sha=${release_sha}" >> "$GITHUB_OUTPUT"
+              echo "release_version=${to_version}" >> "$GITHUB_OUTPUT"
+              echo "release_bumped=true" >> "$GITHUB_OUTPUT"
+              echo "Published automatic v3 release bump ${from_version} -> ${to_version} at ${release_sha}."
               echo "::endgroup::"
               exit 0
             fi
@@ -86,3 +98,11 @@ jobs:
 
           echo "::error::main kept advancing during all ${max_attempts} guarded version attempts; refusing to force-push a stale release bump."
           exit 1
+
+  deploy-release:
+    needs: auto-version
+    if: needs.auto-version.outputs.release_sha != ''
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      release_sha: ${{ needs.auto-version.outputs.release_sha }}
+    secrets: inherit
