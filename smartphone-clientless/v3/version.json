@@ -1,0 +1,8 @@
+{
+  "version": "3.0.0-alpha.20.28",
+  "channel": "alpha",
+  "schemaVersion": 1,
+  "defaultMode": "shadow",
+  "build": "2026-09-15",
+  "productionReplacement": false
+}

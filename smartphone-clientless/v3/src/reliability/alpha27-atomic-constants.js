@@ -1,0 +1,12 @@
+'use strict';
+
+const CONTROLLED_ACK = 'CONTROLLED_CANARY';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const EXPECTED_DISPOSITIONS = Object.freeze({
+  SELL: new Set(['SELL']),
+  BANK: new Set(['BANK']),
+  UPGRADE: new Set(['RESERVE_UPGRADE', 'RESERVE_PROGRESSION']),
+  COMPOUND: new Set(['RESERVE_COMPOUND'])
+});
+
+module.exports = { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS };
