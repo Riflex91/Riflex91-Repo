@@ -5,6 +5,7 @@ const { Alpha28MerchantTransfers } = require('./alpha28-merchant-transfers');
 const { Alpha28CrossMapFarmerProgression } = require('./alpha28-cross-map-farmer');
 const { Alpha28BrainCloud } = require('./alpha28-brain-cloud');
 const { installAlpha2023IdleDeadlockRecovery } = require('./alpha20-23-idle-deadlock-recovery');
+const { installAlpha2033CombatLogisticsRegressionHotfix } = require('./alpha20-33-combat-logistics-regression-hotfix');
 
 const ALPHA28_MODE = 'alpha28-live-authority-liveness-v1';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -124,6 +125,10 @@ class Alpha28LiveAuthorityLiveness {
     this.transfers = new Alpha28MerchantTransfers(runtime, shared);
     this.crossMap = new Alpha28CrossMapFarmerProgression(runtime, shared);
     this.brainCloud = new Alpha28BrainCloud(runtime, shared);
+    this.combatLogisticsRegression = installAlpha2033CombatLogisticsRegressionHotfix(runtime, {
+      parentAlpha27: options.parentAlpha27,
+      goldWindowMs: 30000
+    });
     this._patchRuntimeTick();
     this._event('ALPHA28_LIVE_AUTHORITY_LIVENESS_INSTALLED', 'warn', 'OPERATOR_REQUESTED_AUTHORITY_ON', this.status());
   }
@@ -152,6 +157,7 @@ class Alpha28LiveAuthorityLiveness {
       merchantTransfers:this.transfers.status(),
       crossMapFarmer:this.crossMap.status(),
       brainCloud:this.brainCloud.status(),
+      combatLogisticsRegression:this.combatLogisticsRegression && this.combatLogisticsRegression.status ? this.combatLogisticsRegression.status() : null,
       policies:{ targetSafetyBypassAdded:false, combatRiskBypassAdded:false, arbitraryTransferExternalPlayersAllowed:false, crossMapServerChangeAllowed:false, followersChooseIndependentProgression:false, brainDirectExecutorAccess:false, cloudFailureStopsLocalBot:false, economyCircuitDisablesTravel:false },
       stats:{...this.stats}
     };
