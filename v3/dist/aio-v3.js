@@ -9,8 +9,19 @@ const base = require('./index');
 const { installMerchantProduction, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./merchant/merchant-production-controller');
 const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionStepKind } = require('./merchant/merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
+const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
+
+function replaceOlderRuntime(root) {
+  const existing = root && root.AIO_V3;
+  if (!existing || !existing.__runtime) return false;
+  if (String(existing.version || '') === String(base.VERSION || '')) return false;
+  try { if (typeof existing.stop === 'function') existing.stop(); } catch (_) {}
+  try { delete root.AIO_V3; } catch (_) { root.AIO_V3 = null; }
+  return true;
+}
 
 function install(root = globalThis, options = {}) {
+  replaceOlderRuntime(root);
   const api = base.install(root, options);
   const runtime = api && api.__runtime;
   if (!runtime) return api;
@@ -24,6 +35,7 @@ function install(root = globalThis, options = {}) {
     executeNext: () => controller.cycle(),
     ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
   };
+  installProductionLiveServices(api, options);
   root.AIO_V3 = api;
   return api;
 }
@@ -31,6 +43,9 @@ function install(root = globalThis, options = {}) {
 module.exports = {
   ...base,
   install,
+  replaceOlderRuntime,
+  installProductionLiveServices,
+  PRODUCTION_LIVE_SERVICES_MODE,
   installMerchantProduction,
   MerchantProductionPlanner,
   MERCHANT_PRODUCTION_PLANNER_MODE,
@@ -42194,6 +42209,111 @@ class ControlledMerchantProductionExecutor {
 }
 
 module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
+},
+"src/production-live-services.js": function(require,module,exports){
+'use strict';
+
+const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
+
+const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
+
+function emitFailure(runtime, service, error) {
+  try {
+    if (runtime && runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'production-live-services',
+        event: 'LIVE_SERVICE_CYCLE_FAILED',
+        severity: 'warn',
+        reason: String(error && error.message || error).slice(0, 240),
+        data: { service, localSafetyUnaffected: true }
+      });
+    }
+  } catch (_) {}
+}
+
+function runService(runtime, service, name) {
+  if (!service || typeof service.beforeTick !== 'function') return false;
+  try {
+    service.beforeTick();
+    return true;
+  } catch (error) {
+    emitFailure(runtime, name, error);
+    return false;
+  }
+}
+
+function exposeDiagnostics(api, alpha25, alpha26) {
+  if (!api || typeof api !== 'object') return false;
+  api.liveServices = {
+    status: () => ({
+      mode: PRODUCTION_LIVE_SERVICES_MODE,
+      cloud: alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
+      autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null
+    })
+  };
+  api.cloud = {
+    status: () => alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
+    configure: (config = {}) => alpha25 && typeof alpha25.configureCloud === 'function' ? alpha25.configureCloud(config) : null
+  };
+  api.autoUpdate = {
+    status: () => alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
+    check: () => alpha26 && alpha26.updater && alpha26.updater.check ? alpha26.updater.check() : Promise.resolve(false),
+    applyPending: () => alpha26 && alpha26.updater && alpha26.updater.applyPending ? alpha26.updater.applyPending() : Promise.resolve(false)
+  };
+  return true;
+}
+
+function installProductionLiveServices(api, options = {}) {
+  const runtime = api && api.__runtime;
+  if (!runtime) return null;
+  if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
+    exposeDiagnostics(api, runtime.alpha25ControlCenterBrain, runtime.alpha26CloudUpdateLogisticsUiHotfix);
+    return runtime.productionLiveServices;
+  }
+
+  const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
+  const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
+
+  if (!runtime.__productionLiveServicesTickPatched) {
+    const baseTick = runtime.tick.bind(runtime);
+    runtime.tick = (...args) => {
+      const result = baseTick(...args);
+      runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
+      runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
+      return result;
+    };
+    runtime.__productionLiveServicesTickPatched = true;
+  }
+
+  const state = {
+    mode: PRODUCTION_LIVE_SERVICES_MODE,
+    installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now(),
+    cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
+    safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
+    tickPatched: runtime.__productionLiveServicesTickPatched === true
+  };
+  runtime.productionLiveServices = state;
+  exposeDiagnostics(api, alpha25, alpha26);
+
+  runService(runtime, alpha25, 'alpha25-control-center');
+  runService(runtime, alpha26, 'alpha26-release-manager');
+
+  try {
+    if (runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({ component: 'production-live-services', event: 'PRODUCTION_LIVE_SERVICES_INSTALLED', data: { ...state } });
+    }
+  } catch (_) {}
+  return state;
+}
+
+module.exports = {
+  PRODUCTION_LIVE_SERVICES_MODE,
+  installProductionLiveServices,
+  runService,
+  exposeDiagnostics
+};
 
 }
 };
