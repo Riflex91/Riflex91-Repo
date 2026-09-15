@@ -14,7 +14,7 @@ test('wrangler serves the dashboard as static assets and keeps APIs worker-first
   assert.equal(wrangler.assets.binding, 'ASSETS');
   assert.deepEqual(wrangler.assets.run_worker_first, ['/api/*']);
   const index = await readFile(resolve(root, 'public/index.html'), 'utf8');
-  assert.match(index, /AiO Bot v3 Control Center/i);
+  assert.match(index, /<title>AiO Bot Dashboard\b/i);
 });
 
 test('dashboard telemetry controls respect the free-tier-safe interval floor', () => {
