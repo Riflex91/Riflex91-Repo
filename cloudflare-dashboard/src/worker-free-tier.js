@@ -17,6 +17,10 @@ import {
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
 const R2_BUCKET = 'aio-v3-logs';
+const PUBLIC_RELEASE_PATHS = new Set([
+  '/v3/src/release-version.js',
+  '/v3/dist/aio-v3.js'
+]);
 const lastR2WriteAt = new Map();
 
 function bytesOf(value) {
@@ -30,6 +34,15 @@ function archiveScope(key) {
   const parts = String(key || '').split('/');
   if (parts[0] !== 'logs' || !parts[1] || !parts[2]) return 'unknown';
   return `${parts[1]}:${parts[2]}`;
+}
+
+function isPublicReleaseRead(request) {
+  if (!request || request.method !== 'GET') return false;
+  try {
+    return PUBLIC_RELEASE_PATHS.has(new URL(request.url).pathname);
+  } catch (_) {
+    return false;
+  }
 }
 
 function budgetError(result) {
@@ -71,9 +84,11 @@ function guardedArchiveBinding(env) {
   };
 }
 
-function guardedEnv(env) {
+function guardedEnv(env, options = {}) {
   const next = { ...env, DB: guardedD1Binding(env && env.DB) };
-  next.LOG_ARCHIVE = guardedArchiveBinding(next);
+  next.LOG_ARCHIVE = options.directReleaseRead
+    ? env && env.LOG_ARCHIVE
+    : guardedArchiveBinding(next);
   return next;
 }
 
@@ -119,13 +134,24 @@ async function withFreeTierHealth(request, response) {
   }
 }
 
-export { archiveScope, bytesOf, guardedArchiveBinding, guardedEnv, WORKER_NAME, R2_BINDING, R2_BUCKET };
+export {
+  PUBLIC_RELEASE_PATHS,
+  archiveScope,
+  bytesOf,
+  guardedArchiveBinding,
+  guardedEnv,
+  isPublicReleaseRead,
+  WORKER_NAME,
+  R2_BINDING,
+  R2_BUCKET
+};
 
 export default {
   async fetch(request, env, ctx) {
     const now = Date.now();
     recordWorkerRequest(now);
-    let response = await r2Worker.fetch(request, guardedEnv(env), ctx);
+    const releaseRead = isPublicReleaseRead(request);
+    let response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
     response = await withQuotaOverview(request, response, env);
     response = await withFreeTierHealth(request, response);
     maybeFlushUsage(env, ctx, now);
