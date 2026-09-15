@@ -2,14 +2,16 @@ name: android-app
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "feat/android-login-form"]
     paths:
       - "android-app/**"
+      - "smartphone-clientless/**"
       - ".github/workflows/android-app.yml"
   push:
-    branches: ["main", "feature/android-**"]
+    branches: ["main", "feature/android-**", "feat/smartphone-clientless"]
     paths:
       - "android-app/**"
+      - "smartphone-clientless/**"
       - ".github/workflows/android-app.yml"
 
 permissions:
@@ -37,6 +39,6 @@ jobs:
         run: gradle :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: aio-bot-control-debug-apk
+          name: aio-smartphone-clientless-debug-apk
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
