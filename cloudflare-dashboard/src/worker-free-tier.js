@@ -6,6 +6,13 @@ import {
   reserveR2ClassBBudget,
   reserveR2LiveStorageBudget
 } from './free-tier-budget.js';
+import {
+  getQuotaUsage,
+  guardedD1Binding,
+  maybeFlushUsage,
+  quotaPolicy,
+  recordWorkerRequest
+} from './quota-usage.js';
 
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
@@ -65,7 +72,29 @@ function guardedArchiveBinding(env) {
 }
 
 function guardedEnv(env) {
-  return { ...env, LOG_ARCHIVE: guardedArchiveBinding(env) };
+  const next = { ...env, DB: guardedD1Binding(env && env.DB) };
+  next.LOG_ARCHIVE = guardedArchiveBinding(next);
+  return next;
+}
+
+function jsonResponse(payload, response) {
+  return new Response(JSON.stringify(payload), {
+    status: response.status,
+    headers: { ...Object.fromEntries(response.headers), 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+  });
+}
+
+async function withQuotaOverview(request, response, env) {
+  if (request.method !== 'GET' || new URL(request.url).pathname !== '/api/v3/overview') return response;
+  if (response.status >= 400) return response;
+  try {
+    const payload = await response.clone().json();
+    if (!payload || payload.ok === false) return response;
+    const quotaUsage = await getQuotaUsage(env, globalThis.fetch, Date.now());
+    return jsonResponse({ ...payload, quotaUsage }, response);
+  } catch (_) {
+    return response;
+  }
 }
 
 async function withFreeTierHealth(request, response) {
@@ -73,29 +102,32 @@ async function withFreeTierHealth(request, response) {
   try {
     const payload = await response.clone().json();
     const endpoint = new URL(request.url).origin;
-    return new Response(JSON.stringify({
+    return jsonResponse({
       ...payload,
       cloudflareConfiguration: {
         worker: WORKER_NAME,
         endpoint,
         r2Binding: R2_BINDING,
         r2Bucket: R2_BUCKET,
-        freeTierGuard: budgetPolicy()
+        freeTierGuard: budgetPolicy(),
+        quotaDisplay: quotaPolicy()
       }
-    }), {
-      status: response.status,
-      headers: { ...Object.fromEntries(response.headers), 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-    });
+    }, response);
   } catch (_) {
     return response;
   }
 }
 
-export { archiveScope, bytesOf, guardedArchiveBinding, WORKER_NAME, R2_BINDING, R2_BUCKET };
+export { archiveScope, bytesOf, guardedArchiveBinding, guardedEnv, WORKER_NAME, R2_BINDING, R2_BUCKET };
 
 export default {
   async fetch(request, env, ctx) {
-    const response = await r2Worker.fetch(request, guardedEnv(env), ctx);
-    return withFreeTierHealth(request, response);
+    const now = Date.now();
+    recordWorkerRequest(now);
+    let response = await r2Worker.fetch(request, guardedEnv(env), ctx);
+    response = await withQuotaOverview(request, response, env);
+    response = await withFreeTierHealth(request, response);
+    maybeFlushUsage(env, ctx, now);
+    return response;
   }
 };
