@@ -8,6 +8,4 @@ Erfasst werden String-Literale als erstes Argument von Aufrufen der Form `.on(..
 
 | Event | Operationen | Fundstellen |
 | --- | --- | --- |
-| `[${this.label}] Beobachtung abgeschlossen.` | `emit` | `src/ops/minute-countdown-reporter.js` |
-| `[${this.label}] gestartet — ${Math.ceil(this.durationMs / 60000)} Minuten Beobachtung.` | `emit` | `src/ops/minute-countdown-reporter.js` |
-| `[${this.label}] noch ${minutes} Minute${minutes === 1 ? ` | `emit` | `src/ops/minute-countdown-reporter.js` |
+| – | – | Keine statisch erkannten Event-Literale |
