@@ -4,17 +4,20 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { SETTINGS_BY_KEY } from '../src/settings-schema.js';
+import { DASHBOARD_HTML } from '../src/dashboard.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 
-test('wrangler serves the dashboard as static assets and keeps APIs worker-first', async () => {
+test('wrangler keeps the live v3 dashboard root and APIs worker-first', async () => {
   const wrangler = JSON.parse(await readFile(resolve(root, 'wrangler.jsonc'), 'utf8'));
   assert.equal(wrangler.assets.directory, './public');
   assert.equal(wrangler.assets.binding, 'ASSETS');
-  assert.deepEqual(wrangler.assets.run_worker_first, ['/api/*']);
-  const index = await readFile(resolve(root, 'public/index.html'), 'utf8');
-  assert.match(index, /<title>AiO Bot Dashboard\b/i);
+  assert.ok(wrangler.assets.run_worker_first.includes('/'));
+  assert.ok(wrangler.assets.run_worker_first.includes('/api/*'));
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
+  assert.match(DASHBOARD_HTML, /\/api\/v3\/brain/);
+  assert.doesNotMatch(DASHBOARD_HTML, /api\('\/api\/status'/);
 });
 
 test('dashboard telemetry controls respect the free-tier-safe interval floor', () => {
