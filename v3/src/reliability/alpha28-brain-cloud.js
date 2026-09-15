@@ -1,6 +1,10 @@
 'use strict';
 
+const { ACTIVE_CLOUDFLARE_BASE_URL } = require('../control/cloud-free-tier-budget');
+
 function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+
+const MIGRATABLE_CLOUD_SOURCES = new Set(['local-v3-storage', 'v2-stable-config', 'v2-stable-config-scan', 'v2-account-config']);
 
 class Alpha28BrainCloud {
   constructor(runtime, shared) {
@@ -12,13 +16,34 @@ class Alpha28BrainCloud {
     this.plannerPatched = false;
     this.lastDecision = null;
     this.lastBrainAt = -Infinity;
+    this.cloudEndpointRepaired = false;
   }
   event(event, severity = 'info', reason = null, data = {}) { try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-brain-cloud', event, severity, reason, data }); } catch (_) {} }
+
+  repairCloudEndpoint() {
+    const cloud = this.runtime.cloudControlPlane;
+    if (!cloud || !cloud.credentials || typeof cloud.configure !== 'function') return false;
+    const current = String(cloud.credentials.baseUrl || '').replace(/\/+$/, '');
+    if (!current || current === ACTIVE_CLOUDFLARE_BASE_URL) return false;
+    if (!MIGRATABLE_CLOUD_SOURCES.has(String(cloud.credentialSource || ''))) return false;
+    const previous = current;
+    cloud.configure({ baseUrl: ACTIVE_CLOUDFLARE_BASE_URL });
+    this.cloudEndpointRepaired = true;
+    this.stats.cloudEndpointRepairs = Number(this.stats.cloudEndpointRepairs || 0) + 1;
+    this.event('ALPHA28_CLOUD_ENDPOINT_REPAIRED', 'warn', 'STALE_STORED_ENDPOINT', {
+      previous,
+      current: ACTIVE_CLOUDFLARE_BASE_URL,
+      source: cloud.credentialSource,
+      preservesWriteKey: !!cloud.credentials.writeKey
+    });
+    return true;
+  }
 
   ensureSettings() {
     const alpha25 = this.runtime.alpha25ControlCenterBrain;
     const cp = this.runtime.controlPlane;
     if (!alpha25 || !cp || typeof alpha25.patchSettings !== 'function') return false;
+    this.repairCloudEndpoint();
     const needs = {};
     if (cp.get('brain.mode', 'shadow') !== 'canary') needs['brain.mode'] = 'canary';
     if (cp.get('cloud.enabled', false) !== true) needs['cloud.enabled'] = true;
@@ -80,6 +105,8 @@ class Alpha28BrainCloud {
       cloudEnabled: !!(cp && cp.get('cloud.enabled') === true),
       cloudReady: !!(cloud && cloud.ready),
       cloudOfflineSafe: true,
+      cloudEndpointCanonical: !!(cloud && cloud.configured && String(cloud.configured.baseUrl || '').replace(/\/+$/, '') === ACTIVE_CLOUDFLARE_BASE_URL),
+      cloudEndpointRepaired: this.cloudEndpointRepaired,
       plannerPatched: this.plannerPatched,
       lastDecision: clone(this.lastDecision)
     };
