@@ -2,6 +2,45 @@
 (function(root){
 'use strict';
 var modules={
+"src/index-production.js": function(require,module,exports){
+'use strict';
+
+const base = require('./index');
+const { installMerchantProduction, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./merchant/merchant-production-controller');
+const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionStepKind } = require('./merchant/merchant-production-planner');
+const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
+
+function install(root = globalThis, options = {}) {
+  const api = base.install(root, options);
+  const runtime = api && api.__runtime;
+  if (!runtime) return api;
+  const controller = installMerchantProduction(runtime, options);
+  api.merchantProduction = {
+    status: () => controller.status(),
+    evaluate: () => controller.evaluate(),
+    configure: (config = {}) => controller.configure(config),
+    disable: (reason) => controller.disable(reason),
+    reconcile: () => controller.reconcile(),
+    executeNext: () => controller.cycle(),
+    ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
+  };
+  root.AIO_V3 = api;
+  return api;
+}
+
+module.exports = {
+  ...base,
+  install,
+  installMerchantProduction,
+  MerchantProductionPlanner,
+  MERCHANT_PRODUCTION_PLANNER_MODE,
+  ProductionStepKind,
+  ControlledMerchantProductionExecutor,
+  CONTROLLED_MERCHANT_PRODUCTION_MODE,
+  CONTROLLED_MERCHANT_PRODUCTION_ACK
+};
+
+},
 "src/index.js": function(require,module,exports){
 'use strict';
 
@@ -41391,6 +41430,771 @@ module.exports = {
   OPERATOR_RUN_CONTROL_MODE
 };
 
+},
+"src/merchant/merchant-production-controller.js": function(require,module,exports){
+'use strict';
+
+const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
+const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
+
+const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
+
+function n(value, fallback = null) { const x = Number(value); return Number.isFinite(x) ? x : fallback; }
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+
+function installMerchantProduction(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.__merchantProductionController) return runtime.__merchantProductionController;
+
+  const planner = options.planner || new MerchantProductionPlanner({
+    now: runtime.now,
+    log: runtime.log,
+    maxDepth: options.merchantProductionMaxDepth,
+    minImprovementRatio: options.merchantProductionMinImprovementRatio,
+    goldReserve: options.merchantProductionGoldReserve,
+    maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
+    targets: options.merchantProductionTargets
+  });
+  const executor = options.executor || new ControlledMerchantProductionExecutor({
+    root: runtime.root,
+    now: runtime.now,
+    log: runtime.log,
+    storage: options.merchantProductionStorage || options.storage,
+    storageKey: options.merchantProductionStorageKey,
+    getMode: () => runtime.adapter && runtime.adapter.mode,
+    getSupervisorStatus: () => runtime.globalSupervisor && runtime.globalSupervisor.status ? runtime.globalSupervisor.status() : { state: 'UNKNOWN' },
+    getEconomyEmergency: () => typeof runtime._alpha20EconomyEmergency === 'function' ? runtime._alpha20EconomyEmergency() : false,
+    contentDrift: runtime.contentDrift,
+    timeoutMs: options.merchantProductionTimeoutMs,
+    verifyDelayMs: options.merchantProductionVerifyDelayMs,
+    verifyAttempts: options.merchantProductionVerifyAttempts,
+    actionWindowMs: options.merchantProductionActionWindowMs,
+    maxActionsPerWindow: options.merchantProductionMaxActionsPerWindow,
+    maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
+    goldReserve: options.merchantProductionGoldReserve
+  });
+
+  const state = {
+    intervalMs: Math.max(1000, Math.min(60000, n(options.merchantProductionIntervalMs, 3500))),
+    lastCycleAt: -Infinity,
+    lastPlan: null,
+    lastExecution: null,
+    executionPending: false,
+    pausedUntil: 0,
+    failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000)))
+  };
+
+  function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
+  function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
+  function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
+  function controlledBusy() {
+    const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy;
+  }
+  function input() {
+    return {
+      character: character() || {},
+      registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
+      gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
+      contentDrift: runtime.contentDrift,
+      inCombat: inCombat(),
+      economyEmergency: typeof runtime._alpha20EconomyEmergency === 'function' ? runtime._alpha20EconomyEmergency() : false,
+      controlledBusy: controlledBusy()
+    };
+  }
+  function vendorNearby(step) {
+    if (!step || step.kind !== ProductionStepKind.BUY || !step.vendor) return true;
+    const c = character() || {};
+    if (step.vendor.map && c.map && String(step.vendor.map) !== String(c.map)) return false;
+    const cx = n(c.real_x, n(c.x)); const cy = n(c.real_y, n(c.y)); const vx = n(step.vendor.x); const vy = n(step.vendor.y);
+    if (cx == null || cy == null || vx == null || vy == null) return true;
+    return Math.hypot(cx - vx, cy - vy) <= 450;
+  }
+
+  function evaluate() {
+    if (!isMerchant()) return null;
+    state.lastPlan = planner.plan(input());
+    return clone(state.lastPlan);
+  }
+
+  function schedule(plan) {
+    if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled) return false;
+    if (runtime.now() < state.pausedUntil) return false;
+    if (!vendorNearby(plan.nextStep)) {
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'VENDOR_TRAVEL_REQUIRED', vendor: clone(plan.nextStep.vendor) } };
+      return false;
+    }
+    state.executionPending = true;
+    Promise.resolve(executor.execute(plan, plan.nextStep))
+      .then((result) => {
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: clone(result) };
+        if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
+        if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: plan.nextStep.kind, item: plan.nextStep.name } });
+      })
+      .catch((error) => {
+        state.pausedUntil = runtime.now() + state.failureCooldownMs;
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
+      })
+      .finally(() => { state.executionPending = false; });
+    return true;
+  }
+
+  function cycle() { const plan = evaluate(); schedule(plan); return plan; }
+  function configure(config = {}) {
+    if (config.enabled === true && typeof runtime._liveEnableGate === 'function') {
+      const gate = runtime._liveEnableGate();
+      if (!gate || gate.allowed !== true) return { ...status(), enableRejected: gate && gate.reason || 'LIVE_GATE_REJECTED' };
+    }
+    executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true });
+    return status();
+  }
+  function disable(reason = 'OPERATOR_DISABLED') { executor.disable(reason); return status(); }
+  function reconcile() { return executor.reconcile(); }
+  function status() {
+    return {
+      schemaVersion: 1,
+      mode: MERCHANT_PRODUCTION_CONTROLLER_MODE,
+      planner: planner.status(),
+      controlled: executor.status(),
+      intervalMs: state.intervalMs,
+      lastPlan: clone(state.lastPlan),
+      lastExecution: clone(state.lastExecution),
+      executionPending: state.executionPending,
+      pausedUntil: state.pausedUntil || null,
+      failureCooldownMs: state.failureCooldownMs,
+      explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
+    };
+  }
+
+  const baseTick = runtime.tick.bind(runtime);
+  runtime.tick = function merchantProductionTick() {
+    const result = baseTick();
+    const now = runtime.now();
+    if (now - state.lastCycleAt >= state.intervalMs) { state.lastCycleAt = now; cycle(); }
+    return result;
+  };
+
+  const baseStatus = runtime.status.bind(runtime);
+  runtime.status = function merchantProductionStatusWrapped() { return { ...baseStatus(), merchantProduction: status() }; };
+
+  const baseExport = runtime.exportDiagnostics.bind(runtime);
+  runtime.exportDiagnostics = function merchantProductionDiagnostics() {
+    const data = JSON.parse(baseExport());
+    data.context = data.context || {};
+    data.context.merchantProduction = status();
+    return JSON.stringify(data, null, 2);
+  };
+
+  const baseSetMode = runtime.setMode.bind(runtime);
+  runtime.setMode = function merchantProductionSetMode(mode) { const resolved = baseSetMode(mode); if (resolved !== 'active') disable('RUNTIME_LEFT_ACTIVE_MODE'); return resolved; };
+
+  const baseStop = runtime.stop.bind(runtime);
+  runtime.stop = function merchantProductionStop() { disable('RUNTIME_STOP'); return baseStop(); };
+
+  runtime.merchantProductionPlanner = planner;
+  runtime.controlledMerchantProduction = executor;
+  runtime.configureMerchantProduction = configure;
+  runtime.disableMerchantProduction = disable;
+  runtime.reconcileMerchantProduction = reconcile;
+  runtime.evaluateMerchantProduction = cycle;
+  runtime.merchantProductionStatus = status;
+
+  const controller = { planner, executor, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  runtime.__merchantProductionController = controller;
+  return controller;
+}
+
+module.exports = { installMerchantProduction, MERCHANT_PRODUCTION_CONTROLLER_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
+},
+"src/merchant/merchant-production-planner.js": function(require,module,exports){
+'use strict';
+
+const { scoreItem, candidateSlots } = require('../economy/gear-progression');
+
+const MERCHANT_PRODUCTION_PLANNER_MODE = 'deterministic-merchant-production-planner';
+
+const ProductionStepKind = Object.freeze({
+  BANK_RETRIEVE: 'BANK_RETRIEVE',
+  BANK_STORE: 'BANK_STORE',
+  BUY: 'BUY',
+  CRAFT: 'CRAFT',
+  FARM_REQUIRED: 'FARM_REQUIRED'
+});
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function levelOf(item) {
+  return Math.max(0, Math.floor(finite(item && item.level, 0)));
+}
+
+function itemKey(name, level = 0) {
+  return `${String(name || '')}|${Math.max(0, Math.floor(finite(level, 0)))}`;
+}
+
+function itemQuantity(items, name, level = 0) {
+  const wanted = itemKey(name, level);
+  let total = 0;
+  for (const item of Array.isArray(items) ? items : []) {
+    if (!item || itemKey(item.name, item.level) !== wanted) continue;
+    total += Math.max(1, Math.floor(finite(item.q, 1)));
+  }
+  return total;
+}
+
+function recipeFor(gameData, name) {
+  const raw = gameData && gameData.craft && gameData.craft[name];
+  if (!raw || !Array.isArray(raw.items) || !raw.items.length) return null;
+  const items = [];
+  for (const row of raw.items) {
+    if (!Array.isArray(row) || !row[1]) return null;
+    items.push({
+      quantity: Math.max(1, Math.floor(finite(row[0], 1))),
+      name: String(row[1]),
+      level: Math.max(0, Math.floor(finite(row[2], 0)))
+    });
+  }
+  return {
+    output: String(name),
+    outputQuantity: Math.max(1, Math.floor(finite(raw.q, finite(raw.quantity, 1)))),
+    cost: Math.max(0, Math.floor(finite(raw.cost, 0))),
+    items
+  };
+}
+
+function compatible(meta, character) {
+  if (!meta || !character) return false;
+  const classes = Array.isArray(meta.class) ? meta.class : meta.class ? [meta.class] : [];
+  if (classes.length && !classes.map((x) => String(x).toLowerCase()).includes(String(character.ctype || '').toLowerCase())) return false;
+  const required = Math.max(0, finite(meta.level, 0));
+  return required <= Math.max(0, finite(character.level, 0));
+}
+
+function currentItem(character, slot, gameData) {
+  const equipped = character && character.gear && character.gear[slot];
+  if (!equipped || !equipped.name) return { name: null, level: 0, score: { total: 0, survival: 0 } };
+  const meta = gameData && gameData.items && gameData.items[equipped.name];
+  return {
+    name: String(equipped.name),
+    level: levelOf(equipped),
+    score: scoreItem(meta, levelOf(equipped), character.ctype)
+  };
+}
+
+function registryCharacters(registry) {
+  const status = registry && typeof registry.status === 'function' ? registry.status() : registry;
+  return Array.isArray(status && status.characters) ? status.characters.filter((row) => row && row.name && row.ctype) : [];
+}
+
+function bankRows(bank) {
+  const rows = [];
+  if (!bank || typeof bank !== 'object') return rows;
+  for (const [pack, items] of Object.entries(bank)) {
+    if (!/^items\d+$/.test(String(pack)) || !Array.isArray(items)) continue;
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (!item || !item.name) continue;
+      rows.push({
+        pack: String(pack),
+        index,
+        name: String(item.name),
+        level: levelOf(item),
+        quantity: Math.max(1, Math.floor(finite(item.q, 1)))
+      });
+    }
+  }
+  return rows;
+}
+
+function vendorItemName(value) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value[0] == null ? null : String(value[0]);
+  if (value && typeof value === 'object') return value.name == null ? null : String(value.name);
+  return null;
+}
+
+function vendorIndex(gameData) {
+  const out = new Map();
+  const npcDefs = gameData && gameData.npcs || {};
+  const maps = gameData && gameData.maps || {};
+  for (const [mapName, map] of Object.entries(maps)) {
+    for (const row of Array.isArray(map && map.npcs) ? map.npcs : []) {
+      const npcId = Array.isArray(row) ? row[0] : row && (row.id || row.name);
+      if (!npcId) continue;
+      const def = npcDefs[npcId] || {};
+      const stock = [].concat(def.items || def.sells || []);
+      let x = null; let y = null;
+      if (Array.isArray(row)) {
+        x = finite(row[1]); y = finite(row[2]);
+      } else if (row && typeof row === 'object') {
+        const pos = Array.isArray(row.position) ? row.position : null;
+        x = finite(row.x, pos ? finite(pos[0]) : null);
+        y = finite(row.y, pos ? finite(pos[1]) : null);
+      }
+      for (const value of stock) {
+        const name = vendorItemName(value);
+        if (!name) continue;
+        if (!out.has(name)) out.set(name, []);
+        out.get(name).push({ npc: String(npcId), map: String(mapName), x, y });
+      }
+    }
+  }
+  return out;
+}
+
+class MerchantProductionPlanner {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.maxDepth = Math.max(1, Math.min(12, Math.floor(finite(options.maxDepth, 7))));
+    this.minImprovementRatio = Math.max(0, Math.min(1, finite(options.minImprovementRatio, 0.04)));
+    this.goldReserve = Math.max(0, Math.floor(finite(options.goldReserve, 1000000)));
+    this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(finite(options.maxBuyQuantity, 1000))));
+    this.explicitTargets = Array.isArray(options.targets) ? options.targets.filter(Boolean).map(String) : [];
+    this.sequence = 0;
+    this.lastPlan = null;
+    this.stats = { plans: 0, ready: 0, blocked: 0, holds: 0, candidates: 0, cyclesRejected: 0, depthRejected: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'merchant-production-planner', event, severity, reason, data });
+  }
+
+  _id() {
+    this.sequence += 1;
+    return `production-${this.now().toString(36)}-${this.sequence.toString(36)}`;
+  }
+
+  _hold(reason, data = {}) {
+    const plan = { schemaVersion: 1, id: this._id(), at: this.now(), state: 'HOLD', reason, actionAuthority: false, liveExecutionAllowed: false, steps: [], reservations: {}, ...clone(data) };
+    this.lastPlan = plan;
+    this.stats.plans += 1;
+    this.stats.holds += 1;
+    return clone(plan);
+  }
+
+  _candidateOutputs(gameData, registry) {
+    const characters = registryCharacters(registry);
+    const craft = gameData && gameData.craft || {};
+    const candidates = [];
+    const targetRank = new Map(this.explicitTargets.map((name, index) => [name, index]));
+    for (const output of Object.keys(craft)) {
+      if (this.explicitTargets.length && !targetRank.has(output)) continue;
+      const recipe = recipeFor(gameData, output);
+      const meta = gameData && gameData.items && gameData.items[output];
+      if (!recipe || !meta) continue;
+      const slots = candidateSlots(meta);
+      if (!slots.length) continue;
+      for (const character of characters) {
+        if (!compatible(meta, character)) continue;
+        const target = scoreItem(meta, 0, character.ctype);
+        let best = null;
+        for (const slot of slots) {
+          const current = currentItem(character, slot, gameData);
+          const threshold = current.score.total <= 0 ? 0 : current.score.total * this.minImprovementRatio;
+          const improvement = target.total - current.score.total;
+          if (improvement <= Math.max(0.001, threshold)) continue;
+          const survivalImprovement = target.survival - current.score.survival;
+          const row = { slot, current, improvement, survivalImprovement };
+          if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
+        }
+        if (!best) continue;
+        candidates.push({
+          output,
+          recipe,
+          recipient: String(character.name),
+          ctype: String(character.ctype),
+          slot: best.slot,
+          currentItem: best.current.name,
+          currentLevel: best.current.level,
+          improvement: best.improvement,
+          survivalImprovement: best.survivalImprovement,
+          targetRank: targetRank.has(output) ? targetRank.get(output) : Infinity
+        });
+      }
+    }
+    candidates.sort((a, b) => {
+      if (a.targetRank !== b.targetRank) return a.targetRank - b.targetRank;
+      if ((a.survivalImprovement > 0) !== (b.survivalImprovement > 0)) return a.survivalImprovement > 0 ? -1 : 1;
+      return b.improvement - a.improvement || b.survivalImprovement - a.survivalImprovement || a.output.localeCompare(b.output) || a.recipient.localeCompare(b.recipient);
+    });
+    this.stats.candidates += candidates.length;
+    return candidates;
+  }
+
+  _buildCandidate(candidate, input) {
+    const character = input.character || {};
+    const gameData = input.gameData || {};
+    const inventory = Array.isArray(character.items) ? character.items : [];
+    const bank = bankRows(character.bank);
+    const vendors = vendorIndex(gameData);
+    const localPool = new Map();
+    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
+    const reservations = {};
+    const steps = [];
+    const blockers = [];
+    let totalGold = 0;
+
+    for (const item of inventory) {
+      if (!item || !item.name) continue;
+      const key = itemKey(item.name, item.level);
+      localPool.set(key, (localPool.get(key) || 0) + Math.max(1, Math.floor(finite(item.q, 1))));
+    }
+
+    const reserveLocal = (name, level, quantity) => {
+      const key = itemKey(name, level);
+      const have = Math.max(0, localPool.get(key) || 0);
+      const take = Math.min(have, Math.max(0, quantity));
+      if (take > 0) {
+        localPool.set(key, have - take);
+        reservations[key] = (reservations[key] || 0) + take;
+      }
+      return take;
+    };
+
+    const takeBank = (name, level, quantity) => {
+      let need = Math.max(0, quantity);
+      let supplied = 0;
+      for (const row of bankPool) {
+        if (need <= 0) break;
+        if (row.name !== name || row.level !== level || row.remaining <= 0) continue;
+        const stackQuantity = row.remaining;
+        row.remaining = 0;
+        supplied += stackQuantity;
+        need = Math.max(0, need - stackQuantity);
+        steps.push({ kind: ProductionStepKind.BANK_RETRIEVE, name, level, quantity: stackQuantity, pack: row.pack, bankIndex: row.index, reason: 'MATERIAL_IN_BANK' });
+      }
+      return supplied;
+    };
+
+    const acquire = (name, level, quantity, depth, path) => {
+      let need = Math.max(0, Math.floor(finite(quantity, 0)));
+      if (!need) return true;
+      const key = itemKey(name, level);
+      if (depth > this.maxDepth) {
+        this.stats.depthRejected += 1;
+        blockers.push({ reason: 'MAX_RECIPE_DEPTH', name, level, quantity: need, depth });
+        return false;
+      }
+      if (path.has(key)) {
+        this.stats.cyclesRejected += 1;
+        blockers.push({ reason: 'RECIPE_CYCLE', name, level, quantity: need });
+        return false;
+      }
+
+      need -= reserveLocal(name, level, need);
+      if (need <= 0) return true;
+
+      const bankSupplied = takeBank(name, level, need);
+      if (bankSupplied > 0) {
+        reservations[key] = (reservations[key] || 0) + Math.min(need, bankSupplied);
+        need = Math.max(0, need - bankSupplied);
+      }
+      if (need <= 0) return true;
+
+      if (level === 0) {
+        const itemMeta = gameData.items && gameData.items[name] || {};
+        const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
+        const vendor = (vendors.get(name) || [])[0] || null;
+        if (vendor && unitCost > 0 && need <= this.maxBuyQuantity) {
+          steps.push({ kind: ProductionStepKind.BUY, name, level: 0, quantity: need, unitCost, vendor, reason: 'VENDOR_SOURCE' });
+          totalGold += unitCost * need;
+          reservations[key] = (reservations[key] || 0) + need;
+          return true;
+        }
+
+        const recipe = recipeFor(gameData, name);
+        if (recipe) {
+          const nextPath = new Set(path); nextPath.add(key);
+          const operations = Math.max(1, Math.ceil(need / recipe.outputQuantity));
+          for (const req of recipe.items) {
+            if (!acquire(req.name, req.level, req.quantity * operations, depth + 1, nextPath)) return false;
+          }
+          for (let i = 0; i < operations; i += 1) {
+            steps.push({ kind: ProductionStepKind.CRAFT, name, level: 0, quantity: recipe.outputQuantity, cost: recipe.cost, recipe: clone(recipe), reason: 'RECIPE_DEPENDENCY' });
+            totalGold += recipe.cost;
+          }
+          reservations[key] = (reservations[key] || 0) + need;
+          return true;
+        }
+      }
+
+      steps.push({ kind: ProductionStepKind.FARM_REQUIRED, name, level, quantity: need, reason: level > 0 ? 'LEVELED_MATERIAL_UNAVAILABLE' : 'NO_BANK_VENDOR_OR_RECIPE_SOURCE' });
+      blockers.push({ reason: 'MATERIAL_FARM_REQUIRED', name, level, quantity: need });
+      return false;
+    };
+
+    const rootPath = new Set([itemKey(candidate.output, 0)]);
+    for (const req of candidate.recipe.items) acquire(req.name, req.level, req.quantity, 1, rootPath);
+    steps.push({ kind: ProductionStepKind.CRAFT, name: candidate.output, level: 0, quantity: candidate.recipe.outputQuantity, cost: candidate.recipe.cost, recipe: clone(candidate.recipe), root: true, recipient: candidate.recipient, slot: candidate.slot, reason: 'ROOT_PRODUCTION_TARGET' });
+    totalGold += candidate.recipe.cost;
+
+    const availableGold = Math.max(0, Math.floor(finite(character.gold, 0)));
+    if (availableGold - totalGold < this.goldReserve) blockers.push({ reason: 'GOLD_RESERVE_WOULD_BE_BREACHED', availableGold, totalGold, goldReserve: this.goldReserve });
+    const executableSteps = steps.filter((step) => step.kind !== ProductionStepKind.FARM_REQUIRED);
+    const ready = blockers.length === 0;
+    return {
+      ready,
+      candidate: clone(candidate),
+      steps,
+      executableSteps,
+      reservations,
+      blockers,
+      totalGold,
+      availableGold,
+      goldReserve: this.goldReserve
+    };
+  }
+
+  plan(input = {}) {
+    const character = input.character || {};
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return this._hold('MERCHANT_REQUIRED');
+    if (character.rip === true || character.dead === true) return this._hold('MERCHANT_DEAD');
+    if (input.inCombat === true) return this._hold('MERCHANT_IN_COMBAT');
+    if (input.economyEmergency === true) return this._hold('ECONOMY_EMERGENCY');
+    if (input.controlledBusy === true) return this._hold('CONTROLLED_SUBSYSTEM_BUSY');
+    const gameData = input.gameData || {};
+    if (!gameData.craft || !gameData.items) return this._hold('CRAFT_DATA_UNAVAILABLE');
+
+    const candidates = this._candidateOutputs(gameData, input.registry);
+    if (!candidates.length) return this._hold('NO_CRAFTED_GEAR_IMPROVEMENT');
+
+    let bestBlocked = null;
+    for (const candidate of candidates.slice(0, 32)) {
+      if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
+        try { if (input.contentDrift.requiresRevalidation('items', candidate.output)) continue; } catch (_) { continue; }
+      }
+      const built = this._buildCandidate(candidate, input);
+      if (!bestBlocked) bestBlocked = built;
+      if (!built.ready) continue;
+      const plan = {
+        schemaVersion: 1,
+        id: this._id(),
+        at: this.now(),
+        state: 'READY',
+        reason: 'PRODUCTION_CHAIN_READY',
+        actionAuthority: false,
+        liveExecutionAllowed: false,
+        target: built.candidate,
+        steps: built.steps,
+        nextStep: built.executableSteps[0] || null,
+        reservations: built.reservations,
+        blockers: [],
+        totalGold: built.totalGold,
+        goldReserve: built.goldReserve
+      };
+      this.lastPlan = plan;
+      this.stats.plans += 1;
+      this.stats.ready += 1;
+      this._event('PRODUCTION_PLAN_READY', 'info', plan.reason, { planId: plan.id, output: plan.target.output, recipient: plan.target.recipient, steps: plan.steps.length, totalGold: plan.totalGold });
+      return clone(plan);
+    }
+
+    const plan = {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      state: 'BLOCKED',
+      reason: 'NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      target: bestBlocked ? bestBlocked.candidate : null,
+      steps: bestBlocked ? bestBlocked.steps : [],
+      nextStep: null,
+      reservations: bestBlocked ? bestBlocked.reservations : {},
+      blockers: bestBlocked ? bestBlocked.blockers : [{ reason: 'NO_CANDIDATE' }],
+      totalGold: bestBlocked ? bestBlocked.totalGold : 0,
+      goldReserve: this.goldReserve
+    };
+    this.lastPlan = plan;
+    this.stats.plans += 1;
+    this.stats.blocked += 1;
+    this._event('PRODUCTION_PLAN_BLOCKED', 'warn', plan.reason, { output: plan.target && plan.target.output || null, blockers: plan.blockers.slice(0, 8) });
+    return clone(plan);
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: MERCHANT_PRODUCTION_PLANNER_MODE,
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      maxDepth: this.maxDepth,
+      minImprovementRatio: this.minImprovementRatio,
+      goldReserve: this.goldReserve,
+      maxBuyQuantity: this.maxBuyQuantity,
+      explicitTargets: this.explicitTargets.slice(),
+      lastPlan: clone(this.lastPlan),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  MerchantProductionPlanner,
+  MERCHANT_PRODUCTION_PLANNER_MODE,
+  ProductionStepKind,
+  recipeFor,
+  itemKey,
+  itemQuantity,
+  bankRows,
+  vendorIndex
+};
+
+},
+"src/merchant/controlled-merchant-production-executor.js": function(require,module,exports){
+'use strict';
+
+const { ProductionStepKind, recipeFor, itemQuantity, bankRows } = require('./merchant-production-planner');
+
+const CONTROLLED_MERCHANT_PRODUCTION_MODE = 'controlled-merchant-production-default-off';
+const CONTROLLED_MERCHANT_PRODUCTION_ACK = 'MERCHANT_PRODUCTION_V1';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const TERMINAL = new Set(['COMMITTED', 'ABORTED', 'FAILED_SAFE']);
+
+function n(value, fallback = 0) { const x = Number(value); return Number.isFinite(x) ? x : fallback; }
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function levelOf(item) { return Math.max(0, Math.floor(n(item && item.level, 0))); }
+
+class ControlledMerchantProductionExecutor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-merchant-production-operation-v1';
+    this.getMode = options.getMode || (() => 'shadow');
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
+    this.contentDrift = options.contentDrift || null;
+    this.timeoutMs = Math.max(1000, Math.min(60000, n(options.timeoutMs, 10000)));
+    this.verifyDelayMs = Math.max(25, Math.min(2000, n(options.verifyDelayMs, 200)));
+    this.verifyAttempts = Math.max(1, Math.min(15, Math.floor(n(options.verifyAttempts, 6))));
+    this.actionWindowMs = Math.max(5000, Math.min(600000, n(options.actionWindowMs, 60000)));
+    this.maxActionsPerWindow = Math.max(1, Math.min(30, Math.floor(n(options.maxActionsPerWindow, 10))));
+    this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(n(options.maxBuyQuantity, 1000))));
+    this.goldReserve = Math.max(0, Math.floor(n(options.goldReserve, 1000000)));
+    this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.busy = false;
+    this.activeOperation = null; this.lastAction = null; this.history = []; this.actionTimes = [];
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, verificationRetries: 0 };
+    this._load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-merchant-production', event, severity, reason, data }); }
+  _character() { return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null; }
+  _gameData() { return this.root && (this.root.G || (this.root.parent && this.root.parent.G)) || null; }
+  _inventory() { const c = this._character(); return c && Array.isArray(c.items) ? c.items : []; }
+  _api(name) { if (this.root && typeof this.root[name] === 'function') return [this.root[name], this.root]; if (this.root && this.root.parent && typeof this.root.parent[name] === 'function') return [this.root.parent[name], this.root.parent]; return null; }
+  _bankQty(name, level) { const c = this._character(); return bankRows(c && c.bank).reduce((sum, row) => sum + (row.name === name && row.level === level ? row.quantity : 0), 0); }
+  _inCombat() { const c = this._character(); if (!c) return false; if (c.target) return true; const entities = this.root && this.root.parent && this.root.parent.entities || this.root && this.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
+
+  _storageGet() { try { if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey); const ls = this.root && this.root.localStorage; return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null; } catch (_) { return null; } }
+  _storageSet(value) { try { const text = JSON.stringify(value); if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false; const ls = this.root && this.root.localStorage; if (ls && typeof ls.setItem === 'function') { ls.setItem(this.storageKey, text); return true; } } catch (_) {} return false; }
+  _persist() { return this._storageSet({ schemaVersion: 1, activeOperation: this.activeOperation, history: this.history.slice(-32) }); }
+  _load() { const raw = this._storageGet(); if (!raw) return; try { const data = typeof raw === 'string' ? JSON.parse(raw) : raw; if (!data || Number(data.schemaVersion) !== 1) return; this.history = Array.isArray(data.history) ? data.history.slice(-32) : []; this.activeOperation = data.activeOperation && typeof data.activeOperation === 'object' ? clone(data.activeOperation) : null; if (this.activeOperation && !TERMINAL.has(this.activeOperation.state)) { this.activeOperation.state = 'RECOVERING'; this.activeOperation.reason = 'RESTART_RECONCILIATION_REQUIRED'; this.activeOperation.updatedAt = this.now(); this._persist(); } } catch (_) { this.activeOperation = { schemaVersion: 1, state: 'FAILED_SAFE', reason: 'CORRUPT_PERSISTED_PRODUCTION_OPERATION', updatedAt: this.now() }; } }
+
+  configure(config = {}) {
+    if (config.enabled === true && config.ack !== CONTROLLED_MERCHANT_PRODUCTION_ACK) return this.disable('ACK_REQUIRED');
+    this.enabled = config.enabled === true;
+    this.allowBuy = this.enabled && config.allowBuy === true;
+    this.allowBank = this.enabled && config.allowBank === true;
+    this.allowCraft = this.enabled && config.allowCraft === true;
+    this._event('MERCHANT_PRODUCTION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft });
+    return this.status();
+  }
+  disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
+  _budgetOk() { const now = this.now(); this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs); return this.actionTimes.length < this.maxActionsPerWindow; }
+  _sleep(ms) { const setTimer = this.root && this.root.setTimeout || setTimeout; return new Promise((resolve) => setTimer(resolve, ms)); }
+  async _verify(fn) { for (let i = 0; i < this.verifyAttempts; i += 1) { if (fn()) return true; if (i + 1 < this.verifyAttempts) { this.stats.verificationRetries += 1; await this._sleep(this.verifyDelayMs); } } return false; }
+  _timeout(value, label) { const setTimer = this.root && this.root.setTimeout || setTimeout; const clearTimer = this.root && this.root.clearTimeout || clearTimeout; let timer; const timeout = new Promise((_, reject) => { timer = setTimer(() => reject(new Error(`${label}_TIMEOUT`)), this.timeoutMs); }); return Promise.race([Promise.resolve(value), timeout]).finally(() => { if (timer) clearTimer(timer); }); }
+
+  _preflight(step) {
+    if (!step || !step.kind) return { ok: false, reason: 'PRODUCTION_STEP_REQUIRED' };
+    if (!this.enabled) return { ok: false, reason: 'MERCHANT_PRODUCTION_DISABLED' };
+    if (this.busy) return { ok: false, reason: 'MERCHANT_PRODUCTION_BUSY' };
+    if (this.activeOperation && !TERMINAL.has(this.activeOperation.state)) return { ok: false, reason: 'PRODUCTION_RECONCILIATION_REQUIRED' };
+    if (String(this.getMode()) !== 'active') return { ok: false, reason: 'RUNTIME_NOT_ACTIVE' };
+    if (!SUPERVISOR_ALLOWED.has(String((this.getSupervisorStatus() || {}).state || ''))) return { ok: false, reason: 'SUPERVISOR_NOT_HEALTHY' };
+    if (this.getEconomyEmergency() === true) return { ok: false, reason: 'ECONOMY_EMERGENCY' };
+    const c = this._character();
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
+    if (c.rip === true || c.dead === true) return { ok: false, reason: 'MERCHANT_DEAD' };
+    if (this._inCombat()) return { ok: false, reason: 'MERCHANT_IN_COMBAT' };
+    if (!this._budgetOk()) return { ok: false, reason: 'PRODUCTION_ACTION_BUDGET_EXHAUSTED' };
+    const kind = String(step.kind), name = String(step.name || ''), level = Math.max(0, Math.floor(n(step.level, 0)));
+    if (!name) return { ok: false, reason: 'ITEM_NAME_REQUIRED' };
+    if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function') { try { if (this.contentDrift.requiresRevalidation('items', name)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' }; } catch (_) { return { ok: false, reason: 'CONTENT_DRIFT_CHECK_FAILED' }; } }
+    if (kind === ProductionStepKind.BUY) {
+      if (!this.allowBuy) return { ok: false, reason: 'BUY_AUTHORITY_DISABLED' };
+      const api = this._api('buy'), quantity = Math.max(1, Math.floor(n(step.quantity, 1))), meta = this._gameData() && this._gameData().items && this._gameData().items[name] || {}, unitCost = Math.max(0, Math.floor(n(step.unitCost, n(meta.g, 0))));
+      if (!api) return { ok: false, reason: 'BUY_API_UNAVAILABLE' }; if (quantity > this.maxBuyQuantity) return { ok: false, reason: 'BUY_QUANTITY_EXCEEDS_LIMIT' }; if (!unitCost) return { ok: false, reason: 'BUY_PRICE_UNKNOWN' }; if (n(c.gold, 0) - unitCost * quantity < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
+      return { ok: true, api, name, level: 0, quantity };
+    }
+    if (kind === ProductionStepKind.BANK_RETRIEVE) {
+      if (!this.allowBank) return { ok: false, reason: 'BANK_AUTHORITY_DISABLED' }; if (!c.bank) return { ok: false, reason: 'NOT_IN_BANK' };
+      const api = this._api('bank_retrieve'), pack = String(step.pack || ''), index = Number(step.bankIndex), item = pack && Number.isInteger(index) && Array.isArray(c.bank[pack]) ? c.bank[pack][index] : null;
+      if (!api) return { ok: false, reason: 'BANK_RETRIEVE_API_UNAVAILABLE' }; if (!item || String(item.name || '') !== name || levelOf(item) !== level) return { ok: false, reason: 'BANK_ITEM_IDENTITY_CHANGED' };
+      return { ok: true, api, name, level, pack, index, quantity: Math.max(1, Math.floor(n(item.q, 1))) };
+    }
+    if (kind === ProductionStepKind.BANK_STORE) {
+      if (!this.allowBank) return { ok: false, reason: 'BANK_AUTHORITY_DISABLED' }; if (!c.bank) return { ok: false, reason: 'NOT_IN_BANK' };
+      const api = this._api('bank_store'), index = Number(step.inventoryIndex), item = Number.isInteger(index) && Array.isArray(c.items) ? c.items[index] : null;
+      if (!api) return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' }; if (!item || String(item.name || '') !== name || levelOf(item) !== level) return { ok: false, reason: 'INVENTORY_ITEM_IDENTITY_CHANGED' };
+      return { ok: true, api, name, level, index, quantity: Math.max(1, Math.floor(n(item.q, 1))) };
+    }
+    if (kind === ProductionStepKind.CRAFT) {
+      if (!this.allowCraft) return { ok: false, reason: 'CRAFT_AUTHORITY_DISABLED' };
+      const api = this._api('auto_craft'), recipe = recipeFor(this._gameData(), name); if (!api) return { ok: false, reason: 'AUTO_CRAFT_API_UNAVAILABLE' }; if (!recipe) return { ok: false, reason: 'CRAFT_RECIPE_UNAVAILABLE' };
+      for (const req of recipe.items) if (itemQuantity(this._inventory(), req.name, req.level) < req.quantity) return { ok: false, reason: 'CRAFT_MATERIALS_MISSING' };
+      if (n(c.gold, 0) - recipe.cost < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
+      return { ok: true, api, name, level: 0, recipe };
+    }
+    return { ok: false, reason: 'PRODUCTION_STEP_KIND_NOT_EXECUTABLE' };
+  }
+
+  _start(plan, step, data) { const now = this.now(); this.activeOperation = { schemaVersion: 1, id: `${String(plan && plan.id || 'manual')}:${now.toString(36)}`, planId: plan && plan.id || null, kind: step.kind, item: String(step.name || ''), level: Math.max(0, Math.floor(n(step.level, 0))), state: 'RESERVED', reason: 'PERSISTED_BEFORE_ACTION', createdAt: now, updatedAt: now, ...clone(data) }; return this._persist(); }
+  _transition(state, reason) { if (!this.activeOperation) return; this.activeOperation.state = state; this.activeOperation.reason = reason; this.activeOperation.updatedAt = this.now(); this._persist(); }
+  _finish(step, committed, reason, data = {}) { this._transition(committed ? 'COMMITTED' : 'FAILED_SAFE', reason); if (committed) this.stats.committed += 1; else this.stats.failedSafe += 1; this.lastAction = { at: this.now(), kind: step.kind, item: step.name, result: committed ? 'COMMITTED' : 'FAILED_SAFE', reason, ...clone(data) }; this.history.push(clone(this.lastAction)); this.history = this.history.slice(-32); this._persist(); this._event(committed ? 'MERCHANT_PRODUCTION_COMMITTED' : 'MERCHANT_PRODUCTION_FAILED_SAFE', committed ? 'info' : 'error', reason, this.lastAction); return { executed: true, committed, reason, ...clone(data) }; }
+
+  async execute(plan, step) {
+    const check = this._preflight(step); if (!check.ok) { this.stats.rejected += 1; return { executed: false, committed: false, reason: check.reason }; }
+    this.busy = true; this.stats.attempts += 1; this.actionTimes.push(this.now());
+    try {
+      const beforeInv = itemQuantity(this._inventory(), check.name, check.level), beforeBank = this._bankQty(check.name, check.level);
+      if (step.kind === ProductionStepKind.BUY) {
+        if (!this._start(plan, step, { action: 'buy', expectedInventory: beforeInv + check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'BUY_STARTING'); this.stats.buys += 1; await this._timeout(check.api[0].call(check.api[1], check.name, check.quantity), 'BUY'); this._transition('VERIFYING', 'BUY_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + check.quantity); return this._finish(step, ok, ok ? 'BUY_DELTA_VERIFIED' : 'BUY_DELTA_VERIFICATION_FAILED', { quantity: check.quantity });
+      }
+      if (step.kind === ProductionStepKind.BANK_RETRIEVE) {
+        if (!this._start(plan, step, { action: 'bank_retrieve', expectedInventory: beforeInv + check.quantity, expectedBank: beforeBank - check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'BANK_RETRIEVE_STARTING'); this.stats.bankRetrieves += 1; await this._timeout(check.api[0].call(check.api[1], check.pack, check.index), 'BANK_RETRIEVE'); this._transition('VERIFYING', 'BANK_RETRIEVE_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) >= beforeInv + check.quantity && this._bankQty(check.name, check.level) <= beforeBank - check.quantity); return this._finish(step, ok, ok ? 'BANK_RETRIEVE_DELTA_VERIFIED' : 'BANK_RETRIEVE_DELTA_VERIFICATION_FAILED', { quantity: check.quantity });
+      }
+      if (step.kind === ProductionStepKind.BANK_STORE) {
+        if (!this._start(plan, step, { action: 'bank_store', expectedInventory: beforeInv - check.quantity, expectedBank: beforeBank + check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'BANK_STORE_STARTING'); this.stats.bankStores += 1; await this._timeout(check.api[0].call(check.api[1], check.index), 'BANK_STORE'); this._transition('VERIFYING', 'BANK_STORE_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity && this._bankQty(check.name, check.level) >= beforeBank + check.quantity); return this._finish(step, ok, ok ? 'BANK_STORE_DELTA_VERIFIED' : 'BANK_STORE_DELTA_VERIFICATION_FAILED', { quantity: check.quantity });
+      }
+      const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1))); if (!this._start(plan, step, { action: 'auto_craft', expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'AUTO_CRAFT_STARTING'); this.stats.crafts += 1; await this._timeout(check.api[0].call(check.api[1], check.name), 'AUTO_CRAFT'); this._transition('VERIFYING', 'AUTO_CRAFT_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out); return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_VERIFICATION_FAILED', { outputQuantity: out });
+    } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
+    finally { this.busy = false; }
+  }
+
+  reconcile() {
+    const op = this.activeOperation; if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_PRODUCTION_OPERATION' }; if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'PRODUCTION_OPERATION_NOT_RECOVERING' };
+    const inv = itemQuantity(this._inventory(), op.item, op.level), bank = this._bankQty(op.item, op.level); let ok = false;
+    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
+    this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
+  }
+
+  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
+}
+
+module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
 }
 };
 var cache={};
@@ -41407,6 +42211,6 @@ function load(id){
   modules[id](localRequire,module,module.exports);
   return module.exports;
 }
-var api=load("src/index.js");
+var api=load("src/index-production.js");
 api.install(root,{autostart:root.AIO_V3_AUTOSTART!==false});
 })(typeof globalThis!=='undefined'?globalThis:(typeof window!=='undefined'?window:this));
