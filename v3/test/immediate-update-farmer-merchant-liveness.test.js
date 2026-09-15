@@ -171,3 +171,48 @@ test('merchant executes ledger-authorized economy work before non-critical gear 
   assert.equal(gearCalls, 0);
   assert.equal(autonomy.lastMerchantPlan.type, 'SELL');
 });
+
+test('open upgrade circuit does not starve sell or bank work', async () => {
+  const runtime = {
+    root: { character: { name: 'Merchant', ctype: 'merchant', map: 'main', items: [] }, parent: { entities: {} } },
+    now: () => 4000,
+    log: { emit() {} },
+    gearProgression: { list: () => [] },
+    planEconomyTransaction: (request) => ({ accepted: true, transaction: { id: 'sell-after-upgrade-circuit', type: request.type } })
+  };
+  const atomic = {
+    merchantActive: () => true,
+    supervisorAllowed: () => true,
+    merchantInCombat: () => false,
+    merchantBusy: false,
+    serviceTravelBusy: false,
+    status: () => ({}),
+    namedServiceTravel: async () => true
+  };
+  const autonomy = new Alpha27MerchantAutonomy(runtime, atomic, {
+    now: runtime.now,
+    log: runtime.log,
+    options: { merchantIntervalMs: 1200, gearDeliveryDistance: 400 },
+    stats: { autonomousMerchantCycles: 0, autonomousMerchantHolds: 0, autonomousMerchantPlans: 0, failedSafe: 0 }
+  });
+  let upgradesPlanned = 0;
+  let executed = null;
+  runtime.controlledMerchant = {
+    execute: async (id) => { executed = id; return { executed: true, committed: true }; }
+  };
+  autonomy.ensureAutonomousAuthorities = () => true;
+  autonomy.transactionFamilyOpen = (type) => type === 'UPGRADE';
+  autonomy.reconcileRecovering = () => false;
+  autonomy.activeTransaction = () => null;
+  autonomy.restockPartyPotions = async () => false;
+  autonomy.planUpgrade = () => { upgradesPlanned += 1; return { type: 'UPGRADE' }; };
+  autonomy.planCompound = () => null;
+  autonomy.planSellOrBank = () => ({ type: 'SELL', character: 'Merchant', index: 0, quantity: 1 });
+  autonomy.ensureStandClosed = async () => true;
+  autonomy.deliverGearGoal = async () => false;
+
+  assert.equal(await autonomy.cycle(), true);
+  assert.equal(upgradesPlanned, 0);
+  assert.equal(executed, 'sell-after-upgrade-circuit');
+  assert.equal(autonomy.lastMerchantPlan.type, 'SELL');
+});

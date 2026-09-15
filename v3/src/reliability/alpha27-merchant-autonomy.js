@@ -32,9 +32,15 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // longer preempts every ledger-authorized SELL/BANK/UPGRADE/COMPOUND turn.
     if (await this.restockPartyPotions()) return true;
 
-    let request = this.planUpgrade();
-    if (!request) request = this.planCompound();
-    if (!request) request = this.planSellOrBank();
+    // A scoped mutation circuit must not starve independent economy work.
+    // Skip the blocked family and continue with the next ledger-authorized
+    // action instead of reserving the same doomed item every cycle.
+    let request = this.transactionFamilyOpen('UPGRADE') ? null : this.planUpgrade();
+    if (!request && !this.transactionFamilyOpen('COMPOUND')) request = this.planCompound();
+    if (!request) {
+      const lowRiskRequest = this.planSellOrBank();
+      if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) request = lowRiskRequest;
+    }
     if (request) {
       if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
 

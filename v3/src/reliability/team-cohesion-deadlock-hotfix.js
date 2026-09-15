@@ -180,6 +180,10 @@ class TeamCohesionDeadlockHotfix {
         return result;
       }
       if (this.now() - this.lastLeaderRecoveryAt < this.leaderRecoveryCooldownMs) return result;
+      // Rate-limit attempts as well as successful commands. Previously a
+      // no-waypoint result retried every runtime tick and produced thousands of
+      // hot-loop terrain holds.
+      this.lastLeaderRecoveryAt = this.now();
 
       const waypoint = bestLeaderRecoveryWaypoint(team, {
         cohesionRadius: this.cohesionRadius,
@@ -194,7 +198,6 @@ class TeamCohesionDeadlockHotfix {
       }
 
       const command = this.runtime.adapter.command('move', [waypoint.x, waypoint.y]);
-      this.lastLeaderRecoveryAt = this.now();
       if (command && (command.executed || command.coalesced)) this.stats.leaderRecoveryMoves += 1;
       if (command && command.shadow) this.stats.leaderRecoveryShadowMoves += 1;
       this.lastLeaderRecovery = {
