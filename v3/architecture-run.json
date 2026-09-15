@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "keyword": "architektur-run",
+  "playbook": "v3/docs/ARCHITECTURE_RUN.md",
+  "state_source": "main",
+  "next_step": 1,
+  "global_rules": {
+    "strict_step_order": true,
+    "resume_open_step_pr_first": true,
+    "require_merge_before_next_step": true,
+    "preserve_public_facade_during_migration": true,
+    "preserve_reliability_behavior": true,
+    "stop_on_failed_validation": true
+  },
+  "validation": {
+    "targeted_tests_required": true,
+    "package_json_is_authoritative": true,
+    "expected_commands": [
+      "npm test",
+      "npm run static:guard",
+      "npm run check:architecture",
+      "npm run preflight",
+      "npm run check"
+    ]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "name": "patch-registry",
+      "title": "Patch registry and deterministic patch ownership",
+      "branch": "architecture/01-patch-registry",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "central patch registry",
+        "exclusive-owner collision detection",
+        "deterministic decorator ordering",
+        "representative patch migration",
+        "registry regression tests"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "game-command-boundary",
+      "title": "GameAdapter as the technical write boundary",
+      "branch": "architecture/02-game-command-boundary",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "structured command catalog/allowlist",
+        "merchant stand commands through adapter",
+        "merchant delivery through adapter",
+        "active/shadow tests",
+        "domain safety gates preserved"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "command-migration",
+      "title": "Migrate remaining game writes through GameAdapter",
+      "branch": "architecture/03-command-migration",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "remaining mutation paths routed through adapter",
+        "guard against direct production mutation calls",
+        "redundant mode checks removed only after migration",
+        "live-gate regression tests green"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "merchant-mluck",
+      "title": "Merchant mluck party rotation",
+      "branch": "architecture/04-merchant-mluck",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "composed mluck service/policy",
+        "missing/expiring buff prioritization",
+        "cooldown/range/resource checks",
+        "use_skill through GameAdapter",
+        "anti-spam and observability tests"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "runtime-hotpath",
+      "title": "Shared utilities and runtime hot-path cleanup",
+      "branch": "architecture/05-runtime-hotpath",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "shared numeric helpers",
+        "shared geometry helpers",
+        "unnecessary tick deep-clones removed",
+        "snapshot-scoped entity index",
+        "no intentional domain behavior change"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "absorb-reliability",
+      "title": "Move reliability hotfix behavior into owning modules",
+      "branch": "architecture/06-absorb-reliability",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "farmer/navigation hotfix behavior absorbed",
+        "party/combat/logistics hotfix behavior absorbed",
+        "content/persistence/bootstrap behavior absorbed",
+        "regression tests migrated with behavior"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "remove-hotfix-layer",
+      "title": "Remove obsolete reliability hotfix layer",
+      "branch": "architecture/07-remove-hotfix-layer",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "obsolete installers removed",
+        "farm-readiness constructor/tick wiring simplified",
+        "architecture rules strengthened",
+        "former hotfix regression tests remain permanent"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "runtime-composition",
+      "title": "Replace alpha runtime inheritance with composition",
+      "branch": "architecture/08-runtime-composition",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "composition root introduced",
+        "game/stability services composed",
+        "merchant/economy/travel composed",
+        "farmer/party services composed",
+        "public facade compatibility maintained",
+        "alpha inheritance layers removed",
+        "API/status parity tests green"
+      ]
+    }
+  ]
+}
