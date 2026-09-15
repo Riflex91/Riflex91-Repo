@@ -30206,53 +30206,79 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     } finally { this.serviceTravelBusy = false; }
   }
 
+  mutationServiceDestination(tx) {
+    const type = String(tx && tx.type || '').toUpperCase();
+    if (type === 'UPGRADE') return 'upgrade';
+    if (type === 'COMPOUND') return 'compound';
+    return null;
+  }
+
+  async ensureMutationService(tx) {
+    const destination = this.mutationServiceDestination(tx);
+    if (!destination) return { ok: true, skipped: true, destination: null };
+    const travelled = await this.namedServiceTravel(destination, tx);
+    if (!travelled.ok) return { ...travelled, destination };
+    this._event('ALPHA27_MUTATION_SERVICE_REACHED', 'info', `${String(tx.type).toUpperCase()}_SERVICE_REACHED`, {
+      transactionId: tx && tx.id || null,
+      type: tx && tx.type || null,
+      destination,
+      controlled: travelled.controlled === true
+    });
+    return { ...travelled, destination };
+  }
+
   async ensureScroll(tx, scrollName) {
     let scroll = findItem(this.root, scrollName);
-    if (scroll) return { ok: true, scroll };
-    const canBuy = rawFunction(this.root, 'can_buy');
-    let near = false;
-    if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
-    if (!near) {
-      const travelled = await this.namedServiceTravel(scrollName, tx);
-      if (!travelled.ok) return travelled;
-      if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
+    if (!scroll) {
+      const canBuy = rawFunction(this.root, 'can_buy');
+      let near = false;
+      if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
       if (!near) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
+        const travelled = await this.namedServiceTravel(scrollName, tx);
+        if (!travelled.ok) return travelled;
+        if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
+        if (!near) {
+          this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
+          this.stats.failedSafe += 1;
+          return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
+        }
+      }
+      const buy = rawFunction(this.root, 'buy');
+      if (!buy) {
+        this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
         this.stats.failedSafe += 1;
-        return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
+        return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
+      }
+      const gd = gameDataOf(this.runtime);
+      const scrollMeta = gd.items && gd.items[scrollName];
+      const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
+      const c = characterOf(this.runtime);
+      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
+        this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
+        this.stats.failedSafe += 1;
+        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
+      }
+      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
+      try {
+        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
+        if (response && response.failed === true) throw response;
+        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
+        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
+        this.stats.scrollPurchases += 1;
+        scroll = findItem(this.root, scrollName);
+        if (!scroll) return { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
+      } catch (error) {
+        const details = errorDetails(error);
+        const reason = details.reason || 'BUY_SCROLL_FAILED';
+        this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
+        this.stats.failedSafe += 1;
+        return { ok: false, reason, error: details };
       }
     }
-    const buy = rawFunction(this.root, 'buy');
-    if (!buy) {
-      this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
-      this.stats.failedSafe += 1;
-      return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
-    }
-    const gd = gameDataOf(this.runtime);
-    const scrollMeta = gd.items && gd.items[scrollName];
-    const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
-    const c = characterOf(this.runtime);
-    if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
-      this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
-      this.stats.failedSafe += 1;
-      return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
-    }
-    const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
-    try {
-      const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-      if (response && response.failed === true) throw response;
-      const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-      if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
-      this.stats.scrollPurchases += 1;
-      scroll = findItem(this.root, scrollName);
-      return scroll ? { ok: true, scroll } : { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
-    } catch (error) {
-      const details = errorDetails(error);
-      const reason = details.reason || 'BUY_SCROLL_FAILED';
-      this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-      this.stats.failedSafe += 1;
-      return { ok: false, reason, error: details };
-    }
+
+    const service = await this.ensureMutationService(tx);
+    if (!service.ok) return service;
+    return { ok: true, scroll, service };
   }
 }
 

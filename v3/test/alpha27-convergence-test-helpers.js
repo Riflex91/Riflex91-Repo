@@ -90,7 +90,10 @@ function makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearG
 function mutationFixture(type, { missingScroll = false, failedRoll = false } = {}) {
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
-  const root = { character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, items: [], isize: 42 }, parent: { entities: {} } };
+  const root = { character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, items: [], isize: 42, map: 'main', x: 0, y: 0 }, parent: { entities: {} } };
+  root.__serviceTravel = [];
+  root.smart_move = async (destination) => { root.__serviceTravel.push(String(destination)); return { success: true }; };
+  root.stop = async () => ({ success: true });
   let entries;
   let gameData;
   let gearGoals = [];
