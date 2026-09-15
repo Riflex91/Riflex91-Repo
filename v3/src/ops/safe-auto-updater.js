@@ -13,6 +13,25 @@ function text(value, max = 300) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }
 
+function errorDetails(error, max = 240) {
+  if (error == null) return { reason: 'UNKNOWN_ERROR' };
+  if (typeof error !== 'object') return { reason: text(error, max) || 'UNKNOWN_ERROR' };
+  const rawReason = error.reason != null ? error.reason
+    : error.message != null ? error.message
+      : error.error != null ? error.error
+        : error.code != null ? error.code
+          : error.statusText != null ? error.statusText
+            : null;
+  const details = { reason: text(rawReason == null ? 'STRUCTURED_ERROR' : rawReason, max) || 'STRUCTURED_ERROR' };
+  for (const key of ['failed', 'success', 'code', 'status', 'place', 'response']) {
+    const value = error[key];
+    if (value == null) continue;
+    if (typeof value === 'string') details[key] = text(value, max);
+    else if (typeof value === 'number' || typeof value === 'boolean') details[key] = value;
+  }
+  return details;
+}
+
 function versionParts(value) {
   const matches = String(value || '').match(/\d+/g) || [];
   return matches.map((x) => Number(x) || 0);
@@ -55,6 +74,7 @@ class SafeAutoUpdater {
     this.fetchFn = options.fetch || this.root && this.root.fetch || (typeof fetch === 'function' ? fetch : null);
     const globalConfig = this.root && this.root.AIO_V3_AUTO_UPDATE_CONFIG && typeof this.root.AIO_V3_AUTO_UPDATE_CONFIG === 'object'
       ? this.root.AIO_V3_AUTO_UPDATE_CONFIG : {};
+    const retryBase = Math.max(5000, finite(globalConfig.applyRetryBaseMs, 30000));
     this.config = {
       enabled: globalConfig.enabled !== false,
       rawBaseUrl: text(globalConfig.rawBaseUrl || DEFAULT_REPO_RAW, 700).replace(/\/+$/, ''),
@@ -63,7 +83,9 @@ class SafeAutoUpdater {
       minHpRatio: Math.max(0.7, Math.min(1, finite(globalConfig.minHpRatio, 0.90))),
       emergencyCooldownMs: Math.max(5000, finite(globalConfig.emergencyCooldownMs, 20000)),
       maxBundleBytes: Math.max(250000, finite(globalConfig.maxBundleBytes, 6000000)),
-      autoApply: globalConfig.autoApply !== false
+      autoApply: globalConfig.autoApply !== false,
+      applyRetryBaseMs: retryBase,
+      applyRetryMaxMs: Math.max(retryBase, finite(globalConfig.applyRetryMaxMs, 300000))
     };
     this.localVersion = text(options.localVersion || this.root && this.root.AIO_V3 && this.root.AIO_V3.version || '', 80) || '0.0.0';
     this.lastCheckAt = 0;
@@ -74,11 +96,14 @@ class SafeAutoUpdater {
     this.safeSince = 0;
     this.lastSafety = { safe: false, reasons: ['NOT_EVALUATED'] };
     this.lastApply = null;
+    this.applyFailureStreak = 0;
+    this.nextApplyAt = 0;
     this.busy = false;
     this.stats = {
       checks: 0,
       updatesFound: 0,
       safeDeferrals: 0,
+      applyBackoffDeferrals: 0,
       downloads: 0,
       validations: 0,
       saves: 0,
@@ -97,6 +122,19 @@ class SafeAutoUpdater {
     if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
     if (this.parent && typeof this.parent[name] === 'function') return { fn: this.parent[name], owner: this.parent };
     return null;
+  }
+
+  _resetApplyBackoff() {
+    this.applyFailureStreak = 0;
+    this.nextApplyAt = 0;
+  }
+
+  _scheduleApplyBackoff() {
+    this.applyFailureStreak += 1;
+    const exponent = Math.min(8, this.applyFailureStreak - 1);
+    const delayMs = Math.min(this.config.applyRetryMaxMs, this.config.applyRetryBaseMs * (2 ** exponent));
+    this.nextApplyAt = this.now() + delayMs;
+    return delayMs;
   }
 
   _recentEmergency() {
@@ -176,6 +214,7 @@ class SafeAutoUpdater {
         if (this.pendingVersion !== version) {
           this.pendingVersion = version;
           this.pendingSince = this.now();
+          this._resetApplyBackoff();
           this.stats.updatesFound += 1;
           this._event('AUTO_UPDATE_AVAILABLE', 'info', 'NEWER_RELEASE_FOUND', { localVersion: this.localVersion, remoteVersion: version });
         }
@@ -184,11 +223,12 @@ class SafeAutoUpdater {
       if (this.pendingVersion && compareVersions(version, this.localVersion) <= 0) {
         this.pendingVersion = null;
         this.pendingSince = 0;
+        this._resetApplyBackoff();
       }
       return false;
     } catch (error) {
       this.stats.failures += 1;
-      this.lastCheckError = { at: this.now(), message: text(error && error.message || error, 240) };
+      this.lastCheckError = { at: this.now(), ...errorDetails(error) };
       this._event('AUTO_UPDATE_CHECK_FAILED', 'warn', 'REMOTE_CHECK_FAILED', this.lastCheckError);
       return false;
     } finally {
@@ -223,15 +263,25 @@ class SafeAutoUpdater {
   }
 
   async _saveCode(slotInfo, code) {
-    const api = this.parent && this.parent.api_call;
-    if (typeof api !== 'function') throw new Error('SAVE_CODE_API_UNAVAILABLE');
     const slot = slotInfo && slotInfo.slot;
     if (slot == null || slot === '') throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
-    const payload = { slot, name: slotInfo.name || `AIO v3 ${slot}`, code };
-    const result = api.call(this.parent, 'save_code', payload);
-    if (result && typeof result.then === 'function') await result;
+    const name = slotInfo.name || `AIO v3 ${slot}`;
+    const upload = this._binding('upload_code');
+    let result;
+    let method;
+    if (upload) {
+      method = 'upload_code';
+      result = upload.fn.call(upload.owner, slot, name, code);
+    } else {
+      const api = this.parent && this.parent.api_call;
+      if (typeof api !== 'function') throw new Error('SAVE_CODE_API_UNAVAILABLE');
+      method = 'api_call:save_code';
+      result = api.call(this.parent, 'save_code', { slot, name, code, auto: true, electron: true }, { timeout: 15000 });
+    }
+    if (result && typeof result.then === 'function') result = await result;
+    if (result && result.failed === true) throw result;
     this.stats.saves += 1;
-    return true;
+    return { method, response: result == null ? null : result };
   }
 
   async _reloadSavedCode(slotInfo) {
@@ -267,29 +317,48 @@ class SafeAutoUpdater {
 
   async applyPending() {
     if (!this.pendingVersion || !this.config.autoApply || this.busy) return false;
+    if (this.nextApplyAt && this.now() < this.nextApplyAt) {
+      this.stats.applyBackoffDeferrals += 1;
+      return false;
+    }
     if (!this._stableSafe()) {
       this.stats.safeDeferrals += 1;
       return false;
     }
     this.busy = true;
     const version = this.pendingVersion;
+    const attempt = { at: this.now(), from: this.localVersion, to: version, saved: false, reloaded: false };
     try {
       const code = await this._fetchText(`${this.config.rawBaseUrl}/dist/aio-v3.js`, 20000);
       this.stats.downloads += 1;
       const validation = this._validateBundle(code, version);
+      attempt.bytes = validation.bytes;
       if (!validation.ok) throw new Error(validation.reason);
       if (!this._stableSafe()) throw new Error('SAFETY_CHANGED_DURING_DOWNLOAD');
       const slot = this._activeSlot();
       if (!slot) throw new Error('ACTIVE_CODE_SLOT_UNKNOWN');
-      await this._saveCode(slot, code);
-      this.lastApply = { at: this.now(), from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes, saved: true, reloaded: false };
-      this._event('AUTO_UPDATE_SAVED', 'info', 'SAFE_RELEASE_PERSISTED', { from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes });
+      attempt.slot = slot.slot;
+      const save = await this._saveCode(slot, code);
+      attempt.saved = true;
+      attempt.saveMethod = save.method;
+      this.lastApply = { ...attempt };
+      this._resetApplyBackoff();
+      this._event('AUTO_UPDATE_SAVED', 'info', 'SAFE_RELEASE_PERSISTED', { from: this.localVersion, to: version, slot: slot.slot, bytes: validation.bytes, saveMethod: save.method });
       await this._reloadSavedCode(slot);
-      this.lastApply.reloaded = true;
+      attempt.reloaded = true;
+      this.lastApply = { ...attempt };
       return true;
     } catch (error) {
       this.stats.failures += 1;
-      this.lastApply = { at: this.now(), from: this.localVersion, to: version, saved: !!(this.lastApply && this.lastApply.saved), reloaded: false, error: text(error && error.message || error, 240) };
+      const details = errorDetails(error);
+      const retryInMs = this._scheduleApplyBackoff();
+      this.lastApply = {
+        ...attempt,
+        error: details,
+        errorReason: details.reason,
+        retryInMs,
+        nextApplyAt: this.nextApplyAt
+      };
       this._event('AUTO_UPDATE_APPLY_FAILED', 'warn', 'SAFE_UPDATE_FAILED', this.lastApply);
       return false;
     } finally {
@@ -319,12 +388,17 @@ class SafeAutoUpdater {
       lastCheckAt: this.lastCheckAt || null,
       lastCheckError: this.lastCheckError,
       lastApply: this.lastApply,
+      applyFailureStreak: this.applyFailureStreak,
+      nextApplyAt: this.nextApplyAt || null,
       busy: this.busy,
       config: { ...this.config },
       stats: { ...this.stats },
       policies: {
         checksMayRunWhileUnsafe: true,
         applyRequiresStableSafeWindow: true,
+        applyFailuresUseExponentialBackoff: true,
+        structuredApiErrorsPreserved: true,
+        publicUploadCodePreferred: true,
         noDowngrades: true,
         bundleValidatedBeforeSave: true,
         activeCodeSlotOnly: true,
@@ -348,5 +422,6 @@ module.exports = {
   SafeAutoUpdater,
   installSafeAutoUpdater,
   compareVersions,
-  releaseVersionFromSource
+  releaseVersionFromSource,
+  errorDetails
 };

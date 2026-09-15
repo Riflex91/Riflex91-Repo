@@ -12,6 +12,30 @@ function text(value) {
   const s = String(value == null ? '' : value).trim();
   return s || null;
 }
+function errorDetails(error, max = 240) {
+  const limit = Math.max(40, Math.floor(finite(max, 240)));
+  if (error == null) return { reason: 'UNKNOWN_ERROR' };
+  if (typeof error !== 'object') return { reason: String(error).trim().slice(0, limit) || 'UNKNOWN_ERROR' };
+  const rawReason = error.reason != null ? error.reason
+    : error.message != null ? error.message
+      : error.error != null ? error.error
+        : error.code != null ? error.code
+          : error.statusText != null ? error.statusText
+            : null;
+  const reason = rawReason == null ? 'STRUCTURED_ERROR' : String(rawReason).trim().slice(0, limit) || 'STRUCTURED_ERROR';
+  const details = { reason };
+  for (const key of ['failed', 'success', 'code', 'status', 'place', 'response']) {
+    const value = error[key];
+    if (value == null) continue;
+    if (typeof value === 'string') details[key] = value.slice(0, limit);
+    else if (typeof value === 'number' || typeof value === 'boolean') details[key] = value;
+  }
+  return details;
+}
+function errorReason(error, fallback = 'UNKNOWN_ERROR', max = 240) {
+  const details = errorDetails(error, max);
+  return details.reason || fallback;
+}
 function levelOf(item) { return Math.max(0, Math.floor(finite(item && item.level, 0))); }
 function qtyOf(item) { return Math.max(1, Math.floor(finite(item && item.q, 1))); }
 function inventoryOf(root) {
@@ -118,7 +142,7 @@ function rawFunction(root, name) {
 }
 
 module.exports = {
-  finite, clone, text, levelOf, qtyOf, inventoryOf, characterOf, gameDataOf,
+  finite, clone, text, errorDetails, errorReason, levelOf, qtyOf, inventoryOf, characterOf, gameDataOf,
   identityQuantity, findItem, gradeForLevel, xpDelta, potionCount, monsterMap,
   isAliveMonster, ownedTargetId, farmerOwnedCombatBusy, isPoisonedPerformanceProfile,
   transactionInputs, rawFunction
