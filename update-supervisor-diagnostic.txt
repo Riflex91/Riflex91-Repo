@@ -1,0 +1,16 @@
+--- update/supervisor files ---
+test/auto-update-restart-telemetry.test.js
+test/safe-auto-updater-regression.test.js
+test/alpha26-cloud-update-logistics-ui-hotfix.test.js
+test/immediate-update-farmer-merchant-liveness.test.js
+test/alpha13-supervisor-content-drift.test.js
+test/auto-update-release-worker-contract.test.js
+test/auto-update-lifecycle.test.js
+test/auto-update-release-publish-contract.test.js
+src/ops/safe-auto-updater.js
+src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js
+src/stability/global-supervisor.js
+src/stability/combat-stability-supervisor.js
+--- failing test title references ---
+--- apply_failed references ---
+--- superseded references ---
