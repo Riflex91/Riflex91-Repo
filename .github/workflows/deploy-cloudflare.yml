@@ -5,12 +5,25 @@ on:
     branches: ["main"]
     paths:
       - "cloudflare-dashboard/**"
-      - "v3/src/release-version.js"
-      - "v3/dist/aio-v3.js"
-      - "v3/version.json"
       - "version.json"
       - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: "Exact release commit to deploy; defaults to the triggering SHA"
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      release_sha:
+        description: "Exact release commit to deploy"
+        required: true
+        type: string
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: false
+      CLOUDFLARE_ACCOUNT_ID:
+        required: false
 permissions:
   contents: read
 jobs:
@@ -21,6 +34,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha || github.sha }}
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
