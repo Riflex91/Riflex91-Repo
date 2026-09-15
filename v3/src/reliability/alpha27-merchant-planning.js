@@ -6,6 +6,12 @@ const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-consta
 const { Alpha27MerchantService } = require('./alpha27-merchant-service');
 
 class Alpha27MerchantPlanning extends Alpha27MerchantService {
+  constructor(runtime, atomic, shared) {
+    super(runtime, atomic, shared);
+    this.completedGearGoalClaims = new Map();
+    this.gearGoalClaimSuppressions = 0;
+  }
+
   gearDeliveryCandidate() {
     const c = characterOf(this.runtime);
     const gear = this.runtime.gearProgression;
@@ -16,6 +22,11 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .filter((goal) => goal && goal.sourceCharacter === c.name && goal.character && goal.character !== c.name && !goal.projectedUpgradeRequired && trusted.has(String(goal.character)))
       .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0) || finite(b.improvement, 0) - finite(a.improvement, 0));
     for (const goal of rows) {
+      const goalId = String(goal.id || '');
+      if (goalId && this.completedGearGoalClaims.has(goalId)) {
+        this.gearGoalClaimSuppressions += 1;
+        continue;
+      }
       const item = inventoryOf(this.root).find((row) => row && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && !row.locked && !row.l && !row.special && !row.p);
       if (item) return { goal, item };
     }
@@ -50,6 +61,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const service = this.runtime.controlledMerchantService;
     if (!service) return false;
     const report = this.partyReport(goal.character);
+    const sourceReportAt = Math.max(0, finite(report && report.at, this.now()));
     const plan = {
       schemaVersion: 1,
       id: `alpha27-gear-${this.now()}-${goal.id}`,
@@ -58,14 +70,25 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       reason: 'GEAR_GOAL_DELIVERY',
       actionAuthority: false,
       liveExecutionAllowed: false,
-      sourceReportAt: Math.max(0, finite(report && report.at, this.now())),
+      sourceReportAt,
       target: { name: goal.character, map: c.map, x: target.x, y: target.y },
       delivery: { itemName: goal.item, quantity: 1 },
       metadata: { alpha27GearGoal: goal.id, itemLevel: levelOf(item) }
     };
     const result = await service.execute(plan);
+    if (result && result.committed === true && goal.id != null) {
+      this.completedGearGoalClaims.set(String(goal.id), {
+        at: this.now(),
+        sourceReportAt,
+        target: goal.character,
+        item: goal.item,
+        level: levelOf(item)
+      });
+    }
     this.lastMerchantAction = { at: this.now(), type: 'GEAR_DELIVERY', goalId: goal.id, result: clone(result) };
-    return true;
+    // A rejected service action (for example because the shared raw-action budget
+    // is temporarily full) must not consume the entire autonomous merchant turn.
+    return !!(result && (result.executed === true || result.committed === true));
   }
 
   activeTransaction() {

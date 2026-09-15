@@ -14,8 +14,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
     const service = this.runtime.controlledMerchantService;
     if (service && service.activeOperation && service.activeOperation.state === 'RECOVERING' && typeof service.reconcile === 'function') { service.reconcile(); return true; }
-    if (await this.restockPartyPotions()) return true;
-    if (await this.deliverGearGoal()) return true;
+
+    // Finish/reconcile already-reserved economy work before creating more service
+    // traffic. This prevents stand/gear-delivery churn from starving atomic work.
     if (this.reconcileRecovering()) return true;
     const active = this.activeTransaction();
     if (active) {
@@ -27,43 +28,56 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
+    // Critical party consumables keep priority, but ordinary gear delivery no
+    // longer preempts every ledger-authorized SELL/BANK/UPGRADE/COMPOUND turn.
+    if (await this.restockPartyPotions()) return true;
+
     let request = this.planUpgrade();
     if (!request) request = this.planCompound();
     if (!request) request = this.planSellOrBank();
-    if (!request) { this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' }; return false; }
-    if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+    if (request) {
+      if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
 
-    if (request.type === 'BANK') {
-      const c = characterOf(this.runtime);
-      if (!c.bank || typeof c.bank !== 'object') {
-        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
-        await this.atomic.namedServiceTravel('bank');
-        return true;
+      if (request.type === 'BANK') {
+        const c = characterOf(this.runtime);
+        if (!c.bank || typeof c.bank !== 'object') {
+          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
+          await this.atomic.namedServiceTravel('bank');
+          return true;
+        }
       }
-    }
-    if (request.type === 'SELL') {
-      const canSell = rawFunction(this.root, 'can_sell');
-      let near = !canSell;
-      if (canSell) { try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; } }
-      if (!near) {
-        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'SELL_VENDOR_REQUIRED', destination: 'scroll0' };
-        await this.atomic.namedServiceTravel('scroll0');
-        return true;
+      if (request.type === 'SELL') {
+        const canSell = rawFunction(this.root, 'can_sell');
+        let near = !canSell;
+        if (canSell) { try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; } }
+        if (!near) {
+          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'SELL_VENDOR_REQUIRED', destination: 'scroll0' };
+          await this.atomic.namedServiceTravel('scroll0');
+          return true;
+        }
       }
+
+      const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
+        ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
+        : this.runtime.planEconomyTransaction(request);
+      if (!planned || planned.accepted !== true || !planned.transaction) {
+        this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
+        return false;
+      }
+      this.stats.autonomousMerchantPlans += 1;
+      this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
+      const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+      this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
+      return true;
     }
 
-    const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
-      ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
-      : this.runtime.planEconomyTransaction(request);
-    if (!planned || planned.accepted !== true || !planned.transaction) {
-      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
-      return false;
-    }
-    this.stats.autonomousMerchantPlans += 1;
-    this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
-    const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
-    this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
-    return true;
+    // Non-critical gear goals use otherwise-idle merchant turns. A rejected
+    // service execution now returns false from deliverGearGoal(), so a full raw
+    // action budget does not masquerade as useful work.
+    if (await this.deliverGearGoal()) return true;
+
+    this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
+    return false;
   }
 
   tick() {
@@ -85,6 +99,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
+      economyBeforeNonCriticalGearDelivery: true,
+      completedGearGoalClaims: this.completedGearGoalClaims instanceof Map ? this.completedGearGoalClaims.size : 0,
+      gearGoalClaimSuppressions: this.gearGoalClaimSuppressions || 0,
       atomicTransactions: true,
       realUpgrade: true,
       realCompound: true,

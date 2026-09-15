@@ -87,29 +87,55 @@ class Alpha28LedgerFarmerFixes {
       if (!snapshot || !snapshot.character || !plan || !plan.monster) return null;
       let team = null;
       try { team = teamModule && typeof teamModule._team === 'function' ? teamModule._team(snapshot) : null; } catch (_) {}
-      if (!team || team.selfName !== team.leaderName || !team.complete || !team.alive || !team.sameMap || !team.positionsKnown || !team.cohesive) return null;
+      if (!team || !team.complete || !team.alive || !team.sameMap || !team.positionsKnown || !team.cohesive) return null;
       const reliability = this.runtime.preFarmingReliability;
       const safeIds = reliability && reliability.safeEntityIds;
       if (!(safeIds instanceof Set)) return null;
       if (reliability.safeEntitySnapshotAt != null && snapshot.observedAt != null && Number(reliability.safeEntitySnapshotAt) !== Number(snapshot.observedAt)) return null;
-      const candidates = (snapshot.entities || []).filter((entity) => {
+
+      const allSafeCandidates = (snapshot.entities || []).filter((entity) => {
         if (!entity || entity.id == null || !entity.mtype || entity.dead || entity.rip || (entity.hp != null && Number(entity.hp) <= 0)) return false;
-        if (String(entity.mtype) !== String(plan.monster)) return false;
         if (!safeIds.has(String(entity.id))) return false;
         if (entity.map && snapshot.character.map && String(entity.map) !== String(snapshot.character.map)) return false;
         return typeof farmer._targetAllowed !== 'function' || farmer._targetAllowed(entity, snapshot, context.party);
       }).sort((a, b) => distance(snapshot.character, a) - distance(snapshot.character, b));
+      if (!allSafeCandidates.length) return null;
+
+      const plannedCandidates = allSafeCandidates.filter((entity) => String(entity.mtype) === String(plan.monster));
+      const isLeader = String(team.selfName || snapshot.character.name || '') === String(team.leaderName || '');
+      let candidates = plannedCandidates;
+      let fallbackScope = 'PLANNED_MONSTER';
+
+      if (isLeader) {
+        if (!candidates.length) {
+          candidates = allSafeCandidates;
+          fallbackScope = 'SAFE_LIVE_LEADER';
+        }
+      } else {
+        let friendlyNames = new Set([String(team.leaderName || '')].filter(Boolean));
+        try {
+          if (typeof farmer._friendlyNames === 'function') friendlyNames = farmer._friendlyNames(snapshot, context.party);
+        } catch (_) {}
+        const engagedCandidates = allSafeCandidates.filter((entity) => entity.target && friendlyNames.has(String(entity.target)));
+        const engagedPlannedCandidates = engagedCandidates.filter((entity) => String(entity.mtype) === String(plan.monster));
+        candidates = engagedPlannedCandidates.length ? engagedPlannedCandidates : engagedCandidates;
+        fallbackScope = 'PARTY_ENGAGED_FOLLOWER';
+      }
+
       const target = candidates[0];
       if (!target) return null;
+      const targetMatchesPlan = String(target.mtype) === String(plan.monster);
 
       // Prefer the native FarmPlanner row when available. The fallback below is
-      // intentionally liveness-only: target safety, party policy, map, plan type and
-      // pre-farming safeEntityIds have all already been enforced above.
+      // intentionally liveness-only: target safety, party policy, map and the
+      // pre-farming safeEntityIds have all already been enforced above. A leader
+      // may switch to another already-safe live type when the planned monster is
+      // absent; followers only join a safe target already engaged by the party.
       let ranking = null;
       try {
         const candidateState = typeof farmer._candidateRows === 'function' ? farmer._candidateRows(context) : null;
         const row = candidateState && Array.isArray(candidateState.rows)
-          ? candidateState.rows.find((candidate) => candidate && String(candidate.monster || candidate.id) === String(plan.monster))
+          ? candidateState.rows.find((candidate) => candidate && String(candidate.monster || candidate.id) === String(target.mtype))
           : null;
         const ranked = row && farmer.planner && typeof farmer.planner.rank === 'function'
           ? farmer.planner.rank([row], {
@@ -126,27 +152,30 @@ class Alpha28LedgerFarmerFixes {
         const speed = Math.max(1, finite(snapshot.character.speed, 40));
         const fallbackTravelSeconds = Number.isFinite(liveDistance) ? liveDistance / speed : 120;
         const fallbackRanking = {
-          id: String(plan.monster),
-          monster: String(plan.monster),
+          id: String(target.mtype),
+          monster: String(target.mtype),
           score: 0,
           xpPerHour: 0,
           goldPerHour: 0,
           deathsPerHour: 0,
           confidence: 0,
           travelSeconds: fallbackTravelSeconds,
-          source: 'alpha28-safe-live-liveness-fallback'
+          source: targetMatchesPlan ? 'alpha28-safe-live-liveness-fallback' : 'alpha28-safe-live-plan-miss-fallback'
         };
         this.stats.plannedTargetFallbackSelections += 1;
-        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_RECOVERED', 'warn', 'RANKING_CONTRACT_UNAVAILABLE_SAFE_LIVE_FALLBACK', {
-          targetId: String(target.id), monster: target.mtype, planId: plan.id || null,
-          distance: Number.isFinite(liveDistance) ? Math.round(liveDistance) : null,
+        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_RECOVERED', 'warn', targetMatchesPlan ? 'RANKING_CONTRACT_UNAVAILABLE_SAFE_LIVE_FALLBACK' : 'PLANNED_MONSTER_NOT_VISIBLE_SAFE_LIVE_FALLBACK', {
+          targetId: String(target.id), monster: target.mtype, plannedMonster: plan.monster, planId: plan.id || null,
+          fallbackScope, distance: Number.isFinite(liveDistance) ? Math.round(liveDistance) : null,
           travelSeconds: fallbackTravelSeconds
         });
         return { target, ranking: fallbackRanking };
       }
-      const fallbackRanking = { ...ranking, score, travelSeconds, source: 'alpha28-safe-planned-fallback' };
+      const fallbackRanking = { ...ranking, score, travelSeconds, source: targetMatchesPlan ? 'alpha28-safe-planned-fallback' : 'alpha28-safe-plan-miss-fallback' };
       this.stats.plannedTargetFallbackSelections += 1;
-      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', 'SAFE_PLANNED_MONSTER_VISIBLE', { targetId: String(target.id), monster: target.mtype, planId: plan.id || null, score, travelSeconds });
+      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', targetMatchesPlan ? 'SAFE_PLANNED_MONSTER_VISIBLE' : 'PLANNED_MONSTER_NOT_VISIBLE_SAFE_LIVE_FALLBACK', {
+        targetId: String(target.id), monster: target.mtype, plannedMonster: plan.monster, planId: plan.id || null,
+        fallbackScope, score, travelSeconds
+      });
       return { target, ranking: fallbackRanking };
     };
     farmer.__alpha28PlannedTargetFallback = true;
@@ -165,7 +194,9 @@ class Alpha28LedgerFarmerFixes {
       ledgerSignatureFixed: !!(this.runtime.inventoryLedger && this.runtime.inventoryLedger.__alpha28LedgerSignatureVerified),
       semanticRegroupPreserved: !!(this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix.__alpha28SemanticRegroupPreserved),
       areaPressureCombatStallFix: !!(this.runtime.farmAreaPressureHotfix && this.runtime.farmAreaPressureHotfix.__alpha28CombatAcquisitionPressureFix),
-      plannedTargetFallback: !!(this.runtime.farmer && this.runtime.farmer.__alpha28PlannedTargetFallback)
+      plannedTargetFallback: !!(this.runtime.farmer && this.runtime.farmer.__alpha28PlannedTargetFallback),
+      plannedMonsterMissUsesSafeLiveFallback: true,
+      followersOnlyJoinPartyEngagedFallback: true
     };
   }
 }
