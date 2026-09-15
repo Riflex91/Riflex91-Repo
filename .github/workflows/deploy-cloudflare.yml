@@ -96,12 +96,21 @@ jobs:
           npx wrangler r2 bucket lifecycle remove aio-v3-logs --id aio-v3-logs-7d --config wrangler.deploy.jsonc || true
           npx wrangler r2 bucket lifecycle add aio-v3-logs aio-v3-logs-7d logs/ --expire-days 7 --force --config wrangler.deploy.jsonc
           npx wrangler r2 bucket lifecycle list aio-v3-logs --config wrangler.deploy.jsonc
+      - name: Deploy Worker and dashboard
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        run: npx wrangler deploy --config wrangler.deploy.jsonc
+      - name: Verify Cloudflare deployment record
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        run: npx wrangler deployments list --config wrangler.deploy.jsonc
       - name: Publish V3 release artifacts to R2
         if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
         shell: bash
         run: |
           set -euo pipefail
+          # Worker support for the runtime URL is already live at this point.
           # Publish the large runtime first, then the tiny bootstrap, and the version pointer last.
           # Readers can therefore never observe a new version before both matching artifacts exist.
           npx wrangler r2 object put aio-v3-logs/releases/v3/dist/aio-v3-runtime.js \
@@ -135,14 +144,6 @@ jobs:
           cmp ../v3/src/release-version.js /tmp/aio-v3-release-version.js
           cmp ../v3/dist/aio-v3.js /tmp/aio-v3.js
           cmp ../v3/dist/aio-v3-runtime.js /tmp/aio-v3-runtime.js
-      - name: Deploy Worker and dashboard
-        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
-        working-directory: cloudflare-dashboard
-        run: npx wrangler deploy --config wrangler.deploy.jsonc
-      - name: Verify Cloudflare deployment record
-        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
-        working-directory: cloudflare-dashboard
-        run: npx wrangler deployments list --config wrangler.deploy.jsonc
       - name: Remove temporary deploy config
         if: always()
         working-directory: cloudflare-dashboard
