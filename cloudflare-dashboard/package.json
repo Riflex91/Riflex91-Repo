@@ -4,7 +4,7 @@
   "version": "3.0.0-control-center.1",
   "type": "module",
   "scripts": {
-    "check": "node --check src/worker.js && node --check src/worker-alpha20-21.js && node --check src/worker-alpha20-22.js && node --check src/r2-log-policy.js && node --check src/worker-r2-logs.js && node --check src/free-tier-budget.js && node --check src/worker-free-tier.js && node --check src/alpha20-21-control-plane.js && node --check src/dashboard.js && node --check src/dashboard-command-center-1.js && node --check src/dashboard-command-center-2.js && node --check src/dashboard-command-center-3.js && node --check src/dashboard-command-center-4.js && node --check src/settings-schema.js && node --test test/*.test.js",
+    "check": "node --check src/worker.js && node --check src/worker-alpha20-21.js && node --check src/worker-alpha20-22.js && node --check src/r2-log-policy.js && node --check src/worker-r2-logs.js && node --check src/free-tier-budget.js && node --check src/quota-usage.js && node --check src/worker-free-tier.js && node --check src/alpha20-21-control-plane.js && node --check src/dashboard.js && node --check src/dashboard-quota.js && node --check src/dashboard-mobile.js && node --check src/dashboard-command-center-1.js && node --check src/dashboard-command-center-2.js && node --check src/dashboard-command-center-3.js && node --check src/dashboard-command-center-4.js && node --check src/settings-schema.js && node --test test/*.test.js",
     "dev": "wrangler dev",
     "deploy": "npm run check && wrangler deploy"
   },
