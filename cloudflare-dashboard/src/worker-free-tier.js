@@ -78,10 +78,11 @@ function guardedEnv(env) {
 }
 
 function jsonResponse(payload, response) {
-  return new Response(JSON.stringify(payload), {
-    status: response.status,
-    headers: { ...Object.fromEntries(response.headers), 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-  });
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.set('content-type', 'application/json; charset=utf-8');
+  headers.set('cache-control', 'no-store');
+  return new Response(JSON.stringify(payload), { status: response.status, headers });
 }
 
 async function withQuotaOverview(request, response, env) {
