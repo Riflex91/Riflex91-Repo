@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1050 Zeilen**
+**6 Dateien · 1062 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/index-production.js` | 51 |
+| `src/index-production.js` | 58 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 119 |
+| `src/production-live-services.js` | 124 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |
@@ -58,13 +58,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## control
 
-**4 Dateien · 960 Zeilen**
+**5 Dateien · 1047 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/control/cloud-control-plane.js` | 268 |
 | `src/control/cloud-free-tier-budget.js` | 90 |
 | `src/control/cloud-long-term-persistence.js` | 408 |
+| `src/control/cloud-presence-decoupling.js` | 87 |
 | `src/control/control-plane-config.js` | 194 |
 
 ## core
@@ -207,7 +208,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**61 Dateien · 12702 Zeilen**
+**62 Dateien · 12918 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -231,7 +232,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-core.js` | 48 |
 | `src/reliability/alpha27-atomic-economy.js` | 274 |
 | `src/reliability/alpha27-atomic-ledger.js` | 64 |
-| `src/reliability/alpha27-atomic-service.js` | 123 |
+| `src/reliability/alpha27-atomic-service.js` | 220 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
 | `src/reliability/alpha27-atomic-transactions.js` | 91 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
@@ -239,6 +240,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-autonomy.js` | 161 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
+| `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
 | `src/reliability/alpha27-merchant-planning.js` | 165 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-utils.js` | 149 |

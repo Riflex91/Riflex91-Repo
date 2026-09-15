@@ -14,6 +14,45 @@ test('real upgrade() executes once and commits only after observed item+scroll d
   assert.equal(engine.transactions.get(planned.transaction.id).state, 'COMMITTED');
 });
 
+test('upgrade travels to the canonical upgrade service before invoking raw upgrade()', async () => {
+  const { convergence, engine, ledger, root } = mutationFixture('UPGRADE');
+  const order = [];
+  root.smart_move = async (destination) => { order.push(`travel:${destination}`); return { success: true }; };
+  const baseUpgrade = root.upgrade;
+  root.upgrade = async (...args) => { order.push('upgrade'); return baseUpgrade(...args); };
+  const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
+  const result = await convergence._executeAtomic(planned.transaction.id);
+  assert.equal(result.committed, true);
+  assert.deepEqual(order.slice(0, 2), ['travel:newupgrade', 'upgrade']);
+  assert.equal(convergence.stats.namedServiceTravels, 1);
+});
+
+test('compound travels to the canonical shared mutation service before invoking raw compound()', async () => {
+  const { convergence, engine, ledger, root } = mutationFixture('COMPOUND');
+  const order = [];
+  root.smart_move = async (destination) => { order.push(`travel:${destination}`); return { success: true }; };
+  const baseCompound = root.compound;
+  root.compound = async (...args) => { order.push('compound'); return baseCompound(...args); };
+  const planned = engine.planAtomic({ type: 'COMPOUND', character: 'Merchant', indices: [0, 1, 2] }, { ledger });
+  const result = await convergence._executeAtomic(planned.transaction.id);
+  assert.equal(result.committed, true);
+  assert.deepEqual(order.slice(0, 2), ['travel:newupgrade', 'compound']);
+  assert.equal(convergence.stats.namedServiceTravels, 1);
+});
+
+test('failed mutation service travel fail-closes transaction without invoking raw upgrade()', async () => {
+  const { convergence, engine, ledger, root } = mutationFixture('UPGRADE');
+  let upgradeCalls = 0;
+  root.smart_move = async () => ({ failed: true, reason: 'UPGRADE_SERVICE_UNREACHABLE' });
+  root.upgrade = async () => { upgradeCalls += 1; return { success: true }; };
+  const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
+  const result = await convergence._executeAtomic(planned.transaction.id);
+  assert.equal(result.committed, false);
+  assert.equal(upgradeCalls, 0);
+  assert.equal(engine.transactions.get(planned.transaction.id).state, 'FAILED_SAFE');
+  assert.equal(engine.reservations.size, 0);
+});
+
 test('verified failed upgrade roll commits as game outcome instead of opening failure circuit', async () => {
   const { convergence, engine, ledger } = mutationFixture('UPGRADE', { failedRoll: true });
   const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });

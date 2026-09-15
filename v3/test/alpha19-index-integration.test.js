@@ -29,11 +29,11 @@ function root() {
 test('public install advances to Alpha20Runtime while Alpha.19 economy remains bounded/default-off', () => {
   const r = root();
   const api = install(r, { mode: 'shadow', visibleStatus: false, debugMonitorVisible: false, storage: storage() });
-  assert.equal(VERSION, '3.0.0-alpha.20.44');
-  assert.equal(api.version, '3.0.0-alpha.20.44');
+  assert.equal(VERSION, '3.0.0-alpha.20.48');
+  assert.equal(api.version, '3.0.0-alpha.20.48');
   assert.ok(api.__runtime instanceof Alpha20Runtime);
   assert.ok(api.__runtime instanceof Alpha19Runtime);
-  assert.equal(api.status().version, '3.0.0-alpha.20.44');
+  assert.equal(api.status().version, '3.0.0-alpha.20.48');
   assert.equal(api.economy.spaceRecovery.status().enabled, false);
   assert.equal(api.economy.spaceRecovery.status().actionAuthority, false);
   assert.equal(api.economy.spaceRecovery.consolidation.status().enabled, false);

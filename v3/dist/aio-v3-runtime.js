@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.44 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.48 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -10,6 +10,7 @@ const { installMerchantProduction, CONTROLLED_MERCHANT_PRODUCTION_ACK } = requir
 const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionStepKind } = require('./merchant/merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
 const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
+const { installCloudPresenceDecoupling, CLOUD_PRESENCE_DECOUPLING_MODE } = require('./control/cloud-presence-decoupling');
 
 function replaceOlderRuntime(root) {
   const existing = root && root.AIO_V3;
@@ -36,6 +37,10 @@ function install(root = globalThis, options = {}) {
     ack: CONTROLLED_MERCHANT_PRODUCTION_ACK
   };
   installProductionLiveServices(api, options);
+  const presence = installCloudPresenceDecoupling(runtime);
+  api.cloudPresence = {
+    status: () => presence && typeof presence.status === 'function' ? presence.status() : null
+  };
   root.AIO_V3 = api;
   return api;
 }
@@ -46,6 +51,8 @@ module.exports = {
   replaceOlderRuntime,
   installProductionLiveServices,
   PRODUCTION_LIVE_SERVICES_MODE,
+  installCloudPresenceDecoupling,
+  CLOUD_PRESENCE_DECOUPLING_MODE,
   installMerchantProduction,
   MerchantProductionPlanner,
   MERCHANT_PRODUCTION_PLANNER_MODE,
@@ -929,7 +936,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.44';
+const RELEASE_VERSION = '3.0.0-alpha.20.48';
 
 module.exports = { RELEASE_VERSION };
 
@@ -30140,6 +30147,31 @@ const { finite, clone, text, errorDetails, errorReason, levelOf, inventoryOf, ch
 const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { Alpha27AtomicTransactions } = require('./alpha27-atomic-transactions');
 
+function serviceNpcId(destination, gameData = {}) {
+  if (destination == null || typeof destination === 'object') return null;
+  const key = String(destination).trim();
+  if (!key) return null;
+  if (key === 'upgrade' || key === 'compound') return 'newupgrade';
+  const npcs = gameData && gameData.npcs && typeof gameData.npcs === 'object' ? gameData.npcs : {};
+  if (Object.prototype.hasOwnProperty.call(npcs, key)) return key;
+  for (const [id, npc] of Object.entries(npcs)) {
+    if (!npc || !Array.isArray(npc.items)) continue;
+    if (npc.items.some((item) => item != null && String(item) === key)) return id;
+  }
+  return null;
+}
+
+function usableNpcLocation(value, fallbackMap = null) {
+  if (!value || typeof value !== 'object') return null;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const map = value.map != null ? String(value.map) : fallbackMap != null ? String(fallbackMap) : null;
+  if (!map || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const result = { map, x, y };
+  if (value.in != null) result.in = value.in;
+  return result;
+}
+
 class Alpha27AtomicService extends Alpha27AtomicTransactions {
   _sleep(ms) {
     if (ms <= 0) return Promise.resolve();
@@ -30165,98 +30197,170 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     return false;
   }
 
+  resolveServiceDestination(destination) {
+    if (destination && typeof destination === 'object') {
+      return { ok: true, requested: clone(destination), destination: clone(destination), npcId: null, source: 'DIRECT_OBJECT' };
+    }
+    const requested = String(destination == null ? '' : destination).trim();
+    if (!requested) return { ok: false, requested: null, destination: null, npcId: null, source: null, reason: 'SERVICE_DESTINATION_REQUIRED' };
+    const gd = gameDataOf(this.runtime);
+    if (gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, requested)) {
+      return { ok: true, requested, destination: requested, npcId: null, source: 'MAP_ID' };
+    }
+    const npcId = serviceNpcId(requested, gd);
+    if (!npcId) return { ok: true, requested, destination: requested, npcId: null, source: 'RAW_DESTINATION' };
+    const finder = rawFunction(this.root, 'find_npc');
+    if (finder) {
+      try {
+        const found = finder.fn.call(finder.owner, npcId);
+        const current = characterOf(this.runtime);
+        const location = usableNpcLocation(found, current && current.map);
+        if (location) return { ok: true, requested, destination: location, npcId, source: 'FIND_NPC' };
+      } catch (_) {}
+    }
+    // Current Adventure Land accepts NPC ids in smart_move as well. Keeping the
+    // canonical NPC id as the fallback is safer than retrying the invalid action
+    // alias/item id that led to the live 20.45 stall.
+    return { ok: true, requested, destination: npcId, npcId, source: 'NPC_ID_FALLBACK' };
+  }
+
   async namedServiceTravel(destination, tx = null) {
     if (this.serviceTravelBusy) return { ok: false, reason: 'SERVICE_TRAVEL_BUSY' };
     if (!this.merchantActive() || !this.supervisorAllowed() || this.merchantInCombat()) return { ok: false, reason: 'SERVICE_TRAVEL_SAFETY_HOLD' };
+    const resolved = this.resolveServiceDestination(destination);
+    if (!resolved.ok) {
+      const reason = resolved.reason || 'SERVICE_DESTINATION_RESOLUTION_FAILED';
+      if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
+      this.stats.failedSafe += 1;
+      this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: destination, resolved });
+      return { ok: false, reason, resolved };
+    }
     const gd = gameDataOf(this.runtime);
-    if (gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, String(destination)) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
-      const planned = this.runtime.planTravel({ destination: String(destination), metadata: { source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL', transactionId: tx && tx.id || null } });
+    const target = resolved.destination;
+    const controlledTarget = target && typeof target === 'object' && target.map && Number.isFinite(Number(target.x)) && Number.isFinite(Number(target.y));
+    const controlledMap = typeof target === 'string' && gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, target);
+    if ((controlledTarget || controlledMap) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
+      const planned = this.runtime.planTravel({ destination: clone(target), metadata: { source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL', transactionId: tx && tx.id || null, requestedDestination: resolved.requested, npcId: resolved.npcId, resolutionSource: resolved.source } });
       if (!planned || planned.accepted !== true || !planned.plan) {
         const reason = planned && planned.reason || 'CONTROLLED_SERVICE_TRAVEL_PLAN_REJECTED';
         if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-        return { ok: false, reason };
+        this.stats.failedSafe += 1;
+        this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source });
+        return { ok: false, reason, resolved };
       }
       this.serviceTravelBusy = true;
+      this.stats.namedServiceTravels += 1;
       try {
         const result = await this.runtime.executeTravelPlan(planned.plan.id);
         if (!result || result.completed !== true) {
           const reason = result && result.reason || 'CONTROLLED_SERVICE_TRAVEL_FAILED';
           if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-          return { ok: false, reason };
+          this.stats.failedSafe += 1;
+          this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source });
+          return { ok: false, reason, resolved };
         }
-        return { ok: true, controlled: true, result: clone(result) };
+        this._event('ALPHA27_SERVICE_TRAVEL_COMPLETED', 'info', 'SERVICE_DESTINATION_REACHED', { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, controlled: true });
+        return { ok: true, controlled: true, result: clone(result), resolved };
       } finally { this.serviceTravelBusy = false; }
     }
     const smart = rawFunction(this.root, 'smart_move');
     const stop = rawFunction(this.root, 'stop');
-    if (!smart || !stop) return { ok: false, reason: 'SERVICE_TRAVEL_API_UNAVAILABLE' };
+    if (!smart || !stop) return { ok: false, reason: 'SERVICE_TRAVEL_API_UNAVAILABLE', resolved };
     this.serviceTravelBusy = true;
     this.stats.namedServiceTravels += 1;
     try {
-      const response = await this._timeout(smart.fn.call(smart.owner, destination), 'SERVICE_TRAVEL');
+      const response = await this._timeout(smart.fn.call(smart.owner, target), 'SERVICE_TRAVEL');
       if (response && response.failed === true) throw response;
-      return { ok: true, controlled: false, response: clone(response) };
+      this._event('ALPHA27_SERVICE_TRAVEL_COMPLETED', 'info', 'SERVICE_DESTINATION_REACHED', { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, controlled: false });
+      return { ok: true, controlled: false, response: clone(response), resolved };
     } catch (error) {
       try { await Promise.resolve(stop.fn.call(stop.owner, 'smart')); } catch (_) {}
       const details = errorDetails(error);
       const reason = details.reason || 'SERVICE_TRAVEL_FAILED';
       if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
       this.stats.failedSafe += 1;
-      return { ok: false, reason, error: details };
+      this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, error: details });
+      return { ok: false, reason, error: details, resolved };
     } finally { this.serviceTravelBusy = false; }
+  }
+
+  mutationServiceDestination(tx) {
+    const type = String(tx && tx.type || '').toUpperCase();
+    if (type === 'UPGRADE' || type === 'COMPOUND') return 'newupgrade';
+    return null;
+  }
+
+  async ensureMutationService(tx) {
+    const destination = this.mutationServiceDestination(tx);
+    if (!destination) return { ok: true, skipped: true, destination: null };
+    const travelled = await this.namedServiceTravel(destination, tx);
+    if (!travelled.ok) return { ...travelled, destination };
+    this._event('ALPHA27_MUTATION_SERVICE_REACHED', 'info', `${String(tx.type).toUpperCase()}_SERVICE_REACHED`, {
+      transactionId: tx && tx.id || null,
+      type: tx && tx.type || null,
+      destination,
+      resolved: travelled.resolved || null,
+      controlled: travelled.controlled === true
+    });
+    return { ...travelled, destination };
   }
 
   async ensureScroll(tx, scrollName) {
     let scroll = findItem(this.root, scrollName);
-    if (scroll) return { ok: true, scroll };
-    const canBuy = rawFunction(this.root, 'can_buy');
-    let near = false;
-    if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
-    if (!near) {
-      const travelled = await this.namedServiceTravel(scrollName, tx);
-      if (!travelled.ok) return travelled;
-      if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
+    if (!scroll) {
+      const canBuy = rawFunction(this.root, 'can_buy');
+      let near = false;
+      if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
       if (!near) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
+        const travelled = await this.namedServiceTravel(scrollName, tx);
+        if (!travelled.ok) return travelled;
+        if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
+        if (!near) {
+          this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
+          this.stats.failedSafe += 1;
+          return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
+        }
+      }
+      const buy = rawFunction(this.root, 'buy');
+      if (!buy) {
+        this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
         this.stats.failedSafe += 1;
-        return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
+        return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
+      }
+      const gd = gameDataOf(this.runtime);
+      const scrollMeta = gd.items && gd.items[scrollName];
+      const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
+      const c = characterOf(this.runtime);
+      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
+        this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
+        this.stats.failedSafe += 1;
+        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
+      }
+      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
+      try {
+        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
+        if (response && response.failed === true) throw response;
+        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
+        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
+        this.stats.scrollPurchases += 1;
+        scroll = findItem(this.root, scrollName);
+        if (!scroll) return { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
+      } catch (error) {
+        const details = errorDetails(error);
+        const reason = details.reason || 'BUY_SCROLL_FAILED';
+        this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
+        this.stats.failedSafe += 1;
+        return { ok: false, reason, error: details };
       }
     }
-    const buy = rawFunction(this.root, 'buy');
-    if (!buy) {
-      this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
-      this.stats.failedSafe += 1;
-      return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
-    }
-    const gd = gameDataOf(this.runtime);
-    const scrollMeta = gd.items && gd.items[scrollName];
-    const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
-    const c = characterOf(this.runtime);
-    if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
-      this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
-      this.stats.failedSafe += 1;
-      return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
-    }
-    const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
-    try {
-      const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-      if (response && response.failed === true) throw response;
-      const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-      if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
-      this.stats.scrollPurchases += 1;
-      scroll = findItem(this.root, scrollName);
-      return scroll ? { ok: true, scroll } : { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
-    } catch (error) {
-      const details = errorDetails(error);
-      const reason = details.reason || 'BUY_SCROLL_FAILED';
-      this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-      this.stats.failedSafe += 1;
-      return { ok: false, reason, error: details };
-    }
+
+    const service = await this.ensureMutationService(tx);
+    if (!service.ok) return service;
+    return { ok: true, scroll, service };
   }
 }
 
-module.exports = { Alpha27AtomicService };
+module.exports = { Alpha27AtomicService, serviceNpcId, usableNpcLocation };
 },
 "src/reliability/alpha27-atomic-transactions.js": function(require,module,exports){
 'use strict';
@@ -42231,6 +42335,7 @@ module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRO
 const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
+const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -42259,7 +42364,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -42267,7 +42372,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27) {
       cloud: alpha25 && alpha25.cloud && alpha25.cloud.status ? alpha25.cloud.status() : null,
       autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
       convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
-      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null
+      liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
+      merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null
     })
   };
   api.cloud = {
@@ -42293,15 +42399,17 @@ function installProductionLiveServices(api, options = {}) {
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
+  const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
       cloudControlPlaneInstalled: !!runtime.cloudControlPlane,
       safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
       alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
-      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness
+      alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
+      merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
     return runtime.productionLiveServices;
   }
 
@@ -42323,10 +42431,11 @@ function installProductionLiveServices(api, options = {}) {
     safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
     alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
     alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
+    merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -42345,6 +42454,218 @@ module.exports = {
   runService,
   exposeDiagnostics
 };
+
+},
+"src/reliability/alpha27-merchant-legacy-ownership-guard.js": function(require,module,exports){
+'use strict';
+
+const LEGACY_OWNERSHIP_GUARD_MODE = 'alpha27-merchant-legacy-ownership-guard-v1';
+const DELEGATION_REASON = 'ALPHA27_MERCHANT_AUTHORITY_OWNS_LIVE_ACTIONS';
+
+function characterOf(runtime) {
+  const root = runtime && runtime.root;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
+function alpha27OwnsMerchant(runtime) {
+  const c = characterOf(runtime);
+  const convergence = runtime && runtime.alpha27CombatMerchantConvergence;
+  return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant' && convergence && convergence.merchant);
+}
+
+function markDelegated(runtime, controller, controllerName, action = 'DELEGATED') {
+  if (!controller) return false;
+  const now = runtime && typeof runtime.now === 'function' ? runtime.now() : Date.now();
+  controller.lastDecision = {
+    at: now,
+    action,
+    reason: DELEGATION_REASON,
+    owner: 'alpha27',
+    suppressedController: controllerName
+  };
+  return false;
+}
+
+function guardCycle(runtime, controller, controllerName) {
+  if (!controller || typeof controller.cycle !== 'function' || controller.__alpha27OwnershipCycleGuarded) return false;
+  const original = controller.cycle.bind(controller);
+  controller.__alpha27OwnershipOriginalCycle = original;
+  controller.cycle = async (...args) => {
+    if (alpha27OwnsMerchant(runtime)) return markDelegated(runtime, controller, controllerName);
+    return original(...args);
+  };
+  controller.__alpha27OwnershipCycleGuarded = true;
+  return true;
+}
+
+function guardPrimitive(runtime, controller, methodName, controllerName) {
+  if (!controller || typeof controller[methodName] !== 'function') return false;
+  const marker = `__alpha27OwnershipGuarded_${methodName}`;
+  if (controller[marker]) return false;
+  const original = controller[methodName].bind(controller);
+  controller[`__alpha27OwnershipOriginal_${methodName}`] = original;
+  controller[methodName] = (...args) => {
+    if (alpha27OwnsMerchant(runtime)) return markDelegated(runtime, controller, controllerName, `SUPPRESSED_${methodName}`);
+    return original(...args);
+  };
+  controller[marker] = true;
+  return true;
+}
+
+function emitInstalled(runtime, state) {
+  try {
+    if (runtime && runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'alpha27-merchant-legacy-ownership-guard',
+        event: 'ALPHA27_MERCHANT_SINGLE_OWNER_GUARD_INSTALLED',
+        severity: 'info',
+        reason: DELEGATION_REASON,
+        data: { ...state }
+      });
+    }
+  } catch (_) {}
+}
+
+function installAlpha27MerchantLegacyOwnershipGuard(runtime) {
+  if (!runtime) throw new Error('runtime required');
+
+  const v2 = runtime.economyEquipmentAutonomyV2 || null;
+  const legacy = runtime.merchantEconomyAutonomy || null;
+  const changes = {
+    v2Cycle: guardCycle(runtime, v2, 'economy-equipment-autonomy-v2'),
+    legacyCycle: guardCycle(runtime, legacy, 'merchant-economy-autonomy'),
+    legacyMove: guardPrimitive(runtime, legacy, '_move', 'merchant-economy-autonomy'),
+    legacyServiceMove: guardPrimitive(runtime, legacy, '_serviceMove', 'merchant-economy-autonomy')
+  };
+
+  const existing = runtime.alpha27MerchantLegacyOwnershipGuard;
+  const state = existing || {
+    mode: LEGACY_OWNERSHIP_GUARD_MODE,
+    installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now()
+  };
+  Object.assign(state, {
+    reason: DELEGATION_REASON,
+    ownershipActive: alpha27OwnsMerchant(runtime),
+    v2Present: !!v2,
+    legacyPresent: !!legacy,
+    guarded: {
+      v2Cycle: !!(v2 && v2.__alpha27OwnershipCycleGuarded),
+      legacyCycle: !!(legacy && legacy.__alpha27OwnershipCycleGuarded),
+      legacyMove: !!(legacy && legacy.__alpha27OwnershipGuarded__move),
+      legacyServiceMove: !!(legacy && legacy.__alpha27OwnershipGuarded__serviceMove)
+    },
+    status() {
+      return {
+        mode: LEGACY_OWNERSHIP_GUARD_MODE,
+        reason: DELEGATION_REASON,
+        ownershipActive: alpha27OwnsMerchant(runtime),
+        v2Present: !!runtime.economyEquipmentAutonomyV2,
+        legacyPresent: !!runtime.merchantEconomyAutonomy,
+        guarded: { ...state.guarded }
+      };
+    }
+  });
+  runtime.alpha27MerchantLegacyOwnershipGuard = state;
+  if (!existing && Object.values(changes).some(Boolean)) emitInstalled(runtime, state.status());
+  return state;
+}
+
+module.exports = {
+  LEGACY_OWNERSHIP_GUARD_MODE,
+  DELEGATION_REASON,
+  alpha27OwnsMerchant,
+  installAlpha27MerchantLegacyOwnershipGuard
+};
+
+},
+"src/control/cloud-presence-decoupling.js": function(require,module,exports){
+'use strict';
+
+const CLOUD_PRESENCE_DECOUPLING_MODE = 'cloud-presence-decoupling-v1';
+
+function finite(value, fallback = 0) {
+  if (value == null || value === '') return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function installCloudPresenceDecoupling(runtime) {
+  if (!runtime || !runtime.cloudControlPlane) return null;
+  if (runtime.cloudPresenceDecoupling && runtime.cloudPresenceDecoupling.mode === CLOUD_PRESENCE_DECOUPLING_MODE) {
+    return runtime.cloudPresenceDecoupling;
+  }
+
+  const cloud = runtime.cloudControlPlane;
+  const baseCycle = cloud.cycle.bind(cloud);
+
+  const state = {
+    mode: CLOUD_PRESENCE_DECOUPLING_MODE,
+    installedAt: typeof runtime.now === 'function' ? runtime.now() : Date.now(),
+    minRuntimePushMs: 15000,
+    status: () => ({
+      mode: CLOUD_PRESENCE_DECOUPLING_MODE,
+      installedAt: state.installedAt,
+      ready: !!(cloud.credentials && cloud.credentials.baseUrl && cloud.credentials.writeKey && cloud.fetchFn),
+      controlPlaneEnabled: !!(cloud.control && cloud.control.get && cloud.control.get('cloud.enabled', false)),
+      lastRuntimePushAt: finite(cloud.lastRuntimePushAt, 0),
+      lastSuccessAt: finite(cloud.lastSuccessAt, 0),
+      lastError: cloud.lastError || null
+    })
+  };
+
+  cloud.cycle = async (...args) => {
+    const controlEnabled = !!(cloud.control && cloud.control.get && cloud.control.get('cloud.enabled', false));
+    if (controlEnabled) return baseCycle(...args);
+
+    const ready = !!(cloud.credentials && cloud.credentials.baseUrl && cloud.credentials.writeKey && cloud.fetchFn);
+    if (cloud.busy || !ready) return false;
+
+    cloud.busy = true;
+    try {
+      const now = typeof cloud.now === 'function' ? cloud.now() : Date.now();
+      const configuredPushMs = cloud.control && cloud.control.get ? cloud.control.get('cloud.runtimePushMs', 15000) : 15000;
+      const pushMs = Math.max(15000, finite(configuredPushMs, 15000));
+      if (now - finite(cloud.lastRuntimePushAt, 0) >= pushMs) await cloud.pushRuntime();
+      cloud.lastError = null;
+      return true;
+    } catch (error) {
+      if (cloud.stats) cloud.stats.failures = finite(cloud.stats.failures, 0) + 1;
+      cloud.lastError = {
+        at: typeof cloud.now === 'function' ? cloud.now() : Date.now(),
+        message: String(error && error.message || error || 'unknown').slice(0, 300)
+      };
+      try {
+        if (runtime.log && typeof runtime.log.emit === 'function') {
+          runtime.log.emit({
+            component: 'cloud-presence',
+            event: 'CLOUD_PRESENCE_CYCLE_FAILED',
+            severity: 'warn',
+            reason: cloud.lastError.message,
+            data: { localSafetyUnaffected: true }
+          });
+        }
+      } catch (_) {}
+      return false;
+    } finally {
+      cloud.busy = false;
+    }
+  };
+
+  runtime.cloudPresenceDecoupling = state;
+  try {
+    if (runtime.log && typeof runtime.log.emit === 'function') {
+      runtime.log.emit({
+        component: 'cloud-presence',
+        event: 'CLOUD_PRESENCE_DECOUPLING_INSTALLED',
+        data: { mode: CLOUD_PRESENCE_DECOUPLING_MODE, minRuntimePushMs: 15000 }
+      });
+    }
+  } catch (_) {}
+
+  return state;
+}
+
+module.exports = { CLOUD_PRESENCE_DECOUPLING_MODE, installCloudPresenceDecoupling };
 
 }
 };

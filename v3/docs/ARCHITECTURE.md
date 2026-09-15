@@ -8,10 +8,10 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1050 |
+| (root) | 6 | 1062 |
 | autonomy | 21 | 3962 |
 | brain | 4 | 887 |
-| control | 4 | 960 |
+| control | 5 | 1047 |
 | core | 4 | 508 |
 | economy | 12 | 3861 |
 | farmer | 14 | 2582 |
@@ -20,7 +20,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 24 | 6415 |
 | party | 19 | 3767 |
 | planner | 1 | 65 |
-| reliability | 61 | 12702 |
+| reliability | 62 | 12918 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
@@ -42,6 +42,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | --- | --- | ---: |
 | (root) | autonomy | 16 |
 | (root) | brain | 3 |
+| (root) | control | 1 |
 | (root) | core | 6 |
 | (root) | economy | 10 |
 | (root) | farmer | 7 |
@@ -50,7 +51,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | (root) | ops | 9 |
 | (root) | party | 13 |
 | (root) | planner | 2 |
-| (root) | reliability | 3 |
+| (root) | reliability | 4 |
 | (root) | research | 2 |
 | (root) | stability | 3 |
 | (root) | telemetry | 2 |
