@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.riflex.aio.control.clientless.NativeCharacterSelection
+import de.riflex.aio.control.clientless.NativeClientlessConfigStore
 import de.riflex.aio.control.data.HeadlessCharacterSelection
 import de.riflex.aio.control.data.HeadlessCharacterStore
 import de.riflex.aio.control.data.HeadlessRole
@@ -17,12 +19,13 @@ class HeadlessCharacterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val store = HeadlessCharacterStore(applicationContext)
+        val nativeStore = NativeClientlessConfigStore(applicationContext)
         setContent {
             var rows by remember { mutableStateOf(store.load().ifEmpty { List(4) { HeadlessCharacterSelection("") } }) }
             MaterialTheme {
-                Scaffold(topBar = { TopAppBar(title = { Text("Headless-Charaktere") }) }) { padding ->
+                Scaffold(topBar = { TopAppBar(title = { Text("Clientless-Charaktere") }) }) { padding ->
                     Column(Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Wähle bis zu 4 Charaktere und ihre Aufgabe. Nur aktivierte Charaktere werden vom Headless-Host berücksichtigt.")
+                        Text("Wähle bis zu 4 Charaktere und ihre Aufgabe. Die Auswahl wird direkt für den nativen Clientless-Manager gespeichert.")
                         rows.forEachIndexed { index, item ->
                             Card(Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -37,7 +40,16 @@ class HeadlessCharacterActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        Button(onClick = { store.save(rows.filter { it.name.isNotBlank() }); finish() }, modifier = Modifier.fillMaxWidth()) { Text("Auswahl speichern") }
+                        Button(onClick = {
+                            val selected = rows.filter { it.enabled && it.name.isNotBlank() }
+                            store.save(rows.filter { it.name.isNotBlank() })
+                            nativeStore.load()?.let { config ->
+                                nativeStore.save(config.copy(characters = selected.map {
+                                    NativeCharacterSelection(it.name.trim(), if (it.role == HeadlessRole.MERCHANT) "merchant" else "farmer")
+                                }))
+                            }
+                            finish()
+                        }, modifier = Modifier.fillMaxWidth()) { Text("Auswahl speichern") }
                     }
                 }
             }
