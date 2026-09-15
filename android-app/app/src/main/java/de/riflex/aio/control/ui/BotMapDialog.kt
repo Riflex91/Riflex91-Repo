@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -42,9 +43,14 @@ fun BotMapDialog(characters: List<CharacterStatus>, onDismiss: () -> Unit) {
                         val unit = (size.minDimension / (spread * 2.4)).toFloat() * scale
                         for (i in -5..5) { val d=i*100f*unit; drawLine(Color(0x2239E6C5), Offset(size.width/2+d+pan.x,0f), Offset(size.width/2+d+pan.x,size.height),1f); drawLine(Color(0x2239E6C5), Offset(0f,size.height/2+d+pan.y), Offset(size.width,size.height/2+d+pan.y),1f) }
                         visible.forEach { c ->
-                            val px=size.width/2+(((c.x?:cx)-cx).toFloat()*unit)+pan.x; val py=size.height/2+(((c.y?:cy)-cy).toFloat()*unit)+pan.y
+                            val px=size.width/2+(((c.x?:cx)-cx).toFloat()*unit)+pan.x
+                            val py=size.height/2+(((c.y?:cy)-cy).toFloat()*unit)+pan.y
                             val color=when(c.connectionState){"live"->Color(0xFF62E6A7);"delayed"->Color(0xFFFFD166);else->Color(0xFFFF667C)}
-                            drawCircle(color,12f,Offset(px,py)); drawCircle(color,20f,Offset(px,py),style=Stroke(2f)); drawContext.canvas.nativeCanvas.drawText(c.name,px+18f,py-14f,android.graphics.Paint().apply{this.color=android.graphics.Color.WHITE;textSize=28f})
+                            drawCircle(color,12f,Offset(px,py))
+                            drawCircle(color,20f,Offset(px,py),style=Stroke(2f))
+                            drawIntoCanvas { canvas ->
+                                canvas.nativeCanvas.drawText(c.name, px+18f, py-14f, android.graphics.Paint().apply { color=android.graphics.Color.WHITE; textSize=28f })
+                            }
                         }
                     }
                 }
