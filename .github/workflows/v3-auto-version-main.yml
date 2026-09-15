@@ -5,6 +5,8 @@ on:
     branches: ["main"]
     paths:
       - "v3/**"
+      - "!v3/README.md"
+      - "!v3/docs/**"
 
 permissions:
   contents: write

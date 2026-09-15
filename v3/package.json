@@ -7,6 +7,8 @@
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
     "test:properties": "node --test test/logic-guardian-property.test.js",
+    "docs:generate": "node scripts/generate-docs.js",
+    "docs:check": "node scripts/generate-docs.js --check",
     "release:guard": "node scripts/release-guardian.js",
     "logic:guard": "node scripts/logic-guardian.js",
     "typecheck:logic": "tsc -p tsconfig.logic.json",
