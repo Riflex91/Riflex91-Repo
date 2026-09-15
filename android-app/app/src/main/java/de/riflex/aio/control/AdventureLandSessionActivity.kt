@@ -1,110 +1,109 @@
 package de.riflex.aio.control
 
-import android.annotation.SuppressLint
-import android.graphics.Color
 import android.os.Bundle
-import android.text.InputType
 import android.view.WindowManager
-import android.webkit.CookieManager
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.activity.ComponentActivity
-import org.json.JSONObject
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import de.riflex.aio.control.clientless.AdventureLandApi
+import de.riflex.aio.control.clientless.NativeCharacterSelection
+import de.riflex.aio.control.clientless.NativeClientlessConfig
+import de.riflex.aio.control.clientless.NativeClientlessConfigStore
+import de.riflex.aio.control.data.HeadlessCharacterStore
+import de.riflex.aio.control.data.HeadlessRole
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-/** Visible, first-party Adventure Land browser used to establish/refresh the persistent WebView session. */
+/** Native Adventure Land login. No WebView/browser session is created. */
+@OptIn(ExperimentalMaterial3Api::class)
 class AdventureLandSessionActivity : ComponentActivity() {
-    private var webView: WebView? = null
-    private lateinit var email: EditText
-    private lateinit var password: EditText
-    private lateinit var status: TextView
-
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        WebView.setWebContentsDebuggingEnabled(false)
-        CookieManager.getInstance().setAcceptCookie(true)
+        val store = NativeClientlessConfigStore(applicationContext)
+        val characterStore = HeadlessCharacterStore(applicationContext)
+        setContent {
+            val scope = rememberCoroutineScope()
+            var email by remember { mutableStateOf("") }
+            var password by remember { mutableStateOf("") }
+            var region by remember { mutableStateOf(store.load()?.region ?: "EU") }
+            var identifier by remember { mutableStateOf(store.load()?.identifier ?: "I") }
+            var busy by remember { mutableStateOf(false) }
+            var status by remember { mutableStateOf(if (store.load() != null) "Native Adventure-Land-Sitzung gespeichert." else "Noch keine native Adventure-Land-Sitzung gespeichert.") }
 
-        email = EditText(this).apply {
-            hint = "Adventure Land E-Mail"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setSingleLine(true)
-        }
-        password = EditText(this).apply {
-            hint = "Passwort"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            setSingleLine(true)
-        }
-        status = TextView(this).apply { setTextColor(Color.LTGRAY); text = "Login-Daten bleiben lokal und werden nur in die Adventure-Land-Seite eingesetzt." }
-        val login = Button(this).apply {
-            text = "Bei Adventure Land anmelden"
-            setOnClickListener { submitLogin() }
-        }
-        webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.cacheMode = WebSettings.LOAD_DEFAULT
-            settings.allowFileAccess = false
-            settings.allowContentAccess = false
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = !isAllowed(url)
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    if (isAllowed(url)) CookieManager.getInstance().flush()
+            MaterialTheme {
+                Scaffold(topBar = { TopAppBar(title = { Text("Adventure Land – Clientless Login") }) }) { padding ->
+                    Column(
+                        Modifier.padding(padding).padding(16.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("Die Anmeldung erfolgt direkt über die Adventure-Land-API. Es wird kein WebView gestartet. Das Passwort wird nicht gespeichert; nur die Session wird verschlüsselt im Android Keystore abgelegt.")
+                        OutlinedTextField(email, { email = it }, label = { Text("E-Mail") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(
+                            password,
+                            { password = it },
+                            label = { Text("Passwort") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(region, { region = it.uppercase() }, label = { Text("Region") }, singleLine = true, modifier = Modifier.weight(1f))
+                            OutlinedTextField(identifier, { identifier = it.uppercase() }, label = { Text("Server") }, singleLine = true, modifier = Modifier.weight(1f))
+                        }
+                        Button(
+                            enabled = !busy && email.isNotBlank() && password.isNotBlank(),
+                            onClick = {
+                                busy = true
+                                status = "Anmeldung läuft …"
+                                scope.launch {
+                                    val result = runCatching {
+                                        withContext(Dispatchers.IO) { AdventureLandApi().login(email, password) }
+                                    }
+                                    password = ""
+                                    result.onSuccess { session ->
+                                        val previous = store.load()
+                                        val characters = previous?.characters?.takeIf { it.isNotEmpty() }
+                                            ?: characterStore.load()
+                                                .filter { it.enabled && it.name.isNotBlank() }
+                                                .map {
+                                                    NativeCharacterSelection(
+                                                        it.name.trim(),
+                                                        if (it.role == HeadlessRole.MERCHANT) "merchant" else "farmer"
+                                                    )
+                                                }
+                                        store.save(
+                                            NativeClientlessConfig(
+                                                userId = session.userId,
+                                                userAuth = session.userAuth,
+                                                secure = true,
+                                                region = region.ifBlank { "EU" },
+                                                identifier = identifier.ifBlank { "I" },
+                                                characters = characters
+                                            )
+                                        )
+                                        status = "Native Sitzung gespeichert. Passwort wurde verworfen."
+                                    }.onFailure { status = "Login fehlgeschlagen: ${it.message ?: it.javaClass.simpleName}" }
+                                    busy = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (busy) "Anmelden …" else "Native Anmeldung") }
+                        OutlinedButton(
+                            enabled = !busy && store.load() != null,
+                            onClick = { store.clear(); password = ""; status = "Native Sitzung gelöscht." },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Gespeicherte Sitzung löschen") }
+                        Text(status)
+                    }
                 }
             }
-            loadUrl(ALLOWED_ORIGIN)
-        }
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(16, 16, 16, 16)
-            addView(email, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(password, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(login, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(status, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(webView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
-        }
-        setContentView(root)
-    }
-
-    private fun isAllowed(url: String?): Boolean = url?.startsWith(ALLOWED_ORIGIN) == true
-
-    private fun submitLogin() {
-        val mail = email.text.toString().trim()
-        val secret = password.text.toString()
-        if (mail.isBlank() || secret.isBlank()) { status.text = "E-Mail und Passwort eingeben."; return }
-        val view = webView ?: return
-        if (!isAllowed(view.url)) { status.text = "Login ist nur auf adventure.land erlaubt."; return }
-        val mailJs = JSONObject.quote(mail)
-        val passJs = JSONObject.quote(secret)
-        val script = """
-            (function(){
-              if(location.origin!=='https://adventure.land') return 'wrong_origin';
-              var e=document.getElementById('email'), p=document.getElementById('password'), b=document.querySelector('.slbutton');
-              if(!e||!p||!b) return (typeof inside!=='undefined'&&inside!=='login')?'already_logged_in':'login_form_not_ready';
-              e.value=$mailJs; p.value=$passJs;
-              e.dispatchEvent(new Event('input',{bubbles:true})); p.dispatchEvent(new Event('input',{bubbles:true}));
-              b.click(); return 'submitted';
-            })();
-        """.trimIndent()
-        view.evaluateJavascript(script) { result ->
-            password.setText("")
-            status.text = when (result?.trim('"')) {
-                "submitted" -> "Anmeldung gesendet. Passwort wurde aus dem App-Feld gelöscht."
-                "already_logged_in" -> "Adventure-Land-Sitzung ist bereits angemeldet."
-                "login_form_not_ready" -> "Login-Seite ist noch nicht bereit. Kurz warten und erneut versuchen."
-                else -> "Anmeldung konnte auf dieser Seite nicht gestartet werden."
-            }
         }
     }
-
-    override fun onPause() { CookieManager.getInstance().flush(); super.onPause() }
-    override fun onDestroy() { password.setText(""); webView?.destroy(); webView = null; super.onDestroy() }
-
-    companion object { const val ALLOWED_ORIGIN = "https://adventure.land/" }
 }

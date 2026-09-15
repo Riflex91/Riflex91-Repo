@@ -12,6 +12,7 @@ class AndroidHeadlessBridge(context: Context) : AutoCloseable {
     fun tick(now: Long = System.currentTimeMillis()) {
         lastTickAt.set(now)
         runtime.ensureStarted()
+        runtime.refreshLogic()
         runtime.flushTelemetry(now)
     }
 
