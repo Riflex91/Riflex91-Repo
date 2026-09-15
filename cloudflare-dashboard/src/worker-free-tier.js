@@ -13,13 +13,19 @@ import {
   quotaPolicy,
   recordWorkerRequest
 } from './quota-usage.js';
+import {
+  RUNTIME_RELEASE_PATH,
+  handleRuntimeReleaseArtifact,
+  isRuntimeReleaseRead
+} from './runtime-release-artifact.js';
 
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
 const R2_BUCKET = 'aio-v3-logs';
 const PUBLIC_RELEASE_PATHS = new Set([
   '/v3/src/release-version.js',
-  '/v3/dist/aio-v3.js'
+  '/v3/dist/aio-v3.js',
+  RUNTIME_RELEASE_PATH
 ]);
 const lastR2WriteAt = new Map();
 
@@ -151,7 +157,12 @@ export default {
     const now = Date.now();
     recordWorkerRequest(now);
     const releaseRead = isPublicReleaseRead(request);
-    let response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
+    let response;
+    if (isRuntimeReleaseRead(request)) {
+      response = await handleRuntimeReleaseArtifact(request, env);
+    } else {
+      response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
+    }
     response = await withQuotaOverview(request, response, env);
     response = await withFreeTierHealth(request, response);
     maybeFlushUsage(env, ctx, now);
