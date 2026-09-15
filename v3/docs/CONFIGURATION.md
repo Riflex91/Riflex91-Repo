@@ -12,7 +12,7 @@ Diese Datei inventarisiert statisch sichtbare Konfigurationsoberflächen. Sie er
 | `check` | `npm run preflight && npm run check:full` |
 | `check:architecture` | `depcruise --config .dependency-cruiser.cjs src` |
 | `check:cloud` | `cd ../cloudflare-dashboard && npm run check` |
-| `check:full` | `npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud` |
+| `check:full` | `npm run build && npm test && node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js && npm run check:cloud` |
 | `docs:check` | `node scripts/generate-docs.js --check` |
 | `docs:generate` | `node scripts/generate-docs.js` |
 | `logic:guard` | `node scripts/logic-guardian.js` |
