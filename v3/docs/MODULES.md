@@ -207,7 +207,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**62 Dateien · 12821 Zeilen**
+**62 Dateien · 12847 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -231,7 +231,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-core.js` | 48 |
 | `src/reliability/alpha27-atomic-economy.js` | 274 |
 | `src/reliability/alpha27-atomic-ledger.js` | 64 |
-| `src/reliability/alpha27-atomic-service.js` | 123 |
+| `src/reliability/alpha27-atomic-service.js` | 149 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
 | `src/reliability/alpha27-atomic-transactions.js` | 91 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
