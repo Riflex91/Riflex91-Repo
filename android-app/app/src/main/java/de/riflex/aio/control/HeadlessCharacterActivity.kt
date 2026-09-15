@@ -12,6 +12,7 @@ import de.riflex.aio.control.data.HeadlessCharacterSelection
 import de.riflex.aio.control.data.HeadlessCharacterStore
 import de.riflex.aio.control.data.HeadlessRole
 
+@OptIn(ExperimentalMaterial3Api::class)
 class HeadlessCharacterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,13 +26,7 @@ class HeadlessCharacterActivity : ComponentActivity() {
                         rows.forEachIndexed { index, item ->
                             Card(Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
-                                        value = item.name,
-                                        onValueChange = { value -> rows = rows.toMutableList().also { it[index] = item.copy(name = value) } },
-                                        label = { Text("Charakter ${index + 1}") },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    OutlinedTextField(value = item.name, onValueChange = { value -> rows = rows.toMutableList().also { it[index] = item.copy(name = value) } }, label = { Text("Charakter ${index + 1}") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                         Row { Switch(checked = item.enabled, onCheckedChange = { enabled -> rows = rows.toMutableList().also { it[index] = item.copy(enabled = enabled) } }); Text(" Aktiv") }
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
