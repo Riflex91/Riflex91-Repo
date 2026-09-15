@@ -4,14 +4,9 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * Lifecycle boundary for the embedded Adventure Land runtime.
- *
- * Phase one establishes supervision, bounded operations and telemetry ownership.
- * The actual game WebView/JS adapter is intentionally isolated behind this class
- * so the control UI and bridge never gain arbitrary script execution authority.
- */
-class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
+/** Supervised Android owner for the Adventure Land WebView runtime. */
+class AndroidHeadlessRuntime(context: Context) : AutoCloseable {
+    private val webRuntime = AdventureLandWebRuntime(context.applicationContext)
     @Volatile private var running = false
     @Volatile private var startedAt = 0L
     @Volatile private var restartCount = 0
@@ -21,6 +16,7 @@ class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
     @Synchronized
     fun ensureStarted() {
         if (running) return
+        webRuntime.start()
         running = true
         startedAt = System.currentTimeMillis()
         event("ANDROID_RUNTIME_STARTED", "INFO")
@@ -28,6 +24,7 @@ class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
 
     @Synchronized
     fun restart(reason: String): JSONObject {
+        webRuntime.close()
         running = false
         restartCount += 1
         event("ANDROID_RUNTIME_RESTART", "WARNING", reason)
@@ -37,22 +34,26 @@ class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
 
     fun flushTelemetry(now: Long) {
         if (!running) return
-        // Transport ownership lives here. A subsequent adapter wires this snapshot
-        // to the existing authenticated telemetry endpoint without storing secrets
-        // in source control.
-        lastTelemetryAt = now
+        // Keep the host heartbeat active even before the external telemetry transport
+        // is configured. Failures are represented in status rather than executing
+        // arbitrary recovery code in the browser context.
+        val heartbeat = webRuntime.evaluateAllowed("HOST_HEARTBEAT")
+        if (heartbeat.optBoolean("ok", false)) lastTelemetryAt = now
     }
 
-    fun debugSnapshot(): JSONObject = JSONObject()
-        .put("ok", true)
-        .put("source", "android-headless")
-        .put("status", status())
+    fun debugSnapshot(): JSONObject {
+        if (!running) return JSONObject().put("ok", false).put("error", "ANDROID_RUNTIME_STOPPED")
+        val response = webRuntime.evaluateAllowed("DEBUG_SNAPSHOT")
+        return if (response.optBoolean("ok", false)) response.optJSONObject("value") ?: response else response
+    }
 
-    @Synchronized
     fun debugEvents(limit: Int): JSONObject {
+        if (!running) return JSONObject().put("ok", false).put("error", "ANDROID_RUNTIME_STOPPED")
+        val response = webRuntime.evaluateAllowed("DEBUG_EVENTS", JSONObject().put("limit", limit))
+        if (response.optBoolean("ok", false)) return response.optJSONObject("value") ?: response
         val rows = JSONArray()
-        events.takeLast(limit).forEach { rows.put(JSONObject(it.toString())) }
-        return JSONObject().put("ok", true).put("events", rows)
+        synchronized(this) { events.takeLast(limit).forEach { rows.put(JSONObject(it.toString())) } }
+        return JSONObject().put("ok", false).put("error", response.optString("error")).put("events", rows)
     }
 
     fun status(): JSONObject = JSONObject()
@@ -61,14 +62,12 @@ class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
         .put("startedAt", startedAt)
         .put("restartCount", restartCount)
         .put("lastTelemetryAt", lastTelemetryAt)
-        .put("runtime", "android-headless")
+        .put("runtime", "android-webview-headless")
+        .put("web", webRuntime.status())
 
     @Synchronized
     private fun event(name: String, severity: String, reason: String? = null) {
-        val row = JSONObject()
-            .put("event", name)
-            .put("severity", severity)
-            .put("eventAt", System.currentTimeMillis())
+        val row = JSONObject().put("event", name).put("severity", severity).put("eventAt", System.currentTimeMillis())
         if (reason != null) row.put("reason", reason)
         events.addLast(row)
         while (events.size > 100) events.removeFirst()
@@ -76,5 +75,6 @@ class AndroidHeadlessRuntime(private val context: Context) : AutoCloseable {
 
     override fun close() {
         running = false
+        webRuntime.close()
     }
 }
