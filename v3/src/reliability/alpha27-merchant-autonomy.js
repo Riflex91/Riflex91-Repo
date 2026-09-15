@@ -6,9 +6,40 @@ const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-consta
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
+  _openEconomyBreakers() {
+    const engine = this.runtime && this.runtime.transactionEngine;
+    if (!engine || typeof engine.breaker !== 'function') return [];
+    return ['UPGRADE', 'COMPOUND', 'SELL', 'BANK']
+      .map((type) => engine.breaker(type))
+      .filter((row) => row && row.open === true);
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
+
+    // Do not repeatedly re-enable controlled merchant authority while the
+    // transaction engine is deliberately cooling down after verified failures.
+    // The scoped Alpha28 guard will keep the executor disabled; this hold keeps
+    // ensureAutonomousAuthorities() from immediately enabling it again every tick.
+    const openBreakers = this._openEconomyBreakers();
+    if (openBreakers.length) {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'ECONOMY_CIRCUIT_OPEN',
+        breakers: openBreakers.map((row) => ({
+          family: row.family,
+          openUntil: row.openUntil,
+          failuresInWindow: row.failuresInWindow,
+          threshold: row.threshold,
+          reason: row.reason
+        }))
+      };
+      return false;
+    }
+
     this.ensureAutonomousAuthorities();
     if (this.atomic.serviceTravelBusy || this.atomic.merchantBusy) return false;
     if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
