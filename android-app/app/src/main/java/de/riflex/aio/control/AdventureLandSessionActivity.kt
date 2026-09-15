@@ -11,8 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import de.riflex.aio.control.clientless.AdventureLandApi
+import de.riflex.aio.control.clientless.NativeCharacterSelection
 import de.riflex.aio.control.clientless.NativeClientlessConfig
 import de.riflex.aio.control.clientless.NativeClientlessConfigStore
+import de.riflex.aio.control.data.HeadlessCharacterStore
+import de.riflex.aio.control.data.HeadlessRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,6 +27,7 @@ class AdventureLandSessionActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         val store = NativeClientlessConfigStore(applicationContext)
+        val characterStore = HeadlessCharacterStore(applicationContext)
         setContent {
             val scope = rememberCoroutineScope()
             var email by remember { mutableStateOf("") }
@@ -65,6 +69,15 @@ class AdventureLandSessionActivity : ComponentActivity() {
                                     password = ""
                                     result.onSuccess { session ->
                                         val previous = store.load()
+                                        val characters = previous?.characters?.takeIf { it.isNotEmpty() }
+                                            ?: characterStore.load()
+                                                .filter { it.enabled && it.name.isNotBlank() }
+                                                .map {
+                                                    NativeCharacterSelection(
+                                                        it.name.trim(),
+                                                        if (it.role == HeadlessRole.MERCHANT) "merchant" else "farmer"
+                                                    )
+                                                }
                                         store.save(
                                             NativeClientlessConfig(
                                                 userId = session.userId,
@@ -72,7 +85,7 @@ class AdventureLandSessionActivity : ComponentActivity() {
                                                 secure = true,
                                                 region = region.ifBlank { "EU" },
                                                 identifier = identifier.ifBlank { "I" },
-                                                characters = previous?.characters.orEmpty()
+                                                characters = characters
                                             )
                                         )
                                         status = "Native Sitzung gespeichert. Passwort wurde verworfen."
