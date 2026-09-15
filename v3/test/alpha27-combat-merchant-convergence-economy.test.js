@@ -14,7 +14,7 @@ test('real upgrade() executes once and commits only after observed item+scroll d
   assert.equal(engine.transactions.get(planned.transaction.id).state, 'COMMITTED');
 });
 
-test('upgrade travels to the named upgrade service before invoking raw upgrade()', async () => {
+test('upgrade travels to the canonical upgrade service before invoking raw upgrade()', async () => {
   const { convergence, engine, ledger, root } = mutationFixture('UPGRADE');
   const order = [];
   root.smart_move = async (destination) => { order.push(`travel:${destination}`); return { success: true }; };
@@ -23,11 +23,11 @@ test('upgrade travels to the named upgrade service before invoking raw upgrade()
   const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
   const result = await convergence._executeAtomic(planned.transaction.id);
   assert.equal(result.committed, true);
-  assert.deepEqual(order.slice(0, 2), ['travel:upgrade', 'upgrade']);
+  assert.deepEqual(order.slice(0, 2), ['travel:newupgrade', 'upgrade']);
   assert.equal(convergence.stats.namedServiceTravels, 1);
 });
 
-test('compound travels to the named compound service before invoking raw compound()', async () => {
+test('compound travels to the canonical shared mutation service before invoking raw compound()', async () => {
   const { convergence, engine, ledger, root } = mutationFixture('COMPOUND');
   const order = [];
   root.smart_move = async (destination) => { order.push(`travel:${destination}`); return { success: true }; };
@@ -36,7 +36,7 @@ test('compound travels to the named compound service before invoking raw compoun
   const planned = engine.planAtomic({ type: 'COMPOUND', character: 'Merchant', indices: [0, 1, 2] }, { ledger });
   const result = await convergence._executeAtomic(planned.transaction.id);
   assert.equal(result.committed, true);
-  assert.deepEqual(order.slice(0, 2), ['travel:compound', 'compound']);
+  assert.deepEqual(order.slice(0, 2), ['travel:newupgrade', 'compound']);
   assert.equal(convergence.stats.namedServiceTravels, 1);
 });
 
