@@ -66,7 +66,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         if (!near) {
           this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
           const travelled = await this.atomic.namedServiceTravel('scroll0');
-          if (!travelled || travelled.ok !== true) {
+          const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
+          if (!travelSucceeded) {
             this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
             return true;
           }
