@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1033 Zeilen**
+**6 Dateien · 1050 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 51 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 102 |
+| `src/production-live-services.js` | 119 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |
@@ -130,13 +130,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**5 Dateien · 1497 Zeilen**
+**5 Dateien · 1504 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/merchant/controlled-merchant-production-executor.js` | 143 |
 | `src/merchant/controlled-merchant-service-executor.js` | 516 |
-| `src/merchant/merchant-production-controller.js` | 173 |
+| `src/merchant/merchant-production-controller.js` | 180 |
 | `src/merchant/merchant-production-planner.js` | 440 |
 | `src/merchant/merchant-service-planner.js` | 225 |
 
@@ -207,7 +207,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**61 Dateien · 12696 Zeilen**
+**61 Dateien · 12702 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -236,7 +236,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-transactions.js` | 91 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 155 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 161 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-planning.js` | 165 |
