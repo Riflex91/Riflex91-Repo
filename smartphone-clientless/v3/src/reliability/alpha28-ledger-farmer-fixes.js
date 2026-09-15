@@ -1,0 +1,204 @@
+'use strict';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function distance(a, b) {
+  const ax = finite(a && (a.real_x != null ? a.real_x : a.x), NaN), ay = finite(a && (a.real_y != null ? a.real_y : a.y), NaN);
+  const bx = finite(b && (b.real_x != null ? b.real_x : b.x), NaN), by = finite(b && (b.real_y != null ? b.real_y : b.y), NaN);
+  return [ax, ay, bx, by].every(Number.isFinite) ? Math.hypot(ax - bx, ay - by) : Infinity;
+}
+
+class Alpha28LedgerFarmerFixes {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.patchLedger();
+    this.patchCohesionSemantics();
+    this.patchAreaPressure();
+    this.patchFarmerTargetLiveness();
+  }
+
+  event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-liveness', event, severity, reason, data }); } catch (_) {}
+  }
+
+  patchLedger() {
+    const ledger = this.runtime.inventoryLedger;
+    if (!ledger || ledger.__alpha28LedgerSignatureVerified) return false;
+    if (!ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
+    // Alpha27 now preserves InventoryLedger's native four-argument contract:
+    // (row, gameData, contentDrift, counts). Alpha28 only records that the
+    // repaired central planner is active; it must not replace/reclassify it.
+    ledger.__alpha28LedgerSignatureVerified = true;
+    this.stats.ledgerSignatureFixes += 1;
+    this.event('ALPHA28_LEDGER_SIGNATURE_VERIFIED', 'info', 'ALPHA27_FOUR_ARGUMENT_CONTRACT_ACTIVE');
+    return true;
+  }
+
+  patchCohesionSemantics() {
+    const team = this.runtime.teamCombatCohesionHotfix;
+    if (!team || team.__alpha28SemanticRegroupPreserved || typeof team._team !== 'function') return false;
+    const base = team._team.bind(team);
+    team._team = (snapshot) => {
+      const state = base(snapshot);
+      if (!state) return state;
+      const semanticRegroup = state.regroupRequired === true || (Array.isArray(state.stuckMembers) && state.stuckMembers.length > 0);
+      if (semanticRegroup && state.cohesive === true) {
+        state.cohesive = false;
+        this.stats.semanticRegroupPreserved += 1;
+      }
+      return state;
+    };
+    team.__alpha28SemanticRegroupPreserved = true;
+    return true;
+  }
+
+  patchAreaPressure() {
+    const pressure = this.runtime.farmAreaPressureHotfix;
+    if (!pressure || pressure.__alpha28CombatAcquisitionPressureFix || typeof pressure._evaluate !== 'function') return false;
+    const base = pressure._evaluate.bind(pressure);
+    pressure._evaluate = (...args) => {
+      const result = base(...args);
+      if (!result || result.pressured !== true || String(result.classification || '') !== 'AREA_OVERPOPULATED') return result;
+      const uptime = finite(result.monsterUptimeRatio, finite(result.availabilityRatio, 0));
+      const contested = finite(result.contestedLossRatio, 0);
+      if (uptime >= 0.70 && contested < 0.20) {
+        this.stats.falseAreaPressureSuppressed += 1;
+        return { ...result, pressured: false, classification: 'AREA_HEALTHY', alpha28Classification: 'COMBAT_ACQUISITION_STALLED', alpha28SuppressedOverpopulation: true };
+      }
+      return result;
+    };
+    pressure.__alpha28CombatAcquisitionPressureFix = true;
+    return true;
+  }
+
+  patchFarmerTargetLiveness() {
+    const farmer = this.runtime.farmer;
+    if (!farmer || farmer.__alpha28PlannedTargetFallback || typeof farmer._selectTarget !== 'function') return false;
+    const base = farmer._selectTarget.bind(farmer);
+    farmer._selectTarget = (context) => {
+      const selected = base(context);
+      if (selected) return selected;
+      const snapshot = context && context.snapshot;
+      const teamModule = this.runtime.teamCombatCohesionHotfix;
+      const local = this.runtime.localFarming;
+      const plan = local && local.currentPlan;
+      if (!snapshot || !snapshot.character || !plan || !plan.monster) return null;
+      let team = null;
+      try { team = teamModule && typeof teamModule._team === 'function' ? teamModule._team(snapshot) : null; } catch (_) {}
+      if (!team || !team.complete || !team.alive || !team.sameMap || !team.positionsKnown || !team.cohesive) return null;
+      const reliability = this.runtime.preFarmingReliability;
+      const safeIds = reliability && reliability.safeEntityIds;
+      if (!(safeIds instanceof Set)) return null;
+      if (reliability.safeEntitySnapshotAt != null && snapshot.observedAt != null && Number(reliability.safeEntitySnapshotAt) !== Number(snapshot.observedAt)) return null;
+
+      const allSafeCandidates = (snapshot.entities || []).filter((entity) => {
+        if (!entity || entity.id == null || !entity.mtype || entity.dead || entity.rip || (entity.hp != null && Number(entity.hp) <= 0)) return false;
+        if (!safeIds.has(String(entity.id))) return false;
+        if (entity.map && snapshot.character.map && String(entity.map) !== String(snapshot.character.map)) return false;
+        return typeof farmer._targetAllowed !== 'function' || farmer._targetAllowed(entity, snapshot, context.party);
+      }).sort((a, b) => distance(snapshot.character, a) - distance(snapshot.character, b));
+      if (!allSafeCandidates.length) return null;
+
+      const plannedCandidates = allSafeCandidates.filter((entity) => String(entity.mtype) === String(plan.monster));
+      const isLeader = String(team.selfName || snapshot.character.name || '') === String(team.leaderName || '');
+      let candidates = plannedCandidates;
+      let fallbackScope = 'PLANNED_MONSTER';
+
+      if (isLeader) {
+        if (!candidates.length) {
+          candidates = allSafeCandidates;
+          fallbackScope = 'SAFE_LIVE_LEADER';
+        }
+      } else {
+        let friendlyNames = new Set([String(team.leaderName || '')].filter(Boolean));
+        try {
+          if (typeof farmer._friendlyNames === 'function') friendlyNames = farmer._friendlyNames(snapshot, context.party);
+        } catch (_) {}
+        const engagedCandidates = allSafeCandidates.filter((entity) => entity.target && friendlyNames.has(String(entity.target)));
+        const engagedPlannedCandidates = engagedCandidates.filter((entity) => String(entity.mtype) === String(plan.monster));
+        candidates = engagedPlannedCandidates.length ? engagedPlannedCandidates : engagedCandidates;
+        fallbackScope = 'PARTY_ENGAGED_FOLLOWER';
+      }
+
+      const target = candidates[0];
+      if (!target) return null;
+      const targetMatchesPlan = String(target.mtype) === String(plan.monster);
+
+      // Prefer the native FarmPlanner row when available. The fallback below is
+      // intentionally liveness-only: target safety, party policy, map and the
+      // pre-farming safeEntityIds have all already been enforced above. A leader
+      // may switch to another already-safe live type when the planned monster is
+      // absent; followers only join a safe target already engaged by the party.
+      let ranking = null;
+      try {
+        const candidateState = typeof farmer._candidateRows === 'function' ? farmer._candidateRows(context) : null;
+        const row = candidateState && Array.isArray(candidateState.rows)
+          ? candidateState.rows.find((candidate) => candidate && String(candidate.monster || candidate.id) === String(target.mtype))
+          : null;
+        const ranked = row && farmer.planner && typeof farmer.planner.rank === 'function'
+          ? farmer.planner.rank([row], {
+            character: snapshot.character.name,
+            partyFingerprint: context.party && context.party.fingerprint || null
+          })
+          : [];
+        ranking = Array.isArray(ranked) && ranked.length ? ranked[0] : null;
+      } catch (_) {}
+      const score = ranking && Number(ranking.score);
+      const travelSeconds = ranking && Number(ranking.travelSeconds);
+      if (!ranking || !Number.isFinite(score) || !Number.isFinite(travelSeconds)) {
+        const liveDistance = distance(snapshot.character, target);
+        const speed = Math.max(1, finite(snapshot.character.speed, 40));
+        const fallbackTravelSeconds = Number.isFinite(liveDistance) ? liveDistance / speed : 120;
+        const fallbackRanking = {
+          id: String(target.mtype),
+          monster: String(target.mtype),
+          score: 0,
+          xpPerHour: 0,
+          goldPerHour: 0,
+          deathsPerHour: 0,
+          confidence: 0,
+          travelSeconds: fallbackTravelSeconds,
+          source: targetMatchesPlan ? 'alpha28-safe-live-liveness-fallback' : 'alpha28-safe-live-plan-miss-fallback'
+        };
+        this.stats.plannedTargetFallbackSelections += 1;
+        this.event('ALPHA28_PLANNED_TARGET_FALLBACK_RECOVERED', 'warn', targetMatchesPlan ? 'RANKING_CONTRACT_UNAVAILABLE_SAFE_LIVE_FALLBACK' : 'PLANNED_MONSTER_NOT_VISIBLE_SAFE_LIVE_FALLBACK', {
+          targetId: String(target.id), monster: target.mtype, plannedMonster: plan.monster, planId: plan.id || null,
+          fallbackScope, distance: Number.isFinite(liveDistance) ? Math.round(liveDistance) : null,
+          travelSeconds: fallbackTravelSeconds
+        });
+        return { target, ranking: fallbackRanking };
+      }
+      const fallbackRanking = { ...ranking, score, travelSeconds, source: targetMatchesPlan ? 'alpha28-safe-planned-fallback' : 'alpha28-safe-plan-miss-fallback' };
+      this.stats.plannedTargetFallbackSelections += 1;
+      this.event('ALPHA28_PLANNED_TARGET_FALLBACK_SELECTED', 'info', targetMatchesPlan ? 'SAFE_PLANNED_MONSTER_VISIBLE' : 'PLANNED_MONSTER_NOT_VISIBLE_SAFE_LIVE_FALLBACK', {
+        targetId: String(target.id), monster: target.mtype, plannedMonster: plan.monster, planId: plan.id || null,
+        fallbackScope, score, travelSeconds
+      });
+      return { target, ranking: fallbackRanking };
+    };
+    farmer.__alpha28PlannedTargetFallback = true;
+    return true;
+  }
+
+  ensurePatches() {
+    this.patchLedger();
+    this.patchCohesionSemantics();
+    this.patchAreaPressure();
+    this.patchFarmerTargetLiveness();
+  }
+
+  status() {
+    return {
+      ledgerSignatureFixed: !!(this.runtime.inventoryLedger && this.runtime.inventoryLedger.__alpha28LedgerSignatureVerified),
+      semanticRegroupPreserved: !!(this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix.__alpha28SemanticRegroupPreserved),
+      areaPressureCombatStallFix: !!(this.runtime.farmAreaPressureHotfix && this.runtime.farmAreaPressureHotfix.__alpha28CombatAcquisitionPressureFix),
+      plannedTargetFallback: !!(this.runtime.farmer && this.runtime.farmer.__alpha28PlannedTargetFallback),
+      plannedMonsterMissUsesSafeLiveFallback: true,
+      followersOnlyJoinPartyEngagedFallback: true
+    };
+  }
+}
+
+module.exports = { Alpha28LedgerFarmerFixes };

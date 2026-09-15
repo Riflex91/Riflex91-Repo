@@ -1,0 +1,31 @@
+{
+  "name": "adventure-land-aio-v3",
+  "version": "3.0.0-alpha.20.28",
+  "private": true,
+  "description": "Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js",
+    "test:properties": "node --test test/logic-guardian-property.test.js",
+    "release:guard": "node scripts/release-guardian.js",
+    "logic:guard": "node scripts/logic-guardian.js",
+    "typecheck:logic": "tsc -p tsconfig.logic.json",
+    "check:architecture": "depcruise --config .dependency-cruiser.cjs src",
+    "static:guard": "npm run typecheck:logic && npm run check:architecture",
+    "preflight": "npm run release:guard && npm run logic:guard && npm run static:guard",
+    "version:check": "node scripts/release-guardian.js --version-only",
+    "release:patch": "node scripts/release-bump.js patch",
+    "check:cloud": "cd ../cloudflare-dashboard && npm run check",
+    "check:full": "npm run build && npm test && node --check dist/aio-v3.js && node scripts/smoke-bundle.js && npm run check:cloud",
+    "check": "npm run preflight && npm run check:full"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "dependency-cruiser": "18.2.0",
+    "fast-check": "4.10.0",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

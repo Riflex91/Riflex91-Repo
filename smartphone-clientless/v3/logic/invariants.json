@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "name": "Adventure Land v3 Logic Invariants",
+  "invariants": [
+    {
+      "id": "TARGET_AUTOMATRON_NEVER_ATTACK",
+      "severity": "block",
+      "statement": "Target Automatron is never an attackable combat target.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/release-safety-invariants.test.js",
+        "test/alpha20-23-idle-deadlock-recovery.test.js"
+      ]
+    },
+    {
+      "id": "PASSIVE_UNRELATED_AUTOMATRON_MUST_NOT_NAV_DEADLOCK",
+      "severity": "block",
+      "statement": "A passive, unrelated Target Automatron may not be the sole reason farming navigation cannot progress.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/logic-guardian-liveness.test.js",
+        "test/alpha20-23-idle-deadlock-recovery.test.js",
+        "test/logic-guardian-property.test.js"
+      ]
+    },
+    {
+      "id": "UNKNOWN_CONTENT_FAIL_CLOSED",
+      "severity": "block",
+      "statement": "Unknown monster content remains fail-closed until explicitly classified safe.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/unknown-content-safety.test.js",
+        "test/logic-guardian-liveness.test.js",
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "DANGEROUS_AND_CUSTOM_EXCLUSIONS_FAIL_CLOSED",
+      "severity": "block",
+      "statement": "Dangerous special fairies and custom target exclusions remain blocked for attack and navigation release.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/release-safety-invariants.test.js",
+        "test/alpha20-23-idle-deadlock-recovery.test.js"
+      ]
+    },
+    {
+      "id": "SELF_AGGRO_SELECTED_PLANNED_NEVER_NAV_RELEASED",
+      "severity": "block",
+      "statement": "Self-aggro, selected, or planned monsters are never silently removed from navigation blockers by the Automatron recovery.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha20-23-idle-deadlock-recovery.test.js",
+        "test/logic-guardian-liveness.test.js",
+        "test/logic-guardian-property.test.js"
+      ]
+    },
+    {
+      "id": "NO_HIDDEN_CROSS_MODULE_DEADLOCK",
+      "severity": "block",
+      "statement": "When useful work is expected, attack rejection plus navigation rejection must still leave a safe alternate action or an explicit safe stop.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/logic-guardian-liveness.test.js",
+        "test/logic-guardian-property.test.js",
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "FARMER_BOUNDED_LIVENESS",
+      "severity": "block",
+      "statement": "In a healthy actionable fixture, the Farmer state machine reaches travel, engage, attack, navigation, or an explicit safe stop within a bounded number of ticks.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/logic-guardian-liveness.test.js",
+        "test/farmer-local-plan-priority.test.js"
+      ]
+    },
+    {
+      "id": "FARMER_TEAM_COHESION_MUST_MAKE_PROGRESS",
+      "severity": "block",
+      "statement": "A healthy complete team waiting only for cohesion must have a bounded leader recovery move that reduces pairwise distance instead of waiting forever.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "MERCHANT_RENDEZVOUS_REQUIRES_REAL_WORK",
+      "severity": "block",
+      "statement": "Merchant rendezvous movement may only be created by real transfer or supply work, never by ordinary status traffic or an empty outbound queue.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "MERCHANT_RENDEZVOUS_MUST_NOT_STARVE_HOME_SERVICE",
+      "severity": "block",
+      "statement": "A blocked or failed merchant rendezvous must be deferred so bank, market, gear, restock, and other home service can continue.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "ALPHA21_PROGRESSION_REQUIRES_LIVE_EVIDENCE",
+      "severity": "block",
+      "statement": "Alpha21 may promote a farm objective only from measured party performance and approved content after bounded stable evidence, never from a hard-coded level guide.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "ALPHA21_CROSS_MAP_NEVER_BYPASSES_TRAVEL_AUTHORITY",
+      "severity": "block",
+      "statement": "Alpha21 may recommend a better cross-map farm area but must not acquire direct smart-move or other new travel authority to execute it.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha21-progression-liveness.test.js"
+      ]
+    },
+    {
+      "id": "FARMER_TARGET_AUTHORITY_SEPARATES_RAW_TARGET",
+      "severity": "block",
+      "statement": "Raw Adventure Land target state must never replace the Farmer-owned target as combat ownership authority, while self-aggro remains a hard safety hold.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha27-combat-merchant-convergence.test.js"
+      ]
+    },
+    {
+      "id": "PERFORMANCE_ATTRIBUTION_REQUIRES_OWNERSHIP_OR_SELF_AGGRO",
+      "severity": "block",
+      "statement": "Kill and damage performance telemetry may only attribute a monster to the Farmer-owned target or verified self-aggro, and an owned disappearance requires XP evidence to count as a kill.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha27-combat-merchant-convergence.test.js"
+      ]
+    },
+    {
+      "id": "ATOMIC_COMPOUND_RESERVES_ALL_INPUTS",
+      "severity": "block",
+      "statement": "A live compound transaction must reserve all three identical inputs atomically and release the full reservation set together on every terminal outcome.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha27-combat-merchant-convergence-economy.test.js"
+      ]
+    },
+    {
+      "id": "MERCHANT_MUTATION_OUTCOME_MUST_BE_VERIFIED_NO_BLIND_RETRY",
+      "severity": "block",
+      "statement": "Real upgrade and compound actions must commit only from verified item and scroll deltas; ambiguous outcomes fail safe and may not be blindly replanned or retried.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/alpha27-combat-merchant-convergence-economy.test.js"
+      ]
+    },
+    {
+      "id": "SHADOW_PLAN_MUST_ADVANCE",
+      "severity": "warn",
+      "statement": "A running shadow Farmer must periodically advance shadowPlanRevision rather than remain permanently at zero.",
+      "enforcement": [
+        "test"
+      ],
+      "tests": [
+        "test/logic-guardian-liveness.test.js"
+      ]
+    },
+    {
+      "id": "MERCHANT_ROLE_BOUNDARY",
+      "severity": "block",
+      "statement": "Merchant control/economy authority must not implicitly acquire Farmer combat authority.",
+      "enforcement": [
+        "static-analysis"
+      ],
+      "tests": []
+    },
+    {
+      "id": "NO_CIRCULAR_CRITICAL_RUNTIME_DEPENDENCIES",
+      "severity": "block",
+      "statement": "Critical Farmer, reliability, and Merchant runtime modules must remain free of circular dependency chains.",
+      "enforcement": [
+        "static-analysis"
+      ],
+      "tests": []
+    },
+    {
+      "id": "SUPERVISOR_STOPS_BUT_NEVER_BYPASSES_SAFETY",
+      "severity": "block",
+      "statement": "Supervisors may halt or degrade automation but must never bypass TargetSafety or fail-closed content boundaries to manufacture progress.",
+      "enforcement": [
+        "manual-review"
+      ],
+      "tests": []
+    }
+  ]
+}
