@@ -106,7 +106,11 @@ class FullTestAuthorityHotfix {
         const baseSupply = resource.supply.bind(resource);
         resource.supply = (snapshot) => {
           const result = baseSupply(snapshot) || {};
-          const next = { ...result, strictReady: result.hpReady === true && result.mpReady === true, ready: result.hpReady === true, basicCombatReady: result.hpReady === true, mpSkillReady: result.mpReady === true };
+          const character = snapshot && snapshot.character || {};
+          const maxHp = Math.max(0, finite(character.max_hp, 0));
+          const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, finite(character.hp, 0) / maxHp)) : 1;
+          const hpSafe = result.hpReady === true || hpRatio > finite(resource.criticalHpRatio, 0.72);
+          const next = { ...result, strictReady: result.hpReady === true && result.mpReady === true, ready: hpSafe, basicCombatReady: hpSafe, mpSkillReady: result.mpReady === true, hpRatio, currentHpSafeWithoutPotion: hpSafe && result.hpReady !== true };
           resource.lastSupply = next;
           return next;
         };
@@ -153,7 +157,9 @@ class FullTestAuthorityHotfix {
       team._team = (snapshot) => {
         const state = baseTeam(snapshot);
         if (!state) return state;
-        return { ...state, observedManaReady: state.manaReady, manaReady: true };
+        const next = { ...state, observedManaReady: state.manaReady, manaReady: true };
+        team.lastTeam = next;
+        return next;
       };
       if (typeof team.status === 'function') {
         const baseStatus = team.status.bind(team);
