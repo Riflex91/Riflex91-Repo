@@ -45,11 +45,11 @@ fun BotMapDialog(characters: List<CharacterStatus>, onDismiss: () -> Unit) {
                         visible.forEach { c ->
                             val px=size.width/2+(((c.x?:cx)-cx).toFloat()*unit)+pan.x
                             val py=size.height/2+(((c.y?:cy)-cy).toFloat()*unit)+pan.y
-                            val color=when(c.connectionState){"live"->Color(0xFF62E6A7);"delayed"->Color(0xFFFFD166);else->Color(0xFFFF667C)}
-                            drawCircle(color,12f,Offset(px,py))
-                            drawCircle(color,20f,Offset(px,py),style=Stroke(2f))
+                            val markerColor=when(c.connectionState){"live"->Color(0xFF62E6A7);"delayed"->Color(0xFFFFD166);else->Color(0xFFFF667C)}
+                            drawCircle(markerColor,12f,Offset(px,py))
+                            drawCircle(markerColor,20f,Offset(px,py),style=Stroke(2f))
                             drawIntoCanvas { canvas ->
-                                canvas.nativeCanvas.drawText(c.name, px+18f, py-14f, android.graphics.Paint().apply { color=android.graphics.Color.WHITE; textSize=28f })
+                                canvas.nativeCanvas.drawText(c.name, px+18f, py-14f, android.graphics.Paint().apply { this.color=android.graphics.Color.WHITE; textSize=28f })
                             }
                         }
                     }
