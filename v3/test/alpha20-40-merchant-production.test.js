@@ -30,6 +30,14 @@ function registry() {
   };
 }
 
+function memoryStorage() {
+  const values = new Map();
+  return {
+    get: (key) => values.has(key) ? values.get(key) : null,
+    set: (key, value) => { values.set(key, value); return true; }
+  };
+}
+
 function executor(root, extra = {}) {
   return new ControlledMerchantProductionExecutor({
     root,
@@ -37,6 +45,7 @@ function executor(root, extra = {}) {
     getMode: () => 'active',
     getSupervisorStatus: () => ({ state: 'HEALTHY' }),
     getEconomyEmergency: () => false,
+    storage: extra.storage || memoryStorage(),
     goldReserve: 1000,
     verifyDelayMs: 1,
     verifyAttempts: 3
