@@ -26,9 +26,18 @@ jobs:
       - name: Release + Logic Guardian preflight
         working-directory: v3
         run: npm run preflight
-      - name: Build and test v3
+      - name: Build browser bundle
         working-directory: v3
-        run: npm run check:full
+        run: npm run build
+      - name: Run v3 unit tests
+        working-directory: v3
+        run: npm test
+      - name: Verify browser bundle syntax and smoke test
+        working-directory: v3
+        run: node --check dist/aio-v3.js && node scripts/smoke-bundle.js
+      - name: Run Cloudflare control-center checks
+        working-directory: v3
+        run: npm run check:cloud
       - name: Commit generated browser bundle
         if: github.event_name == 'push'
         shell: bash
