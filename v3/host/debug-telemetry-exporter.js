@@ -3,10 +3,15 @@
 const { assessDebugHealth } = require('./debug-health-assessor');
 const { assessFunctionalHealth } = require('./functional-health-assessor');
 
-const DEFAULT_EVENT_LIMIT = 100;
+const DEFAULT_EVENT_LIMIT = 200;
 const DEFAULT_TIMEOUT_MS = 5000;
-const DEFAULT_MIN_INTERVAL_MS = 5000;
-const DEFAULT_MAX_BACKOFF_MS = 5 * 60 * 1000;
+const MIN_PRODUCTION_INTERVAL_MS = 60 * 1000;
+const DEFAULT_MIN_INTERVAL_MS = 2 * 60 * 1000;
+const MAX_TELEMETRY_INTERVAL_MS = 15 * 60 * 1000;
+const DEFAULT_MAX_BACKOFF_MS = 30 * 60 * 1000;
+const MAX_SUPPORTED_EXPORTERS = 4;
+const MONTHLY_BUDGET_DAYS = 31;
+const EDGE_MONTHLY_INVOCATION_BUDGET = 500000;
 
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function clone(value) { if (value == null) return value; return JSON.parse(JSON.stringify(value)); }
@@ -17,6 +22,11 @@ function normalizeEndpoint(value, allowInsecureLoopbackForTests = false) {
   if (parsed.protocol !== 'https:' && !(allowInsecureLoopbackForTests === true && parsed.protocol === 'http:' && loopback)) throw new Error('DEBUG_TELEMETRY_HTTPS_REQUIRED');
   return parsed.toString();
 }
+function projectedMonthlyInvocations(intervalMs, exporters = MAX_SUPPORTED_EXPORTERS) {
+  const interval = Math.max(1, finite(intervalMs, DEFAULT_MIN_INTERVAL_MS));
+  const count = Math.max(1, Math.floor(finite(exporters, MAX_SUPPORTED_EXPORTERS)));
+  return Math.ceil((MONTHLY_BUDGET_DAYS * 24 * 60 * 60 * 1000 / interval) * count);
+}
 
 class DebugTelemetryExporter {
   constructor(options = {}) {
@@ -25,7 +35,7 @@ class DebugTelemetryExporter {
     this.token = options.token ? String(options.token) : null; this.botId = String(options.botId || 'adventure-land-v3').slice(0, 128);
     this.eventLimit = Math.max(1, Math.min(200, Math.floor(finite(options.eventLimit, DEFAULT_EVENT_LIMIT))));
     this.timeoutMs = Math.max(500, Math.min(30000, Math.floor(finite(options.timeoutMs, DEFAULT_TIMEOUT_MS))));
-    this.minIntervalMs = Math.max(1000, Math.min(60000, Math.floor(finite(options.minIntervalMs, DEFAULT_MIN_INTERVAL_MS))));
+    this.minIntervalMs = Math.max(MIN_PRODUCTION_INTERVAL_MS, Math.min(MAX_TELEMETRY_INTERVAL_MS, Math.floor(finite(options.minIntervalMs, DEFAULT_MIN_INTERVAL_MS))));
     this.maxBackoffMs = Math.max(this.minIntervalMs, Math.min(60 * 60 * 1000, Math.floor(finite(options.maxBackoffMs, DEFAULT_MAX_BACKOFF_MS))));
     this.lastEventSeq = Math.max(0, Math.floor(finite(options.lastEventSeq, 0))); this.nextAttemptAt = 0; this.failuresInRow = 0;
     this.lastAttemptAt = null; this.lastSuccessAt = null; this.lastError = null; this.lastPayload = null;
@@ -72,6 +82,39 @@ class DebugTelemetryExporter {
       this.lastError = { at: now, message }; this.nextAttemptAt = now + this._backoffMs(); return { sent: false, reason: 'DEBUG_TELEMETRY_FAILED', error: clone(this.lastError), nextAttemptAt: this.nextAttemptAt };
     }
   }
-  status() { return { mode: 'host-write-only-debug-telemetry', enabled: this.enabled(), endpointConfigured: !!this.endpoint, tokenConfigured: !!this.token, botId: this.botId, eventLimit: this.eventLimit, timeoutMs: this.timeoutMs, minIntervalMs: this.minIntervalMs, maxBackoffMs: this.maxBackoffMs, lastEventSeq: this.lastEventSeq, nextAttemptAt: this.nextAttemptAt, failuresInRow: this.failuresInRow, lastAttemptAt: this.lastAttemptAt, lastSuccessAt: this.lastSuccessAt, lastError: clone(this.lastError), lastPayload: clone(this.lastPayload), actionAuthority: false, gameplayActionAuthority: false, rawGameplayActionAuthority: false, inboundCommandChannel: false, secretsExposedToBrowser: false, stats: { ...this.stats } }; }
+  status() {
+    const projectedPerExporter = projectedMonthlyInvocations(this.minIntervalMs, 1);
+    const projectedFourExporters = projectedMonthlyInvocations(this.minIntervalMs, MAX_SUPPORTED_EXPORTERS);
+    return {
+      mode: 'host-write-only-debug-telemetry', enabled: this.enabled(), endpointConfigured: !!this.endpoint, tokenConfigured: !!this.token, botId: this.botId,
+      eventLimit: this.eventLimit, timeoutMs: this.timeoutMs, minIntervalMs: this.minIntervalMs, maxBackoffMs: this.maxBackoffMs,
+      quotaPolicy: {
+        hardMinimumIntervalMs: MIN_PRODUCTION_INTERVAL_MS,
+        defaultIntervalMs: DEFAULT_MIN_INTERVAL_MS,
+        maxIntervalMs: MAX_TELEMETRY_INTERVAL_MS,
+        monthlyBudgetDays: MONTHLY_BUDGET_DAYS,
+        edgeMonthlyInvocationBudget: EDGE_MONTHLY_INVOCATION_BUDGET,
+        projectedPerExporter,
+        projectedFourExporters,
+        withinBudgetAtFourExporters: projectedFourExporters <= EDGE_MONTHLY_INVOCATION_BUDGET
+      },
+      lastEventSeq: this.lastEventSeq, nextAttemptAt: this.nextAttemptAt, failuresInRow: this.failuresInRow, lastAttemptAt: this.lastAttemptAt, lastSuccessAt: this.lastSuccessAt,
+      lastError: clone(this.lastError), lastPayload: clone(this.lastPayload), actionAuthority: false, gameplayActionAuthority: false, rawGameplayActionAuthority: false,
+      inboundCommandChannel: false, secretsExposedToBrowser: false, stats: { ...this.stats }
+    };
+  }
 }
-module.exports = { DebugTelemetryExporter, DEFAULT_EVENT_LIMIT, DEFAULT_TIMEOUT_MS, DEFAULT_MIN_INTERVAL_MS, DEFAULT_MAX_BACKOFF_MS, normalizeEndpoint };
+module.exports = {
+  DebugTelemetryExporter,
+  DEFAULT_EVENT_LIMIT,
+  DEFAULT_TIMEOUT_MS,
+  MIN_PRODUCTION_INTERVAL_MS,
+  DEFAULT_MIN_INTERVAL_MS,
+  MAX_TELEMETRY_INTERVAL_MS,
+  DEFAULT_MAX_BACKOFF_MS,
+  MAX_SUPPORTED_EXPORTERS,
+  MONTHLY_BUDGET_DAYS,
+  EDGE_MONTHLY_INVOCATION_BUDGET,
+  projectedMonthlyInvocations,
+  normalizeEndpoint
+};
