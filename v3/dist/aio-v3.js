@@ -31852,7 +31852,7 @@ class Alpha28BrainCloud {
     if (Object.keys(needs).length) {
       const result = alpha25.patchSettings(needs, 'alpha28-explicit-live-authority');
       this.stats.brainCloudSettingPatches += Object.keys(needs).length;
-      this.event('ALPHA28_BRAIN_CLOUD_ENABLED', 'warn', 'OPERATOR_REQUESTED_ON', { requested: needs, result: clone(result) });
+      this.event('ALPHA28_BRAIN_CLOUD_ENABLED', 'info', 'OPERATOR_REQUESTED_ON', { requested: needs, result: clone(result) });
     }
     this.configured = cp.get('brain.mode') === 'canary' && cp.get('cloud.enabled') === true;
     this.patchPlanner();
