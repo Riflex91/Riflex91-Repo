@@ -23,12 +23,12 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
-      - name: Release + Logic Guardian preflight
-        working-directory: v3
-        run: npm run preflight
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
+      - name: Release + Logic Guardian preflight
+        working-directory: v3
+        run: npm run preflight
       - name: Run v3 unit tests
         working-directory: v3
         run: npm test
