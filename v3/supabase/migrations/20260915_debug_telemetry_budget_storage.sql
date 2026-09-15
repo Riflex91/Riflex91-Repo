@@ -19,9 +19,6 @@ create table if not exists public.aio_debug_maintenance (
   last_run_at timestamptz not null default now()
 );
 
-create index if not exists aio_debug_telemetry_batches_bot_received_idx
-  on public.aio_debug_telemetry_batches(bot_id, received_at desc);
-
 insert into public.aio_debug_telemetry_latest (
   bot_id, schema_version, observed_at, cursor_after, cursor_max, process_running,
   restart_count, harness_started_at, event_count, snapshot, events, received_at, history_recorded_at
