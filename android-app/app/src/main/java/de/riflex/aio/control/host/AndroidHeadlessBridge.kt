@@ -4,13 +4,7 @@ import android.content.Context
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicLong
 
-/**
- * Security boundary between Android and the embedded AiO runtime.
- *
- * Remote callers may request only known diagnostic/control operations. Payloads
- * are data, never executable source. This keeps the Android host compatible with
- * the existing headless protocol without adding a remote-code channel.
- */
+/** Security boundary between Android and the embedded AiO runtime. */
 class AndroidHeadlessBridge(context: Context) : AutoCloseable {
     private val runtime = AndroidHeadlessRuntime(context.applicationContext)
     private val lastTickAt = AtomicLong(0)
@@ -30,6 +24,8 @@ class AndroidHeadlessBridge(context: Context) : AutoCloseable {
         else -> JSONObject().put("ok", false).put("error", "OPERATION_NOT_ALLOWED")
     }
 
+    fun telemetrySnapshot(): JSONObject = runtime.debugSnapshot()
+    fun telemetryEvents(limit: Int = 100): JSONObject = runtime.debugEvents(limit.coerceIn(1, 100))
     fun status(): JSONObject = runtime.status().put("bridgeLastTickAt", lastTickAt.get())
 
     override fun close() = runtime.close()
