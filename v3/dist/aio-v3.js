@@ -387,7 +387,6 @@ module.exports = {
   TelemetryOutbox, ControlGateway, StateReplica, HeadlessHealth, HeadlessOperations, BackgroundExecutionGuard, MinuteCountdownReporter,
   CommandOutcomeTracker, CommandOutcomeState, StabilityGameAdapter, CombatStabilitySupervisor, GlobalSupervisor, HealthState
 };
-
 },
 "src/runtime.js": function(require,module,exports){
 'use strict';
@@ -871,7 +870,6 @@ class Runtime {
 }
 
 module.exports = { Runtime, VERSION };
-
 },
 "src/core/event-log.js": function(require,module,exports){
 'use strict';
@@ -17021,7 +17019,6 @@ class Alpha20Runtime extends Alpha19Runtime {
 }
 
 module.exports = { Alpha20Runtime };
-
 },
 "src/party/lifecycle-store.js": function(require,module,exports){
 'use strict';
@@ -18384,7 +18381,6 @@ module.exports = {
   ALPHA20_LIVE_GATE_ACK,
   REQUIRED_OBSERVATION_MS
 };
-
 },
 "src/ops/alpha20-combined-live-gate.js": function(require,module,exports){
 'use strict';
@@ -19160,7 +19156,6 @@ module.exports = {
   ALPHA20_LIVE_GATE_ACK,
   REQUIRED_OBSERVATION_MS
 };
-
 },
 "src/ops/minute-countdown-reporter.js": function(require,module,exports){
 'use strict';
@@ -19537,7 +19532,6 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
 }
 
 module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
-
 },
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
 'use strict';
@@ -20284,7 +20278,6 @@ class ControlledMerchantServiceExecutor {
 }
 
 module.exports = { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
-
 },
 "src/travel/route-cost-estimator.js": function(require,module,exports){
 'use strict';
@@ -33998,7 +33991,6 @@ function installAlpha25ControlCenterBrain(runtime, options = {}) {
 }
 
 module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
-
 },
 "src/control/control-plane-config.js": function(require,module,exports){
 'use strict';
@@ -34195,7 +34187,6 @@ class ControlPlaneConfig {
 }
 
 module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CONTROL_DEFINITIONS: DEFINITIONS, ControlPlaneConfig, controlDefaults: defaults, sanitizeControlValues: sanitize, loadStoredControlConfig: loadStored, buildBootOptionsFromControlPlane: bootOptions };
-
 },
 "src/control/cloud-control-plane.js": function(require,module,exports){
 'use strict';
@@ -35400,7 +35391,6 @@ module.exports = {
   scheduleGuiCollapsedStart,
   hasOutboundTransferWork
 };
-
 },
 "src/ops/safe-auto-updater.js": function(require,module,exports){
 'use strict';
@@ -35755,7 +35745,6 @@ module.exports = {
   compareVersions,
   releaseVersionFromSource
 };
-
 },
 "src/reliability/alpha20-21-cloud-persistence-recovery.js": function(require,module,exports){
 'use strict';
@@ -40291,7 +40280,6 @@ class DebugMonitorUI {
 }
 
 module.exports = { DebugMonitorUI };
-
 },
 "src/ops/operator-run-control.js": function(require,module,exports){
 'use strict';
