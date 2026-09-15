@@ -1,6 +1,6 @@
 'use strict';
 
-const { ClientlessGameAdapter } = require('./ClientlessGameAdapter');
+const { V3ClientlessRuntime } = require('./V3ClientlessRuntime');
 
 class ClientlessSession {
   constructor(options = {}) {
@@ -10,7 +10,8 @@ class ClientlessSession {
     this.characterName = name;
     this.role = options.role === 'merchant' ? 'merchant' : 'farmer';
     this.transport = options.transport;
-    this.adapter = new ClientlessGameAdapter({ transport: this.transport, log: options.log, now: options.now, mode: options.mode });
+    this.runtime = new V3ClientlessRuntime({ transport: this.transport, role: this.role, log: options.log, now: options.now, mode: options.mode || 'active', storage: options.storage });
+    this.adapter = this.runtime.adapter;
     this.connected = false;
     this.startedAt = 0;
     this.lastError = null;
@@ -23,6 +24,7 @@ class ClientlessSession {
       this.connected = true;
       this.startedAt = Date.now();
       this.lastError = null;
+      this.runtime.start();
       return this.status();
     } catch (error) {
       this.lastError = String(error && error.message || error);
@@ -31,7 +33,7 @@ class ClientlessSession {
   }
 
   async stop() {
-    try { await Promise.resolve(this.transport.disconnect()); }
+    try { this.runtime.stop(); await Promise.resolve(this.transport.disconnect()); }
     finally { this.connected = false; }
   }
 
@@ -48,7 +50,7 @@ class ClientlessSession {
       connected: this.connected,
       startedAt: this.startedAt,
       lastError: this.lastError,
-      adapter: this.adapter.status()
+      runtime: this.runtime.status()
     };
   }
 }
