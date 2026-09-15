@@ -23,6 +23,16 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Diagnose update supervisor test
+        working-directory: v3
+        shell: bash
+        run: |
+          echo '--- failing test context ---'
+          sed -n '220,315p' test/update-supervisor.test.js
+          echo '--- superseded references ---'
+          grep -R -n "superseded" src test || true
+          echo '--- supervisor files ---'
+          find src -type f -iname '*supervisor*' -print
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
