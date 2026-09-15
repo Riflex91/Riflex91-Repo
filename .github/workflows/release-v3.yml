@@ -30,9 +30,12 @@ jobs:
         working-directory: v3
         run: npm run check:full
       - name: Commit generated browser bundle
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request' && github.head_ref == 'v3/pr164-bundle'
         shell: bash
         run: |
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout "${GITHUB_HEAD_REF}"
+          (cd v3 && npm run build)
           if git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1 && git diff --quiet -- v3/dist/aio-v3.js; then
             echo 'Bundle already current.'
             exit 0
@@ -41,7 +44,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add v3/dist/aio-v3.js
           git commit -m 'Build AiO Bot v3 browser bundle'
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:"${GITHUB_HEAD_REF}"
       - name: Verify generated bundle on pull requests
         if: github.event_name == 'pull_request'
         shell: bash
