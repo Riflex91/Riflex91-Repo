@@ -1,0 +1,89 @@
+name: v3-documentation
+
+on:
+  workflow_run:
+    workflows: ["v3-auto-version-main"]
+    types: [completed]
+  push:
+    branches: ["main"]
+    paths:
+      - "v3/README.md"
+      - "v3/docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v3-documentation-main
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Regenerate v3 documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          docs=(
+            v3/README.md
+            v3/docs/ARCHITECTURE.md
+            v3/docs/MODULES.md
+            v3/docs/CONFIGURATION.md
+            v3/docs/EVENTS.md
+            v3/docs/CHANGELOG-GENERATED.md
+          )
+
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "::group::Documentation attempt ${attempt}/${max_attempts}"
+            git fetch origin main
+            git reset --hard origin/main
+            base_sha="$(git rev-parse HEAD)"
+
+            node v3/scripts/generate-docs.js
+
+            if [ -z "$(git status --porcelain -- "${docs[@]}")" ]; then
+              echo "Generated documentation is already current at ${base_sha}."
+              echo "::endgroup::"
+              exit 0
+            fi
+
+            git add -- "${docs[@]}"
+            git diff --cached --check
+            git commit -m "docs(v3): regenerate project documentation"
+
+            git fetch origin main
+            latest_sha="$(git rev-parse origin/main)"
+            if [ "$latest_sha" != "$base_sha" ]; then
+              echo "main advanced from ${base_sha} to ${latest_sha}; regenerating on latest main."
+              echo "::endgroup::"
+              continue
+            fi
+
+            if git push origin HEAD:main; then
+              echo "Published generated v3 documentation."
+              echo "::endgroup::"
+              exit 0
+            fi
+
+            echo "Push raced with another main update; retrying from latest main."
+            echo "::endgroup::"
+          done
+
+          echo "::error::main kept advancing during all ${max_attempts} documentation attempts."
+          exit 1
