@@ -23,32 +23,6 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
-      - name: Prepare bootstrap migration release 20.48
-        id: release
-        if: github.event_name == 'push'
-        working-directory: v3
-        shell: bash
-        run: |
-          set -euo pipefail
-          current="$(node -p "require('./version.json').version")"
-          if [ "$current" = "3.0.0-alpha.20.47" ]; then
-            npm run release:patch
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Release already at $current; bootstrap migration bump skipped."
-          fi
-      - name: Commit bootstrap migration release 20.48
-        if: github.event_name == 'push' && steps.release.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add v3/version.json v3/package.json v3/src/release-version.js v3/test v3/dist/aio-v3.js v3/dist/aio-v3-runtime.js
-          git diff --cached --check
-          git commit -m 'Release v3 bootstrap updater as 3.0.0-alpha.20.48'
-          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
