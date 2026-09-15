@@ -23,6 +23,40 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Align 20.44 release assertions on temp branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          for file in \
+            v3/test/alpha19-index-integration.test.js \
+            v3/test/alpha20-15-combat-logistics.test.js \
+            v3/test/alpha20-19-integrated-party-control.test.js \
+            v3/test/alpha20-live-gate-runtime-integration.test.js
+          do
+            sed -i 's/3\.0\.0-alpha\.20\.43/3.0.0-alpha.20.44/g' "$file"
+          done
+          if git diff --quiet -- \
+            v3/test/alpha19-index-integration.test.js \
+            v3/test/alpha20-15-combat-logistics.test.js \
+            v3/test/alpha20-19-integrated-party-control.test.js \
+            v3/test/alpha20-live-gate-runtime-integration.test.js
+          then
+            exit 0
+          fi
+          git diff --check -- \
+            v3/test/alpha19-index-integration.test.js \
+            v3/test/alpha20-15-combat-logistics.test.js \
+            v3/test/alpha20-19-integrated-party-control.test.js \
+            v3/test/alpha20-live-gate-runtime-integration.test.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            v3/test/alpha19-index-integration.test.js \
+            v3/test/alpha20-15-combat-logistics.test.js \
+            v3/test/alpha20-19-integrated-party-control.test.js \
+            v3/test/alpha20-live-gate-runtime-integration.test.js
+          git commit -m 'Align v3 tests with 3.0.0-alpha.20.44'
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
