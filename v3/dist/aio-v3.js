@@ -1021,7 +1021,6 @@ class EventLog {
 
 module.exports = { EventLog, cloneSafe, normalizeReason };
 
-
 },
 "src/core/scheduler.js": function(require,module,exports){
 'use strict';
@@ -1236,7 +1235,6 @@ class Scheduler {
 
 module.exports = { Scheduler };
 
-
 },
 "src/core/task.js": function(require,module,exports){
 'use strict';
@@ -1284,7 +1282,6 @@ function createTask(spec = {}) {
 }
 
 module.exports = { TaskState, createTask };
-
 
 },
 "src/game/adapter.js": function(require,module,exports){
@@ -1534,7 +1531,6 @@ class GameAdapter {
 
 module.exports = { GameAdapter, ACTIVE_ALLOWED };
 
-
 },
 "src/world/world-model.js": function(require,module,exports){
 'use strict';
@@ -1773,7 +1769,6 @@ class WorldModel {
 
 module.exports = { WorldModel, KnowledgeState, EvidenceKind };
 
-
 },
 "src/world/persistence.js": function(require,module,exports){
 'use strict';
@@ -1986,7 +1981,6 @@ class WorldPersistence {
 
 module.exports = { WorldPersistence, isQuotaError };
 
-
 },
 "src/world/discovery.js": function(require,module,exports){
 'use strict';
@@ -2132,7 +2126,6 @@ class DiscoveryService {
 }
 
 module.exports = { DiscoveryService };
-
 
 },
 "src/telemetry/performance-tracker.js": function(require,module,exports){
@@ -2400,7 +2393,6 @@ class PerformanceTracker {
 
 module.exports = { PerformanceTracker, xpDelta, potionCount };
 
-
 },
 "src/research/research.js": function(require,module,exports){
 'use strict';
@@ -2505,7 +2497,6 @@ class ResearchJournal {
 
 module.exports = { ResearchJournal, ExperimentState, OBSERVATION_ONLY_KINDS };
 
-
 },
 "src/party/capabilities.js": function(require,module,exports){
 'use strict';
@@ -2545,7 +2536,6 @@ function partyProfile(members = []) {
 }
 
 module.exports = { CLASS_PRIORS, capabilitiesFor, partyProfile };
-
 
 },
 "src/planner/farm-planner.js": function(require,module,exports){
@@ -2614,7 +2604,6 @@ class FarmPlanner {
 }
 
 module.exports = { FarmPlanner };
-
 
 },
 "src/farmer/retreat-farmer.js": function(require,module,exports){
@@ -2784,7 +2773,6 @@ class RetreatFarmerController extends SkillFarmerController {
 }
 
 module.exports = { RetreatFarmerController };
-
 
 },
 "src/farmer/skill-farmer.js": function(require,module,exports){
@@ -3266,7 +3254,6 @@ class SkillFarmerController extends KitingFarmerController {
 
 module.exports = { SkillFarmerController };
 
-
 },
 "src/farmer/kiting-farmer.js": function(require,module,exports){
 'use strict';
@@ -3353,7 +3340,6 @@ class KitingFarmerController extends FarmerController {
 }
 
 module.exports = { KitingFarmerController };
-
 
 },
 "src/farmer/farmer-fsm.js": function(require,module,exports){
@@ -3884,7 +3870,6 @@ class FarmerController {
 
 module.exports = { FarmerController, FarmerState, TargetPolicy, normalizeTargetPolicy, ratio, distance, hasPotion };
 
-
 },
 "src/farmer/basic-kiting.js": function(require,module,exports){
 'use strict';
@@ -3983,7 +3968,6 @@ class BasicKitingPolicy {
 }
 
 module.exports = { BasicKitingPolicy };
-
 
 },
 "src/farmer/skill-usage.js": function(require,module,exports){
@@ -4162,7 +4146,6 @@ class SkillUsagePolicy {
 }
 
 module.exports = { SkillUsagePolicy, isDirectDamageSkill };
-
 
 },
 "src/farmer/target-reassessment.js": function(require,module,exports){
@@ -4362,7 +4345,6 @@ class TargetReassessmentPolicy {
 
 module.exports = { TargetReassessmentPolicy, threatScore };
 
-
 },
 "src/farmer/safe-retreat.js": function(require,module,exports){
 'use strict';
@@ -4455,7 +4437,6 @@ class SafeRetreatPolicy {
 
 module.exports = { SafeRetreatPolicy };
 
-
 },
 "src/farmer/target-safety.js": function(require,module,exports){
 'use strict';
@@ -4526,7 +4507,6 @@ class TargetSafety {
 }
 
 module.exports = { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS, normalizeTargetToken };
-
 
 },
 "src/farmer/combat-risk.js": function(require,module,exports){
@@ -4676,7 +4656,6 @@ class CombatRiskGate {
 }
 
 module.exports = { CombatRiskGate };
-
 
 },
 "src/farmer/content-safety.js": function(require,module,exports){
@@ -4846,7 +4825,6 @@ module.exports = {
   normalizeMonsterType
 };
 
-
 },
 "src/farmer/combat-emergency.js": function(require,module,exports){
 'use strict';
@@ -4913,7 +4891,6 @@ class CombatEmergencyGate {
 }
 
 module.exports = { CombatEmergencyGate };
-
 
 },
 "src/release-version.js": function(require,module,exports){
@@ -5114,7 +5091,6 @@ class StabilityRuntime extends Runtime {
 
 module.exports = { StabilityRuntime };
 
-
 },
 "src/version.js": function(require,module,exports){
 'use strict';
@@ -5126,7 +5102,6 @@ module.exports = { StabilityRuntime };
 const VERSION = '3.0.0-alpha.18.0';
 
 module.exports = { VERSION };
-
 
 },
 "src/game/stability-adapter.js": function(require,module,exports){
@@ -5324,7 +5299,6 @@ class StabilityGameAdapter extends GameAdapter {
 }
 
 module.exports = { StabilityGameAdapter };
-
 
 },
 "src/game/command-outcomes.js": function(require,module,exports){
@@ -5555,7 +5529,6 @@ class CommandOutcomeTracker {
 
 module.exports = { CommandOutcomeTracker, CommandOutcomeState, inventoryCount, entityById };
 
-
 },
 "src/core/stable-scheduler.js": function(require,module,exports){
 'use strict';
@@ -5664,7 +5637,6 @@ class StableScheduler extends Scheduler {
 }
 
 module.exports = { StableScheduler };
-
 
 },
 "src/world/resilient-persistence.js": function(require,module,exports){
@@ -5878,7 +5850,6 @@ class ResilientWorldPersistence extends WorldPersistence {
 
 module.exports = { ResilientWorldPersistence };
 
-
 },
 "src/world/knowledge-aging.js": function(require,module,exports){
 'use strict';
@@ -5982,7 +5953,6 @@ function installStaleRiskGuard(combatRisk, world, policy, options = {}) {
 }
 
 module.exports = { KnowledgeAgingPolicy, installKnowledgeAging, installStaleRiskGuard };
-
 
 },
 "src/stability/combat-stability-supervisor.js": function(require,module,exports){
@@ -6210,7 +6180,6 @@ class CombatStabilitySupervisor {
 
 module.exports = { CombatStabilitySupervisor };
 
-
 },
 "src/autonomy/alpha9-runtime.js": function(require,module,exports){
 'use strict';
@@ -6277,7 +6246,6 @@ class Alpha9Runtime extends StabilityRuntime {
 }
 
 module.exports = { Alpha9Runtime };
-
 
 },
 "src/autonomy/local-farm-planner.js": function(require,module,exports){
@@ -6446,7 +6414,6 @@ module.exports = {
   isApprovedDisposition,
   isFarmableMonsterType
 };
-
 
 },
 "src/autonomy/local-farm-orchestrator.js": function(require,module,exports){
@@ -6823,7 +6790,6 @@ class LocalFarmOrchestrator {
 
 module.exports = { LocalFarmOrchestrator };
 
-
 },
 "src/autonomy/alpha10-runtime.js": function(require,module,exports){
 'use strict';
@@ -6902,7 +6868,6 @@ class Alpha10Runtime extends Alpha9Runtime {
 }
 
 module.exports = { Alpha10Runtime };
-
 
 },
 "src/brain/shadow-brain.js": function(require,module,exports){
@@ -7109,7 +7074,6 @@ module.exports = {
   DEFAULT_WEIGHTS
 };
 
-
 },
 "src/brain/feature-encoder.js": function(require,module,exports){
 'use strict';
@@ -7217,7 +7181,6 @@ module.exports = {
   clamp01
 };
 
-
 },
 "src/brain/replay-buffer.js": function(require,module,exports){
 'use strict';
@@ -7268,7 +7231,6 @@ class BoundedReplayBuffer {
 }
 
 module.exports = { BoundedReplayBuffer };
-
 
 },
 "src/autonomy/alpha11-runtime.js": function(require,module,exports){
@@ -7334,7 +7296,6 @@ class Alpha11Runtime extends Alpha10Runtime {
 }
 
 module.exports = { Alpha11Runtime };
-
 
 },
 "src/party/character-registry.js": function(require,module,exports){
@@ -7839,7 +7800,6 @@ module.exports = {
   summarizeSupplies
 };
 
-
 },
 "src/autonomy/alpha12-hardened-runtime.js": function(require,module,exports){
 'use strict';
@@ -7998,7 +7958,6 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
 
 module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames };
 
-
 },
 "src/autonomy/alpha12-runtime.js": function(require,module,exports){
 'use strict';
@@ -8068,7 +8027,6 @@ class Alpha12Runtime extends Alpha11Runtime {
   exportDiagnostics() { const base = JSON.parse(super.exportDiagnostics()); base.context = base.context || {}; base.context.backgroundExecution = this.backgroundExecution.status(); base.context.party = this.status().party; return JSON.stringify(base, null, 2); }
 }
 module.exports = { Alpha12Runtime };
-
 
 },
 "src/party/fingerprints.js": function(require,module,exports){
@@ -8145,7 +8103,6 @@ function createEncounterFingerprint(context = {}) {
 }
 module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, dominantMonster, monsterMetadata };
 
-
 },
 "src/party/performance-store.js": function(require,module,exports){
 'use strict';
@@ -8199,7 +8156,6 @@ class PartyPerformanceStore {
   status(limit = 32) { const rows = [...this.records.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, Math.max(0, Math.min(128, Number(limit) || 32))); return { schemaVersion: PARTY_PERFORMANCE_SCHEMA_VERSION, capacity: this.capacity, size: this.records.size, halfLifeMs: this.halfLifeMs, loaded: this.loaded, dirty: this.dirty, stats: { ...this.stats }, recent: rows.map((row) => this.profile(row.encounterKey, row.partyKey)) }; }
 }
 module.exports = { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION };
-
 
 },
 "src/party/orchestrator.js": function(require,module,exports){
@@ -8263,7 +8219,6 @@ module.exports = {
   combinations: base.combinations
 };
 
-
 },
 "src/party/orchestrator-base.js": function(require,module,exports){
 'use strict';
@@ -8323,7 +8278,6 @@ class PartyOrchestrator {
 }
 module.exports = { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, combinations };
 
-
 },
 "src/party/paladin-aura-policy.js": function(require,module,exports){
 'use strict';
@@ -8346,7 +8300,6 @@ class PaladinAuraPolicy {
   status() { return { auras: AURAS.slice(), lastAura: this.lastAura, lastChangedAt: this.lastChangedAt || null, lastDecision: this.lastDecision, minHoldMs: this.minHoldMs }; }
 }
 module.exports = { PaladinAuraPolicy, AURAS };
-
 
 },
 "src/party/telemetry-bridge.js": function(require,module,exports){
@@ -8404,7 +8357,6 @@ class PartyTelemetryBridge {
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary };
 
-
 },
 "src/party/transition-controller.js": function(require,module,exports){
 'use strict';
@@ -8450,7 +8402,6 @@ class PartyTransitionController extends base.PartyTransitionController {
 }
 
 module.exports = { PartyTransitionController, TransitionState: base.TransitionState };
-
 
 },
 "src/party/transition-controller-base.js": function(require,module,exports){
@@ -8840,7 +8791,6 @@ class PartyTransitionController {
 
 module.exports = { PartyTransitionController, TransitionState };
 
-
 },
 "src/ops/background-execution-guard.js": function(require,module,exports){
 'use strict';
@@ -8974,7 +8924,6 @@ class BackgroundExecutionGuard {
 }
 
 module.exports = { BackgroundExecutionGuard };
-
 
 },
 "src/party/control-lease.js": function(require,module,exports){
@@ -9303,7 +9252,6 @@ module.exports = {
   PartyControlAction
 };
 
-
 },
 "src/autonomy/alpha13-runtime.js": function(require,module,exports){
 'use strict';
@@ -9429,7 +9377,6 @@ class Alpha13Runtime extends Alpha12Runtime {
 }
 
 module.exports = { Alpha13Runtime, ALPHA13_VERSION };
-
 
 },
 "src/stability/global-supervisor.js": function(require,module,exports){
@@ -9749,7 +9696,6 @@ class GlobalSupervisor {
 }
 
 module.exports = { GlobalSupervisor, HealthState };
-
 
 },
 "src/world/content-drift.js": function(require,module,exports){
@@ -10130,7 +10076,6 @@ module.exports = {
   fingerprint
 };
 
-
 },
 "src/autonomy/alpha14-runtime.js": function(require,module,exports){
 'use strict';
@@ -10245,7 +10190,6 @@ class Alpha14Runtime extends Alpha13Runtime {
 }
 
 module.exports = { Alpha14Runtime, ALPHA14_VERSION };
-
 
 },
 "src/economy/inventory-ledger.js": function(require,module,exports){
@@ -10606,7 +10550,6 @@ module.exports = {
   stackKey
 };
 
-
 },
 "src/economy/sell-safety.js": function(require,module,exports){
 'use strict';
@@ -10743,7 +10686,6 @@ module.exports = {
   sellMetadataConsensus,
   sellSafetyStatus
 };
-
 
 },
 "src/economy/gear-progression.js": function(require,module,exports){
@@ -11075,7 +11017,6 @@ module.exports = {
   candidateSlots
 };
 
-
 },
 "src/autonomy/alpha15-runtime.js": function(require,module,exports){
 'use strict';
@@ -11179,7 +11120,6 @@ class Alpha15Runtime extends Alpha14Runtime {
 }
 
 module.exports = { Alpha15Runtime, ALPHA15_VERSION };
-
 
 },
 "src/economy/transaction-engine.js": function(require,module,exports){
@@ -11598,7 +11538,6 @@ module.exports = {
   EXPECTED_DISPOSITIONS
 };
 
-
 },
 "src/autonomy/alpha16-runtime.js": function(require,module,exports){
 'use strict';
@@ -11673,7 +11612,6 @@ class Alpha16Runtime extends Alpha15Runtime {
 }
 
 module.exports = { Alpha16Runtime, ALPHA16_VERSION };
-
 
 },
 "src/travel/safe-travel.js": function(require,module,exports){
@@ -11956,7 +11894,6 @@ class SafeTravelController {
 }
 
 module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState };
-
 
 },
 "src/autonomy/alpha17-runtime.js": function(require,module,exports){
@@ -12263,7 +12200,6 @@ class Alpha17Runtime extends Alpha16Runtime {
 }
 
 module.exports = { Alpha17Runtime, ALPHA17_VERSION };
-
 
 },
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
@@ -12762,7 +12698,6 @@ class ControlledMerchantExecutor {
 
 module.exports = { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROLLED_MERCHANT_ACK: LIVE_ACK };
 
-
 },
 "src/travel/controlled-travel-executor.js": function(require,module,exports){
 'use strict';
@@ -13006,7 +12941,6 @@ class ControlledTravelExecutor {
 
 module.exports = { ControlledTravelExecutor, CONTROLLED_TRAVEL_MODE, CONTROLLED_TRAVEL_ACK: LIVE_ACK };
 
-
 },
 "src/autonomy/alpha18-runtime.js": function(require,module,exports){
 'use strict';
@@ -13221,7 +13155,6 @@ class Alpha18Runtime extends Alpha17Runtime {
 }
 
 module.exports = { Alpha18Runtime, ALPHA18_VERSION };
-
 
 },
 "src/economy/bank-capacity-manager.js": function(require,module,exports){
@@ -13641,7 +13574,6 @@ module.exports = {
   itemIdentity
 };
 
-
 },
 "src/economy/bank-expansion-transactions.js": function(require,module,exports){
 'use strict';
@@ -13934,7 +13866,6 @@ class BankExpansionTransactionEngine {
 
 module.exports = { BankExpansionTransactionEngine, BANK_EXPANSION_TX_SCHEMA_VERSION, BANK_EXPANSION_TX_MODE, BankExpansionState };
 
-
 },
 "src/economy/controlled-bank-expansion-executor.js": function(require,module,exports){
 'use strict';
@@ -14122,7 +14053,6 @@ class ControlledBankExpansionExecutor {
 
 module.exports = { ControlledBankExpansionExecutor, CONTROLLED_BANK_EXPANSION_MODE, CONTROLLED_BANK_EXPANSION_ACK };
 
-
 },
 "src/ops/alpha18-combined-live-gate-hardened.js": function(require,module,exports){
 'use strict';
@@ -14186,7 +14116,6 @@ module.exports = {
   ALPHA18_LIVE_GATE_ACK,
   REQUIRED_OBSERVATION_MS
 };
-
 
 },
 "src/ops/alpha18-combined-live-gate.js": function(require,module,exports){
@@ -14628,7 +14557,6 @@ module.exports = {
   REQUIRED_OBSERVATION_MS
 };
 
-
 },
 "src/autonomy/alpha19-runtime.js": function(require,module,exports){
 'use strict';
@@ -14804,7 +14732,6 @@ class Alpha19Runtime extends Alpha18Runtime {
 }
 
 module.exports = { Alpha19Runtime, ALPHA19_VERSION };
-
 
 },
 "src/economy/merchant-space-recovery-journal.js": function(require,module,exports){
@@ -15209,7 +15136,6 @@ module.exports = {
   MerchantSpaceRecoveryState
 };
 
-
 },
 "src/economy/controlled-bank-consolidation-executor.js": function(require,module,exports){
 'use strict';
@@ -15482,7 +15408,6 @@ module.exports = {
   CONTROLLED_BANK_CONSOLIDATION_ACK
 };
 
-
 },
 "src/economy/controlled-merchant-space-recovery-hardened.js": function(require,module,exports){
 'use strict';
@@ -15644,7 +15569,6 @@ module.exports = {
   CONTROLLED_SPACE_RECOVERY_ACK,
   MAX_RAW_ACTIONS_PER_OPERATION
 };
-
 
 },
 "src/economy/controlled-merchant-space-recovery.js": function(require,module,exports){
@@ -16068,7 +15992,6 @@ module.exports = {
   CONTROLLED_SPACE_RECOVERY_ACK,
   MAX_RAW_ACTIONS_PER_OPERATION
 };
-
 
 },
 "src/ops/alpha19-combined-live-gate.js": function(require,module,exports){
@@ -16703,7 +16626,6 @@ module.exports = {
   ALPHA19_LIVE_GATE_ACK,
   REQUIRED_OBSERVATION_MS
 };
-
 
 },
 "src/autonomy/alpha20-runtime.js": function(require,module,exports){
@@ -17392,7 +17314,6 @@ class PartyLifecycleStore {
 
 module.exports = { PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE };
 
-
 },
 "src/party/controlled-lifecycle-coordinator.js": function(require,module,exports){
 'use strict';
@@ -17620,7 +17541,6 @@ module.exports = {
   CONTROLLED_PARTY_LIFECYCLE_ACK: base.CONTROLLED_PARTY_LIFECYCLE_ACK,
   PartyLifecycleOperationState: base.PartyLifecycleOperationState
 };
-
 
 },
 "src/party/controlled-lifecycle-coordinator-base.js": function(require,module,exports){
@@ -18198,7 +18118,6 @@ class ControlledPartyLifecycleCoordinator {
 
 module.exports = { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_MODE, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState };
 
-
 },
 "src/party/controlled-paladin-aura-executor.js": function(require,module,exports){
 'use strict';
@@ -18296,7 +18215,6 @@ class ControlledPaladinAuraExecutor {
 }
 
 module.exports = { ControlledPaladinAuraExecutor, CONTROLLED_PALADIN_AURA_MODE, CONTROLLED_PALADIN_AURA_ACK };
-
 
 },
 "src/ops/alpha20-combined-live-gate-hardened.js": function(require,module,exports){
@@ -19302,7 +19220,6 @@ class MinuteCountdownReporter {
 
 module.exports = { MinuteCountdownReporter };
 
-
 },
 "src/autonomy/alpha20-5-merchant-runtime.js": function(require,module,exports){
 'use strict';
@@ -19848,7 +19765,6 @@ class MerchantServicePlanner {
 }
 
 module.exports = { MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SERVICE_PLANNER_MODE, itemQuantity, familyItems };
-
 
 },
 "src/merchant/controlled-merchant-service-executor.js": function(require,module,exports){
@@ -20449,7 +20365,6 @@ class RouteCostEstimator {
 
 module.exports = { RouteCostEstimator, ROUTE_COST_MODE };
 
-
 },
 "src/autonomy/alpha20-5-farm-readiness-runtime.js": function(require,module,exports){
 'use strict';
@@ -20783,7 +20698,6 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
 
 module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE };
 
-
 },
 "src/farmer/controlled-farmer-loot.js": function(require,module,exports){
 'use strict';
@@ -21006,7 +20920,6 @@ class ControlledFarmerLoot {
 
 module.exports = { ControlledFarmerLoot, CONTROLLED_FARMER_LOOT_MODE };
 
-
 },
 "src/ops/controlled-auto-respawn.js": function(require,module,exports){
 'use strict';
@@ -21226,7 +21139,6 @@ class ControlledAutoRespawn {
 
 module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
 
-
 },
 "src/party/controlled-party-bootstrap.js": function(require,module,exports){
 'use strict';
@@ -21322,7 +21234,6 @@ module.exports = {
   DEFAULT_PARTY_BOOTSTRAP_ROSTER: base.DEFAULT_PARTY_BOOTSTRAP_ROSTER,
   PartyBootstrapAction: base.PartyBootstrapAction
 };
-
 
 },
 "src/party/controlled-party-bootstrap-base.js": function(require,module,exports){
@@ -22123,7 +22034,6 @@ module.exports = {
   uniqueNames
 };
 
-
 },
 "src/reliability/pre-farming-reliability.js": function(require,module,exports){
 'use strict';
@@ -22628,7 +22538,6 @@ module.exports = {
   sanitizeVolatileContent
 };
 
-
 },
 "src/reliability/farmer-local-plan-priority.js": function(require,module,exports){
 'use strict';
@@ -22723,7 +22632,6 @@ function installFarmerLocalPlanPriority(runtime) {
 }
 
 module.exports = { FarmerLocalPlanPriority, installFarmerLocalPlanPriority, LOCAL_PLAN_PRIORITY_MODE };
-
 
 },
 "src/reliability/live-navigation-hotfix.js": function(require,module,exports){
@@ -22939,7 +22847,6 @@ module.exports = {
   LIVE_NAVIGATION_HOTFIX_MODE
 };
 
-
 },
 "src/reliability/farmer-travel-safety-hotfix.js": function(require,module,exports){
 'use strict';
@@ -23080,7 +22987,6 @@ function installFarmerTravelSafetyHotfix(runtime, options = {}) {
 }
 
 module.exports = { FarmerTravelSafetyHotfix, installFarmerTravelSafetyHotfix, FARMER_TRAVEL_SAFETY_MODE };
-
 
 },
 "src/reliability/farmer-target-efficiency-hotfix.js": function(require,module,exports){
@@ -23306,7 +23212,6 @@ module.exports = {
   installFarmerTargetEfficiencyHotfix
 };
 
-
 },
 "src/farmer/target-efficiency.js": function(require,module,exports){
 'use strict';
@@ -23421,7 +23326,6 @@ module.exports = {
   evaluateTargetEfficiency,
   resolveMonsterType
 };
-
 
 },
 "src/reliability/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
@@ -23922,7 +23826,6 @@ function installFarmerTerrainNavigationHotfix(runtime, options = {}) {
 
 module.exports = { FarmerTerrainNavigationHotfix, installFarmerTerrainNavigationHotfix, FARMER_TERRAIN_NAVIGATION_MODE };
 
-
 },
 "src/reliability/farmer-resource-topoff-hotfix.js": function(require,module,exports){
 'use strict';
@@ -24136,7 +24039,6 @@ module.exports = {
   installFarmerResourceTopoffHotfix,
   FARMER_RESOURCE_TOPOFF_MODE
 };
-
 
 },
 "src/reliability/party-focus-fire-hotfix.js": function(require,module,exports){
@@ -24358,7 +24260,6 @@ function installPartyFocusFireHotfix(runtime, options = {}) {
 
 module.exports = { PartyFocusFireHotfix, installPartyFocusFireHotfix, PARTY_FOCUS_FIRE_MODE };
 
-
 },
 "src/reliability/team-combat-cohesion-hotfix.js": function(require,module,exports){
 'use strict';
@@ -24508,7 +24409,6 @@ module.exports = {
   installTeamCombatCohesionHotfix,
   TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE
 };
-
 
 },
 "src/reliability/team-combat-cohesion-hotfix-base.js": function(require,module,exports){
@@ -25038,7 +24938,6 @@ module.exports = {
   installTeamCombatCohesionHotfix,
   TEAM_COMBAT_COHESION_MODE
 };
-
 
 },
 "src/reliability/team-cohesion-deadlock-hotfix.js": function(require,module,exports){
@@ -25675,7 +25574,6 @@ module.exports = {
   isPotion,
   ALPHA20_15_COMBAT_LOGISTICS_MODE
 };
-
 
 },
 "src/reliability/controlled-party-logistics.js": function(require,module,exports){
@@ -26540,7 +26438,6 @@ module.exports = {
   inventoryMetrics
 };
 
-
 },
 "src/reliability/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
 'use strict';
@@ -26582,7 +26479,6 @@ function patchAlpha2015LogisticsFairness() {
 module.exports = {
   patchAlpha2015LogisticsFairness
 };
-
 
 },
 "src/reliability/integrated-party-control.js": function(require,module,exports){
@@ -26676,7 +26572,6 @@ function installIntegratedPartyControl(runtime, options = {}) {
 }
 
 module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGRATED_PARTY_CONTROL_MODE };
-
 
 },
 "src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
@@ -26836,7 +26731,6 @@ function installAlpha2019AccountTransportHotfix() {
 
 module.exports = { DIRECT_BACKOFF_MS, strongLiveEvidence, installAlpha2019AccountTransportHotfix };
 
-
 },
 "src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
@@ -26972,7 +26866,6 @@ module.exports = {
   clearFailedOffer,
   patchAlpha2019LogisticsStabilization
 };
-
 
 },
 "src/autonomy/adaptive-farm-intelligence.js": function(require,module,exports){
@@ -27204,7 +27097,6 @@ function patchAdaptiveFarmIntelligence() {
 }
 
 module.exports = { STORAGE_KEY, MAX_HISTORY, empiricalBonus, patchAdaptiveFarmIntelligence };
-
 
 },
 "src/reliability/farm-area-pressure-hotfix.js": function(require,module,exports){
@@ -27513,7 +27405,6 @@ module.exports = {
   areaKey
 };
 
-
 },
 "src/autonomy/tactical-party-combat.js": function(require,module,exports){
 'use strict';
@@ -27750,7 +27641,6 @@ class TacticalPartyCombat {
 
 function installTacticalPartyCombat(runtime, options = {}) { return new TacticalPartyCombat(runtime, options); }
 module.exports = { TacticalPartyCombat, installTacticalPartyCombat, TACTICAL_PARTY_COMBAT_MODE };
-
 
 },
 "src/autonomy/advanced-party-movement.js": function(require,module,exports){
@@ -28164,7 +28054,6 @@ class PartySkillEngine {
 function installPartySkillEngine(runtime, options = {}) { return new PartySkillEngine(runtime, options); }
 module.exports = { PartySkillEngine, installPartySkillEngine, PARTY_SKILL_ENGINE_MODE, CLASS_PRIORITY };
 
-
 },
 "src/reliability/alpha21-liveness-guards.js": function(require,module,exports){
 'use strict';
@@ -28513,7 +28402,6 @@ module.exports = {
   patchAlpha21LivenessGuards
 };
 
-
 },
 "src/reliability/economy-equipment-autonomy-v2.js": function(require,module,exports){
 'use strict';
@@ -28568,7 +28456,6 @@ class EconomyEquipmentAutonomyV2 {
 }
 function installEconomyEquipmentAutonomyV2(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.economyEquipmentAutonomyV2)return runtime.economyEquipmentAutonomyV2;const x=new EconomyEquipmentAutonomyV2(runtime,options);runtime.economyEquipmentAutonomyV2=x;return x;}
 module.exports={HomePhase,EconomyEquipmentAutonomyV2,installEconomyEquipmentAutonomyV2,ECONOMY_V2_MODE,HOME_SERVICE_MODE,MARKET_HISTORY_MODE};
-
 
 },
 "src/reliability/economy-v2-market-history.js": function(require,module,exports){
@@ -28637,7 +28524,6 @@ class PersistentMarketHistory {
 
 module.exports = { PersistentMarketHistory, MARKET_HISTORY_MODE, itemKey, levelOf, finite, clone, storageOf };
 
-
 },
 "src/reliability/economy-v2-planning.js": function(require,module,exports){
 'use strict';
@@ -28698,7 +28584,6 @@ class GlobalGearOptimizer {
 }
 
 module.exports = { AccountItemPool, GlobalGearOptimizer, qtyOf };
-
 
 },
 "src/reliability/alpha21-progression-intelligence.js": function(require,module,exports){
@@ -29133,7 +29018,6 @@ module.exports = {
   enumerateProgressionCandidates
 };
 
-
 },
 "src/reliability/alpha27-combat-merchant-convergence.js": function(require,module,exports){
 'use strict';
@@ -29441,7 +29325,6 @@ module.exports = {
   installLegacyProgressionGradeGuard
 };
 
-
 },
 "src/reliability/alpha27-utils.js": function(require,module,exports){
 'use strict';
@@ -29569,7 +29452,6 @@ module.exports = {
   isAliveMonster, ownedTargetId, farmerOwnedCombatBusy, isPoisonedPerformanceProfile,
   transactionInputs, rawFunction
 };
-
 
 },
 "src/reliability/alpha27-combat-ownership.js": function(require,module,exports){
@@ -29869,7 +29751,6 @@ class Alpha27CombatOwnership {
 
 module.exports = { Alpha27CombatOwnership, TARGET_RECEIVER };
 
-
 },
 "src/reliability/alpha27-atomic-economy.js": function(require,module,exports){
 'use strict';
@@ -30146,7 +30027,6 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
 
 module.exports = { Alpha27AtomicEconomy, CONTROLLED_ACK, EXPECTED_DISPOSITIONS, TRANSIENT_ATOMIC_PREFLIGHT_REASONS };
 
-
 },
 "src/reliability/alpha27-atomic-constants.js": function(require,module,exports){
 'use strict';
@@ -30161,7 +30041,6 @@ const EXPECTED_DISPOSITIONS = Object.freeze({
 });
 
 module.exports = { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS };
-
 
 },
 "src/reliability/alpha27-atomic-service.js": function(require,module,exports){
@@ -30287,7 +30166,6 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
 
 module.exports = { Alpha27AtomicService };
 
-
 },
 "src/reliability/alpha27-atomic-transactions.js": function(require,module,exports){
 'use strict';
@@ -30381,7 +30259,6 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
 }
 
 module.exports = { Alpha27AtomicTransactions };
-
 
 },
 "src/reliability/alpha27-atomic-transaction-engine.js": function(require,module,exports){
@@ -30526,7 +30403,6 @@ class Alpha27AtomicTransactionEngine extends Alpha27AtomicLedger {
 
 module.exports = { Alpha27AtomicTransactionEngine };
 
-
 },
 "src/reliability/alpha27-atomic-ledger.js": function(require,module,exports){
 'use strict';
@@ -30594,7 +30470,6 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
 
 module.exports = { Alpha27AtomicLedger };
 
-
 },
 "src/reliability/alpha27-atomic-core.js": function(require,module,exports){
 'use strict';
@@ -30645,7 +30520,6 @@ class Alpha27AtomicCore {
 }
 
 module.exports = { Alpha27AtomicCore };
-
 
 },
 "src/reliability/alpha27-merchant-autonomy.js": function(require,module,exports){
@@ -30795,7 +30669,6 @@ const MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
 const TERMINAL_TX = new Set(['COMMITTED', 'ABORTED', 'FAILED_SAFE']);
 
 module.exports = { MERCHANT_SERVICE_ACK, TERMINAL_TX };
-
 
 },
 "src/reliability/alpha27-merchant-planning.js": function(require,module,exports){
@@ -30964,7 +30837,6 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
 }
 
 module.exports = { Alpha27MerchantPlanning };
-
 
 },
 "src/reliability/alpha27-merchant-service.js": function(require,module,exports){
@@ -31229,7 +31101,6 @@ class Alpha27MerchantCore {
 }
 
 module.exports = { Alpha27MerchantCore };
-
 
 },
 "src/reliability/alpha28-live-authority-liveness.js": function(require,module,exports){
@@ -31616,7 +31487,6 @@ class Alpha28LedgerFarmerFixes {
 
 module.exports = { Alpha28LedgerFarmerFixes };
 
-
 },
 "src/reliability/alpha28-merchant-transfers.js": function(require,module,exports){
 'use strict';
@@ -31846,7 +31716,6 @@ class Alpha28MerchantTransfers {
 }
 
 module.exports = { Alpha28MerchantTransfers };
-
 
 },
 "src/reliability/alpha28-cross-map-farmer.js": function(require,module,exports){
@@ -32092,7 +31961,6 @@ class Alpha28CrossMapFarmerProgression {
 
 module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER };
 
-
 },
 "src/reliability/alpha28-brain-cloud.js": function(require,module,exports){
 'use strict';
@@ -32184,7 +32052,6 @@ class Alpha28BrainCloud {
 }
 
 module.exports = { Alpha28BrainCloud };
-
 
 },
 "src/reliability/alpha20-23-idle-deadlock-recovery.js": function(require,module,exports){
@@ -32404,7 +32271,6 @@ module.exports = {
   Alpha2023IdleDeadlockRecovery,
   installAlpha2023IdleDeadlockRecovery
 };
-
 
 },
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
@@ -32791,7 +32657,6 @@ function installPartyPersistenceQuotaHotfix(runtime, options = {}) {
 
 module.exports = { PartyPersistenceQuotaHotfix, installPartyPersistenceQuotaHotfix, PARTY_PERSISTENCE_QUOTA_MODE };
 
-
 },
 "src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
 'use strict';
@@ -32937,7 +32802,6 @@ class DangerousContentHotfix {
 
 function installDangerousContentHotfix(runtime) { return new DangerousContentHotfix(runtime); }
 module.exports = { DangerousContentHotfix, installDangerousContentHotfix };
-
 
 },
 "src/reliability/alpha20-20-alpha22-autonomy.js": function(require,module,exports){
@@ -33181,7 +33045,6 @@ function installAlpha2020Alpha22Autonomy(runtime, options = {}) { if (!runtime) 
 
 module.exports = { Alpha2020Alpha22Autonomy, MerchantEconomyAutonomy, MarketValueOracle, installAlpha2020Alpha22Autonomy, installCombatContinuity, installCombatLootHandoff, installQuotaSafeBroadcastFallback, median, gradeForLevel, isQuotaError, ALPHA20_20_MODE, ALPHA22_MODE };
 
-
 },
 "src/reliability/alpha20-20-live-regression-hotfix.js": function(require,module,exports){
 'use strict';
@@ -33373,7 +33236,6 @@ module.exports = {
   targetGone
 };
 
-
 },
 "src/reliability/alpha23-combat-stability-hotfix.js": function(require,module,exports){
 'use strict';
@@ -33416,7 +33278,6 @@ class Alpha23CombatStabilityHotfix {
 }
 function installAlpha23CombatStabilityHotfix(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.alpha23CombatStabilityHotfix)return runtime.alpha23CombatStabilityHotfix;const x=new Alpha23CombatStabilityHotfix(runtime,options);runtime.alpha23CombatStabilityHotfix=x;return x;}
 module.exports={installCohesionInvariantRepair,installCommittedPullContinuation,installCombatFormationHold,installAggroAuthoritativeKiting,Alpha23CombatStabilityHotfix,installAlpha23CombatStabilityHotfix,ALPHA23_COMBAT_STABILITY_MODE};
-
 
 },
 "src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js": function(require,module,exports){
@@ -33968,7 +33829,6 @@ module.exports = {
   Alpha24AdaptiveRangeRiskLogisticsHotfix,
   installAlpha24AdaptiveRangeRiskLogisticsHotfix
 };
-
 
 },
 "src/reliability/alpha25-control-center-brain.js": function(require,module,exports){
@@ -34607,7 +34467,6 @@ class CloudControlPlane {
 
 module.exports = { CLOUD_STORAGE_KEY, LEGACY_V2_STABLE_PREFIX, CloudControlPlane, normalizeBaseUrl, legacyV2DashboardCredentials };
 
-
 },
 "src/control/cloud-free-tier-budget.js": function(require,module,exports){
 'use strict';
@@ -34700,7 +34559,6 @@ module.exports = {
   readCloudRequestBudget,
   reserveCloudRequest
 };
-
 
 },
 "src/brain/strategic-brain-v2.js": function(require,module,exports){
@@ -35237,7 +35095,6 @@ class StrategicBrainV2 {
 }
 
 module.exports = { BRAIN_V2_MODE, BRAIN_V2_ACTIONS, BRAIN_V2_INPUT_NAMES, TinyStrategyNetwork, BrainStateEncoderV2, StrategicBrainV2, scoreVector };
-
 
 },
 "src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js": function(require,module,exports){
@@ -36121,7 +35978,6 @@ function installAlpha2021CloudPersistenceRecovery(runtime, options = {}) { if (r
 
 module.exports = { ALPHA20_21_MODE, Alpha2021CloudPersistenceRecovery, FalseNoveltyReconciler, installAlpha2021CloudPersistenceRecovery, installTechnicalTargetNavigationFilter, installMerchantNoopBackoff, installTeacherGuard, installUpdateQuiesce, merchantSignature, teacherSignal, hashString, stable };
 
-
 },
 "src/control/cloud-long-term-persistence.js": function(require,module,exports){
 'use strict';
@@ -36533,7 +36389,6 @@ function installCloudLongTermPersistence(runtime, options = {}) {
 
 module.exports = { CloudLongTermPersistence, installCloudLongTermPersistence, CLOUD_LONG_TERM_MODE, FALLBACK_KEY, LEGACY_KEYS, ALLOWED_NAMESPACES };
 
-
 },
 "src/reliability/alpha20-22-live-smoke-recovery.js": function(require,module,exports){
 'use strict';
@@ -36704,7 +36559,6 @@ function installAlpha2022LiveSmokeRecovery(runtime) { if (runtime.alpha2022LiveS
 
 module.exports = { ALPHA20_22_MODE, CM_QUOTA_BACKOFF_MS, Alpha2022LiveSmokeRecovery, installAlpha2022LiveSmokeRecovery, installLocalFarmTerrainGuard, installCloudBackoff, installPersistenceBackoff, installCmQuotaBackoff, isD1QuotaMessage, isStorageQuotaMessage };
 
-
 },
 "src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
 'use strict';
@@ -36795,7 +36649,6 @@ function installContentDriftStorageHotfix(runtime, options = {}) {
 }
 
 module.exports = { ContentDriftStorageHotfix, installContentDriftStorageHotfix };
-
 
 },
 "src/reliability/content-drift-semantic-recovery.js": function(require,module,exports){
@@ -37019,7 +36872,6 @@ module.exports = {
   installContentDriftSemanticRecovery
 };
 
-
 },
 "src/reliability/party-account-communication.js": function(require,module,exports){
 'use strict';
@@ -37226,7 +37078,6 @@ module.exports = {
   TELEMETRY_RECEIVER
 };
 
-
 },
 "src/reliability/party-bootstrap-farmer-gate.js": function(require,module,exports){
 'use strict';
@@ -37341,7 +37192,6 @@ function installPartyBootstrapFarmerGate(runtime, bootstrap) {
 
 module.exports = { PartyBootstrapFarmerGate, installPartyBootstrapFarmerGate };
 
-
 },
 "src/reliability/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
 'use strict';
@@ -37367,7 +37217,6 @@ module.exports = {
   PartyBootstrapMerchantDiscoveryHotfix,
   installPartyBootstrapMerchantDiscoveryHotfix
 };
-
 
 },
 "src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js": function(require,module,exports){
@@ -37400,7 +37249,6 @@ function installPartyBootstrapMerchantDiscoveryHotfix(bootstrap) {
 }
 
 module.exports = { PartyBootstrapMerchantDiscoveryHotfix, installPartyBootstrapMerchantDiscoveryHotfix };
-
 
 },
 "src/ops/telemetry-outbox.js": function(require,module,exports){
@@ -37492,7 +37340,6 @@ class TelemetryOutbox {
 }
 
 module.exports = { TelemetryOutbox };
-
 
 },
 "src/ops/control-gateway.js": function(require,module,exports){
@@ -37630,7 +37477,6 @@ class ControlGateway {
 
 module.exports = { ControlGateway, COMMANDS };
 
-
 },
 "src/ops/state-replica.js": function(require,module,exports){
 'use strict';
@@ -37732,7 +37578,6 @@ class HeadlessHealth {
 }
 
 module.exports = { StateReplica, HeadlessHealth };
-
 
 },
 "src/ops/headless-operations.js": function(require,module,exports){
@@ -38174,7 +38019,6 @@ class HeadlessOperations {
 
 module.exports = { HeadlessOperations };
 
-
 },
 "src/ops/flight-recorder.js": function(require,module,exports){
 'use strict';
@@ -38351,7 +38195,6 @@ class FlightRecorder {
 
 module.exports = { FlightRecorder, FLIGHT_RECORDER_SCHEMA_VERSION };
 
-
 },
 "src/ops/group-liveness.js": function(require,module,exports){
 'use strict';
@@ -38471,7 +38314,6 @@ class GroupLivenessMonitor {
 }
 
 module.exports = { GroupLivenessMonitor, GROUP_LIVENESS_SCHEMA_VERSION };
-
 
 },
 "src/ops/runtime-watchdog.js": function(require,module,exports){
@@ -38655,7 +38497,6 @@ class RuntimeProgressWatchdog {
 }
 
 module.exports = { RuntimeProgressWatchdog, RUNTIME_WATCHDOG_SCHEMA_VERSION };
-
 
 },
 "src/ops/reliability-checkpoint.js": function(require,module,exports){
@@ -38911,7 +38752,6 @@ class ReliabilityCheckpointStore {
 
 module.exports = { ReliabilityCheckpointStore, RELIABILITY_CHECKPOINT_SCHEMA_VERSION, checksum };
 
-
 },
 "src/ops/alert-escalation-manager.js": function(require,module,exports){
 'use strict';
@@ -39117,7 +38957,6 @@ class AlertEscalationManager {
 }
 
 module.exports = { AlertEscalationManager, ALERT_SCHEMA_VERSION, SEVERITIES };
-
 
 },
 "src/ops/safe-recovery-coordinator.js": function(require,module,exports){
@@ -39358,7 +39197,6 @@ class SafeRecoveryCoordinator {
 
 module.exports = { SafeRecoveryCoordinator, SAFE_RECOVERY_SCHEMA_VERSION, SAFE_RECOVERY_ACK };
 
-
 },
 "src/ops/host-watchdog-beacon.js": function(require,module,exports){
 'use strict';
@@ -39459,7 +39297,6 @@ class HostWatchdogBeacon {
 }
 
 module.exports = { HostWatchdogBeacon, HOST_WATCHDOG_SCHEMA_VERSION };
-
 
 },
 "src/ops/reconciliation-status.js": function(require,module,exports){
@@ -39629,7 +39466,6 @@ module.exports = {
   RECONCILIATION_STATUS_TYPE,
   buildReconciliationStatus
 };
-
 
 },
 "src/ops/session-monitor.js": function(require,module,exports){
@@ -39877,7 +39713,6 @@ class SessionMonitor {
 }
 
 module.exports = { SessionMonitor, MONITOR_SCHEMA_VERSION };
-
 
 },
 "src/ops/debug-monitor-ui.js": function(require,module,exports){
@@ -40678,7 +40513,6 @@ module.exports = {
   OPERATOR_RUN_CONTROL_SCHEMA_VERSION,
   OPERATOR_RUN_CONTROL_MODE
 };
-
 
 }
 };
