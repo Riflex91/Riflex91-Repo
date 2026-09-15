@@ -1,0 +1,140 @@
+name: diag-merchant-live-observe
+
+on:
+  push:
+    branches:
+      - diag/merchant-live-observe-20-44
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Cloudflare tooling
+        working-directory: cloudflare-dashboard
+        run: npm install --ignore-scripts
+      - name: Observe Merchant live telemetry for three minutes
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+          npx wrangler d1 list --json > /tmp/aio-d1-list.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('/tmp/aio-d1-list.json', 'utf8'));
+          const db = (Array.isArray(rows) ? rows : []).find((x) => x && x.name === 'aio-bot-dashboard');
+          if (!db || !db.uuid) throw new Error('D1 database aio-bot-dashboard not found');
+          const src = fs.readFileSync('wrangler.jsonc', 'utf8');
+          if (!src.includes('REPLACE_WITH_D1_DATABASE_ID')) throw new Error('D1 placeholder missing');
+          fs.writeFileSync('/tmp/wrangler.diag.jsonc', src.replace('REPLACE_WITH_D1_DATABASE_ID', db.uuid));
+          NODE
+          rm -f /tmp/aio-d1-list.json
+
+          START_MS=$(date +%s%3N)
+          echo "DIAG_START_MS=$START_MS"
+          echo "DIAG_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          for i in 0 1 2 3 4 5 6; do
+            echo "===== MERCHANT_SNAPSHOT_${i} $(date -u +%Y-%m-%dT%H:%M:%SZ) ====="
+            npx wrangler d1 execute aio-bot-dashboard \
+              --remote --json --config /tmp/wrangler.diag.jsonc \
+              --command "SELECT account, character, received_at, payload FROM v3_runtime_status WHERE lower(character) LIKE '%merchant%' ORDER BY received_at DESC LIMIT 8;" \
+              > "/tmp/merchant-status-${i}.json"
+
+            SNAPSHOT_INDEX="$i" node - <<'NODE'
+          const fs = require('fs');
+          const i = process.env.SNAPSHOT_INDEX;
+          const raw = JSON.parse(fs.readFileSync(`/tmp/merchant-status-${i}.json`, 'utf8'));
+          function rowsOf(v) {
+            if (Array.isArray(v)) {
+              for (const x of v) if (x && Array.isArray(x.results)) return x.results;
+              if (v.length && v.every((x) => x && typeof x === 'object' && !Array.isArray(x))) return v;
+            }
+            if (v && Array.isArray(v.results)) return v.results;
+            return [];
+          }
+          const rows = rowsOf(raw);
+          console.log(`status_rows=${rows.length}`);
+          const wanted = /(version|^map$|^x$|^y$|lastPlan|lastAction|lastMerchantAction|merchantBusy|serviceTravelBusy|merchantOwnership|ownership|phase|movement.*circuit|economy.*circuit|restock|potion|authority|serviceTravel|travelBusy)/i;
+          function compact(value) {
+            let out;
+            try { out = JSON.stringify(value); } catch (_) { out = String(value); }
+            if (out.length > 700) out = out.slice(0, 697) + '...';
+            return out;
+          }
+          function collect(value, path = '$', depth = 0, out = []) {
+            if (out.length >= 140 || depth > 12 || value == null || typeof value !== 'object') return out;
+            for (const [key, child] of Object.entries(value)) {
+              const p = `${path}.${key}`;
+              if (wanted.test(key)) out.push([p, compact(child)]);
+              if (child && typeof child === 'object') collect(child, p, depth + 1, out);
+              if (out.length >= 140) break;
+            }
+            return out;
+          }
+          for (const row of rows) {
+            console.log(`ROW account=${row.account} character=${row.character} received_at=${row.received_at}`);
+            let payload = null;
+            try { payload = JSON.parse(row.payload); } catch (_) { console.log('payload_parse_failed=true'); continue; }
+            const hits = collect(payload);
+            for (const [path, value] of hits) console.log(`${path}=${value}`);
+          }
+          NODE
+
+            if [ "$i" -lt 6 ]; then sleep 30; fi
+          done
+
+          END_MS=$(date +%s%3N)
+          echo "DIAG_END_MS=$END_MS"
+          echo "DIAG_END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "DIAG_DURATION_MS=$((END_MS-START_MS))"
+          echo "===== MERCHANT_EVENTS_DURING_WINDOW ====="
+          npx wrangler d1 execute aio-bot-dashboard \
+            --remote --json --config /tmp/wrangler.diag.jsonc \
+            --command "SELECT id, account, character, severity, component, event, reason, event_at, received_at, payload FROM v3_runtime_events WHERE event_at >= ${START_MS} AND (lower(coalesce(character,'')) LIKE '%merchant%' OR lower(coalesce(component,'')) LIKE '%merchant%' OR lower(coalesce(event,'')) LIKE '%merchant%' OR lower(coalesce(reason,'')) LIKE '%merchant%' OR lower(coalesce(event,'')) LIKE '%movement%' OR lower(coalesce(event,'')) LIKE '%circuit%' OR lower(coalesce(reason,'')) LIKE '%potion%' OR lower(coalesce(reason,'')) LIKE '%restock%') ORDER BY event_at ASC LIMIT 500;" \
+            > /tmp/merchant-events.json
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/merchant-events.json', 'utf8'));
+          function rowsOf(v) {
+            if (Array.isArray(v)) {
+              for (const x of v) if (x && Array.isArray(x.results)) return x.results;
+              if (v.length && v.every((x) => x && typeof x === 'object' && !Array.isArray(x))) return v;
+            }
+            if (v && Array.isArray(v.results)) return v.results;
+            return [];
+          }
+          const rows = rowsOf(raw);
+          console.log(`event_rows=${rows.length}`);
+          const counts = {};
+          for (const r of rows) {
+            const key = `${r.severity || 'none'}|${r.component || 'none'}|${r.event || 'none'}|${r.reason || 'none'}`;
+            counts[key] = (counts[key] || 0) + 1;
+          }
+          console.log('EVENT_COUNTS_BEGIN');
+          for (const [k, n] of Object.entries(counts).sort((a,b) => b[1]-a[1])) console.log(`${n} ${k}`);
+          console.log('EVENT_COUNTS_END');
+          console.log('EVENT_ROWS_BEGIN');
+          for (const r of rows) {
+            let p = String(r.payload || '');
+            if (p.length > 900) p = p.slice(0, 897) + '...';
+            console.log(JSON.stringify({id:r.id, account:r.account, character:r.character, severity:r.severity, component:r.component, event:r.event, reason:r.reason, event_at:r.event_at, received_at:r.received_at, payload:p}));
+          }
+          console.log('EVENT_ROWS_END');
+          NODE
+
+          rm -f /tmp/wrangler.diag.jsonc /tmp/merchant-status-*.json /tmp/merchant-events.json
