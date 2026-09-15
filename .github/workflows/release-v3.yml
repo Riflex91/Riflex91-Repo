@@ -27,12 +27,14 @@ jobs:
         working-directory: v3
         shell: bash
         run: |
-          echo '--- failing test context ---'
-          sed -n '220,315p' test/update-supervisor.test.js
+          echo '--- update/supervisor files ---'
+          find test src -type f | grep -Ei 'update|supervisor' || true
+          echo '--- failing test title references ---'
+          grep -R -n "surfaces guarded apply failure" test src || true
+          echo '--- apply_failed references ---'
+          grep -R -n "apply_failed" test src || true
           echo '--- superseded references ---'
-          grep -R -n "superseded" src test || true
-          echo '--- supervisor files ---'
-          find src -type f -iname '*supervisor*' -print
+          grep -R -n "superseded" test src || true
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
