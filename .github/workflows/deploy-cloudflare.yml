@@ -5,7 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "cloudflare-dashboard/**"
-      - "version.json"
+      - "v3/**"
       - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
     inputs:
@@ -40,6 +40,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build V3 bootstrap and runtime artifacts
+        working-directory: v3
+        run: node scripts/build.js
       - name: Validate Worker source and R2 log policy tests
         working-directory: cloudflare-dashboard
         run: npm run check
@@ -93,14 +96,29 @@ jobs:
           npx wrangler r2 bucket lifecycle remove aio-v3-logs --id aio-v3-logs-7d --config wrangler.deploy.jsonc || true
           npx wrangler r2 bucket lifecycle add aio-v3-logs aio-v3-logs-7d logs/ --expire-days 7 --force --config wrangler.deploy.jsonc
           npx wrangler r2 bucket lifecycle list aio-v3-logs --config wrangler.deploy.jsonc
+      - name: Deploy Worker and dashboard
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        run: npx wrangler deploy --config wrangler.deploy.jsonc
+      - name: Verify Cloudflare deployment record
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        run: npx wrangler deployments list --config wrangler.deploy.jsonc
       - name: Publish V3 release artifacts to R2
         if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
         shell: bash
         run: |
           set -euo pipefail
-          # Publish the bundle first and the version pointer last so readers never observe
-          # a new release version before its matching bundle is available.
+          # Worker support for the runtime URL is already live at this point.
+          # Publish the large runtime first, then the tiny bootstrap, and the version pointer last.
+          # Readers can therefore never observe a new version before both matching artifacts exist.
+          npx wrangler r2 object put aio-v3-logs/releases/v3/dist/aio-v3-runtime.js \
+            --file=../v3/dist/aio-v3-runtime.js \
+            --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' \
+            --remote \
+            --config wrangler.deploy.jsonc
           npx wrangler r2 object put aio-v3-logs/releases/v3/dist/aio-v3.js \
             --file=../v3/dist/aio-v3.js \
             --content-type='application/javascript; charset=utf-8' \
@@ -119,19 +137,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f /tmp/aio-v3-release-version.js /tmp/aio-v3.js
+          rm -f /tmp/aio-v3-release-version.js /tmp/aio-v3.js /tmp/aio-v3-runtime.js
           npx wrangler r2 object get aio-v3-logs/releases/v3/src/release-version.js --file=/tmp/aio-v3-release-version.js --remote --config wrangler.deploy.jsonc
           npx wrangler r2 object get aio-v3-logs/releases/v3/dist/aio-v3.js --file=/tmp/aio-v3.js --remote --config wrangler.deploy.jsonc
+          npx wrangler r2 object get aio-v3-logs/releases/v3/dist/aio-v3-runtime.js --file=/tmp/aio-v3-runtime.js --remote --config wrangler.deploy.jsonc
           cmp ../v3/src/release-version.js /tmp/aio-v3-release-version.js
           cmp ../v3/dist/aio-v3.js /tmp/aio-v3.js
-      - name: Deploy Worker and dashboard
-        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
-        working-directory: cloudflare-dashboard
-        run: npx wrangler deploy --config wrangler.deploy.jsonc
-      - name: Verify Cloudflare deployment record
-        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
-        working-directory: cloudflare-dashboard
-        run: npx wrangler deployments list --config wrangler.deploy.jsonc
+          cmp ../v3/dist/aio-v3-runtime.js /tmp/aio-v3-runtime.js
       - name: Remove temporary deploy config
         if: always()
         working-directory: cloudflare-dashboard

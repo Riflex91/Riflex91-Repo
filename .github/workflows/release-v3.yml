@@ -23,39 +23,42 @@ jobs:
       - name: Install v3 guard dependencies
         working-directory: v3
         run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Build bootstrap and remote runtime bundles
+        working-directory: v3
+        run: npm run build
       - name: Release + Logic Guardian preflight
         working-directory: v3
         run: npm run preflight
-      - name: Build browser bundle
-        working-directory: v3
-        run: npm run build
       - name: Run v3 unit tests
         working-directory: v3
         run: npm test
-      - name: Verify browser bundle syntax and smoke test
+      - name: Verify bootstrap and runtime bundle syntax and smoke tests
         working-directory: v3
-        run: node --check dist/aio-v3.js && node scripts/smoke-bundle.js
+        run: node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js
       - name: Run Cloudflare control-center checks
         working-directory: v3
         run: npm run check:cloud
-      - name: Commit generated browser bundle
+      - name: Commit generated browser bundles
         if: github.event_name == 'push'
         shell: bash
         run: |
-          if git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1 && git diff --quiet -- v3/dist/aio-v3.js; then
-            echo 'Bundle already current.'
+          git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1
+          git ls-files --error-unmatch v3/dist/aio-v3-runtime.js >/dev/null 2>&1
+          if git diff --quiet -- v3/dist/aio-v3.js v3/dist/aio-v3-runtime.js; then
+            echo 'Bundles already current.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add v3/dist/aio-v3.js
-          git commit -m 'Build AiO Bot v3 browser bundle'
+          git add v3/dist/aio-v3.js v3/dist/aio-v3-runtime.js
+          git commit -m 'Build AiO Bot v3 bootstrap and runtime bundles'
           git push origin HEAD:${GITHUB_REF_NAME}
-      - name: Verify generated bundle on pull requests
+      - name: Verify generated bundles on pull requests
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1
-          git diff --exit-code -- v3/dist/aio-v3.js
+          git ls-files --error-unmatch v3/dist/aio-v3-runtime.js >/dev/null 2>&1
+          git diff --exit-code -- v3/dist/aio-v3.js v3/dist/aio-v3-runtime.js
       - name: Diff check
         run: git diff --check
