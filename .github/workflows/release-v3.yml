@@ -27,14 +27,25 @@ jobs:
         working-directory: v3
         shell: bash
         run: |
-          echo '--- update/supervisor files ---'
-          find test src -type f | grep -Ei 'update|supervisor' || true
-          echo '--- failing test title references ---'
-          grep -R -n "surfaces guarded apply failure" test src || true
-          echo '--- apply_failed references ---'
-          grep -R -n "apply_failed" test src || true
-          echo '--- superseded references ---'
-          grep -R -n "superseded" test src || true
+          {
+            echo '--- update/supervisor files ---'
+            find test src -type f | grep -Ei 'update|supervisor' || true
+            echo '--- failing test title references ---'
+            grep -R -n -C 30 "surfaces guarded apply failure" test src || true
+            echo '--- apply_failed references ---'
+            grep -R -n -C 20 "apply_failed" test src || true
+            echo '--- superseded references ---'
+            grep -R -n -C 20 "superseded" test src || true
+          } > ../update-supervisor-diagnostic.txt
+      - name: Persist temporary diagnosis
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add update-supervisor-diagnostic.txt
+          git commit -m 'Record temporary update supervisor diagnostics' || exit 0
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Build bootstrap and remote runtime bundles
         working-directory: v3
         run: npm run build
