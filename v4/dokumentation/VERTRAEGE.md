@@ -34,6 +34,24 @@ Jede nutzersichtbare Warnung und jeder Fehler muss enthalten:
 
 Technische Details duerfen zusaetzlich gespeichert werden, ersetzen diese Erklaerungen aber niemals.
 
+## BedienAnfrage
+
+Eine `BedienAnfrage` beschreibt jede veraendernde oder freizugebende Nutzeraktion, bevor sie ausgefuehrt wird. Sie enthaelt Titel, Erklaerung, Auswirkung, `BedienRisiko` und alle benoetigten Voraussetzungen.
+
+## BedienRisiko
+
+V4 kennt drei Bedienrisiken:
+
+- `unkritisch` – darf bei erfuellten Voraussetzungen direkt ausgefuehrt werden
+- `vorsicht` – braucht eine ausdrueckliche Bestaetigung
+- `kritisch` – braucht zusaetzlich einen exakt passenden Bestaetigungstext und darf niemals mit einem einzelnen Klick ausgefuehrt werden
+
+## BedienSicherung
+
+Die `BedienSicherung` ist die zentrale Freigabestelle fuer Nutzeraktionen. Fehlende Voraussetzungen, fehlende Erklaerungen oder fehlende Bestaetigungen fuehren zur Blockierung.
+
+Eine Oberflaeche darf diese Sicherung nicht umgehen.
+
 ## TagesBericht
 
 Ein `TagesBericht` fasst die vergangenen exakt 24 Stunden aus strukturierten Laufzeitdaten zusammen. Er enthaelt Gesamtzustand, Charakterwerte, wichtige Vorfaelle, Entwicklungsstatus, Vergleich zum vorherigen 24-Stunden-Zeitraum und eine eindeutige Aussage, ob der Nutzer handeln muss.
