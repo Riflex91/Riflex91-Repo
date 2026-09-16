@@ -1,0 +1,156 @@
+name: backblaze-cors
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run prueft nur; apply schreibt die CORS-Regel"
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - apply
+      confirm:
+        description: "Bei apply exakt APPLY_CORS eingeben"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backblaze-cors-admin
+  cancel-in-progress: false
+
+jobs:
+  configure-cors:
+    name: Configure al-aio-bot CORS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUCKET_NAME: al-aio-bot
+      ALLOWED_ORIGIN: https://adventure.land
+      CORS_RULE_NAME: adventureLandBot
+      B2_CORS_KEY_ID: ${{ secrets.B2_CORS_KEY_ID }}
+      B2_CORS_APPLICATION_KEY: ${{ secrets.B2_CORS_APPLICATION_KEY }}
+      B2_ACCOUNT_INFO: ${{ runner.temp }}/b2-account-info.sqlite
+
+    steps:
+      - name: Validate dispatch and secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.confirm }}" != "APPLY_CORS" ]]; then
+            echo "::error::Apply requires confirm=APPLY_CORS."
+            exit 1
+          fi
+          if [[ -z "${B2_CORS_KEY_ID}" || -z "${B2_CORS_APPLICATION_KEY}" ]]; then
+            echo "::error::Missing repository secrets B2_CORS_KEY_ID and/or B2_CORS_APPLICATION_KEY."
+            exit 1
+          fi
+
+      - name: Install official Backblaze B2 CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --upgrade b2
+          b2 --version
+
+      - name: Authorize temporary Backblaze admin session
+        shell: bash
+        run: |
+          set -euo pipefail
+          b2 account authorize "${B2_CORS_KEY_ID}" "${B2_CORS_APPLICATION_KEY}" >/dev/null
+
+      - name: Read current bucket settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          b2 bucket get "${BUCKET_NAME}" > "${RUNNER_TEMP}/bucket-before.json"
+          jq -e --arg bucket "${BUCKET_NAME}" '
+            .bucketName == $bucket and .bucketType == "allPrivate"
+          ' "${RUNNER_TEMP}/bucket-before.json" >/dev/null || {
+            echo "::error::Bucket was not found or is not allPrivate. Refusing to change it."
+            exit 1
+          }
+          echo "Bucket found and confirmed private."
+
+      - name: Build non-destructive CORS update
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq \
+            --arg name "${CORS_RULE_NAME}" \
+            --arg origin "${ALLOWED_ORIGIN}" \
+            '
+              [
+                {
+                  corsRuleName: $name,
+                  allowedOrigins: [$origin],
+                  allowedHeaders: ["*"],
+                  allowedOperations: ["s3_put", "s3_head"],
+                  exposeHeaders: ["etag", "x-amz-version-id", "x-amz-meta-aio-sha256", "content-length"],
+                  maxAgeSeconds: 3600
+                }
+              ]
+              + [(.corsRules // [])[] | select(.corsRuleName != $name)]
+            ' "${RUNNER_TEMP}/bucket-before.json" > "${RUNNER_TEMP}/cors-rules.json"
+
+          jq -e --arg origin "${ALLOWED_ORIGIN}" --arg name "${CORS_RULE_NAME}" '
+            length >= 1
+            and .[0].corsRuleName == $name
+            and .[0].allowedOrigins == [$origin]
+            and .[0].allowedHeaders == ["*"]
+            and (. [0].allowedOperations | sort) == (["s3_put", "s3_head"] | sort)
+          ' "${RUNNER_TEMP}/cors-rules.json" >/dev/null
+
+          echo "Prepared CORS rule for ${ALLOWED_ORIGIN}; existing differently named rules are preserved."
+          jq 'map({corsRuleName, allowedOrigins, allowedHeaders, allowedOperations, exposeHeaders, maxAgeSeconds})' "${RUNNER_TEMP}/cors-rules.json"
+
+      - name: Apply CORS rules
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CORS_JSON="$(jq -c . "${RUNNER_TEMP}/cors-rules.json")"
+          b2 bucket update --cors-rules "${CORS_JSON}" "${BUCKET_NAME}" allPrivate >/dev/null
+          echo "CORS update submitted."
+
+      - name: Verify stored bucket settings
+        if: ${{ inputs.mode == 'apply' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          b2 bucket get "${BUCKET_NAME}" > "${RUNNER_TEMP}/bucket-after.json"
+          jq -e \
+            --arg bucket "${BUCKET_NAME}" \
+            --arg origin "${ALLOWED_ORIGIN}" \
+            --arg name "${CORS_RULE_NAME}" \
+            '
+              .bucketName == $bucket
+              and .bucketType == "allPrivate"
+              and (.corsRules[0].corsRuleName == $name)
+              and (.corsRules[0].allowedOrigins == [$origin])
+              and (.corsRules[0].allowedHeaders == ["*"])
+              and ((.corsRules[0].allowedOperations | sort) == (["s3_put", "s3_head"] | sort))
+              and ((.corsRules[0].exposeHeaders | sort) == (["etag", "x-amz-version-id", "x-amz-meta-aio-sha256", "content-length"] | sort))
+              and (.corsRules[0].maxAgeSeconds == 3600)
+            ' "${RUNNER_TEMP}/bucket-after.json" >/dev/null || {
+              echo "::error::Backblaze did not persist the expected CORS rule."
+              exit 1
+            }
+          echo "Verified: ${BUCKET_NAME} remains allPrivate and the Adventure Land S3 CORS rule is stored."
+
+      - name: Dry-run summary
+        if: ${{ inputs.mode == 'dry-run' }}
+        shell: bash
+        run: |
+          echo "Dry-run successful. No Backblaze settings were changed. Re-run with mode=apply and confirm=APPLY_CORS to write the rule."
+
+      - name: Remove temporary Backblaze auth cache
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f "${B2_ACCOUNT_INFO}" || true
