@@ -1,5 +1,7 @@
 'use strict';
 
+const { ensurePatchRegistry } = require('../core/patch-registry');
+
 const LIVE_NAVIGATION_HOTFIX_SCHEMA_VERSION = 1;
 const LIVE_NAVIGATION_HOTFIX_MODE = 'alpha20.5-live-navigation-hotfix';
 
@@ -164,10 +166,19 @@ class LiveNavigationHotfix {
       this.installed = true;
       return true;
     }
+    const registry = ensurePatchRegistry(this.runtime);
+    registry.register({
+      moduleId: 'reliability.live-navigation-hotfix',
+      target: local,
+      method: '_visibleMonsters',
+      targetMethod: 'localFarming._visibleMonsters',
+      kind: 'exclusive',
+      order: 0,
+      patch: (snapshot) => this.blockers(snapshot)
+    });
     local.__liveNavigationHotfixInstalled = true;
-    local._visibleMonsters = (snapshot) => this.blockers(snapshot);
     this.installed = true;
-    this._event('LIVE_NAVIGATION_HOTFIX_INSTALLED', 'info', 'DIRECT_EXISTING_SAFETY_ARBITRATION', {
+    this._event('LIVE_NAVIGATION_HOTFIX_INSTALLED', 'info', 'PATCH_REGISTRY_SAFETY_ARBITRATION', {
       actionAuthority: false,
       unknownFailsClosed: true,
       selfAggroFailsClosed: true,

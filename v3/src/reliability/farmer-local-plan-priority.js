@@ -1,6 +1,7 @@
 'use strict';
 
 const { TaskState } = require('../core/task');
+const { ensurePatchRegistry } = require('../core/patch-registry');
 
 const LOCAL_PLAN_PRIORITY_MODE = 'safe-local-plan-priority-v1';
 
@@ -35,41 +36,52 @@ class FarmerLocalPlanPriority {
   _install() {
     const farmer = this.runtime.farmer;
     if (farmer.__localPlanPriorityInstalled || typeof farmer.step !== 'function') return;
+    const registry = ensurePatchRegistry(this.runtime);
+    const policy = this;
+    registry.register({
+      moduleId: 'reliability.farmer-local-plan-priority',
+      target: farmer,
+      method: 'step',
+      targetMethod: 'farmer.step',
+      kind: 'decorate',
+      order: 100,
+      patch(next) {
+        return function localPlanPriorityStep(context = {}) {
+          const local = policy.runtime.localFarming;
+          const rawSnapshot = policy.runtime.lastSnapshot || context.snapshot;
+          const character = rawSnapshot && rawSnapshot.character;
+          const isMerchant = String(character && (character.ctype || character.type) || '').toLowerCase() === 'merchant';
+
+          if (local && local.currentPlan) {
+            if (!policy.yieldArmed) policy.stats.rearmedAfterPlan += 1;
+            policy.yieldArmed = true;
+            return next.call(this, context);
+          }
+
+          const safetyBypass = !character || character.rip === true || hasSelfAggro(rawSnapshot) ||
+            hpRatio(character) < Number(local && local.config && local.config.engageHpRatio || 0.7) ||
+            ['BLOCKED', 'RECOVER', 'ENGAGE', 'TRAVEL'].includes(String(farmer.state || ''));
+          if (safetyBypass) {
+            policy.stats.bypassedForSafety += 1;
+            return next.call(this, context);
+          }
+
+          const noApprovedSpawnKnown = local && local.lastDecision && local.lastDecision.reason === 'NO_APPROVED_LOCAL_SPAWN';
+          if (!isMerchant && local && local.enabled !== false && policy.yieldArmed && !farmer.targetId && !noApprovedSpawnKnown) {
+            policy.yieldArmed = false;
+            policy.stats.yields += 1;
+            policy._event('FARMER_LOCAL_PLAN_PRIORITY_YIELD', 'LOCAL_PLAN_FIRST_TURN', {
+              character: character.name || null,
+              farmerState: farmer.state || null
+            });
+            return { state: TaskState.WAITING, reason: 'LOCAL_PLAN_PRIORITY', stableWait: true };
+          }
+
+          return next.call(this, context);
+        };
+      }
+    });
     farmer.__localPlanPriorityInstalled = true;
-    const originalStep = farmer.step.bind(farmer);
-    farmer.step = (context = {}) => {
-      const local = this.runtime.localFarming;
-      const rawSnapshot = this.runtime.lastSnapshot || context.snapshot;
-      const character = rawSnapshot && rawSnapshot.character;
-      const isMerchant = String(character && (character.ctype || character.type) || '').toLowerCase() === 'merchant';
-
-      if (local && local.currentPlan) {
-        if (!this.yieldArmed) this.stats.rearmedAfterPlan += 1;
-        this.yieldArmed = true;
-        return originalStep(context);
-      }
-
-      const safetyBypass = !character || character.rip === true || hasSelfAggro(rawSnapshot) ||
-        hpRatio(character) < Number(local && local.config && local.config.engageHpRatio || 0.7) ||
-        ['BLOCKED', 'RECOVER', 'ENGAGE', 'TRAVEL'].includes(String(farmer.state || ''));
-      if (safetyBypass) {
-        this.stats.bypassedForSafety += 1;
-        return originalStep(context);
-      }
-
-      const noApprovedSpawnKnown = local && local.lastDecision && local.lastDecision.reason === 'NO_APPROVED_LOCAL_SPAWN';
-      if (!isMerchant && local && local.enabled !== false && this.yieldArmed && !farmer.targetId && !noApprovedSpawnKnown) {
-        this.yieldArmed = false;
-        this.stats.yields += 1;
-        this._event('FARMER_LOCAL_PLAN_PRIORITY_YIELD', 'LOCAL_PLAN_FIRST_TURN', {
-          character: character.name || null,
-          farmerState: farmer.state || null
-        });
-        return { state: TaskState.WAITING, reason: 'LOCAL_PLAN_PRIORITY', stableWait: true };
-      }
-
-      return originalStep(context);
-    };
   }
 
   status() {
