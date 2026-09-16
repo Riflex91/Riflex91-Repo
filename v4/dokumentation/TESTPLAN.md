@@ -1,5 +1,9 @@
 # V4 Testplan
 
+## Allgemeine Bedienregel fuer zeitlich begrenzte Live-Tests
+
+Jeder zeitlich begrenzte Live-Test mit V4-Testkonsole zeigt waehrend des Laufs eine sichtbare Restzeit in der Titelleiste der GUI. Der Countdown wird mindestens sekundenweise aktualisiert und darf den eigentlichen Testablauf nicht beeinflussen. Nach Abschluss oder manuellem Stopp zeigt die Titelleiste einen eindeutigen Endzustand.
+
 ## Stufe 1 – statische Pruefung
 
 - TypeScript streng

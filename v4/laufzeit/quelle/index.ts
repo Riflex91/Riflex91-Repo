@@ -4,8 +4,43 @@ export type { AktionsAnfrage, AktionsWichtigkeit } from './vertraege/aktions-anf
 export { AKTIONS_WICHTIGKEITEN } from './vertraege/aktions-anfrage.js';
 export type { RessourcenSperre, RessourcenName, RessourcenSperrAnfrage } from './vertraege/ressourcen-sperre.js';
 export { RESSOURCEN_NAMEN } from './vertraege/ressourcen-sperre.js';
-export type { BekannterWert, WissensQuelle, Spielzustand } from './vertraege/spielzustand.js';
-export { WISSENS_QUELLEN } from './vertraege/spielzustand.js';
+export type {
+  AbgeleitetesWissen,
+  BekannterWert,
+  BeobachtetesWissen,
+  CharakterZustand,
+  FehlenderWert,
+  GegenstandZustand,
+  GelernterWissensEintrag,
+  GruppenMitgliedZustand,
+  InventarPlatzZustand,
+  KartenZustand,
+  ServerZustand,
+  SichtbaresObjektZustand,
+  Spielzustand,
+  SpielzustandAufzeichnung,
+  UnbekannterWert,
+  WertZustand,
+  WissensQuelle,
+  WissensWert
+} from './vertraege/spielzustand.js';
+export { WERT_ZUSTAENDE, WISSENS_QUELLEN } from './vertraege/spielzustand.js';
+export type {
+  AdventureLandDatenQuelle,
+  AdventureLandLesefeld,
+  AdventureLandRohdaten,
+  GelesenerAdventureLandWert
+} from './adventure-land/adventure-land-lesezugriff.js';
+export { ADVENTURE_LAND_LESEFELDER, AdventureLandLesezugriff } from './adventure-land/adventure-land-lesezugriff.js';
+export type { SpielzustandErstellungsDaten } from './kern/spielzustand-erstellung.js';
+export { beobachteSpielzustand, erstelleSpielzustand, friereTief } from './kern/spielzustand-erstellung.js';
+export {
+  erstelleSpielzustandAufzeichnung,
+  ladeSpielzustand,
+  ladeSpielzustandAufzeichnung,
+  serialisiereSpielzustand,
+  serialisiereSpielzustandAufzeichnung
+} from './kern/spielzustand-aufzeichnung.js';
 export type { BotMeldung, MeldungsStufe } from './vertraege/bot-meldung.js';
 export { MELDUNGS_STUFEN, erstelleBotMeldung, formatiereBotMeldung } from './vertraege/bot-meldung.js';
 export type {
