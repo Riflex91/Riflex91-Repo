@@ -7,7 +7,8 @@ const schemaDateien = [
   'bot-meldung.schema.json',
   'vorfall.schema.json',
   'archiv-verzeichnis.schema.json',
-  'entwicklungs-aufgabe.schema.json'
+  'entwicklungs-aufgabe.schema.json',
+  'konto-profil.schema.json'
 ];
 
 for (const dateiname of schemaDateien) {
@@ -19,3 +20,8 @@ for (const dateiname of schemaDateien) {
     assert.equal(schema.type, 'object');
   });
 }
+
+test('Kontoprofil enthaelt keine Felder fuer gespeicherte Kennwoerter', async () => {
+  const inhalt = await readFile(new URL('../../schemata/konto-profil.schema.json', import.meta.url), 'utf8');
+  assert.doesNotMatch(inhalt, /passwort|kennwort|password/i);
+});

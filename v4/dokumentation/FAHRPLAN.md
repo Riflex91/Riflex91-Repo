@@ -47,6 +47,7 @@ Gemeinsam umgesetzt werden:
 - RessourcenVergabe
 - Spielzustand-Vertrag
 - BotMeldung-Vertrag
+- Konto-, Charakter- und Verbundvertraege ohne geheime Anmeldedaten
 - feste Schemata
 - eigene V4-Pruefung in GitHub
 
@@ -66,6 +67,7 @@ Gemeinsam umgesetzt werden:
 - eine einzige Schnittstelle zu Adventure-Land-Daten
 - unveraenderliche Spielzustaende
 - Charakter, Monster, Gruppe, Inventar, Karte und wichtige Spielwerte
+- `kontoKennung` und `charakterName` in jedem Laufzeitkontext
 - beobachtetes, abgeleitetes und gelerntes Wissen getrennt halten
 - unbekannte und fehlende Werte ausdruecklich kennzeichnen
 - Aufzeichnung von Spielzustaenden fuer spaetere Tests
@@ -73,6 +75,7 @@ Gemeinsam umgesetzt werden:
 Abschlusspruefung:
 
 - gleiche Eingangsdaten erzeugen gleiche Spielzustaende
+- zwei Konten koennen nicht versehentlich denselben Laufzeitbesitz erhalten
 - fehlende Werte fuehren nicht zu erfundenen Annahmen
 - aufgezeichnete Spielzustaende koennen offline geladen werden
 - mehrstuendiger reiner Beobachtungstest ohne aktive Spielaktion
@@ -105,6 +108,7 @@ Gemeinsam umgesetzt werden:
 
 - strukturierte BotEreignisse
 - fortlaufende Entscheidungs- und Aktionsspuren
+- Konto- und Charakterkennung in jeder relevanten Spur
 - Ringpuffer fuer die letzten Minuten
 - erkennbare Stillstaende, Schleifen, Zeitueberschreitungen und unerwartete Zustandswechsel
 - Vorfallpakete mit relevanten Daten vor und nach einem Fehler
@@ -115,6 +119,7 @@ Abschlusspruefung:
 - absichtlich erzeugter Stillstand wird erkannt
 - die Meldung erklaert Ursache, Bot-Reaktion und Nutzeraktion
 - ein Vorfallpaket enthaelt alle benoetigten Daten zur Untersuchung
+- geheime Anmeldedaten tauchen niemals in Vorfallpaketen auf
 
 ## Block 5 – Wiederholungsmaschine und Vorher-Nachher-Vergleich
 
@@ -124,6 +129,7 @@ Gemeinsam umgesetzt werden:
 
 - Laden aufgezeichneter Spielzustaende und Ereignisse
 - deterministische Wiederholung
+- Mehrcharakter-Wiederholung mit Konto- und Charaktertrennung
 - Vergleich zweier V4-Staende mit denselben Eingangsdaten
 - Erkennung geaenderter Entscheidungen
 - Kennzeichnung von Verbesserungen, Verschlechterungen und Sicherheitsverletzungen
@@ -133,6 +139,7 @@ Abschlusspruefung:
 - der in Block 4 erzeugte Teststillstand wird offline reproduziert
 - eine Korrektur kann mit denselben Eingangsdaten vorher und nachher verglichen werden
 - wiederholte Laeufe liefern dasselbe Ergebnis
+- Daten zweier Konten bleiben in Wiederholungen sauber getrennt
 
 ## Block 6 – Grundlegendes Farmen als erste vollstaendige Spielfunktion
 
@@ -175,38 +182,47 @@ Abschlusspruefung:
 - keine normale Aktion blockiert einen Rueckzug
 - Fehler-Einspritztests fuer niedrige Lebenspunkte, fehlendes Mana, falsche Reichweite und blockierte Bewegung
 
-## Block 8 – Gruppenkoordination
+## Block 8 – Gruppen- und kontouebergreifende Verbundkoordination
 
-Ziel: Mehrere Charaktere arbeiten als Gruppe zusammen, ohne feste Annahmen ueber ihre Rolle im Kern.
+Ziel: Mehrere Charaktere arbeiten als ein Verbund zusammen, auch wenn sie zu unterschiedlichen Konten gehoeren.
 
 Gemeinsam umgesetzt werden:
 
+- eindeutige Konto-Charakter-Zuordnung
+- Verbund mit Teilnehmern aus einem oder mehreren Konten
 - Faehigkeiten statt hart verdrahteter Rollen
 - Heilen, Schaden, Aggro, Schutz und Unterstuetzung
 - Gruppenrollen aus aktuellen Faehigkeiten ableiten
 - gemeinsames Ziel und gemeinsame Sicherheitslage
-- Server- und Gruppenabgleich
+- Spielwelt-, Server- und Gruppenabgleich
+- Lebensnachweise und Ablauf veralteter Teilnehmerdaten
 - Wiederverbindung und Gruppenwiederaufbau
+- Aufgaben neu verteilen, wenn ein Konto oder Charakter ausfaellt
+- Regelprofil fuer erlaubte aktive Charaktere; keine Umgehung von Spielgrenzen
 
 Abschlusspruefung:
 
-- Mehrcharakter-Wiederholungen
-- gezielte Ausfalltests einzelner Gruppenmitglieder
-- anschliessender 72-Stunden-Gruppentest
+- Mehrcharakter-Wiederholungen mit mindestens zwei getrennten Kontoprofilen
+- keine Vermischung von Konto-, Bank- oder Inventardaten
+- gezielte Ausfalltests eines einzelnen Kontos und einzelner Gruppenmitglieder
+- abgelaufene Kontositzung wird eindeutig erkannt
+- unzulaessiger weiterer Charakterstart wird blockiert und verstaendlich gemeldet
+- anschliessender 72-Stunden-Verbundtest im Rahmen der aktuellen Spielregeln
 
 ## Block 9 – Haendlerdienste und Bank
 
-Ziel: Gegenstaende koennen nachvollziehbar zwischen Charakteren und Bank bewegt werden.
+Ziel: Gegenstaende koennen nachvollziehbar zwischen Charakteren und kontogebundener Bank bewegt werden.
 
 Gemeinsam umgesetzt werden:
 
 - Dienstauftraege
 - Weg zum anfragenden Charakter
 - Gegenstaende empfangen und zurueckgeben
-- Bankeinlagerung und Bankentnahme
-- Gegenstandsreservierungen
+- Bankeinlagerung und Bankentnahme ausschliesslich im zugeordneten Konto
+- Gegenstandsreservierungen mit Konto- und Charakterbesitz
 - eindeutige Zustandsfolge jedes Dienstauftrags
 - Schutz gegen Endlosschleifen und gegenseitige Blockierung
+- sichere kontouebergreifende Uebergabe mit Bestaetigung beider Seiten
 
 Abschlusspruefung:
 
@@ -214,6 +230,8 @@ Abschlusspruefung:
 - Neustarts mitten in einem Dienstauftrag werden getestet
 - keine doppelte Besitzannahme eines Gegenstands
 - kein rekursiver Dienstablauf
+- Bank von Konto A wird niemals als Bank von Konto B behandelt
+- Abbruch waehrend einer Uebergabe erzeugt keinen erfundenen erfolgreichen Besitzwechsel
 
 ## Block 10 – Handel und Gegenstandsverarbeitung
 
@@ -248,6 +266,7 @@ Gemeinsam umgesetzt werden:
 - Vergleich bestehender und neuer Strategie
 - Mindestmenge an Belegen vor einer Aenderung
 - Ruecknahme schlechter Strategien
+- Lerndaten koennen konto- und charakteruebergreifend ausgewertet werden, ohne Besitzgrenzen zu verwischen
 
 Abschlusspruefung:
 
@@ -256,24 +275,32 @@ Abschlusspruefung:
 - Sicherheitsregeln bleiben unveraendert
 - gleiche Erfahrungsdaten ergeben nachvollziehbare Entscheidungen
 
-## Block 12 – Web-Oberflaeche, Schnittstelle und Archiv
+## Block 12 – Web-Oberflaeche, Kontositzungen, Schnittstelle und Archiv
 
-Ziel: Laufzeit, historische Daten und Entwicklung werden an einer Stelle sichtbar, ohne Zugangsdaten in Adventure Land offenzulegen.
+Ziel: Laufzeit, Konten, historische Daten und Entwicklung werden an einer Stelle sichtbar, ohne geheime Anmeldedaten in Adventure Land offenzulegen.
 
 Gemeinsam umgesetzt werden:
 
 - Live-Ansicht
+- Kontoprofile mit Anzeigename, Anmeldezustand und Charakterzuordnung
+- getrennte Anmeldesitzung je Konto
+- Schaltflaechen fuer Anmeldung oeffnen und erneuern
+- Zuordnung von Charakteren zu Konten und Verbuenden
 - Vorfaelle
 - Wiederholungen
 - Versuche
 - Entwicklungswarteschlange
 - Schnittstelle zwischen Laufzeit und Server
 - serverseitiger Archivabgleich per SFTP
+- spaetere Erweiterungsstelle fuer einen serverseitigen Geheimnisspeicher, falls unbeaufsichtigte Neuanmeldung wirklich benoetigt wird
 
 Abschlusspruefung:
 
-- Browser und Adventure Land besitzen keinerlei SFTP-Zugangsdaten
-- Unterbrechung des Servers stoert die sichere Spiellogik nicht
+- Browser-Laufzeit und Adventure-Land-Code besitzen keinerlei SFTP-Zugangsdaten
+- Adventure-Land-Laufzeit besitzt keinerlei Kontokennwoerter
+- ein Kontoprofil kann angelegt, einer Sitzung zugeordnet und gesperrt werden
+- zwei getrennte Kontositzungen werden nicht vermischt
+- Unterbrechung des Servers stoert die lokale sichere Spiellogik nicht
 - Archivuebertragungen koennen nach Abbruch sauber fortgesetzt werden
 
 ## Block 13 – Automatisierter Entwicklungsablauf
@@ -308,6 +335,7 @@ Gemeinsam umgesetzt werden:
 - atomare Veroeffentlichung
 - Rueckfall bei fehlerhaftem Start
 - sichere Wiederaufnahme nach Netzwerk- oder Serverausfall
+- Wiederherstellung der richtigen Kontositzungs- und Charakterzuordnung nach Neustart
 
 Abschlusspruefung:
 
@@ -316,6 +344,7 @@ Abschlusspruefung:
 - Netzwerkausfall
 - Serverausfall
 - Neustart waehrend einer Aktualisierung
+- Kontositzung abgelaufen
 - erfolgreicher automatischer Rueckfall auf die letzte funktionierende Fassung
 
 # Abschliessende Freigabekampagne
@@ -326,12 +355,12 @@ V4 ersetzt V3 erst nach dieser Reihenfolge:
 2. alle Einheitstests
 3. Eigenschaftstests fuer Kernregeln
 4. gesamter Wiederholungssatz
-5. Fehler-Einspritztests fuer Netzwerk, Zeitueberschreitungen und Neustarts
+5. Fehler-Einspritztests fuer Netzwerk, Zeitueberschreitungen, Kontositzungen und Neustarts
 6. 24 Stunden Adventure Land im Schattenbetrieb
 7. 24 Stunden aktiver Einzelcharakter
-8. 72 Stunden aktive Gruppe
-9. 72 Stunden Haendler und Wirtschaft
-10. Update-, Rueckfall- und Serverausfalltest
+8. 72 Stunden aktiver Verbund mit mehreren Charakteren und, sofern nach aktuellen Regeln zulaessig, mehreren Kontoprofilen
+9. 72 Stunden Haendler und Wirtschaft mit kontogebundener Bankpruefung
+10. Update-, Rueckfall-, Kontositzungs- und Serverausfalltest
 11. 7 Tage ununterbrochener Dauertest
 12. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
 13. menschliche Entscheidung ueber die Abloesung von V3
