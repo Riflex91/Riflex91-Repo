@@ -2,6 +2,10 @@
 
 const TRAVEL_SCHEMA_VERSION = 1;
 const TRAVEL_MODE = 'shadow-safe-travel-foundation';
+const TRUSTED_MAP_ATTESTATION_SOURCES = new Set([
+  'trusted-party-regroup-leader',
+  'trusted-owned-farmer-service'
+]);
 const TravelState = Object.freeze({
   PLANNED: 'PLANNED',
   TRAVELLING: 'TRAVELLING',
@@ -50,7 +54,7 @@ class SafeTravelController {
     this.sequence = 0;
     this.failures = [];
     this.circuit = null;
-    this.stats = { planned: 0, rejected: 0, syntheticStarts: 0, completed: 0, aborted: 0, failedSafe: 0, progress: 0, capacityEvictions: 0 };
+    this.stats = { planned: 0, rejected: 0, syntheticStarts: 0, completed: 0, aborted: 0, failedSafe: 0, progress: 0, capacityEvictions: 0, attestedMapPlans: 0 };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -108,6 +112,27 @@ class SafeTravelController {
     }
   }
 
+  _trustedMapAttestation(map, context = {}) {
+    const attestation = context && context.destinationMapAttestation;
+    if (!attestation || attestation.trusted !== true) return null;
+    if (String(attestation.map || '') !== String(map || '')) return null;
+    const source = String(attestation.source || '');
+    if (!TRUSTED_MAP_ATTESTATION_SOURCES.has(source)) return null;
+    const observedAt = Number(attestation.observedAt);
+    if (!Number.isFinite(observedAt) || observedAt <= 0) return null;
+    const maxAgeMs = Math.max(1000, Math.min(30000, finite(attestation.maxAgeMs, 7000)));
+    const ageMs = this.now() - observedAt;
+    if (ageMs < -2000 || ageMs > maxAgeMs) return null;
+    return {
+      map: String(map),
+      source,
+      observedAt,
+      ageMs,
+      maxAgeMs,
+      subject: attestation.subject == null ? null : String(attestation.subject).slice(0, 64)
+    };
+  }
+
   plan(request = {}, context = {}) {
     if (this.breaker().open) return this._reject('TRAVEL_CIRCUIT_OPEN');
     if (request.server || request.region || request.serverChange === true) return this._reject('SERVER_CHANGE_FORBIDDEN');
@@ -116,8 +141,12 @@ class SafeTravelController {
     if (!map) return this._reject('DESTINATION_MAP_REQUIRED');
     const gameData = context.gameData || {};
     if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, map)) return this._reject('UNKNOWN_DESTINATION_MAP', { map });
+    let mapAttestation = null;
     if (context.contentDrift && typeof context.contentDrift.requiresRevalidation === 'function' && context.contentDrift.requiresRevalidation('maps', map)) {
-      return this._reject('DESTINATION_MAP_REQUIRES_REVALIDATION', { map });
+      mapAttestation = this._trustedMapAttestation(map, context);
+      if (!mapAttestation) return this._reject('DESTINATION_MAP_REQUIRES_REVALIDATION', { map, attestationAccepted: false });
+      this.stats.attestedMapPlans += 1;
+      this._event('TRAVEL_DESTINATION_MAP_ATTESTED', 'info', 'FRESH_TRUSTED_PARTY_MAP_ATTESTATION', { ...mapAttestation });
     }
     const start = point(context.snapshot || {});
     if (!start.map) return this._reject('TRAVEL_SNAPSHOT_UNAVAILABLE');
@@ -141,16 +170,17 @@ class SafeTravelController {
       start,
       lastObserved: start,
       target,
-      reason: 'SAFE_PLAN_CREATED',
+      reason: mapAttestation ? 'SAFE_PLAN_CREATED_WITH_TRUSTED_MAP_ATTESTATION' : 'SAFE_PLAN_CREATED',
       actionAuthority: false,
       liveExecutionAllowed: false,
       serverChangeAllowed: false,
       routeKind: start.map === map ? 'SAME_MAP' : 'CROSS_MAP_KNOWN_ONLY',
+      destinationMapAttestation: mapAttestation,
       metadata: request.metadata && typeof request.metadata === 'object' ? clone(request.metadata) : {}
     };
     this.plans.set(id, row);
     this.stats.planned += 1;
-    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind });
+    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation });
     return { accepted: true, plan: clone(row) };
   }
 
@@ -263,6 +293,7 @@ class SafeTravelController {
       smartMoveExecutionEnabled: false,
       serverChangeAllowed: false,
       unknownMapTravelAllowed: false,
+      trustedMapAttestationSources: [...TRUSTED_MAP_ATTESTATION_SOURCES],
       capacity: this.capacity,
       leaseMs: this.leaseMs,
       noProgressMs: this.noProgressMs,
@@ -276,4 +307,4 @@ class SafeTravelController {
   }
 }
 
-module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState };
+module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, TRUSTED_MAP_ATTESTATION_SOURCES };
