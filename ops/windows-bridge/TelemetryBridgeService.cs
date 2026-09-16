@@ -11,7 +11,9 @@ public sealed record RuntimeBridgeStatus(
     string? LastError,
     string? TargetUrl,
     string WebDashboardState,
-    string? WebDashboardError);
+    string? WebDashboardError,
+    string BackblazeState,
+    string? BackblazeError);
 
 public sealed class TelemetryBridgeService : IAsyncDisposable
 {
@@ -24,10 +26,10 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly BrowserLauncher _launcher;
     private readonly CdpAdventureLandClient _browser;
     private readonly CdpWebDashboardConfigurator _dashboard;
+    private readonly CdpBackblazeConfigurator _backblaze;
     private readonly SupabaseTelemetrySink _sink;
-    private readonly FtpsDiagnosticsArchive _diagnostics;
-    private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
+    private readonly BackblazeCredentials? _backblazeCredentials;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
@@ -36,19 +38,19 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         BridgeConfig config,
         string token,
         string? dashboardWriteKey = null,
-        string? diagnosticsFtpsPassword = null)
+        BackblazeCredentials? backblazeCredentials = null)
     {
         _config = config;
         _launcher = new BrowserLauncher(httpClient, config);
         _browser = new CdpAdventureLandClient(httpClient, config);
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
+        _backblaze = new CdpBackblazeConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
-        _diagnostics = new FtpsDiagnosticsArchive(config, diagnosticsFtpsPassword);
-        _problemMirror = new ProblemDiagnosticsMirrorOutbox(
-            config,
-            new SupabaseProblemDiagnosticsSink(httpClient, config, token));
         _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
             ? dashboardWriteKey
+            : null;
+        _backblazeCredentials = backblazeCredentials is { IsValid: true }
+            ? backblazeCredentials
             : null;
     }
 
@@ -74,7 +76,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _loopTask = null;
         Publish(new RuntimeBridgeStatus(
             "STOPPED", false, false, null, null, 0, 0, null, null,
-            DashboardInitialState(), null));
+            DashboardInitialState(), null,
+            BackblazeInitialState(), null));
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -90,16 +93,20 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             var browserReady = false;
             var dashboardState = DashboardInitialState();
             string? dashboardError = null;
+            var backblazeState = BackblazeInitialState();
+            string? backblazeError = null;
             try
             {
                 Publish(new RuntimeBridgeStatus(
                     "CONNECTING", false, false, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
-                    dashboardState, null));
+                    dashboardState, null,
+                    backblazeState, null));
                 var browserConnection = await _launcher.EnsureReadyAsync(cancellationToken);
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
 
                 (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
+                (backblazeState, backblazeError) = await SyncBackblazeProfileAsync(cancellationToken);
 
                 RuntimeBridgeStatus? latestStatus = null;
                 for (var batchIndex = 0; batchIndex < MaxCatchUpBatches; batchIndex++)
@@ -113,8 +120,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         includeDeepDiagnostics,
                         cancellationToken);
 
-                    await CaptureDiagnosticsSafeAsync(read, cancellationToken);
-
                     // During catch-up an empty second read is only a probe that the backlog is gone.
                     // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
                     if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
@@ -127,11 +132,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     await state.SaveAsync(cancellationToken);
 
                     // Sequence-aware acknowledgement is best effort for older bot bundles and exact for new bundles.
-                    // If the bot has not updated yet, Supported=false and the external cursor still prevents duplicates.
                     if (state.LastEventSeq > 0)
                         await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
-
-                    await FlushDiagnosticsSafeAsync(cancellationToken);
 
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
@@ -148,7 +150,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         null,
                         read.TargetUrl,
                         dashboardState,
-                        dashboardError);
+                        dashboardError,
+                        backblazeState,
+                        backblazeError);
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
@@ -162,7 +166,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 {
                     latestStatus = new RuntimeBridgeStatus(
                         "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
-                        dashboardState, dashboardError);
+                        dashboardState, dashboardError,
+                        backblazeState, backblazeError);
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
                 }
@@ -175,94 +180,17 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             }
             catch (Exception error)
             {
-                await CaptureBridgeFailureSafeAsync(error);
                 failures++;
                 var message = Bounded(error.Message);
                 var status = new RuntimeBridgeStatus(
                     "DEGRADED", browserReady, false, attempt, lastSuccess, state.LastEventSeq, 0, message, null,
-                    dashboardState, dashboardError);
+                    dashboardState, dashboardError,
+                    backblazeState, backblazeError);
                 Publish(status);
                 await SaveStatusAsync(status, CancellationToken.None);
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
-        }
-    }
-
-    private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)
-    {
-        if (!_config.DiagnosticsFtpsEnabled) return;
-        var captured = false;
-        try
-        {
-            captured = await _diagnostics.CaptureFromReadAsync(read, cancellationToken);
-        }
-        catch
-        {
-            // Diagnostic archival is observational only. It must never block Supabase telemetry or gameplay.
-        }
-
-        if (captured)
-            await EnqueueLatestMirrorSafeAsync(cancellationToken);
-    }
-
-    private async Task EnqueueLatestMirrorSafeAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _problemMirror.EnqueueLatestAsync(cancellationToken);
-        }
-        catch
-        {
-            // The FTPS copy remains authoritative and local mirror retry files are best effort.
-        }
-    }
-
-    private async Task FlushDiagnosticsSafeAsync(CancellationToken cancellationToken)
-    {
-        if (!_config.DiagnosticsFtpsEnabled) return;
-
-        try
-        {
-            await _problemMirror.FlushPendingAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            // Mirror failures remain isolated from telemetry and FTPS.
-        }
-
-        try
-        {
-            await _diagnostics.FlushPendingAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            // Pending bundles remain on disk and are retried with uploader backoff.
-        }
-    }
-
-    private async Task CaptureBridgeFailureSafeAsync(Exception error)
-    {
-        if (!_config.DiagnosticsFtpsEnabled) return;
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
-            var captured = await _diagnostics.CaptureBridgeFailureAsync(error, cts.Token);
-            if (captured) await EnqueueLatestMirrorSafeAsync(cts.Token);
-            await _problemMirror.FlushPendingAsync(cts.Token);
-            await _diagnostics.FlushPendingAsync(cts.Token);
-        }
-        catch
-        {
-            // Never turn an archive/mirror failure into a second bridge failure.
         }
     }
 
@@ -299,12 +227,55 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         }
     }
 
+    private async Task<(string State, string? Error)> SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!_config.BackblazeEnabled)
+            {
+                await _backblaze.ClearAsync(cancellationToken);
+                return ("DISABLED", null);
+            }
+
+            if (_backblazeCredentials is not { IsValid: true })
+            {
+                await _backblaze.ClearAsync(cancellationToken);
+                return ("CREDENTIALS_MISSING", null);
+            }
+
+            var result = await _backblaze.ApplyAsync(
+                _config.BackblazeEndpoint,
+                _config.BackblazeRegion,
+                _config.BackblazeBucket,
+                _config.BackblazePrefix,
+                _backblazeCredentials,
+                cancellationToken);
+            return result.Applied ? ("READY", null) : ("ERROR", "BACKBLAZE_PROFILE_NOT_APPLIED");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            return ("ERROR", Bounded(error.Message));
+        }
+    }
+
     private string DashboardInitialState()
     {
         if (!_config.WebDashboardEnabled) return "DISABLED";
         return SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
             ? "PENDING"
             : "WRITE_KEY_MISSING";
+    }
+
+    private string BackblazeInitialState()
+    {
+        if (!_config.BackblazeEnabled) return "DISABLED";
+        return _backblazeCredentials is { IsValid: true }
+            ? "PENDING"
+            : "CREDENTIALS_MISSING";
     }
 
     private async Task SaveStatusAsync(RuntimeBridgeStatus status, CancellationToken cancellationToken)
@@ -322,7 +293,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             status.LastError,
             status.TargetUrl,
             status.WebDashboardState,
-            status.WebDashboardError).SaveAsync(cancellationToken);
+            status.WebDashboardError,
+            status.BackblazeState,
+            status.BackblazeError).SaveAsync(cancellationToken);
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
