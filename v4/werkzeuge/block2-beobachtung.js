@@ -2,9 +2,9 @@
   'use strict';
 
   const API_NAME = 'V4Block2Beobachtung';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const STANDARD_INTERVALL_MS = 10000;
-  const STANDARD_DAUER_MS = 3 * 60 * 60 * 1000;
+  const STANDARD_DAUER_MS = 30 * 60 * 1000;
   const STANDARD_BERICHT_MS = 5 * 60 * 1000;
   const MAX_FEHLER = 50;
 
@@ -156,7 +156,7 @@
     testkonsole.ausgeben({
       version: VERSION,
       readOnly: true,
-      standardDauerStunden: STANDARD_DAUER_MS / 3600000,
+      standardDauerMinuten: STANDARD_DAUER_MS / 60000,
       standardIntervallSekunden: STANDARD_INTERVALL_MS / 1000,
       startBefehl: 'V4Block2Beobachtung.starte()'
     }, 'Block-2-Beobachtung bereit');
