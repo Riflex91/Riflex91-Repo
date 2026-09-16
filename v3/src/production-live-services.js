@@ -4,6 +4,7 @@ const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-cont
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
+const { installAlpha27MerchantTravelIntelligence } = require('./reliability/alpha27-merchant-travel-intelligence');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -32,7 +33,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -41,7 +42,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard) {
       autoUpdater: alpha26 && alpha26.updater && alpha26.updater.status ? alpha26.updater.status() : null,
       convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
       liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
-      merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null
+      merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null,
+      merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null
     })
   };
   api.cloud = {
@@ -68,6 +70,7 @@ function installProductionLiveServices(api, options = {}) {
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
+  const travelIntelligence = installAlpha27MerchantTravelIntelligence(runtime, alpha27);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -75,9 +78,10 @@ function installProductionLiveServices(api, options = {}) {
       safeAutoUpdaterInstalled: !!runtime.safeAutoUpdater,
       alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
       alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
-      merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard
+      merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
+      merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
     return runtime.productionLiveServices;
   }
 
@@ -100,10 +104,11 @@ function installProductionLiveServices(api, options = {}) {
     alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
     alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
     merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
+    merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
