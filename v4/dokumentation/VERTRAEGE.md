@@ -18,20 +18,6 @@ Eine `RessourcenSperre` gibt einem Besitzer exklusiven Zugriff auf Bewegung, Inv
 
 Ein `Spielzustand` ist eine unveraenderliche Momentaufnahme des Spiels. Unbekannte Fakten bleiben unbekannt.
 
-## KontoProfil
-
-Ein `KontoProfil` enthaelt nur nicht geheime Angaben zur Kontoerkennung und zum Anmeldezustand. Es enthaelt niemals ein Kontokennwort.
-
-## CharakterZuordnung
-
-Eine `CharakterZuordnung` verbindet einen Charakter eindeutig mit genau einem Konto und optional mit einem Verbund. Konto- und Charakterkennung werden gemeinsam betrachtet, damit Daten aus mehreren Konten nicht vermischt werden.
-
-## VerbundTeilnehmer
-
-Ein `VerbundTeilnehmer` beschreibt einen aktuell bekannten Charakter im gemeinsamen Verbund mit Konto, Charakter, Spielwelt, Server, Faehigkeiten und letztem Lebensnachweis. Veraltete Teilnehmer werden nicht weiter fuer Aufgaben oder Sicherheitsrollen eingeplant.
-
-Ein Verbund kann Charaktere aus mehreren Konten enthalten. Daraus entsteht aber niemals ein gemeinsamer Bank- oder Inventarbesitz.
-
 ## AktionsErgebnis
 
 Eine ausgefuehrte Aktion liefert ein `AktionsErgebnis` mit Erfolg, Grund, Zeitpunkten und Ablaufkennung statt nur `true` oder `false`.
