@@ -26,6 +26,7 @@ const pflichtDateien = [
   'laufzeit/quelle/vertraege/dienst-kontingent.ts',
   'laufzeit/quelle/vertraege/bedien-anfrage.ts',
   'laufzeit/quelle/vertraege/nutzer-auftrag.ts',
+  'laufzeit/quelle/vertraege/speicher-lern-zyklus.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
@@ -33,6 +34,7 @@ const pflichtDateien = [
   'laufzeit/quelle/kern/bedien-sicherung.ts',
   'laufzeit/quelle/kern/auftrags-pruefung.ts',
   'laufzeit/quelle/kern/auftrags-vorschlaege.ts',
+  'laufzeit/quelle/lernen/speicher-lern-zyklus.ts',
   'schemata/bot-ereignis.schema.json',
   'schemata/bot-meldung.schema.json',
   'schemata/vorfall.schema.json',
@@ -67,10 +69,20 @@ const geheimeUmgebungsDateien = dateien.filter((datei) => {
 if (geheimeUmgebungsDateien.length > 0) throw new Error(`Geheime Umgebungsdateien duerfen nicht eingecheckt werden: ${geheimeUmgebungsDateien.join(', ')}`);
 
 const archivBeispiel = await readFile(path.join(wurzel, 'plattform/archiv-abgleich/.env.example'), 'utf8');
-if (!archivBeispiel.includes('V4_ARCHIV_SFTP_RECHNER')) throw new Error('Das Beispiel fuer den Archiv-Abgleich ist unvollstaendig.');
+for (const pflichtWert of [
+  'V4_ARCHIV_ANBIETER',
+  'V4_ARCHIV_S3_ENDPUNKT',
+  'V4_ARCHIV_S3_REGION',
+  'V4_ARCHIV_S3_BUCKET',
+  'V4_ARCHIV_S3_ZUGRIFFSSCHLUESSEL_ID',
+  'V4_ARCHIV_S3_GEHEIMSCHLUESSEL'
+]) {
+  if (!archivBeispiel.includes(pflichtWert)) throw new Error(`Das Beispiel fuer den Archiv-Abgleich ist unvollstaendig: ${pflichtWert} fehlt.`);
+}
 
 const laufzeitBeispiel = await readFile(path.join(wurzel, '.env.example'), 'utf8');
-if (/ARCHIV_SFTP_(RECHNER|BENUTZER|SCHLUESSEL)/.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine SFTP-Archiv-Zugangsdaten enthalten.');
+if (/V4_ARCHIV_(S3|ANBIETER|STAMMPFAD)/.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine Objektspeicher-Konfiguration enthalten.');
+if (/ARCHIV_SFTP_(RECHNER|BENUTZER|SCHLUESSEL)/.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine alten SFTP-Archiv-Zugangsdaten enthalten.');
 if (/EMAIL_(PASSWORT|SCHLUESSEL|TOKEN)|SMTP_(PASSWORT|SCHLUESSEL|TOKEN)/i.test(laufzeitBeispiel)) throw new Error('Die Adventure-Land-Laufzeit darf keine E-Mail-Versandgeheimnisse enthalten.');
 
 const dienstDokument = await readFile(path.join(wurzel, 'dokumentation/DIENSTGRENZEN_UND_FEHLBEDIENUNGSSICHERHEIT.md'), 'utf8');
@@ -80,6 +92,15 @@ for (const pflichtRegel of [
   'Keine Warteschlange darf unbegrenzt wachsen.'
 ]) {
   if (!dienstDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer externe Dienste fehlt: ${pflichtRegel}`);
+}
+
+const speicherDokument = await readFile(path.join(wurzel, 'dokumentation/SPEICHER_UND_WEB.md'), 'utf8');
+for (const pflichtRegel of [
+  'Fehlt nur einer dieser Nachweise, bleibt die automatische Datenfreigabe gesperrt.',
+  'Goldene Wiederholungen, ausgewaehlte seltene Situationen und wichtige Vorfaelle werden unabhaengig vom normalen Rohdaten-Zyklus geschuetzt.',
+  'Die Spiellogik wartet niemals auf den Objektspeicher.'
+]) {
+  if (!speicherDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer den Speicher-Lern-Zyklus fehlt: ${pflichtRegel}`);
 }
 
 const bedienDokument = await readFile(path.join(wurzel, 'dokumentation/BEDIENUNG_UND_FEHLBEDIENUNGSSICHERHEIT.md'), 'utf8');

@@ -16,13 +16,14 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - Nutzer können V4 konkrete Ziele wie Sammel- oder Herstellungsaufträge geben.
 - Freitext für Nutzeraufträge ist nur Eingabehilfe und wird niemals direkt ausgeführt.
 - Während der Eingabe werden nur bekannte und aktuell verfügbare Auftragsarten und Gegenstände vorgeschlagen.
-- Supabase, Cloudflare und spätere externe Dienste werden vor jedem Aufruf durch den `KontingentWaechter` geprüft.
+- Supabase, Cloudflare, Objektspeicher und spätere externe Dienste werden vor jedem Aufruf durch den `KontingentWaechter` geprüft.
 - Anbietergrenzen werden niemals voll ausgeschöpft; V4 arbeitet mit eigenen Sicherheitspuffern.
 - Unbekannte oder abgelaufene Dienstgrenzen führen zur Blockierung externer Arbeit, nicht zur Schätzung.
 - Lokale Spielsicherheit funktioniert auch dann weiter, wenn alle externen Dienste ausfallen oder blockiert sind.
 - Keine Warteschlange darf unbegrenzt wachsen.
 - Laufzeit und Server-Plattform bleiben getrennt.
-- SFTP-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
+- Objektspeicher-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
+- Rohdaten werden nicht allein wegen Speicherknappheit gelöscht; automatische Freigabe verlangt einen erfolgreich bestätigten Lern- und Sicherungszyklus.
 - E-Mail-Versandgeheimnisse für Tagesberichte existieren ausschließlich serverseitig.
 - Reale Probleme werden als reproduzierbare Vorfälle mit Wiederholungsdaten gespeichert.
 - V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
@@ -52,7 +53,7 @@ Vor dem Start zeigt V4 den strukturierten Auftragsplan, vorhandenen Bestand, feh
 - `dokumentation/DIENSTGRENZEN_UND_FEHLBEDIENUNGSSICHERHEIT.md` – Schutz vor Supabase-, Cloudflare- und späteren Dienstgrenzen
 - `dokumentation/NUTZER_AUFTRAEGE.md` – sichere Sammel-, Herstellungs- und Vorschlagslogik fuer Nutzerauftraege
 - `dokumentation/ENTWICKLUNGSABLAUF.md` – Weg vom Vorfall bis zum Pull Request
-- `dokumentation/SPEICHER_UND_WEB.md` – Web, Cloud und SFTP-Archiv
+- `dokumentation/SPEICHER_UND_WEB.md` – Web, Cloud, S3-kompatibler Objektspeicher und Speicher-Lern-Zyklus
 - `dokumentation/TAGESBERICHT.md` – automatischer 24-Stunden-Bericht und Versandregeln
 - `dokumentation/TESTPLAN.md` – Teststufen bis zum 7-Tage-Dauertest
 

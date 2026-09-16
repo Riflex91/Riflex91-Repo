@@ -113,6 +113,7 @@ Gemeinsam umgesetzt werden:
 - Ringpuffer fuer die letzten Minuten
 - dauerhafte, zeitgestempelte Leistungsdaten fuer Erfahrung, Gold, Laufzeit, Tode, Rueckzuege, Verbindungsabbrueche und Neustarts
 - Daten so speichern, dass Neustarts den spaeteren 24-Stunden-Bericht nicht unterbrechen
+- abgeschlossene Wiederholungssegmente mit Sequenzbereich, Groesse und SHA-256 fuer spaetere Archivierung
 - lokaler und vom Anbieter gemeldeter Verbrauch externer Dienste wird nachvollziehbar aufgezeichnet
 - Kontingent-Schutzstufen und blockierte externe Anfragen werden als erklaerbare Ereignisse gespeichert
 - lokale Puffer besitzen feste Eintrags-, Byte- und Altersgrenzen
@@ -127,6 +128,7 @@ Abschlusspruefung:
 - ein Vorfallpaket enthaelt alle benoetigten Daten zur Untersuchung
 - zeitgestempelte Leistungsdaten lassen sich ueber einen frei gewaehlten 24-Stunden-Zeitraum korrekt zusammenfassen
 - ein Neustart erzeugt keine Luecke oder doppelte Zaehlerwerte
+- abgeschlossene Wiederholungssegmente sind pruefbar und unvollstaendige Segmente werden nicht als dauerhaft archiviert behandelt
 - blockierter externer Dienst beeintraechtigt die lokale Spielsicherheit nicht
 - kein lokaler Puffer kann unbegrenzt wachsen
 
@@ -143,6 +145,7 @@ Gemeinsam umgesetzt werden:
 - Erkennung geaenderter Entscheidungen
 - Kennzeichnung von Verbesserungen, Verschlechterungen und Sicherheitsverletzungen
 - Wiederholung gespeicherter Kontingententscheidungen
+- goldener Wiederholungssatz mit geschuetzten seltenen, sicherheitsrelevanten und regressionskritischen Situationen
 
 Abschlusspruefung:
 
@@ -151,6 +154,7 @@ Abschlusspruefung:
 - wiederholte Laeufe liefern dasselbe Ergebnis
 - historische Daten koennen fuer spaetere Tagesberichte reproduzierbar ausgewertet werden
 - gleiche Dienstprofile und Verbrauchsstaende erzeugen die gleiche Kontingententscheidung
+- der goldene Wiederholungssatz wird durch normale Speicherbereinigung nicht entfernt
 
 ## Block 6 – Grundlegendes Farmen als erste vollstaendige Spielfunktion
 
@@ -266,10 +270,14 @@ Gemeinsam umgesetzt werden:
 
 - Situation -> Moeglichkeiten -> Entscheidung -> erwartetes Ergebnis -> tatsaechliches Ergebnis
 - Erfahrungsablage
+- versionierte Lerndatensaetze als reproduzierbare Ableitung aus Rohdaten
 - kontrollierte Versuche
 - Vergleich bestehender und neuer Strategie
 - Mindestmenge an Belegen vor einer Aenderung
 - Ruecknahme schlechter Strategien
+- `SpeicherLernZyklus` mit den Phasen Sammeln, Vorbereiten, Lernen, Pruefen, Bereinigen und Notfall
+- Rohdatenfreigabe nur nach bestaetigter Datensatzbildung, erfolgreichem Lernen, bestandener Evaluation und dauerhafter Wissensspeicherung
+- Schutz goldener Wiederholungen, seltener Situationen und wichtiger Vorfaelle vor normaler Bereinigung
 
 Abschlusspruefung:
 
@@ -278,6 +286,9 @@ Abschlusspruefung:
 - Lernen kann weder BedienSicherung noch KontingentWaechter umgehen
 - Sicherheitsregeln bleiben unveraendert
 - gleiche Erfahrungsdaten ergeben nachvollziehbare Entscheidungen
+- Speicherknappheit allein kann keine unverarbeiteten Rohdaten loeschen
+- bei Notfallauslastung wird Datenerfassung reduziert, solange der Lern- und Sicherungsnachweis nicht vollstaendig ist
+- nach vollstaendig bestaetigtem Lernzyklus werden ausschliesslich bereits verarbeitete loeschbare Rohdaten bis zum sicheren Zielstand freigegeben
 
 ## Block 12 – Web-Oberflaeche, Tagesbericht, Schnittstelle und Archiv
 
@@ -299,7 +310,7 @@ Gemeinsam umgesetzt werden:
 - atomare Konfigurationsspeicherung und Rueckfallpunkt fuer kritische Aenderungen
 - `Sichere Standardwerte wiederherstellen`
 - Bedienprotokoll ohne Geheimnisse
-- Dienststatus fuer Supabase, Cloudflare und spaetere Dienste mit einfachem Handlungsbedarf statt Anbieterjargon
+- Dienststatus fuer Supabase, Cloudflare, Objektspeicher und spaetere Dienste mit einfachem Handlungsbedarf statt Anbieterjargon
 - zentrale Dienst-Tore; keine Fachlogik darf externe Anbieter direkt aufrufen
 - `DienstProfil` pro Anbieter/Tarif mit offizieller Quelle, Gueltigkeit und Sicherheitsreserve
 - automatische Schutzstufen `normal`, `beobachten`, `sparen`, `blockiert`
@@ -310,7 +321,8 @@ Gemeinsam umgesetzt werden:
 - Versuche
 - Entwicklungswarteschlange
 - Schnittstelle zwischen Laufzeit und Server
-- serverseitiger Archivabgleich per SFTP
+- serverseitiger Archivabgleich ueber eine provider-neutrale S3-kompatible Objektspeicher-Schnittstelle; erste vorgesehene Konfiguration Backblaze B2 Cloud Storage
+- Anzeige von sicherer Speicherauslastung, aktueller Speicher-Lern-Phase, geschuetzten Daten und bereits verarbeiteten loeschbaren Rohdaten
 - `TagesBerichtErstellung` aus den vergangenen exakt 24 Stunden
 - kurze Zusammenfassung mit `Nutzer muss handeln: JA/NEIN`
 - Charakterwerte und Gesamtwerte
@@ -326,7 +338,7 @@ Gemeinsam umgesetzt werden:
 
 Abschlusspruefung:
 
-- Browser und Adventure Land besitzen keinerlei SFTP-Zugangsdaten
+- Browser und Adventure Land besitzen keinerlei Objektspeicher-Zugangsdaten
 - Browser und Adventure Land besitzen keinerlei E-Mail-Versandgeheimnisse
 - unvollstaendige Einrichtung kann den Bot nicht aktiv starten
 - ungueltige Eingaben koennen nicht gespeichert werden
@@ -348,7 +360,9 @@ Abschlusspruefung:
 - ein E-Mail-Ausfall verliert den Bericht nicht und blockiert die Spiellogik nicht
 - fehlgeschlagener Versand kann ohne doppelten Bericht wiederholt werden
 - `Bericht jetzt erstellen` funktioniert unabhaengig vom automatischen Versand
-- Archivuebertragungen koennen nach Abbruch sauber fortgesetzt werden
+- Objektspeicher-Uebertragungen koennen nach Abbruch sauber fortgesetzt werden
+- unvollstaendige Multipart-Uebertragungen werden niemals als dauerhaft archivierte Segmente behandelt
+- ein Anbieterwechsel innerhalb der S3-kompatiblen Speicherschicht veraendert weder Wiederholungs- noch Lernlogik
 
 ## Block 13 – Automatisierter Entwicklungsablauf
 
@@ -408,11 +422,12 @@ V4 ersetzt V3 erst nach dieser Reihenfolge:
 9. 72 Stunden Haendler und Wirtschaft
 10. mehrere automatische Tagesberichte inklusive mindestens eines simulierten Versandfehlers
 11. vollstaendiger Bedienungstest mit absichtlich falschen Eingaben, fehlenden Voraussetzungen und kritischen Fehlversuchen
-12. Supabase-, Cloudflare- und Dienstgrenzentest bis unmittelbar vor das sichere V4-Budget, ohne den Sicherheitspuffer anzutasten
-13. Update-, Rueckfall- und Serverausfalltest
-14. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag, begrenzten Puffern und eingehaltenen Dienstbudgets
-15. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
-16. menschliche Entscheidung ueber die Abloesung von V3
+12. Supabase-, Cloudflare-, Objektspeicher- und Dienstgrenzentest bis unmittelbar vor das sichere V4-Budget, ohne den Sicherheitspuffer anzutasten
+13. Speicher-Lern-Zyklus bis in die Notfallstufe testen; unverarbeitete Daten duerfen dabei nicht automatisch geloescht werden
+14. Update-, Rueckfall- und Serverausfalltest
+15. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag, begrenzten Puffern und eingehaltenen Dienstbudgets
+16. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
+17. menschliche Entscheidung ueber die Abloesung von V3
 
 # Entscheidungsregel fuer spaetere Planung
 

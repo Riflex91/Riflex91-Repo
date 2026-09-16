@@ -19,7 +19,7 @@ Keine Ebene darf eine darunterliegende Sicherheitsstufe umgehen.
 - `ausfuehrung/` – einzige Stelle fuer echte Adventure-Land-Aktionen
 - `telemetrie/` – strukturierte Laufzeitdaten
 - `wiederholung/` – Aufzeichnung und Offline-Wiederholung
-- `lernen/` – spaetere Versuche und Lernergebnisse
+- `lernen/` – spaetere Versuche, Lernergebnisse und der kontrollierte Speicher-Lern-Zyklus
 - `spiellogik/` – Farmer, Gruppe, Haendler und weitere Spielfunktionen
 
 V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
@@ -30,12 +30,26 @@ V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb 
 
 - `schnittstelle/` – HTTPS-Zugriff
 - `web-oberflaeche/` – Bedienung, Analyse und Tagesberichte
-- `archiv-abgleich/` – serverseitiger SFTP-Abgleich
+- `archiv-abgleich/` – serverseitiger Abgleich mit S3-kompatiblem Objektspeicher; zunaechst Backblaze B2 Cloud Storage
 - `entwicklungsdienst/` – spaetere Auswertung der Entwicklungswarteschlange
+
+## Wiederholungs-, Lern- und Speicherfluss
+
+Grosse historische Daten werden nicht dauerhaft in der Live-Datenbank gesammelt. Die vorgesehene Trennung ist:
+
+`Laufzeit -> lokaler begrenzter Puffer -> Rohdaten im Objektspeicher -> versionierter Lerndatensatz -> Lernen -> Evaluation -> dauerhaftes Wissen -> kontrollierte Rohdatenfreigabe`
+
+Rohdaten, abgeleitete Lerndaten und dauerhaftes Wissen sind getrennte Datenklassen. Die Rohdaten sind die historische Belegquelle; der Lerndatensatz ist eine reproduzierbare Ableitung; das Wissen ist das Ergebnis eines bestandenen Lern- und Pruefzyklus.
+
+Der Speicher-Lern-Zyklus darf verarbeitete Rohdaten erst freigeben, wenn Datensatzbildung, Lernlauf, Evaluation und dauerhafte Wissensspeicherung erfolgreich bestaetigt sind. Speicherknappheit allein ist niemals eine Loeschfreigabe. In der Notfallstufe wird die nicht sicherheitskritische Datenerfassung reduziert oder pausiert, statt unverarbeitete Belege stillschweigend zu loeschen.
+
+Ein kleiner goldener Wiederholungssatz sowie ausgewaehlte seltene und sicherheitsrelevante Vorfaelle bleiben vom normalen Rohdaten-Zyklus geschuetzt. Damit kann eine neue Strategie spaeter weiterhin gegen historische Situationen geprueft werden.
+
+Der Objektspeicher wird ueber eine provider-neutrale S3-kompatible Schnittstelle angebunden. Anbieterwechsel duerfen die Wiederholungs- und Lernlogik nicht veraendern. Zugangsdaten und Anbieter-API-Aufrufe existieren ausschliesslich auf der Plattformseite und unterliegen dem `KontingentWaechter`.
 
 ## Externe Dienste und KontingentWaechter
 
-Supabase, Cloudflare und jeder spaeter angebundene externe Dienst werden als begrenzte Ressource behandelt.
+Supabase, Cloudflare, Objektspeicher und jeder spaeter angebundene externe Dienst werden als begrenzte Ressource behandelt.
 
 Direkte externe Aufrufe aus Fachlogik sind verboten. Der vorgesehene Ablauf ist:
 
@@ -94,8 +108,10 @@ Dadurch gilt auch bei einem Plattformausfall:
 - Kein abgelaufenes Dienstprofil wird weiterverwendet.
 - Kein Anbietermaximum wird vollstaendig als V4-Budget freigegeben.
 - Keine Warteschlange darf unbegrenzt wachsen.
-- Lokale Spielsicherheit bleibt auch ohne Supabase, Cloudflare oder andere Dienste funktionsfaehig.
-- SFTP-Zugangsdaten existieren nur serverseitig.
+- Lokale Spielsicherheit bleibt auch ohne Supabase, Cloudflare, Objektspeicher oder andere Dienste funktionsfaehig.
+- Objektspeicher-Zugangsdaten existieren nur serverseitig.
+- Kein unverarbeiteter Wiederholungsbeleg wird allein wegen Speicherknappheit automatisch geloescht.
+- Keine Rohdatenfreigabe ohne bestaetigte Datensatzbildung, Lernen, Evaluation und dauerhafte Wissensspeicherung.
 - E-Mail-Versandgeheimnisse existieren nur serverseitig.
 - V4 speichert oder verarbeitet keine Adventure-Land-Kennwoerter.
 - Ein Tagesbericht darf fehlende Daten nicht stillschweigend als Null ausgeben.
