@@ -28,7 +28,9 @@ Die eingebauten Schnelltests lesen nur vorhandene Werte und loesen keine Adventu
 - Map
 - Block-2-Rohdaten
 
-`Block-2-Rohdaten` fasst Charakter, Gruppe, Entities, Karte und Serverkennung fuer die kommenden Beobachtungs- und Spielzustandstests zusammen.
+`Block-2-Rohdaten` fasst Charakter, Inventar, Gruppe, Entities, Monster, Karte und Serverkennung fuer die kommenden Beobachtungs- und Spielzustandstests zusammen.
+
+Seit Version 1.2.0 werden statische Kartendaten bewusst kompakt gehalten: Name und wichtige Kartenflags werden direkt ausgegeben, waehrend Monstergebiete, Spawnpunkte, Tueren und NPCs nur als Anzahl enthalten sind. Dadurch werden die gleichen statischen Kartendefinitionen nicht in jedem spaeteren Snapshot erneut gespeichert.
 
 ## Freies JavaScript
 
