@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/dienst-profil.schema.json",
+  "title": "V4 Dienstprofil mit Nutzungsgrenzen",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "dienstKennung", "anzeigename", "tarifName", "quelle", "geprueftAm", "gueltigBis", "grenzen"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "dienstKennung": { "type": "string", "minLength": 1 },
+    "anzeigename": { "type": "string", "minLength": 1 },
+    "tarifName": { "type": "string", "minLength": 1 },
+    "quelle": { "type": "string", "minLength": 1 },
+    "geprueftAm": { "type": "number", "minimum": 0 },
+    "gueltigBis": { "type": "number", "minimum": 0 },
+    "grenzen": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kennung", "einheit", "zeitraum", "anbieterMaximum", "sicherheitsPuffer"],
+        "properties": {
+          "kennung": { "type": "string", "minLength": 1 },
+          "einheit": { "enum": ["anfragen", "zeilen_gelesen", "zeilen_geschrieben", "funktionsaufrufe", "nachrichten", "verbindungen", "operationen_a", "operationen_b", "bytes", "speicher_bytes"] },
+          "zeitraum": { "enum": ["sekunde", "minute", "stunde", "tag", "monat", "dauerhaft"] },
+          "anbieterMaximum": { "type": "number", "exclusiveMinimum": 0 },
+          "sicherheitsPuffer": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
