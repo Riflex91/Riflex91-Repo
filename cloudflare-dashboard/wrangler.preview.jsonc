@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aio-bot-dashboard-preview",
+  "main": "src/worker-preview-release.js",
+  "compatibility_date": "2026-09-15",
+  "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "LOG_ARCHIVE",
+      "bucket_name": "aio-v3-logs"
+    }
+  ]
+}
