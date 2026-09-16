@@ -7,12 +7,27 @@ export interface RessourcenSperrErgebnis {
   readonly sperren: readonly RessourcenSperre[];
 }
 
+function holeWichtigkeitsRang(anfrage: RessourcenSperrAnfrage): number {
+  return anfrage.wichtigkeitsRang ?? 0;
+}
+
+function istAnfrageHoeherPriorisiert(anfrage: RessourcenSperrAnfrage, sperre: RessourcenSperre): boolean {
+  const wichtigkeitsRang = holeWichtigkeitsRang(anfrage);
+  if (wichtigkeitsRang !== sperre.wichtigkeitsRang) return wichtigkeitsRang > sperre.wichtigkeitsRang;
+  return anfrage.prioritaet > sperre.prioritaet;
+}
+
 export class RessourcenVergabe {
   private readonly sperren = new Map<RessourcenName, RessourcenSperre>();
 
   versucheRessourcenZuSperren(anfrage: RessourcenSperrAnfrage): RessourcenSperrErgebnis {
     const ressourcen = [...new Set(anfrage.ressourcen)].sort() as RessourcenName[];
     if (ressourcen.length === 0) throw new Error('Mindestens eine Ressource muss angefordert werden.');
+    if (!Number.isFinite(anfrage.prioritaet)) throw new Error('Die Ressourcenprioritaet muss eine endliche Zahl sein.');
+    if (!Number.isFinite(anfrage.angefordertAm)) throw new Error('Der Anforderungszeitpunkt muss eine endliche Zahl sein.');
+    if (anfrage.wichtigkeitsRang !== undefined && !Number.isFinite(anfrage.wichtigkeitsRang)) {
+      throw new Error('Der Wichtigkeitsrang muss eine endliche Zahl sein.');
+    }
 
     const blockiertDurch: RessourcenSperre[] = [];
     const unterbrocheneBesitzer = new Set<string>();
@@ -21,7 +36,7 @@ export class RessourcenVergabe {
       const aktuelleSperre = this.sperren.get(ressource);
       if (!aktuelleSperre || aktuelleSperre.besitzer === anfrage.besitzer) continue;
 
-      if (!aktuelleSperre.darfUnterbrochenWerden || anfrage.prioritaet <= aktuelleSperre.prioritaet) {
+      if (!aktuelleSperre.darfUnterbrochenWerden || !istAnfrageHoeherPriorisiert(anfrage, aktuelleSperre)) {
         blockiertDurch.push(aktuelleSperre);
       } else {
         unterbrocheneBesitzer.add(aktuelleSperre.besitzer);
@@ -39,9 +54,11 @@ export class RessourcenVergabe {
 
     for (const besitzer of [...unterbrocheneBesitzer].sort()) this.gibRessourcenFuerBesitzerFrei(besitzer);
 
+    const wichtigkeitsRang = holeWichtigkeitsRang(anfrage);
     const neueSperren = ressourcen.map((ressource): RessourcenSperre => ({
       ressource,
       besitzer: anfrage.besitzer,
+      wichtigkeitsRang,
       prioritaet: anfrage.prioritaet,
       darfUnterbrochenWerden: anfrage.darfUnterbrochenWerden,
       gesperrtSeit: anfrage.angefordertAm
