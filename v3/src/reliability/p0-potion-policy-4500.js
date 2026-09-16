@@ -62,10 +62,9 @@ function dynamicBundle(input, plan) {
     const currentFarmer = farmerCount(report, def.family);
     const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - currentFarmer);
     const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    // Existing merchant stock is reused first. If it exceeds the farmer shortfall,
-    // the current delivery clears that stock instead of carrying a potion reserve.
-    const deliveryQuantity = Math.max(farmerShortfall, merchantHave);
-    if (deliveryQuantity <= 0) continue;
+    // Delivery is strictly bounded by this farmer's observed shortfall.
+    // Existing merchant stock above that shortfall must never be dumped onto the farmer.
+    const deliveryQuantity = farmerShortfall;
     if (deliveryQuantity > MAX_DYNAMIC_DELIVERY) return null;
     rows.push({
       family: def.family,
@@ -137,8 +136,47 @@ function installPlannerPolicy(runtime) {
     const plan = basePlan(input);
     if (!plan || !(plan.metadata && plan.metadata.p0PotionBundle)) return plan;
 
-    const deliveries = dynamicBundle(input, plan);
-    if (!deliveries || !deliveries.length) return plan;
+    const rows = dynamicBundle(input, plan);
+    if (!rows) return plan;
+    const excessStock = rows.filter((row) => row.merchantHave > row.farmerShortfall);
+    const deliveries = rows.filter((row) => row.quantity > 0);
+
+    // Fail closed before travel/restock if legacy merchant stock cannot fit into
+    // this farmer's observed deficit. The outer hard-cap may reroute to another
+    // farmer; without it, this HOLD still prevents overfilling.
+    if (excessStock.length) {
+      const hold = {
+        ...clone(plan),
+        kind: MerchantServicePlanKind.HOLD,
+        reason: 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE',
+        deliveries: [],
+        delivery: null,
+        distance: null,
+        metadata: {
+          ...(plan.metadata || {}),
+          p0PotionBundle: true,
+          p0PotionPolicy4500: true,
+          adaptivePotionDelivery: true,
+          bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
+          farmerTarget: POTION_TARGET_COUNT,
+          merchantReserve: MERCHANT_POTION_RESERVE,
+          excessStock: excessStock.map((row) => ({
+            itemName: row.itemName,
+            merchantHave: row.merchantHave,
+            farmerBefore: row.farmerBefore,
+            farmerShortfall: row.farmerShortfall,
+            excessQuantity: row.merchantHave - row.farmerShortfall
+          }))
+        }
+      };
+      delete hold.afterRestock;
+      delete hold.afterTravel;
+      delete hold.missingStock;
+      planner.lastPlan = clone(hold);
+      return clone(hold);
+    }
+
+    if (!deliveries.length) return plan;
     const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));
     const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
     const readyKind = serviceKind(input, plan);

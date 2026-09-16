@@ -185,3 +185,23 @@ test('stock changes after planning force a replan instead of leaving potion rese
   assert.equal(total(root, 'hpot0'), 3301);
   assert.equal(total(root, 'mpot0'), 100);
 });
+
+
+test('adaptive planner holds instead of overfilling when merchant stock exceeds farmer shortfall', () => {
+  const root = rootForMerchant();
+  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
+  const runtime = runtimeBase(root, { merchantServicePlanner: planner });
+  runtime.p0RegroupSupplyRecovery = new P0RegroupSupplyRecovery(runtime);
+  installP0PotionPolicy4500(runtime);
+
+  const plan = planner.plan({
+    merchant: { ...root.character, inventory: [{ name: 'hpot0', q: 500 }, { name: 'mpot0', q: 500 }] },
+    reports: [report(4300, 4400)],
+    deliveryDistance: 400
+  });
+
+  assert.equal(plan.kind, MerchantServicePlanKind.HOLD);
+  assert.equal(plan.reason, 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE');
+  assert.deepEqual(plan.deliveries, []);
+  assert.deepEqual(plan.metadata.excessStock.map((row) => [row.itemName, row.excessQuantity]), [['hpot0', 300], ['mpot0', 400]]);
+});
