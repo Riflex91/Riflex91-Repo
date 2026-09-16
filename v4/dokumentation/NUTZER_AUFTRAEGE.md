@@ -37,7 +37,9 @@ Die Vorschlagsliste zeigt nur Funktionen und Gegenstaende, die V4 aktuell kennt.
 
 Die Vorschau ist nur eine Eingabehilfe. Das Anklicken eines Vorschlags startet niemals direkt einen Auftrag. Zuerst wird die strukturierte Auftragsmaske ausgefuellt und danach der Auftragsplan geprueft.
 
-Die Vorschlagsliste ist eine feste Bedienfunktion von V4 und kein optionaler Komfortzusatz. Neue Auftragsarten sollen erst dann in der Vorschau erscheinen, wenn ihre Vertrage, Pruefungen und benoetigte Spiellogik vorhanden sind.
+Die Vorschlagsliste ist eine feste Bedienfunktion von V4 und kein optionaler Komfortzusatz. Neue Auftragsarten sollen erst dann in der Vorschau erscheinen, wenn ihre Vertraege, Pruefungen und benoetigte Spiellogik vorhanden sind.
+
+Die Reihenfolge der Vorschlaege folgt der Eingabe: direkte Wortanfaenge werden vor einfachen Teiltreffern gezeigt. Die Liste bleibt bewusst kurz, damit der Nutzer nicht durch eine unuebersichtliche Befehlswand navigieren muss.
 
 ## Eindeutige Mengen
 
