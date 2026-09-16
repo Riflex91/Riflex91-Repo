@@ -9,7 +9,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
 | (root) | 6 | 1067 |
-| autonomy | 21 | 3962 |
+| autonomy | 21 | 3972 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
 | core | 4 | 508 |
@@ -20,11 +20,11 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 24 | 6415 |
 | party | 19 | 3767 |
 | planner | 1 | 65 |
-| reliability | 63 | 13320 |
+| reliability | 63 | 13479 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
-| travel | 3 | 596 |
+| travel | 3 | 627 |
 | world | 6 | 1273 |
 
 ## Root-Entrypoints unter src/

@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 3962 Zeilen**
+**21 Dateien · 3972 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -32,12 +32,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha13-runtime.js` | 123 |
 | `src/autonomy/alpha14-runtime.js` | 112 |
 | `src/autonomy/alpha15-runtime.js` | 101 |
-| `src/autonomy/alpha16-runtime.js` | 72 |
+| `src/autonomy/alpha16-runtime.js` | 73 |
 | `src/autonomy/alpha17-runtime.js` | 303 |
 | `src/autonomy/alpha18-runtime.js` | 212 |
 | `src/autonomy/alpha19-runtime.js` | 173 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 330 |
-| `src/autonomy/alpha20-5-merchant-runtime.js` | 315 |
+| `src/autonomy/alpha20-5-merchant-runtime.js` | 324 |
 | `src/autonomy/alpha20-runtime.js` | 392 |
 | `src/autonomy/alpha9-runtime.js` | 64 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
@@ -208,7 +208,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**63 Dateien · 13320 Zeilen**
+**63 Dateien · 13479 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -246,7 +246,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 241 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 332 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
@@ -274,7 +274,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/pre-farming-reliability.js` | 501 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 297 |
 | `src/reliability/team-combat-cohesion-hotfix-base.js` | 526 |
-| `src/reliability/team-combat-cohesion-hotfix.js` | 147 |
+| `src/reliability/team-combat-cohesion-hotfix.js` | 215 |
 
 ## research
 
@@ -304,13 +304,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## travel
 
-**3 Dateien · 596 Zeilen**
+**3 Dateien · 627 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/travel/controlled-travel-executor.js` | 240 |
 | `src/travel/route-cost-estimator.js` | 77 |
-| `src/travel/safe-travel.js` | 279 |
+| `src/travel/safe-travel.js` | 310 |
 
 ## world
 
