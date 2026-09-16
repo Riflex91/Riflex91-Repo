@@ -28,6 +28,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly CdpBackblazeConfigurator _backblaze;
     private readonly SupabaseTelemetrySink _sink;
+    private readonly LocalProblemDiagnosticsArchive _diagnostics;
+    private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
     private readonly BackblazeCredentials? _backblazeCredentials;
     private CancellationTokenSource? _loopCts;
@@ -46,6 +48,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _backblaze = new CdpBackblazeConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
+        _diagnostics = new LocalProblemDiagnosticsArchive(config);
+        _problemMirror = new ProblemDiagnosticsMirrorOutbox(
+            new SupabaseProblemDiagnosticsSink(httpClient, config, token));
         _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
             ? dashboardWriteKey
             : null;
@@ -120,6 +125,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         includeDeepDiagnostics,
                         cancellationToken);
 
+                    await CaptureDiagnosticsSafeAsync(read, cancellationToken);
+
                     // During catch-up an empty second read is only a probe that the backlog is gone.
                     // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
                     if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
@@ -134,6 +141,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     // Sequence-aware acknowledgement is best effort for older bot bundles and exact for new bundles.
                     if (state.LastEventSeq > 0)
                         await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
+
+                    await FlushDiagnosticsSafeAsync(cancellationToken);
 
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
@@ -180,6 +189,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             }
             catch (Exception error)
             {
+                await CaptureBridgeFailureSafeAsync(error);
                 failures++;
                 var message = Bounded(error.Message);
                 var status = new RuntimeBridgeStatus(
@@ -191,6 +201,50 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
+        }
+    }
+
+    private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (await _diagnostics.CaptureFromReadAsync(read, cancellationToken))
+                await _problemMirror.EnqueueLatestAsync(cancellationToken);
+        }
+        catch
+        {
+            // Diagnostics are observational only and never block telemetry or gameplay.
+        }
+    }
+
+    private async Task FlushDiagnosticsSafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _problemMirror.FlushPendingAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Local bundles and mirror payloads remain bounded and are retried later.
+        }
+    }
+
+    private async Task CaptureBridgeFailureSafeAsync(Exception error)
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            if (await _diagnostics.CaptureBridgeFailureAsync(error, cts.Token))
+                await _problemMirror.EnqueueLatestAsync(cts.Token);
+            await _problemMirror.FlushPendingAsync(cts.Token);
+        }
+        catch
+        {
+            // Never turn a diagnostics failure into a second bridge failure.
         }
     }
 
