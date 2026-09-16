@@ -17,10 +17,10 @@ function fixture() {
   fs.mkdirSync(path.join(root, 'src'), { recursive: true });
   fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
   fs.mkdirSync(path.join(root, 'test'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'version.json'), JSON.stringify({ version: '3.0.0-alpha.20.50' }));
-  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ version: '3.0.0-alpha.20.50' }));
-  fs.writeFileSync(path.join(root, 'src', 'release-version.js'), expectedReleaseVersionSource('3.0.0-alpha.20.50'));
-  fs.writeFileSync(path.join(root, 'dist', 'aio-v3.js'), '/* Adventure Land AiO Bot 3.0.0-alpha.20.50 | generated | shadow mode by default */\n');
+  fs.writeFileSync(path.join(root, 'version.json'), JSON.stringify({ version: '3.0.0-alpha.20.51' }));
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ version: '3.0.0-alpha.20.51' }));
+  fs.writeFileSync(path.join(root, 'src', 'release-version.js'), expectedReleaseVersionSource('3.0.0-alpha.20.51'));
+  fs.writeFileSync(path.join(root, 'dist', 'aio-v3.js'), '/* Adventure Land AiO Bot 3.0.0-alpha.20.51 | generated | shadow mode by default */\n');
   return root;
 }
 
