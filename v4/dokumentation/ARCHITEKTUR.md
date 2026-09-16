@@ -29,9 +29,23 @@ V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb 
 `plattform/` laeuft ausserhalb von Adventure Land.
 
 - `schnittstelle/` – HTTPS-Zugriff
-- `web-oberflaeche/` – Bedienung und Analyse
+- `web-oberflaeche/` – Bedienung, Analyse und Tagesberichte
 - `archiv-abgleich/` – serverseitiger SFTP-Abgleich
 - `entwicklungsdienst/` – spaetere Auswertung der Entwicklungswarteschlange
+
+## Tagesbericht
+
+Die Adventure-Land-Laufzeit erzeugt keinen E-Mail-Bericht und besitzt keine E-Mail-Zugangsdaten. Sie liefert nur strukturierte Laufzeitdaten an die Plattform.
+
+Die Plattform erstellt aus diesen Daten einmal taeglich einen `TagesBericht` ueber die vergangenen exakt 24 Stunden. Der Bericht wird gespeichert, in der Web-Oberflaeche angezeigt und kann zusaetzlich per E-Mail versendet werden.
+
+Der Ablauf ist:
+
+`Telemetrie -> gespeicherte Laufzeitdaten -> TagesBericht -> Web-Oberflaeche -> optional E-Mail`
+
+Berichtserstellung und Zustellung sind getrennt. Ein Versandfehler darf weder den Bericht verlieren noch die Adventure-Land-Laufzeit beeinflussen.
+
+Jeder automatische Berichtszeitraum besitzt eine eindeutige Kennung. Neustarts oder wiederholte Zeitgeberausloesung duerfen daher keinen doppelten Versand desselben Berichts verursachen.
 
 ## Gruppensteuerung
 
@@ -53,4 +67,7 @@ Dadurch gilt auch bei einem Plattformausfall:
 - Unbekanntes Wissen bleibt unbekannt; es wird nicht stillschweigend geraten.
 - Menschliche Fehlermeldungen muessen ohne Quellcodekenntnis verstaendlich sein.
 - SFTP-Zugangsdaten existieren nur serverseitig.
+- E-Mail-Versandgeheimnisse existieren nur serverseitig.
 - V4 speichert oder verarbeitet keine Adventure-Land-Kennwoerter.
+- Ein Tagesbericht darf fehlende Daten nicht stillschweigend als Null ausgeben.
+- Ein Versandfehler darf die sichere Spiellogik niemals blockieren.
