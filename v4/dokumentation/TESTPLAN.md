@@ -7,6 +7,7 @@
 - Struktur- und Geheimnispruefung
 - `KontingentWaechter`, `DienstProfil` und Dienstgrenzen sind Pflichtbestandteile
 - `BedienSicherung`, `BedienAnfrage` und Bedienregeln sind Pflichtbestandteile
+- `NutzerAuftrag`, `AuftragsPruefung` und Auftragsvorschlaege sind Pflichtbestandteile
 - spaeter Abhaengigkeitsgrenzen, die direkte externe Dienstaufrufe ausserhalb des Dienst-Tores verhindern
 
 ## Stufe 2 – Einheitstests
@@ -35,6 +36,18 @@ Fuer die Bedienung werden mindestens getestet:
 - doppelte Vorgangskennung fuehrt spaeter nicht zu doppelter Ausfuehrung
 - veraltete Konfigurationsversion darf keine neuere Einstellung ueberschreiben
 
+Fuer Nutzerauftraege werden mindestens getestet:
+
+- gueltiger Sammelauftrag wird angenommen
+- unbekannter Gegenstand wird blockiert
+- Zielmenge muss eine positive ganze Zahl sein
+- `zusaetzlich` und `gesamtbestand` bleiben eindeutig getrennt
+- Freitext wird niemals direkt ausgefuehrt
+- bekannte Auftragsarten werden beim Tippen vorgeschlagen
+- bekannte Gegenstaende werden ueber Namen und Suchwoerter vorgeschlagen
+- unbekannte Eingaben erzeugen keinen scheinbar gueltigen Vorschlag
+- ein Vorschlag startet niemals direkt eine veraendernde Aktion
+
 ## Stufe 3 – Eigenschaftstests
 
 Kerninvarianten werden mit vielen automatisch erzeugten Eingaben geprueft, insbesondere Ressourcenbesitz, Prioritaeten und deterministische Auswahl.
@@ -42,6 +55,8 @@ Kerninvarianten werden mit vielen automatisch erzeugten Eingaben geprueft, insbe
 Fuer Kontingente gilt zusaetzlich: Keine automatisch erzeugte Folge erlaubter Reservierungen darf das um den Sicherheitspuffer reduzierte V4-Budget ueberschreiten.
 
 Fuer BedienAnfragen gilt: Keine Kombination fehlender Voraussetzungen oder fehlender Bestaetigungen darf zu einer erlaubten kritischen Aktion fuehren.
+
+Fuer Nutzerauftraege gilt: Kein automatisch erzeugter ungueltiger Auftrag darf vor erfolgreicher AuftragsPruefung und BedienSicherung eine veraendernde AktionsAnfrage ausloesen.
 
 Fuer Berichte gilt zusaetzlich: derselbe Datenbestand und derselbe Zeitraum muessen denselben Bericht ergeben; Ereignisse ausserhalb des 24-Stunden-Zeitraums duerfen nicht einfliessen.
 
@@ -54,6 +69,8 @@ Mehrcharakter-Wiederholungen muessen die beteiligten Charaktere eindeutig unters
 Historische Daten muessen auch zur reproduzierbaren Erzeugung eines Tagesberichts verwendet werden koennen.
 
 Kontingententscheidungen werden mit gespeicherten Anbieter- und lokalen Verbrauchsstaenden reproduzierbar wiederholt.
+
+Auftragsplaene muessen bei gleichem Spielzustand dieselben vorhandenen und noch benoetigten Mengen sowie dieselben blockierenden Voraussetzungen ergeben.
 
 ## Stufe 5 – Fehler-Einspritzung
 
@@ -84,6 +101,17 @@ Fuer die Bedienung werden zusaetzlich getestet:
 - Speichern wird waehrend des Vorgangs unterbrochen
 - Rueckfall auf die vorherige gueltige Konfiguration funktioniert
 
+Fuer Nutzerauftraege werden zusaetzlich getestet:
+
+- ein Gegenstand wird waehrend der Planung unbekannt oder nicht mehr verfuegbar
+- Zutaten eines Herstellungsauftrags sind unvollstaendig
+- ein geschuetzter Gegenstand waere fuer Herstellung erforderlich
+- Auftrag wird waehrend einer Teilaufgabe pausiert
+- Neustart waehrend eines laufenden Auftrags
+- Doppelklick auf `Auftrag starten`
+- veraltete Browseransicht versucht einen bereits geaenderten Auftrag erneut zu starten
+- ein zuvor angezeigter Vorschlag ist zum Startzeitpunkt nicht mehr verfuegbar
+
 Fuer den Tagesbericht werden zusaetzlich getestet:
 
 - Neustart waehrend des 24-Stunden-Zeitraums
@@ -102,6 +130,8 @@ Nach dem ersten vollstaendigen 24-Stunden-Schattenlauf muss aus den aufgezeichne
 
 Auch bei simuliert blockierten Cloudflare- oder Supabase-Kontingenten muss die lokale Sicherheitslogik ununterbrochen weiterarbeiten.
 
+Nutzerauftraege werden im Schattenbetrieb bis zu den geplanten AktionsAnfragen durchgespielt, ohne echte Spielaktionen auszufuehren.
+
 ## Stufe 7 – kontrollierter Aktivbetrieb
 
 Zuerst ein einzelner Charakter, danach mehrere eigene Charaktere als Gruppe, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
@@ -118,6 +148,8 @@ Der Tagesbericht muss die aktiven Charaktere getrennt ausweisen und gemeinsame V
 
 Vor dem ersten aktiven Lauf wird die gefuehrte Startpruefung mit absichtlich fehlenden und fehlerhaften Einstellungen durchgespielt. Der Bot darf erst freigegeben werden, wenn alle blockierenden Voraussetzungen erfuellt sind.
 
+Sammel- und Herstellungsauftraege werden erst aktiv freigegeben, wenn die jeweils benoetigte Spiellogik separat bestanden hat.
+
 ## Stufe 8 – Dauertest
 
 Vor einer Produktionsabloesung: sieben Tage 24/7 mit Neustart-, Update-, Netz- und Plattformausfalltests.
@@ -131,4 +163,6 @@ Zusaetzliche Abnahmebedingungen:
 - keine lokale Warteschlange ist unbegrenzt gewachsen
 - keine kritische Bedienaktion wurde ohne vorgesehene Freigabe ausgefuehrt
 - kein Doppelklick oder Netzwerk-Wiederholungsversuch fuehrte zu doppelter Ausfuehrung
+- kein Freitext oder Auftragsvorschlag wurde direkt als Spielaktion ausgefuehrt
+- laufende Nutzerauftraege ueberstehen Neustarts oder wechseln eindeutig in einen sicheren pausierten beziehungsweise blockierten Zustand
 - jede nutzersichtbare Stoerung enthielt Ursache, Bot-Reaktion, Handlungsbedarf und naechsten Schritt
