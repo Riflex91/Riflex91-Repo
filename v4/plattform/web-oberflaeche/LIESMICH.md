@@ -27,8 +27,12 @@ bee
   -> Bienenfluegel
 ```
 
+Direkte Wortanfaenge werden vor einfachen Teiltreffern angezeigt. Die Liste bleibt bewusst kurz und soll spaeter per Tastatur oder Beruehrung bedienbar sein.
+
 Ein angeklickter Vorschlag fuellt nur die strukturierte Auftragsmaske vor. Er startet niemals direkt eine Spielaktion.
 
 Vor dem Start zeigt die Oberflaeche den geprueften Auftragsplan mit Ziel, aktuellem Bestand, Restmenge, Teilaufgaben, beteiligten Charakteren, moeglichen Verbrauchsguetern, Warnungen und blockierenden Voraussetzungen.
 
 Mehrdeutige Angaben wie `Sammle 200 Bienenfluegel` muessen sichtbar zwischen `200 zusaetzlich` und `Gesamtbestand auf 200` aufgeloest werden.
+
+Neue Befehle erscheinen erst dann in der Vorschau, wenn die zugehoerigen Vertraege, Pruefungen und Spielfunktionen vorhanden und freigegeben sind.
