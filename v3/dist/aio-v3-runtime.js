@@ -9333,6 +9333,13 @@ const { ContentDriftMonitor } = require('../world/content-drift');
 
 const ALPHA13_VERSION = '3.0.0-alpha.13.0';
 
+function contentDriftStorageKey(root, explicitKey = null) {
+  if (explicitKey != null && String(explicitKey).trim()) return String(explicitKey).trim();
+  const character = root && (root.character || root.parent && root.parent.character);
+  const name = character && String(character.name || '').trim();
+  return name ? `aio-v3-content-drift-v1:${name}` : undefined;
+}
+
 class Alpha13Runtime extends Alpha12Runtime {
   constructor(options = {}) {
     super(options);
@@ -9347,6 +9354,7 @@ class Alpha13Runtime extends Alpha12Runtime {
     this.contentDrift = options.contentDrift || new ContentDriftMonitor({
       root: this.root,
       storage: options.contentDriftStorage || options.storage,
+      key: contentDriftStorageKey(this.root, options.contentDriftKey),
       now: this.now,
       log: this.log,
       capacity: options.contentDriftCapacity,
@@ -9447,7 +9455,7 @@ class Alpha13Runtime extends Alpha12Runtime {
   }
 }
 
-module.exports = { Alpha13Runtime, ALPHA13_VERSION };
+module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey };
 
 },
 "src/stability/global-supervisor.js": function(require,module,exports){
@@ -21934,6 +21942,7 @@ module.exports = {
 
 const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
 const RUNNING_CHARACTER_STATES = new Set(['self', 'active', 'code']);
+const NAMED_RECEIVER_CM_PROTOCOL = 'aio-v3-named-receiver-v1';
 
 function cleanName(value) {
   const name = String(value == null ? '' : value).trim();
@@ -21955,12 +21964,18 @@ class AccountCharacterTransport {
     this.log = options.log || null;
     this.fallbackEnabled = options.fallbackEnabled !== false;
     this.trustedNames = new Set(uniqueNames(options.trustedNames || []));
+    this._cmRouterInstalled = false;
+    this._cmRouter = null;
+    this._cmRouterPrevious = null;
+    this._directReceiverNames = new Set();
     this.stats = {
       directSent: 0,
       directFailed: 0,
       directSkippedUnobserved: 0,
       fallbackSent: 0,
       fallbackFailed: 0,
+      fallbackReceived: 0,
+      fallbackRejected: 0,
       rejectedNotOwned: 0,
       localDelivered: 0
     };
@@ -22024,10 +22039,56 @@ class AccountCharacterTransport {
     return !!target && this.ownedNames().includes(target);
   }
 
+  _installCmRouter() {
+    if (this._cmRouterInstalled || !this.root) return this._cmRouterInstalled;
+    const previous = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+    const transport = this;
+    const router = function aioNamedReceiverOnCm(sender, data) {
+      const envelope = data && typeof data === 'object' && data.__aioProtocol === NAMED_RECEIVER_CM_PROTOCOL;
+      if (envelope) {
+        const receiver = cleanName(data.receiver);
+        const senderName = cleanName(sender);
+        const trusted = !transport.trustedNames.size || (senderName && transport.trustedNames.has(senderName));
+        if (!trusted) {
+          transport.stats.fallbackRejected += 1;
+          transport._event('ACCOUNT_TRANSPORT_FALLBACK_REJECTED', 'warn', 'SENDER_NOT_TRUSTED_OWN_CHARACTER', { sender: senderName, receiver });
+          return false;
+        }
+        if (receiver && typeof transport.root[receiver] === 'function') {
+          transport.root[receiver](senderName || sender, data.payload);
+          transport.stats.fallbackReceived += 1;
+          return true;
+        }
+        transport.stats.fallbackRejected += 1;
+        transport._event('ACCOUNT_TRANSPORT_FALLBACK_REJECTED', 'warn', 'NAMED_RECEIVER_UNAVAILABLE', { sender: senderName, receiver });
+        return false;
+      }
+      if (previous) return previous.apply(this, arguments);
+      return undefined;
+    };
+    this.root.on_cm = router;
+    this._cmRouter = router;
+    this._cmRouterPrevious = previous;
+    this._cmRouterInstalled = true;
+    return true;
+  }
+
+  _uninstallCmRouter() {
+    if (!this._cmRouterInstalled || !this.root) return false;
+    if (this.root.on_cm !== this._cmRouter) return false;
+    this.root.on_cm = this._cmRouterPrevious || undefined;
+    this._cmRouterInstalled = false;
+    this._cmRouter = null;
+    this._cmRouterPrevious = null;
+    return true;
+  }
+
   installDirectReceiver(receiverName, handler) {
     const name = cleanName(receiverName);
     if (!name || typeof handler !== 'function' || !this.root) return false;
     this.root[name] = handler;
+    this._directReceiverNames.add(name);
+    this._installCmRouter();
     return true;
   }
 
@@ -22040,6 +22101,8 @@ class AccountCharacterTransport {
     } else {
       this.root[name] = previous;
     }
+    this._directReceiverNames.delete(name);
+    if (!this._directReceiverNames.size) this._uninstallCmRouter();
     return true;
   }
 
@@ -22102,7 +22165,10 @@ class AccountCharacterTransport {
     const sendCm = this._function('send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      await Promise.resolve(sendCm.call(this.root, target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
@@ -22118,8 +22184,8 @@ class AccountCharacterTransport {
 
   status() {
     return {
-      schemaVersion: 2,
-      mode: 'observed-active-command-character-else-cm',
+      schemaVersion: 3,
+      mode: 'observed-active-command-character-else-addressed-cm',
       localName: this.localName(),
       trustSource: this.trustedNames.size ? 'explicit-roster' : 'get_active_characters-fallback',
       trustedNames: this.trustedRosterNames(),
@@ -22129,6 +22195,7 @@ class AccountCharacterTransport {
       runningOwnedNames: this.ownedNames({ runningOnly: true }),
       directRequiresObservedActive: true,
       fallbackEnabled: this.fallbackEnabled,
+      namedReceiverCmProtocol: NAMED_RECEIVER_CM_PROTOCOL,
       stats: { ...this.stats }
     };
   }
@@ -22138,6 +22205,7 @@ module.exports = {
   AccountCharacterTransport,
   ACTIVE_CHARACTER_STATES,
   RUNNING_CHARACTER_STATES,
+  NAMED_RECEIVER_CM_PROTOCOL,
   cleanName,
   uniqueNames
 };
@@ -44043,12 +44111,14 @@ module.exports = {
 
 const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
 
-const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-adaptive-4500-v2';
+const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v3';
 const POTION_TARGET_COUNT = 4500;
 const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
+// Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
 const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
+// Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
 const MERCHANT_POTION_RESERVE = 0;
-const MAX_DYNAMIC_DELIVERY = 20000;
+const MAX_DYNAMIC_DELIVERY = POTION_TARGET_COUNT;
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -44100,21 +44170,20 @@ function dynamicBundle(input, plan) {
   ];
   const rows = [];
   for (const def of definitions) {
-    const currentFarmer = farmerCount(report, def.family);
-    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - currentFarmer);
+    const farmerBefore = farmerCount(report, def.family);
+    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
     const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    // Delivery is strictly bounded by this farmer's observed shortfall.
-    // Existing merchant stock above that shortfall must never be dumped onto the farmer.
-    const deliveryQuantity = farmerShortfall;
-    if (deliveryQuantity > MAX_DYNAMIC_DELIVERY) return null;
+    const quantity = farmerShortfall;
+    if (quantity > MAX_DYNAMIC_DELIVERY) return null;
     rows.push({
       family: def.family,
       itemName: def.itemName,
-      quantity: deliveryQuantity,
-      farmerBefore: currentFarmer,
+      quantity,
+      farmerBefore,
       farmerShortfall,
       merchantHave,
-      buyQuantity: Math.max(0, deliveryQuantity - merchantHave)
+      buyQuantity: Math.max(0, quantity - merchantHave),
+      retainedAfterDelivery: Math.max(0, merchantHave - quantity)
     });
   }
   return rows;
@@ -44162,6 +44231,33 @@ function bundleChunks(service, deliveries) {
   return chunks;
 }
 
+function policyMetadata(plan, rows) {
+  return {
+    ...(plan && plan.metadata || {}),
+    p0PotionBundle: true,
+    p0PotionPolicy4500: true,
+    adaptivePotionDelivery: true,
+    bundlePolicy: 'TOP_UP_FARMER_TO_4500_WITH_DEMAND_ONLY_PURCHASE',
+    farmerTarget: POTION_TARGET_COUNT,
+    merchantReserve: MERCHANT_POTION_RESERVE,
+    noPurchasedReserve: true,
+    merchantExcessBlocksDelivery: false,
+    retainedExistingStock: rows.filter((row) => row.retainedAfterDelivery > 0).map((row) => ({
+      itemName: row.itemName,
+      quantity: row.retainedAfterDelivery
+    })),
+    stockRequirements: rows.filter((row) => row.quantity > 0).map((row) => ({
+      itemName: row.itemName,
+      requiredStock: row.quantity,
+      merchantReserve: MERCHANT_POTION_RESERVE,
+      farmerBefore: row.farmerBefore,
+      farmerShortfall: row.farmerShortfall,
+      merchantHaveAtPlan: row.merchantHave,
+      buyQuantity: row.buyQuantity
+    }))
+  };
+}
+
 function installPlannerPolicy(runtime) {
   const planner = runtime && runtime.merchantServicePlanner;
   if (!planner) return false;
@@ -44179,36 +44275,18 @@ function installPlannerPolicy(runtime) {
 
     const rows = dynamicBundle(input, plan);
     if (!rows) return plan;
-    const excessStock = rows.filter((row) => row.merchantHave > row.farmerShortfall);
     const deliveries = rows.filter((row) => row.quantity > 0);
+    const metadata = policyMetadata(plan, rows);
 
-    // Fail closed before travel/restock if legacy merchant stock cannot fit into
-    // this farmer's observed deficit. The outer hard-cap may reroute to another
-    // farmer; without it, this HOLD still prevents overfilling.
-    if (excessStock.length) {
+    if (!deliveries.length) {
       const hold = {
         ...clone(plan),
         kind: MerchantServicePlanKind.HOLD,
-        reason: 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE',
+        reason: 'FARMER_POTION_TARGET_SATISFIED',
         deliveries: [],
         delivery: null,
         distance: null,
-        metadata: {
-          ...(plan.metadata || {}),
-          p0PotionBundle: true,
-          p0PotionPolicy4500: true,
-          adaptivePotionDelivery: true,
-          bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
-          farmerTarget: POTION_TARGET_COUNT,
-          merchantReserve: MERCHANT_POTION_RESERVE,
-          excessStock: excessStock.map((row) => ({
-            itemName: row.itemName,
-            merchantHave: row.merchantHave,
-            farmerBefore: row.farmerBefore,
-            farmerShortfall: row.farmerShortfall,
-            excessQuantity: row.merchantHave - row.farmerShortfall
-          }))
-        }
+        metadata
       };
       delete hold.afterRestock;
       delete hold.afterTravel;
@@ -44217,32 +44295,15 @@ function installPlannerPolicy(runtime) {
       return clone(hold);
     }
 
-    if (!deliveries.length) return plan;
-    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));
+    const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
+    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(inventory, row.itemName)]));
     const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
     const readyKind = serviceKind(input, plan);
     const next = {
       ...clone(plan),
       deliveries: deliveries.map((row) => ({ family: row.family, itemName: row.itemName, quantity: row.quantity })),
       delivery: { family: deliveries[0].family, itemName: deliveries[0].itemName, quantity: deliveries[0].quantity },
-      metadata: {
-        ...(plan.metadata || {}),
-        p0PotionBundle: true,
-        p0PotionPolicy4500: true,
-        adaptivePotionDelivery: true,
-        bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
-        farmerTarget: POTION_TARGET_COUNT,
-        merchantReserve: MERCHANT_POTION_RESERVE,
-        stockRequirements: deliveries.map((row) => ({
-          itemName: row.itemName,
-          requiredStock: row.quantity,
-          merchantReserve: MERCHANT_POTION_RESERVE,
-          farmerBefore: row.farmerBefore,
-          farmerShortfall: row.farmerShortfall,
-          merchantHaveAtPlan: row.merchantHave,
-          buyQuantity: row.buyQuantity
-        }))
-      }
+      metadata
     };
 
     if (missing.length) {
@@ -44278,9 +44339,10 @@ function installRestockPolicy(runtime) {
   const merchant = alpha27 && alpha27.merchant;
   if (!merchant || typeof merchant.restockPartyPotions !== 'function') return false;
 
+  merchant.options = merchant.options || {};
   merchant.options.merchantPotionLow = POTION_LOW_WATERMARK;
   merchant.options.merchantPotionTarget = POTION_TARGET_COUNT;
-  merchant.options.merchantMaxPotionBuy = Math.max(9000, finite(merchant.options.merchantMaxPotionBuy, 0));
+  merchant.options.merchantMaxPotionBuy = Math.max(POTION_TARGET_COUNT, finite(merchant.options.merchantMaxPotionBuy, 0));
 
   if (merchant.__p0PotionPolicy4500RestockInstalled) return true;
   const base = merchant.restockPartyPotions.bind(merchant);
@@ -44317,7 +44379,8 @@ function installRestockPolicy(runtime) {
     const before = itemTotal(runtime, needed.itemName);
     const required = Math.max(0, Math.floor(finite(needed.quantity, 0)));
     const deficit = Math.max(0, required - before);
-    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - merchant.options.goldReserve) / price)) : deficit;
+    const reserveGold = Math.max(0, finite(merchant.options.goldReserve, 0));
+    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - reserveGold) / price)) : deficit;
     const quantity = Math.max(0, Math.min(deficit, affordable, merchant.options.merchantMaxPotionBuy));
     if (quantity <= 0) {
       merchant.lastMerchantPlan = { at: merchant.now(), action: 'HOLD', reason: 'PARTY_SUPPLY_GOLD_RESERVE_PROTECTED', itemName: needed.itemName, have: before, requiredStock: required };
@@ -44371,12 +44434,15 @@ function installDeliveryPolicy(runtime) {
     if (distance == null || distance > service.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
 
     const planned = new Map(deliveries.map((row) => [String(row.itemName), Number(row.quantity)]));
+    const beforeTotals = {
+      hpot0: itemQuantity(service._inventorySnapshot(), 'hpot0'),
+      mpot0: itemQuantity(service._inventorySnapshot(), 'mpot0')
+    };
     for (const itemName of ['hpot0', 'mpot0']) {
-      const have = itemQuantity(service._inventorySnapshot(), itemName);
       const required = planned.get(itemName) || 0;
-      // A successful adaptive delivery must leave no merchant potion stock. If
-      // stock changed after planning, force a fresh plan instead of carrying leftovers.
-      if (have !== required) return { executed: false, committed: false, reason: 'POTION_STOCK_CHANGED_REPLAN_REQUIRED', itemName, have, required };
+      if (beforeTotals[itemName] < required) {
+        return { executed: false, committed: false, reason: 'POTION_STOCK_CHANGED_REPLAN_REQUIRED', itemName, have: beforeTotals[itemName], required };
+      }
     }
 
     const chunks = bundleChunks(service, deliveries);
@@ -44386,8 +44452,10 @@ function installDeliveryPolicy(runtime) {
     const fn = rawFunction(service.root, 'send_item');
     if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
 
-    const beforeTotals = { hpot0: itemQuantity(service._inventorySnapshot(), 'hpot0'), mpot0: itemQuantity(service._inventorySnapshot(), 'mpot0') };
-    const expectedAfterTotals = { hpot0: 0, mpot0: 0 };
+    const expectedAfterTotals = {
+      hpot0: beforeTotals.hpot0 - (planned.get('hpot0') || 0),
+      mpot0: beforeTotals.mpot0 - (planned.get('mpot0') || 0)
+    };
     if (!service._startOperation(plan, {
       action: 'send_potion_bundle', targetName, sourceReportAt, deliveries: clone(deliveries), chunks: clone(chunks), beforeTotals, expectedAfterTotals
     })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
@@ -44409,12 +44477,16 @@ function installDeliveryPolicy(runtime) {
       }
 
       service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
-      const verified = ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0) ||
-        await service._verify(() => ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0));
-      if (!verified) throw new Error('MERCHANT_POTION_ZERO_RESERVE_NOT_REACHED');
+      const matchesExpected = () => ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === expectedAfterTotals[itemName]);
+      const verified = matchesExpected() || await service._verify(matchesExpected);
+      if (!verified) throw new Error('MERCHANT_POTION_EXPECTED_REMAINDER_NOT_REACHED');
       if (!service._markServedReport(targetName, sourceReportAt)) throw new Error('DELIVERY_DEDUPE_PERSIST_FAILED');
-      return service._commit(plan.kind, 'ADAPTIVE_POTION_DELIVERY_ZERO_RESERVE_VERIFIED', {
-        targetName, deliveries: clone(deliveries), sourceReportAt, merchantPotionReserve: MERCHANT_POTION_RESERVE
+      return service._commit(plan.kind, 'ADAPTIVE_POTION_DELIVERY_DEMAND_VERIFIED', {
+        targetName,
+        deliveries: clone(deliveries),
+        sourceReportAt,
+        merchantPotionReserve: MERCHANT_POTION_RESERVE,
+        expectedAfterTotals
       });
     } catch (error) {
       try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
@@ -44438,10 +44510,12 @@ function installStatusPolicy(runtime) {
           ...(status.potionPolicy || {}),
           farmerTarget: POTION_TARGET_COUNT,
           lowWatermark: POTION_LOW_WATERMARK,
-          deliveryMode: 'adaptive-top-up',
+          deliveryMode: 'adaptive-demand-top-up',
           merchantReserve: MERCHANT_POTION_RESERVE,
           buyOnlyCurrentDeliveryDeficit: true,
-          successfulDeliveryEndsWithZeroMerchantPotions: true,
+          noPurchasedReserve: true,
+          existingStockMayRemainForNextFarmer: true,
+          successfulDeliveryVerifiesExpectedRemainder: true,
           policyOverride: P0_POTION_POLICY_4500_MODE
         }
       };
@@ -44471,7 +44545,8 @@ function installP0PotionPolicy4500(runtime) {
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     adaptiveDelivery: true,
     buyOnlyCurrentDeliveryDeficit: true,
-    zeroPotionInventoryAfterSuccessfulDelivery: true,
+    noPurchasedReserve: true,
+    existingStockMayRemainForNextFarmer: true,
     installed: true
   };
   return runtime.p0PotionPolicy4500;
@@ -44490,10 +44565,10 @@ module.exports = {
 "src/reliability/p0-potion-hardcap-4500.js": function(require,module,exports){
 'use strict';
 
-const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
+const { MerchantServicePlanKind } = require('../merchant/merchant-service-planner');
 const { POTION_TARGET_COUNT, MERCHANT_POTION_RESERVE } = require('./p0-potion-policy-4500');
 
-const P0_POTION_HARDCAP_4500_MODE = 'p0-potion-hardcap-4500-v1';
+const P0_POTION_HARDCAP_4500_MODE = 'p0-potion-hardcap-4500-v2';
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -44515,41 +44590,33 @@ function farmerCount(report, family) {
 
 function assessAdaptivePlan(input, plan) {
   if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500 && plan.metadata.p0PotionBundle)) {
-    return { adaptive: false, excess: [] };
+    return { adaptive: false, violations: [] };
   }
   const targetName = plan.target && String(plan.target.name || '');
   const report = reportFor(input, targetName);
-  if (!report) return { adaptive: true, targetName, reportMissing: true, excess: [] };
-  const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
-  const rows = [
-    { family: 'hp', itemName: 'hpot0' },
-    { family: 'mp', itemName: 'mpot0' }
-  ].map((def) => {
-    const farmerBefore = farmerCount(report, def.family);
-    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
-    const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    return {
-      ...def,
-      farmerBefore,
-      farmerShortfall,
-      merchantHave,
-      excessQuantity: Math.max(0, merchantHave - farmerShortfall)
-    };
-  });
-  return {
-    adaptive: true,
-    targetName,
-    reportMissing: false,
-    rows,
-    excess: rows.filter((row) => row.excessQuantity > 0)
+  if (!report) return { adaptive: true, targetName, reportMissing: true, violations: [] };
+
+  const shortfalls = {
+    hpot0: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'hp')),
+    mpot0: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'mp'))
   };
+  const deliveries = Array.isArray(plan.deliveries) ? plan.deliveries : [];
+  const violations = deliveries
+    .map((row) => ({
+      itemName: String(row && row.itemName || ''),
+      quantity: Math.max(0, Math.floor(finite(row && row.quantity, 0))),
+      farmerShortfall: shortfalls[String(row && row.itemName || '')] == null ? 0 : shortfalls[String(row && row.itemName || '')]
+    }))
+    .filter((row) => !Object.prototype.hasOwnProperty.call(shortfalls, row.itemName) || row.quantity > row.farmerShortfall);
+
+  return { adaptive: true, targetName, reportMissing: false, shortfalls, violations };
 }
 
-function holdForExcess(plan, blocked) {
+function blockedPlan(plan, assessment) {
   const next = {
     ...clone(plan),
     kind: MerchantServicePlanKind.HOLD,
-    reason: 'MERCHANT_POTION_EXCESS_BLOCKS_ZERO_RESERVE_DELIVERY',
+    reason: 'POTION_DELIVERY_EXCEEDS_FARMER_SHORTFALL',
     deliveries: [],
     delivery: null,
     distance: null,
@@ -44558,9 +44625,9 @@ function holdForExcess(plan, blocked) {
       p0PotionHardCap4500: true,
       farmerTarget: POTION_TARGET_COUNT,
       merchantReserve: MERCHANT_POTION_RESERVE,
-      zeroReserveHardCap: true,
+      demandHardCap: true,
       overdeliveryAllowed: false,
-      blockedTargets: clone(blocked)
+      violations: clone(assessment.violations)
     }
   };
   delete next.afterRestock;
@@ -44569,20 +44636,19 @@ function holdForExcess(plan, blocked) {
   return next;
 }
 
-function annotateReroute(plan, blocked) {
-  const next = {
+function annotate(plan) {
+  return {
     ...clone(plan),
     metadata: {
       ...(plan && plan.metadata || {}),
       p0PotionHardCap4500: true,
       farmerTarget: POTION_TARGET_COUNT,
       merchantReserve: MERCHANT_POTION_RESERVE,
-      zeroReserveHardCap: true,
+      demandHardCap: true,
       overdeliveryAllowed: false,
-      reroutedFromPotionExcess: clone(blocked)
+      merchantExcessBlocksDelivery: false
     }
   };
-  return next;
 }
 
 function installP0PotionHardCap4500(runtime) {
@@ -44596,60 +44662,27 @@ function installP0PotionHardCap4500(runtime) {
     farmerTarget: POTION_TARGET_COUNT,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     overdeliveryAllowed: false,
-    reroutes: 0,
-    blockedPlans: 0,
+    merchantExcessBlocksDelivery: false,
+    blockedOverdeliveryPlans: 0,
     lastBlocked: null,
     installed: true
   };
   const basePlan = planner.plan.bind(planner);
 
   planner.plan = (input = {}) => {
-    const originalReports = Array.isArray(input.reports) ? input.reports.slice() : [];
-    let candidateReports = originalReports.slice();
-    const blocked = [];
-    const attempts = Math.max(1, originalReports.length + 1);
-
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const planInput = candidateReports === originalReports ? input : { ...input, reports: candidateReports };
-      const plan = basePlan(planInput);
-      const assessment = assessAdaptivePlan(input, plan);
-      if (!assessment.adaptive || assessment.reportMissing || !assessment.excess.length) {
-        if (blocked.length && assessment.adaptive) {
-          state.reroutes += 1;
-          const rerouted = annotateReroute(plan, blocked);
-          planner.lastPlan = clone(rerouted);
-          return clone(rerouted);
-        }
-        return plan;
-      }
-
-      const blockedRow = {
-        targetName: assessment.targetName,
-        excess: assessment.excess.map((row) => ({
-          itemName: row.itemName,
-          merchantHave: row.merchantHave,
-          farmerBefore: row.farmerBefore,
-          farmerShortfall: row.farmerShortfall,
-          excessQuantity: row.excessQuantity
-        }))
-      };
-      blocked.push(blockedRow);
-      state.lastBlocked = clone(blockedRow);
-
-      const before = candidateReports.length;
-      candidateReports = candidateReports.filter((row) => row && String(row.name || '') !== assessment.targetName);
-      if (!assessment.targetName || candidateReports.length === before || candidateReports.length === 0) {
-        const hold = holdForExcess(plan, blocked);
-        state.blockedPlans += 1;
-        planner.lastPlan = clone(hold);
-        return clone(hold);
-      }
+    const plan = basePlan(input);
+    const assessment = assessAdaptivePlan(input, plan);
+    if (!assessment.adaptive || assessment.reportMissing) return plan;
+    if (assessment.violations.length) {
+      const hold = blockedPlan(plan, assessment);
+      state.blockedOverdeliveryPlans += 1;
+      state.lastBlocked = clone({ targetName: assessment.targetName, violations: assessment.violations });
+      planner.lastPlan = clone(hold);
+      return clone(hold);
     }
-
-    const fallback = holdForExcess(planner.lastPlan || {}, blocked);
-    state.blockedPlans += 1;
-    planner.lastPlan = clone(fallback);
-    return clone(fallback);
+    const next = annotate(plan);
+    planner.lastPlan = clone(next);
+    return clone(next);
   };
 
   planner.__p0PotionHardCap4500Installed = true;

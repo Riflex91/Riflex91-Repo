@@ -2,12 +2,14 @@
 
 const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
 
-const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-adaptive-4500-v2';
+const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v3';
 const POTION_TARGET_COUNT = 4500;
 const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
+// Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
 const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
+// Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
 const MERCHANT_POTION_RESERVE = 0;
-const MAX_DYNAMIC_DELIVERY = 20000;
+const MAX_DYNAMIC_DELIVERY = POTION_TARGET_COUNT;
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -59,21 +61,20 @@ function dynamicBundle(input, plan) {
   ];
   const rows = [];
   for (const def of definitions) {
-    const currentFarmer = farmerCount(report, def.family);
-    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - currentFarmer);
+    const farmerBefore = farmerCount(report, def.family);
+    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
     const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    // Delivery is strictly bounded by this farmer's observed shortfall.
-    // Existing merchant stock above that shortfall must never be dumped onto the farmer.
-    const deliveryQuantity = farmerShortfall;
-    if (deliveryQuantity > MAX_DYNAMIC_DELIVERY) return null;
+    const quantity = farmerShortfall;
+    if (quantity > MAX_DYNAMIC_DELIVERY) return null;
     rows.push({
       family: def.family,
       itemName: def.itemName,
-      quantity: deliveryQuantity,
-      farmerBefore: currentFarmer,
+      quantity,
+      farmerBefore,
       farmerShortfall,
       merchantHave,
-      buyQuantity: Math.max(0, deliveryQuantity - merchantHave)
+      buyQuantity: Math.max(0, quantity - merchantHave),
+      retainedAfterDelivery: Math.max(0, merchantHave - quantity)
     });
   }
   return rows;
@@ -121,6 +122,33 @@ function bundleChunks(service, deliveries) {
   return chunks;
 }
 
+function policyMetadata(plan, rows) {
+  return {
+    ...(plan && plan.metadata || {}),
+    p0PotionBundle: true,
+    p0PotionPolicy4500: true,
+    adaptivePotionDelivery: true,
+    bundlePolicy: 'TOP_UP_FARMER_TO_4500_WITH_DEMAND_ONLY_PURCHASE',
+    farmerTarget: POTION_TARGET_COUNT,
+    merchantReserve: MERCHANT_POTION_RESERVE,
+    noPurchasedReserve: true,
+    merchantExcessBlocksDelivery: false,
+    retainedExistingStock: rows.filter((row) => row.retainedAfterDelivery > 0).map((row) => ({
+      itemName: row.itemName,
+      quantity: row.retainedAfterDelivery
+    })),
+    stockRequirements: rows.filter((row) => row.quantity > 0).map((row) => ({
+      itemName: row.itemName,
+      requiredStock: row.quantity,
+      merchantReserve: MERCHANT_POTION_RESERVE,
+      farmerBefore: row.farmerBefore,
+      farmerShortfall: row.farmerShortfall,
+      merchantHaveAtPlan: row.merchantHave,
+      buyQuantity: row.buyQuantity
+    }))
+  };
+}
+
 function installPlannerPolicy(runtime) {
   const planner = runtime && runtime.merchantServicePlanner;
   if (!planner) return false;
@@ -138,36 +166,18 @@ function installPlannerPolicy(runtime) {
 
     const rows = dynamicBundle(input, plan);
     if (!rows) return plan;
-    const excessStock = rows.filter((row) => row.merchantHave > row.farmerShortfall);
     const deliveries = rows.filter((row) => row.quantity > 0);
+    const metadata = policyMetadata(plan, rows);
 
-    // Fail closed before travel/restock if legacy merchant stock cannot fit into
-    // this farmer's observed deficit. The outer hard-cap may reroute to another
-    // farmer; without it, this HOLD still prevents overfilling.
-    if (excessStock.length) {
+    if (!deliveries.length) {
       const hold = {
         ...clone(plan),
         kind: MerchantServicePlanKind.HOLD,
-        reason: 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE',
+        reason: 'FARMER_POTION_TARGET_SATISFIED',
         deliveries: [],
         delivery: null,
         distance: null,
-        metadata: {
-          ...(plan.metadata || {}),
-          p0PotionBundle: true,
-          p0PotionPolicy4500: true,
-          adaptivePotionDelivery: true,
-          bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
-          farmerTarget: POTION_TARGET_COUNT,
-          merchantReserve: MERCHANT_POTION_RESERVE,
-          excessStock: excessStock.map((row) => ({
-            itemName: row.itemName,
-            merchantHave: row.merchantHave,
-            farmerBefore: row.farmerBefore,
-            farmerShortfall: row.farmerShortfall,
-            excessQuantity: row.merchantHave - row.farmerShortfall
-          }))
-        }
+        metadata
       };
       delete hold.afterRestock;
       delete hold.afterTravel;
@@ -176,32 +186,15 @@ function installPlannerPolicy(runtime) {
       return clone(hold);
     }
 
-    if (!deliveries.length) return plan;
-    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));
+    const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
+    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(inventory, row.itemName)]));
     const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
     const readyKind = serviceKind(input, plan);
     const next = {
       ...clone(plan),
       deliveries: deliveries.map((row) => ({ family: row.family, itemName: row.itemName, quantity: row.quantity })),
       delivery: { family: deliveries[0].family, itemName: deliveries[0].itemName, quantity: deliveries[0].quantity },
-      metadata: {
-        ...(plan.metadata || {}),
-        p0PotionBundle: true,
-        p0PotionPolicy4500: true,
-        adaptivePotionDelivery: true,
-        bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
-        farmerTarget: POTION_TARGET_COUNT,
-        merchantReserve: MERCHANT_POTION_RESERVE,
-        stockRequirements: deliveries.map((row) => ({
-          itemName: row.itemName,
-          requiredStock: row.quantity,
-          merchantReserve: MERCHANT_POTION_RESERVE,
-          farmerBefore: row.farmerBefore,
-          farmerShortfall: row.farmerShortfall,
-          merchantHaveAtPlan: row.merchantHave,
-          buyQuantity: row.buyQuantity
-        }))
-      }
+      metadata
     };
 
     if (missing.length) {
@@ -237,9 +230,10 @@ function installRestockPolicy(runtime) {
   const merchant = alpha27 && alpha27.merchant;
   if (!merchant || typeof merchant.restockPartyPotions !== 'function') return false;
 
+  merchant.options = merchant.options || {};
   merchant.options.merchantPotionLow = POTION_LOW_WATERMARK;
   merchant.options.merchantPotionTarget = POTION_TARGET_COUNT;
-  merchant.options.merchantMaxPotionBuy = Math.max(9000, finite(merchant.options.merchantMaxPotionBuy, 0));
+  merchant.options.merchantMaxPotionBuy = Math.max(POTION_TARGET_COUNT, finite(merchant.options.merchantMaxPotionBuy, 0));
 
   if (merchant.__p0PotionPolicy4500RestockInstalled) return true;
   const base = merchant.restockPartyPotions.bind(merchant);
@@ -276,7 +270,8 @@ function installRestockPolicy(runtime) {
     const before = itemTotal(runtime, needed.itemName);
     const required = Math.max(0, Math.floor(finite(needed.quantity, 0)));
     const deficit = Math.max(0, required - before);
-    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - merchant.options.goldReserve) / price)) : deficit;
+    const reserveGold = Math.max(0, finite(merchant.options.goldReserve, 0));
+    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - reserveGold) / price)) : deficit;
     const quantity = Math.max(0, Math.min(deficit, affordable, merchant.options.merchantMaxPotionBuy));
     if (quantity <= 0) {
       merchant.lastMerchantPlan = { at: merchant.now(), action: 'HOLD', reason: 'PARTY_SUPPLY_GOLD_RESERVE_PROTECTED', itemName: needed.itemName, have: before, requiredStock: required };
@@ -330,12 +325,15 @@ function installDeliveryPolicy(runtime) {
     if (distance == null || distance > service.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
 
     const planned = new Map(deliveries.map((row) => [String(row.itemName), Number(row.quantity)]));
+    const beforeTotals = {
+      hpot0: itemQuantity(service._inventorySnapshot(), 'hpot0'),
+      mpot0: itemQuantity(service._inventorySnapshot(), 'mpot0')
+    };
     for (const itemName of ['hpot0', 'mpot0']) {
-      const have = itemQuantity(service._inventorySnapshot(), itemName);
       const required = planned.get(itemName) || 0;
-      // A successful adaptive delivery must leave no merchant potion stock. If
-      // stock changed after planning, force a fresh plan instead of carrying leftovers.
-      if (have !== required) return { executed: false, committed: false, reason: 'POTION_STOCK_CHANGED_REPLAN_REQUIRED', itemName, have, required };
+      if (beforeTotals[itemName] < required) {
+        return { executed: false, committed: false, reason: 'POTION_STOCK_CHANGED_REPLAN_REQUIRED', itemName, have: beforeTotals[itemName], required };
+      }
     }
 
     const chunks = bundleChunks(service, deliveries);
@@ -345,8 +343,10 @@ function installDeliveryPolicy(runtime) {
     const fn = rawFunction(service.root, 'send_item');
     if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
 
-    const beforeTotals = { hpot0: itemQuantity(service._inventorySnapshot(), 'hpot0'), mpot0: itemQuantity(service._inventorySnapshot(), 'mpot0') };
-    const expectedAfterTotals = { hpot0: 0, mpot0: 0 };
+    const expectedAfterTotals = {
+      hpot0: beforeTotals.hpot0 - (planned.get('hpot0') || 0),
+      mpot0: beforeTotals.mpot0 - (planned.get('mpot0') || 0)
+    };
     if (!service._startOperation(plan, {
       action: 'send_potion_bundle', targetName, sourceReportAt, deliveries: clone(deliveries), chunks: clone(chunks), beforeTotals, expectedAfterTotals
     })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
@@ -368,12 +368,16 @@ function installDeliveryPolicy(runtime) {
       }
 
       service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
-      const verified = ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0) ||
-        await service._verify(() => ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0));
-      if (!verified) throw new Error('MERCHANT_POTION_ZERO_RESERVE_NOT_REACHED');
+      const matchesExpected = () => ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === expectedAfterTotals[itemName]);
+      const verified = matchesExpected() || await service._verify(matchesExpected);
+      if (!verified) throw new Error('MERCHANT_POTION_EXPECTED_REMAINDER_NOT_REACHED');
       if (!service._markServedReport(targetName, sourceReportAt)) throw new Error('DELIVERY_DEDUPE_PERSIST_FAILED');
-      return service._commit(plan.kind, 'ADAPTIVE_POTION_DELIVERY_ZERO_RESERVE_VERIFIED', {
-        targetName, deliveries: clone(deliveries), sourceReportAt, merchantPotionReserve: MERCHANT_POTION_RESERVE
+      return service._commit(plan.kind, 'ADAPTIVE_POTION_DELIVERY_DEMAND_VERIFIED', {
+        targetName,
+        deliveries: clone(deliveries),
+        sourceReportAt,
+        merchantPotionReserve: MERCHANT_POTION_RESERVE,
+        expectedAfterTotals
       });
     } catch (error) {
       try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
@@ -397,10 +401,12 @@ function installStatusPolicy(runtime) {
           ...(status.potionPolicy || {}),
           farmerTarget: POTION_TARGET_COUNT,
           lowWatermark: POTION_LOW_WATERMARK,
-          deliveryMode: 'adaptive-top-up',
+          deliveryMode: 'adaptive-demand-top-up',
           merchantReserve: MERCHANT_POTION_RESERVE,
           buyOnlyCurrentDeliveryDeficit: true,
-          successfulDeliveryEndsWithZeroMerchantPotions: true,
+          noPurchasedReserve: true,
+          existingStockMayRemainForNextFarmer: true,
+          successfulDeliveryVerifiesExpectedRemainder: true,
           policyOverride: P0_POTION_POLICY_4500_MODE
         }
       };
@@ -430,7 +436,8 @@ function installP0PotionPolicy4500(runtime) {
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     adaptiveDelivery: true,
     buyOnlyCurrentDeliveryDeficit: true,
-    zeroPotionInventoryAfterSuccessfulDelivery: true,
+    noPurchasedReserve: true,
+    existingStockMayRemainForNextFarmer: true,
     installed: true
   };
   return runtime.p0PotionPolicy4500;
