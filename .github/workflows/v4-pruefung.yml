@@ -1,36 +1,30 @@
-name: v4-ci
+name: v4-grundlage-pruefen
 
 on:
   push:
-    branches: [main]
     paths:
       - 'v4/**'
-      - '.github/workflows/v4-ci.yml'
       - '.github/workflows/v4-pruefung.yml'
   pull_request:
+    branches: ['main']
     paths:
       - 'v4/**'
-      - '.github/workflows/v4-ci.yml'
       - '.github/workflows/v4-pruefung.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  grundlage:
+  v4-pruefung:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: v4
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: V4-Abhaengigkeiten installieren
+        working-directory: v4
         run: npm install --ignore-scripts
       - name: Typen, Tests, Namen und Struktur pruefen
+        working-directory: v4
         run: npm run pruefen

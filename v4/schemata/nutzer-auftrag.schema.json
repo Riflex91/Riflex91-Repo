@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/nutzer-auftrag.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "auftragKennung",
+    "erstelltAm",
+    "art",
+    "gegenstandKennung",
+    "gegenstandName",
+    "zielMenge",
+    "mengenZielArt",
+    "zustand"
+  ],
+  "properties": {
+    "auftragKennung": { "type": "string", "minLength": 1 },
+    "erstelltAm": { "type": "integer", "minimum": 0 },
+    "art": { "enum": ["sammeln", "herstellen"] },
+    "gegenstandKennung": { "type": "string", "minLength": 1 },
+    "gegenstandName": { "type": "string", "minLength": 1 },
+    "zielMenge": { "type": "integer", "minimum": 1 },
+    "mengenZielArt": { "enum": ["zusaetzlich", "gesamtbestand"] },
+    "zustand": {
+      "enum": ["entwurf", "geprueft", "bereit", "laeuft", "pausiert", "blockiert", "erledigt", "abgebrochen", "fehlgeschlagen"]
+    },
+    "urspruenglicheEingabe": { "type": "string" }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/bedien-anfrage.schema.json",
+  "title": "V4 Bedien-Anfrage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kennung", "aktion", "titel", "erklaerung", "auswirkung", "risiko", "angefordertAm", "voraussetzungen"],
+  "properties": {
+    "kennung": { "type": "string", "minLength": 1 },
+    "aktion": { "type": "string", "minLength": 1 },
+    "titel": { "type": "string", "minLength": 1 },
+    "erklaerung": { "type": "string", "minLength": 1 },
+    "auswirkung": { "type": "string", "minLength": 1 },
+    "risiko": { "enum": ["unkritisch", "vorsicht", "kritisch"] },
+    "angefordertAm": { "type": "number", "minimum": 0 },
+    "voraussetzungen": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kennung", "beschreibung", "erfuellt", "hilfeWennNichtErfuellt"],
+        "properties": {
+          "kennung": { "type": "string", "minLength": 1 },
+          "beschreibung": { "type": "string", "minLength": 1 },
+          "erfuellt": { "type": "boolean" },
+          "hilfeWennNichtErfuellt": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "ausdruecklichBestaetigt": { "type": "boolean" },
+    "eingegebenerBestaetigungsText": { "type": "string" },
+    "erforderlicherBestaetigungsText": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "risiko": { "const": "kritisch" } }, "required": ["risiko"] },
+      "then": { "required": ["erforderlicherBestaetigungsText"] }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/bot-ereignis.schema.json",
+  "title": "V4 Bot-Ereignis",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kennung", "laufendeNummer", "zeitpunkt", "name", "quelle", "ablaufKennung", "details"],
+  "properties": {
+    "kennung": { "type": "string", "minLength": 1 },
+    "laufendeNummer": { "type": "integer", "minimum": 1 },
+    "zeitpunkt": { "type": "number", "minimum": 0 },
+    "name": { "type": "string", "minLength": 1 },
+    "quelle": { "type": "string", "minLength": 1 },
+    "ablaufKennung": { "type": "string", "minLength": 1 },
+    "details": {}
+  }
+}

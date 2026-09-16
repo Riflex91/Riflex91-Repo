@@ -1,26 +1,23 @@
 {
-  "name": "adventure-land-bot-v4",
-  "version": "4.0.0-dev.0",
+  "name": "adventure-land-aio-v4",
+  "version": "4.0.0-alpha.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land Bot v4 architecture baseline",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "Adventure Land AiO Bot V4 mit deutscher, leicht verstaendlicher Struktur und wiederholbaren Laufzeitdaten.",
   "scripts": {
-    "check": "npm run typecheck && npm run check:architecture && npm test",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check:architecture": "depcruise --config dependency-cruiser.cjs apps packages",
-    "test": "tsx --test tests/**/*.test.ts"
+    "bereinigen": "node werkzeuge/bereinigen.mjs",
+    "bauen": "npm run bereinigen && tsc -p tsconfig.json",
+    "typen:pruefen": "tsc -p tsconfig.json --noEmit",
+    "testen": "npm run bauen && node --test laufzeit/tests/*.test.mjs",
+    "namen:pruefen": "node werkzeuge/namen-pruefen.mjs",
+    "struktur:pruefen": "node werkzeuge/struktur-pruefen.mjs",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=20"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "dependency-cruiser": "^18.2.0",
-    "tsx": "^4.20.0",
-    "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/tages-bericht.schema.json",
+  "title": "V4 Tagesbericht",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "berichtKennung", "zeitraumStart", "zeitraumEnde", "erstelltAm", "zusammenfassung", "gesamt", "charaktere", "vorfaelle", "entwicklung", "vergleich", "nutzerMussHandeln", "nutzerAktion"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "berichtKennung": { "type": "string", "minLength": 1 },
+    "zeitraumStart": { "type": "number", "minimum": 0 },
+    "zeitraumEnde": { "type": "number", "minimum": 0 },
+    "erstelltAm": { "type": "number", "minimum": 0 },
+    "zusammenfassung": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "gesamt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["laufzeitMillisekunden", "verbindungsAbbrueche", "automatischBehoben", "ungefangeneFehler", "neustarts"],
+      "properties": {
+        "laufzeitMillisekunden": { "type": "number", "minimum": 0 },
+        "verbindungsAbbrueche": { "type": "integer", "minimum": 0 },
+        "automatischBehoben": { "type": "integer", "minimum": 0 },
+        "ungefangeneFehler": { "type": "integer", "minimum": 0 },
+        "neustarts": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "charaktere": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["charakterName", "laufzeitMillisekunden", "erfahrungGewonnen", "goldGewonnen", "erfahrungProStunde", "goldProStunde", "tode", "rueckzuege"],
+        "properties": {
+          "charakterName": { "type": "string", "minLength": 1 },
+          "laufzeitMillisekunden": { "type": "number", "minimum": 0 },
+          "erfahrungGewonnen": { "type": "number" },
+          "goldGewonnen": { "type": "number" },
+          "erfahrungProStunde": { "type": "number" },
+          "goldProStunde": { "type": "number" },
+          "tode": { "type": "integer", "minimum": 0 },
+          "rueckzuege": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "vorfaelle": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["meldungsCode", "anzahl", "betroffeneCharaktere", "kurzBeschreibung", "automatischBehoben", "nutzerMussHandeln"],
+        "properties": {
+          "meldungsCode": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+          "anzahl": { "type": "integer", "minimum": 1 },
+          "betroffeneCharaktere": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+          "kurzBeschreibung": { "type": "string", "minLength": 1 },
+          "automatischBehoben": { "type": "boolean" },
+          "nutzerMussHandeln": { "type": "boolean" }
+        }
+      }
+    },
+    "entwicklung": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["neueVorfaelle", "bekannteVorfaelle", "unbekannteVorfaelle", "offlineReproduzierbar", "offeneEntwicklungsAufgaben", "hinweise"],
+      "properties": {
+        "neueVorfaelle": { "type": "integer", "minimum": 0 },
+        "bekannteVorfaelle": { "type": "integer", "minimum": 0 },
+        "unbekannteVorfaelle": { "type": "integer", "minimum": 0 },
+        "offlineReproduzierbar": { "type": "integer", "minimum": 0 },
+        "offeneEntwicklungsAufgaben": { "type": "integer", "minimum": 0 },
+        "hinweise": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "vergleich": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kennzahl", "vorherigerWert", "aktuellerWert", "einheit"],
+        "properties": {
+          "kennzahl": { "type": "string", "minLength": 1 },
+          "vorherigerWert": { "type": "number" },
+          "aktuellerWert": { "type": "number" },
+          "einheit": { "type": "string", "minLength": 1 },
+          "aenderungProzent": { "type": "number" }
+        }
+      }
+    },
+    "nutzerMussHandeln": { "type": "boolean" },
+    "nutzerAktion": { "type": "string", "minLength": 1 }
+  }
+}

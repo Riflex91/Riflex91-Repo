@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/entwicklungs-aufgabe.schema.json",
+  "title": "V4 Entwicklungs-Aufgabe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "aufgabenKennung", "titel", "prioritaet", "fakten", "vermutungen", "vorfallKennungen"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "aufgabenKennung": { "type": "string", "minLength": 1 },
+    "titel": { "type": "string", "minLength": 1 },
+    "prioritaet": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "fakten": { "type": "array", "items": { "type": "string" } },
+    "vermutungen": { "type": "array", "items": { "type": "string" } },
+    "vorfallKennungen": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "benoetigtMehrDaten": { "type": "boolean" }
+  }
+}

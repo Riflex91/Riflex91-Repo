@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/bot-meldung.schema.json",
+  "title": "V4 Bot-Meldung",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kennung", "zeitpunkt", "stufe", "meldungsCode", "titel", "wasIstPassiert", "warumIstEsPassiert", "wasHatDerBotGetan", "mussNutzerHandeln", "wasSollDerNutzerTun"],
+  "properties": {
+    "kennung": { "type": "string", "minLength": 1 },
+    "zeitpunkt": { "type": "number", "minimum": 0 },
+    "stufe": { "enum": ["hinweis", "warnung", "fehler", "kritisch"] },
+    "meldungsCode": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "titel": { "type": "string", "minLength": 1 },
+    "wasIstPassiert": { "type": "string", "minLength": 1 },
+    "warumIstEsPassiert": { "type": "string", "minLength": 1 },
+    "wasHatDerBotGetan": { "type": "string", "minLength": 1 },
+    "mussNutzerHandeln": { "type": "boolean" },
+    "wasSollDerNutzerTun": { "type": "string", "minLength": 1 },
+    "technischeDetails": { "type": "object" }
+  }
+}

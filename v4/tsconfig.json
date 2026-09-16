@@ -1,19 +1,20 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "laufzeit/quelle",
+    "outDir": "erzeugt",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "useUnknownInCatchVariables": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmitOnError": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "apps/**/*.ts",
-    "packages/**/*.ts",
-    "config/**/*.ts",
-    "tools/**/*.ts",
-    "tests/**/*.ts",
-    "simulations/**/*.ts"
-  ],
-  "exclude": [
-    "dist",
-    "coverage",
-    "node_modules"
-  ]
+  "include": ["laufzeit/quelle/**/*.ts"]
 }

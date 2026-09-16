@@ -1,10 +1,8 @@
+erzeugt/
 node_modules/
-dist/
-coverage/
-logs/
-tmp/
 .env
 .env.*
 !.env.example
 *.log
-.DS_Store
+*.tmp
+*.uploading
