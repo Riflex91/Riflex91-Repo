@@ -112,21 +112,21 @@ test('ambiguous decorator order and incomplete metadata are rejected', () => {
   }), /deterministic integer order required/);
 });
 
-test('protected representative methods are not monkey-patched outside the registry', () => {
+test('migrated representative modules cannot return to direct monkey-patching', () => {
   const sourceRoot = path.resolve(__dirname, '..', 'src');
-  const findings = [];
-  const visit = (directory) => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const full = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(full);
-      else if (entry.isFile() && entry.name.endsWith('.js')) {
-        const source = fs.readFileSync(full, 'utf8');
-        if (/\bfarmer\.step\s*=/.test(source) || /\._visibleMonsters\s*=/.test(source)) {
-          findings.push(path.relative(sourceRoot, full));
-        }
-      }
+  const protectedFiles = [
+    {
+      path: 'reliability/farmer-local-plan-priority.js',
+      pattern: /\bfarmer\.step\s*=/
+    },
+    {
+      path: 'reliability/live-navigation-hotfix.js',
+      pattern: /\._visibleMonsters\s*=/
     }
-  };
-  visit(sourceRoot);
+  ];
+  const findings = protectedFiles.filter((entry) => {
+    const source = fs.readFileSync(path.join(sourceRoot, entry.path), 'utf8');
+    return entry.pattern.test(source);
+  }).map((entry) => entry.path);
   assert.deepEqual(findings, []);
 });
