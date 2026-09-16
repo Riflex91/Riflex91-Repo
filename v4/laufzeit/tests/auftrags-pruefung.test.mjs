@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AuftragsPruefung } from '../erzeugt/kern/auftrags-pruefung.js';
+import { AuftragsPruefung } from '../../erzeugt/kern/auftrags-pruefung.js';
 
 const bekannteGegenstaende = new Set(['bee_wing', 'test_rezept']);
 
