@@ -62,6 +62,8 @@ Der Auftrag nennt Gegenstand, Zielmenge, Mengenart und Zustand. Die Mengenart un
 
 Ein `AuftragsVorschlag` ist eine sichere Eingabehilfe fuer die Web-Oberflaeche. Er zeigt nur bekannte Auftragsarten oder bekannte Gegenstaende und enthaelt Anzeigetext, Einfuegetext, Erklaerung und Suchwoerter.
 
+Die Vorschlaege werden waehrend der Eingabe gefiltert. Direkte Wortanfaenge erhalten Vorrang vor einfachen Teiltreffern. Unbekannte Eingaben ergeben keinen scheinbar gueltigen Vorschlag.
+
 Ein Vorschlag darf niemals selbst eine veraendernde Aktion starten.
 
 ## AuftragsPruefung
