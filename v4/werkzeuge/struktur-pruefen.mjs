@@ -14,6 +14,7 @@ const pflichtDateien = [
   'dokumentation/SPEICHER_UND_WEB.md',
   'dokumentation/TAGESBERICHT.md',
   'dokumentation/DIENSTGRENZEN_UND_FEHLBEDIENUNGSSICHERHEIT.md',
+  'dokumentation/BEDIENUNG_UND_FEHLBEDIENUNGSSICHERHEIT.md',
   'dokumentation/TESTPLAN.md',
   'laufzeit/quelle/vertraege/bot-ereignis.ts',
   'laufzeit/quelle/vertraege/aktions-anfrage.ts',
@@ -22,10 +23,12 @@ const pflichtDateien = [
   'laufzeit/quelle/vertraege/bot-meldung.ts',
   'laufzeit/quelle/vertraege/tages-bericht.ts',
   'laufzeit/quelle/vertraege/dienst-kontingent.ts',
+  'laufzeit/quelle/vertraege/bedien-anfrage.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
   'laufzeit/quelle/kern/kontingent-waechter.ts',
+  'laufzeit/quelle/kern/bedien-sicherung.ts',
   'schemata/bot-ereignis.schema.json',
   'schemata/bot-meldung.schema.json',
   'schemata/vorfall.schema.json',
@@ -33,7 +36,8 @@ const pflichtDateien = [
   'schemata/entwicklungs-aufgabe.schema.json',
   'schemata/tages-bericht.schema.json',
   'schemata/tages-bericht-einstellung.schema.json',
-  'schemata/dienst-profil.schema.json'
+  'schemata/dienst-profil.schema.json',
+  'schemata/bedien-anfrage.schema.json'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -71,6 +75,16 @@ for (const pflichtRegel of [
   'Keine Warteschlange darf unbegrenzt wachsen.'
 ]) {
   if (!dienstDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer externe Dienste fehlt: ${pflichtRegel}`);
+}
+
+const bedienDokument = await readFile(path.join(wurzel, 'dokumentation/BEDIENUNG_UND_FEHLBEDIENUNGSSICHERHEIT.md'), 'utf8');
+for (const pflichtRegel of [
+  'Keine kritische Aktion mit einem einzigen Klick.',
+  'Keine veraendernde Aktion ohne zentrale BedienSicherung.',
+  'Keine ungueltige Eingabe kann gespeichert werden.',
+  'Kein Doppelklick darf denselben Vorgang doppelt ausfuehren.'
+]) {
+  if (!bedienDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer sichere Bedienung fehlt: ${pflichtRegel}`);
 }
 
 console.log(`V4-Struktur geprueft: ${pflichtDateien.length} Pflichtdateien, ${dateien.length} sichtbare Dateien.`);
