@@ -134,12 +134,31 @@ Die Titelleiste zeigt waehrend eines laufenden Tests sichtbar `Block 6 · Restze
 
 Der Timer zeigt nur die Restzeit an, protokolliert Start/Ende und beeinflusst keinerlei Farmentscheidung oder Spielaktion.
 
+### 30-Minuten-Ranger-Schattenlauf
+
+Fuer den ersten realen Browser-Smoke-Test gibt es zusaetzlich `v4/werkzeuge/block6-schattenlauf-ranger.js`. Dieser Vorabtest ersetzt nicht den spaeteren Langzeittest, reduziert den ersten Lauf aber bewusst auf 30 Minuten.
+
+Der Runner ist read-only. Er liest `character`, `entities`, Serverdaten und Inventar, bildet die Block-6-Entscheidungsreihenfolge fuer Zielwahl, Bewegung, Angriff, Wiederherstellung, Loot, Inventargrenze und Stillstand im Adventure-Land-Browser nach und protokolliert nur die Aktionen, die der Bot anfordern wuerde. Er ruft keine Adventure-Land-Spielaktion auf.
+
+Der Runner ist fuer diesen ersten Test absichtlich auf `ranger` begrenzt und verlangt mindestens eine ausdruecklich erlaubte MonsterArt. Dadurch wird kein Ziel automatisch geraten.
+
+Startreihenfolge im Ranger-Codekontext:
+
+1. `v4/werkzeuge/adventure-land-testkonsole.js` laden.
+2. `v4/werkzeuge/block6-schattenlauf-ranger.js` laden.
+3. Mit `V4Block6SchattenRanger.sichtbareMonsterArten()` die aktuell sichtbaren `mtype`-Werte anzeigen.
+4. Mit beispielsweise `V4Block6SchattenRanger.starte(["goo"])` den 30-Minuten-Schattenlauf starten.
+5. Nach Ende `V4Block6SchattenRanger.ergebnis()` ausgeben und den Bericht ueber die Testkonsole kopieren.
+
+Der Bericht enthaelt unter anderem Entscheidungszaehler, Meldungszaehler, Zielzaehler, Stillstaende, Fehler, Zustandswechsel sowie Start-/Endwerte fuer XP und Gold. Die Sicherheitsmarkierung `echteSpielaktionenAusgefuehrt: false` ist Bestandteil des Berichts.
+
 ### Reihenfolge der Abnahme
 
 1. `npm run pruefen` erfolgreich.
 2. Replay-Szenarien erfolgreich und reproduzierbar.
-3. 24 Stunden realer Schattenbetrieb eines einzelnen Charakters ohne ungefangenen Fehler; Leistungsdaten pruefen.
-4. Erst danach `AdventureLandFarmAusfuehrung` fuer einen zeitlich begrenzten Einzelcharakter-Test explizit aktiv freigeben.
-5. Nach dem Aktivtest Telemetrie, Stillstandsmeldungen, Ressourcenfreigaben und XP-/Gold-Raten pruefen.
+3. 30-Minuten-Ranger-Schattenlauf als Browser-Smoke-Test ohne ungefangenen Fehler; Bericht pruefen.
+4. Fuer die endgueltige Langzeit-Abnahme weiterhin 24 Stunden realer Schattenbetrieb eines einzelnen Charakters ohne ungefangenen Fehler; Leistungsdaten pruefen.
+5. Erst danach `AdventureLandFarmAusfuehrung` fuer einen zeitlich begrenzten Einzelcharakter-Test explizit aktiv freigeben.
+6. Nach dem Aktivtest Telemetrie, Stillstandsmeldungen, Ressourcenfreigaben und XP-/Gold-Raten pruefen.
 
-Der Zeittest-Helfer ersetzt weder den realen 24-Stunden-Schattenlauf noch den begrenzten Aktivtest; er stellt nur die vorgeschriebene sichtbare Zeitbegrenzung und den eindeutigen Endzustand sicher.
+Der Zeittest-Helfer ersetzt weder den realen Langzeit-Schattenlauf noch den begrenzten Aktivtest; er stellt nur die vorgeschriebene sichtbare Zeitbegrenzung und den eindeutigen Endzustand sicher.
