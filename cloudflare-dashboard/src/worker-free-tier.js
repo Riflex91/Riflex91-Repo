@@ -123,7 +123,7 @@ async function withQuotaOverview(request, response, env) {
   }
 }
 
-async function withFreeTierHealth(request, response) {
+async function withFreeTierHealth(request, response, env) {
   if (request.method !== 'GET' || new URL(request.url).pathname !== '/api/health') return response;
   try {
     const payload = await response.clone().json();
@@ -171,7 +171,7 @@ export default {
       response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
     }
     response = await withQuotaOverview(request, response, env);
-    response = await withFreeTierHealth(request, response);
+    response = await withFreeTierHealth(request, response, env);
     maybeFlushUsage(env, ctx, now);
     return response;
   }
