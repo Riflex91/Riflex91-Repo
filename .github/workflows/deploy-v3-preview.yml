@@ -1,0 +1,154 @@
+name: deploy-v3-preview
+
+on:
+  push:
+    branches: ["preview/v3/**"]
+    paths:
+      - "v3/**"
+      - "cloudflare-dashboard/src/worker-preview-release.js"
+      - "cloudflare-dashboard/test/v3-preview-release.test.js"
+      - "cloudflare-dashboard/wrangler.preview.jsonc"
+      - ".github/workflows/deploy-v3-preview.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolve exact V3 source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(git log -1 --format=%H -- v3)"
+          test -n "$SOURCE_SHA"
+          git diff --exit-code "$SOURCE_SHA" -- v3
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+          echo "Preview V3 source SHA: $SOURCE_SHA"
+
+      - name: Install V3 guard dependencies
+        working-directory: v3
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+
+      - name: Build and verify exact V3 runtime
+        working-directory: v3
+        run: |
+          npm run build
+          npm run preflight
+          npm test
+          node --check dist/aio-v3.js
+          node --check dist/aio-v3-runtime.js
+          node scripts/smoke-runtime-bundle.js
+          node scripts/smoke-bootstrap.js
+
+      - name: Install preview Worker tooling
+        working-directory: cloudflare-dashboard
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Verify control center and preview Worker
+        working-directory: cloudflare-dashboard
+        run: |
+          npm run check
+          node --check src/worker-preview-release.js
+
+      - name: Require Cloudflare preview credentials
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare preview deploy requires CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+
+      - name: Verify preview R2 bucket
+        working-directory: cloudflare-dashboard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler r2 bucket info aio-v3-logs --config wrangler.preview.jsonc
+
+      - name: Publish SHA-scoped preview artifacts
+        working-directory: cloudflare-dashboard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler r2 object put "aio-v3-logs/previews/v3/${SOURCE_SHA}/dist/aio-v3-runtime.js" \
+            --file=../v3/dist/aio-v3-runtime.js --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' --remote --config wrangler.preview.jsonc
+          npx wrangler r2 object put "aio-v3-logs/previews/v3/${SOURCE_SHA}/dist/aio-v3.js" \
+            --file=../v3/dist/aio-v3.js --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' --remote --config wrangler.preview.jsonc
+          npx wrangler r2 object put "aio-v3-logs/previews/v3/${SOURCE_SHA}/src/release-version.js" \
+            --file=../v3/src/release-version.js --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' --remote --config wrangler.preview.jsonc
+
+      - name: Verify R2 preview bytes
+        working-directory: cloudflare-dashboard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler r2 object get "aio-v3-logs/previews/v3/${SOURCE_SHA}/dist/aio-v3-runtime.js" --file=/tmp/aio-v3-preview-runtime.js --remote --config wrangler.preview.jsonc
+          npx wrangler r2 object get "aio-v3-logs/previews/v3/${SOURCE_SHA}/dist/aio-v3.js" --file=/tmp/aio-v3-preview.js --remote --config wrangler.preview.jsonc
+          cmp ../v3/dist/aio-v3-runtime.js /tmp/aio-v3-preview-runtime.js
+          cmp ../v3/dist/aio-v3.js /tmp/aio-v3-preview.js
+
+      - name: Deploy isolated preview Worker
+        working-directory: cloudflare-dashboard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --config wrangler.preview.jsonc
+
+      - name: Verify public preview artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW_BASE="https://aio-bot-dashboard-preview.hansijuergenlul.workers.dev/v3-preview/${SOURCE_SHA}"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            "${PREVIEW_BASE}/dist/aio-v3-runtime.js?verify=${GITHUB_RUN_ID}" \
+            --output /tmp/aio-v3-preview-public-runtime.js
+          cmp v3/dist/aio-v3-runtime.js /tmp/aio-v3-preview-public-runtime.js
+          HEADER_SHA="$(curl --fail --silent --show-error --head "${PREVIEW_BASE}/dist/aio-v3-runtime.js" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-aio-preview-source-sha"{print $2}')"
+          test "$HEADER_SHA" = "$SOURCE_SHA"
+          echo "PREVIEW_BASE=$PREVIEW_BASE" >> "$GITHUB_ENV"
+
+      - name: Publish preview instructions
+        shell: bash
+        run: |
+          {
+            echo '## V3 Preview ready'
+            echo
+            echo "Source SHA: \`${SOURCE_SHA}\`"
+            echo
+            echo "Runtime base: \`${PREVIEW_BASE}\`"
+            echo
+            echo 'Set this before evaluating the normal `aio-v3.js` bootstrap in Adventure Land:'
+            echo
+            echo '```js'
+            echo "globalThis.AIO_V3_BOOTSTRAP_CONFIG = { rawBaseUrl: '${PREVIEW_BASE}' };"
+            echo '```'
+            echo
+            echo 'Production `/v3/...` release objects are not modified by this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
