@@ -13,6 +13,7 @@ export type RessourcenName = (typeof RESSOURCEN_NAMEN)[number];
 export interface RessourcenSperre {
   readonly ressource: RessourcenName;
   readonly besitzer: string;
+  readonly wichtigkeitsRang: number;
   readonly prioritaet: number;
   readonly darfUnterbrochenWerden: boolean;
   readonly gesperrtSeit: number;
@@ -21,6 +22,7 @@ export interface RessourcenSperre {
 export interface RessourcenSperrAnfrage {
   readonly besitzer: string;
   readonly ressourcen: readonly RessourcenName[];
+  readonly wichtigkeitsRang?: number;
   readonly prioritaet: number;
   readonly darfUnterbrochenWerden: boolean;
   readonly angefordertAm: number;

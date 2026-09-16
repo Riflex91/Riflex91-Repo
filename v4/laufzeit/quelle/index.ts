@@ -2,6 +2,15 @@ export type { BotEreignis } from './vertraege/bot-ereignis.js';
 export type { AktionsErgebnis } from './vertraege/aktions-ergebnis.js';
 export type { AktionsAnfrage, AktionsWichtigkeit } from './vertraege/aktions-anfrage.js';
 export { AKTIONS_WICHTIGKEITEN } from './vertraege/aktions-anfrage.js';
+export type {
+  AktionsLaufPhase,
+  AktionsLaufZustand,
+  AktionsSteuerungsSchritt,
+  AktionsSteuerungsSchrittArt,
+  SchattenAktionsEintrag,
+  SchattenAktionsPhase
+} from './vertraege/aktions-steuerung.js';
+export { AKTIONS_LAUF_PHASEN, SCHATTEN_AKTIONS_PHASEN } from './vertraege/aktions-steuerung.js';
 export type { RessourcenSperre, RessourcenName, RessourcenSperrAnfrage } from './vertraege/ressourcen-sperre.js';
 export { RESSOURCEN_NAMEN } from './vertraege/ressourcen-sperre.js';
 export type {
@@ -88,7 +97,10 @@ export type {
 } from './vertraege/speicher-lern-zyklus.js';
 export { SPEICHER_LERN_PHASES } from './vertraege/speicher-lern-zyklus.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
-export { AktionsAuswahl } from './kern/aktions-auswahl.js';
+export { AKTIONS_WICHTIGKEITS_RANG, AktionsAuswahl, holeAktionsWichtigkeitsRang } from './kern/aktions-auswahl.js';
+export type { AktionsSteuerungOptionen } from './kern/aktions-steuerung.js';
+export { AktionsSteuerung } from './kern/aktions-steuerung.js';
+export { SchattenAusfuehrung } from './kern/schatten-ausfuehrung.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
 export { KontingentWaechter } from './kern/kontingent-waechter.js';
 export { BedienSicherung } from './kern/bedien-sicherung.js';

@@ -1,11 +1,15 @@
 import type { AktionsAnfrage, AktionsWichtigkeit } from '../vertraege/aktions-anfrage.js';
 
-const WICHTIGKEITS_RANG: Readonly<Record<AktionsWichtigkeit, number>> = {
+export const AKTIONS_WICHTIGKEITS_RANG: Readonly<Record<AktionsWichtigkeit, number>> = Object.freeze({
   notfall: 4,
   sicherheit: 3,
   normal: 2,
   hintergrund: 1
-};
+});
+
+export function holeAktionsWichtigkeitsRang(wichtigkeit: AktionsWichtigkeit): number {
+  return AKTIONS_WICHTIGKEITS_RANG[wichtigkeit];
+}
 
 export class AktionsAuswahl {
   sortiereNachWichtigkeit(aktionsAnfragen: readonly AktionsAnfrage[], jetzt: number): readonly AktionsAnfrage[] {
@@ -13,7 +17,8 @@ export class AktionsAuswahl {
       .filter((anfrage) => anfrage.gueltigBis === undefined || anfrage.gueltigBis > jetzt)
       .slice()
       .sort((a, b) => {
-        const wichtigkeitsUnterschied = WICHTIGKEITS_RANG[b.wichtigkeit] - WICHTIGKEITS_RANG[a.wichtigkeit];
+        const wichtigkeitsUnterschied =
+          holeAktionsWichtigkeitsRang(b.wichtigkeit) - holeAktionsWichtigkeitsRang(a.wichtigkeit);
         if (wichtigkeitsUnterschied !== 0) return wichtigkeitsUnterschied;
         if (a.prioritaet !== b.prioritaet) return b.prioritaet - a.prioritaet;
         if (a.angefordertAm !== b.angefordertAm) return a.angefordertAm - b.angefordertAm;
