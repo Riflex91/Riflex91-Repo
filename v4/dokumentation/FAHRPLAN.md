@@ -80,7 +80,7 @@ Abschlusspruefung:
 - gleiche Eingangsdaten erzeugen gleiche Spielzustaende
 - fehlende Werte fuehren nicht zu erfundenen Annahmen
 - aufgezeichnete Spielzustaende koennen offline geladen werden
-- mehrstuendiger Beobachtungstest ohne aktive Spielaktion
+- 30-minuetiger Beobachtungstest ohne aktive Spielaktion
 
 ## Block 3 – Zentrale Aktionssteuerung und Ressourcensperren
 
