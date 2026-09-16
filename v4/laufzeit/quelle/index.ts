@@ -125,3 +125,7 @@ export * from './wiederholung/wiederholungs-lader.js';
 export * from './wiederholung/wiederholungs-maschine.js';
 export * from './wiederholung/wiederholungs-vergleich.js';
 export * from './wiederholung/goldener-wiederholungssatz.js';
+export * from './vertraege/farmen.js';
+export * from './spiellogik/grundlegendes-farmen.js';
+export * from './ausfuehrung/adventure-land-farm-ausfuehrung.js';
+export * from './telemetrie/farm-leistungs-erfassung.js';

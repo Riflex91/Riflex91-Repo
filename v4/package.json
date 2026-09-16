@@ -13,9 +13,11 @@
     "struktur:pruefen": "node werkzeuge/struktur-pruefen.mjs",
     "block4-struktur:pruefen": "node werkzeuge/block4-struktur-pruefen.mjs",
     "block5-struktur:pruefen": "node werkzeuge/block5-struktur-pruefen.mjs",
+    "block6-struktur:pruefen": "node werkzeuge/block6-struktur-pruefen.mjs",
     "testkonsole:pruefen": "node --check werkzeuge/adventure-land-testkonsole.js",
     "block2-beobachtung:pruefen": "node --check werkzeuge/block2-beobachtung.js",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen"
+    "block6-live-test:pruefen": "node --check werkzeuge/block6-live-test.js",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
