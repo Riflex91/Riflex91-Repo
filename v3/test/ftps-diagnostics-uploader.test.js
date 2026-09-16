@@ -26,7 +26,7 @@ function fakeClient(remote = new Map(), options = {}) {
     closed: false,
     async access(config) {
       this.accessCalls.push({ ...config, password: config.password ? '[REDACTED]' : null });
-      if (options.failAccess) throw new Error('network-down');
+      if (options.failAccess) throw new Error(options.failMessage || 'network-down');
     },
     async ensureDir() {},
     async uploadFrom(source, target) { remote.set(target, await sourceBuffer(source)); },
@@ -92,19 +92,33 @@ test('FTPS uploader uses TLS, .part rename, size verification and latest-problem
   assert.equal(uploader.status().gameplayActionAuthority, false);
 });
 
-test('FTPS failure leaves pending bundle on disk for a later retry', async (t) => {
+test('FTPS failure keeps the pending bundle and applies exponential reconnect backoff', async (t) => {
   const dir = await tempDir();
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const local = await writePending(dir);
+  let now = 100000;
+  let clientCreates = 0;
   const uploader = new FtpsDiagnosticsUploader({
+    now: () => now,
     host: 'ftp.example.test', user: 'bot', password: 'secret',
-    clientFactory: () => fakeClient(new Map(), { failAccess: true })
+    baseBackoffMs: 30000,
+    maxBackoffMs: 120000,
+    clientFactory: () => { clientCreates += 1; return fakeClient(new Map(), { failAccess: true, failMessage: 'network-down secret' }); }
   });
-  const result = await uploader.flush(dir);
-  assert.equal(result.uploaded, 0);
-  assert.equal(result.reason, 'DIAGNOSTICS_FTPS_FAILED');
+  const failed = await uploader.flush(dir);
+  assert.equal(failed.uploaded, 0);
+  assert.equal(failed.reason, 'DIAGNOSTICS_FTPS_FAILED');
+  assert.equal(failed.nextAttemptAt, 130000);
   assert.equal(await fs.stat(local).then(() => true, () => false), true);
   assert.equal(uploader.status().stats.failures, 1);
+  assert.equal(JSON.stringify(uploader.status()).includes('network-down secret'), false);
+  assert.equal(JSON.stringify(uploader.status()).includes('[REDACTED]'), true);
+
+  now += 5000;
+  const backedOff = await uploader.flush(dir);
+  assert.equal(backedOff.reason, 'DIAGNOSTICS_FTPS_BACKOFF');
+  assert.equal(clientCreates, 1);
+  assert.equal(uploader.status().stats.skippedBackoff, 1);
 });
 
 test('configured diagnostics transport refuses plaintext FTP by default', () => {
