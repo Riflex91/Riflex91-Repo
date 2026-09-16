@@ -13,7 +13,7 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - Laufzeit und Server-Plattform bleiben getrennt.
 - SFTP-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
 - Reale Probleme werden als reproduzierbare Vorfälle mit Wiederholungsdaten gespeichert.
-- V4 verwaltet keine Adventure-Land-Konten oder Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
+- V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
 
 ## Wichtige Dokumente
 
