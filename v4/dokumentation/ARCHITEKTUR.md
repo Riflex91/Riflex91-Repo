@@ -30,7 +30,7 @@ V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb 
 
 - `schnittstelle/` – HTTPS-Zugriff
 - `web-oberflaeche/` – Bedienung, Analyse und Tagesberichte
-- `archiv-abgleich/` – serverseitiger Abgleich mit S3-kompatiblem Objektspeicher; zunaechst Oracle Cloud Infrastructure Object Storage
+- `archiv-abgleich/` – serverseitiger Abgleich mit S3-kompatiblem Objektspeicher; zunaechst Backblaze B2 Cloud Storage
 - `entwicklungsdienst/` – spaetere Auswertung der Entwicklungswarteschlange
 
 ## Wiederholungs-, Lern- und Speicherfluss
