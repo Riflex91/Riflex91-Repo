@@ -12,7 +12,8 @@
     "namen:pruefen": "node werkzeuge/namen-pruefen.mjs",
     "struktur:pruefen": "node werkzeuge/struktur-pruefen.mjs",
     "testkonsole:pruefen": "node --check werkzeuge/adventure-land-testkonsole.js",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run testkonsole:pruefen"
+    "block2-beobachtung:pruefen": "node --check werkzeuge/block2-beobachtung.js",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
