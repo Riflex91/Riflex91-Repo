@@ -12,7 +12,9 @@ const pflichtDateien = [
   'laufzeit/tests/grundlegendes-farmen.test.mjs',
   'laufzeit/tests/farm-ausfuehrung.test.mjs',
   'laufzeit/tests/farm-leistung.test.mjs',
-  'werkzeuge/block6-live-test.js'
+  'laufzeit/tests/block6-schattenlauf-ranger.test.mjs',
+  'werkzeuge/block6-live-test.js',
+  'werkzeuge/block6-schattenlauf-ranger.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -46,14 +48,31 @@ for (const pflichtText of ['Restzeit', 'starteSchatten24h', 'starteAktivBegrenzt
   if (!liveTest.includes(pflichtText)) throw new Error(`Block-6-Live-Test-Regel fehlt: ${pflichtText}`);
 }
 
+const schattenRunner = await readFile(path.join(wurzel, 'werkzeuge/block6-schattenlauf-ranger.js'), 'utf8');
+for (const pflichtText of [
+  "const STANDARD_DAUER = 30 * 60 * 1000",
+  'V4Block6SchattenRanger',
+  'sichtbareMonsterArten',
+  "startSnapshot.charakter.klasse !== 'ranger'",
+  'echteSpielaktionenAusgefuehrt: false'
+]) {
+  if (!schattenRunner.includes(pflichtText)) throw new Error(`Block-6-Ranger-Schattenlauf ist unvollstaendig: ${pflichtText}`);
+}
+for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot']) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(schattenRunner)) {
+    throw new Error(`Block-6-Ranger-Schattenlauf muss read-only bleiben; direkter Aufruf gefunden: ${aktionsName}.`);
+  }
+}
+
 const dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-6-FARMEN.md'), 'utf8');
 for (const regel of [
   'Keine Farmentscheidung ruft Adventure Land direkt auf.',
   'Aktive Farmaktionen werden nur nach einer gestarteten Anfrage der zentralen `AktionsSteuerung` ausgefuehrt.',
   'Ein volles Inventar fuehrt in Block 6 niemals zu automatischem Verkauf, Zerstoeren oder Verschieben von Gegenstaenden.',
-  'Gleicher Spielzustand plus gleicher expliziter Farmzustand ergibt die gleiche Entscheidung.'
+  'Gleicher Spielzustand plus gleicher expliziter Farmzustand ergibt die gleiche Entscheidung.',
+  '30-Minuten-Ranger-Schattenlauf'
 ]) {
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 6 fehlt: ${regel}`);
 }
 
-console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien und deterministische Ausfuehrungsgrenze.`);
+console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien, deterministische Fachlogik und read-only Ranger-Schattenlauf.`);
