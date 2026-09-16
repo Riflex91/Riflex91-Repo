@@ -5,6 +5,7 @@ const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/al
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
 const { installAlpha27MerchantTravelIntelligence } = require('./reliability/alpha27-merchant-travel-intelligence');
+const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = require('./reliability/p0-regroup-supply-recovery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -33,7 +34,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -43,7 +44,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
       liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
       merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null,
-      merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null
+      merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null,
+      p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null
     })
   };
   api.cloud = {
@@ -71,6 +73,7 @@ function installProductionLiveServices(api, options = {}) {
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
   const travelIntelligence = installAlpha27MerchantTravelIntelligence(runtime, alpha27);
+  const p0Recovery = installP0RegroupSupplyRecovery(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -79,9 +82,10 @@ function installProductionLiveServices(api, options = {}) {
       alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
       alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
       merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
-      merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence
+      merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
+      p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery);
     return runtime.productionLiveServices;
   }
 
@@ -91,6 +95,7 @@ function installProductionLiveServices(api, options = {}) {
       const result = baseTick(...args);
       runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
       runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
+      runService(runtime, runtime.p0RegroupSupplyRecovery, 'p0-regroup-supply-recovery');
       return result;
     };
     runtime.__productionLiveServicesTickPatched = true;
@@ -105,13 +110,15 @@ function installProductionLiveServices(api, options = {}) {
     alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
     merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
     merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
+    p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
+  runService(runtime, p0Recovery, 'p0-regroup-supply-recovery');
 
   try {
     if (runtime.log && typeof runtime.log.emit === 'function') {
@@ -125,5 +132,7 @@ module.exports = {
   PRODUCTION_LIVE_SERVICES_MODE,
   installProductionLiveServices,
   runService,
-  exposeDiagnostics
+  exposeDiagnostics,
+  installP0RegroupSupplyRecovery,
+  P0_REGROUP_SUPPLY_RECOVERY_MODE
 };
