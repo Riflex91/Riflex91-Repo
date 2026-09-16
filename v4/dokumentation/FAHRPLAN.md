@@ -178,7 +178,7 @@ Abschlusspruefung:
 
 ## Block 8 – Gruppenkoordination
 
-Ziel: Mehrere Charaktere desselben Adventure-Land-Kontos arbeiten als Gruppe zusammen.
+Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 
 Gemeinsam umgesetzt werden:
 
