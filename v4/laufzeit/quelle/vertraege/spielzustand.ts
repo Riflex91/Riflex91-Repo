@@ -32,7 +32,7 @@ export interface GegenstandZustand {
   readonly stufe: WissensWert<number>;
   readonly eigenschaft: WissensWert<string | null>;
   readonly gesperrt: WissensWert<boolean>;
-  readonly ablauf: WissensWert<number | null>;
+  readonly ablauf: WissensWert<number | string | null>;
 }
 
 export interface InventarPlatzZustand {
@@ -68,7 +68,7 @@ export interface CharakterZustand {
   readonly ziel: WissensWert<string | null>;
   readonly tot: WissensWert<boolean | null>;
   readonly standAktiv: WissensWert<boolean | null>;
-  readonly ausruestung: WissensWert<Readonly<Record<string, GegenstandZustand | null>>>;
+  readonly ausruestung: WissensWert<Readonly<Record<string, WissensWert<GegenstandZustand | null>>>>;
 }
 
 export interface SichtbaresObjektZustand {
