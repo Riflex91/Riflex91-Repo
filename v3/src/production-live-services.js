@@ -8,6 +8,7 @@ const { installAlpha27MerchantTravelIntelligence } = require('./reliability/alph
 const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = require('./reliability/p0-regroup-supply-recovery');
 const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = require('./reliability/p0-potion-bundle-delta-fix');
 const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./reliability/p0-potion-policy-4500');
+const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -36,7 +37,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -49,7 +50,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null,
       p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null,
       p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
-      p0PotionPolicy4500: potionPolicy4500 || null
+      p0PotionPolicy4500: potionPolicy4500 || null,
+      p0PotionHardCap4500: potionHardCap4500 || null
     })
   };
   api.cloud = {
@@ -80,6 +82,7 @@ function installProductionLiveServices(api, options = {}) {
   const p0Recovery = installP0RegroupSupplyRecovery(runtime);
   installP0PotionBundleDeltaFix(runtime);
   const potionPolicy4500 = installP0PotionPolicy4500(runtime);
+  const potionHardCap4500 = installP0PotionHardCap4500(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -91,9 +94,10 @@ function installProductionLiveServices(api, options = {}) {
       merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
       p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
       p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
-      p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed)
+      p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
+      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed)
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
     return runtime.productionLiveServices;
   }
 
@@ -121,10 +125,11 @@ function installProductionLiveServices(api, options = {}) {
     p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
     p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
     p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
+    p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -148,5 +153,7 @@ module.exports = {
   installP0PotionBundleDeltaFix,
   P0_POTION_BUNDLE_DELTA_FIX_MODE,
   installP0PotionPolicy4500,
-  P0_POTION_POLICY_4500_MODE
+  P0_POTION_POLICY_4500_MODE,
+  installP0PotionHardCap4500,
+  P0_POTION_HARDCAP_4500_MODE
 };
