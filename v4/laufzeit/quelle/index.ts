@@ -38,6 +38,7 @@ export type {
   AuftragsPlan,
   AuftragsPruefErgebnis,
   AuftragsTeilSchritt,
+  AuftragsVorschlag,
   AuftragsZustand,
   MengenZielArt,
   NutzerAuftrag
@@ -49,3 +50,4 @@ export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
 export { KontingentWaechter } from './kern/kontingent-waechter.js';
 export { BedienSicherung } from './kern/bedien-sicherung.js';
 export { AuftragsPruefung } from './kern/auftrags-pruefung.js';
+export { AuftragsVorschlaege } from './kern/auftrags-vorschlaege.js';
