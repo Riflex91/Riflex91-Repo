@@ -9,7 +9,9 @@ export type {
   ResourceObservation,
   WorldObjectObservation,
   WorldObservation,
+  WorldObservationSchemaVersion,
 } from './observation.js';
+export { WORLD_OBSERVATION_SCHEMA_VERSION } from './observation.js';
 export { InvalidWorldObservationError } from './invalid-observation-error.js';
 export { reduceWorldObservation, validateWorldObservation } from './world-reducer.js';
 export type { WorldState, WorldStateUpdate } from './world-state.js';
