@@ -11,7 +11,8 @@
     "testen": "npm run bauen && node --test laufzeit/tests/*.test.mjs",
     "namen:pruefen": "node werkzeuge/namen-pruefen.mjs",
     "struktur:pruefen": "node werkzeuge/struktur-pruefen.mjs",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen"
+    "testkonsole:pruefen": "node --check werkzeuge/adventure-land-testkonsole.js",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run testkonsole:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
