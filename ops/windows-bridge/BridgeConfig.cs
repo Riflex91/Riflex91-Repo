@@ -1,10 +1,11 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 4;
+    public const int CurrentConfigVersion = 5;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -25,15 +26,15 @@ public sealed record BridgeConfig
     public string WebDashboardAccount { get; init; } = "default";
     public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "AIO_V3_WEB_DASHBOARD_WRITE_KEY";
 
-    // Full problem bundles stay independent from Supabase telemetry. Non-secret FTPS
-    // settings are stored in settings.json; the password is DPAPI-protected separately.
-    public bool DiagnosticsFtpsEnabled { get; init; }
-    public string DiagnosticsFtpsHost { get; init; } = string.Empty;
-    public int DiagnosticsFtpsPort { get; init; } = 21;
-    public string DiagnosticsFtpsUser { get; init; } = string.Empty;
-    public string DiagnosticsFtpsRoot { get; init; } = "/diagnostics/v3";
-    public bool DiagnosticsFtpsRejectUnauthorized { get; init; } = true;
-    public string DiagnosticsFtpsPasswordEnvironmentVariable { get; init; } = "AIO_V3_DIAGNOSTICS_FTPS_PASSWORD";
+    // Backblaze credentials are never stored in settings.json. Only the non-secret
+    // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
+    public bool BackblazeEnabled { get; init; }
+    public string BackblazeEndpoint { get; init; } = "https://s3.eu-central-003.backblazeb2.com";
+    public string BackblazeRegion { get; init; } = "eu-central-003";
+    public string BackblazeBucket { get; init; } = "al-aio-bot";
+    public string BackblazePrefix { get; init; } = "v4";
+    public string BackblazeKeyIdEnvironmentVariable { get; init; } = "AIO_V4_BACKBLAZE_KEY_ID";
+    public string BackblazeApplicationKeyEnvironmentVariable { get; init; } = "AIO_V4_BACKBLAZE_APPLICATION_KEY";
 
     public static string AppDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -51,7 +52,7 @@ public sealed record BridgeConfig
     public static string StatusPath => Path.Combine(AppDirectory, "bridge-status.json");
     public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token.dpapi");
     public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key.dpapi");
-    public static string DiagnosticsFtpsPasswordPath => Path.Combine(AppDirectory, "diagnostics-ftps-password.dpapi");
+    public static string BackblazeCredentialsPath => Path.Combine(AppDirectory, "backblaze-credentials.dpapi");
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -117,8 +118,6 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("TELEMETRY_TOKEN_ENV_REQUIRED");
         if (string.IsNullOrWhiteSpace(WebDashboardWriteKeyEnvironmentVariable))
             throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
-        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsPasswordEnvironmentVariable))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PASSWORD_ENV_REQUIRED");
         if (string.IsNullOrWhiteSpace(WebDashboardAccount) || WebDashboardAccount.Length > 100)
             throw new InvalidOperationException("WEB_DASHBOARD_ACCOUNT_INVALID");
         if (string.IsNullOrWhiteSpace(BotId) || BotId.Length > 128)
@@ -134,32 +133,49 @@ public sealed record BridgeConfig
         if (EventLimit is < 1 or > 200)
             throw new InvalidOperationException("EVENT_LIMIT_OUT_OF_RANGE");
 
-        ValidateFtps();
+        ValidateBackblaze();
     }
 
-    private void ValidateFtps()
+    private void ValidateBackblaze()
     {
-        if (DiagnosticsFtpsPort is < 1 or > 65535)
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PORT_INVALID");
-        if (DiagnosticsFtpsHost.Length > 253
-            || DiagnosticsFtpsHost.Any(char.IsWhiteSpace)
-            || DiagnosticsFtpsHost.Contains('/')
-            || DiagnosticsFtpsHost.Contains('\\')
-            || DiagnosticsFtpsHost.Contains("://", StringComparison.Ordinal))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_HOST_INVALID");
-        if (DiagnosticsFtpsUser.Length > 256)
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_USER_INVALID");
-        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsRoot)
-            || DiagnosticsFtpsRoot.Length > 512
-            || DiagnosticsFtpsRoot.Any(char.IsControl)
-            || DiagnosticsFtpsRoot.Split('/', '\\').Any(part => part == ".."))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_ROOT_INVALID");
+        if (string.IsNullOrWhiteSpace(BackblazeKeyIdEnvironmentVariable))
+            throw new InvalidOperationException("BACKBLAZE_KEY_ID_ENV_REQUIRED");
+        if (string.IsNullOrWhiteSpace(BackblazeApplicationKeyEnvironmentVariable))
+            throw new InvalidOperationException("BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+        if (string.IsNullOrWhiteSpace(BackblazeRegion)
+            || BackblazeRegion.Length > 64
+            || !Regex.IsMatch(BackblazeRegion, "^[a-z0-9-]+$", RegexOptions.CultureInvariant))
+            throw new InvalidOperationException("BACKBLAZE_REGION_INVALID");
 
-        if (!DiagnosticsFtpsEnabled) return;
-        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsHost))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_HOST_REQUIRED");
-        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsUser))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_USER_REQUIRED");
+        if (!Uri.TryCreate(BackblazeEndpoint, UriKind.Absolute, out var endpoint)
+            || endpoint.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(endpoint.UserInfo)
+            || !string.IsNullOrEmpty(endpoint.Query)
+            || !string.IsNullOrEmpty(endpoint.Fragment)
+            || (endpoint.AbsolutePath != "/" && endpoint.AbsolutePath.Length != 0)
+            || !string.Equals(endpoint.Host, $"s3.{BackblazeRegion}.backblazeb2.com", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("BACKBLAZE_ENDPOINT_INVALID");
+
+        if (string.IsNullOrWhiteSpace(BackblazeBucket)
+            || BackblazeBucket.Length is < 6 or > 63
+            || !Regex.IsMatch(BackblazeBucket, "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])$", RegexOptions.CultureInvariant)
+            || BackblazeBucket.Contains("..", StringComparison.Ordinal)
+            || BackblazeBucket.StartsWith("b2-", StringComparison.Ordinal)
+            || BackblazeBucket.StartsWith("xn--", StringComparison.Ordinal)
+            || BackblazeBucket.StartsWith("sthree-", StringComparison.Ordinal)
+            || BackblazeBucket.StartsWith("amzn-s3-demo-", StringComparison.Ordinal)
+            || BackblazeBucket.EndsWith("-s3alias", StringComparison.Ordinal)
+            || BackblazeBucket.EndsWith("--ol-s3", StringComparison.Ordinal)
+            || BackblazeBucket.EndsWith(".mrap", StringComparison.Ordinal)
+            || BackblazeBucket.EndsWith("--x-s3", StringComparison.Ordinal)
+            || BackblazeBucket.EndsWith("--table-s3", StringComparison.Ordinal)
+            || System.Net.IPAddress.TryParse(BackblazeBucket, out _))
+            throw new InvalidOperationException("BACKBLAZE_BUCKET_INVALID");
+
+        if (BackblazePrefix.Length > 512
+            || BackblazePrefix.Any(char.IsControl)
+            || BackblazePrefix.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Any(part => part == ".."))
+            throw new InvalidOperationException("BACKBLAZE_PREFIX_INVALID");
     }
 
     private static void ValidateHttps(string value, string error)
@@ -219,7 +235,9 @@ public sealed record BridgeStatus(
     string? LastError,
     string? TargetUrl,
     string WebDashboardState,
-    string? WebDashboardError)
+    string? WebDashboardError,
+    string BackblazeState,
+    string? BackblazeError)
 {
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
