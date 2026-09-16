@@ -43,6 +43,8 @@ Die Reihenfolge der Vorschlaege folgt der Eingabe: direkte Wortanfaenge werden v
 
 Die Vorschlagsliste soll sowohl per Maus oder Beruehrung als auch per Tastatur bedienbar sein: Pfeiltasten waehlen einen Vorschlag, Eingabe uebernimmt ihn, Escape schliesst die Liste ohne Aenderung.
 
+Spaeter duerfen zusaetzliche Auftragsarten wie `kaufe`, `verkaufe`, `werte auf` oder `kombiniere` auf demselben Mechanismus aufbauen. Sie werden jedoch erst sichtbar, wenn die jeweilige Spiellogik sicher implementiert und freigegeben ist.
+
 ## Eindeutige Mengen
 
 Die Eingabe `Sammle 200 Bienenfluegel` ist ohne weitere Festlegung mehrdeutig. Deshalb muss V4 vor dem Start eindeutig zwischen zwei Zielarten unterscheiden:
