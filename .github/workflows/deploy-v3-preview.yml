@@ -125,12 +125,51 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PREVIEW_BASE="https://aio-bot-dashboard-preview.hansijuergenlul.workers.dev/v3-preview/${SOURCE_SHA}"
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            "${PREVIEW_BASE}/dist/aio-v3-runtime.js?verify=${GITHUB_RUN_ID}" \
-            --output /tmp/aio-v3-preview-public-runtime.js
+          WORKER_ORIGIN="https://aio-bot-dashboard-preview.hansijuergenlul.workers.dev"
+          PREVIEW_BASE="${WORKER_ORIGIN}/v3-preview/${SOURCE_SHA}"
+
+          fetch_status() {
+            local url="$1" body="$2" headers="$3"
+            curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --dump-header "$headers" --output "$body" \
+              --write-out '%{http_code}' "$url" || true
+          }
+
+          poll_200() {
+            local label="$1" url="$2" body="$3" headers="$4"
+            local status='000'
+            for attempt in $(seq 1 30); do
+              status="$(fetch_status "${url}?verify=${GITHUB_RUN_ID}-${attempt}" "$body" "$headers")"
+              echo "${label} attempt ${attempt}/30 -> HTTP ${status}"
+              if [ "$status" = '200' ]; then
+                cat "$headers"
+                return 0
+              fi
+              if [ "$attempt" -eq 1 ] || [ $((attempt % 5)) -eq 0 ]; then
+                echo "--- ${label} headers ---"
+                cat "$headers" || true
+                echo "--- ${label} body ---"
+                head -c 1200 "$body" || true
+                echo
+              fi
+              sleep 2
+            done
+            echo "::error::${label} never became publicly reachable (last HTTP ${status})."
+            echo '--- final headers ---'
+            cat "$headers" || true
+            echo '--- final body ---'
+            cat "$body" || true
+            return 1
+          }
+
+          poll_200 'preview-health' "${WORKER_ORIGIN}/health" /tmp/preview-health.body /tmp/preview-health.headers
+          grep -q 'aio-v3-preview-release-v1' /tmp/preview-health.body
+
+          poll_200 'preview-runtime' "${PREVIEW_BASE}/dist/aio-v3-runtime.js" /tmp/aio-v3-preview-public-runtime.js /tmp/preview-runtime.headers
           cmp v3/dist/aio-v3-runtime.js /tmp/aio-v3-preview-public-runtime.js
-          HEADER_SHA="$(curl --fail --silent --show-error --head "${PREVIEW_BASE}/dist/aio-v3-runtime.js" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-aio-preview-source-sha"{print $2}')"
+
+          HEADER_SHA="$(tr -d '\r' < /tmp/preview-runtime.headers | awk -F': ' 'tolower($1)=="x-aio-preview-source-sha"{print $2}' | tail -n 1)"
           test "$HEADER_SHA" = "$SOURCE_SHA"
           echo "PREVIEW_BASE=$PREVIEW_BASE" >> "$GITHUB_ENV"
 
