@@ -1,0 +1,70 @@
+name: apply-p0-4500-root-fix
+on:
+  push:
+    branches:
+      - fix/p0-regroup-bundle-supply-5000
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'ci(v3): apply temporary root-fix helper'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p0-regroup-bundle-supply-5000
+      - name: Apply bounded potion-policy and version-test fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          policy_path = Path('v3/src/reliability/p0-potion-policy-4500.js')
+          text = policy_path.read_text()
+
+          old = """    // Existing merchant stock is reused first. If it exceeds the farmer shortfall,\n    // the current delivery clears that stock instead of carrying a potion reserve.\n    const deliveryQuantity = Math.max(farmerShortfall, merchantHave);\n    if (deliveryQuantity <= 0) continue;\n"""
+          new = """    // Delivery is strictly bounded by this farmer's observed shortfall.\n    // Existing merchant stock above that shortfall must never be dumped onto the farmer.\n    const deliveryQuantity = farmerShortfall;\n"""
+          assert old in text, 'dynamicBundle legacy overdelivery block not found'
+          text = text.replace(old, new, 1)
+
+          old = """    const deliveries = dynamicBundle(input, plan);\n    if (!deliveries || !deliveries.length) return plan;\n    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));\n    const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);\n    const readyKind = serviceKind(input, plan);\n"""
+          new = """    const rows = dynamicBundle(input, plan);\n    if (!rows) return plan;\n    const excessStock = rows.filter((row) => row.merchantHave > row.farmerShortfall);\n    const deliveries = rows.filter((row) => row.quantity > 0);\n\n    // Fail closed before travel/restock if legacy merchant stock cannot fit into\n    // this farmer's observed deficit. The outer hard-cap may reroute to another\n    // farmer; without it, this HOLD still prevents overfilling.\n    if (excessStock.length) {\n      const hold = {\n        ...clone(plan),\n        kind: MerchantServicePlanKind.HOLD,\n        reason: 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE',\n        deliveries: [],\n        delivery: null,\n        distance: null,\n        metadata: {\n          ...(plan.metadata || {}),\n          p0PotionBundle: true,\n          p0PotionPolicy4500: true,\n          adaptivePotionDelivery: true,\n          bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',\n          farmerTarget: POTION_TARGET_COUNT,\n          merchantReserve: MERCHANT_POTION_RESERVE,\n          excessStock: excessStock.map((row) => ({\n            itemName: row.itemName,\n            merchantHave: row.merchantHave,\n            farmerBefore: row.farmerBefore,\n            farmerShortfall: row.farmerShortfall,\n            excessQuantity: row.merchantHave - row.farmerShortfall\n          }))\n        }\n      };\n      delete hold.afterRestock;\n      delete hold.afterTravel;\n      delete hold.missingStock;\n      planner.lastPlan = clone(hold);\n      return clone(hold);\n    }\n\n    if (!deliveries.length) return plan;\n    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));\n    const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);\n    const readyKind = serviceKind(input, plan);\n"""
+          assert old in text, 'planner adaptive block not found'
+          text = text.replace(old, new, 1)
+          policy_path.write_text(text)
+
+          version_tests = [
+            Path('v3/test/alpha19-index-integration.test.js'),
+            Path('v3/test/alpha20-15-combat-logistics.test.js'),
+            Path('v3/test/alpha20-19-integrated-party-control.test.js'),
+            Path('v3/test/alpha20-live-gate-runtime-integration.test.js'),
+          ]
+          for path in version_tests:
+            source = path.read_text()
+            count = source.count('3.0.0-alpha.20.52')
+            assert count >= 1, f'stale .52 assertion not found in {path}'
+            path.write_text(source.replace('3.0.0-alpha.20.52', '3.0.0-alpha.20.53'))
+
+          test_path = Path('v3/test/p0-potion-policy-4500.test.js')
+          tests = test_path.read_text()
+          marker = "adaptive planner holds instead of overfilling when merchant stock exceeds farmer shortfall"
+          if marker not in tests:
+            tests += """\n\ntest('adaptive planner holds instead of overfilling when merchant stock exceeds farmer shortfall', () => {\n  const root = rootForMerchant();\n  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });\n  const runtime = runtimeBase(root, { merchantServicePlanner: planner });\n  runtime.p0RegroupSupplyRecovery = new P0RegroupSupplyRecovery(runtime);\n  installP0PotionPolicy4500(runtime);\n\n  const plan = planner.plan({\n    merchant: { ...root.character, inventory: [{ name: 'hpot0', q: 500 }, { name: 'mpot0', q: 500 }] },\n    reports: [report(4300, 4400)],\n    deliveryDistance: 400\n  });\n\n  assert.equal(plan.kind, MerchantServicePlanKind.HOLD);\n  assert.equal(plan.reason, 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE');\n  assert.deepEqual(plan.deliveries, []);\n  assert.deepEqual(plan.metadata.excessStock.map((row) => [row.itemName, row.excessQuantity]), [['hpot0', 300], ['mpot0', 400]]);\n});\n"""
+            test_path.write_text(tests)
+          PY
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add v3/src/reliability/p0-potion-policy-4500.js \
+                  v3/test/alpha19-index-integration.test.js \
+                  v3/test/alpha20-15-combat-logistics.test.js \
+                  v3/test/alpha20-19-integrated-party-control.test.js \
+                  v3/test/alpha20-live-gate-runtime-integration.test.js \
+                  v3/test/p0-potion-policy-4500.test.js
+          git diff --cached --check
+          git commit -m 'fix(v3): cap adaptive potion delivery and refresh version assertions'
+          git push origin HEAD:fix/p0-regroup-bundle-supply-5000
