@@ -11,7 +11,7 @@ Keine Ebene darf eine darunterliegende Sicherheitsstufe umgehen.
 `laufzeit/quelle/` enthaelt ausschliesslich Code, der fuer die Bot-Laufzeit bestimmt ist.
 
 - `vertraege/` – gemeinsame Datentypen
-- `kern/` – zentrale Ereignis-, Aktions- und Ressourcensteuerung
+- `kern/` – zentrale Ereignis-, Aktions-, Ressourcen- und Kontingentsteuerung
 - `spiel/` – spaetere Adventure-Land-Schnittstelle
 - `welt/` – Wissen und Spielzustand
 - `planung/` – Auswahl sinnvoller Ziele und Arbeit
@@ -32,6 +32,29 @@ V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb 
 - `web-oberflaeche/` – Bedienung, Analyse und Tagesberichte
 - `archiv-abgleich/` – serverseitiger SFTP-Abgleich
 - `entwicklungsdienst/` – spaetere Auswertung der Entwicklungswarteschlange
+
+## Externe Dienste und KontingentWaechter
+
+Supabase, Cloudflare und jeder spaeter angebundene externe Dienst werden als begrenzte Ressource behandelt.
+
+Direkte externe Aufrufe aus Fachlogik sind verboten. Der vorgesehene Ablauf ist:
+
+`Funktion -> DienstAnfrage -> KontingentWaechter -> Dienst-Tor -> externer Anbieter`
+
+Der `KontingentWaechter` prueft vor dem Aufruf:
+
+- existiert ein geprueftes DienstProfil?
+- ist es noch gueltig?
+- sind alle betroffenen Nutzungsgrenzen bekannt?
+- ist der schlechteste Verbrauch der geplanten Aktion bekannt?
+- reicht das sichere V4-Budget nach Abzug des Sicherheitspuffers?
+- ist der lokale Verbrauch oder der vom Anbieter gemeldete Verbrauch hoeher?
+
+Nur wenn alle Fragen sicher beantwortet sind, darf die externe Anfrage ausgefuehrt werden.
+
+Die lokale Spiellogik und insbesondere Rueckzug, Heilen, Todes- und Verbindungsbehandlung duerfen niemals auf einen externen Dienst angewiesen sein. Ist ein Dienst nicht verfuegbar oder sein Kontingent blockiert, arbeitet der Bot lokal sicher weiter und reduziert oder puffert nur nicht kritische Daten.
+
+Details stehen in `DIENSTGRENZEN_UND_FEHLBEDIENUNGSSICHERHEIT.md`.
 
 ## Tagesbericht
 
@@ -66,6 +89,12 @@ Dadurch gilt auch bei einem Plattformausfall:
 - Notfall- und Sicherheitsarbeit hat festen Vorrang.
 - Unbekanntes Wissen bleibt unbekannt; es wird nicht stillschweigend geraten.
 - Menschliche Fehlermeldungen muessen ohne Quellcodekenntnis verstaendlich sein.
+- Kein externer Aufruf ohne vorherige Kontingentpruefung.
+- Kein unbekannter externer Verbrauch wird geraten.
+- Kein abgelaufenes Dienstprofil wird weiterverwendet.
+- Kein Anbietermaximum wird vollstaendig als V4-Budget freigegeben.
+- Keine Warteschlange darf unbegrenzt wachsen.
+- Lokale Spielsicherheit bleibt auch ohne Supabase, Cloudflare oder andere Dienste funktionsfaehig.
 - SFTP-Zugangsdaten existieren nur serverseitig.
 - E-Mail-Versandgeheimnisse existieren nur serverseitig.
 - V4 speichert oder verarbeitet keine Adventure-Land-Kennwoerter.
