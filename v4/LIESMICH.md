@@ -13,16 +13,12 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - Laufzeit und Server-Plattform bleiben getrennt.
 - SFTP-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
 - Reale Probleme werden als reproduzierbare Vorfälle mit Wiederholungsdaten gespeichert.
-- Mehrere Konten werden technisch getrennt verwaltet; jeder Charakter bleibt eindeutig seinem Konto zugeordnet.
-- Charaktere aus verschiedenen Konten dürfen in einem gemeinsamen Verbund zusammenarbeiten, ohne Bank, Inventar oder Besitz zu vermischen.
-- Kontokennwoerter gelangen niemals in die Adventure-Land-Laufzeit, Telemetrie oder Wiederholungsdaten.
-- Mehrkontenbetrieb darf keine Adventure-Land-Spielregeln oder Charaktergrenzen umgehen.
+- V4 verwaltet keine Adventure-Land-Konten oder Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
 
 ## Wichtige Dokumente
 
 - `dokumentation/FAHRPLAN.md` – Entwicklungsreihenfolge und Abschlusspruefungen
 - `dokumentation/ARCHITEKTUR.md` – technische Grundstruktur
-- `dokumentation/KONTEN_UND_CHARAKTERE.md` – Kontoprofile, getrennte Sitzungen und Verbundbetrieb
 - `dokumentation/VERTRAEGE.md` – feste Daten- und Verhaltensvertraege
 - `dokumentation/NAMEN_UND_MELDUNGEN.md` – deutsche Namens- und Meldungsregeln
 - `dokumentation/ENTWICKLUNGSABLAUF.md` – Weg vom Vorfall bis zum Pull Request
@@ -36,4 +32,4 @@ npm install
 npm run pruefen
 ```
 
-V4 enthaelt in dieser Grundlage noch keine aktive Farmer-, Merchant- oder Kampfsteuerung.
+V4 enthaelt in dieser Grundlage noch keine aktive Farmer-, Haendler- oder Kampfsteuerung.
