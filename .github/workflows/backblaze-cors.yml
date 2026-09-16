@@ -35,13 +35,13 @@ jobs:
       CORS_RULE_NAME: adventureLandBot
       B2_CORS_KEY_ID: ${{ secrets.B2_CORS_KEY_ID }}
       B2_CORS_APPLICATION_KEY: ${{ secrets.B2_CORS_APPLICATION_KEY }}
-      B2_ACCOUNT_INFO: ${{ runner.temp }}/b2-account-info.sqlite
 
     steps:
       - name: Validate dispatch and secrets
         shell: bash
         run: |
           set -euo pipefail
+          echo "B2_ACCOUNT_INFO=${RUNNER_TEMP}/b2-account-info.sqlite" >> "${GITHUB_ENV}"
           if [[ "${{ inputs.mode }}" == "apply" && "${{ inputs.confirm }}" != "APPLY_CORS" ]]; then
             echo "::error::Apply requires confirm=APPLY_CORS."
             exit 1
@@ -153,4 +153,4 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          rm -f "${B2_ACCOUNT_INFO}" || true
+          rm -f "${B2_ACCOUNT_INFO:-}" || true
