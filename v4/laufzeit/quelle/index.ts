@@ -79,6 +79,14 @@ export type {
   NutzerAuftrag
 } from './vertraege/nutzer-auftrag.js';
 export { AUFTRAGS_ARTEN, AUFTRAGS_ZUSTAENDE, MENGEN_ZIEL_ARTEN } from './vertraege/nutzer-auftrag.js';
+export type {
+  LernNachweis,
+  SpeicherLernEingabe,
+  SpeicherLernEntscheidung,
+  SpeicherLernPhase,
+  SpeicherLernSchwellen
+} from './vertraege/speicher-lern-zyklus.js';
+export { SPEICHER_LERN_PHASES } from './vertraege/speicher-lern-zyklus.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
 export { AktionsAuswahl } from './kern/aktions-auswahl.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
@@ -86,3 +94,4 @@ export { KontingentWaechter } from './kern/kontingent-waechter.js';
 export { BedienSicherung } from './kern/bedien-sicherung.js';
 export { AuftragsPruefung } from './kern/auftrags-pruefung.js';
 export { AuftragsVorschlaege } from './kern/auftrags-vorschlaege.js';
+export { SpeicherLernZyklus, STANDARD_SPEICHER_LERN_SCHWELLEN } from './lernen/speicher-lern-zyklus.js';

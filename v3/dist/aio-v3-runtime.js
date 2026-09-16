@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.52 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.54 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -11,6 +11,12 @@ const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionS
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
 const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
 const { installCloudPresenceDecoupling, CLOUD_PRESENCE_DECOUPLING_MODE } = require('./control/cloud-presence-decoupling');
+const {
+  installObjectStorageApi,
+  S3CompatibleObjectStore,
+  OBJECT_STORAGE_CONFIG_NAME,
+  EXPLICIT_DELETE_CONFIRMATION
+} = require('./ops/object-storage-s3');
 
 function replaceOlderRuntime(root) {
   const existing = root && root.AIO_V3;
@@ -41,6 +47,7 @@ function install(root = globalThis, options = {}) {
   api.cloudPresence = {
     status: () => presence && typeof presence.status === 'function' ? presence.status() : null
   };
+  installObjectStorageApi(api, root, options.objectStorage || {});
   root.AIO_V3 = api;
   return api;
 }
@@ -59,7 +66,11 @@ module.exports = {
   ProductionStepKind,
   ControlledMerchantProductionExecutor,
   CONTROLLED_MERCHANT_PRODUCTION_MODE,
-  CONTROLLED_MERCHANT_PRODUCTION_ACK
+  CONTROLLED_MERCHANT_PRODUCTION_ACK,
+  installObjectStorageApi,
+  S3CompatibleObjectStore,
+  OBJECT_STORAGE_CONFIG_NAME,
+  EXPLICIT_DELETE_CONFIRMATION
 };
 
 },
@@ -936,7 +947,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.52';
+const RELEASE_VERSION = '3.0.0-alpha.20.54';
 
 module.exports = { RELEASE_VERSION };
 
@@ -42538,6 +42549,10 @@ const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/al
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
 const { installAlpha27MerchantTravelIntelligence } = require('./reliability/alpha27-merchant-travel-intelligence');
+const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = require('./reliability/p0-regroup-supply-recovery');
+const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = require('./reliability/p0-potion-bundle-delta-fix');
+const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./reliability/p0-potion-policy-4500');
+const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -42566,7 +42581,7 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -42576,7 +42591,11 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       convergence: alpha27 && typeof alpha27.status === 'function' ? alpha27.status() : null,
       liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
       merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null,
-      merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null
+      merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null,
+      p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null,
+      p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
+      p0PotionPolicy4500: potionPolicy4500 || null,
+      p0PotionHardCap4500: potionHardCap4500 || null
     })
   };
   api.cloud = {
@@ -42604,6 +42623,10 @@ function installProductionLiveServices(api, options = {}) {
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
   const travelIntelligence = installAlpha27MerchantTravelIntelligence(runtime, alpha27);
+  const p0Recovery = installP0RegroupSupplyRecovery(runtime);
+  installP0PotionBundleDeltaFix(runtime);
+  const potionPolicy4500 = installP0PotionPolicy4500(runtime);
+  const potionHardCap4500 = installP0PotionHardCap4500(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -42612,9 +42635,13 @@ function installProductionLiveServices(api, options = {}) {
       alpha27ConvergenceInstalled: !!runtime.alpha27CombatMerchantConvergence,
       alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
       merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
-      merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence
+      merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
+      p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
+      p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
+      p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
+      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed)
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
     return runtime.productionLiveServices;
   }
 
@@ -42624,6 +42651,7 @@ function installProductionLiveServices(api, options = {}) {
       const result = baseTick(...args);
       runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
       runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
+      runService(runtime, runtime.p0RegroupSupplyRecovery, 'p0-regroup-supply-recovery');
       return result;
     };
     runtime.__productionLiveServicesTickPatched = true;
@@ -42638,13 +42666,18 @@ function installProductionLiveServices(api, options = {}) {
     alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
     merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
     merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
+    p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
+    p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
+    p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
+    p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
+  runService(runtime, p0Recovery, 'p0-regroup-supply-recovery');
 
   try {
     if (runtime.log && typeof runtime.log.emit === 'function') {
@@ -42658,7 +42691,15 @@ module.exports = {
   PRODUCTION_LIVE_SERVICES_MODE,
   installProductionLiveServices,
   runService,
-  exposeDiagnostics
+  exposeDiagnostics,
+  installP0RegroupSupplyRecovery,
+  P0_REGROUP_SUPPLY_RECOVERY_MODE,
+  installP0PotionBundleDeltaFix,
+  P0_POTION_BUNDLE_DELTA_FIX_MODE,
+  installP0PotionPolicy4500,
+  P0_POTION_POLICY_4500_MODE,
+  installP0PotionHardCap4500,
+  P0_POTION_HARDCAP_4500_MODE
 };
 
 },
@@ -43189,6 +43230,1440 @@ module.exports = {
 };
 
 },
+"src/reliability/p0-regroup-supply-recovery.js": function(require,module,exports){
+'use strict';
+
+const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
+
+const P0_REGROUP_SUPPLY_RECOVERY_MODE = 'p0-regroup-supply-recovery-v1';
+const POTION_DELIVERY_QUANTITY = 5000;
+const POTION_LOW_WATERMARK = 5000;
+const RECOVERY_SUPERVISOR_STATES = new Set(['DEGRADED', 'SAFE_MODE']);
+const RECOVERY_REASON_ALLOWLIST = new Set([
+  'NO_PROGRESS_WATCH',
+  'NO_PROGRESS_DEGRADED',
+  'NO_PROGRESS_SAFE_MODE',
+  'EXPECTED_ACTIVITY_NO_PROGRESS',
+  'CONTENT_REVALIDATION_REQUIRED'
+]);
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function characterOf(runtime) {
+  return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character
+    || runtime && runtime.root && (runtime.root.character || runtime.root.parent && runtime.root.parent.character)
+    || null;
+}
+
+function inventoryOf(runtime) {
+  const c = runtime && runtime.root && (runtime.root.character || runtime.root.parent && runtime.root.parent.character);
+  return c && Array.isArray(c.items) ? c.items : [];
+}
+
+function identityQuantity(runtime, name) {
+  return inventoryOf(runtime).reduce((sum, item) => {
+    if (!item || String(item.name || '') !== String(name || '')) return sum;
+    return sum + Math.max(1, finite(item.q, 1));
+  }, 0);
+}
+
+function rawFunction(root, name) {
+  if (root && typeof root[name] === 'function') return { fn: root[name], owner: root };
+  const parent = root && root.parent;
+  if (parent && typeof parent[name] === 'function') return { fn: parent[name], owner: parent };
+  return null;
+}
+
+function safeSupervisorStatus(runtime) {
+  try {
+    return runtime && runtime.globalSupervisor && typeof runtime.globalSupervisor.status === 'function'
+      ? runtime.globalSupervisor.status()
+      : null;
+  } catch (_) { return null; }
+}
+
+function reportFor(runtime, name) {
+  try {
+    const status = runtime && runtime.partyTelemetry && typeof runtime.partyTelemetry.status === 'function'
+      ? runtime.partyTelemetry.status()
+      : null;
+    return Array.isArray(status && status.reports)
+      ? status.reports.find((row) => row && String(row.name || '') === String(name || '')) || null
+      : null;
+  } catch (_) { return null; }
+}
+
+function freshReport(runtime, name, ttlMs) {
+  const report = reportFor(runtime, name);
+  if (!report) return null;
+  const at = finite(report.at);
+  const now = runtime && typeof runtime.now === 'function' ? runtime.now() : Date.now();
+  if (at == null || at <= 0 || Math.abs(now - at) > Math.max(1000, finite(ttlMs, 25000))) return null;
+  return report;
+}
+
+function potionBundle(reserve = 0) {
+  const merchantReserve = Math.max(0, Math.floor(finite(reserve, 0)));
+  return [
+    { family: 'hp', itemName: 'hpot0', quantity: POTION_DELIVERY_QUANTITY, requiredStock: POTION_DELIVERY_QUANTITY + merchantReserve },
+    { family: 'mp', itemName: 'mpot0', quantity: POTION_DELIVERY_QUANTITY, requiredStock: POTION_DELIVERY_QUANTITY + merchantReserve }
+  ];
+}
+
+function isPotionServicePlan(plan) {
+  if (!plan || !plan.need) return false;
+  return ['hp', 'mp'].includes(String(plan.need.family || '')) || /POTIONS_(LOW|CRITICAL)/.test(String(plan.reason || ''));
+}
+
+function localFarmer(runtime) {
+  const c = characterOf(runtime);
+  return !!(c && String(c.ctype || c.type || '').toLowerCase() !== 'merchant');
+}
+
+function installBootstrapProgressGuard(runtime, stats) {
+  const supervisor = runtime && runtime.globalSupervisor;
+  if (!supervisor || supervisor.__p0BootstrapProgressGuard || typeof supervisor._activeWork !== 'function') return false;
+  const base = supervisor._activeWork.bind(supervisor);
+  supervisor._activeWork = (status) => {
+    if (localFarmer(runtime)) {
+      let bootstrap = null;
+      try { bootstrap = runtime.partyBootstrap && typeof runtime.partyBootstrap.status === 'function' ? runtime.partyBootstrap.status() : null; } catch (_) {}
+      if (bootstrap && bootstrap.active === true && bootstrap.ready !== true) {
+        stats.bootstrapNoProgressSuppressions += 1;
+        return false;
+      }
+    }
+    return base(status);
+  };
+  supervisor.__p0BootstrapProgressGuard = true;
+  return true;
+}
+
+function recoverySupervisorAllowed(runtime) {
+  const status = safeSupervisorStatus(runtime);
+  if (!status || !RECOVERY_SUPERVISOR_STATES.has(String(status.state || ''))) return false;
+  const reasons = Array.isArray(status.reasons) ? status.reasons.map(String) : [];
+  return reasons.length > 0 && reasons.every((reason) => RECOVERY_REASON_ALLOWLIST.has(reason));
+}
+
+function validatedMapSplit(crossMap) {
+  try {
+    const snapshot = crossMap.runtime.lastSnapshot;
+    const team = snapshot && crossMap._team(snapshot);
+    if (!team || !team.complete || !team.alive || !team.positionsKnown || team.sameMap) return null;
+    return { snapshot, team, isLeader: team.selfName === team.leaderName };
+  } catch (_) { return null; }
+}
+
+function installCrossMapRecoveryAuthority(runtime, stats) {
+  const alpha28 = runtime && runtime.alpha28LiveAuthorityLiveness;
+  const crossMap = alpha28 && alpha28.crossMap;
+  if (!crossMap) return false;
+
+  if (!crossMap.__p0ReceiverFallbackInstalled) {
+    const baseTransport = typeof crossMap._transport === 'function' ? crossMap._transport.bind(crossMap) : null;
+    crossMap._transport = () => {
+      let transport = null;
+      try { transport = baseTransport ? baseTransport() : null; } catch (_) {}
+      if (transport) return transport;
+      const candidates = [
+        runtime.partyAccountCommunication && runtime.partyAccountCommunication.transport,
+        runtime.partyBootstrap && runtime.partyBootstrap.transport,
+        runtime.controlledPartyLogistics && runtime.controlledPartyLogistics.transport
+      ];
+      return candidates.find((row) => row && typeof row.installDirectReceiver === 'function' && typeof row.send === 'function') || null;
+    };
+    crossMap.__p0ReceiverFallbackInstalled = true;
+  }
+
+  try {
+    if (!crossMap.receiverInstalled && typeof crossMap._ensureReceiver === 'function' && crossMap._ensureReceiver()) stats.receiverRepairs += 1;
+  } catch (_) {}
+
+  if (crossMap.__p0RecoveryTickInstalled || typeof crossMap.tick !== 'function') return true;
+  const baseTick = crossMap.tick.bind(crossMap);
+  crossMap.tick = () => {
+    crossMap.__p0LastTickAt = typeof crossMap.now === 'function' ? crossMap.now() : Date.now();
+    try {
+      if (!crossMap.receiverInstalled && typeof crossMap._ensureReceiver === 'function' && crossMap._ensureReceiver()) stats.receiverRepairs += 1;
+    } catch (_) {}
+
+    const normalAllowed = (() => {
+      try { return typeof crossMap._supervisorAllowed === 'function' && crossMap._supervisorAllowed(); } catch (_) { return false; }
+    })();
+    if (normalAllowed) return baseTick();
+    if (crossMap.busy || !localFarmer(runtime) || !recoverySupervisorAllowed(runtime)) return false;
+
+    const split = validatedMapSplit(crossMap);
+    if (!split) return false;
+    const { snapshot, team, isLeader } = split;
+    try { if (typeof crossMap._inCombat === 'function' && crossMap._inCombat(snapshot)) return false; } catch (_) { return false; }
+
+    if (isLeader) {
+      const objective = typeof crossMap._makeRegroupObjective === 'function' ? crossMap._makeRegroupObjective(snapshot, team) : null;
+      if (!objective) return false;
+      if (typeof crossMap._publishRegroup === 'function') crossMap._publishRegroup(team, objective);
+      crossMap.lastAction = {
+        at: crossMap.now(),
+        result: 'PUBLISHED',
+        reason: 'NO_PROGRESS_RECOVERY_TEAM_REGROUP',
+        objectiveId: objective.id,
+        objectiveKind: 'TEAM_REGROUP',
+        map: objective.map
+      };
+      stats.recoveryRegroupPublishes += 1;
+      if (typeof crossMap.event === 'function') crossMap.event('ALPHA28_TEAM_REGROUP_RECOVERY_AUTHORIZED', 'warn', 'VERIFIED_MAP_SPLIT_NO_PROGRESS_RECOVERY', { objectiveId: objective.id, map: objective.map });
+      return true;
+    }
+
+    const objective = typeof crossMap._sharedObjective === 'function' ? crossMap._sharedObjective(team) : null;
+    if (!objective || String(objective.kind || '') !== 'TEAM_REGROUP' || String(objective.map || '') === String(snapshot.character && snapshot.character.map || '')) return false;
+    if (crossMap.lastAction && crossMap.lastAction.objectiveId === objective.id && ['COMPLETED', 'FAILED_SAFE'].includes(crossMap.lastAction.result)) return false;
+    stats.recoveryRegroupTravels += 1;
+    Promise.resolve(crossMap._execute(objective, snapshot)).catch((error) => {
+      if (crossMap.stats) {
+        crossMap.stats.crossMapTravelFailedSafe = (crossMap.stats.crossMapTravelFailedSafe || 0) + 1;
+        crossMap.stats.crossMapRegroupTravelFailedSafe = (crossMap.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
+      }
+      crossMap.lastAction = { at: crossMap.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: objective.id, objectiveKind: 'TEAM_REGROUP' };
+    });
+    return true;
+  };
+  crossMap.__p0RecoveryTickInstalled = true;
+  return true;
+}
+
+function installPlannerBundlePolicy(runtime, stats) {
+  const planner = runtime && runtime.merchantServicePlanner;
+  if (!planner || planner.__p0BundlePolicyInstalled || typeof planner.plan !== 'function') return false;
+  planner.lowPotionCount = Math.max(planner.lowPotionCount || 0, POTION_LOW_WATERMARK);
+  planner.criticalPotionCount = Math.max(planner.criticalPotionCount || 0, Math.min(1000, POTION_LOW_WATERMARK));
+  planner.targetPotionCount = POTION_DELIVERY_QUANTITY;
+  planner.maxDeliveryQuantity = POTION_DELIVERY_QUANTITY;
+  const basePlan = planner.plan.bind(planner);
+  planner.plan = (input = {}) => {
+    const plan = basePlan(input);
+    if (!isPotionServicePlan(plan)) return plan;
+    const reserve = Math.max(0, Math.floor(finite(planner.merchantPotionReserve, 0)));
+    const bundle = potionBundle(reserve);
+    const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
+    const stock = Object.fromEntries(bundle.map((row) => [row.itemName, itemQuantity(inventory, row.itemName)]));
+    const missing = bundle.filter((row) => finite(stock[row.itemName], 0) < row.requiredStock);
+    const next = {
+      ...clone(plan),
+      reason: missing.length ? 'MERCHANT_POTION_BUNDLE_RESTOCK_REQUIRED' : plan.reason,
+      deliveries: bundle.map((row) => ({ family: row.family, itemName: row.itemName, quantity: row.quantity })),
+      delivery: bundle[0],
+      metadata: {
+        ...(plan.metadata || {}),
+        p0PotionBundle: true,
+        bundlePolicy: 'EXACT_5000_HP_AND_5000_MP_PER_FARMER_DELIVERY',
+        stockRequirements: bundle.map((row) => ({ itemName: row.itemName, requiredStock: row.requiredStock, merchantReserve: reserve }))
+      }
+    };
+    if (missing.length) {
+      next.kind = MerchantServicePlanKind.RESTOCK_REQUIRED;
+      next.afterRestock = plan.kind;
+      next.missingStock = missing.map((row) => ({ itemName: row.itemName, have: stock[row.itemName], required: row.requiredStock }));
+      next.distance = null;
+      stats.bundleRestockPlans += 1;
+    } else if ([MerchantServicePlanKind.SERVICE_TRAVEL, MerchantServicePlanKind.SERVICE_DELIVERY].includes(next.kind)) {
+      stats.bundleDeliveryPlans += 1;
+    }
+    planner.lastPlan = clone(next);
+    return clone(next);
+  };
+  planner.__p0BundlePolicyInstalled = true;
+  return true;
+}
+
+function itemStacks(service, itemName) {
+  const items = typeof service._inventory === 'function' ? service._inventory() : [];
+  const size = typeof service._inventorySize === 'function' ? service._inventorySize() : items.length;
+  const rows = [];
+  for (let index = 0; index < Math.min(size, items.length); index += 1) {
+    const item = items[index];
+    if (!item || String(item.name || '') !== String(itemName || '')) continue;
+    rows.push({ index, q: Math.max(1, Math.floor(finite(item.q, 1))) });
+  }
+  rows.sort((a, b) => b.q - a.q || a.index - b.index);
+  return rows;
+}
+
+function bundleChunks(service, deliveries) {
+  const chunks = [];
+  for (const delivery of deliveries) {
+    let remaining = Math.max(1, Math.floor(finite(delivery.quantity, 1)));
+    for (const stack of itemStacks(service, delivery.itemName)) {
+      if (remaining <= 0) break;
+      const quantity = Math.min(remaining, stack.q);
+      chunks.push({ itemName: delivery.itemName, index: stack.index, quantity });
+      remaining -= quantity;
+    }
+    if (remaining > 0) return null;
+  }
+  return chunks;
+}
+
+function installBundleExecutor(runtime, stats) {
+  const service = runtime && runtime.controlledMerchantService;
+  if (!service || service.__p0BundleExecutorInstalled || typeof service._executeDelivery !== 'function') return false;
+  const baseDelivery = service._executeDelivery.bind(service);
+  const basePreflight = typeof service._preflight === 'function' ? service._preflight.bind(service) : null;
+  const baseReconcile = typeof service.reconcile === 'function' ? service.reconcile.bind(service) : null;
+
+  if (basePreflight) {
+    service._preflight = (plan) => {
+      const gear = !!(plan && plan.metadata && plan.metadata.alpha27GearGoal);
+      if (!gear) return basePreflight(plan);
+      const name = plan && plan.target && String(plan.target.name || '');
+      const previous = name ? service.servedReports.get(name) : null;
+      if (name) service.servedReports.delete(name);
+      try { return basePreflight(plan); }
+      finally { if (name && previous != null) service.servedReports.set(name, previous); }
+    };
+  }
+
+  service._executeDelivery = async (plan) => {
+    const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : null;
+    if (!plan || !plan.metadata || plan.metadata.p0PotionBundle !== true || !deliveries || deliveries.length !== 2) return baseDelivery(plan);
+    const targetName = plan.target && String(plan.target.name || '');
+    const sourceReportAt = finite(plan.sourceReportAt);
+    if (!service._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
+    if (!deliveries.every((row) => ['hpot0', 'mpot0'].includes(String(row.itemName || '')) && Number(row.quantity) === POTION_DELIVERY_QUANTITY)) return { executed: false, committed: false, reason: 'INVALID_POTION_BUNDLE' };
+    const target = service._visibleTarget(targetName);
+    if (!target) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_NOT_VISIBLE' };
+    const c = service._character();
+    if (target.map && c && c.map && String(target.map) !== String(c.map)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_CROSS_MAP' };
+    const distance = service._distanceTo(target);
+    if (distance == null || distance > service.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
+
+    const reserve = Math.max(0, Math.floor(finite(runtime.merchantServicePlanner && runtime.merchantServicePlanner.merchantPotionReserve, 0)));
+    for (const row of deliveries) {
+      const have = itemQuantity(service._inventorySnapshot(), row.itemName);
+      if (have < POTION_DELIVERY_QUANTITY + reserve) return { executed: false, committed: false, reason: 'POTION_BUNDLE_STOCK_INCOMPLETE', itemName: row.itemName, have, required: POTION_DELIVERY_QUANTITY + reserve };
+    }
+    const chunks = bundleChunks(service, deliveries);
+    if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
+    const budget = service._rawBudget();
+    if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
+    const fn = rawFunction(service.root, 'send_item');
+    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
+
+    const beforeTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(service._inventorySnapshot(), row.itemName)]));
+    const expectedAfterTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, beforeTotals[row.itemName] - POTION_DELIVERY_QUANTITY]));
+    if (!service._startOperation(plan, {
+      action: 'send_potion_bundle',
+      targetName,
+      sourceReportAt,
+      deliveries: clone(deliveries),
+      chunks: clone(chunks),
+      beforeTotals,
+      expectedAfterTotals
+    })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+    service._transition('EXECUTING', 'RAW_ACTION_STARTING');
+    service.stats.deliveries += 1;
+
+    try {
+      for (const chunk of chunks) {
+        service.actionTimes.push(service.now());
+        service.stats.rawActions += 1;
+        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
+        const expected = itemQuantity(service._inventorySnapshot(), chunk.itemName);
+        if (expected > expectedAfterTotals[chunk.itemName] && !await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expected - chunk.quantity)) {
+          throw new Error(`POTION_BUNDLE_DELTA_NOT_OBSERVED:${chunk.itemName}`);
+        }
+      }
+      service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+      const verified = await service._verify(() => deliveries.every((row) => itemQuantity(service._inventorySnapshot(), row.itemName) === expectedAfterTotals[row.itemName]));
+      if (!verified) throw new Error('POTION_BUNDLE_FINAL_DELTA_VERIFICATION_FAILED');
+      if (!service._markServedReport(targetName, sourceReportAt)) throw new Error('DELIVERY_DEDUPE_PERSIST_FAILED');
+      stats.bundleDeliveriesCommitted += 1;
+      return service._commit(plan.kind, 'POTION_BUNDLE_DELIVERY_LOCAL_DELTA_VERIFIED', { targetName, deliveries: clone(deliveries), sourceReportAt });
+    } catch (error) {
+      // A partially applied two-item delivery is intentionally never blindly replayed
+      // against the same telemetry snapshot. Fresh farmer telemetry is required.
+      try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
+      stats.bundleDeliveriesFailedSafe += 1;
+      return service._failed(plan.kind, String(error && error.message || error || 'POTION_BUNDLE_DELIVERY_FAILED'), { targetName, deliveries: clone(deliveries), sourceReportAt });
+    }
+  };
+
+  if (baseReconcile) {
+    service.reconcile = () => {
+      const op = service.activeOperation;
+      if (!op || op.action !== 'send_potion_bundle' || op.state !== 'RECOVERING') return baseReconcile();
+      const committed = Object.entries(op.expectedAfterTotals || {}).every(([name, quantity]) => itemQuantity(service._inventorySnapshot(), name) === Number(quantity));
+      if (committed) {
+        if (!service._markServedReport(op.targetName, op.sourceReportAt)) {
+          service._transition('FAILED_SAFE', 'RESTART_BUNDLE_DEDUPE_PERSIST_FAILED_NO_RETRY');
+          service.stats.failedSafe += 1;
+          return { reconciled: true, committed: false, reason: 'RESTART_BUNDLE_DEDUPE_PERSIST_FAILED_NO_RETRY' };
+        }
+        service._transition('COMMITTED', 'RESTART_POTION_BUNDLE_RECONCILIATION_VERIFIED');
+        service.stats.recovered += 1;
+        service.stats.committed += 1;
+        stats.bundleDeliveriesCommitted += 1;
+        return { reconciled: true, committed: true, reason: 'RESTART_POTION_BUNDLE_RECONCILIATION_VERIFIED' };
+      }
+      try { service._markServedReport(op.targetName, op.sourceReportAt); } catch (_) {}
+      service._transition('FAILED_SAFE', 'RESTART_POTION_BUNDLE_OUTCOME_UNCERTAIN_NO_RETRY');
+      service.stats.failedSafe += 1;
+      return { reconciled: true, committed: false, reason: 'RESTART_POTION_BUNDLE_OUTCOME_UNCERTAIN_NO_RETRY' };
+    };
+  }
+
+  service.__p0BundleExecutorInstalled = true;
+  return true;
+}
+
+function installBundleRestock(runtime, stats) {
+  const alpha27 = runtime && runtime.alpha27CombatMerchantConvergence;
+  const merchant = alpha27 && alpha27.merchant;
+  if (!merchant || merchant.__p0BundleRestockInstalled || typeof merchant.restockPartyPotions !== 'function') return false;
+  merchant.options.merchantPotionLow = Math.max(POTION_LOW_WATERMARK, finite(merchant.options.merchantPotionLow, 0));
+  merchant.options.merchantPotionTarget = Math.max(POTION_DELIVERY_QUANTITY, finite(merchant.options.merchantPotionTarget, 0));
+  merchant.options.merchantMaxPotionBuy = Math.max(10000, finite(merchant.options.merchantMaxPotionBuy, 0));
+
+  const base = merchant.restockPartyPotions.bind(merchant);
+  merchant.restockPartyPotions = async () => {
+    const plan = runtime.lastMerchantServicePlan;
+    if (!plan || plan.kind !== MerchantServicePlanKind.RESTOCK_REQUIRED || !(plan.metadata && plan.metadata.p0PotionBundle)) return base();
+    if (!await merchant.ensureStandClosed('PARTY_SUPPLY_BUNDLE_RESTOCK')) return true;
+    const reserve = Math.max(0, Math.floor(finite(runtime.merchantServicePlanner && runtime.merchantServicePlanner.merchantPotionReserve, 0)));
+    const requirements = potionBundle(reserve);
+    const needed = requirements.find((row) => identityQuantity(runtime, row.itemName) < row.requiredStock);
+    if (!needed) return false;
+
+    const canBuy = rawFunction(merchant.root, 'can_buy');
+    let near = false;
+    if (canBuy) {
+      try { near = canBuy.fn.call(canBuy.owner, needed.itemName) === true; } catch (_) { near = false; }
+    }
+    if (!near) {
+      merchant.lastMerchantPlan = { at: merchant.now(), action: 'SERVICE_TRAVEL', reason: 'PARTY_SUPPLY_BUNDLE_VENDOR_REQUIRED', destination: needed.itemName };
+      await merchant.atomic.namedServiceTravel(needed.itemName);
+      return true;
+    }
+
+    const buy = rawFunction(merchant.root, 'buy');
+    if (!buy) {
+      merchant.lastMerchantAction = { at: merchant.now(), type: 'BUY_SUPPLY_BUNDLE', result: 'FAILED_SAFE', reason: 'BUY_API_UNAVAILABLE' };
+      return true;
+    }
+    const c = characterOf(runtime);
+    const gd = runtime.adapter && typeof runtime.adapter.getGameData === 'function' ? runtime.adapter.getGameData() || {} : {};
+    const meta = gd.items && gd.items[needed.itemName];
+    const price = Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
+    const before = identityQuantity(runtime, needed.itemName);
+    const deficit = Math.max(0, needed.requiredStock - before);
+    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - merchant.options.goldReserve) / price)) : deficit;
+    const quantity = Math.max(0, Math.min(deficit, affordable, merchant.options.merchantMaxPotionBuy));
+    if (quantity <= 0) {
+      merchant.lastMerchantPlan = { at: merchant.now(), action: 'HOLD', reason: 'PARTY_SUPPLY_GOLD_RESERVE_PROTECTED', itemName: needed.itemName, have: before, requiredStock: needed.requiredStock };
+      return true;
+    }
+
+    try {
+      const response = await merchant.atomic._timeout(buy.fn.call(buy.owner, needed.itemName, quantity), 'BUY_PARTY_SUPPLY_BUNDLE', 15000);
+      if (response && response.failed === true) throw response;
+      const verified = await merchant.atomic.verifyEventually(() => identityQuantity(runtime, needed.itemName) >= before + quantity);
+      if (!verified) throw new Error('PARTY_SUPPLY_BUNDLE_PURCHASE_DELTA_NOT_OBSERVED');
+      merchant.stats.potionRestocks += 1;
+      stats.bundlePotionPurchases += 1;
+      merchant.lastMerchantAction = { at: merchant.now(), type: 'BUY_SUPPLY_BUNDLE', result: 'COMMITTED', itemName: needed.itemName, quantity, requiredStock: needed.requiredStock };
+      return true;
+    } catch (error) {
+      merchant.stats.failedSafe += 1;
+      merchant.lastMerchantAction = { at: merchant.now(), type: 'BUY_SUPPLY_BUNDLE', result: 'FAILED_SAFE', reason: String(error && error.message || error || 'BUY_PARTY_SUPPLY_BUNDLE_FAILED') };
+      return true;
+    }
+  };
+  merchant.__p0BundleRestockInstalled = true;
+  return true;
+}
+
+function installGearTravelAttestation(runtime, stats) {
+  if (!runtime || runtime.__p0GearTravelAttestationInstalled || typeof runtime.planTravel !== 'function') return false;
+  const base = runtime.planTravel.bind(runtime);
+  runtime.planTravel = (request = {}, context = {}) => {
+    if (!context.destinationMapAttestation && request && request.metadata && request.metadata.source === 'ALPHA27_GEAR_DELIVERY') {
+      const targetName = request.metadata.targetName;
+      const ttl = Math.max(1000, finite(runtime.merchantServicePlanner && runtime.merchantServicePlanner.reportTtlMs, 25000));
+      const report = freshReport(runtime, targetName, ttl);
+      const destination = request.destination || {};
+      const sameMap = report && report.map && destination.map && String(report.map) === String(destination.map);
+      const rx = finite(report && report.x); const ry = finite(report && report.y);
+      const dx = finite(destination && destination.x); const dy = finite(destination && destination.y);
+      const samePosition = [rx, ry, dx, dy].every((value) => value != null) && Math.hypot(rx - dx, ry - dy) <= 5;
+      if (sameMap && samePosition) {
+        context = {
+          ...context,
+          destinationMapAttestation: {
+            map: String(report.map),
+            trusted: true,
+            source: 'trusted-owned-farmer-service',
+            observedAt: Number(report.at),
+            maxAgeMs: Math.min(30000, ttl),
+            subject: String(targetName || '')
+          }
+        };
+        stats.gearTravelAttestations += 1;
+      }
+    }
+    return base(request, context);
+  };
+  runtime.__p0GearTravelAttestationInstalled = true;
+  return true;
+}
+
+function installSinglePotionOwner(runtime, stats) {
+  const logistics = runtime && runtime.controlledPartyLogistics;
+  if (!logistics || logistics.__p0SinglePotionOwnerInstalled) return false;
+  if (typeof logistics._processSupply === 'function') {
+    logistics._processSupply = () => false;
+  }
+  if (typeof logistics._requestSupply === 'function') {
+    logistics._requestSupply = () => false;
+  }
+  if (logistics.config) {
+    logistics.config.farmerPotionLow = POTION_LOW_WATERMARK;
+    logistics.config.farmerPotionTarget = POTION_DELIVERY_QUANTITY;
+    logistics.config.maxSupplyBatch = POTION_DELIVERY_QUANTITY;
+  }
+  logistics.__p0SinglePotionOwnerInstalled = true;
+  stats.legacyPotionPathSuppressions += 1;
+  return true;
+}
+
+class P0RegroupSupplyRecovery {
+  constructor(runtime) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+    this.installedAt = this.now();
+    this.lastFallbackCrossMapTickAt = 0;
+    this.stats = {
+      receiverRepairs: 0,
+      recoveryRegroupPublishes: 0,
+      recoveryRegroupTravels: 0,
+      bootstrapNoProgressSuppressions: 0,
+      crossMapFallbackTicks: 0,
+      bundleRestockPlans: 0,
+      bundleDeliveryPlans: 0,
+      bundlePotionPurchases: 0,
+      bundleDeliveriesCommitted: 0,
+      bundleDeliveriesFailedSafe: 0,
+      gearTravelAttestations: 0,
+      legacyPotionPathSuppressions: 0
+    };
+    this.bootstrapProgressGuardInstalled = installBootstrapProgressGuard(runtime, this.stats);
+    this.crossMapRecoveryInstalled = installCrossMapRecoveryAuthority(runtime, this.stats);
+    this.plannerBundlePolicyInstalled = installPlannerBundlePolicy(runtime, this.stats);
+    this.bundleExecutorInstalled = installBundleExecutor(runtime, this.stats);
+    this.bundleRestockInstalled = installBundleRestock(runtime, this.stats);
+    this.gearTravelAttestationInstalled = installGearTravelAttestation(runtime, this.stats);
+    this.singlePotionOwnerInstalled = installSinglePotionOwner(runtime, this.stats);
+    this._event('P0_REGROUP_SUPPLY_RECOVERY_INSTALLED', 'warn', 'LIVE_LOG_VERIFIED_RECOVERY', this.status());
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'p0-regroup-supply-recovery', event, severity, reason, data }); } catch (_) {}
+  }
+
+  ensurePatches() {
+    if (!this.bootstrapProgressGuardInstalled) this.bootstrapProgressGuardInstalled = installBootstrapProgressGuard(this.runtime, this.stats);
+    if (!this.crossMapRecoveryInstalled) this.crossMapRecoveryInstalled = installCrossMapRecoveryAuthority(this.runtime, this.stats);
+    if (!this.plannerBundlePolicyInstalled) this.plannerBundlePolicyInstalled = installPlannerBundlePolicy(this.runtime, this.stats);
+    if (!this.bundleExecutorInstalled) this.bundleExecutorInstalled = installBundleExecutor(this.runtime, this.stats);
+    if (!this.bundleRestockInstalled) this.bundleRestockInstalled = installBundleRestock(this.runtime, this.stats);
+    if (!this.gearTravelAttestationInstalled) this.gearTravelAttestationInstalled = installGearTravelAttestation(this.runtime, this.stats);
+    if (!this.singlePotionOwnerInstalled) this.singlePotionOwnerInstalled = installSinglePotionOwner(this.runtime, this.stats);
+    return true;
+  }
+
+  beforeTick() {
+    this.ensurePatches();
+    const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+    if (!crossMap || typeof crossMap.tick !== 'function') return false;
+    const now = this.now();
+    const last = finite(crossMap.__p0LastTickAt, 0);
+    if (last > 0 && now - last <= 100) return false;
+    this.lastFallbackCrossMapTickAt = now;
+    this.stats.crossMapFallbackTicks += 1;
+    try { return crossMap.tick(); }
+    catch (error) {
+      this._event('P0_CROSS_MAP_FALLBACK_TICK_FAILED', 'error', 'CROSS_MAP_FALLBACK_TICK_ERROR', { message: String(error && error.message || error).slice(0, 220) });
+      return false;
+    }
+  }
+
+  status() {
+    const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+    const planner = this.runtime && this.runtime.merchantServicePlanner;
+    return {
+      schemaVersion: 1,
+      mode: P0_REGROUP_SUPPLY_RECOVERY_MODE,
+      installedAt: this.installedAt,
+      bootstrapProgressGuardInstalled: this.bootstrapProgressGuardInstalled,
+      crossMapRecoveryInstalled: this.crossMapRecoveryInstalled,
+      crossMapReceiverInstalled: !!(crossMap && crossMap.receiverInstalled),
+      plannerBundlePolicyInstalled: this.plannerBundlePolicyInstalled,
+      bundleExecutorInstalled: this.bundleExecutorInstalled,
+      bundleRestockInstalled: this.bundleRestockInstalled,
+      gearTravelAttestationInstalled: this.gearTravelAttestationInstalled,
+      singlePotionOwnerInstalled: this.singlePotionOwnerInstalled,
+      potionPolicy: {
+        deliveryPerFarmer: { hpot0: POTION_DELIVERY_QUANTITY, mpot0: POTION_DELIVERY_QUANTITY },
+        lowWatermark: POTION_LOW_WATERMARK,
+        merchantReserve: planner ? planner.merchantPotionReserve : null,
+        buyBeforeFarmerTravel: true,
+        bothFamiliesRequiredBeforeTravel: true,
+        exactDelivery: true,
+        legacyDirectSupplyDisabled: true
+      },
+      recoveryPolicy: {
+        normalCrossMapSupervisorStatesUnchanged: ['HEALTHY', 'WATCH'],
+        verifiedTeamRegroupRecoveryStates: [...RECOVERY_SUPERVISOR_STATES],
+        recoveryReasonAllowlist: [...RECOVERY_REASON_ALLOWLIST],
+        normalProgressionAuthorityWidened: false,
+        contentSafetyBypassed: false,
+        targetSafetyBypassed: false,
+        serverChangeAllowed: false
+      },
+      lastFallbackCrossMapTickAt: this.lastFallbackCrossMapTickAt || null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installP0RegroupSupplyRecovery(runtime) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.p0RegroupSupplyRecovery) return runtime.p0RegroupSupplyRecovery;
+  const module = new P0RegroupSupplyRecovery(runtime);
+  runtime.p0RegroupSupplyRecovery = module;
+  return module;
+}
+
+module.exports = {
+  P0_REGROUP_SUPPLY_RECOVERY_MODE,
+  POTION_DELIVERY_QUANTITY,
+  POTION_LOW_WATERMARK,
+  RECOVERY_SUPERVISOR_STATES,
+  RECOVERY_REASON_ALLOWLIST,
+  P0RegroupSupplyRecovery,
+  installP0RegroupSupplyRecovery,
+  installBootstrapProgressGuard,
+  installCrossMapRecoveryAuthority,
+  installPlannerBundlePolicy,
+  installBundleExecutor,
+  installBundleRestock,
+  installGearTravelAttestation,
+  installSinglePotionOwner,
+  potionBundle,
+  recoverySupervisorAllowed
+};
+
+},
+"src/reliability/p0-potion-bundle-delta-fix.js": function(require,module,exports){
+'use strict';
+
+const { itemQuantity } = require('../merchant/merchant-service-planner');
+
+const P0_POTION_BUNDLE_DELTA_FIX_MODE = 'p0-potion-bundle-delta-fix-v1';
+const POTION_DELIVERY_QUANTITY = 5000;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function rawFunction(root, name) {
+  if (root && typeof root[name] === 'function') return { fn: root[name], owner: root };
+  if (root && root.parent && typeof root.parent[name] === 'function') return { fn: root.parent[name], owner: root.parent };
+  return null;
+}
+
+function itemStacks(service, itemName) {
+  const items = typeof service._inventory === 'function' ? service._inventory() : [];
+  const size = typeof service._inventorySize === 'function' ? service._inventorySize() : items.length;
+  const rows = [];
+  for (let index = 0; index < Math.min(size, items.length); index += 1) {
+    const item = items[index];
+    if (!item || String(item.name || '') !== String(itemName || '')) continue;
+    rows.push({ index, q: Math.max(1, Math.floor(finite(item.q, 1))) });
+  }
+  rows.sort((a, b) => b.q - a.q || a.index - b.index);
+  return rows;
+}
+
+function bundleChunks(service, deliveries) {
+  const chunks = [];
+  for (const delivery of deliveries) {
+    let remaining = Math.max(1, Math.floor(finite(delivery.quantity, 1)));
+    for (const stack of itemStacks(service, delivery.itemName)) {
+      if (remaining <= 0) break;
+      const quantity = Math.min(remaining, stack.q);
+      chunks.push({ itemName: delivery.itemName, index: stack.index, quantity });
+      remaining -= quantity;
+    }
+    if (remaining > 0) return null;
+  }
+  return chunks;
+}
+
+function recoveryStats(runtime) {
+  const module = runtime && runtime.p0RegroupSupplyRecovery;
+  return module && module.stats ? module.stats : null;
+}
+
+function installP0PotionBundleDeltaFix(runtime) {
+  const service = runtime && runtime.controlledMerchantService;
+  if (!service || service.__p0PotionBundleDeltaFixInstalled || typeof service._executeDelivery !== 'function') return false;
+
+  const baseDelivery = service._executeDelivery.bind(service);
+  service._executeDelivery = async (plan) => {
+    const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : null;
+    if (!plan || !plan.metadata || plan.metadata.p0PotionBundle !== true || !deliveries || deliveries.length !== 2) {
+      return baseDelivery(plan);
+    }
+
+    const targetName = plan.target && String(plan.target.name || '');
+    const sourceReportAt = finite(plan.sourceReportAt);
+    const exactBundle = deliveries.length === 2 &&
+      deliveries.some((row) => String(row.itemName || '') === 'hpot0' && Number(row.quantity) === POTION_DELIVERY_QUANTITY) &&
+      deliveries.some((row) => String(row.itemName || '') === 'mpot0' && Number(row.quantity) === POTION_DELIVERY_QUANTITY) &&
+      deliveries.every((row) => ['hpot0', 'mpot0'].includes(String(row.itemName || '')) && Number(row.quantity) === POTION_DELIVERY_QUANTITY);
+
+    if (!exactBundle) return { executed: false, committed: false, reason: 'INVALID_POTION_BUNDLE' };
+    if (!service._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
+    const target = service._visibleTarget(targetName);
+    if (!target) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_NOT_VISIBLE' };
+    const c = service._character();
+    if (target.map && c && c.map && String(target.map) !== String(c.map)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_CROSS_MAP' };
+    const distance = service._distanceTo(target);
+    if (distance == null || distance > service.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
+
+    const reserve = Math.max(0, Math.floor(finite(runtime.merchantServicePlanner && runtime.merchantServicePlanner.merchantPotionReserve, 0)));
+    for (const row of deliveries) {
+      const have = itemQuantity(service._inventorySnapshot(), row.itemName);
+      const required = POTION_DELIVERY_QUANTITY + reserve;
+      if (have < required) return { executed: false, committed: false, reason: 'POTION_BUNDLE_STOCK_INCOMPLETE', itemName: row.itemName, have, required };
+    }
+
+    const chunks = bundleChunks(service, deliveries);
+    if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
+    const budget = service._rawBudget();
+    if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
+    const fn = rawFunction(service.root, 'send_item');
+    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
+
+    const beforeTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(service._inventorySnapshot(), row.itemName)]));
+    const expectedAfterTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, beforeTotals[row.itemName] - POTION_DELIVERY_QUANTITY]));
+    if (!service._startOperation(plan, {
+      action: 'send_potion_bundle',
+      targetName,
+      sourceReportAt,
+      deliveries: clone(deliveries),
+      chunks: clone(chunks),
+      beforeTotals,
+      expectedAfterTotals
+    })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+
+    service._transition('EXECUTING', 'RAW_ACTION_STARTING');
+    service.stats.deliveries += 1;
+
+    try {
+      for (const chunk of chunks) {
+        // Capture the item-family total BEFORE send_item. Adventure Land may update
+        // the local inventory either before or after the returned promise resolves.
+        // The old implementation captured it afterwards and could therefore subtract
+        // the chunk twice when the local inventory changed synchronously.
+        const beforeChunkTotal = itemQuantity(service._inventorySnapshot(), chunk.itemName);
+        const expectedChunkTotal = beforeChunkTotal - chunk.quantity;
+        if (expectedChunkTotal < expectedAfterTotals[chunk.itemName]) {
+          throw new Error(`POTION_BUNDLE_CHUNK_WOULD_OVERDELIVER:${chunk.itemName}`);
+        }
+
+        service.actionTimes.push(service.now());
+        service.stats.rawActions += 1;
+        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
+
+        const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||
+          await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal);
+        if (!verified) throw new Error(`POTION_BUNDLE_DELTA_NOT_OBSERVED:${chunk.itemName}`);
+      }
+
+      service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+      const verified = deliveries.every((row) => itemQuantity(service._inventorySnapshot(), row.itemName) === expectedAfterTotals[row.itemName]) ||
+        await service._verify(() => deliveries.every((row) => itemQuantity(service._inventorySnapshot(), row.itemName) === expectedAfterTotals[row.itemName]));
+      if (!verified) throw new Error('POTION_BUNDLE_FINAL_DELTA_VERIFICATION_FAILED');
+      if (!service._markServedReport(targetName, sourceReportAt)) throw new Error('DELIVERY_DEDUPE_PERSIST_FAILED');
+
+      const stats = recoveryStats(runtime);
+      if (stats) stats.bundleDeliveriesCommitted = (stats.bundleDeliveriesCommitted || 0) + 1;
+      return service._commit(plan.kind, 'POTION_BUNDLE_DELIVERY_LOCAL_DELTA_VERIFIED', { targetName, deliveries: clone(deliveries), sourceReportAt });
+    } catch (error) {
+      // A partially applied two-family delivery is never replayed from the same
+      // telemetry report. This keeps the at-most-once fail-safe semantics.
+      try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
+      const stats = recoveryStats(runtime);
+      if (stats) stats.bundleDeliveriesFailedSafe = (stats.bundleDeliveriesFailedSafe || 0) + 1;
+      return service._failed(plan.kind, String(error && error.message || error || 'POTION_BUNDLE_DELIVERY_FAILED'), { targetName, deliveries: clone(deliveries), sourceReportAt });
+    }
+  };
+
+  service.__p0PotionBundleDeltaFixInstalled = true;
+  return true;
+}
+
+module.exports = {
+  P0_POTION_BUNDLE_DELTA_FIX_MODE,
+  POTION_DELIVERY_QUANTITY,
+  installP0PotionBundleDeltaFix
+};
+
+},
+"src/reliability/p0-potion-policy-4500.js": function(require,module,exports){
+'use strict';
+
+const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
+
+const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-adaptive-4500-v2';
+const POTION_TARGET_COUNT = 4500;
+const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
+const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
+const MERCHANT_POTION_RESERVE = 0;
+const MAX_DYNAMIC_DELIVERY = 20000;
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function inventoryOf(runtime) {
+  const root = runtime && runtime.root;
+  const c = root && (root.character || root.parent && root.parent.character);
+  return c && Array.isArray(c.items) ? c.items : [];
+}
+
+function itemTotal(runtime, itemName) {
+  return itemQuantity(inventoryOf(runtime), itemName);
+}
+
+function characterOf(runtime) {
+  const root = runtime && runtime.root;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
+function rawFunction(root, name) {
+  if (root && typeof root[name] === 'function') return { fn: root[name], owner: root };
+  if (root && root.parent && typeof root.parent[name] === 'function') return { fn: root.parent[name], owner: root.parent };
+  return null;
+}
+
+function targetReport(input, plan) {
+  const targetName = plan && plan.target && String(plan.target.name || '');
+  return (Array.isArray(input && input.reports) ? input.reports : []).find((row) => row && String(row.name || '') === targetName) || null;
+}
+
+function farmerCount(report, family) {
+  const supplies = report && report.supplies || {};
+  return Math.max(0, Math.floor(finite(family === 'hp' ? supplies.hpPotions : supplies.mpPotions, 0)));
+}
+
+function dynamicBundle(input, plan) {
+  const report = targetReport(input, plan);
+  if (!report) return null;
+  const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
+  const definitions = [
+    { family: 'hp', itemName: 'hpot0' },
+    { family: 'mp', itemName: 'mpot0' }
+  ];
+  const rows = [];
+  for (const def of definitions) {
+    const currentFarmer = farmerCount(report, def.family);
+    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - currentFarmer);
+    const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
+    // Delivery is strictly bounded by this farmer's observed shortfall.
+    // Existing merchant stock above that shortfall must never be dumped onto the farmer.
+    const deliveryQuantity = farmerShortfall;
+    if (deliveryQuantity > MAX_DYNAMIC_DELIVERY) return null;
+    rows.push({
+      family: def.family,
+      itemName: def.itemName,
+      quantity: deliveryQuantity,
+      farmerBefore: currentFarmer,
+      farmerShortfall,
+      merchantHave,
+      buyQuantity: Math.max(0, deliveryQuantity - merchantHave)
+    });
+  }
+  return rows;
+}
+
+function serviceKind(input, plan) {
+  if (input && input.standOpen === true) return MerchantServicePlanKind.STAND_CLOSE;
+  const merchant = input && input.merchant || {};
+  const target = plan && plan.target || {};
+  const sameMap = merchant.map && target.map && String(merchant.map) === String(target.map);
+  const mx = finite(merchant.x != null ? merchant.x : merchant.real_x);
+  const my = finite(merchant.y != null ? merchant.y : merchant.real_y);
+  const tx = finite(target.x);
+  const ty = finite(target.y);
+  const distance = sameMap && [mx, my, tx, ty].every((value) => value != null) ? Math.hypot(mx - tx, my - ty) : null;
+  const nearby = sameMap && distance != null && distance <= Math.max(50, finite(input && input.deliveryDistance, 400));
+  return nearby ? MerchantServicePlanKind.SERVICE_DELIVERY : MerchantServicePlanKind.SERVICE_TRAVEL;
+}
+
+function itemStacks(service, itemName) {
+  const items = typeof service._inventory === 'function' ? service._inventory() : [];
+  const size = typeof service._inventorySize === 'function' ? service._inventorySize() : items.length;
+  const rows = [];
+  for (let index = 0; index < Math.min(size, items.length); index += 1) {
+    const item = items[index];
+    if (!item || String(item.name || '') !== String(itemName || '')) continue;
+    rows.push({ index, q: Math.max(1, Math.floor(finite(item.q, 1))) });
+  }
+  rows.sort((a, b) => b.q - a.q || a.index - b.index);
+  return rows;
+}
+
+function bundleChunks(service, deliveries) {
+  const chunks = [];
+  for (const delivery of deliveries) {
+    let remaining = Math.max(1, Math.floor(finite(delivery.quantity, 1)));
+    for (const stack of itemStacks(service, delivery.itemName)) {
+      if (remaining <= 0) break;
+      const quantity = Math.min(remaining, stack.q);
+      chunks.push({ itemName: delivery.itemName, index: stack.index, quantity });
+      remaining -= quantity;
+    }
+    if (remaining > 0) return null;
+  }
+  return chunks;
+}
+
+function installPlannerPolicy(runtime) {
+  const planner = runtime && runtime.merchantServicePlanner;
+  if (!planner) return false;
+
+  planner.merchantPotionReserve = MERCHANT_POTION_RESERVE;
+  planner.lowPotionCount = POTION_LOW_WATERMARK;
+  planner.targetPotionCount = POTION_TARGET_COUNT;
+  planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
+
+  if (planner.__p0PotionPolicy4500PlannerInstalled || typeof planner.plan !== 'function') return true;
+  const basePlan = planner.plan.bind(planner);
+  planner.plan = (input = {}) => {
+    const plan = basePlan(input);
+    if (!plan || !(plan.metadata && plan.metadata.p0PotionBundle)) return plan;
+
+    const rows = dynamicBundle(input, plan);
+    if (!rows) return plan;
+    const excessStock = rows.filter((row) => row.merchantHave > row.farmerShortfall);
+    const deliveries = rows.filter((row) => row.quantity > 0);
+
+    // Fail closed before travel/restock if legacy merchant stock cannot fit into
+    // this farmer's observed deficit. The outer hard-cap may reroute to another
+    // farmer; without it, this HOLD still prevents overfilling.
+    if (excessStock.length) {
+      const hold = {
+        ...clone(plan),
+        kind: MerchantServicePlanKind.HOLD,
+        reason: 'MERCHANT_POTION_EXCESS_REQUIRES_REROUTE',
+        deliveries: [],
+        delivery: null,
+        distance: null,
+        metadata: {
+          ...(plan.metadata || {}),
+          p0PotionBundle: true,
+          p0PotionPolicy4500: true,
+          adaptivePotionDelivery: true,
+          bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
+          farmerTarget: POTION_TARGET_COUNT,
+          merchantReserve: MERCHANT_POTION_RESERVE,
+          excessStock: excessStock.map((row) => ({
+            itemName: row.itemName,
+            merchantHave: row.merchantHave,
+            farmerBefore: row.farmerBefore,
+            farmerShortfall: row.farmerShortfall,
+            excessQuantity: row.merchantHave - row.farmerShortfall
+          }))
+        }
+      };
+      delete hold.afterRestock;
+      delete hold.afterTravel;
+      delete hold.missingStock;
+      planner.lastPlan = clone(hold);
+      return clone(hold);
+    }
+
+    if (!deliveries.length) return plan;
+    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(input && input.merchant && input.merchant.inventory, row.itemName)]));
+    const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
+    const readyKind = serviceKind(input, plan);
+    const next = {
+      ...clone(plan),
+      deliveries: deliveries.map((row) => ({ family: row.family, itemName: row.itemName, quantity: row.quantity })),
+      delivery: { family: deliveries[0].family, itemName: deliveries[0].itemName, quantity: deliveries[0].quantity },
+      metadata: {
+        ...(plan.metadata || {}),
+        p0PotionBundle: true,
+        p0PotionPolicy4500: true,
+        adaptivePotionDelivery: true,
+        bundlePolicy: 'TOP_UP_FARMER_TO_4500_AND_END_MERCHANT_AT_ZERO',
+        farmerTarget: POTION_TARGET_COUNT,
+        merchantReserve: MERCHANT_POTION_RESERVE,
+        stockRequirements: deliveries.map((row) => ({
+          itemName: row.itemName,
+          requiredStock: row.quantity,
+          merchantReserve: MERCHANT_POTION_RESERVE,
+          farmerBefore: row.farmerBefore,
+          farmerShortfall: row.farmerShortfall,
+          merchantHaveAtPlan: row.merchantHave,
+          buyQuantity: row.buyQuantity
+        }))
+      }
+    };
+
+    if (missing.length) {
+      next.kind = MerchantServicePlanKind.RESTOCK_REQUIRED;
+      next.afterRestock = readyKind;
+      next.reason = 'MERCHANT_ADAPTIVE_POTION_RESTOCK_REQUIRED';
+      next.missingStock = missing.map((row) => ({
+        itemName: row.itemName,
+        have: stock[row.itemName],
+        required: row.quantity,
+        buyQuantity: Math.max(0, row.quantity - stock[row.itemName])
+      }));
+      next.distance = null;
+    } else {
+      next.kind = readyKind;
+      next.reason = readyKind === MerchantServicePlanKind.SERVICE_DELIVERY
+        ? 'MERCHANT_ADAPTIVE_POTION_DELIVERY_READY'
+        : readyKind === MerchantServicePlanKind.SERVICE_TRAVEL
+          ? 'MERCHANT_ADAPTIVE_POTION_TRAVEL_READY'
+          : plan.reason;
+      delete next.missingStock;
+    }
+
+    planner.lastPlan = clone(next);
+    return clone(next);
+  };
+  planner.__p0PotionPolicy4500PlannerInstalled = true;
+  return true;
+}
+
+function installRestockPolicy(runtime) {
+  const alpha27 = runtime && runtime.alpha27CombatMerchantConvergence;
+  const merchant = alpha27 && alpha27.merchant;
+  if (!merchant || typeof merchant.restockPartyPotions !== 'function') return false;
+
+  merchant.options.merchantPotionLow = POTION_LOW_WATERMARK;
+  merchant.options.merchantPotionTarget = POTION_TARGET_COUNT;
+  merchant.options.merchantMaxPotionBuy = Math.max(9000, finite(merchant.options.merchantMaxPotionBuy, 0));
+
+  if (merchant.__p0PotionPolicy4500RestockInstalled) return true;
+  const base = merchant.restockPartyPotions.bind(merchant);
+  merchant.restockPartyPotions = async () => {
+    const plan = runtime.lastMerchantServicePlan;
+    const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : [];
+    if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500) || plan.kind !== MerchantServicePlanKind.RESTOCK_REQUIRED || !deliveries.length) return base();
+    if (!await merchant.ensureStandClosed('PARTY_SUPPLY_ADAPTIVE_RESTOCK')) return true;
+
+    const needed = deliveries.find((row) => itemTotal(runtime, row.itemName) < Number(row.quantity));
+    if (!needed) return false;
+
+    const canBuy = rawFunction(merchant.root, 'can_buy');
+    let near = false;
+    if (canBuy) {
+      try { near = canBuy.fn.call(canBuy.owner, needed.itemName) === true; } catch (_) { near = false; }
+    }
+    if (!near) {
+      merchant.lastMerchantPlan = { at: merchant.now(), action: 'SERVICE_TRAVEL', reason: 'PARTY_SUPPLY_ADAPTIVE_VENDOR_REQUIRED', destination: needed.itemName };
+      await merchant.atomic.namedServiceTravel(needed.itemName);
+      return true;
+    }
+
+    const buy = rawFunction(merchant.root, 'buy');
+    if (!buy) {
+      merchant.lastMerchantAction = { at: merchant.now(), type: 'BUY_SUPPLY_ADAPTIVE', result: 'FAILED_SAFE', reason: 'BUY_API_UNAVAILABLE' };
+      return true;
+    }
+
+    const c = characterOf(runtime);
+    const gd = runtime.adapter && typeof runtime.adapter.getGameData === 'function' ? runtime.adapter.getGameData() || {} : {};
+    const meta = gd.items && gd.items[needed.itemName];
+    const price = Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
+    const before = itemTotal(runtime, needed.itemName);
+    const required = Math.max(0, Math.floor(finite(needed.quantity, 0)));
+    const deficit = Math.max(0, required - before);
+    const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - merchant.options.goldReserve) / price)) : deficit;
+    const quantity = Math.max(0, Math.min(deficit, affordable, merchant.options.merchantMaxPotionBuy));
+    if (quantity <= 0) {
+      merchant.lastMerchantPlan = { at: merchant.now(), action: 'HOLD', reason: 'PARTY_SUPPLY_GOLD_RESERVE_PROTECTED', itemName: needed.itemName, have: before, requiredStock: required };
+      return true;
+    }
+
+    try {
+      const response = await merchant.atomic._timeout(buy.fn.call(buy.owner, needed.itemName, quantity), 'BUY_PARTY_SUPPLY_ADAPTIVE', 15000);
+      if (response && response.failed === true) throw response;
+      const verified = await merchant.atomic.verifyEventually(() => itemTotal(runtime, needed.itemName) >= before + quantity);
+      if (!verified) throw new Error('PARTY_SUPPLY_ADAPTIVE_PURCHASE_DELTA_NOT_OBSERVED');
+      merchant.stats.potionRestocks = (merchant.stats.potionRestocks || 0) + 1;
+      merchant.lastMerchantAction = {
+        at: merchant.now(), type: 'BUY_SUPPLY_ADAPTIVE', result: 'COMMITTED', itemName: needed.itemName,
+        quantity, requiredStock: required, merchantReserve: MERCHANT_POTION_RESERVE
+      };
+      return true;
+    } catch (error) {
+      merchant.stats.failedSafe = (merchant.stats.failedSafe || 0) + 1;
+      merchant.lastMerchantAction = { at: merchant.now(), type: 'BUY_SUPPLY_ADAPTIVE', result: 'FAILED_SAFE', reason: String(error && error.message || error || 'BUY_PARTY_SUPPLY_ADAPTIVE_FAILED') };
+      return true;
+    }
+  };
+  merchant.__p0PotionPolicy4500RestockInstalled = true;
+  return true;
+}
+
+function installDeliveryPolicy(runtime) {
+  const service = runtime && runtime.controlledMerchantService;
+  if (!service || typeof service._executeDelivery !== 'function') return false;
+  if (service.__p0PotionPolicy4500DeliveryInstalled) return true;
+
+  const baseDelivery = service._executeDelivery.bind(service);
+  service._executeDelivery = async (plan) => {
+    const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : null;
+    if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500) || !deliveries) return baseDelivery(plan);
+
+    const valid = deliveries.length >= 1 && deliveries.length <= 2 &&
+      new Set(deliveries.map((row) => String(row.itemName || ''))).size === deliveries.length &&
+      deliveries.every((row) => ['hpot0', 'mpot0'].includes(String(row.itemName || '')) && Number.isInteger(Number(row.quantity)) && Number(row.quantity) > 0 && Number(row.quantity) <= MAX_DYNAMIC_DELIVERY);
+    if (!valid) return { executed: false, committed: false, reason: 'INVALID_ADAPTIVE_POTION_BUNDLE' };
+
+    const targetName = plan.target && String(plan.target.name || '');
+    const sourceReportAt = finite(plan.sourceReportAt);
+    if (!service._trusted(targetName)) return { executed: false, committed: false, reason: 'UNTRUSTED_DELIVERY_TARGET' };
+    const target = service._visibleTarget(targetName);
+    if (!target) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_NOT_VISIBLE' };
+    const c = service._character();
+    if (target.map && c && c.map && String(target.map) !== String(c.map)) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_CROSS_MAP' };
+    const distance = service._distanceTo(target);
+    if (distance == null || distance > service.maxDeliveryDistance) return { executed: false, committed: false, reason: 'DELIVERY_TARGET_OUT_OF_RANGE' };
+
+    const planned = new Map(deliveries.map((row) => [String(row.itemName), Number(row.quantity)]));
+    for (const itemName of ['hpot0', 'mpot0']) {
+      const have = itemQuantity(service._inventorySnapshot(), itemName);
+      const required = planned.get(itemName) || 0;
+      // A successful adaptive delivery must leave no merchant potion stock. If
+      // stock changed after planning, force a fresh plan instead of carrying leftovers.
+      if (have !== required) return { executed: false, committed: false, reason: 'POTION_STOCK_CHANGED_REPLAN_REQUIRED', itemName, have, required };
+    }
+
+    const chunks = bundleChunks(service, deliveries);
+    if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
+    const budget = service._rawBudget();
+    if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
+    const fn = rawFunction(service.root, 'send_item');
+    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
+
+    const beforeTotals = { hpot0: itemQuantity(service._inventorySnapshot(), 'hpot0'), mpot0: itemQuantity(service._inventorySnapshot(), 'mpot0') };
+    const expectedAfterTotals = { hpot0: 0, mpot0: 0 };
+    if (!service._startOperation(plan, {
+      action: 'send_potion_bundle', targetName, sourceReportAt, deliveries: clone(deliveries), chunks: clone(chunks), beforeTotals, expectedAfterTotals
+    })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+
+    service._transition('EXECUTING', 'RAW_ACTION_STARTING');
+    service.stats.deliveries += 1;
+    try {
+      for (const chunk of chunks) {
+        const beforeChunkTotal = itemQuantity(service._inventorySnapshot(), chunk.itemName);
+        const expectedChunkTotal = beforeChunkTotal - chunk.quantity;
+        if (expectedChunkTotal < 0) throw new Error(`POTION_BUNDLE_CHUNK_WOULD_OVERDELIVER:${chunk.itemName}`);
+        service.actionTimes.push(service.now());
+        service.stats.rawActions += 1;
+        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
+        const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||
+          await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal);
+        if (!verified) throw new Error(`POTION_BUNDLE_DELTA_NOT_OBSERVED:${chunk.itemName}`);
+      }
+
+      service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
+      const verified = ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0) ||
+        await service._verify(() => ['hpot0', 'mpot0'].every((itemName) => itemQuantity(service._inventorySnapshot(), itemName) === 0));
+      if (!verified) throw new Error('MERCHANT_POTION_ZERO_RESERVE_NOT_REACHED');
+      if (!service._markServedReport(targetName, sourceReportAt)) throw new Error('DELIVERY_DEDUPE_PERSIST_FAILED');
+      return service._commit(plan.kind, 'ADAPTIVE_POTION_DELIVERY_ZERO_RESERVE_VERIFIED', {
+        targetName, deliveries: clone(deliveries), sourceReportAt, merchantPotionReserve: MERCHANT_POTION_RESERVE
+      });
+    } catch (error) {
+      try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
+      return service._failed(plan.kind, String(error && error.message || error || 'ADAPTIVE_POTION_DELIVERY_FAILED'), { targetName, deliveries: clone(deliveries), sourceReportAt });
+    }
+  };
+
+  service.__p0PotionPolicy4500DeliveryInstalled = true;
+  return true;
+}
+
+function installStatusPolicy(runtime) {
+  const recovery = runtime && runtime.p0RegroupSupplyRecovery;
+  if (recovery && !recovery.__p0PotionPolicy4500StatusInstalled && typeof recovery.status === 'function') {
+    const baseStatus = recovery.status.bind(recovery);
+    recovery.status = () => {
+      const status = baseStatus() || {};
+      return {
+        ...status,
+        potionPolicy: {
+          ...(status.potionPolicy || {}),
+          farmerTarget: POTION_TARGET_COUNT,
+          lowWatermark: POTION_LOW_WATERMARK,
+          deliveryMode: 'adaptive-top-up',
+          merchantReserve: MERCHANT_POTION_RESERVE,
+          buyOnlyCurrentDeliveryDeficit: true,
+          successfulDeliveryEndsWithZeroMerchantPotions: true,
+          policyOverride: P0_POTION_POLICY_4500_MODE
+        }
+      };
+    };
+    recovery.__p0PotionPolicy4500StatusInstalled = true;
+  }
+
+  const logistics = runtime && runtime.controlledPartyLogistics;
+  if (logistics && logistics.config) {
+    logistics.config.farmerPotionLow = POTION_LOW_WATERMARK;
+    logistics.config.farmerPotionTarget = POTION_TARGET_COUNT;
+    logistics.config.maxSupplyBatch = POTION_TARGET_COUNT;
+  }
+  return true;
+}
+
+function installP0PotionPolicy4500(runtime) {
+  if (!runtime) throw new Error('runtime required');
+  installPlannerPolicy(runtime);
+  installRestockPolicy(runtime);
+  installDeliveryPolicy(runtime);
+  installStatusPolicy(runtime);
+  runtime.p0PotionPolicy4500 = {
+    mode: P0_POTION_POLICY_4500_MODE,
+    farmerTarget: POTION_TARGET_COUNT,
+    lowWatermark: POTION_LOW_WATERMARK,
+    merchantPotionReserve: MERCHANT_POTION_RESERVE,
+    adaptiveDelivery: true,
+    buyOnlyCurrentDeliveryDeficit: true,
+    zeroPotionInventoryAfterSuccessfulDelivery: true,
+    installed: true
+  };
+  return runtime.p0PotionPolicy4500;
+}
+
+module.exports = {
+  P0_POTION_POLICY_4500_MODE,
+  POTION_TARGET_COUNT,
+  POTION_DELIVERY_QUANTITY,
+  POTION_LOW_WATERMARK,
+  MERCHANT_POTION_RESERVE,
+  installP0PotionPolicy4500
+};
+
+},
+"src/reliability/p0-potion-hardcap-4500.js": function(require,module,exports){
+'use strict';
+
+const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
+const { POTION_TARGET_COUNT, MERCHANT_POTION_RESERVE } = require('./p0-potion-policy-4500');
+
+const P0_POTION_HARDCAP_4500_MODE = 'p0-potion-hardcap-4500-v1';
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function reportFor(input, targetName) {
+  return (Array.isArray(input && input.reports) ? input.reports : []).find((row) => row && String(row.name || '') === String(targetName || '')) || null;
+}
+
+function farmerCount(report, family) {
+  const supplies = report && report.supplies || {};
+  return Math.max(0, Math.floor(finite(family === 'hp' ? supplies.hpPotions : supplies.mpPotions, 0)));
+}
+
+function assessAdaptivePlan(input, plan) {
+  if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500 && plan.metadata.p0PotionBundle)) {
+    return { adaptive: false, excess: [] };
+  }
+  const targetName = plan.target && String(plan.target.name || '');
+  const report = reportFor(input, targetName);
+  if (!report) return { adaptive: true, targetName, reportMissing: true, excess: [] };
+  const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
+  const rows = [
+    { family: 'hp', itemName: 'hpot0' },
+    { family: 'mp', itemName: 'mpot0' }
+  ].map((def) => {
+    const farmerBefore = farmerCount(report, def.family);
+    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
+    const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
+    return {
+      ...def,
+      farmerBefore,
+      farmerShortfall,
+      merchantHave,
+      excessQuantity: Math.max(0, merchantHave - farmerShortfall)
+    };
+  });
+  return {
+    adaptive: true,
+    targetName,
+    reportMissing: false,
+    rows,
+    excess: rows.filter((row) => row.excessQuantity > 0)
+  };
+}
+
+function holdForExcess(plan, blocked) {
+  const next = {
+    ...clone(plan),
+    kind: MerchantServicePlanKind.HOLD,
+    reason: 'MERCHANT_POTION_EXCESS_BLOCKS_ZERO_RESERVE_DELIVERY',
+    deliveries: [],
+    delivery: null,
+    distance: null,
+    metadata: {
+      ...(plan && plan.metadata || {}),
+      p0PotionHardCap4500: true,
+      farmerTarget: POTION_TARGET_COUNT,
+      merchantReserve: MERCHANT_POTION_RESERVE,
+      zeroReserveHardCap: true,
+      overdeliveryAllowed: false,
+      blockedTargets: clone(blocked)
+    }
+  };
+  delete next.afterRestock;
+  delete next.afterTravel;
+  delete next.missingStock;
+  return next;
+}
+
+function annotateReroute(plan, blocked) {
+  const next = {
+    ...clone(plan),
+    metadata: {
+      ...(plan && plan.metadata || {}),
+      p0PotionHardCap4500: true,
+      farmerTarget: POTION_TARGET_COUNT,
+      merchantReserve: MERCHANT_POTION_RESERVE,
+      zeroReserveHardCap: true,
+      overdeliveryAllowed: false,
+      reroutedFromPotionExcess: clone(blocked)
+    }
+  };
+  return next;
+}
+
+function installP0PotionHardCap4500(runtime) {
+  if (!runtime) throw new Error('runtime required');
+  const planner = runtime.merchantServicePlanner;
+  if (!planner || typeof planner.plan !== 'function') return null;
+  if (planner.__p0PotionHardCap4500Installed) return runtime.p0PotionHardCap4500 || null;
+
+  const state = {
+    mode: P0_POTION_HARDCAP_4500_MODE,
+    farmerTarget: POTION_TARGET_COUNT,
+    merchantPotionReserve: MERCHANT_POTION_RESERVE,
+    overdeliveryAllowed: false,
+    reroutes: 0,
+    blockedPlans: 0,
+    lastBlocked: null,
+    installed: true
+  };
+  const basePlan = planner.plan.bind(planner);
+
+  planner.plan = (input = {}) => {
+    const originalReports = Array.isArray(input.reports) ? input.reports.slice() : [];
+    let candidateReports = originalReports.slice();
+    const blocked = [];
+    const attempts = Math.max(1, originalReports.length + 1);
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const planInput = candidateReports === originalReports ? input : { ...input, reports: candidateReports };
+      const plan = basePlan(planInput);
+      const assessment = assessAdaptivePlan(input, plan);
+      if (!assessment.adaptive || assessment.reportMissing || !assessment.excess.length) {
+        if (blocked.length && assessment.adaptive) {
+          state.reroutes += 1;
+          const rerouted = annotateReroute(plan, blocked);
+          planner.lastPlan = clone(rerouted);
+          return clone(rerouted);
+        }
+        return plan;
+      }
+
+      const blockedRow = {
+        targetName: assessment.targetName,
+        excess: assessment.excess.map((row) => ({
+          itemName: row.itemName,
+          merchantHave: row.merchantHave,
+          farmerBefore: row.farmerBefore,
+          farmerShortfall: row.farmerShortfall,
+          excessQuantity: row.excessQuantity
+        }))
+      };
+      blocked.push(blockedRow);
+      state.lastBlocked = clone(blockedRow);
+
+      const before = candidateReports.length;
+      candidateReports = candidateReports.filter((row) => row && String(row.name || '') !== assessment.targetName);
+      if (!assessment.targetName || candidateReports.length === before || candidateReports.length === 0) {
+        const hold = holdForExcess(plan, blocked);
+        state.blockedPlans += 1;
+        planner.lastPlan = clone(hold);
+        return clone(hold);
+      }
+    }
+
+    const fallback = holdForExcess(planner.lastPlan || {}, blocked);
+    state.blockedPlans += 1;
+    planner.lastPlan = clone(fallback);
+    return clone(fallback);
+  };
+
+  planner.__p0PotionHardCap4500Installed = true;
+  runtime.p0PotionHardCap4500 = state;
+  return state;
+}
+
+module.exports = {
+  P0_POTION_HARDCAP_4500_MODE,
+  installP0PotionHardCap4500,
+  assessAdaptivePlan
+};
+
+},
 "src/control/cloud-presence-decoupling.js": function(require,module,exports){
 'use strict';
 
@@ -43277,6 +44752,500 @@ function installCloudPresenceDecoupling(runtime) {
 }
 
 module.exports = { CLOUD_PRESENCE_DECOUPLING_MODE, installCloudPresenceDecoupling };
+
+},
+"src/ops/object-storage-s3.js": function(require,module,exports){
+'use strict';
+
+const OBJECT_STORAGE_CONFIG_NAME = 'AIO_V3_BACKBLAZE_CONFIG';
+const OBJECT_STORAGE_SCHEMA_VERSION = 1;
+const EXPLICIT_DELETE_CONFIRMATION = 'DELETE_EXPLICITLY';
+const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
+function text(value, max = 1000) {
+  return String(value == null ? '' : value).trim().slice(0, max);
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function bytesOf(value) {
+  if (value instanceof Uint8Array) return value;
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  if (typeof value === 'string') return new TextEncoder().encode(value);
+  throw new ObjectStorageError('OBJECT_STORAGE_BODY_INVALID', 'Object body must be string or bytes.');
+}
+
+function assertCrypto(cryptoImpl) {
+  if (!cryptoImpl || !cryptoImpl.subtle || typeof cryptoImpl.subtle.digest !== 'function') {
+    throw new ObjectStorageError('OBJECT_STORAGE_CRYPTO_UNAVAILABLE', 'WebCrypto is required for S3 signing.');
+  }
+  return cryptoImpl;
+}
+
+function rfc3986(value) {
+  return encodeURIComponent(String(value)).replace(/[!'()*]/g, (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function canonicalPath(bucket, key) {
+  return `/${rfc3986(bucket)}/${String(key).split('/').map(rfc3986).join('/')}`;
+}
+
+function canonicalQuery(searchParams) {
+  const pairs = [];
+  for (const [name, value] of searchParams.entries()) pairs.push([rfc3986(name), rfc3986(value)]);
+  pairs.sort((left, right) => {
+    if (left[0] < right[0]) return -1;
+    if (left[0] > right[0]) return 1;
+    if (left[1] < right[1]) return -1;
+    if (left[1] > right[1]) return 1;
+    return 0;
+  });
+  return pairs.map(([name, value]) => `${name}=${value}`).join('&');
+}
+
+function normalizePrefix(value) {
+  const prefix = text(value, 300).replace(/^\/+|\/+$/g, '');
+  if (!prefix) return '';
+  validateRelativeKey(prefix, 'OBJECT_STORAGE_PREFIX_INVALID');
+  return prefix;
+}
+
+function validateRelativeKey(value, code = 'OBJECT_STORAGE_KEY_INVALID') {
+  const key = text(value, 1024).replace(/^\/+/, '');
+  if (!key || key.length > 1024 || /[\u0000-\u001f\u007f]/.test(key)) {
+    throw new ObjectStorageError(code, 'Object key is invalid.');
+  }
+  const parts = key.split('/');
+  if (parts.some((part) => !part || part === '.' || part === '..')) {
+    throw new ObjectStorageError(code, 'Object key contains an unsafe path segment.');
+  }
+  return key;
+}
+
+function validateVersionId(value) {
+  const versionId = text(value, 1024);
+  if (!versionId || /[\u0000-\u001f\u007f]/.test(versionId)) {
+    throw new ObjectStorageError('OBJECT_STORAGE_VERSION_ID_INVALID', 'Object version ID is missing or invalid.');
+  }
+  return versionId;
+}
+
+function validateConfig(input) {
+  if (!input || typeof input !== 'object') {
+    throw new ObjectStorageError('OBJECT_STORAGE_CONFIG_MISSING', `${OBJECT_STORAGE_CONFIG_NAME} is not available.`);
+  }
+  if (Number(input.schemaVersion) !== OBJECT_STORAGE_SCHEMA_VERSION) {
+    throw new ObjectStorageError('OBJECT_STORAGE_CONFIG_VERSION_UNSUPPORTED', 'Object storage config version is unsupported.');
+  }
+  const provider = text(input.provider, 80);
+  if (!provider) throw new ObjectStorageError('OBJECT_STORAGE_PROVIDER_INVALID', 'Object storage provider is missing.');
+
+  let endpoint;
+  try { endpoint = new URL(text(input.endpoint, 1000)); } catch (_) {
+    throw new ObjectStorageError('OBJECT_STORAGE_ENDPOINT_INVALID', 'Object storage endpoint is invalid.');
+  }
+  if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || (endpoint.pathname && endpoint.pathname !== '/') || endpoint.search || endpoint.hash) {
+    throw new ObjectStorageError('OBJECT_STORAGE_ENDPOINT_INVALID', 'Object storage endpoint must be a root HTTPS URL.');
+  }
+
+  const region = text(input.region, 80);
+  if (!/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/.test(region)) {
+    throw new ObjectStorageError('OBJECT_STORAGE_REGION_INVALID', 'Object storage region is invalid.');
+  }
+  const bucket = text(input.bucket, 63);
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket) || bucket.includes('..')) {
+    throw new ObjectStorageError('OBJECT_STORAGE_BUCKET_INVALID', 'Object storage bucket is invalid.');
+  }
+  const prefix = normalizePrefix(input.prefix || '');
+  const keyId = text(input.keyId, 256);
+  const applicationKey = text(input.applicationKey, 512);
+  if (keyId.length < 4 || applicationKey.length < 8) {
+    throw new ObjectStorageError('OBJECT_STORAGE_CREDENTIALS_INVALID', 'Object storage credentials are missing or invalid.');
+  }
+  return Object.freeze({
+    schemaVersion: OBJECT_STORAGE_SCHEMA_VERSION,
+    provider,
+    endpoint: endpoint.origin,
+    region,
+    bucket,
+    prefix,
+    keyId,
+    applicationKey
+  });
+}
+
+function readGlobalConfig(root = globalThis) {
+  return validateConfig(root && root[OBJECT_STORAGE_CONFIG_NAME]);
+}
+
+function safeConfigStatus(root = globalThis) {
+  const raw = root && root[OBJECT_STORAGE_CONFIG_NAME];
+  if (!raw || typeof raw !== 'object') {
+    return { configured: false, schemaVersion: OBJECT_STORAGE_SCHEMA_VERSION, autoDelete: false };
+  }
+  try {
+    const config = validateConfig(raw);
+    return {
+      configured: true,
+      schemaVersion: config.schemaVersion,
+      provider: config.provider,
+      endpointHost: new URL(config.endpoint).host,
+      region: config.region,
+      bucket: config.bucket,
+      prefix: config.prefix,
+      autoDelete: false,
+      capabilities: { put: true, head: true, explicitVersionDelete: true, selfTest: true }
+    };
+  } catch (error) {
+    return {
+      configured: false,
+      schemaVersion: OBJECT_STORAGE_SCHEMA_VERSION,
+      autoDelete: false,
+      error: sanitizeError(error)
+    };
+  }
+}
+
+class ObjectStorageError extends Error {
+  constructor(code, message, details = null) {
+    super(message || code);
+    this.name = 'ObjectStorageError';
+    this.code = code;
+    this.details = details ? clone(details) : null;
+  }
+}
+
+function sanitizeError(error) {
+  if (error instanceof ObjectStorageError) {
+    return { code: error.code, message: text(error.message, 240), details: error.details ? clone(error.details) : null };
+  }
+  const message = text(error && error.message || error, 240) || 'Object storage request failed.';
+  return { code: 'OBJECT_STORAGE_FAILED', message };
+}
+
+function toHex(bytes) {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(data, cryptoImpl = globalThis.crypto) {
+  const bytes = bytesOf(data);
+  const digest = await assertCrypto(cryptoImpl).subtle.digest('SHA-256', bytes);
+  return toHex(new Uint8Array(digest));
+}
+
+async function hmacSha256(key, data, cryptoImpl = globalThis.crypto) {
+  const cryptoApi = assertCrypto(cryptoImpl);
+  const keyBytes = typeof key === 'string' ? new TextEncoder().encode(key) : bytesOf(key);
+  const cryptoKey = await cryptoApi.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signature = await cryptoApi.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(String(data)));
+  return new Uint8Array(signature);
+}
+
+function amzTimestamp(now) {
+  return now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+
+function normalizeHeaderValue(value) {
+  return String(value == null ? '' : value).trim().replace(/\s+/g, ' ');
+}
+
+async function signS3Request(input) {
+  const {
+    method,
+    url,
+    config,
+    payloadHash = EMPTY_SHA256,
+    headers = {},
+    now = new Date(),
+    cryptoImpl = globalThis.crypto
+  } = input;
+  const target = url instanceof URL ? url : new URL(url);
+  const timestamp = amzTimestamp(now);
+  const dateStamp = timestamp.slice(0, 8);
+  const signed = {
+    host: target.host,
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': timestamp
+  };
+  for (const [name, value] of Object.entries(headers || {})) {
+    const lower = String(name).toLowerCase();
+    if (lower === 'authorization' || lower === 'host') continue;
+    signed[lower] = normalizeHeaderValue(value);
+  }
+  const names = Object.keys(signed).sort();
+  const canonicalHeaders = names.map((name) => `${name}:${normalizeHeaderValue(signed[name])}\n`).join('');
+  const signedHeaders = names.join(';');
+  const canonicalRequest = [
+    String(method || 'GET').toUpperCase(),
+    target.pathname || '/',
+    canonicalQuery(target.searchParams),
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash
+  ].join('\n');
+  const credentialScope = `${dateStamp}/${config.region}/s3/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    timestamp,
+    credentialScope,
+    await sha256Hex(canonicalRequest, cryptoImpl)
+  ].join('\n');
+  const dateKey = await hmacSha256(`AWS4${config.applicationKey}`, dateStamp, cryptoImpl);
+  const regionKey = await hmacSha256(dateKey, config.region, cryptoImpl);
+  const serviceKey = await hmacSha256(regionKey, 's3', cryptoImpl);
+  const signingKey = await hmacSha256(serviceKey, 'aws4_request', cryptoImpl);
+  const signature = toHex(await hmacSha256(signingKey, stringToSign, cryptoImpl));
+  return {
+    timestamp,
+    signedHeaders,
+    authorization: `AWS4-HMAC-SHA256 Credential=${config.keyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    canonicalRequest,
+    stringToSign
+  };
+}
+
+function classifyHttpFailure(status) {
+  if (status === 401 || status === 403) return 'OBJECT_STORAGE_AUTH_OR_PERMISSION';
+  if (status === 404) return 'OBJECT_STORAGE_NOT_FOUND';
+  if (status >= 500) return 'OBJECT_STORAGE_PROVIDER_UNAVAILABLE';
+  return 'OBJECT_STORAGE_REQUEST_REJECTED';
+}
+
+class S3CompatibleObjectStore {
+  constructor(config, options = {}) {
+    this.config = validateConfig(config);
+    this.fetchImpl = options.fetchImpl || globalThis.fetch;
+    this.cryptoImpl = options.cryptoImpl || globalThis.crypto;
+    this.now = options.now || (() => new Date());
+    this.sleepImpl = options.sleepImpl || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    if (typeof this.fetchImpl !== 'function') {
+      throw new ObjectStorageError('OBJECT_STORAGE_FETCH_UNAVAILABLE', 'fetch is required for object storage.');
+    }
+    assertCrypto(this.cryptoImpl);
+  }
+
+  status() {
+    const config = this.config;
+    return {
+      configured: true,
+      schemaVersion: config.schemaVersion,
+      provider: config.provider,
+      endpointHost: new URL(config.endpoint).host,
+      region: config.region,
+      bucket: config.bucket,
+      prefix: config.prefix,
+      autoDelete: false,
+      capabilities: { put: true, head: true, explicitVersionDelete: true, selfTest: true }
+    };
+  }
+
+  objectKey(relativeKey) {
+    const key = validateRelativeKey(relativeKey);
+    return this.config.prefix ? `${this.config.prefix}/${key}` : key;
+  }
+
+  objectUrl(relativeKey) {
+    const key = this.objectKey(relativeKey);
+    return new URL(canonicalPath(this.config.bucket, key), `${this.config.endpoint}/`);
+  }
+
+  async _request(method, relativeKey, options = {}) {
+    const url = this.objectUrl(relativeKey);
+    if (options.query && typeof options.query === 'object') {
+      for (const [name, value] of Object.entries(options.query)) {
+        if (value != null) url.searchParams.append(String(name), String(value));
+      }
+    }
+    const body = options.body == null ? null : bytesOf(options.body);
+    const payloadHash = body == null ? EMPTY_SHA256 : await sha256Hex(body, this.cryptoImpl);
+    const unsignedHeaders = {};
+    if (options.contentType) unsignedHeaders['content-type'] = text(options.contentType, 200);
+    if (options.metadataSha256) unsignedHeaders['x-amz-meta-aio-sha256'] = options.metadataSha256;
+    const signed = await signS3Request({
+      method,
+      url,
+      config: this.config,
+      payloadHash,
+      headers: unsignedHeaders,
+      now: this.now(),
+      cryptoImpl: this.cryptoImpl
+    });
+    const requestHeaders = {
+      ...unsignedHeaders,
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': signed.timestamp,
+      Authorization: signed.authorization
+    };
+    let response;
+    try {
+      response = await this.fetchImpl(url.toString(), {
+        method,
+        headers: requestHeaders,
+        body: body == null || method === 'HEAD' ? undefined : body,
+        cache: 'no-store'
+      });
+    } catch (_) {
+      throw new ObjectStorageError(
+        'OBJECT_STORAGE_CORS_OR_NETWORK',
+        'Object storage could not be reached. Check browser CORS rules, network access, and endpoint settings.'
+      );
+    }
+    if (!response || !response.ok) {
+      const status = response && Number(response.status) || 0;
+      throw new ObjectStorageError(classifyHttpFailure(status), `Object storage request failed with HTTP ${status || 'unknown'}.`, { status });
+    }
+    return { response, url, payloadHash, signed };
+  }
+
+  async put(relativeKey, body, options = {}) {
+    const bytes = bytesOf(body);
+    const sha256 = await sha256Hex(bytes, this.cryptoImpl);
+    const result = await this._request('PUT', relativeKey, {
+      body: bytes,
+      contentType: options.contentType || 'application/octet-stream',
+      metadataSha256: sha256
+    });
+    return {
+      stored: true,
+      key: this.objectKey(relativeKey),
+      bytes: bytes.byteLength,
+      sha256,
+      etag: result.response.headers && result.response.headers.get ? result.response.headers.get('etag') : null,
+      versionId: result.response.headers && result.response.headers.get ? result.response.headers.get('x-amz-version-id') : null
+    };
+  }
+
+  async head(relativeKey, expected = {}) {
+    const result = await this._request('HEAD', relativeKey);
+    const headers = result.response.headers;
+    const lengthValue = headers && headers.get ? headers.get('content-length') : null;
+    const length = lengthValue == null ? null : Number(lengthValue);
+    const sha256 = headers && headers.get ? headers.get('x-amz-meta-aio-sha256') : null;
+    if (expected.bytes != null && (!Number.isFinite(length) || length !== Number(expected.bytes))) {
+      throw new ObjectStorageError('OBJECT_STORAGE_VERIFY_SIZE_MISMATCH', 'Stored object size does not match the uploaded payload.', { expectedBytes: Number(expected.bytes), actualBytes: Number.isFinite(length) ? length : null });
+    }
+    if (expected.sha256 && sha256 && sha256.toLowerCase() !== String(expected.sha256).toLowerCase()) {
+      throw new ObjectStorageError('OBJECT_STORAGE_VERIFY_HASH_MISMATCH', 'Stored object hash metadata does not match the uploaded payload.');
+    }
+    if (expected.sha256 && !sha256 && expected.requireHashMetadata === true) {
+      throw new ObjectStorageError('OBJECT_STORAGE_VERIFY_HASH_NOT_EXPOSED', 'Hash metadata is not visible. Expose x-amz-meta-aio-sha256 in the bucket CORS rule.');
+    }
+    return {
+      exists: true,
+      key: this.objectKey(relativeKey),
+      bytes: Number.isFinite(length) ? length : null,
+      sha256: sha256 || null,
+      etag: headers && headers.get ? headers.get('etag') : null,
+      versionId: headers && headers.get ? headers.get('x-amz-version-id') : null
+    };
+  }
+
+  async putAndVerify(relativeKey, body, options = {}) {
+    const stored = await this.put(relativeKey, body, options);
+    const verified = await this.head(relativeKey, {
+      bytes: stored.bytes,
+      sha256: stored.sha256,
+      requireHashMetadata: options.requireHashMetadata !== false
+    });
+    return {
+      stored: true,
+      verified: true,
+      key: stored.key,
+      bytes: stored.bytes,
+      sha256: stored.sha256,
+      versionId: stored.versionId || verified.versionId || null
+    };
+  }
+
+  async deleteVersion(relativeKey, versionId, confirmation) {
+    if (confirmation !== EXPLICIT_DELETE_CONFIRMATION) {
+      throw new ObjectStorageError('OBJECT_STORAGE_DELETE_CONFIRMATION_REQUIRED', `Deletion requires confirmation ${EXPLICIT_DELETE_CONFIRMATION}.`);
+    }
+    const exactVersionId = validateVersionId(versionId);
+    await this._request('DELETE', relativeKey, { query: { versionId: exactVersionId } });
+    return {
+      deleted: true,
+      permanent: true,
+      key: this.objectKey(relativeKey),
+      versionId: exactVersionId,
+      explicit: true
+    };
+  }
+
+  async selfTest(options = {}) {
+    const randomPart = text(options.randomPart || Math.random().toString(36).slice(2), 40).replace(/[^a-zA-Z0-9_-]/g, '') || 'probe';
+    const timestamp = this.now().toISOString().replace(/[:.]/g, '-');
+    const relativeKey = `_health/${timestamp}-${randomPart}.json`;
+    const payload = JSON.stringify({ schemaVersion: 1, type: 'AIO_V3_OBJECT_STORAGE_SELF_TEST', createdAt: this.now().toISOString() });
+    const result = await this.putAndVerify(relativeKey, payload, { contentType: 'application/json', requireHashMetadata: true });
+    let cleanup = { requested: options.cleanup === true, deleted: false };
+    if (options.cleanup === true) {
+      if (!result.versionId) {
+        throw new ObjectStorageError(
+          'OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED',
+          'Verified upload did not expose a version ID; refusing a name-only delete that would only create a delete marker.'
+        );
+      }
+      const cleanupDelayMs = Math.max(1000, Math.min(10000, Number(options.cleanupDelayMs) || 1100));
+      await this.sleepImpl(cleanupDelayMs);
+      cleanup = await this.deleteVersion(relativeKey, result.versionId, EXPLICIT_DELETE_CONFIRMATION);
+      cleanup.requested = true;
+      cleanup.delayMs = cleanupDelayMs;
+    }
+    return {
+      ok: true,
+      provider: this.config.provider,
+      bucket: this.config.bucket,
+      key: result.key,
+      bytes: result.bytes,
+      sha256: result.sha256,
+      versionId: result.versionId,
+      verified: true,
+      cleanup
+    };
+  }
+}
+
+function createStoreFromGlobal(root = globalThis, options = {}) {
+  return new S3CompatibleObjectStore(readGlobalConfig(root), options);
+}
+
+function installObjectStorageApi(api, root = globalThis, options = {}) {
+  if (!api || typeof api !== 'object') return null;
+  const store = () => createStoreFromGlobal(root, options);
+  api.objectStorage = Object.freeze({
+    status: () => safeConfigStatus(root),
+    put: (key, body, requestOptions = {}) => store().putAndVerify(key, body, requestOptions),
+    head: (key) => store().head(key),
+    deleteVersionExplicit: (key, versionId, confirmation) => store().deleteVersion(key, versionId, confirmation),
+    selfTest: (selfTestOptions = {}) => store().selfTest(selfTestOptions),
+    deleteConfirmation: EXPLICIT_DELETE_CONFIRMATION
+  });
+  return api.objectStorage;
+}
+
+module.exports = {
+  OBJECT_STORAGE_CONFIG_NAME,
+  OBJECT_STORAGE_SCHEMA_VERSION,
+  EXPLICIT_DELETE_CONFIRMATION,
+  EMPTY_SHA256,
+  ObjectStorageError,
+  S3CompatibleObjectStore,
+  validateConfig,
+  readGlobalConfig,
+  safeConfigStatus,
+  canonicalPath,
+  canonicalQuery,
+  sha256Hex,
+  signS3Request,
+  sanitizeError,
+  createStoreFromGlobal,
+  installObjectStorageApi
+};
 
 }
 };

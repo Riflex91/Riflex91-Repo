@@ -7,11 +7,11 @@ public partial class MainWindow : Window
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
     private readonly SecureTokenStore _tokenStore = new();
     private readonly SecureDashboardWriteKeyStore _dashboardKeyStore = new();
-    private readonly SecureFtpsPasswordStore _ftpsPasswordStore = new();
+    private readonly SecureBackblazeCredentialStore _backblazeCredentialStore = new();
     private BridgeConfig _config = new();
     private string? _token;
     private string? _dashboardWriteKey;
-    private string? _diagnosticsFtpsPassword;
+    private BackblazeCredentials? _backblazeCredentials;
     private TelemetryBridgeService? _bridge;
     private bool _initializing = true;
     private bool _changingSignal;
@@ -39,6 +39,7 @@ public partial class MainWindow : Window
             DetailBotIdText.Text = _config.BotId;
             IngestUrlText.Text = _config.TelemetryIngestUrl;
             DashboardUrlText.Text = _config.WebDashboardBaseUrl;
+            BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             ConfigPathText.Text = BridgeConfig.ConfigPath;
 
             _token = await _tokenStore.LoadAsync(_config.TelemetryTokenEnvironmentVariable);
@@ -49,9 +50,11 @@ public partial class MainWindow : Window
             _dashboardWriteKey = await _dashboardKeyStore.LoadAsync(_config.WebDashboardWriteKeyEnvironmentVariable);
             UpdateDashboardCredentialStatus();
 
-            _diagnosticsFtpsPassword = await _ftpsPasswordStore.LoadAsync(_config.DiagnosticsFtpsPasswordEnvironmentVariable);
-            LoadFtpsControlsFromConfig();
-            UpdateFtpsCredentialStatus();
+            _backblazeCredentials = await _backblazeCredentialStore.LoadAsync(
+                _config.BackblazeKeyIdEnvironmentVariable,
+                _config.BackblazeApplicationKeyEnvironmentVariable);
+            LoadBackblazeControlsFromConfig();
+            UpdateBackblazeCredentialStatus();
 
             TelemetryToggle.IsChecked = _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token);
             if (_config.TelemetryEnabled && !SecureTokenStore.IsValidToken(_token))
@@ -66,15 +69,15 @@ public partial class MainWindow : Window
             TelemetryErrorText.Text = Bounded(error.Message);
             SupabaseStateText.Text = "FEHLER";
             DashboardStateText.Text = "FEHLER";
-            DiagnosticsFtpsStateText.Text = "FEHLER";
-            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
         }
         finally
         {
             _initializing = false;
         }
 
-        await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token));
+        await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled || _config.BackblazeEnabled);
         if (_config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token))
             await StartBridgeAsync();
     }
@@ -106,7 +109,6 @@ public partial class MainWindow : Window
             if (enabled) await StartBridgeAsync();
             else await StopBridgeAsync();
             UpdateToggleLabels();
-            UpdateFtpsCredentialStatus();
         }
         catch (Exception error)
         {
@@ -125,7 +127,7 @@ public partial class MainWindow : Window
             _config,
             _token!,
             _dashboardWriteKey,
-            _diagnosticsFtpsPassword);
+            _backblazeCredentials);
         _bridge.StatusChanged += OnBridgeStatusChanged;
         await _bridge.StartAsync();
         TelemetryDetailText.Text = "Aktiv · verbindet automatisch";
@@ -165,6 +167,8 @@ public partial class MainWindow : Window
             LastUploadText.Text = status.LastSuccessAt?.LocalDateTime.ToString("HH:mm:ss") ?? "—";
             DashboardStateText.Text = DashboardStateLabel(status.WebDashboardState);
             DashboardErrorText.Text = status.WebDashboardError ?? string.Empty;
+            BackblazeStateText.Text = BackblazeStateLabel(status.BackblazeState);
+            BackblazeErrorText.Text = status.BackblazeError ?? string.Empty;
         });
     }
 
@@ -249,123 +253,163 @@ public partial class MainWindow : Window
         if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
     }
 
-    private async void SaveFtpsSettings_Click(object sender, RoutedEventArgs e)
+    private async void SaveBackblazeSettings_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            var candidate = BuildFtpsConfigFromUi(forceEnabled: null);
-            var typedPassword = DiagnosticsFtpsPasswordBox.Password;
-            if (!string.IsNullOrEmpty(typedPassword))
+            var candidate = BuildBackblazeConfigFromUi(forceEnabled: null);
+            var typedKeyId = BackblazeKeyIdBox.Text.Trim();
+            var typedApplicationKey = BackblazeApplicationKeyBox.Password.Trim();
+            var typedAnyCredential = typedKeyId.Length > 0 || typedApplicationKey.Length > 0;
+            if (typedAnyCredential)
             {
-                await _ftpsPasswordStore.SaveAsync(typedPassword);
-                _diagnosticsFtpsPassword = typedPassword;
-                DiagnosticsFtpsPasswordBox.Clear();
+                var credentials = new BackblazeCredentials(typedKeyId, typedApplicationKey);
+                await _backblazeCredentialStore.SaveAsync(credentials);
+                _backblazeCredentials = credentials;
+                BackblazeKeyIdBox.Clear();
+                BackblazeApplicationKeyBox.Clear();
             }
 
-            if (candidate.DiagnosticsFtpsEnabled && !SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword))
-                throw new InvalidOperationException("DIAGNOSTICS_FTPS_PASSWORD_REQUIRED");
+            if (candidate.BackblazeEnabled && _backblazeCredentials is not { IsValid: true })
+                throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
 
             await candidate.SaveAsync();
             _config = candidate;
+            BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             await RestartBridgeIfRunningAsync();
-            UpdateFtpsCredentialStatus("FTPS-Einstellungen gespeichert.");
-            DiagnosticsFtpsErrorText.Text = string.Empty;
+            await RefreshConnectionsAsync(startBrowser: true);
+            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert; Übergabe wird im echten Bot-Kontext verifiziert.");
+            BackblazeErrorText.Text = string.Empty;
         }
         catch (Exception error)
         {
-            DiagnosticsFtpsStateText.Text = "FEHLER";
-            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
         }
     }
 
-    private async void TestFtpsConnection_Click(object sender, RoutedEventArgs e)
+    private async void SendBackblazeToBot_Click(object sender, RoutedEventArgs e)
     {
-        DiagnosticsFtpsStateText.Text = "VERBINDE …";
-        DiagnosticsFtpsErrorText.Text = string.Empty;
+        BackblazeStateText.Text = "SENDE · SUCHE BOT-KONTEXT …";
+        BackblazeErrorText.Text = string.Empty;
         try
         {
-            var candidate = BuildFtpsConfigFromUi(forceEnabled: true);
-            var password = DiagnosticsFtpsPasswordBox.Password;
-            if (!SecureFtpsPasswordStore.IsValidPassword(password)) password = _diagnosticsFtpsPassword;
+            var candidate = BuildBackblazeConfigFromUi(forceEnabled: true);
+            if (_backblazeCredentials is not { IsValid: true })
+                throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
+
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var result = await FtpsDiagnosticsArchive.TestConnectionAsync(candidate, password, cts.Token);
-            DiagnosticsFtpsStateText.Text = result.Success ? "VERBUNDEN" : "FEHLER";
-            DiagnosticsFtpsErrorText.Text = result.Success ? string.Empty : result.Message;
-            if (result.Success)
-                DiagnosticsFtpsPasswordStateText.Text = SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword)
-                    ? "Verbindung erfolgreich. Passwort ist sicher gespeichert."
-                    : "Verbindung erfolgreich. Passwort noch speichern, damit automatische Uploads funktionieren.";
+            var launcher = new BrowserLauncher(_httpClient, candidate);
+            var browser = await launcher.EnsureReadyAsync(cts.Token);
+            if (!browser.Ready) throw new InvalidOperationException(browser.State);
+
+            var configurator = new CdpBackblazeConfigurator(_httpClient, candidate);
+            var result = await configurator.ApplyAsync(
+                candidate.BackblazeEndpoint,
+                candidate.BackblazeRegion,
+                candidate.BackblazeBucket,
+                candidate.BackblazePrefix,
+                _backblazeCredentials,
+                cts.Token);
+
+            if (!result.Applied || !result.VerifiedInBotContext)
+                throw new InvalidOperationException("BACKBLAZE_BOT_CONTEXT_READBACK_FAILED");
+
+            BackblazeStateText.Text = $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT";
+            BackblazeErrorText.Text = string.Empty;
+
+            var liveTest = MessageBox.Show(
+                "Die Backblaze-Konfiguration ist jetzt im echten AIO-V3-Bot-Kontext verifiziert.\n\n" +
+                "Soll jetzt ein kleiner Live-Test ausgeführt werden? Der Bot lädt ein _health-JSON nach Backblaze hoch " +
+                "und prüft es anschließend per HEAD auf Größe und SHA-256-Metadatum. Das Testobjekt wird NICHT gelöscht.",
+                "Backblaze Live-Test",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (liveTest != MessageBoxResult.Yes) return;
+
+            BackblazeStateText.Text = "LIVE-TEST · PUT + HEAD …";
+            using var testCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var test = await configurator.SelfTestAsync(testCts.Token);
+            BackblazeStateText.Text = "BEREIT · LIVE-TEST VERIFIZIERT";
+            BackblazeErrorText.Text = $"PUT + HEAD erfolgreich · {test.Key} · {test.Bytes} Bytes";
         }
         catch (Exception error)
         {
-            DiagnosticsFtpsStateText.Text = "FEHLER";
-            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
         }
     }
 
-    private async void DeleteFtpsPassword_Click(object sender, RoutedEventArgs e)
+    private async void DeleteBackblazeCredentials_Click(object sender, RoutedEventArgs e)
     {
+        var restartTelemetry = _bridge is not null && _bridge.IsRunning;
+        if (restartTelemetry) await StopBridgeAsync();
+
         try
         {
-            await _ftpsPasswordStore.DeleteAsync();
-            _diagnosticsFtpsPassword = null;
-            DiagnosticsFtpsPasswordBox.Clear();
-            _config = _config with { DiagnosticsFtpsEnabled = false };
-            await _config.SaveAsync();
-            DiagnosticsFtpsToggle.IsChecked = false;
-            await RestartBridgeIfRunningAsync();
-            UpdateFtpsCredentialStatus("FTPS-Passwort gelöscht; Diagnose-Upload wurde deaktiviert.");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            var launcher = new BrowserLauncher(_httpClient, _config with { AutoStartBrowser = false });
+            if (await launcher.ProbeAsync(cts.Token))
+            {
+                var configurator = new CdpBackblazeConfigurator(_httpClient, _config);
+                await configurator.ClearAsync(cts.Token);
+            }
         }
         catch (Exception error)
         {
-            DiagnosticsFtpsStateText.Text = "FEHLER";
-            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+            BackblazeErrorText.Text = "Bot-Bereinigung wird beim nächsten Start erneut versucht: " + Bounded(error.Message);
         }
+
+        await _backblazeCredentialStore.DeleteAsync();
+        _backblazeCredentials = null;
+        BackblazeKeyIdBox.Clear();
+        BackblazeApplicationKeyBox.Clear();
+        _config = _config with { BackblazeEnabled = false };
+        await _config.SaveAsync();
+        BackblazeToggle.IsChecked = false;
+        UpdateBackblazeCredentialStatus("Backblaze-Zugangsdaten gelöscht; Übergabe an den Bot wurde deaktiviert.");
+
+        if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
     }
 
-    private BridgeConfig BuildFtpsConfigFromUi(bool? forceEnabled)
+    private BridgeConfig BuildBackblazeConfigFromUi(bool? forceEnabled)
     {
-        if (!int.TryParse(DiagnosticsFtpsPortBox.Text.Trim(), out var port))
-            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PORT_INVALID");
         var candidate = _config with
         {
-            DiagnosticsFtpsEnabled = forceEnabled ?? DiagnosticsFtpsToggle.IsChecked == true,
-            DiagnosticsFtpsHost = DiagnosticsFtpsHostBox.Text.Trim(),
-            DiagnosticsFtpsPort = port,
-            DiagnosticsFtpsUser = DiagnosticsFtpsUserBox.Text.Trim(),
-            DiagnosticsFtpsRoot = DiagnosticsFtpsRootBox.Text.Trim(),
-            DiagnosticsFtpsRejectUnauthorized = DiagnosticsFtpsRejectUnauthorizedCheck.IsChecked != false
+            BackblazeEnabled = forceEnabled ?? BackblazeToggle.IsChecked == true,
+            BackblazeEndpoint = BackblazeEndpointBox.Text.Trim(),
+            BackblazeRegion = BackblazeRegionBox.Text.Trim(),
+            BackblazeBucket = BackblazeBucketBox.Text.Trim(),
+            BackblazePrefix = BackblazePrefixBox.Text.Trim()
         };
         candidate.Validate();
         return candidate;
     }
 
-    private void LoadFtpsControlsFromConfig()
+    private void LoadBackblazeControlsFromConfig()
     {
-        DiagnosticsFtpsToggle.IsChecked = _config.DiagnosticsFtpsEnabled;
-        DiagnosticsFtpsHostBox.Text = _config.DiagnosticsFtpsHost;
-        DiagnosticsFtpsPortBox.Text = _config.DiagnosticsFtpsPort.ToString();
-        DiagnosticsFtpsUserBox.Text = _config.DiagnosticsFtpsUser;
-        DiagnosticsFtpsRootBox.Text = _config.DiagnosticsFtpsRoot;
-        DiagnosticsFtpsRejectUnauthorizedCheck.IsChecked = _config.DiagnosticsFtpsRejectUnauthorized;
+        BackblazeToggle.IsChecked = _config.BackblazeEnabled;
+        BackblazeEndpointBox.Text = _config.BackblazeEndpoint;
+        BackblazeRegionBox.Text = _config.BackblazeRegion;
+        BackblazeBucketBox.Text = _config.BackblazeBucket;
+        BackblazePrefixBox.Text = _config.BackblazePrefix;
     }
 
-    private void UpdateFtpsCredentialStatus(string? overrideText = null)
+    private void UpdateBackblazeCredentialStatus(string? overrideText = null)
     {
-        var passwordPresent = SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword);
-        DiagnosticsFtpsToggle.Content = DiagnosticsFtpsToggle.IsChecked == true ? "FTPS AN" : "FTPS AUS";
-        DiagnosticsFtpsPasswordStateText.Text = overrideText ?? (passwordPresent
-            ? "FTPS-Passwort vorhanden und für diesen Windows-Benutzer mit DPAPI geschützt gespeichert."
-            : $"Kein FTPS-Passwort gespeichert. Einmalig einfügen oder als {_config.DiagnosticsFtpsPasswordEnvironmentVariable} setzen.");
+        var credentialsPresent = _backblazeCredentials is { IsValid: true };
+        BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
+        BackblazeCredentialStateText.Text = overrideText ?? (credentialsPresent
+            ? "Backblaze keyID und applicationKey sind für diesen Windows-Benutzer mit DPAPI geschützt gespeichert."
+            : $"Keine Backblaze-Zugangsdaten gespeichert. Einmalig einfügen oder {_config.BackblazeKeyIdEnvironmentVariable} und {_config.BackblazeApplicationKeyEnvironmentVariable} setzen.");
 
-        if (!_config.DiagnosticsFtpsEnabled)
-            DiagnosticsFtpsStateText.Text = "DEAKTIVIERT";
-        else if (!passwordPresent)
-            DiagnosticsFtpsStateText.Text = "PASSWORT FEHLT";
-        else if (!_config.TelemetryEnabled)
-            DiagnosticsFtpsStateText.Text = "BEREIT · WARTET AUF TELEMETRIE";
+        if (!_config.BackblazeEnabled)
+            BackblazeStateText.Text = "DEAKTIVIERT";
+        else if (!credentialsPresent)
+            BackblazeStateText.Text = "ZUGANGSDATEN FEHLEN";
         else
-            DiagnosticsFtpsStateText.Text = "BEREIT · AUTOMATISCH";
+            BackblazeStateText.Text = "BEREIT · WIRD AN BOT ÜBERGEBEN";
     }
 
     private async Task RestartBridgeIfRunningAsync()
@@ -385,7 +429,7 @@ public partial class MainWindow : Window
             _token = token;
             TokenBox.Clear();
             TokenStateText.Text = "Token sicher mit Windows-DPAPI gespeichert.";
-            await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled);
+            await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled || _config.BackblazeEnabled);
             if (_config.TelemetryEnabled) await StartBridgeAsync();
         }
         catch (Exception error)
@@ -409,7 +453,6 @@ public partial class MainWindow : Window
         SupabaseStateText.Text = "TOKEN FEHLT";
         SetSignalToggle(false, false, "Token fehlt");
         UpdateToggleLabels();
-        UpdateFtpsCredentialStatus();
     }
 
     private async void CheckConnection_Click(object sender, RoutedEventArgs e)
@@ -429,6 +472,7 @@ public partial class MainWindow : Window
             if (browser.Ready)
             {
                 await SyncDashboardProfileAsync(cts.Token);
+                await SyncBackblazeProfileAsync(cts.Token);
                 try
                 {
                     var cdp = new CdpAdventureLandClient(_httpClient, _config);
@@ -449,6 +493,9 @@ public partial class MainWindow : Window
                 DashboardStateText.Text = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
                     ? "WARTET AUF BROWSER"
                     : _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
+                BackblazeStateText.Text = _config.BackblazeEnabled
+                    ? _backblazeCredentials is { IsValid: true } ? "WARTET AUF BROWSER" : "ZUGANGSDATEN FEHLEN"
+                    : "DEAKTIVIERT";
             }
         }
         catch (Exception error)
@@ -515,6 +562,50 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    {
+        var backblaze = new CdpBackblazeConfigurator(_httpClient, _config);
+        try
+        {
+            if (!_config.BackblazeEnabled)
+            {
+                await backblaze.ClearAsync(cancellationToken);
+                BackblazeStateText.Text = "DEAKTIVIERT";
+                BackblazeErrorText.Text = string.Empty;
+                return;
+            }
+
+            if (_backblazeCredentials is not { IsValid: true })
+            {
+                await backblaze.ClearAsync(cancellationToken);
+                BackblazeStateText.Text = "ZUGANGSDATEN FEHLEN";
+                BackblazeErrorText.Text = string.Empty;
+                return;
+            }
+
+            var result = await backblaze.ApplyAsync(
+                _config.BackblazeEndpoint,
+                _config.BackblazeRegion,
+                _config.BackblazeBucket,
+                _config.BackblazePrefix,
+                _backblazeCredentials,
+                cancellationToken);
+            BackblazeStateText.Text = result.Applied && result.VerifiedInBotContext
+                ? $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT"
+                : "FEHLER";
+            BackblazeErrorText.Text = string.Empty;
+        }
+        catch (Exception error)
+        {
+            BackblazeStateText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
+                ? "WARTET AUF BOT-KONTEXT"
+                : "FEHLER";
+            BackblazeErrorText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
+                ? "AIO_V3.objectStorage wurde im CDP-Ausführungskontext noch nicht gefunden."
+                : Bounded(error.Message);
+        }
+    }
+
     private void UpdateDashboardCredentialStatus(string? overrideText = null)
     {
         var keyPresent = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey);
@@ -542,8 +633,8 @@ public partial class MainWindow : Window
     {
         TelemetryToggle.Content = TelemetryToggle.IsChecked == true ? "TELEMETRIE AN" : "TELEMETRIE AUS";
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
-        if (DiagnosticsFtpsToggle is not null)
-            DiagnosticsFtpsToggle.Content = DiagnosticsFtpsToggle.IsChecked == true ? "FTPS AN" : "FTPS AUS";
+        if (BackblazeToggle is not null)
+            BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
     }
 
     private static string DashboardStateLabel(string state) => state switch
@@ -551,6 +642,16 @@ public partial class MainWindow : Window
         "READY" => "BEREIT · PROFIL SYNCHRONISIERT",
         "PENDING" => "BEREIT · WARTET AUF BROWSER",
         "WRITE_KEY_MISSING" => "WRITE-KEY FEHLT",
+        "DISABLED" => "DEAKTIVIERT",
+        "ERROR" => "FEHLER",
+        _ => state
+    };
+
+    private static string BackblazeStateLabel(string state) => state switch
+    {
+        "READY" => "BEREIT · BOT-KONTEXT VERIFIZIERT",
+        "PENDING" => "BEREIT · WARTET AUF BROWSER",
+        "CREDENTIALS_MISSING" => "ZUGANGSDATEN FEHLEN",
         "DISABLED" => "DEAKTIVIERT",
         "ERROR" => "FEHLER",
         _ => state

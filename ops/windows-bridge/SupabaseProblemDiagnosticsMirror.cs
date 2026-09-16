@@ -7,18 +7,6 @@ namespace AioBotWindowsBridge;
 
 public sealed record ProblemMirrorFlushResult(int Uploaded, string Reason, string? Error = null);
 
-public sealed record ProblemMirrorMetadata(
-    int SchemaVersion,
-    string BundleId,
-    string BotId,
-    string CapturedAt,
-    string Day,
-    string Severity,
-    string Reason,
-    string Sha256,
-    long Bytes,
-    string Filename);
-
 public sealed class SupabaseProblemDiagnosticsSink
 {
     public const int MaxPayloadBytes = 700 * 1024;
@@ -34,7 +22,7 @@ public sealed class SupabaseProblemDiagnosticsSink
         _token = token;
     }
 
-    public byte[] SerializePayload(JsonElement bundle, ProblemMirrorMetadata metadata, string expectedRemotePath)
+    public byte[] SerializePayload(JsonElement bundle, ProblemDiagnosticsMetadata metadata, string archivePath)
     {
         var payload = new
         {
@@ -43,11 +31,11 @@ public sealed class SupabaseProblemDiagnosticsSink
             botId = _config.BotId,
             archive = new
             {
-                provider = "ftps",
+                provider = "local-spool",
                 sha256 = metadata.Sha256,
                 bytes = metadata.Bytes,
                 filename = metadata.Filename,
-                remotePath = expectedRemotePath
+                archivePath
             },
             bundle
         };
@@ -91,15 +79,13 @@ public sealed class ProblemDiagnosticsMirrorOutbox
     private static readonly TimeSpan BaseBackoff = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(30);
 
-    private readonly BridgeConfig _config;
     private readonly SupabaseProblemDiagnosticsSink _sink;
     private readonly SemaphoreSlim _flushLock = new(1, 1);
     private DateTimeOffset _nextAttemptAt = DateTimeOffset.MinValue;
     private int _failuresInRow;
 
-    public ProblemDiagnosticsMirrorOutbox(BridgeConfig config, SupabaseProblemDiagnosticsSink sink)
+    public ProblemDiagnosticsMirrorOutbox(SupabaseProblemDiagnosticsSink sink)
     {
-        _config = config;
         _sink = sink;
     }
 
@@ -107,18 +93,17 @@ public sealed class ProblemDiagnosticsMirrorOutbox
 
     public async Task<bool> EnqueueLatestAsync(CancellationToken cancellationToken = default)
     {
-        var metadataPath = Path.Combine(BridgeConfig.DiagnosticsDirectory, "latest-problem.json");
-        if (!File.Exists(metadataPath)) return false;
+        if (!File.Exists(LocalProblemDiagnosticsArchive.LatestMetadataPath)) return false;
 
-        ProblemMirrorMetadata? metadata;
-        await using (var metadataStream = File.OpenRead(metadataPath))
+        ProblemDiagnosticsMetadata? metadata;
+        await using (var metadataStream = File.OpenRead(LocalProblemDiagnosticsArchive.LatestMetadataPath))
         {
-            metadata = await JsonSerializer.DeserializeAsync<ProblemMirrorMetadata>(metadataStream, BridgeConfig.JsonOptions, cancellationToken);
+            metadata = await JsonSerializer.DeserializeAsync<ProblemDiagnosticsMetadata>(metadataStream, BridgeConfig.JsonOptions, cancellationToken);
         }
         if (metadata is null || string.IsNullOrWhiteSpace(metadata.BundleId) || string.IsNullOrWhiteSpace(metadata.Filename))
             return false;
 
-        var bundlePath = Path.Combine(BridgeConfig.DiagnosticsDirectory, "pending", metadata.Filename);
+        var bundlePath = Path.Combine(LocalProblemDiagnosticsArchive.PendingDirectory, metadata.Filename);
         if (!File.Exists(bundlePath)) return false;
 
         JsonElement bundle;
@@ -129,8 +114,7 @@ public sealed class ProblemDiagnosticsMirrorOutbox
             bundle = document.RootElement.Clone();
         }
 
-        var remotePath = ExpectedRemotePath(metadata);
-        var payload = _sink.SerializePayload(bundle, metadata, remotePath);
+        var payload = _sink.SerializePayload(bundle, metadata, LocalProblemDiagnosticsArchive.LogicalArchivePath(metadata));
         Directory.CreateDirectory(PendingDirectory);
         var finalPath = Path.Combine(PendingDirectory, $"mirror-{SafeFileSegment(metadata.BundleId)}.json");
         var temporaryPath = finalPath + ".part-" + Guid.NewGuid().ToString("N");
@@ -163,6 +147,7 @@ public sealed class ProblemDiagnosticsMirrorOutbox
             {
                 var payload = await File.ReadAllBytesAsync(file, cancellationToken);
                 await _sink.SendPayloadAsync(payload, cancellationToken);
+                DeleteMirroredLocalBundle(payload);
                 File.Delete(file);
                 uploaded++;
             }
@@ -189,12 +174,26 @@ public sealed class ProblemDiagnosticsMirrorOutbox
         }
     }
 
-    private string ExpectedRemotePath(ProblemMirrorMetadata metadata)
+    private static void DeleteMirroredLocalBundle(byte[] payload)
     {
-        var root = FtpsDiagnosticsArchive.NormalizeRemoteRoot(_config.DiagnosticsFtpsRoot);
-        var botId = SafeFileSegment(_config.BotId);
-        var day = SafeFileSegment(metadata.Day);
-        return $"{root}/{botId}/{day}/{metadata.Filename}";
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (!document.RootElement.TryGetProperty("archive", out var archive)
+                || archive.ValueKind != JsonValueKind.Object
+                || !archive.TryGetProperty("filename", out var filenameNode)) return;
+            var filename = filenameNode.GetString();
+            if (string.IsNullOrWhiteSpace(filename) || Path.GetFileName(filename) != filename) return;
+
+            var bundlePath = Path.Combine(LocalProblemDiagnosticsArchive.PendingDirectory, filename);
+            if (File.Exists(bundlePath)) File.Delete(bundlePath);
+            var metadataPath = bundlePath + ".meta.json";
+            if (File.Exists(metadataPath)) File.Delete(metadataPath);
+        }
+        catch
+        {
+            // The Supabase copy is already committed. Cleanup is best effort only.
+        }
     }
 
     private static async Task EnforceRetentionAsync(CancellationToken cancellationToken)
