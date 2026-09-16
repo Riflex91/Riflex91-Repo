@@ -53,3 +53,13 @@ export interface AuftragsPruefErgebnis {
   fehler: string[];
   warnungen: string[];
 }
+
+export interface AuftragsVorschlag {
+  vorschlagKennung: string;
+  anzeigeText: string;
+  einfuegeText: string;
+  erklaerung: string;
+  schluesselWoerter: string[];
+  art?: AuftragsArt;
+  gegenstandKennung?: string;
+}
