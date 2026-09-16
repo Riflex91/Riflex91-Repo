@@ -10,7 +10,7 @@
 
 Adventure Land spricht ausschliesslich per HTTPS mit einer begrenzten Schnittstelle. Es kennt keine Objektspeicher-Zugangsdaten und keine E-Mail-Versandgeheimnisse.
 
-Der Objektspeicher wird provider-neutral ueber eine S3-kompatible Schnittstelle angebunden. Die erste vorgesehene Konfiguration ist Oracle Cloud Infrastructure Object Storage. Ein spaeterer Wechsel zu einem anderen S3-kompatiblen Anbieter darf keine Aenderung an Wiederholungs-, Lern- oder Fachlogik erfordern.
+Der Objektspeicher wird provider-neutral ueber eine S3-kompatible Schnittstelle angebunden. Die erste vorgesehene Konfiguration ist Backblaze B2 Cloud Storage. Ein spaeterer Wechsel zu einem anderen S3-kompatiblen Anbieter darf keine Aenderung an Wiederholungs-, Lern- oder Fachlogik erfordern.
 
 ## Datenklassen
 
@@ -38,7 +38,7 @@ Die Standardstufen des Zyklus sind:
 - ab 95 Prozent – Notfallstufe; Datenerfassung reduzieren oder pausieren, aber keine unverarbeiteten Rohdaten automatisch loeschen
 - nach erfolgreicher Bereinigung – Zielwert 50 Prozent des sicheren Budgets
 
-Die Prozentwerte beziehen sich auf das sichere V4-Budget und nicht direkt auf das Anbietermaximum.
+Die Prozentwerte beziehen sich auf das sichere V4-Budget und nicht direkt auf das Anbietermaximum. Bei einem kostenlosen Anbieterwechsel bleibt dieselbe Logik bestehen; nur das gepruefte `DienstProfil` und damit das sichere Byte-Budget aendern sich.
 
 Eine Rohdatei darf erst als loeschbar markiert werden, wenn fuer den zugehoerigen Lernzyklus alle vier Nachweise vorliegen:
 
@@ -64,6 +64,8 @@ Unvollstaendige Multipart-Uebertragungen gelten nicht als archivierte Daten. Ein
 Objektspeicher-Zugangsdaten existieren ausschliesslich auf der Plattformseite. Sie werden weder in Adventure Land noch an die Web-Oberflaeche ausgeliefert und niemals in Git eingecheckt.
 
 Die Plattformkonfiguration enthaelt nur serverseitig unter anderem Anbieter, S3-Endpunkt, Region, Bucket und Zugangsschluessel. Anbietergrenzen wie Speicher oder API-Anfragen werden nicht als geheime Umgebungswerte geraten, sondern ueber ein geprueftes und zeitlich begrenztes `DienstProfil` verwaltet.
+
+Fuer Backblaze B2 werden ein eigener Bucket und ein eingeschraenkter Application Key verwendet. Der Master-Schluessel wird nicht fuer die S3-kompatible Schnittstelle eingesetzt.
 
 ## Tagesbericht
 
