@@ -1,4 +1,5 @@
 using AioBotWindowsBridge;
+using System.Text;
 using System.Text.Json;
 
 static void Assert(bool condition, string message)
@@ -89,6 +90,8 @@ Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeSer
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
 Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes), "PAYLOAD_BUDGET_BOUNDARY");
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
+Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
+Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
 
 using (var snapshotDocument = JsonDocument.Parse("{}"))
 using (var eventsDocument = JsonDocument.Parse("[]"))
@@ -136,6 +139,41 @@ using (var harmlessEvents = JsonDocument.Parse("""
 """))
 {
     Assert(FtpsDiagnosticsArchive.FindProblemSignal(harmlessEvents.RootElement) is null, "FTPS_HARMLESS_EVENTS_IGNORED");
+}
+
+using (var mirrorBundle = JsonDocument.Parse("""
+{
+  "schemaVersion": 1,
+  "type": "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+  "bundleId": "bundle-test-1",
+  "botId": "pi-main",
+  "capturedAt": "2026-09-16T12:00:00Z",
+  "trigger": { "severity": "ERROR", "reason": "NO_PROGRESS" },
+  "snapshot": { "credential": "[REDACTED]" },
+  "events": []
+}
+"""))
+using (var mirrorHttp = new HttpClient())
+{
+    var sink = new SupabaseProblemDiagnosticsSink(mirrorHttp, defaults, "test-token-123456789012345678901234567890");
+    var metadata = new ProblemMirrorMetadata(
+        1,
+        "bundle-test-1",
+        "pi-main",
+        "2026-09-16T12:00:00Z",
+        "2026-09-16",
+        "ERROR",
+        "NO_PROGRESS",
+        new string('a', 64),
+        1234,
+        "problem-bundle-test-1.json.gz");
+    var payload = sink.SerializePayload(mirrorBundle.RootElement.Clone(), metadata, "/diagnostics/v3/pi-main/2026-09-16/problem-bundle-test-1.json.gz");
+    using var parsed = JsonDocument.Parse(payload);
+    Assert(parsed.RootElement.GetProperty("type").GetString() == "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
+    Assert(parsed.RootElement.GetProperty("botId").GetString() == "pi-main", "PROBLEM_MIRROR_BOT_ID");
+    Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
+    Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");
+    Assert(Encoding.UTF8.GetString(payload).Contains("[REDACTED]", StringComparison.Ordinal), "PROBLEM_MIRROR_REDACTION_PRESERVED");
 }
 
 var temporaryDirectory = Path.Combine(Path.GetTempPath(), "aio-windows-bridge-tests-" + Guid.NewGuid().ToString("N"));
