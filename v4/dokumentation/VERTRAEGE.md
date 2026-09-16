@@ -52,6 +52,26 @@ Die `BedienSicherung` ist die zentrale Freigabestelle fuer Nutzeraktionen. Fehle
 
 Eine Oberflaeche darf diese Sicherung nicht umgehen.
 
+## NutzerAuftrag
+
+Ein `NutzerAuftrag` beschreibt ein vom Nutzer vorgegebenes, eindeutig strukturiertes Ziel wie `sammeln` oder `herstellen`. Freitext darf nur beim Erfassen helfen und wird niemals direkt ausgefuehrt.
+
+Der Auftrag nennt Gegenstand, Zielmenge, Mengenart und Zustand. Die Mengenart unterscheidet ausdruecklich zwischen `zusaetzlich` und `gesamtbestand`.
+
+## AuftragsVorschlag
+
+Ein `AuftragsVorschlag` ist eine sichere Eingabehilfe fuer die Web-Oberflaeche. Er zeigt nur bekannte Auftragsarten oder bekannte Gegenstaende und enthaelt Anzeigetext, Einfuegetext, Erklaerung und Suchwoerter.
+
+Ein Vorschlag darf niemals selbst eine veraendernde Aktion starten.
+
+## AuftragsPruefung
+
+Die `AuftragsPruefung` kontrolliert vor jeder Planung, ob Auftragsart, Gegenstand, Zielmenge und Mengenart eindeutig und bekannt sind. Unbekannte oder mehrdeutige Angaben werden blockiert statt geraten.
+
+## AuftragsPlan
+
+Ein `AuftragsPlan` erklaert vor dem Start, was erreicht werden soll, was bereits vorhanden ist, was noch fehlt, welche Teilaufgaben geplant sind, welche Charaktere beteiligt sind und welche Gegenstaende oder Mittel verbraucht werden koennen.
+
 ## TagesBericht
 
 Ein `TagesBericht` fasst die vergangenen exakt 24 Stunden aus strukturierten Laufzeitdaten zusammen. Er enthaelt Gesamtzustand, Charakterwerte, wichtige Vorfaelle, Entwicklungsstatus, Vergleich zum vorherigen 24-Stunden-Zeitraum und eine eindeutige Aussage, ob der Nutzer handeln muss.
