@@ -28,14 +28,16 @@ Der Workflow bricht ab, falls `al-aio-bot` nicht `allPrivate` ist. Er macht den 
 
 ## Einmaligen Admin-Key in Backblaze anlegen
 
-Verwende **nicht** den Master Key und nicht den normalen Bot-Key. Lege fuer diese administrative Aktion einen separaten, moeglichst kurzlebigen Application Key an.
+Verwende **nicht** den normalen Bot-Key. Lege fuer diese administrative Aktion einen separaten, moeglichst kurzlebigen Application Key an.
 
 Erforderliche Faehigkeiten fuer den B2-CLI-Weg:
 
-- `listBuckets`
-- `writeBucketSettings`
+- `listBuckets` - die B2-CLI benoetigt dies, um den Bucket-Namen aufloesen und die aktuelle Bucket-Konfiguration lesen zu koennen.
+- `writeBuckets` - `b2_update_bucket` benoetigt diese Capability zum Aendern der CORS-Regeln.
 
-Wenn Backblaze die Auswahl erlaubt, beschraenke den Key auf `al-aio-bot` und setze eine kurze Ablaufzeit. Der normale Bot-Key benoetigt diese Admin-Rechte nicht.
+Wenn deine Backblaze-Key-Oberflaeche diese Kombination fuer einen eingeschraenkten Key zulaesst, begrenze ihn so weit wie moeglich. Falls die Oberflaeche `writeBuckets` nur fuer einen breiter berechtigten Key anbietet, verwende fuer diesen einmaligen Lauf einen separaten kurzlebigen Admin-Key und loesche ihn unmittelbar nach erfolgreicher Verifikation wieder.
+
+Der normale Bot-Key benoetigt `writeBuckets` nicht und soll diese Admin-Berechtigung nicht bekommen.
 
 ## GitHub-Secrets anlegen
 
