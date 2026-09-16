@@ -243,5 +243,5 @@ test('Alpha20.19 prioritizes Ranger Supershot for worthwhile targets and avoids 
 });
 
 test('visible integrated release version is Alpha20.23', () => {
-  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.49');
+  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.51');
 });

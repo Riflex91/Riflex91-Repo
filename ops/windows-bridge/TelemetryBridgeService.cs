@@ -25,17 +25,28 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly CdpAdventureLandClient _browser;
     private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly SupabaseTelemetrySink _sink;
+    private readonly FtpsDiagnosticsArchive _diagnostics;
+    private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
-    public TelemetryBridgeService(HttpClient httpClient, BridgeConfig config, string token, string? dashboardWriteKey = null)
+    public TelemetryBridgeService(
+        HttpClient httpClient,
+        BridgeConfig config,
+        string token,
+        string? dashboardWriteKey = null,
+        string? diagnosticsFtpsPassword = null)
     {
         _config = config;
         _launcher = new BrowserLauncher(httpClient, config);
         _browser = new CdpAdventureLandClient(httpClient, config);
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
+        _diagnostics = new FtpsDiagnosticsArchive(config, diagnosticsFtpsPassword);
+        _problemMirror = new ProblemDiagnosticsMirrorOutbox(
+            config,
+            new SupabaseProblemDiagnosticsSink(httpClient, config, token));
         _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
             ? dashboardWriteKey
             : null;
@@ -102,6 +113,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         includeDeepDiagnostics,
                         cancellationToken);
 
+                    await CaptureDiagnosticsSafeAsync(read, cancellationToken);
+
                     // During catch-up an empty second read is only a probe that the backlog is gone.
                     // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
                     if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
@@ -117,6 +130,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     // If the bot has not updated yet, Supported=false and the external cursor still prevents duplicates.
                     if (state.LastEventSeq > 0)
                         await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
+
+                    await FlushDiagnosticsSafeAsync(cancellationToken);
 
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
@@ -160,6 +175,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             }
             catch (Exception error)
             {
+                await CaptureBridgeFailureSafeAsync(error);
                 failures++;
                 var message = Bounded(error.Message);
                 var status = new RuntimeBridgeStatus(
@@ -170,6 +186,83 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
+        }
+    }
+
+    private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)
+    {
+        if (!_config.DiagnosticsFtpsEnabled) return;
+        var captured = false;
+        try
+        {
+            captured = await _diagnostics.CaptureFromReadAsync(read, cancellationToken);
+        }
+        catch
+        {
+            // Diagnostic archival is observational only. It must never block Supabase telemetry or gameplay.
+        }
+
+        if (captured)
+            await EnqueueLatestMirrorSafeAsync(cancellationToken);
+    }
+
+    private async Task EnqueueLatestMirrorSafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _problemMirror.EnqueueLatestAsync(cancellationToken);
+        }
+        catch
+        {
+            // The FTPS copy remains authoritative and local mirror retry files are best effort.
+        }
+    }
+
+    private async Task FlushDiagnosticsSafeAsync(CancellationToken cancellationToken)
+    {
+        if (!_config.DiagnosticsFtpsEnabled) return;
+
+        try
+        {
+            await _problemMirror.FlushPendingAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Mirror failures remain isolated from telemetry and FTPS.
+        }
+
+        try
+        {
+            await _diagnostics.FlushPendingAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Pending bundles remain on disk and are retried with uploader backoff.
+        }
+    }
+
+    private async Task CaptureBridgeFailureSafeAsync(Exception error)
+    {
+        if (!_config.DiagnosticsFtpsEnabled) return;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            var captured = await _diagnostics.CaptureBridgeFailureAsync(error, cts.Token);
+            if (captured) await EnqueueLatestMirrorSafeAsync(cts.Token);
+            await _problemMirror.FlushPendingAsync(cts.Token);
+            await _diagnostics.FlushPendingAsync(cts.Token);
+        }
+        catch
+        {
+            // Never turn an archive/mirror failure into a second bridge failure.
         }
     }
 
@@ -185,8 +278,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
             if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
             {
-                // Fail closed: an old key must not remain active in the dedicated profile after
-                // the DPAPI copy was deleted or became unreadable.
                 await _dashboard.ClearAsync(cancellationToken);
                 return ("WRITE_KEY_MISSING", null);
             }
@@ -204,8 +295,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         }
         catch (Exception error)
         {
-            // Dashboard sync is intentionally independent from Supabase telemetry. A profile
-            // injection failure is visible, but it must not block diagnostic uploads.
             return ("ERROR", Bounded(error.Message));
         }
     }

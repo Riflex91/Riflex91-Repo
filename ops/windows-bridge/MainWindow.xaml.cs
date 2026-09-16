@@ -7,9 +7,11 @@ public partial class MainWindow : Window
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
     private readonly SecureTokenStore _tokenStore = new();
     private readonly SecureDashboardWriteKeyStore _dashboardKeyStore = new();
+    private readonly SecureFtpsPasswordStore _ftpsPasswordStore = new();
     private BridgeConfig _config = new();
     private string? _token;
     private string? _dashboardWriteKey;
+    private string? _diagnosticsFtpsPassword;
     private TelemetryBridgeService? _bridge;
     private bool _initializing = true;
     private bool _changingSignal;
@@ -47,6 +49,10 @@ public partial class MainWindow : Window
             _dashboardWriteKey = await _dashboardKeyStore.LoadAsync(_config.WebDashboardWriteKeyEnvironmentVariable);
             UpdateDashboardCredentialStatus();
 
+            _diagnosticsFtpsPassword = await _ftpsPasswordStore.LoadAsync(_config.DiagnosticsFtpsPasswordEnvironmentVariable);
+            LoadFtpsControlsFromConfig();
+            UpdateFtpsCredentialStatus();
+
             TelemetryToggle.IsChecked = _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token);
             if (_config.TelemetryEnabled && !SecureTokenStore.IsValidToken(_token))
             {
@@ -60,6 +66,8 @@ public partial class MainWindow : Window
             TelemetryErrorText.Text = Bounded(error.Message);
             SupabaseStateText.Text = "FEHLER";
             DashboardStateText.Text = "FEHLER";
+            DiagnosticsFtpsStateText.Text = "FEHLER";
+            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
         }
         finally
         {
@@ -98,6 +106,7 @@ public partial class MainWindow : Window
             if (enabled) await StartBridgeAsync();
             else await StopBridgeAsync();
             UpdateToggleLabels();
+            UpdateFtpsCredentialStatus();
         }
         catch (Exception error)
         {
@@ -111,7 +120,12 @@ public partial class MainWindow : Window
         if (_bridge is not null && _bridge.IsRunning) return;
 
         if (_bridge is not null) await _bridge.DisposeAsync();
-        _bridge = new TelemetryBridgeService(_httpClient, _config, _token!, _dashboardWriteKey);
+        _bridge = new TelemetryBridgeService(
+            _httpClient,
+            _config,
+            _token!,
+            _dashboardWriteKey,
+            _diagnosticsFtpsPassword);
         _bridge.StatusChanged += OnBridgeStatusChanged;
         await _bridge.StartAsync();
         TelemetryDetailText.Text = "Aktiv · verbindet automatisch";
@@ -213,8 +227,6 @@ public partial class MainWindow : Window
 
         try
         {
-            // Clear the dedicated browser profile first when it is already reachable. If it is
-            // offline, the telemetry service will clear stale dashboard storage before the next bot read.
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             var launcher = new BrowserLauncher(_httpClient, _config with { AutoStartBrowser = false });
             if (await launcher.ProbeAsync(cts.Token))
@@ -235,6 +247,133 @@ public partial class MainWindow : Window
         DashboardStateText.Text = _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
 
         if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
+    }
+
+    private async void SaveFtpsSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var candidate = BuildFtpsConfigFromUi(forceEnabled: null);
+            var typedPassword = DiagnosticsFtpsPasswordBox.Password;
+            if (!string.IsNullOrEmpty(typedPassword))
+            {
+                await _ftpsPasswordStore.SaveAsync(typedPassword);
+                _diagnosticsFtpsPassword = typedPassword;
+                DiagnosticsFtpsPasswordBox.Clear();
+            }
+
+            if (candidate.DiagnosticsFtpsEnabled && !SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword))
+                throw new InvalidOperationException("DIAGNOSTICS_FTPS_PASSWORD_REQUIRED");
+
+            await candidate.SaveAsync();
+            _config = candidate;
+            await RestartBridgeIfRunningAsync();
+            UpdateFtpsCredentialStatus("FTPS-Einstellungen gespeichert.");
+            DiagnosticsFtpsErrorText.Text = string.Empty;
+        }
+        catch (Exception error)
+        {
+            DiagnosticsFtpsStateText.Text = "FEHLER";
+            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void TestFtpsConnection_Click(object sender, RoutedEventArgs e)
+    {
+        DiagnosticsFtpsStateText.Text = "VERBINDE …";
+        DiagnosticsFtpsErrorText.Text = string.Empty;
+        try
+        {
+            var candidate = BuildFtpsConfigFromUi(forceEnabled: true);
+            var password = DiagnosticsFtpsPasswordBox.Password;
+            if (!SecureFtpsPasswordStore.IsValidPassword(password)) password = _diagnosticsFtpsPassword;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var result = await FtpsDiagnosticsArchive.TestConnectionAsync(candidate, password, cts.Token);
+            DiagnosticsFtpsStateText.Text = result.Success ? "VERBUNDEN" : "FEHLER";
+            DiagnosticsFtpsErrorText.Text = result.Success ? string.Empty : result.Message;
+            if (result.Success)
+                DiagnosticsFtpsPasswordStateText.Text = SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword)
+                    ? "Verbindung erfolgreich. Passwort ist sicher gespeichert."
+                    : "Verbindung erfolgreich. Passwort noch speichern, damit automatische Uploads funktionieren.";
+        }
+        catch (Exception error)
+        {
+            DiagnosticsFtpsStateText.Text = "FEHLER";
+            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void DeleteFtpsPassword_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _ftpsPasswordStore.DeleteAsync();
+            _diagnosticsFtpsPassword = null;
+            DiagnosticsFtpsPasswordBox.Clear();
+            _config = _config with { DiagnosticsFtpsEnabled = false };
+            await _config.SaveAsync();
+            DiagnosticsFtpsToggle.IsChecked = false;
+            await RestartBridgeIfRunningAsync();
+            UpdateFtpsCredentialStatus("FTPS-Passwort gelöscht; Diagnose-Upload wurde deaktiviert.");
+        }
+        catch (Exception error)
+        {
+            DiagnosticsFtpsStateText.Text = "FEHLER";
+            DiagnosticsFtpsErrorText.Text = Bounded(error.Message);
+        }
+    }
+
+    private BridgeConfig BuildFtpsConfigFromUi(bool? forceEnabled)
+    {
+        if (!int.TryParse(DiagnosticsFtpsPortBox.Text.Trim(), out var port))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PORT_INVALID");
+        var candidate = _config with
+        {
+            DiagnosticsFtpsEnabled = forceEnabled ?? DiagnosticsFtpsToggle.IsChecked == true,
+            DiagnosticsFtpsHost = DiagnosticsFtpsHostBox.Text.Trim(),
+            DiagnosticsFtpsPort = port,
+            DiagnosticsFtpsUser = DiagnosticsFtpsUserBox.Text.Trim(),
+            DiagnosticsFtpsRoot = DiagnosticsFtpsRootBox.Text.Trim(),
+            DiagnosticsFtpsRejectUnauthorized = DiagnosticsFtpsRejectUnauthorizedCheck.IsChecked != false
+        };
+        candidate.Validate();
+        return candidate;
+    }
+
+    private void LoadFtpsControlsFromConfig()
+    {
+        DiagnosticsFtpsToggle.IsChecked = _config.DiagnosticsFtpsEnabled;
+        DiagnosticsFtpsHostBox.Text = _config.DiagnosticsFtpsHost;
+        DiagnosticsFtpsPortBox.Text = _config.DiagnosticsFtpsPort.ToString();
+        DiagnosticsFtpsUserBox.Text = _config.DiagnosticsFtpsUser;
+        DiagnosticsFtpsRootBox.Text = _config.DiagnosticsFtpsRoot;
+        DiagnosticsFtpsRejectUnauthorizedCheck.IsChecked = _config.DiagnosticsFtpsRejectUnauthorized;
+    }
+
+    private void UpdateFtpsCredentialStatus(string? overrideText = null)
+    {
+        var passwordPresent = SecureFtpsPasswordStore.IsValidPassword(_diagnosticsFtpsPassword);
+        DiagnosticsFtpsToggle.Content = DiagnosticsFtpsToggle.IsChecked == true ? "FTPS AN" : "FTPS AUS";
+        DiagnosticsFtpsPasswordStateText.Text = overrideText ?? (passwordPresent
+            ? "FTPS-Passwort vorhanden und für diesen Windows-Benutzer mit DPAPI geschützt gespeichert."
+            : $"Kein FTPS-Passwort gespeichert. Einmalig einfügen oder als {_config.DiagnosticsFtpsPasswordEnvironmentVariable} setzen.");
+
+        if (!_config.DiagnosticsFtpsEnabled)
+            DiagnosticsFtpsStateText.Text = "DEAKTIVIERT";
+        else if (!passwordPresent)
+            DiagnosticsFtpsStateText.Text = "PASSWORT FEHLT";
+        else if (!_config.TelemetryEnabled)
+            DiagnosticsFtpsStateText.Text = "BEREIT · WARTET AUF TELEMETRIE";
+        else
+            DiagnosticsFtpsStateText.Text = "BEREIT · AUTOMATISCH";
+    }
+
+    private async Task RestartBridgeIfRunningAsync()
+    {
+        var restart = _bridge is not null && _bridge.IsRunning;
+        if (restart) await StopBridgeAsync();
+        if ((restart || _config.TelemetryEnabled) && SecureTokenStore.IsValidToken(_token))
+            await StartBridgeAsync();
     }
 
     private async void SaveToken_Click(object sender, RoutedEventArgs e)
@@ -270,6 +409,7 @@ public partial class MainWindow : Window
         SupabaseStateText.Text = "TOKEN FEHLT";
         SetSignalToggle(false, false, "Token fehlt");
         UpdateToggleLabels();
+        UpdateFtpsCredentialStatus();
     }
 
     private async void CheckConnection_Click(object sender, RoutedEventArgs e)
@@ -402,6 +542,8 @@ public partial class MainWindow : Window
     {
         TelemetryToggle.Content = TelemetryToggle.IsChecked == true ? "TELEMETRIE AN" : "TELEMETRIE AUS";
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
+        if (DiagnosticsFtpsToggle is not null)
+            DiagnosticsFtpsToggle.Content = DiagnosticsFtpsToggle.IsChecked == true ? "FTPS AN" : "FTPS AUS";
     }
 
     private static string DashboardStateLabel(string state) => state switch

@@ -1,4 +1,5 @@
 using AioBotWindowsBridge;
+using System.Text;
 using System.Text.Json;
 
 static void Assert(bool condition, string message)
@@ -23,13 +24,19 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 3, "CONFIG_VERSION_3");
+Assert(BridgeConfig.CurrentConfigVersion == 4, "CONFIG_VERSION_4");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardAccount == "default", "WEB_DASHBOARD_ACCOUNT_DEFAULT");
 Assert(!string.IsNullOrWhiteSpace(defaults.WebDashboardWriteKeyEnvironmentVariable), "WEB_DASHBOARD_ENV_REQUIRED");
+Assert(!defaults.DiagnosticsFtpsEnabled, "FTPS_MUST_DEFAULT_OFF");
+Assert(defaults.DiagnosticsFtpsPort == 21, "FTPS_PORT_DEFAULT");
+Assert(defaults.DiagnosticsFtpsRoot == "/diagnostics/v3", "FTPS_ROOT_DEFAULT");
+Assert(defaults.DiagnosticsFtpsRejectUnauthorized, "FTPS_CERT_VALIDATION_DEFAULT_ON");
+Assert(!string.IsNullOrWhiteSpace(defaults.DiagnosticsFtpsPasswordEnvironmentVariable), "FTPS_PASSWORD_ENV_REQUIRED");
+Assert(FtpsDiagnosticsArchive.NormalizeRemoteRoot("/diagnostics/v3/") == "/diagnostics/v3", "FTPS_ROOT_NORMALIZATION");
 Assert(CdpWebDashboardConfigurator.CloudStorageKey == "aio-v3:cloud-control:v1", "WEB_DASHBOARD_CLOUD_STORAGE_KEY");
 Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-config:v1", "WEB_DASHBOARD_CONTROL_STORAGE_KEY");
 
@@ -49,6 +56,19 @@ ExpectInvalid(defaults with { TelemetryIngestUrl = "http://example.test/ingest" 
 ExpectInvalid(defaults with { SignalControlUrl = "http://example.test/control" }, "SIGNAL_CONTROL_HTTPS_REQUIRED");
 ExpectInvalid(defaults with { WebDashboardBaseUrl = "http://example.test" }, "WEB_DASHBOARD_HTTPS_REQUIRED");
 ExpectInvalid(defaults with { WebDashboardAccount = "" }, "WEB_DASHBOARD_ACCOUNT_INVALID");
+ExpectInvalid(defaults with { DiagnosticsFtpsPort = 0 }, "DIAGNOSTICS_FTPS_PORT_INVALID");
+ExpectInvalid(defaults with { DiagnosticsFtpsHost = "ftps://example.test" }, "DIAGNOSTICS_FTPS_HOST_INVALID");
+ExpectInvalid(defaults with { DiagnosticsFtpsRoot = "/diagnostics/../secret" }, "DIAGNOSTICS_FTPS_ROOT_INVALID");
+ExpectInvalid(defaults with { DiagnosticsFtpsEnabled = true }, "DIAGNOSTICS_FTPS_HOST_REQUIRED");
+ExpectInvalid(defaults with { DiagnosticsFtpsEnabled = true, DiagnosticsFtpsHost = "example.test" }, "DIAGNOSTICS_FTPS_USER_REQUIRED");
+(defaults with
+{
+    DiagnosticsFtpsEnabled = true,
+    DiagnosticsFtpsHost = "example.test",
+    DiagnosticsFtpsUser = "aio",
+    DiagnosticsFtpsPort = 21,
+    DiagnosticsFtpsRoot = "/diagnostics/v3"
+}).Validate();
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 2) == 10, "BACKOFF_2");
@@ -70,6 +90,8 @@ Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeSer
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
 Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes), "PAYLOAD_BUDGET_BOUNDARY");
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
+Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
+Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
 
 using (var snapshotDocument = JsonDocument.Parse("{}"))
 using (var eventsDocument = JsonDocument.Parse("[]"))
@@ -84,6 +106,74 @@ using (var eventsDocument = JsonDocument.Parse("[]"))
         HasMoreEvents: false,
         TargetUrl: "https://adventure.land/");
     Assert(restarted.CursorWasReset, "CURSOR_RESET_DETECTED");
+}
+
+using (var problemEvents = JsonDocument.Parse("""
+[
+  {
+    "seq": 44,
+    "severity": "ERROR",
+    "component": "farmer",
+    "event": "NO_PROGRESS",
+    "reason": "stalled",
+    "data": { "token": "must-not-leak", "safe": "ok" }
+  }
+]
+"""))
+{
+    var signal = FtpsDiagnosticsArchive.FindProblemSignal(problemEvents.RootElement);
+    Assert(signal is not null, "FTPS_PROBLEM_SIGNAL_FOUND");
+    Assert(signal!.Seq == 44, "FTPS_PROBLEM_SIGNAL_SEQ");
+    Assert(signal.Type == "NO_PROGRESS", "FTPS_PROBLEM_SIGNAL_TYPE");
+    var sanitized = JsonSerializer.Serialize(FtpsDiagnosticsArchive.SanitizeJson(problemEvents.RootElement));
+    Assert(!sanitized.Contains("must-not-leak", StringComparison.Ordinal), "FTPS_SECRET_REDACTED");
+    Assert(sanitized.Contains("[REDACTED]", StringComparison.Ordinal), "FTPS_REDACTION_MARKER");
+    Assert(sanitized.Contains("ok", StringComparison.Ordinal), "FTPS_NON_SECRET_PRESERVED");
+}
+
+using (var harmlessEvents = JsonDocument.Parse("""
+[
+  { "seq": 1, "severity": "INFO", "event": "HEARTBEAT" },
+  { "seq": 2, "severity": "WARN", "event": "NORMAL_RETRY", "reason": "temporary" }
+]
+"""))
+{
+    Assert(FtpsDiagnosticsArchive.FindProblemSignal(harmlessEvents.RootElement) is null, "FTPS_HARMLESS_EVENTS_IGNORED");
+}
+
+using (var mirrorBundle = JsonDocument.Parse("""
+{
+  "schemaVersion": 1,
+  "type": "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+  "bundleId": "bundle-test-1",
+  "botId": "pi-main",
+  "capturedAt": "2026-09-16T12:00:00Z",
+  "trigger": { "severity": "ERROR", "reason": "NO_PROGRESS" },
+  "snapshot": { "credential": "[REDACTED]" },
+  "events": []
+}
+"""))
+using (var mirrorHttp = new HttpClient())
+{
+    var sink = new SupabaseProblemDiagnosticsSink(mirrorHttp, defaults, "test-token-123456789012345678901234567890");
+    var metadata = new ProblemMirrorMetadata(
+        1,
+        "bundle-test-1",
+        "pi-main",
+        "2026-09-16T12:00:00Z",
+        "2026-09-16",
+        "ERROR",
+        "NO_PROGRESS",
+        new string('a', 64),
+        1234,
+        "problem-bundle-test-1.json.gz");
+    var payload = sink.SerializePayload(mirrorBundle.RootElement.Clone(), metadata, "/diagnostics/v3/pi-main/2026-09-16/problem-bundle-test-1.json.gz");
+    using var parsed = JsonDocument.Parse(payload);
+    Assert(parsed.RootElement.GetProperty("type").GetString() == "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
+    Assert(parsed.RootElement.GetProperty("botId").GetString() == "pi-main", "PROBLEM_MIRROR_BOT_ID");
+    Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
+    Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");
+    Assert(Encoding.UTF8.GetString(payload).Contains("[REDACTED]", StringComparison.Ordinal), "PROBLEM_MIRROR_REDACTION_PRESERVED");
 }
 
 var temporaryDirectory = Path.Combine(Path.GetTempPath(), "aio-windows-bridge-tests-" + Guid.NewGuid().ToString("N"));
@@ -111,6 +201,17 @@ try
     Assert(!dashboardDisk.Contains(dashboardWriteKey, StringComparison.Ordinal), "DASHBOARD_KEY_MUST_NOT_BE_PLAINTEXT");
     await dashboardStore.DeleteAsync();
     Assert(!File.Exists(dashboardKeyPath), "DASHBOARD_KEY_DELETE");
+
+    var ftpsPasswordPath = Path.Combine(temporaryDirectory, "ftps-password.dpapi");
+    var ftpsStore = new SecureFtpsPasswordStore(ftpsPasswordPath);
+    var ftpsPassword = "test-ftps-password-123456";
+    await ftpsStore.SaveAsync(ftpsPassword);
+    var loadedFtpsPassword = await ftpsStore.LoadAsync("AIO_TEST_FTPS_ENV_DOES_NOT_EXIST");
+    Assert(loadedFtpsPassword == ftpsPassword, "FTPS_DPAPI_ROUNDTRIP");
+    var ftpsDisk = await File.ReadAllTextAsync(ftpsPasswordPath);
+    Assert(!ftpsDisk.Contains(ftpsPassword, StringComparison.Ordinal), "FTPS_PASSWORD_MUST_NOT_BE_PLAINTEXT");
+    await ftpsStore.DeleteAsync();
+    Assert(!File.Exists(ftpsPasswordPath), "FTPS_PASSWORD_DELETE");
 }
 finally
 {

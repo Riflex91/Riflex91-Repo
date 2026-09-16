@@ -4,7 +4,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 3;
+    public const int CurrentConfigVersion = 4;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -20,28 +20,38 @@ public sealed record BridgeConfig
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
 
-    // The Windows Bridge uses a dedicated Chromium profile. Web-dashboard settings from a
-    // normal browser profile are therefore intentionally not inherited. The non-secret URL
-    // and account stay in settings.json; the write key is stored separately with DPAPI.
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
     public string WebDashboardAccount { get; init; } = "default";
     public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "AIO_V3_WEB_DASHBOARD_WRITE_KEY";
 
+    // Full problem bundles stay independent from Supabase telemetry. Non-secret FTPS
+    // settings are stored in settings.json; the password is DPAPI-protected separately.
+    public bool DiagnosticsFtpsEnabled { get; init; }
+    public string DiagnosticsFtpsHost { get; init; } = string.Empty;
+    public int DiagnosticsFtpsPort { get; init; } = 21;
+    public string DiagnosticsFtpsUser { get; init; } = string.Empty;
+    public string DiagnosticsFtpsRoot { get; init; } = "/diagnostics/v3";
+    public bool DiagnosticsFtpsRejectUnauthorized { get; init; } = true;
+    public string DiagnosticsFtpsPasswordEnvironmentVariable { get; init; } = "AIO_V3_DIAGNOSTICS_FTPS_PASSWORD";
+
     public static string AppDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "AioBotWindowsBridge");
 
-    public static string BrowserProfileDirectory => Path.Combine(
+    public static string LocalAppDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "AioBotWindowsBridge",
-        "BrowserProfile");
+        "AioBotWindowsBridge");
+
+    public static string BrowserProfileDirectory => Path.Combine(LocalAppDirectory, "BrowserProfile");
+    public static string DiagnosticsDirectory => Path.Combine(LocalAppDirectory, "Diagnostics");
 
     public static string ConfigPath => Path.Combine(AppDirectory, "settings.json");
     public static string StatePath => Path.Combine(AppDirectory, "bridge-state.json");
     public static string StatusPath => Path.Combine(AppDirectory, "bridge-status.json");
     public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token.dpapi");
     public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key.dpapi");
+    public static string DiagnosticsFtpsPasswordPath => Path.Combine(AppDirectory, "diagnostics-ftps-password.dpapi");
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -107,6 +117,8 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("TELEMETRY_TOKEN_ENV_REQUIRED");
         if (string.IsNullOrWhiteSpace(WebDashboardWriteKeyEnvironmentVariable))
             throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsPasswordEnvironmentVariable))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PASSWORD_ENV_REQUIRED");
         if (string.IsNullOrWhiteSpace(WebDashboardAccount) || WebDashboardAccount.Length > 100)
             throw new InvalidOperationException("WEB_DASHBOARD_ACCOUNT_INVALID");
         if (string.IsNullOrWhiteSpace(BotId) || BotId.Length > 128)
@@ -121,6 +133,33 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("MAX_BACKOFF_OUT_OF_RANGE");
         if (EventLimit is < 1 or > 200)
             throw new InvalidOperationException("EVENT_LIMIT_OUT_OF_RANGE");
+
+        ValidateFtps();
+    }
+
+    private void ValidateFtps()
+    {
+        if (DiagnosticsFtpsPort is < 1 or > 65535)
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_PORT_INVALID");
+        if (DiagnosticsFtpsHost.Length > 253
+            || DiagnosticsFtpsHost.Any(char.IsWhiteSpace)
+            || DiagnosticsFtpsHost.Contains('/')
+            || DiagnosticsFtpsHost.Contains('\\')
+            || DiagnosticsFtpsHost.Contains("://", StringComparison.Ordinal))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_HOST_INVALID");
+        if (DiagnosticsFtpsUser.Length > 256)
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_USER_INVALID");
+        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsRoot)
+            || DiagnosticsFtpsRoot.Length > 512
+            || DiagnosticsFtpsRoot.Any(char.IsControl)
+            || DiagnosticsFtpsRoot.Split('/', '\\').Any(part => part == ".."))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_ROOT_INVALID");
+
+        if (!DiagnosticsFtpsEnabled) return;
+        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsHost))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_HOST_REQUIRED");
+        if (string.IsNullOrWhiteSpace(DiagnosticsFtpsUser))
+            throw new InvalidOperationException("DIAGNOSTICS_FTPS_USER_REQUIRED");
     }
 
     private static void ValidateHttps(string value, string error)
