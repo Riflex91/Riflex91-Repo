@@ -18,8 +18,10 @@ const pflichtDateien = [
   'dokumentation/NUTZER_AUFTRAEGE.md',
   'dokumentation/TESTPLAN.md',
   'dokumentation/BLOCK-2-LESEZUGRIFF.md',
+  'dokumentation/BLOCK-3-AKTIONSSTEUERUNG.md',
   'laufzeit/quelle/vertraege/bot-ereignis.ts',
   'laufzeit/quelle/vertraege/aktions-anfrage.ts',
+  'laufzeit/quelle/vertraege/aktions-steuerung.ts',
   'laufzeit/quelle/vertraege/ressourcen-sperre.ts',
   'laufzeit/quelle/vertraege/spielzustand.ts',
   'laufzeit/quelle/vertraege/bot-meldung.ts',
@@ -33,6 +35,8 @@ const pflichtDateien = [
   'laufzeit/quelle/kern/spielzustand-aufzeichnung.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
+  'laufzeit/quelle/kern/aktions-steuerung.ts',
+  'laufzeit/quelle/kern/schatten-ausfuehrung.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
   'laufzeit/quelle/kern/kontingent-waechter.ts',
   'laufzeit/quelle/kern/bedien-sicherung.ts',
@@ -131,11 +135,19 @@ for (const pflichtRegel of [
   if (!auftragsDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer Nutzerauftraege fehlt: ${pflichtRegel}`);
 }
 
-const lesezugriff = await readFile(path.join(wurzel, 'laufzeit/quelle/adventure-land/adventure-land-lesezugriff.ts'), 'utf8');
-for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'buy', 'sell', 'send_item', 'upgrade', 'compound']) {
-  const aufruf = new RegExp(`\\b${aktionsName}\\s*\\(`);
-  if (aufruf.test(lesezugriff)) throw new Error(`AdventureLandLesezugriff darf keine Spielaktion aufrufen: ${aktionsName}`);
+const verboteneSpielaktionen = ['attack', 'move', 'smart_move', 'use_skill', 'buy', 'sell', 'send_item', 'upgrade', 'compound'];
+
+async function pruefeKeineSpielaktion(relativerPfad, bezeichnung) {
+  const inhalt = await readFile(path.join(wurzel, relativerPfad), 'utf8');
+  for (const aktionsName of verboteneSpielaktionen) {
+    const aufruf = new RegExp(`\\b${aktionsName}\\s*\\(`);
+    if (aufruf.test(inhalt)) throw new Error(`${bezeichnung} darf keine Spielaktion aufrufen: ${aktionsName}`);
+  }
 }
+
+await pruefeKeineSpielaktion('laufzeit/quelle/adventure-land/adventure-land-lesezugriff.ts', 'AdventureLandLesezugriff');
+await pruefeKeineSpielaktion('laufzeit/quelle/kern/aktions-steuerung.ts', 'AktionsSteuerung');
+await pruefeKeineSpielaktion('laufzeit/quelle/kern/schatten-ausfuehrung.ts', 'SchattenAusfuehrung');
 
 const block2Dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-2-LESEZUGRIFF.md'), 'utf8');
 for (const pflichtRegel of [
@@ -143,6 +155,15 @@ for (const pflichtRegel of [
   'die Adventure-Land-Leseschnittstelle ruft keine Aktionsfunktion auf'
 ]) {
   if (!block2Dokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer Block 2 fehlt: ${pflichtRegel}`);
+}
+
+const block3Dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-3-AKTIONSSTEUERUNG.md'), 'utf8');
+for (const pflichtRegel of [
+  'Keine Spielfunktion darf die zentrale AktionsSteuerung umgehen.',
+  'Ressourcen werden immer gemeinsam oder gar nicht vergeben.',
+  'Die Schattenausfuehrung fuehrt keine Adventure-Land-Aktion aus.'
+]) {
+  if (!block3Dokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer Block 3 fehlt: ${pflichtRegel}`);
 }
 
 console.log(`V4-Struktur geprueft: ${pflichtDateien.length} Pflichtdateien, ${dateien.length} sichtbare Dateien.`);
