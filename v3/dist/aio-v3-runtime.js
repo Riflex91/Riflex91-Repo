@@ -26830,7 +26830,7 @@ module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGR
 "src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
 'use strict';
 
-const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
 const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
@@ -26972,7 +26972,13 @@ function installAlpha2019AccountTransportHotfix() {
     const sendCm = fn(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      // Preserve the base transport's named-receiver CM envelope. Alpha20.19
+      // changes direct-routing authority/backoff only; it must not discard the
+      // receiver address when falling back to send_cm.
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      await Promise.resolve(sendCm.call(this.root, target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
