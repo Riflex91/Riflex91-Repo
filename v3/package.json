@@ -1,6 +1,6 @@
 {
   "name": "adventure-land-aio-v3",
-  "version": "3.0.0-alpha.20.53",
+  "version": "3.0.0-alpha.20.54",
   "private": true,
   "description": "Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.",
   "scripts": {
