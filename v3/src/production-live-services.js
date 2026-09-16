@@ -6,6 +6,7 @@ const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
 const { installAlpha27MerchantTravelIntelligence } = require('./reliability/alpha27-merchant-travel-intelligence');
 const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = require('./reliability/p0-regroup-supply-recovery');
+const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = require('./reliability/p0-potion-bundle-delta-fix');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 
@@ -45,7 +46,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       liveAuthority: alpha27 && alpha27.alpha28 && typeof alpha27.alpha28.status === 'function' ? alpha27.alpha28.status() : null,
       merchantOwnership: ownershipGuard && typeof ownershipGuard.status === 'function' ? ownershipGuard.status() : null,
       merchantTravelIntelligence: travelIntelligence && typeof travelIntelligence.status === 'function' ? travelIntelligence.status() : null,
-      p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null
+      p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null,
+      p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled)
     })
   };
   api.cloud = {
@@ -74,6 +76,7 @@ function installProductionLiveServices(api, options = {}) {
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
   const travelIntelligence = installAlpha27MerchantTravelIntelligence(runtime, alpha27);
   const p0Recovery = installP0RegroupSupplyRecovery(runtime);
+  installP0PotionBundleDeltaFix(runtime);
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -83,7 +86,8 @@ function installProductionLiveServices(api, options = {}) {
       alpha28LiveAuthorityInstalled: !!runtime.alpha28LiveAuthorityLiveness,
       merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
       merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
-      p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery
+      p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
+      p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled)
     });
     exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery);
     return runtime.productionLiveServices;
@@ -111,6 +115,7 @@ function installProductionLiveServices(api, options = {}) {
     merchantSingleOwnerGuardInstalled: !!runtime.alpha27MerchantLegacyOwnershipGuard,
     merchantTravelIntelligenceInstalled: !!runtime.alpha27MerchantTravelIntelligence,
     p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
+    p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
@@ -134,5 +139,7 @@ module.exports = {
   runService,
   exposeDiagnostics,
   installP0RegroupSupplyRecovery,
-  P0_REGROUP_SUPPLY_RECOVERY_MODE
+  P0_REGROUP_SUPPLY_RECOVERY_MODE,
+  installP0PotionBundleDeltaFix,
+  P0_POTION_BUNDLE_DELTA_FIX_MODE
 };
