@@ -5,6 +5,7 @@ import process from 'node:process';
 const wurzel = process.cwd();
 const pflichtDateien = [
   'dokumentation/BLOCK-6-FARMEN.md',
+  'dokumentation/BLOCK-6-AKTIVTEST.md',
   'laufzeit/quelle/vertraege/farmen.ts',
   'laufzeit/quelle/spiellogik/grundlegendes-farmen.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-farm-ausfuehrung.ts',
@@ -13,8 +14,11 @@ const pflichtDateien = [
   'laufzeit/tests/farm-ausfuehrung.test.mjs',
   'laufzeit/tests/farm-leistung.test.mjs',
   'laufzeit/tests/block6-schattenlauf-ranger.test.mjs',
+  'laufzeit/tests/block6-aktivtest-ranger.test.mjs',
   'werkzeuge/block6-live-test.js',
-  'werkzeuge/block6-schattenlauf-ranger.js'
+  'werkzeuge/block6-schattenlauf-ranger.js',
+  'werkzeuge/block6-kompaktbericht.js',
+  'werkzeuge/block6-aktivtest-ranger.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -64,6 +68,37 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
   }
 }
 
+const kompaktbericht = await readFile(path.join(wurzel, 'werkzeuge/block6-kompaktbericht.js'), 'utf8');
+for (const pflichtText of ['kompaktErgebnis', 'V4Block6Kompaktbericht', 'zielZaehler', 'ereignisse']) {
+  if (pflichtText === 'zielZaehler' || pflichtText === 'ereignisse') {
+    if (new RegExp(`\\b${pflichtText}\\s*:`).test(kompaktbericht)) {
+      throw new Error(`Block-6-Kompaktbericht darf das grosse Detailfeld ${pflichtText} nicht in den Kompaktbericht uebernehmen.`);
+    }
+  } else if (!kompaktbericht.includes(pflichtText)) {
+    throw new Error(`Block-6-Kompaktbericht ist unvollstaendig: ${pflichtText}`);
+  }
+}
+
+const aktivRunner = await readFile(path.join(wurzel, 'werkzeuge/block6-aktivtest-ranger.js'), 'utf8');
+for (const pflichtText of [
+  'V4Block6AktivRanger',
+  'aktivFreigegeben',
+  'BrowserAktionsSteuerung',
+  'Nur eine von der zentralen Browser-Aktionssteuerung gestartete Anfrage',
+  "const MAX_DAUER = 15 * 60 * 1000",
+  "const ERLAUBTE_MONSTER_ART = 'goo'",
+  'FARM_STILLSTAND',
+  'sicherheitsstopp',
+  'fuehreFreigegebeneAktionAus'
+]) {
+  if (!aktivRunner.includes(pflichtText)) throw new Error(`Block-6-Ranger-Aktivtest ist unvollstaendig: ${pflichtText}`);
+}
+for (const verboteneArt of ['bee', 'crab', 'snake']) {
+  if (aktivRunner.includes(`ERLAUBTE_MONSTER_ART = '${verboteneArt}'`)) {
+    throw new Error(`Block-6-Ranger-Aktivtest darf fuer den ersten Test nicht ${verboteneArt} freigeben.`);
+  }
+}
+
 const dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-6-FARMEN.md'), 'utf8');
 for (const regel of [
   'Keine Farmentscheidung ruft Adventure Land direkt auf.',
@@ -75,4 +110,9 @@ for (const regel of [
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 6 fehlt: ${regel}`);
 }
 
-console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien, deterministische Fachlogik und read-only Ranger-Schattenlauf.`);
+const aktivDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-6-AKTIVTEST.md'), 'utf8');
+for (const regel of ['Ranger', '`goo`', 'aktivFreigegeben: true', 'maximal 15 Minuten', 'Sicherheitsstopp', 'V4Block6AktivRanger.kompaktErgebnis()']) {
+  if (!aktivDokument.includes(regel)) throw new Error(`Pflichtregel fuer den Block-6-Aktivtest fehlt: ${regel}`);
+}
+
+console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien, deterministische Fachlogik, read-only Schattenlauf und begrenzter Ranger-Aktivtest.`);
