@@ -1,4 +1,6 @@
 using AioBotWindowsBridge;
+using System.Text;
+using System.Text.Json;
 
 static void Assert(bool condition, string message)
 {
@@ -74,7 +76,6 @@ ExpectInvalid(defaults with { BackblazePrefix = "v4/../secret" }, "BACKBLAZE_PRE
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 2) == 10, "BACKOFF_2");
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 20) == 300, "BACKOFF_CAP");
-
 Assert(TelemetryBridgeService.ShouldCatchUp(100, 100, false, 1), "CATCHUP_FULL_BATCH");
 Assert(TelemetryBridgeService.ShouldCatchUp(10, 100, true, 1), "CATCHUP_HAS_MORE");
 Assert(!TelemetryBridgeService.ShouldCatchUp(10, 100, false, 1), "CATCHUP_STOPS_WHEN_DRAINED");
@@ -91,9 +92,11 @@ Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeSer
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
 Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes), "PAYLOAD_BUDGET_BOUNDARY");
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
+Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
+Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
 
-using (var snapshotDocument = System.Text.Json.JsonDocument.Parse("{}"))
-using (var eventsDocument = System.Text.Json.JsonDocument.Parse("[]"))
+using (var snapshotDocument = JsonDocument.Parse("{}"))
+using (var eventsDocument = JsonDocument.Parse("[]"))
 {
     var restarted = new DebugReadResult(
         snapshotDocument.RootElement.Clone(),
@@ -105,6 +108,83 @@ using (var eventsDocument = System.Text.Json.JsonDocument.Parse("[]"))
         HasMoreEvents: false,
         TargetUrl: "https://adventure.land/");
     Assert(restarted.CursorWasReset, "CURSOR_RESET_DETECTED");
+}
+
+using (var problemEvents = JsonDocument.Parse("""
+[
+  {
+    "seq": 44,
+    "severity": "ERROR",
+    "component": "farmer",
+    "event": "NO_PROGRESS",
+    "reason": "stalled",
+    "data": {
+      "token": "must-not-leak",
+      "applicationKey": "backblaze-secret",
+      "keyId": "backblaze-key-id",
+      "safe": "ok"
+    }
+  }
+]
+"""))
+{
+    var signal = LocalProblemDiagnosticsArchive.FindProblemSignal(problemEvents.RootElement);
+    Assert(signal is not null, "PROBLEM_SIGNAL_FOUND");
+    Assert(signal!.Seq == 44, "PROBLEM_SIGNAL_SEQ");
+    Assert(signal.Type == "NO_PROGRESS", "PROBLEM_SIGNAL_TYPE");
+    var sanitized = JsonSerializer.Serialize(LocalProblemDiagnosticsArchive.SanitizeJson(problemEvents.RootElement));
+    Assert(!sanitized.Contains("must-not-leak", StringComparison.Ordinal), "TOKEN_REDACTED");
+    Assert(!sanitized.Contains("backblaze-secret", StringComparison.Ordinal), "BACKBLAZE_APPLICATION_KEY_REDACTED");
+    Assert(!sanitized.Contains("backblaze-key-id", StringComparison.Ordinal), "BACKBLAZE_KEY_ID_REDACTED");
+    Assert(sanitized.Contains("[REDACTED]", StringComparison.Ordinal), "REDACTION_MARKER");
+    Assert(sanitized.Contains("ok", StringComparison.Ordinal), "NON_SECRET_PRESERVED");
+}
+
+using (var harmlessEvents = JsonDocument.Parse("""
+[
+  { "seq": 1, "severity": "INFO", "event": "HEARTBEAT" },
+  { "seq": 2, "severity": "WARN", "event": "NORMAL_RETRY", "reason": "temporary" }
+]
+"""))
+{
+    Assert(LocalProblemDiagnosticsArchive.FindProblemSignal(harmlessEvents.RootElement) is null, "HARMLESS_EVENTS_IGNORED");
+}
+
+using (var mirrorBundle = JsonDocument.Parse("""
+{
+  "schemaVersion": 1,
+  "type": "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+  "bundleId": "bundle-test-1",
+  "botId": "pi-main",
+  "capturedAt": "2026-09-16T12:00:00Z",
+  "trigger": { "severity": "ERROR", "reason": "NO_PROGRESS" },
+  "snapshot": { "credential": "[REDACTED]" },
+  "events": []
+}
+"""))
+using (var mirrorHttp = new HttpClient())
+{
+    var sink = new SupabaseProblemDiagnosticsSink(mirrorHttp, defaults, "test-token-123456789012345678901234567890");
+    var metadata = new ProblemDiagnosticsMetadata(
+        1,
+        "bundle-test-1",
+        "pi-main",
+        "2026-09-16T12:00:00Z",
+        "2026-09-16",
+        "ERROR",
+        "NO_PROGRESS",
+        new string('a', 64),
+        1234,
+        "problem-bundle-test-1.json.gz");
+    var logicalPath = LocalProblemDiagnosticsArchive.LogicalArchivePath(metadata);
+    var payload = sink.SerializePayload(mirrorBundle.RootElement.Clone(), metadata, logicalPath);
+    using var parsed = JsonDocument.Parse(payload);
+    Assert(parsed.RootElement.GetProperty("type").GetString() == "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
+    Assert(parsed.RootElement.GetProperty("botId").GetString() == "pi-main", "PROBLEM_MIRROR_BOT_ID");
+    Assert(parsed.RootElement.GetProperty("archive").GetProperty("provider").GetString() == "local-spool", "PROBLEM_MIRROR_PROVIDER");
+    Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
+    Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");
+    Assert(Encoding.UTF8.GetString(payload).Contains("[REDACTED]", StringComparison.Ordinal), "PROBLEM_MIRROR_REDACTION_PRESERVED");
 }
 
 var temporaryDirectory = Path.Combine(Path.GetTempPath(), "aio-windows-bridge-tests-" + Guid.NewGuid().ToString("N"));
