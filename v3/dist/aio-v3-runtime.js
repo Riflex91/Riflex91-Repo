@@ -11650,11 +11650,12 @@ class Alpha16Runtime extends Alpha15Runtime {
     return false;
   }
 
-  planTravel(request) {
+  planTravel(request, context = {}) {
     return this.safeTravel.plan(request, {
       gameData: this.adapter.getGameData() || {},
       contentDrift: this.contentDrift,
-      snapshot: this.lastSnapshot || this.adapter.snapshot()
+      snapshot: this.lastSnapshot || this.adapter.snapshot(),
+      destinationMapAttestation: context && context.destinationMapAttestation || null
     });
   }
 
@@ -11679,6 +11680,10 @@ module.exports = { Alpha16Runtime, ALPHA16_VERSION };
 
 const TRAVEL_SCHEMA_VERSION = 1;
 const TRAVEL_MODE = 'shadow-safe-travel-foundation';
+const TRUSTED_MAP_ATTESTATION_SOURCES = new Set([
+  'trusted-party-regroup-leader',
+  'trusted-owned-farmer-service'
+]);
 const TravelState = Object.freeze({
   PLANNED: 'PLANNED',
   TRAVELLING: 'TRAVELLING',
@@ -11727,7 +11732,7 @@ class SafeTravelController {
     this.sequence = 0;
     this.failures = [];
     this.circuit = null;
-    this.stats = { planned: 0, rejected: 0, syntheticStarts: 0, completed: 0, aborted: 0, failedSafe: 0, progress: 0, capacityEvictions: 0 };
+    this.stats = { planned: 0, rejected: 0, syntheticStarts: 0, completed: 0, aborted: 0, failedSafe: 0, progress: 0, capacityEvictions: 0, attestedMapPlans: 0 };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -11785,6 +11790,27 @@ class SafeTravelController {
     }
   }
 
+  _trustedMapAttestation(map, context = {}) {
+    const attestation = context && context.destinationMapAttestation;
+    if (!attestation || attestation.trusted !== true) return null;
+    if (String(attestation.map || '') !== String(map || '')) return null;
+    const source = String(attestation.source || '');
+    if (!TRUSTED_MAP_ATTESTATION_SOURCES.has(source)) return null;
+    const observedAt = Number(attestation.observedAt);
+    if (!Number.isFinite(observedAt) || observedAt <= 0) return null;
+    const maxAgeMs = Math.max(1000, Math.min(30000, finite(attestation.maxAgeMs, 7000)));
+    const ageMs = this.now() - observedAt;
+    if (ageMs < -2000 || ageMs > maxAgeMs) return null;
+    return {
+      map: String(map),
+      source,
+      observedAt,
+      ageMs,
+      maxAgeMs,
+      subject: attestation.subject == null ? null : String(attestation.subject).slice(0, 64)
+    };
+  }
+
   plan(request = {}, context = {}) {
     if (this.breaker().open) return this._reject('TRAVEL_CIRCUIT_OPEN');
     if (request.server || request.region || request.serverChange === true) return this._reject('SERVER_CHANGE_FORBIDDEN');
@@ -11793,8 +11819,12 @@ class SafeTravelController {
     if (!map) return this._reject('DESTINATION_MAP_REQUIRED');
     const gameData = context.gameData || {};
     if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, map)) return this._reject('UNKNOWN_DESTINATION_MAP', { map });
+    let mapAttestation = null;
     if (context.contentDrift && typeof context.contentDrift.requiresRevalidation === 'function' && context.contentDrift.requiresRevalidation('maps', map)) {
-      return this._reject('DESTINATION_MAP_REQUIRES_REVALIDATION', { map });
+      mapAttestation = this._trustedMapAttestation(map, context);
+      if (!mapAttestation) return this._reject('DESTINATION_MAP_REQUIRES_REVALIDATION', { map, attestationAccepted: false });
+      this.stats.attestedMapPlans += 1;
+      this._event('TRAVEL_DESTINATION_MAP_ATTESTED', 'info', 'FRESH_TRUSTED_PARTY_MAP_ATTESTATION', { ...mapAttestation });
     }
     const start = point(context.snapshot || {});
     if (!start.map) return this._reject('TRAVEL_SNAPSHOT_UNAVAILABLE');
@@ -11818,16 +11848,17 @@ class SafeTravelController {
       start,
       lastObserved: start,
       target,
-      reason: 'SAFE_PLAN_CREATED',
+      reason: mapAttestation ? 'SAFE_PLAN_CREATED_WITH_TRUSTED_MAP_ATTESTATION' : 'SAFE_PLAN_CREATED',
       actionAuthority: false,
       liveExecutionAllowed: false,
       serverChangeAllowed: false,
       routeKind: start.map === map ? 'SAME_MAP' : 'CROSS_MAP_KNOWN_ONLY',
+      destinationMapAttestation: mapAttestation,
       metadata: request.metadata && typeof request.metadata === 'object' ? clone(request.metadata) : {}
     };
     this.plans.set(id, row);
     this.stats.planned += 1;
-    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind });
+    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation });
     return { accepted: true, plan: clone(row) };
   }
 
@@ -11940,6 +11971,7 @@ class SafeTravelController {
       smartMoveExecutionEnabled: false,
       serverChangeAllowed: false,
       unknownMapTravelAllowed: false,
+      trustedMapAttestationSources: [...TRUSTED_MAP_ATTESTATION_SOURCES],
       capacity: this.capacity,
       leaseMs: this.leaseMs,
       noProgressMs: this.noProgressMs,
@@ -11953,7 +11985,7 @@ class SafeTravelController {
   }
 }
 
-module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState };
+module.exports = { SafeTravelController, TRAVEL_SCHEMA_VERSION, TRAVEL_MODE, TravelState, TRUSTED_MAP_ATTESTATION_SOURCES };
 
 },
 "src/autonomy/alpha17-runtime.js": function(require,module,exports){
@@ -19437,10 +19469,19 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     if (this.lastMerchantRouteDecision && this.lastMerchantRouteDecision.route === 'TOWN') {
       return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
     }
+    const sourceReportAt = finite(plan.sourceReportAt);
+    const destinationMapAttestation = sourceReportAt == null ? null : {
+      map: String(plan.target.map),
+      trusted: true,
+      source: 'trusted-owned-farmer-service',
+      observedAt: sourceReportAt,
+      maxAgeMs: Math.min(30000, Math.max(1000, finite(this.merchantServicePlanner && this.merchantServicePlanner.reportTtlMs, 25000))),
+      subject: plan.target.name || null
+    };
     const planned = this.planTravel({
       destination: { map: plan.target.map, x: plan.target.x, y: plan.target.y },
-      metadata: { source: 'MERCHANT_SERVICE', servicePlanId: plan.id, targetName: plan.target.name }
-    });
+      metadata: { source: 'MERCHANT_SERVICE', servicePlanId: plan.id, targetName: plan.target.name, sourceReportAt }
+    }, { destinationMapAttestation });
     if (!planned || planned.accepted !== true || !planned.plan) return { executed: false, reason: planned && planned.reason || 'SERVICE_TRAVEL_PLAN_REJECTED' };
     return this.executeTravelPlan(planned.plan.id);
   }
@@ -19594,6 +19635,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
 }
 
 module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+
 },
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
 'use strict';
@@ -24371,7 +24413,9 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     return {
       ...status,
       requiredCombatMembers: expected ? expected.length : null,
-      topologySource: 'trusted-party-bootstrap'
+      topologySource: 'trusted-party-bootstrap',
+      crossMapFormationMovesBlocked: true,
+      crossMapRegroupOwner: 'alpha28-controlled-farmer-travel'
     };
   }
 
@@ -24452,6 +24496,72 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     this.lastTeam = state;
     this._syncOrbitDirection(state);
     return state;
+  }
+
+  _crossMapHold(team, requestedReason = null, phase = 'FORMATION') {
+    this.stats.incompleteTeamBlocks += 1;
+    this.lastDecision = {
+      at: this.now(),
+      action: 'HOLD',
+      reason: 'CROSS_MAP_REGROUP_REQUIRED',
+      requestedReason,
+      phase,
+      leaderName: team && team.leaderName || null,
+      leaderMap: team && team.leader && team.leader.map || null,
+      memberMap: team && team.self && team.self.map || null
+    };
+    this._event('TEAM_CROSS_MAP_REGROUP_REQUIRED', 'warn', 'CROSS_MAP_REGROUP_REQUIRED', { ...this.lastDecision });
+    return true;
+  }
+
+  _followLeader(context, team, reason) {
+    if (team && team.self && team.leader && team.selfName !== team.leaderName) {
+      const memberMap = String(team.self.map || '');
+      const leaderMap = String(team.leader.map || '');
+      if (memberMap && leaderMap && memberMap !== leaderMap) return this._crossMapHold(team, reason, 'FORMATION');
+    }
+    return super._followLeader(context, team, reason);
+  }
+
+  _installLocalFarmTeamMovement() {
+    if (this.localFarming.__teamCohesionInstalled) return;
+    const baseTick = this.localFarming.tick.bind(this.localFarming);
+    this.localFarming.tick = (context = {}) => {
+      const snapshot = context.snapshot;
+      if (!snapshot || !snapshot.character || lower(snapshot.character.ctype) === 'merchant') return { at: this.now(), action: 'HOLD', reason: 'MERCHANT_EXCLUDED_FROM_TEAM_FARM' };
+      if (this.resourceTopoff) this.resourceTopoff.topOff(snapshot, context.runtime && context.runtime.adapter || this.runtime.adapter);
+      const team = this._team(snapshot);
+      if (!team.complete || !team.alive || !team.positionsKnown) {
+        this.stats.incompleteTeamBlocks += 1;
+        this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'TEAM_INCOMPLETE_OR_UNOBSERVABLE', leaderName: team.leaderName };
+        return this.lastDecision;
+      }
+      if (!team.sameMap) {
+        this._crossMapHold(team, null, 'LOCAL_FARM');
+        return this.lastDecision;
+      }
+      const supply = this._localSupply(snapshot);
+      if (!supply.ready) {
+        this.stats.supplyBlocks += 1;
+        if (team.selfName !== team.leaderName) this._followLeader({ ...context, adapter: this.runtime.adapter }, team, 'LOCAL_POTION_SUPPLY_INCOMPLETE');
+        this.lastDecision = { ...(this.lastDecision || {}), at: this.now(), action: 'HOLD', reason: 'LOCAL_POTION_SUPPLY_INCOMPLETE', leaderName: team.leaderName, supply };
+        return this.lastDecision;
+      }
+      if (team.selfName !== team.leaderName) {
+        this.stats.localFarmFollowerSuppressed += 1;
+        this._followLeader({ ...context, adapter: this.runtime.adapter }, team, team.cohesive ? 'FOLLOW_TEAM_LEADER' : 'REGROUP_WITH_TEAM_LEADER');
+        if (!this.lastDecision || this.lastDecision.action !== 'FORMATION_FOLLOW') this.lastDecision = { at: this.now(), action: 'HOLD', reason: 'FOLLOWER_DOES_NOT_OWN_FARM_DIRECTION', leaderName: team.leaderName };
+        return this.lastDecision;
+      }
+      if (!team.cohesive || !team.healthReady || !team.manaReady) {
+        this.stats.localFarmLeaderWaits += 1;
+        const reason = !team.cohesive ? 'WAITING_FOR_TEAM_COHESION' : (!team.healthReady ? 'WAITING_FOR_TEAM_HP_TOPOFF' : 'WAITING_FOR_TEAM_MP_TOPOFF');
+        this.lastDecision = { at: this.now(), action: 'HOLD', reason, leaderName: team.leaderName, maxPairDistance: team.maxPairDistance };
+        return this.lastDecision;
+      }
+      return baseTick(context);
+    };
+    this.localFarming.__teamCohesionInstalled = true;
   }
 }
 
@@ -31983,6 +32093,8 @@ const { contentDisposition, isApprovedDisposition } = require('../autonomy/local
 const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
 const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const TEAM_REGROUP_KIND = 'TEAM_REGROUP';
+const PROGRESSION_KIND = 'PROGRESSION';
 
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
@@ -32003,6 +32115,9 @@ class Alpha28CrossMapFarmerProgression {
     this.timeoutMs = 120000;
     this.receiverInstalled = false;
     this.receivedObjective = null;
+    this.lastRegroupPublishAt = -Infinity;
+    this.regroupPublishIntervalMs = 2000;
+    this.regroupObjectiveTtlMs = 15000;
     this.patchProgressionStatus();
   }
 
@@ -32018,7 +32133,7 @@ class Alpha28CrossMapFarmerProgression {
     const base = progression.status.bind(progression);
     progression.status = () => {
       const status = base();
-      return { ...status, policy: { ...(status.policy || {}), crossMapPromotionRecommendationOnly: false, crossMapPromotionAutomatic: true, directSmartMoveAuthority: false, controlledFarmerTravelAuthority: true } };
+      return { ...status, policy: { ...(status.policy || {}), crossMapPromotionRecommendationOnly: false, crossMapPromotionAutomatic: true, directSmartMoveAuthority: false, controlledFarmerTravelAuthority: true, crossMapTeamRegroupAutomatic: true } };
     };
     progression.__alpha28CrossMapStatusPatched = true;
     return true;
@@ -32043,7 +32158,8 @@ class Alpha28CrossMapFarmerProgression {
       this.receivedObjective = clone(payload);
       if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(payload);
       this.stats.crossMapObjectivesReceived += 1;
-      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED', 'info', 'VALIDATED_LEADER_OBJECTIVE', { objectiveId: payload.id, leaderName: team.leaderName, map: payload.map, monster: payload.monster });
+      if (payload.kind === TEAM_REGROUP_KIND) this.stats.crossMapRegroupObjectivesReceived = (this.stats.crossMapRegroupObjectivesReceived || 0) + 1;
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED', 'info', payload.kind === TEAM_REGROUP_KIND ? 'VALIDATED_LEADER_REGROUP_OBJECTIVE' : 'VALIDATED_LEADER_OBJECTIVE', { objectiveId: payload.id, kind: payload.kind || PROGRESSION_KIND, leaderName: team.leaderName, map: payload.map, monster: payload.monster || null });
       return true;
     });
     this.receiverInstalled = true;
@@ -32069,14 +32185,64 @@ class Alpha28CrossMapFarmerProgression {
     if (farmer && farmer.state === 'ENGAGE' && farmer.targetId != null) return true;
     return (snapshot.entities || []).some((e) => e && e.mtype && !e.dead && !e.rip && String(e.target || '') === String(c.name || ''));
   }
+  _objectiveKind(objective) {
+    return String(objective && objective.kind || PROGRESSION_KIND);
+  }
   _objectiveValid(objective, team) {
     if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
     if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
+    if (objective.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
     const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
     if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
+    if (this._objectiveKind(objective) === TEAM_REGROUP_KIND) {
+      if (!Number.isFinite(Number(objective.x)) || !Number.isFinite(Number(objective.y))) return false;
+      if (team.leader && team.leader.map && String(team.leader.map) !== String(objective.map)) return false;
+      return true;
+    }
     if (!gameData.monsters || !gameData.monsters[objective.monster]) return false;
     if (!isApprovedDisposition(contentDisposition(this.runtime.world, objective.monster))) return false;
     if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('maps', objective.map)) return false;
+    return true;
+  }
+
+  _makeRegroupObjective(snapshot, team) {
+    const c = snapshot && snapshot.character;
+    if (!c || team.selfName !== team.leaderName || !c.map || !Number.isFinite(Number(c.x)) || !Number.isFinite(Number(c.y))) return null;
+    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (existing && this._objectiveKind(existing) === TEAM_REGROUP_KIND && existing.expiresAt > this.now() && String(existing.leaderName) === String(team.leaderName) && String(existing.map) === String(c.map)) {
+      const delta = Math.hypot(Number(existing.x) - Number(c.x), Number(existing.y) - Number(c.y));
+      if (Number.isFinite(delta) && delta <= 80) return clone(existing);
+    }
+    const createdAt = this.now();
+    const objective = {
+      id: `alpha28-regroup-${createdAt}-${team.leaderName}`,
+      kind: TEAM_REGROUP_KIND,
+      leaderName: team.leaderName,
+      partyFingerprint: null,
+      map: String(c.map),
+      monster: null,
+      spawnIndex: null,
+      x: Number(c.x),
+      y: Number(c.y),
+      createdAt,
+      expiresAt: createdAt + this.regroupObjectiveTtlMs,
+      readiness: null,
+      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+    };
+    if (!this._objectiveValid(objective, team)) return null;
+    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    return objective;
+  }
+
+  _publishRegroup(team, objective) {
+    if (!objective) return false;
+    if (this.now() - this.lastRegroupPublishAt < this.regroupPublishIntervalMs) return true;
+    this.lastRegroupPublishAt = this.now();
+    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    this._publishCrossMap(team, objective);
+    this.stats.crossMapObjectivesPublished += 1;
+    this.stats.crossMapRegroupObjectivesPublished = (this.stats.crossMapRegroupObjectivesPublished || 0) + 1;
+    this.event('ALPHA28_TEAM_REGROUP_OBJECTIVE_PUBLISHED', 'warn', 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', { objective: clone(objective), memberMaps: (team.members || []).map((row) => ({ name: row.name, map: row.map })) });
     return true;
   }
 
@@ -32086,9 +32252,10 @@ class Alpha28CrossMapFarmerProgression {
     const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
     if (!selected || selected.map === snapshot.character.map) return null;
     const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-    if (existing && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+    if (existing && this._objectiveKind(existing) === PROGRESSION_KIND && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
     const objective = {
       id: `alpha28-crossmap-${this.now()}-${selected.id}`,
+      kind: PROGRESSION_KIND,
       leaderName: team.leaderName,
       partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
       map: selected.map,
@@ -32150,16 +32317,26 @@ class Alpha28CrossMapFarmerProgression {
   async _execute(objective, snapshot) {
     const controller = this.runtime.safeTravel;
     if (!controller || typeof controller.plan !== 'function') return false;
-    const planned = controller.plan({ destination: { map: objective.map, x: objective.x, y: objective.y }, metadata: { alpha28FarmerCrossMap: true, objectiveId: objective.id, leaderName: objective.leaderName, monster: objective.monster } }, { snapshot, gameData: this.runtime.adapter.getGameData() || {}, contentDrift: this.runtime.contentDrift });
-    if (!planned || !planned.accepted || !planned.plan) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: planned && planned.reason || 'TRAVEL_PLAN_REJECTED' }; return false; }
+    const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
+    const destinationMapAttestation = regroup ? {
+      map: objective.map,
+      trusted: true,
+      source: 'trusted-party-regroup-leader',
+      observedAt: objective.createdAt,
+      maxAgeMs: Math.min(30000, Math.max(1000, Number(objective.expiresAt) - Number(objective.createdAt))),
+      subject: objective.leaderName
+    } : null;
+    const planned = controller.plan({ destination: { map: objective.map, x: objective.x, y: objective.y }, metadata: { alpha28FarmerCrossMap: true, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), leaderName: objective.leaderName, monster: objective.monster || null } }, { snapshot, gameData: this.runtime.adapter.getGameData() || {}, contentDrift: this.runtime.contentDrift, destinationMapAttestation });
+    if (!planned || !planned.accepted || !planned.plan) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: planned && planned.reason || 'TRAVEL_PLAN_REJECTED', objectiveId: objective.id }; return false; }
     const plan = planned.plan;
     const started = this._startControlled(plan);
-    if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE' }; return false; }
+    if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE', objectiveId: objective.id }; return false; }
     const smartMove = this.root.smart_move || this.root.smartMove;
     const stop = this.root.stop;
     if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
     this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
-    this.event('ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
+    if (regroup) this.stats.crossMapRegroupTravelAttempts = (this.stats.crossMapRegroupTravelAttempts || 0) + 1;
+    this.event(regroup ? 'ALPHA28_TEAM_REGROUP_STARTED' : 'ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', regroup ? 'CONTROLLED_TEAM_REGROUP_TRAVEL' : 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
     let timer;
     try {
       const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
@@ -32169,19 +32346,23 @@ class Alpha28CrossMapFarmerProgression {
       const final = controller.get(plan.id);
       if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.crossMapTravelCompleted += 1;
-      this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, map: objective.map, monster: objective.monster };
-      const progression = this._progression();
-      if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
-      if (this.runtime.localFarming && typeof this.runtime.localFarming._abort === 'function') this.runtime.localFarming._abort('ALPHA28_CROSS_MAP_ARRIVED_REPLAN', this.now(), { objectiveId: objective.id });
-      this.event('ALPHA28_FARMER_CROSS_MAP_COMPLETED', 'info', 'ARRIVAL_VERIFIED', clone(this.lastAction));
+      if (regroup) this.stats.crossMapRegroupTravelCompleted = (this.stats.crossMapRegroupTravelCompleted || 0) + 1;
+      this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), map: objective.map, monster: objective.monster || null };
+      if (!regroup) {
+        const progression = this._progression();
+        if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
+      }
+      if (this.runtime.localFarming && typeof this.runtime.localFarming._abort === 'function') this.runtime.localFarming._abort(regroup ? 'ALPHA28_TEAM_REGROUP_ARRIVED_REPLAN' : 'ALPHA28_CROSS_MAP_ARRIVED_REPLAN', this.now(), { objectiveId: objective.id });
+      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_COMPLETED' : 'ALPHA28_FARMER_CROSS_MAP_COMPLETED', 'info', 'ARRIVAL_VERIFIED', clone(this.lastAction));
       return true;
     } catch (error) {
       const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
       try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
       this._failSafe(plan.id, reason);
       this.stats.crossMapTravelFailedSafe += 1;
-      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, planId: plan.id, objectiveId: objective.id };
-      this.event('ALPHA28_FARMER_CROSS_MAP_FAILED_SAFE', 'error', reason, clone(this.lastAction));
+      if (regroup) this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective) };
+      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_FAILED_SAFE' : 'ALPHA28_FARMER_CROSS_MAP_FAILED_SAFE', 'error', reason, clone(this.lastAction));
       return false;
     } finally {
       if (timer != null) (this.root.clearTimeout || clearTimeout)(timer);
@@ -32200,9 +32381,29 @@ class Alpha28CrossMapFarmerProgression {
     const team = this._team(snapshot);
     if (!team || !team.complete || !team.alive || !team.positionsKnown) return false;
     const isLeader = team.selfName === team.leaderName;
-    if (isLeader && (!team.sameMap || !team.cohesive)) return false;
-    let objective = isLeader ? this._makeLeaderObjective(snapshot, team) : this._sharedObjective(team);
-    if (!objective || objective.map === c.map) return false;
+
+    if (!team.sameMap) {
+      if (isLeader) {
+        const regroup = this._makeRegroupObjective(snapshot, team);
+        if (!regroup) return false;
+        this._publishRegroup(team, regroup);
+        this.lastAction = { at: this.now(), result: 'PUBLISHED', reason: 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND, map: regroup.map };
+        return true;
+      }
+      const regroup = this._sharedObjective(team);
+      if (!regroup || this._objectiveKind(regroup) !== TEAM_REGROUP_KIND || regroup.map === c.map) return false;
+      if (this.lastAction && this.lastAction.objectiveId === regroup.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
+      Promise.resolve(this._execute(regroup, snapshot)).catch((error) => {
+        this.stats.crossMapTravelFailedSafe += 1;
+        this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
+        this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND };
+      });
+      return true;
+    }
+
+    if (!team.cohesive) return false;
+    const objective = isLeader ? this._makeLeaderObjective(snapshot, team) : this._sharedObjective(team);
+    if (!objective || this._objectiveKind(objective) === TEAM_REGROUP_KIND || objective.map === c.map) return false;
     if (this.lastAction && this.lastAction.objectiveId === objective.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
     Promise.resolve(this._execute(objective, snapshot)).catch((error) => {
       this.stats.crossMapTravelFailedSafe += 1;
@@ -32212,11 +32413,11 @@ class Alpha28CrossMapFarmerProgression {
   }
 
   status() {
-    return { automaticCrossMapFarmerProgression: true, directAlpha21SmartMoveAuthority: false, controlledFarmerSmartMoveAuthority: true, leaderOwnsObjective: true, followersOnlyFollowValidatedLeaderObjective: true, crossMapReceiverInstalled: this.receiverInstalled, busy: this.busy, activePlanId: this.activePlanId, activeObjectiveId: this.activeObjectiveId, lastAction: clone(this.lastAction) };
+    return { automaticCrossMapFarmerProgression: true, automaticCrossMapTeamRegroup: true, directAlpha21SmartMoveAuthority: false, controlledFarmerSmartMoveAuthority: true, leaderOwnsObjective: true, leaderPublishesRegroupWhenMapSplit: true, followersOnlyFollowValidatedLeaderObjective: true, crossMapReceiverInstalled: this.receiverInstalled, busy: this.busy, activePlanId: this.activePlanId, activeObjectiveId: this.activeObjectiveId, lastAction: clone(this.lastAction) };
   }
 }
 
-module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER };
+module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER, TEAM_REGROUP_KIND, PROGRESSION_KIND };
 
 },
 "src/reliability/alpha28-brain-cloud.js": function(require,module,exports){
