@@ -9,7 +9,8 @@ const schemaDateien = [
   'archiv-verzeichnis.schema.json',
   'entwicklungs-aufgabe.schema.json',
   'tages-bericht.schema.json',
-  'tages-bericht-einstellung.schema.json'
+  'tages-bericht-einstellung.schema.json',
+  'dienst-profil.schema.json'
 ];
 
 for (const dateiname of schemaDateien) {
@@ -27,4 +28,12 @@ test('Tagesbericht-Einstellung verlangt bei E-Mail-Versand eine Empfaengeradress
   const schema = JSON.parse(inhalt);
   assert.deepEqual(schema.allOf[0].then.required, ['empfaengerEmail']);
   assert.deepEqual(schema.properties.versandArten.items.enum, ['email', 'web_oberflaeche']);
+});
+
+test('Dienstprofile verlangen Quelle, Gueltigkeit, Anbietermaximum und Sicherheitspuffer', async () => {
+  const inhalt = await readFile(new URL('../../schemata/dienst-profil.schema.json', import.meta.url), 'utf8');
+  const schema = JSON.parse(inhalt);
+  assert.ok(schema.required.includes('quelle'));
+  assert.ok(schema.required.includes('gueltigBis'));
+  assert.deepEqual(schema.properties.grenzen.items.required, ['kennung', 'einheit', 'zeitraum', 'anbieterMaximum', 'sicherheitsPuffer']);
 });
