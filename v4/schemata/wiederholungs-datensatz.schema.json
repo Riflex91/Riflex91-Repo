@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/wiederholungs-datensatz.schema.json",
+  "title": "V4 Wiederholungsdatensatz",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kennung", "erstelltAm", "zustaende", "ereignisse", "ablaufBeobachtungen", "vorfallRegeln", "kontingentSchritte", "telemetrieDauerzustand", "leistungsZeitraeume"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kennung": { "type": "string", "minLength": 1 },
+    "erstelltAm": { "type": "number", "minimum": 0 },
+    "zustaende": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["charakterKennung", "zustand"],
+        "properties": {
+          "charakterKennung": { "type": "string", "minLength": 1 },
+          "zustand": { "$ref": "https://aio-v4.invalid/schemata/spielzustand.schema.json" }
+        }
+      }
+    },
+    "ereignisse": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["charakterKennung", "ereignis"],
+        "properties": {
+          "charakterKennung": { "type": ["string", "null"] },
+          "ereignis": { "$ref": "https://aio-v4.invalid/schemata/bot-ereignis.schema.json" }
+        }
+      }
+    },
+    "ablaufBeobachtungen": { "type": "array", "items": { "type": "object" } },
+    "vorfallRegeln": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stillstandNachMillisekunden", "schleifenFensterMillisekunden", "schleifenWiederholungen", "schleifenMusterLaengeMax"],
+      "properties": {
+        "stillstandNachMillisekunden": { "type": "integer", "minimum": 1 },
+        "schleifenFensterMillisekunden": { "type": "integer", "minimum": 1 },
+        "schleifenWiederholungen": { "type": "integer", "minimum": 1 },
+        "schleifenMusterLaengeMax": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "kontingentSchritte": { "type": "array", "items": { "type": "object", "required": ["art", "laufendeNummer", "zeitpunkt"] } },
+    "telemetrieDauerzustand": { "oneOf": [{ "type": "null" }, { "$ref": "https://aio-v4.invalid/schemata/telemetrie-dauerzustand.schema.json" }] },
+    "leistungsZeitraeume": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kennung", "zeitraumStart", "zeitraumEnde"],
+        "properties": {
+          "kennung": { "type": "string", "minLength": 1 },
+          "zeitraumStart": { "type": "number", "minimum": 0 },
+          "zeitraumEnde": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
