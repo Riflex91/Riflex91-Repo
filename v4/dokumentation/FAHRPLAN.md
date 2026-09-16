@@ -1,10 +1,45 @@
 # V4 Fahrplan
 
-V4 wird in klaren Stufen aufgebaut. Eine Stufe gilt erst als abgeschlossen, wenn ihre Tests und Sicherheitsbedingungen erfuellt sind.
+V4 wird in mittelgrossen, klar abgegrenzten Entwicklungsbloecken aufgebaut. Ein Block soll eine zusammenhaengende Faehigkeit vollstaendig liefern: Quellcode, verstaendliche Meldungen, Diagnoseinformationen und passende Pruefungen.
 
-## M0 – Grundlage
+Die Schritte werden bewusst groesser als bei V3. Gleichzeitig darf ein Block nicht mehrere voneinander unabhaengige Hauptbereiche vermischen. Dadurch bleibt nach einer Pruefung klar, welcher Block einen Fehler eingefuehrt haben kann.
+
+## Grundregel fuer die Groesse eines Entwicklungsblocks
+
+Ein Entwicklungsblock ist richtig geschnitten, wenn alle folgenden Punkte gelten:
+
+- er liefert eine in sich nutzbare oder pruefbare Faehigkeit
+- alle direkt benoetigten Teile werden gemeinsam gebaut statt auf viele Kleinstaenderungen verteilt
+- Diagnose, Meldungen und Tests gehoeren zum selben Block
+- ein Block veraendert normalerweise nur einen Hauptbereich oder einen eng gekoppelten technischen Unterbau
+- ein fehlgeschlagener Test kann auf diesen Block eingegrenzt und dort behoben werden
+- der naechste Block beginnt erst, wenn der aktuelle Block wieder vollstaendig gruen ist
+
+Nicht gewuenscht sind Kleinstaenderungen wie eine einzelne Hilfsfunktion mit eigenem Entwicklungsschritt, wenn sie ohne die restliche Faehigkeit keinen Nutzen hat.
+
+Ebenfalls nicht gewuenscht sind Riesenbloecke wie Gruppensteuerung, Handel, Lernen und Web-Oberflaeche gleichzeitig. Solche Fehler waeren nach einem Test nur schwer zuzuordnen.
+
+## Fehlerregel zwischen zwei Bloecken
+
+Nach jedem Entwicklungsblock gilt:
+
+1. Typpruefung und Namenspruefung ausfuehren.
+2. Einheitstests des geaenderten Bereichs ausfuehren.
+3. alle bereits vorhandenen Kernpruefungen ausfuehren.
+4. sobald Wiederholungsdaten vorhanden sind, den gesamten passenden Wiederholungssatz ausfuehren.
+5. bei Laufzeitfunktionen einen begrenzten Adventure-Land-Test durchfuehren.
+6. auftretende Fehler innerhalb dieses Blocks beheben.
+7. erst danach den naechsten Block beginnen.
+
+Fehlerbehebungen duerfen den Umfang des Blocks nicht nebenbei auf einen neuen Funktionsbereich ausweiten. Wird dabei ein neues groesseres Problem entdeckt, bekommt es einen eigenen spaeteren Block.
+
+# Entwicklungsbloecke
+
+## Block 1 – Grundlage und gemeinsame Regeln
 
 Ziel: Verstaendliche, testbare Grundbausteine ohne Spiellogik.
+
+Gemeinsam umgesetzt werden:
 
 - deutsche Namensregeln
 - EreignisZentrale
@@ -15,127 +50,273 @@ Ziel: Verstaendliche, testbare Grundbausteine ohne Spiellogik.
 - feste Schemata
 - eigene V4-Pruefung in GitHub
 
-Abschluss: Typpruefung, Einheitstests, Namenspruefung und Strukturpruefung sind gruen.
+Abschlusspruefung:
 
-## M1 – Adventure-Land-Lesezugriff
+- Typpruefung
+- Einheitstests
+- Namenspruefung
+- Strukturpruefung
 
-Ziel: Das Spiel sicher beobachten, ohne Aktionen auszufuehren.
+## Block 2 – Adventure-Land-Lesezugriff und Spielzustand
+
+Ziel: Das Spiel vollstaendig beobachten koennen, ohne eine einzige aktive Spielaktion auszufuehren.
+
+Gemeinsam umgesetzt werden:
 
 - eine einzige Schnittstelle zu Adventure-Land-Daten
 - unveraenderliche Spielzustaende
+- Charakter, Monster, Gruppe, Inventar, Karte und wichtige Spielwerte
 - beobachtetes, abgeleitetes und gelerntes Wissen getrennt halten
-- fehlende oder unbekannte Werte ausdruecklich markieren
+- unbekannte und fehlende Werte ausdruecklich kennzeichnen
+- Aufzeichnung von Spielzustaenden fuer spaetere Tests
 
-Abschluss: Aufgezeichnete Spielzustaende sind deterministisch und koennen offline geladen werden.
+Abschlusspruefung:
 
-## M2 – Zentrale Arbeitssteuerung
+- gleiche Eingangsdaten erzeugen gleiche Spielzustaende
+- fehlende Werte fuehren nicht zu erfundenen Annahmen
+- aufgezeichnete Spielzustaende koennen offline geladen werden
+- mehrstuendiger reiner Beobachtungstest ohne aktive Spielaktion
 
-Ziel: Jede Spielfunktion stellt nur Anfragen; nur der Kern entscheidet und fuehrt spaeter aus.
+## Block 3 – Zentrale Aktionssteuerung und Ressourcensperren
+
+Ziel: Keine Spielfunktion darf spaeter eigenmaechtig handeln.
+
+Gemeinsam umgesetzt werden:
 
 - AktionsAnfragen
-- Prioritaeten `notfall`, `sicherheit`, `normal`, `hintergrund`
-- exklusive Ressourcensperren
-- Abbruch und Unterbrechung
-- Schattenbetrieb ohne echte Spielaktionen
+- Vorrangstufen `notfall`, `sicherheit`, `normal`, `hintergrund`
+- exklusive Sperren fuer Bewegung, Inventar, Bank, Handel, Kampfziel, Gruppe und Ausruestung
+- Unterbrechung niedrigerer Arbeit durch wichtigere Arbeit
+- Abbruch laufender Arbeit
+- Schattenausfuehrung ohne echte Spielaktion
 
-Abschluss: konkurrierende Funktionen koennen sich nicht gegenseitig Bewegung, Inventar oder Bankzugriff wegnehmen.
+Abschlusspruefung:
 
-## M3 – Telemetrie, Flugschreiber und Wiederholung
+- konkurrierende Funktionen koennen keine Ressource gleichzeitig besitzen
+- eine teilweise Ressourcenvergabe ist ausgeschlossen
+- Notfallarbeit kann normale Arbeit sicher unterbrechen
+- Schattenbetrieb zeigt die geplanten Aktionen nachvollziehbar an
 
-Ziel: Fehler muessen nach einem echten Lauf offline reproduzierbar sein.
+## Block 4 – Telemetrie, Flugschreiber und Vorfallerkennung
 
-- strukturierte Ereignisse
+Ziel: Ein Lauf muss sich spaeter erklaeren lassen.
+
+Gemeinsam umgesetzt werden:
+
+- strukturierte BotEreignisse
+- fortlaufende Entscheidungs- und Aktionsspuren
 - Ringpuffer fuer die letzten Minuten
-- Vorfall-Erkennung
-- Vorfallpakete
-- Wiederholungsmaschine
-- Vergleich vorher/nachher
+- erkennbare Stillstaende, Schleifen, Zeitueberschreitungen und unerwartete Zustandswechsel
+- Vorfallpakete mit relevanten Daten vor und nach einem Fehler
+- klare BotMeldungen fuer jeden erkannten Vorfall
 
-Abschluss: Ein absichtlich erzeugter Stillstand wird erkannt, gespeichert und offline reproduziert.
+Abschlusspruefung:
 
-## M4 – Farmer-Grundfunktion
+- absichtlich erzeugter Stillstand wird erkannt
+- die Meldung erklaert Ursache, Bot-Reaktion und Nutzeraktion
+- ein Vorfallpaket enthaelt alle benoetigten Daten zur Untersuchung
+
+## Block 5 – Wiederholungsmaschine und Vorher-Nachher-Vergleich
+
+Ziel: Echte Fehler muessen ohne laufendes Adventure Land nachstellbar werden.
+
+Gemeinsam umgesetzt werden:
+
+- Laden aufgezeichneter Spielzustaende und Ereignisse
+- deterministische Wiederholung
+- Vergleich zweier V4-Staende mit denselben Eingangsdaten
+- Erkennung geaenderter Entscheidungen
+- Kennzeichnung von Verbesserungen, Verschlechterungen und Sicherheitsverletzungen
+
+Abschlusspruefung:
+
+- der in Block 4 erzeugte Teststillstand wird offline reproduziert
+- eine Korrektur kann mit denselben Eingangsdaten vorher und nachher verglichen werden
+- wiederholte Laeufe liefern dasselbe Ergebnis
+
+## Block 6 – Grundlegendes Farmen als erste vollstaendige Spielfunktion
+
+Ziel: Ein einzelner Charakter kann einen einfachen Farmablauf vollstaendig ausfuehren.
+
+Gemeinsam umgesetzt werden:
 
 - Zielauswahl
-- Bewegung
+- Bewegung zum Ziel
 - normaler Angriff
-- HP/MP-Erholung
-- Beute
-- Leistungswerte
+- Lebens- und Manawiederherstellung
+- Beuteaufnahme
+- einfache Inventarbehandlung
+- Erfahrungs- und Goldwerte pro Zeit
+- verstaendliche Meldungen fuer Stillstand und fehlende Voraussetzungen
 
-Abschluss: 24 Stunden Schattenbetrieb ohne ungefangenen Fehler; danach kontrollierter aktiver Einzel-Farmer-Test.
+Abschlusspruefung:
 
-## M5 – Kampfsicherheit
+- Wiederholungstests fuer alle Teilablaeufe
+- 24 Stunden Schattenbetrieb ohne ungefangenen Fehler
+- danach begrenzter aktiver Einzelcharakter-Test
 
+## Block 7 – Kampfsicherheit und Rueckzug
+
+Ziel: Sicherheit hat immer Vorrang vor Leistung.
+
+Gemeinsam umgesetzt werden:
+
+- Gefahrenbewertung
 - Rueckzug
-- Risikopruefung
-- Reichweite
+- Reichweitenpruefung
 - Abklingzeiten
-- Kiten
-- Notfallvorrang
+- Ausweichen und Abstandhalten
+- Schutz vor aussichtslosen Angriffen
+- Notfallvorrang gegenueber allen normalen Aktionen
 
-Abschluss: absichtlich erzeugte Gefahrensituationen werden sicher behandelt; keine normale Aktion darf Notfallarbeit blockieren.
+Abschlusspruefung:
 
-## M6 – Gruppenkoordination
+- absichtlich erzeugte Gefahrensituationen werden sicher behandelt
+- keine normale Aktion blockiert einen Rueckzug
+- Fehler-Einspritztests fuer niedrige Lebenspunkte, fehlendes Mana, falsche Reichweite und blockierte Bewegung
 
-- Faehigkeiten statt fest verdrahteter Klassen
+## Block 8 – Gruppenkoordination
+
+Ziel: Mehrere Charaktere arbeiten als Gruppe zusammen, ohne feste Annahmen ueber ihre Rolle im Kern.
+
+Gemeinsam umgesetzt werden:
+
+- Faehigkeiten statt hart verdrahteter Rollen
 - Heilen, Schaden, Aggro, Schutz und Unterstuetzung
 - Gruppenrollen aus aktuellen Faehigkeiten ableiten
+- gemeinsames Ziel und gemeinsame Sicherheitslage
 - Server- und Gruppenabgleich
+- Wiederverbindung und Gruppenwiederaufbau
 
-Abschluss: Mehrcharakter-Wiederholungen und 72-Stunden-Gruppentest.
+Abschlusspruefung:
 
-## M7 – Merchant und Wirtschaft
+- Mehrcharakter-Wiederholungen
+- gezielte Ausfalltests einzelner Gruppenmitglieder
+- anschliessender 72-Stunden-Gruppentest
 
-- Serviceauftraege
-- Bank
-- Kaufen und Verkaufen
-- Aufwerten und Kombinieren
+## Block 9 – Haendlerdienste und Bank
+
+Ziel: Gegenstaende koennen nachvollziehbar zwischen Charakteren und Bank bewegt werden.
+
+Gemeinsam umgesetzt werden:
+
+- Dienstauftraege
+- Weg zum anfragenden Charakter
+- Gegenstaende empfangen und zurueckgeben
+- Bankeinlagerung und Bankentnahme
 - Gegenstandsreservierungen
-- nachvollziehbare Wirtschaftsvorgaenge
+- eindeutige Zustandsfolge jedes Dienstauftrags
+- Schutz gegen Endlosschleifen und gegenseitige Blockierung
 
-Abschluss: kein rekursiver Serviceablauf, kein doppelter Besitz einer Ressource, keine unbeabsichtigte Gegenstandsvernichtung in Fehler- und Neustarttests.
+Abschlusspruefung:
 
-## M8 – Lernen und Experimente
+- jeder Dienstauftrag besitzt einen nachvollziehbaren Anfang und Abschluss
+- Neustarts mitten in einem Dienstauftrag werden getestet
+- keine doppelte Besitzannahme eines Gegenstands
+- kein rekursiver Dienstablauf
 
-- Situation -> Optionen -> Entscheidung -> erwartetes Ergebnis -> echtes Ergebnis
-- kontrollierte Experimente
-- Vergleich von Ausgangs- und Herausfordererstrategie
-- Sicherheitsgrenzen koennen vom Lernen nicht veraendert werden
+## Block 10 – Handel und Gegenstandsverarbeitung
 
-Abschluss: Lernen kann eine Strategie verbessern, aber keine direkte Adventure-Land-Aktion ausfuehren.
+Ziel: Wirtschaftliche Aktionen werden erst auf der stabilen Haendler- und Bankgrundlage aufgebaut.
 
-## M9 – Web-Oberflaeche, Schnittstelle und SFTP-Archiv
+Gemeinsam umgesetzt werden:
+
+- Kaufen
+- Verkaufen
+- Aufwerten
+- Kombinieren
+- benoetigte Materialien und Schriftrollen beschaffen
+- Schutz wichtiger und reservierter Gegenstaende
+- vollstaendige Nachverfolgung jeder wirtschaftlichen Aktion
+
+Abschlusspruefung:
+
+- absichtliche Abbrueche in jeder Verarbeitungsstufe
+- Neustarttests
+- keine unbeabsichtigte Gegenstandsvernichtung
+- keine frisch beschafften Arbeitsgegenstaende werden versehentlich wieder eingelagert
+
+## Block 11 – Lernen und kontrollierte Versuche
+
+Ziel: V4 darf aus Erfahrungen besser werden, ohne die Sicherheitsgrenzen selbst zu veraendern.
+
+Gemeinsam umgesetzt werden:
+
+- Situation -> Moeglichkeiten -> Entscheidung -> erwartetes Ergebnis -> tatsaechliches Ergebnis
+- Erfahrungsablage
+- kontrollierte Versuche
+- Vergleich bestehender und neuer Strategie
+- Mindestmenge an Belegen vor einer Aenderung
+- Ruecknahme schlechter Strategien
+
+Abschlusspruefung:
+
+- Lernen kann Auswahl und Gewichtung einer Strategie veraendern
+- Lernen kann keine direkte Adventure-Land-Aktion ausfuehren
+- Sicherheitsregeln bleiben unveraendert
+- gleiche Erfahrungsdaten ergeben nachvollziehbare Entscheidungen
+
+## Block 12 – Web-Oberflaeche, Schnittstelle und Archiv
+
+Ziel: Laufzeit, historische Daten und Entwicklung werden an einer Stelle sichtbar, ohne Zugangsdaten in Adventure Land offenzulegen.
+
+Gemeinsam umgesetzt werden:
 
 - Live-Ansicht
 - Vorfaelle
 - Wiederholungen
-- Experimente
+- Versuche
 - Entwicklungswarteschlange
+- Schnittstelle zwischen Laufzeit und Server
 - serverseitiger Archivabgleich per SFTP
 
-Abschluss: Browser und Adventure Land besitzen keinerlei SFTP-Zugangsdaten.
+Abschlusspruefung:
 
-## M10 – Automatisierter Entwicklungsablauf
+- Browser und Adventure Land besitzen keinerlei SFTP-Zugangsdaten
+- Unterbrechung des Servers stoert die sichere Spiellogik nicht
+- Archivuebertragungen koennen nach Abbruch sauber fortgesetzt werden
 
-- wiederkehrende Fehler gruppieren
-- Vorfaelle automatisch einer Entwicklungsaufgabe zuordnen
-- Wiederholung als Beweis verlangen
-- Tests vor Codeaenderung
-- Branch und Pull Request vorbereiten
-- keine automatische Verschmelzung sicherheitsrelevanter Spiellogik
+## Block 13 – Automatisierter Entwicklungsablauf
 
-Abschluss: Ein Testfehler kann vom Laufzeitvorfall bis zum geprueften Pull Request verfolgt werden.
+Ziel: Wiederkehrende Laufzeitprobleme koennen automatisch fuer die Entwicklung vorbereitet werden.
 
-## M11 – Auslieferung und Rueckfall
+Gemeinsam umgesetzt werden:
+
+- gleiche Fehler zusammenfassen
+- Vorfaelle einer Entwicklungsaufgabe zuordnen
+- Belege und Wiederholung verlangen
+- passende Tests vorbereiten
+- Aenderungszweig und Pull Request vorbereiten
+- klare Trennung zwischen Beobachtung, Entwicklung und Freigabe
+
+Abschlusspruefung:
+
+- ein kuenstlich erzeugter Laufzeitfehler kann bis zu einem geprueften Pull Request verfolgt werden
+- ohne ausreichende Belege wird keine Codeaenderung vorgeschlagen
+- sicherheitsrelevante Spiellogik wird nicht automatisch verschmolzen
+
+## Block 14 – Auslieferung, Aktualisierung und Rueckfall
+
+Ziel: V4 kann sicher aktualisiert und bei einem Fehler auf die letzte funktionierende Fassung zurueckgesetzt werden.
+
+Gemeinsam umgesetzt werden:
 
 - kleiner Startlader
 - versionierte Laufzeit
 - SHA-256-Pruefung
-- zuletzt funktionierende Version
+- zuletzt funktionierende Fassung
 - atomare Veroeffentlichung
 - Rueckfall bei fehlerhaftem Start
+- sichere Wiederaufnahme nach Netzwerk- oder Serverausfall
 
-Abschluss: Update-, Netzwerkausfall-, Neustart- und Rueckfalltests sind erfolgreich.
+Abschlusspruefung:
+
+- Update-Test
+- absichtlich fehlerhafte neue Fassung
+- Netzwerkausfall
+- Serverausfall
+- Neustart waehrend einer Aktualisierung
+- erfolgreicher automatischer Rueckfall auf die letzte funktionierende Fassung
 
 # Abschliessende Freigabekampagne
 
@@ -143,14 +324,26 @@ V4 ersetzt V3 erst nach dieser Reihenfolge:
 
 1. komplette statische und architektonische Pruefung
 2. alle Einheitstests
-3. Eigenschaftstests fuer Kerninvarianten
-4. gesamter Wiederholungskorpus
+3. Eigenschaftstests fuer Kernregeln
+4. gesamter Wiederholungssatz
 5. Fehler-Einspritztests fuer Netzwerk, Zeitueberschreitungen und Neustarts
 6. 24 Stunden Adventure Land im Schattenbetrieb
-7. 24 Stunden aktiver Einzel-Farmer
-8. 72 Stunden aktive Farmer-Gruppe
-9. 72 Stunden Merchant/Wirtschaft
+7. 24 Stunden aktiver Einzelcharakter
+8. 72 Stunden aktive Gruppe
+9. 72 Stunden Haendler und Wirtschaft
 10. Update-, Rueckfall- und Serverausfalltest
 11. 7 Tage ununterbrochener Dauertest
-12. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, EXP/h und Gold/h
-13. menschliche Entscheidung ueber die Ablösung von V3
+12. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
+13. menschliche Entscheidung ueber die Abloesung von V3
+
+# Entscheidungsregel fuer spaetere Planung
+
+Wenn wir uns bei einem neuen Thema fragen, ob es in denselben Entwicklungsblock gehoert, verwenden wir eine einfache Frage:
+
+> Kann ein Fehler in diesem neuen Teil mit hoher Wahrscheinlichkeit die gleichen Ursachen, Ressourcen und Tests haben wie der bestehende Block?
+
+Wenn ja, wird er in denselben Block aufgenommen.
+
+Wenn nein, wird daraus der naechste Block.
+
+So vermeiden wir sowohl die vielen kleinen Entwicklungsschritte aus V3 als auch unuebersichtliche Grossaenderungen, bei denen nach einem Test niemand mehr weiss, welcher Teil den Fehler verursacht hat.
