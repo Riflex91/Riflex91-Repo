@@ -1,0 +1,22 @@
+{
+  "name": "adventure-land-aio-v4",
+  "version": "4.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "description": "Adventure Land AiO Bot v4 clean-room, replay-first foundation.",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test runtime/test/*.test.mjs",
+    "verify:structure": "node scripts/verify-structure.mjs",
+    "check": "npm run typecheck && npm run test && npm run verify:structure"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemas/domain-event.schema.json",
+  "title": "V4 Domain Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "sequence", "timestamp", "type", "source", "traceId", "payload"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": "number", "minimum": 0 },
+    "type": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "traceId": { "type": "string", "minLength": 1 },
+    "payload": {}
+  }
+}
