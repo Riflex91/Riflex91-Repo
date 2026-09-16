@@ -2,11 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AIO Bot Windows Bridge"
-        Width="1080" Height="860" MinWidth="900" MinHeight="650"
+        Width="1080" Height="920" MinWidth="900" MinHeight="650"
         WindowStartupLocation="CenterScreen">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="28">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
@@ -21,7 +23,7 @@
             <DockPanel Grid.Row="0" LastChildFill="False">
                 <StackPanel>
                     <TextBlock Text="AIO Bot Windows Bridge" FontSize="30" FontWeight="SemiBold" />
-                    <TextBlock Text="Adventure Land → Supabase → ChatGPT" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
+                    <TextBlock Text="Adventure Land → Supabase / FTPS → ChatGPT" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
                 </StackPanel>
                 <Button DockPanel.Dock="Right" Content="Verbindung prüfen" Click="CheckConnection_Click" MinWidth="150" HorizontalAlignment="Right" />
             </DockPanel>
@@ -125,6 +127,70 @@
             </Border>
 
             <Border Grid.Row="8" Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel LastChildFill="False">
+                        <StackPanel>
+                            <TextBlock Text="Diagnose &amp; FTPS-Archiv" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="Problem-Bundles werden lokal gepuffert, gzip-komprimiert und ausschließlich per FTPS/TLS hochgeladen. Das Passwort wird mit Windows-DPAPI geschützt und nie in settings.json geschrieben."
+                                       Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,18,12" />
+                        </StackPanel>
+                        <ToggleButton x:Name="DiagnosticsFtpsToggle" DockPanel.Dock="Right" Content="FTPS AUS" HorizontalAlignment="Right" Margin="12,0,0,0" />
+                    </DockPanel>
+
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <TextBlock Text="FTPS-Host" Style="{StaticResource MutedText}" />
+                            <TextBox x:Name="DiagnosticsFtpsHostBox" Height="40" Padding="10,7" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <TextBlock Text="Port" Style="{StaticResource MutedText}" />
+                            <TextBox x:Name="DiagnosticsFtpsPortBox" Height="40" Padding="10,7" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="4">
+                            <TextBlock Text="Benutzer" Style="{StaticResource MutedText}" />
+                            <TextBox x:Name="DiagnosticsFtpsUserBox" Height="40" Padding="10,7" Margin="0,5,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                            <TextBlock Text="Passwort" Style="{StaticResource MutedText}" />
+                            <PasswordBox x:Name="DiagnosticsFtpsPasswordBox" Height="40" Padding="10,7" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="4" Margin="0,12,0,0">
+                            <TextBlock Text="Zielverzeichnis" Style="{StaticResource MutedText}" />
+                            <TextBox x:Name="DiagnosticsFtpsRootBox" Height="40" Padding="10,7" Margin="0,5,0,0" />
+                        </StackPanel>
+
+                        <CheckBox x:Name="DiagnosticsFtpsRejectUnauthorizedCheck" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5"
+                                  Content="TLS-Zertifikat des Servers strikt prüfen (empfohlen)" Margin="0,14,0,0" />
+                    </Grid>
+
+                    <WrapPanel Margin="0,16,0,0">
+                        <Button Content="FTPS-Einstellungen speichern" Click="SaveFtpsSettings_Click" MinWidth="205" Margin="0,0,10,0" />
+                        <Button Content="Verbindung testen" Click="TestFtpsConnection_Click" MinWidth="145" Margin="0,0,10,0" />
+                        <Button Content="Passwort löschen" Click="DeleteFtpsPassword_Click" MinWidth="135" />
+                    </WrapPanel>
+                    <TextBlock x:Name="DiagnosticsFtpsStateText" Text="FTPS wird geprüft …" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
+                    <TextBlock x:Name="DiagnosticsFtpsErrorText" Text="" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,0" />
+                    <TextBlock x:Name="DiagnosticsFtpsPasswordStateText" Text="Passwort wird geprüft …" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
+                    <TextBlock Text="Hinweis: Die automatische Problem-Erkennung läuft zusammen mit der Telemetrie-Bridge. FTPS-Ausfälle beeinflussen weder Supabase noch das Gameplay; ausstehende Bundles bleiben lokal liegen."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="10" Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="Sichere Supabase-Anmeldung" FontSize="20" FontWeight="SemiBold" />
                     <TextBlock Text="Der Endpunkt und die Bot-ID sind vorkonfiguriert. Ein vorhandener AIO_V3_DEBUG_TELEMETRY_TOKEN wird beim ersten Start automatisch importiert und per Windows-DPAPI geschützt gespeichert."
