@@ -8,6 +8,17 @@ export type { BekannterWert, WissensQuelle, Spielzustand } from './vertraege/spi
 export { WISSENS_QUELLEN } from './vertraege/spielzustand.js';
 export type { BotMeldung, MeldungsStufe } from './vertraege/bot-meldung.js';
 export { MELDUNGS_STUFEN, erstelleBotMeldung, formatiereBotMeldung } from './vertraege/bot-meldung.js';
+export type {
+  BerichtsVersandArt,
+  TagesBericht,
+  TagesBerichtCharakterWerte,
+  TagesBerichtEinstellung,
+  TagesBerichtEntwicklung,
+  TagesBerichtGesamtWerte,
+  TagesBerichtVergleich,
+  TagesBerichtVorfall
+} from './vertraege/tages-bericht.js';
+export { BERICHTS_VERSAND_ARTEN } from './vertraege/tages-bericht.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
 export { AktionsAuswahl } from './kern/aktions-auswahl.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
