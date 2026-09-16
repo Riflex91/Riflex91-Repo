@@ -5,7 +5,6 @@
 - TypeScript streng
 - deutsche Namenspruefung
 - Struktur- und Geheimnispruefung
-- Kontoprofile duerfen keine gespeicherten Kennwortfelder enthalten
 - spaeter Abhaengigkeitsgrenzen
 
 ## Stufe 2 – Einheitstests
@@ -14,38 +13,34 @@ Jeder Kernbaustein wird isoliert getestet. Fehlertexte und Grenzfaelle gehoeren 
 
 ## Stufe 3 – Eigenschaftstests
 
-Kerninvarianten werden mit vielen automatisch erzeugten Eingaben geprueft, insbesondere Ressourcenbesitz, Prioritaeten, deterministische Auswahl und eindeutige Konto-Charakter-Zuordnung.
+Kerninvarianten werden mit vielen automatisch erzeugten Eingaben geprueft, insbesondere Ressourcenbesitz, Prioritaeten und deterministische Auswahl.
 
 ## Stufe 4 – Wiederholungstests
 
 Echte historische Situationen werden offline gegen neue Versionen abgespielt. Unterschiede werden automatisch ausgewiesen.
 
-Mehrcharakter-Wiederholungen muessen Konto- und Charakterkennungen enthalten, damit keine Bank-, Inventar- oder Besitzdaten zwischen Konten vermischt werden.
+Mehrcharakter-Wiederholungen muessen die beteiligten Charaktere eindeutig unterscheiden, damit Zustandsdaten nicht vermischt werden.
 
 ## Stufe 5 – Fehler-Einspritzung
 
-Netzwerkausfall, langsame Antworten, fehlende Spielwerte, Zeitueberschreitungen, Neustarts, teilweise Daten, ausgefallene Kontositzungen und verspätete Verbundmeldungen werden absichtlich erzeugt.
+Netzwerkausfall, langsame Antworten, fehlende Spielwerte, Zeitueberschreitungen, Neustarts, teilweise Daten und verspätete Gruppenmeldungen werden absichtlich erzeugt.
 
 ## Stufe 6 – Adventure-Land-Schattenbetrieb
 
 Mindestens 24 Stunden ohne echte Aktionen. Entscheidungen werden nur beobachtet und mit der laufenden Produktionslogik verglichen.
 
-Vor einer aktiven Mehrkontenpruefung werden die aktuellen Adventure-Land-Regeln und Charaktergrenzen erneut geprueft.
-
 ## Stufe 7 – kontrollierter Aktivbetrieb
 
-Zuerst ein einzelner Charakter, danach ein Verbund mit mehreren Charakteren, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
+Zuerst ein einzelner Charakter, danach mehrere Charaktere desselben Kontos als Gruppe, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
 
-Die Mehrkontenpruefung umfasst mindestens:
+Die Gruppenpruefung umfasst mindestens:
 
-- getrennte Anmeldesitzungen
-- korrekte Konto-Charakter-Zuordnung
-- gemeinsames Ziel ueber Kontogrenzen hinweg
-- Ausfall eines Kontos ohne Stillstand der anderen
-- kontogebundene Bankdaten
+- gemeinsames Ziel
+- Ausfall eines Gruppenmitglieds
+- Wiederaufbau der Gruppe
 - sichere Gegenstandsuebergabe
-- Regelprofil blockiert unzulaessige weitere Charakterstarts
+- veraltete Gruppendaten werden verworfen
 
 ## Stufe 8 – Dauertest
 
-Vor einer Produktionsabloesung: sieben Tage 24/7 mit Neustart-, Update-, Netz-, Plattform- und Kontositzungsausfalltests.
+Vor einer Produktionsabloesung: sieben Tage 24/7 mit Neustart-, Update-, Netz- und Plattformausfalltests.
