@@ -6,11 +6,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1067 Zeilen**
+**6 Dateien · 1078 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/index-production.js` | 58 |
+| `src/index-production.js` | 69 |
 | `src/index.js` | 384 |
 | `src/production-live-services.js` | 129 |
 | `src/release-version.js` | 5 |
@@ -143,7 +143,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**24 Dateien · 6415 Zeilen**
+**25 Dateien · 6906 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -162,6 +162,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/headless-operations.js` | 437 |
 | `src/ops/host-watchdog-beacon.js` | 98 |
 | `src/ops/minute-countdown-reporter.js` | 56 |
+| `src/ops/object-storage-s3.js` | 491 |
 | `src/ops/operator-run-control.js` | 219 |
 | `src/ops/reconciliation-status.js` | 166 |
 | `src/ops/reliability-checkpoint.js` | 251 |
