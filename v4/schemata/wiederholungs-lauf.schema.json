@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/wiederholungs-lauf.schema.json",
+  "title": "V4 Wiederholungslauf",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "datensatzKennung", "varianteKennung", "eingabeFingerabdruck", "ausgabeFingerabdruck", "entscheidungen", "vorfaelle", "kontingentEntscheidungen", "leistungsAuswertungen"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "datensatzKennung": { "type": "string", "minLength": 1 },
+    "varianteKennung": { "type": "string", "minLength": 1 },
+    "eingabeFingerabdruck": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "ausgabeFingerabdruck": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "entscheidungen": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kennung", "zeitpunkt", "charakterKennung", "entscheidung", "grund", "sicherheitszustand", "bewertungsWert", "details"],
+        "properties": { "sicherheitszustand": { "enum": ["sicher", "warnung", "verletzung"] } }
+      }
+    },
+    "vorfaelle": { "type": "array" },
+    "kontingentEntscheidungen": { "type": "array" },
+    "leistungsAuswertungen": { "type": "array" }
+  }
+}

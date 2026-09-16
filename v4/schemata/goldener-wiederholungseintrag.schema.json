@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/goldener-wiederholungseintrag.schema.json",
+  "title": "V4 Goldener Wiederholungseintrag",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kennung", "hinzugefuegtAm", "grund", "datensatz", "sha256"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kennung": { "type": "string", "minLength": 1 },
+    "hinzugefuegtAm": { "type": "number", "minimum": 0 },
+    "grund": { "type": "string", "minLength": 1 },
+    "datensatz": { "$ref": "https://aio-v4.invalid/schemata/wiederholungs-datensatz.schema.json" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
