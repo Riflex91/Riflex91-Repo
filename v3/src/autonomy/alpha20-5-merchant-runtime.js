@@ -156,10 +156,19 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     if (this.lastMerchantRouteDecision && this.lastMerchantRouteDecision.route === 'TOWN') {
       return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
     }
+    const sourceReportAt = finite(plan.sourceReportAt);
+    const destinationMapAttestation = sourceReportAt == null ? null : {
+      map: String(plan.target.map),
+      trusted: true,
+      source: 'trusted-owned-farmer-service',
+      observedAt: sourceReportAt,
+      maxAgeMs: Math.min(30000, Math.max(1000, finite(this.merchantServicePlanner && this.merchantServicePlanner.reportTtlMs, 25000))),
+      subject: plan.target.name || null
+    };
     const planned = this.planTravel({
       destination: { map: plan.target.map, x: plan.target.x, y: plan.target.y },
-      metadata: { source: 'MERCHANT_SERVICE', servicePlanId: plan.id, targetName: plan.target.name }
-    });
+      metadata: { source: 'MERCHANT_SERVICE', servicePlanId: plan.id, targetName: plan.target.name, sourceReportAt }
+    }, { destinationMapAttestation });
     if (!planned || planned.accepted !== true || !planned.plan) return { executed: false, reason: planned && planned.reason || 'SERVICE_TRAVEL_PLAN_REJECTED' };
     return this.executeTravelPlan(planned.plan.id);
   }
