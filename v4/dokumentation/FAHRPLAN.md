@@ -45,6 +45,8 @@ Gemeinsam umgesetzt werden:
 - `RessourcenVergabe`
 - `Spielzustand`
 - `BotMeldung`
+- `BedienAnfrage`, `BedienRisiko` und `BedienSicherung`
+- `DienstProfil`, `DienstGrenze`, `DienstAnfrage` und `KontingentWaechter`
 - `TagesBericht` und `TagesBerichtEinstellung` als feste Datenvertraege
 - feste Schemata
 - eigene V4-Pruefung in GitHub
@@ -55,7 +57,10 @@ Abschlusspruefung:
 - Einheitstests
 - Namenspruefung
 - Strukturpruefung
-- alle Tagesbericht-Schemata sind gueltig und versioniert
+- kritische Bedienaktionen werden ohne vorgesehene Freigabe blockiert
+- unbekannte oder abgelaufene Dienstgrenzen werden blockiert
+- Sicherheitspuffer externer Dienste kann nicht von normaler Arbeit verbraucht werden
+- alle Bedien-, Dienst- und Tagesbericht-Schemata sind gueltig und versioniert
 
 ## Block 2 – Adventure-Land-Lesezugriff und Spielzustand
 
@@ -108,6 +113,9 @@ Gemeinsam umgesetzt werden:
 - Ringpuffer fuer die letzten Minuten
 - dauerhafte, zeitgestempelte Leistungsdaten fuer Erfahrung, Gold, Laufzeit, Tode, Rueckzuege, Verbindungsabbrueche und Neustarts
 - Daten so speichern, dass Neustarts den spaeteren 24-Stunden-Bericht nicht unterbrechen
+- lokaler und vom Anbieter gemeldeter Verbrauch externer Dienste wird nachvollziehbar aufgezeichnet
+- Kontingent-Schutzstufen und blockierte externe Anfragen werden als erklaerbare Ereignisse gespeichert
+- lokale Puffer besitzen feste Eintrags-, Byte- und Altersgrenzen
 - erkennbare Stillstaende, Schleifen, Zeitueberschreitungen und unerwartete Zustandswechsel
 - Vorfallpakete mit relevanten Daten vor und nach einem Fehler
 - klare BotMeldungen fuer jeden erkannten Vorfall
@@ -119,6 +127,8 @@ Abschlusspruefung:
 - ein Vorfallpaket enthaelt alle benoetigten Daten zur Untersuchung
 - zeitgestempelte Leistungsdaten lassen sich ueber einen frei gewaehlten 24-Stunden-Zeitraum korrekt zusammenfassen
 - ein Neustart erzeugt keine Luecke oder doppelte Zaehlerwerte
+- blockierter externer Dienst beeintraechtigt die lokale Spielsicherheit nicht
+- kein lokaler Puffer kann unbegrenzt wachsen
 
 ## Block 5 – Wiederholungsmaschine und Vorher-Nachher-Vergleich
 
@@ -132,6 +142,7 @@ Gemeinsam umgesetzt werden:
 - Vergleich zweier V4-Staende mit denselben Eingangsdaten
 - Erkennung geaenderter Entscheidungen
 - Kennzeichnung von Verbesserungen, Verschlechterungen und Sicherheitsverletzungen
+- Wiederholung gespeicherter Kontingententscheidungen
 
 Abschlusspruefung:
 
@@ -139,6 +150,7 @@ Abschlusspruefung:
 - eine Korrektur kann mit denselben Eingangsdaten vorher und nachher verglichen werden
 - wiederholte Laeufe liefern dasselbe Ergebnis
 - historische Daten koennen fuer spaetere Tagesberichte reproduzierbar ausgewertet werden
+- gleiche Dienstprofile und Verbrauchsstaende erzeugen die gleiche Kontingententscheidung
 
 ## Block 6 – Grundlegendes Farmen als erste vollstaendige Spielfunktion
 
@@ -263,15 +275,34 @@ Abschlusspruefung:
 
 - Lernen kann Auswahl und Gewichtung einer Strategie veraendern
 - Lernen kann keine direkte Adventure-Land-Aktion ausfuehren
+- Lernen kann weder BedienSicherung noch KontingentWaechter umgehen
 - Sicherheitsregeln bleiben unveraendert
 - gleiche Erfahrungsdaten ergeben nachvollziehbare Entscheidungen
 
 ## Block 12 – Web-Oberflaeche, Tagesbericht, Schnittstelle und Archiv
 
-Ziel: Laufzeit, historische Daten, Tagesberichte und Entwicklung werden an einer Stelle sichtbar und koennen sicher zugestellt werden.
+Ziel: Laufzeit, historische Daten, Tagesberichte und Entwicklung werden an einer Stelle sichtbar und fehlbedienungssicher bedienbar.
 
 Gemeinsam umgesetzt werden:
 
+- eindeutiger Gesamtzustand `GRUEN`, `GELB` oder `ROT` immer zusammen mit normalem deutschen Text
+- gefuehrte Ersteinrichtung mit automatischer Pruefung jedes Schrittes
+- Startpruefung; `Bot starten` bleibt bei blockierenden Problemen deaktiviert
+- Standardansicht mit nur den wirklich notwendigen Bedienaktionen
+- getrennte `Erweiterte Einstellungen`
+- feste Auswahllisten statt freier Texteingabe, wenn moeglich
+- Zahlenfelder mit Einheit, Mindestwert, Hoechstwert und empfohlenem Bereich
+- Aenderungsvorschau fuer vorsichtige und kritische Aktionen
+- jede veraendernde Aktion laeuft durch `BedienAnfrage` und `BedienSicherung`
+- Vorgangskennung gegen Doppelklick und Netzwerk-Wiederholung
+- Konfigurationsversion gegen Ueberschreiben durch veraltete Browseransichten
+- atomare Konfigurationsspeicherung und Rueckfallpunkt fuer kritische Aenderungen
+- `Sichere Standardwerte wiederherstellen`
+- Bedienprotokoll ohne Geheimnisse
+- Dienststatus fuer Supabase, Cloudflare und spaetere Dienste mit einfachem Handlungsbedarf statt Anbieterjargon
+- zentrale Dienst-Tore; keine Fachlogik darf externe Anbieter direkt aufrufen
+- `DienstProfil` pro Anbieter/Tarif mit offizieller Quelle, Gueltigkeit und Sicherheitsreserve
+- automatische Schutzstufen `normal`, `beobachten`, `sparen`, `blockiert`
 - Live-Ansicht
 - Charakter- und Gruppenstatus
 - Vorfaelle
@@ -297,6 +328,18 @@ Abschlusspruefung:
 
 - Browser und Adventure Land besitzen keinerlei SFTP-Zugangsdaten
 - Browser und Adventure Land besitzen keinerlei E-Mail-Versandgeheimnisse
+- unvollstaendige Einrichtung kann den Bot nicht aktiv starten
+- ungueltige Eingaben koennen nicht gespeichert werden
+- kritische Aktionen sind nicht mit einem einzelnen Klick ausfuehrbar
+- Doppelklick und Netzwerk-Wiederholung fuehren nicht zu doppelter Ausfuehrung
+- veraltete Browseransicht kann neuere Konfiguration nicht ueberschreiben
+- unterbrochenes Speichern hinterlaesst keine halbe Konfiguration
+- sichere Standardwerte koennen kontrolliert wiederhergestellt werden
+- ein Nutzer kann fuer jede Stoerung ohne Anbieterwissen erkennen, ob er handeln muss
+- kein externer Aufruf passiert ohne Kontingentpruefung
+- abgelaufenes DienstProfil blockiert externe Nutzung
+- Sicherheitspuffer wird nie als normales Budget verwendet
+- blockierter externer Dienst stoppt nicht die lokale sichere Spiellogik
 - ein Bericht wertet exakt die vorgesehenen 24 Stunden aus
 - Neustarts innerhalb des Zeitraums fuehren weder zu Datenverlust noch Doppelzaehlung
 - derselbe automatische Zeitraum erzeugt genau einen Bericht
@@ -325,6 +368,7 @@ Abschlusspruefung:
 - ein kuenstlich erzeugter Laufzeitfehler kann bis zu einem geprueften Pull Request verfolgt werden
 - ohne ausreichende Belege wird keine Codeaenderung vorgeschlagen
 - sicherheitsrelevante Spiellogik wird nicht automatisch verschmolzen
+- automatische Entwicklung darf BedienSicherung, KontingentWaechter oder Dienstprofile nicht stillschweigend lockern
 
 ## Block 14 – Auslieferung, Aktualisierung und Rueckfall
 
@@ -354,19 +398,21 @@ Abschlusspruefung:
 V4 ersetzt V3 erst nach dieser Reihenfolge:
 
 1. komplette statische und architektonische Pruefung
-2. alle Einheitstests
-3. Eigenschaftstests fuer Kernregeln
+2. alle Einheitstests inklusive BedienSicherung und KontingentWaechter
+3. Eigenschaftstests fuer Kernregeln, Bedienfreigaben und Dienstbudgets
 4. gesamter Wiederholungssatz
-5. Fehler-Einspritztests fuer Netzwerk, Zeitueberschreitungen und Neustarts
+5. Fehler-Einspritztests fuer Netzwerk, Zeitueberschreitungen, Anbietergrenzen, Doppelklicks, veraltete Ansichten und Neustarts
 6. 24 Stunden Adventure Land im Schattenbetrieb inklusive erzeugtem Tagesbericht
 7. 24 Stunden aktiver Einzelcharakter
 8. 72 Stunden aktive Gruppe
 9. 72 Stunden Haendler und Wirtschaft
 10. mehrere automatische Tagesberichte inklusive mindestens eines simulierten Versandfehlers
-11. Update-, Rueckfall- und Serverausfalltest
-12. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag
-13. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
-14. menschliche Entscheidung ueber die Abloesung von V3
+11. vollstaendiger Bedienungstest mit absichtlich falschen Eingaben, fehlenden Voraussetzungen und kritischen Fehlversuchen
+12. Supabase-, Cloudflare- und Dienstgrenzentest bis unmittelbar vor das sichere V4-Budget, ohne den Sicherheitspuffer anzutasten
+13. Update-, Rueckfall- und Serverausfalltest
+14. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag, begrenzten Puffern und eingehaltenen Dienstbudgets
+15. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
+16. menschliche Entscheidung ueber die Abloesung von V3
 
 # Entscheidungsregel fuer spaetere Planung
 
