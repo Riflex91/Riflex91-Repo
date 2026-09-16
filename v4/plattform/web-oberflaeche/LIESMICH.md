@@ -14,6 +14,19 @@ Waehren der Eingabe erscheinen nur bekannte und aktuell verfuegbare Vorschlaege,
 - `Herstellen`
 - bekannte Gegenstaende passend zum eingegebenen Namen oder Suchwort
 
+Beispiele fuer die Vorschau:
+
+```text
+sam
+  -> Sammeln
+
+her
+  -> Herstellen
+
+bee
+  -> Bienenfluegel
+```
+
 Ein angeklickter Vorschlag fuellt nur die strukturierte Auftragsmaske vor. Er startet niemals direkt eine Spielaktion.
 
 Vor dem Start zeigt die Oberflaeche den geprueften Auftragsplan mit Ziel, aktuellem Bestand, Restmenge, Teilaufgaben, beteiligten Charakteren, moeglichen Verbrauchsguetern, Warnungen und blockierenden Voraussetzungen.
