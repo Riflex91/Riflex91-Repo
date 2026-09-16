@@ -9,7 +9,7 @@ AIO Bot Windows Bridge
         ├─ authenticated HTTPS → Supabase → ChatGPT signal/watch path
         ├─ local bounded problem diagnostics → Supabase problem mirror
         ├─ fixed Cloudflare Webinterface profile sync
-        └─ DPAPI-protected Backblaze credentials → bot runtime memory
+        └─ DPAPI-protected Backblaze credentials → verified bot runtime context
 ```
 
 The app has **no gameplay authority** and no generic JavaScript, shell, movement, combat, Merchant, update, FTP, or remote-command endpoint. Telemetry evaluates only the fixed v3 debug expressions required for status and telemetry. Profile configuration is restricted to fixed same-origin Adventure Land contexts.
@@ -27,7 +27,9 @@ The app has **no gameplay authority** and no generic JavaScript, shell, movement
 - provides a separate **SIGNALE AN/AUS** switch for the Supabase ChatGPT signal gate;
 - securely provisions the dedicated browser profile for the existing Cloudflare Webinterface;
 - securely stores Backblaze B2 `keyID` and `applicationKey` with Windows DPAPI;
-- hands a fixed Backblaze configuration to the bot runtime;
+- finds the real AIO-v3 CDP execution context before handing Backblaze credentials to the bot;
+- verifies the handoff by reading the non-secret `AIO_V3.objectStorage.status()` surface in that exact context;
+- offers an explicit, confirmation-gated Backblaze live test through the bot runtime;
 - reconnects automatically with bounded exponential backoff;
 - shows browser, bot, Supabase, Webinterface, Backblaze handoff, last-upload and error status.
 
@@ -46,7 +48,9 @@ Prefix:   v4
 
 Backblaze handoff defaults to enabled. On first setup, enter the Backblaze **Application Key ID (`keyID`)** and **Application Key** and choose **Speichern & an Bot senden**. These two credentials are stored together in a Windows-DPAPI-protected file for the current Windows user. They are never written to `settings.json`, `bridge-status.json`, GitHub, or Supabase telemetry.
 
-The Bridge does **not** use the credentials to upload to Backblaze itself. Instead it injects the fixed configuration into allowed Adventure Land execution contexts as:
+The Bridge does **not** upload application data to Backblaze itself. Instead it uses CDP to enumerate same-origin Adventure Land execution contexts and only injects the fixed configuration into contexts that prove they contain the real AIO-v3 runtime: `AIO_V3.__runtime`, `AIO_V3.operations` and `AIO_V3.objectStorage` must all be present with the expected fixed methods. This avoids treating the visible page `top` context as the bot just because it shares the same origin.
+
+The runtime configuration is exposed inside the verified bot context as:
 
 ```text
 globalThis.AIO_V3_BACKBLAZE_CONFIG
@@ -65,9 +69,28 @@ keyId
 applicationKey
 ```
 
-The config is placed in browser runtime memory only. It is **not stored in browser LocalStorage** by this feature. The Bridge reapplies it when it connects or reconnects to the dedicated Adventure Land profile. Deleting the credentials in the Windows app removes the DPAPI file, disables handoff, and clears the runtime global when the browser is reachable.
+After injection the Bridge immediately calls the fixed, non-secret `AIO_V3.objectStorage.status()` API in the same execution context and requires the provider, endpoint host, region, bucket and prefix to match. The UI only reports **BEREIT** after that read-back succeeds. If the runtime has not created its bot execution context yet, the UI reports that it is waiting for the bot context instead of claiming the handoff succeeded.
 
-Use only a Backblaze Application Key restricted to the intended bucket and required capabilities. Do not use a master key.
+The config is placed in browser runtime memory only. It is **not stored in browser LocalStorage** by this feature. Deleting the credentials in the Windows app removes the DPAPI file, disables handoff, and clears the runtime global from reachable same-origin execution contexts.
+
+### Explicit live test
+
+After **Jetzt an Bot senden** successfully verifies the bot-context handoff, the Bridge asks whether it should run a live Backblaze test. The live test is not automatic and only runs after explicit confirmation.
+
+The fixed flow is:
+
+```text
+verified AIO-v3 bot execution context
+  → AIO_V3.objectStorage.selfTest()
+  → PUT v4/_health/<timestamp>-<random>.json
+  → HEAD the same object
+  → verify size + x-amz-meta-aio-sha256
+  → report verified=true back to the Windows app
+```
+
+The returned result is reduced to non-secret fields only: provider, bucket, object key, byte count and optional version ID. Neither `keyID` nor `applicationKey` is returned to the Windows UI. The test deliberately does **not** request cleanup, so it does not require `deleteFiles` and does not delete the uploaded health object.
+
+Use only a Backblaze Application Key restricted to the intended bucket and required capabilities. Do not use a master key. For the non-destructive live test, `writeFiles` and `readFiles` are sufficient.
 
 Optional one-time import variables:
 
@@ -172,6 +195,10 @@ Run:
 - the Backblaze endpoint must be HTTPS and match the configured Backblaze region;
 - Backblaze bucket names are validated for S3-compatible use;
 - only the configured Adventure Land HTTPS origin is accepted;
+- Backblaze secrets are injected only after a fixed probe identifies the real AIO-v3 bot runtime context;
+- Backblaze handoff is considered ready only after a non-secret read-back from `AIO_V3.objectStorage.status()` in the same context;
+- the Backblaze live test is fixed to `AIO_V3.objectStorage.selfTest()` and requires explicit operator confirmation;
+- the live test returns no credential fields and performs no delete;
 - CDP responses are bounded;
 - telemetry events are capped at 200 per batch;
 - the telemetry cursor advances only after Supabase accepts the batch;

@@ -278,7 +278,7 @@ public partial class MainWindow : Window
             BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             await RestartBridgeIfRunningAsync();
             await RefreshConnectionsAsync(startBrowser: true);
-            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert und an den Bot gesendet.");
+            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert; Übergabe wird im echten Bot-Kontext verifiziert.");
             BackblazeErrorText.Text = string.Empty;
         }
         catch (Exception error)
@@ -290,7 +290,7 @@ public partial class MainWindow : Window
 
     private async void SendBackblazeToBot_Click(object sender, RoutedEventArgs e)
     {
-        BackblazeStateText.Text = "SENDE …";
+        BackblazeStateText.Text = "SENDE · SUCHE BOT-KONTEXT …";
         BackblazeErrorText.Text = string.Empty;
         try
         {
@@ -311,8 +311,28 @@ public partial class MainWindow : Window
                 candidate.BackblazePrefix,
                 _backblazeCredentials,
                 cts.Token);
-            BackblazeStateText.Text = result.Applied ? "BEREIT · AN BOT GESENDET" : "FEHLER";
+
+            if (!result.Applied || !result.VerifiedInBotContext)
+                throw new InvalidOperationException("BACKBLAZE_BOT_CONTEXT_READBACK_FAILED");
+
+            BackblazeStateText.Text = $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT";
             BackblazeErrorText.Text = string.Empty;
+
+            var liveTest = MessageBox.Show(
+                "Die Backblaze-Konfiguration ist jetzt im echten AIO-V3-Bot-Kontext verifiziert.\n\n" +
+                "Soll jetzt ein kleiner Live-Test ausgeführt werden? Der Bot lädt ein _health-JSON nach Backblaze hoch " +
+                "und prüft es anschließend per HEAD auf Größe und SHA-256-Metadatum. Das Testobjekt wird NICHT gelöscht.",
+                "Backblaze Live-Test",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (liveTest != MessageBoxResult.Yes) return;
+
+            BackblazeStateText.Text = "LIVE-TEST · PUT + HEAD …";
+            using var testCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var test = await configurator.SelfTestAsync(testCts.Token);
+            BackblazeStateText.Text = "BEREIT · LIVE-TEST VERIFIZIERT";
+            BackblazeErrorText.Text = $"PUT + HEAD erfolgreich · {test.Key} · {test.Bytes} Bytes";
         }
         catch (Exception error)
         {
@@ -570,13 +590,19 @@ public partial class MainWindow : Window
                 _config.BackblazePrefix,
                 _backblazeCredentials,
                 cancellationToken);
-            BackblazeStateText.Text = result.Applied ? "BEREIT · AN BOT GESENDET" : "FEHLER";
+            BackblazeStateText.Text = result.Applied && result.VerifiedInBotContext
+                ? $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT"
+                : "FEHLER";
             BackblazeErrorText.Text = string.Empty;
         }
         catch (Exception error)
         {
-            BackblazeStateText.Text = "FEHLER";
-            BackblazeErrorText.Text = Bounded(error.Message);
+            BackblazeStateText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
+                ? "WARTET AUF BOT-KONTEXT"
+                : "FEHLER";
+            BackblazeErrorText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
+                ? "AIO_V3.objectStorage wurde im CDP-Ausführungskontext noch nicht gefunden."
+                : Bounded(error.Message);
         }
     }
 
@@ -623,7 +649,7 @@ public partial class MainWindow : Window
 
     private static string BackblazeStateLabel(string state) => state switch
     {
-        "READY" => "BEREIT · AN BOT GESENDET",
+        "READY" => "BEREIT · BOT-KONTEXT VERIFIZIERT",
         "PENDING" => "BEREIT · WARTET AUF BROWSER",
         "CREDENTIALS_MISSING" => "ZUGANGSDATEN FEHLEN",
         "DISABLED" => "DEAKTIVIERT",
