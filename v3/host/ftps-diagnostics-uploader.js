@@ -7,32 +7,29 @@ const { Readable } = require('node:stream');
 const DEFAULT_PORT = 21;
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_MAX_FILES_PER_FLUSH = 4;
+const DEFAULT_BASE_BACKOFF_MS = 30 * 1000;
+const DEFAULT_MAX_BACKOFF_MS = 30 * 60 * 1000;
 
 function finite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
-
 function bool(value, fallback = false) {
   if (value == null || value === '') return fallback;
   if (typeof value === 'boolean') return value;
   return /^(1|true|yes|on)$/i.test(String(value).trim());
 }
-
 function safeSegment(value, fallback = 'adventure-land-v3') {
   const text = String(value || fallback).trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
   return (text || fallback).slice(0, 128);
 }
-
 function normalizeRemoteRoot(value) {
   const raw = String(value || '/diagnostics/v3').trim().replace(/\\/g, '/');
   const parts = raw.split('/').filter(Boolean).filter((part) => part !== '.' && part !== '..');
   return `/${parts.join('/')}`;
 }
-
 function defaultClientFactory(timeoutMs) {
   return () => {
-    // Lazy require keeps local-only diagnostics usable even before npm install.
     const { Client } = require('basic-ftp');
     return new Client(timeoutMs);
   };
@@ -47,20 +44,22 @@ class FtpsDiagnosticsUploader {
     this.password = options.password ? String(options.password) : null;
     this.secure = options.secure == null ? true : bool(options.secure, true);
     this.allowInsecureForTests = options.allowInsecureForTests === true;
-    if (!this.secure && !this.allowInsecureForTests && (this.host || this.user || this.password)) {
-      throw new Error('DIAGNOSTICS_FTPS_TLS_REQUIRED');
-    }
+    if (!this.secure && !this.allowInsecureForTests && (this.host || this.user || this.password)) throw new Error('DIAGNOSTICS_FTPS_TLS_REQUIRED');
     this.rejectUnauthorized = options.rejectUnauthorized == null ? true : bool(options.rejectUnauthorized, true);
     this.root = normalizeRemoteRoot(options.root);
     this.botId = safeSegment(options.botId);
     this.timeoutMs = Math.max(1000, Math.min(60000, Math.floor(finite(options.timeoutMs, DEFAULT_TIMEOUT_MS))));
     this.maxFilesPerFlush = Math.max(1, Math.min(50, Math.floor(finite(options.maxFilesPerFlush, DEFAULT_MAX_FILES_PER_FLUSH))));
+    this.baseBackoffMs = Math.max(5000, Math.min(10 * 60 * 1000, Math.floor(finite(options.baseBackoffMs, DEFAULT_BASE_BACKOFF_MS))));
+    this.maxBackoffMs = Math.max(this.baseBackoffMs, Math.min(60 * 60 * 1000, Math.floor(finite(options.maxBackoffMs, DEFAULT_MAX_BACKOFF_MS))));
     this.clientFactory = options.clientFactory || defaultClientFactory(this.timeoutMs);
     this.lastAttemptAt = null;
     this.lastSuccessAt = null;
     this.lastError = null;
     this.lastUpload = null;
-    this.stats = { flushes: 0, uploaded: 0, failures: 0, bytesUploaded: 0, skippedDisabled: 0 };
+    this.nextAttemptAt = 0;
+    this.failuresInRow = 0;
+    this.stats = { flushes: 0, uploaded: 0, failures: 0, bytesUploaded: 0, skippedDisabled: 0, skippedBackoff: 0 };
   }
 
   enabled() {
@@ -76,6 +75,16 @@ class FtpsDiagnosticsUploader {
       secure: this.secure,
       secureOptions: this.secure ? { rejectUnauthorized: this.rejectUnauthorized } : undefined
     };
+  }
+
+  _backoffMs() {
+    return Math.min(this.maxBackoffMs, this.baseBackoffMs * Math.pow(2, Math.min(10, Math.max(0, this.failuresInRow - 1))));
+  }
+
+  _safeError(error) {
+    let message = String(error && error.message || error || 'DIAGNOSTICS_FTPS_FAILED');
+    if (this.password) message = message.split(this.password).join('[REDACTED]');
+    return message.slice(0, 256);
   }
 
   async _pendingFiles(spoolDir) {
@@ -122,9 +131,11 @@ class FtpsDiagnosticsUploader {
       bytes: stat.size,
       remotePath: remoteFinal
     };
-    await client.uploadFrom(Readable.from(`${JSON.stringify(index, null, 2)}\n`), `${this.root}/${this.botId}/latest-problem.json.part`);
-    try { await client.remove(`${this.root}/${this.botId}/latest-problem.json`, true); } catch (_) {}
-    await client.rename(`${this.root}/${this.botId}/latest-problem.json.part`, `${this.root}/${this.botId}/latest-problem.json`);
+    const latestPart = `${this.root}/${this.botId}/latest-problem.json.part`;
+    const latestFinal = `${this.root}/${this.botId}/latest-problem.json`;
+    await client.uploadFrom(Readable.from(`${JSON.stringify(index, null, 2)}\n`), latestPart);
+    try { await client.remove(latestFinal, true); } catch (_) {}
+    await client.rename(latestPart, latestFinal);
 
     await fs.rm(localPath, { force: true });
     await fs.rm(metadataPath, { force: true });
@@ -143,7 +154,13 @@ class FtpsDiagnosticsUploader {
     const files = await this._pendingFiles(spoolDir);
     if (!files.length) return { uploaded: 0, reason: 'DIAGNOSTICS_FTPS_NOTHING_PENDING' };
 
-    this.lastAttemptAt = this.now();
+    const now = this.now();
+    if (now < this.nextAttemptAt) {
+      this.stats.skippedBackoff += 1;
+      return { uploaded: 0, reason: 'DIAGNOSTICS_FTPS_BACKOFF', nextAttemptAt: this.nextAttemptAt };
+    }
+
+    this.lastAttemptAt = now;
     const client = this.clientFactory();
     let uploaded = 0;
     try {
@@ -154,11 +171,15 @@ class FtpsDiagnosticsUploader {
       }
       this.lastSuccessAt = this.now();
       this.lastError = null;
+      this.failuresInRow = 0;
+      this.nextAttemptAt = 0;
       return { uploaded, reason: 'DIAGNOSTICS_FTPS_FLUSHED' };
     } catch (error) {
       this.stats.failures += 1;
-      this.lastError = { at: this.now(), message: String(error && error.message || error).slice(0, 256) };
-      return { uploaded, reason: 'DIAGNOSTICS_FTPS_FAILED', error: { ...this.lastError } };
+      this.failuresInRow += 1;
+      this.nextAttemptAt = now + this._backoffMs();
+      this.lastError = { at: now, message: this._safeError(error) };
+      return { uploaded, reason: 'DIAGNOSTICS_FTPS_FAILED', error: { ...this.lastError }, nextAttemptAt: this.nextAttemptAt };
     } finally {
       try { client.close(); } catch (_) {}
     }
@@ -177,6 +198,10 @@ class FtpsDiagnosticsUploader {
       botId: this.botId,
       timeoutMs: this.timeoutMs,
       maxFilesPerFlush: this.maxFilesPerFlush,
+      baseBackoffMs: this.baseBackoffMs,
+      maxBackoffMs: this.maxBackoffMs,
+      nextAttemptAt: this.nextAttemptAt,
+      failuresInRow: this.failuresInRow,
       lastAttemptAt: this.lastAttemptAt,
       lastSuccessAt: this.lastSuccessAt,
       lastError: this.lastError && { ...this.lastError },
@@ -194,5 +219,7 @@ module.exports = {
   DEFAULT_PORT,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_MAX_FILES_PER_FLUSH,
+  DEFAULT_BASE_BACKOFF_MS,
+  DEFAULT_MAX_BACKOFF_MS,
   normalizeRemoteRoot
 };
