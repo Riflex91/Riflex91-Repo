@@ -69,6 +69,9 @@ export interface GameDataObservation {
   readonly mapsKnown: number;
 }
 
+export const WORLD_OBSERVATION_SCHEMA_VERSION = 1 as const;
+export type WorldObservationSchemaVersion = typeof WORLD_OBSERVATION_SCHEMA_VERSION;
+
 /**
  * A complete, point-in-time observation produced by a game adapter.
  *
@@ -76,6 +79,7 @@ export interface GameDataObservation {
  * it for duplicate/out-of-order protection and replay determinism.
  */
 export interface WorldObservation {
+  readonly schemaVersion: WorldObservationSchemaVersion;
   readonly sequence: number;
   readonly observedAt: number;
   readonly self: CharacterObservation;
