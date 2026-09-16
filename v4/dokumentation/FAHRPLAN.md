@@ -321,7 +321,7 @@ Gemeinsam umgesetzt werden:
 - Versuche
 - Entwicklungswarteschlange
 - Schnittstelle zwischen Laufzeit und Server
-- serverseitiger Archivabgleich ueber eine provider-neutrale S3-kompatible Objektspeicher-Schnittstelle; erste vorgesehene Konfiguration Oracle Cloud Infrastructure Object Storage
+- serverseitiger Archivabgleich ueber eine provider-neutrale S3-kompatible Objektspeicher-Schnittstelle; erste vorgesehene Konfiguration Backblaze B2 Cloud Storage
 - Anzeige von sicherer Speicherauslastung, aktueller Speicher-Lern-Phase, geschuetzten Daten und bereits verarbeiteten loeschbaren Rohdaten
 - `TagesBerichtErstellung` aus den vergangenen exakt 24 Stunden
 - kurze Zusammenfassung mit `Nutzer muss handeln: JA/NEIN`
