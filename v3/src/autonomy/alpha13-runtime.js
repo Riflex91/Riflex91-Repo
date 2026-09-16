@@ -6,6 +6,13 @@ const { ContentDriftMonitor } = require('../world/content-drift');
 
 const ALPHA13_VERSION = '3.0.0-alpha.13.0';
 
+function contentDriftStorageKey(root, explicitKey = null) {
+  if (explicitKey != null && String(explicitKey).trim()) return String(explicitKey).trim();
+  const character = root && (root.character || root.parent && root.parent.character);
+  const name = character && String(character.name || '').trim();
+  return name ? `aio-v3-content-drift-v1:${name}` : undefined;
+}
+
 class Alpha13Runtime extends Alpha12Runtime {
   constructor(options = {}) {
     super(options);
@@ -20,6 +27,7 @@ class Alpha13Runtime extends Alpha12Runtime {
     this.contentDrift = options.contentDrift || new ContentDriftMonitor({
       root: this.root,
       storage: options.contentDriftStorage || options.storage,
+      key: contentDriftStorageKey(this.root, options.contentDriftKey),
       now: this.now,
       log: this.log,
       capacity: options.contentDriftCapacity,
@@ -120,4 +128,4 @@ class Alpha13Runtime extends Alpha12Runtime {
   }
 }
 
-module.exports = { Alpha13Runtime, ALPHA13_VERSION };
+module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey };

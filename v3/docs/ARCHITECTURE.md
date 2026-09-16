@@ -9,7 +9,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
 | (root) | 6 | 1108 |
-| autonomy | 21 | 3972 |
+| autonomy | 21 | 3980 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
 | core | 4 | 508 |
@@ -18,9 +18,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | 3 | 665 |
 | merchant | 5 | 1504 |
 | ops | 25 | 6906 |
-| party | 19 | 3767 |
+| party | 19 | 3827 |
 | planner | 1 | 65 |
-| reliability | 67 | 14901 |
+| reliability | 67 | 14866 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |

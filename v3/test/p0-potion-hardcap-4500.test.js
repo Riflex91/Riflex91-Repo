@@ -45,8 +45,8 @@ function install(runtime) {
   return installP0PotionHardCap4500(runtime);
 }
 
-test('hard cap reroutes to another farmer instead of overfilling the selected farmer', () => {
-  const items = [{ name: 'hpot0', q: 500 }, { name: 'mpot0', q: 200 }];
+test('merchant surplus never blocks the current farmer demand', () => {
+  const items = [{ name: 'hpot0', q: 5415 }, { name: 'mpot0', q: 100 }];
   const root = rootForMerchant(items);
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
   const runtime = runtimeFor(root, planner);
@@ -54,42 +54,39 @@ test('hard cap reroutes to another farmer instead of overfilling the selected fa
 
   const plan = planner.plan({
     merchant: { ...root.character, inventory: items },
-    reports: [
-      report('My_Ranger1', 99900, 4200, 4400),
-      report('My_Ranger2', 99910, 3000, 4000)
-    ],
+    reports: [report('My_Ranger1', 99900, 4400, 4300)],
     deliveryDistance: 400
   });
 
-  assert.equal(plan.target.name, 'My_Ranger2');
   assert.equal(plan.kind, MerchantServicePlanKind.RESTOCK_REQUIRED);
-  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 1500], ['mpot0', 500]]);
-  assert.deepEqual(plan.missingStock.map((row) => [row.itemName, row.buyQuantity]), [['hpot0', 1000], ['mpot0', 300]]);
-  assert.equal(plan.metadata.zeroReserveHardCap, true);
+  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 100], ['mpot0', 200]]);
+  assert.deepEqual(plan.missingStock.map((row) => [row.itemName, row.buyQuantity]), [['mpot0', 100]]);
+  assert.equal(plan.metadata.merchantExcessBlocksDelivery, false);
   assert.equal(plan.metadata.overdeliveryAllowed, false);
-  assert.equal(plan.metadata.reroutedFromPotionExcess[0].targetName, 'My_Ranger1');
-  assert.equal(hardCap.reroutes, 1);
+  assert.equal(hardCap.merchantExcessBlocksDelivery, false);
+  assert.equal(hardCap.blockedOverdeliveryPlans, 0);
 });
 
-test('hard cap holds when no farmer can absorb existing stock without exceeding 4500', () => {
-  const items = [{ name: 'hpot0', q: 500 }, { name: 'mpot0', q: 200 }];
-  const root = rootForMerchant(items);
-  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
+test('hard cap still blocks a plan that would exceed the observed farmer shortfall', () => {
+  const root = rootForMerchant([]);
+  const maliciousPlan = {
+    kind: MerchantServicePlanKind.SERVICE_DELIVERY,
+    target: { name: 'My_Ranger1', map: 'main', x: 20, y: 0 },
+    deliveries: [{ family: 'hp', itemName: 'hpot0', quantity: 400 }],
+    metadata: { p0PotionPolicy4500: true, p0PotionBundle: true }
+  };
+  const planner = { lastPlan: null, plan() { return maliciousPlan; } };
   const runtime = runtimeFor(root, planner);
-  const hardCap = install(runtime);
+  const hardCap = installP0PotionHardCap4500(runtime);
 
   const plan = planner.plan({
-    merchant: { ...root.character, inventory: items },
-    reports: [report('My_Ranger1', 99900, 4200, 4400)],
-    deliveryDistance: 400
+    merchant: { ...root.character, inventory: [] },
+    reports: [report('My_Ranger1', 99900, 4200, 4400)]
   });
 
   assert.equal(plan.kind, MerchantServicePlanKind.HOLD);
-  assert.equal(plan.reason, 'MERCHANT_POTION_EXCESS_BLOCKS_ZERO_RESERVE_DELIVERY');
+  assert.equal(plan.reason, 'POTION_DELIVERY_EXCEEDS_FARMER_SHORTFALL');
   assert.deepEqual(plan.deliveries, []);
-  assert.equal(plan.metadata.zeroReserveHardCap, true);
-  assert.equal(plan.metadata.overdeliveryAllowed, false);
-  assert.equal(plan.metadata.blockedTargets[0].targetName, 'My_Ranger1');
-  assert.deepEqual(plan.metadata.blockedTargets[0].excess.map((row) => [row.itemName, row.excessQuantity]), [['hpot0', 200], ['mpot0', 100]]);
-  assert.equal(hardCap.blockedPlans, 1);
+  assert.deepEqual(plan.metadata.violations.map((row) => [row.itemName, row.quantity, row.farmerShortfall]), [['hpot0', 400, 300]]);
+  assert.equal(hardCap.blockedOverdeliveryPlans, 1);
 });

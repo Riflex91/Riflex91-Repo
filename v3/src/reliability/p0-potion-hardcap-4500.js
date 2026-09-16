@@ -1,9 +1,9 @@
 'use strict';
 
-const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
+const { MerchantServicePlanKind } = require('../merchant/merchant-service-planner');
 const { POTION_TARGET_COUNT, MERCHANT_POTION_RESERVE } = require('./p0-potion-policy-4500');
 
-const P0_POTION_HARDCAP_4500_MODE = 'p0-potion-hardcap-4500-v1';
+const P0_POTION_HARDCAP_4500_MODE = 'p0-potion-hardcap-4500-v2';
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -25,41 +25,33 @@ function farmerCount(report, family) {
 
 function assessAdaptivePlan(input, plan) {
   if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500 && plan.metadata.p0PotionBundle)) {
-    return { adaptive: false, excess: [] };
+    return { adaptive: false, violations: [] };
   }
   const targetName = plan.target && String(plan.target.name || '');
   const report = reportFor(input, targetName);
-  if (!report) return { adaptive: true, targetName, reportMissing: true, excess: [] };
-  const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
-  const rows = [
-    { family: 'hp', itemName: 'hpot0' },
-    { family: 'mp', itemName: 'mpot0' }
-  ].map((def) => {
-    const farmerBefore = farmerCount(report, def.family);
-    const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
-    const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    return {
-      ...def,
-      farmerBefore,
-      farmerShortfall,
-      merchantHave,
-      excessQuantity: Math.max(0, merchantHave - farmerShortfall)
-    };
-  });
-  return {
-    adaptive: true,
-    targetName,
-    reportMissing: false,
-    rows,
-    excess: rows.filter((row) => row.excessQuantity > 0)
+  if (!report) return { adaptive: true, targetName, reportMissing: true, violations: [] };
+
+  const shortfalls = {
+    hpot0: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'hp')),
+    mpot0: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'mp'))
   };
+  const deliveries = Array.isArray(plan.deliveries) ? plan.deliveries : [];
+  const violations = deliveries
+    .map((row) => ({
+      itemName: String(row && row.itemName || ''),
+      quantity: Math.max(0, Math.floor(finite(row && row.quantity, 0))),
+      farmerShortfall: shortfalls[String(row && row.itemName || '')] == null ? 0 : shortfalls[String(row && row.itemName || '')]
+    }))
+    .filter((row) => !Object.prototype.hasOwnProperty.call(shortfalls, row.itemName) || row.quantity > row.farmerShortfall);
+
+  return { adaptive: true, targetName, reportMissing: false, shortfalls, violations };
 }
 
-function holdForExcess(plan, blocked) {
+function blockedPlan(plan, assessment) {
   const next = {
     ...clone(plan),
     kind: MerchantServicePlanKind.HOLD,
-    reason: 'MERCHANT_POTION_EXCESS_BLOCKS_ZERO_RESERVE_DELIVERY',
+    reason: 'POTION_DELIVERY_EXCEEDS_FARMER_SHORTFALL',
     deliveries: [],
     delivery: null,
     distance: null,
@@ -68,9 +60,9 @@ function holdForExcess(plan, blocked) {
       p0PotionHardCap4500: true,
       farmerTarget: POTION_TARGET_COUNT,
       merchantReserve: MERCHANT_POTION_RESERVE,
-      zeroReserveHardCap: true,
+      demandHardCap: true,
       overdeliveryAllowed: false,
-      blockedTargets: clone(blocked)
+      violations: clone(assessment.violations)
     }
   };
   delete next.afterRestock;
@@ -79,20 +71,19 @@ function holdForExcess(plan, blocked) {
   return next;
 }
 
-function annotateReroute(plan, blocked) {
-  const next = {
+function annotate(plan) {
+  return {
     ...clone(plan),
     metadata: {
       ...(plan && plan.metadata || {}),
       p0PotionHardCap4500: true,
       farmerTarget: POTION_TARGET_COUNT,
       merchantReserve: MERCHANT_POTION_RESERVE,
-      zeroReserveHardCap: true,
+      demandHardCap: true,
       overdeliveryAllowed: false,
-      reroutedFromPotionExcess: clone(blocked)
+      merchantExcessBlocksDelivery: false
     }
   };
-  return next;
 }
 
 function installP0PotionHardCap4500(runtime) {
@@ -106,60 +97,27 @@ function installP0PotionHardCap4500(runtime) {
     farmerTarget: POTION_TARGET_COUNT,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     overdeliveryAllowed: false,
-    reroutes: 0,
-    blockedPlans: 0,
+    merchantExcessBlocksDelivery: false,
+    blockedOverdeliveryPlans: 0,
     lastBlocked: null,
     installed: true
   };
   const basePlan = planner.plan.bind(planner);
 
   planner.plan = (input = {}) => {
-    const originalReports = Array.isArray(input.reports) ? input.reports.slice() : [];
-    let candidateReports = originalReports.slice();
-    const blocked = [];
-    const attempts = Math.max(1, originalReports.length + 1);
-
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const planInput = candidateReports === originalReports ? input : { ...input, reports: candidateReports };
-      const plan = basePlan(planInput);
-      const assessment = assessAdaptivePlan(input, plan);
-      if (!assessment.adaptive || assessment.reportMissing || !assessment.excess.length) {
-        if (blocked.length && assessment.adaptive) {
-          state.reroutes += 1;
-          const rerouted = annotateReroute(plan, blocked);
-          planner.lastPlan = clone(rerouted);
-          return clone(rerouted);
-        }
-        return plan;
-      }
-
-      const blockedRow = {
-        targetName: assessment.targetName,
-        excess: assessment.excess.map((row) => ({
-          itemName: row.itemName,
-          merchantHave: row.merchantHave,
-          farmerBefore: row.farmerBefore,
-          farmerShortfall: row.farmerShortfall,
-          excessQuantity: row.excessQuantity
-        }))
-      };
-      blocked.push(blockedRow);
-      state.lastBlocked = clone(blockedRow);
-
-      const before = candidateReports.length;
-      candidateReports = candidateReports.filter((row) => row && String(row.name || '') !== assessment.targetName);
-      if (!assessment.targetName || candidateReports.length === before || candidateReports.length === 0) {
-        const hold = holdForExcess(plan, blocked);
-        state.blockedPlans += 1;
-        planner.lastPlan = clone(hold);
-        return clone(hold);
-      }
+    const plan = basePlan(input);
+    const assessment = assessAdaptivePlan(input, plan);
+    if (!assessment.adaptive || assessment.reportMissing) return plan;
+    if (assessment.violations.length) {
+      const hold = blockedPlan(plan, assessment);
+      state.blockedOverdeliveryPlans += 1;
+      state.lastBlocked = clone({ targetName: assessment.targetName, violations: assessment.violations });
+      planner.lastPlan = clone(hold);
+      return clone(hold);
     }
-
-    const fallback = holdForExcess(planner.lastPlan || {}, blocked);
-    state.blockedPlans += 1;
-    planner.lastPlan = clone(fallback);
-    return clone(fallback);
+    const next = annotate(plan);
+    planner.lastPlan = clone(next);
+    return clone(next);
   };
 
   planner.__p0PotionHardCap4500Installed = true;
