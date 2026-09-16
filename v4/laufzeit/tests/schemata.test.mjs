@@ -11,7 +11,8 @@ const schemaDateien = [
   'tages-bericht.schema.json',
   'tages-bericht-einstellung.schema.json',
   'dienst-profil.schema.json',
-  'bedien-anfrage.schema.json'
+  'bedien-anfrage.schema.json',
+  'nutzer-auftrag.schema.json'
 ];
 
 for (const dateiname of schemaDateien) {
@@ -44,4 +45,12 @@ test('Kritische BedienAnfragen brauchen einen vorgesehenen Bestaetigungstext', a
   const schema = JSON.parse(inhalt);
   assert.deepEqual(schema.properties.risiko.enum, ['unkritisch', 'vorsicht', 'kritisch']);
   assert.deepEqual(schema.allOf[0].then.required, ['erforderlicherBestaetigungsText']);
+});
+
+test('Nutzerauftraege verlangen eindeutige Auftragsart, Menge und Mengenzielart', async () => {
+  const inhalt = await readFile(new URL('../../schemata/nutzer-auftrag.schema.json', import.meta.url), 'utf8');
+  const schema = JSON.parse(inhalt);
+  assert.deepEqual(schema.properties.art.enum, ['sammeln', 'herstellen']);
+  assert.deepEqual(schema.properties.mengenZielArt.enum, ['zusaetzlich', 'gesamtbestand']);
+  assert.equal(schema.properties.zielMenge.minimum, 1);
 });
