@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1062 Zeilen**
+**6 Dateien · 1067 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 58 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 124 |
+| `src/production-live-services.js` | 129 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |
@@ -208,7 +208,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**62 Dateien · 12918 Zeilen**
+**63 Dateien · 13320 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -243,6 +243,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
 | `src/reliability/alpha27-merchant-planning.js` | 165 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
+| `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
 | `src/reliability/alpha28-cross-map-farmer.js` | 241 |
