@@ -103,7 +103,9 @@ V4Block2Beobachtung.bericht()
 V4Block2Beobachtung.stoppe()
 ```
 
-Der Standardlauf liest alle 10 Sekunden fuer drei Stunden ausschliesslich `V4Testkonsole.block2Rohdaten()`. Alle fuenf Minuten erscheint ein kompakter Zwischenbericht in der Testkonsole. Es werden keine Spielaktionen aufgerufen und keine unbegrenzte Snapshot-Liste im Speicher gehalten.
+Ein kurzer Ein-Minuten-Smoke-Test darf vorab verwendet werden, um Lade- und Zugriffsfehler schnell zu erkennen. Die eigentliche Block-2-Abnahme dauert 30 Minuten.
+
+Der Standardlauf liest alle 10 Sekunden fuer 30 Minuten ausschliesslich `V4Testkonsole.block2Rohdaten()`. Alle fuenf Minuten erscheint ein kompakter Zwischenbericht in der Testkonsole. Es werden keine Spielaktionen aufgerufen und keine unbegrenzte Snapshot-Liste im Speicher gehalten.
 
 Ein Abschlussbericht enthaelt:
 
@@ -114,4 +116,4 @@ Ein Abschlussbericht enthaelt:
 - letzten Probezeitpunkt
 - maximal 50 letzte Fehler
 
-Fuer den Blockabschluss gilt der Live-Test als bestanden, wenn der Beobachter ueber mehrere Stunden ohne aktive V4-Spielaktion laeuft und keine ungefangenen Lesefehler erzeugt.
+Fuer den Blockabschluss gilt der Live-Test als bestanden, wenn der Beobachter 30 Minuten ohne aktive V4-Spielaktion laeuft, keine ungefangenen Lesefehler erzeugt und der Abschlussbericht `fehler: 0` sowie eine leere Liste `letzteFehler` ausweist.
