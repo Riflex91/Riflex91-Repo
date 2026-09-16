@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AuftragsVorschlaege } from '../erzeugt/kern/auftrags-vorschlaege.js';
+import { AuftragsVorschlaege } from '../../erzeugt/kern/auftrags-vorschlaege.js';
 
 const vorschlaege = [
   {
