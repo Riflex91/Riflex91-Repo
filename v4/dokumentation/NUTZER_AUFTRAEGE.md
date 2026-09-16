@@ -41,6 +41,8 @@ Die Vorschlagsliste ist eine feste Bedienfunktion von V4 und kein optionaler Kom
 
 Die Reihenfolge der Vorschlaege folgt der Eingabe: direkte Wortanfaenge werden vor einfachen Teiltreffern gezeigt. Die Liste bleibt bewusst kurz, damit der Nutzer nicht durch eine unuebersichtliche Befehlswand navigieren muss.
 
+Die Vorschlagsliste soll sowohl per Maus oder Beruehrung als auch per Tastatur bedienbar sein: Pfeiltasten waehlen einen Vorschlag, Eingabe uebernimmt ihn, Escape schliesst die Liste ohne Aenderung.
+
 ## Eindeutige Mengen
 
 Die Eingabe `Sammle 200 Bienenfluegel` ist ohne weitere Festlegung mehrdeutig. Deshalb muss V4 vor dem Start eindeutig zwischen zwei Zielarten unterscheiden:
