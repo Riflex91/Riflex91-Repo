@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/spielzustand.schema.json",
+  "title": "V4 Spielzustand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "laufendeNummer", "aufgenommenAm", "ablaufKennung", "beobachtet", "abgeleitet", "gelernt"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "laufendeNummer": { "type": "integer", "minimum": 0 },
+    "aufgenommenAm": { "type": "number", "minimum": 0 },
+    "ablaufKennung": { "type": "string", "minLength": 1 },
+    "beobachtet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["server", "charakter", "inventar", "gruppe", "monster", "spieler", "npcs", "sonstigeObjekte", "karte"],
+      "properties": {
+        "server": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["region", "kennung"],
+          "properties": {
+            "region": { "$ref": "#/$defs/wissensWert" },
+            "kennung": { "$ref": "#/$defs/wissensWert" }
+          }
+        },
+        "charakter": { "$ref": "#/$defs/wissensWert" },
+        "inventar": { "$ref": "#/$defs/wissensWert" },
+        "gruppe": { "$ref": "#/$defs/wissensWert" },
+        "monster": { "$ref": "#/$defs/wissensWert" },
+        "spieler": { "$ref": "#/$defs/wissensWert" },
+        "npcs": { "$ref": "#/$defs/wissensWert" },
+        "sonstigeObjekte": { "$ref": "#/$defs/wissensWert" },
+        "karte": { "$ref": "#/$defs/wissensWert" }
+      }
+    },
+    "abgeleitet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lebensAnteil", "manaAnteil", "inventarBelegt", "sichtbareMonster"],
+      "properties": {
+        "lebensAnteil": { "$ref": "#/$defs/wissensWert" },
+        "manaAnteil": { "$ref": "#/$defs/wissensWert" },
+        "inventarBelegt": { "$ref": "#/$defs/wissensWert" },
+        "sichtbareMonster": { "$ref": "#/$defs/wissensWert" }
+      }
+    },
+    "gelernt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kennung", "wert"],
+        "properties": {
+          "kennung": { "type": "string", "minLength": 1 },
+          "wert": { "$ref": "#/$defs/bekannt" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "bekannt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zustand", "quelle", "sicherheit", "bekanntSeit", "wert"],
+      "properties": {
+        "zustand": { "const": "bekannt" },
+        "quelle": { "enum": ["beobachtet", "abgeleitet", "gelernt"] },
+        "sicherheit": { "type": "number", "minimum": 0, "maximum": 1 },
+        "bekanntSeit": { "type": "number", "minimum": 0 },
+        "wert": {}
+      }
+    },
+    "fehlend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zustand", "quelle", "grund"],
+      "properties": {
+        "zustand": { "const": "fehlend" },
+        "quelle": { "const": "beobachtet" },
+        "grund": { "type": "string", "minLength": 1 }
+      }
+    },
+    "unbekannt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zustand", "quelle", "grund"],
+      "properties": {
+        "zustand": { "const": "unbekannt" },
+        "quelle": { "enum": ["beobachtet", "abgeleitet", "gelernt"] },
+        "grund": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wissensWert": {
+      "oneOf": [
+        { "$ref": "#/$defs/bekannt" },
+        { "$ref": "#/$defs/fehlend" },
+        { "$ref": "#/$defs/unbekannt" }
+      ]
+    }
+  }
+}

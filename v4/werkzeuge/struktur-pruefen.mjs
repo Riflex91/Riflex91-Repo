@@ -17,6 +17,7 @@ const pflichtDateien = [
   'dokumentation/BEDIENUNG_UND_FEHLBEDIENUNGSSICHERHEIT.md',
   'dokumentation/NUTZER_AUFTRAEGE.md',
   'dokumentation/TESTPLAN.md',
+  'dokumentation/BLOCK-2-LESEZUGRIFF.md',
   'laufzeit/quelle/vertraege/bot-ereignis.ts',
   'laufzeit/quelle/vertraege/aktions-anfrage.ts',
   'laufzeit/quelle/vertraege/ressourcen-sperre.ts',
@@ -27,6 +28,9 @@ const pflichtDateien = [
   'laufzeit/quelle/vertraege/bedien-anfrage.ts',
   'laufzeit/quelle/vertraege/nutzer-auftrag.ts',
   'laufzeit/quelle/vertraege/speicher-lern-zyklus.ts',
+  'laufzeit/quelle/adventure-land/adventure-land-lesezugriff.ts',
+  'laufzeit/quelle/kern/spielzustand-erstellung.ts',
+  'laufzeit/quelle/kern/spielzustand-aufzeichnung.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
@@ -44,7 +48,10 @@ const pflichtDateien = [
   'schemata/tages-bericht-einstellung.schema.json',
   'schemata/dienst-profil.schema.json',
   'schemata/bedien-anfrage.schema.json',
-  'schemata/nutzer-auftrag.schema.json'
+  'schemata/nutzer-auftrag.schema.json',
+  'schemata/spielzustand.schema.json',
+  'schemata/spielzustand-aufzeichnung.schema.json',
+  'werkzeuge/block2-beobachtung.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -122,6 +129,20 @@ for (const pflichtRegel of [
   'Kein Auftrag umgeht die BedienSicherung.'
 ]) {
   if (!auftragsDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer Nutzerauftraege fehlt: ${pflichtRegel}`);
+}
+
+const lesezugriff = await readFile(path.join(wurzel, 'laufzeit/quelle/adventure-land/adventure-land-lesezugriff.ts'), 'utf8');
+for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'buy', 'sell', 'send_item', 'upgrade', 'compound']) {
+  const aufruf = new RegExp(`\\b${aktionsName}\\s*\\(`);
+  if (aufruf.test(lesezugriff)) throw new Error(`AdventureLandLesezugriff darf keine Spielaktion aufrufen: ${aktionsName}`);
+}
+
+const block2Dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-2-LESEZUGRIFF.md'), 'utf8');
+for (const pflichtRegel of [
+  'Ein beobachtetes `null` ist ein bekannter Wert und wird nicht mit `fehlend` gleichgesetzt.',
+  'die Adventure-Land-Leseschnittstelle ruft keine Aktionsfunktion auf'
+]) {
+  if (!block2Dokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer Block 2 fehlt: ${pflichtRegel}`);
 }
 
 console.log(`V4-Struktur geprueft: ${pflichtDateien.length} Pflichtdateien, ${dateien.length} sichtbare Dateien.`);
