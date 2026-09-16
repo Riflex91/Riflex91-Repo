@@ -22,7 +22,7 @@ Keine Ebene darf eine darunterliegende Sicherheitsstufe umgehen.
 - `lernen/` – spaetere Versuche und Lernergebnisse
 - `spiellogik/` – Farmer, Gruppe, Haendler und weitere Spielfunktionen
 
-V4 verwaltet keine Adventure-Land-Konten und keine Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
+V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
 
 ## Plattform
 
@@ -35,7 +35,7 @@ V4 verwaltet keine Adventure-Land-Konten und keine Anmeldedaten. Die Laufzeit ar
 
 ## Gruppensteuerung
 
-Mehrere Charaktere desselben Adventure-Land-Kontos koennen ihren Zustand in eine gemeinsame Gruppensicht melden. Die Gruppensteuerung verteilt Ziele und Aufgaben. Jede einzelne Laufzeit behaelt ihre lokale Sicherheitsentscheidung.
+Mehrere eigene Charaktere koennen ihren Zustand in eine gemeinsame Gruppensicht melden. Die Gruppensteuerung verteilt Ziele und Aufgaben. Jede einzelne Laufzeit behaelt ihre lokale Sicherheitsentscheidung.
 
 Dadurch gilt auch bei einem Plattformausfall:
 
