@@ -18,6 +18,10 @@ import {
   handleRuntimeReleaseArtifact,
   isRuntimeReleaseRead
 } from './runtime-release-artifact.js';
+import {
+  handlePreviewReleaseArtifact,
+  isPreviewReleaseRead
+} from './preview-release-artifact.js';
 
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
@@ -131,6 +135,7 @@ async function withFreeTierHealth(request, response) {
         endpoint,
         r2Binding: R2_BINDING,
         r2Bucket: R2_BUCKET,
+        previewReleaseSha: env && env.PREVIEW_RELEASE_SHA || null,
         freeTierGuard: budgetPolicy(),
         quotaDisplay: quotaPolicy()
       }
@@ -158,7 +163,9 @@ export default {
     recordWorkerRequest(now);
     const releaseRead = isPublicReleaseRead(request);
     let response;
-    if (isRuntimeReleaseRead(request)) {
+    if (isPreviewReleaseRead(request, env)) {
+      response = await handlePreviewReleaseArtifact(request, env);
+    } else if (isRuntimeReleaseRead(request)) {
       response = await handleRuntimeReleaseArtifact(request, env);
     } else {
       response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
