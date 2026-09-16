@@ -4,7 +4,7 @@
   const KONSOLE_ID = 'v4-adventure-land-testkonsole';
   const STIL_ID = 'v4-adventure-land-testkonsole-stil';
   const API_NAME = 'V4Testkonsole';
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const MAX_AUSGABEN = 100;
   const MAX_OBJEKT_TIEFE = 7;
   const MAX_OBJEKT_EINTRAEGE = 4000;
@@ -50,8 +50,7 @@
 
   function begrenzeText(text) {
     if (text.length <= MAX_AUSGABE_ZEICHEN) return text;
-    const abgeschnitten = text.slice(0, MAX_AUSGABE_ZEICHEN);
-    return `${abgeschnitten}\n\n[Ausgabe nach ${MAX_AUSGABE_ZEICHEN.toLocaleString('de-DE')} Zeichen abgeschnitten]`;
+    return `${text.slice(0, MAX_AUSGABE_ZEICHEN)}\n\n[Ausgabe nach ${MAX_AUSGABE_ZEICHEN.toLocaleString('de-DE')} Zeichen abgeschnitten]`;
   }
 
   function sichereDarstellung(wert) {
@@ -77,7 +76,6 @@
       if (gesehen.has(innererWert)) return '[Zirkulaere Referenz]';
       if (tiefe >= MAX_OBJEKT_TIEFE) return '[Maximale Tiefe erreicht]';
       if (eintraege >= MAX_OBJEKT_EINTRAEGE) return '[Maximale Eintragszahl erreicht]';
-
       gesehen.add(innererWert);
 
       if (Array.isArray(innererWert)) {
@@ -109,7 +107,7 @@
       if (innererWert instanceof Set) return wandel(Array.from(innererWert), tiefe + 1);
 
       const ergebnis = {};
-      let schluessel = [];
+      let schluessel;
       try {
         schluessel = Object.keys(innererWert);
       } catch (fehler) {
@@ -122,7 +120,6 @@
           ergebnis['[abgeschnitten]'] = true;
           break;
         }
-
         try {
           const beschreibung = Object.getOwnPropertyDescriptor(innererWert, name);
           if (beschreibung?.get && !('value' in beschreibung)) {
@@ -134,7 +131,6 @@
           ergebnis[name] = `[Lesefehler: ${fehler instanceof Error ? fehler.message : String(fehler)}]`;
         }
       }
-
       return ergebnis;
     }
 
@@ -156,6 +152,13 @@
       }
     }
     return ergebnis;
+  }
+
+  function zaehleListe(wert) {
+    if (Array.isArray(wert)) return wert.length;
+    if (wert && typeof wert === 'object') return Object.keys(wert).length;
+    if (wert === null || wert === undefined) return 0;
+    return null;
   }
 
   function fasseGegenstandZusammen(gegenstand, platz = null) {
@@ -182,7 +185,6 @@
   function erstelleCharakterAnsicht() {
     const charakter = holeSpielWert('character');
     if (!charakter) return null;
-
     const kern = leseFelder(charakter, [
       'id', 'name', 'ctype', 'level',
       'hp', 'max_hp', 'mp', 'max_mp',
@@ -191,7 +193,6 @@
       'map', 'in', 'x', 'y', 'real_x', 'real_y',
       'moving', 'target', 'rip', 'stand'
     ]) ?? {};
-
     return {
       ...kern,
       inventar: {
@@ -222,18 +223,13 @@
   function erstelleEntitiesAnsicht(nurMonster = false) {
     const entities = holeSpielWert('entities') ?? {};
     const ergebnis = [];
-
     for (const [id, entity] of Object.entries(entities)) {
       if (!entity || typeof entity !== 'object') continue;
       if (nurMonster && entity.type !== 'monster') continue;
       ergebnis.push(erstelleEntityAnsicht(entity, id));
     }
-
     ergebnis.sort((a, b) => String(a?.id ?? '').localeCompare(String(b?.id ?? '')));
-    return {
-      anzahl: ergebnis.length,
-      entities: ergebnis
-    };
+    return { anzahl: ergebnis.length, entities: ergebnis };
   }
 
   function erstelleGruppenAnsicht() {
@@ -254,6 +250,7 @@
     const spielDaten = holeSpielWert('G');
     const kartenKennung = charakter?.map ?? null;
     const kartenDaten = kartenKennung && spielDaten?.maps ? spielDaten.maps[kartenKennung] : null;
+    const statisch = leseFelder(kartenDaten, ['name', 'zone', 'safe', 'pvp', 'instance', 'ignore']) ?? null;
 
     return {
       kennung: kartenKennung,
@@ -263,9 +260,15 @@
         real_x: charakter?.real_x ?? null,
         real_y: charakter?.real_y ?? null
       },
-      daten: leseFelder(kartenDaten, [
-        'name', 'zone', 'safe', 'pvp', 'instance', 'ignore', 'monsters', 'spawns', 'doors', 'npcs'
-      ])
+      daten: statisch
+        ? {
+            ...statisch,
+            anzahlMonsterGebiete: zaehleListe(kartenDaten?.monsters),
+            anzahlSpawnPunkte: zaehleListe(kartenDaten?.spawns),
+            anzahlTueren: zaehleListe(kartenDaten?.doors),
+            anzahlNpcs: zaehleListe(kartenDaten?.npcs)
+          }
+        : null
     };
   }
 
@@ -307,152 +310,23 @@
     const stil = spielDokument.createElement('style');
     stil.id = STIL_ID;
     stil.textContent = `
-      #${KONSOLE_ID} {
-        position: fixed;
-        right: 12px;
-        bottom: 12px;
-        z-index: 2147483647;
-        width: min(620px, calc(100vw - 24px));
-        min-width: 320px;
-        min-height: 220px;
-        max-height: 78vh;
-        resize: both;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        box-sizing: border-box;
-        border: 1px solid rgba(255,255,255,.20);
-        border-radius: 10px;
-        background: rgba(18, 20, 26, .97);
-        color: #f5f7fb;
-        box-shadow: 0 12px 40px rgba(0,0,0,.45);
-        font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-      #${KONSOLE_ID} * { box-sizing: border-box; }
-      #${KONSOLE_ID} button,
-      #${KONSOLE_ID} textarea { font: inherit; }
-      #${KONSOLE_ID} .v4tk-kopf {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 9px 10px;
-        border-bottom: 1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.04);
-      }
-      #${KONSOLE_ID} .v4tk-titel { font-weight: 700; }
-      #${KONSOLE_ID} .v4tk-version { opacity: .65; font-size: 11px; margin-left: 6px; }
-      #${KONSOLE_ID} .v4tk-kopfaktionen { display: flex; gap: 6px; }
-      #${KONSOLE_ID} button {
-        min-height: 30px;
-        border: 1px solid rgba(255,255,255,.16);
-        border-radius: 6px;
-        padding: 5px 9px;
-        background: rgba(255,255,255,.08);
-        color: inherit;
-        cursor: pointer;
-      }
-      #${KONSOLE_ID} button:hover { background: rgba(255,255,255,.14); }
-      #${KONSOLE_ID} button:focus-visible,
-      #${KONSOLE_ID} textarea:focus-visible { outline: 2px solid #7ab8ff; outline-offset: 1px; }
-      #${KONSOLE_ID} .v4tk-inhalt {
-        min-height: 0;
-        display: flex;
-        flex: 1 1 auto;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      #${KONSOLE_ID} .v4tk-hinweis {
-        padding: 7px 10px;
-        background: rgba(255, 180, 0, .10);
-        border-bottom: 1px solid rgba(255, 180, 0, .22);
-        color: #ffe2a3;
-      }
-      #${KONSOLE_ID} .v4tk-schnelltests {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 8px 10px;
-        border-bottom: 1px solid rgba(255,255,255,.10);
-      }
-      #${KONSOLE_ID} .v4tk-schnelltests button::after {
-        content: ' RO';
-        font-size: 10px;
-        opacity: .55;
-      }
-      #${KONSOLE_ID} .v4tk-eingabe {
-        padding: 8px 10px;
-        border-bottom: 1px solid rgba(255,255,255,.10);
-      }
-      #${KONSOLE_ID} textarea {
-        width: 100%;
-        min-height: 64px;
-        max-height: 180px;
-        resize: vertical;
-        padding: 8px;
-        border: 1px solid rgba(255,255,255,.18);
-        border-radius: 6px;
-        background: rgba(0,0,0,.26);
-        color: #fff;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-      #${KONSOLE_ID} .v4tk-werkzeugleiste {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
-        margin-top: 7px;
-      }
-      #${KONSOLE_ID} .v4tk-werkzeugleiste .primaer { background: rgba(74, 144, 226, .28); }
-      #${KONSOLE_ID} .v4tk-tastatur { margin-left: auto; opacity: .6; font-size: 11px; }
-      #${KONSOLE_ID} .v4tk-ausgaben {
-        min-height: 90px;
-        flex: 1 1 auto;
-        overflow: auto;
-        padding: 8px 10px 10px;
-      }
-      #${KONSOLE_ID} .v4tk-leer { opacity: .55; padding: 16px 4px; text-align: center; }
-      #${KONSOLE_ID} .v4tk-ausgabe {
-        margin: 0 0 8px;
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: 7px;
-        overflow: hidden;
-        background: rgba(0,0,0,.20);
-      }
-      #${KONSOLE_ID} .v4tk-ausgabe-fehler { border-color: rgba(255, 95, 95, .45); }
-      #${KONSOLE_ID} .v4tk-ausgabe-kopf {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 5px 7px;
-        background: rgba(255,255,255,.05);
-        font-size: 11px;
-      }
-      #${KONSOLE_ID} .v4tk-ausgabe-titel {
-        font-weight: 700;
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      #${KONSOLE_ID} .v4tk-ausgabe-status { opacity: .7; }
-      #${KONSOLE_ID} .v4tk-ausgabe-kopf button { min-height: 25px; padding: 2px 7px; font-size: 11px; }
-      #${KONSOLE_ID} pre {
-        margin: 0;
-        padding: 8px;
-        overflow: auto;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        color: #dce6f5;
-        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-      #${KONSOLE_ID}.v4tk-eingeklappt { min-height: 0; height: auto !important; resize: none; }
-      #${KONSOLE_ID}.v4tk-eingeklappt .v4tk-inhalt { display: none; }
-      @media (max-width: 520px) {
-        #${KONSOLE_ID} { right: 6px; bottom: 6px; width: calc(100vw - 12px); min-width: 0; }
-        #${KONSOLE_ID} .v4tk-tastatur { display: none; }
-      }
+      #${KONSOLE_ID}{position:fixed;right:12px;bottom:12px;z-index:2147483647;width:min(620px,calc(100vw - 24px));min-width:320px;min-height:220px;max-height:78vh;resize:both;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;border:1px solid rgba(255,255,255,.20);border-radius:10px;background:rgba(18,20,26,.97);color:#f5f7fb;box-shadow:0 12px 40px rgba(0,0,0,.45);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      #${KONSOLE_ID} *{box-sizing:border-box} #${KONSOLE_ID} button,#${KONSOLE_ID} textarea{font:inherit}
+      #${KONSOLE_ID} .v4tk-kopf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+      #${KONSOLE_ID} .v4tk-titel{font-weight:700} #${KONSOLE_ID} .v4tk-version{opacity:.65;font-size:11px;margin-left:6px} #${KONSOLE_ID} .v4tk-kopfaktionen{display:flex;gap:6px}
+      #${KONSOLE_ID} button{min-height:30px;border:1px solid rgba(255,255,255,.16);border-radius:6px;padding:5px 9px;background:rgba(255,255,255,.08);color:inherit;cursor:pointer} #${KONSOLE_ID} button:hover{background:rgba(255,255,255,.14)}
+      #${KONSOLE_ID} button:focus-visible,#${KONSOLE_ID} textarea:focus-visible{outline:2px solid #7ab8ff;outline-offset:1px}
+      #${KONSOLE_ID} .v4tk-inhalt{min-height:0;display:flex;flex:1 1 auto;flex-direction:column;overflow:hidden}
+      #${KONSOLE_ID} .v4tk-hinweis{padding:7px 10px;background:rgba(255,180,0,.10);border-bottom:1px solid rgba(255,180,0,.22);color:#ffe2a3}
+      #${KONSOLE_ID} .v4tk-schnelltests{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.10)} #${KONSOLE_ID} .v4tk-schnelltests button::after{content:' RO';font-size:10px;opacity:.55}
+      #${KONSOLE_ID} .v4tk-eingabe{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.10)} #${KONSOLE_ID} textarea{width:100%;min-height:64px;max-height:180px;resize:vertical;padding:8px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(0,0,0,.26);color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      #${KONSOLE_ID} .v4tk-werkzeugleiste{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px} #${KONSOLE_ID} .v4tk-werkzeugleiste .primaer{background:rgba(74,144,226,.28)} #${KONSOLE_ID} .v4tk-tastatur{margin-left:auto;opacity:.6;font-size:11px}
+      #${KONSOLE_ID} .v4tk-ausgaben{min-height:90px;flex:1 1 auto;overflow:auto;padding:8px 10px 10px} #${KONSOLE_ID} .v4tk-leer{opacity:.55;padding:16px 4px;text-align:center}
+      #${KONSOLE_ID} .v4tk-ausgabe{margin:0 0 8px;border:1px solid rgba(255,255,255,.12);border-radius:7px;overflow:hidden;background:rgba(0,0,0,.20)} #${KONSOLE_ID} .v4tk-ausgabe-fehler{border-color:rgba(255,95,95,.45)}
+      #${KONSOLE_ID} .v4tk-ausgabe-kopf{display:flex;align-items:center;gap:7px;padding:5px 7px;background:rgba(255,255,255,.05);font-size:11px} #${KONSOLE_ID} .v4tk-ausgabe-titel{font-weight:700;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} #${KONSOLE_ID} .v4tk-ausgabe-status{opacity:.7} #${KONSOLE_ID} .v4tk-ausgabe-kopf button{min-height:25px;padding:2px 7px;font-size:11px}
+      #${KONSOLE_ID} pre{margin:0;padding:8px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce6f5;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      #${KONSOLE_ID}.v4tk-eingeklappt{min-height:0;height:auto!important;resize:none} #${KONSOLE_ID}.v4tk-eingeklappt .v4tk-inhalt{display:none}
+      @media(max-width:520px){#${KONSOLE_ID}{right:6px;bottom:6px;width:calc(100vw - 12px);min-width:0}#${KONSOLE_ID} .v4tk-tastatur{display:none}}
     `;
     spielDokument.head.appendChild(stil);
   }
@@ -463,25 +337,14 @@
   wurzel.innerHTML = `
     <div class="v4tk-kopf">
       <div><span class="v4tk-titel">V4 Testkonsole</span><span class="v4tk-version">v${VERSION}</span></div>
-      <div class="v4tk-kopfaktionen">
-        <button type="button" data-aktion="einklappen" title="Ein- oder ausklappen">–</button>
-        <button type="button" data-aktion="schliessen" title="Testkonsole schliessen">×</button>
-      </div>
+      <div class="v4tk-kopfaktionen"><button type="button" data-aktion="einklappen" title="Ein- oder ausklappen">–</button><button type="button" data-aktion="schliessen" title="Testkonsole schliessen">×</button></div>
     </div>
     <div class="v4tk-inhalt">
       <div class="v4tk-hinweis"><strong>Schnelltests sind read-only und kompakt.</strong> Freies JavaScript kann Spielzustand veraendern und Rohobjekte sehr gross ausgeben.</div>
       <div class="v4tk-schnelltests" aria-label="Read-only Schnelltests"></div>
       <div class="v4tk-eingabe">
         <textarea spellcheck="false" aria-label="JavaScript-Befehl" placeholder="JavaScript eingeben, z. B. character.hp oder console.log(character.hp)"></textarea>
-        <div class="v4tk-werkzeugleiste">
-          <button type="button" class="primaer" data-aktion="ausfuehren">Ausfuehren</button>
-          <button type="button" data-aktion="verlauf-zurueck" title="Vorheriger Befehl">↑</button>
-          <button type="button" data-aktion="verlauf-vor" title="Naechster Befehl">↓</button>
-          <button type="button" data-aktion="letzte-kopieren">Letzte kopieren</button>
-          <button type="button" data-aktion="alles-kopieren">Alles kopieren</button>
-          <button type="button" data-aktion="leeren">Leeren</button>
-          <span class="v4tk-tastatur">Strg+Enter ausfuehren · Alt+↑/↓ Verlauf</span>
-        </div>
+        <div class="v4tk-werkzeugleiste"><button type="button" class="primaer" data-aktion="ausfuehren">Ausfuehren</button><button type="button" data-aktion="verlauf-zurueck" title="Vorheriger Befehl">↑</button><button type="button" data-aktion="verlauf-vor" title="Naechster Befehl">↓</button><button type="button" data-aktion="letzte-kopieren">Letzte kopieren</button><button type="button" data-aktion="alles-kopieren">Alles kopieren</button><button type="button" data-aktion="leeren">Leeren</button><span class="v4tk-tastatur">Strg+Enter ausfuehren · Alt+↑/↓ Verlauf</span></div>
       </div>
       <div class="v4tk-ausgaben" aria-live="polite"><div class="v4tk-leer">Noch keine Ausgabe.</div></div>
     </div>
@@ -497,10 +360,7 @@
 
   function formatiereZeitpunkt(zeitpunkt) {
     return new Intl.DateTimeFormat('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      fractionalSecondDigits: 3
+      hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3
     }).format(zeitpunkt);
   }
 
@@ -550,22 +410,17 @@
 
     const artikel = spielDokument.createElement('article');
     artikel.className = `v4tk-ausgabe${fehler ? ' v4tk-ausgabe-fehler' : ''}`;
-
     const kopf = spielDokument.createElement('div');
     kopf.className = 'v4tk-ausgabe-kopf';
-
     const zeit = spielDokument.createElement('span');
     zeit.textContent = formatiereZeitpunkt(zeitpunkt);
-
     const status = spielDokument.createElement('span');
     status.className = 'v4tk-ausgabe-status';
     status.textContent = fehler ? 'FEHLER' : 'OK';
-
     const titelElement = spielDokument.createElement('span');
     titelElement.className = 'v4tk-ausgabe-titel';
     titelElement.textContent = titel;
     titelElement.title = titel;
-
     const kopierKnopf = spielDokument.createElement('button');
     kopierKnopf.type = 'button';
     kopierKnopf.textContent = 'Kopieren';
@@ -574,18 +429,14 @@
       kopierKnopf.textContent = erfolgreich ? 'Kopiert' : 'Fehler';
       setTimeout(() => { kopierKnopf.textContent = 'Kopieren'; }, 1200);
     });
-
     const vor = spielDokument.createElement('pre');
     vor.textContent = eintrag.text;
-
     kopf.append(zeit, status, titelElement, kopierKnopf);
     artikel.append(kopf, vor);
     ausgabenElement.prepend(artikel);
-
     while (ausgabenElement.querySelectorAll('.v4tk-ausgabe').length > MAX_AUSGABEN) {
       ausgabenElement.lastElementChild?.remove();
     }
-
     aktualisiereLeerHinweis();
     return eintrag;
   }
@@ -594,18 +445,12 @@
     try {
       fuegeAusgabeHinzu({ titel: `${test.titel} [read-only]`, text: sichereDarstellung(test.lesen()) });
     } catch (fehler) {
-      fuegeAusgabeHinzu({
-        titel: `${test.titel} [read-only]`,
-        text: sichereDarstellung(fehler),
-        fehler: true
-      });
+      fuegeAusgabeHinzu({ titel: `${test.titel} [read-only]`, text: sichereDarstellung(fehler), fehler: true });
     }
   }
 
   function baueGefangeneKonsole(zeilen) {
-    const schreibe = (stufe, werte) => {
-      zeilen.push(`${stufe}: ${werte.map((wert) => sichereDarstellung(wert)).join(' ')}`);
-    };
+    const schreibe = (stufe, werte) => zeilen.push(`${stufe}: ${werte.map((wert) => sichereDarstellung(wert)).join(' ')}`);
     return {
       log: (...werte) => schreibe('log', werte),
       info: (...werte) => schreibe('info', werte),
@@ -620,7 +465,6 @@
     const gefangeneKonsole = baueGefangeneKonsole(zeilen);
     const ausgabe = (...werte) => zeilen.push(werte.map((wert) => sichereDarstellung(wert)).join(' '));
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-
     let ergebnis;
     try {
       const alsAusdruck = new AsyncFunction('console', 'ausgabe', `return (${code}\n);`);
@@ -630,7 +474,6 @@
       const alsProgramm = new AsyncFunction('console', 'ausgabe', code);
       ergebnis = await alsProgramm(gefangeneKonsole, ausgabe);
     }
-
     const teile = [];
     if (zeilen.length > 0) teile.push(zeilen.join('\n'));
     teile.push(`Rueckgabewert:\n${sichereDarstellung(ergebnis)}`);
@@ -640,11 +483,9 @@
   async function ausfuehren() {
     const code = eingabe.value.trim();
     if (!code) return;
-
     if (verlauf.at(-1) !== code) verlauf.push(code);
     while (verlauf.length > 100) verlauf.shift();
     verlaufPosition = verlauf.length;
-
     const start = performance.now();
     try {
       const text = await fuehreFreiesJavascriptAus(code);
@@ -652,11 +493,7 @@
       fuegeAusgabeHinzu({ titel: `${code} (${dauer} ms)`, text });
     } catch (fehler) {
       const dauer = Math.round((performance.now() - start) * 10) / 10;
-      fuegeAusgabeHinzu({
-        titel: `${code} (${dauer} ms)`,
-        text: sichereDarstellung(fehler),
-        fehler: true
-      });
+      fuegeAusgabeHinzu({ titel: `${code} (${dauer} ms)`, text: sichereDarstellung(fehler), fehler: true });
     }
   }
 
@@ -767,7 +604,7 @@
 
   fuegeAusgabeHinzu({
     titel: 'Testkonsole bereit',
-    text: 'Version 1.1.0: Schnelltests geben kompakte Adventure-Land-Daten aus und vermeiden PIXI-/Render-Interna.'
+    text: 'Version 1.2.0: Block-2-Rohdaten halten statische Kartendaten kompakt und vermeiden wiederholten Snapshot-Ballast.'
   });
   eingabe.focus();
 })();
