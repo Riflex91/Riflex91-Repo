@@ -70,11 +70,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## core
 
-**4 Dateien · 508 Zeilen**
+**5 Dateien · 645 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/core/event-log.js` | 146 |
+| `src/core/patch-registry.js` | 137 |
 | `src/core/scheduler.js` | 211 |
 | `src/core/stable-scheduler.js` | 106 |
 | `src/core/task.js` | 45 |
@@ -210,7 +211,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**68 Dateien · 15150 Zeilen**
+**68 Dateien · 15173 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -260,14 +261,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
 | `src/reliability/farm-area-pressure-hotfix.js` | 304 |
-| `src/reliability/farmer-local-plan-priority.js` | 92 |
+| `src/reliability/farmer-local-plan-priority.js` | 104 |
 | `src/reliability/farmer-resource-topoff-hotfix.js` | 211 |
 | `src/reliability/farmer-target-efficiency-hotfix.js` | 221 |
 | `src/reliability/farmer-terrain-navigation-hotfix.js` | 496 |
 | `src/reliability/farmer-travel-safety-hotfix.js` | 138 |
 | `src/reliability/integrated-party-control.js` | 90 |
 | `src/reliability/live-farmer-merchant-recovery.js` | 284 |
-| `src/reliability/live-navigation-hotfix.js` | 211 |
+| `src/reliability/live-navigation-hotfix.js` | 222 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 161 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 453 |

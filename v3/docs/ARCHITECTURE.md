@@ -12,7 +12,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | autonomy | 21 | 3980 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
-| core | 4 | 508 |
+| core | 5 | 645 |
 | economy | 12 | 3861 |
 | farmer | 14 | 2582 |
 | game | 3 | 665 |
@@ -20,7 +20,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 26 | 7223 |
 | party | 19 | 3827 |
 | planner | 1 | 65 |
-| reliability | 68 | 15150 |
+| reliability | 68 | 15173 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
@@ -80,7 +80,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | reliability | autonomy | 7 |
 | reliability | brain | 1 |
 | reliability | control | 4 |
-| reliability | core | 2 |
+| reliability | core | 4 |
 | reliability | economy | 3 |
 | reliability | farmer | 4 |
 | reliability | merchant | 4 |
