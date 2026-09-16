@@ -1,5 +1,5 @@
 {
-  "configVersion": 3,
+  "configVersion": 4,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -15,5 +15,12 @@
   "webDashboardEnabled": true,
   "webDashboardBaseUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev",
   "webDashboardAccount": "default",
-  "webDashboardWriteKeyEnvironmentVariable": "AIO_V3_WEB_DASHBOARD_WRITE_KEY"
+  "webDashboardWriteKeyEnvironmentVariable": "AIO_V3_WEB_DASHBOARD_WRITE_KEY",
+  "diagnosticsFtpsEnabled": false,
+  "diagnosticsFtpsHost": "",
+  "diagnosticsFtpsPort": 21,
+  "diagnosticsFtpsUser": "",
+  "diagnosticsFtpsRoot": "/diagnostics/v3",
+  "diagnosticsFtpsRejectUnauthorized": true,
+  "diagnosticsFtpsPasswordEnvironmentVariable": "AIO_V3_DIAGNOSTICS_FTPS_PASSWORD"
 }
