@@ -5,7 +5,9 @@
 - TypeScript streng
 - deutsche Namenspruefung
 - Struktur- und Geheimnispruefung
-- spaeter Abhaengigkeitsgrenzen
+- `KontingentWaechter`, `DienstProfil` und Dienstgrenzen sind Pflichtbestandteile
+- `BedienSicherung`, `BedienAnfrage` und Bedienregeln sind Pflichtbestandteile
+- spaeter Abhaengigkeitsgrenzen, die direkte externe Dienstaufrufe ausserhalb des Dienst-Tores verhindern
 
 ## Stufe 2 – Einheitstests
 
@@ -13,11 +15,35 @@ Jeder Kernbaustein wird isoliert getestet. Fehlertexte und Grenzfaelle gehoeren 
 
 Fuer den Tagesbericht werden insbesondere Zeitraum, Aggregation, Vergleichswerte, Handlungsangabe und eindeutige Berichtskennung getestet.
 
+Fuer externe Dienste werden mindestens getestet:
+
+- kein DienstProfil -> blockiert
+- abgelaufenes DienstProfil -> blockiert
+- unbekannter Maximalverbrauch -> blockiert
+- fehlendes Zeitfenster -> blockiert
+- Sicherheitspuffer kann nicht verbraucht werden
+- hoeherer Anbieter-Verbrauch gewinnt gegen niedrigeren lokalen Wert
+- mehrere gleichzeitig benoetigte Kontingente werden gemeinsam oder gar nicht reserviert
+
+Fuer die Bedienung werden mindestens getestet:
+
+- unkritische Aktion mit erfuellten Voraussetzungen -> erlaubt
+- fehlende Voraussetzung -> blockiert mit konkreter Hilfe
+- vorsichtige Aktion ohne ausdrueckliche Bestaetigung -> blockiert
+- kritische Aktion ohne exakten Bestaetigungstext -> blockiert
+- unvollstaendig erklaerte Aktion -> blockiert
+- doppelte Vorgangskennung fuehrt spaeter nicht zu doppelter Ausfuehrung
+- veraltete Konfigurationsversion darf keine neuere Einstellung ueberschreiben
+
 ## Stufe 3 – Eigenschaftstests
 
 Kerninvarianten werden mit vielen automatisch erzeugten Eingaben geprueft, insbesondere Ressourcenbesitz, Prioritaeten und deterministische Auswahl.
 
-Fuer Berichte gilt zusaetzlich: derselbe Datenbestand und derselbe Zeitraum muessen denselben Bericht ergeben; Ereignisse ausserhalb des 24-Stunden-Zeitraums duerfen nicht einfließen.
+Fuer Kontingente gilt zusaetzlich: Keine automatisch erzeugte Folge erlaubter Reservierungen darf das um den Sicherheitspuffer reduzierte V4-Budget ueberschreiten.
+
+Fuer BedienAnfragen gilt: Keine Kombination fehlender Voraussetzungen oder fehlender Bestaetigungen darf zu einer erlaubten kritischen Aktion fuehren.
+
+Fuer Berichte gilt zusaetzlich: derselbe Datenbestand und derselbe Zeitraum muessen denselben Bericht ergeben; Ereignisse ausserhalb des 24-Stunden-Zeitraums duerfen nicht einfliessen.
 
 ## Stufe 4 – Wiederholungstests
 
@@ -27,9 +53,36 @@ Mehrcharakter-Wiederholungen muessen die beteiligten Charaktere eindeutig unters
 
 Historische Daten muessen auch zur reproduzierbaren Erzeugung eines Tagesberichts verwendet werden koennen.
 
+Kontingententscheidungen werden mit gespeicherten Anbieter- und lokalen Verbrauchsstaenden reproduzierbar wiederholt.
+
 ## Stufe 5 – Fehler-Einspritzung
 
 Netzwerkausfall, langsame Antworten, fehlende Spielwerte, Zeitueberschreitungen, Neustarts, teilweise Daten und verspaetete Gruppenmeldungen werden absichtlich erzeugt.
+
+Fuer externe Dienste werden zusaetzlich getestet:
+
+- Anbieter-Verbrauchswerte kommen verspaetet
+- Anbieterwert springt unerwartet nach oben
+- Anbietergrenze aendert sich
+- DienstProfil laeuft waehrend des Betriebs ab
+- HTTP 429, 402 und Dienstfehler
+- Wiederholungsversuche verursachen keine Anfrageflut
+- lokaler Puffer erreicht Eintrags-, Byte- und Altersgrenze
+- Dienst ist komplett nicht erreichbar
+- lokale Spiellsicherheit arbeitet trotzdem weiter
+
+Fuer die Bedienung werden zusaetzlich getestet:
+
+- Doppelklick auf eine veraendernde Aktion
+- Browser-Neuladen waehrend einer Aktion
+- dieselbe Anfrage wird durch das Netzwerk wiederholt
+- zwei Browseransichten bearbeiten dieselbe Einstellung
+- zweite Ansicht ist veraltet und wird blockiert
+- Nutzer gibt Minimal-, Maximal- und ungueltige Zahlenwerte ein
+- kritische Aktion wird abgebrochen
+- kritische Aktion wird mit falschem Bestaetigungstext versucht
+- Speichern wird waehrend des Vorgangs unterbrochen
+- Rueckfall auf die vorherige gueltige Konfiguration funktioniert
 
 Fuer den Tagesbericht werden zusaetzlich getestet:
 
@@ -47,6 +100,8 @@ Mindestens 24 Stunden ohne echte Aktionen. Entscheidungen werden nur beobachtet 
 
 Nach dem ersten vollstaendigen 24-Stunden-Schattenlauf muss aus den aufgezeichneten Daten ein gueltiger Tagesbericht erzeugt werden koennen.
 
+Auch bei simuliert blockierten Cloudflare- oder Supabase-Kontingenten muss die lokale Sicherheitslogik ununterbrochen weiterarbeiten.
+
 ## Stufe 7 – kontrollierter Aktivbetrieb
 
 Zuerst ein einzelner Charakter, danach mehrere eigene Charaktere als Gruppe, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
@@ -61,8 +116,19 @@ Die Gruppenpruefung umfasst mindestens:
 
 Der Tagesbericht muss die aktiven Charaktere getrennt ausweisen und gemeinsame Vorfaelle nachvollziehbar zusammenfassen.
 
+Vor dem ersten aktiven Lauf wird die gefuehrte Startpruefung mit absichtlich fehlenden und fehlerhaften Einstellungen durchgespielt. Der Bot darf erst freigegeben werden, wenn alle blockierenden Voraussetzungen erfuellt sind.
+
 ## Stufe 8 – Dauertest
 
 Vor einer Produktionsabloesung: sieben Tage 24/7 mit Neustart-, Update-, Netz- und Plattformausfalltests.
 
 Waehrend des Dauertests muss an jedem geplanten Versandtag genau ein automatischer Tagesbericht entstehen. Fehlgeschlagene Zustellungen duerfen nachgeholt werden, ohne Berichte doppelt zu erzeugen.
+
+Zusaetzliche Abnahmebedingungen:
+
+- kein externes sicheres V4-Budget wurde ueberschritten
+- kein Anbieter-Sicherheitspuffer wurde von normaler Arbeit verbraucht
+- keine lokale Warteschlange ist unbegrenzt gewachsen
+- keine kritische Bedienaktion wurde ohne vorgesehene Freigabe ausgefuehrt
+- kein Doppelklick oder Netzwerk-Wiederholungsversuch fuehrte zu doppelter Ausfuehrung
+- jede nutzersichtbare Stoerung enthielt Ursache, Bot-Reaktion, Handlungsbedarf und naechsten Schritt
