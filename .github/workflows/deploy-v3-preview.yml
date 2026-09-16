@@ -1,0 +1,140 @@
+name: deploy-v3-preview
+on:
+  push:
+    branches: ["preview/pr211-cross-character-ack"]
+    paths:
+      - "v3/**"
+      - "cloudflare-dashboard/**"
+      - ".github/workflows/deploy-v3-preview.yml"
+permissions:
+  contents: read
+concurrency:
+  group: v3-preview-pr211
+  cancel-in-progress: true
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PREVIEW_SHA: ${{ github.sha }}
+      PREVIEW_WORKER: aio-v3-preview-pr211
+      PREVIEW_HOST_SUFFIX: hansijuergenlul.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require Cloudflare preview credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CLOUDFLARE_API_TOKEN is not configured'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'CLOUDFLARE_ACCOUNT_ID is not configured'; exit 1; }
+      - name: Build exact V3 preview artifacts
+        working-directory: v3
+        run: node scripts/build.js
+      - name: Validate V3 preview source
+        working-directory: v3
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund && npm run preflight && npm test
+      - name: Install Cloudflare tooling and validate preview worker
+        working-directory: cloudflare-dashboard
+        run: npm install --ignore-scripts && npm run check
+      - name: Discover D1 database and prepare isolated preview config
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > d1-list.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('d1-list.json', 'utf8'));
+          const db = (Array.isArray(rows) ? rows : []).find((row) => row && row.name === 'aio-bot-dashboard');
+          if (!db || !db.uuid) throw new Error('D1 database aio-bot-dashboard was not found');
+          const config = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8'));
+          config.name = process.env.PREVIEW_WORKER;
+          config.d1_databases = (config.d1_databases || []).map((row) => row.binding === 'DB' ? { ...row, database_id: db.uuid } : row);
+          config.vars = {
+            ...(config.vars || {}),
+            PREVIEW_RELEASE_SHA: process.env.PREVIEW_SHA,
+            PREVIEW_RELEASE_ID: 'pr211-cross-character-ack'
+          };
+          if (config.assets) {
+            const routes = Array.isArray(config.assets.run_worker_first) ? config.assets.run_worker_first : [];
+            config.assets.run_worker_first = [...new Set([...routes, '/v3/*'])];
+          }
+          fs.writeFileSync('wrangler.preview.json', JSON.stringify(config, null, 2));
+          NODE
+          rm -f d1-list.json
+      - name: Verify preview R2 bucket
+        working-directory: cloudflare-dashboard
+        run: npx wrangler r2 bucket info aio-v3-logs --config wrangler.preview.json >/dev/null
+      - name: Publish SHA-pinned preview artifacts
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="previews/v3/$PREVIEW_SHA"
+          npx wrangler r2 object put "aio-v3-logs/$prefix/dist/aio-v3-runtime.js" --file=../v3/dist/aio-v3-runtime.js --content-type='application/javascript; charset=utf-8' --cache-control='no-store' --remote --config wrangler.preview.json
+          npx wrangler r2 object put "aio-v3-logs/$prefix/dist/aio-v3.js" --file=../v3/dist/aio-v3.js --content-type='application/javascript; charset=utf-8' --cache-control='no-store' --remote --config wrangler.preview.json
+          npx wrangler r2 object put "aio-v3-logs/$prefix/src/release-version.js" --file=../v3/src/release-version.js --content-type='application/javascript; charset=utf-8' --cache-control='no-store' --remote --config wrangler.preview.json
+      - name: Verify preview artifacts in R2 before worker deploy
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="previews/v3/$PREVIEW_SHA"
+          npx wrangler r2 object get "aio-v3-logs/$prefix/dist/aio-v3-runtime.js" --file=/tmp/aio-v3-runtime.js --remote --config wrangler.preview.json
+          npx wrangler r2 object get "aio-v3-logs/$prefix/dist/aio-v3.js" --file=/tmp/aio-v3.js --remote --config wrangler.preview.json
+          npx wrangler r2 object get "aio-v3-logs/$prefix/src/release-version.js" --file=/tmp/release-version.js --remote --config wrangler.preview.json
+          cmp ../v3/dist/aio-v3-runtime.js /tmp/aio-v3-runtime.js
+          cmp ../v3/dist/aio-v3.js /tmp/aio-v3.js
+          cmp ../v3/src/release-version.js /tmp/release-version.js
+      - name: Deploy isolated preview worker
+        working-directory: cloudflare-dashboard
+        run: npx wrangler deploy --config wrangler.preview.json
+      - name: Verify preview worker serves only pinned artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://$PREVIEW_WORKER.$PREVIEW_HOST_SUFFIX"
+          for spec in \
+            '/v3/dist/aio-v3-runtime.js|v3/dist/aio-v3-runtime.js' \
+            '/v3/dist/aio-v3.js|v3/dist/aio-v3.js' \
+            '/v3/src/release-version.js|v3/src/release-version.js'
+          do
+            path="${spec%%|*}"
+            local_file="${spec#*|}"
+            name="$(basename "$path")"
+            curl -fsS -H 'Origin: https://adventure.land' -D "/tmp/$name.headers" "$base$path?sha=$PREVIEW_SHA" -o "/tmp/$name.preview"
+            grep -qi "^x-aio-release-scope: preview" "/tmp/$name.headers"
+            grep -qi "^x-aio-preview-sha: $PREVIEW_SHA" "/tmp/$name.headers"
+            cmp "$local_file" "/tmp/$name.preview"
+          done
+      - name: Publish Adventure Land preview instructions
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://$PREVIEW_WORKER.$PREVIEW_HOST_SUFFIX"
+          {
+            echo '## V3 PR #211 isolated preview ready'
+            echo
+            echo "- Commit: \`$PREVIEW_SHA\`"
+            echo "- Worker: \`$base\`"
+            echo "- R2 prefix: \`previews/v3/$PREVIEW_SHA/\`"
+            echo '- Production worker and `releases/v3/` are untouched.'
+            echo
+            echo '### Adventure Land loader'
+            echo '```javascript'
+            echo "globalThis.AIO_V3_AUTO_UPDATE_CONFIG={...(globalThis.AIO_V3_AUTO_UPDATE_CONFIG||{}),enabled:false,rawBaseUrl:'$base/v3'};"
+            echo "globalThis.AIO_V3_BOOTSTRAP_CONFIG={...(globalThis.AIO_V3_BOOTSTRAP_CONFIG||{}),rawBaseUrl:'$base/v3'};"
+            echo "fetch('$base/v3/dist/aio-v3.js?sha=$PREVIEW_SHA',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('PREVIEW_BOOTSTRAP_HTTP_'+r.status);return r.text();}).then(code=>(0,eval)(code));"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary preview config
+        if: always()
+        working-directory: cloudflare-dashboard
+        run: rm -f wrangler.preview.json d1-list.json
