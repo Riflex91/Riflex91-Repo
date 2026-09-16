@@ -26,6 +26,8 @@ class AccountCharacterTransport {
     this.trustedNames = new Set(uniqueNames(options.trustedNames || []));
     this._cmRouterInstalled = false;
     this._cmRouter = null;
+    this._cmRouterPrevious = null;
+    this._directReceiverNames = new Set();
     this.stats = {
       directSent: 0,
       directFailed: 0,
@@ -121,12 +123,23 @@ class AccountCharacterTransport {
         transport._event('ACCOUNT_TRANSPORT_FALLBACK_REJECTED', 'warn', 'NAMED_RECEIVER_UNAVAILABLE', { sender: senderName, receiver });
         return false;
       }
-      if (previous) return previous.call(this, sender, data);
+      if (previous) return previous.apply(this, arguments);
       return undefined;
     };
     this.root.on_cm = router;
     this._cmRouter = router;
+    this._cmRouterPrevious = previous;
     this._cmRouterInstalled = true;
+    return true;
+  }
+
+  _uninstallCmRouter() {
+    if (!this._cmRouterInstalled || !this.root) return false;
+    if (this.root.on_cm !== this._cmRouter) return false;
+    this.root.on_cm = this._cmRouterPrevious || undefined;
+    this._cmRouterInstalled = false;
+    this._cmRouter = null;
+    this._cmRouterPrevious = null;
     return true;
   }
 
@@ -134,6 +147,7 @@ class AccountCharacterTransport {
     const name = cleanName(receiverName);
     if (!name || typeof handler !== 'function' || !this.root) return false;
     this.root[name] = handler;
+    this._directReceiverNames.add(name);
     this._installCmRouter();
     return true;
   }
@@ -147,6 +161,8 @@ class AccountCharacterTransport {
     } else {
       this.root[name] = previous;
     }
+    this._directReceiverNames.delete(name);
+    if (!this._directReceiverNames.size) this._uninstallCmRouter();
     return true;
   }
 
