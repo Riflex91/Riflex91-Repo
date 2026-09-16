@@ -6,6 +6,12 @@ const { MerchantProductionPlanner, MERCHANT_PRODUCTION_PLANNER_MODE, ProductionS
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE } = require('./merchant/controlled-merchant-production-executor');
 const { installProductionLiveServices, PRODUCTION_LIVE_SERVICES_MODE } = require('./production-live-services');
 const { installCloudPresenceDecoupling, CLOUD_PRESENCE_DECOUPLING_MODE } = require('./control/cloud-presence-decoupling');
+const {
+  installObjectStorageApi,
+  S3CompatibleObjectStore,
+  OBJECT_STORAGE_CONFIG_NAME,
+  EXPLICIT_DELETE_CONFIRMATION
+} = require('./ops/object-storage-s3');
 
 function replaceOlderRuntime(root) {
   const existing = root && root.AIO_V3;
@@ -36,6 +42,7 @@ function install(root = globalThis, options = {}) {
   api.cloudPresence = {
     status: () => presence && typeof presence.status === 'function' ? presence.status() : null
   };
+  installObjectStorageApi(api, root, options.objectStorage || {});
   root.AIO_V3 = api;
   return api;
 }
@@ -54,5 +61,9 @@ module.exports = {
   ProductionStepKind,
   ControlledMerchantProductionExecutor,
   CONTROLLED_MERCHANT_PRODUCTION_MODE,
-  CONTROLLED_MERCHANT_PRODUCTION_ACK
+  CONTROLLED_MERCHANT_PRODUCTION_ACK,
+  installObjectStorageApi,
+  S3CompatibleObjectStore,
+  OBJECT_STORAGE_CONFIG_NAME,
+  EXPLICIT_DELETE_CONFIRMATION
 };
