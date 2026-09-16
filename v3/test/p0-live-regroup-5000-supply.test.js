@@ -9,6 +9,7 @@ const {
   POTION_DELIVERY_QUANTITY,
   POTION_LOW_WATERMARK
 } = require('../src/reliability/p0-regroup-supply-recovery');
+const { installP0PotionBundleDeltaFix } = require('../src/reliability/p0-potion-bundle-delta-fix');
 
 function supervisor(state = 'HEALTHY', reasons = []) {
   return {
@@ -36,6 +37,30 @@ function runtimeBase(overrides = {}) {
     globalSupervisor: overrides.globalSupervisor || supervisor(),
     partyBootstrap: overrides.partyBootstrap || { status: () => ({ active: true, ready: true }) },
     ...overrides
+  };
+}
+
+function potionTotal(root, itemName) {
+  return (root.character.items || []).reduce((sum, item) => sum + (item && item.name === itemName ? Number(item.q || 1) : 0), 0);
+}
+
+function installImmediateSend(root) {
+  root.send_item = async (_name, index, quantity) => {
+    const item = root.character.items[index];
+    if (!item || item.q < quantity) return { success: false };
+    item.q -= quantity;
+    if (item.q === 0) root.character.items[index] = null;
+    return { success: true };
+  };
+}
+
+function bundlePlan(targetName = 'My_Ranger1') {
+  return {
+    id: `bundle-${targetName}`, kind: MerchantServicePlanKind.SERVICE_DELIVERY, sourceReportAt: 99900,
+    target: { name: targetName, map: 'main', x: 20, y: 0 },
+    delivery: { itemName: 'hpot0', quantity: 5000 },
+    deliveries: [{ family: 'hp', itemName: 'hpot0', quantity: 5000 }, { family: 'mp', itemName: 'mpot0', quantity: 5000 }],
+    metadata: { p0PotionBundle: true }
   };
 }
 
@@ -135,18 +160,12 @@ test('planner refuses farmer travel until merchant has 5000 hp and 5000 mp plus 
   assert.equal(planner.lowPotionCount, POTION_LOW_WATERMARK);
 });
 
-test('bundle executor commits exactly 5000 hpot0 and 5000 mpot0 and preserves merchant reserve', async () => {
+test('bundle executor commits exactly 5000 hpot0 and 5000 mpot0 with synchronous inventory updates', async () => {
   const root = rootFor('merchant');
   root.character.isize = 42;
   root.character.items = [{ name: 'hpot0', q: 5080 }, { name: 'mpot0', q: 5080 }];
   root.parent.entities.r1 = { name: 'My_Ranger1', map: 'main', x: 20, y: 0, real_x: 20, real_y: 0 };
-  root.send_item = async (_name, index, quantity) => {
-    const item = root.character.items[index];
-    if (!item || item.q < quantity) return { success: false };
-    item.q -= quantity;
-    if (item.q === 0) root.character.items[index] = null;
-    return { success: true };
-  };
+  installImmediateSend(root);
   const persisted = {};
   const storage = { get(key) { return persisted[key] || null; }, set(key, value) { persisted[key] = value; return true; } };
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
@@ -154,19 +173,42 @@ test('bundle executor commits exactly 5000 hpot0 and 5000 mpot0 and preserves me
   service.configure({ enabled: true, ack: CONTROLLED_MERCHANT_SERVICE_ACK, allowDelivery: true });
   const runtime = runtimeBase({ root, merchantServicePlanner: planner, controlledMerchantService: service });
   const module = new P0RegroupSupplyRecovery(runtime);
+  runtime.p0RegroupSupplyRecovery = module;
+  assert.equal(installP0PotionBundleDeltaFix(runtime), true);
 
-  const result = await service.execute({
-    id: 'bundle-1', kind: MerchantServicePlanKind.SERVICE_DELIVERY, sourceReportAt: 99900,
-    target: { name: 'My_Ranger1', map: 'main', x: 20, y: 0 },
-    delivery: { itemName: 'hpot0', quantity: 5000 },
-    deliveries: [{ family: 'hp', itemName: 'hpot0', quantity: 5000 }, { family: 'mp', itemName: 'mpot0', quantity: 5000 }],
-    metadata: { p0PotionBundle: true }
-  });
+  const result = await service.execute(bundlePlan());
   assert.equal(result.committed, true);
   assert.equal(result.reason, 'POTION_BUNDLE_DELIVERY_LOCAL_DELTA_VERIFIED');
   assert.equal(root.character.items[0].q, 80);
   assert.equal(root.character.items[1].q, 80);
   assert.equal(module.stats.bundleDeliveriesCommitted, 1);
+});
+
+test('bundle executor sends exact 5000+5000 across fragmented inventory stacks', async () => {
+  const root = rootFor('merchant');
+  root.character.isize = 42;
+  root.character.items = [
+    { name: 'hpot0', q: 3000 }, { name: 'hpot0', q: 2080 },
+    { name: 'mpot0', q: 2000 }, { name: 'mpot0', q: 3080 }
+  ];
+  root.parent.entities.r1 = { name: 'My_Ranger1', map: 'main', x: 20, y: 0, real_x: 20, real_y: 0 };
+  installImmediateSend(root);
+  const persisted = {};
+  const storage = { get(key) { return persisted[key] || null; }, set(key, value) { persisted[key] = value; return true; } };
+  const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
+  const service = new ControlledMerchantServiceExecutor({ root, storage, now: () => 100000, getMode: () => 'active', getSupervisorStatus: () => ({ state: 'HEALTHY' }), getEconomyEmergency: () => false, getTrustedNames: () => ['My_Ranger1'], verifyDelayMs: 25, verifyAttempts: 2, maxActionsPerWindow: 8 });
+  service.configure({ enabled: true, ack: CONTROLLED_MERCHANT_SERVICE_ACK, allowDelivery: true });
+  const runtime = runtimeBase({ root, merchantServicePlanner: planner, controlledMerchantService: service });
+  const module = new P0RegroupSupplyRecovery(runtime);
+  runtime.p0RegroupSupplyRecovery = module;
+  assert.equal(installP0PotionBundleDeltaFix(runtime), true);
+
+  const result = await service.execute(bundlePlan());
+  assert.equal(result.committed, true);
+  assert.equal(potionTotal(root, 'hpot0'), 80);
+  assert.equal(potionTotal(root, 'mpot0'), 80);
+  assert.equal(module.stats.bundleDeliveriesCommitted, 1);
+  assert.equal(service.stats.rawActions, 4);
 });
 
 test('alpha27 restock purchases both required potion families before service travel becomes possible', async () => {
