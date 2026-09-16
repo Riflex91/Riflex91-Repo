@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/vorfall.schema.json",
+  "title": "V4 Vorfall",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "vorfallKennung", "art", "schwere", "begonnenAm", "betroffeneBereiche", "ablaufKennungen"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "vorfallKennung": { "type": "string", "minLength": 1 },
+    "art": { "type": "string", "minLength": 1 },
+    "schwere": { "enum": ["hinweis", "warnung", "fehler", "kritisch"] },
+    "begonnenAm": { "type": "number", "minimum": 0 },
+    "beendetAm": { "type": ["number", "null"], "minimum": 0 },
+    "betroffeneBereiche": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "ablaufKennungen": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "paketKennung": { "type": ["string", "null"] },
+    "fakten": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -3,14 +3,15 @@
   "version": "4.0.0-alpha.0",
   "private": true,
   "type": "module",
-  "description": "Adventure Land AiO Bot v4 clean-room, replay-first foundation.",
+  "description": "Adventure Land AiO Bot V4 mit deutscher, leicht verstaendlicher Struktur und wiederholbaren Laufzeitdaten.",
   "scripts": {
-    "clean": "node scripts/clean.mjs",
-    "build": "npm run clean && tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test runtime/test/*.test.mjs",
-    "verify:structure": "node scripts/verify-structure.mjs",
-    "check": "npm run typecheck && npm run test && npm run verify:structure"
+    "bereinigen": "node werkzeuge/bereinigen.mjs",
+    "bauen": "npm run bereinigen && tsc -p tsconfig.json",
+    "typen:pruefen": "tsc -p tsconfig.json --noEmit",
+    "testen": "npm run bauen && node --test laufzeit/tests/*.test.mjs",
+    "namen:pruefen": "node werkzeuge/namen-pruefen.mjs",
+    "struktur:pruefen": "node werkzeuge/struktur-pruefen.mjs",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",

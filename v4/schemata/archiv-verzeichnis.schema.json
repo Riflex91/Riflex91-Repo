@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/archiv-verzeichnis.schema.json",
+  "title": "V4 Archiv-Verzeichnis",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "paketKennung", "erstelltAm", "dateien"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "paketKennung": { "type": "string", "minLength": 1 },
+    "erstelltAm": { "type": "number", "minimum": 0 },
+    "dateien": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pfad", "sha256", "groesseBytes"],
+        "properties": {
+          "pfad": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+          "groesseBytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
