@@ -37,6 +37,19 @@ function canonicalPath(bucket, key) {
   return `/${rfc3986(bucket)}/${String(key).split('/').map(rfc3986).join('/')}`;
 }
 
+function canonicalQuery(searchParams) {
+  const pairs = [];
+  for (const [name, value] of searchParams.entries()) pairs.push([rfc3986(name), rfc3986(value)]);
+  pairs.sort((left, right) => {
+    if (left[0] < right[0]) return -1;
+    if (left[0] > right[0]) return 1;
+    if (left[1] < right[1]) return -1;
+    if (left[1] > right[1]) return 1;
+    return 0;
+  });
+  return pairs.map(([name, value]) => `${name}=${value}`).join('&');
+}
+
 function normalizePrefix(value) {
   const prefix = text(value, 300).replace(/^\/+|\/+$/g, '');
   if (!prefix) return '';
@@ -54,6 +67,14 @@ function validateRelativeKey(value, code = 'OBJECT_STORAGE_KEY_INVALID') {
     throw new ObjectStorageError(code, 'Object key contains an unsafe path segment.');
   }
   return key;
+}
+
+function validateVersionId(value) {
+  const versionId = text(value, 1024);
+  if (!versionId || /[\u0000-\u001f\u007f]/.test(versionId)) {
+    throw new ObjectStorageError('OBJECT_STORAGE_VERSION_ID_INVALID', 'Object version ID is missing or invalid.');
+  }
+  return versionId;
 }
 
 function validateConfig(input) {
@@ -120,7 +141,7 @@ function safeConfigStatus(root = globalThis) {
       bucket: config.bucket,
       prefix: config.prefix,
       autoDelete: false,
-      capabilities: { put: true, head: true, explicitDelete: true, selfTest: true }
+      capabilities: { put: true, head: true, explicitVersionDelete: true, selfTest: true }
     };
   } catch (error) {
     return {
@@ -204,7 +225,7 @@ async function signS3Request(input) {
   const canonicalRequest = [
     String(method || 'GET').toUpperCase(),
     target.pathname || '/',
-    target.searchParams.toString(),
+    canonicalQuery(target.searchParams),
     canonicalHeaders,
     signedHeaders,
     payloadHash
@@ -261,7 +282,7 @@ class S3CompatibleObjectStore {
       bucket: config.bucket,
       prefix: config.prefix,
       autoDelete: false,
-      capabilities: { put: true, head: true, explicitDelete: true, selfTest: true }
+      capabilities: { put: true, head: true, explicitVersionDelete: true, selfTest: true }
     };
   }
 
@@ -277,6 +298,11 @@ class S3CompatibleObjectStore {
 
   async _request(method, relativeKey, options = {}) {
     const url = this.objectUrl(relativeKey);
+    if (options.query && typeof options.query === 'object') {
+      for (const [name, value] of Object.entries(options.query)) {
+        if (value != null) url.searchParams.append(String(name), String(value));
+      }
+    }
     const body = options.body == null ? null : bytesOf(options.body);
     const payloadHash = body == null ? EMPTY_SHA256 : await sha256Hex(body, this.cryptoImpl);
     const unsignedHeaders = {};
@@ -368,15 +394,29 @@ class S3CompatibleObjectStore {
       sha256: stored.sha256,
       requireHashMetadata: options.requireHashMetadata !== false
     });
-    return { stored: true, verified: true, key: stored.key, bytes: stored.bytes, sha256: stored.sha256, versionId: stored.versionId || verified.versionId || null };
+    return {
+      stored: true,
+      verified: true,
+      key: stored.key,
+      bytes: stored.bytes,
+      sha256: stored.sha256,
+      versionId: stored.versionId || verified.versionId || null
+    };
   }
 
-  async delete(relativeKey, confirmation) {
+  async deleteVersion(relativeKey, versionId, confirmation) {
     if (confirmation !== EXPLICIT_DELETE_CONFIRMATION) {
       throw new ObjectStorageError('OBJECT_STORAGE_DELETE_CONFIRMATION_REQUIRED', `Deletion requires confirmation ${EXPLICIT_DELETE_CONFIRMATION}.`);
     }
-    await this._request('DELETE', relativeKey);
-    return { deleted: true, key: this.objectKey(relativeKey), explicit: true };
+    const exactVersionId = validateVersionId(versionId);
+    await this._request('DELETE', relativeKey, { query: { versionId: exactVersionId } });
+    return {
+      deleted: true,
+      permanent: true,
+      key: this.objectKey(relativeKey),
+      versionId: exactVersionId,
+      explicit: true
+    };
   }
 
   async selfTest(options = {}) {
@@ -387,13 +427,29 @@ class S3CompatibleObjectStore {
     const result = await this.putAndVerify(relativeKey, payload, { contentType: 'application/json', requireHashMetadata: true });
     let cleanup = { requested: options.cleanup === true, deleted: false };
     if (options.cleanup === true) {
+      if (!result.versionId) {
+        throw new ObjectStorageError(
+          'OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED',
+          'Verified upload did not expose a version ID; refusing a name-only delete that would only create a delete marker.'
+        );
+      }
       const cleanupDelayMs = Math.max(1000, Math.min(10000, Number(options.cleanupDelayMs) || 1100));
       await this.sleepImpl(cleanupDelayMs);
-      cleanup = await this.delete(relativeKey, EXPLICIT_DELETE_CONFIRMATION);
+      cleanup = await this.deleteVersion(relativeKey, result.versionId, EXPLICIT_DELETE_CONFIRMATION);
       cleanup.requested = true;
       cleanup.delayMs = cleanupDelayMs;
     }
-    return { ok: true, provider: this.config.provider, bucket: this.config.bucket, key: result.key, bytes: result.bytes, sha256: result.sha256, verified: true, cleanup };
+    return {
+      ok: true,
+      provider: this.config.provider,
+      bucket: this.config.bucket,
+      key: result.key,
+      bytes: result.bytes,
+      sha256: result.sha256,
+      versionId: result.versionId,
+      verified: true,
+      cleanup
+    };
   }
 }
 
@@ -408,7 +464,7 @@ function installObjectStorageApi(api, root = globalThis, options = {}) {
     status: () => safeConfigStatus(root),
     put: (key, body, requestOptions = {}) => store().putAndVerify(key, body, requestOptions),
     head: (key) => store().head(key),
-    deleteExplicit: (key, confirmation) => store().delete(key, confirmation),
+    deleteVersionExplicit: (key, versionId, confirmation) => store().deleteVersion(key, versionId, confirmation),
     selfTest: (selfTestOptions = {}) => store().selfTest(selfTestOptions),
     deleteConfirmation: EXPLICIT_DELETE_CONFIRMATION
   });
@@ -426,6 +482,7 @@ module.exports = {
   readGlobalConfig,
   safeConfigStatus,
   canonicalPath,
+  canonicalQuery,
   sha256Hex,
   signS3Request,
   sanitizeError,
