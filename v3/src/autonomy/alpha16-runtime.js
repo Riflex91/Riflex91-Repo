@@ -48,11 +48,12 @@ class Alpha16Runtime extends Alpha15Runtime {
     return false;
   }
 
-  planTravel(request) {
+  planTravel(request, context = {}) {
     return this.safeTravel.plan(request, {
       gameData: this.adapter.getGameData() || {},
       contentDrift: this.contentDrift,
-      snapshot: this.lastSnapshot || this.adapter.snapshot()
+      snapshot: this.lastSnapshot || this.adapter.snapshot(),
+      destinationMapAttestation: context && context.destinationMapAttestation || null
     });
   }
 
