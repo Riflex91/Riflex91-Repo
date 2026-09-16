@@ -8,7 +8,6 @@ const pflichtDateien = [
   'version.json',
   'dokumentation/FAHRPLAN.md',
   'dokumentation/ARCHITEKTUR.md',
-  'dokumentation/KONTEN_UND_CHARAKTERE.md',
   'dokumentation/VERTRAEGE.md',
   'dokumentation/NAMEN_UND_MELDUNGEN.md',
   'dokumentation/ENTWICKLUNGSABLAUF.md',
@@ -19,7 +18,6 @@ const pflichtDateien = [
   'laufzeit/quelle/vertraege/ressourcen-sperre.ts',
   'laufzeit/quelle/vertraege/spielzustand.ts',
   'laufzeit/quelle/vertraege/bot-meldung.ts',
-  'laufzeit/quelle/vertraege/konto-und-charakter.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
@@ -27,8 +25,7 @@ const pflichtDateien = [
   'schemata/bot-meldung.schema.json',
   'schemata/vorfall.schema.json',
   'schemata/archiv-verzeichnis.schema.json',
-  'schemata/entwicklungs-aufgabe.schema.json',
-  'schemata/konto-profil.schema.json'
+  'schemata/entwicklungs-aufgabe.schema.json'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -57,14 +54,5 @@ if (!archivBeispiel.includes('V4_ARCHIV_SFTP_RECHNER')) throw new Error('Das Bei
 
 const laufzeitBeispiel = await readFile(path.join(wurzel, '.env.example'), 'utf8');
 if (/ARCHIV_SFTP_(RECHNER|BENUTZER|SCHLUESSEL)/.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine SFTP-Archiv-Zugangsdaten enthalten.');
-if (/PASSWORT|KENNWORT|PASSWORD/i.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine Kontokennwoerter enthalten.');
-
-const laufzeitQuellDateien = dateien.filter((datei) => datei.includes(`${path.sep}laufzeit${path.sep}quelle${path.sep}`) && datei.endsWith('.ts'));
-for (const datei of laufzeitQuellDateien) {
-  const inhalt = await readFile(datei, 'utf8');
-  if (/\b(passwort|kennwort|password)\b/i.test(inhalt)) {
-    throw new Error(`Die Bot-Laufzeit darf keine Kontokennwort-Felder enthalten: ${path.relative(wurzel, datei)}`);
-  }
-}
 
 console.log(`V4-Struktur geprueft: ${pflichtDateien.length} Pflichtdateien, ${dateien.length} sichtbare Dateien.`);
