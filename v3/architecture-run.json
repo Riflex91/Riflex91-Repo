@@ -29,8 +29,8 @@
       "name": "patch-registry",
       "title": "Patch registry and deterministic patch ownership",
       "branch": "architecture/01-patch-registry",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 193,
       "merge_commit": null,
       "required_outcomes": [
         "central patch registry",
