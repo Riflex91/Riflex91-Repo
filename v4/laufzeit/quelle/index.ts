@@ -33,8 +33,19 @@ export type {
 export { KONTINGENT_EINHEITEN, KONTINGENT_SCHUTZSTUFEN, KONTINGENT_ZEITRAEUME } from './vertraege/dienst-kontingent.js';
 export type { BedienAnfrage, BedienEntscheidung, BedienRisiko, BedienVoraussetzung } from './vertraege/bedien-anfrage.js';
 export { BEDIEN_RISIKEN } from './vertraege/bedien-anfrage.js';
+export type {
+  AuftragsArt,
+  AuftragsPlan,
+  AuftragsPruefErgebnis,
+  AuftragsTeilSchritt,
+  AuftragsZustand,
+  MengenZielArt,
+  NutzerAuftrag
+} from './vertraege/nutzer-auftrag.js';
+export { AUFTRAGS_ARTEN, AUFTRAGS_ZUSTAENDE, MENGEN_ZIEL_ARTEN } from './vertraege/nutzer-auftrag.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
 export { AktionsAuswahl } from './kern/aktions-auswahl.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
 export { KontingentWaechter } from './kern/kontingent-waechter.js';
 export { BedienSicherung } from './kern/bedien-sicherung.js';
+export { AuftragsPruefung } from './kern/auftrags-pruefung.js';
