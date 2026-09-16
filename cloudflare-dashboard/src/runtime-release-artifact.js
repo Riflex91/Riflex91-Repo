@@ -1,4 +1,7 @@
+import { releaseObjectKey, releaseScope } from './release-artifact-scope.js';
+
 const RUNTIME_RELEASE_PATH = '/v3/dist/aio-v3-runtime.js';
+const RUNTIME_RELEASE_RELATIVE = 'dist/aio-v3-runtime.js';
 const RUNTIME_RELEASE_OBJECT = 'releases/v3/dist/aio-v3-runtime.js';
 
 function isRuntimeReleaseRead(request) {
@@ -29,25 +32,32 @@ async function handleRuntimeReleaseArtifact(request, env) {
   if (!bucket || typeof bucket.get !== 'function') {
     return errorResponse('R2_BINDING_UNAVAILABLE', 503);
   }
-  const object = await bucket.get(RUNTIME_RELEASE_OBJECT);
-  if (!object) return errorResponse('release runtime not published', 404);
+  const scope = releaseScope(env);
+  const key = releaseObjectKey(RUNTIME_RELEASE_RELATIVE, env);
+  const object = await bucket.get(key);
+  if (!object) return errorResponse(scope.kind === 'preview' ? 'preview runtime not published' : 'release runtime not published', 404);
   const headers = new Headers({
     'content-type': 'application/javascript; charset=utf-8',
     'access-control-allow-origin': '*',
     'cache-control': 'no-store, max-age=0',
     'x-content-type-options': 'nosniff',
-    'referrer-policy': 'no-referrer'
+    'referrer-policy': 'no-referrer',
+    'x-aio-release-scope': scope.kind
   });
+  if (scope.sha) headers.set('x-aio-preview-sha', scope.sha);
   if (typeof object.writeHttpMetadata === 'function') object.writeHttpMetadata(headers);
   headers.set('content-type', 'application/javascript; charset=utf-8');
   headers.set('access-control-allow-origin', '*');
   headers.set('cache-control', 'no-store, max-age=0');
+  headers.set('x-aio-release-scope', scope.kind);
+  if (scope.sha) headers.set('x-aio-preview-sha', scope.sha);
   if (object.httpEtag || object.etag) headers.set('etag', object.httpEtag || object.etag);
   return new Response(object.body, { status: 200, headers });
 }
 
 export {
   RUNTIME_RELEASE_PATH,
+  RUNTIME_RELEASE_RELATIVE,
   RUNTIME_RELEASE_OBJECT,
   isRuntimeReleaseRead,
   handleRuntimeReleaseArtifact
