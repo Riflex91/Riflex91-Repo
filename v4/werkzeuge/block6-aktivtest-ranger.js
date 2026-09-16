@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V4Block6AktivRanger';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const STANDARD_DAUER = 10 * 60 * 1000;
   const MAX_DAUER = 15 * 60 * 1000;
   const PLANUNGS_INTERVAL = 1000;
@@ -64,6 +64,50 @@
       throw new Error('Der erste aktive Block-6-Test ist ausschliesslich fuer monsterArten: ["goo"] freigegeben.');
     }
     return Object.freeze(werte);
+  }
+
+  function fehlerDarstellung(fehler) {
+    if (fehler instanceof Error) return fehler.message || fehler.name || 'Error';
+    if (typeof fehler === 'string') return fehler;
+    if (fehler === null) return 'null';
+    if (fehler === undefined) return 'undefined';
+    if (typeof fehler !== 'object') return String(fehler);
+    try {
+      const gesehen = new WeakSet();
+      const text = JSON.stringify(fehler, (schluessel, wert) => {
+        if (typeof wert === 'object' && wert !== null) {
+          if (gesehen.has(wert)) return '[zirkulaer]';
+          gesehen.add(wert);
+        }
+        if (typeof wert === 'function') return `[Funktion ${wert.name || 'anonym'}]`;
+        return wert;
+      });
+      if (text && text !== '{}') return text;
+    } catch {
+      // Fallback unten.
+    }
+    try {
+      const teile = Object.entries(fehler).map(([schluessel, wert]) => `${schluessel}=${String(wert)}`);
+      if (teile.length > 0) return `{${teile.join(', ')}}`;
+    } catch {
+      // Fallback unten.
+    }
+    return Object.prototype.toString.call(fehler);
+  }
+
+  function kompakteFehlerDetails(fehler) {
+    if (fehler instanceof Error) {
+      return Object.freeze({ typ: fehler.name || 'Error', meldung: fehler.message || String(fehler) });
+    }
+    if (istObjekt(fehler)) {
+      const details = {};
+      for (const [schluessel, wert] of Object.entries(fehler).slice(0, 12)) {
+        if (wert === null || ['string', 'number', 'boolean'].includes(typeof wert)) details[schluessel] = wert;
+        else if (wert !== undefined) details[schluessel] = String(wert);
+      }
+      return Object.freeze(details);
+    }
+    return Object.freeze({ wert: String(fehler) });
   }
 
   function charakterSnapshot() {
@@ -139,6 +183,25 @@
     return Reflect.apply(funktion, kontext, argumente);
   }
 
+  function kannAngreifen(ziel) {
+    const spiel = holeSpielFenster();
+    const canAttack = spiel.can_attack ?? globalThis.can_attack;
+    if (typeof canAttack !== 'function') return null;
+    const kontext = typeof spiel.can_attack === 'function' ? spiel : globalThis;
+    try {
+      return Reflect.apply(canAttack, kontext, [ziel]) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function zielLebtNoch(ziel) {
+    if (!istObjekt(ziel)) return false;
+    if (ziel.dead === true) return false;
+    if (Number.isFinite(ziel.hp) && ziel.hp <= 0) return false;
+    return true;
+  }
+
   class BrowserAktionsSteuerung {
     constructor() {
       this.laufend = null;
@@ -181,15 +244,25 @@
       const zielKennung = anfrage.details?.zielKennung;
       if (typeof zielKennung !== 'string' || zielKennung.length === 0) throw new Error('FARM_ANGREIFEN benoetigt eine Zielkennung.');
       const ziel = holeEntity(zielKennung);
-      if (!ziel) return 'ziel_nicht_mehr_sichtbar';
-      const spiel = holeSpielFenster();
-      const canAttack = spiel.can_attack ?? globalThis.can_attack;
-      if (typeof canAttack === 'function') {
-        const kontext = typeof spiel.can_attack === 'function' ? spiel : globalThis;
-        if (Reflect.apply(canAttack, kontext, [ziel]) !== true) return 'angriff_noch_nicht_moeglich';
+      if (!zielLebtNoch(ziel)) return 'ziel_nicht_mehr_sichtbar';
+      if (kannAngreifen(ziel) === false) return 'angriff_noch_nicht_moeglich';
+
+      try {
+        await Promise.resolve(rufeSpielFunktionAuf('attack', [ziel]));
+        return 'ausgefuehrt';
+      } catch (fehler) {
+        // Adventure Land kann zwischen can_attack() und attack() den Zustand aendern.
+        // Solche Race-Conditions sind normale Laufzeitereignisse und kein Bot-Absturz.
+        const zielNachFehler = holeEntity(zielKennung);
+        if (!zielLebtNoch(zielNachFehler)) return 'ziel_waehrend_angriff_verschwunden';
+        if (kannAngreifen(zielNachFehler) === false) return 'angriff_zwischenzeitlich_nicht_mehr_moeglich';
+
+        const meldung = fehlerDarstellung(fehler);
+        const weitergereicht = new Error(`Adventure-Land attack() wurde abgelehnt: ${meldung}`);
+        weitergereicht.name = 'AdventureLandAngriffsfehler';
+        weitergereicht.details = kompakteFehlerDetails(fehler);
+        throw weitergereicht;
       }
-      await Promise.resolve(rufeSpielFunktionAuf('attack', [ziel]));
-      return 'ausgefuehrt';
     }
 
     if (anfrage.aktion === 'FARM_LEBEN_WIEDERHERSTELLEN') {
@@ -354,9 +427,11 @@
         const eintrag = {
           zeitpunkt: Date.now(),
           aktion: anfrage.aktion,
-          meldung: fehler instanceof Error ? fehler.message : String(fehler)
+          typ: fehler instanceof Error ? fehler.name : typeof fehler,
+          meldung: fehlerDarstellung(fehler),
+          details: fehler instanceof Error && istObjekt(fehler.details) ? fehler.details : kompakteFehlerDetails(fehler)
         };
-        lauf.fehler.push(eintrag);
+        lauf.fehler.push(Object.freeze(eintrag));
         beende('fehler', `Aktive Farmaktion fehlgeschlagen: ${eintrag.meldung}`);
         return;
       }
