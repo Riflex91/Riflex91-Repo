@@ -7,7 +7,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record ProblemMirrorFlushResult(int Uploaded, string Reason, string? Error = null);
 
-internal sealed record ProblemMirrorMetadata(
+public sealed record ProblemMirrorMetadata(
     int SchemaVersion,
     string BundleId,
     string BotId,
