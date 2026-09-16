@@ -8,8 +8,6 @@ export type { BekannterWert, WissensQuelle, Spielzustand } from './vertraege/spi
 export { WISSENS_QUELLEN } from './vertraege/spielzustand.js';
 export type { BotMeldung, MeldungsStufe } from './vertraege/bot-meldung.js';
 export { MELDUNGS_STUFEN, erstelleBotMeldung, formatiereBotMeldung } from './vertraege/bot-meldung.js';
-export type { KontoProfil, CharakterZuordnung, VerbundTeilnehmer, AnmeldeArt, AnmeldeZustand } from './vertraege/konto-und-charakter.js';
-export { ANMELDE_ARTEN, ANMELDE_ZUSTAENDE } from './vertraege/konto-und-charakter.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
 export { AktionsAuswahl } from './kern/aktions-auswahl.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
