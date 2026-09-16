@@ -12,7 +12,9 @@ const schemaDateien = [
   'tages-bericht-einstellung.schema.json',
   'dienst-profil.schema.json',
   'bedien-anfrage.schema.json',
-  'nutzer-auftrag.schema.json'
+  'nutzer-auftrag.schema.json',
+  'spielzustand.schema.json',
+  'spielzustand-aufzeichnung.schema.json'
 ];
 
 for (const dateiname of schemaDateien) {
@@ -53,4 +55,20 @@ test('Nutzerauftraege verlangen eindeutige Auftragsart, Menge und Mengenzielart'
   assert.deepEqual(schema.properties.art.enum, ['sammeln', 'herstellen']);
   assert.deepEqual(schema.properties.mengenZielArt.enum, ['zusaetzlich', 'gesamtbestand']);
   assert.equal(schema.properties.zielMenge.minimum, 1);
+});
+
+test('Spielzustand unterscheidet bekannt, fehlend und unbekannt und ist fest versioniert', async () => {
+  const inhalt = await readFile(new URL('../../schemata/spielzustand.schema.json', import.meta.url), 'utf8');
+  const schema = JSON.parse(inhalt);
+  assert.equal(schema.properties.schemaVersion.const, 2);
+  assert.deepEqual(schema.$defs.bekannt.properties.quelle.enum, ['beobachtet', 'abgeleitet', 'gelernt']);
+  assert.equal(schema.$defs.fehlend.properties.quelle.const, 'beobachtet');
+  assert.equal(schema.$defs.unbekannt.properties.zustand.const, 'unbekannt');
+});
+
+test('Spielzustandsaufzeichnung ist fest versioniert und enthaelt Spielzustaende', async () => {
+  const inhalt = await readFile(new URL('../../schemata/spielzustand-aufzeichnung.schema.json', import.meta.url), 'utf8');
+  const schema = JSON.parse(inhalt);
+  assert.equal(schema.properties.schemaVersion.const, 1);
+  assert.equal(schema.properties.zustaende.items.$ref, 'https://aio-v4.invalid/schemata/spielzustand.schema.json');
 });
