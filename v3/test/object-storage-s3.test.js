@@ -11,6 +11,7 @@ const {
   validateConfig,
   safeConfigStatus,
   canonicalPath,
+  canonicalQuery,
   signS3Request,
   installObjectStorageApi
 } = require('../src/ops/object-storage-s3');
@@ -29,6 +30,14 @@ const CONFIG = Object.freeze({
 function hex(buffer) { return Buffer.from(buffer).toString('hex'); }
 function hmac(key, data) { return createHmac('sha256', key).update(data).digest(); }
 function sha(data) { return createHash('sha256').update(data).digest('hex'); }
+function encode(value) { return encodeURIComponent(String(value)).replace(/[!'()*]/g, (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`); }
+
+function expectedCanonicalQuery(searchParams) {
+  const pairs = [];
+  for (const [name, value] of searchParams.entries()) pairs.push([encode(name), encode(value)]);
+  pairs.sort((left, right) => left[0] === right[0] ? (left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0) : (left[0] < right[0] ? -1 : 1));
+  return pairs.map(([name, value]) => `${name}=${value}`).join('&');
+}
 
 function expectedAuthorization({ method, url, config, payloadHash, headers, now }) {
   const target = new URL(url);
@@ -39,7 +48,7 @@ function expectedAuthorization({ method, url, config, payloadHash, headers, now 
   const names = Object.keys(signed).sort();
   const canonicalHeaders = names.map((name) => `${name}:${signed[name]}\n`).join('');
   const signedHeaders = names.join(';');
-  const canonicalRequest = [method, target.pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  const canonicalRequest = [method, target.pathname, expectedCanonicalQuery(target.searchParams), canonicalHeaders, signedHeaders, payloadHash].join('\n');
   const scope = `${dateStamp}/${config.region}/s3/aws4_request`;
   const stringToSign = ['AWS4-HMAC-SHA256', timestamp, scope, sha(canonicalRequest)].join('\n');
   const dateKey = hmac(Buffer.from(`AWS4${config.applicationKey}`), dateStamp);
@@ -62,6 +71,7 @@ test('validates bridge config without exposing secrets in status', () => {
   const status = safeConfigStatus(root);
   assert.equal(status.configured, true);
   assert.equal(status.bucket, 'al-aio-bot');
+  assert.equal(status.capabilities.explicitVersionDelete, true);
   const serialized = JSON.stringify(status);
   assert.equal(serialized.includes(CONFIG.keyId), false);
   assert.equal(serialized.includes(CONFIG.applicationKey), false);
@@ -76,6 +86,14 @@ test('rejects unsafe endpoint, prefix and object keys', async () => {
 
 test('uses path-style S3 URL with RFC3986 encoding', () => {
   assert.equal(canonicalPath('al-aio-bot', 'v4/raw/a b+c.json'), '/al-aio-bot/v4/raw/a%20b%2Bc.json');
+});
+
+test('canonical query is RFC3986 encoded and sorted for SigV4', () => {
+  const url = new URL('https://example.invalid/object');
+  url.searchParams.append('z', 'a b');
+  url.searchParams.append('versionId', '4_z+/=');
+  url.searchParams.append('a', '2');
+  assert.equal(canonicalQuery(url.searchParams), 'a=2&versionId=4_z%2B%2F%3D&z=a%20b');
 });
 
 test('creates deterministic AWS Signature V4 authorization', async () => {
@@ -106,6 +124,7 @@ test('PUT plus HEAD verifies bytes and sha metadata without returning secrets', 
   assert.equal(result.verified, true);
   assert.equal(result.bytes, Buffer.byteLength(body));
   assert.equal(result.sha256, expectedHash);
+  assert.equal(result.versionId, 'v1');
   assert.deepEqual(calls.map((call) => call.options.method), ['PUT', 'HEAD']);
   assert.match(calls[0].options.headers.Authorization, /^AWS4-HMAC-SHA256 /);
   assert.equal(calls[0].options.headers['x-amz-meta-aio-sha256'], expectedHash);
@@ -132,27 +151,50 @@ test('maps browser fetch rejection to sanitized CORS/network error', async () =>
   });
 });
 
-test('DELETE is impossible without explicit confirmation', async () => {
+test('permanent DELETE requires explicit confirmation and an exact version ID', async () => {
   const calls = [];
-  const store = new S3CompatibleObjectStore(CONFIG, { fetchImpl: async (_url, options) => { calls.push(options.method); return { ok: true, status: 204, headers: headers({}) }; }, cryptoImpl: webcrypto });
-  await assert.rejects(() => store.delete('raw/test.bin'), (error) => error.code === 'OBJECT_STORAGE_DELETE_CONFIRMATION_REQUIRED');
+  const now = new Date('2026-09-16T16:00:00.000Z');
+  const store = new S3CompatibleObjectStore(CONFIG, {
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return { ok: true, status: 204, headers: headers({}) };
+    },
+    cryptoImpl: webcrypto,
+    now: () => now
+  });
+  await assert.rejects(() => store.deleteVersion('raw/test.bin', 'version-1'), (error) => error.code === 'OBJECT_STORAGE_DELETE_CONFIRMATION_REQUIRED');
   assert.deepEqual(calls, []);
-  const result = await store.delete('raw/test.bin', EXPLICIT_DELETE_CONFIRMATION);
+  const result = await store.deleteVersion('raw/test.bin', 'version-1', EXPLICIT_DELETE_CONFIRMATION);
   assert.equal(result.deleted, true);
-  assert.deepEqual(calls, ['DELETE']);
+  assert.equal(result.permanent, true);
+  assert.equal(result.versionId, 'version-1');
+  assert.equal(calls.length, 1);
+  const requestUrl = new URL(calls[0].url);
+  assert.equal(requestUrl.searchParams.get('versionId'), 'version-1');
+  assert.equal(calls[0].options.headers.Authorization, expectedAuthorization({
+    method: 'DELETE',
+    url: calls[0].url,
+    config: CONFIG,
+    payloadHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    headers: {},
+    now
+  }));
 });
 
 test('self-test does not delete unless cleanup is explicitly requested', async () => {
   const methods = [];
-  const payloadHash = [];
-  const fakeFetch = async (_url, options) => {
+  const urls = [];
+  let payloadHash = null;
+  const payload = JSON.stringify({ schemaVersion: 1, type: 'AIO_V3_OBJECT_STORAGE_SELF_TEST', createdAt: '2026-09-16T16:00:00.000Z' });
+  const fakeFetch = async (url, options) => {
     methods.push(options.method);
+    urls.push(url);
     if (options.method === 'PUT') {
-      payloadHash.push(options.headers['x-amz-meta-aio-sha256']);
-      return { ok: true, status: 200, headers: headers({}) };
+      payloadHash = options.headers['x-amz-meta-aio-sha256'];
+      return { ok: true, status: 200, headers: headers({ 'x-amz-version-id': 'version-selftest' }) };
     }
     if (options.method === 'HEAD') {
-      return { ok: true, status: 200, headers: headers({ 'content-length': String(Buffer.byteLength(JSON.stringify({ schemaVersion: 1, type: 'AIO_V3_OBJECT_STORAGE_SELF_TEST', createdAt: '2026-09-16T16:00:00.000Z' }))), 'x-amz-meta-aio-sha256': payloadHash[0] }) };
+      return { ok: true, status: 200, headers: headers({ 'content-length': String(Buffer.byteLength(payload)), 'x-amz-meta-aio-sha256': payloadHash }) };
     }
     return { ok: true, status: 204, headers: headers({}) };
   };
@@ -161,9 +203,30 @@ test('self-test does not delete unless cleanup is explicitly requested', async (
   assert.equal(first.cleanup.deleted, false);
   assert.deepEqual(methods, ['PUT', 'HEAD']);
   methods.length = 0;
+  urls.length = 0;
   const second = await store.selfTest({ randomPart: 'with-delete', cleanup: true });
   assert.equal(second.cleanup.deleted, true);
+  assert.equal(second.cleanup.permanent, true);
   assert.deepEqual(methods, ['PUT', 'HEAD', 'DELETE']);
+  assert.equal(new URL(urls[2]).searchParams.get('versionId'), 'version-selftest');
+});
+
+test('self-test refuses name-only cleanup when provider version ID is unavailable', async () => {
+  const methods = [];
+  let payloadHash = null;
+  const payload = JSON.stringify({ schemaVersion: 1, type: 'AIO_V3_OBJECT_STORAGE_SELF_TEST', createdAt: '2026-09-16T16:00:00.000Z' });
+  const fakeFetch = async (_url, options) => {
+    methods.push(options.method);
+    if (options.method === 'PUT') {
+      payloadHash = options.headers['x-amz-meta-aio-sha256'];
+      return { ok: true, status: 200, headers: headers({}) };
+    }
+    if (options.method === 'HEAD') return { ok: true, status: 200, headers: headers({ 'content-length': String(Buffer.byteLength(payload)), 'x-amz-meta-aio-sha256': payloadHash }) };
+    throw new Error('DELETE must not be attempted');
+  };
+  const store = new S3CompatibleObjectStore(CONFIG, { fetchImpl: fakeFetch, cryptoImpl: webcrypto, now: () => new Date('2026-09-16T16:00:00.000Z'), sleepImpl: async () => {} });
+  await assert.rejects(() => store.selfTest({ cleanup: true }), (error) => error.code === 'OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED');
+  assert.deepEqual(methods, ['PUT', 'HEAD']);
 });
 
 test('runtime API reads config lazily so bridge can inject after bot startup', async () => {
@@ -174,4 +237,6 @@ test('runtime API reads config lazily so bridge can inject after bot startup', a
   root[OBJECT_STORAGE_CONFIG_NAME] = CONFIG;
   assert.equal(api.objectStorage.status().configured, true);
   assert.equal(api.objectStorage.status().bucket, 'al-aio-bot');
+  assert.equal(typeof api.objectStorage.deleteVersionExplicit, 'function');
+  assert.equal(api.objectStorage.deleteExplicit, undefined);
 });
