@@ -26,6 +26,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly SupabaseTelemetrySink _sink;
     private readonly FtpsDiagnosticsArchive _diagnostics;
+    private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
@@ -43,6 +44,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
         _diagnostics = new FtpsDiagnosticsArchive(config, diagnosticsFtpsPassword);
+        _problemMirror = new ProblemDiagnosticsMirrorOutbox(
+            config,
+            new SupabaseProblemDiagnosticsSink(httpClient, config, token));
         _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
             ? dashboardWriteKey
             : null;
@@ -188,19 +192,49 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)
     {
         if (!_config.DiagnosticsFtpsEnabled) return;
+        var captured = false;
         try
         {
-            await _diagnostics.CaptureFromReadAsync(read, cancellationToken);
+            captured = await _diagnostics.CaptureFromReadAsync(read, cancellationToken);
         }
         catch
         {
             // Diagnostic archival is observational only. It must never block Supabase telemetry or gameplay.
+        }
+
+        if (captured)
+            await EnqueueLatestMirrorSafeAsync(cancellationToken);
+    }
+
+    private async Task EnqueueLatestMirrorSafeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _problemMirror.EnqueueLatestAsync(cancellationToken);
+        }
+        catch
+        {
+            // The FTPS copy remains authoritative and local mirror retry files are best effort.
         }
     }
 
     private async Task FlushDiagnosticsSafeAsync(CancellationToken cancellationToken)
     {
         if (!_config.DiagnosticsFtpsEnabled) return;
+
+        try
+        {
+            await _problemMirror.FlushPendingAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Mirror failures remain isolated from telemetry and FTPS.
+        }
+
         try
         {
             await _diagnostics.FlushPendingAsync(cancellationToken);
@@ -221,12 +255,14 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
-            await _diagnostics.CaptureBridgeFailureAsync(error, cts.Token);
+            var captured = await _diagnostics.CaptureBridgeFailureAsync(error, cts.Token);
+            if (captured) await EnqueueLatestMirrorSafeAsync(cts.Token);
+            await _problemMirror.FlushPendingAsync(cts.Token);
             await _diagnostics.FlushPendingAsync(cts.Token);
         }
         catch
         {
-            // Never turn an FTPS/archive failure into a second bridge failure.
+            // Never turn an archive/mirror failure into a second bridge failure.
         }
     }
 
