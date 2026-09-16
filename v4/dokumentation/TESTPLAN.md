@@ -23,7 +23,7 @@ Mehrcharakter-Wiederholungen muessen die beteiligten Charaktere eindeutig unters
 
 ## Stufe 5 – Fehler-Einspritzung
 
-Netzwerkausfall, langsame Antworten, fehlende Spielwerte, Zeitueberschreitungen, Neustarts, teilweise Daten und verspätete Gruppenmeldungen werden absichtlich erzeugt.
+Netzwerkausfall, langsame Antworten, fehlende Spielwerte, Zeitueberschreitungen, Neustarts, teilweise Daten und verspaetete Gruppenmeldungen werden absichtlich erzeugt.
 
 ## Stufe 6 – Adventure-Land-Schattenbetrieb
 
@@ -31,7 +31,7 @@ Mindestens 24 Stunden ohne echte Aktionen. Entscheidungen werden nur beobachtet 
 
 ## Stufe 7 – kontrollierter Aktivbetrieb
 
-Zuerst ein einzelner Charakter, danach mehrere Charaktere desselben Kontos als Gruppe, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
+Zuerst ein einzelner Charakter, danach mehrere eigene Charaktere als Gruppe, danach Haendler und Wirtschaft. Jede Erweiterung besitzt eine ausdrueckliche Rueckfallmoeglichkeit.
 
 Die Gruppenpruefung umfasst mindestens:
 
