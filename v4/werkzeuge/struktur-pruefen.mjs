@@ -12,12 +12,14 @@ const pflichtDateien = [
   'dokumentation/NAMEN_UND_MELDUNGEN.md',
   'dokumentation/ENTWICKLUNGSABLAUF.md',
   'dokumentation/SPEICHER_UND_WEB.md',
+  'dokumentation/TAGESBERICHT.md',
   'dokumentation/TESTPLAN.md',
   'laufzeit/quelle/vertraege/bot-ereignis.ts',
   'laufzeit/quelle/vertraege/aktions-anfrage.ts',
   'laufzeit/quelle/vertraege/ressourcen-sperre.ts',
   'laufzeit/quelle/vertraege/spielzustand.ts',
   'laufzeit/quelle/vertraege/bot-meldung.ts',
+  'laufzeit/quelle/vertraege/tages-bericht.ts',
   'laufzeit/quelle/kern/ereignis-zentrale.ts',
   'laufzeit/quelle/kern/aktions-auswahl.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
@@ -25,7 +27,9 @@ const pflichtDateien = [
   'schemata/bot-meldung.schema.json',
   'schemata/vorfall.schema.json',
   'schemata/archiv-verzeichnis.schema.json',
-  'schemata/entwicklungs-aufgabe.schema.json'
+  'schemata/entwicklungs-aufgabe.schema.json',
+  'schemata/tages-bericht.schema.json',
+  'schemata/tages-bericht-einstellung.schema.json'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -54,5 +58,6 @@ if (!archivBeispiel.includes('V4_ARCHIV_SFTP_RECHNER')) throw new Error('Das Bei
 
 const laufzeitBeispiel = await readFile(path.join(wurzel, '.env.example'), 'utf8');
 if (/ARCHIV_SFTP_(RECHNER|BENUTZER|SCHLUESSEL)/.test(laufzeitBeispiel)) throw new Error('Die Laufzeit-Konfiguration darf keine SFTP-Archiv-Zugangsdaten enthalten.');
+if (/EMAIL_(PASSWORT|SCHLUESSEL|TOKEN)|SMTP_(PASSWORT|SCHLUESSEL|TOKEN)/i.test(laufzeitBeispiel)) throw new Error('Die Adventure-Land-Laufzeit darf keine E-Mail-Versandgeheimnisse enthalten.');
 
 console.log(`V4-Struktur geprueft: ${pflichtDateien.length} Pflichtdateien, ${dateien.length} sichtbare Dateien.`);
