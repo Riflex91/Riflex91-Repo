@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1078 Zeilen**
+**6 Dateien · 1108 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 69 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 129 |
+| `src/production-live-services.js` | 159 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |
@@ -209,7 +209,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**63 Dateien · 13479 Zeilen**
+**67 Dateien · 14901 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -266,6 +266,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/farmer-travel-safety-hotfix.js` | 138 |
 | `src/reliability/integrated-party-control.js` | 90 |
 | `src/reliability/live-navigation-hotfix.js` | 211 |
+| `src/reliability/p0-potion-bundle-delta-fix.js` | 161 |
+| `src/reliability/p0-potion-hardcap-4500.js` | 174 |
+| `src/reliability/p0-potion-policy-4500.js` | 446 |
+| `src/reliability/p0-regroup-supply-recovery.js` | 641 |
 | `src/reliability/party-account-communication.js` | 203 |
 | `src/reliability/party-bootstrap-farmer-gate.js` | 111 |
 | `src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js` | 29 |
