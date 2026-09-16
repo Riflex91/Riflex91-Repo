@@ -10,6 +10,8 @@ const { createWebhookAlertTransport, validateWebhookUrl } = require('./alert-tra
 const { RestartReconciliationObserver } = require('./restart-reconciliation-observer');
 const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH } = require('./browser-bot-client');
 const { ProductionHostHarness } = require('./production-host-harness');
+const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
+const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
 
 module.exports = {
   HostWatchdogSupervisor,
@@ -30,5 +32,7 @@ module.exports = {
   DEFAULT_ALLOWED_ORIGINS,
   MAX_CLAIM_IDS,
   MAX_ID_LENGTH,
-  ProductionHostHarness
+  ProductionHostHarness,
+  FtpsDiagnosticsUploader,
+  ProblemDiagnosticsArchive
 };

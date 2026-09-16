@@ -21,6 +21,9 @@
     "check:full": "npm run build && npm test && node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js && npm run check:cloud",
     "check": "npm run preflight && npm run check:full"
   },
+  "dependencies": {
+    "basic-ftp": "6.2.1"
+  },
   "devDependencies": {
     "@types/node": "22.20.2",
     "dependency-cruiser": "18.2.0",

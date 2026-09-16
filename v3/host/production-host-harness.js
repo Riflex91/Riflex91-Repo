@@ -6,6 +6,8 @@ const { HostApiServer } = require('./host-api-server');
 const { JsonFileStateStore } = require('./json-file-state-store');
 const { BrowserBotClient } = require('./browser-bot-client');
 const { DebugTelemetryExporter } = require('./debug-telemetry-exporter');
+const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
+const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -14,6 +16,11 @@ function finite(value, fallback = 0) {
 function clone(value) {
   if (value == null) return value;
   return JSON.parse(JSON.stringify(value));
+}
+function bool(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  return /^(1|true|yes|on)$/i.test(String(value).trim());
 }
 
 class ProductionHostHarness {
@@ -69,6 +76,7 @@ class ProductionHostHarness {
       token: options.apiToken,
       serverFactory: options.serverFactory
     });
+
     const env = options.env || (typeof process !== 'undefined' && process.env) || {};
     this.telemetryExporter = options.telemetryExporter || new DebugTelemetryExporter({
       now: this.now,
@@ -82,13 +90,45 @@ class ProductionHostHarness {
       maxBackoffMs: options.telemetryMaxBackoffMs,
       allowInsecureLoopbackForTests: options.telemetryAllowInsecureLoopbackForTests === true
     });
+
+    this.diagnosticsUploader = options.diagnosticsUploader || new FtpsDiagnosticsUploader({
+      now: this.now,
+      host: options.diagnosticsFtpsHost || env.AIO_V3_DIAGNOSTICS_FTPS_HOST,
+      port: options.diagnosticsFtpsPort || env.AIO_V3_DIAGNOSTICS_FTPS_PORT,
+      user: options.diagnosticsFtpsUser || env.AIO_V3_DIAGNOSTICS_FTPS_USER,
+      password: options.diagnosticsFtpsPassword || env.AIO_V3_DIAGNOSTICS_FTPS_PASSWORD,
+      root: options.diagnosticsFtpsRoot || env.AIO_V3_DIAGNOSTICS_FTPS_ROOT,
+      botId: options.diagnosticsBotId || env.AIO_V3_DIAGNOSTICS_BOT_ID || options.telemetryBotId || env.AIO_V3_DEBUG_TELEMETRY_BOT_ID,
+      secure: options.diagnosticsFtpsSecure == null ? env.AIO_V3_DIAGNOSTICS_FTPS_SECURE : options.diagnosticsFtpsSecure,
+      rejectUnauthorized: options.diagnosticsFtpsRejectUnauthorized == null ? env.AIO_V3_DIAGNOSTICS_FTPS_REJECT_UNAUTHORIZED : options.diagnosticsFtpsRejectUnauthorized,
+      timeoutMs: options.diagnosticsFtpsTimeoutMs || env.AIO_V3_DIAGNOSTICS_FTPS_TIMEOUT_MS,
+      maxFilesPerFlush: options.diagnosticsFtpsMaxFilesPerFlush || env.AIO_V3_DIAGNOSTICS_FTPS_MAX_FILES_PER_FLUSH,
+      clientFactory: options.diagnosticsFtpsClientFactory,
+      allowInsecureForTests: options.diagnosticsFtpsAllowInsecureForTests === true
+    });
+    const diagnosticsEnabled = options.diagnosticsEnabled == null
+      ? bool(env.AIO_V3_DIAGNOSTICS_ENABLED, this.diagnosticsUploader.enabled())
+      : bool(options.diagnosticsEnabled, false);
+    this.diagnosticsArchive = options.diagnosticsArchive || new ProblemDiagnosticsArchive({
+      now: this.now,
+      enabled: diagnosticsEnabled,
+      botId: options.diagnosticsBotId || env.AIO_V3_DIAGNOSTICS_BOT_ID || options.telemetryBotId || env.AIO_V3_DEBUG_TELEMETRY_BOT_ID,
+      spoolDir: options.diagnosticsSpoolDir || env.AIO_V3_DIAGNOSTICS_SPOOL_DIR,
+      eventLimit: options.diagnosticsEventLimit || env.AIO_V3_DIAGNOSTICS_EVENT_LIMIT,
+      dedupeMs: options.diagnosticsDedupeMs || env.AIO_V3_DIAGNOSTICS_DEDUPE_MS,
+      maxPendingFiles: options.diagnosticsMaxPendingFiles || env.AIO_V3_DIAGNOSTICS_MAX_PENDING_FILES,
+      maxPendingBytes: options.diagnosticsMaxPendingBytes || env.AIO_V3_DIAGNOSTICS_MAX_PENDING_BYTES,
+      uploader: this.diagnosticsUploader
+    });
+
     this.timer = null;
     this.tickInFlight = false;
     this.startedAt = null;
     this.lastTickResult = null;
     this.lastTickError = null;
     this.lastTelemetryResult = null;
-    this.stats = { starts: 0, stops: 0, ticks: 0, skippedOverlaps: 0, tickFailures: 0, telemetryTicks: 0 };
+    this.lastDiagnosticsResult = null;
+    this.stats = { starts: 0, stops: 0, ticks: 0, skippedOverlaps: 0, tickFailures: 0, telemetryTicks: 0, diagnosticsTicks: 0 };
   }
 
   configureRestart(config = {}) {
@@ -108,6 +148,26 @@ class ProductionHostHarness {
     return result;
   }
 
+  async _tickDiagnostics(tickResult = null, harnessError = null) {
+    if (!this.diagnosticsArchive || typeof this.diagnosticsArchive.tick !== 'function') return null;
+    this.stats.diagnosticsTicks += 1;
+    const launcher = this.launcher && typeof this.launcher.status === 'function' ? this.launcher.status() : {};
+    const controllerStatus = this.controller && typeof this.controller.status === 'function' ? this.controller.status() : {};
+    const watchdogState = tickResult && tickResult.watchdog && tickResult.watchdog.state
+      || tickResult && tickResult.status && tickResult.status.watchdog && tickResult.status.watchdog.state
+      || controllerStatus && controllerStatus.watchdog && controllerStatus.watchdog.state
+      || null;
+    const result = await this.diagnosticsArchive.tick(this.botClient, {
+      processRunning: launcher && launcher.running === true,
+      restartCount: launcher && launcher.stats && launcher.stats.restarts || 0,
+      harnessStartedAt: this.startedAt,
+      watchdogState,
+      harnessError
+    });
+    this.lastDiagnosticsResult = clone(result);
+    return result;
+  }
+
   async tick() {
     if (this.tickInFlight) {
       this.stats.skippedOverlaps += 1;
@@ -122,10 +182,17 @@ class ProductionHostHarness {
       try { await this._tickTelemetry(); } catch (error) {
         this.lastTelemetryResult = { sent: false, reason: 'DEBUG_TELEMETRY_ISOLATED_FAILURE', error: String(error && error.message || error).slice(0, 256) };
       }
+      try { await this._tickDiagnostics(result); } catch (error) {
+        this.lastDiagnosticsResult = { captured: false, reason: 'PROBLEM_DIAGNOSTICS_ISOLATED_FAILURE', error: String(error && error.message || error).slice(0, 256) };
+      }
       return result;
     } catch (error) {
       this.stats.tickFailures += 1;
-      this.lastTickError = { at: this.now(), message: String(error && error.message || error).slice(0, 256) };
+      const message = String(error && error.message || error).slice(0, 256);
+      this.lastTickError = { at: this.now(), message };
+      try { await this._tickDiagnostics(null, message); } catch (diagnosticsError) {
+        this.lastDiagnosticsResult = { captured: false, reason: 'PROBLEM_DIAGNOSTICS_ISOLATED_FAILURE', error: String(diagnosticsError && diagnosticsError.message || diagnosticsError).slice(0, 256) };
+      }
       return { error: clone(this.lastTickError) };
     } finally {
       this.tickInFlight = false;
@@ -158,6 +225,9 @@ class ProductionHostHarness {
   async stop(reason = 'HOST_HARNESS_STOP') {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.diagnosticsArchive && typeof this.diagnosticsArchive.flush === 'function') {
+      try { await this.diagnosticsArchive.flush(); } catch (_) {}
+    }
     const api = await this.api.stop();
     const processResult = await this.launcher.stop(reason);
     this.stats.stops += 1;
@@ -183,7 +253,9 @@ class ProductionHostHarness {
       api: this.api.status(),
       alertStore: this.alertStore && typeof this.alertStore.status === 'function' ? this.alertStore.status() : null,
       debugTelemetry: this.telemetryExporter && typeof this.telemetryExporter.status === 'function' ? this.telemetryExporter.status() : null,
+      problemDiagnostics: this.diagnosticsArchive && typeof this.diagnosticsArchive.status === 'function' ? this.diagnosticsArchive.status() : null,
       lastTelemetryResult: clone(this.lastTelemetryResult),
+      lastDiagnosticsResult: clone(this.lastDiagnosticsResult),
       lastTickError: clone(this.lastTickError),
       stats: { ...this.stats }
     };
