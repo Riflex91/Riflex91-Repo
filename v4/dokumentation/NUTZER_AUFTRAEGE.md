@@ -9,9 +9,33 @@ Freitext ist dabei ausschliesslich eine Eingabehilfe. Er wird niemals direkt aus
 
 ## Grundregel
 
-`Nutzereingabe -> strukturierter NutzerAuftrag -> AuftragsPruefung -> AuftragsPlan -> BedienSicherung -> Planung -> AktionsAnfragen`
+`Nutzereingabe -> AuftragsVorschlaege -> strukturierter NutzerAuftrag -> AuftragsPruefung -> AuftragsPlan -> BedienSicherung -> Planung -> AktionsAnfragen`
 
 Ein Nutzerauftrag kann keine Sicherheitsregel, RessourcenSperre, Dienstgrenze oder Schutzregel der Spiellogik umgehen.
+
+## Vorschlaege beim Tippen
+
+Das Eingabefeld `Was soll V4 erledigen?` zeigt bereits waehrend der Eingabe passende, aktuell verfuegbare Auftragsvorschlaege.
+
+Beispiele:
+
+- Eingabe `sam` -> Vorschlag `Sammeln`
+- Eingabe `her` -> Vorschlag `Herstellen`
+- Eingabe `bee` -> passende bekannte Gegenstaende wie `Bienenfluegel`
+- Eingabe `Sammle 200 b` -> bekannte Gegenstaende mit passendem Namen oder Suchwort
+
+Ein `AuftragsVorschlag` enthaelt mindestens:
+
+- einen verstaendlichen Anzeigetext
+- den Text, der in das Eingabefeld uebernommen werden kann
+- eine kurze Erklaerung
+- passende Suchwoerter
+- optional die erkannte Auftragsart
+- optional die eindeutige Gegenstandskennung
+
+Die Vorschlagsliste zeigt nur Funktionen und Gegenstaende, die V4 aktuell kennt. Ein nicht unterstuetzter Text darf keinen scheinbar gueltigen Vorschlag erzeugen.
+
+Die Vorschau ist nur eine Eingabehilfe. Das Anklicken eines Vorschlags startet niemals direkt einen Auftrag. Zuerst wird die strukturierte Auftragsmaske ausgefuellt und danach der Auftragsplan geprueft.
 
 ## Eindeutige Mengen
 
@@ -82,6 +106,8 @@ Jeder Zustandswechsel wird als strukturiertes Ereignis aufgezeichnet.
 Die Web-Oberflaeche soll spaeter mindestens anbieten:
 
 - `Neuen Auftrag erstellen`
+- Eingabefeld `Was soll V4 erledigen?`
+- Vorschlaege waehrend der Eingabe
 - `Sammeln`
 - `Herstellen`
 - Gegenstand ueber bekannte Gegenstandsliste auswaehlen
@@ -93,7 +119,7 @@ Die Web-Oberflaeche soll spaeter mindestens anbieten:
 - Auftrag fortsetzen
 - Auftrag abbrechen
 
-Die Oberflaeche kann zusaetzlich ein Freitextfeld wie `Was soll V4 erledigen?` anbieten. Das Ergebnis muss danach jedoch immer in die strukturierte Auftragsmaske uebernommen und sichtbar bestaetigt werden.
+Das Ergebnis einer Freitexteingabe wird immer in die strukturierte Auftragsmaske uebernommen und sichtbar bestaetigt.
 
 ## Vorrang und Sicherheit
 
@@ -137,6 +163,8 @@ oder:
 ## Unverhandelbare Regeln
 
 - Kein Freitext wird direkt ausgefuehrt.
+- Kein Vorschlag startet direkt eine veraendernde Aktion.
+- Kein unbekannter Befehl wird als verfuegbar dargestellt.
 - Kein unbekannter Gegenstand wird geraten.
 - Keine mehrdeutige Menge wird stillschweigend interpretiert.
 - Kein Auftrag umgeht die BedienSicherung.
