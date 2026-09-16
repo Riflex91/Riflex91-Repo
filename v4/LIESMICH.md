@@ -12,8 +12,10 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - Warnungen und Fehler erklären: Was ist passiert? Warum? Was hat der Bot getan? Muss der Nutzer handeln?
 - Laufzeit und Server-Plattform bleiben getrennt.
 - SFTP-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
+- E-Mail-Versandgeheimnisse fuer Tagesberichte existieren ausschliesslich serverseitig.
 - Reale Probleme werden als reproduzierbare Vorfälle mit Wiederholungsdaten gespeichert.
 - V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
+- Die Plattform kann spaeter automatisch einen Bericht ueber die vergangenen exakt 24 Stunden erstellen, in der Web-Oberflaeche speichern und optional per E-Mail versenden.
 
 ## Wichtige Dokumente
 
@@ -23,6 +25,7 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - `dokumentation/NAMEN_UND_MELDUNGEN.md` – deutsche Namens- und Meldungsregeln
 - `dokumentation/ENTWICKLUNGSABLAUF.md` – Weg vom Vorfall bis zum Pull Request
 - `dokumentation/SPEICHER_UND_WEB.md` – Web, Cloud und SFTP-Archiv
+- `dokumentation/TAGESBERICHT.md` – automatischer 24-Stunden-Bericht und Versandregeln
 - `dokumentation/TESTPLAN.md` – Teststufen bis zum 7-Tage-Dauertest
 
 ## Lokale Pruefung
