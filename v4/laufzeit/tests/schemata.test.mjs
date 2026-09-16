@@ -10,7 +10,8 @@ const schemaDateien = [
   'entwicklungs-aufgabe.schema.json',
   'tages-bericht.schema.json',
   'tages-bericht-einstellung.schema.json',
-  'dienst-profil.schema.json'
+  'dienst-profil.schema.json',
+  'bedien-anfrage.schema.json'
 ];
 
 for (const dateiname of schemaDateien) {
@@ -36,4 +37,11 @@ test('Dienstprofile verlangen Quelle, Gueltigkeit, Anbietermaximum und Sicherhei
   assert.ok(schema.required.includes('quelle'));
   assert.ok(schema.required.includes('gueltigBis'));
   assert.deepEqual(schema.properties.grenzen.items.required, ['kennung', 'einheit', 'zeitraum', 'anbieterMaximum', 'sicherheitsPuffer']);
+});
+
+test('Kritische BedienAnfragen brauchen einen vorgesehenen Bestaetigungstext', async () => {
+  const inhalt = await readFile(new URL('../../schemata/bedien-anfrage.schema.json', import.meta.url), 'utf8');
+  const schema = JSON.parse(inhalt);
+  assert.deepEqual(schema.properties.risiko.enum, ['unkritisch', 'vorsicht', 'kritisch']);
+  assert.deepEqual(schema.allOf[0].then.required, ['erforderlicherBestaetigungsText']);
 });
