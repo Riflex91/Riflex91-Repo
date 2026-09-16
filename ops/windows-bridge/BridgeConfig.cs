@@ -28,7 +28,7 @@ public sealed record BridgeConfig
 
     // Backblaze credentials are never stored in settings.json. Only the non-secret
     // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
-    public bool BackblazeEnabled { get; init; }
+    public bool BackblazeEnabled { get; init; } = true;
     public string BackblazeEndpoint { get; init; } = "https://s3.eu-central-003.backblazeb2.com";
     public string BackblazeRegion { get; init; } = "eu-central-003";
     public string BackblazeBucket { get; init; } = "al-aio-bot";
