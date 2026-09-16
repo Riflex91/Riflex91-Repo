@@ -19,6 +19,19 @@ export type {
   TagesBerichtVorfall
 } from './vertraege/tages-bericht.js';
 export { BERICHTS_VERSAND_ARTEN } from './vertraege/tages-bericht.js';
+export type {
+  DienstAnfrage,
+  DienstGrenze,
+  DienstProfil,
+  KontingentEinheit,
+  KontingentEntscheidung,
+  KontingentSchutzstufe,
+  KontingentZeitraum,
+  VerbrauchsReservierung,
+  VerbrauchsStand
+} from './vertraege/dienst-kontingent.js';
+export { KONTINGENT_EINHEITEN, KONTINGENT_SCHUTZSTUFEN, KONTINGENT_ZEITRAEUME } from './vertraege/dienst-kontingent.js';
 export { EreignisZentrale } from './kern/ereignis-zentrale.js';
 export { AktionsAuswahl } from './kern/aktions-auswahl.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
+export { KontingentWaechter } from './kern/kontingent-waechter.js';
