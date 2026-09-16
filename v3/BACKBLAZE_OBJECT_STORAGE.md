@@ -47,17 +47,21 @@ Explizite Testbereinigung:
 await AIO_V3.objectStorage.selfTest({ cleanup: true })
 ```
 
-Vor der expliziten Bereinigung wartet der Selbsttest mindestens eine Sekunde zwischen Upload und DELETE.
+Die Bereinigung ist bewusst versionsgenau: Der Adapter übernimmt die von Backblaze zurückgegebene `x-amz-version-id` und löscht exakt diese hochgeladene Version. Ein namenbasiertes DELETE ohne `versionId` wird nicht als Laufzeit-API angeboten, weil Backblaze dabei nur einen Delete Marker anlegt und die gespeicherten Dateiversionen erhalten bleiben.
+
+Vor der expliziten Bereinigung wartet der Selbsttest mindestens eine Sekunde zwischen Upload und DELETE. Wenn Backblaze dem Browser keine Version-ID bereitstellt, verweigert der Selbsttest die Bereinigung anstatt einen namenbasierten Delete Marker zu erzeugen.
 
 Ein eigener Upload wird nach dem PUT automatisch per HEAD verifiziert:
 
 ```js
-await AIO_V3.objectStorage.put(
+const result = await AIO_V3.objectStorage.put(
   'raw/test.json',
   JSON.stringify({ hello: 'world' }),
   { contentType: 'application/json' }
 )
 ```
+
+Das Ergebnis enthält bei Backblaze zusätzlich die `versionId`, sofern der Header für den Browser sichtbar ist.
 
 HEAD eines vorhandenen Objekts:
 
@@ -65,20 +69,21 @@ HEAD eines vorhandenen Objekts:
 await AIO_V3.objectStorage.head('raw/test.json')
 ```
 
-DELETE ist absichtlich zweistufig und funktioniert nur mit der expliziten Bestätigung:
+Eine bestimmte Version kann nur mit Version-ID und expliziter Bestätigung dauerhaft gelöscht werden:
 
 ```js
-await AIO_V3.objectStorage.deleteExplicit(
+await AIO_V3.objectStorage.deleteVersionExplicit(
   'raw/test.json',
+  result.versionId,
   AIO_V3.objectStorage.deleteConfirmation
 )
 ```
 
-Es gibt keinen Hintergrund-Cleanup und keinen automatischen DELETE-Aufruf.
+Es gibt keinen Hintergrund-Cleanup, keinen namenbasierten Delete-Marker-Aufruf und keinen automatischen DELETE-Aufruf.
 
 ## Backblaze Application Key
 
-Für normalen Upload + HEAD-Prüfung benötigt der bucket-begrenzte Application Key mindestens `writeFiles` und `readFiles` auf dem verwendeten Präfix. Für den optionalen DELETE-Selbsttest wird zusätzlich `deleteFiles` benötigt.
+Für normalen Upload + HEAD-Prüfung benötigt der bucket-begrenzte Application Key mindestens `writeFiles` und `readFiles` auf dem verwendeten Präfix. Für eine dauerhafte, versionsgenaue Löschung wird zusätzlich `deleteFiles` benötigt.
 
 Empfohlen:
 
@@ -89,6 +94,8 @@ Empfohlen:
 - `writeFiles` für PUT
 - `readFiles` für HEAD und die dauerhafte Upload-Verifikation
 - `deleteFiles` nur dann freigeben, wenn die explizite Testbereinigung oder spätere kontrollierte Speicherfreigabe wirklich benötigt wird
+
+Da der Selbsttest mit Bereinigung zuerst hochlädt und anschließend genau diese Version löscht, braucht ein dafür verwendeter Key `writeFiles`, `readFiles` und `deleteFiles`.
 
 ## CORS für Browserzugriff
 
@@ -122,6 +129,8 @@ Wenn der Browser die Anfrage bereits beim Preflight blockiert, meldet der Adapte
 
 Wenn `x-amz-meta-aio-sha256` beim HEAD nicht für den Browser sichtbar ist, bricht die Standard-Verifikation mit `OBJECT_STORAGE_VERIFY_HASH_NOT_EXPOSED` ab. Damit wird ein Upload nicht fälschlich als vollständig verifiziert markiert.
 
+Für die optionale permanente Testbereinigung muss außerdem `x-amz-version-id` sichtbar sein. Fehlt dieser Header, bleibt das bereits verifizierte Testobjekt erhalten und der Adapter meldet `OBJECT_STORAGE_CLEANUP_VERSION_ID_REQUIRED`.
+
 ## Bewusste Nicht-Ziele dieses Schritts
 
 Noch nicht enthalten:
@@ -133,4 +142,4 @@ Noch nicht enthalten:
 - Speicher-Lern-Zyklus
 - automatische CORS-Konfiguration des Buckets
 
-Der nächste Replay-Schritt kann auf `AIO_V3.objectStorage.put(...)` aufbauen und darf lokale Daten erst nach erfolgreichem `verified=true` als dauerhaft archiviert behandeln.
+Der nächste Replay-Schritt kann auf `AIO_V3.objectStorage.put(...)` aufbauen und darf lokale Daten erst nach erfolgreichem `verified=true` als dauerhaft archiviert behandeln. Eine spätere Speicherfreigabe muss die konkrete `versionId` des archivierten Objekts mitführen, damit nur die beabsichtigte Version dauerhaft gelöscht werden kann.
