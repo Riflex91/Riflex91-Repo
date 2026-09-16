@@ -6,11 +6,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1108 Zeilen**
+**6 Dateien · 1115 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/index-production.js` | 69 |
+| `src/index-production.js` | 76 |
 | `src/index.js` | 384 |
 | `src/production-live-services.js` | 159 |
 | `src/release-version.js` | 5 |
@@ -209,7 +209,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**67 Dateien · 14866 Zeilen**
+**68 Dateien · 15150 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -265,6 +265,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/farmer-terrain-navigation-hotfix.js` | 496 |
 | `src/reliability/farmer-travel-safety-hotfix.js` | 138 |
 | `src/reliability/integrated-party-control.js` | 90 |
+| `src/reliability/live-farmer-merchant-recovery.js` | 284 |
 | `src/reliability/live-navigation-hotfix.js` | 211 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 161 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
