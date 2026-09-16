@@ -199,7 +199,7 @@ export class Scheduler<Context = unknown> {
     const state = result.state ?? 'running';
     const reason = result.reason ?? null;
 
-    if (state === 'waiting' && result.stable === true) {
+    if (result.state === 'waiting' && result.stable === true) {
       const enteringStableWait = !task.stableWait || task.reason !== reason;
       task.state = 'waiting';
       task.reason = reason ?? 'STABLE_WAIT';
