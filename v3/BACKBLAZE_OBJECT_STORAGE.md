@@ -78,7 +78,7 @@ Es gibt keinen Hintergrund-Cleanup und keinen automatischen DELETE-Aufruf.
 
 ## Backblaze Application Key
 
-Für normalen Upload + HEAD-Prüfung benötigt der bucket-begrenzte Application Key mindestens Schreib- und Leserechte auf dem verwendeten Präfix. Für den optionalen DELETE-Selbsttest werden zusätzlich Löschrechte benötigt.
+Für normalen Upload + HEAD-Prüfung benötigt der bucket-begrenzte Application Key mindestens `writeFiles` und `readFiles` auf dem verwendeten Präfix. Für den optionalen DELETE-Selbsttest wird zusätzlich `deleteFiles` benötigt.
 
 Empfohlen:
 
@@ -86,8 +86,9 @@ Empfohlen:
 - Präfix: `v4`
 - kein Master Key
 - Key auf diesen Bucket und nach Möglichkeit auf das Präfix `v4/` begrenzen
-- Read + Write für PUT und HEAD
-- Delete nur dann freigeben, wenn die explizite Testbereinigung oder spätere kontrollierte Speicherfreigabe wirklich benötigt wird
+- `writeFiles` für PUT
+- `readFiles` für HEAD und die dauerhafte Upload-Verifikation
+- `deleteFiles` nur dann freigeben, wenn die explizite Testbereinigung oder spätere kontrollierte Speicherfreigabe wirklich benötigt wird
 
 ## CORS für Browserzugriff
 
