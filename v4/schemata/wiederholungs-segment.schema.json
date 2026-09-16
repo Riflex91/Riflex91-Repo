@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/wiederholungs-segment.schema.json",
+  "title": "V4 Wiederholungssegment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "segmentKennung", "sitzungKennung", "erstelltAm", "zeitraumStart", "zeitraumEnde", "sequenzStart", "sequenzEnde", "ereignisAnzahl", "groesseBytes", "sha256", "inhalt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "segmentKennung": { "type": "string", "minLength": 1 },
+    "sitzungKennung": { "type": "string", "minLength": 1 },
+    "erstelltAm": { "type": "number", "minimum": 0 },
+    "zeitraumStart": { "type": "number", "minimum": 0 },
+    "zeitraumEnde": { "type": "number", "minimum": 0 },
+    "sequenzStart": { "type": "integer", "minimum": 1 },
+    "sequenzEnde": { "type": "integer", "minimum": 1 },
+    "ereignisAnzahl": { "type": "integer", "minimum": 1 },
+    "groesseBytes": { "type": "integer", "minimum": 1 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "inhalt": { "type": "string", "minLength": 1 }
+  }
+}
