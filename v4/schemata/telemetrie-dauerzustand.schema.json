@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/telemetrie-dauerzustand.schema.json",
+  "title": "V4 Telemetrie-Dauerzustand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gespeichertAm", "laufzeitAbschnitte", "leistungsZaehler", "dienstVerbrauch", "wiederholungsSegmente", "vorfallPakete"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "gespeichertAm": { "type": "number", "minimum": 0 },
+    "laufzeitAbschnitte": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "kennung", "start", "ende"],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "kennung": { "type": "string", "minLength": 1 },
+          "start": { "type": "number", "minimum": 0 },
+          "ende": { "type": "number", "minimum": 0 },
+          "charakterName": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "leistungsZaehler": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "kennung", "zeitpunkt", "erfahrungGewonnen", "goldGewonnen", "tode", "rueckzuege", "verbindungsAbbrueche", "neustarts", "automatischBehoben", "ungefangeneFehler"],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "kennung": { "type": "string", "minLength": 1 },
+          "zeitpunkt": { "type": "number", "minimum": 0 },
+          "charakterName": { "type": "string", "minLength": 1 },
+          "erfahrungGewonnen": { "type": "number", "minimum": 0 },
+          "goldGewonnen": { "type": "number", "minimum": 0 },
+          "tode": { "type": "number", "minimum": 0 },
+          "rueckzuege": { "type": "number", "minimum": 0 },
+          "verbindungsAbbrueche": { "type": "number", "minimum": 0 },
+          "neustarts": { "type": "number", "minimum": 0 },
+          "automatischBehoben": { "type": "number", "minimum": 0 },
+          "ungefangeneFehler": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "dienstVerbrauch": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "kennung", "zeitpunkt", "dienstKennung", "grenzeKennung", "fensterKennung", "vorgangKennung", "lokalReserviert", "vomAnbieterGemeldet", "schutzstufe", "erlaubt", "grund"],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "kennung": { "type": "string", "minLength": 1 },
+          "zeitpunkt": { "type": "number", "minimum": 0 },
+          "dienstKennung": { "type": "string", "minLength": 1 },
+          "grenzeKennung": { "type": "string", "minLength": 1 },
+          "fensterKennung": { "type": "string", "minLength": 1 },
+          "vorgangKennung": { "type": "string", "minLength": 1 },
+          "lokalReserviert": { "type": "number", "minimum": 0 },
+          "vomAnbieterGemeldet": { "type": "number", "minimum": 0 },
+          "schutzstufe": { "enum": ["normal", "beobachten", "sparen", "blockiert"] },
+          "erlaubt": { "type": "boolean" },
+          "grund": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "wiederholungsSegmente": { "type": "array", "items": { "$ref": "https://aio-v4.invalid/schemata/wiederholungs-segment.schema.json" } },
+    "vorfallPakete": { "type": "array", "items": { "$ref": "https://aio-v4.invalid/schemata/vorfall-paket.schema.json" } }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aio-v4.invalid/schemata/vorfall-paket.schema.json",
+  "title": "V4 Vorfallpaket",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "paketKennung", "vorfall", "erstelltAm", "abgeschlossenAm", "ereignisseVorher", "ereignisseNachher", "gekuerzt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "paketKennung": { "type": "string", "minLength": 1 },
+    "vorfall": { "$ref": "https://aio-v4.invalid/schemata/vorfall.schema.json" },
+    "erstelltAm": { "type": "number", "minimum": 0 },
+    "abgeschlossenAm": { "type": "number", "minimum": 0 },
+    "ereignisseVorher": { "type": "array", "items": { "$ref": "https://aio-v4.invalid/schemata/bot-ereignis.schema.json" } },
+    "ereignisseNachher": { "type": "array", "items": { "$ref": "https://aio-v4.invalid/schemata/bot-ereignis.schema.json" } },
+    "gekuerzt": { "type": "boolean" }
+  }
+}
