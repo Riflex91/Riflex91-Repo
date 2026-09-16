@@ -37,6 +37,8 @@ Die Vorschlagsliste zeigt nur Funktionen und Gegenstaende, die V4 aktuell kennt.
 
 Die Vorschau ist nur eine Eingabehilfe. Das Anklicken eines Vorschlags startet niemals direkt einen Auftrag. Zuerst wird die strukturierte Auftragsmaske ausgefuellt und danach der Auftragsplan geprueft.
 
+Die Vorschlagsliste ist eine feste Bedienfunktion von V4 und kein optionaler Komfortzusatz. Neue Auftragsarten sollen erst dann in der Vorschau erscheinen, wenn ihre Vertrage, Pruefungen und benoetigte Spiellogik vorhanden sind.
+
 ## Eindeutige Mengen
 
 Die Eingabe `Sammle 200 Bienenfluegel` ist ohne weitere Festlegung mehrdeutig. Deshalb muss V4 vor dem Start eindeutig zwischen zwei Zielarten unterscheiden:
