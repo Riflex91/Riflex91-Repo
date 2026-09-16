@@ -85,6 +85,7 @@ test('world selectors derive stable combat inputs from canonical state', () => {
 
 function observation(sequence: number, entities: readonly EntityObservation[]): WorldObservation {
   return {
+    schemaVersion: 1,
     sequence,
     observedAt: 1_000 + sequence,
     self: {
