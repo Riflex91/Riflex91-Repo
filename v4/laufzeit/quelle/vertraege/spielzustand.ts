@@ -143,6 +143,7 @@ export interface BeobachtetesWissen {
   readonly monster: WissensWert<readonly SichtbaresObjektZustand[]>;
   readonly spieler: WissensWert<readonly SichtbaresObjektZustand[]>;
   readonly npcs: WissensWert<readonly SichtbaresObjektZustand[]>;
+  readonly sonstigeObjekte: WissensWert<readonly SichtbaresObjektZustand[]>;
   readonly karte: WissensWert<KartenZustand>;
 }
 
