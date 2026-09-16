@@ -143,7 +143,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**25 Dateien · 6906 Zeilen**
+**26 Dateien · 7223 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -161,6 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/group-liveness.js` | 164 |
 | `src/ops/headless-operations.js` | 437 |
 | `src/ops/host-watchdog-beacon.js` | 98 |
+| `src/ops/live-recovery-log-validator.js` | 317 |
 | `src/ops/minute-countdown-reporter.js` | 56 |
 | `src/ops/object-storage-s3.js` | 491 |
 | `src/ops/operator-run-control.js` | 219 |

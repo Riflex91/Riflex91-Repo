@@ -23,6 +23,7 @@ Diese Datei inventarisiert statisch sichtbare Konfigurationsoberflächen. Sie er
 | `test` | `node --test test/*.test.js` |
 | `test:properties` | `node --test test/logic-guardian-property.test.js` |
 | `typecheck:logic` | `tsc -p tsconfig.logic.json` |
+| `validate:live-recovery` | `node scripts/validate-live-recovery-logs.js` |
 | `version:check` | `node scripts/release-guardian.js --version-only` |
 
 ## Erkannte Umgebungsvariablen
