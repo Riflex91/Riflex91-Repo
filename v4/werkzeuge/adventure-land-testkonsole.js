@@ -4,7 +4,7 @@
   const KONSOLE_ID = 'v4-adventure-land-testkonsole';
   const STIL_ID = 'v4-adventure-land-testkonsole-stil';
   const API_NAME = 'V4Testkonsole';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const MAX_AUSGABEN = 100;
   const MAX_OBJEKT_TIEFE = 7;
   const MAX_OBJEKT_EINTRAEGE = 4000;
@@ -74,10 +74,6 @@
         };
       }
 
-      if (typeof Node !== 'undefined' && innererWert instanceof Node) {
-        return `[DOM ${innererWert.nodeName ?? 'Node'}]`;
-      }
-
       if (gesehen.has(innererWert)) return '[Zirkulaere Referenz]';
       if (tiefe >= MAX_OBJEKT_TIEFE) return '[Maximale Tiefe erreicht]';
       if (eintraege >= MAX_OBJEKT_EINTRAEGE) return '[Maximale Eintragszahl erreicht]';
@@ -110,9 +106,7 @@
         return ergebnis;
       }
 
-      if (innererWert instanceof Set) {
-        return wandel(Array.from(innererWert), tiefe + 1);
-      }
+      if (innererWert instanceof Set) return wandel(Array.from(innererWert), tiefe + 1);
 
       const ergebnis = {};
       let schluessel = [];
@@ -145,93 +139,166 @@
     }
 
     try {
-      const normalisiert = wandel(wert, 0);
-      return begrenzeText(JSON.stringify(normalisiert, null, 2));
+      return begrenzeText(JSON.stringify(wandel(wert, 0), null, 2));
     } catch (fehler) {
       return begrenzeText(String(fehler));
     }
   }
 
-  function erstelleBlock2Rohdaten() {
-    const charakter = holeSpielWert('character');
-    const entities = holeSpielWert('entities') ?? {};
-    const gruppe = holeSpielWert('party');
-    const spielDaten = holeSpielWert('G');
-    const karte = charakter?.map;
+  function leseFelder(objekt, feldNamen) {
+    if (!objekt || typeof objekt !== 'object') return null;
+    const ergebnis = {};
+    for (const name of feldNamen) {
+      try {
+        if (name in objekt) ergebnis[name] = objekt[name] ?? null;
+      } catch (fehler) {
+        ergebnis[name] = `[Lesefehler: ${fehler instanceof Error ? fehler.message : String(fehler)}]`;
+      }
+    }
+    return ergebnis;
+  }
 
+  function fasseGegenstandZusammen(gegenstand, platz = null) {
+    if (gegenstand === null || gegenstand === undefined) {
+      return platz === null ? null : { platz, leer: true };
+    }
+    const ergebnis = leseFelder(gegenstand, [
+      'name', 'q', 'level', 'p', 'locked', 'l', 'rid', 'expires', 'stat_type'
+    ]) ?? {};
+    if (platz !== null) ergebnis.platz = platz;
+    return ergebnis;
+  }
+
+  function erstelleInventarAnsicht() {
+    const charakter = holeSpielWert('character');
+    const items = Array.isArray(charakter?.items) ? charakter.items : [];
+    return {
+      plaetze: items.length,
+      belegt: items.reduce((summe, item) => summe + (item ? 1 : 0), 0),
+      gegenstaende: items.map((item, platz) => fasseGegenstandZusammen(item, platz))
+    };
+  }
+
+  function erstelleCharakterAnsicht() {
+    const charakter = holeSpielWert('character');
+    if (!charakter) return null;
+
+    const kern = leseFelder(charakter, [
+      'id', 'name', 'ctype', 'level',
+      'hp', 'max_hp', 'mp', 'max_mp',
+      'xp', 'max_xp', 'gold',
+      'attack', 'frequency', 'speed', 'range', 'armor', 'resistance',
+      'map', 'in', 'x', 'y', 'real_x', 'real_y',
+      'moving', 'target', 'rip', 'stand'
+    ]) ?? {};
+
+    return {
+      ...kern,
+      inventar: {
+        plaetze: Array.isArray(charakter.items) ? charakter.items.length : null,
+        belegt: Array.isArray(charakter.items)
+          ? charakter.items.reduce((summe, item) => summe + (item ? 1 : 0), 0)
+          : null
+      },
+      ausruestung: charakter.slots
+        ? Object.fromEntries(Object.entries(charakter.slots).map(([platz, item]) => [platz, fasseGegenstandZusammen(item)]))
+        : null
+    };
+  }
+
+  function erstelleEntityAnsicht(entity, idFallback = null) {
+    if (!entity || typeof entity !== 'object') return null;
+    const ergebnis = leseFelder(entity, [
+      'id', 'name', 'type', 'mtype', 'ctype', 'npc', 'owner',
+      'level', 'hp', 'max_hp', 'mp', 'max_mp',
+      'attack', 'frequency', 'speed', 'range', 'armor', 'resistance',
+      'map', 'in', 'x', 'y', 'real_x', 'real_y',
+      'moving', 'target', 'rip', 'dead', 'party', 'cooperative'
+    ]) ?? {};
+    if (!('id' in ergebnis) && idFallback !== null) ergebnis.id = idFallback;
+    return ergebnis;
+  }
+
+  function erstelleEntitiesAnsicht(nurMonster = false) {
+    const entities = holeSpielWert('entities') ?? {};
+    const ergebnis = [];
+
+    for (const [id, entity] of Object.entries(entities)) {
+      if (!entity || typeof entity !== 'object') continue;
+      if (nurMonster && entity.type !== 'monster') continue;
+      ergebnis.push(erstelleEntityAnsicht(entity, id));
+    }
+
+    ergebnis.sort((a, b) => String(a?.id ?? '').localeCompare(String(b?.id ?? '')));
+    return {
+      anzahl: ergebnis.length,
+      entities: ergebnis
+    };
+  }
+
+  function erstelleGruppenAnsicht() {
+    const gruppe = holeSpielWert('party');
+    if (!gruppe || typeof gruppe !== 'object') return gruppe ?? null;
+    const ergebnis = {};
+    for (const [name, mitglied] of Object.entries(gruppe)) {
+      ergebnis[name] = leseFelder(mitglied, [
+        'name', 'type', 'skin', 'level', 'hp', 'max_hp', 'mp', 'max_mp',
+        'x', 'y', 'map', 'in'
+      ]) ?? mitglied;
+    }
+    return ergebnis;
+  }
+
+  function erstelleKartenAnsicht() {
+    const charakter = holeSpielWert('character');
+    const spielDaten = holeSpielWert('G');
+    const kartenKennung = charakter?.map ?? null;
+    const kartenDaten = kartenKennung && spielDaten?.maps ? spielDaten.maps[kartenKennung] : null;
+
+    return {
+      kennung: kartenKennung,
+      position: {
+        x: charakter?.x ?? null,
+        y: charakter?.y ?? null,
+        real_x: charakter?.real_x ?? null,
+        real_y: charakter?.real_y ?? null
+      },
+      daten: leseFelder(kartenDaten, [
+        'name', 'zone', 'safe', 'pvp', 'instance', 'ignore', 'monsters', 'spawns', 'doors', 'npcs'
+      ])
+    };
+  }
+
+  function erstelleBlock2Rohdaten() {
     return {
       erfasstAm: new Date().toISOString(),
       server: {
         region: holeSpielWert('server_region') ?? null,
         kennung: holeSpielWert('server_identifier') ?? null
       },
-      charakter: charakter ?? null,
-      gruppe: gruppe ?? null,
-      entities,
-      karte: {
-        kennung: karte ?? null,
-        x: charakter?.x ?? null,
-        y: charakter?.y ?? null,
-        daten: karte && spielDaten?.maps ? spielDaten.maps[karte] ?? null : null
-      }
+      charakter: erstelleCharakterAnsicht(),
+      inventar: erstelleInventarAnsicht(),
+      gruppe: erstelleGruppenAnsicht(),
+      entities: erstelleEntitiesAnsicht(false),
+      monster: erstelleEntitiesAnsicht(true),
+      karte: erstelleKartenAnsicht()
     };
   }
 
   const schnelltests = [
-    {
-      kennung: 'charakter',
-      titel: 'Charakter',
-      lesen: () => holeSpielWert('character')
-    },
-    {
-      kennung: 'inventar',
-      titel: 'Inventar',
-      lesen: () => holeSpielWert('character')?.items ?? null
-    },
-    {
-      kennung: 'entities',
-      titel: 'Entities',
-      lesen: () => holeSpielWert('entities') ?? null
-    },
-    {
-      kennung: 'monster',
-      titel: 'Monster',
-      lesen: () => {
-        const entities = holeSpielWert('entities') ?? {};
-        return Object.fromEntries(Object.entries(entities).filter(([, entity]) => entity?.type === 'monster'));
-      }
-    },
-    {
-      kennung: 'gruppe',
-      titel: 'Gruppe',
-      lesen: () => holeSpielWert('party') ?? null
-    },
-    {
-      kennung: 'karte',
-      titel: 'Map',
-      lesen: () => {
-        const charakter = holeSpielWert('character');
-        const spielDaten = holeSpielWert('G');
-        const karte = charakter?.map;
-        return {
-          kennung: karte ?? null,
-          x: charakter?.x ?? null,
-          y: charakter?.y ?? null,
-          daten: karte && spielDaten?.maps ? spielDaten.maps[karte] ?? null : null
-        };
-      }
-    },
-    {
-      kennung: 'block2',
-      titel: 'Block-2-Rohdaten',
-      lesen: erstelleBlock2Rohdaten
-    }
+    { kennung: 'charakter', titel: 'Charakter', lesen: erstelleCharakterAnsicht },
+    { kennung: 'inventar', titel: 'Inventar', lesen: erstelleInventarAnsicht },
+    { kennung: 'entities', titel: 'Entities', lesen: () => erstelleEntitiesAnsicht(false) },
+    { kennung: 'monster', titel: 'Monster', lesen: () => erstelleEntitiesAnsicht(true) },
+    { kennung: 'gruppe', titel: 'Gruppe', lesen: erstelleGruppenAnsicht },
+    { kennung: 'karte', titel: 'Map', lesen: erstelleKartenAnsicht },
+    { kennung: 'block2', titel: 'Block-2-Rohdaten', lesen: erstelleBlock2Rohdaten }
   ];
 
   const spielDokument = holeSpielDokument();
   const bestehend = spielDokument.getElementById(KONSOLE_ID);
   if (bestehend) {
-    bestehend.style.display = 'block';
+    bestehend.style.display = 'flex';
     bestehend.querySelector('textarea')?.focus();
     return;
   }
@@ -272,7 +339,6 @@
         padding: 9px 10px;
         border-bottom: 1px solid rgba(255,255,255,.12);
         background: rgba(255,255,255,.04);
-        cursor: default;
       }
       #${KONSOLE_ID} .v4tk-titel { font-weight: 700; }
       #${KONSOLE_ID} .v4tk-version { opacity: .65; font-size: 11px; margin-left: 6px; }
@@ -362,7 +428,14 @@
         background: rgba(255,255,255,.05);
         font-size: 11px;
       }
-      #${KONSOLE_ID} .v4tk-ausgabe-titel { font-weight: 700; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #${KONSOLE_ID} .v4tk-ausgabe-titel {
+        font-weight: 700;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       #${KONSOLE_ID} .v4tk-ausgabe-status { opacity: .7; }
       #${KONSOLE_ID} .v4tk-ausgabe-kopf button { min-height: 25px; padding: 2px 7px; font-size: 11px; }
       #${KONSOLE_ID} pre {
@@ -396,14 +469,14 @@
       </div>
     </div>
     <div class="v4tk-inhalt">
-      <div class="v4tk-hinweis"><strong>Schnelltests sind read-only.</strong> Freies JavaScript kann dagegen Spielzustand veraendern und wird nur bewusst manuell ausgefuehrt.</div>
+      <div class="v4tk-hinweis"><strong>Schnelltests sind read-only und kompakt.</strong> Freies JavaScript kann Spielzustand veraendern und Rohobjekte sehr gross ausgeben.</div>
       <div class="v4tk-schnelltests" aria-label="Read-only Schnelltests"></div>
       <div class="v4tk-eingabe">
-        <textarea spellcheck="false" aria-label="JavaScript-Befehl" placeholder="JavaScript eingeben, z. B. character oder console.log(character.hp)"></textarea>
+        <textarea spellcheck="false" aria-label="JavaScript-Befehl" placeholder="JavaScript eingeben, z. B. character.hp oder console.log(character.hp)"></textarea>
         <div class="v4tk-werkzeugleiste">
           <button type="button" class="primaer" data-aktion="ausfuehren">Ausfuehren</button>
           <button type="button" data-aktion="verlauf-zurueck" title="Vorheriger Befehl">↑</button>
-          <button type="button" data-aktion="verlauf-vor">↓</button>
+          <button type="button" data-aktion="verlauf-vor" title="Naechster Befehl">↓</button>
           <button type="button" data-aktion="letzte-kopieren">Letzte kopieren</button>
           <button type="button" data-aktion="alles-kopieren">Alles kopieren</button>
           <button type="button" data-aktion="leeren">Leeren</button>
@@ -413,7 +486,6 @@
       <div class="v4tk-ausgaben" aria-live="polite"><div class="v4tk-leer">Noch keine Ausgabe.</div></div>
     </div>
   `;
-
   spielDokument.body.appendChild(wurzel);
 
   const eingabe = wurzel.querySelector('textarea');
@@ -472,14 +544,8 @@
   }
 
   function fuegeAusgabeHinzu({ titel, text, fehler = false, zeitpunkt = new Date() }) {
-    const eintrag = {
-      titel,
-      text: begrenzeText(text),
-      fehler,
-      zeitpunkt
-    };
+    const eintrag = { titel, text: begrenzeText(text), fehler, zeitpunkt };
     ausgaben.push(eintrag);
-
     while (ausgaben.length > MAX_AUSGABEN) ausgaben.shift();
 
     const artikel = spielDokument.createElement('article');
@@ -526,10 +592,13 @@
 
   function fuehreSchnelltestAus(test) {
     try {
-      const wert = test.lesen();
-      fuegeAusgabeHinzu({ titel: `${test.titel} [read-only]`, text: sichereDarstellung(wert) });
+      fuegeAusgabeHinzu({ titel: `${test.titel} [read-only]`, text: sichereDarstellung(test.lesen()) });
     } catch (fehler) {
-      fuegeAusgabeHinzu({ titel: `${test.titel} [read-only]`, text: sichereDarstellung(fehler), fehler: true });
+      fuegeAusgabeHinzu({
+        titel: `${test.titel} [read-only]`,
+        text: sichereDarstellung(fehler),
+        fehler: true
+      });
     }
   }
 
@@ -583,7 +652,11 @@
       fuegeAusgabeHinzu({ titel: `${code} (${dauer} ms)`, text });
     } catch (fehler) {
       const dauer = Math.round((performance.now() - start) * 10) / 10;
-      fuegeAusgabeHinzu({ titel: `${code} (${dauer} ms)`, text: sichereDarstellung(fehler), fehler: true });
+      fuegeAusgabeHinzu({
+        titel: `${code} (${dauer} ms)`,
+        text: sichereDarstellung(fehler),
+        fehler: true
+      });
     }
   }
 
@@ -669,6 +742,12 @@
     ausgeben(wert, titel = 'Externe Ausgabe') {
       return fuegeAusgabeHinzu({ titel, text: sichereDarstellung(wert) });
     },
+    charakter() {
+      return erstelleCharakterAnsicht();
+    },
+    entities() {
+      return erstelleEntitiesAnsicht(false);
+    },
     block2Rohdaten() {
       return erstelleBlock2Rohdaten();
     },
@@ -681,15 +760,14 @@
 
   try {
     globalThis[API_NAME] = api;
-    const spielFenster = holeSpielFenster();
-    spielFenster[API_NAME] = api;
+    holeSpielFenster()[API_NAME] = api;
   } catch {
     // Die GUI bleibt auch ohne globale API nutzbar.
   }
 
   fuegeAusgabeHinzu({
     titel: 'Testkonsole bereit',
-    text: 'Die read-only Schnelltests koennen sofort verwendet werden. Freies JavaScript wird nur nach Klick auf „Ausfuehren“ gestartet.'
+    text: 'Version 1.1.0: Schnelltests geben kompakte Adventure-Land-Daten aus und vermeiden PIXI-/Render-Interna.'
   });
   eingabe.focus();
 })();
