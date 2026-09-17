@@ -79,6 +79,7 @@ test('visible leader coordinates outrank stale party coordinates', () => {
 test('each separated follower can smart-regroup independently and retarget a moving leader', () => {
   let now = 1000;
   const commands = [];
+  const supersedes = [];
   const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
   const teamController = {
     followRadius: 60,
@@ -96,7 +97,8 @@ test('each separated follower can smart-regroup independently and retarget a mov
     adapter: {
       mode: 'active',
       getGameData: () => ({ maps: { main: {} } }),
-      command(action, args) { commands.push({ action, args }); return { executed: true }; }
+      command(action, args) { commands.push({ action, args }); return { executed: true }; },
+      supersedeMovement(reason) { supersedes.push(reason); return true; }
     }
   };
   const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { regroupTriggerDistance: 120, regroupRetargetMs: 1000, regroupRetargetDistance: 30 });
@@ -120,6 +122,134 @@ test('each separated follower can smart-regroup independently and retarget a mov
   assert.equal(commands.at(-1).action, 'smart_move');
   assert.equal(commands.at(-1).args[0].x, 380);
   assert.equal(hotfix.stats.followerSmartRetargets, 1);
+  assert.equal(supersedes.length, 1);
+  assert.match(supersedes[0], /LEADER_POSITION_REFRESH/);
+});
+
+test('active follower smart regroup yields immediately to combat or emergency safety ownership', () => {
+  const commands = [];
+  const supersedes = [];
+  const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
+  const teamController = {
+    followRadius: 60,
+    cohesionRadius: 150,
+    _member(_snapshot, name) { return { name, map: 'main', x: 0, y: 0 }; },
+    _visiblePlayer() { return null; },
+    _followLeader() { throw new Error('base follow must not reclaim movement in the safety-preemption tick'); }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: quietLog(),
+    farmer: { state: 'ASSESS', targetId: null },
+    teamCombatCohesionHotfix: teamController,
+    adapter: {
+      mode: 'active',
+      getGameData: () => ({ maps: { main: {} } }),
+      command(action, args) { commands.push({ action, args }); return { executed: true }; },
+      supersedeMovement(reason) { supersedes.push(reason); return true; }
+    }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { regroupTriggerDistance: 120 });
+  const context = { snapshot: { character: root.character, entities: [] }, adapter: runtime.adapter };
+  const team = {
+    selfName: 'My_Ranger3', leaderName: 'My_Ranger1',
+    self: { name: 'My_Ranger3', map: 'main', x: 0, y: 0 },
+    leader: { name: 'My_Ranger1', map: 'main', x: 300, y: 0 },
+    sameMap: true, positionsKnown: true, cohesive: false
+  };
+
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.ok(hotfix.followerSmartMove);
+  runtime.pendingEmergencyRetreat = { reason: 'LOW_HP' };
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.equal(hotfix.followerSmartMove, null);
+  assert.deepEqual(commands.map((row) => row.action), ['smart_move', 'stop']);
+  assert.equal(supersedes.length, 1);
+  assert.match(supersedes[0], /COMBAT_OR_SAFETY_PREEMPTION/);
+  assert.equal(hotfix.stats.followerSmartSafetyPreemptions, 1);
+});
+
+test('failed follower smart regroup releases ownership so a later tick can retry', async () => {
+  let smartMoves = 0;
+  const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
+  const teamController = {
+    followRadius: 60,
+    cohesionRadius: 150,
+    _member(_snapshot, name) { return { name, map: 'main', x: 0, y: 0 }; },
+    _visiblePlayer() { return null; },
+    _followLeader() { return false; }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: quietLog(),
+    farmer: { state: 'ASSESS', targetId: null },
+    teamCombatCohesionHotfix: teamController,
+    adapter: {
+      mode: 'active',
+      getGameData: () => ({ maps: { main: {} } }),
+      command(action) {
+        if (action !== 'smart_move') return { executed: true };
+        smartMoves += 1;
+        return { executed: true, value: Promise.resolve({ failed: true, reason: 'NO_PATH' }) };
+      }
+    }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { regroupTriggerDistance: 120 });
+  const context = { snapshot: { character: root.character, entities: [] }, adapter: runtime.adapter };
+  const team = {
+    selfName: 'My_Ranger3', leaderName: 'My_Ranger1',
+    self: { name: 'My_Ranger3', map: 'main', x: 0, y: 0 },
+    leader: { name: 'My_Ranger1', map: 'main', x: 300, y: 0 },
+    sameMap: true, positionsKnown: true, cohesive: false
+  };
+
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.ok(hotfix.followerSmartMove);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(hotfix.followerSmartMove, null);
+  assert.equal(hotfix.stats.followerSmartFailures, 1);
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.equal(smartMoves, 2);
+});
+
+test('coalesced foreign movement is not claimed as an Alpha31 smart regroup', () => {
+  const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
+  const teamController = {
+    followRadius: 60,
+    cohesionRadius: 150,
+    _member(_snapshot, name) { return { name, map: 'main', x: 0, y: 0 }; },
+    _visiblePlayer() { return null; },
+    _followLeader() { return false; }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: quietLog(),
+    farmer: { state: 'ASSESS', targetId: null },
+    teamCombatCohesionHotfix: teamController,
+    adapter: {
+      mode: 'active',
+      getGameData: () => ({ maps: { main: {} } }),
+      command(action) {
+        if (action === 'smart_move') return { executed: true, accepted: false, coalesced: true, reason: 'MOVE_OUTCOME_PENDING' };
+        return { executed: true };
+      }
+    }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { regroupTriggerDistance: 120 });
+  const context = { snapshot: { character: root.character, entities: [] }, adapter: runtime.adapter };
+  const team = {
+    selfName: 'My_Ranger3', leaderName: 'My_Ranger1',
+    self: { name: 'My_Ranger3', map: 'main', x: 0, y: 0 },
+    leader: { name: 'My_Ranger1', map: 'main', x: 300, y: 0 },
+    sameMap: true, positionsKnown: true, cohesive: false
+  };
+
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.equal(hotfix.followerSmartMove, null);
+  assert.equal(hotfix.stats.followerSmartCoalescedHolds, 1);
 });
 
 test('merchant service uses batch potion hysteresis and a narrow service-travel attestation', () => {
