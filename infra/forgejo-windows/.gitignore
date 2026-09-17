@@ -1,0 +1,6 @@
+# Local Forgejo/bridge secrets and state
+.env.bridge
+.env.runner
+runner-config.yml
+backups/
+*.local
