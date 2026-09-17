@@ -86,6 +86,9 @@ function installProductionLiveServices(api, options = {}) {
   const potionPolicy4500 = installP0PotionPolicy4500(runtime);
   const potionHardCap4500 = installP0PotionHardCap4500(runtime);
   const roleLiveness = installAlpha31PartyRoleLivenessHotfix(runtime, options);
+  // Alpha31 beforeTick can wake live merchant authorities. Installation and
+  // same-version hot reload must stay passive; the runtime.tick wrapper below
+  // is the only production-live-services path that executes this service.
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -101,7 +104,6 @@ function installProductionLiveServices(api, options = {}) {
       p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
       alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix
     });
-    runService(runtime, roleLiveness, 'alpha31-party-role-liveness');
     exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness);
     return runtime.productionLiveServices;
   }
@@ -141,7 +143,6 @@ function installProductionLiveServices(api, options = {}) {
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
   runService(runtime, p0Recovery, 'p0-regroup-supply-recovery');
-  runService(runtime, roleLiveness, 'alpha31-party-role-liveness');
 
   try {
     if (runtime.log && typeof runtime.log.emit === 'function') {
