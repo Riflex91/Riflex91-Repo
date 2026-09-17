@@ -45238,11 +45238,13 @@ class Alpha31PartyRoleLivenessHotfix {
     this.regroupStopDistance = Math.max(35, Math.min(this.regroupTriggerDistance - 10, finite(options.regroupStopDistance, 60)));
     this.regroupRetargetDistance = Math.max(20, finite(options.regroupRetargetDistance, 35));
     this.regroupRetargetMs = Math.max(700, finite(options.regroupRetargetMs, 1400));
+    this.regroupTimeoutMs = Math.max(5000, finite(options.regroupTimeoutMs, 45000));
 
     this.merchantPotionLowWatermark = Math.max(1200, Math.min(4200, Math.floor(finite(options.merchantPotionLowWatermark, 3500))));
     this.merchantAttestationMaxAgeMs = Math.max(1000, Math.min(5000, finite(options.merchantAttestationMaxAgeMs, 2500)));
 
     this.followerSmartMove = null;
+    this.nextFollowerSmartMoveId = 1;
     this.stats = {
       aggroOrbitEvaluations: 0,
       aggroOrbitMoves: 0,
@@ -45252,6 +45254,11 @@ class Alpha31PartyRoleLivenessHotfix {
       followerSmartRegroups: 0,
       followerSmartRetargets: 0,
       followerSmartStops: 0,
+      followerSmartCompletions: 0,
+      followerSmartFailures: 0,
+      followerSmartTimeouts: 0,
+      followerSmartSafetyPreemptions: 0,
+      followerSmartCoalescedHolds: 0,
       followerRegroupSafetyHolds: 0,
       merchantPotionHysteresisApplies: 0,
       merchantAutonomyDriverTicks: 0,
@@ -45487,16 +45494,49 @@ class Alpha31PartyRoleLivenessHotfix {
     return false;
   }
 
+  _supersedeMovement(reason) {
+    const adapter = this.runtime.adapter;
+    if (!adapter || typeof adapter.supersedeMovement !== 'function') return false;
+    try { return adapter.supersedeMovement(`ALPHA31_${String(reason || 'FOLLOWER_SMART_MOVE_STOPPED')}`) === true; }
+    catch (_) { return false; }
+  }
+
   _stopFollowerSmartMove(reason) {
     if (!this.followerSmartMove) return false;
     const adapter = this.runtime.adapter;
     if (adapter && typeof adapter.command === 'function') {
       try { adapter.command('stop', ['smart']); } catch (_) {}
     }
+    this._supersedeMovement(reason);
     const previous = this.followerSmartMove;
     this.followerSmartMove = null;
     this.stats.followerSmartStops += 1;
     this._event('ALPHA31_FOLLOWER_SMART_REGROUP_STOPPED', 'info', reason, { previous });
+    return true;
+  }
+
+  _observeFollowerSmartMove(result, active) {
+    const value = result && result.value;
+    if (!active || !value || typeof value.then !== 'function') return false;
+    const id = active.id;
+    Promise.resolve(value).then((response) => {
+      const current = this.followerSmartMove;
+      if (!current || current.id !== id) return;
+      this.followerSmartMove = null;
+      if (response && response.failed === true) {
+        this.stats.followerSmartFailures += 1;
+        this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(response.reason || 'SMART_MOVE_FAILED'), { move: current });
+        return;
+      }
+      this.stats.followerSmartCompletions += 1;
+      this._event('ALPHA31_FOLLOWER_SMART_REGROUP_COMPLETED', 'info', 'SMART_MOVE_RESOLVED', { move: current });
+    }).catch((error) => {
+      const current = this.followerSmartMove;
+      if (!current || current.id !== id) return;
+      this.followerSmartMove = null;
+      this.stats.followerSmartFailures += 1;
+      this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(error && error.message || error || 'SMART_MOVE_REJECTED').slice(0, 160), { move: current });
+    });
     return true;
   }
 
@@ -45515,9 +45555,18 @@ class Alpha31PartyRoleLivenessHotfix {
         this._stopFollowerSmartMove('FOLLOWER_REJOINED_FORMATION');
         return baseFollow(context, team, reason);
       }
-      if (!team.sameMap || !team.positionsKnown || d < this.regroupTriggerDistance) return baseFollow(context, team, reason);
+      if (!team.sameMap || !team.positionsKnown) {
+        this._stopFollowerSmartMove('FOLLOWER_REGROUP_CONTEXT_INVALID');
+        return baseFollow(context, team, reason);
+      }
+      if (d < this.regroupTriggerDistance) return baseFollow(context, team, reason);
       if (this._regroupSafetyBusy(snapshot)) {
         this.stats.followerRegroupSafetyHolds += 1;
+        if (this.followerSmartMove) {
+          this.stats.followerSmartSafetyPreemptions += 1;
+          this._stopFollowerSmartMove('COMBAT_OR_SAFETY_PREEMPTION');
+          return true;
+        }
         return baseFollow(context, team, reason);
       }
 
@@ -45526,9 +45575,14 @@ class Alpha31PartyRoleLivenessHotfix {
       const destination = { map: snapshot && snapshot.character && snapshot.character.map || team.leader.map, x: Number(team.leader.x), y: Number(team.leader.y) };
       if (!destination.map || !Number.isFinite(destination.x) || !Number.isFinite(destination.y)) return baseFollow(context, team, reason);
 
-      const active = this.followerSmartMove;
-      const shifted = active ? distance(active.destination, destination) : Infinity;
+      let active = this.followerSmartMove;
       const now = this.now();
+      if (active && now - active.at >= this.regroupTimeoutMs) {
+        this.stats.followerSmartTimeouts += 1;
+        this._stopFollowerSmartMove('FOLLOWER_REGROUP_TIMEOUT');
+        active = null;
+      }
+      const shifted = active ? distance(active.destination, destination) : Infinity;
       const shouldRetarget = !!(active && shifted >= this.regroupRetargetDistance && now - active.at >= this.regroupRetargetMs);
       if (active && !shouldRetarget) return true;
       if (shouldRetarget) {
@@ -45537,14 +45591,37 @@ class Alpha31PartyRoleLivenessHotfix {
       } else {
         const deadlock = this.runtime.teamCohesionDeadlockHotfix;
         if (deadlock && deadlock.activeTerrainRecovery && deadlock.activeTerrainRecovery.ownerName === team.selfName) {
-          try { adapter.command('stop', ['smart']); } catch (_) {}
-          deadlock.activeTerrainRecovery = null;
+          if (typeof deadlock._stopTerrainRecovery === 'function') {
+            try { deadlock._stopTerrainRecovery('SUPERSEDED_BY_ALPHA31_SMART_REGROUP', { ownerName: team.selfName }); }
+            catch (_) {
+              try { adapter.command('stop', ['smart']); } catch (_) {}
+              deadlock.activeTerrainRecovery = null;
+            }
+          } else {
+            try { adapter.command('stop', ['smart']); } catch (_) {}
+            deadlock.activeTerrainRecovery = null;
+          }
+          this._supersedeMovement('TERRAIN_RECOVERY_SUPERSEDED');
         }
       }
 
       const result = adapter.command('smart_move', [destination]);
-      if (!result || (!result.executed && !result.shadow && !result.coalesced)) return baseFollow(context, team, reason);
-      this.followerSmartMove = { at: now, leaderName: team.leaderName, destination, startDistance: d, reason: reason || 'REGROUP_WITH_TEAM_LEADER' };
+      if (result && result.coalesced === true) {
+        this.stats.followerSmartCoalescedHolds += 1;
+        this._event('ALPHA31_FOLLOWER_SMART_REGROUP_HELD', 'info', result.reason || 'MOVEMENT_OUTCOME_PENDING', { leaderName: team.leaderName, destination });
+        return true;
+      }
+      if (!result || (!result.executed && !result.shadow)) return baseFollow(context, team, reason);
+      const activeMove = {
+        id: `alpha31-follow-${this.nextFollowerSmartMoveId++}`,
+        at: now,
+        leaderName: team.leaderName,
+        destination,
+        startDistance: d,
+        reason: reason || 'REGROUP_WITH_TEAM_LEADER'
+      };
+      this.followerSmartMove = activeMove;
+      this._observeFollowerSmartMove(result, activeMove);
       this.stats.followerSmartRegroups += 1;
       teamController.lastDecision = {
         at: now,
@@ -45675,6 +45752,7 @@ class Alpha31PartyRoleLivenessHotfix {
         stopDistance: this.regroupStopDistance,
         retargetDistance: this.regroupRetargetDistance,
         retargetMs: this.regroupRetargetMs,
+        timeoutMs: this.regroupTimeoutMs,
         active: this.followerSmartMove ? { ...this.followerSmartMove } : null,
         independentFollowers: true,
         sameMapOnly: true,
@@ -45718,7 +45796,6 @@ module.exports = {
   Alpha31PartyRoleLivenessHotfix,
   installAlpha31PartyRoleLivenessHotfix
 };
-
 },
 "src/reliability/live-farmer-merchant-recovery.js": function(require,module,exports){
 'use strict';
