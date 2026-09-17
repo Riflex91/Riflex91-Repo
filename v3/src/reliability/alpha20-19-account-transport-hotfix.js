@@ -1,6 +1,6 @@
 'use strict';
 
-const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
 const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
@@ -108,24 +108,28 @@ function installAlpha2019AccountTransportHotfix() {
     const observedActive = this.activeNames();
     const directObserved = observedActive.includes(target);
     const broadEvidence = strongLiveEvidence(this, target);
-    const commandCharacter = fn(this, 'command_character');
+    const adapter = this.adapter;
+    const directAvailable = adapter && typeof adapter.command === 'function'
+      && (typeof adapter.canCommand !== 'function' || adapter.canCommand('command_character'));
 
-    if (receiver && typeof commandCharacter === 'function' && directObserved && until <= now) {
+    if (receiver && directAvailable && directObserved && until <= now) {
       this.stats.directEvidenceObservedActive += 1;
       try {
-        await Promise.resolve(commandCharacter.call(this.root, target, this._directCode(receiver, sender, payload)));
+        const command = adapter.command('command_character', [target, this._directCode(receiver, sender, payload)]);
+        if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'COMMAND_CHARACTER_REJECTED'));
+        await Promise.resolve(command.value);
         this.stats.directSent += 1; backoff.delete(target);
         return { delivered: true, transport: 'command_character', target, sender, evidence: 'observed-active' };
       } catch (error) {
         this.stats.directFailed += 1; backoff.set(target, now + DIRECT_BACKOFF_MS);
         this._event('ACCOUNT_TRANSPORT_DIRECT_FAILED', 'warn', 'COMMAND_CHARACTER_FAILED', { target, sender, evidence: 'observed-active', backoffMs: DIRECT_BACKOFF_MS, message: boundedMessage(error) });
       }
-    } else if (receiver && typeof commandCharacter === 'function' && directObserved && until > now) {
+    } else if (receiver && directAvailable && directObserved && until > now) {
       this.stats.directSkippedBackoff += 1;
       if (shouldLogDirectSkip(this, target, 'DIRECT_FAILURE_BACKOFF', now)) {
         this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'DIRECT_FAILURE_BACKOFF', { target, sender, backoffRemainingMs: until - now });
       }
-    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
+    } else if (receiver && directAvailable && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
       if (shouldLogDirectSkip(this, target, 'TARGET_NOT_OBSERVED_ACTIVE', now)) {
         this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
@@ -139,10 +143,19 @@ function installAlpha2019AccountTransportHotfix() {
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
-    const sendCm = fn(this, 'send_cm');
-    if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    const fallbackAvailable = adapter && typeof adapter.command === 'function'
+      && (typeof adapter.canCommand !== 'function' || adapter.canCommand('send_cm'));
+    if (!fallbackAvailable) throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      // Preserve the named receiver contract from AccountCharacterTransport.
+      // Without this envelope the recipient sees a plain CM payload and cannot
+      // route Alpha27 target authority (or any other addressed receiver).
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      const command = adapter.command('send_cm', [target, body]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SEND_CM_REJECTED'));
+      await Promise.resolve(command.value);
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
