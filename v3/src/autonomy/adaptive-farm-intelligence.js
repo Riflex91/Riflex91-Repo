@@ -1,6 +1,6 @@
 'use strict';
 
-const { FarmAreaPressureHotfix, areaKey } = require('../reliability/farm-area-pressure-hotfix');
+const { FarmAreaPressureHotfix, areaKey } = require('../farmer/farm-area-pressure-hotfix');
 
 const PATCH = Symbol.for('AIO_V3_ALPHA20_16_ADAPTIVE_FARM_INTELLIGENCE');
 const STORAGE_KEY = 'aio_v3_farm_intelligence_v2';
