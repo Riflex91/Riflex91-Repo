@@ -32012,7 +32012,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const engine = this.runtime.transactionEngine;
     if (!engine || typeof engine.cancel !== 'function') return false;
     try {
-      engine.cancel(active.id, 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT');
+      const result = engine.cancel(active.id, 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT');
+      const cancelled = result === true || !!(result && result.cancelled === true);
+      if (!cancelled) {
+        this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
+        this.lastMerchantAction = {
+          at: this.now(),
+          transactionId: active.id,
+          type: active.type,
+          result: 'HOLD',
+          reason: result && result.reason || 'PARTY_SUPPLY_PREEMPT_CANCEL_REJECTED',
+          serviceKind: plan && plan.kind || null,
+          serviceTarget: plan && plan.target && plan.target.name || null
+        };
+        this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', this.lastMerchantAction.reason, this.lastMerchantAction);
+        return false;
+      }
       this.stats.partySupplyLowRiskPreemptions = (this.stats.partySupplyLowRiskPreemptions || 0) + 1;
       this.lastMerchantAction = {
         at: this.now(),
@@ -32025,7 +32040,19 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       };
       this._event('ALPHA27_PARTY_SUPPLY_PREEMPTED_LOW_RISK_TRANSACTION', 'info', 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT', this.lastMerchantAction);
       return true;
-    } catch (_) {
+    } catch (error) {
+      this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: active.id,
+        type: active.type,
+        result: 'HOLD',
+        reason: 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED',
+        error: errorDetails(error),
+        serviceKind: plan && plan.kind || null,
+        serviceTarget: plan && plan.target && plan.target.name || null
+      };
+      this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED', this.lastMerchantAction);
       return false;
     }
   }
@@ -32067,9 +32094,18 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     let supplyPlan = this.criticalPartySupplyPlan();
     const active = this.activeTransaction();
     if (active) {
-      if (supplyPlan && this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
-        // Reservation released before any raw action; continue the same cycle so
-        // the potion chain can make progress immediately.
+      const lowRiskReserved = active.state === 'RESERVED' && ['SELL', 'BANK'].includes(String(active.type || ''));
+      if (supplyPlan && lowRiskReserved) {
+        if (this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
+          // Reservation released before any raw action; continue the same cycle so
+          // the potion chain can make progress immediately.
+        } else {
+          // Fail closed: never execute the competing low-risk transaction merely
+          // because cancellation was rejected or threw. Let the service chain
+          // retain priority and re-evaluate the reservation on the next cycle.
+          this.holdForCriticalPartySupply(supplyPlan);
+          return false;
+        }
       } else if (active.state === 'RESERVED') {
         const result = await this.runtime.controlledMerchant.execute(active.id);
         this.lastMerchantAction = { at: this.now(), transactionId: active.id, type: active.type, result: clone(result) };
@@ -32188,6 +32224,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       gearGoalClaimSuppressions: this.gearGoalClaimSuppressions || 0,
       partySupplyServiceChainHolds: this.stats.partySupplyServiceChainHolds || 0,
       partySupplyLowRiskPreemptions: this.stats.partySupplyLowRiskPreemptions || 0,
+      partySupplyPreemptionFailures: this.stats.partySupplyPreemptionFailures || 0,
       atomicTransactions: true,
       realUpgrade: true,
       realCompound: true,
