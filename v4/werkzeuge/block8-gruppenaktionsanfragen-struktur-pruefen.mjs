@@ -37,7 +37,7 @@ for (const muster of [/\bDate\.now\s*\(/, /\bMath\.random\s*\(/]) {
 
 const produktiv = await readFile(produktivPfad, 'utf8');
 for (const pflichtText of [
-  "aktiviert: aenderungen.aktiviert ?? false",
+  'const aktiviert = aenderungen.aktiviert ?? false',
   "angefordertVon: 'gruppen-aktionsplanung'",
   'gueltigBis: plan.zeitpunkt + gueltigkeitMillisekunden',
   'schritt.ausfuehrenderTeilnehmerKennung === eigenerTeilnehmerKennung',
