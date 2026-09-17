@@ -154,7 +154,7 @@ async function withCharacterInventoryPresentation(request, response) {
   headers.delete('content-length');
   const currentCsp = headers.get('content-security-policy') || '';
   if (currentCsp) {
-    const allowed = "img-src 'self' data: https://adventure.land https://www.adventure.land;";
+    const allowed = "img-src 'self' data: https://adventure.land https://www.adventure.land https://*.adventure.land;";
     headers.set('content-security-policy', currentCsp.includes("img-src 'self' data:;")
       ? currentCsp.replace("img-src 'self' data:;", allowed)
       : currentCsp);
