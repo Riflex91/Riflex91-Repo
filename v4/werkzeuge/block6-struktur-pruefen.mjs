@@ -6,6 +6,7 @@ const wurzel = process.cwd();
 const pflichtDateien = [
   'dokumentation/BLOCK-6-FARMEN.md',
   'dokumentation/BLOCK-6-AKTIVTEST.md',
+  'dokumentation/BLOCK-6-SCHATTENQUALITAET.md',
   'laufzeit/quelle/vertraege/farmen.ts',
   'laufzeit/quelle/spiellogik/grundlegendes-farmen.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-farm-ausfuehrung.ts',
@@ -14,9 +15,11 @@ const pflichtDateien = [
   'laufzeit/tests/farm-ausfuehrung.test.mjs',
   'laufzeit/tests/farm-leistung.test.mjs',
   'laufzeit/tests/block6-schattenlauf-ranger.test.mjs',
+  'laufzeit/tests/block6-schattenlauf-qualitaet.test.mjs',
   'laufzeit/tests/block6-aktivtest-ranger.test.mjs',
   'werkzeuge/block6-live-test.js',
   'werkzeuge/block6-schattenlauf-ranger.js',
+  'werkzeuge/block6-schattenlauf-qualitaet.js',
   'werkzeuge/block6-kompaktbericht.js',
   'werkzeuge/block6-aktivtest-ranger.js'
 ];
@@ -68,6 +71,27 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
   }
 }
 
+const schattenQualitaet = await readFile(path.join(wurzel, 'werkzeuge/block6-schattenlauf-qualitaet.js'), 'utf8');
+for (const pflichtText of [
+  'V4Block6SchattenQualitaet',
+  'performance_trick',
+  'aktivierePerformanceTrick',
+  'erwarteteSchritte',
+  'verpassteIntervalle',
+  'maximaleTickLueckeMillisekunden',
+  'browserSamplingAusreichend',
+  "status = 'unvollstaendig'",
+  'kompaktErgebnis',
+  'start30Minuten'
+]) {
+  if (!schattenQualitaet.includes(pflichtText)) throw new Error(`Block-6-Schattenqualitaet ist unvollstaendig: ${pflichtText}`);
+}
+for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot']) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(schattenQualitaet)) {
+    throw new Error(`Block-6-Schattenqualitaet muss read-only bleiben; direkter Aufruf gefunden: ${aktionsName}.`);
+  }
+}
+
 const kompaktbericht = await readFile(path.join(wurzel, 'werkzeuge/block6-kompaktbericht.js'), 'utf8');
 for (const pflichtText of ['kompaktErgebnis', 'V4Block6Kompaktbericht', 'zielZaehler', 'ereignisse']) {
   if (pflichtText === 'zielZaehler' || pflichtText === 'ereignisse') {
@@ -115,4 +139,9 @@ for (const regel of ['Ranger', '`goo`', 'aktivFreigegeben: true', 'maximal 15 Mi
   if (!aktivDokument.includes(regel)) throw new Error(`Pflichtregel fuer den Block-6-Aktivtest fehlt: ${regel}`);
 }
 
-console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien, deterministische Fachlogik, read-only Schattenlauf und begrenzter Ranger-Aktivtest.`);
+const qualitaetsDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-6-SCHATTENQUALITAET.md'), 'utf8');
+for (const regel of ['Sampling-Qualitaet', 'performance_trick()', '30-Minuten-Ranger-Schattenlauf', '95 %', 'verpassteIntervalle', 'unvollstaendig', 'V4Block6SchattenQualitaet.kompaktErgebnis()']) {
+  if (!qualitaetsDokument.includes(regel)) throw new Error(`Pflichtregel fuer Block-6-Schattenqualitaet fehlt: ${regel}`);
+}
+
+console.log(`Block 6 geprueft: ${pflichtDateien.length} Pflichtdateien, deterministische Fachlogik, read-only Schattenlauf mit performance_trick() und Sampling-Qualitaet sowie begrenzter Ranger-Aktivtest.`);
