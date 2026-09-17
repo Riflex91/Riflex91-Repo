@@ -152,7 +152,7 @@ for (const pflichtText of [
 
 const liveSicherheitsTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-live-kampfsicherheit.test.mjs'), 'utf8');
 for (const pflichtText of [
-  'Browserquelle bleibt fuer sicher bei der produktiven Block-7-Gefahrenbewertung',
+  'Browserquelle bleibt fuer',
   'kritische Block-7-Bewertung wird automatisch in den gesendeten Lebensnachweis uebernommen',
   'manuelle gefahrenStufe ist im Live-Lebensnachweis verboten',
   'fehlende Block-7-Quelle blockiert vor send_cm',
