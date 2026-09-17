@@ -229,6 +229,7 @@ class Alpha28CrossMapFarmerProgression {
   async _execute(objective, snapshot) {
     const controller = this.runtime.safeTravel;
     if (!controller || typeof controller.plan !== 'function') return false;
+    const adapter = this.runtime.adapter;
     const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
     const destinationMapAttestation = regroup ? {
       map: objective.map,
@@ -243,16 +244,20 @@ class Alpha28CrossMapFarmerProgression {
     const plan = planned.plan;
     const started = this._startControlled(plan);
     if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE', objectiveId: objective.id }; return false; }
-    const smartMove = this.root.smart_move || this.root.smartMove;
-    const stop = this.root.stop;
-    if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
+    if (!adapter || typeof adapter.command !== 'function'
+      || (typeof adapter.canCommand === 'function' && (!adapter.canCommand('smart_move') || !adapter.canCommand('stop')))) {
+      this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE');
+      return false;
+    }
     this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
     if (regroup) this.stats.crossMapRegroupTravelAttempts = (this.stats.crossMapRegroupTravelAttempts || 0) + 1;
     this.event(regroup ? 'ALPHA28_TEAM_REGROUP_STARTED' : 'ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', regroup ? 'CONTROLLED_TEAM_REGROUP_TRAVEL' : 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
     let timer;
     try {
       const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
-      const response = await Promise.race([Promise.resolve(smartMove.call(this.root, { map: objective.map, x: objective.x, y: objective.y })), timeout]);
+      const smartMoveCommand = adapter.command('smart_move', [{ map: objective.map, x: objective.x, y: objective.y }]);
+      if (!smartMoveCommand.executed) throw new Error(smartMoveCommand.reason || (smartMoveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
+      const response = await Promise.race([Promise.resolve(smartMoveCommand.value), timeout]);
       if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
       controller.observe(this._snapshot());
       const final = controller.get(plan.id);
@@ -269,7 +274,10 @@ class Alpha28CrossMapFarmerProgression {
       return true;
     } catch (error) {
       const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
-      try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
+      try {
+        const stopCommand = adapter.command('stop', ['smart']);
+        if (stopCommand.executed) await Promise.resolve(stopCommand.value);
+      } catch (_) {}
       this._failSafe(plan.id, reason);
       this.stats.crossMapTravelFailedSafe += 1;
       if (regroup) this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
