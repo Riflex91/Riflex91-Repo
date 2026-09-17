@@ -16,6 +16,7 @@ const COMMAND_CATALOG = Object.freeze({
   send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   send_gold: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   sell: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  bank_retrieve: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   bank_store: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   start_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
   stop_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
