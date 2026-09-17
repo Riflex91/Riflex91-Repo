@@ -246,7 +246,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**71 Dateien · 12120 Zeilen**
+**71 Dateien · 12225 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -275,7 +275,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-transactions.js` | 91 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 161 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 266 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
