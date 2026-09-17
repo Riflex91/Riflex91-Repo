@@ -118,7 +118,7 @@ export function planeGruppenAktionen(
       zielKennung: heilZiel,
       wichtigkeit: 'sicherheit',
       prioritaet: 900,
-      benoetigteRessourcen: Object.freeze(['gruppe']),
+      benoetigteRessourcen: Object.freeze(['gruppe'] as const),
       grund: `Aktiver Teilnehmer ${heilZiel} liegt unter der Heilungsschwelle.`
     }));
   }
@@ -134,7 +134,7 @@ export function planeGruppenAktionen(
       zielKennung: schutzZiel,
       wichtigkeit: 'sicherheit',
       prioritaet: 850,
-      benoetigteRessourcen: Object.freeze(['gruppe']),
+      benoetigteRessourcen: Object.freeze(['gruppe'] as const),
       grund: `Aktiver Teilnehmer ${schutzZiel} liegt unter der Schutzschwelle.`
     }));
   }
@@ -152,7 +152,7 @@ export function planeGruppenAktionen(
         zielKennung: gemeinsamesZiel,
         wichtigkeit: 'normal',
         prioritaet: 600,
-        benoetigteRessourcen: Object.freeze(['gruppe', 'kampfziel']),
+        benoetigteRessourcen: Object.freeze(['gruppe', 'kampfziel'] as const),
         grund: `Aggro-Aufgabe ist dem gemeinsamen Ziel ${gemeinsamesZiel} zugeordnet.`
       }));
     }
@@ -168,7 +168,7 @@ export function planeGruppenAktionen(
         zielKennung: null,
         wichtigkeit: 'normal',
         prioritaet: 500,
-        benoetigteRessourcen: Object.freeze(['gruppe']),
+        benoetigteRessourcen: Object.freeze(['gruppe'] as const),
         grund: 'Unterstuetzungsaufgabe ist fuer den normalen Gruppenbetrieb zugeordnet.'
       }));
     }
@@ -184,7 +184,7 @@ export function planeGruppenAktionen(
         zielKennung: gemeinsamesZiel,
         wichtigkeit: 'normal',
         prioritaet: 400,
-        benoetigteRessourcen: Object.freeze(['gruppe', 'kampfziel']),
+        benoetigteRessourcen: Object.freeze(['gruppe', 'kampfziel'] as const),
         grund: `Schadensaufgabe folgt dem gemeinsamen Ziel ${gemeinsamesZiel}.`
       }));
     }
