@@ -45,7 +45,7 @@ for (const pflichtText of [
 
 const schatten = await readFile(path.join(wurzel, 'werkzeuge/block8-gruppenaktionsplanung-schatten.js'), 'utf8');
 for (const pflichtText of [
-  'V4Block8Gruppenaktionsplanung',
+  'V4Block8GruppenAktionsplanung',
   'V4Block8Gruppenkoordination',
   'V4Block8GruppenAktionsPlanungKern',
   'planSignatur',
