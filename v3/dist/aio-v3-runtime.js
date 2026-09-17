@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.77 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.78 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -953,7 +953,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.77';
+const RELEASE_VERSION = '3.0.0-alpha.20.78';
 
 module.exports = { RELEASE_VERSION };
 
@@ -23372,6 +23372,12 @@ module.exports = {
 "src/reliability/farmer-local-plan-priority.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../farmer/farmer-local-plan-priority');
+
+},
+"src/farmer/farmer-local-plan-priority.js": function(require,module,exports){
+'use strict';
+
 const { TaskState } = require('../core/task');
 const { ensurePatchRegistry } = require('../core/patch-registry');
 
@@ -23619,6 +23625,12 @@ module.exports = { PatchRegistry, ensurePatchRegistry, PATCH_KINDS };
 "src/reliability/live-navigation-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../farmer/live-navigation-hotfix');
+
+},
+"src/farmer/live-navigation-hotfix.js": function(require,module,exports){
+'use strict';
+
 const { ensurePatchRegistry } = require('../core/patch-registry');
 
 const LIVE_NAVIGATION_HOTFIX_SCHEMA_VERSION = 1;
@@ -23844,6 +23856,12 @@ module.exports = {
 "src/reliability/farmer-travel-safety-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../farmer/farmer-travel-safety-hotfix');
+
+},
+"src/farmer/farmer-travel-safety-hotfix.js": function(require,module,exports){
+'use strict';
+
 const FARMER_TRAVEL_SAFETY_MODE = 'bounded-farmer-target-travel-v1';
 
 function finite(value) {
@@ -23983,6 +24001,12 @@ module.exports = { FarmerTravelSafetyHotfix, installFarmerTravelSafetyHotfix, FA
 
 },
 "src/reliability/farmer-target-efficiency-hotfix.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../farmer/farmer-target-efficiency-hotfix');
+
+},
+"src/farmer/farmer-target-efficiency-hotfix.js": function(require,module,exports){
 'use strict';
 
 const {
@@ -24322,6 +24346,12 @@ module.exports = {
 
 },
 "src/reliability/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../farmer/farmer-terrain-navigation-hotfix');
+
+},
+"src/farmer/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
 'use strict';
 
 const FARMER_TERRAIN_NAVIGATION_MODE = 'terrain-aware-bounded-farmer-navigation-v2';
@@ -24823,6 +24853,12 @@ module.exports = { FarmerTerrainNavigationHotfix, installFarmerTerrainNavigation
 "src/reliability/farmer-resource-topoff-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../farmer/farmer-resource-topoff-hotfix');
+
+},
+"src/farmer/farmer-resource-topoff-hotfix.js": function(require,module,exports){
+'use strict';
+
 const FARMER_RESOURCE_TOPOFF_MODE = 'aggressive-precise-resource-topoff-v1';
 
 function finite(value) {
@@ -25035,6 +25071,12 @@ module.exports = {
 
 },
 "src/reliability/party-focus-fire-hotfix.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../party/party-focus-fire-hotfix');
+
+},
+"src/party/party-focus-fire-hotfix.js": function(require,module,exports){
 'use strict';
 
 const PARTY_FOCUS_FIRE_MODE = 'safe-visible-party-focus-v1';
@@ -25257,6 +25299,12 @@ module.exports = { PartyFocusFireHotfix, installPartyFocusFireHotfix, PARTY_FOCU
 "src/reliability/team-combat-cohesion-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/team-combat-cohesion-hotfix');
+
+},
+"src/party/team-combat-cohesion-hotfix.js": function(require,module,exports){
+'use strict';
+
 const base = require('./team-combat-cohesion-hotfix-base');
 
 const SUPPORTED_COMBAT_CLASSES = new Set(['warrior', 'paladin', 'priest', 'ranger', 'rogue', 'mage']);
@@ -25472,7 +25520,7 @@ module.exports = {
 };
 
 },
-"src/reliability/team-combat-cohesion-hotfix-base.js": function(require,module,exports){
+"src/party/team-combat-cohesion-hotfix-base.js": function(require,module,exports){
 'use strict';
 
 const TEAM_COMBAT_COHESION_MODE = 'cohesion-first-team-combat-v1';
@@ -26541,6 +26589,12 @@ module.exports = {
 "src/reliability/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/alpha20-15-combat-logistics-hotfix');
+
+},
+"src/party/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
+'use strict';
+
 const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
 
 const ALPHA20_15_COMBAT_LOGISTICS_MODE = 'alpha20.15-team-combat-logistics-v1';
@@ -26874,7 +26928,7 @@ module.exports = {
 };
 
 },
-"src/reliability/controlled-party-logistics.js": function(require,module,exports){
+"src/party/controlled-party-logistics.js": function(require,module,exports){
 'use strict';
 
 const { sellProtectionReasons } = require('../economy/sell-safety');
@@ -27748,6 +27802,12 @@ module.exports = {
 "src/reliability/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/alpha20-15-logistics-fairness-hotfix');
+
+},
+"src/party/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
+'use strict';
+
 const { ControlledPartyLogistics } = require('./controlled-party-logistics');
 
 const FAIRNESS_PATCH = Symbol.for('AIO_V3_ALPHA20_15_LOGISTICS_FAIRNESS_PATCH');
@@ -27881,6 +27941,12 @@ module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGR
 
 },
 "src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../party/alpha20-19-account-transport-hotfix');
+
+},
+"src/party/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
 'use strict';
 
 const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
@@ -28075,6 +28141,12 @@ module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvi
 
 },
 "src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../party/alpha20-19-logistics-stabilization');
+
+},
+"src/party/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
 
 const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
@@ -28442,6 +28514,12 @@ module.exports = { STORAGE_KEY, MAX_HISTORY, empiricalBonus, patchAdaptiveFarmIn
 
 },
 "src/reliability/farm-area-pressure-hotfix.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../farmer/farm-area-pressure-hotfix');
+
+},
+"src/farmer/farm-area-pressure-hotfix.js": function(require,module,exports){
 'use strict';
 
 const FARM_AREA_PRESSURE_MODE = 'adaptive-local-farm-area-pressure-v1';
@@ -29743,6 +29821,12 @@ module.exports = {
   patchEconomyV2PartyStarvation,
   patchAlpha21LivenessGuards
 };
+
+},
+"src/reliability/controlled-party-logistics.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../party/controlled-party-logistics');
 
 },
 "src/reliability/economy-equipment-autonomy-v2.js": function(require,module,exports){
@@ -31994,84 +32078,6 @@ const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-consta
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
-  criticalPartySupplyPlan() {
-    const plan = this.runtime.lastMerchantServicePlan;
-    if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500)) return null;
-    const kind = String(plan.kind || '');
-    if (!['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(kind)) return null;
-    const deliveries = Array.isArray(plan.deliveries) ? plan.deliveries.filter((row) => row && Number(row.quantity) > 0) : [];
-    if (!deliveries.length) return null;
-    const at = finite(plan.at, 0);
-    const maxAgeMs = Math.max(5000, Math.min(20000, finite(this.options && this.options.merchantServiceChainMaxAgeMs, 10000)));
-    if (at <= 0 || this.now() - at > maxAgeMs) return null;
-    return plan;
-  }
-
-  preemptReservedLowRiskForPartySupply(active, plan) {
-    if (!active || active.state !== 'RESERVED' || !['SELL', 'BANK'].includes(String(active.type || ''))) return false;
-    const engine = this.runtime.transactionEngine;
-    if (!engine || typeof engine.cancel !== 'function') return false;
-    try {
-      const result = engine.cancel(active.id, 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT');
-      const cancelled = result === true || !!(result && result.cancelled === true);
-      if (!cancelled) {
-        this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
-        this.lastMerchantAction = {
-          at: this.now(),
-          transactionId: active.id,
-          type: active.type,
-          result: 'HOLD',
-          reason: result && result.reason || 'PARTY_SUPPLY_PREEMPT_CANCEL_REJECTED',
-          serviceKind: plan && plan.kind || null,
-          serviceTarget: plan && plan.target && plan.target.name || null
-        };
-        this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', this.lastMerchantAction.reason, this.lastMerchantAction);
-        return false;
-      }
-      this.stats.partySupplyLowRiskPreemptions = (this.stats.partySupplyLowRiskPreemptions || 0) + 1;
-      this.lastMerchantAction = {
-        at: this.now(),
-        transactionId: active.id,
-        type: active.type,
-        result: 'ABORTED',
-        reason: 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT',
-        serviceKind: plan && plan.kind || null,
-        serviceTarget: plan && plan.target && plan.target.name || null
-      };
-      this._event('ALPHA27_PARTY_SUPPLY_PREEMPTED_LOW_RISK_TRANSACTION', 'info', 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT', this.lastMerchantAction);
-      return true;
-    } catch (error) {
-      this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
-      this.lastMerchantAction = {
-        at: this.now(),
-        transactionId: active.id,
-        type: active.type,
-        result: 'HOLD',
-        reason: 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED',
-        error: errorDetails(error),
-        serviceKind: plan && plan.kind || null,
-        serviceTarget: plan && plan.target && plan.target.name || null
-      };
-      this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED', this.lastMerchantAction);
-      return false;
-    }
-  }
-
-  holdForCriticalPartySupply(plan) {
-    if (!plan) return false;
-    this.stats.autonomousMerchantHolds += 1;
-    this.stats.partySupplyServiceChainHolds = (this.stats.partySupplyServiceChainHolds || 0) + 1;
-    this.lastMerchantPlan = {
-      at: this.now(),
-      action: 'HOLD',
-      reason: 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE',
-      serviceKind: plan.kind,
-      target: clone(plan.target || null),
-      deliveries: clone(plan.deliveries || [])
-    };
-    return true;
-  }
-
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -32087,44 +32093,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const service = this.runtime.controlledMerchantService;
     if (service && service.activeOperation && service.activeOperation.state === 'RECOVERING' && typeof service.reconcile === 'function') { service.reconcile(); return true; }
 
-    // Finish/reconcile already-started economy work, but a fresh critical party
-    // potion chain may safely preempt a merely RESERVED low-risk SELL/BANK row.
-    // No EXECUTING/VERIFYING/RECOVERING transaction is ever interrupted here.
+    // Finish/reconcile already-reserved economy work before creating more service
+    // traffic. This prevents stand/gear-delivery churn from starving atomic work.
     if (this.reconcileRecovering()) return true;
-    let supplyPlan = this.criticalPartySupplyPlan();
     const active = this.activeTransaction();
     if (active) {
-      const lowRiskReserved = active.state === 'RESERVED' && ['SELL', 'BANK'].includes(String(active.type || ''));
-      if (supplyPlan && lowRiskReserved) {
-        if (this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
-          // Reservation released before any raw action; continue the same cycle so
-          // the potion chain can make progress immediately.
-        } else {
-          // Fail closed: never execute the competing low-risk transaction merely
-          // because cancellation was rejected or threw. Let the service chain
-          // retain priority and re-evaluate the reservation on the next cycle.
-          this.holdForCriticalPartySupply(supplyPlan);
-          return false;
-        }
-      } else if (active.state === 'RESERVED') {
+      if (active.state === 'RESERVED') {
         const result = await this.runtime.controlledMerchant.execute(active.id);
         this.lastMerchantAction = { at: this.now(), transactionId: active.id, type: active.type, result: clone(result) };
         return true;
-      } else {
-        return false;
       }
-    }
-
-    // Critical party consumables keep priority. RESTOCK_REQUIRED is executed by
-    // Alpha27; SERVICE_TRAVEL/SERVICE_DELIVERY remain owned by the controlled
-    // merchant-service cycle. Keep the whole chain together so ordinary bank or
-    // sell backlog cannot pull the merchant away between purchase and delivery.
-    if (await this.restockPartyPotions()) return true;
-    supplyPlan = this.criticalPartySupplyPlan();
-    if (supplyPlan) {
-      this.holdForCriticalPartySupply(supplyPlan);
       return false;
     }
+
+    // Critical party consumables keep priority, but ordinary gear delivery no
+    // longer preempts every ledger-authorized SELL/BANK/UPGRADE/COMPOUND turn.
+    if (await this.restockPartyPotions()) return true;
 
     // A scoped mutation circuit must not starve independent economy work.
     // Skip the blocked family and continue with the next ledger-authorized
@@ -32218,13 +32202,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
       economyBeforeNonCriticalGearDelivery: true,
-      criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
-      criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       completedGearGoalClaims: this.completedGearGoalClaims instanceof Map ? this.completedGearGoalClaims.size : 0,
       gearGoalClaimSuppressions: this.gearGoalClaimSuppressions || 0,
-      partySupplyServiceChainHolds: this.stats.partySupplyServiceChainHolds || 0,
-      partySupplyLowRiskPreemptions: this.stats.partySupplyLowRiskPreemptions || 0,
-      partySupplyPreemptionFailures: this.stats.partySupplyPreemptionFailures || 0,
       atomicTransactions: true,
       realUpgrade: true,
       realCompound: true,
@@ -34524,6 +34503,12 @@ module.exports = {
 "src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/party-persistence-quota-hotfix');
+
+},
+"src/party/party-persistence-quota-hotfix.js": function(require,module,exports){
+'use strict';
+
 const { isQuotaError } = require('../world/persistence');
 
 const PARTY_PERSISTENCE_QUOTA_MODE = 'party-persistence-quota-isolation-v1';
@@ -34909,17 +34894,23 @@ module.exports = { PartyPersistenceQuotaHotfix, installPartyPersistenceQuotaHotf
 "src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../content/dangerous-content-hotfix');
+
+},
+"src/content/dangerous-content-hotfix.js": function(require,module,exports){
+'use strict';
+
 const { BUILT_IN_DANGEROUS_MONSTERS } = require('../farmer/content-safety');
-const { installAlpha2020Alpha22Autonomy } = require('./alpha20-20-alpha22-autonomy');
-const { installAlpha2020LiveRegressionHotfix } = require('./alpha20-20-live-regression-hotfix');
-const { installAlpha23CombatStabilityHotfix } = require('./alpha23-combat-stability-hotfix');
-const { installEconomyEquipmentAutonomyV2 } = require('./economy-equipment-autonomy-v2');
-const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('./alpha24-adaptive-range-risk-logistics-hotfix');
-const { installAlpha25ControlCenterBrain } = require('./alpha25-control-center-brain');
-const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('./alpha26-cloud-update-logistics-ui-hotfix');
-const { installAlpha2021CloudPersistenceRecovery } = require('./alpha20-21-cloud-persistence-recovery');
-const { installAlpha2022LiveSmokeRecovery } = require('./alpha20-22-live-smoke-recovery');
-const { installAlpha2023IdleDeadlockRecovery } = require('./alpha20-23-idle-deadlock-recovery');
+const { installAlpha2020Alpha22Autonomy } = require('../reliability/alpha20-20-alpha22-autonomy');
+const { installAlpha2020LiveRegressionHotfix } = require('../reliability/alpha20-20-live-regression-hotfix');
+const { installAlpha23CombatStabilityHotfix } = require('../reliability/alpha23-combat-stability-hotfix');
+const { installEconomyEquipmentAutonomyV2 } = require('../reliability/economy-equipment-autonomy-v2');
+const { installAlpha24AdaptiveRangeRiskLogisticsHotfix } = require('../reliability/alpha24-adaptive-range-risk-logistics-hotfix');
+const { installAlpha25ControlCenterBrain } = require('../reliability/alpha25-control-center-brain');
+const { installAlpha26CloudUpdateLogisticsUiHotfix, scheduleGuiCollapsedStart } = require('../reliability/alpha26-cloud-update-logistics-ui-hotfix');
+const { installAlpha2021CloudPersistenceRecovery } = require('../reliability/alpha20-21-cloud-persistence-recovery');
+const { installAlpha2022LiveSmokeRecovery } = require('../reliability/alpha20-22-live-smoke-recovery');
+const { installAlpha2023IdleDeadlockRecovery } = require('../reliability/alpha20-23-idle-deadlock-recovery');
 
 const DANGEROUS = new Set(BUILT_IN_DANGEROUS_MONSTERS);
 
@@ -34932,8 +34923,6 @@ class DangerousContentHotfix {
     this.autonomyInstalled = false;
     this.autonomyInstallError = null;
     this._installPlannerFilter();
-    // The monitor is created immediately after the runtime. Schedule a zero-delay
-    // collapse so its very first visible frame is the compact title bar.
     scheduleGuiCollapsedStart(this.runtime);
   }
 
@@ -34975,7 +34964,6 @@ class DangerousContentHotfix {
       if (!this.runtime.alpha2020LiveRegressionHotfix) installAlpha2020LiveRegressionHotfix(this.runtime);
       if (!this.runtime.alpha23CombatStabilityHotfix) installAlpha23CombatStabilityHotfix(this.runtime);
       if (!this.runtime.economyEquipmentAutonomyV2) installEconomyEquipmentAutonomyV2(this.runtime);
-      // Alpha25 loads the persisted control plane before Alpha24 captures its bounded tuning values.
       if (!this.runtime.alpha25ControlCenterBrain) installAlpha25ControlCenterBrain(this.runtime);
       if (!this.runtime.alpha24AdaptiveRangeRiskLogisticsHotfix) installAlpha24AdaptiveRangeRiskLogisticsHotfix(this.runtime, this._alpha24Options());
       if (!this.runtime.alpha26CloudUpdateLogisticsUiHotfix) installAlpha26CloudUpdateLogisticsUiHotfix(this.runtime);
@@ -39219,6 +39207,12 @@ module.exports = { ALPHA20_22_MODE, CM_QUOTA_BACKOFF_MS, Alpha2022LiveSmokeRecov
 "src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../content/content-drift-storage-hotfix');
+
+},
+"src/content/content-drift-storage-hotfix.js": function(require,module,exports){
+'use strict';
+
 class ContentDriftStorageHotfix {
   constructor(runtime, options = {}) {
     if (!runtime || !runtime.contentDrift) throw new Error('runtime contentDrift required');
@@ -39308,6 +39302,12 @@ module.exports = { ContentDriftStorageHotfix, installContentDriftStorageHotfix }
 
 },
 "src/reliability/content-drift-semantic-recovery.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../content/content-drift-semantic-recovery');
+
+},
+"src/content/content-drift-semantic-recovery.js": function(require,module,exports){
 'use strict';
 
 const { EvidenceKind } = require('../world/world-model');
@@ -39530,6 +39530,12 @@ module.exports = {
 
 },
 "src/reliability/party-account-communication.js": function(require,module,exports){
+'use strict';
+
+module.exports = require('../party/party-account-communication');
+
+},
+"src/party/party-account-communication.js": function(require,module,exports){
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
@@ -39755,6 +39761,12 @@ module.exports = {
 "src/reliability/party-bootstrap-farmer-gate.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/party-bootstrap-farmer-gate');
+
+},
+"src/party/party-bootstrap-farmer-gate.js": function(require,module,exports){
+'use strict';
+
 const { TaskState } = require('../core/task');
 
 class PartyBootstrapFarmerGate {
@@ -39869,6 +39881,12 @@ module.exports = { PartyBootstrapFarmerGate, installPartyBootstrapFarmerGate };
 "src/reliability/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
 'use strict';
 
+module.exports = require('../party/party-bootstrap-merchant-discovery-hotfix');
+
+},
+"src/party/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
+'use strict';
+
 const base = require('./party-bootstrap-merchant-discovery-hotfix-base');
 
 class PartyBootstrapMerchantDiscoveryHotfix extends base.PartyBootstrapMerchantDiscoveryHotfix {
@@ -39892,7 +39910,7 @@ module.exports = {
 };
 
 },
-"src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js": function(require,module,exports){
+"src/party/party-bootstrap-merchant-discovery-hotfix-base.js": function(require,module,exports){
 'use strict';
 
 class PartyBootstrapMerchantDiscoveryHotfix {

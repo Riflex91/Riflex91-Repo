@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 5,
+  "next_step": 6,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -92,9 +92,9 @@
       "name": "runtime-hotpath",
       "title": "Shared utilities and runtime hot-path cleanup",
       "branch": "architecture/05-runtime-hotpath",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 258,
-      "merge_commit": null,
+      "merge_commit": "be601bec3d9c940b6e056a930106aee2a5731bd7",
       "required_outcomes": [
         "shared numeric helpers",
         "shared geometry helpers",
@@ -108,8 +108,8 @@
       "name": "absorb-reliability",
       "title": "Move reliability hotfix behavior into owning modules",
       "branch": "architecture/06-absorb-reliability",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 262,
       "merge_commit": null,
       "required_outcomes": [
         "farmer/navigation hotfix behavior absorbed",
