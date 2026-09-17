@@ -13,6 +13,8 @@ test('guard rejects direct Adventure Land mutations and raw binding aliases', ()
     this.root.sell(2, 1);
     parent['send_gold']('MerchantA', 1000);
     const invite = this._function('send_party_invite');
+    const cm = fn(this, 'send_cm');
+    const player = fn(this, 'get_player');
     smart_move({ map: 'main', x: 1, y: 2 });
   `;
   const violations = findViolations(source, 'fixture.js');
@@ -22,6 +24,7 @@ test('guard rejects direct Adventure Land mutations and raw binding aliases', ()
       ['sell', 'raw-property'],
       ['send_gold', 'raw-element'],
       ['send_party_invite', 'raw-binding-helper'],
+      ['send_cm', 'raw-binding-helper'],
       ['smart_move', 'raw-global-call']
     ]
   );
