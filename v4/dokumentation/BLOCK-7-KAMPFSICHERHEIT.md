@@ -101,6 +101,50 @@ Ein automatisierter Test startet deshalb zuerst eine normale Farmbewegung mit de
 
 `kampfsicherheit-wiederholung.ts` adaptiert die Sicherheitsentscheidung fuer die bestehende Wiederholungsmaschine. Gleiche aufgezeichnete Spielzustaende und gleiche Konfiguration muessen dieselbe Folge von Sicherheitsentscheidungen und denselben Ausgabe-Fingerabdruck erzeugen.
 
+## 10-Minuten-Schattenlauf mit Sampling-Qualitaet
+
+Der offizielle Block-7-Schatten-Abnahmelauf dauert **10 Minuten**. Bei einem Intervall von 1 Sekunde tickt der Quellrunner sofort beim Start und danach einmal pro Sekunde. Erwartet werden deshalb **601 Schritte**.
+
+Vor jedem Lauf wird `performance_trick()` verpflichtend aktiviert. Fehlt die Funktion oder wirft sie einen Fehler, startet der Test nicht. Die Sampling-Qualitaet gilt nur als ausreichend, wenn:
+
+- mindestens 95 % der erwarteten Schritte vorhanden sind,
+- die maximale beobachtete Tick-Luecke hoechstens 5 Sekunden betraegt,
+- der Quelllauf normal abgeschlossen wurde.
+
+Verpasste Browser-Ticks werden nicht kuenstlich nachgeholt. Ein formal abgelaufener Quelllauf mit schlechter Sampling-Abdeckung wird als `unvollstaendig` markiert.
+
+Ladereihenfolge im Ranger-Codekontext:
+
+1. `v4/werkzeuge/adventure-land-testkonsole.js`
+2. `v4/werkzeuge/block7-schattenlauf-ranger.js`
+3. `v4/werkzeuge/block7-schattenlauf-qualitaet.js`
+
+Start:
+
+```js
+V4Block7SchattenQualitaet.starte(["goo"])
+```
+
+Zwischenstand:
+
+```js
+V4Block7SchattenQualitaet.status()
+```
+
+Finaler Bericht:
+
+```js
+V4Block7SchattenQualitaet.kompaktErgebnis()
+```
+
+Fruehzeitiger Stopp:
+
+```js
+V4Block7SchattenQualitaet.stoppe("Grund")
+```
+
+Der Schattenlauf bleibt read-only. Er beobachtet die Reihenfolge `Kampfsicherheit -> Farmplanung -> Angriffsbereitschaft`, Sicherheitsentscheidungen, Farmentscheidungen, Cooldown-Zustaende und Gefahrenursachen, fuehrt aber keine Spielaktion aus.
+
 ## Sicherheitsregeln
 
 - Keine Block-7-Spiellogik ruft `attack`, `move`, `smart_move`, `use_skill`, `use_hp`, `use_mp` oder `loot` direkt auf.
@@ -115,8 +159,8 @@ Ein automatisierter Test startet deshalb zuerst eine normale Farmbewegung mit de
 
 ## Aktueller Umfang und naechste Block-7-Schritte
 
-Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung und der Reichweiten-Recheck sind umgesetzt. Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
+Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung, Reichweiten-Recheck und die Infrastruktur fuer den 10-Minuten-Schattenlauf mit Sampling-Qualitaet sind umgesetzt. Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
 
-1. ein read-only Schattenlauf fuer den kombinierten Block-6/7-Plan mit Sampling-Qualitaet,
+1. der reale 10-Minuten-Read-only-Schattenlauf auf dem Ranger,
 2. ein kontrollierter Aktivtest, der Rueckzug/Abstandhalten und den Reichweiten-Abbruch gezielt ausloest,
 3. die abschliessende Auswertung gegen die Block-7-Abnahmekriterien.
