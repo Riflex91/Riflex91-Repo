@@ -35,7 +35,7 @@ function installCharacterPresenceDurations(source) {
   const cardDataMarker = "const s=row.status||row,c=s.character||{},age=row.ageSeconds==null?s.ageSeconds:row.ageSeconds,state=row.connectionState||s.connectionState||'offline',perf=";
   const cardDataReplacement = "const s=row.status||row,c=s.character||{},age=row.ageSeconds==null?s.ageSeconds:row.ageSeconds,state=String(row.connectionState||s.connectionState||'offline').toLowerCase(),startedAt=Number(s.startedAt)||0,presenceNow=Number(overview&&overview.now)||Date.now(),onlineSeconds=state==='offline'?0:(startedAt>0?Math.max(0,Math.floor((presenceNow-startedAt)/1000)):null),offlineSeconds=state==='offline'?Math.max(0,(Number(age)||0)-120):0,presenceLabel=state==='offline'?'Offlinezeit':'Onlinezeit',presenceSeconds=state==='offline'?offlineSeconds:onlineSeconds,perf=";
   const stateMarker = "<div class=\"charstate\">'+pill(state,state+' · '+fmt(age)+'s')+'</div></div><div class=\"bars\">";
-  const stateReplacement = "<div class=\"charstate\">'+pill(state,state+' · '+fmt(age)+'s')+'</div></div><div class=\"character-presence '+(state==='offline'?'offline':'online')+'\"><span>'+presenceLabel+'</span><b>'+durationHms(presenceSeconds)+'</b></div><div class=\"bars\">";
+  const stateReplacement = "<div class=\"charstate\">'+pill(state,state+' · '+durationHms(age))+'</div></div><div class=\"character-presence '+(state==='offline'?'offline':'online')+'\"><span>'+presenceLabel+'</span><b>'+durationHms(presenceSeconds)+'</b></div><div class=\"bars\">";
   for (const marker of [whenMarker, cardDataMarker, stateMarker]) {
     if (!source.includes(marker)) throw new Error(`dashboard presence patch marker missing: ${marker}`);
   }
