@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { LocalFarmOrchestrator } = require('../src/autonomy/local-farm-orchestrator');
 const { PreFarmingReliabilityPolicy } = require('../src/reliability/pre-farming-reliability');
-const { LiveNavigationHotfix } = require('../src/reliability/live-navigation-hotfix');
+const { LiveNavigationHotfix } = require('../src/farmer/live-navigation-hotfix');
 const { Alpha20_5FarmReadinessRuntime } = require('../src/autonomy/alpha20-5-farm-readiness-runtime');
 
 function makeLocalFixture(overrides = {}) {
