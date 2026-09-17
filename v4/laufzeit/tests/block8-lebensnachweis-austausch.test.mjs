@@ -169,3 +169,40 @@ test('Block 8 Austausch: Empfang akzeptiert nur vertraute, namensgebundene V4-Um
   assert.equal(austausch.entferneEmpfang(), true);
   assert.equal(spiel.on_cm('Irgendwer', { danach: true }), 'alt');
 });
+
+test('Block 8 Austausch: Parent-send_cm wird genutzt waehrend on_cm im lokalen Codekontext bleibt', async () => {
+  const gesendet = [];
+  const empfangen = [];
+  const parentOnCm = () => 'parent-darf-unveraendert-bleiben';
+  const parent = {
+    send_cm(name, daten) { gesendet.push({ name, daten, kontext: this }); return true; },
+    on_cm: parentOnCm
+  };
+  const lokal = {
+    character: { name: 'My_Ranger1' },
+    parent,
+    on_cm() { return 'lokal-alt'; }
+  };
+  const austausch = new AdventureLandGruppenLebensnachweisAustausch(lokal, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    jetzt: () => 20_000
+  });
+
+  assert.equal(austausch.installiereEmpfang((wert) => empfangen.push(wert)), true);
+  assert.equal(parent.on_cm, parentOnCm);
+  assert.notEqual(lokal.on_cm, parentOnCm);
+
+  const sendeErgebnis = await austausch.sendeLebensnachweis('My_Ranger2', erstelleMeldung());
+  assert.equal(sendeErgebnis.gesendet, true);
+  assert.equal(gesendet.length, 1);
+  assert.equal(gesendet[0].name, 'My_Ranger2');
+  assert.equal(gesendet[0].kontext, parent);
+
+  const meldung = { ...erstelleMeldung(), charakterKennung: 'ranger-2', charakterName: 'My_Ranger2' };
+  const umschlag = { schemaVersion: 1, protokoll: GRUPPEN_LEBENSNACHWEIS_PROTOKOLL, absenderName: 'My_Ranger2', meldung };
+  assert.equal(lokal.on_cm('My_Ranger2', umschlag), true);
+  assert.equal(empfangen.length, 1);
+  assert.equal(empfangen[0].absenderName, 'My_Ranger2');
+  assert.equal(parent.on_cm, parentOnCm);
+});
