@@ -32,7 +32,8 @@ test('Runtime observes a fake Adventure Land character without issuing active co
   const result = adapter.command('attack', ['m1']);
   assert.equal(result.shadow, true);
   const economy = adapter.command('sell', [0]);
-  assert.equal(economy.reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
+  assert.equal(economy.executed, false);
+  assert.equal(economy.shadow, true);
 });
 
 

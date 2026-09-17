@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
 const RUNNING_CHARACTER_STATES = new Set(['self', 'active', 'code']);
 const NAMED_RECEIVER_CM_PROTOCOL = 'aio-v3-named-receiver-v1';
@@ -22,6 +24,7 @@ class AccountCharacterTransport {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.fallbackEnabled = options.fallbackEnabled !== false;
     this.trustedNames = new Set(uniqueNames(options.trustedNames || []));
     this._cmRouterInstalled = false;
@@ -46,7 +49,7 @@ class AccountCharacterTransport {
     this.log.emit({ component: 'account-character-transport', event, severity, reason, data });
   }
 
-  _function(name) {
+  _readFunction(name) {
     return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
@@ -65,7 +68,7 @@ class AccountCharacterTransport {
   }
 
   activeCharacters() {
-    const fn = this._function('get_active_characters');
+    const fn = this._readFunction('get_active_characters');
     if (typeof fn !== 'function') return null;
     try {
       const value = fn.call(this.root);
@@ -197,11 +200,14 @@ class AccountCharacterTransport {
     // use when get_active_characters() actually observes this target in this runner.
     const observedActive = this.activeNames();
     const directObserved = observedActive.includes(target);
-    const commandCharacter = this._function('command_character');
-    if (receiver && typeof commandCharacter === 'function' && directObserved) {
+    const directAvailable = this.adapter && typeof this.adapter.command === 'function'
+      && (typeof this.adapter.canCommand !== 'function' || this.adapter.canCommand('command_character'));
+    if (receiver && directAvailable && directObserved) {
       try {
         const code = this._directCode(receiver, sender, payload);
-        await Promise.resolve(commandCharacter.call(this.root, target, code));
+        const command = this.adapter.command('command_character', [target, code]);
+        if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'COMMAND_CHARACTER_REJECTED'));
+        await Promise.resolve(command.value);
         this.stats.directSent += 1;
         return { delivered: true, transport: 'command_character', target, sender };
       } catch (error) {
@@ -212,7 +218,7 @@ class AccountCharacterTransport {
           message: boundedMessage(error)
         });
       }
-    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
+    } else if (receiver && directAvailable && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
       this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
         target,
@@ -222,13 +228,16 @@ class AccountCharacterTransport {
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
-    const sendCm = this._function('send_cm');
-    if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    const fallbackAvailable = this.adapter && typeof this.adapter.command === 'function'
+      && (typeof this.adapter.canCommand !== 'function' || this.adapter.canCommand('send_cm'));
+    if (!fallbackAvailable) throw new Error('SEND_CM_UNAVAILABLE');
     try {
       const body = receiver
         ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
         : payload;
-      await Promise.resolve(sendCm.call(this.root, target, body));
+      const command = this.adapter.command('send_cm', [target, body]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SEND_CM_REJECTED'));
+      await Promise.resolve(command.value);
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {

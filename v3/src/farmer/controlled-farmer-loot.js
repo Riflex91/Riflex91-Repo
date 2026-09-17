@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
 
 function finite(value, fallback = null) {
@@ -23,6 +25,8 @@ class ControlledFarmerLoot {
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
     this.getMode = options.getMode || (() => 'shadow');
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.enabled = options.enabled !== false;
     this.intervalMs = Math.floor(clamp(options.intervalMs, 500, 10000, 900));
     this.noChestPollMs = Math.floor(clamp(options.noChestPollMs, 250, 10000, 700));
@@ -53,7 +57,13 @@ class ControlledFarmerLoot {
     this.log.emit({ component: 'controlled-farmer-loot', event, severity, reason, data });
   }
 
-  _binding(name) {
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(this.getMode() === 'active' ? 'active' : 'shadow');
+    }
+  }
+
+  _readBinding(name) {
     if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
     if (this.root && this.root.parent && typeof this.root.parent[name] === 'function') return { fn: this.root.parent[name], owner: this.root.parent };
     return null;
@@ -80,7 +90,7 @@ class ControlledFarmerLoot {
   }
 
   _chestCount() {
-    const binding = this._binding('get_chests');
+    const binding = this._readBinding('get_chests');
     if (!binding) return null;
     this.stats.chestPolls += 1;
     try {
@@ -148,8 +158,7 @@ class ControlledFarmerLoot {
       return { executed: false, reason: 'NO_CHESTS' };
     }
 
-    const binding = this._binding('loot');
-    if (!binding) {
+    if (!this.adapter || typeof this.adapter.command !== 'function' || (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('loot'))) {
       this.state = 'BLOCKED';
       this.failureStreak += 1;
       this.stats.failures += 1;
@@ -162,7 +171,10 @@ class ControlledFarmerLoot {
     const before = this._metrics(snapshot);
     const requestId = ++this.requestSequence;
     try {
-      const value = binding.fn.call(binding.owner);
+      this._syncAdapterMode();
+      const command = this.adapter.command('loot');
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'LOOT_COMMAND_REJECTED'));
+      const value = command.value;
       this.stats.requests += 1;
       this.stats.rawActions += 1;
       if (before.freeSlots <= 0) this.stats.fullInventoryRequests += 1;
