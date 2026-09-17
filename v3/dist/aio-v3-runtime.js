@@ -19457,6 +19457,7 @@ module.exports = { MinuteCountdownReporter };
 const { Alpha20Runtime } = require('./alpha20-runtime');
 const { MerchantServicePlanner, MerchantServicePlanKind } = require('../merchant/merchant-service-planner');
 const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_ACK } = require('../merchant/controlled-merchant-service-executor');
+const { MerchantMluckService } = require('../merchant/merchant-mluck-service');
 const { RouteCostEstimator } = require('../travel/route-cost-estimator');
 
 const ALPHA20_5_MERCHANT_RUNTIME_MODE = 'alpha20.5-merchant-service-foundation';
@@ -19508,8 +19509,22 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       actionWindowMs: options.merchantServiceActionWindowMs,
       maxActionsPerWindow: options.merchantServiceMaxActionsPerWindow
     });
+    this.merchantMluck = options.merchantMluck || new MerchantMluckService({
+      root: this.root,
+      adapter: this.adapter,
+      now: this.now,
+      log: this.log,
+      getBusy: () => this._controlledMerchantBusy(),
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      enabled: options.merchantMluckEnabled !== false,
+      refreshLeadMs: options.merchantMluckRefreshLeadMs,
+      attemptCooldownMs: options.merchantMluckAttemptCooldownMs,
+      minCycleMs: options.merchantMluckMinCycleMs
+    });
     this.merchantServiceIntervalMs = Math.max(500, Math.min(30000, finite(options.merchantServiceIntervalMs, 2000)));
+    this.merchantMluckIntervalMs = Math.max(250, Math.min(30000, finite(options.merchantMluckIntervalMs, 1000)));
     this.lastMerchantServiceAt = -Infinity;
+    this.lastMerchantMluckAt = -Infinity;
     this.lastMerchantServicePlan = null;
     this.lastMerchantServiceExecution = null;
     this.lastMerchantRouteDecision = null;
@@ -19667,12 +19682,21 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     return plan;
   }
 
+  _merchantMluckCycle() {
+    if (!this._localMerchant()) return null;
+    return this.merchantMluck.cycle(this.lastSnapshot);
+  }
+
   tick() {
     super.tick();
     const now = this.now();
     if (now - this.lastMerchantServiceAt >= this.merchantServiceIntervalMs) {
       this.lastMerchantServiceAt = now;
       this._merchantServiceCycle();
+    }
+    if (now - this.lastMerchantMluckAt >= this.merchantMluckIntervalMs) {
+      this.lastMerchantMluckAt = now;
+      this._merchantMluckCycle();
     }
   }
 
@@ -19725,6 +19749,18 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     };
   }
 
+  configureMerchantMluck(config = {}) {
+    return this.merchantMluck.configure(config);
+  }
+
+  disableMerchantMluck(reason = 'OPERATOR_DISABLED') {
+    return this.merchantMluck.disable(reason);
+  }
+
+  merchantMluckStatus() {
+    return { ...this.merchantMluck.status(), intervalMs: this.merchantMluckIntervalMs };
+  }
+
   _guardControlledAuthority() {
     const base = super._guardControlledAuthority();
     const supervisor = this.globalSupervisor.status();
@@ -19753,9 +19789,12 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     return {
       ...base,
       merchantService: this.merchantServiceStatus(),
+      merchantMluck: this.merchantMluckStatus(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
         merchantServiceFoundation: true,
+        merchantMluckRotation: true,
+        merchantMluckUsesCommandBoundary: true,
         farmerSupplyTelemetry: true,
         standControlledDefaultOff: true,
         potionDeliveryControlledDefaultOff: true,
@@ -19772,6 +19811,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     const base = JSON.parse(super.exportDiagnostics());
     base.context = base.context || {};
     base.context.merchantService = this.merchantServiceStatus();
+    base.context.merchantMluck = this.merchantMluckStatus();
     return JSON.stringify(base, null, 2);
   }
 }
@@ -20542,6 +20582,406 @@ class ControlledMerchantServiceExecutor {
 }
 
 module.exports = { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+
+},
+"src/merchant/merchant-mluck-service.js": function(require,module,exports){
+'use strict';
+
+const { MerchantMluckPolicy } = require('./merchant-mluck-policy');
+
+const MERCHANT_MLUCK_SERVICE_MODE = 'merchant-mluck-service-v1';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function cleanName(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+class MerchantMluckService {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.adapter = options.adapter || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.getBusy = options.getBusy || (() => false);
+    this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.policy = options.policy || new MerchantMluckPolicy({ refreshLeadMs: options.refreshLeadMs });
+    this.enabled = options.enabled !== false;
+    this.attemptCooldownMs = Math.max(250, Math.min(60000, finite(options.attemptCooldownMs, 3000)));
+    this.minCycleMs = Math.max(100, Math.min(30000, finite(options.minCycleMs, 750)));
+    this.lastCycleAt = -Infinity;
+    this.lastDecision = null;
+    this.lastCommand = null;
+    this.lastTargets = [];
+    this.lastDecisionSignature = null;
+    this.attempts = new Map();
+    this.busy = false;
+    this.stats = {
+      cycles: 0,
+      castsAttempted: 0,
+      castsExecuted: 0,
+      shadowCasts: 0,
+      rejectedCasts: 0,
+      cooldownResourceSkips: 0,
+      rangeSkips: 0,
+      antiSpamSkips: 0,
+      busySkips: 0
+    };
+    this.reasonCounts = {};
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'merchant-mluck', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _character() {
+    return this.root && (this.root.character || (this.root.parent && this.root.parent.character)) || null;
+  }
+
+  _entities() {
+    return this.root && this.root.parent && this.root.parent.entities || this.root && this.root.entities || {};
+  }
+
+  _rawEntityByName(name) {
+    const wanted = cleanName(name);
+    if (!wanted) return null;
+    for (const entity of Object.values(this._entities())) {
+      if (!entity || cleanName(entity.name) !== wanted) continue;
+      const playerLike = entity.player === true || !!entity.ctype || String(entity.type || '').toLowerCase() === 'character' || !entity.mtype;
+      if (playerLike) return entity;
+    }
+    return null;
+  }
+
+  _partyNames(snapshot) {
+    const out = [];
+    const seen = new Set();
+    for (const row of snapshot && Array.isArray(snapshot.party) ? snapshot.party : []) {
+      const name = cleanName(row && row.name);
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      out.push(name);
+    }
+    const local = cleanName(snapshot && snapshot.character && snapshot.character.name || this._character() && this._character().name);
+    if (local && !seen.has(local)) out.push(local);
+    return out;
+  }
+
+  _effect(raw) {
+    return raw && raw.s && raw.s.mluck && typeof raw.s.mluck === 'object' ? raw.s.mluck : null;
+  }
+
+  _attemptState(targetId, now) {
+    const previous = finite(this.attempts.get(String(targetId || '')));
+    if (previous == null) return { blocked: false, until: null };
+    const until = previous + this.attemptCooldownMs;
+    return { blocked: until > now, until: until > now ? until : null };
+  }
+
+  _pruneAttempts(now) {
+    for (const [id, at] of this.attempts.entries()) {
+      if (now - at > this.attemptCooldownMs * 4) this.attempts.delete(id);
+    }
+  }
+
+  _inRange(targetId, self, raw) {
+    if (self) return true;
+    if (this.adapter && typeof this.adapter.isSkillInRange === 'function') {
+      try { return this.adapter.isSkillInRange(targetId, 'mluck') === true; } catch (_) { return false; }
+    }
+    const c = this._character();
+    const game = this.adapter && typeof this.adapter.getGameData === 'function' ? this.adapter.getGameData() || {} : {};
+    const skill = game.skills && game.skills.mluck || null;
+    const range = finite(skill && skill.range);
+    const cx = finite(c && (c.real_x != null ? c.real_x : c.x));
+    const cy = finite(c && (c.real_y != null ? c.real_y : c.y));
+    const tx = finite(raw && (raw.real_x != null ? raw.real_x : raw.x));
+    const ty = finite(raw && (raw.real_y != null ? raw.real_y : raw.y));
+    if (range == null || cx == null || cy == null || tx == null || ty == null) return false;
+    return Math.hypot(cx - tx, cy - ty) <= range;
+  }
+
+  _targets(snapshot, now) {
+    const c = this._character();
+    const localName = cleanName(snapshot && snapshot.character && snapshot.character.name || c && c.name);
+    const localMap = String(snapshot && snapshot.character && snapshot.character.map || c && c.map || '');
+    return this._partyNames(snapshot).map((name, topologyIndex) => {
+      const self = name === localName;
+      const raw = self ? c : this._rawEntityByName(name);
+      const id = cleanName(raw && (raw.id || raw.name) || (self ? localName : ''));
+      const targetMap = String(raw && raw.map || snapshot && snapshot.party && snapshot.party.find((row) => cleanName(row && row.name) === name)?.map || localMap || '');
+      const dead = !!(raw && (raw.dead === true || raw.rip === true));
+      const reachable = !!raw && !!id && (!localMap || !targetMap || localMap === targetMap);
+      const inRange = reachable && this._inRange(id, self, raw);
+      const attempt = this._attemptState(id, now);
+      return {
+        id,
+        name,
+        topologyIndex,
+        valid: !!id && !!name,
+        dead,
+        reachable,
+        inRange,
+        effect: this._effect(raw),
+        antiSpamBlocked: attempt.blocked,
+        antiSpamUntil: attempt.until
+      };
+    });
+  }
+
+  _countReason(reason) {
+    const key = String(reason || 'UNKNOWN');
+    this.reasonCounts[key] = (this.reasonCounts[key] || 0) + 1;
+  }
+
+  _recordDecision(decision, targets) {
+    this.lastDecision = clone(decision);
+    this.lastTargets = clone(targets || []);
+    this._countReason(decision && decision.reason);
+    if (decision && decision.reason === 'MLUCK_TARGET_OUT_OF_RANGE') this.stats.rangeSkips += 1;
+    if (decision && decision.reason === 'MLUCK_ANTI_SPAM') this.stats.antiSpamSkips += 1;
+    const targetId = decision && decision.target && decision.target.id || '-';
+    const signature = `${decision && decision.action || 'HOLD'}:${decision && decision.reason || 'UNKNOWN'}:${targetId}`;
+    if (signature !== this.lastDecisionSignature) {
+      this.lastDecisionSignature = signature;
+      this._event('MLUCK_DECISION', decision && decision.action === 'CAST' ? 'info' : 'debug', decision && decision.reason, {
+        action: decision && decision.action || 'HOLD',
+        target: decision && decision.target ? { id: decision.target.id, name: decision.target.name, remainingMs: decision.target.remainingMs, buffState: decision.target.buffState } : null
+      });
+    }
+    return decision;
+  }
+
+  _hold(reason, extra = {}, targets = []) {
+    return this._recordDecision({ action: 'HOLD', reason, ...extra }, targets);
+  }
+
+  configure(config = {}) {
+    if (config.enabled != null) this.enabled = config.enabled === true;
+    const lead = finite(config.refreshLeadMs);
+    if (lead != null) this.policy.refreshLeadMs = Math.max(1000, Math.min(60 * 60 * 1000, lead));
+    const cooldown = finite(config.attemptCooldownMs);
+    if (cooldown != null) this.attemptCooldownMs = Math.max(250, Math.min(60000, cooldown));
+    this._event('MLUCK_CONFIG_CHANGED', 'info', this.enabled ? 'ENABLED' : 'DISABLED', {
+      enabled: this.enabled,
+      refreshLeadMs: this.policy.refreshLeadMs,
+      attemptCooldownMs: this.attemptCooldownMs
+    });
+    return this.status();
+  }
+
+  disable(reason = 'OPERATOR_DISABLED') {
+    this.enabled = false;
+    this._event('MLUCK_DISABLED', 'warn', reason);
+    return this.status();
+  }
+
+  cycle(snapshot = null) {
+    const now = this.now();
+    this.stats.cycles += 1;
+    if (now - this.lastCycleAt < this.minCycleMs) return this._hold('MLUCK_CYCLE_THROTTLED', {}, this.lastTargets);
+    this.lastCycleAt = now;
+    this._pruneAttempts(now);
+
+    if (!this.enabled) return this._hold('MLUCK_DISABLED');
+    const current = snapshot || (this.adapter && typeof this.adapter.snapshot === 'function' ? this.adapter.snapshot() : null);
+    const merchant = current && current.character || this._character() || {};
+    if (String(merchant.ctype || merchant.type || '').toLowerCase() !== 'merchant') return this._hold('MERCHANT_REQUIRED');
+    if (merchant.rip === true || merchant.dead === true) return this._hold('MERCHANT_DEAD');
+    const supervisor = this.getSupervisorStatus() || {};
+    if (!SUPERVISOR_ALLOWED.has(String(supervisor.state || ''))) return this._hold('SUPERVISOR_NOT_HEALTHY');
+    if (this.getBusy() === true) {
+      this.stats.busySkips += 1;
+      return this._hold('MERCHANT_CONTROLLED_OPERATION_BUSY');
+    }
+
+    const targets = this._targets(current, now);
+    const decision = this.policy.decide({ now, merchant, targets });
+    if (!decision || decision.action !== 'CAST') return this._recordDecision(decision || { action: 'HOLD', reason: 'NO_MLUCK_DECISION' }, targets);
+
+    if (!this.adapter || typeof this.adapter.canUseSkill !== 'function') return this._hold('MLUCK_SKILL_CHECK_UNAVAILABLE', { target: decision.target }, targets);
+    let canUse = false;
+    try { canUse = this.adapter.canUseSkill('mluck') === true; } catch (_) { canUse = false; }
+    if (!canUse) {
+      this.stats.cooldownResourceSkips += 1;
+      return this._hold('MLUCK_COOLDOWN_OR_RESOURCE', { target: decision.target }, targets);
+    }
+    if (!this.adapter || typeof this.adapter.command !== 'function') return this._hold('MLUCK_COMMAND_BOUNDARY_UNAVAILABLE', { target: decision.target }, targets);
+
+    const targetId = decision.target.id;
+    this.attempts.set(String(targetId), now);
+    this.stats.castsAttempted += 1;
+    this.busy = true;
+    let result;
+    try {
+      result = this.adapter.command('use_skill', ['mluck', targetId]);
+    } catch (error) {
+      result = { executed: false, reason: 'MLUCK_COMMAND_EXCEPTION', error: String(error && error.message || error) };
+    } finally {
+      this.busy = false;
+    }
+
+    if (result && result.executed === true) this.stats.castsExecuted += 1;
+    else if (result && result.shadow === true) this.stats.shadowCasts += 1;
+    else this.stats.rejectedCasts += 1;
+    this.lastCommand = {
+      at: now,
+      targetId,
+      targetName: decision.target.name,
+      reason: decision.reason,
+      executed: !!(result && result.executed),
+      shadow: !!(result && result.shadow),
+      commandReason: result && result.reason || null
+    };
+    this._event('MLUCK_COMMAND', result && (result.executed || result.shadow) ? 'info' : 'warn', result && result.executed ? 'MLUCK_CAST_EXECUTED' : result && result.shadow ? 'MLUCK_CAST_SHADOW' : result && result.reason || 'MLUCK_CAST_REJECTED', this.lastCommand);
+    return this._recordDecision({ ...decision, result: clone(result), command: clone(this.lastCommand) }, targets);
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: MERCHANT_MLUCK_SERVICE_MODE,
+      enabled: this.enabled,
+      busy: this.busy,
+      policy: this.policy.status(),
+      attemptCooldownMs: this.attemptCooldownMs,
+      minCycleMs: this.minCycleMs,
+      lastCycleAt: Number.isFinite(this.lastCycleAt) ? this.lastCycleAt : null,
+      lastDecision: clone(this.lastDecision),
+      lastCommand: clone(this.lastCommand),
+      targets: clone(this.lastTargets),
+      stats: { ...this.stats },
+      reasonCounts: { ...this.reasonCounts }
+    };
+  }
+}
+
+module.exports = { MerchantMluckService, MERCHANT_MLUCK_SERVICE_MODE, SUPERVISOR_ALLOWED };
+
+},
+"src/merchant/merchant-mluck-policy.js": function(require,module,exports){
+'use strict';
+
+const MERCHANT_MLUCK_POLICY_MODE = 'merchant-mluck-policy-v1';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function cleanName(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function remainingMluckMs(effect, now = Date.now()) {
+  if (!effect || typeof effect !== 'object') return null;
+  for (const key of ['ms', 'remainingMs', 'remaining']) {
+    const value = finite(effect[key]);
+    if (value != null) return Math.max(0, value);
+  }
+  for (const key of ['expiresAt', 'expires', 'expiration']) {
+    const value = finite(effect[key]);
+    if (value != null) return Math.max(0, value - now);
+  }
+  return Infinity;
+}
+
+class MerchantMluckPolicy {
+  constructor(options = {}) {
+    this.refreshLeadMs = Math.max(1000, Math.min(60 * 60 * 1000, finite(options.refreshLeadMs, 5 * 60 * 1000)));
+  }
+
+  _row(target, index, now) {
+    const effect = target && target.effect && typeof target.effect === 'object' ? target.effect : null;
+    const remainingMs = remainingMluckMs(effect, now);
+    let buffState = 'MISSING';
+    if (effect) {
+      if (remainingMs === Infinity) buffState = 'HEALTHY_UNKNOWN_EXPIRY';
+      else if (remainingMs > this.refreshLeadMs) buffState = 'HEALTHY';
+      else if (remainingMs > 0) buffState = 'EXPIRING';
+    }
+    return {
+      id: target && target.id != null ? String(target.id) : '',
+      name: cleanName(target && target.name),
+      topologyIndex: Number.isInteger(target && target.topologyIndex) ? target.topologyIndex : index,
+      valid: target && target.valid !== false,
+      dead: !!(target && target.dead),
+      reachable: target && target.reachable !== false,
+      inRange: target && target.inRange !== false,
+      antiSpamBlocked: !!(target && target.antiSpamBlocked),
+      antiSpamUntil: finite(target && target.antiSpamUntil),
+      remainingMs,
+      buffState
+    };
+  }
+
+  decide(input = {}) {
+    const now = finite(input.now, Date.now());
+    const merchant = input.merchant || {};
+    const ctype = String(merchant.ctype || merchant.type || '').toLowerCase();
+    if (ctype !== 'merchant') return { action: 'HOLD', reason: 'MERCHANT_REQUIRED', candidates: [] };
+    if (merchant.rip === true || merchant.dead === true) return { action: 'HOLD', reason: 'MERCHANT_DEAD', candidates: [] };
+
+    const rows = (Array.isArray(input.targets) ? input.targets : []).map((target, index) => this._row(target, index, now));
+    if (!rows.length) return { action: 'HOLD', reason: 'PARTY_EMPTY', candidates: [] };
+
+    const needsBuff = rows.filter((row) => row.buffState === 'MISSING' || row.buffState === 'EXPIRING');
+    const candidates = needsBuff
+      .filter((row) => row.valid && row.id && row.name && !row.dead && row.reachable && row.inRange && !row.antiSpamBlocked)
+      .sort((a, b) => {
+        const stateA = a.buffState === 'MISSING' ? 0 : 1;
+        const stateB = b.buffState === 'MISSING' ? 0 : 1;
+        if (stateA !== stateB) return stateA - stateB;
+        const remainingA = a.remainingMs == null ? Infinity : a.remainingMs;
+        const remainingB = b.remainingMs == null ? Infinity : b.remainingMs;
+        if (remainingA !== remainingB) return remainingA - remainingB;
+        if (a.topologyIndex !== b.topologyIndex) return a.topologyIndex - b.topologyIndex;
+        const byName = a.name.localeCompare(b.name);
+        return byName || a.id.localeCompare(b.id);
+      });
+
+    const selected = candidates[0] || null;
+    if (selected) {
+      return {
+        action: 'CAST',
+        reason: selected.buffState === 'MISSING' ? 'MLUCK_MISSING' : 'MLUCK_EXPIRING',
+        target: { ...selected },
+        candidates: candidates.map((row) => ({ ...row }))
+      };
+    }
+
+    if (!needsBuff.length) return { action: 'HOLD', reason: 'MLUCK_HEALTHY', candidates: [], targets: rows };
+    if (needsBuff.some((row) => row.valid && !row.dead && row.reachable && row.inRange && row.antiSpamBlocked)) {
+      return { action: 'HOLD', reason: 'MLUCK_ANTI_SPAM', candidates: [], targets: rows };
+    }
+    if (needsBuff.some((row) => row.valid && !row.dead && row.reachable && !row.inRange)) {
+      return { action: 'HOLD', reason: 'MLUCK_TARGET_OUT_OF_RANGE', candidates: [], targets: rows };
+    }
+    if (needsBuff.some((row) => row.valid && !row.dead && !row.reachable)) {
+      return { action: 'HOLD', reason: 'MLUCK_TARGET_UNREACHABLE', candidates: [], targets: rows };
+    }
+    if (needsBuff.every((row) => row.dead || !row.valid || !row.id || !row.name)) {
+      return { action: 'HOLD', reason: 'NO_VALID_MLUCK_TARGETS', candidates: [], targets: rows };
+    }
+    return { action: 'HOLD', reason: 'NO_ELIGIBLE_MLUCK_TARGET', candidates: [], targets: rows };
+  }
+
+  status() {
+    return { schemaVersion: 1, mode: MERCHANT_MLUCK_POLICY_MODE, refreshLeadMs: this.refreshLeadMs };
+  }
+}
+
+module.exports = { MerchantMluckPolicy, MERCHANT_MLUCK_POLICY_MODE, remainingMluckMs };
 
 },
 "src/travel/route-cost-estimator.js": function(require,module,exports){
