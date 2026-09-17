@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Alpha27MerchantAutonomy } = require('../src/reliability/alpha27-merchant-autonomy');
 
-function fixture({ now = 10000, plan = null, active = null } = {}) {
+function fixture({ now = 10000, plan = null, active = null, cancelResult = { cancelled: true } } = {}) {
   let cancelled = null;
   let executed = 0;
   let lowRiskPlans = 0;
@@ -15,7 +15,7 @@ function fixture({ now = 10000, plan = null, active = null } = {}) {
     lastMerchantServicePlan: plan,
     gearProgression: { list: () => [] },
     transactionEngine: {
-      cancel(id, reason) { cancelled = { id, reason }; return { cancelled: true }; },
+      cancel(id, reason) { cancelled = { id, reason }; return cancelResult; },
       breaker: () => ({ open: false })
     },
     planEconomyTransaction: () => ({ accepted: true, transaction: { id: 'bank-new', type: 'BANK' } })
@@ -85,6 +85,22 @@ test('fresh adaptive potion delivery safely releases a merely reserved bank tran
   assert.equal(f.executed, 0);
   assert.equal(f.lowRiskPlans, 0);
   assert.equal(f.autonomy.stats.partySupplyLowRiskPreemptions, 1);
+  assert.equal(f.autonomy.lastMerchantPlan.reason, 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE');
+});
+
+test('rejected low-risk cancellation fails closed and never executes the competing bank transaction', async () => {
+  const active = { id: 'bank-reserved', type: 'BANK', state: 'RESERVED' };
+  const f = fixture({
+    plan: adaptivePlan('SERVICE_DELIVERY'),
+    active,
+    cancelResult: { cancelled: false, reason: 'TRANSACTION_ALREADY_TERMINAL' }
+  });
+  assert.equal(await f.autonomy.cycle(), false);
+  assert.deepEqual(f.cancelled, { id: 'bank-reserved', reason: 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT' });
+  assert.equal(f.executed, 0);
+  assert.equal(f.lowRiskPlans, 0);
+  assert.equal(f.autonomy.stats.partySupplyLowRiskPreemptions || 0, 0);
+  assert.equal(f.autonomy.stats.partySupplyPreemptionFailures, 1);
   assert.equal(f.autonomy.lastMerchantPlan.reason, 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE');
 });
 
