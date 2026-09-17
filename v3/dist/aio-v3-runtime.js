@@ -35619,7 +35619,12 @@ class Alpha25ControlCenterBrain {
 
 function installAlpha25ControlCenterBrain(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha25ControlCenterBrain) return runtime.alpha25ControlCenterBrain;
+  if (runtime.alpha25ControlCenterBrain) {
+    const existing = runtime.alpha25ControlCenterBrain;
+    const cloud = runtime.cloudControlPlane || existing.cloud;
+    installAdventureLandItemSprites(runtime, cloud);
+    return existing;
+  }
   const module = new Alpha25ControlCenterBrain(runtime, options);
   runtime.alpha25ControlCenterBrain = module;
   return module;
