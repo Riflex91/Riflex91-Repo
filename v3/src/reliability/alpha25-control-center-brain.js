@@ -60,7 +60,13 @@ function installAdventureLandItemSprites(runtime, cloud) {
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
   cloud._runtimeSnapshot = () => {
     const snapshot = originalRuntimeSnapshot();
-    if (snapshot && typeof snapshot === 'object') snapshot.itemSprites = itemSpriteCatalog(runtime);
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
     return snapshot;
   };
   cloud.__adventureLandItemSpritesInstalled = true;
