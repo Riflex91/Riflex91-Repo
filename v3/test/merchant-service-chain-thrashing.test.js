@@ -102,6 +102,9 @@ test('rejected low-risk cancellation fails closed and never executes the competi
   assert.equal(f.autonomy.stats.partySupplyLowRiskPreemptions || 0, 0);
   assert.equal(f.autonomy.stats.partySupplyPreemptionFailures, 1);
   assert.equal(f.autonomy.lastMerchantPlan.reason, 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE');
+  const status = f.autonomy.status();
+  assert.equal(status.partySupplyPreemptionFailures, 1);
+  assert.equal(status.criticalPartySupplyChainAtomicAcrossRestockTravelDelivery, true);
 });
 
 test('stale adaptive potion plan cannot hold economy forever', async () => {
