@@ -31,6 +31,18 @@ function gameDataOf(runtime) {
   } catch (_) { return {}; }
 }
 
+function inferredImageSetRows(gameData, packName, pack) {
+  const explicit = Number(pack && pack.rows);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  let maxY = -1;
+  for (const position of Object.values(gameData && gameData.positions || {})) {
+    if (!Array.isArray(position) || (position[0] || 'pack_20') !== packName) continue;
+    const y = Number(position[2]);
+    if (Number.isFinite(y) && y >= 0) maxY = Math.max(maxY, y);
+  }
+  return maxY >= 0 ? maxY + 1 : null;
+}
+
 function spriteMeta(gameData, skin) {
   const position = skin && gameData && gameData.positions && gameData.positions[skin];
   const packName = Array.isArray(position) && position[0] || 'pack_20';
@@ -40,7 +52,7 @@ function spriteMeta(gameData, skin) {
   const y = Number(Array.isArray(position) ? position[2] : NaN);
   const size = Number(pack && pack.size);
   const columns = Number(pack && pack.columns);
-  const rows = Number(pack && pack.rows);
+  const rows = inferredImageSetRows(gameData, packName, pack);
   if (!skin || !file || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size) || size <= 0 || !Number.isFinite(columns) || columns <= 0 || !Number.isFinite(rows) || rows <= 0) return null;
   return { skin, file, x, y, size, columns, rows };
 }
