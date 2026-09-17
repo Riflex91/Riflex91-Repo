@@ -14,16 +14,19 @@ test('command center overview shows the five requested capacity concepts', () =>
   assert.doesNotMatch(DASHBOARD_HTML, /id="warnings"/);
 });
 
-test('character cards show online and offline duration with hours, minutes and seconds', () => {
+test('character cards show compact online and offline durations', () => {
   assert.match(DASHBOARD_HTML, /Onlinezeit/);
   assert.match(DASHBOARD_HTML, /Offlinezeit/);
   assert.match(DASHBOARD_HTML, /startedAt/);
   assert.match(DASHBOARD_HTML, /durationHms/);
   assert.match(DASHBOARD_HTML, /durationHms\(age\)/);
-  assert.match(DASHBOARD_HTML, /Std · /);
-  assert.match(DASHBOARD_HTML, /Min · /);
-  assert.match(DASHBOARD_HTML, /Sek/);
+  assert.match(DASHBOARD_HTML, /if\(hours\)parts\.push\(hours\+' Std'\)/);
+  assert.match(DASHBOARD_HTML, /if\(minutes\)parts\.push\(minutes\+' Min'\)/);
+  assert.match(DASHBOARD_HTML, /if\(secs\|\|!parts\.length\)parts\.push\(secs\+' Sek'\)/);
+  assert.match(DASHBOARD_HTML, /displayState=state==='offline'\?'offline':'online'/);
+  assert.match(DASHBOARD_HTML, /displayState\+' · '\+durationHms\(age\)/);
   assert.match(DASHBOARD_HTML, /Number\(age\)\|\|0\)-120/);
+  assert.doesNotMatch(DASHBOARD_HTML, /padStart\(2,'0'\)/);
   assert.doesNotMatch(DASHBOARD_HTML, /fmt\(age\)\+'s'/);
 });
 
