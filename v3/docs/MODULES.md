@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 3981 Zeilen**
+**21 Dateien · 3983 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -27,7 +27,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/advanced-party-movement.js` | 217 |
 | `src/autonomy/alpha10-runtime.js` | 76 |
 | `src/autonomy/alpha11-runtime.js` | 62 |
-| `src/autonomy/alpha12-hardened-runtime.js` | 155 |
+| `src/autonomy/alpha12-hardened-runtime.js` | 156 |
 | `src/autonomy/alpha12-runtime.js` | 67 |
 | `src/autonomy/alpha13-runtime.js` | 131 |
 | `src/autonomy/alpha14-runtime.js` | 112 |
@@ -35,7 +35,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha16-runtime.js` | 73 |
 | `src/autonomy/alpha17-runtime.js` | 303 |
 | `src/autonomy/alpha18-runtime.js` | 212 |
-| `src/autonomy/alpha19-runtime.js` | 173 |
+| `src/autonomy/alpha19-runtime.js` | 174 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 330 |
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 325 |
 | `src/autonomy/alpha20-runtime.js` | 392 |
@@ -82,15 +82,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 3861 Zeilen**
+**12 Dateien · 3891 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/economy/bank-capacity-manager.js` | 415 |
 | `src/economy/bank-expansion-transactions.js` | 289 |
-| `src/economy/controlled-bank-consolidation-executor.js` | 269 |
+| `src/economy/controlled-bank-consolidation-executor.js` | 285 |
 | `src/economy/controlled-bank-expansion-executor.js` | 184 |
-| `src/economy/controlled-merchant-executor.js` | 494 |
+| `src/economy/controlled-merchant-executor.js` | 508 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
 | `src/economy/gear-progression.js` | 327 |
@@ -101,7 +101,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**14 Dateien · 2583 Zeilen**
+**14 Dateien · 2595 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -109,7 +109,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/combat-emergency.js` | 64 |
 | `src/farmer/combat-risk.js` | 146 |
 | `src/farmer/content-safety.js` | 165 |
-| `src/farmer/controlled-farmer-loot.js` | 219 |
+| `src/farmer/controlled-farmer-loot.js` | 231 |
 | `src/farmer/farmer-fsm.js` | 526 |
 | `src/farmer/kiting-farmer.js` | 85 |
 | `src/farmer/retreat-farmer.js` | 166 |
@@ -122,11 +122,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## game
 
-**3 Dateien · 703 Zeilen**
+**3 Dateien · 723 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/game/adapter.js` | 271 |
+| `src/game/adapter.js` | 291 |
 | `src/game/command-outcomes.js` | 226 |
 | `src/game/stability-adapter.js` | 206 |
 
@@ -177,19 +177,19 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**19 Dateien · 3827 Zeilen**
+**19 Dateien · 3863 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/party/account-character-transport.js` | 271 |
+| `src/party/account-character-transport.js` | 280 |
 | `src/party/capabilities.js` | 37 |
 | `src/party/character-registry.js` | 500 |
-| `src/party/control-lease.js` | 324 |
+| `src/party/control-lease.js` | 326 |
 | `src/party/controlled-lifecycle-coordinator-base.js` | 573 |
 | `src/party/controlled-lifecycle-coordinator.js` | 225 |
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
-| `src/party/controlled-party-bootstrap-base.js` | 582 |
-| `src/party/controlled-party-bootstrap.js` | 93 |
+| `src/party/controlled-party-bootstrap-base.js` | 583 |
+| `src/party/controlled-party-bootstrap.js` | 110 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
 | `src/party/orchestrator-base.js` | 56 |
@@ -197,8 +197,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/paladin-aura-policy.js` | 20 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
-| `src/party/telemetry-bridge.js` | 53 |
-| `src/party/transition-controller-base.js` | 385 |
+| `src/party/telemetry-bridge.js` | 55 |
+| `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
 
 ## planner
@@ -211,15 +211,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**70 Dateien · 16711 Zeilen**
+**70 Dateien · 16755 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/reliability/alpha20-15-combat-logistics-hotfix.js` | 333 |
 | `src/reliability/alpha20-15-logistics-fairness-hotfix.js` | 39 |
-| `src/reliability/alpha20-19-account-transport-hotfix.js` | 181 |
+| `src/reliability/alpha20-19-account-transport-hotfix.js` | 191 |
 | `src/reliability/alpha20-19-logistics-stabilization.js` | 133 |
-| `src/reliability/alpha20-20-alpha22-autonomy.js` | 239 |
+| `src/reliability/alpha20-20-alpha22-autonomy.js` | 240 |
 | `src/reliability/alpha20-20-live-regression-hotfix.js` | 188 |
 | `src/reliability/alpha20-21-cloud-persistence-recovery.js` | 219 |
 | `src/reliability/alpha20-22-live-smoke-recovery.js` | 167 |
@@ -249,7 +249,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 332 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 350 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
@@ -257,7 +257,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
 | `src/reliability/content-drift-semantic-recovery.js` | 219 |
 | `src/reliability/content-drift-storage-hotfix.js` | 88 |
-| `src/reliability/controlled-party-logistics.js` | 870 |
+| `src/reliability/controlled-party-logistics.js` | 868 |
 | `src/reliability/dangerous-content-hotfix.js` | 143 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
@@ -275,7 +275,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 452 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
-| `src/reliability/party-account-communication.js` | 203 |
+| `src/reliability/party-account-communication.js` | 220 |
 | `src/reliability/party-bootstrap-farmer-gate.js` | 111 |
 | `src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js` | 29 |
 | `src/reliability/party-bootstrap-merchant-discovery-hotfix.js` | 23 |
@@ -314,11 +314,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## travel
 
-**3 Dateien · 627 Zeilen**
+**3 Dateien · 644 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/travel/controlled-travel-executor.js` | 240 |
+| `src/travel/controlled-travel-executor.js` | 257 |
 | `src/travel/route-cost-estimator.js` | 77 |
 | `src/travel/safe-travel.js` | 310 |
 
