@@ -2,7 +2,7 @@
 
 Status: **in Arbeit**.
 
-Live-Stand vom 2026-09-17: echter Ranger-zu-Ranger-Lebensnachweis sowie read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sind erfolgreich bestaetigt. Die Produktionskopplung an Block 7 ist umgesetzt; die automatische Live-Sicherheitsquelle ist implementiert und wartet noch auf die Zwei-Ranger-Abnahme.
+Live-Stand vom 2026-09-17: Ranger-zu-Ranger-Lebensnachweis, read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sowie die automatische Block-7-Sicherheitskopplung inklusive fehlender-Quellen-Fail-safe sind erfolgreich live bestaetigt.
 
 ## Ziel
 
@@ -81,6 +81,8 @@ Die Gruppenkoordination bzw. der Live-Lebensnachweis blockiert, wenn unter ander
 
 Fehlende Daten werden nicht durch Klassenannahmen oder geratenen Zustand ersetzt.
 
+Der fehlende-Quellen-Fall wurde am 2026-09-17 live bestaetigt: Nach Entfernen der Block-7-Quelle brach `sendeEinmal()` vor `send_cm` ab und der Sendecounter blieb unveraendert bei `216`.
+
 ## Architekturgrenze
 
 `spiellogik/gruppen-koordination.ts` darf keine Adventure-Land-Spielaktion direkt ausfuehren. Spaetere aktive Gruppenaktionen muessen ueber `AktionsSteuerung` und die Ressource `gruppe` beziehungsweise die benoetigten Kampf- und Bewegungsressourcen laufen.
@@ -102,7 +104,12 @@ Automatisiert vorhanden sind unter anderem:
 - Browser-/Produktionsparitaet der Live-Sicherheitsquelle,
 - Blockierung bei fehlender oder stale Live-Sicherheit vor `send_cm`.
 
-Der Live-Koordinationsschatten mit `My_Ranger1` und `My_Ranger2` hat den Zyklus `aktiv -> veraltet -> Aufgabe entzogen -> Reconnect -> aktiv -> Aufgabe wieder zugeordnet` bereits bestanden.
+Live bestaetigt sind inzwischen:
+
+- Ranger-zu-Ranger-Lebensnachweis,
+- `aktiv -> veraltet -> Aufgabe entzogen -> Reconnect -> aktiv -> Aufgabe wieder zugeordnet`,
+- automatische Uebernahme einer echten Block-7-`sicher`-Bewertung in beide Ranger-Lebensnachweise,
+- fehlende Block-7-Live-Sicherheitsquelle blockiert vor `send_cm`.
 
 ## Naechste Block-8-Schritte
 
@@ -112,12 +119,13 @@ Bereits erreicht:
 2. read-only Lebensnachweis-Austausch zwischen eigenen Charakteren.
 3. echter read-only Koordinationsschatten mit Aktiv/Stale/Reconnect-Aufgabenwechsel.
 4. Produktionskopplung der Gefahrenstufe an Block 7.
-5. automatische, source-locked Live-Sicherheitsquelle und Lebensnachweis v1.1.0 implementiert.
+5. automatische, source-locked Live-Sicherheitsquelle und Lebensnachweis v1.1.0.
+6. echte Zwei-Ranger-Live-Abnahme der automatischen Block-7-Gefahrenquelle.
+7. Live-Fail-safe bei fehlender Block-7-Quelle ohne `send_cm`.
 
 Als naechstes folgen getrennt und testbar:
 
-1. echte Zwei-Ranger-Live-Abnahme der automatischen Block-7-Gefahrenquelle.
-2. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
-3. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
-4. Mehrcharakter-Wiederholungen und gezielte Ausfalltests.
-5. erst danach begrenzte aktive Gruppen-Smoke-Tests und der spaetere 72-Stunden-Gruppentest.
+1. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
+2. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
+3. Mehrcharakter-Wiederholungen und gezielte Ausfalltests fuer die konkreten Gruppenplaene.
+4. erst danach begrenzte aktive Gruppen-Smoke-Tests und der spaetere 72-Stunden-Gruppentest.
