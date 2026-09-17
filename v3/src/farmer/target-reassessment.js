@@ -1,9 +1,6 @@
 'use strict';
 
-function distance(a, b) {
-  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
-  return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
-}
+const { distance } = require('../core/geometry');
 
 function liveMonster(entity, character) {
   if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
