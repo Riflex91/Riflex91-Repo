@@ -1,5 +1,6 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { AccountCharacterTransport } = require('../party/account-character-transport');
 
 const CONTROL_RECEIVER = '__AIO_V3_PARTY_CONTROL_RECEIVE';
@@ -9,6 +10,19 @@ function bounded(value, max = 240) {
   return String(value == null ? '' : value).slice(0, max);
 }
 
+function commandAdapterFor(runtime) {
+  const supplied = runtime && runtime.adapter || null;
+  if (!supplied || typeof supplied.command === 'function') return supplied;
+  const root = runtime.root || globalThis;
+  return new GameAdapter({
+    root,
+    parent: root && root.parent,
+    log: runtime.log || null,
+    now: runtime.now || (() => Date.now()),
+    mode: String(supplied.mode || '') === 'active' ? 'active' : 'shadow'
+  });
+}
+
 class PartyAccountCommunicationReliability {
   constructor(runtime, options = {}) {
     if (!runtime) throw new Error('runtime required');
@@ -16,11 +30,12 @@ class PartyAccountCommunicationReliability {
     this.root = runtime.root || globalThis;
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
+    this.commandAdapter = commandAdapterFor(runtime);
     this.transport = options.transport || new AccountCharacterTransport({
       root: this.root,
       now: this.now,
       log: this.log,
-      adapter: runtime.adapter,
+      adapter: this.commandAdapter,
       fallbackEnabled: options.fallbackEnabled !== false
     });
     this.telemetryFailureStreak = 0;
@@ -76,7 +91,7 @@ class PartyAccountCommunicationReliability {
   _installControlTransport() {
     const lease = this.runtime.partyControlLease;
     if (!lease) return false;
-    if (this.runtime.adapter) lease.adapter = this.runtime.adapter;
+    if (this.commandAdapter) lease.adapter = this.commandAdapter;
     this.transport.installDirectReceiver(CONTROL_RECEIVER, (sender, payload) => {
       if (!lease.installed || typeof lease.receive !== 'function') return false;
       this.stats.controlDirectReceiverCalls += 1;
