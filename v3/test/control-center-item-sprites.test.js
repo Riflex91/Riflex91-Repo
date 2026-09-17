@@ -65,6 +65,66 @@ test('item sprite catalog exposes only inventory and equipped Adventure Land spr
   assert.equal(catalog.unused, undefined);
 });
 
+test('sprite catalog falls back from adapter G to the complete parent.G visual metadata', () => {
+  const parentGameData = {
+    items: { hpot0: { skin: 'legacy_hpot_skin', skin_c: 'hpot_skin' } },
+    positions: { hpot_skin: ['pack_20', 7, 4] },
+    imagesets: { pack_20: { file: '/images/tiles/items.png', size: 20, columns: 16, rows: 8 } }
+  };
+  const runtime = {
+    root: { G: { items: { hpot0: { skin: 'legacy_hpot_skin', skin_c: 'hpot_skin' } } }, parent: { G: parentGameData } },
+    adapter: {
+      root: { G: { items: { hpot0: { skin: 'legacy_hpot_skin', skin_c: 'hpot_skin' } } } },
+      parent: { G: parentGameData },
+      getGameData() { return this.root.G; }
+    },
+    characterRegistry: {
+      status: () => ({ characters: [{ inventory: [{ index: 0, name: 'hpot0', q: 10 }], gear: {} }] })
+    }
+  };
+
+  const catalog = itemSpriteCatalog(runtime);
+  assert.equal(catalog.hpot0.skin, 'hpot_skin');
+  assert.equal(catalog.hpot0.x, 7);
+  assert.equal(catalog.hpot0.y, 4);
+  assert.equal(catalog.hpot0.file, 'https://adventure.land/images/tiles/items.png');
+});
+
+test('sprite catalog reconstructs positions from Adventure Land imageset matrices', () => {
+  const runtime = {
+    adapter: {
+      getGameData() {
+        return {
+          items: { hpot0: { skin: 'hpot_skin' } },
+          imagesets: {
+            pack_20: {
+              file: '/images/tiles/items.png',
+              size: 20,
+              columns: 3,
+              matrix: [
+                ['shade_helmet', 'placeholder', null],
+                ['unused_skin', 'hpot_skin', 'shade_ring']
+              ]
+            }
+          }
+        };
+      }
+    },
+    characterRegistry: {
+      status: () => ({ characters: [{ inventory: [{ index: 0, name: 'hpot0', q: 5 }], gear: {} }] })
+    }
+  };
+
+  const catalog = itemSpriteCatalog(runtime);
+  const shades = equipmentShadeCatalog(runtime);
+  assert.equal(catalog.hpot0.x, 1);
+  assert.equal(catalog.hpot0.y, 1);
+  assert.equal(catalog.hpot0.rows, 2);
+  assert.equal(shades.helmet.x, 0);
+  assert.equal(shades.helmet.y, 0);
+  assert.equal(shades.ring1.x, 2);
+});
+
 test('equipment shade catalog mirrors Adventure Land empty slot artwork without explicit rows metadata', () => {
   const runtime = {
     adapter: {

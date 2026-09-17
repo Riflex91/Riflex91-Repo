@@ -23,17 +23,45 @@ function adventureLandAssetUrl(file) {
   return ADVENTURE_LAND_ASSET_BASE + value.replace(/^\/+/, '');
 }
 
-function gameDataOf(runtime) {
+function gameDataSources(runtime) {
+  const sources = [];
+  const add = (value) => {
+    if (!value || typeof value !== 'object' || sources.includes(value)) return;
+    sources.push(value);
+  };
   try {
-    return runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
-      ? runtime.adapter.getGameData() || {}
-      : runtime && runtime.root && (runtime.root.G || runtime.root.parent && runtime.root.parent.G) || {};
-  } catch (_) { return {}; }
+    if (runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function') add(runtime.adapter.getGameData());
+  } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.root && runtime.adapter.root.G); } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.parent && runtime.adapter.parent.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.parent && runtime.root.parent.G); } catch (_) {}
+  return sources;
+}
+
+function positionFromImageSets(gameData, skin) {
+  for (const [packName, pack] of Object.entries(gameData && gameData.imagesets || {})) {
+    const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
+    for (let y = 0; y < matrix.length; y += 1) {
+      const row = Array.isArray(matrix[y]) ? matrix[y] : [];
+      for (let x = 0; x < row.length; x += 1) {
+        const cell = row[x];
+        if (cell === skin || (Array.isArray(cell) && cell.includes(skin))) return [packName, x, y];
+      }
+    }
+  }
+  return null;
+}
+
+function spritePosition(gameData, skin) {
+  const direct = skin && gameData && gameData.positions && gameData.positions[skin];
+  return Array.isArray(direct) ? direct : positionFromImageSets(gameData, skin);
 }
 
 function inferredImageSetRows(gameData, packName, pack) {
   const explicit = Number(pack && pack.rows);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (Array.isArray(pack && pack.matrix) && pack.matrix.length) return pack.matrix.length;
   let maxY = -1;
   for (const position of Object.values(gameData && gameData.positions || {})) {
     if (!Array.isArray(position) || (position[0] || 'pack_20') !== packName) continue;
@@ -44,7 +72,7 @@ function inferredImageSetRows(gameData, packName, pack) {
 }
 
 function spriteMeta(gameData, skin) {
-  const position = skin && gameData && gameData.positions && gameData.positions[skin];
+  const position = spritePosition(gameData, skin);
   const packName = Array.isArray(position) && position[0] || 'pack_20';
   const pack = gameData && gameData.imagesets && gameData.imagesets[packName];
   const file = adventureLandAssetUrl(pack && pack.file);
@@ -57,8 +85,24 @@ function spriteMeta(gameData, skin) {
   return { skin, file, x, y, size, columns, rows };
 }
 
+function spriteMetaFromSources(sources, skin) {
+  for (const source of sources) {
+    const meta = spriteMeta(source, skin);
+    if (meta) return meta;
+  }
+  return null;
+}
+
+function itemDefinitionFromSources(sources, name) {
+  for (const source of sources) {
+    const def = source && source.items && source.items[name];
+    if (def && typeof def === 'object') return def;
+  }
+  return null;
+}
+
 function itemSpriteCatalog(runtime, maxItems = 160) {
-  const gameData = gameDataOf(runtime);
+  const sources = gameDataSources(runtime);
   let registry = null;
   try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
   const names = new Set();
@@ -73,18 +117,19 @@ function itemSpriteCatalog(runtime, maxItems = 160) {
   }
   const catalog = {};
   for (const name of names) {
-    const def = gameData.items && gameData.items[name];
-    const meta = spriteMeta(gameData, def && def.skin);
+    const def = itemDefinitionFromSources(sources, name);
+    const skin = def && (def.skin_c || def.skin);
+    const meta = spriteMetaFromSources(sources, skin);
     if (meta) catalog[name] = meta;
   }
   return catalog;
 }
 
 function equipmentShadeCatalog(runtime) {
-  const gameData = gameDataOf(runtime);
+  const sources = gameDataSources(runtime);
   const catalog = {};
   for (const [slot, skin] of Object.entries(EQUIPMENT_SHADE_SKINS)) {
-    const meta = spriteMeta(gameData, skin);
+    const meta = spriteMetaFromSources(sources, skin);
     if (meta) catalog[slot] = meta;
   }
   return catalog;
