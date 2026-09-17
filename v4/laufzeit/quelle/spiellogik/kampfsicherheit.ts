@@ -346,7 +346,7 @@ export function planeKampfSicherheitsSchritt(
   const ziel = rueckzugsZiel(charakter, angreifer, normalisiert.rueckzugDistanz);
   if (!ziel) {
     return entscheidung(spielzustand, jetzt, 'blockiert', 'Die Gefahr ist erkannt, aber ein sicherer Rueckzugsvektor kann nicht bestimmt werden.', false, bewertung, null,
-      meldung(jetzt, 'KAMPF_RUECKZUG_ZIEL_UNBEKANNT', 'Rueckzug blockiert', 'Eine Kampfgefahr erfordert Bewegung, aber die Positionen der Angreifer reichen nicht fuer einen sicheren Rueckzugsvektor.', 'Es wird keine erfundene Bewegungsrichtung angefordert und normales Farmen bleibt blockiert.', 'kritisch', true, 'Positionsdaten und aktuelle Spielsituation pruefen.', { angreiferKennungen: bewertung.angreiferKennungen }), zustand);
+      meldung(jetzt, 'KAMPF_RUECKZUG_ZIEL_UNBEKANNT', 'Rueckzug blockiert', 'Eine Kampfgefahr erfordert Bewegung, aber die Positionen der Angreifer reichen nicht fuer einen sicheren Rueckzugsvektor.', 'Die benoetigten Angreiferpositionen sind nicht sicher bekannt oder ergeben keinen eindeutigen Vektor.', 'Es wird keine erfundene Bewegungsrichtung angefordert und normales Farmen bleibt blockiert.', 'kritisch', true, 'Positionsdaten und aktuelle Spielsituation pruefen.', { angreiferKennungen: bewertung.angreiferKennungen }), zustand);
   }
 
   const art = gefahrErfordertRueckzug ? 'rueckzug' : 'abstand_herstellen';
