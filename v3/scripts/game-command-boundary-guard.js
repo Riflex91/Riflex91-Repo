@@ -2,7 +2,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const ts = require('typescript');
 
 const PROTECTED_MUTATION_APIS = Object.freeze([
   'attack',
@@ -30,8 +29,8 @@ const PROTECTED_MUTATION_APIS = Object.freeze([
 ]);
 
 const PROTECTED = new Set(PROTECTED_MUTATION_APIS);
-const RAW_BINDING_HELPERS = new Set(['_binding', '_function', '_readBinding', '_readFunction']);
 const BOUNDARY_FILE = path.normalize(path.join('src', 'game', 'adapter.js'));
+const RAW_BINDING_HELPERS = Object.freeze(['_binding', '_function', '_readBinding', '_readFunction']);
 
 function walkFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -46,102 +45,178 @@ function normalizedRelative(rootDir, file) {
   return path.normalize(path.relative(rootDir, file));
 }
 
-function rawReceiverText(node, sourceFile) {
-  const text = node.getText(sourceFile);
-  return text === 'globalThis'
-    || text === 'window'
-    || text === 'parent'
-    || text === 'root'
-    || text === 'this.root'
-    || text === 'this.parent'
-    || text.includes('.root')
-    || text.includes('.parent');
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function position(sourceFile, node) {
-  const lc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-  return { line: lc.line + 1, column: lc.character + 1 };
-}
+function maskJavaScript(source, options = {}) {
+  const preserveStrings = options.preserveStrings === true;
+  const chars = [...String(source)];
+  const out = chars.slice();
+  let state = 'code';
+  let quote = null;
 
-function violation(sourceFile, node, api, kind) {
-  return {
-    file: sourceFile.fileName,
-    api,
-    kind,
-    ...position(sourceFile, node)
+  const blank = (index) => {
+    if (out[index] !== '\n' && out[index] !== '\r') out[index] = ' ';
   };
+
+  for (let i = 0; i < chars.length; i += 1) {
+    const ch = chars[i];
+    const next = chars[i + 1];
+
+    if (state === 'line-comment') {
+      if (ch === '\n' || ch === '\r') state = 'code';
+      else blank(i);
+      continue;
+    }
+
+    if (state === 'block-comment') {
+      blank(i);
+      if (ch === '*' && next === '/') {
+        blank(i + 1);
+        i += 1;
+        state = 'code';
+      }
+      continue;
+    }
+
+    if (state === 'string') {
+      if (!preserveStrings) blank(i);
+      if (ch === '\\') {
+        if (i + 1 < chars.length) {
+          if (!preserveStrings) blank(i + 1);
+          i += 1;
+        }
+        continue;
+      }
+      if (ch === quote) {
+        state = 'code';
+        quote = null;
+      }
+      continue;
+    }
+
+    if (ch === '/' && next === '/') {
+      blank(i);
+      blank(i + 1);
+      i += 1;
+      state = 'line-comment';
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      blank(i);
+      blank(i + 1);
+      i += 1;
+      state = 'block-comment';
+      continue;
+    }
+    if (ch === '\'' || ch === '"' || ch === '`') {
+      state = 'string';
+      quote = ch;
+      if (!preserveStrings) blank(i);
+    }
+  }
+
+  return out.join('');
 }
 
-function collectDeclaredNames(sourceFile) {
+function lineColumn(source, index) {
+  const before = source.slice(0, index);
+  const line = before.split('\n').length;
+  const lastBreak = before.lastIndexOf('\n');
+  return { line, column: index - lastBreak };
+}
+
+function addViolation(violations, seen, source, fileName, index, api, kind) {
+  const key = `${index}:${api}:${kind}`;
+  if (seen.has(key)) return;
+  seen.add(key);
+  violations.push({ file: fileName, api, kind, ...lineColumn(source, index) });
+}
+
+function collectDeclaredNames(code) {
   const declared = new Set();
-  function visit(node) {
-    if ((ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name) declared.add(node.name.text);
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) declared.add(node.name.text);
-    if (ts.isParameter(node) && ts.isIdentifier(node.name)) declared.add(node.name.text);
-    if (ts.isImportClause(node) && node.name) declared.add(node.name.text);
-    if (ts.isImportSpecifier(node)) declared.add((node.propertyName || node.name).text);
-    ts.forEachChild(node, visit);
+  const add = (name) => { if (name) declared.add(name); };
+  let match;
+
+  const namedDeclaration = /\b(?:function|class)\s+([A-Za-z_$][\w$]*)/g;
+  while ((match = namedDeclaration.exec(code))) add(match[1]);
+
+  const variableDeclaration = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g;
+  while ((match = variableDeclaration.exec(code))) add(match[1]);
+
+  const parameterLists = [
+    /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)/g,
+    /\(([^)]*)\)\s*=>/g
+  ];
+  for (const pattern of parameterLists) {
+    while ((match = pattern.exec(code))) {
+      for (const name of match[1].match(/[A-Za-z_$][\w$]*/g) || []) add(name);
+    }
   }
-  visit(sourceFile);
+
+  const singleArrow = /\b([A-Za-z_$][\w$]*)\s*=>/g;
+  while ((match = singleArrow.exec(code))) add(match[1]);
+
+  // Object/class method declarations such as `move(x) {}` are local symbols,
+  // not Adventure Land globals. Scope precision is intentionally conservative:
+  // a local declaration anywhere in the file suppresses the bare-call check for
+  // that name, while raw root/parent property access is still always rejected.
+  const methodDeclaration = /\b([A-Za-z_$][\w$]*)\s*\([^;{}]*\)\s*\{/g;
+  while ((match = methodDeclaration.exec(code))) add(match[1]);
+
   return declared;
 }
 
 function findViolations(source, fileName = 'inline.js') {
-  const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const raw = String(source);
+  const code = maskJavaScript(raw, { preserveStrings: false });
+  const codeWithStrings = maskJavaScript(raw, { preserveStrings: true });
   const violations = [];
-  const declared = collectDeclaredNames(sourceFile);
+  const seen = new Set();
+  const declared = collectDeclaredNames(code);
+  const apiAlternation = PROTECTED_MUTATION_APIS.map(escapeRegex).join('|');
+  let match;
 
-  function visit(node) {
-    if (ts.isPropertyAccessExpression(node)) {
-      const api = node.name.text;
-      if (PROTECTED.has(api) && rawReceiverText(node.expression, sourceFile)) {
-        violations.push(violation(sourceFile, node, api, 'raw-property'));
-      }
-    }
-
-    if (ts.isElementAccessExpression(node)
-      && node.argumentExpression
-      && (ts.isStringLiteral(node.argumentExpression) || ts.isNoSubstitutionTemplateLiteral(node.argumentExpression))) {
-      const api = node.argumentExpression.text;
-      if (PROTECTED.has(api) && rawReceiverText(node.expression, sourceFile)) {
-        violations.push(violation(sourceFile, node, api, 'raw-element'));
-      }
-    }
-
-    if (ts.isVariableDeclaration(node)
-      && ts.isObjectBindingPattern(node.name)
-      && node.initializer
-      && rawReceiverText(node.initializer, sourceFile)) {
-      for (const element of node.name.elements) {
-        const name = element.propertyName || element.name;
-        if (ts.isIdentifier(name) && PROTECTED.has(name.text)) {
-          violations.push(violation(sourceFile, element, name.text, 'raw-destructure'));
-        }
-      }
-    }
-
-    if (ts.isCallExpression(node)) {
-      if (ts.isPropertyAccessExpression(node.expression)
-        && RAW_BINDING_HELPERS.has(node.expression.name.text)
-        && node.arguments.length
-        && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))) {
-        const api = node.arguments[0].text;
-        if (PROTECTED.has(api)) violations.push(violation(sourceFile, node, api, 'raw-binding-helper'));
-      }
-
-      if (ts.isIdentifier(node.expression)) {
-        const api = node.expression.text;
-        if (PROTECTED.has(api) && !declared.has(api)) {
-          violations.push(violation(sourceFile, node, api, 'raw-global-call'));
-        }
-      }
-    }
-
-    ts.forEachChild(node, visit);
+  const receiver = '(?:globalThis|window|parent|root|this\\.root|this\\.parent|[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*\\.(?:root|parent))';
+  const rawProperty = new RegExp(`\\b${receiver}\\s*\\.\\s*(${apiAlternation})\\b`, 'g');
+  while ((match = rawProperty.exec(code))) {
+    addViolation(violations, seen, raw, fileName, match.index, match[1], 'raw-property');
   }
 
-  visit(sourceFile);
-  return violations;
+  const rawElement = new RegExp(`\\b${receiver}\\s*\\[\\s*(['\"])(?:(${apiAlternation}))\\1\\s*\\]`, 'g');
+  while ((match = rawElement.exec(codeWithStrings))) {
+    addViolation(violations, seen, raw, fileName, match.index, match[2], 'raw-element');
+  }
+
+  const helperAlternation = RAW_BINDING_HELPERS.map(escapeRegex).join('|');
+  const rawBinding = new RegExp(`(?:\\bthis\\s*\\.\\s*)?(?:${helperAlternation})\\s*\\(\\s*(['\"])(?:(${apiAlternation}))\\1`, 'g');
+  while ((match = rawBinding.exec(codeWithStrings))) {
+    addViolation(violations, seen, raw, fileName, match.index, match[2], 'raw-binding-helper');
+  }
+
+  const destructure = /\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*((?:globalThis|window|parent|root|this\.root|this\.parent|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.(?:root|parent)))\b/g;
+  while ((match = destructure.exec(code))) {
+    const body = match[1];
+    const bodyOffset = match.index + match[0].indexOf(body);
+    const names = /\b([A-Za-z_$][\w$]*)\b\s*(?=:|,|$)/g;
+    let nameMatch;
+    while ((nameMatch = names.exec(body))) {
+      const api = nameMatch[1];
+      if (PROTECTED.has(api)) addViolation(violations, seen, raw, fileName, bodyOffset + nameMatch.index, api, 'raw-destructure');
+    }
+  }
+
+  const bareCall = new RegExp(`\\b(${apiAlternation})\\s*\\(`, 'g');
+  while ((match = bareCall.exec(code))) {
+    const api = match[1];
+    const previous = match.index > 0 ? code[match.index - 1] : '';
+    if (previous === '.' || previous === '$' || /[A-Za-z0-9_]/.test(previous)) continue;
+    if (declared.has(api)) continue;
+    addViolation(violations, seen, raw, fileName, match.index, api, 'raw-global-call');
+  }
+
+  return violations.sort((a, b) => a.line - b.line || a.column - b.column || a.api.localeCompare(b.api));
 }
 
 function scanSourceTree(projectRoot = path.resolve(__dirname, '..')) {
@@ -150,7 +225,7 @@ function scanSourceTree(projectRoot = path.resolve(__dirname, '..')) {
   for (const file of walkFiles(srcDir)) {
     if (normalizedRelative(projectRoot, file) === BOUNDARY_FILE) continue;
     const source = fs.readFileSync(file, 'utf8');
-    for (const row of findViolations(source, normalizedRelative(projectRoot, file))) violations.push(row);
+    violations.push(...findViolations(source, normalizedRelative(projectRoot, file)));
   }
   return violations;
 }
@@ -174,5 +249,6 @@ module.exports = {
   PROTECTED_MUTATION_APIS,
   findViolations,
   scanSourceTree,
-  formatViolation
+  formatViolation,
+  maskJavaScript
 };
