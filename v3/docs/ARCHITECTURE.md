@@ -20,7 +20,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 26 | 7224 |
 | party | 19 | 3863 |
 | planner | 1 | 65 |
-| reliability | 71 | 17193 |
+| reliability | 71 | 17484 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
