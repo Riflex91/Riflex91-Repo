@@ -1,0 +1,156 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {
+  installAlpha31PartyRoleLivenessHotfix,
+  MERCHANT_TRAVEL_ATTESTATION_SOURCE
+} = require('../src/reliability/alpha31-party-role-liveness-hotfix');
+
+function quietLog() { return { emit() {} }; }
+
+function rootWithCharacter(character, extra = {}) {
+  const root = { character, ...extra };
+  root.parent = root;
+  return root;
+}
+
+test('aggro holder uses a tangential safe orbit instead of standing still in the fire band', () => {
+  const root = rootWithCharacter({ name: 'My_Ranger1', ctype: 'ranger' }, {
+    can_move_to: () => true,
+    G: { monsters: { poisio: { range: 25, speed: 40 } } }
+  });
+  const farmer = {
+    kiting: {
+      evaluate() { return { shouldMove: false, reason: 'DISTANCE_OK' }; }
+    }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: quietLog(),
+    farmer,
+    adapter: { mode: 'active', getGameData: () => root.G }
+  };
+  installAlpha31PartyRoleLivenessHotfix(runtime);
+
+  const character = { name: 'My_Ranger1', ctype: 'ranger', x: 150, y: 0, range: 200, speed: 55 };
+  const target = { id: 'p1', mtype: 'poisio', x: 0, y: 0, hp: 1000, target: 'My_Ranger1', range: 25, speed: 40 };
+  const decision = farmer.kiting.evaluate(character, target);
+
+  assert.equal(decision.shouldMove, true);
+  assert.equal(decision.reason, 'AGGRO_SAFE_ORBIT');
+  assert.equal(decision.alpha31SafeOrbit, true);
+  const afterDistance = Math.hypot(decision.x - target.x, decision.y - target.y);
+  assert.ok(afterDistance > decision.safeEnemyDistance);
+  assert.ok(afterDistance <= character.range * 0.92 + 0.01);
+  assert.ok(Math.abs(decision.y) > 1, 'orbit step should be tangential, not only radial');
+});
+
+test('safe orbit never takes movement authority from a non-aggro ranger or emergency retreat', () => {
+  const root = rootWithCharacter({ name: 'My_Ranger2', ctype: 'ranger' }, { can_move_to: () => true });
+  const farmer = { kiting: { evaluate() { return { shouldMove: false, reason: 'DISTANCE_OK' }; } } };
+  const runtime = { root, now: () => 1000, log: quietLog(), farmer, adapter: { mode: 'active', getGameData: () => ({ monsters: {} }) } };
+  installAlpha31PartyRoleLivenessHotfix(runtime);
+  const character = { name: 'My_Ranger2', x: 150, y: 0, range: 200, speed: 50 };
+
+  assert.equal(farmer.kiting.evaluate(character, { id: 'x', mtype: 'goo', x: 0, y: 0, hp: 10, target: 'My_Ranger1' }).shouldMove, false);
+  runtime.pendingEmergencyRetreat = true;
+  assert.equal(farmer.kiting.evaluate(character, { id: 'y', mtype: 'goo', x: 0, y: 0, hp: 10, target: 'My_Ranger2' }).shouldMove, false);
+});
+
+test('visible leader coordinates outrank stale party coordinates', () => {
+  const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger' });
+  const team = {
+    _member(_snapshot, name) { return { name, map: 'main', x: 10, y: 20, hp: 100, max_hp: 100, mp: 100, max_mp: 100, target: null, rip: false }; },
+    _visiblePlayer(snapshot, name) { return (snapshot.entities || []).find((row) => row && row.name === name) || null; },
+    _followLeader() { return false; }
+  };
+  const runtime = { root, now: () => 1000, log: quietLog(), teamCombatCohesionHotfix: team, farmer: {}, adapter: { mode: 'active', getGameData: () => ({ maps: {} }) } };
+  installAlpha31PartyRoleLivenessHotfix(runtime);
+
+  const snapshot = { entities: [{ name: 'My_Ranger1', map: 'main', real_x: 310, real_y: 420, hp: 90, max_hp: 100 }] };
+  const row = team._member(snapshot, 'My_Ranger1', 'ranger');
+  assert.equal(row.x, 310);
+  assert.equal(row.y, 420);
+  assert.equal(row.hp, 90);
+});
+
+test('each separated follower can smart-regroup independently and retarget a moving leader', () => {
+  let now = 1000;
+  const commands = [];
+  const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
+  const teamController = {
+    followRadius: 60,
+    cohesionRadius: 150,
+    _member(_snapshot, name) { return { name, map: 'main', x: 0, y: 0 }; },
+    _visiblePlayer() { return null; },
+    _followLeader() { return false; }
+  };
+  const runtime = {
+    root,
+    now: () => now,
+    log: quietLog(),
+    farmer: { state: 'ASSESS', targetId: null },
+    teamCombatCohesionHotfix: teamController,
+    adapter: {
+      mode: 'active',
+      getGameData: () => ({ maps: { main: {} } }),
+      command(action, args) { commands.push({ action, args }); return { executed: true }; }
+    }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { regroupTriggerDistance: 120, regroupRetargetMs: 1000, regroupRetargetDistance: 30 });
+  const context = { snapshot: { character: root.character, entities: [] }, adapter: runtime.adapter };
+  const team = {
+    selfName: 'My_Ranger3', leaderName: 'My_Ranger1',
+    self: { name: 'My_Ranger3', map: 'main', x: 0, y: 0 },
+    leader: { name: 'My_Ranger1', map: 'main', x: 300, y: 0 },
+    sameMap: true, positionsKnown: true, cohesive: false
+  };
+
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.equal(commands[0].action, 'smart_move');
+  assert.equal(commands[0].args[0].x, 300);
+  assert.equal(hotfix.status().followerRegroup.independentFollowers, true);
+
+  now = 2500;
+  team.leader = { ...team.leader, x: 380 };
+  assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
+  assert.ok(commands.some((row) => row.action === 'stop'));
+  assert.equal(commands.at(-1).action, 'smart_move');
+  assert.equal(commands.at(-1).args[0].x, 380);
+  assert.equal(hotfix.stats.followerSmartRetargets, 1);
+});
+
+test('merchant service uses batch potion hysteresis and a narrow service-travel attestation', () => {
+  let merchantTicks = 0;
+  let capturedContext = null;
+  const root = rootWithCharacter({ name: 'My_Merchant', ctype: 'merchant', map: 'main' });
+  const safeTravel = { _trustedMapAttestation() { return null; } };
+  const runtime = {
+    root,
+    now: () => 10000,
+    log: quietLog(),
+    merchantServicePlanner: { lowPotionCount: 4499, targetPotionCount: 4500, criticalPotionCount: 1000 },
+    p0PotionPolicy4500: { installed: true, lowWatermark: 4499 },
+    safeTravel,
+    adapter: { mode: 'active', getGameData: () => ({ maps: { main: {}, bank: {} } }) },
+    planTravel(request, context = {}) { capturedContext = context; return { accepted: true, request, context }; },
+    alpha27CombatMerchantConvergence: { merchant: { tick() { merchantTicks += 1; return true; } } }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime, { merchantPotionLowWatermark: 3500 });
+  hotfix.beforeTick();
+
+  assert.equal(runtime.merchantServicePlanner.lowPotionCount, 3500);
+  assert.equal(runtime.p0PotionPolicy4500.lowWatermark, 3500);
+  assert.equal(merchantTicks, 1);
+
+  runtime.planTravel({ destination: 'bank', metadata: { source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL', requestedDestination: 'bank' } });
+  assert.equal(capturedContext.destinationMapAttestation.source, MERCHANT_TRAVEL_ATTESTATION_SOURCE);
+  const accepted = safeTravel._trustedMapAttestation('bank', capturedContext);
+  assert.equal(accepted.source, MERCHANT_TRAVEL_ATTESTATION_SOURCE);
+
+  capturedContext = null;
+  runtime.planTravel({ destination: 'bank', metadata: { source: 'FARMER_TRAVEL' } });
+  assert.equal(capturedContext.destinationMapAttestation, undefined);
+});
