@@ -139,3 +139,6 @@ export * from './spiellogik/sicheres-farmen.js';
 export * from './ausfuehrung/adventure-land-kampfsicherheits-ausfuehrung.js';
 export * from './vertraege/gruppen-koordination.js';
 export * from './spiellogik/gruppen-koordination.js';
+export * from './vertraege/gruppen-lebensnachweis.js';
+export * from './spiellogik/gruppen-lebensnachweis.js';
+export * from './ausfuehrung/adventure-land-gruppen-lebensnachweis-austausch.js';
