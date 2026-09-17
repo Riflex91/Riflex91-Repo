@@ -76,6 +76,7 @@ class PartyAccountCommunicationReliability {
   _installControlTransport() {
     const lease = this.runtime.partyControlLease;
     if (!lease) return false;
+    if (this.runtime.adapter) lease.adapter = this.runtime.adapter;
     this.transport.installDirectReceiver(CONTROL_RECEIVER, (sender, payload) => {
       if (!lease.installed || typeof lease.receive !== 'function') return false;
       this.stats.controlDirectReceiverCalls += 1;
