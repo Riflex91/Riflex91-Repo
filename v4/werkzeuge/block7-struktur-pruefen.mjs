@@ -11,11 +11,13 @@ const pflichtDateien = [
   'laufzeit/quelle/spiellogik/kampfsicherheit.ts',
   'laufzeit/quelle/spiellogik/sicheres-farmen.ts',
   'laufzeit/quelle/adventure-land/adventure-land-kampf-bereitschaft.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-kampfsicherheits-ausfuehrung.ts',
   'laufzeit/quelle/wiederholung/kampfsicherheit-wiederholung.ts',
   'laufzeit/tests/kampfsicherheit.test.mjs',
   'laufzeit/tests/kampfsicherheit-wiederholung.test.mjs',
   'laufzeit/tests/adventure-land-kampf-bereitschaft.test.mjs',
-  'laufzeit/tests/sicheres-farmen.test.mjs'
+  'laufzeit/tests/sicheres-farmen.test.mjs',
+  'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -75,6 +77,32 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
   }
 }
 
+const sicherheitsAusfuehrung = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-kampfsicherheits-ausfuehrung.ts'), 'utf8');
+for (const pflichtText of [
+  'aktivFreigegeben',
+  'KAMPF_SICHERHEITS_AKTIONS_NAMEN.rueckzug',
+  'KAMPF_SICHERHEITS_AKTIONS_NAMEN.abstandHerstellen',
+  "Reflect.get(this.spielFenster, 'move')",
+  'holeAktionsZustand'
+]) {
+  if (!sicherheitsAusfuehrung.includes(pflichtText)) throw new Error(`Block-7-Ausfuehrungsgrenze ist unvollstaendig: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(sicherheitsAusfuehrung)) {
+    throw new Error(`Die Kampfsicherheits-Ausfuehrungsgrenze darf ${unerlaubt} nicht aufrufen.`);
+  }
+}
+
+const farmAusfuehrung = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-farm-ausfuehrung.ts'), 'utf8');
+for (const pflichtText of [
+  'pruefeAktuelleAngriffsReichweite',
+  'Math.hypot',
+  'ausserhalb der aktuellen Angriffsreichweite',
+  'kann nicht sicher geprueft werden'
+]) {
+  if (!farmAusfuehrung.includes(pflichtText)) throw new Error(`Block-7-Reichweiten-Haertung fehlt: ${pflichtText}`);
+}
+
 const wiederholung = await readFile(path.join(wurzel, 'laufzeit/quelle/wiederholung/kampfsicherheit-wiederholung.ts'), 'utf8');
 for (const pflichtText of ['erstelleKampfSicherheitsWiederholungsEntscheider', 'aktionsWichtigkeit']) {
   if (!wiederholung.includes(pflichtText)) throw new Error(`Block-7-Wiederholungsanbindung ist unvollstaendig: ${pflichtText}`);
@@ -110,6 +138,23 @@ for (const pflichtText of [
   if (!bereitschaftTests.includes(pflichtText)) throw new Error(`Block-7-Bereitschaftstest fehlt: ${pflichtText}`);
 }
 
+const ausfuehrungsTests = await readFile(path.join(wurzel, 'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'aktive Kampfsicherheitsausfuehrung ist standardmaessig gesperrt',
+  'zentral gestarteter Notfall-Rueckzug wird genau als move ausgefuehrt',
+  'fremde Aktionsnamen werden an der Kampfsicherheitsgrenze abgebrochen'
+]) {
+  if (!ausfuehrungsTests.includes(pflichtText)) throw new Error(`Block-7-Ausfuehrungstest fehlt: ${pflichtText}`);
+}
+
+const farmAusfuehrungsTests = await readFile(path.join(wurzel, 'laufzeit/tests/farm-ausfuehrung.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'Ziel ausserhalb der aktuellen Reichweite wird unmittelbar vor attack sicher abgebrochen',
+  'Unbekannte aktuelle Reichweite fuehrt nicht zu einem geratenen Angriff'
+]) {
+  if (!farmAusfuehrungsTests.includes(pflichtText)) throw new Error(`Block-7-Reichweiten-Ausfuehrungstest fehlt: ${pflichtText}`);
+}
+
 const replayTests = await readFile(path.join(wurzel, 'laufzeit/tests/kampfsicherheit-wiederholung.test.mjs'), 'utf8');
 for (const pflichtText of ['ausgabeFingerabdruck', "['rueckzug', 'rueckzug']"]) {
   if (!replayTests.includes(pflichtText)) throw new Error(`Block-7-Replaytest fehlt: ${pflichtText}`);
@@ -122,9 +167,11 @@ for (const regel of [
   'keine Bewegungsrichtung erfunden',
   'Eine nur geplante Schattenbewegung gilt nicht automatisch als ausgefuehrte Sicherheitsbewegung.',
   'Kampfsicherheit wird vor jedem normalen Farmplan ausgewertet.',
-  'Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.'
+  'Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.',
+  'Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.',
+  'Reichweite unmittelbar vor `attack(...)` erneut geprueft'
 ]) {
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 7 fehlt: ${regel}`);
 }
 
-console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, Cooldown-Gate, Safety-vor-Farm und Replay.`);
+console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, Cooldown-Gate, Safety-vor-Farm, aktive Sicherheitsgrenze, Reichweiten-Recheck und Replay.`);
