@@ -1,7 +1,7 @@
 'use strict';
 
-const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
-const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+const { installAlpha2015CombatLogisticsHotfix } = require('../party/alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2015LogisticsFairness } = require('../party/alpha20-15-logistics-fairness-hotfix');
 const { installIntegratedPartyControl } = require('./integrated-party-control');
 const { installAlpha27CombatMerchantConvergence } = require('./alpha27-combat-merchant-convergence');
 
