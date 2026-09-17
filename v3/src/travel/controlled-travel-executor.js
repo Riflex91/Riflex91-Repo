@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_TRAVEL_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -17,6 +19,8 @@ class ControlledTravelExecutor {
     this.now = options.now || (() => Date.now());
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.timeoutMs) || 120000));
     this.enabled = false;
     this.busy = false;
@@ -27,6 +31,12 @@ class ControlledTravelExecutor {
 
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-travel', event, severity, reason, data });
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
+    }
   }
 
   configure(config = {}) {
@@ -77,8 +87,9 @@ class ControlledTravelExecutor {
     if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
-    if (typeof this.root.smart_move !== 'function') return { ok: false, reason: 'SMART_MOVE_API_UNAVAILABLE' };
-    if (typeof this.root.stop !== 'function') return { ok: false, reason: 'STOP_API_UNAVAILABLE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('smart_move')) return { ok: false, reason: 'SMART_MOVE_API_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('stop')) return { ok: false, reason: 'STOP_API_UNAVAILABLE' };
     return { ok: true, supervisor };
   }
 
@@ -140,7 +151,10 @@ class ControlledTravelExecutor {
 
   async _stopSmart(reason) {
     try {
-      const result = await Promise.resolve(this.root.stop('smart'));
+      this._syncAdapterMode();
+      const command = this.adapter.command('stop', ['smart']);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'STOP_COMMAND_REJECTED'));
+      const result = await Promise.resolve(command.value);
       this._event('CONTROLLED_TRAVEL_STOPPED', 'warn', reason, { result: clone(result) });
       return true;
     } catch (error) {
@@ -172,7 +186,10 @@ class ControlledTravelExecutor {
     this._event('CONTROLLED_TRAVEL_STARTED', 'warn', 'CONTROLLED_CANARY', { planId: plan.id, destination: clone(destination) });
 
     try {
-      const routePromise = Promise.resolve(this.root.smart_move(destination));
+      this._syncAdapterMode();
+      const command = this.adapter.command('smart_move', [destination]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
+      const routePromise = Promise.resolve(command.value);
       routePromise.catch(() => {});
       const response = await this._timeout(routePromise);
       if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));

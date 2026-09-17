@@ -1,5 +1,6 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { sellMetadataConsensus, rawSellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
 
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
@@ -69,6 +70,8 @@ class ControlledMerchantExecutor {
     this.now = options.now || (() => Date.now());
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 200)));
     this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
@@ -99,6 +102,12 @@ class ControlledMerchantExecutor {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') {
       this.log.emit({ component: 'controlled-merchant', event, severity, reason, data });
+    }
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
     }
   }
 
@@ -172,6 +181,7 @@ class ControlledMerchantExecutor {
     if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
 
     const items = Array.isArray(character.items) ? character.items : [];
     const txIndex = Number(tx.index);
@@ -216,10 +226,10 @@ class ControlledMerchantExecutor {
           sellMetadataSources: consensus.sources
         };
       }
-      if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+      if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
     }
     if (tx.type === 'BANK') {
-      if (typeof this.root.bank_store !== 'function') return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
+      if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('bank_store')) return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
       if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
       if (finite(tx.quantity, 1) !== liveItem.q) return { ok: false, reason: 'BANK_REQUIRES_FULL_STACK' };
     }
@@ -360,8 +370,12 @@ class ControlledMerchantExecutor {
     });
 
     try {
-      const call = tx.type === 'SELL' ? this.root.sell(check.txIndex, tx.quantity) : this.root.bank_store(check.txIndex);
-      const response = await this._timeout(call, tx.type);
+      this._syncAdapterMode();
+      const action = tx.type === 'SELL' ? 'sell' : 'bank_store';
+      const args = tx.type === 'SELL' ? [check.txIndex, tx.quantity] : [check.txIndex];
+      const command = this.adapter.command(action, args);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : `${tx.type}_COMMAND_REJECTED`));
+      const response = await this._timeout(command.value, tx.type);
       if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
       this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
       this.engine.save();

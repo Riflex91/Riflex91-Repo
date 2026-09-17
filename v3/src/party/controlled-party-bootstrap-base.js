@@ -1,5 +1,6 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { AccountCharacterTransport, uniqueNames } = require('./account-character-transport');
 
 const PARTY_BOOTSTRAP_PROTOCOL = 1;
@@ -27,6 +28,13 @@ class ControlledPartyBootstrap {
     this.now = options.now || (this.runtime && this.runtime.now) || (() => Date.now());
     this.log = options.log || (this.runtime && this.runtime.log) || null;
     this.controlLease = options.controlLease || (this.runtime && this.runtime.partyControlLease) || null;
+    this.adapter = options.adapter || (this.runtime && this.runtime.adapter) || new GameAdapter({
+      root: this.root,
+      parent: this.root && this.root.parent,
+      log: this.log,
+      now: this.now,
+      mode: 'active'
+    });
 
     const configuredRoster = options.desiredRoster || options.roster || null;
     let resolvedRoster = configuredRoster ? uniqueNames(configuredRoster) : [];
@@ -53,6 +61,7 @@ class ControlledPartyBootstrap {
       root: this.root,
       now: this.now,
       log: this.log,
+      adapter: this.adapter,
       trustedNames: this.desiredRoster
     });
     if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
@@ -107,10 +116,6 @@ class ControlledPartyBootstrap {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (!this.log || typeof this.log.emit !== 'function') return;
     this.log.emit({ component: 'party-bootstrap', event, severity, reason, data });
-  }
-
-  _function(name) {
-    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
   _character() {
@@ -316,8 +321,6 @@ class ControlledPartyBootstrap {
   }
 
   resume() {
-    // Keep the lease below the bootstrap CM wrapper. This ordering makes
-    // STOP -> START deterministic and prevents cyclic previous-handler chains.
     if (this.controlLease && !this.controlLease.installed && typeof this.controlLease.install === 'function') {
       this.controlLease.install();
     }
@@ -396,10 +399,12 @@ class ControlledPartyBootstrap {
     await this.controlLease.authorizeIncoming(target, transactionId);
     this._assertGeneration(generation);
 
-    const invite = this._function('send_party_invite');
-    if (typeof invite !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('send_party_invite')) throw new Error('PARTY_INVITE_UNAVAILABLE');
     this._setState('INVITING', `INVITING_${target}`, false);
-    await Promise.resolve(invite.call(this.root, target));
+    const command = this.adapter.command('send_party_invite', [target]);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'ACTIVE_MODE_REQUIRED_FOR_BOOTSTRAP' : 'PARTY_INVITE_UNAVAILABLE'));
+    await Promise.resolve(command.value);
     this.stats.invitesSent += 1;
     this._setState('VERIFYING', `VERIFYING_PARTY_${target}`, false);
     await this._waitUntil(() => this._partyNames().includes(target), this.verifyTimeoutMs, generation, `PARTY_BOOTSTRAP_VERIFY_TIMEOUT:${target}`);
@@ -447,10 +452,6 @@ class ControlledPartyBootstrap {
     if (observation.full) {
       return { allowed: true, reason: 'FULL_TRUSTED_PARTY', full: true };
     }
-    // Reliability escape hatch: a trusted farmer already co-located in an
-    // observed party with the trusted Merchant may keep farming while the
-    // Merchant repairs one missing trusted member. This prevents bootstrap
-    // discovery faults from turning into NO_PROGRESS / SAFE_MODE loops.
     const safeTrustedPartial = observation.partyNames.includes(local)
       && observation.partyNames.includes(this.merchantName)
       && observation.partyNames.length >= 2

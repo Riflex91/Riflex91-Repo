@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.72 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.73 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -953,7 +953,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.72';
+const RELEASE_VERSION = '3.0.0-alpha.20.73';
 
 module.exports = { RELEASE_VERSION };
 
@@ -1382,9 +1382,20 @@ const COMMAND_CATALOG = Object.freeze({
   use_hp_or_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
   use_skill: Object.freeze({ family: 'skill', mutation: true, outcome: 'observed' }),
   stop: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  loot: Object.freeze({ family: 'loot', mutation: true, outcome: 'domain' }),
   open_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   close_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
-  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' })
+  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  send_gold: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  sell: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  bank_retrieve: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  bank_store: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  start_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  stop_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  send_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  accept_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  send_cm: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' }),
+  command_character: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' })
 });
 
 const ACTIVE_ALLOWED = new Set(Object.keys(COMMAND_CATALOG));
@@ -1604,6 +1615,15 @@ class GameAdapter {
 
   commandCatalog() {
     return Object.fromEntries(Object.entries(COMMAND_CATALOG).map(([action, definition]) => [action, { ...definition }]));
+  }
+
+  canCommand(action) {
+    if (!commandDefinition(action)) return false;
+    if (typeof this.root[action] === 'function' || typeof this.parent[action] === 'function') return true;
+    if (action === 'use_hp' || action === 'use_mp') {
+      return typeof this.root.use_hp_or_mp === 'function' || typeof this.parent.use_hp_or_mp === 'function';
+    }
+    return false;
   }
 
   command(action, args = []) {
@@ -7958,6 +7978,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     const merchant = localMerchant || configured || (registryMerchant && registryMerchant.name) || null;
     this.partyControlLease = options.partyControlLease || new PartyControlLease({
       root: this.root,
+      adapter: this.adapter,
       now: this.now,
       log: this.log,
       merchantName: merchant,
@@ -8094,8 +8115,8 @@ class Alpha12Runtime extends Alpha11Runtime {
     this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
     this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
     const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
-    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
-    this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
+    this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
+    this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
     this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
   }
   start() { const started = super.start(); this.backgroundExecution.start(); return started; }
@@ -8420,6 +8441,8 @@ module.exports = { PaladinAuraPolicy, AURAS };
 "src/party/telemetry-bridge.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const TELEMETRY_PROTOCOL = 1;
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
 function clamp(value, min, max) { const n = finite(value); return n == null ? min : Math.max(min, Math.min(max, n)); }
@@ -8440,7 +8463,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -8459,8 +8482,8 @@ class PartyTelemetryBridge {
     return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, at: this.now() };
   }
   tick(runtime) {
-    this.prune(); const c = this._character(); if (!c || !this.merchantName || c.name === this.merchantName || this.now() - this.lastSentAt < this.sendIntervalMs) return false; const send = this.root && (this.root.send_cm || (this.root.parent && this.root.parent.send_cm)); if (typeof send !== 'function') return false; const report = this.buildLocalReport(runtime); if (!report) return false; this.lastSentAt = this.now();
-    try { const pending = send.call(this.root, this.merchantName, report); Promise.resolve(pending).catch((error) => { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); }); this.stats.sent += 1; return true; }
+    this.prune(); const c = this._character(); if (!c || !this.merchantName || c.name === this.merchantName || this.now() - this.lastSentAt < this.sendIntervalMs) return false; const runtimeAdapter = runtime && runtime.adapter; const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function' ? runtimeAdapter : this.adapter; if (!adapter || typeof adapter.command !== 'function') return false; if (typeof adapter.canCommand === 'function' && !adapter.canCommand('send_cm')) return false; const report = this.buildLocalReport(runtime); if (!report) return false; this.lastSentAt = this.now();
+    try { const command = adapter.command('send_cm', [this.merchantName, report]); if (!command.executed) { if (command.shadow) return false; throw new Error(command.reason || 'SEND_CM_REJECTED'); } const pending = command.value; Promise.resolve(pending).catch((error) => { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); }); this.stats.sent += 1; return true; }
     catch (error) { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); return false; }
   }
   prune() { const now = this.now(); for (const [name, report] of this.reports) if (now - report.at > this.reportTtlMs) { this.reports.delete(name); this.stats.expired += 1; } }
@@ -8522,6 +8545,8 @@ module.exports = { PartyTransitionController, TransitionState: base.TransitionSt
 "src/party/transition-controller-base.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const TransitionState = Object.freeze({
   IDLE: 'IDLE',
   PREFLIGHT: 'PREFLIGHT',
@@ -8549,6 +8574,7 @@ class PartyTransitionController {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.liveEnabled = options.liveEnabled === true;
     this.merchantName = options.merchantName || null;
     this.codeSlots = { ...(options.codeSlots || {}) };
@@ -8591,7 +8617,7 @@ class PartyTransitionController {
     return !!this.controlLease;
   }
 
-  _function(name) {
+  _readFunction(name) {
     return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
@@ -8600,7 +8626,7 @@ class PartyTransitionController {
   }
 
   _activeCharacters() {
-    const fn = this._function('get_active_characters');
+    const fn = this._readFunction('get_active_characters');
     if (typeof fn !== 'function') return null;
     try {
       const value = fn.call(this.root);
@@ -8690,10 +8716,16 @@ class PartyTransitionController {
     throw new Error(reason || 'TRANSITION_STEP_TIMEOUT');
   }
 
+  _command(action, args = [], unavailableReason = 'COMMAND_UNAVAILABLE') {
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand(action)) throw new Error(unavailableReason);
+    const command = this.adapter.command(action, args);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : unavailableReason));
+    return command.value;
+  }
+
   async _stop(name) {
-    const fn = this._function('stop_character');
-    if (typeof fn !== 'function') throw new Error('STOP_CHARACTER_UNAVAILABLE');
-    fn.call(this.root, name);
+    await Promise.resolve(this._command('stop_character', [name], 'STOP_CHARACTER_UNAVAILABLE'));
     await this._waitUntil(() => {
       const active = this._activeCharacters();
       return active && !this._isPresentState(active[name]);
@@ -8701,11 +8733,9 @@ class PartyTransitionController {
   }
 
   async _start(name) {
-    const fn = this._function('start_character');
-    if (typeof fn !== 'function') throw new Error('START_CHARACTER_UNAVAILABLE');
     const slot = this.codeSlots[name];
     if (!slot) throw new Error(`MISSING_CODE_SLOT:${name}`);
-    await Promise.resolve(fn.call(this.root, name, slot));
+    await Promise.resolve(this._command('start_character', [name, slot], 'START_CHARACTER_UNAVAILABLE'));
     await this._waitUntil(() => {
       const active = this._activeCharacters();
       return active && this._isRunningState(active[name]);
@@ -8719,9 +8749,7 @@ class PartyTransitionController {
 
   async _invite(name, transactionId) {
     await this._authorizeInvite(name, transactionId);
-    const fn = this._function('send_party_invite');
-    if (typeof fn !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
-    await Promise.resolve(fn.call(this.root, name));
+    await Promise.resolve(this._command('send_party_invite', [name], 'PARTY_INVITE_UNAVAILABLE'));
   }
 
   async _recover(oldNames, newStarted, merchantName, transactionId) {
@@ -9044,6 +9072,8 @@ module.exports = { BackgroundExecutionGuard };
 "src/party/control-lease.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const PARTY_CONTROL_PROTOCOL = 1;
 const PARTY_CONTROL_TYPE = 'aio-v3-party-control';
 const PartyControlAction = Object.freeze({
@@ -9065,6 +9095,7 @@ class PartyControlLease {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.merchantName = cleanName(options.merchantName);
     this.trustedNames = new Set((options.trustedNames || []).map(cleanName).filter(Boolean));
     this.leaseMs = Math.max(5000, Math.min(60000, Number(options.leaseMs) || 15000));
@@ -9093,11 +9124,6 @@ class PartyControlLease {
     if (this.log && typeof this.log.emit === 'function') {
       this.log.emit({ component: 'party-control', event, severity, reason, data });
     }
-  }
-
-  _function(name) {
-    if (!this.root) return null;
-    return this.root[name] || (this.root.parent && this.root.parent[name]) || null;
   }
 
   _character() {
@@ -9150,9 +9176,11 @@ class PartyControlLease {
   }
 
   async _send(name, payload) {
-    const send = this._function('send_cm');
-    if (typeof send !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
-    return Promise.resolve(send.call(this.root, name, payload));
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('send_cm')) throw new Error('SEND_CM_UNAVAILABLE');
+    const command = this.adapter.command('send_cm', [name, payload]);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SEND_CM_REJECTED'));
+    return Promise.resolve(command.value);
   }
 
   _validateLeaseEnvelope(sender, data) {
@@ -9290,14 +9318,16 @@ class PartyControlLease {
     }
     const lease = this.activeLease;
     this.activeLease = null;
-    const accept = this._function('accept_party_invite');
-    if (typeof accept !== 'function') {
+    if (!this.adapter || typeof this.adapter.command !== 'function'
+      || (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('accept_party_invite'))) {
       this.stats.acceptFailures += 1;
       this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId }, 'error', 'ACCEPT_PARTY_INVITE_UNAVAILABLE');
       return true;
     }
     try {
-      const pending = accept.call(this.root, inviterName);
+      const command = this.adapter.command('accept_party_invite', [inviterName]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'ACCEPT_PARTY_INVITE_REJECTED'));
+      const pending = command.value;
       this.stats.inviteAccepted += 1;
       this._event('PARTY_CONTROL_INVITE_ACCEPTED', { inviter: inviterName, target: lease.target, transactionId: lease.transactionId });
       Promise.resolve(pending).catch((error) => {
@@ -12360,6 +12390,7 @@ module.exports = { Alpha17Runtime, ALPHA17_VERSION };
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { sellMetadataConsensus, rawSellProtectionReasons, sellSafetyStatus } = require('./sell-safety');
 
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
@@ -12429,6 +12460,8 @@ class ControlledMerchantExecutor {
     this.now = options.now || (() => Date.now());
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 200)));
     this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
@@ -12459,6 +12492,12 @@ class ControlledMerchantExecutor {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') {
       this.log.emit({ component: 'controlled-merchant', event, severity, reason, data });
+    }
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
     }
   }
 
@@ -12532,6 +12571,7 @@ class ControlledMerchantExecutor {
     if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
 
     const items = Array.isArray(character.items) ? character.items : [];
     const txIndex = Number(tx.index);
@@ -12576,10 +12616,10 @@ class ControlledMerchantExecutor {
           sellMetadataSources: consensus.sources
         };
       }
-      if (typeof this.root.sell !== 'function') return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
+      if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
     }
     if (tx.type === 'BANK') {
-      if (typeof this.root.bank_store !== 'function') return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
+      if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('bank_store')) return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
       if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
       if (finite(tx.quantity, 1) !== liveItem.q) return { ok: false, reason: 'BANK_REQUIRES_FULL_STACK' };
     }
@@ -12720,8 +12760,12 @@ class ControlledMerchantExecutor {
     });
 
     try {
-      const call = tx.type === 'SELL' ? this.root.sell(check.txIndex, tx.quantity) : this.root.bank_store(check.txIndex);
-      const response = await this._timeout(call, tx.type);
+      this._syncAdapterMode();
+      const action = tx.type === 'SELL' ? 'sell' : 'bank_store';
+      const args = tx.type === 'SELL' ? [check.txIndex, tx.quantity] : [check.txIndex];
+      const command = this.adapter.command(action, args);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : `${tx.type}_COMMAND_REJECTED`));
+      const response = await this._timeout(command.value, tx.type);
       if (response && response.failed === true) throw new Error(String(response.reason || `${tx.type}_FAILED`));
       this.engine.transition(tx.id, 'VERIFYING', 'SERVER_RESULT_RECEIVED');
       this.engine.save();
@@ -12857,6 +12901,8 @@ module.exports = { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROL
 "src/travel/controlled-travel-executor.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_TRAVEL_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -12874,6 +12920,8 @@ class ControlledTravelExecutor {
     this.now = options.now || (() => Date.now());
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(5000, Math.min(10 * 60 * 1000, Number(options.timeoutMs) || 120000));
     this.enabled = false;
     this.busy = false;
@@ -12884,6 +12932,12 @@ class ControlledTravelExecutor {
 
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-travel', event, severity, reason, data });
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
+    }
   }
 
   configure(config = {}) {
@@ -12934,8 +12988,9 @@ class ControlledTravelExecutor {
     if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return { ok: false, reason: 'MERCHANT_REQUIRED' };
     if (character.rip === true || character.dead === true) return { ok: false, reason: 'CHARACTER_DEAD' };
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
-    if (typeof this.root.smart_move !== 'function') return { ok: false, reason: 'SMART_MOVE_API_UNAVAILABLE' };
-    if (typeof this.root.stop !== 'function') return { ok: false, reason: 'STOP_API_UNAVAILABLE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('smart_move')) return { ok: false, reason: 'SMART_MOVE_API_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('stop')) return { ok: false, reason: 'STOP_API_UNAVAILABLE' };
     return { ok: true, supervisor };
   }
 
@@ -12997,7 +13052,10 @@ class ControlledTravelExecutor {
 
   async _stopSmart(reason) {
     try {
-      const result = await Promise.resolve(this.root.stop('smart'));
+      this._syncAdapterMode();
+      const command = this.adapter.command('stop', ['smart']);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'STOP_COMMAND_REJECTED'));
+      const result = await Promise.resolve(command.value);
       this._event('CONTROLLED_TRAVEL_STOPPED', 'warn', reason, { result: clone(result) });
       return true;
     } catch (error) {
@@ -13029,7 +13087,10 @@ class ControlledTravelExecutor {
     this._event('CONTROLLED_TRAVEL_STARTED', 'warn', 'CONTROLLED_CANARY', { planId: plan.id, destination: clone(destination) });
 
     try {
-      const routePromise = Promise.resolve(this.root.smart_move(destination));
+      this._syncAdapterMode();
+      const command = this.adapter.command('smart_move', [destination]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
+      const routePromise = Promise.resolve(command.value);
       routePromise.catch(() => {});
       const response = await this._timeout(routePromise);
       if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
@@ -14743,6 +14804,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     this.merchantSpaceRecoveryJournal.load();
     this.controlledBankConsolidation = options.controlledBankConsolidation || new ControlledBankConsolidationExecutor({
       root: this.root,
+      adapter: this.adapter,
       log: this.log,
       now: this.now,
       getMode: () => this.adapter.mode,
@@ -15295,6 +15357,8 @@ module.exports = {
 "src/economy/controlled-bank-consolidation-executor.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_BANK_CONSOLIDATION_MODE = 'controlled-live-default-off';
 const CONTROLLED_BANK_CONSOLIDATION_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -15335,6 +15399,8 @@ class ControlledBankConsolidationExecutor {
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
     this.getGameData = options.getGameData || (() => ({}));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 150)));
     this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
@@ -15346,6 +15412,12 @@ class ControlledBankConsolidationExecutor {
 
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-bank-consolidation', event, severity, reason, data });
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
+    }
   }
 
   configure(config = {}) {
@@ -15394,7 +15466,8 @@ class ControlledBankConsolidationExecutor {
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
     if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
     if (!plan || plan.action !== 'CONSOLIDATE_BANK_STACKS' || !plan.pack || !plan.move) return { ok: false, reason: 'CONSOLIDATION_PLAN_REQUIRED' };
-    if (typeof this.root.bank_retrieve !== 'function' || typeof this.root.bank_store !== 'function') return { ok: false, reason: 'OFFICIAL_BANK_API_UNAVAILABLE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && (!this.adapter.canCommand('bank_retrieve') || !this.adapter.canCommand('bank_store'))) return { ok: false, reason: 'OFFICIAL_BANK_API_UNAVAILABLE' };
     const pack = character.bank[plan.pack];
     if (!Array.isArray(pack)) return { ok: false, reason: 'BANK_PACK_NOT_UNLOCKED' };
     const fromIndex = Number(plan.move.fromIndex);
@@ -15505,7 +15578,10 @@ class ControlledBankConsolidationExecutor {
     let rawActions = 0;
     try {
       this._event('CONTROLLED_BANK_CONSOLIDATION_STARTED', 'warn', 'CONTROLLED_CANARY', clone(proof));
-      const retrieveResponse = await this._timeout(this.root.bank_retrieve(proof.packName, proof.fromIndex, proof.workspace), 'BANK_RETRIEVE');
+      this._syncAdapterMode();
+      const retrieveCommand = this.adapter.command('bank_retrieve', [proof.packName, proof.fromIndex, proof.workspace]);
+      if (!retrieveCommand.executed) throw new Error(retrieveCommand.reason || (retrieveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'BANK_RETRIEVE_COMMAND_REJECTED'));
+      const retrieveResponse = await this._timeout(retrieveCommand.value, 'BANK_RETRIEVE');
       rawActions += 1;
       this.stats.rawCalls += 1;
       if (retrieveResponse && retrieveResponse.failed === true) throw new Error(String(retrieveResponse.reason || 'BANK_RETRIEVE_FAILED'));
@@ -15516,7 +15592,9 @@ class ControlledBankConsolidationExecutor {
         this._event('CONTROLLED_BANK_CONSOLIDATION_FAILED_SAFE', 'error', this.lastAction.reason, this.lastAction);
         return { executed: true, committed: false, reason: this.lastAction.reason, rawActions, verification: retrieved };
       }
-      const storeResponse = await this._timeout(this.root.bank_store(proof.workspace, proof.packName, proof.toIndex), 'BANK_STORE');
+      const storeCommand = this.adapter.command('bank_store', [proof.workspace, proof.packName, proof.toIndex]);
+      if (!storeCommand.executed) throw new Error(storeCommand.reason || (storeCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'BANK_STORE_COMMAND_REJECTED'));
+      const storeResponse = await this._timeout(storeCommand.value, 'BANK_STORE');
       rawActions += 1;
       this.stats.rawCalls += 1;
       if (storeResponse && storeResponse.failed === true) throw new Error(String(storeResponse.reason || 'BANK_STORE_FAILED'));
@@ -19481,7 +19559,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       directEtaMs,
       distance,
       speed: finite(c.speed),
-      townAvailable: !!(this.root && typeof this.root.town === 'function'),
+      townAvailable: !!(this.adapter && typeof this.adapter.canCommand === 'function' && this.adapter.canCommand('town')),
       townEtaMs: this.merchantTownEtaMs,
       urgency: needPriority
     });
@@ -20882,6 +20960,8 @@ module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE 
 "src/farmer/controlled-farmer-loot.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
 
 function finite(value, fallback = null) {
@@ -20905,6 +20985,8 @@ class ControlledFarmerLoot {
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
     this.getMode = options.getMode || (() => 'shadow');
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.enabled = options.enabled !== false;
     this.intervalMs = Math.floor(clamp(options.intervalMs, 500, 10000, 900));
     this.noChestPollMs = Math.floor(clamp(options.noChestPollMs, 250, 10000, 700));
@@ -20935,7 +21017,13 @@ class ControlledFarmerLoot {
     this.log.emit({ component: 'controlled-farmer-loot', event, severity, reason, data });
   }
 
-  _binding(name) {
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(this.getMode() === 'active' ? 'active' : 'shadow');
+    }
+  }
+
+  _readBinding(name) {
     if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
     if (this.root && this.root.parent && typeof this.root.parent[name] === 'function') return { fn: this.root.parent[name], owner: this.root.parent };
     return null;
@@ -20962,7 +21050,7 @@ class ControlledFarmerLoot {
   }
 
   _chestCount() {
-    const binding = this._binding('get_chests');
+    const binding = this._readBinding('get_chests');
     if (!binding) return null;
     this.stats.chestPolls += 1;
     try {
@@ -21030,8 +21118,7 @@ class ControlledFarmerLoot {
       return { executed: false, reason: 'NO_CHESTS' };
     }
 
-    const binding = this._binding('loot');
-    if (!binding) {
+    if (!this.adapter || typeof this.adapter.command !== 'function' || (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('loot'))) {
       this.state = 'BLOCKED';
       this.failureStreak += 1;
       this.stats.failures += 1;
@@ -21044,7 +21131,10 @@ class ControlledFarmerLoot {
     const before = this._metrics(snapshot);
     const requestId = ++this.requestSequence;
     try {
-      const value = binding.fn.call(binding.owner);
+      this._syncAdapterMode();
+      const command = this.adapter.command('loot');
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'LOOT_COMMAND_REJECTED'));
+      const value = command.value;
       this.stats.requests += 1;
       this.stats.rawActions += 1;
       if (before.freeSlots <= 0) this.stats.fullInventoryRequests += 1;
@@ -21323,6 +21413,7 @@ module.exports = { ControlledAutoRespawn, CONTROLLED_AUTO_RESPAWN_MODE };
 "src/party/controlled-party-bootstrap.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const base = require('./controlled-party-bootstrap-base');
 
 function cleanName(value) {
@@ -21368,6 +21459,21 @@ function resolveRoster(options) {
   return { roster, configuredExplicitly };
 }
 
+function resolveCommandAdapter(options) {
+  const supplied = options.adapter || options.runtime && options.runtime.adapter || null;
+  if (!supplied || typeof supplied.command === 'function') return supplied;
+  const root = options.root || options.runtime && options.runtime.root || globalThis;
+  const now = options.now || options.runtime && options.runtime.now || (() => Date.now());
+  const log = options.log || options.runtime && options.runtime.log || null;
+  return new GameAdapter({
+    root,
+    parent: root && root.parent,
+    log,
+    now,
+    mode: String(supplied.mode || '') === 'active' ? 'active' : 'shadow'
+  });
+}
+
 class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
   constructor(options = {}) {
     const resolved = resolveRoster(options);
@@ -21384,7 +21490,8 @@ class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
       padded.push(placeholder);
     }
 
-    super({ ...options, desiredRoster: padded, merchantName });
+    const adapter = resolveCommandAdapter(options);
+    super({ ...options, ...(adapter ? { adapter } : {}), desiredRoster: padded, merchantName });
     this.desiredRoster = roster.slice();
     this.merchantName = merchantName;
     if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
@@ -21419,6 +21526,7 @@ module.exports = {
 "src/party/controlled-party-bootstrap-base.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { AccountCharacterTransport, uniqueNames } = require('./account-character-transport');
 
 const PARTY_BOOTSTRAP_PROTOCOL = 1;
@@ -21446,6 +21554,13 @@ class ControlledPartyBootstrap {
     this.now = options.now || (this.runtime && this.runtime.now) || (() => Date.now());
     this.log = options.log || (this.runtime && this.runtime.log) || null;
     this.controlLease = options.controlLease || (this.runtime && this.runtime.partyControlLease) || null;
+    this.adapter = options.adapter || (this.runtime && this.runtime.adapter) || new GameAdapter({
+      root: this.root,
+      parent: this.root && this.root.parent,
+      log: this.log,
+      now: this.now,
+      mode: 'active'
+    });
 
     const configuredRoster = options.desiredRoster || options.roster || null;
     let resolvedRoster = configuredRoster ? uniqueNames(configuredRoster) : [];
@@ -21472,6 +21587,7 @@ class ControlledPartyBootstrap {
       root: this.root,
       now: this.now,
       log: this.log,
+      adapter: this.adapter,
       trustedNames: this.desiredRoster
     });
     if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);
@@ -21526,10 +21642,6 @@ class ControlledPartyBootstrap {
   _event(event, severity = 'info', reason = null, data = {}) {
     if (!this.log || typeof this.log.emit !== 'function') return;
     this.log.emit({ component: 'party-bootstrap', event, severity, reason, data });
-  }
-
-  _function(name) {
-    return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
   _character() {
@@ -21735,8 +21847,6 @@ class ControlledPartyBootstrap {
   }
 
   resume() {
-    // Keep the lease below the bootstrap CM wrapper. This ordering makes
-    // STOP -> START deterministic and prevents cyclic previous-handler chains.
     if (this.controlLease && !this.controlLease.installed && typeof this.controlLease.install === 'function') {
       this.controlLease.install();
     }
@@ -21815,10 +21925,12 @@ class ControlledPartyBootstrap {
     await this.controlLease.authorizeIncoming(target, transactionId);
     this._assertGeneration(generation);
 
-    const invite = this._function('send_party_invite');
-    if (typeof invite !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('send_party_invite')) throw new Error('PARTY_INVITE_UNAVAILABLE');
     this._setState('INVITING', `INVITING_${target}`, false);
-    await Promise.resolve(invite.call(this.root, target));
+    const command = this.adapter.command('send_party_invite', [target]);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'ACTIVE_MODE_REQUIRED_FOR_BOOTSTRAP' : 'PARTY_INVITE_UNAVAILABLE'));
+    await Promise.resolve(command.value);
     this.stats.invitesSent += 1;
     this._setState('VERIFYING', `VERIFYING_PARTY_${target}`, false);
     await this._waitUntil(() => this._partyNames().includes(target), this.verifyTimeoutMs, generation, `PARTY_BOOTSTRAP_VERIFY_TIMEOUT:${target}`);
@@ -21866,10 +21978,6 @@ class ControlledPartyBootstrap {
     if (observation.full) {
       return { allowed: true, reason: 'FULL_TRUSTED_PARTY', full: true };
     }
-    // Reliability escape hatch: a trusted farmer already co-located in an
-    // observed party with the trusted Merchant may keep farming while the
-    // Merchant repairs one missing trusted member. This prevents bootstrap
-    // discovery faults from turning into NO_PROGRESS / SAFE_MODE loops.
     const safeTrustedPartial = observation.partyNames.includes(local)
       && observation.partyNames.includes(this.merchantName)
       && observation.partyNames.length >= 2
@@ -22004,6 +22112,8 @@ module.exports = {
 "src/party/account-character-transport.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const ACTIVE_CHARACTER_STATES = new Set(['self', 'starting', 'loading', 'active', 'code']);
 const RUNNING_CHARACTER_STATES = new Set(['self', 'active', 'code']);
 const NAMED_RECEIVER_CM_PROTOCOL = 'aio-v3-named-receiver-v1';
@@ -22026,6 +22136,7 @@ class AccountCharacterTransport {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.fallbackEnabled = options.fallbackEnabled !== false;
     this.trustedNames = new Set(uniqueNames(options.trustedNames || []));
     this._cmRouterInstalled = false;
@@ -22050,7 +22161,7 @@ class AccountCharacterTransport {
     this.log.emit({ component: 'account-character-transport', event, severity, reason, data });
   }
 
-  _function(name) {
+  _readFunction(name) {
     return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
@@ -22069,7 +22180,7 @@ class AccountCharacterTransport {
   }
 
   activeCharacters() {
-    const fn = this._function('get_active_characters');
+    const fn = this._readFunction('get_active_characters');
     if (typeof fn !== 'function') return null;
     try {
       const value = fn.call(this.root);
@@ -22201,11 +22312,14 @@ class AccountCharacterTransport {
     // use when get_active_characters() actually observes this target in this runner.
     const observedActive = this.activeNames();
     const directObserved = observedActive.includes(target);
-    const commandCharacter = this._function('command_character');
-    if (receiver && typeof commandCharacter === 'function' && directObserved) {
+    const directAvailable = this.adapter && typeof this.adapter.command === 'function'
+      && (typeof this.adapter.canCommand !== 'function' || this.adapter.canCommand('command_character'));
+    if (receiver && directAvailable && directObserved) {
       try {
         const code = this._directCode(receiver, sender, payload);
-        await Promise.resolve(commandCharacter.call(this.root, target, code));
+        const command = this.adapter.command('command_character', [target, code]);
+        if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'COMMAND_CHARACTER_REJECTED'));
+        await Promise.resolve(command.value);
         this.stats.directSent += 1;
         return { delivered: true, transport: 'command_character', target, sender };
       } catch (error) {
@@ -22216,7 +22330,7 @@ class AccountCharacterTransport {
           message: boundedMessage(error)
         });
       }
-    } else if (receiver && typeof commandCharacter === 'function' && !directObserved) {
+    } else if (receiver && directAvailable && !directObserved) {
       this.stats.directSkippedUnobserved += 1;
       this._event('ACCOUNT_TRANSPORT_DIRECT_SKIPPED', 'info', 'TARGET_NOT_OBSERVED_ACTIVE', {
         target,
@@ -22226,13 +22340,16 @@ class AccountCharacterTransport {
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
-    const sendCm = this._function('send_cm');
-    if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+    const fallbackAvailable = this.adapter && typeof this.adapter.command === 'function'
+      && (typeof this.adapter.canCommand !== 'function' || this.adapter.canCommand('send_cm'));
+    if (!fallbackAvailable) throw new Error('SEND_CM_UNAVAILABLE');
     try {
       const body = receiver
         ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
         : payload;
-      await Promise.resolve(sendCm.call(this.root, target, body));
+      const command = this.adapter.command('send_cm', [target, body]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SEND_CM_REJECTED'));
+      await Promise.resolve(command.value);
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
@@ -26446,12 +26563,6 @@ class ControlledPartyLogistics {
     try { this.log.emit({ component: 'controlled-party-logistics', event, severity, reason, data }); } catch (_) {}
   }
 
-  _binding(name) {
-    if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
-    if (this.parent && typeof this.parent[name] === 'function') return { fn: this.parent[name], owner: this.parent };
-    return null;
-  }
-
   _character() {
     return this.root && (this.root.character || (this.parent && this.parent.character)) || null;
   }
@@ -27010,12 +27121,16 @@ class ControlledPartyLogistics {
     if (offer.kind === 'gold' && grant.action === Action.GOLD_GRANT) {
       const amount = Math.min(Math.max(0, Math.floor(finite(grant.amount, 0))), Math.max(0, Math.floor(finite(snapshot.character.gold, 0) - this.config.farmerGoldReserve)), this.config.maxGoldBatch);
       if (amount <= 0) { this.pendingGrant = null; this.pendingOffer = null; return false; }
-      const binding = this._binding('send_gold');
-      if (!binding) return false;
+      if (!this.adapter || typeof this.adapter.command !== 'function') return false;
       const pending = { kind: 'gold', at: this.now(), offerId: offer.offerId, grantId: grant.grantId, amount, beforeGold: finite(snapshot.character.gold, 0), asyncRejected: false };
       this.pendingOutbound = pending;
       try {
-        const result = binding.fn.call(binding.owner, merchant, amount);
+        const command = this.adapter.command('send_gold', [merchant, amount]);
+        if (!command.executed) {
+          this.pendingOutbound = null;
+          return false;
+        }
+        const result = command.value;
         this.stats.goldTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingOutbound && this.pendingOutbound.grantId === pending.grantId) this.pendingOutbound.asyncRejected = true; });
       } catch (_) {
@@ -27306,6 +27421,16 @@ function fn(instance, name) {
   const root = instance && instance.root;
   return root && (root[name] || (root.parent && root.parent[name])) || null;
 }
+function commandBinding(instance, name) {
+  const adapter = instance && instance.adapter;
+  if (!adapter || typeof adapter.command !== 'function') return null;
+  if (typeof adapter.canCommand === 'function' && !adapter.canCommand(name)) return null;
+  return function adapterCommandBinding(...args) {
+    const command = adapter.command(name, args);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : `${name.toUpperCase()}_REJECTED`));
+    return command.value;
+  };
+}
 
 // Broader visibility is diagnostic only. In Adventure Land, a character can be
 // visible through party/get_player/entities while command_character still emits
@@ -27403,12 +27528,12 @@ function installAlpha2019AccountTransportHotfix() {
     const observedActive = this.activeNames();
     const directObserved = observedActive.includes(target);
     const broadEvidence = strongLiveEvidence(this, target);
-    const commandCharacter = fn(this, 'command_character');
+    const commandCharacter = commandBinding(this, 'command_character');
 
     if (receiver && typeof commandCharacter === 'function' && directObserved && until <= now) {
       this.stats.directEvidenceObservedActive += 1;
       try {
-        await Promise.resolve(commandCharacter.call(this.root, target, this._directCode(receiver, sender, payload)));
+        await Promise.resolve(commandCharacter(target, this._directCode(receiver, sender, payload)));
         this.stats.directSent += 1; backoff.delete(target);
         return { delivered: true, transport: 'command_character', target, sender, evidence: 'observed-active' };
       } catch (error) {
@@ -27434,7 +27559,7 @@ function installAlpha2019AccountTransportHotfix() {
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
-    const sendCm = fn(this, 'send_cm');
+    const sendCm = commandBinding(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
       // Preserve the named receiver contract from AccountCharacterTransport.
@@ -27443,7 +27568,7 @@ function installAlpha2019AccountTransportHotfix() {
       const body = receiver
         ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
         : payload;
-      await Promise.resolve(sendCm.call(this.root, target, body));
+      await Promise.resolve(sendCm(target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
@@ -27474,6 +27599,7 @@ function installAlpha2019AccountTransportHotfix() {
 }
 
 module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvidence, shouldLogDirectSkip, installAlpha2019AccountTransportHotfix };
+
 },
 "src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
@@ -32648,6 +32774,7 @@ module.exports = { Alpha28MerchantTransfers };
 'use strict';
 
 const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+const { GameAdapter } = require('../game/adapter');
 
 const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
 const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
@@ -32876,6 +33003,16 @@ class Alpha28CrossMapFarmerProgression {
   async _execute(objective, snapshot) {
     const controller = this.runtime.safeTravel;
     if (!controller || typeof controller.plan !== 'function') return false;
+    const runtimeAdapter = this.runtime.adapter;
+    const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function'
+      ? runtimeAdapter
+      : new GameAdapter({
+        root: this.root,
+        parent: this.parent,
+        log: this.log,
+        now: this.now,
+        mode: String(runtimeAdapter && runtimeAdapter.mode || '') === 'active' ? 'active' : 'shadow'
+      });
     const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
     const destinationMapAttestation = regroup ? {
       map: objective.map,
@@ -32890,16 +33027,20 @@ class Alpha28CrossMapFarmerProgression {
     const plan = planned.plan;
     const started = this._startControlled(plan);
     if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE', objectiveId: objective.id }; return false; }
-    const smartMove = this.root.smart_move || this.root.smartMove;
-    const stop = this.root.stop;
-    if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
+    if (!adapter || typeof adapter.command !== 'function'
+      || (typeof adapter.canCommand === 'function' && (!adapter.canCommand('smart_move') || !adapter.canCommand('stop')))) {
+      this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE');
+      return false;
+    }
     this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
     if (regroup) this.stats.crossMapRegroupTravelAttempts = (this.stats.crossMapRegroupTravelAttempts || 0) + 1;
     this.event(regroup ? 'ALPHA28_TEAM_REGROUP_STARTED' : 'ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', regroup ? 'CONTROLLED_TEAM_REGROUP_TRAVEL' : 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
     let timer;
     try {
       const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
-      const response = await Promise.race([Promise.resolve(smartMove.call(this.root, { map: objective.map, x: objective.x, y: objective.y })), timeout]);
+      const smartMoveCommand = adapter.command('smart_move', [{ map: objective.map, x: objective.x, y: objective.y }]);
+      if (!smartMoveCommand.executed) throw new Error(smartMoveCommand.reason || (smartMoveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
+      const response = await Promise.race([Promise.resolve(smartMoveCommand.value), timeout]);
       if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
       controller.observe(this._snapshot());
       const final = controller.get(plan.id);
@@ -32916,7 +33057,10 @@ class Alpha28CrossMapFarmerProgression {
       return true;
     } catch (error) {
       const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
-      try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
+      try {
+        const stopCommand = adapter.command('stop', ['smart']);
+        if (stopCommand.executed) await Promise.resolve(stopCommand.value);
+      } catch (_) {}
       this._failSafe(plan.id, reason);
       this.stats.crossMapTravelFailedSafe += 1;
       if (regroup) this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
@@ -32977,7 +33121,6 @@ class Alpha28CrossMapFarmerProgression {
 }
 
 module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER, TEAM_REGROUP_KIND, PROGRESSION_KIND };
-
 },
 "src/reliability/alpha28-brain-cloud.js": function(require,module,exports){
 'use strict';
@@ -34494,6 +34637,7 @@ class MerchantEconomyAutonomy {
   _c() { return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null; }
   _merchant() { const c = this._c(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   _active() { return this.runtime.adapter && String(this.runtime.adapter.mode) === 'active'; }
+  _command(action, args = []) { const adapter=this.runtime&&this.runtime.adapter;if(!adapter||typeof adapter.command!=='function')return null;if(typeof adapter.canCommand==='function'&&!adapter.canCommand(action))return null;const command=adapter.command(action,args);return command&&command.executed?command:null; }
   _combat() { const c = this._c(); if (!c) return false; if (c.target) return true; const p = this.root.parent || this.root; return Object.values(p.entities || {}).some((x) => x && !x.dead && String(x.target || '') === String(c.name || '')); }
   _inv() { return rows(this._c()); }
   _g() { return gd(this.root, this.runtime); }
@@ -34515,10 +34659,10 @@ class MerchantEconomyAutonomy {
   _move(target, reason) {
     const c = this._c(); if (!c || !target || this.now() - this.lastMove < 2500) return false; const x = num(target.x), y = num(target.y), map = target.map || c.map;
     if (map === c.map && x != null && y != null && dist(c, target) > this.cfg.range * .7 && this.runtime.adapter && this.runtime.adapter.command) { const d = dist(c,target), cx = num(c.real_x != null ? c.real_x : c.x,0), cy = num(c.real_y != null ? c.real_y : c.y,0), step = Math.min(120, Math.max(20, d - this.cfg.range * .55)); this.runtime.adapter.command('move',[cx+(x-cx)/d*step,cy+(y-cy)/d*step]); this.lastMove=this.now(); this.stats.travelRequests+=1; return true; }
-    if (map !== c.map) { const sm = fn(this.root,'smart_move'); if (sm) { try { Promise.resolve(sm.fn.call(sm.owner, x != null && y != null ? { map,x,y } : map)).catch(()=>{}); this.lastMove=this.now(); this.stats.travelRequests+=1; return true; } catch (_) {} } }
+    if (map !== c.map) { try { const command=this._command('smart_move',[x != null && y != null ? { map,x,y } : map]); if(command){Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;return true;} } catch (_) {} }
     return false;
   }
-  _serviceMove(dest, reason) { if (this.now()-this.lastMove<2500) return false; const sm=fn(this.root,'smart_move'); if(!sm) return false; try{Promise.resolve(sm.fn.call(sm.owner,dest)).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;this.lastDecision={at:this.now(),action:'SERVICE_TRAVEL',reason,destination:dest};return true;}catch(_){return false;} }
+  _serviceMove(dest, reason) { if (this.now()-this.lastMove<2500) return false; try{const command=this._command('smart_move',[dest]);if(!command)return false;Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;this.lastDecision={at:this.now(),action:'SERVICE_TRAVEL',reason,destination:dest};return true;}catch(_){return false;} }
   classifyItem(item, reservations = this._goals()) {
     if (!item || !item.name) return { disposition:'KEEP', reason:'ITEM_UNKNOWN', quote:null }; const itemName=item.name, level=levelOf(item), meta=this._g().items&&this._g().items[itemName], quote=this.oracle.quote(itemName,level);
     if (/^(hpot|mpot|scroll|cscroll)/i.test(itemName)) return { disposition:'KEEP', reason:'SERVICE_RESOURCE', quote };
@@ -34548,8 +34692,8 @@ class MerchantEconomyAutonomy {
     const groups=new Map();for(const item of this._inv()){if(!item||!item.name||item.locked||item.l||item.special||item.p)continue;const level=levelOf(item),meta=this._g().items&&this._g().items[item.name];if(!meta||!meta.compound||level>this.cfg.maxCompound||res.keys.has(`${item.name}:${level}`))continue;const q=this.oracle.quote(item.name,level);if(q.fairValue!=null&&q.fairValue>this.cfg.compoundCap)continue;const k=`${item.name}:${level}`,a=groups.get(k)||[];a.push(item);groups.set(k,a);}const items=[...groups.values()].find((a)=>a.length>=3);if(!items)return false;const trio=items.slice(0,3),meta=this._g().items[trio[0].name],level=levelOf(trio[0]),scroll=`cscroll${gradeForLevel(meta,level)}`;if(count(this._c(),scroll)<1){await this._ensure(scroll,1);return true;}const s=this._inv().find((x)=>x&&x.name===scroll), cp=fn(this.root,'compound');if(!s||!cp)return false;const before=this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length;if(!this._begin('COMPOUND',{item:trio[0].name,level,indices:trio.map((x)=>x.index),scroll,scrollIndex:s.index}))return false;this._state('EXECUTING','RAW_ACTION_STARTING');try{const r=await Promise.resolve(cp.fn.call(cp.owner,trio[0].index,trio[1].index,trio[2].index,s.index));this._state('VERIFYING','RAW_ACTION_RETURNED',{response:clone(r)});const changed=await this._verify(()=>this._inv().some((x)=>x&&x.name===trio[0].name&&levelOf(x)>level)||this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length<before);if(!changed){this._state('FAILED_SAFE','COMPOUND_DELTA_NOT_OBSERVED_NO_RETRY');this.stats.failedSafe+=1;return true;}this._state('COMMITTED','COMPOUND_VERIFIED');this.stats.compounds+=1;this.lastAction={at:this.now(),kind:'COMPOUND',item:trio[0].name,fromLevel:level,toLevel:level+1};return true;}catch(e){this._state('FAILED_SAFE','COMPOUND_REJECTED_NO_RETRY',{error:String(e&&e.message||e).slice(0,180)});this.stats.failedSafe+=1;return true;}
   }
   async _drain(res){
-    if(metrics(this._c()).freeSlots>this.cfg.lowSlots)return false;const candidates=this._inv().filter(Boolean).map((item)=>({item,c:this.classifyItem(item,res)}));const sellable=candidates.find((x)=>x.c.disposition==='SELL');if(sellable){const cs=fn(this.root,'can_sell');let near=!cs;if(cs)try{near=!!cs.fn.call(cs.owner);}catch(_){}const sell=near&&fn(this.root,'sell');if(sell){const before=count(this._c(),sellable.item.name);try{const r=await Promise.resolve(sell.fn.call(sell.owner,sellable.item.index,qtyOf(sellable.item)));if(await this._verify(()=>count(this._c(),sellable.item.name)<before)||r&&r.success===true){this.stats.sells+=1;this.lastAction={at:this.now(),kind:'SELL',item:sellable.item.name,quote:sellable.c.quote};return true;}}catch(_){}}}
-    const bankable=candidates.find((x)=>x.c.disposition==='BANK'||x.c.disposition==='SELL');if(!bankable)return false;const c=this._c();if(!c.bank||typeof c.bank!=='object'){this._serviceMove('bank','INVENTORY_CAPACITY_PLAN');return true;}const store=fn(this.root,'bank_store');if(!store)return false;const before=count(c,bankable.item.name);try{const r=await Promise.resolve(store.fn.call(store.owner,bankable.item.index));if(await this._verify(()=>count(this._c(),bankable.item.name)<before)||r&&r.success===true){this.stats.bankStores+=1;this.lastAction={at:this.now(),kind:'BANK',item:bankable.item.name,quote:bankable.c.quote};return true;}}catch(_){}return false;
+    if(metrics(this._c()).freeSlots>this.cfg.lowSlots)return false;const candidates=this._inv().filter(Boolean).map((item)=>({item,c:this.classifyItem(item,res)}));const sellable=candidates.find((x)=>x.c.disposition==='SELL');if(sellable){const cs=fn(this.root,'can_sell');let near=!cs;if(cs)try{near=!!cs.fn.call(cs.owner);}catch(_){}if(near){const before=count(this._c(),sellable.item.name);try{const sell=this._command('sell',[sellable.item.index,qtyOf(sellable.item)]);if(sell){const r=await Promise.resolve(sell.value);if(await this._verify(()=>count(this._c(),sellable.item.name)<before)||r&&r.success===true){this.stats.sells+=1;this.lastAction={at:this.now(),kind:'SELL',item:sellable.item.name,quote:sellable.c.quote};return true;}}}catch(_){}}}
+    const bankable=candidates.find((x)=>x.c.disposition==='BANK'||x.c.disposition==='SELL');if(!bankable)return false;const c=this._c();if(!c.bank||typeof c.bank!=='object'){this._serviceMove('bank','INVENTORY_CAPACITY_PLAN');return true;}const before=count(c,bankable.item.name);try{const store=this._command('bank_store',[bankable.item.index]);if(!store)return false;const r=await Promise.resolve(store.value);if(await this._verify(()=>count(this._c(),bankable.item.name)<before)||r&&r.success===true){this.stats.bankStores+=1;this.lastAction={at:this.now(),kind:'BANK',item:bankable.item.name,quote:bankable.c.quote};return true;}}catch(_){}return false;
   }
   async cycle(){if(!this._active()||!this._merchant()||this._combat()||this.busy)return false;this.busy=true;this.stats.cycles+=1;try{if(this.now()-this.lastMarket>5000){this.lastMarket=this.now();this.oracle.observe();}const need=this._need();if(need){this.stats.partyPreemptions+=1;this._move(need.report,need.reason);this.lastDecision={at:this.now(),action:'PARTY_SERVICE',reason:need.reason,target:need.report.name,priority:need.priority};return true;}if(await this._restockPotions())return true;const res=this._goals();if(await this._gearTransfer(res))return true;if(await this._upgrade(res))return true;if(await this._compound(res))return true;if(await this._drain(res))return true;this.lastDecision={at:this.now(),action:'IDLE',reason:metrics(this._c()).freeSlots>=this.cfg.targetSlots?'CAPACITY_HEALTHY':'NO_SAFE_ECONOMY_ACTION',metrics:metrics(this._c())};return false;}finally{this.busy=false;}}
   tick(){if(this.now()-this.lastTick<this.cfg.interval)return false;this.lastTick=this.now();Promise.resolve(this.cycle()).catch((e)=>{this.busy=false;this.stats.failedSafe+=1;this.lastAction={at:this.now(),kind:'FAILED_SAFE',reason:'UNHANDLED_ECONOMY_ERROR',error:String(e&&e.message||e).slice(0,180)};});return true;}
@@ -38810,6 +38954,7 @@ module.exports = {
 "src/reliability/party-account-communication.js": function(require,module,exports){
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const { AccountCharacterTransport } = require('../party/account-character-transport');
 
 const CONTROL_RECEIVER = '__AIO_V3_PARTY_CONTROL_RECEIVE';
@@ -38819,6 +38964,19 @@ function bounded(value, max = 240) {
   return String(value == null ? '' : value).slice(0, max);
 }
 
+function commandAdapterFor(runtime) {
+  const supplied = runtime && runtime.adapter || null;
+  if (!supplied || typeof supplied.command === 'function') return supplied;
+  const root = runtime.root || globalThis;
+  return new GameAdapter({
+    root,
+    parent: root && root.parent,
+    log: runtime.log || null,
+    now: runtime.now || (() => Date.now()),
+    mode: String(supplied.mode || '') === 'active' ? 'active' : 'shadow'
+  });
+}
+
 class PartyAccountCommunicationReliability {
   constructor(runtime, options = {}) {
     if (!runtime) throw new Error('runtime required');
@@ -38826,10 +38984,12 @@ class PartyAccountCommunicationReliability {
     this.root = runtime.root || globalThis;
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
+    this.commandAdapter = commandAdapterFor(runtime);
     this.transport = options.transport || new AccountCharacterTransport({
       root: this.root,
       now: this.now,
       log: this.log,
+      adapter: this.commandAdapter,
       fallbackEnabled: options.fallbackEnabled !== false
     });
     this.telemetryFailureStreak = 0;
@@ -38885,6 +39045,7 @@ class PartyAccountCommunicationReliability {
   _installControlTransport() {
     const lease = this.runtime.partyControlLease;
     if (!lease) return false;
+    if (this.commandAdapter) lease.adapter = this.commandAdapter;
     this.transport.installDirectReceiver(CONTROL_RECEIVER, (sender, payload) => {
       if (!lease.installed || typeof lease.receive !== 'function') return false;
       this.stats.controlDirectReceiverCalls += 1;
@@ -43281,7 +43442,6 @@ const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./rel
 const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
 const { installAlpha31PartyRoleLivenessHotfix, ALPHA31_PARTY_ROLE_LIVENESS_MODE } = require('./reliability/alpha31-party-role-liveness-hotfix');
 const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE } = require('./reliability/alpha32-navigation-merchant-recovery');
-const { installAlpha33MarkOrbitMerchantDelivery, ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE } = require('./reliability/alpha33-mark-orbit-merchant-delivery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
@@ -43333,7 +43493,7 @@ function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
   return true;
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery, liveCorrections) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -43349,8 +43509,7 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       p0PotionPolicy4500: potionPolicy4500 || null,
       p0PotionHardCap4500: potionHardCap4500 || null,
       partyRoleLiveness: roleLiveness && typeof roleLiveness.status === 'function' ? roleLiveness.status() : null,
-      navigationMerchantRecovery: liveRecovery && typeof liveRecovery.status === 'function' ? liveRecovery.status() : null,
-      markOrbitMerchantDelivery: liveCorrections && typeof liveCorrections.status === 'function' ? liveCorrections.status() : null
+      navigationMerchantRecovery: liveRecovery && typeof liveRecovery.status === 'function' ? liveRecovery.status() : null
     })
   };
   api.cloud = {
@@ -43387,7 +43546,6 @@ function installProductionLiveServices(api, options = {}) {
   const potionHardCap4500 = installP0PotionHardCap4500(runtime);
   const roleLiveness = installAlpha31PartyRoleLivenessHotfix(runtime, options);
   const liveRecovery = installAlpha32NavigationMerchantRecovery(runtime, options);
-  const liveCorrections = installAlpha33MarkOrbitMerchantDelivery(runtime, options);
   // Alpha31/32 beforeTick can wake or pause live merchant authorities. Installation
   // and same-version hot reload must stay passive; the runtime.tick wrapper below
   // is the only production-live-services path that executes these services.
@@ -43405,10 +43563,9 @@ function installProductionLiveServices(api, options = {}) {
       p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
       p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
       alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
-      alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery,
-      alpha33MarkOrbitMerchantDeliveryInstalled: !!runtime.alpha33MarkOrbitMerchantDelivery
+      alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery, liveCorrections);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
     return runtime.productionLiveServices;
   }
 
@@ -43443,11 +43600,10 @@ function installProductionLiveServices(api, options = {}) {
     p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
     alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
     alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery,
-    alpha33MarkOrbitMerchantDeliveryInstalled: !!runtime.alpha33MarkOrbitMerchantDelivery,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery, liveCorrections);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -43479,9 +43635,7 @@ module.exports = {
   installAlpha31PartyRoleLivenessHotfix,
   ALPHA31_PARTY_ROLE_LIVENESS_MODE,
   installAlpha32NavigationMerchantRecovery,
-  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE,
-  installAlpha33MarkOrbitMerchantDelivery,
-  ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE
+  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE
 };
 
 },
@@ -46519,447 +46673,6 @@ module.exports = {
   STALE_TRANSACTION_REASONS,
   Alpha32NavigationMerchantRecovery,
   installAlpha32NavigationMerchantRecovery
-};
-
-},
-"src/reliability/alpha33-mark-orbit-merchant-delivery.js": function(require,module,exports){
-'use strict';
-
-const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-hotfix');
-
-const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v1';
-
-function finite(value, fallback = null) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, Number(value)));
-}
-
-function characterOf(runtime) {
-  const root = runtime && runtime.root;
-  return root && (root.character || root.parent && root.parent.character) || null;
-}
-
-function liveMonster(entity) {
-  return !!(entity && entity.mtype && !entity.dead && !entity.rip && (entity.hp == null || Number(entity.hp) > 0));
-}
-
-function point(value) {
-  return {
-    x: finite(value && (value.real_x != null ? value.real_x : value.x)),
-    y: finite(value && (value.real_y != null ? value.real_y : value.y))
-  };
-}
-
-function distance(a, b) {
-  const pa = point(a);
-  const pb = point(b);
-  if ([pa.x, pa.y, pb.x, pb.y].some((value) => value == null)) return Infinity;
-  return Math.hypot(pa.x - pb.x, pa.y - pb.y);
-}
-
-function levelOf(item) {
-  return Math.max(0, Math.floor(finite(item && item.level, 0)));
-}
-
-function rawEntity(runtime, id) {
-  if (id == null) return null;
-  const wanted = String(id);
-  const root = runtime && runtime.root || globalThis;
-  const parent = root && root.parent || root;
-  const pools = [parent && parent.entities, root && root.entities];
-  for (const pool of pools) {
-    for (const entity of Object.values(pool || {})) {
-      if (entity && String(entity.id) === wanted) return entity;
-    }
-  }
-  return null;
-}
-
-function effectActiveOn(entity, effectName, now = Date.now()) {
-  if (!entity || !effectName) return false;
-  const wanted = String(effectName).toLowerCase();
-  const containers = [entity.s, entity.status, entity.effects, entity.conditions];
-  for (const container of containers) {
-    if (!container) continue;
-    if (Array.isArray(container)) {
-      for (const row of container) {
-        const name = String(row && (row.name || row.id || row.type) || '').toLowerCase();
-        if (name !== wanted) continue;
-        if (row && row.expiresAt != null && finite(row.expiresAt, 0) <= now) continue;
-        if (row && row.ms != null && finite(row.ms, 0) <= 0) continue;
-        return true;
-      }
-      continue;
-    }
-    if (typeof container !== 'object') continue;
-    const key = Object.keys(container).find((name) => String(name).toLowerCase() === wanted);
-    if (!key) continue;
-    const value = container[key];
-    if (value == null || value === false) continue;
-    if (typeof value === 'object') {
-      if (value.expiresAt != null && finite(value.expiresAt, 0) <= now) continue;
-      if (value.ms != null && finite(value.ms, 0) <= 0) continue;
-    }
-    return true;
-  }
-  return false;
-}
-
-class Alpha33MarkOrbitMerchantDelivery {
-  constructor(runtime, options = {}) {
-    if (!runtime) throw new Error('runtime required');
-    this.runtime = runtime;
-    this.root = runtime.root || globalThis;
-    this.now = runtime.now || (() => Date.now());
-    this.log = runtime.log || null;
-    this.trainingRadiusFactor = clamp(options.trainingRadiusFactor == null ? 2.1 : options.trainingRadiusFactor, 1.4, 3.5);
-    this.trainingRadiusMin = Math.max(120, Math.min(360, finite(options.trainingRadiusMin, 180)));
-    this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
-    this.stats = {
-      huntersMarkExistingDebuffSkips: 0,
-      orbitSpiralEscapes: 0,
-      orbitAnchorCorrections: 0,
-      orbitRadialFallbacks: 0,
-      merchantTargetOnlyCombatHoldsPrevented: 0,
-      merchantCombatOwnersPatched: 0,
-      gearDeliveryUnknownTargetGearHolds: 0,
-      gearDeliveryStaleGoalHolds: 0,
-      farmerGearLootReservations: 0
-    };
-    this.lastGearHold = null;
-
-    this.huntersMarkGuardInstalled = this._installHuntersMarkGuard();
-    this.anchoredOrbitInstalled = this._installAnchoredOrbit();
-    this.merchantIncomingAggroInstalled = this._installMerchantIncomingAggro();
-    this.gearDeliverySafetyInstalled = this._installGearDeliverySafety();
-    this.farmerGearReservationInstalled = this._installFarmerGearReservation();
-    this.installedAt = this.now();
-    this._event('ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_INSTALLED', 'warn', 'LIVE_LOG_CORRECTIONS', this.status());
-  }
-
-  _event(event, severity = 'info', reason = null, data = {}) {
-    if (!this.log || typeof this.log.emit !== 'function') return;
-    try { this.log.emit({ component: 'alpha33-mark-orbit-merchant-delivery', event, severity, reason, data }); } catch (_) {}
-  }
-
-  _targetHasEffect(target, effectName) {
-    const raw = rawEntity(this.runtime, target && target.id);
-    return effectActiveOn(raw || target, effectName, this.now());
-  }
-
-  _installHuntersMarkGuard() {
-    const engine = this.runtime.partySkillEngine;
-    if (!engine || typeof engine._supportDecision !== 'function' || engine.__alpha33HuntersMarkDebuffGuardInstalled) return false;
-    const base = engine._supportDecision.bind(engine);
-    engine._supportDecision = (context, target, team) => {
-      const decision = base(context, target, team);
-      if (!decision || String(decision.id || '').toLowerCase() !== 'huntersmark') return decision;
-      if (!this._targetHasEffect(target, 'huntersmark')) return decision;
-      this.stats.huntersMarkExistingDebuffSkips += 1;
-      this._event('HUNTERS_MARK_SKIPPED_EXISTING_DEBUFF', 'info', 'TARGET_ALREADY_HAS_HUNTERS_MARK', {
-        targetId: target && target.id != null ? String(target.id) : null,
-        targetType: target && target.mtype || null
-      });
-      return null;
-    };
-    engine.__alpha33HuntersMarkDebuffGuardInstalled = true;
-    return true;
-  }
-
-  _trainingAnchor(character) {
-    const plan = this.runtime.localFarming && this.runtime.localFarming.currentPlan;
-    const px = finite(plan && plan.x);
-    const py = finite(plan && plan.y);
-    if (px == null || py == null) return null;
-    if (plan && plan.map && character && character.map && String(plan.map) !== String(character.map)) return null;
-    const range = Math.max(60, finite(character && character.range, 120));
-    return {
-      x: px,
-      y: py,
-      radius: clamp(range * this.trainingRadiusFactor, this.trainingRadiusMin, this.trainingRadiusMax),
-      planId: plan && plan.id || null
-    };
-  }
-
-  _anchorAllows(character, candidate, anchor) {
-    if (!anchor || !candidate) return true;
-    const current = distance(character, anchor);
-    const after = distance(candidate, anchor);
-    if (!Number.isFinite(after)) return false;
-    if (current <= anchor.radius) return after <= anchor.radius + 0.5;
-    return after < current - 0.25;
-  }
-
-  _spiralEscape(alpha31, character, target, desiredDistance, hardSafeDistance, maxRangeDistance) {
-    const c = point(character);
-    const t = point(target);
-    if ([c.x, c.y, t.x, t.y].some((value) => value == null)) return null;
-    const current = Math.hypot(c.x - t.x, c.y - t.y);
-    if (!Number.isFinite(current) || current < 0.001) return null;
-    const speed = Math.max(1, finite(character && character.speed, 40));
-    const stepSeconds = clamp(finite(alpha31 && alpha31.orbitStepSeconds, 0.8), 0.35, 1.3);
-    const maxStep = Math.max(12, speed * stepSeconds);
-    const radialGain = Math.max(5, Math.min(Math.max(0, desiredDistance - current), maxStep * 0.48));
-    const nextRadius = Math.min(maxRangeDistance, Math.max(current + radialGain, hardSafeDistance + 4));
-    if (nextRadius <= current + 1) return null;
-    const baseAngle = Math.atan2(c.y - t.y, c.x - t.x);
-    const preferred = alpha31 && typeof alpha31._orbitDirection === 'function' ? alpha31._orbitDirection(character) : 1;
-    const anchor = this._trainingAnchor(character);
-    let best = null;
-    for (const offsetDeg of [preferred * 22, preferred * 32, preferred * 42, preferred * 52, -preferred * 22, -preferred * 32, -preferred * 42]) {
-      const angle = baseAngle + offsetDeg * Math.PI / 180;
-      const x = t.x + Math.cos(angle) * nextRadius;
-      const y = t.y + Math.sin(angle) * nextRadius;
-      const step = Math.hypot(x - c.x, y - c.y);
-      if (step < 4 || step > maxStep * 1.30) continue;
-      if (alpha31 && typeof alpha31._canMoveTo === 'function' && !alpha31._canMoveTo(x, y)) continue;
-      const candidate = { x, y };
-      if (!this._anchorAllows(character, candidate, anchor)) continue;
-      const anchorDistance = anchor ? distance(candidate, anchor) : 0;
-      const directionPenalty = Math.sign(offsetDeg) === preferred ? 0 : 8;
-      const score = directionPenalty + Math.abs(step - maxStep * 0.85) * 0.15 + anchorDistance * 0.03;
-      const row = {
-        x, y, step, afterDistance: nextRadius, desiredDistance, hardSafeDistance, maxRangeDistance,
-        offsetDeg, direction: Math.sign(offsetDeg) || preferred, deltaDeg: offsetDeg,
-        escape: true, anchored: !!anchor, score
-      };
-      if (!best || row.score < best.score) best = row;
-    }
-    return best;
-  }
-
-  _anchoredOrbitAlternative(alpha31, character, target, template) {
-    const anchor = this._trainingAnchor(character);
-    if (!anchor || !template) return null;
-    const c = point(character);
-    const t = point(target);
-    if ([c.x, c.y, t.x, t.y].some((value) => value == null)) return null;
-    const currentDistance = Math.hypot(c.x - t.x, c.y - t.y);
-    const hardSafeDistance = Math.max(0, finite(template.hardSafeDistance, 0));
-    const maxRangeDistance = Math.max(hardSafeDistance + 1, finite(template.maxRangeDistance, finite(character && character.range, 120) * 0.92));
-    const desiredDistance = clamp(finite(template.desiredDistance, currentDistance), hardSafeDistance + 4, maxRangeDistance);
-    const baseAngle = Math.atan2(c.y - t.y, c.x - t.x);
-    const preferred = alpha31 && typeof alpha31._orbitDirection === 'function' ? alpha31._orbitDirection(character) : 1;
-    const speed = Math.max(1, finite(character && character.speed, 40));
-    const maxStep = Math.max(12, speed * clamp(finite(alpha31 && alpha31.orbitStepSeconds, 0.8), 0.35, 1.3));
-    let best = null;
-    for (const offsetDeg of [preferred * 10, preferred * 16, preferred * 22, preferred * 30, -preferred * 10, -preferred * 16, -preferred * 22]) {
-      const angle = baseAngle + offsetDeg * Math.PI / 180;
-      for (const radius of [desiredDistance, clamp(currentDistance, hardSafeDistance + 5, maxRangeDistance)]) {
-        const x = t.x + Math.cos(angle) * radius;
-        const y = t.y + Math.sin(angle) * radius;
-        const step = Math.hypot(x - c.x, y - c.y);
-        if (step < 3 || step > maxStep * 1.35) continue;
-        if (alpha31 && typeof alpha31._canMoveTo === 'function' && !alpha31._canMoveTo(x, y)) continue;
-        const candidate = { x, y };
-        if (!this._anchorAllows(character, candidate, anchor)) continue;
-        if (currentDistance >= hardSafeDistance + 4 && alpha31 && typeof alpha31._segmentSafe === 'function' && !alpha31._segmentSafe(character, candidate, target, hardSafeDistance)) continue;
-        const afterAnchor = distance(candidate, anchor);
-        const row = {
-          x, y, step, afterDistance: radius, desiredDistance, hardSafeDistance, maxRangeDistance,
-          direction: Math.sign(offsetDeg) || preferred, deltaDeg: offsetDeg,
-          escape: false, anchored: true,
-          score: afterAnchor + (Math.sign(offsetDeg) === preferred ? 0 : 18) + Math.abs(radius - desiredDistance) * 0.3
-        };
-        if (!best || row.score < best.score) best = row;
-      }
-    }
-    return best;
-  }
-
-  _installAnchoredOrbit() {
-    const alpha31 = this.runtime.alpha31PartyRoleLivenessHotfix;
-    if (!alpha31 || typeof alpha31._radialEscape !== 'function' || typeof alpha31._orbitWaypoint !== 'function' || alpha31.__alpha33AnchoredOrbitInstalled) return false;
-    const baseEscape = alpha31._radialEscape.bind(alpha31);
-    const baseWaypoint = alpha31._orbitWaypoint.bind(alpha31);
-
-    alpha31._radialEscape = (character, target, desiredDistance, hardSafeDistance, maxRangeDistance) => {
-      const spiral = this._spiralEscape(alpha31, character, target, desiredDistance, hardSafeDistance, maxRangeDistance);
-      if (spiral) {
-        this.stats.orbitSpiralEscapes += 1;
-        return spiral;
-      }
-      this.stats.orbitRadialFallbacks += 1;
-      return baseEscape(character, target, desiredDistance, hardSafeDistance, maxRangeDistance);
-    };
-
-    alpha31._orbitWaypoint = (character, target) => {
-      const waypoint = baseWaypoint(character, target);
-      if (!waypoint || !liveMonster(target)) return waypoint;
-      const anchor = this._trainingAnchor(character);
-      if (!anchor) return waypoint;
-      if (this._anchorAllows(character, waypoint, anchor)) return waypoint;
-      const corrected = this._anchoredOrbitAlternative(alpha31, character, target, waypoint);
-      if (!corrected) return waypoint;
-      this.stats.orbitAnchorCorrections += 1;
-      return corrected;
-    };
-
-    alpha31.__alpha33AnchoredOrbitInstalled = true;
-    return true;
-  }
-
-  _installMerchantIncomingAggro() {
-    let installed = false;
-    const owners = [
-      [this.runtime, '_merchantInCombat'],
-      [this.runtime.controlledTravel, '_inCombat'],
-      [this.runtime.controlledMerchantService, '_inCombat'],
-      [this.runtime.controlledMerchantProduction, '_inCombat'],
-      [this.runtime.alpha27CombatMerchantConvergence && this.runtime.alpha27CombatMerchantConvergence.atomic, 'merchantInCombat']
-    ];
-    for (const [owner, key] of owners) {
-      if (!owner || typeof owner[key] !== 'function') continue;
-      const marker = `__alpha33_${key}_incomingAggroOnly`;
-      if (owner[marker]) continue;
-      owner[key] = () => {
-        const incoming = hasIncomingAggro(this.runtime);
-        const c = characterOf(this.runtime);
-        if (!incoming && c && c.target) this.stats.merchantTargetOnlyCombatHoldsPrevented += 1;
-        return incoming;
-      };
-      owner[marker] = true;
-      this.stats.merchantCombatOwnersPatched += 1;
-      installed = true;
-    }
-    return installed;
-  }
-
-  _registryCharacter(name) {
-    try {
-      const status = this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null;
-      return Array.isArray(status && status.characters) ? status.characters.find((row) => row && String(row.name) === String(name)) || null : null;
-    } catch (_) { return null; }
-  }
-
-  _gearGoalTargetState(goal) {
-    const row = goal && this._registryCharacter(goal.character);
-    const gear = row && row.gear;
-    if (!gear || typeof gear !== 'object' || Array.isArray(gear) || Object.keys(gear).length === 0) {
-      return { safe: false, reason: 'TARGET_GEAR_UNOBSERVED', row };
-    }
-    const observed = gear[goal.slot] || null;
-    const expectedName = goal.currentItem == null ? null : String(goal.currentItem);
-    const expectedLevel = Math.max(0, finite(goal.currentLevel, 0));
-    if (expectedName == null) {
-      if (observed && observed.name) return { safe: false, reason: 'GEAR_GOAL_STALE_TARGET_SLOT_CHANGED', row, observed };
-      return { safe: true, row, observed: null };
-    }
-    if (!observed || String(observed.name || '') !== expectedName || levelOf(observed) !== expectedLevel) {
-      return { safe: false, reason: 'GEAR_GOAL_STALE_TARGET_SLOT_CHANGED', row, observed };
-    }
-    return { safe: true, row, observed };
-  }
-
-  _noteGearHold(reason, goal) {
-    const key = `${reason}:${goal && goal.id || '-'}`;
-    if (this.lastGearHold && this.lastGearHold.key === key && this.now() - this.lastGearHold.at < 10000) return;
-    this.lastGearHold = { at: this.now(), key, reason, goalId: goal && goal.id || null };
-    this._event('GEAR_DELIVERY_HELD', 'info', reason, {
-      goalId: goal && goal.id || null,
-      target: goal && goal.character || null,
-      slot: goal && goal.slot || null,
-      item: goal && goal.item || null,
-      level: goal ? finite(goal.observedLevel, 0) : null
-    });
-  }
-
-  _installGearDeliverySafety() {
-    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
-    const merchant = alpha27 && alpha27.merchant;
-    if (!merchant || typeof merchant.gearDeliveryCandidate !== 'function' || merchant.__alpha33GearDeliverySafetyInstalled) return false;
-    const base = merchant.gearDeliveryCandidate.bind(merchant);
-    merchant.gearDeliveryCandidate = () => {
-      const candidate = base();
-      if (!candidate || !candidate.goal) return candidate;
-      const state = this._gearGoalTargetState(candidate.goal);
-      if (state.safe) return candidate;
-      if (state.reason === 'TARGET_GEAR_UNOBSERVED') this.stats.gearDeliveryUnknownTargetGearHolds += 1;
-      else this.stats.gearDeliveryStaleGoalHolds += 1;
-      this._noteGearHold(state.reason, candidate.goal);
-      return null;
-    };
-    merchant.__alpha33GearDeliverySafetyInstalled = true;
-    return true;
-  }
-
-  _localGearGoalMatches(item) {
-    const c = characterOf(this.runtime);
-    const gear = this.runtime.gearProgression;
-    if (!c || !item || !gear || typeof gear.list !== 'function') return false;
-    try {
-      return gear.list(256).some((goal) => goal
-        && String(goal.character || '') === String(c.name || '')
-        && String(goal.item || '') === String(item.name || '')
-        && Math.max(0, finite(goal.observedLevel, 0)) === levelOf(item)
-        && goal.projectedUpgradeRequired !== true);
-    } catch (_) { return false; }
-  }
-
-  _installFarmerGearReservation() {
-    const logistics = this.runtime.controlledPartyLogistics;
-    if (!logistics || typeof logistics._safeLootDescriptor !== 'function' || logistics.__alpha33GearReservationInstalled) return false;
-    const base = logistics._safeLootDescriptor.bind(logistics);
-    logistics._safeLootDescriptor = (item) => {
-      const descriptor = base(item);
-      if (!descriptor || descriptor.ok !== true || !this._localGearGoalMatches(item)) return descriptor;
-      this.stats.farmerGearLootReservations += 1;
-      return { ok: false, reason: 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED' };
-    };
-    logistics.__alpha33GearReservationInstalled = true;
-    return true;
-  }
-
-  status() {
-    return {
-      schemaVersion: 1,
-      mode: ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
-      installedAt: this.installedAt || null,
-      installed: {
-        huntersMarkDebuffGuard: this.huntersMarkGuardInstalled,
-        anchoredAggroOrbit: this.anchoredOrbitInstalled,
-        merchantIncomingAggro: this.merchantIncomingAggroInstalled,
-        gearDeliverySafety: this.gearDeliverySafetyInstalled,
-        farmerGearReservation: this.farmerGearReservationInstalled
-      },
-      policies: {
-        huntersMarkExistingDebuffSkipped: true,
-        activeAggroUsesTangentialSpiralEscape: true,
-        trainingAreaAnchorBoundsOrbit: true,
-        merchantOwnTargetIsNotCombat: true,
-        merchantCombatRequiresIncomingMonsterAggro: true,
-        gearDeliveryRequiresObservedTargetGear: true,
-        staleGearGoalsFailClosed: true,
-        localProgressionGearIsNotReturnedAsLoot: true
-      },
-      config: {
-        trainingRadiusFactor: this.trainingRadiusFactor,
-        trainingRadiusMin: this.trainingRadiusMin,
-        trainingRadiusMax: this.trainingRadiusMax
-      },
-      lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
-      stats: { ...this.stats }
-    };
-  }
-}
-
-function installAlpha33MarkOrbitMerchantDelivery(runtime, options = {}) {
-  if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha33MarkOrbitMerchantDelivery) return runtime.alpha33MarkOrbitMerchantDelivery;
-  const module = new Alpha33MarkOrbitMerchantDelivery(runtime, options);
-  runtime.alpha33MarkOrbitMerchantDelivery = module;
-  return module;
-}
-
-module.exports = {
-  ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
-  effectActiveOn,
-  Alpha33MarkOrbitMerchantDelivery,
-  installAlpha33MarkOrbitMerchantDelivery
 };
 
 },

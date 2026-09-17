@@ -159,12 +159,6 @@ class ControlledPartyLogistics {
     try { this.log.emit({ component: 'controlled-party-logistics', event, severity, reason, data }); } catch (_) {}
   }
 
-  _binding(name) {
-    if (this.root && typeof this.root[name] === 'function') return { fn: this.root[name], owner: this.root };
-    if (this.parent && typeof this.parent[name] === 'function') return { fn: this.parent[name], owner: this.parent };
-    return null;
-  }
-
   _character() {
     return this.root && (this.root.character || (this.parent && this.parent.character)) || null;
   }
@@ -723,12 +717,16 @@ class ControlledPartyLogistics {
     if (offer.kind === 'gold' && grant.action === Action.GOLD_GRANT) {
       const amount = Math.min(Math.max(0, Math.floor(finite(grant.amount, 0))), Math.max(0, Math.floor(finite(snapshot.character.gold, 0) - this.config.farmerGoldReserve)), this.config.maxGoldBatch);
       if (amount <= 0) { this.pendingGrant = null; this.pendingOffer = null; return false; }
-      const binding = this._binding('send_gold');
-      if (!binding) return false;
+      if (!this.adapter || typeof this.adapter.command !== 'function') return false;
       const pending = { kind: 'gold', at: this.now(), offerId: offer.offerId, grantId: grant.grantId, amount, beforeGold: finite(snapshot.character.gold, 0), asyncRejected: false };
       this.pendingOutbound = pending;
       try {
-        const result = binding.fn.call(binding.owner, merchant, amount);
+        const command = this.adapter.command('send_gold', [merchant, amount]);
+        if (!command.executed) {
+          this.pendingOutbound = null;
+          return false;
+        }
+        const result = command.value;
         this.stats.goldTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingOutbound && this.pendingOutbound.grantId === pending.grantId) this.pendingOutbound.asyncRejected = true; });
       } catch (_) {

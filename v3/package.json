@@ -1,6 +1,6 @@
 {
   "name": "adventure-land-aio-v3",
-  "version": "3.0.0-alpha.20.72",
+  "version": "3.0.0-alpha.20.73",
   "private": true,
   "description": "Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.",
   "scripts": {
@@ -13,7 +13,8 @@
     "logic:guard": "node scripts/logic-guardian.js",
     "typecheck:logic": "tsc -p tsconfig.logic.json",
     "check:architecture": "depcruise --config .dependency-cruiser.cjs src",
-    "static:guard": "npm run typecheck:logic && npm run check:architecture",
+    "check:commands": "node scripts/game-command-boundary-guard.js",
+    "static:guard": "npm run typecheck:logic && npm run check:architecture && npm run check:commands",
     "preflight": "npm run release:guard && npm run logic:guard && npm run static:guard",
     "version:check": "node scripts/release-guardian.js --version-only",
     "release:patch": "node scripts/release-bump.js patch",

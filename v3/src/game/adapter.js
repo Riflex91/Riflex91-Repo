@@ -10,9 +10,20 @@ const COMMAND_CATALOG = Object.freeze({
   use_hp_or_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
   use_skill: Object.freeze({ family: 'skill', mutation: true, outcome: 'observed' }),
   stop: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  loot: Object.freeze({ family: 'loot', mutation: true, outcome: 'domain' }),
   open_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   close_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
-  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' })
+  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  send_gold: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  sell: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  bank_retrieve: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  bank_store: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  start_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  stop_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  send_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  accept_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  send_cm: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' }),
+  command_character: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' })
 });
 
 const ACTIVE_ALLOWED = new Set(Object.keys(COMMAND_CATALOG));
@@ -232,6 +243,15 @@ class GameAdapter {
 
   commandCatalog() {
     return Object.fromEntries(Object.entries(COMMAND_CATALOG).map(([action, definition]) => [action, { ...definition }]));
+  }
+
+  canCommand(action) {
+    if (!commandDefinition(action)) return false;
+    if (typeof this.root[action] === 'function' || typeof this.parent[action] === 'function') return true;
+    if (action === 'use_hp' || action === 'use_mp') {
+      return typeof this.root.use_hp_or_mp === 'function' || typeof this.parent.use_hp_or_mp === 'function';
+    }
+    return false;
   }
 
   command(action, args = []) {

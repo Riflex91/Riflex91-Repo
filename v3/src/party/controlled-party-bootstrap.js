@@ -1,5 +1,6 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
 const base = require('./controlled-party-bootstrap-base');
 
 function cleanName(value) {
@@ -45,6 +46,21 @@ function resolveRoster(options) {
   return { roster, configuredExplicitly };
 }
 
+function resolveCommandAdapter(options) {
+  const supplied = options.adapter || options.runtime && options.runtime.adapter || null;
+  if (!supplied || typeof supplied.command === 'function') return supplied;
+  const root = options.root || options.runtime && options.runtime.root || globalThis;
+  const now = options.now || options.runtime && options.runtime.now || (() => Date.now());
+  const log = options.log || options.runtime && options.runtime.log || null;
+  return new GameAdapter({
+    root,
+    parent: root && root.parent,
+    log,
+    now,
+    mode: String(supplied.mode || '') === 'active' ? 'active' : 'shadow'
+  });
+}
+
 class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
   constructor(options = {}) {
     const resolved = resolveRoster(options);
@@ -61,7 +77,8 @@ class ControlledPartyBootstrap extends base.ControlledPartyBootstrap {
       padded.push(placeholder);
     }
 
-    super({ ...options, desiredRoster: padded, merchantName });
+    const adapter = resolveCommandAdapter(options);
+    super({ ...options, ...(adapter ? { adapter } : {}), desiredRoster: padded, merchantName });
     this.desiredRoster = roster.slice();
     this.merchantName = merchantName;
     if (typeof this.transport.setTrustedNames === 'function') this.transport.setTrustedNames(this.desiredRoster);

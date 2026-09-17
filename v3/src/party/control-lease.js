@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const PARTY_CONTROL_PROTOCOL = 1;
 const PARTY_CONTROL_TYPE = 'aio-v3-party-control';
 const PartyControlAction = Object.freeze({
@@ -21,6 +23,7 @@ class PartyControlLease {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.merchantName = cleanName(options.merchantName);
     this.trustedNames = new Set((options.trustedNames || []).map(cleanName).filter(Boolean));
     this.leaseMs = Math.max(5000, Math.min(60000, Number(options.leaseMs) || 15000));
@@ -49,11 +52,6 @@ class PartyControlLease {
     if (this.log && typeof this.log.emit === 'function') {
       this.log.emit({ component: 'party-control', event, severity, reason, data });
     }
-  }
-
-  _function(name) {
-    if (!this.root) return null;
-    return this.root[name] || (this.root.parent && this.root.parent[name]) || null;
   }
 
   _character() {
@@ -106,9 +104,11 @@ class PartyControlLease {
   }
 
   async _send(name, payload) {
-    const send = this._function('send_cm');
-    if (typeof send !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
-    return Promise.resolve(send.call(this.root, name, payload));
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('send_cm')) throw new Error('SEND_CM_UNAVAILABLE');
+    const command = this.adapter.command('send_cm', [name, payload]);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SEND_CM_REJECTED'));
+    return Promise.resolve(command.value);
   }
 
   _validateLeaseEnvelope(sender, data) {
@@ -246,14 +246,16 @@ class PartyControlLease {
     }
     const lease = this.activeLease;
     this.activeLease = null;
-    const accept = this._function('accept_party_invite');
-    if (typeof accept !== 'function') {
+    if (!this.adapter || typeof this.adapter.command !== 'function'
+      || (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('accept_party_invite'))) {
       this.stats.acceptFailures += 1;
       this._event('PARTY_CONTROL_INVITE_ACCEPT_FAILED', { inviter: inviterName, transactionId: lease.transactionId }, 'error', 'ACCEPT_PARTY_INVITE_UNAVAILABLE');
       return true;
     }
     try {
-      const pending = accept.call(this.root, inviterName);
+      const command = this.adapter.command('accept_party_invite', [inviterName]);
+      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'ACCEPT_PARTY_INVITE_REJECTED'));
+      const pending = command.value;
       this.stats.inviteAccepted += 1;
       this._event('PARTY_CONTROL_INVITE_ACCEPTED', { inviter: inviterName, target: lease.target, transactionId: lease.transactionId });
       Promise.resolve(pending).catch((error) => {

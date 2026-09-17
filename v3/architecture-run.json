@@ -46,7 +46,7 @@
       "title": "GameAdapter as the technical write boundary",
       "branch": "architecture/02-game-command-boundary",
       "status": "completed",
-      "pr":  220,
+      "pr": 220,
       "merge_commit": "04f0ea9598d63961638f0c35149bc05f809b7e97",
       "required_outcomes": [
         "structured command catalog/allowlist",
@@ -61,8 +61,8 @@
       "name": "command-migration",
       "title": "Migrate remaining game writes through GameAdapter",
       "branch": "architecture/03-command-migration",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 226,
       "merge_commit": null,
       "required_outcomes": [
         "remaining mutation paths routed through adapter",

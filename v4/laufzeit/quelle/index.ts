@@ -142,3 +142,5 @@ export * from './spiellogik/gruppen-koordination.js';
 export * from './vertraege/gruppen-lebensnachweis.js';
 export * from './spiellogik/gruppen-lebensnachweis.js';
 export * from './ausfuehrung/adventure-land-gruppen-lebensnachweis-austausch.js';
+export * from './vertraege/gruppen-aktionsplanung.js';
+export * from './spiellogik/gruppen-aktionsplanung.js';

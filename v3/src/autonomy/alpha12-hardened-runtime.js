@@ -39,6 +39,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     const merchant = localMerchant || configured || (registryMerchant && registryMerchant.name) || null;
     this.partyControlLease = options.partyControlLease || new PartyControlLease({
       root: this.root,
+      adapter: this.adapter,
       now: this.now,
       log: this.log,
       merchantName: merchant,

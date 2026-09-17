@@ -105,7 +105,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       directEtaMs,
       distance,
       speed: finite(c.speed),
-      townAvailable: !!(this.root && typeof this.root.town === 'function'),
+      townAvailable: !!(this.adapter && typeof this.adapter.canCommand === 'function' && this.adapter.canCommand('town')),
       townEtaMs: this.merchantTownEtaMs,
       urgency: needPriority
     });

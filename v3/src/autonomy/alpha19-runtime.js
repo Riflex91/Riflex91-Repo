@@ -27,6 +27,7 @@ class Alpha19Runtime extends Alpha18Runtime {
     this.merchantSpaceRecoveryJournal.load();
     this.controlledBankConsolidation = options.controlledBankConsolidation || new ControlledBankConsolidationExecutor({
       root: this.root,
+      adapter: this.adapter,
       log: this.log,
       now: this.now,
       getMode: () => this.adapter.mode,
