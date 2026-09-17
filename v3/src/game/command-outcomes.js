@@ -1,17 +1,17 @@
 'use strict';
 
+const { finite } = require('../core/numeric');
+const { createSnapshotEntityIndex, entityById: indexedEntityById } = require('../core/snapshot-entity-index');
+
 const CommandOutcomeState = Object.freeze({
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
   TIMED_OUT: 'TIMED_OUT'
 });
 
-function finite(value) {
-  return Number.isFinite(Number(value)) ? Number(value) : null;
-}
-
-function entityById(snapshot, id) {
+function entityById(snapshot, id, index = null) {
   if (!snapshot || id == null) return null;
+  if (index && index.snapshot === snapshot) return indexedEntityById(index, id);
   const wanted = String(id);
   return (snapshot.entities || []).find((entity) => entity && String(entity.id) === wanted) || null;
 }
@@ -84,7 +84,7 @@ class CommandOutcomeTracker {
     return { ...record };
   }
 
-  _effect(record, snapshot) {
+  _effect(record, snapshot, entityIndex = null) {
     if (!snapshot || !snapshot.character || !record.before) return null;
     const before = record.before;
     const c = snapshot.character;
@@ -92,10 +92,10 @@ class CommandOutcomeTracker {
 
     if (action === 'move' || action === 'smart_move' || action === 'town') {
       if (before.map && c.map && before.map !== c.map) return { kind: 'MAP_CHANGED', map: c.map };
-      const bx = finite(before.x);
-      const by = finite(before.y);
-      const x = finite(c.x);
-      const y = finite(c.y);
+      const bx = finite(before.x, null);
+      const by = finite(before.y, null);
+      const x = finite(c.x, null);
+      const y = finite(c.y, null);
       if (bx != null && by != null && x != null && y != null) {
         const delta = Math.hypot(x - bx, y - by);
         if (delta >= this.moveMinDelta) return { kind: 'POSITION_CHANGED', delta: Number(delta.toFixed(2)), x, y };
@@ -112,7 +112,7 @@ class CommandOutcomeTracker {
 
     if (action === 'attack' || action === 'use_skill') {
       const targetId = action === 'attack' ? record.args[0] : record.args[1];
-      const target = entityById(snapshot, targetId);
+      const target = entityById(snapshot, targetId, entityIndex);
       if (before.targetPresent && !target) return { kind: 'TARGET_GONE', targetId: targetId || null };
       if (target && (target.dead || (target.hp != null && Number(target.hp) <= 0))) return { kind: 'TARGET_DEAD', targetId: target.id };
       if (target && before.targetHp != null && target.hp != null && Number(target.hp) < Number(before.targetHp)) {
@@ -177,8 +177,9 @@ class CommandOutcomeTracker {
   observe(snapshot) {
     const now = this.now();
     const completed = [];
+    const entityIndex = createSnapshotEntityIndex(snapshot);
     for (const record of [...this.pending.values()]) {
-      const effect = this._effect(record, snapshot);
+      const effect = this._effect(record, snapshot, entityIndex);
       if (effect) {
         completed.push(this._terminal(record, CommandOutcomeState.CONFIRMED, effect.kind, now, effect));
         continue;

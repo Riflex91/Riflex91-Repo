@@ -1,18 +1,9 @@
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
+const { finite, clamp } = require('../core/numeric');
 
 const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
-
-function finite(value, fallback = null) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function clamp(value, min, max, fallback) {
-  const number = finite(value, fallback);
-  return Math.max(min, Math.min(max, number));
-}
 
 function clone(value) {
   if (value == null) return value;
@@ -124,7 +115,7 @@ class ControlledFarmerLoot {
       this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { requestId, delta, freeSlots: after.freeSlots });
     }
     this.pendingObservation = null;
-    return clone(this.lastObservation);
+    return this.lastObservation;
   }
 
   tick(snapshot) {

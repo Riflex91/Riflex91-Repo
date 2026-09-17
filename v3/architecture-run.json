@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 4,
+  "next_step": 5,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -76,9 +76,9 @@
       "name": "merchant-mluck",
       "title": "Merchant mluck party rotation",
       "branch": "architecture/04-merchant-mluck",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 255,
-      "merge_commit": null,
+      "merge_commit": "e062f293c37456f178c24b5dc05911a2bda5fa79",
       "required_outcomes": [
         "composed mluck service/policy",
         "missing/expiring buff prioritization",
@@ -92,8 +92,8 @@
       "name": "runtime-hotpath",
       "title": "Shared utilities and runtime hot-path cleanup",
       "branch": "architecture/05-runtime-hotpath",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 258,
       "merge_commit": null,
       "required_outcomes": [
         "shared numeric helpers",
