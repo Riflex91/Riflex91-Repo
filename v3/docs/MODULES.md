@@ -211,7 +211,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**68 Dateien · 15180 Zeilen**
+**68 Dateien · 15417 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -280,7 +280,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/party-focus-fire-hotfix.js` | 217 |
 | `src/reliability/party-persistence-quota-hotfix.js` | 382 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
-| `src/reliability/team-cohesion-deadlock-hotfix.js` | 297 |
+| `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
 | `src/reliability/team-combat-cohesion-hotfix-base.js` | 526 |
 | `src/reliability/team-combat-cohesion-hotfix.js` | 215 |
 
