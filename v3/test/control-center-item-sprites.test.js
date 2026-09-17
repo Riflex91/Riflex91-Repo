@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   adventureLandAssetUrl,
   itemSpriteCatalog,
+  equipmentShadeCatalog,
   installAdventureLandItemSprites
 } = require('../src/reliability/alpha25-control-center-brain');
 
@@ -61,7 +62,31 @@ test('item sprite catalog exposes only inventory and equipped Adventure Land spr
   assert.equal(catalog.unused, undefined);
 });
 
-test('runtime snapshot wrapper adds sprite metadata and preserves exact inventory size', () => {
+test('equipment shade catalog mirrors Adventure Land empty slot artwork', () => {
+  const runtime = {
+    adapter: {
+      getGameData() {
+        return {
+          positions: {
+            shade_helmet: ['pack_20', 1, 1],
+            shade_mainhand: ['pack_20', 2, 1],
+            shade_ring: ['pack_20', 3, 1]
+          },
+          imagesets: {
+            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10, rows: 8 }
+          }
+        };
+      }
+    }
+  };
+  const shades = equipmentShadeCatalog(runtime);
+  assert.equal(shades.helmet.skin, 'shade_helmet');
+  assert.equal(shades.mainhand.x, 2);
+  assert.equal(shades.ring1.skin, 'shade_ring');
+  assert.equal(shades.ring2.skin, 'shade_ring');
+});
+
+test('runtime snapshot wrapper adds sprites, equipment shades and exact inventory size', () => {
   const runtime = {
     lastSnapshot: { character: { name: 'R1', isize: 49 } },
     adapter: { getGameData: () => ({ items: {}, positions: {}, imagesets: {} }) },
@@ -76,6 +101,7 @@ test('runtime snapshot wrapper adds sprite metadata and preserves exact inventor
   assert.equal(installAdventureLandItemSprites(runtime, cloud), true);
   const snapshot = cloud._runtimeSnapshot();
   assert.deepEqual(snapshot.itemSprites, {});
+  assert.deepEqual(snapshot.equipmentShades, {});
   assert.equal(snapshot.character.isize, 49);
   assert.equal(installAdventureLandItemSprites(runtime, cloud), false);
 });
