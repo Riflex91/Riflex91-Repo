@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 1,
+  "next_step": 2,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -29,9 +29,9 @@
       "name": "patch-registry",
       "title": "Patch registry and deterministic patch ownership",
       "branch": "architecture/01-patch-registry",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 193,
-      "merge_commit": null,
+      "merge_commit": "07c29935f17f0707f8834cdf24801b55023d4819",
       "required_outcomes": [
         "central patch registry",
         "exclusive-owner collision detection",
