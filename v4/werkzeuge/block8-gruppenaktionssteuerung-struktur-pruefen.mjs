@@ -63,7 +63,7 @@ if (!gruppenAnfragen.includes('nichtFreigegebeneSchrittKennungen: friereStrings(
 
 const schatten = await readFile(path.join(wurzel, 'werkzeuge/block8-gruppenaktionssteuerung-schatten.js'), 'utf8');
 for (const pflichtText of [
-  'uebersetzungAktiviert: optionen.uebersetzungAktiviert ?? false',
+  'aktiviert: optionen.uebersetzungAktiviert ?? false',
   'aktiviert: optionen.einreichungAktiviert ?? false',
   'freigegebeneAktionen: optionen.freigegebeneAktionen ?? []',
   'verarbeiten: optionen.verarbeiten ?? false',
