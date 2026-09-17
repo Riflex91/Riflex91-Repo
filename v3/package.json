@@ -4,6 +4,7 @@
   "private": true,
   "description": "Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.",
   "scripts": {
+    "prebuild": "npm run check:legacy-reliability-layer",
     "build": "node scripts/build.js",
     "test": "node --test test/*.test.js",
     "test:properties": "node --test test/logic-guardian-property.test.js",
