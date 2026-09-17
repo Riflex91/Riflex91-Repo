@@ -105,11 +105,13 @@ test('Alpha32 releases stale merchant reservations immediately after live identi
   assert.equal(hotfix.stats.staleMerchantTransactionsReleased, 1);
 });
 
-test('Alpha32 heals a low-HP merchant and holds economy, service, production, and autonomy until recovery', () => {
+test('Alpha32 heals a low-HP merchant, aborts active travel, and holds work until recovery', async () => {
   let now = 4000;
   let potionCalls = 0;
   let autonomyCalls = 0;
   let serviceCycles = 0;
+  let travelAborts = 0;
+  let travelBusy = true;
   const character = { name: 'Merchant', ctype: 'merchant', hp: 100, max_hp: 1000, items: [{ name: 'hpot0', q: 10 }] };
   const alpha27Merchant = {
     tick() { autonomyCalls += 1; return true; }
@@ -125,6 +127,16 @@ test('Alpha32 heals a low-HP merchant and holds economy, service, production, an
     controlledMerchant: { _preflight: okPreflight },
     controlledMerchantService: { _preflight: okPreflight },
     controlledMerchantProduction: { _preflight: okPreflight },
+    controlledTravel: {
+      _preflight: okPreflight,
+      status: () => ({ busy: travelBusy, activePlanId: travelBusy ? 'travel-low-hp' : null }),
+      async abort(reason) {
+        assert.equal(reason, 'MERCHANT_HP_RECOVERY_REQUIRED');
+        travelAborts += 1;
+        travelBusy = false;
+        return { aborted: true, planId: 'travel-low-hp', reason };
+      }
+    },
     alpha27CombatMerchantConvergence: { merchant: alpha27Merchant },
     _merchantServiceCycle() { serviceCycles += 1; return { kind: 'SERVICE_DELIVERY' }; },
     log: { emit() {} }
@@ -134,9 +146,14 @@ test('Alpha32 heals a low-HP merchant and holds economy, service, production, an
   assert.equal(runtime.controlledMerchant._preflight({}).reason, 'MERCHANT_HP_RECOVERY_REQUIRED');
   assert.equal(runtime.controlledMerchantService._preflight({}).reason, 'MERCHANT_HP_RECOVERY_REQUIRED');
   assert.equal(runtime.controlledMerchantProduction._preflight({}).reason, 'MERCHANT_HP_RECOVERY_REQUIRED');
+  assert.equal(runtime.controlledTravel._preflight({}).reason, 'MERCHANT_HP_RECOVERY_REQUIRED');
 
   hotfix.beforeTick();
+  await Promise.resolve();
+  await Promise.resolve();
   assert.equal(potionCalls, 1);
+  assert.equal(travelAborts, 1);
+  assert.equal(hotfix.stats.merchantTravelSafetyAborts, 1);
   assert.equal(alpha27Merchant.tick(), false);
   assert.equal(autonomyCalls, 0);
   assert.equal(runtime._merchantServiceCycle(), null);
@@ -148,6 +165,7 @@ test('Alpha32 heals a low-HP merchant and holds economy, service, production, an
   hotfix.beforeTick();
   assert.equal(hotfix.status().merchant.recoveryActive, false);
   assert.equal(runtime.controlledMerchant._preflight({}).ok, true);
+  assert.equal(runtime.controlledTravel._preflight({}).ok, true);
   assert.equal(alpha27Merchant.tick(), true);
   assert.equal(autonomyCalls, 1);
   assert.deepEqual(runtime._merchantServiceCycle(), { kind: 'SERVICE_DELIVERY' });
