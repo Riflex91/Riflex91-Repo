@@ -1,6 +1,6 @@
 'use strict';
 
-const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
 const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
@@ -142,7 +142,13 @@ function installAlpha2019AccountTransportHotfix() {
     const sendCm = fn(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      // Preserve the named receiver contract from AccountCharacterTransport.
+      // Without this envelope the recipient sees a plain CM payload and cannot
+      // route Alpha27 target authority (or any other addressed receiver).
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      await Promise.resolve(sendCm.call(this.root, target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {

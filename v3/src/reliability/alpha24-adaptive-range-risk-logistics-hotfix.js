@@ -332,7 +332,6 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
               const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
               if (result && (result.executed || result.shadow || result.coalesced)) {
                 lastFirePositionAt = now;
-                farmer.lastActionAt = now;
                 stats.rangedFirePositionMoves += 1;
                 if (typeof farmer._event === 'function') farmer._event('FARMER_RANGE_POSITION_REQUESTED', 'info', 'MAXIMIZE_RANGED_FIRE_POSITION', {
                   distance: Number(d.toFixed(2)),
@@ -340,12 +339,13 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
                   desiredDistance: Number(desired.toFixed(2)),
                   tank: tankProfile(runtime, target, snapshot)
                 });
-                return;
               }
             }
           }
         }
       }
+      // Repositioning changes movement only. Keep the normal engagement pipeline
+      // live so ranged followers can fire in the same cycle while moving outward.
       return baseEngage(context, target);
     };
   }

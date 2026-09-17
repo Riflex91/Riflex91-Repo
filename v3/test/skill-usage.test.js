@@ -126,7 +126,7 @@ test('SkillFarmer uses the selected skill on the current target before normal at
   assert.equal(farmer.status().skillUsage.lastUse.skill, 'supershot');
 });
 
-test('SkillFarmer gives kiting priority when the target is too close', () => {
+test('SkillFarmer kites while still allowing normal attack when the target is too close', () => {
   let now = 10000;
   const commands = [];
   const farmer = new SkillFarmerController({ now: () => now, planner: planner(), attackIntervalMs: 250, kitingMoveCooldownMs: 250 });
@@ -137,7 +137,8 @@ test('SkillFarmer gives kiting priority when the target is too close', () => {
   now += 1000;
   farmer.step(ctx);
 
-  assert.equal(commands.at(-1).action, 'move');
+  assert.equal(commands.some((entry) => entry.action === 'move'), true);
+  assert.equal(commands.at(-1).action, 'attack');
   assert.equal(commands.some((entry) => entry.action === 'use_skill'), false);
 });
 

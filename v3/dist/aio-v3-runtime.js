@@ -3401,7 +3401,6 @@ class KitingFarmerController extends FarmerController {
             const result = context.adapter.command('move', [decision.x, decision.y]);
             if (result.executed || result.shadow) {
               this.lastKiteAt = now;
-              this.lastActionAt = now;
               this.lastKiteMove = {
                 at: now,
                 targetId: target.id || null,
@@ -3422,19 +3421,21 @@ class KitingFarmerController extends FarmerController {
                 x: Math.round(decision.x),
                 y: Math.round(decision.y)
               });
-              return;
+            } else {
+              this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
+                distance: decision.distance,
+                x: Math.round(decision.x),
+                y: Math.round(decision.y)
+              });
             }
-
-            this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
-              distance: decision.distance,
-              x: Math.round(decision.x),
-              y: Math.round(decision.y)
-            });
           }
         }
       }
     }
 
+    // Kiting is movement, not a replacement for the attack cycle. Adventure Land
+    // can keep moving toward the requested waypoint while a basic attack is sent,
+    // so always let the normal engagement pipeline evaluate the shot as well.
     return super._engage(context, target);
   }
 
@@ -3451,7 +3452,6 @@ class KitingFarmerController extends FarmerController {
 }
 
 module.exports = { KitingFarmerController };
-
 },
 "src/farmer/farmer-fsm.js": function(require,module,exports){
 'use strict';
@@ -27058,7 +27058,7 @@ module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGR
 "src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
 'use strict';
 
-const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
 const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
@@ -27200,7 +27200,13 @@ function installAlpha2019AccountTransportHotfix() {
     const sendCm = fn(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      // Preserve the named receiver contract from AccountCharacterTransport.
+      // Without this envelope the recipient sees a plain CM payload and cannot
+      // route Alpha27 target authority (or any other addressed receiver).
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      await Promise.resolve(sendCm.call(this.root, target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
@@ -34899,7 +34905,6 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
               const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
               if (result && (result.executed || result.shadow || result.coalesced)) {
                 lastFirePositionAt = now;
-                farmer.lastActionAt = now;
                 stats.rangedFirePositionMoves += 1;
                 if (typeof farmer._event === 'function') farmer._event('FARMER_RANGE_POSITION_REQUESTED', 'info', 'MAXIMIZE_RANGED_FIRE_POSITION', {
                   distance: Number(d.toFixed(2)),
@@ -34907,12 +34912,13 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
                   desiredDistance: Number(desired.toFixed(2)),
                   tank: tankProfile(runtime, target, snapshot)
                 });
-                return;
               }
             }
           }
         }
       }
+      // Repositioning changes movement only. Keep the normal engagement pipeline
+      // live so ranged followers can fire in the same cycle while moving outward.
       return baseEngage(context, target);
     };
   }
@@ -35113,7 +35119,6 @@ module.exports = {
   Alpha24AdaptiveRangeRiskLogisticsHotfix,
   installAlpha24AdaptiveRangeRiskLogisticsHotfix
 };
-
 },
 "src/reliability/alpha25-control-center-brain.js": function(require,module,exports){
 'use strict';

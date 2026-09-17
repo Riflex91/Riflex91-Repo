@@ -70,7 +70,7 @@ test('BasicKitingPolicy does not reposition a target focused on somebody else', 
   assert.equal(result.reason, 'TARGET_FOCUSED_ELSEWHERE');
 });
 
-test('KitingFarmer requests a move instead of an attack when the target is too close', () => {
+test('KitingFarmer requests a move and keeps attacking when the target is too close', () => {
   let now = 10000;
   const commands = [];
   const farmer = new KitingFarmerController({ now: () => now, planner: planner(), attackIntervalMs: 250, kitingMoveCooldownMs: 250 });
@@ -82,8 +82,10 @@ test('KitingFarmer requests a move instead of an attack when the target is too c
   now += 1000;
   farmer.step(ctx);
 
-  assert.equal(commands.at(-1).action, 'move');
-  assert.ok(commands.at(-1).args[0] < 0);
+  const tail = commands.slice(-2);
+  assert.deepEqual(tail.map((entry) => entry.action), ['move', 'attack']);
+  assert.ok(tail[0].args[0] < 0);
+  assert.deepEqual(tail[1].args, ['m1']);
   assert.equal(farmer.status().kiting.lastMove.targetId, 'm1');
 });
 
