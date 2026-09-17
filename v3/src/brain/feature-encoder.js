@@ -1,5 +1,7 @@
 'use strict';
 
+const { finite, clamp01, ratio } = require('../core/numeric');
+
 const FEATURE_SCHEMA_VERSION = 1;
 const FEATURE_NAMES = Object.freeze([
   'xpRate',
@@ -12,21 +14,6 @@ const FEATURE_NAMES = Object.freeze([
   'mpReserve',
   'currentPlanAffinity'
 ]);
-
-function finite(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function clamp01(value) {
-  return Math.max(0, Math.min(1, finite(value, 0)));
-}
-
-function ratio(value, max) {
-  const denominator = finite(max, 0);
-  if (denominator <= 0) return 0;
-  return clamp01(finite(value, 0) / denominator);
-}
 
 function candidateId(candidate) {
   if (!candidate) return null;
@@ -51,8 +38,8 @@ class StrategicFeatureEncoder {
 
     const maxXp = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.xpPerHour, 0))));
     const maxGold = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.goldPerHour, 0))));
-    const hpReserve = ratio(character.hp, character.max_hp);
-    const mpReserve = ratio(character.mp, character.max_mp);
+    const hpReserve = ratio(character.hp, character.max_hp, 0);
+    const mpReserve = ratio(character.mp, character.max_mp, 0);
 
     return usable.map((candidate) => {
       const id = candidateId(candidate);
