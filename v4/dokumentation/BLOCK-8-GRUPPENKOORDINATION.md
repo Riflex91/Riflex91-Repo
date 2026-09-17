@@ -2,13 +2,13 @@
 
 Status: **in Arbeit**.
 
-Live-Stand vom 2026-09-17: echter Ranger-zu-Ranger-Lebensnachweis sowie read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sind erfolgreich bestaetigt.
+Live-Stand vom 2026-09-17: echter Ranger-zu-Ranger-Lebensnachweis sowie read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sind erfolgreich bestaetigt. Die Produktionskopplung an Block 7 ist umgesetzt; die automatische Live-Sicherheitsquelle ist implementiert und wartet noch auf die Zwei-Ranger-Abnahme.
 
 ## Ziel
 
 Mehrere eigene Charaktere sollen als Gruppe zusammenarbeiten, ohne hart verdrahtete Klassenrollen und ohne dass ein einzelner Charakter eigenmaechtig Gruppenentscheidungen erfindet.
 
-Der erste Block-8-Unterbau ist absichtlich read-only und deterministisch. Er entscheidet noch keine Adventure-Land-Spielaktion und sendet noch keine Gruppen- oder Charaktermeldungen. Er verarbeitet ausschliesslich explizite Teilnehmermeldungen.
+Der aktuelle Block-8-Unterbau bleibt read-only und deterministisch. Er plant bzw. bewertet Gruppenarbeit, fuehrt aber noch keine koordinierte Adventure-Land-Spielaktion aus.
 
 ## Teilnehmer-Lebensnachweis
 
@@ -21,13 +21,13 @@ Jeder eigene Charakter liefert einen `GruppenTeilnehmerMeldung`-Datensatz mit:
 - explizitem Lebenszustand,
 - Lebens- und Manaanteil,
 - aktuellem Ziel,
-- aktueller Kampf-Gefahrenstufe,
+- aktueller Block-7-Kampf-Gefahrenstufe,
 - Faehigkeitsprofil,
 - Zeitstempel und laufender Nummer.
 
-Die Koordination bekommt `jetzt` ausdruecklich als Eingabe. `Date.now()` ist in der Entscheidungslogik verboten. Damit bleiben Aufzeichnung und Wiederholung deterministisch.
+Die produktive Kopplung verlangt eine `KampfSicherheitsEntscheidung` desselben `Spielzustand`-Zeitpunkts. Im Adventure-Land-Livepfad kommt die Gefahrenstufe aus `V4Block7KampfsicherheitsQuelle`; eine manuelle `gefahrenStufe` ist seit Lebensnachweis-Version `1.1.0` verboten.
 
-Standardmaessig gilt ein Lebensnachweis nach 5 Sekunden als veraltet. Die Grenze ist konfigurierbar und Teil des expliziten Eingabevertrags.
+Standardmaessig gilt ein Gruppen-Lebensnachweis nach 5 Sekunden als veraltet. Die Live-Sicherheitsbewertung selbst muss deutlich frischer sein; der Live-Lebensnachweis verwendet dafuer standardmaessig maximal 1500 ms.
 
 ## Faehigkeiten statt Klassenrollen
 
@@ -41,7 +41,7 @@ Die Gruppenfaehigkeiten sind:
 
 Jeder Teilnehmer meldet fuer jede Faehigkeit einen numerischen Wert. Die Aufgabenverteilung waehlt den aktuell aktiven Teilnehmer mit dem hoechsten Wert. Bei Gleichstand entscheidet die Charakterkennung lexikographisch, damit das Ergebnis unabhaengig von Eingabereihenfolge reproduzierbar bleibt.
 
-Die Klasse darf die Auswahl nicht beeinflussen. Ein als `warrior` gemeldeter Charakter kann deshalb beispielsweise die Heilaufgabe erhalten, wenn sein explizites Faehigkeitsprofil dies so beschreibt.
+Die Klasse darf die Auswahl nicht beeinflussen.
 
 ## Teilnehmerstatus
 
@@ -52,66 +52,57 @@ Ein Teilnehmer wird als `aktiv` behandelt, wenn:
 - Serverregion und Serverkennung mit dem eigenen Charakter uebereinstimmen,
 - Karte und Instanz uebereinstimmen.
 
-Andernfalls wird er eindeutig als einer der folgenden Zustaende markiert:
-
-- `veraltet`
-- `ausgefallen`
-- `falsche_welt`
-- `falsche_instanz`
-
-Nicht aktive Teilnehmer erhalten keine Gruppenaufgaben. Dadurch werden Aufgaben nach Ausfall oder Verbindungsverlust automatisch aus dem verbleibenden aktiven Faehigkeitsprofil neu verteilt.
-
-Kommt spaeter ein frischer Lebensnachweis desselben Charakters, darf er wieder als aktiv bewertet und erneut fuer Aufgaben ausgewaehlt werden.
+Andernfalls wird er als `veraltet`, `ausgefallen`, `falsche_welt` oder `falsche_instanz` markiert. Nicht aktive Teilnehmer erhalten keine Gruppenaufgaben. Ein spaeterer frischer Lebensnachweis kann denselben Charakter wieder aktivieren und Aufgaben neu zuordnen.
 
 ## Gemeinsame Sicherheitslage
 
-Die Gruppenkoordination bewertet die hoechste relevante Gefahrenstufe aller aktiven Teilnehmer.
+Die Gruppenkoordination bewertet die hoechste relevante Gefahrenstufe aller aktiven Teilnehmer:
 
-- `sicher` oder `angespannt` -> normaler Gruppenbetrieb moeglich
-- `gefaehrlich` oder `kritisch` -> Gruppenbetrieb `sicherheit`
-- `unbekannt` -> fail-safe `blockiert`
+- `sicher` oder `angespannt` -> normaler Gruppenbetrieb moeglich,
+- `gefaehrlich` oder `kritisch` -> Gruppenbetrieb `sicherheit`,
+- `unbekannt` -> fail-safe `blockiert`.
 
-Bei `sicherheit` oder `blockiert` wird kein normales gemeinsames Kampfziel ausgegeben. Damit hat die bereits in Block 7 etablierte Sicherheitsregel weiterhin Vorrang vor Leistung.
+Bei `sicherheit` oder `blockiert` wird kein normales gemeinsames Kampfziel ausgegeben. Block 8 darf die Block-7-Sicherheitslage weder abschwaechen noch ueberschreiben.
 
 ## Gemeinsames Ziel
 
-Im normalen Gruppenbetrieb wird das von den aktiven Teilnehmern am haeufigsten gemeldete nicht-leere Ziel als gemeinsames Ziel ausgegeben.
-
-Bei Gleichstand gewinnt die lexikographisch kleinere Zielkennung. Diese Regel ist technisch, nicht taktisch: Sie dient nur dazu, gleiche Eingaben immer gleich auszuwerten. Spaetere Block-8-Teile duerfen die Zielbewertung auf Basis expliziter Strategiedaten erweitern.
+Im normalen Gruppenbetrieb wird das von den aktiven Teilnehmern am haeufigsten gemeldete nicht-leere Ziel als gemeinsames Ziel ausgegeben. Bei Gleichstand gewinnt die lexikographisch kleinere Zielkennung, damit gleiche Eingaben reproduzierbar bleiben.
 
 ## Fail-safe Verhalten
 
-Die Gruppenkoordination bleibt blockiert, wenn:
+Die Gruppenkoordination bzw. der Live-Lebensnachweis blockiert, wenn unter anderem:
 
-- der eigene Lebensnachweis fehlt,
-- der eigene Lebensnachweis veraltet oder unplausibel ist,
+- der eigene Lebensnachweis fehlt oder veraltet ist,
 - der eigene Lebenszustand nicht explizit lebendig ist,
-- die gemeinsame Sicherheitslage unbekannt ist.
+- die gemeinsame Sicherheitslage unbekannt ist,
+- die Block-7-Live-Sicherheitsquelle fehlt,
+- deren Bewertung stale oder formal ungueltig ist,
+- eine manuelle Live-`gefahrenStufe` versucht wird.
 
 Fehlende Daten werden nicht durch Klassenannahmen oder geratenen Zustand ersetzt.
 
 ## Architekturgrenze
 
-`spiellogik/gruppen-koordination.ts` darf keine Adventure-Land-Spielaktion direkt ausfuehren. Insbesondere sind dort direkte Aufrufe von Angriff, Bewegung, Skills, Loot, Charakterkommunikation und Party-Einladungen verboten.
+`spiellogik/gruppen-koordination.ts` darf keine Adventure-Land-Spielaktion direkt ausfuehren. Spaetere aktive Gruppenaktionen muessen ueber `AktionsSteuerung` und die Ressource `gruppe` beziehungsweise die benoetigten Kampf- und Bewegungsressourcen laufen.
 
-Spaetere aktive Gruppenaktionen muessen weiterhin ueber die zentrale `AktionsSteuerung` und die Ressource `gruppe` beziehungsweise die jeweils benoetigten Kampf- und Bewegungsressourcen laufen.
+Die Block-7-Live-Sicherheitsquelle ist ebenfalls read-only und darf keinerlei Adventure-Land-Spielaktion oder Kommunikation ausfuehren. Nur der bestehende Lebensnachweis-Austausch darf adressiertes `send_cm` verwenden.
 
-## Automatisierte Nachweise dieses Unterbaus
+## Nachweise
 
-`block8-gruppenkoordination.test.mjs` prueft mindestens:
+Automatisiert vorhanden sind unter anderem:
 
-- Aufgaben aus Faehigkeiten statt Klassen,
-- Ausschluss veralteter Lebensnachweise,
-- Neuverteilung nach Ausfall,
-- Wiederaufnahme nach frischem Lebensnachweis,
-- Server- und Instanzabgleich,
-- Sicherheitsvorrang vor normalem Ziel,
-- fail-safe bei unbekannter Sicherheitslage,
-- deterministische gemeinsame Zielwahl,
-- deterministische Ergebnisse unabhaengig von Eingabereihenfolge,
-- Blockierung bei fehlendem oder veraltetem eigenem Lebensnachweis.
+- Faehigkeitsverteilung statt Klassenrollen,
+- Stale-/Ausfall-Ausschluss und Neuverteilung,
+- Reconnect-Wiederaufnahme,
+- Server-/Instanzabgleich,
+- Sicherheitsvorrang,
+- deterministische Zielwahl,
+- Produktionskopplung Block 7 -> Block 8,
+- Zeitstempelbindung derselben Sicherheitsentscheidung,
+- Browser-/Produktionsparitaet der Live-Sicherheitsquelle,
+- Blockierung bei fehlender oder stale Live-Sicherheit vor `send_cm`.
 
-Der zusaetzliche Live-Koordinationsschatten wurde am 2026-09-17 mit `My_Ranger1` und `My_Ranger2` erfolgreich abgenommen. Nachgewiesen wurden aktive Aufgabenverteilung, Stale-Erkennung mit Aufgabenentzug und automatische Wiederaufnahme nach Reconnect, weiterhin ohne echte Spielaktion.
+Der Live-Koordinationsschatten mit `My_Ranger1` und `My_Ranger2` hat den Zyklus `aktiv -> veraltet -> Aufgabe entzogen -> Reconnect -> aktiv -> Aufgabe wieder zugeordnet` bereits bestanden.
 
 ## Naechste Block-8-Schritte
 
@@ -120,10 +111,12 @@ Bereits erreicht:
 1. Teilnehmermeldungen aus echten `Spielzustand`-Daten.
 2. read-only Lebensnachweis-Austausch zwischen eigenen Charakteren.
 3. echter read-only Koordinationsschatten mit Aktiv/Stale/Reconnect-Aufgabenwechsel.
+4. Produktionskopplung der Gefahrenstufe an Block 7.
+5. automatische, source-locked Live-Sicherheitsquelle und Lebensnachweis v1.1.0 implementiert.
 
 Als naechstes folgen getrennt und testbar:
 
-1. reale Kampfsicherheitsbewertung aus Block 7 statt manuell gesetzter `gefahrenStufe` in die Teilnehmermeldungen einspeisen.
+1. echte Zwei-Ranger-Live-Abnahme der automatischen Block-7-Gefahrenquelle.
 2. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
 3. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
 4. Mehrcharakter-Wiederholungen und gezielte Ausfalltests.

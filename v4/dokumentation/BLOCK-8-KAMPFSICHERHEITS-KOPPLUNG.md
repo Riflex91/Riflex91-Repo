@@ -1,10 +1,10 @@
 # Block 8 – Kampfsicherheits-Kopplung
 
-Status: **Produktionskopplung umgesetzt; Live-Schattenanbindung folgt als naechster Nachweis.**
+Status: **Produktionskopplung und Live-Bridge umgesetzt; echte Zwei-Charakter-Live-Abnahme steht noch aus.**
 
 ## Ziel
 
-Die Gefahrenstufe eines Gruppen-Lebensnachweises darf im autonomen V4-Pfad nicht von Block 8 erfunden oder manuell gesetzt werden. Massgeblich ist ausschliesslich die bereits etablierte Block-7-Kampfsicherheitsentscheidung desselben Spielzustands.
+Die Gefahrenstufe eines Gruppen-Lebensnachweises darf im autonomen V4-Pfad nicht von Block 8 erfunden oder manuell gesetzt werden. Massgeblich ist ausschliesslich die Block-7-Kampfsicherheitsbewertung des aktuellen Charakterzustands.
 
 ## Produktionsschnittstelle
 
@@ -18,11 +18,50 @@ Die Funktion kopiert ausschliesslich `sicherheitsEntscheidung.gefahrenBewertung.
 
 Block 8 berechnet keine eigene Kampfgefahr und darf die Block-7-Stufe weder abschwaechen noch ueberschreiben.
 
-## Zeitliche Bindung
+## Zeitliche Bindung im Produktionskern
 
 Die Kampfsicherheitsentscheidung muss exakt zu `spielzustand.aufgenommenAm` gehoeren. Stimmt `sicherheitsEntscheidung.zeitpunkt` nicht mit diesem Zeitpunkt ueberein, wird kein Lebensnachweis erzeugt und das Ergebnis ist `blockiert`.
 
 Damit kann weder eine alte Sicherheitsentscheidung noch eine Entscheidung aus einem anderen Snapshot in eine neue Gruppenmeldung geraten.
+
+## Live-Bridge fuer Adventure Land
+
+Da Adventure Land die TypeScript-Laufzeit nicht direkt als Node-ESM-Modul laedt, stellt
+
+```text
+v4/werkzeuge/block7-kampfsicherheits-quelle.js
+```
+
+eine kleine read-only Browserquelle bereit:
+
+```js
+V4Block7KampfsicherheitsQuelle.bewerte()
+```
+
+Die Quelle:
+
+- liest nur aktuelle Adventure-Land-Zustandsdaten,
+- fuehrt keine Spielaktion und keine Kommunikation aus,
+- verwendet dieselben Block-7-Standardschwellen,
+- liefert `gefahrenBewertung` samt Gruenden und Messwerten,
+- traegt den exakten Git-Blob des Produktionskerns `kampfsicherheit.ts`.
+
+Der Block-8-Strukturguard berechnet den aktuellen Produktions-Blob mit `git hash-object`. Weicht er vom Browserkern ab, wird CI rot. Zusaetzlich vergleicht `block8-live-kampfsicherheit.test.mjs` die Browserbewertung fuer `sicher`, `angespannt`, `kritisch` und `unbekannt` gegen echte Aufrufe von `planeKampfSicherheitsSchritt(...)`.
+
+## Lebensnachweis ab Version 1.1.0
+
+`V4Block8Lebensnachweis` akzeptiert `gefahrenStufe` nicht mehr in `konfiguriere(...)`.
+
+Vor jedem `send_cm` gilt stattdessen:
+
+1. `V4Block7KampfsicherheitsQuelle` muss vorhanden sein.
+2. `bewerte()` wird unmittelbar aufgerufen.
+3. Ergebnisformat und Gefahrenstufe muessen gueltig sein.
+4. Die Bewertung darf nicht aus der Zukunft kommen.
+5. Sie darf nicht aelter als `sicherheitsMaximalAlterMillisekunden` sein; Standard 1500 ms.
+6. Erst danach wird die Meldung gebaut und gesendet.
+
+Fehlt eine dieser Voraussetzungen, wird **vor `send_cm`** blockiert.
 
 ## Fail-safe Verhalten
 
@@ -30,22 +69,26 @@ Damit kann weder eine alte Sicherheitsentscheidung noch eine Entscheidung aus ei
 - `angespannt` bleibt `angespannt`.
 - `gefaehrlich` bleibt `gefaehrlich`.
 - `kritisch` bleibt `kritisch`.
-- `unbekannt` bleibt `unbekannt` und blockiert spaeter gemaess Gruppenkoordination den normalen Gruppenbetrieb.
+- `unbekannt` bleibt `unbekannt` und blockiert spaeter gemaess Gruppenkoordination normalen Gruppenbetrieb.
+- fehlende Live-Sicherheitsquelle -> keine Meldung.
+- stale Live-Sicherheitsbewertung -> keine Meldung.
+- manuell gesetzte `gefahrenStufe` -> Konfiguration wird abgewiesen.
 - ungueltige Faehigkeitsprofile bleiben blockiert.
-- fehlende oder ungueltige Sicherheitsentscheidungen bleiben blockiert.
 
-Die vorhandene Low-Level-Funktion `erstelleGruppenTeilnehmerMeldungAusSpielzustand(...)` bleibt fuer deterministische Tests, Replay und explizite Adapter erhalten. Der autonome Gruppenpfad soll die neue Kampfsicherheits-Kopplung verwenden.
+Die Low-Level-Funktion `erstelleGruppenTeilnehmerMeldungAusSpielzustand(...)` bleibt fuer deterministische Tests, Replay und explizite Adapter erhalten. Der autonome Produktions- und Live-Pfad verwendet die Kampfsicherheits-Kopplung.
 
 ## Automatisierte Nachweise
 
-`block8-kampfsicherheits-kopplung.test.mjs` prueft die Kopplung mit echten Aufrufen von `planeKampfSicherheitsSchritt(...)`:
+`block8-kampfsicherheits-kopplung.test.mjs` prueft die Produktionsschnittstelle mit echten `planeKampfSicherheitsSchritt(...)`-Aufrufen.
 
-1. sichere Block-7-Bewertung wird unveraendert uebernommen,
-2. kritische Bewertung kann von Block 8 nicht abgeschwaecht werden,
-3. unbekannte Sicherheitslage bleibt unbekannt und damit fail-safe,
-4. eine Sicherheitsentscheidung eines anderen Spielzustandszeitpunkts wird blockiert,
-5. ungueltige Gruppenfaehigkeiten bleiben blockiert.
+`block8-live-kampfsicherheit.test.mjs` prueft zusaetzlich:
 
-## Naechster Live-Schritt
+1. Paritaet der Browserquelle fuer mehrere Gefahrenlagen,
+2. automatische Uebernahme einer kritischen Bewertung in den gesendeten Lebensnachweis,
+3. Verbot manueller `gefahrenStufe`,
+4. Blockierung bei fehlender Quelle vor `send_cm`,
+5. Blockierung einer zu alten Sicherheitsbewertung vor `send_cm`.
 
-Der Adventure-Land-Schattenpfad wird als naechstes so erweitert, dass der Lebensnachweis seine Gefahrenstufe aus der laufenden Block-7-Sicherheitsbewertung bezieht. Erst wenn dieser echte Zwei-Charakter-Nachweis bestanden ist, wird der bisherige manuelle Testwert fuer `gefahrenStufe` aus dem Live-Ablauf entfernt.
+## Noch offene Abnahme
+
+Als naechster Schritt wird die neue Kette mit `My_Ranger1` und `My_Ranger2` live getestet. Dabei soll zuerst eine normale sichere Lage bestaetigt werden. Anschliessend reicht ein beobachtbarer natuerlicher Wechsel der Block-7-Gefahrenstufe; es wird fuer diesen Nachweis keine Gefahr absichtlich provoziert.
