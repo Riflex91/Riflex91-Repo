@@ -6,6 +6,84 @@ const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-consta
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
+  criticalPartySupplyPlan() {
+    const plan = this.runtime.lastMerchantServicePlan;
+    if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500)) return null;
+    const kind = String(plan.kind || '');
+    if (!['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(kind)) return null;
+    const deliveries = Array.isArray(plan.deliveries) ? plan.deliveries.filter((row) => row && Number(row.quantity) > 0) : [];
+    if (!deliveries.length) return null;
+    const at = finite(plan.at, 0);
+    const maxAgeMs = Math.max(5000, Math.min(20000, finite(this.options && this.options.merchantServiceChainMaxAgeMs, 10000)));
+    if (at <= 0 || this.now() - at > maxAgeMs) return null;
+    return plan;
+  }
+
+  preemptReservedLowRiskForPartySupply(active, plan) {
+    if (!active || active.state !== 'RESERVED' || !['SELL', 'BANK'].includes(String(active.type || ''))) return false;
+    const engine = this.runtime.transactionEngine;
+    if (!engine || typeof engine.cancel !== 'function') return false;
+    try {
+      const result = engine.cancel(active.id, 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT');
+      const cancelled = result === true || !!(result && result.cancelled === true);
+      if (!cancelled) {
+        this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
+        this.lastMerchantAction = {
+          at: this.now(),
+          transactionId: active.id,
+          type: active.type,
+          result: 'HOLD',
+          reason: result && result.reason || 'PARTY_SUPPLY_PREEMPT_CANCEL_REJECTED',
+          serviceKind: plan && plan.kind || null,
+          serviceTarget: plan && plan.target && plan.target.name || null
+        };
+        this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', this.lastMerchantAction.reason, this.lastMerchantAction);
+        return false;
+      }
+      this.stats.partySupplyLowRiskPreemptions = (this.stats.partySupplyLowRiskPreemptions || 0) + 1;
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: active.id,
+        type: active.type,
+        result: 'ABORTED',
+        reason: 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT',
+        serviceKind: plan && plan.kind || null,
+        serviceTarget: plan && plan.target && plan.target.name || null
+      };
+      this._event('ALPHA27_PARTY_SUPPLY_PREEMPTED_LOW_RISK_TRANSACTION', 'info', 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT', this.lastMerchantAction);
+      return true;
+    } catch (error) {
+      this.stats.partySupplyPreemptionFailures = (this.stats.partySupplyPreemptionFailures || 0) + 1;
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: active.id,
+        type: active.type,
+        result: 'HOLD',
+        reason: 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED',
+        error: errorDetails(error),
+        serviceKind: plan && plan.kind || null,
+        serviceTarget: plan && plan.target && plan.target.name || null
+      };
+      this._event('ALPHA27_PARTY_SUPPLY_PREEMPT_FAILED_SAFE', 'warn', 'PARTY_SUPPLY_PREEMPT_CANCEL_FAILED', this.lastMerchantAction);
+      return false;
+    }
+  }
+
+  holdForCriticalPartySupply(plan) {
+    if (!plan) return false;
+    this.stats.autonomousMerchantHolds += 1;
+    this.stats.partySupplyServiceChainHolds = (this.stats.partySupplyServiceChainHolds || 0) + 1;
+    this.lastMerchantPlan = {
+      at: this.now(),
+      action: 'HOLD',
+      reason: 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE',
+      serviceKind: plan.kind,
+      target: clone(plan.target || null),
+      deliveries: clone(plan.deliveries || [])
+    };
+    return true;
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -21,22 +99,44 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const service = this.runtime.controlledMerchantService;
     if (service && service.activeOperation && service.activeOperation.state === 'RECOVERING' && typeof service.reconcile === 'function') { service.reconcile(); return true; }
 
-    // Finish/reconcile already-reserved economy work before creating more service
-    // traffic. This prevents stand/gear-delivery churn from starving atomic work.
+    // Finish/reconcile already-started economy work, but a fresh critical party
+    // potion chain may safely preempt a merely RESERVED low-risk SELL/BANK row.
+    // No EXECUTING/VERIFYING/RECOVERING transaction is ever interrupted here.
     if (this.reconcileRecovering()) return true;
+    let supplyPlan = this.criticalPartySupplyPlan();
     const active = this.activeTransaction();
     if (active) {
-      if (active.state === 'RESERVED') {
+      const lowRiskReserved = active.state === 'RESERVED' && ['SELL', 'BANK'].includes(String(active.type || ''));
+      if (supplyPlan && lowRiskReserved) {
+        if (this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
+          // Reservation released before any raw action; continue the same cycle so
+          // the potion chain can make progress immediately.
+        } else {
+          // Fail closed: never execute the competing low-risk transaction merely
+          // because cancellation was rejected or threw. Let the service chain
+          // retain priority and re-evaluate the reservation on the next cycle.
+          this.holdForCriticalPartySupply(supplyPlan);
+          return false;
+        }
+      } else if (active.state === 'RESERVED') {
         const result = await this.runtime.controlledMerchant.execute(active.id);
         this.lastMerchantAction = { at: this.now(), transactionId: active.id, type: active.type, result: clone(result) };
         return true;
+      } else {
+        return false;
       }
-      return false;
     }
 
-    // Critical party consumables keep priority, but ordinary gear delivery no
-    // longer preempts every ledger-authorized SELL/BANK/UPGRADE/COMPOUND turn.
+    // Critical party consumables keep priority. RESTOCK_REQUIRED is executed by
+    // Alpha27; SERVICE_TRAVEL/SERVICE_DELIVERY remain owned by the controlled
+    // merchant-service cycle. Keep the whole chain together so ordinary bank or
+    // sell backlog cannot pull the merchant away between purchase and delivery.
     if (await this.restockPartyPotions()) return true;
+    supplyPlan = this.criticalPartySupplyPlan();
+    if (supplyPlan) {
+      this.holdForCriticalPartySupply(supplyPlan);
+      return false;
+    }
 
     // A scoped mutation circuit must not starve independent economy work.
     // Skip the blocked family and continue with the next ledger-authorized
@@ -130,8 +230,13 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
       economyBeforeNonCriticalGearDelivery: true,
+      criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
+      criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       completedGearGoalClaims: this.completedGearGoalClaims instanceof Map ? this.completedGearGoalClaims.size : 0,
       gearGoalClaimSuppressions: this.gearGoalClaimSuppressions || 0,
+      partySupplyServiceChainHolds: this.stats.partySupplyServiceChainHolds || 0,
+      partySupplyLowRiskPreemptions: this.stats.partySupplyLowRiskPreemptions || 0,
+      partySupplyPreemptionFailures: this.stats.partySupplyPreemptionFailures || 0,
       atomicTransactions: true,
       realUpgrade: true,
       realCompound: true,
