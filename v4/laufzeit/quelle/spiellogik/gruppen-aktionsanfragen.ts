@@ -136,7 +136,7 @@ export function uebersetzeEigeneGruppenPlanSchritte(
       eigenerTeilnehmerKennung,
       planStatus: plan.status,
       eigeneSchrittKennungen,
-      nichtFreigegebeneSchrittKennungen: eigeneSchrittKennungen,
+      nichtFreigegebeneSchrittKennungen: friereStrings(eigeneSchrittKennungen),
       aktionsAnfragen: Object.freeze([])
     });
   }
