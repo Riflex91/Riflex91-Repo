@@ -37,7 +37,7 @@ for (const pflichtText of [
   "entscheidung.betriebsArt === 'blockiert'",
   "entscheidung.betriebsArt === 'normal'",
   "wichtigkeit: 'sicherheit'",
-  "Object.freeze(['gruppe', 'kampfziel'])"
+  "['gruppe', 'kampfziel'] as const"
 ]) {
   if (!logik.includes(pflichtText)) throw new Error(`Block-8-Gruppenaktionsplanung ist unvollstaendig: ${pflichtText}`);
 }
