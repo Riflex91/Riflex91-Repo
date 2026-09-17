@@ -16,7 +16,8 @@ function fixture(mode = 'active') {
     send_item(target, slot, quantity) { calls.push(['send_item', target, slot, quantity]); this.character.items[slot].q -= quantity; return { success: true }; },
     send_gold(target, amount) { calls.push(['send_gold', target, amount]); return { success: true }; },
     sell(slot, quantity) { calls.push(['sell', slot, quantity]); return { success: true }; },
-    bank_store(slot) { calls.push(['bank_store', slot]); return { success: true, place: 'bank', bank_action: 'store' }; },
+    bank_retrieve(pack, index, slot) { calls.push(['bank_retrieve', pack, index, slot]); return { success: true }; },
+    bank_store(slot, pack, index) { calls.push(['bank_store', slot, pack, index]); return { success: true, place: 'bank', bank_action: 'store' }; },
     loot() { calls.push(['loot']); return { success: true }; },
     start_character(name, slot) { calls.push(['start_character', name, slot]); return { success: true }; },
     stop_character(name) { calls.push(['stop_character', name]); return { success: true }; },
@@ -29,7 +30,7 @@ function fixture(mode = 'active') {
 }
 
 test('structured command catalog exposes all migrated step-3 command families', () => {
-  for (const action of ['open_stand', 'close_stand', 'send_item', 'send_gold', 'sell', 'bank_store']) {
+  for (const action of ['open_stand', 'close_stand', 'send_item', 'send_gold', 'sell', 'bank_retrieve', 'bank_store']) {
     assert.equal(ACTIVE_ALLOWED.has(action), true);
     assert.deepEqual(COMMAND_CATALOG[action], { family: 'merchant', mutation: true, outcome: 'domain' });
   }
@@ -67,7 +68,8 @@ test('active GameAdapter executes the remaining migrated production mutations', 
   const commands = [
     ['send_gold', ['MerchantA', 12345]],
     ['sell', [3, 2]],
-    ['bank_store', [4]],
+    ['bank_retrieve', ['items0', 2, 5]],
+    ['bank_store', [5, 'items0', 4]],
     ['loot', []],
     ['start_character', ['RangerA', 7]],
     ['stop_character', ['RangerA']],
@@ -93,7 +95,8 @@ test('shadow GameAdapter records intent without executing migrated writes', () =
     ['close_stand', []],
     ['send_gold', ['MerchantA', 100]],
     ['sell', [0, 1]],
-    ['bank_store', [0]],
+    ['bank_retrieve', ['items0', 0, 3]],
+    ['bank_store', [3, 'items0', 1]],
     ['loot', []],
     ['start_character', ['RangerA', 7]],
     ['stop_character', ['RangerA']],
@@ -115,6 +118,7 @@ test('shadow GameAdapter records intent without executing migrated writes', () =
 test('canCommand reports raw API availability without executing it', () => {
   const { adapter, calls } = fixture('active');
   assert.equal(adapter.canCommand('send_gold'), true);
+  assert.equal(adapter.canCommand('bank_retrieve'), true);
   assert.equal(adapter.canCommand('upgrade'), false);
   assert.deepEqual(calls, []);
 });
