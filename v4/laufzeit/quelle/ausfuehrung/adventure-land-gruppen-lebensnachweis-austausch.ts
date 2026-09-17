@@ -18,8 +18,8 @@ export interface AdventureLandGruppenLebensnachweisOptionen {
   readonly jetzt: () => number;
 }
 
-type EmpfangsHandler = (empfang: GruppenLebensnachweisEmpfang) => void;
-type OnCmHandler = (absender: unknown, daten: unknown) => unknown;
+type LebensnachweisEmpfaenger = (empfang: GruppenLebensnachweisEmpfang) => void;
+type CmEmpfaenger = (absender: unknown, daten: unknown) => unknown;
 
 function istObjekt(wert: unknown): wert is Readonly<Record<string, unknown>> {
   return typeof wert === 'object' && wert !== null && !Array.isArray(wert);
@@ -66,8 +66,8 @@ export class AdventureLandGruppenLebensnachweisAustausch {
   private readonly vertrauensNamen: ReadonlySet<string>;
   private readonly aktivFreigegeben: boolean;
   private readonly jetzt: () => number;
-  private vorherigerOnCm: OnCmHandler | null = null;
-  private eigenerOnCm: OnCmHandler | null = null;
+  private vorherigerCmEmpfaenger: CmEmpfaenger | null = null;
+  private eigenerCmEmpfaenger: CmEmpfaenger | null = null;
 
   public constructor(
     private readonly spielFenster: AdventureLandGruppenKommunikationsFenster,
@@ -83,7 +83,7 @@ export class AdventureLandGruppenLebensnachweisAustausch {
       schemaVersion: 1,
       lokalerName: lokalerName(this.spielFenster),
       aktivFreigegeben: this.aktivFreigegeben,
-      empfangInstalliert: this.eigenerOnCm !== null,
+      empfangInstalliert: this.eigenerCmEmpfaenger !== null,
       vertrauensNamen: Object.freeze([...this.vertrauensNamen].sort())
     });
   }
@@ -121,12 +121,12 @@ export class AdventureLandGruppenLebensnachweisAustausch {
     return Object.freeze({ schemaVersion: 1, zielName, gesendet: true, grund: 'Lebensnachweis wurde an einen vertrauten Charakter gesendet.' });
   }
 
-  public installiereEmpfang(handler: EmpfangsHandler): boolean {
-    if (this.eigenerOnCm !== null) return false;
-    const vorher = typeof this.spielFenster.on_cm === 'function' ? this.spielFenster.on_cm as OnCmHandler : null;
-    this.vorherigerOnCm = vorher;
+  public installiereEmpfang(empfaenger: LebensnachweisEmpfaenger): boolean {
+    if (this.eigenerCmEmpfaenger !== null) return false;
+    const vorher = typeof this.spielFenster.on_cm === 'function' ? this.spielFenster.on_cm as CmEmpfaenger : null;
+    this.vorherigerCmEmpfaenger = vorher;
 
-    const eigenerOnCm: OnCmHandler = (absenderRoh, daten) => {
+    const eigenerCmEmpfaenger: CmEmpfaenger = (absenderRoh, daten) => {
       const umschlag = liesUmschlag(daten);
       if (umschlag !== null) {
         const absender = saubererName(absenderRoh);
@@ -140,7 +140,7 @@ export class AdventureLandGruppenLebensnachweisAustausch {
 
         if (!vertrauenswuerdig) return false;
 
-        handler(Object.freeze({
+        empfaenger(Object.freeze({
           schemaVersion: 1,
           absenderName: absender,
           empfangenAm,
@@ -152,16 +152,16 @@ export class AdventureLandGruppenLebensnachweisAustausch {
       return vorher === null ? undefined : Reflect.apply(vorher, this.spielFenster, [absenderRoh, daten]);
     };
 
-    this.eigenerOnCm = eigenerOnCm;
-    this.spielFenster.on_cm = eigenerOnCm;
+    this.eigenerCmEmpfaenger = eigenerCmEmpfaenger;
+    this.spielFenster.on_cm = eigenerCmEmpfaenger;
     return true;
   }
 
   public entferneEmpfang(): boolean {
-    if (this.eigenerOnCm === null || this.spielFenster.on_cm !== this.eigenerOnCm) return false;
-    this.spielFenster.on_cm = this.vorherigerOnCm ?? undefined;
-    this.eigenerOnCm = null;
-    this.vorherigerOnCm = null;
+    if (this.eigenerCmEmpfaenger === null || this.spielFenster.on_cm !== this.eigenerCmEmpfaenger) return false;
+    this.spielFenster.on_cm = this.vorherigerCmEmpfaenger ?? undefined;
+    this.eigenerCmEmpfaenger = null;
+    this.vorherigerCmEmpfaenger = null;
     return true;
   }
 }
