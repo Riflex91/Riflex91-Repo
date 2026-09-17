@@ -39,6 +39,27 @@ function gameDataSources(runtime) {
   return sources;
 }
 
+function mergeGameData(runtime) {
+  const merged = { items: {}, positions: {}, imagesets: {} };
+  for (const source of gameDataSources(runtime)) {
+    for (const [name, def] of Object.entries(source && source.items || {})) {
+      if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+      const existing = merged.items[name];
+      merged.items[name] = existing ? { ...def, ...existing } : { ...def };
+    }
+    for (const [skin, position] of Object.entries(source && source.positions || {})) {
+      if (!Array.isArray(position) || Array.isArray(merged.positions[skin])) continue;
+      merged.positions[skin] = position.slice();
+    }
+    for (const [packName, pack] of Object.entries(source && source.imagesets || {})) {
+      if (!pack || typeof pack !== 'object' || Array.isArray(pack)) continue;
+      const existing = merged.imagesets[packName];
+      merged.imagesets[packName] = existing ? { ...pack, ...existing } : { ...pack };
+    }
+  }
+  return merged;
+}
+
 function positionFromImageSets(gameData, skin) {
   for (const [packName, pack] of Object.entries(gameData && gameData.imagesets || {})) {
     const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
@@ -85,24 +106,16 @@ function spriteMeta(gameData, skin) {
   return { skin, file, x, y, size, columns, rows };
 }
 
-function spriteMetaFromSources(sources, skin) {
-  for (const source of sources) {
-    const meta = spriteMeta(source, skin);
-    if (meta) return meta;
-  }
-  return null;
-}
-
-function itemDefinitionFromSources(sources, name) {
-  for (const source of sources) {
-    const def = source && source.items && source.items[name];
-    if (def && typeof def === 'object') return def;
-  }
-  return null;
+function liveCharacterOf(runtime) {
+  try {
+    return runtime && runtime.root && (runtime.root.character || runtime.root.parent && runtime.root.parent.character)
+      || runtime && runtime.adapter && (runtime.adapter.root && runtime.adapter.root.character || runtime.adapter.parent && runtime.adapter.parent.character)
+      || null;
+  } catch (_) { return null; }
 }
 
 function itemSpriteCatalog(runtime, maxItems = 160) {
-  const sources = gameDataSources(runtime);
+  const gameData = mergeGameData(runtime);
   let registry = null;
   try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
   const names = new Set();
@@ -115,21 +128,27 @@ function itemSpriteCatalog(runtime, maxItems = 160) {
     for (const item of Object.values(character && character.gear && typeof character.gear === 'object' ? character.gear : {})) add(item);
     if (names.size >= maxItems) break;
   }
+  const snapshotCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+  for (const item of Array.isArray(snapshotCharacter && snapshotCharacter.inventory) ? snapshotCharacter.inventory : []) add(item);
+  const liveCharacter = liveCharacterOf(runtime);
+  for (const item of Array.isArray(liveCharacter && liveCharacter.items) ? liveCharacter.items : []) add(item);
+  for (const item of Object.values(liveCharacter && liveCharacter.slots && typeof liveCharacter.slots === 'object' ? liveCharacter.slots : {})) add(item);
+
   const catalog = {};
   for (const name of names) {
-    const def = itemDefinitionFromSources(sources, name);
+    const def = gameData.items && gameData.items[name];
     const skin = def && (def.skin_c || def.skin);
-    const meta = spriteMetaFromSources(sources, skin);
+    const meta = spriteMeta(gameData, skin);
     if (meta) catalog[name] = meta;
   }
   return catalog;
 }
 
 function equipmentShadeCatalog(runtime) {
-  const sources = gameDataSources(runtime);
+  const gameData = mergeGameData(runtime);
   const catalog = {};
   for (const [slot, skin] of Object.entries(EQUIPMENT_SHADE_SKINS)) {
-    const meta = spriteMetaFromSources(sources, skin);
+    const meta = spriteMeta(gameData, skin);
     if (meta) catalog[slot] = meta;
   }
   return catalog;
