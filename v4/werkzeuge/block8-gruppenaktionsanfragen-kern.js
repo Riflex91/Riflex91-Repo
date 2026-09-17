@@ -2,8 +2,8 @@
   'use strict';
 
   const API_NAME = 'V4Block8GruppenAktionsAnfragenKern';
-  const VERSION = '1.0.0';
-  const QUELL_BLOB_SHA = 'e01d9009e4d5421533eaaf9031117d03f5c3e1f1';
+  const VERSION = '1.0.1';
+  const QUELL_BLOB_SHA = 'bd70cb0240f818c8e2d4d63decdd9942d42ef951';
   const STANDARD_GUELTIGKEIT_MILLISEKUNDEN = 1_500;
   const GRUPPEN_PLAN_AKTIONS_ARTEN = Object.freeze([
     'mitglied_heilen',
@@ -28,23 +28,17 @@
     gemeinsames_ziel_bearbeiten: GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten
   });
 
-  function friereStrings(werte) {
-    return Object.freeze([...werte]);
-  }
+  function friereStrings(werte) { return Object.freeze([...werte]); }
 
   function erstelleGruppenAktionsAnfrageKonfiguration(aenderungen = {}) {
     const aktiviert = aenderungen.aktiviert ?? false;
     if (typeof aktiviert !== 'boolean') throw new Error('aktiviert muss ein boolescher Wert sein.');
-
     const roheArten = aenderungen.freigegebeneArten ?? [];
     for (const art of roheArten) {
-      if (!GRUPPEN_PLAN_AKTIONS_ARTEN_MENGE.has(art)) {
-        throw new Error(`Unbekannte freigegebene GruppenPlanAktionsArt: ${String(art)}.`);
-      }
+      if (!GRUPPEN_PLAN_AKTIONS_ARTEN_MENGE.has(art)) throw new Error(`Unbekannte freigegebene GruppenPlanAktionsArt: ${String(art)}.`);
     }
     const artMenge = new Set(roheArten);
     const freigegebeneArten = Object.freeze(GRUPPEN_PLAN_AKTIONS_ARTEN.filter((art) => artMenge.has(art)));
-
     const gueltigkeitMillisekunden = aenderungen.gueltigkeitMillisekunden ?? STANDARD_GUELTIGKEIT_MILLISEKUNDEN;
     if (!Number.isFinite(gueltigkeitMillisekunden) || gueltigkeitMillisekunden <= 0) {
       throw new Error('gueltigkeitMillisekunden muss eine positive endliche Zahl sein.');
@@ -79,9 +73,7 @@
 
   function uebersetzeEigeneGruppenPlanSchritte(plan, eigenerTeilnehmerKennung, konfiguration = erstelleGruppenAktionsAnfrageKonfiguration()) {
     if (eigenerTeilnehmerKennung.trim().length === 0) throw new Error('eigenerTeilnehmerKennung darf nicht leer sein.');
-    if (!Number.isFinite(plan.zeitpunkt) || plan.zeitpunkt < 0) {
-      throw new Error('Der Gruppenplan-Zeitpunkt muss eine endliche, nichtnegative Zahl sein.');
-    }
+    if (!Number.isFinite(plan.zeitpunkt) || plan.zeitpunkt < 0) throw new Error('Der Gruppenplan-Zeitpunkt muss eine endliche, nichtnegative Zahl sein.');
     const normalisierteKonfiguration = erstelleGruppenAktionsAnfrageKonfiguration(konfiguration);
     const eigeneSchritte = plan.schritte.filter((schritt) => schritt.ausfuehrenderTeilnehmerKennung === eigenerTeilnehmerKennung);
     const eigeneSchrittKennungen = friereStrings(eigeneSchritte.map((schritt) => schritt.kennung));
@@ -101,7 +93,7 @@
       return Object.freeze({ schemaVersion: 1, zeitpunkt: plan.zeitpunkt, status: 'gesperrt',
         grund: 'Die Uebersetzung von Gruppenplan-Schritten in AktionsAnfragen ist standardmaessig gesperrt.',
         eigenerTeilnehmerKennung, planStatus: plan.status, eigeneSchrittKennungen,
-        nichtFreigegebeneSchrittKennungen: eigeneSchrittKennungen, aktionsAnfragen: Object.freeze([]) });
+        nichtFreigegebeneSchrittKennungen: friereStrings(eigeneSchrittKennungen), aktionsAnfragen: Object.freeze([]) });
     }
 
     const freigegeben = new Set(normalisierteKonfiguration.freigegebeneArten);
