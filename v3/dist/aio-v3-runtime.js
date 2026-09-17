@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.59 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.60 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -953,7 +953,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.59';
+const RELEASE_VERSION = '3.0.0-alpha.20.60';
 
 module.exports = { RELEASE_VERSION };
 
@@ -45566,7 +45566,8 @@ function classifyHttpFailure(status) {
 class S3CompatibleObjectStore {
   constructor(config, options = {}) {
     this.config = validateConfig(config);
-    this.fetchImpl = options.fetchImpl || globalThis.fetch;
+    const defaultFetch = globalThis.fetch;
+    this.fetchImpl = options.fetchImpl || (typeof defaultFetch === 'function' ? defaultFetch.bind(globalThis) : defaultFetch);
     this.cryptoImpl = options.cryptoImpl || globalThis.crypto;
     this.now = options.now || (() => new Date());
     this.sleepImpl = options.sleepImpl || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -45794,7 +45795,6 @@ module.exports = {
   createStoreFromGlobal,
   installObjectStorageApi
 };
-
 }
 };
 var cache={};

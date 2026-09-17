@@ -1,7 +1,7 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.59 | generated | bootstrap loader */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.60 | generated | bootstrap loader */
 (function(root){
 'use strict';
-const RELEASE_VERSION = "3.0.0-alpha.20.59";
+const RELEASE_VERSION = "3.0.0-alpha.20.60";
 var MODE='cloudflare-bootstrap-loader-v1';
 var DEFAULT_BASE="https://aio-bot-dashboard.hansijuergenlul.workers.dev/v3";
 var DEFAULT_MAX_RUNTIME_BYTES=32*1024*1024;
