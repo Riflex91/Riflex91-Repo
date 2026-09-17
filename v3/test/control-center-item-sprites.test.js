@@ -90,6 +90,40 @@ test('sprite catalog falls back from adapter G to the complete parent.G visual m
   assert.equal(catalog.hpot0.file, 'https://adventure.land/images/tiles/items.png');
 });
 
+test('sprite catalog merges fragmented item, position and imageset metadata across live G contexts', () => {
+  const runtime = {
+    adapter: {
+      getGameData: () => ({ items: { hpot0: { skin: 'hpot_skin' } } }),
+      root: {
+        G: {
+          positions: {
+            hpot_skin: ['pack_20', 5, 6],
+            shade_helmet: ['pack_20', 2, 1]
+          }
+        },
+        character: { items: [{ name: 'hpot0', q: 9999 }], slots: {} }
+      },
+      parent: {
+        G: {
+          imagesets: {
+            pack_20: { file: 'https://assets.adventure.land/images/tiles/items.png', size: 20, columns: 16, rows: 8 }
+          }
+        }
+      }
+    },
+    characterRegistry: { status: () => ({ characters: [] }) }
+  };
+
+  const catalog = itemSpriteCatalog(runtime);
+  const shades = equipmentShadeCatalog(runtime);
+  assert.equal(catalog.hpot0.skin, 'hpot_skin');
+  assert.equal(catalog.hpot0.x, 5);
+  assert.equal(catalog.hpot0.y, 6);
+  assert.equal(catalog.hpot0.file, 'https://assets.adventure.land/images/tiles/items.png');
+  assert.equal(shades.helmet.x, 2);
+  assert.equal(shades.helmet.file, 'https://assets.adventure.land/images/tiles/items.png');
+});
+
 test('sprite catalog reconstructs positions from Adventure Land imageset matrices', () => {
   const runtime = {
     adapter: {

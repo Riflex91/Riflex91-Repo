@@ -11,7 +11,7 @@ test('character inventory presentation removes internal scrolling and keeps seve
   assert.match(CHARACTER_INVENTORY_STYLE, /aspect-ratio:1\/1/);
 });
 
-test('dashboard root allows Adventure Land sprite sheets and injects inventory presentation fix', async () => {
+test('dashboard root allows Adventure Land sprite sheets including subdomains and injects inventory presentation fix', async () => {
   const request = new Request('https://dashboard.example/');
   const response = new Response('<!doctype html><html><head></head><body></body></html>', {
     headers: {
@@ -24,7 +24,7 @@ test('dashboard root allows Adventure Land sprite sheets and injects inventory p
   const html = await patched.text();
   const csp = patched.headers.get('content-security-policy') || '';
 
-  assert.match(csp, /img-src 'self' data: https:\/\/adventure\.land https:\/\/www\.adventure\.land;/);
+  assert.match(csp, /img-src 'self' data: https:\/\/adventure\.land https:\/\/www\.adventure\.land https:\/\/\*\.adventure\.land;/);
   assert.match(html, /character-inventory-presentation-fix/);
   assert.match(html, /al-inventory-grid/);
 });
