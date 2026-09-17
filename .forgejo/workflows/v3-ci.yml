@@ -1,0 +1,72 @@
+name: v3-ci
+
+on:
+  push:
+    branches:
+      - "v3/**"
+      - "fix/**"
+      - "feat/**"
+      - "infra/**"
+    paths:
+      - "v3/**"
+      - "cloudflare-dashboard/**"
+      - ".forgejo/workflows/v3-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "v3/**"
+      - "cloudflare-dashboard/**"
+      - ".forgejo/workflows/v3-ci.yml"
+
+jobs:
+  v3-check:
+    runs-on: docker
+    container:
+      image: node:22-bookworm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Environment
+        run: |
+          node --version
+          npm --version
+          git --version
+
+      - name: Install v3 guard dependencies
+        working-directory: v3
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+
+      - name: Build bootstrap and remote runtime bundles
+        working-directory: v3
+        run: npm run build
+
+      - name: Release + Logic Guardian preflight
+        working-directory: v3
+        run: npm run preflight
+
+      - name: Run v3 unit tests
+        working-directory: v3
+        run: npm test
+
+      - name: Verify bootstrap and runtime bundle syntax and smoke tests
+        working-directory: v3
+        run: |
+          node --check dist/aio-v3.js
+          node --check dist/aio-v3-runtime.js
+          node scripts/smoke-runtime-bundle.js
+          node scripts/smoke-bootstrap.js
+
+      - name: Run Cloudflare control-center checks
+        working-directory: v3
+        run: npm run check:cloud
+
+      - name: Verify tracked generated bundles are current
+        run: |
+          git ls-files --error-unmatch v3/dist/aio-v3.js >/dev/null 2>&1
+          git ls-files --error-unmatch v3/dist/aio-v3-runtime.js >/dev/null 2>&1
+          git diff --exit-code -- v3/dist/aio-v3.js v3/dist/aio-v3-runtime.js
+
+      - name: Diff check
+        run: git diff --check
