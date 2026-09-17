@@ -6,7 +6,8 @@ const {
   adventureLandAssetUrl,
   itemSpriteCatalog,
   equipmentShadeCatalog,
-  installAdventureLandItemSprites
+  installAdventureLandItemSprites,
+  installAlpha25ControlCenterBrain
 } = require('../src/reliability/alpha25-control-center-brain');
 
 test('Adventure Land asset URLs stay absolute and normalize relative sprite sheets', () => {
@@ -107,4 +108,38 @@ test('runtime snapshot wrapper adds sprites, equipment shades and exact inventor
   assert.deepEqual(snapshot.equipmentShades, {});
   assert.equal(snapshot.character.isize, 49);
   assert.equal(installAdventureLandItemSprites(runtime, cloud), false);
+});
+
+test('existing Alpha25 runtime repairs the sprite hook during same-version hot reload', () => {
+  const existing = { mode: 'already-running' };
+  const runtime = {
+    alpha25ControlCenterBrain: existing,
+    lastSnapshot: { character: { name: 'R1', isize: 42 } },
+    adapter: {
+      getGameData: () => ({
+        items: { hpot0: { skin: 'hpot_skin' } },
+        positions: {
+          hpot_skin: ['pack_20', 1, 2],
+          shade_helmet: ['pack_20', 2, 1]
+        },
+        imagesets: { pack_20: { file: '/images/tiles/items.png', size: 20, columns: 16 } }
+      })
+    },
+    characterRegistry: {
+      status: () => ({ characters: [{ name: 'R1', inventory: [{ index: 0, name: 'hpot0', q: 5 }], gear: {} }] })
+    }
+  };
+  const cloud = {
+    _runtimeSnapshot() {
+      return { character: { name: 'R1' } };
+    }
+  };
+  runtime.cloudControlPlane = cloud;
+
+  assert.equal(installAlpha25ControlCenterBrain(runtime), existing);
+  assert.equal(cloud.__adventureLandItemSpritesInstalled, true);
+  const snapshot = cloud._runtimeSnapshot();
+  assert.equal(snapshot.itemSprites.hpot0.file, 'https://adventure.land/images/tiles/items.png');
+  assert.equal(snapshot.equipmentShades.helmet.skin, 'shade_helmet');
+  assert.equal(snapshot.character.isize, 42);
 });
