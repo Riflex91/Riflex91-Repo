@@ -9,22 +9,22 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
 | (root) | 6 | 1164 |
-| autonomy | 21 | 3981 |
+| autonomy | 21 | 3983 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
 | core | 5 | 645 |
-| economy | 12 | 3861 |
-| farmer | 14 | 2583 |
-| game | 3 | 703 |
+| economy | 12 | 3891 |
+| farmer | 14 | 2595 |
+| game | 3 | 723 |
 | merchant | 5 | 1522 |
 | ops | 26 | 7224 |
-| party | 19 | 3827 |
+| party | 19 | 3863 |
 | planner | 1 | 65 |
-| reliability | 70 | 16711 |
+| reliability | 70 | 16755 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
-| travel | 3 | 627 |
+| travel | 3 | 644 |
 | world | 6 | 1273 |
 
 ## Root-Entrypoints unter src/
@@ -68,7 +68,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | autonomy | stability | 2 |
 | autonomy | travel | 3 |
 | autonomy | world | 1 |
+| economy | game | 2 |
 | farmer | core | 2 |
+| farmer | game | 1 |
 | farmer | world | 1 |
 | merchant | economy | 1 |
 | merchant | game | 1 |
@@ -77,6 +79,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | core | 1 |
 | ops | party | 2 |
 | ops | world | 1 |
+| party | game | 6 |
 | reliability | (root) | 1 |
 | reliability | autonomy | 7 |
 | reliability | brain | 1 |
@@ -84,6 +87,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | reliability | core | 4 |
 | reliability | economy | 3 |
 | reliability | farmer | 4 |
+| reliability | game | 2 |
 | reliability | merchant | 4 |
 | reliability | ops | 1 |
 | reliability | party | 2 |
@@ -92,6 +96,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | stability | core | 2 |
 | stability | game | 2 |
 | stability | world | 2 |
+| travel | game | 1 |
 
 ## Interpretationsgrenze
 
