@@ -1,6 +1,7 @@
 'use strict';
 
 const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+const { GameAdapter } = require('../game/adapter');
 
 const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
 const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
@@ -229,7 +230,16 @@ class Alpha28CrossMapFarmerProgression {
   async _execute(objective, snapshot) {
     const controller = this.runtime.safeTravel;
     if (!controller || typeof controller.plan !== 'function') return false;
-    const adapter = this.runtime.adapter;
+    const runtimeAdapter = this.runtime.adapter;
+    const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function'
+      ? runtimeAdapter
+      : new GameAdapter({
+        root: this.root,
+        parent: this.parent,
+        log: this.log,
+        now: this.now,
+        mode: String(runtimeAdapter && runtimeAdapter.mode || '') === 'active' ? 'active' : 'shadow'
+      });
     const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
     const destinationMapAttestation = regroup ? {
       map: objective.map,
