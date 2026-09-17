@@ -4,7 +4,7 @@
 
 Block 7 stellt sicher, dass Kampfsicherheit Vorrang vor Farmleistung hat. Sicherheitslogik darf Adventure Land nicht direkt bedienen. Sie bewertet den unveraenderlichen `Spielzustand`, erzeugt bei Bedarf eine `AktionsAnfrage` und ueberlaesst Ressourcenvergabe und Unterbrechung ausschliesslich der zentralen `AktionsSteuerung`.
 
-Der aktuelle Block-7-Stand umfasst Gefahrenbewertung, Rueckzug, Abstandhalten, Reichweitenpruefung, blockierte Sicherheitsbewegung, beobachtbare Angriffs-Abklingzeit und einen festen Orchestrator, der Kampfsicherheit immer vor dem normalen Farmplan auswertet.
+Der aktuelle Block-7-Stand umfasst Gefahrenbewertung, Rueckzug, Abstandhalten, Reichweitenpruefung, blockierte Sicherheitsbewegung, beobachtbare Angriffs-Abklingzeit, einen festen Safety-vor-Farm-Orchestrator und eine kontrollierte aktive Ausfuehrungsgrenze fuer Sicherheitsbewegungen.
 
 ## Gefahrenbewertung
 
@@ -66,6 +66,31 @@ Unbekannte oder veraltete Bereitschaft fuehrt zu Blockierung statt zu einem gera
 
 Wenn Kampfsicherheit Rueckzug oder Abstandhalten verlangt, wird der Farmplan in diesem Schritt gar nicht erst erzeugt. Wenn Kampfsicherheit wegen unbekannter Pflichtdaten blockiert, bleibt auch Farmen blockiert.
 
+## Aktive Kampfsicherheits-Ausfuehrungsgrenze
+
+`AdventureLandKampfSicherheitsAusfuehrung` ist die einzige aktive Block-7-Grenze fuer Rueckzug und Abstandhalten. Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.
+
+Nur wenn alle folgenden Bedingungen gleichzeitig erfuellt sind, darf `move(x, y)` aufgerufen werden:
+
+- die Ausfuehrungsinstanz wurde mit `{ aktivFreigegeben: true }` erzeugt,
+- die `AktionsSteuerung` hat die Anfrage tatsaechlich gestartet,
+- die gestartete Anfrage ist weiterhin als `laeuft` bestaetigt,
+- der Aktionsname ist exakt `KAMPF_RUECKZUG` oder `KAMPF_ABSTAND_HERSTELLEN`,
+- beide Zielkoordinaten sind endliche Zahlen.
+
+Fremde Aktionsnamen oder ungueltige Koordinaten werden abgebrochen und die zentral gehaltenen Ressourcen wieder freigegeben. Die Sicherheits-Ausfuehrungsgrenze besitzt keinen Pfad zu `attack`, `use_skill`, Heilung oder Loot.
+
+## Reichweiten-Recheck unmittelbar vor Angriff
+
+Die Planung kann korrekt gewesen sein und das Ziel sich danach trotzdem bewegen. Deshalb wird die Reichweite unmittelbar vor `attack(...)` erneut geprueft.
+
+`AdventureLandFarmAusfuehrung` liest direkt vor der aktiven Attacke die aktuellen Charakter- und Zielkoordinaten sowie die aktuelle Charakterreichweite. Ist das Ziel inzwischen ausserhalb der Reichweite, wird die laufende Farmaktion abgebrochen und `attack(...)` nicht aufgerufen. Sind Position oder Reichweite unbekannt, wird ebenfalls kein Angriff geraten.
+
+Damit gibt es zwei getrennte Gates:
+
+1. Planung: Ziel und Angriff muessen im aufgezeichneten Spielzustand sinnvoll sein.
+2. Ausfuehrung: Die reale Spielsituation muss unmittelbar vor dem API-Aufruf weiterhin passen.
+
 ## Zentrale Unterbrechung
 
 Block 7 besitzt keinen eigenen Unterbrechungsmechanismus. Die bestehende `AktionsSteuerung` entscheidet anhand der bereits vorhandenen Wichtigkeitsstufen `notfall`, `sicherheit`, `normal` und `hintergrund`.
@@ -85,12 +110,13 @@ Ein automatisierter Test startet deshalb zuerst eine normale Farmbewegung mit de
 - Eine nur geplante Schattenbewegung gilt nicht automatisch als ausgefuehrte Sicherheitsbewegung.
 - Kampfsicherheit wird vor jedem normalen Farmplan ausgewertet.
 - Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.
+- Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.
+- Vor einer aktiven Attacke wird die Reichweite unmittelbar vor `attack(...)` erneut geprueft.
 
 ## Aktueller Umfang und naechste Block-7-Schritte
 
-Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung und die feste Sicherheits-vor-Farm-Reihenfolge sind umgesetzt. Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
+Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung und der Reichweiten-Recheck sind umgesetzt. Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
 
-1. begrenzte Adventure-Land-Ausfuehrung fuer Rueckzug und Abstandhalten ueber die zentrale Ausfuehrungsgrenze,
-2. erneute Reichweitenpruefung unmittelbar vor einem aktiven Angriff,
-3. Schattenlauf fuer den kombinierten Block-6/7-Plan,
-4. kontrollierter Aktivtest mit absichtlich erzeugten Gefahr- und Fehlerfaellen.
+1. ein read-only Schattenlauf fuer den kombinierten Block-6/7-Plan mit Sampling-Qualitaet,
+2. ein kontrollierter Aktivtest, der Rueckzug/Abstandhalten und den Reichweiten-Abbruch gezielt ausloest,
+3. die abschliessende Auswertung gegen die Block-7-Abnahmekriterien.
