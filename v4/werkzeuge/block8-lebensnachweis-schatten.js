@@ -2,11 +2,13 @@
   'use strict';
 
   const API_NAME = 'V4Block8Lebensnachweis';
-  const VERSION = '1.0.1';
+  const VERSION = '1.1.0';
   const PROTOKOLL = 'v4-gruppen-lebensnachweis-v1';
+  const SICHERHEITS_QUELL_NAME = 'V4Block7KampfsicherheitsQuelle';
   const STANDARD_INTERVALL_MS = 1000;
   const MIN_INTERVALL_MS = 500;
   const MAX_INTERVALL_MS = 10000;
+  const STANDARD_SICHERHEITS_MAX_ALTER_MS = 1500;
   const GEFAHREN_STUFEN = new Set(['unbekannt', 'sicher', 'angespannt', 'gefaehrlich', 'kritisch']);
   const FAEHIGKEITEN = ['heilen', 'schaden', 'aggro', 'schutz', 'unterstuetzung'];
 
@@ -18,6 +20,7 @@
   let gesendet = 0;
   let empfangen = 0;
   let verworfen = 0;
+  let letzteSicherheit = null;
   const letzteMeldungen = new Map();
 
   function holeElternFenster() {
@@ -63,6 +66,23 @@
     return null;
   }
 
+  function holeSicherheitsQuelle() {
+    try {
+      const lokal = globalThis[SICHERHEITS_QUELL_NAME];
+      if (lokal && typeof lokal.bewerte === 'function') return { api: lokal, quelle: 'lokal' };
+    } catch {
+      // Fallback auf Parent-Kontext.
+    }
+    const eltern = holeElternFenster();
+    try {
+      const imParent = eltern?.[SICHERHEITS_QUELL_NAME];
+      if (imParent && typeof imParent.bewerte === 'function') return { api: imParent, quelle: 'parent' };
+    } catch {
+      // Nicht vorhanden.
+    }
+    return null;
+  }
+
   function ausgeben(wert, titel) {
     try {
       const konsole = globalThis.V4Testkonsole ?? holeElternFenster()?.V4Testkonsole;
@@ -102,19 +122,26 @@
   }
 
   function normalisiereKonfiguration(roh = {}) {
+    if (Object.prototype.hasOwnProperty.call(roh, 'gefahrenStufe')) {
+      throw new Error('gefahrenStufe darf nicht mehr manuell konfiguriert werden; Block 8 verwendet V4Block7KampfsicherheitsQuelle.');
+    }
     const vertrauensNamen = [...new Set((Array.isArray(roh.vertrauensNamen) ? roh.vertrauensNamen : []).map(name).filter(Boolean))].sort();
     if (vertrauensNamen.length < 2) throw new Error('Mindestens zwei vertrauensNamen sind fuer den Mehrcharakter-Nachweis erforderlich.');
-    const gefahrenStufe = String(roh.gefahrenStufe ?? 'unbekannt');
-    if (!GEFAHREN_STUFEN.has(gefahrenStufe)) throw new Error('gefahrenStufe ist ungueltig.');
     const intervallMillisekunden = Number(roh.intervallMillisekunden ?? STANDARD_INTERVALL_MS);
     if (!Number.isFinite(intervallMillisekunden) || intervallMillisekunden < MIN_INTERVALL_MS || intervallMillisekunden > MAX_INTERVALL_MS) {
       throw new Error(`intervallMillisekunden muss zwischen ${MIN_INTERVALL_MS} und ${MAX_INTERVALL_MS} liegen.`);
     }
+    const sicherheitsMaximalAlterMillisekunden = Number(
+      roh.sicherheitsMaximalAlterMillisekunden ?? STANDARD_SICHERHEITS_MAX_ALTER_MS
+    );
+    if (!Number.isFinite(sicherheitsMaximalAlterMillisekunden) || sicherheitsMaximalAlterMillisekunden <= 0 || sicherheitsMaximalAlterMillisekunden > MAX_INTERVALL_MS) {
+      throw new Error(`sicherheitsMaximalAlterMillisekunden muss groesser als 0 und hoechstens ${MAX_INTERVALL_MS} sein.`);
+    }
     return Object.freeze({
       vertrauensNamen: Object.freeze(vertrauensNamen),
       faehigkeiten: normalisiereFaehigkeiten(roh.faehigkeiten),
-      gefahrenStufe,
-      intervallMillisekunden
+      intervallMillisekunden,
+      sicherheitsMaximalAlterMillisekunden
     });
   }
 
@@ -123,8 +150,45 @@
     return c && typeof c === 'object' ? c : null;
   }
 
+  function leseSicherheitsBewertung() {
+    if (!konfiguration) throw new Error('Werkzeug ist nicht konfiguriert.');
+    const quelle = holeSicherheitsQuelle();
+    if (!quelle) throw new Error(`${SICHERHEITS_QUELL_NAME} muss vor dem Lebensnachweis geladen werden.`);
+
+    const ergebnis = quelle.api.bewerte();
+    const jetzt = Date.now();
+    const ausgewertetAm = endlicheZahl(ergebnis?.ausgewertetAm);
+    const gefahrenStufe = ergebnis?.gefahrenBewertung?.stufe;
+    if (ergebnis?.schemaVersion !== 1 || ergebnis?.werkzeug !== SICHERHEITS_QUELL_NAME) {
+      throw new Error('Block-7-Sicherheitsquelle lieferte ein unbekanntes Ergebnisformat.');
+    }
+    if (ausgewertetAm === null || ausgewertetAm > jetzt) {
+      throw new Error('Block-7-Sicherheitsbewertung hat einen ungueltigen Zeitpunkt.');
+    }
+    const alterMillisekunden = jetzt - ausgewertetAm;
+    if (alterMillisekunden > konfiguration.sicherheitsMaximalAlterMillisekunden) {
+      throw new Error(`Block-7-Sicherheitsbewertung ist mit ${alterMillisekunden} ms zu alt.`);
+    }
+    if (!GEFAHREN_STUFEN.has(gefahrenStufe)) {
+      throw new Error('Block-7-Sicherheitsquelle lieferte keine gueltige Gefahrenstufe.');
+    }
+
+    letzteSicherheit = Object.freeze({
+      quelle: SICHERHEITS_QUELL_NAME,
+      kontext: quelle.quelle,
+      version: String(ergebnis.version ?? ''),
+      quellBlobSha: String(ergebnis.quellBlobSha ?? ''),
+      ausgewertetAm,
+      alterMillisekunden,
+      gefahrenStufe,
+      gruende: Object.freeze(Array.isArray(ergebnis.gefahrenBewertung.gruende) ? [...ergebnis.gefahrenBewertung.gruende] : [])
+    });
+    return letzteSicherheit;
+  }
+
   function baueMeldung() {
     if (!konfiguration) throw new Error('Werkzeug ist nicht konfiguriert.');
+    const sicherheit = leseSicherheitsBewertung();
     const c = lokalerCharakter();
     const serverRegion = name(holeSpielWert('server_region'));
     const serverKennung = name(holeSpielWert('server_identifier'));
@@ -159,7 +223,7 @@
       lebensAnteil: anteil(c.hp, c.max_hp),
       manaAnteil: anteil(c.mp, c.max_mp),
       zielKennung: c.target === null || c.target === undefined ? null : String(c.target),
-      gefahrenStufe: konfiguration.gefahrenStufe,
+      gefahrenStufe: sicherheit.gefahrenStufe,
       faehigkeiten: konfiguration.faehigkeiten,
       gesendetAm: Date.now(),
       laufendeNummer
@@ -218,12 +282,18 @@
       await Promise.resolve(Reflect.apply(sendePfad.funktion, sendePfad.kontext, [ziel, umschlag]));
       gesendet += 1;
     }
-    return Object.freeze({ meldung, ziele: Object.freeze([...ziele]), sendeKontext: sendePfad.quelle });
+    return Object.freeze({
+      meldung,
+      ziele: Object.freeze([...ziele]),
+      sendeKontext: sendePfad.quelle,
+      sicherheit: letzteSicherheit
+    });
   }
 
   function status() {
     const jetzt = Date.now();
     const sendePfad = holeSpielFunktion('send_cm');
+    const sicherheitsQuelle = holeSicherheitsQuelle();
     const teilnehmer = [...letzteMeldungen.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([charakterName, eintrag]) => Object.freeze({
@@ -240,7 +310,12 @@
       konfiguriert: konfiguration !== null,
       lokalerCharakter: name(lokalerCharakter()?.name),
       vertrauensNamen: konfiguration?.vertrauensNamen ?? Object.freeze([]),
-      gefahrenStufe: konfiguration?.gefahrenStufe ?? null,
+      gefahrenStufe: letzteSicherheit?.gefahrenStufe ?? null,
+      gefahrenQuelle: SICHERHEITS_QUELL_NAME,
+      sicherheitsQuelleVerfuegbar: sicherheitsQuelle !== null,
+      sicherheitsQuelleKontext: sicherheitsQuelle?.quelle ?? null,
+      sicherheitsMaximalAlterMillisekunden: konfiguration?.sicherheitsMaximalAlterMillisekunden ?? null,
+      letzteSicherheit,
       intervallMillisekunden: konfiguration?.intervallMillisekunden ?? null,
       gesendet,
       empfangen,
@@ -261,6 +336,7 @@
     gesendet = 0;
     empfangen = 0;
     verworfen = 0;
+    letzteSicherheit = null;
     letzteMeldungen.clear();
     const ergebnis = status();
     ausgeben(ergebnis, 'Block 8 Lebensnachweis · konfiguriert');
@@ -308,7 +384,8 @@
 
   ausgeben({
     version: VERSION,
-    hinweis: 'Read-only gegen Spielzustand: on_cm bleibt im lokalen Codekontext; send_cm darf lokal oder im Parent liegen; keine Kampf-, Bewegungs-, Skill-, Heal-, Loot-, Handels- oder Party-Aktion.',
-    beispiel: 'V4Block8Lebensnachweis.konfiguriere({vertrauensNamen:["CharA","CharB"],faehigkeiten:{heilen:0,schaden:1,aggro:0,schutz:0,unterstuetzung:0},gefahrenStufe:"unbekannt"})'
+    gefahrenQuelle: SICHERHEITS_QUELL_NAME,
+    hinweis: 'Read-only gegen Spielzustand: Gefahrenstufe kommt ausschliesslich aus der frischen Block-7-Kampfsicherheitsquelle; on_cm bleibt lokal; send_cm darf lokal oder im Parent liegen; keine Spielaktion.',
+    beispiel: 'V4Block8Lebensnachweis.konfiguriere({vertrauensNamen:["CharA","CharB"],faehigkeiten:{heilen:0,schaden:1,aggro:0,schutz:0,unterstuetzung:0}})'
   }, 'Block-8-Lebensnachweis-Schattenwerkzeug bereit');
 })();
