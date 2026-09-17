@@ -4,9 +4,9 @@ Status: **Live-Abnahme bestanden am 2026-09-17**.
 
 ## Ziel
 
-Dieser Nachweis verbindet die bereits live bestaetigte Ranger-zu-Ranger-Lebensnachweis-Kommunikation mit der produktiven V4-Gruppenkoordination.
+Dieser Nachweis verbindet die echte Ranger-zu-Ranger-Lebensnachweis-Kommunikation mit der produktiven V4-Gruppenkoordination.
 
-Beobachtet werden die Zustaende:
+Beobachtet werden:
 
 1. beide Teilnehmer aktiv,
 2. ein Teilnehmer wird nach mehr als 5 Sekunden ohne frischen Lebensnachweis `veraltet`,
@@ -14,11 +14,11 @@ Beobachtet werden die Zustaende:
 4. nach Reconnect wird der Teilnehmer wieder `aktiv`,
 5. seine Aufgabe wird wieder zugeordnet.
 
-Es werden weiterhin keine Kampf-, Bewegungs-, Skill-, Heil-, Loot-, Handels- oder Party-Aktionen ausgefuehrt. Eine Auswertung darf lediglich ueber den vorhandenen Lebensnachweis einmal `send_cm` ausloesen.
+Es werden keine Kampf-, Bewegungs-, Skill-, Heil-, Loot-, Handels- oder Party-Aktionen ausgefuehrt. Eine Auswertung darf lediglich ueber den vorhandenen Lebensnachweis einmal `send_cm` ausloesen.
 
 ## Live-Abnahme vom 2026-09-17
 
-Der komplette Zyklus wurde mit `My_Ranger1` und `My_Ranger2` auf dem echten Adventure-Land-Server erfolgreich nachgewiesen.
+Der komplette Zyklus wurde mit `My_Ranger1` und `My_Ranger2` erfolgreich nachgewiesen.
 
 ### Phase A – beide aktiv
 
@@ -28,7 +28,6 @@ Beobachtet:
 - `gemeinsameGefahrenStufe: "sicher"`
 - `My_Ranger1`: `aktiv`, Alter 0 ms
 - `My_Ranger2`: `aktiv`, Alter 730 ms
-- aktive Teilnehmer: `My_Ranger1`, `My_Ranger2`
 - `aufgaben.schaden: "My_Ranger1"`
 - `aufgaben.unterstuetzung: "My_Ranger2"`
 - `verworfen: 0`
@@ -38,42 +37,35 @@ Ergebnis: **bestanden**.
 
 ### Phase B – Ranger2 veraltet
 
-Nach Stoppen des Lebensnachweises auf `My_Ranger2` wurde auf Ranger1 beobachtet:
+Nach Stoppen des Lebensnachweises auf `My_Ranger2`:
 
-- `My_Ranger1`: weiterhin `aktiv`
-- `My_Ranger2`: `veraltet`
-- Alter von Ranger2: 18.061 ms
+- `My_Ranger2`: `veraltet`, Alter 18.061 ms
 - aktive Teilnehmer: nur `My_Ranger1`
 - `aufgaben.schaden: "My_Ranger1"`
 - `aufgaben.unterstuetzung: null`
 - `verworfen: 0`
 - `echteSpielaktionenAusgefuehrt: false`
 
-Ergebnis: **bestanden**. Der veraltete Teilnehmer wurde nicht nur erkannt, sondern verlor seine Faehigkeitsaufgabe automatisch.
+Ergebnis: **bestanden**.
 
 ### Phase C – Reconnect
 
-Nach erneutem Start des Lebensnachweises auf `My_Ranger2` wurde beobachtet:
+Nach erneutem Start auf `My_Ranger2`:
 
 - `My_Ranger1`: `aktiv`, Alter 1 ms
 - `My_Ranger2`: wieder `aktiv`, Alter 806 ms
-- aktive Teilnehmer: `My_Ranger1`, `My_Ranger2`
 - `aufgaben.schaden: "My_Ranger1"`
 - `aufgaben.unterstuetzung: "My_Ranger2"`
 - `verworfen: 0`
 - `echteSpielaktionenAusgefuehrt: false`
 
-Ergebnis: **bestanden**. Der Teilnehmer wurde nach frischem Lebensnachweis automatisch wieder aufgenommen und seine Aufgabe wieder zugeordnet.
+Ergebnis: **bestanden**.
 
-### Gesamtergebnis
-
-Der Live-Test bestaetigt den vorgesehenen Block-8-Zyklus:
+Der nachgewiesene Zyklus lautet damit:
 
 ```text
 aktiv -> veraltet -> Aufgabe entzogen -> Reconnect -> aktiv -> Aufgabe wieder zugeordnet
 ```
-
-Dabei wurden keine echten Spielaktionen aus der Gruppenkoordination ausgefuehrt.
 
 ## Produktionskern im Browser
 
@@ -83,21 +75,24 @@ Adventure Land laedt die TypeScript-Laufzeit nicht als Node-ESM-Modul. Deshalb l
 v4/werkzeuge/block8-gruppenkoordination-kern.js
 ```
 
-vor.
-
 Dieser Kern ist an den exakten Git-Blob von
 
 ```text
 v4/laufzeit/quelle/spiellogik/gruppen-koordination.ts
 ```
 
-gebunden. Der Block-8-Strukturguard vergleicht den im Browserkern hinterlegten Quell-Blob mit `git hash-object` des aktuellen Produktionskerns. Wenn sich der Produktionskern aendert, ohne dass der Browserkern aktualisiert wird, wird CI rot.
+gebunden. Der Strukturguard wird rot, wenn sich der Produktionskern aendert, ohne dass der Browserkern nachgezogen wird. `block8-gruppenkoordination-schatten.test.mjs` vergleicht Browserentscheidungen gegen die kompilierte Produktionslogik.
 
-Zusaetzlich vergleicht `block8-gruppenkoordination-schatten.test.mjs` die Browserentscheidungen fuer Aktiv, Stale, Reconnect, Safety, Serverabweichung und Ausfall mit der tatsaechlich kompilierten `koordiniereGruppe(...)`.
+## Aktuelles Testprofil ab Lebensnachweis 1.1.0
 
-## Testprofil
+Vor dem Lebensnachweis wird auf **beiden** Charakteren geladen:
 
-Fuer den Nachweis werden bewusst explizite Testfaehigkeiten verwendet. Sie behaupten keine Klassenrolle und werden nicht automatisch aus `ranger` abgeleitet.
+```text
+v4/werkzeuge/block7-kampfsicherheits-quelle.js
+v4/werkzeuge/block8-lebensnachweis-schatten.js
+```
+
+Die Gefahrenstufe wird nicht mehr konfiguriert. Sie kommt automatisch aus Block 7.
 
 ### My_Ranger1
 
@@ -111,7 +106,6 @@ V4Block8Lebensnachweis.konfiguriere({
     schutz: 0,
     unterstuetzung: 0
   },
-  gefahrenStufe: "sicher",
   intervallMillisekunden: 1000
 })
 ```
@@ -128,12 +122,11 @@ V4Block8Lebensnachweis.konfiguriere({
     schutz: 0,
     unterstuetzung: 1
   },
-  gefahrenStufe: "sicher",
   intervallMillisekunden: 1000
 })
 ```
 
-`unterstuetzung: 1` auf Ranger2 dient nur dazu, den Aufgabenverlust und die Wiederaufnahme im Live-Nachweis eindeutig sichtbar zu machen.
+`unterstuetzung: 1` dient weiterhin nur dazu, Aufgabenentzug und Wiederaufnahme eindeutig sichtbar zu machen. Es ist keine aus der Ranger-Klasse abgeleitete Rolle.
 
 Danach auf beiden:
 
@@ -141,90 +134,27 @@ Danach auf beiden:
 await V4Block8Lebensnachweis.starte()
 ```
 
-## Koordinationswerkzeuge auf Ranger1 laden
-
-Nach dem Lebensnachweis-Werkzeug werden auf Ranger1 geladen:
+Auf Ranger1 werden anschliessend geladen:
 
 ```text
 v4/werkzeuge/block8-gruppenkoordination-kern.js
 v4/werkzeuge/block8-gruppenkoordination-schatten.js
 ```
 
-### Phase A – beide aktiv
-
-Nach einigen Sekunden:
+Auswertung:
 
 ```js
 await V4Block8Gruppenkoordination.pruefe()
 ```
 
-Erwartung:
+## Sicherheitsverhalten ab 1.1.0
 
-- `entscheidung.betriebsArt: "normal"`
-- `aktiveTeilnehmerKennungen` enthaelt `My_Ranger1` und `My_Ranger2`
-- beide Teilnehmerbewertungen sind `aktiv`
-- `aufgaben.schaden: "My_Ranger1"`
-- `aufgaben.unterstuetzung: "My_Ranger2"`
-- `echteSpielaktionenAusgefuehrt: false`
+`V4Block8Lebensnachweis` akzeptiert keine manuelle `gefahrenStufe` mehr. Jeder Sendevorgang benoetigt eine frische `V4Block7KampfsicherheitsQuelle`-Bewertung.
 
-### Phase B – Ranger2 wird stale
+Dadurch gilt fuer die Gruppenkoordination automatisch:
 
-Auf Ranger2:
+- Block 7 `sicher` oder `angespannt` -> entsprechende Gruppenlage,
+- Block 7 `gefaehrlich` oder `kritisch` -> Gruppenbetrieb `sicherheit`,
+- Block 7 `unbekannt` -> Gruppenbetrieb fail-safe `blockiert`.
 
-```js
-V4Block8Lebensnachweis.stoppe()
-```
-
-Mehr als 5 Sekunden warten, empfohlen 7–8 Sekunden. Dann auf Ranger1:
-
-```js
-await V4Block8Gruppenkoordination.pruefe()
-```
-
-Erwartung:
-
-- Bewertung fuer `My_Ranger2`: `veraltet`
-- `aktiveTeilnehmerKennungen` enthaelt nur `My_Ranger1`
-- `aufgaben.schaden: "My_Ranger1"`
-- `aufgaben.unterstuetzung: null`
-- keine Spielaktion.
-
-### Phase C – Reconnect
-
-Auf Ranger2:
-
-```js
-await V4Block8Lebensnachweis.starte()
-```
-
-Nach 2–3 Sekunden auf Ranger1:
-
-```js
-await V4Block8Gruppenkoordination.pruefe()
-```
-
-Erwartung:
-
-- `My_Ranger2` wieder `aktiv`
-- beide Teilnehmer wieder in `aktiveTeilnehmerKennungen`
-- `aufgaben.unterstuetzung: "My_Ranger2"`
-- `verworfen: 0`
-- keine Spielaktion.
-
-## Verlauf
-
-Die letzten Auswertungen koennen ohne weitere Kommunikation gelesen werden:
-
-```js
-V4Block8Gruppenkoordination.status()
-```
-
-Das Werkzeug behaelt maximal 20 Auswertungen. Der Verlauf kann geloescht werden mit:
-
-```js
-V4Block8Gruppenkoordination.leereVerlauf()
-```
-
-## Sicherheitsgrenze
-
-`gefahrenStufe: "sicher"` ist in diesem Nachweis ein expliziter Testwert, damit die produktive Koordination den Betriebsmodus `normal` zeigen kann. Fuer autonome Gruppenarbeit darf dieser Wert spaeter nicht manuell gesetzt werden; er muss aus der Block-7-Kampfsicherheitsentscheidung des jeweiligen Charakters stammen.
+Block 8 kann die Sicherheitslage damit im Live-Pfad nicht mehr manuell auf `sicher` setzen.
