@@ -35,6 +35,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     });
     this.controlledMerchantService = options.controlledMerchantService || new ControlledMerchantServiceExecutor({
       root: this.root,
+      adapter: this.adapter,
       now: this.now,
       log: this.log,
       storage: options.merchantServiceStorage || options.storage,

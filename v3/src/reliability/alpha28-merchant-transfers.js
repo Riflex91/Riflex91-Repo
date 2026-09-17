@@ -1,6 +1,6 @@
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, identityQuantity, rawFunction, gameDataOf } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, identityQuantity, gameDataOf } = require('./alpha27-utils');
 
 const PROTECTED_META = ['quest','q','event','cash','cash_item','soulbound','soul_bound'];
 
@@ -114,8 +114,6 @@ class Alpha28MerchantTransfers {
       const safe = this._validateSource(source, quantity);
       if (!safe.ok) return { executed: false, committed: false, reason: safe.reason };
       const beforeTotal = identityQuantity(inventoryOf(this.root), source.name, levelOf(source));
-      const send = rawFunction(this.root, 'send_item');
-      if (!send) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
       if (!service._startOperation(plan, { action: 'send_item', alpha28ArbitraryTransfer: true, targetName, sourceReportAt: finite(plan.sourceReportAt, this.now()), itemName: source.name, itemLevel: levelOf(source), quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
       service._transition('EXECUTING', 'RAW_ACTION_STARTING');
       service.actionTimes.push(this.now());
@@ -123,7 +121,9 @@ class Alpha28MerchantTransfers {
       service.stats.deliveries += 1;
       this.stats.arbitraryTransferAttempts += 1;
       try {
-        const response = await service._timeout(send.fn.call(send.owner, targetName, source.index, quantity));
+        const command = service._command('send_item', [targetName, source.index, quantity]);
+        if (!command.executed) return service._failed(plan.kind, `SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`, { targetName, itemName: source.name, quantity });
+        const response = await service._timeout(command.value);
         if (response && response.success === false) return service._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName: source.name, quantity });
         service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
         const verified = await service._verify(() => identityQuantity(inventoryOf(this.root), source.name, levelOf(source)) === beforeTotal - quantity);

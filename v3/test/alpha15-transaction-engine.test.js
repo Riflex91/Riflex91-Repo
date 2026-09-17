@@ -189,8 +189,9 @@ test('Alpha15 runtime integrates transaction planning but cannot enable live eco
   assert.doesNotThrow(() => JSON.parse(runtime.exportDiagnostics()));
 });
 
-test('General GameAdapter still rejects every destructive economy action in Alpha15', () => {
-  for (const action of ['sell', 'bank', 'bank_store', 'compound', 'upgrade', 'exchange', 'trade', 'send_item']) assert.equal(ACTIVE_ALLOWED.has(action), false);
+test('General GameAdapter still rejects destructive economy actions outside the controlled merchant boundary in Alpha15', () => {
+  for (const action of ['sell', 'bank', 'bank_store', 'compound', 'upgrade', 'exchange', 'trade']) assert.equal(ACTIVE_ALLOWED.has(action), false);
+  assert.equal(ACTIVE_ALLOWED.has('send_item'), true);
   const root = { character: { name: 'M1', ctype: 'merchant', items: [] }, parent: { entities: {} }, G: {} };
   const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
   for (const action of ['sell', 'bank_store', 'compound', 'upgrade']) assert.equal(adapter.command(action).reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');

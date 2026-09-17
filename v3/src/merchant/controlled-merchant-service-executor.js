@@ -1,6 +1,7 @@
 'use strict';
 
 const { MerchantServicePlanKind, itemQuantity } = require('./merchant-service-planner');
+const { GameAdapter } = require('../game/adapter');
 
 const CONTROLLED_MERCHANT_SERVICE_MODE = 'controlled-merchant-service-default-off';
 const CONTROLLED_MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
@@ -29,6 +30,13 @@ class ControlledMerchantServiceExecutor {
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
     this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
     this.getTrustedNames = options.getTrustedNames || (() => []);
+    this.adapter = options.adapter || new GameAdapter({
+      root: this.root,
+      parent: this.root && this.root.parent,
+      log: this.log,
+      now: this.now,
+      mode: this.getMode()
+    });
     this.timeoutMs = Math.max(1000, Math.min(60000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(25, Math.min(2000, finite(options.verifyDelayMs, 150)));
     this.verifyAttempts = Math.max(1, Math.min(10, Math.floor(finite(options.verifyAttempts, 4))));
@@ -337,6 +345,15 @@ class ControlledMerchantServiceExecutor {
     return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
   }
 
+  _command(action, args = []) {
+    if (!this.adapter || typeof this.adapter.command !== 'function') {
+      return { executed: false, reason: 'GAME_ADAPTER_UNAVAILABLE', action };
+    }
+    const mode = this.getMode();
+    if (this.adapter.mode !== mode && typeof this.adapter.setMode === 'function') this.adapter.setMode(mode);
+    return this.adapter.command(action, args);
+  }
+
   async _verify(predicate) {
     for (let attempt = 0; attempt < this.verifyAttempts; attempt += 1) {
       if (predicate()) return true;
@@ -365,8 +382,6 @@ class ControlledMerchantServiceExecutor {
 
   async _executeStand(plan, open) {
     const fnName = open ? 'open_stand' : 'close_stand';
-    const fn = this.root && (this.root[fnName] || (this.root.parent && this.root.parent[fnName]));
-    if (typeof fn !== 'function') return { executed: false, committed: false, reason: `${fnName.toUpperCase()}_API_UNAVAILABLE` };
     const before = this._standOpen();
     if (before === open) return { executed: false, committed: true, reason: open ? 'STAND_ALREADY_OPEN' : 'STAND_ALREADY_CLOSED' };
     const standSlot = open ? this._standSlot() : null;
@@ -377,7 +392,9 @@ class ControlledMerchantServiceExecutor {
     this.stats.rawActions += 1;
     this.stats.standActions += 1;
     try {
-      const response = await this._timeout(open ? fn.call(this.root, standSlot) : fn.call(this.root));
+      const command = this._command(fnName, open ? [standSlot] : []);
+      if (!command.executed) return this._failed(plan.kind, `${fnName.toUpperCase()}_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+      const response = await this._timeout(command.value);
       if (response && response.success === false && response.reason) return this._failed(plan.kind, `STAND_API_REJECTED:${response.reason}`);
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       if (!await this._verify(() => this._standOpen() === open)) return this._failed(plan.kind, 'STAND_STATE_VERIFICATION_FAILED');
@@ -419,15 +436,15 @@ class ControlledMerchantServiceExecutor {
     if (!source) return { executed: false, committed: false, reason: 'DELIVERY_SOURCE_UNAVAILABLE' };
     const beforeInventory = this._inventorySnapshot();
     const beforeTotal = itemQuantity(beforeInventory, itemName);
-    const fn = this.root && (this.root.send_item || (this.root.parent && this.root.parent.send_item));
-    if (typeof fn !== 'function') return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
     if (!this._startOperation(plan, { action: 'send_item', targetName, sourceReportAt, itemName, quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
     this._transition('EXECUTING', 'RAW_ACTION_STARTING');
     this.actionTimes.push(this.now());
     this.stats.rawActions += 1;
     this.stats.deliveries += 1;
     try {
-      const response = await this._timeout(fn.call(this.root, targetName, source.index, quantity));
+      const command = this._command('send_item', [targetName, source.index, quantity]);
+      if (!command.executed) return this._failed(plan.kind, `SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`, { targetName, itemName, quantity, sourceReportAt });
+      const response = await this._timeout(command.value);
       if (response && response.success === false) return this._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, quantity, sourceReportAt });
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       const verified = await this._verify(() => itemQuantity(this._inventorySnapshot(), itemName) === beforeTotal - quantity);
@@ -493,6 +510,7 @@ class ControlledMerchantServiceExecutor {
       allowStand: this.allowStand,
       allowDelivery: this.allowDelivery,
       rawActionFamilies: ['OPEN_STAND', 'CLOSE_STAND', 'SEND_POTION'],
+      commandBoundary: 'GameAdapter',
       arbitraryItemTransferAllowed: false,
       arbitraryTradeAllowed: false,
       buyAllowed: false,

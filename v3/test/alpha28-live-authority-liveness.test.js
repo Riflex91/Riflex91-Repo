@@ -111,6 +111,15 @@ test('Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before
     G: { items: { wood: { type: 'material' } } },
     send_item: async () => { sendAfterPersist = persisted; root.character.items[0].q -= 2; return { success: true }; }
   };
+  const adapter = {
+    getGameData: () => root.G,
+    command(action, args) {
+      const fn = root[action];
+      return typeof fn === 'function'
+        ? { executed: true, value: fn.apply(root, args) }
+        : { executed: false, reason: 'COMMAND_UNAVAILABLE' };
+    }
+  };
   const service = {
     maxDeliveryDistance: 400,
     stats: { rawActions: 0, deliveries: 0 }, actionTimes: [], activeOperation: null,
@@ -118,6 +127,7 @@ test('Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before
     _visibleTarget: (name) => name === 'Ranger1' ? { name, map: 'main', x: 1, y: 1 } : null,
     _distanceTo: () => 1,
     _startOperation: () => { persisted = true; return true; },
+    _command: (action, args) => adapter.command(action, args),
     _transition: () => {}, _timeout: (p) => Promise.resolve(p), _verify: async (fn) => fn(),
     _commit: (kind, reason, extra) => ({ executed: true, committed: true, reason, ...extra }),
     _failed: (kind, reason) => ({ executed: true, committed: false, reason }),
@@ -126,7 +136,7 @@ test('Alpha28 Merchant transfer remains trusted, ledger-aware and persist-before
     async execute(plan) { return this._executeDelivery(plan); }
   };
   const runtime = {
-    root, adapter: { getGameData: () => root.G }, controlledMerchantService: service,
+    root, adapter, controlledMerchantService: service,
     partyAccountCommunication: { transport: { isOwned: (name) => name === 'Ranger1' } },
     inventoryLedger: { get: () => ({ disposition: 'KEEP' }) },
     contentDrift: { requiresRevalidation: () => false }

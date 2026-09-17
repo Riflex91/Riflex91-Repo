@@ -557,8 +557,7 @@ class ControlledPartyLogistics {
       const inventory = snapshot.character.inventory || [];
       const slot = inventory.find((item) => item && item.name === choice.itemName && Math.max(1, finite(item.q, 1)) >= quantity);
       if (!slot) continue;
-      const binding = this._binding('send_item');
-      if (!binding) {
+      if (!this.adapter || typeof this.adapter.command !== 'function') {
         this.stats.supplyFailed += 1;
         this.backoffUntil = this.now() + this.config.failureBackoffMs;
         return false;
@@ -570,7 +569,14 @@ class ControlledPartyLogistics {
       };
       this.pendingSupply = pending;
       try {
-        const result = binding.fn.call(binding.owner, request.sender, slot.index, quantity);
+        const command = this.adapter.command('send_item', [request.sender, slot.index, quantity]);
+        if (!command.executed) {
+          this.pendingSupply = null;
+          this.stats.supplyFailed += 1;
+          this.backoffUntil = this.now() + this.config.failureBackoffMs;
+          return false;
+        }
+        const result = command.value;
         this.stats.supplyTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingSupply && this.pendingSupply.transactionId === transactionId) this.pendingSupply.asyncRejected = true; });
         this._event('PARTY_SUPPLY_SENT', 'info', 'BOUNDED_POTION_RESUPPLY', { transactionId, target: request.sender, itemName: choice.itemName, quantity });
@@ -695,13 +701,17 @@ class ControlledPartyLogistics {
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) { this.pendingGrant = null; this.pendingOffer = null; return false; }
       const quantity = Math.min(Math.max(1, Math.floor(finite(grant.maxQuantity, 1))), Math.max(1, finite(item.q, 1)), this.config.maxLootStackTransfer);
-      const binding = this._binding('send_item');
-      if (!binding) return false;
+      if (!this.adapter || typeof this.adapter.command !== 'function') return false;
       const beforeCount = countItem(snapshot, item.name, item.level);
       const pending = { kind: 'item', at: this.now(), offerId: offer.offerId, grantId: grant.grantId, name: item.name, level: Number(item.level || 0), quantity, beforeCount, asyncRejected: false };
       this.pendingOutbound = pending;
       try {
-        const result = binding.fn.call(binding.owner, merchant, item.index, quantity);
+        const command = this.adapter.command('send_item', [merchant, item.index, quantity]);
+        if (!command.executed) {
+          this.pendingOutbound = null;
+          return false;
+        }
+        const result = command.value;
         this.stats.lootTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingOutbound && this.pendingOutbound.grantId === pending.grantId) this.pendingOutbound.asyncRejected = true; });
       } catch (_) {
