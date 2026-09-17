@@ -1,6 +1,25 @@
 'use strict';
 
-const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_hp_or_mp', 'use_skill', 'stop']);
+const COMMAND_CATALOG = Object.freeze({
+  attack: Object.freeze({ family: 'combat', mutation: true, outcome: 'observed' }),
+  move: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  smart_move: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  town: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  use_hp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_hp_or_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_skill: Object.freeze({ family: 'skill', mutation: true, outcome: 'observed' }),
+  stop: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  open_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  close_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' })
+});
+
+const ACTIVE_ALLOWED = new Set(Object.keys(COMMAND_CATALOG));
+
+function commandDefinition(action) {
+  return Object.prototype.hasOwnProperty.call(COMMAND_CATALOG, action) ? COMMAND_CATALOG[action] : null;
+}
 
 function finite(n) { return Number.isFinite(Number(n)) ? Number(n) : null; }
 
@@ -211,8 +230,13 @@ class GameAdapter {
     return out;
   }
 
+  commandCatalog() {
+    return Object.fromEntries(Object.entries(COMMAND_CATALOG).map(([action, definition]) => [action, { ...definition }]));
+  }
+
   command(action, args = []) {
-    if (!ACTIVE_ALLOWED.has(action)) {
+    const definition = commandDefinition(action);
+    if (!definition) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'ACTION_NOT_ALLOWED_IN_ALPHA', data: { action } });
       return { executed: false, reason: 'ACTION_NOT_ALLOWED_IN_ALPHA' };
     }
@@ -221,10 +245,12 @@ class GameAdapter {
       return { executed: false, shadow: true };
     }
     let resolvedAction = action;
-    let fn = this.root[action] || this.parent[action];
+    let owner = typeof this.root[action] === 'function' ? this.root : this.parent;
+    let fn = owner && owner[action];
     if (typeof fn !== 'function' && (action === 'use_hp' || action === 'use_mp')) {
       resolvedAction = 'use_hp_or_mp';
-      fn = this.root.use_hp_or_mp || this.parent.use_hp_or_mp;
+      owner = typeof this.root.use_hp_or_mp === 'function' ? this.root : this.parent;
+      fn = owner && owner.use_hp_or_mp;
     }
     if (typeof fn !== 'function') {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action, resolvedAction } });
@@ -232,9 +258,9 @@ class GameAdapter {
     }
     try {
       const prepared = this._prepareArgs(resolvedAction, args);
-      const value = fn.apply(this.root, prepared);
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction } });
-      return { executed: true, value, action, resolvedAction };
+      const value = fn.apply(owner, prepared);
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction, family: definition.family } });
+      return { executed: true, value, action, resolvedAction, family: definition.family, outcome: definition.outcome };
     } catch (error) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_FAILED', severity: 'error', reason: String(error && error.message || error), data: { action } });
       return { executed: false, reason: 'COMMAND_FAILED', error };
@@ -242,4 +268,4 @@ class GameAdapter {
   }
 }
 
-module.exports = { GameAdapter, ACTIVE_ALLOWED };
+module.exports = { GameAdapter, ACTIVE_ALLOWED, COMMAND_CATALOG, commandDefinition };

@@ -340,9 +340,6 @@ function installDeliveryPolicy(runtime) {
     if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
     const budget = service._rawBudget();
     if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
-    const fn = rawFunction(service.root, 'send_item');
-    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-
     const expectedAfterTotals = {
       hpot0: beforeTotals.hpot0 - (planned.get('hpot0') || 0),
       mpot0: beforeTotals.mpot0 - (planned.get('mpot0') || 0)
@@ -360,7 +357,9 @@ function installDeliveryPolicy(runtime) {
         if (expectedChunkTotal < 0) throw new Error(`POTION_BUNDLE_CHUNK_WOULD_OVERDELIVER:${chunk.itemName}`);
         service.actionTimes.push(service.now());
         service.stats.rawActions += 1;
-        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        const command = service._command('send_item', [targetName, chunk.index, chunk.quantity]);
+        if (!command.executed) throw new Error(`SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+        const response = await service._timeout(command.value);
         if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
         const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||
           await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal);

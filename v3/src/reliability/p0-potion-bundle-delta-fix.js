@@ -14,12 +14,6 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function rawFunction(root, name) {
-  if (root && typeof root[name] === 'function') return { fn: root[name], owner: root };
-  if (root && root.parent && typeof root.parent[name] === 'function') return { fn: root.parent[name], owner: root.parent };
-  return null;
-}
-
 function itemStacks(service, itemName) {
   const items = typeof service._inventory === 'function' ? service._inventory() : [];
   const size = typeof service._inventorySize === 'function' ? service._inventorySize() : items.length;
@@ -91,9 +85,6 @@ function installP0PotionBundleDeltaFix(runtime) {
     if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
     const budget = service._rawBudget();
     if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
-    const fn = rawFunction(service.root, 'send_item');
-    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-
     const beforeTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(service._inventorySnapshot(), row.itemName)]));
     const expectedAfterTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, beforeTotals[row.itemName] - POTION_DELIVERY_QUANTITY]));
     if (!service._startOperation(plan, {
@@ -123,7 +114,9 @@ function installP0PotionBundleDeltaFix(runtime) {
 
         service.actionTimes.push(service.now());
         service.stats.rawActions += 1;
-        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        const command = service._command('send_item', [targetName, chunk.index, chunk.quantity]);
+        if (!command.executed) throw new Error(`SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+        const response = await service._timeout(command.value);
         if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
 
         const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||

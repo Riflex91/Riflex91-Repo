@@ -1,6 +1,6 @@
 'use strict';
 
-const { GameAdapter } = require('./adapter');
+const { GameAdapter, commandDefinition } = require('./adapter');
 const { CommandOutcomeTracker, CommandOutcomeState, entityById, inventoryCount } = require('./command-outcomes');
 
 class StabilityGameAdapter extends GameAdapter {
@@ -151,6 +151,18 @@ class StabilityGameAdapter extends GameAdapter {
     if (!result.executed) {
       if (isMovement && !result.shadow && !result.coalesced) this._recordMovementFailure(result.reason || 'MOVE_COMMAND_FAILED');
       return result;
+    }
+
+    const definition = commandDefinition(action);
+    if (definition && definition.outcome === 'domain') {
+      return {
+        ...result,
+        accepted: true,
+        verified: false,
+        outcomeId: null,
+        outcomeState: null,
+        verificationOwner: 'domain'
+      };
     }
 
     const outcome = this.outcomes.issue({ action, args, before });

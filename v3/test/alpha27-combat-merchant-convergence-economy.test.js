@@ -104,6 +104,12 @@ test('gear-goal delivery is the only non-potion Merchant service transfer Alpha2
     _trusted: (name) => name === 'Farmer',
     _visibleTarget: (name) => Object.values(root.parent.entities).find((x) => x.name === name) || null,
     _distanceTo: () => 10,
+    _command(action, args) {
+      const fn = root[action];
+      return typeof fn === 'function'
+        ? { executed: true, value: fn.apply(root, args) }
+        : { executed: false, reason: 'COMMAND_UNAVAILABLE' };
+    },
     _startOperation(plan, data) { this.activeOperation = { ...data, id: plan.id, state: 'RESERVED' }; return true; },
     _transition(state, reason) { this.activeOperation.state = state; this.activeOperation.reason = reason; },
     _timeout(promise) { return Promise.resolve(promise); },
