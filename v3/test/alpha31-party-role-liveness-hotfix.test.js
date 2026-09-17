@@ -170,8 +170,10 @@ test('active follower smart regroup yields immediately to combat or emergency sa
   assert.equal(hotfix.stats.followerSmartSafetyPreemptions, 1);
 });
 
-test('failed follower smart regroup releases ownership so a later tick can retry', async () => {
+test('failed follower smart regroup clears the pending movement outcome so a later tick can retry', async () => {
   let smartMoves = 0;
+  let pendingMovement = false;
+  const supersedes = [];
   const root = rootWithCharacter({ name: 'My_Ranger3', ctype: 'ranger', map: 'main', x: 0, y: 0 });
   const teamController = {
     followRadius: 60,
@@ -191,8 +193,15 @@ test('failed follower smart regroup releases ownership so a later tick can retry
       getGameData: () => ({ maps: { main: {} } }),
       command(action) {
         if (action !== 'smart_move') return { executed: true };
+        if (pendingMovement) return { executed: true, accepted: false, coalesced: true, reason: 'MOVE_OUTCOME_PENDING' };
+        pendingMovement = true;
         smartMoves += 1;
         return { executed: true, value: Promise.resolve({ failed: true, reason: 'NO_PATH' }) };
+      },
+      supersedeMovement(reason) {
+        pendingMovement = false;
+        supersedes.push(reason);
+        return true;
       }
     }
   };
@@ -207,9 +216,13 @@ test('failed follower smart regroup releases ownership so a later tick can retry
 
   assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
   assert.ok(hotfix.followerSmartMove);
+  assert.equal(pendingMovement, true);
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(hotfix.followerSmartMove, null);
   assert.equal(hotfix.stats.followerSmartFailures, 1);
+  assert.equal(pendingMovement, false);
+  assert.equal(supersedes.length, 1);
+  assert.match(supersedes[0], /FOLLOWER_SMART_MOVE_FAILED/);
   assert.equal(teamController._followLeader(context, team, 'REGROUP'), true);
   assert.equal(smartMoves, 2);
 });
