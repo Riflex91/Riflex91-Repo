@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: AiO Forgejo Guarded Bridge
+  version: 1.0.0
+  description: Narrow, guarded interface to one Forgejo repository.
+servers:
+  - url: http://127.0.0.1:8788
+components:
+  securitySchemes:
+    bridgeBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    MergeRequest:
+      type: object
+      required: [confirmation, expectedHeadSha]
+      properties:
+        confirmation:
+          type: string
+          enum: [MERGE]
+        expectedHeadSha:
+          type: string
+        method:
+          type: string
+          enum: [merge, squash, rebase, rebase-merge]
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Bridge and Forgejo are reachable.
+  /v1/repository:
+    get:
+      operationId: getRepository
+      security: [{ bridgeBearer: [] }]
+      responses:
+        "200":
+          description: Forgejo repository metadata.
+  /v1/pulls:
+    get:
+      operationId: listPulls
+      security: [{ bridgeBearer: [] }]
+      parameters:
+        - in: query
+          name: state
+          schema: { type: string, default: open }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: Pull requests.
+  /v1/pulls/{index}:
+    get:
+      operationId: getPull
+      security: [{ bridgeBearer: [] }]
+      parameters:
+        - in: path
+          name: index
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Pull request plus head SHA and combined status.
+  /v1/pulls/{index}/merge:
+    post:
+      operationId: mergePull
+      description: >
+        Guarded merge. In addition to bearer auth, the implementation requires
+        X-Merge-Key, ALLOW_MERGE=true, exact head SHA, non-draft/open/mergeable PR,
+        and successful combined commit status.
+      security: [{ bridgeBearer: [] }]
+      parameters:
+        - in: path
+          name: index
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: header
+          name: X-Merge-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MergeRequest"
+      responses:
+        "200":
+          description: Merge accepted by Forgejo.
+        "409":
+          description: Merge gate rejected the request.
