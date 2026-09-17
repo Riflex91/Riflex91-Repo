@@ -16,8 +16,8 @@ for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
 
 const logik = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/kampfsicherheit.ts'), 'utf8');
 for (const pflichtText of [
-  'KAMPF_RUECKZUG',
-  'KAMPF_ABSTAND_HERSTELLEN',
+  'KAMPF_SICHERHEITS_AKTIONS_NAMEN.rueckzug',
+  'KAMPF_SICHERHEITS_AKTIONS_NAMEN.abstandHerstellen',
   "wichtigkeit: notfall ? 'notfall' : 'sicherheit'",
   "benoetigteRessourcen: Object.freeze(['bewegung', 'kampfziel'] as const)",
   'markiereSicherheitsBewegungGestartet',
