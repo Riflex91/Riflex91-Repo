@@ -1,6 +1,6 @@
 # Block 8 – Kampfsicherheits-Kopplung
 
-Status: **Produktionskopplung und Live-Bridge umgesetzt; echte Zwei-Charakter-Live-Abnahme steht noch aus.**
+Status: **Produktionskopplung, Live-Bridge, Zwei-Ranger-Abnahme und Fail-safe-Ausfalltest bestanden am 2026-09-17.**
 
 ## Ziel
 
@@ -89,6 +89,71 @@ Die Low-Level-Funktion `erstelleGruppenTeilnehmerMeldungAusSpielzustand(...)` bl
 4. Blockierung bei fehlender Quelle vor `send_cm`,
 5. Blockierung einer zu alten Sicherheitsbewertung vor `send_cm`.
 
-## Noch offene Abnahme
+## Live-Abnahme vom 2026-09-17
 
-Als naechster Schritt wird die neue Kette mit `My_Ranger1` und `My_Ranger2` live getestet. Dabei soll zuerst eine normale sichere Lage bestaetigt werden. Anschliessend reicht ein beobachtbarer natuerlicher Wechsel der Block-7-Gefahrenstufe; es wird fuer diesen Nachweis keine Gefahr absichtlich provoziert.
+### Zwei-Ranger-Happy-Path
+
+`My_Ranger1` und `My_Ranger2` wurden mit der source-locked Block-7-Sicherheitsquelle und `V4Block8Lebensnachweis` Version `1.1.0` getestet.
+
+Beide Block-7-Bewertungen lieferten in der beobachteten normalen Lage:
+
+- `gefahrenBewertung.stufe: "sicher"`,
+- keine Angreifer,
+- keine Sicherheitsgruende,
+- `echteSpielaktionenAusgefuehrt: false`,
+- Produktions-Blob `7052173c43b7b1d6f46ff727ceb3c22d70768764`.
+
+Der Lebensnachweis uebernahm diese Bewertung auf beiden Rangern automatisch. Beobachtet wurden unter anderem:
+
+- `gefahrenQuelle: "V4Block7KampfsicherheitsQuelle"`,
+- `sicherheitsQuelleVerfuegbar: true`,
+- `sicherheitsQuelleKontext: "lokal"`,
+- `letzteSicherheit.alterMillisekunden: 0`,
+- `gefahrenStufe: "sicher"`,
+- Ranger2: 30 gesendet, 26 empfangen, 0 verworfen,
+- Ranger1: 24 gesendet, 23 empfangen, 0 verworfen,
+- jeweils der andere Ranger mit `gefahrenStufe: "sicher"` im empfangenen Lebensnachweis,
+- weiterhin keine echte Spielaktion.
+
+Ergebnis: **bestanden**.
+
+### Fail-safe-Ausfalltest der Block-7-Quelle
+
+Auf `My_Ranger1` wurde der Lebensnachweis zuerst gestoppt und `V4Block7KampfsicherheitsQuelle` anschliessend temporaer aus lokalem und Parent-Kontext entfernt.
+
+Vor dem absichtlichen Einzelversuch zeigte der Status:
+
+- `aktiv: false`,
+- `sicherheitsQuelleVerfuegbar: false`,
+- `sicherheitsQuelleKontext: null`,
+- `gesendet: 216`.
+
+Der Aufruf
+
+```js
+await V4Block8Lebensnachweis.sendeEinmal()
+```
+
+brach erwartungsgemaess mit
+
+```text
+V4Block7KampfsicherheitsQuelle muss vor dem Lebensnachweis geladen werden.
+```
+
+ab.
+
+Der unmittelbar danach gelesene Status zeigte weiterhin:
+
+- `gesendet: 216`,
+- `empfangen: 136`,
+- `verworfen: 0`,
+- `sicherheitsQuelleVerfuegbar: false`,
+- `echteSpielaktionenAusgefuehrt: false`.
+
+Damit ist live nachgewiesen, dass eine fehlende Block-7-Sicherheitsquelle **vor `send_cm` blockiert** und der Sendecounter unveraendert bleibt.
+
+Ergebnis: **bestanden**.
+
+## Ergebnis
+
+Die automatische Block-7-zu-Block-8-Sicherheitskette ist damit sowohl im normalen Zwei-Charakter-Betrieb als auch im wichtigsten fehlenden-Quellen-Fehlerfall live bestaetigt. Eine Gefahr wurde fuer diesen Nachweis nicht absichtlich provoziert.
