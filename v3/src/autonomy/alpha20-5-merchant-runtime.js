@@ -3,6 +3,7 @@
 const { Alpha20Runtime } = require('./alpha20-runtime');
 const { MerchantServicePlanner, MerchantServicePlanKind } = require('../merchant/merchant-service-planner');
 const { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_ACK } = require('../merchant/controlled-merchant-service-executor');
+const { MerchantMluckService } = require('../merchant/merchant-mluck-service');
 const { RouteCostEstimator } = require('../travel/route-cost-estimator');
 
 const ALPHA20_5_MERCHANT_RUNTIME_MODE = 'alpha20.5-merchant-service-foundation';
@@ -54,8 +55,22 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       actionWindowMs: options.merchantServiceActionWindowMs,
       maxActionsPerWindow: options.merchantServiceMaxActionsPerWindow
     });
+    this.merchantMluck = options.merchantMluck || new MerchantMluckService({
+      root: this.root,
+      adapter: this.adapter,
+      now: this.now,
+      log: this.log,
+      getBusy: () => this._controlledMerchantBusy(),
+      getSupervisorStatus: () => this.globalSupervisor.status(),
+      enabled: options.merchantMluckEnabled !== false,
+      refreshLeadMs: options.merchantMluckRefreshLeadMs,
+      attemptCooldownMs: options.merchantMluckAttemptCooldownMs,
+      minCycleMs: options.merchantMluckMinCycleMs
+    });
     this.merchantServiceIntervalMs = Math.max(500, Math.min(30000, finite(options.merchantServiceIntervalMs, 2000)));
+    this.merchantMluckIntervalMs = Math.max(250, Math.min(30000, finite(options.merchantMluckIntervalMs, 1000)));
     this.lastMerchantServiceAt = -Infinity;
+    this.lastMerchantMluckAt = -Infinity;
     this.lastMerchantServicePlan = null;
     this.lastMerchantServiceExecution = null;
     this.lastMerchantRouteDecision = null;
@@ -213,12 +228,21 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     return plan;
   }
 
+  _merchantMluckCycle() {
+    if (!this._localMerchant()) return null;
+    return this.merchantMluck.cycle(this.lastSnapshot);
+  }
+
   tick() {
     super.tick();
     const now = this.now();
     if (now - this.lastMerchantServiceAt >= this.merchantServiceIntervalMs) {
       this.lastMerchantServiceAt = now;
       this._merchantServiceCycle();
+    }
+    if (now - this.lastMerchantMluckAt >= this.merchantMluckIntervalMs) {
+      this.lastMerchantMluckAt = now;
+      this._merchantMluckCycle();
     }
   }
 
@@ -271,6 +295,18 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     };
   }
 
+  configureMerchantMluck(config = {}) {
+    return this.merchantMluck.configure(config);
+  }
+
+  disableMerchantMluck(reason = 'OPERATOR_DISABLED') {
+    return this.merchantMluck.disable(reason);
+  }
+
+  merchantMluckStatus() {
+    return { ...this.merchantMluck.status(), intervalMs: this.merchantMluckIntervalMs };
+  }
+
   _guardControlledAuthority() {
     const base = super._guardControlledAuthority();
     const supervisor = this.globalSupervisor.status();
@@ -299,9 +335,12 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     return {
       ...base,
       merchantService: this.merchantServiceStatus(),
+      merchantMluck: this.merchantMluckStatus(),
       alpha20_5: {
         ...(base.alpha20_5 || {}),
         merchantServiceFoundation: true,
+        merchantMluckRotation: true,
+        merchantMluckUsesCommandBoundary: true,
         farmerSupplyTelemetry: true,
         standControlledDefaultOff: true,
         potionDeliveryControlledDefaultOff: true,
@@ -318,6 +357,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     const base = JSON.parse(super.exportDiagnostics());
     base.context = base.context || {};
     base.context.merchantService = this.merchantServiceStatus();
+    base.context.merchantMluck = this.merchantMluckStatus();
     return JSON.stringify(base, null, 2);
   }
 }

@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 3,
+  "next_step": 4,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -61,9 +61,9 @@
       "name": "command-migration",
       "title": "Migrate remaining game writes through GameAdapter",
       "branch": "architecture/03-command-migration",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 226,
-      "merge_commit": null,
+      "merge_commit": "6e810e4d96a5e8f2dd20a5019ca5e37a16d838e0",
       "required_outcomes": [
         "remaining mutation paths routed through adapter",
         "guard against direct production mutation calls",
@@ -76,8 +76,8 @@
       "name": "merchant-mluck",
       "title": "Merchant mluck party rotation",
       "branch": "architecture/04-merchant-mluck",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 255,
       "merge_commit": null,
       "required_outcomes": [
         "composed mluck service/policy",
