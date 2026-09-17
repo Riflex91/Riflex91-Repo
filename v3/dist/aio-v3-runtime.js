@@ -1372,7 +1372,26 @@ module.exports = { TaskState, createTask };
 "src/game/adapter.js": function(require,module,exports){
 'use strict';
 
-const ACTIVE_ALLOWED = new Set(['attack', 'move', 'smart_move', 'town', 'use_hp', 'use_mp', 'use_hp_or_mp', 'use_skill', 'stop']);
+const COMMAND_CATALOG = Object.freeze({
+  attack: Object.freeze({ family: 'combat', mutation: true, outcome: 'observed' }),
+  move: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  smart_move: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  town: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  use_hp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_hp_or_mp: Object.freeze({ family: 'recovery', mutation: true, outcome: 'observed' }),
+  use_skill: Object.freeze({ family: 'skill', mutation: true, outcome: 'observed' }),
+  stop: Object.freeze({ family: 'movement', mutation: true, outcome: 'observed' }),
+  open_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  close_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' })
+});
+
+const ACTIVE_ALLOWED = new Set(Object.keys(COMMAND_CATALOG));
+
+function commandDefinition(action) {
+  return Object.prototype.hasOwnProperty.call(COMMAND_CATALOG, action) ? COMMAND_CATALOG[action] : null;
+}
 
 function finite(n) { return Number.isFinite(Number(n)) ? Number(n) : null; }
 
@@ -1583,8 +1602,13 @@ class GameAdapter {
     return out;
   }
 
+  commandCatalog() {
+    return Object.fromEntries(Object.entries(COMMAND_CATALOG).map(([action, definition]) => [action, { ...definition }]));
+  }
+
   command(action, args = []) {
-    if (!ACTIVE_ALLOWED.has(action)) {
+    const definition = commandDefinition(action);
+    if (!definition) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'ACTION_NOT_ALLOWED_IN_ALPHA', data: { action } });
       return { executed: false, reason: 'ACTION_NOT_ALLOWED_IN_ALPHA' };
     }
@@ -1593,10 +1617,12 @@ class GameAdapter {
       return { executed: false, shadow: true };
     }
     let resolvedAction = action;
-    let fn = this.root[action] || this.parent[action];
+    let owner = typeof this.root[action] === 'function' ? this.root : this.parent;
+    let fn = owner && owner[action];
     if (typeof fn !== 'function' && (action === 'use_hp' || action === 'use_mp')) {
       resolvedAction = 'use_hp_or_mp';
-      fn = this.root.use_hp_or_mp || this.parent.use_hp_or_mp;
+      owner = typeof this.root.use_hp_or_mp === 'function' ? this.root : this.parent;
+      fn = owner && owner.use_hp_or_mp;
     }
     if (typeof fn !== 'function') {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'COMMAND_UNAVAILABLE', data: { action, resolvedAction } });
@@ -1604,9 +1630,9 @@ class GameAdapter {
     }
     try {
       const prepared = this._prepareArgs(resolvedAction, args);
-      const value = fn.apply(this.root, prepared);
-      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction } });
-      return { executed: true, value, action, resolvedAction };
+      const value = fn.apply(owner, prepared);
+      if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_EXECUTED', data: { action, resolvedAction, family: definition.family } });
+      return { executed: true, value, action, resolvedAction, family: definition.family, outcome: definition.outcome };
     } catch (error) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_FAILED', severity: 'error', reason: String(error && error.message || error), data: { action } });
       return { executed: false, reason: 'COMMAND_FAILED', error };
@@ -1614,7 +1640,7 @@ class GameAdapter {
   }
 }
 
-module.exports = { GameAdapter, ACTIVE_ALLOWED };
+module.exports = { GameAdapter, ACTIVE_ALLOWED, COMMAND_CATALOG, commandDefinition };
 
 },
 "src/world/world-model.js": function(require,module,exports){
@@ -5184,7 +5210,7 @@ module.exports = { VERSION };
 "src/game/stability-adapter.js": function(require,module,exports){
 'use strict';
 
-const { GameAdapter } = require('./adapter');
+const { GameAdapter, commandDefinition } = require('./adapter');
 const { CommandOutcomeTracker, CommandOutcomeState, entityById, inventoryCount } = require('./command-outcomes');
 
 class StabilityGameAdapter extends GameAdapter {
@@ -5335,6 +5361,18 @@ class StabilityGameAdapter extends GameAdapter {
     if (!result.executed) {
       if (isMovement && !result.shadow && !result.coalesced) this._recordMovementFailure(result.reason || 'MOVE_COMMAND_FAILED');
       return result;
+    }
+
+    const definition = commandDefinition(action);
+    if (definition && definition.outcome === 'domain') {
+      return {
+        ...result,
+        accepted: true,
+        verified: false,
+        outcomeId: null,
+        outcomeState: null,
+        verificationOwner: 'domain'
+      };
     }
 
     const outcome = this.outcomes.issue({ action, args, before });
@@ -19373,6 +19411,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     });
     this.controlledMerchantService = options.controlledMerchantService || new ControlledMerchantServiceExecutor({
       root: this.root,
+      adapter: this.adapter,
       now: this.now,
       log: this.log,
       storage: options.merchantServiceStorage || options.storage,
@@ -19894,6 +19933,7 @@ module.exports = { MerchantServicePlanner, MerchantServicePlanKind, MERCHANT_SER
 'use strict';
 
 const { MerchantServicePlanKind, itemQuantity } = require('./merchant-service-planner');
+const { GameAdapter } = require('../game/adapter');
 
 const CONTROLLED_MERCHANT_SERVICE_MODE = 'controlled-merchant-service-default-off';
 const CONTROLLED_MERCHANT_SERVICE_ACK = 'ALPHA20_5_MERCHANT_SERVICE';
@@ -19922,6 +19962,13 @@ class ControlledMerchantServiceExecutor {
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
     this.getEconomyEmergency = options.getEconomyEmergency || (() => false);
     this.getTrustedNames = options.getTrustedNames || (() => []);
+    this.adapter = options.adapter || new GameAdapter({
+      root: this.root,
+      parent: this.root && this.root.parent,
+      log: this.log,
+      now: this.now,
+      mode: this.getMode()
+    });
     this.timeoutMs = Math.max(1000, Math.min(60000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(25, Math.min(2000, finite(options.verifyDelayMs, 150)));
     this.verifyAttempts = Math.max(1, Math.min(10, Math.floor(finite(options.verifyAttempts, 4))));
@@ -20230,6 +20277,15 @@ class ControlledMerchantServiceExecutor {
     return Promise.race([Promise.resolve(promise), timeout]).finally(() => { if (timer != null) clearTimer(timer); });
   }
 
+  _command(action, args = []) {
+    if (!this.adapter || typeof this.adapter.command !== 'function') {
+      return { executed: false, reason: 'GAME_ADAPTER_UNAVAILABLE', action };
+    }
+    const mode = this.getMode();
+    if (this.adapter.mode !== mode && typeof this.adapter.setMode === 'function') this.adapter.setMode(mode);
+    return this.adapter.command(action, args);
+  }
+
   async _verify(predicate) {
     for (let attempt = 0; attempt < this.verifyAttempts; attempt += 1) {
       if (predicate()) return true;
@@ -20258,8 +20314,6 @@ class ControlledMerchantServiceExecutor {
 
   async _executeStand(plan, open) {
     const fnName = open ? 'open_stand' : 'close_stand';
-    const fn = this.root && (this.root[fnName] || (this.root.parent && this.root.parent[fnName]));
-    if (typeof fn !== 'function') return { executed: false, committed: false, reason: `${fnName.toUpperCase()}_API_UNAVAILABLE` };
     const before = this._standOpen();
     if (before === open) return { executed: false, committed: true, reason: open ? 'STAND_ALREADY_OPEN' : 'STAND_ALREADY_CLOSED' };
     const standSlot = open ? this._standSlot() : null;
@@ -20270,7 +20324,9 @@ class ControlledMerchantServiceExecutor {
     this.stats.rawActions += 1;
     this.stats.standActions += 1;
     try {
-      const response = await this._timeout(open ? fn.call(this.root, standSlot) : fn.call(this.root));
+      const command = this._command(fnName, open ? [standSlot] : []);
+      if (!command.executed) return this._failed(plan.kind, `${fnName.toUpperCase()}_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+      const response = await this._timeout(command.value);
       if (response && response.success === false && response.reason) return this._failed(plan.kind, `STAND_API_REJECTED:${response.reason}`);
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       if (!await this._verify(() => this._standOpen() === open)) return this._failed(plan.kind, 'STAND_STATE_VERIFICATION_FAILED');
@@ -20312,15 +20368,15 @@ class ControlledMerchantServiceExecutor {
     if (!source) return { executed: false, committed: false, reason: 'DELIVERY_SOURCE_UNAVAILABLE' };
     const beforeInventory = this._inventorySnapshot();
     const beforeTotal = itemQuantity(beforeInventory, itemName);
-    const fn = this.root && (this.root.send_item || (this.root.parent && this.root.parent.send_item));
-    if (typeof fn !== 'function') return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
     if (!this._startOperation(plan, { action: 'send_item', targetName, sourceReportAt, itemName, quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
     this._transition('EXECUTING', 'RAW_ACTION_STARTING');
     this.actionTimes.push(this.now());
     this.stats.rawActions += 1;
     this.stats.deliveries += 1;
     try {
-      const response = await this._timeout(fn.call(this.root, targetName, source.index, quantity));
+      const command = this._command('send_item', [targetName, source.index, quantity]);
+      if (!command.executed) return this._failed(plan.kind, `SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`, { targetName, itemName, quantity, sourceReportAt });
+      const response = await this._timeout(command.value);
       if (response && response.success === false) return this._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, quantity, sourceReportAt });
       this._transition('VERIFYING', 'RAW_ACTION_RETURNED');
       const verified = await this._verify(() => itemQuantity(this._inventorySnapshot(), itemName) === beforeTotal - quantity);
@@ -20386,6 +20442,7 @@ class ControlledMerchantServiceExecutor {
       allowStand: this.allowStand,
       allowDelivery: this.allowDelivery,
       rawActionFamilies: ['OPEN_STAND', 'CLOSE_STAND', 'SEND_POTION'],
+      commandBoundary: 'GameAdapter',
       arbitraryItemTransferAllowed: false,
       arbitraryTradeAllowed: false,
       buyAllowed: false,
@@ -20407,6 +20464,7 @@ class ControlledMerchantServiceExecutor {
 }
 
 module.exports = { ControlledMerchantServiceExecutor, CONTROLLED_MERCHANT_SERVICE_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+
 },
 "src/travel/route-cost-estimator.js": function(require,module,exports){
 'use strict';
@@ -26549,8 +26607,7 @@ class ControlledPartyLogistics {
       const inventory = snapshot.character.inventory || [];
       const slot = inventory.find((item) => item && item.name === choice.itemName && Math.max(1, finite(item.q, 1)) >= quantity);
       if (!slot) continue;
-      const binding = this._binding('send_item');
-      if (!binding) {
+      if (!this.adapter || typeof this.adapter.command !== 'function') {
         this.stats.supplyFailed += 1;
         this.backoffUntil = this.now() + this.config.failureBackoffMs;
         return false;
@@ -26562,7 +26619,14 @@ class ControlledPartyLogistics {
       };
       this.pendingSupply = pending;
       try {
-        const result = binding.fn.call(binding.owner, request.sender, slot.index, quantity);
+        const command = this.adapter.command('send_item', [request.sender, slot.index, quantity]);
+        if (!command.executed) {
+          this.pendingSupply = null;
+          this.stats.supplyFailed += 1;
+          this.backoffUntil = this.now() + this.config.failureBackoffMs;
+          return false;
+        }
+        const result = command.value;
         this.stats.supplyTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingSupply && this.pendingSupply.transactionId === transactionId) this.pendingSupply.asyncRejected = true; });
         this._event('PARTY_SUPPLY_SENT', 'info', 'BOUNDED_POTION_RESUPPLY', { transactionId, target: request.sender, itemName: choice.itemName, quantity });
@@ -26687,13 +26751,17 @@ class ControlledPartyLogistics {
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) { this.pendingGrant = null; this.pendingOffer = null; return false; }
       const quantity = Math.min(Math.max(1, Math.floor(finite(grant.maxQuantity, 1))), Math.max(1, finite(item.q, 1)), this.config.maxLootStackTransfer);
-      const binding = this._binding('send_item');
-      if (!binding) return false;
+      if (!this.adapter || typeof this.adapter.command !== 'function') return false;
       const beforeCount = countItem(snapshot, item.name, item.level);
       const pending = { kind: 'item', at: this.now(), offerId: offer.offerId, grantId: grant.grantId, name: item.name, level: Number(item.level || 0), quantity, beforeCount, asyncRejected: false };
       this.pendingOutbound = pending;
       try {
-        const result = binding.fn.call(binding.owner, merchant, item.index, quantity);
+        const command = this.adapter.command('send_item', [merchant, item.index, quantity]);
+        if (!command.executed) {
+          this.pendingOutbound = null;
+          return false;
+        }
+        const result = command.value;
         this.stats.lootTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingOutbound && this.pendingOutbound.grantId === pending.grantId) this.pendingOutbound.asyncRejected = true; });
       } catch (_) {
@@ -31609,7 +31677,7 @@ module.exports = { Alpha27MerchantService };
 "src/reliability/alpha27-merchant-core.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity, rawFunction } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQuantity } = require('./alpha27-utils');
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 
@@ -31661,8 +31729,6 @@ class Alpha27MerchantCore {
       if (!source) return { executed: false, committed: false, reason: 'GEAR_DELIVERY_SOURCE_UNAVAILABLE' };
       const sourceReportAt = Math.max(0, finite(plan.sourceReportAt, this.now()));
       const beforeTotal = identityQuantity(inventoryOf(this.root), itemName, itemLevel);
-      const send = rawFunction(this.root, 'send_item');
-      if (!send) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
       if (!service._startOperation(plan, { action: 'send_item', alpha27GearDelivery: true, gearGoalId: goal.id, targetName, sourceReportAt, itemName, itemLevel, quantity: 1, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - 1 })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
       service._transition('EXECUTING', 'RAW_ACTION_STARTING');
       service.actionTimes.push(this.now());
@@ -31670,7 +31736,9 @@ class Alpha27MerchantCore {
       service.stats.deliveries += 1;
       this.stats.gearDeliveryAttempts += 1;
       try {
-        const response = await service._timeout(send.fn.call(send.owner, targetName, source.index, 1));
+        const command = service._command('send_item', [targetName, source.index, 1]);
+        if (!command.executed) return service._failed(plan.kind, `SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`, { targetName, itemName, itemLevel, quantity: 1, sourceReportAt });
+        const response = await service._timeout(command.value);
         if (response && response.success === false) return service._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName, itemLevel, quantity: 1, sourceReportAt });
         service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
         const verified = await service._verify(() => identityQuantity(inventoryOf(this.root), itemName, itemLevel) === beforeTotal - 1);
@@ -32106,7 +32174,7 @@ module.exports = { Alpha28LedgerFarmerFixes };
 "src/reliability/alpha28-merchant-transfers.js": function(require,module,exports){
 'use strict';
 
-const { finite, clone, levelOf, inventoryOf, characterOf, identityQuantity, rawFunction, gameDataOf } = require('./alpha27-utils');
+const { finite, clone, levelOf, inventoryOf, characterOf, identityQuantity, gameDataOf } = require('./alpha27-utils');
 
 const PROTECTED_META = ['quest','q','event','cash','cash_item','soulbound','soul_bound'];
 
@@ -32220,8 +32288,6 @@ class Alpha28MerchantTransfers {
       const safe = this._validateSource(source, quantity);
       if (!safe.ok) return { executed: false, committed: false, reason: safe.reason };
       const beforeTotal = identityQuantity(inventoryOf(this.root), source.name, levelOf(source));
-      const send = rawFunction(this.root, 'send_item');
-      if (!send) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
       if (!service._startOperation(plan, { action: 'send_item', alpha28ArbitraryTransfer: true, targetName, sourceReportAt: finite(plan.sourceReportAt, this.now()), itemName: source.name, itemLevel: levelOf(source), quantity, sourceIndex: source.index, beforeTotal, expectedAfterTotal: beforeTotal - quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
       service._transition('EXECUTING', 'RAW_ACTION_STARTING');
       service.actionTimes.push(this.now());
@@ -32229,7 +32295,9 @@ class Alpha28MerchantTransfers {
       service.stats.deliveries += 1;
       this.stats.arbitraryTransferAttempts += 1;
       try {
-        const response = await service._timeout(send.fn.call(send.owner, targetName, source.index, quantity));
+        const command = service._command('send_item', [targetName, source.index, quantity]);
+        if (!command.executed) return service._failed(plan.kind, `SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`, { targetName, itemName: source.name, quantity });
+        const response = await service._timeout(command.value);
         if (response && response.success === false) return service._failed(plan.kind, `SEND_ITEM_REJECTED:${response.reason || 'unknown'}`, { targetName, itemName: source.name, quantity });
         service._transition('VERIFYING', 'RAW_ACTION_RETURNED');
         const verified = await service._verify(() => identityQuantity(inventoryOf(this.root), source.name, levelOf(source)) === beforeTotal - quantity);
@@ -34227,7 +34295,7 @@ class MerchantEconomyAutonomy {
   _visible(characterName){const p=this.root.parent||this.root;return Object.values(p.entities||{}).find((x)=>x&&!x.mtype&&x.name===characterName)||null;}
   async _gearTransfer(res){
     const c=this._c(), goals=res.goals.filter((g)=>g&&g.sourceCharacter===c.name&&g.character!==c.name&&!g.projectedUpgradeRequired).sort((a,b)=>num(b.survivalImprovement,0)-num(a.survivalImprovement,0));
-    for(const g of goals){if(!this._trusted().includes(g.character))continue;const item=this._inv().find((x)=>x&&x.name===g.item&&levelOf(x)===Number(g.observedLevel||0));if(!item)continue;const target=this._visible(g.character);if(!target||dist(c,target)>this.cfg.range){const r=this._reports().find((x)=>x&&x.name===g.character);if(r)this._move(r,'GEAR_DELIVERY');return true;}const send=fn(this.root,'send_item');if(!send)return false;const before=count(c,g.item);try{const r=await Promise.resolve(send.fn.call(send.owner,g.character,item.index,1));if(await this._verify(()=>count(this._c(),g.item)<before)||r&&r.success===true){this.stats.gearTransfers+=1;this.lastAction={at:this.now(),kind:'GEAR_TRANSFER',target:g.character,item:g.item,level:g.observedLevel};return true;}}catch(_){return false;}}
+    for(const g of goals){if(!this._trusted().includes(g.character))continue;const item=this._inv().find((x)=>x&&x.name===g.item&&levelOf(x)===Number(g.observedLevel||0));if(!item)continue;const target=this._visible(g.character);if(!target||dist(c,target)>this.cfg.range){const r=this._reports().find((x)=>x&&x.name===g.character);if(r)this._move(r,'GEAR_DELIVERY');return true;}const before=count(c,g.item);try{const command=this.runtime.adapter&&typeof this.runtime.adapter.command==='function'?this.runtime.adapter.command('send_item',[g.character,item.index,1]):{executed:false,reason:'ADAPTER_UNAVAILABLE'};if(!command.executed)return false;const r=await Promise.resolve(command.value);if(await this._verify(()=>count(this._c(),g.item)<before)||r&&r.success===true){this.stats.gearTransfers+=1;this.lastAction={at:this.now(),kind:'GEAR_TRANSFER',target:g.character,item:g.item,level:g.observedLevel};return true;}}catch(_){return false;}}
     return false;
   }
   async _upgrade(res){
@@ -43791,9 +43859,6 @@ function installBundleExecutor(runtime, stats) {
     if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
     const budget = service._rawBudget();
     if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
-    const fn = rawFunction(service.root, 'send_item');
-    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-
     const beforeTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(service._inventorySnapshot(), row.itemName)]));
     const expectedAfterTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, beforeTotals[row.itemName] - POTION_DELIVERY_QUANTITY]));
     if (!service._startOperation(plan, {
@@ -43812,7 +43877,9 @@ function installBundleExecutor(runtime, stats) {
       for (const chunk of chunks) {
         service.actionTimes.push(service.now());
         service.stats.rawActions += 1;
-        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        const command = service._command('send_item', [targetName, chunk.index, chunk.quantity]);
+        if (!command.executed) throw new Error(`SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+        const response = await service._timeout(command.value);
         if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
         const expected = itemQuantity(service._inventorySnapshot(), chunk.itemName);
         if (expected > expectedAfterTotals[chunk.itemName] && !await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expected - chunk.quantity)) {
@@ -44128,12 +44195,6 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function rawFunction(root, name) {
-  if (root && typeof root[name] === 'function') return { fn: root[name], owner: root };
-  if (root && root.parent && typeof root.parent[name] === 'function') return { fn: root.parent[name], owner: root.parent };
-  return null;
-}
-
 function itemStacks(service, itemName) {
   const items = typeof service._inventory === 'function' ? service._inventory() : [];
   const size = typeof service._inventorySize === 'function' ? service._inventorySize() : items.length;
@@ -44205,9 +44266,6 @@ function installP0PotionBundleDeltaFix(runtime) {
     if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
     const budget = service._rawBudget();
     if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
-    const fn = rawFunction(service.root, 'send_item');
-    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-
     const beforeTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(service._inventorySnapshot(), row.itemName)]));
     const expectedAfterTotals = Object.fromEntries(deliveries.map((row) => [row.itemName, beforeTotals[row.itemName] - POTION_DELIVERY_QUANTITY]));
     if (!service._startOperation(plan, {
@@ -44237,7 +44295,9 @@ function installP0PotionBundleDeltaFix(runtime) {
 
         service.actionTimes.push(service.now());
         service.stats.rawActions += 1;
-        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        const command = service._command('send_item', [targetName, chunk.index, chunk.quantity]);
+        if (!command.executed) throw new Error(`SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+        const response = await service._timeout(command.value);
         if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
 
         const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||
@@ -44618,9 +44678,6 @@ function installDeliveryPolicy(runtime) {
     if (!chunks || !chunks.length) return { executed: false, committed: false, reason: 'POTION_BUNDLE_SOURCE_UNAVAILABLE' };
     const budget = service._rawBudget();
     if (budget.used + chunks.length > budget.max) return { executed: false, committed: false, reason: 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED' };
-    const fn = rawFunction(service.root, 'send_item');
-    if (!fn) return { executed: false, committed: false, reason: 'SEND_ITEM_API_UNAVAILABLE' };
-
     const expectedAfterTotals = {
       hpot0: beforeTotals.hpot0 - (planned.get('hpot0') || 0),
       mpot0: beforeTotals.mpot0 - (planned.get('mpot0') || 0)
@@ -44638,7 +44695,9 @@ function installDeliveryPolicy(runtime) {
         if (expectedChunkTotal < 0) throw new Error(`POTION_BUNDLE_CHUNK_WOULD_OVERDELIVER:${chunk.itemName}`);
         service.actionTimes.push(service.now());
         service.stats.rawActions += 1;
-        const response = await service._timeout(fn.fn.call(fn.owner, targetName, chunk.index, chunk.quantity));
+        const command = service._command('send_item', [targetName, chunk.index, chunk.quantity]);
+        if (!command.executed) throw new Error(`SEND_ITEM_COMMAND_REJECTED:${command.reason || 'unknown'}`);
+        const response = await service._timeout(command.value);
         if (response && response.success === false) throw new Error(`SEND_ITEM_REJECTED:${response.reason || 'unknown'}`);
         const verified = itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal ||
           await service._verify(() => itemQuantity(service._inventorySnapshot(), chunk.itemName) <= expectedChunkTotal);
