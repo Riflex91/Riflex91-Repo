@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const CONTROLLED_BANK_CONSOLIDATION_MODE = 'controlled-live-default-off';
 const CONTROLLED_BANK_CONSOLIDATION_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
@@ -40,6 +42,8 @@ class ControlledBankConsolidationExecutor {
     this.getMode = options.getMode || (() => 'shadow');
     this.getSupervisorStatus = options.getSupervisorStatus || (() => ({ state: 'HEALTHY' }));
     this.getGameData = options.getGameData || (() => ({}));
+    this.ownsAdapter = !options.adapter;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'shadow' });
     this.timeoutMs = Math.max(1000, Math.min(30000, finite(options.timeoutMs, 8000)));
     this.verifyDelayMs = Math.max(0, Math.min(1000, finite(options.verifyDelayMs, 150)));
     this.verifyAttempts = Math.max(1, Math.min(20, Math.floor(finite(options.verifyAttempts, 10))));
@@ -51,6 +55,12 @@ class ControlledBankConsolidationExecutor {
 
   _event(event, severity = 'info', reason = null, data = {}) {
     if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'controlled-bank-consolidation', event, severity, reason, data });
+  }
+
+  _syncAdapterMode() {
+    if (this.ownsAdapter && this.adapter && typeof this.adapter.setMode === 'function') {
+      this.adapter.setMode(String(this.getMode()) === 'active' ? 'active' : 'shadow');
+    }
   }
 
   configure(config = {}) {
@@ -99,7 +109,8 @@ class ControlledBankConsolidationExecutor {
     if (this._inCombat()) return { ok: false, reason: 'COMBAT_ACTIVE' };
     if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
     if (!plan || plan.action !== 'CONSOLIDATE_BANK_STACKS' || !plan.pack || !plan.move) return { ok: false, reason: 'CONSOLIDATION_PLAN_REQUIRED' };
-    if (typeof this.root.bank_retrieve !== 'function' || typeof this.root.bank_store !== 'function') return { ok: false, reason: 'OFFICIAL_BANK_API_UNAVAILABLE' };
+    if (!this.adapter || typeof this.adapter.command !== 'function') return { ok: false, reason: 'GAME_ADAPTER_UNAVAILABLE' };
+    if (typeof this.adapter.canCommand === 'function' && (!this.adapter.canCommand('bank_retrieve') || !this.adapter.canCommand('bank_store'))) return { ok: false, reason: 'OFFICIAL_BANK_API_UNAVAILABLE' };
     const pack = character.bank[plan.pack];
     if (!Array.isArray(pack)) return { ok: false, reason: 'BANK_PACK_NOT_UNLOCKED' };
     const fromIndex = Number(plan.move.fromIndex);
@@ -210,7 +221,10 @@ class ControlledBankConsolidationExecutor {
     let rawActions = 0;
     try {
       this._event('CONTROLLED_BANK_CONSOLIDATION_STARTED', 'warn', 'CONTROLLED_CANARY', clone(proof));
-      const retrieveResponse = await this._timeout(this.root.bank_retrieve(proof.packName, proof.fromIndex, proof.workspace), 'BANK_RETRIEVE');
+      this._syncAdapterMode();
+      const retrieveCommand = this.adapter.command('bank_retrieve', [proof.packName, proof.fromIndex, proof.workspace]);
+      if (!retrieveCommand.executed) throw new Error(retrieveCommand.reason || (retrieveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'BANK_RETRIEVE_COMMAND_REJECTED'));
+      const retrieveResponse = await this._timeout(retrieveCommand.value, 'BANK_RETRIEVE');
       rawActions += 1;
       this.stats.rawCalls += 1;
       if (retrieveResponse && retrieveResponse.failed === true) throw new Error(String(retrieveResponse.reason || 'BANK_RETRIEVE_FAILED'));
@@ -221,7 +235,9 @@ class ControlledBankConsolidationExecutor {
         this._event('CONTROLLED_BANK_CONSOLIDATION_FAILED_SAFE', 'error', this.lastAction.reason, this.lastAction);
         return { executed: true, committed: false, reason: this.lastAction.reason, rawActions, verification: retrieved };
       }
-      const storeResponse = await this._timeout(this.root.bank_store(proof.workspace, proof.packName, proof.toIndex), 'BANK_STORE');
+      const storeCommand = this.adapter.command('bank_store', [proof.workspace, proof.packName, proof.toIndex]);
+      if (!storeCommand.executed) throw new Error(storeCommand.reason || (storeCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'BANK_STORE_COMMAND_REJECTED'));
+      const storeResponse = await this._timeout(storeCommand.value, 'BANK_STORE');
       rawActions += 1;
       this.stats.rawCalls += 1;
       if (storeResponse && storeResponse.failed === true) throw new Error(String(storeResponse.reason || 'BANK_STORE_FAILED'));

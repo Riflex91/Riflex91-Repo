@@ -1,5 +1,7 @@
 'use strict';
 
+const { GameAdapter } = require('../game/adapter');
+
 const TransitionState = Object.freeze({
   IDLE: 'IDLE',
   PREFLIGHT: 'PREFLIGHT',
@@ -27,6 +29,7 @@ class PartyTransitionController {
     this.root = options.root || globalThis;
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: 'active' });
     this.liveEnabled = options.liveEnabled === true;
     this.merchantName = options.merchantName || null;
     this.codeSlots = { ...(options.codeSlots || {}) };
@@ -69,7 +72,7 @@ class PartyTransitionController {
     return !!this.controlLease;
   }
 
-  _function(name) {
+  _readFunction(name) {
     return this.root && (this.root[name] || (this.root.parent && this.root.parent[name])) || null;
   }
 
@@ -78,7 +81,7 @@ class PartyTransitionController {
   }
 
   _activeCharacters() {
-    const fn = this._function('get_active_characters');
+    const fn = this._readFunction('get_active_characters');
     if (typeof fn !== 'function') return null;
     try {
       const value = fn.call(this.root);
@@ -168,10 +171,16 @@ class PartyTransitionController {
     throw new Error(reason || 'TRANSITION_STEP_TIMEOUT');
   }
 
+  _command(action, args = [], unavailableReason = 'COMMAND_UNAVAILABLE') {
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand(action)) throw new Error(unavailableReason);
+    const command = this.adapter.command(action, args);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : unavailableReason));
+    return command.value;
+  }
+
   async _stop(name) {
-    const fn = this._function('stop_character');
-    if (typeof fn !== 'function') throw new Error('STOP_CHARACTER_UNAVAILABLE');
-    fn.call(this.root, name);
+    await Promise.resolve(this._command('stop_character', [name], 'STOP_CHARACTER_UNAVAILABLE'));
     await this._waitUntil(() => {
       const active = this._activeCharacters();
       return active && !this._isPresentState(active[name]);
@@ -179,11 +188,9 @@ class PartyTransitionController {
   }
 
   async _start(name) {
-    const fn = this._function('start_character');
-    if (typeof fn !== 'function') throw new Error('START_CHARACTER_UNAVAILABLE');
     const slot = this.codeSlots[name];
     if (!slot) throw new Error(`MISSING_CODE_SLOT:${name}`);
-    await Promise.resolve(fn.call(this.root, name, slot));
+    await Promise.resolve(this._command('start_character', [name, slot], 'START_CHARACTER_UNAVAILABLE'));
     await this._waitUntil(() => {
       const active = this._activeCharacters();
       return active && this._isRunningState(active[name]);
@@ -197,9 +204,7 @@ class PartyTransitionController {
 
   async _invite(name, transactionId) {
     await this._authorizeInvite(name, transactionId);
-    const fn = this._function('send_party_invite');
-    if (typeof fn !== 'function') throw new Error('PARTY_INVITE_UNAVAILABLE');
-    await Promise.resolve(fn.call(this.root, name));
+    await Promise.resolve(this._command('send_party_invite', [name], 'PARTY_INVITE_UNAVAILABLE'));
   }
 
   async _recover(oldNames, newStarted, merchantName, transactionId) {

@@ -11,6 +11,16 @@ function fn(instance, name) {
   const root = instance && instance.root;
   return root && (root[name] || (root.parent && root.parent[name])) || null;
 }
+function commandBinding(instance, name) {
+  const adapter = instance && instance.adapter;
+  if (!adapter || typeof adapter.command !== 'function') return null;
+  if (typeof adapter.canCommand === 'function' && !adapter.canCommand(name)) return null;
+  return function adapterCommandBinding(...args) {
+    const command = adapter.command(name, args);
+    if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : `${name.toUpperCase()}_REJECTED`));
+    return command.value;
+  };
+}
 
 // Broader visibility is diagnostic only. In Adventure Land, a character can be
 // visible through party/get_player/entities while command_character still emits
@@ -108,12 +118,12 @@ function installAlpha2019AccountTransportHotfix() {
     const observedActive = this.activeNames();
     const directObserved = observedActive.includes(target);
     const broadEvidence = strongLiveEvidence(this, target);
-    const commandCharacter = fn(this, 'command_character');
+    const commandCharacter = commandBinding(this, 'command_character');
 
     if (receiver && typeof commandCharacter === 'function' && directObserved && until <= now) {
       this.stats.directEvidenceObservedActive += 1;
       try {
-        await Promise.resolve(commandCharacter.call(this.root, target, this._directCode(receiver, sender, payload)));
+        await Promise.resolve(commandCharacter(target, this._directCode(receiver, sender, payload)));
         this.stats.directSent += 1; backoff.delete(target);
         return { delivered: true, transport: 'command_character', target, sender, evidence: 'observed-active' };
       } catch (error) {
@@ -139,7 +149,7 @@ function installAlpha2019AccountTransportHotfix() {
     }
 
     if (!this.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
-    const sendCm = fn(this, 'send_cm');
+    const sendCm = commandBinding(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
       // Preserve the named receiver contract from AccountCharacterTransport.
@@ -148,7 +158,7 @@ function installAlpha2019AccountTransportHotfix() {
       const body = receiver
         ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
         : payload;
-      await Promise.resolve(sendCm.call(this.root, target, body));
+      await Promise.resolve(sendCm(target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {

@@ -142,12 +142,13 @@ test('Gear Progression persistence is schema-versioned and corrupt data fails cl
   assert.equal(corrupt.status().stats.loadErrors, 1);
 });
 
-test('GameAdapter still hard-rejects destructive economy actions outside the controlled merchant boundary', () => {
-  for (const action of ['sell', 'bank', 'compound', 'upgrade', 'exchange', 'trade']) assert.equal(ACTIVE_ALLOWED.has(action), false);
+test('GameAdapter catalogs migrated economy commands while unmigrated destructive actions stay rejected', () => {
+  assert.equal(ACTIVE_ALLOWED.has('sell'), true);
+  for (const action of ['bank', 'compound', 'upgrade', 'exchange', 'trade']) assert.equal(ACTIVE_ALLOWED.has(action), false);
   assert.equal(ACTIVE_ALLOWED.has('send_item'), true);
   const root = { character: { name: 'R1', ctype: 'ranger', items: [] }, parent: { entities: {} }, G: {} };
   const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
-  for (const action of ['sell', 'compound', 'upgrade']) assert.equal(adapter.command(action).reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
+  for (const action of ['bank', 'compound', 'upgrade']) assert.equal(adapter.command(action).reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
 });
 
 test('Alpha14 runtime integrates Ledger and Gear planning while all new authority remains off', () => {
