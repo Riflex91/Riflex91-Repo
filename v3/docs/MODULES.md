@@ -101,7 +101,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**14 Dateien · 2582 Zeilen**
+**14 Dateien · 2583 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -111,7 +111,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 219 |
 | `src/farmer/farmer-fsm.js` | 526 |
-| `src/farmer/kiting-farmer.js` | 84 |
+| `src/farmer/kiting-farmer.js` | 85 |
 | `src/farmer/retreat-farmer.js` | 166 |
 | `src/farmer/safe-retreat.js` | 89 |
 | `src/farmer/skill-farmer.js` | 477 |
@@ -211,13 +211,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**68 Dateien · 15174 Zeilen**
+**68 Dateien · 15180 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/reliability/alpha20-15-combat-logistics-hotfix.js` | 333 |
 | `src/reliability/alpha20-15-logistics-fairness-hotfix.js` | 39 |
-| `src/reliability/alpha20-19-account-transport-hotfix.js` | 175 |
+| `src/reliability/alpha20-19-account-transport-hotfix.js` | 181 |
 | `src/reliability/alpha20-19-logistics-stabilization.js` | 133 |
 | `src/reliability/alpha20-20-alpha22-autonomy.js` | 239 |
 | `src/reliability/alpha20-20-live-regression-hotfix.js` | 188 |
