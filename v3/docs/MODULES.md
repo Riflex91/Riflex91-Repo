@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 4023 Zeilen**
+**21 Dateien · 4011 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -41,17 +41,17 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha20-runtime.js` | 392 |
 | `src/autonomy/alpha9-runtime.js` | 64 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
-| `src/autonomy/local-farm-planner.js` | 165 |
+| `src/autonomy/local-farm-planner.js` | 153 |
 | `src/autonomy/party-skill-engine.js` | 189 |
 | `src/autonomy/tactical-party-combat.js` | 234 |
 
 ## brain
 
-**4 Dateien · 887 Zeilen**
+**4 Dateien · 874 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/brain/feature-encoder.js` | 104 |
+| `src/brain/feature-encoder.js` | 91 |
 | `src/brain/replay-buffer.js` | 48 |
 | `src/brain/shadow-brain.js` | 202 |
 | `src/brain/strategic-brain-v2.js` | 533 |
@@ -70,13 +70,16 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## core
 
-**5 Dateien · 645 Zeilen**
+**8 Dateien · 704 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/core/event-log.js` | 146 |
+| `src/core/geometry.js` | 15 |
+| `src/core/numeric.js` | 23 |
 | `src/core/patch-registry.js` | 137 |
 | `src/core/scheduler.js` | 211 |
+| `src/core/snapshot-entity-index.js` | 21 |
 | `src/core/stable-scheduler.js` | 106 |
 | `src/core/task.js` | 45 |
 
@@ -101,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**14 Dateien · 2595 Zeilen**
+**14 Dateien · 2583 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -109,7 +112,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/combat-emergency.js` | 64 |
 | `src/farmer/combat-risk.js` | 146 |
 | `src/farmer/content-safety.js` | 165 |
-| `src/farmer/controlled-farmer-loot.js` | 231 |
+| `src/farmer/controlled-farmer-loot.js` | 222 |
 | `src/farmer/farmer-fsm.js` | 526 |
 | `src/farmer/kiting-farmer.js` | 85 |
 | `src/farmer/retreat-farmer.js` | 166 |
@@ -117,17 +120,17 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/skill-farmer.js` | 477 |
 | `src/farmer/skill-usage.js` | 175 |
 | `src/farmer/target-efficiency.js` | 112 |
-| `src/farmer/target-reassessment.js` | 195 |
+| `src/farmer/target-reassessment.js` | 192 |
 | `src/farmer/target-safety.js` | 68 |
 
 ## game
 
-**3 Dateien · 723 Zeilen**
+**3 Dateien · 724 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/game/adapter.js` | 291 |
-| `src/game/command-outcomes.js` | 226 |
+| `src/game/command-outcomes.js` | 227 |
 | `src/game/stability-adapter.js` | 206 |
 
 ## merchant
@@ -205,11 +208,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## planner
 
-**1 Dateien · 65 Zeilen**
+**1 Dateien · 66 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/planner/farm-planner.js` | 65 |
+| `src/planner/farm-planner.js` | 66 |
 
 ## reliability
 
