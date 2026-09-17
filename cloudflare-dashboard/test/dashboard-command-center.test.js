@@ -35,8 +35,8 @@ test('character cards mirror Adventure Land equipment and inventory grids', () =
   assert.match(DASHBOARD_HTML, /INVENTAR/);
   assert.match(DASHBOARD_HTML, /al-equipment-grid/);
   assert.match(DASHBOARD_HTML, /al-inventory-grid/);
-  assert.match(DASHBOARD_HTML, /grid-template-columns:repeat\(4,52px\)/);
-  assert.match(DASHBOARD_HTML, /grid-template-columns:repeat\(7,52px\)/);
+  assert.match(DASHBOARD_HTML, /grid-template-columns:repeat\(4,50px\)/);
+  assert.match(DASHBOARD_HTML, /grid-template-columns:repeat\(7,50px\)/);
   assert.match(DASHBOARD_HTML, /\['earring1','helmet','earring2','amulet'\]/);
   assert.match(DASHBOARD_HTML, /\['mainhand','chest','offhand','cape'\]/);
   assert.match(DASHBOARD_HTML, /\['ring1','pants','ring2','orb'\]/);
@@ -45,7 +45,9 @@ test('character cards mirror Adventure Land equipment and inventory grids', () =
   assert.match(DASHBOARD_HTML, /registryCharacter\.inventory/);
   assert.match(DASHBOARD_HTML, /registryCharacter\.gear/);
   assert.match(DASHBOARD_HTML, /itemSprites/);
-  assert.match(DASHBOARD_HTML, /alSprite/);
+  assert.match(DASHBOARD_HTML, /equipmentShades/);
+  assert.match(DASHBOARD_HTML, /alSpriteMeta/);
+  assert.match(DASHBOARD_HTML, /al-sprite-frame/);
   assert.match(DASHBOARD_HTML, /al-qty/);
   assert.match(DASHBOARD_HTML, /al-level/);
   assert.match(DASHBOARD_HTML, /inventorySize=Number\(c\.isize\)\|\|0/);
