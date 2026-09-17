@@ -9,6 +9,7 @@ import type { GruppenTeilnehmerMeldung } from '../vertraege/gruppen-koordination
 export interface AdventureLandGruppenKommunikationsFenster {
   readonly character?: unknown;
   readonly send_cm?: unknown;
+  readonly parent?: unknown;
   on_cm?: unknown;
 }
 
@@ -31,9 +32,31 @@ function saubererName(wert: unknown): string | null {
   return name.length > 0 ? name : null;
 }
 
+function liesCharakter(spielFenster: AdventureLandGruppenKommunikationsFenster): unknown {
+  if (istObjekt(spielFenster.character)) return spielFenster.character;
+  if (istObjekt(spielFenster.parent) && istObjekt(spielFenster.parent.character)) return spielFenster.parent.character;
+  return null;
+}
+
 function lokalerName(spielFenster: AdventureLandGruppenKommunikationsFenster): string | null {
-  if (!istObjekt(spielFenster.character)) return null;
-  return saubererName(spielFenster.character.name);
+  const charakter = liesCharakter(spielFenster);
+  if (!istObjekt(charakter)) return null;
+  return saubererName(charakter.name);
+}
+
+function findeSendeFunktion(
+  spielFenster: AdventureLandGruppenKommunikationsFenster
+): Readonly<{ funktion: (...argumente: unknown[]) => unknown; kontext: object }> | null {
+  if (typeof spielFenster.send_cm === 'function') {
+    return Object.freeze({ funktion: spielFenster.send_cm as (...argumente: unknown[]) => unknown, kontext: spielFenster });
+  }
+  if (istObjekt(spielFenster.parent) && typeof spielFenster.parent.send_cm === 'function') {
+    return Object.freeze({
+      funktion: spielFenster.parent.send_cm as (...argumente: unknown[]) => unknown,
+      kontext: spielFenster.parent as object
+    });
+  }
+  return null;
 }
 
 function istTeilnehmerMeldung(wert: unknown): wert is GruppenTeilnehmerMeldung {
@@ -79,11 +102,14 @@ export class AdventureLandGruppenLebensnachweisAustausch {
   }
 
   public holeStatus(): Readonly<Record<string, unknown>> {
+    const sendePfad = findeSendeFunktion(this.spielFenster);
     return Object.freeze({
       schemaVersion: 1,
       lokalerName: lokalerName(this.spielFenster),
       aktivFreigegeben: this.aktivFreigegeben,
       empfangInstalliert: this.eigenerCmEmpfaenger !== null,
+      empfangsKontext: 'lokaler_codekontext',
+      sendeFunktionVerfuegbar: sendePfad !== null,
       vertrauensNamen: Object.freeze([...this.vertrauensNamen].sort())
     });
   }
@@ -105,9 +131,9 @@ export class AdventureLandGruppenLebensnachweisAustausch {
       return Object.freeze({ schemaVersion: 1, zielName, gesendet: false, grund: 'Lokaler Charaktername und Lebensnachweis stimmen nicht ueberein.' });
     }
 
-    const sendeFunktion = this.spielFenster.send_cm;
-    if (typeof sendeFunktion !== 'function') {
-      return Object.freeze({ schemaVersion: 1, zielName, gesendet: false, grund: 'Adventure Land stellt send_cm nicht bereit.' });
+    const sendePfad = findeSendeFunktion(this.spielFenster);
+    if (sendePfad === null) {
+      return Object.freeze({ schemaVersion: 1, zielName, gesendet: false, grund: 'Adventure Land stellt send_cm weder lokal noch im Parent-Kontext bereit.' });
     }
 
     const umschlag: GruppenLebensnachweisUmschlag = Object.freeze({
@@ -117,7 +143,7 @@ export class AdventureLandGruppenLebensnachweisAustausch {
       meldung
     });
 
-    await Promise.resolve(Reflect.apply(sendeFunktion, this.spielFenster, [zielName, umschlag]));
+    await Promise.resolve(Reflect.apply(sendePfad.funktion, sendePfad.kontext, [zielName, umschlag]));
     return Object.freeze({ schemaVersion: 1, zielName, gesendet: true, grund: 'Lebensnachweis wurde an einen vertrauten Charakter gesendet.' });
   }
 
