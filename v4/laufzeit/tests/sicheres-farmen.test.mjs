@@ -78,14 +78,15 @@ function zustand({ zeit = 1000, lebenAnteil = 0.9, manaAnteil = 0.8, monsterWert
   };
 }
 
-function bereitschaft({ zeit = 1000, rest = 0, zustandsArt = rest > 0 ? 'abklingzeit' : 'bereit' } = {}) {
+function bereitschaft({ zeit = 1000, rest = 0, zustandsArt = rest === null ? 'abklingzeit' : (rest > 0 ? 'abklingzeit' : 'bereit') } = {}) {
+  const ohneZeit = zustandsArt === 'unbekannt' || rest === null;
   return {
     schemaVersion: 1,
     aufgenommenAm: zeit,
     aktionsName: 'attack',
     zustand: zustandsArt,
-    bereitAb: zustandsArt === 'unbekannt' ? null : zeit + Math.max(0, rest),
-    restMillisekunden: zustandsArt === 'unbekannt' ? null : Math.max(0, rest),
+    bereitAb: ohneZeit ? null : zeit + Math.max(0, rest),
+    restMillisekunden: ohneZeit ? null : Math.max(0, rest),
     grund: zustandsArt === 'unbekannt' ? 'testweise unbekannt' : 'test'
   };
 }
@@ -127,6 +128,17 @@ test('Attack-Cooldown verhindert einen geplanten Angriff ohne den Farmzustand vo
   assert.equal(schritt.art, 'abklingzeit');
   assert.equal(schritt.aktionsAnfrage, null);
   assert.equal(schritt.farmEntscheidung?.art, 'angreifen');
+  assert.deepEqual(schritt.naechsterAblaufZustand.farmen, vorher.farmen);
+});
+
+test('beobachteter Attack-Cooldown ohne bekannte Restdauer bleibt sicher blockiert', () => {
+  const spielzustand = zustand();
+  const vorher = erstelleSicherenFarmAblaufZustand(spielzustand, spielzustand.aufgenommenAm);
+  const schritt = planeSicherenFarmSchritt(spielzustand, konfiguration, vorher, bereitschaft({ rest: null }), spielzustand.aufgenommenAm);
+
+  assert.equal(schritt.art, 'abklingzeit');
+  assert.equal(schritt.aktionsAnfrage, null);
+  assert.match(schritt.grund, /exakte Restdauer ist nicht erforderlich/);
   assert.deepEqual(schritt.naechsterAblaufZustand.farmen, vorher.farmen);
 });
 

@@ -40,9 +40,13 @@ Bleibt danach die Charakterposition laenger als `bewegungsStillstandNachMillisek
 
 ## Abklingzeit und Aktionsbereitschaft
 
-`AdventureLandKampfBereitschaftLesezugriff` liest fuer den normalen Angriff ausschliesslich `ms_to_next_skill("attack")`. Dabei wird keine Spielaktion ausgeloest. Die Beobachtung wird als expliziter `KampfAktionsBereitschaft`-Datensatz mit Aufnahmezeitpunkt, Zustand, Restzeit und absolutem `bereitAb` festgehalten.
+`AdventureLandKampfBereitschaftLesezugriff` beobachtet fuer den normalen Angriff primaer die reale Adventure-Land-Schnittstelle `is_on_cooldown("attack")`. Die offizielle Adventure-Land-Implementierung folgt dabei bei Bedarf `G.skills[skill].share` und prueft den lokalen `next_skill`-Zeitpunkt. Block 7 bildet diese Semantik nach, ohne eine Spielaktion auszufuehren.
 
-Die deterministische Planung ruft `ms_to_next_skill` nicht selbst auf. Sie bekommt nur den bereits beobachteten Datensatz. Dadurch kann dieselbe Bereitschaft spaeter in Tests und Wiederholungen reproduziert werden.
+Wenn `is_on_cooldown("attack")` `false` meldet, wird der Angriff als aktuell bereit beobachtet. Meldet Adventure Land `true`, wird der Zustand als `abklingzeit` festgehalten. Ist der zugehoerige `next_skill`-Zeitpunkt sichtbar, werden `bereitAb` und `restMillisekunden` exakt aus diesem beobachteten Zeitstempel abgeleitet. Fehlt der Zeitstempel, bleibt der Cooldown trotzdem bekannt; seine Restdauer wird dann bewusst als `null` gespeichert statt erfunden.
+
+Falls `is_on_cooldown` nicht vorhanden ist, darf `can_use("attack")` nur als konservativer Fallback dienen: `true` kann Bereitschaft bestaetigen, `false` wird nicht automatisch als Cooldown interpretiert und bleibt `unbekannt`, weil die Ursache auch eine andere Voraussetzung sein kann.
+
+Die deterministische Planung ruft weder `is_on_cooldown` noch `can_use` selbst auf. Sie bekommt nur den bereits beobachteten `KampfAktionsBereitschaft`-Datensatz. Dadurch kann dieselbe Bereitschaft spaeter in Tests und Wiederholungen reproduziert werden.
 
 Ein Angriff wird nur freigegeben, wenn der Bereitschaftsdatensatz:
 
@@ -50,10 +54,9 @@ Ein Angriff wird nur freigegeben, wenn der Bereitschaftsdatensatz:
 - nicht in der Zukunft aufgenommen wurde,
 - nicht aelter als `maxAktionsBereitschaftAlterMillisekunden` ist,
 - nicht `unbekannt` ist,
-- gueltige Zeitwerte besitzt,
-- und `bereitAb` nicht mehr in der Zukunft liegt.
+- und den Zustand `bereit` konsistent bestaetigt.
 
-Unbekannte oder veraltete Bereitschaft fuehrt zu Blockierung statt zu einem geratenen Angriff. Eine normale Zielbewegung, Heilung oder Beuteaufnahme wird durch den Attack-Cooldown nicht unnoetig blockiert.
+Ein bekannter Zustand `abklingzeit` blockiert den Angriff auch dann korrekt, wenn Adventure Land keine exakte Restdauer bereitstellt. Unbekannte oder veraltete Bereitschaft fuehrt ebenfalls zu Blockierung statt zu einem geratenen Angriff. Eine normale Zielbewegung, Heilung oder Beuteaufnahme wird durch den Attack-Cooldown nicht unnoetig blockiert.
 
 ## Sicherheitsentscheidung vor Farmplan
 
@@ -113,11 +116,13 @@ Vor jedem Lauf wird `performance_trick()` verpflichtend aktiviert. Fehlt die Fun
 
 Verpasste Browser-Ticks werden nicht kuenstlich nachgeholt. Ein formal abgelaufener Quelllauf mit schlechter Sampling-Abdeckung wird als `unvollstaendig` markiert.
 
-### Adventure-Land-Kontextbruecke fuer `ms_to_next_skill`
+### Bereitschaftsadapter fuer den bestehenden Schattenrunner
 
-Ein realer 10-Minuten-Lauf zeigte, dass `character` und `entities` im Parent-Kontext lesbar waren, `ms_to_next_skill` im Ranger-Codekontext aber nicht dort sichtbar war. Dadurch blieb die Angriffsbereitschaft in allen 601 Schritten `unbekannt` und geplante Angriffe wurden korrekt fail-safe blockiert.
+Der erste reale 10-Minuten-Lauf bestand die Sampling-Pruefung mit 601 von 601 Schritten und 100 % Abdeckung, meldete die Angriffsbereitschaft aber in allen 601 Schritten als `unbekannt`. Ursache war nicht eine Fenstergrenze, sondern die Annahme einer nicht vorhandenen API: `ms_to_next_skill` ist im getesteten Adventure-Land-Codekontext nicht verfuegbar.
 
-`block7-schattenlauf-kontextbruecke.js` normalisiert diesen Unterschied fuer den Testbetrieb. Wenn `ms_to_next_skill` bereits im Parent-Kontext existiert, wird nichts veraendert. Existiert die Funktion nur lokal, wird eine kleine Weiterleitung im Parent-Kontext bereitgestellt, die den spaeteren Aufruf weiterhin im lokalen Adventure-Land-Codekontext ausfuehrt. Die Bruecke ruft `ms_to_next_skill` beim Aktivieren nicht auf und fuehrt selbst keine Spielaktion aus.
+`block7-schattenlauf-kontextbruecke.js` bleibt deshalb nur als kleiner Kompatibilitaetsadapter vor dem bestehenden Browser-Runner. Version 2.x verwendet primaer Adventure Lands reales `is_on_cooldown`. Fuer eine beobachtbare Restzeit liest der Adapter denselben `next_skill`-Zeitpunkt, auf dem die offizielle Cooldown-Funktion basiert, und folgt dabei `G.skills[skill].share`. `can_use` wird nur als positiver Fallback verwendet; ein `false` wird nicht als Cooldown geraten.
+
+Der Adapter stellt dem unveraenderten Schattenrunner intern dessen erwartete `ms_to_next_skill`-Form bereit, fuehrt aber keine Spielaktion aus. Diese Kompatibilitaetsfunktion ist kein neuer Spielzustand und keine Quelle fuer die deterministische V4-Planung; die Runtime benutzt direkt den expliziten Bereitschaftsdatensatz.
 
 Ladereihenfolge im Ranger-Codekontext:
 
@@ -126,13 +131,13 @@ Ladereihenfolge im Ranger-Codekontext:
 3. `v4/werkzeuge/block7-schattenlauf-ranger.js`
 4. `v4/werkzeuge/block7-schattenlauf-qualitaet.js`
 
-Optional kann vor dem Lauf geprueft werden:
+Vor dem Lauf wird geprueft:
 
 ```js
 V4Block7SchattenKontextbruecke.status()
 ```
 
-Erwartet wird `aktiv: true`. Bei lokaler Weiterleitung steht zusaetzlich `quelle: "lokal"` und `weitergereicht: true` im Status.
+Erwartet wird `aktiv: true`. Im normalen aktuellen Adventure-Land-Pfad soll `quelle` mit `is_on_cooldown:` beginnen. Wenn `next_skill` sichtbar ist, soll zusaetzlich `zeitQuelle: "next_skill"` erscheinen.
 
 Start:
 
@@ -174,10 +179,10 @@ Der Schattenlauf bleibt read-only. Er beobachtet die Reihenfolge `Kampfsicherhei
 
 ## Aktueller Umfang und naechste Block-7-Schritte
 
-Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung, Reichweiten-Recheck und die Infrastruktur fuer den 10-Minuten-Schattenlauf mit Sampling-Qualitaet sind umgesetzt. Der erste reale 10-Minuten-Lauf bestand die Sampling-Pruefung mit 601 von 601 Schritten, deckte aber eine Kontextluecke beim Zugriff auf `ms_to_next_skill` auf; dieser Lauf gilt deshalb noch nicht als vollstaendiger funktionaler Schattennachweis.
+Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, reale Adventure-Land-Cooldown-Beobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung, Reichweiten-Recheck und die Infrastruktur fuer den 10-Minuten-Schattenlauf mit Sampling-Qualitaet sind umgesetzt. Der erste reale 10-Minuten-Lauf bestaetigte die Sampling-Infrastruktur, deckte aber die falsche Annahme `ms_to_next_skill` auf; dieser Lauf gilt deshalb noch nicht als vollstaendiger funktionaler Schattennachweis.
 
 Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
 
-1. Wiederholung des 10-Minuten-Read-only-Schattenlaufs mit aktiver Kontextbruecke und bekannten `bereit`/`abklingzeit`-Beobachtungen statt durchgehend `unbekannt`,
+1. Wiederholung des 10-Minuten-Read-only-Schattenlaufs mit der realen `is_on_cooldown`-Beobachtung und bekannten `bereit`/`abklingzeit`-Zustaenden statt durchgehend `unbekannt`,
 2. ein kontrollierter Aktivtest, der Rueckzug/Abstandhalten und den Reichweiten-Abbruch gezielt ausloest,
 3. die abschliessende Auswertung gegen die Block-7-Abnahmekriterien.
