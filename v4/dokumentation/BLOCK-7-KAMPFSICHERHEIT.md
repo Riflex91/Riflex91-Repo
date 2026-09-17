@@ -113,11 +113,26 @@ Vor jedem Lauf wird `performance_trick()` verpflichtend aktiviert. Fehlt die Fun
 
 Verpasste Browser-Ticks werden nicht kuenstlich nachgeholt. Ein formal abgelaufener Quelllauf mit schlechter Sampling-Abdeckung wird als `unvollstaendig` markiert.
 
+### Adventure-Land-Kontextbruecke fuer `ms_to_next_skill`
+
+Ein realer 10-Minuten-Lauf zeigte, dass `character` und `entities` im Parent-Kontext lesbar waren, `ms_to_next_skill` im Ranger-Codekontext aber nicht dort sichtbar war. Dadurch blieb die Angriffsbereitschaft in allen 601 Schritten `unbekannt` und geplante Angriffe wurden korrekt fail-safe blockiert.
+
+`block7-schattenlauf-kontextbruecke.js` normalisiert diesen Unterschied fuer den Testbetrieb. Wenn `ms_to_next_skill` bereits im Parent-Kontext existiert, wird nichts veraendert. Existiert die Funktion nur lokal, wird eine kleine Weiterleitung im Parent-Kontext bereitgestellt, die den spaeteren Aufruf weiterhin im lokalen Adventure-Land-Codekontext ausfuehrt. Die Bruecke ruft `ms_to_next_skill` beim Aktivieren nicht auf und fuehrt selbst keine Spielaktion aus.
+
 Ladereihenfolge im Ranger-Codekontext:
 
 1. `v4/werkzeuge/adventure-land-testkonsole.js`
-2. `v4/werkzeuge/block7-schattenlauf-ranger.js`
-3. `v4/werkzeuge/block7-schattenlauf-qualitaet.js`
+2. `v4/werkzeuge/block7-schattenlauf-kontextbruecke.js`
+3. `v4/werkzeuge/block7-schattenlauf-ranger.js`
+4. `v4/werkzeuge/block7-schattenlauf-qualitaet.js`
+
+Optional kann vor dem Lauf geprueft werden:
+
+```js
+V4Block7SchattenKontextbruecke.status()
+```
+
+Erwartet wird `aktiv: true`. Bei lokaler Weiterleitung steht zusaetzlich `quelle: "lokal"` und `weitergereicht: true` im Status.
 
 Start:
 
@@ -159,8 +174,10 @@ Der Schattenlauf bleibt read-only. Er beobachtet die Reihenfolge `Kampfsicherhei
 
 ## Aktueller Umfang und naechste Block-7-Schritte
 
-Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung, Reichweiten-Recheck und die Infrastruktur fuer den 10-Minuten-Schattenlauf mit Sampling-Qualitaet sind umgesetzt. Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
+Gefahrenkern, Replay, zentrale Notfall-Unterbrechung, Abklingzeitbeobachtung, Safety-vor-Farm, aktive Sicherheitsbewegung, Reichweiten-Recheck und die Infrastruktur fuer den 10-Minuten-Schattenlauf mit Sampling-Qualitaet sind umgesetzt. Der erste reale 10-Minuten-Lauf bestand die Sampling-Pruefung mit 601 von 601 Schritten, deckte aber eine Kontextluecke beim Zugriff auf `ms_to_next_skill` auf; dieser Lauf gilt deshalb noch nicht als vollstaendiger funktionaler Schattennachweis.
 
-1. der reale 10-Minuten-Read-only-Schattenlauf auf dem Ranger,
+Fuer den vollstaendigen Block-7-Abschluss fehlen noch:
+
+1. Wiederholung des 10-Minuten-Read-only-Schattenlaufs mit aktiver Kontextbruecke und bekannten `bereit`/`abklingzeit`-Beobachtungen statt durchgehend `unbekannt`,
 2. ein kontrollierter Aktivtest, der Rueckzug/Abstandhalten und den Reichweiten-Abbruch gezielt ausloest,
 3. die abschliessende Auswertung gegen die Block-7-Abnahmekriterien.
