@@ -189,12 +189,13 @@ test('Alpha15 runtime integrates transaction planning but cannot enable live eco
   assert.doesNotThrow(() => JSON.parse(runtime.exportDiagnostics()));
 });
 
-test('General GameAdapter still rejects destructive economy actions outside the controlled merchant boundary in Alpha15', () => {
-  for (const action of ['sell', 'bank', 'bank_store', 'compound', 'upgrade', 'exchange', 'trade']) assert.equal(ACTIVE_ALLOWED.has(action), false);
+test('General GameAdapter catalogs migrated economy commands while unmigrated destructive actions stay rejected in Alpha15', () => {
+  for (const action of ['sell', 'bank_store']) assert.equal(ACTIVE_ALLOWED.has(action), true);
+  for (const action of ['bank', 'compound', 'upgrade', 'exchange', 'trade']) assert.equal(ACTIVE_ALLOWED.has(action), false);
   assert.equal(ACTIVE_ALLOWED.has('send_item'), true);
   const root = { character: { name: 'M1', ctype: 'merchant', items: [] }, parent: { entities: {} }, G: {} };
   const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
-  for (const action of ['sell', 'bank_store', 'compound', 'upgrade']) assert.equal(adapter.command(action).reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
+  for (const action of ['bank', 'compound', 'upgrade']) assert.equal(adapter.command(action).reason, 'ACTION_NOT_ALLOWED_IN_ALPHA');
 });
 
 test('2000 transaction planning cycles remain bounded and serializable', () => {
