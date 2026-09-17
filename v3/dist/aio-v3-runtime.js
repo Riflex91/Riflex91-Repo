@@ -45703,6 +45703,7 @@ class Alpha31PartyRoleLivenessHotfix {
       if (!current || current.id !== id) return;
       this.followerSmartMove = null;
       if (response && response.failed === true) {
+        this._supersedeMovement('FOLLOWER_SMART_MOVE_FAILED');
         this.stats.followerSmartFailures += 1;
         this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(response.reason || 'SMART_MOVE_FAILED'), { move: current });
         return;
@@ -45713,6 +45714,7 @@ class Alpha31PartyRoleLivenessHotfix {
       const current = this.followerSmartMove;
       if (!current || current.id !== id) return;
       this.followerSmartMove = null;
+      this._supersedeMovement('FOLLOWER_SMART_MOVE_REJECTED');
       this.stats.followerSmartFailures += 1;
       this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(error && error.message || error || 'SMART_MOVE_REJECTED').slice(0, 160), { move: current });
     });
