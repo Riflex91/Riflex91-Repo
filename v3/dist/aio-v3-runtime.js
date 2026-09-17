@@ -2672,8 +2672,9 @@ module.exports = { CLASS_PRIORS, capabilitiesFor, partyProfile };
 "src/planner/farm-planner.js": function(require,module,exports){
 'use strict';
 
-function clamp01(n) { return Math.max(0, Math.min(1, Number(n) || 0)); }
-function normalize(value, max) { return max > 0 ? Math.max(0, Number(value) || 0) / max : 0; }
+const { clamp01, ratio } = require('../core/numeric');
+
+function normalize(value, max) { return ratio(Math.max(0, Number(value) || 0), max, 0); }
 
 class FarmPlanner {
   constructor(options = {}) {
@@ -2735,6 +2736,32 @@ class FarmPlanner {
 }
 
 module.exports = { FarmPlanner };
+
+},
+"src/core/numeric.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, min, max, fallback = min) {
+  const number = finite(value, fallback);
+  return Math.max(min, Math.min(max, number));
+}
+
+function clamp01(value) {
+  return clamp(value, 0, 1, 0);
+}
+
+function ratio(value, max, fallback = 0) {
+  const denominator = finite(max, 0);
+  if (denominator <= 0) return clamp01(fallback);
+  return clamp01(finite(value, 0) / denominator);
+}
+
+module.exports = { finite, clamp, clamp01, ratio };
 
 },
 "src/farmer/retreat-farmer.js": function(require,module,exports){
@@ -4282,10 +4309,7 @@ module.exports = { SkillUsagePolicy, isDirectDamageSkill };
 "src/farmer/target-reassessment.js": function(require,module,exports){
 'use strict';
 
-function distance(a, b) {
-  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
-  return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
-}
+const { distance } = require('../core/geometry');
 
 function liveMonster(entity, character) {
   if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
@@ -4475,6 +4499,24 @@ class TargetReassessmentPolicy {
 }
 
 module.exports = { TargetReassessmentPolicy, threatScore };
+
+},
+"src/core/geometry.js": function(require,module,exports){
+'use strict';
+
+const { finite } = require('./numeric');
+
+function distance(a, b) {
+  if (!a || !b) return Infinity;
+  const ax = finite(a.x, null);
+  const ay = finite(a.y, null);
+  const bx = finite(b.x, null);
+  const by = finite(b.y, null);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+module.exports = { distance };
 
 },
 "src/farmer/safe-retreat.js": function(require,module,exports){
@@ -5439,18 +5481,18 @@ module.exports = { StabilityGameAdapter };
 "src/game/command-outcomes.js": function(require,module,exports){
 'use strict';
 
+const { finite } = require('../core/numeric');
+const { createSnapshotEntityIndex, entityById: indexedEntityById } = require('../core/snapshot-entity-index');
+
 const CommandOutcomeState = Object.freeze({
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
   TIMED_OUT: 'TIMED_OUT'
 });
 
-function finite(value) {
-  return Number.isFinite(Number(value)) ? Number(value) : null;
-}
-
-function entityById(snapshot, id) {
+function entityById(snapshot, id, index = null) {
   if (!snapshot || id == null) return null;
+  if (index && index.snapshot === snapshot) return indexedEntityById(index, id);
   const wanted = String(id);
   return (snapshot.entities || []).find((entity) => entity && String(entity.id) === wanted) || null;
 }
@@ -5523,7 +5565,7 @@ class CommandOutcomeTracker {
     return { ...record };
   }
 
-  _effect(record, snapshot) {
+  _effect(record, snapshot, entityIndex = null) {
     if (!snapshot || !snapshot.character || !record.before) return null;
     const before = record.before;
     const c = snapshot.character;
@@ -5531,10 +5573,10 @@ class CommandOutcomeTracker {
 
     if (action === 'move' || action === 'smart_move' || action === 'town') {
       if (before.map && c.map && before.map !== c.map) return { kind: 'MAP_CHANGED', map: c.map };
-      const bx = finite(before.x);
-      const by = finite(before.y);
-      const x = finite(c.x);
-      const y = finite(c.y);
+      const bx = finite(before.x, null);
+      const by = finite(before.y, null);
+      const x = finite(c.x, null);
+      const y = finite(c.y, null);
       if (bx != null && by != null && x != null && y != null) {
         const delta = Math.hypot(x - bx, y - by);
         if (delta >= this.moveMinDelta) return { kind: 'POSITION_CHANGED', delta: Number(delta.toFixed(2)), x, y };
@@ -5551,7 +5593,7 @@ class CommandOutcomeTracker {
 
     if (action === 'attack' || action === 'use_skill') {
       const targetId = action === 'attack' ? record.args[0] : record.args[1];
-      const target = entityById(snapshot, targetId);
+      const target = entityById(snapshot, targetId, entityIndex);
       if (before.targetPresent && !target) return { kind: 'TARGET_GONE', targetId: targetId || null };
       if (target && (target.dead || (target.hp != null && Number(target.hp) <= 0))) return { kind: 'TARGET_DEAD', targetId: target.id };
       if (target && before.targetHp != null && target.hp != null && Number(target.hp) < Number(before.targetHp)) {
@@ -5616,8 +5658,9 @@ class CommandOutcomeTracker {
   observe(snapshot) {
     const now = this.now();
     const completed = [];
+    const entityIndex = createSnapshotEntityIndex(snapshot);
     for (const record of [...this.pending.values()]) {
-      const effect = this._effect(record, snapshot);
+      const effect = this._effect(record, snapshot, entityIndex);
       if (effect) {
         completed.push(this._terminal(record, CommandOutcomeState.CONFIRMED, effect.kind, now, effect));
         continue;
@@ -5663,6 +5706,30 @@ class CommandOutcomeTracker {
 }
 
 module.exports = { CommandOutcomeTracker, CommandOutcomeState, inventoryCount, entityById };
+
+},
+"src/core/snapshot-entity-index.js": function(require,module,exports){
+'use strict';
+
+function snapshotEntities(snapshot) {
+  return snapshot && Array.isArray(snapshot.entities) ? snapshot.entities : [];
+}
+
+function createSnapshotEntityIndex(snapshot) {
+  const byId = new Map();
+  for (const entity of snapshotEntities(snapshot)) {
+    if (!entity || entity.id == null) continue;
+    byId.set(String(entity.id), entity);
+  }
+  return { snapshot, byId, size: byId.size };
+}
+
+function entityById(index, id) {
+  if (!index || !(index.byId instanceof Map) || id == null) return null;
+  return index.byId.get(String(id)) || null;
+}
+
+module.exports = { snapshotEntities, createSnapshotEntityIndex, entityById };
 
 },
 "src/core/stable-scheduler.js": function(require,module,exports){
@@ -6386,22 +6453,10 @@ module.exports = { Alpha9Runtime };
 "src/autonomy/local-farm-planner.js": function(require,module,exports){
 'use strict';
 
+const { finite } = require('../core/numeric');
+const { distance } = require('../core/geometry');
+
 const NON_FARM_MONSTER_TYPES = new Set(['target']);
-
-function finite(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function distance(a, b) {
-  if (!a || !b) return Infinity;
-  const ax = finite(a.x);
-  const ay = finite(a.y);
-  const bx = finite(b.x);
-  const by = finite(b.y);
-  if (ax == null || ay == null || bx == null || by == null) return Infinity;
-  return Math.hypot(ax - bx, ay - by);
-}
 
 function spawnType(entry) {
   if (!entry) return null;
@@ -6424,13 +6479,13 @@ function boundaryCenter(boundary) {
     if (nums.length >= 2) return { x: nums[0], y: nums[1] };
   }
   if (typeof boundary === 'object') {
-    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left);
-    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top);
-    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right);
-    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom);
+    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left, null);
+    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top, null);
+    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right, null);
+    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom, null);
     if (x1 != null && y1 != null && x2 != null && y2 != null) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-    const x = finite(boundary.x);
-    const y = finite(boundary.y);
+    const x = finite(boundary.x, null);
+    const y = finite(boundary.y, null);
     if (x != null && y != null) return { x, y };
   }
   return null;
@@ -6445,8 +6500,8 @@ function spawnCenter(entry) {
   if (typeof entry !== 'object') return null;
   const direct = boundaryCenter(entry.boundary || entry.bound || entry.bounds || entry.area);
   if (direct) return direct;
-  const x = finite(entry.x);
-  const y = finite(entry.y);
+  const x = finite(entry.x, null);
+  const y = finite(entry.y, null);
   if (x != null && y != null) return { x, y };
   return null;
 }
@@ -7213,6 +7268,8 @@ module.exports = {
 "src/brain/feature-encoder.js": function(require,module,exports){
 'use strict';
 
+const { finite, clamp01, ratio } = require('../core/numeric');
+
 const FEATURE_SCHEMA_VERSION = 1;
 const FEATURE_NAMES = Object.freeze([
   'xpRate',
@@ -7225,21 +7282,6 @@ const FEATURE_NAMES = Object.freeze([
   'mpReserve',
   'currentPlanAffinity'
 ]);
-
-function finite(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function clamp01(value) {
-  return Math.max(0, Math.min(1, finite(value, 0)));
-}
-
-function ratio(value, max) {
-  const denominator = finite(max, 0);
-  if (denominator <= 0) return 0;
-  return clamp01(finite(value, 0) / denominator);
-}
 
 function candidateId(candidate) {
   if (!candidate) return null;
@@ -7264,8 +7306,8 @@ class StrategicFeatureEncoder {
 
     const maxXp = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.xpPerHour, 0))));
     const maxGold = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.goldPerHour, 0))));
-    const hpReserve = ratio(character.hp, character.max_hp);
-    const mpReserve = ratio(character.mp, character.max_mp);
+    const hpReserve = ratio(character.hp, character.max_hp, 0);
+    const mpReserve = ratio(character.mp, character.max_mp, 0);
 
     return usable.map((candidate) => {
       const id = candidateId(candidate);
@@ -21401,18 +21443,9 @@ module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE 
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
+const { finite, clamp } = require('../core/numeric');
 
 const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
-
-function finite(value, fallback = null) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function clamp(value, min, max, fallback) {
-  const number = finite(value, fallback);
-  return Math.max(min, Math.min(max, number));
-}
 
 function clone(value) {
   if (value == null) return value;
@@ -21524,7 +21557,7 @@ class ControlledFarmerLoot {
       this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { requestId, delta, freeSlots: after.freeSlots });
     }
     this.pendingObservation = null;
-    return clone(this.lastObservation);
+    return this.lastObservation;
   }
 
   tick(snapshot) {
