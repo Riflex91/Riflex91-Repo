@@ -180,6 +180,8 @@ Abschlusspruefung:
 
 ## Block 7 – Kampfsicherheit und Rueckzug
 
+Status: **abgeschlossen am 17. September 2026**. Der detaillierte Abschlussnachweis steht in `BLOCK-7-ABSCHLUSS.md`.
+
 Ziel: Sicherheit hat immer Vorrang vor Leistung.
 
 Gemeinsam umgesetzt werden:
@@ -194,11 +196,18 @@ Gemeinsam umgesetzt werden:
 
 Abschlusspruefung:
 
-- absichtlich erzeugte Gefahrensituationen werden sicher behandelt
-- keine normale Aktion blockiert einen Rueckzug
-- Fehler-Einspritztests fuer niedrige Lebenspunkte, fehlendes Mana, falsche Reichweite und blockierte Bewegung
+- absichtlich erzeugte Gefahrensituationen werden sicher behandelt — **erfuellt**
+- keine normale Aktion blockiert einen Rueckzug — **erfuellt**
+- Fehler-Einspritztests fuer niedrige Lebenspunkte, fehlendes Mana, falsche Reichweite und blockierte Bewegung — **erfuellt**
+- 10-Minuten-Read-only-Schattenlauf mit 601/601 Schritten und 100 % Sampling-Abdeckung — **erfuellt**
+- reale Adventure-Land-Angriffsbereitschaft ohne unbekannte Bereitschaftszustaende im Abschlusslauf — **erfuellt**
+- kontrollierter one-shot Live-Smoke-Test mit exakt einem Sicherheits-`move`, 0 sonstigen Spielaktionen und automatischer Wiedersperrung — **erfuellt**
+
+Hinweis: Dieser Blockabschluss ersetzt nicht die spaeteren allgemeinen 24-Stunden-, 72-Stunden- und 7-Tage-Systemtests der gesamten V4.
 
 ## Block 8 – Gruppenkoordination
+
+Status: **naechster Entwicklungsblock**.
 
 Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 

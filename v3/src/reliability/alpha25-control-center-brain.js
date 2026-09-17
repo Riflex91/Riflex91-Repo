@@ -7,6 +7,152 @@ const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoun
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
 const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
+const ADVENTURE_LAND_ASSET_BASE = 'https://adventure.land/';
+const EQUIPMENT_SHADE_SKINS = Object.freeze({
+  earring1: 'shade_earring', helmet: 'shade_helmet', earring2: 'shade_earring', amulet: 'shade_amulet',
+  mainhand: 'shade_mainhand', chest: 'shade_chest', offhand: 'shade_offhand', cape: 'shade20_cape',
+  ring1: 'shade_ring', pants: 'shade_pants', ring2: 'shade_ring', orb: 'shade20_orb',
+  belt: 'shade_belt', shoes: 'shade_shoes', gloves: 'shade_gloves', elixir: 'shade20_elixir'
+});
+
+function adventureLandAssetUrl(file) {
+  const value = String(file == null ? '' : file).trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('//')) return `https:${value}`;
+  return ADVENTURE_LAND_ASSET_BASE + value.replace(/^\/+/, '');
+}
+
+function gameDataSources(runtime) {
+  const sources = [];
+  const add = (value) => {
+    if (!value || typeof value !== 'object' || sources.includes(value)) return;
+    sources.push(value);
+  };
+  try {
+    if (runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function') add(runtime.adapter.getGameData());
+  } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.root && runtime.adapter.root.G); } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.parent && runtime.adapter.parent.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.parent && runtime.root.parent.G); } catch (_) {}
+  return sources;
+}
+
+function positionFromImageSets(gameData, skin) {
+  for (const [packName, pack] of Object.entries(gameData && gameData.imagesets || {})) {
+    const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
+    for (let y = 0; y < matrix.length; y += 1) {
+      const row = Array.isArray(matrix[y]) ? matrix[y] : [];
+      for (let x = 0; x < row.length; x += 1) {
+        const cell = row[x];
+        if (cell === skin || (Array.isArray(cell) && cell.includes(skin))) return [packName, x, y];
+      }
+    }
+  }
+  return null;
+}
+
+function spritePosition(gameData, skin) {
+  const direct = skin && gameData && gameData.positions && gameData.positions[skin];
+  return Array.isArray(direct) ? direct : positionFromImageSets(gameData, skin);
+}
+
+function inferredImageSetRows(gameData, packName, pack) {
+  const explicit = Number(pack && pack.rows);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (Array.isArray(pack && pack.matrix) && pack.matrix.length) return pack.matrix.length;
+  let maxY = -1;
+  for (const position of Object.values(gameData && gameData.positions || {})) {
+    if (!Array.isArray(position) || (position[0] || 'pack_20') !== packName) continue;
+    const y = Number(position[2]);
+    if (Number.isFinite(y) && y >= 0) maxY = Math.max(maxY, y);
+  }
+  return maxY >= 0 ? maxY + 1 : null;
+}
+
+function spriteMeta(gameData, skin) {
+  const position = spritePosition(gameData, skin);
+  const packName = Array.isArray(position) && position[0] || 'pack_20';
+  const pack = gameData && gameData.imagesets && gameData.imagesets[packName];
+  const file = adventureLandAssetUrl(pack && pack.file);
+  const x = Number(Array.isArray(position) ? position[1] : NaN);
+  const y = Number(Array.isArray(position) ? position[2] : NaN);
+  const size = Number(pack && pack.size);
+  const columns = Number(pack && pack.columns);
+  const rows = inferredImageSetRows(gameData, packName, pack);
+  if (!skin || !file || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size) || size <= 0 || !Number.isFinite(columns) || columns <= 0 || !Number.isFinite(rows) || rows <= 0) return null;
+  return { skin, file, x, y, size, columns, rows };
+}
+
+function spriteMetaFromSources(sources, skin) {
+  for (const source of sources) {
+    const meta = spriteMeta(source, skin);
+    if (meta) return meta;
+  }
+  return null;
+}
+
+function itemDefinitionFromSources(sources, name) {
+  for (const source of sources) {
+    const def = source && source.items && source.items[name];
+    if (def && typeof def === 'object') return def;
+  }
+  return null;
+}
+
+function itemSpriteCatalog(runtime, maxItems = 160) {
+  const sources = gameDataSources(runtime);
+  let registry = null;
+  try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
+  const names = new Set();
+  const add = (item) => {
+    const name = String(item && item.name || '').trim();
+    if (name && names.size < maxItems) names.add(name);
+  };
+  for (const character of registry && Array.isArray(registry.characters) ? registry.characters : []) {
+    for (const item of Array.isArray(character && character.inventory) ? character.inventory : []) add(item);
+    for (const item of Object.values(character && character.gear && typeof character.gear === 'object' ? character.gear : {})) add(item);
+    if (names.size >= maxItems) break;
+  }
+  const catalog = {};
+  for (const name of names) {
+    const def = itemDefinitionFromSources(sources, name);
+    const skin = def && (def.skin_c || def.skin);
+    const meta = spriteMetaFromSources(sources, skin);
+    if (meta) catalog[name] = meta;
+  }
+  return catalog;
+}
+
+function equipmentShadeCatalog(runtime) {
+  const sources = gameDataSources(runtime);
+  const catalog = {};
+  for (const [slot, skin] of Object.entries(EQUIPMENT_SHADE_SKINS)) {
+    const meta = spriteMetaFromSources(sources, skin);
+    if (meta) catalog[slot] = meta;
+  }
+  return catalog;
+}
+
+function installAdventureLandItemSprites(runtime, cloud) {
+  if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
+  const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
+  cloud._runtimeSnapshot = () => {
+    const snapshot = originalRuntimeSnapshot();
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      snapshot.equipmentShades = equipmentShadeCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
+    return snapshot;
+  };
+  cloud.__adventureLandItemSpritesInstalled = true;
+  return true;
+}
 
 class Alpha25ControlCenterBrain {
   constructor(runtime, options = {}) {
@@ -24,6 +170,7 @@ class Alpha25ControlCenterBrain {
     runtime.brain = this.brain;
     this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
     runtime.cloudControlPlane = this.cloud;
+    installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
     this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
@@ -157,10 +304,23 @@ class Alpha25ControlCenterBrain {
 
 function installAlpha25ControlCenterBrain(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha25ControlCenterBrain) return runtime.alpha25ControlCenterBrain;
+  if (runtime.alpha25ControlCenterBrain) {
+    const existing = runtime.alpha25ControlCenterBrain;
+    const cloud = runtime.cloudControlPlane || existing.cloud;
+    installAdventureLandItemSprites(runtime, cloud);
+    return existing;
+  }
   const module = new Alpha25ControlCenterBrain(runtime, options);
   runtime.alpha25ControlCenterBrain = module;
   return module;
 }
 
-module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
+module.exports = {
+  ALPHA25_MODE,
+  Alpha25ControlCenterBrain,
+  installAlpha25ControlCenterBrain,
+  adventureLandAssetUrl,
+  itemSpriteCatalog,
+  equipmentShadeCatalog,
+  installAdventureLandItemSprites
+};

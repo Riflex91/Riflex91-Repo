@@ -15,10 +15,12 @@
     "block5-struktur:pruefen": "node werkzeuge/block5-struktur-pruefen.mjs",
     "block6-struktur:pruefen": "node werkzeuge/block6-struktur-pruefen.mjs",
     "block7-struktur:pruefen": "node werkzeuge/block7-struktur-pruefen.mjs",
+    "block8-struktur:pruefen": "node werkzeuge/block8-struktur-pruefen.mjs",
     "testkonsole:pruefen": "node --check werkzeuge/adventure-land-testkonsole.js",
     "block2-beobachtung:pruefen": "node --check werkzeuge/block2-beobachtung.js",
     "block6-live-test:pruefen": "node --check werkzeuge/block6-live-test.js",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen"
+    "block8-lebensnachweis:pruefen": "node --check werkzeuge/block8-lebensnachweis-schatten.js",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run block8-struktur:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen && npm run block8-lebensnachweis:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",

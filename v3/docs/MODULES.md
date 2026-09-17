@@ -211,7 +211,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**68 Dateien · 15417 Zeilen**
+**68 Dateien · 15577 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -229,7 +229,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 430 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 548 |
-| `src/reliability/alpha25-control-center-brain.js` | 166 |
+| `src/reliability/alpha25-control-center-brain.js` | 326 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 48 |
