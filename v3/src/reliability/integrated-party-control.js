@@ -1,6 +1,8 @@
 'use strict';
 
 const { installAlpha2019AccountTransportHotfix } = require('./alpha20-19-account-transport-hotfix');
+const { installAlpha2057ReliableAccountTransport } = require('./alpha20-57-reliable-account-transport');
+const { installAlpha2057RegroupMovementOwnership } = require('./alpha20-57-regroup-movement-ownership');
 const { patchAlpha2019LogisticsStabilization } = require('./alpha20-19-logistics-stabilization');
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
@@ -18,6 +20,8 @@ class IntegratedPartyControl {
     this.log = runtime.log || null;
     this.installedAt = this.now();
     this.transportPatched = components.transportPatched === true;
+    this.reliableTransportPatched = components.reliableTransportPatched === true;
+    this.regroupMovementOwnershipPatched = components.regroupMovementOwnershipPatched === true;
     this.logisticsPatched = components.logisticsPatched === true;
     this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
     this.alpha21Liveness = components.alpha21Liveness || null;
@@ -53,6 +57,8 @@ class IntegratedPartyControl {
       alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
       alpha20_19: {
         transportPrototypePatched: this.transportPatched,
+        reliableTransportPatched: this.reliableTransportPatched,
+        regroupMovementOwnershipPatched: this.regroupMovementOwnershipPatched,
         logisticsPrototypePatched: this.logisticsPatched,
         logistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_19 || null : null,
         skillEngine: this.partySkillEngine && this.partySkillEngine.status ? this.partySkillEngine.status() : null
@@ -72,6 +78,8 @@ function installIntegratedPartyControl(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
   if (runtime.integratedPartyControl) return runtime.integratedPartyControl;
   const transportPatched = installAlpha2019AccountTransportHotfix();
+  const reliableTransportPatched = installAlpha2057ReliableAccountTransport();
+  const regroupMovementOwnershipPatched = installAlpha2057RegroupMovementOwnership();
   const logisticsPatched = patchAlpha2019LogisticsStabilization();
   const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
   const alpha21Liveness = patchAlpha21LivenessGuards();
@@ -82,7 +90,7 @@ function installIntegratedPartyControl(runtime, options = {}) {
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, reliableTransportPatched, regroupMovementOwnershipPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }

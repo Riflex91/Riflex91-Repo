@@ -26898,6 +26898,8 @@ module.exports = {
 'use strict';
 
 const { installAlpha2019AccountTransportHotfix } = require('./alpha20-19-account-transport-hotfix');
+const { installAlpha2057ReliableAccountTransport } = require('./alpha20-57-reliable-account-transport');
+const { installAlpha2057RegroupMovementOwnership } = require('./alpha20-57-regroup-movement-ownership');
 const { patchAlpha2019LogisticsStabilization } = require('./alpha20-19-logistics-stabilization');
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
@@ -26915,6 +26917,8 @@ class IntegratedPartyControl {
     this.log = runtime.log || null;
     this.installedAt = this.now();
     this.transportPatched = components.transportPatched === true;
+    this.reliableTransportPatched = components.reliableTransportPatched === true;
+    this.regroupMovementOwnershipPatched = components.regroupMovementOwnershipPatched === true;
     this.logisticsPatched = components.logisticsPatched === true;
     this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
     this.alpha21Liveness = components.alpha21Liveness || null;
@@ -26950,6 +26954,8 @@ class IntegratedPartyControl {
       alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
       alpha20_19: {
         transportPrototypePatched: this.transportPatched,
+        reliableTransportPatched: this.reliableTransportPatched,
+        regroupMovementOwnershipPatched: this.regroupMovementOwnershipPatched,
         logisticsPrototypePatched: this.logisticsPatched,
         logistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_19 || null : null,
         skillEngine: this.partySkillEngine && this.partySkillEngine.status ? this.partySkillEngine.status() : null
@@ -26969,6 +26975,8 @@ function installIntegratedPartyControl(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
   if (runtime.integratedPartyControl) return runtime.integratedPartyControl;
   const transportPatched = installAlpha2019AccountTransportHotfix();
+  const reliableTransportPatched = installAlpha2057ReliableAccountTransport();
+  const regroupMovementOwnershipPatched = installAlpha2057RegroupMovementOwnership();
   const logisticsPatched = patchAlpha2019LogisticsStabilization();
   const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
   const alpha21Liveness = patchAlpha21LivenessGuards();
@@ -26979,7 +26987,7 @@ function installIntegratedPartyControl(runtime, options = {}) {
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, reliableTransportPatched, regroupMovementOwnershipPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }
@@ -26990,7 +26998,7 @@ module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGR
 "src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
 'use strict';
 
-const { AccountCharacterTransport, cleanName } = require('../party/account-character-transport');
+const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL, cleanName } = require('../party/account-character-transport');
 const PATCH = Symbol.for('AIO_V3_ALPHA20_19_ACCOUNT_TRANSPORT_PATCH');
 const DIRECT_BACKOFF_MS = 15000;
 const DIRECT_SKIP_LOG_INTERVAL_MS = 15000;
@@ -27132,7 +27140,13 @@ function installAlpha2019AccountTransportHotfix() {
     const sendCm = fn(this, 'send_cm');
     if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
     try {
-      await Promise.resolve(sendCm.call(this.root, target, payload));
+      // Preserve the base transport's named-receiver CM envelope. Alpha20.19
+      // changes direct-routing authority/backoff only; it must not discard the
+      // receiver address when falling back to send_cm.
+      const body = receiver
+        ? { __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL, receiver, payload: payload == null ? null : payload }
+        : payload;
+      await Promise.resolve(sendCm.call(this.root, target, body));
       this.stats.fallbackSent += 1;
       return { delivered: true, transport: 'send_cm', target, sender };
     } catch (error) {
@@ -27163,6 +27177,1112 @@ function installAlpha2019AccountTransportHotfix() {
 }
 
 module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvidence, shouldLogDirectSkip, installAlpha2019AccountTransportHotfix };
+},
+"src/reliability/alpha20-57-reliable-account-transport.js": function(require,module,exports){
+'use strict';
+
+const {
+  AccountCharacterTransport,
+  NAMED_RECEIVER_CM_PROTOCOL,
+  cleanName
+} = require('../party/account-character-transport');
+
+const PATCH = Symbol.for('AIO_V3_ALPHA20_57_RELIABLE_ACCOUNT_TRANSPORT_PATCH');
+const RELIABLE_RECEIVER = '__AIO_V3_ACCOUNT_TRANSPORT_RELIABLE';
+const DELIVERY_KIND = 'DELIVERY';
+const ACK_KIND = 'ACK';
+const DEFAULT_ACK_TIMEOUT_MS = 1200;
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_BACKOFF_MS = 250;
+const DEDUPE_TTL_MS = 60000;
+const MAX_DEDUPE_ENTRIES = 256;
+
+function boundedMessage(error) {
+  return String(error && error.message || error || 'unknown').slice(0, 240);
+}
+
+function isStorageQuotaError(error) {
+  return /QuotaExceededError|exceeded the quota|quota.*storage|storage.*quota/i.test(String(error && error.message || error || ''));
+}
+
+function boundedInteger(value, fallback, min, max) {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function cleanMessageId(value) {
+  const id = String(value == null ? '' : value).trim().slice(0, 180);
+  return id || null;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function functionOf(instance, name) {
+  const root = instance && instance.root;
+  return root && (root[name] || (root.parent && root.parent[name])) || null;
+}
+
+function ensureStats(instance) {
+  const stats = instance.stats || (instance.stats = {});
+  for (const key of [
+    'deliveryAttempted',
+    'remoteReceived',
+    'receiverAccepted',
+    'ackSent',
+    'ackReceived',
+    'deliveryRetries',
+    'deliveryTimeouts',
+    'deliveryFailedSafe',
+    'duplicatesSuppressed',
+    'cmRouterRepairs'
+  ]) {
+    if (!Number.isFinite(Number(stats[key]))) stats[key] = 0;
+  }
+  return stats;
+}
+
+function reliableState(instance) {
+  ensureStats(instance);
+  if (!instance.__alpha2057ReliableTransport) {
+    instance.__alpha2057ReliableTransport = {
+      pending: new Map(),
+      inflight: new Map(),
+      received: new Map(),
+      sequence: 0,
+      handler: null
+    };
+  }
+  return instance.__alpha2057ReliableTransport;
+}
+
+function pruneReceived(instance) {
+  const state = reliableState(instance);
+  const now = instance.now();
+  for (const [key, row] of state.received.entries()) {
+    if (!row || Number(row.expiresAt) <= now) state.received.delete(key);
+  }
+  while (state.received.size > MAX_DEDUPE_ENTRIES) {
+    const oldest = state.received.keys().next();
+    if (oldest.done) break;
+    state.received.delete(oldest.value);
+  }
+}
+
+function sendAck(instance, target, message, accepted, reason) {
+  const targetName = cleanName(target);
+  const messageId = cleanMessageId(message && message.messageId);
+  const sendCm = functionOf(instance, 'send_cm');
+  if (!targetName || !messageId || typeof sendCm !== 'function') return false;
+
+  const envelope = {
+    __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL,
+    receiver: RELIABLE_RECEIVER,
+    payload: {
+      kind: ACK_KIND,
+      messageId,
+      receiver: cleanName(message && message.receiver),
+      accepted: accepted === true,
+      reason: reason == null ? null : String(reason).slice(0, 160)
+    }
+  };
+
+  Promise.resolve()
+    .then(() => sendCm.call(instance.root, targetName, envelope))
+    .then(() => {
+      instance.stats.ackSent += 1;
+      instance._event('ACCOUNT_TRANSPORT_ACK_SENT', 'info', accepted ? 'NAMED_RECEIVER_ACCEPTED' : (reason || 'NAMED_RECEIVER_REJECTED'), {
+        target: targetName,
+        messageId,
+        receiver: envelope.payload.receiver,
+        accepted: accepted === true
+      });
+    })
+    .catch((error) => {
+      instance.stats.fallbackFailed += 1;
+      instance._event('ACCOUNT_TRANSPORT_FALLBACK_FAILED', 'warn', 'ACK_SEND_CM_FAILED', {
+        target: targetName,
+        messageId,
+        message: boundedMessage(error)
+      });
+    });
+  return true;
+}
+
+function handleAck(instance, sender, data) {
+  const state = reliableState(instance);
+  const senderName = cleanName(sender);
+  const messageId = cleanMessageId(data && data.messageId);
+  const pending = senderName && messageId ? state.pending.get(`${senderName}:${messageId}`) : null;
+  if (!pending) {
+    instance.stats.fallbackRejected += 1;
+    instance._event('ACCOUNT_TRANSPORT_FALLBACK_REJECTED', 'warn', 'ACK_NOT_PENDING_OR_WRONG_SENDER', {
+      sender: senderName,
+      messageId
+    });
+    return false;
+  }
+
+  instance.stats.ackReceived += 1;
+  instance._event('ACCOUNT_TRANSPORT_ACK_RECEIVED', data.accepted === true ? 'info' : 'warn', data.accepted === true ? 'REMOTE_DELIVERY_CONFIRMED' : (data.reason || 'REMOTE_RECEIVER_REJECTED'), {
+    sender: senderName,
+    messageId,
+    receiver: cleanName(data.receiver) || pending.receiver,
+    accepted: data.accepted === true,
+    attempt: pending.attempt
+  });
+  pending.settle({
+    accepted: data.accepted === true,
+    reason: data.reason == null ? null : String(data.reason).slice(0, 160)
+  });
+  return true;
+}
+
+function handleDelivery(instance, sender, data) {
+  const state = reliableState(instance);
+  const senderName = cleanName(sender);
+  const messageId = cleanMessageId(data && data.messageId);
+  const receiver = cleanName(data && data.receiver);
+  const trusted = !instance.trustedNames.size || (senderName && instance.trustedNames.has(senderName));
+  const receiverAvailable = !!(receiver && instance.root && typeof instance.root[receiver] === 'function');
+
+  instance.stats.remoteReceived += 1;
+  instance._event('ACCOUNT_TRANSPORT_REMOTE_RECEIVED', 'info', null, {
+    sender: senderName,
+    messageId,
+    receiver,
+    trusted,
+    receiverAvailable
+  });
+
+  if (!trusted) {
+    instance.stats.fallbackRejected += 1;
+    sendAck(instance, senderName, data, false, 'SENDER_NOT_TRUSTED_OWN_CHARACTER');
+    return false;
+  }
+  if (!messageId) {
+    instance.stats.fallbackRejected += 1;
+    return false;
+  }
+
+  pruneReceived(instance);
+  const key = `${senderName || 'unknown'}:${messageId}`;
+  const previous = state.received.get(key);
+  if (previous) {
+    instance.stats.duplicatesSuppressed += 1;
+    instance._event('ACCOUNT_TRANSPORT_DUPLICATE_SUPPRESSED', 'info', 'MESSAGE_ID_ALREADY_PROCESSED', {
+      sender: senderName,
+      messageId,
+      receiver,
+      accepted: previous.accepted === true
+    });
+    sendAck(instance, senderName, data, previous.accepted === true, previous.reason);
+    return previous.accepted === true;
+  }
+
+  let accepted = false;
+  let reason = null;
+  if (!receiverAvailable) {
+    reason = 'NAMED_RECEIVER_UNAVAILABLE';
+  } else {
+    try {
+      const result = instance.root[receiver](senderName || sender, data.payload);
+      if (result && typeof result.then === 'function') reason = 'ASYNC_NAMED_RECEIVER_UNSUPPORTED';
+      else if (result === false) reason = 'NAMED_RECEIVER_REJECTED';
+      else {
+        accepted = true;
+        reason = 'NAMED_RECEIVER_ACCEPTED';
+      }
+    } catch (error) {
+      reason = `NAMED_RECEIVER_FAILED:${boundedMessage(error)}`;
+    }
+  }
+
+  state.received.set(key, {
+    accepted,
+    reason,
+    expiresAt: instance.now() + DEDUPE_TTL_MS
+  });
+  pruneReceived(instance);
+  if (accepted) instance.stats.receiverAccepted += 1;
+  else instance.stats.fallbackRejected += 1;
+  sendAck(instance, senderName, data, accepted, reason);
+  return accepted;
+}
+
+function handleReliableMessage(instance, sender, data) {
+  if (!data || typeof data !== 'object') return false;
+  if (data.kind === ACK_KIND) return handleAck(instance, sender, data);
+  if (data.kind === DELIVERY_KIND) return handleDelivery(instance, sender, data);
+  instance.stats.fallbackRejected += 1;
+  instance._event('ACCOUNT_TRANSPORT_FALLBACK_REJECTED', 'warn', 'RELIABLE_MESSAGE_KIND_UNKNOWN', {
+    sender: cleanName(sender),
+    kind: String(data.kind || '')
+  });
+  return false;
+}
+
+function ensureReliableReceiver(instance, baseInstallDirectReceiver) {
+  if (!instance || !instance.root) return false;
+  const state = reliableState(instance);
+  if (!state.handler) state.handler = (sender, data) => handleReliableMessage(instance, sender, data);
+  const installed = baseInstallDirectReceiver.call(instance, RELIABLE_RECEIVER, state.handler);
+  try { instance._installCmRouter(); } catch (_) {}
+  return installed;
+}
+
+function messageId(instance, target, receiver, requested) {
+  const explicit = cleanMessageId(requested);
+  if (explicit) return explicit;
+  const state = reliableState(instance);
+  state.sequence += 1;
+  return `aio-${instance.localName() || 'unknown'}-${target}-${receiver}-${instance.now()}-${state.sequence}`.slice(0, 180);
+}
+
+function pendingAck(instance, target, id, receiver) {
+  const state = reliableState(instance);
+  const key = `${target}:${id}`;
+  let settled = false;
+  let resolvePromise;
+  const promise = new Promise((resolve) => { resolvePromise = resolve; });
+  const pending = {
+    receiver,
+    attempt: 0,
+    settle(result) {
+      if (settled) return false;
+      settled = true;
+      resolvePromise(result);
+      return true;
+    }
+  };
+  state.pending.set(key, pending);
+  return { key, pending, promise };
+}
+
+function deliveryResult(instance, target, sender, receiver, id, attempt, ack) {
+  if (ack && ack.accepted === true) {
+    return {
+      delivered: true,
+      transport: 'send_cm-ack',
+      target,
+      sender,
+      receiver,
+      messageId: id,
+      attempts: attempt,
+      reason: 'REMOTE_ACK_CONFIRMED'
+    };
+  }
+
+  const reason = ack && ack.reason || 'REMOTE_RECEIVER_REJECTED';
+  instance.stats.deliveryFailedSafe += 1;
+  instance._event('ACCOUNT_TRANSPORT_DELIVERY_FAILED_SAFE', 'error', reason, {
+    target,
+    sender,
+    receiver,
+    messageId: id,
+    attempt,
+    remoteReceived: true
+  });
+  return {
+    delivered: false,
+    transport: 'send_cm-ack',
+    target,
+    sender,
+    receiver,
+    messageId: id,
+    attempts: attempt,
+    reason
+  };
+}
+
+async function sendReliable(instance, targetName, payload, options, baseInstallDirectReceiver) {
+  const target = cleanName(targetName);
+  const sender = cleanName(options && options.sender) || instance.localName();
+  const receiver = cleanName(options && options.receiver);
+  if (!target || !sender) throw new Error('ACCOUNT_TRANSPORT_INVALID_ENDPOINT');
+  if (!receiver) throw new Error('ACCOUNT_TRANSPORT_ACK_REQUIRES_RECEIVER');
+  ensureReliableReceiver(instance, baseInstallDirectReceiver);
+
+  if (target === instance.localName() && instance.root && typeof instance.root[receiver] === 'function') {
+    const accepted = instance.root[receiver](sender, payload) !== false;
+    instance.stats.localDelivered += 1;
+    return {
+      delivered: accepted,
+      transport: 'local',
+      target,
+      sender,
+      receiver,
+      reason: accepted ? 'LOCAL_RECEIVER_ACCEPTED' : 'LOCAL_RECEIVER_REJECTED'
+    };
+  }
+
+  if (!instance.isOwned(target)) {
+    instance.stats.rejectedNotOwned += 1;
+    instance._event('ACCOUNT_TRANSPORT_REJECTED', 'warn', 'TARGET_NOT_TRUSTED_OWN_CHARACTER', { target, sender });
+    throw new Error(`TARGET_NOT_TRUSTED_OWN_CHARACTER:${target}`);
+  }
+  if (!instance.fallbackEnabled) throw new Error(`ACCOUNT_TRANSPORT_DIRECT_UNAVAILABLE:${target}`);
+  const sendCm = functionOf(instance, 'send_cm');
+  if (typeof sendCm !== 'function') throw new Error('SEND_CM_UNAVAILABLE');
+
+  const state = reliableState(instance);
+  const id = messageId(instance, target, receiver, options && options.messageId);
+  const inflightKey = `${target}:${id}`;
+  const existing = state.inflight.get(inflightKey);
+  if (existing) return existing;
+
+  const ackTimeoutMs = boundedInteger(options && options.ackTimeoutMs, DEFAULT_ACK_TIMEOUT_MS, 25, 30000);
+  const maxAttempts = boundedInteger(options && options.maxAttempts, DEFAULT_MAX_ATTEMPTS, 1, 5);
+  const retryBackoffMs = boundedInteger(options && options.retryBackoffMs, DEFAULT_RETRY_BACKOFF_MS, 0, 10000);
+
+  const operation = (async () => {
+    const wait = pendingAck(instance, target, id, receiver);
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        wait.pending.attempt = attempt;
+        const envelope = {
+          __aioProtocol: NAMED_RECEIVER_CM_PROTOCOL,
+          receiver: RELIABLE_RECEIVER,
+          payload: {
+            kind: DELIVERY_KIND,
+            messageId: id,
+            receiver,
+            payload: payload == null ? null : payload,
+            requiresAck: true,
+            attempt
+          }
+        };
+
+        instance.stats.deliveryAttempted += 1;
+        instance._event('ACCOUNT_TRANSPORT_DELIVERY_ATTEMPTED', 'info', 'SEND_CM_ACK_REQUIRED', {
+          target,
+          sender,
+          receiver,
+          messageId: id,
+          attempt,
+          maxAttempts,
+          transport: 'send_cm'
+        });
+
+        try {
+          await Promise.resolve(sendCm.call(instance.root, target, envelope));
+          instance.stats.fallbackSent += 1;
+        } catch (error) {
+          if (isStorageQuotaError(error)) throw error;
+          instance.stats.fallbackFailed += 1;
+          instance._event('ACCOUNT_TRANSPORT_FALLBACK_FAILED', 'warn', 'SEND_CM_FAILED', {
+            target,
+            sender,
+            receiver,
+            messageId: id,
+            attempt,
+            message: boundedMessage(error)
+          });
+          if (attempt < maxAttempts) {
+            instance.stats.deliveryRetries += 1;
+            instance._event('ACCOUNT_TRANSPORT_RETRY', 'warn', 'SEND_CM_FAILED', {
+              target,
+              receiver,
+              messageId: id,
+              nextAttempt: attempt + 1,
+              maxAttempts
+            });
+            const lateAck = await Promise.race([wait.promise, delay(retryBackoffMs).then(() => null)]);
+            if (lateAck) return deliveryResult(instance, target, sender, receiver, id, attempt, lateAck);
+            continue;
+          }
+          break;
+        }
+
+        const ack = await Promise.race([wait.promise, delay(ackTimeoutMs).then(() => null)]);
+        if (ack) return deliveryResult(instance, target, sender, receiver, id, attempt, ack);
+
+        instance.stats.deliveryTimeouts += 1;
+        instance._event('ACCOUNT_TRANSPORT_DELIVERY_TIMEOUT', 'warn', 'REMOTE_ACK_TIMEOUT', {
+          target,
+          sender,
+          receiver,
+          messageId: id,
+          attempt,
+          ackTimeoutMs
+        });
+
+        if (attempt < maxAttempts) {
+          instance.stats.deliveryRetries += 1;
+          instance._event('ACCOUNT_TRANSPORT_RETRY', 'warn', 'REMOTE_ACK_TIMEOUT', {
+            target,
+            receiver,
+            messageId: id,
+            nextAttempt: attempt + 1,
+            maxAttempts
+          });
+          const lateAck = await Promise.race([wait.promise, delay(retryBackoffMs).then(() => null)]);
+          if (lateAck) return deliveryResult(instance, target, sender, receiver, id, attempt, lateAck);
+        }
+      }
+
+      instance.stats.deliveryFailedSafe += 1;
+      instance._event('ACCOUNT_TRANSPORT_DELIVERY_FAILED_SAFE', 'error', 'REMOTE_ACK_NOT_CONFIRMED', {
+        target,
+        sender,
+        receiver,
+        messageId: id,
+        maxAttempts
+      });
+      return {
+        delivered: false,
+        transport: 'send_cm-ack',
+        target,
+        sender,
+        receiver,
+        messageId: id,
+        attempts: maxAttempts,
+        reason: 'REMOTE_ACK_NOT_CONFIRMED'
+      };
+    } finally {
+      state.pending.delete(wait.key);
+    }
+  })();
+
+  state.inflight.set(inflightKey, operation);
+  try {
+    return await operation;
+  } finally {
+    if (state.inflight.get(inflightKey) === operation) state.inflight.delete(inflightKey);
+  }
+}
+
+function isReliableAlpha28Objective(payload, options) {
+  return !!(
+    options && options.receiver &&
+    payload && typeof payload === 'object' &&
+    payload.crossMapAuthorizedBy === 'alpha28-controlled-farmer-travel' &&
+    cleanMessageId(payload.id)
+  );
+}
+
+function installAlpha2057ReliableAccountTransport() {
+  const proto = AccountCharacterTransport && AccountCharacterTransport.prototype;
+  if (!proto || proto[PATCH]) return false;
+  Object.defineProperty(proto, PATCH, { value: true, enumerable: false });
+
+  const baseInstallRouter = proto._installCmRouter;
+  const baseInstallDirectReceiver = proto.installDirectReceiver;
+  const baseSend = proto.send;
+  const baseStatus = proto.status;
+
+  proto._installCmRouter = function installSelfHealingReliableRouter() {
+    const displaced = this._cmRouterInstalled === true && this.root && this._cmRouter && this.root.on_cm !== this._cmRouter;
+    if (displaced) {
+      this._cmRouterInstalled = false;
+      this._cmRouter = null;
+      this._cmRouterPrevious = null;
+      ensureStats(this);
+      this.stats.cmRouterRepairs += 1;
+      this._event('ACCOUNT_TRANSPORT_CM_ROUTER_REPAIRED', 'warn', 'ON_CM_HANDLER_DISPLACED', {
+        localName: this.localName(),
+        directReceiverCount: this._directReceiverNames && this._directReceiverNames.size || 0
+      });
+    }
+    return baseInstallRouter.call(this);
+  };
+
+  proto.installDirectReceiver = function installReceiverWithReliableTunnel(receiverName, handler) {
+    const installed = baseInstallDirectReceiver.call(this, receiverName, handler);
+    if (cleanName(receiverName) !== RELIABLE_RECEIVER) ensureReliableReceiver(this, baseInstallDirectReceiver);
+    return installed;
+  };
+
+  proto.send = function sendWithAckDelivery(targetName, payload, options = {}) {
+    ensureReliableReceiver(this, baseInstallDirectReceiver);
+    const target = cleanName(targetName);
+    const reliableAlpha28 = isReliableAlpha28Objective(payload, options);
+    if (options.requiresAck === true || reliableAlpha28) {
+      const reliableOptions = reliableAlpha28 && !options.messageId
+        ? { ...options, requiresAck: true, messageId: `alpha28:${String(payload.id)}:${target || 'unknown'}` }
+        : { ...options, requiresAck: true };
+      return sendReliable(this, targetName, payload, reliableOptions, baseInstallDirectReceiver);
+    }
+    return baseSend.call(this, targetName, payload, options);
+  };
+
+  proto.status = function statusWithReliableDelivery() {
+    const base = baseStatus.call(this);
+    const state = reliableState(this);
+    pruneReceived(this);
+    return {
+      ...base,
+      alpha20_57ReliableAccountTransport: true,
+      reliableDelivery: {
+        receiver: RELIABLE_RECEIVER,
+        protocol: NAMED_RECEIVER_CM_PROTOCOL,
+        transport: 'send_cm-ack',
+        ackTimeoutMs: DEFAULT_ACK_TIMEOUT_MS,
+        maxAttempts: DEFAULT_MAX_ATTEMPTS,
+        retryBackoffMs: DEFAULT_RETRY_BACKOFF_MS,
+        dedupeTtlMs: DEDUPE_TTL_MS,
+        pendingAcks: state.pending.size,
+        inflight: state.inflight.size,
+        retainedDedupeEntries: state.received.size
+      },
+      stats: { ...this.stats }
+    };
+  };
+
+  return true;
+}
+
+module.exports = {
+  RELIABLE_RECEIVER,
+  DELIVERY_KIND,
+  ACK_KIND,
+  DEFAULT_ACK_TIMEOUT_MS,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_RETRY_BACKOFF_MS,
+  DEDUPE_TTL_MS,
+  installAlpha2057ReliableAccountTransport
+};
+},
+"src/reliability/alpha20-57-regroup-movement-ownership.js": function(require,module,exports){
+'use strict';
+
+const { TeamCombatCohesionHotfix } = require('./team-combat-cohesion-hotfix');
+const {
+  Alpha28CrossMapFarmerProgression,
+  SHARED_OBJECTIVE,
+  TEAM_REGROUP_KIND
+} = require('./alpha28-cross-map-farmer');
+
+const TEAM_PATCH = Symbol.for('AIO_V3_ALPHA20_57_REGROUP_MOVEMENT_OWNER_TEAM_PATCH');
+const CROSS_MAP_PATCH = Symbol.for('AIO_V3_ALPHA20_57_REGROUP_MOVEMENT_OWNER_CROSS_MAP_PATCH');
+const HOLD_REASON = 'ALPHA28_REGROUP_MOVEMENT_AUTHORITY_ACTIVE';
+
+function normalizeFailureReason(value, fallback = 'SMART_MOVE_FAILED', depth = 0) {
+  if (depth > 4 || value == null) return fallback;
+  if (value instanceof Error && value.message) return String(value.message).slice(0, 512);
+  if (typeof value === 'string') return value.trim() || fallback;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    const code = typeof value.code === 'string' ? value.code.trim() : '';
+    const message = typeof value.message === 'string' ? value.message.trim() : '';
+    const nestedReason = value.reason != null && value.reason !== value
+      ? normalizeFailureReason(value.reason, '', depth + 1)
+      : '';
+    const nestedError = value.error != null && value.error !== value
+      ? normalizeFailureReason(value.error, '', depth + 1)
+      : '';
+    const detail = message || nestedReason || nestedError;
+    if (code && detail) return `${code}: ${detail}`.slice(0, 512);
+    if (detail) return detail.slice(0, 512);
+    if (code) return code.slice(0, 512);
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== '{}') return serialized.slice(0, 512);
+    } catch (_) {}
+  }
+  const text = String(value || '').trim();
+  return !text || text === '[object Object]' ? fallback : text.slice(0, 512);
+}
+
+function failureDetails(value) {
+  if (value == null) return { type: 'null' };
+  if (value instanceof Error) {
+    return {
+      type: 'error',
+      name: String(value.name || 'Error').slice(0, 80),
+      message: String(value.message || '').slice(0, 512),
+      code: value.code == null ? null : String(value.code).slice(0, 120)
+    };
+  }
+  if (typeof value !== 'object') {
+    return { type: typeof value, value: String(value).slice(0, 512) };
+  }
+  const details = { type: 'object' };
+  for (const key of ['name', 'code', 'message', 'reason', 'error', 'status']) {
+    if (value[key] == null) continue;
+    details[key] = typeof value[key] === 'object'
+      ? normalizeFailureReason(value[key], '', 1)
+      : String(value[key]).slice(0, 512);
+  }
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized && serialized !== '{}') details.serialized = serialized.slice(0, 768);
+  } catch (_) {}
+  return details;
+}
+
+function activeRegroupOwnership(runtime, team) {
+  const alpha28 = runtime && runtime.alpha28LiveAuthorityLiveness;
+  const crossMap = alpha28 && alpha28.crossMap;
+  if (!crossMap || crossMap.busy !== true || !crossMap.activePlanId || !crossMap.activeObjectiveId) return null;
+
+  const candidates = [];
+  if (crossMap.receivedObjective) candidates.push(crossMap.receivedObjective);
+  try {
+    const shared = crossMap.parent && crossMap.parent[SHARED_OBJECTIVE];
+    if (shared) candidates.push(shared);
+  } catch (_) {}
+
+  const objective = candidates.find((row) => row
+    && String(row.id || '') === String(crossMap.activeObjectiveId || '')
+    && String(row.kind || '') === TEAM_REGROUP_KIND);
+  if (!objective) return null;
+  if (team && team.leaderName && objective.leaderName
+    && String(team.leaderName) !== String(objective.leaderName)) return null;
+
+  return { crossMap, objective };
+}
+
+function patchTeamMovementOwnership() {
+  const proto = TeamCombatCohesionHotfix && TeamCombatCohesionHotfix.prototype;
+  if (!proto || typeof proto._followLeader !== 'function') return false;
+  if (proto[TEAM_PATCH]) return true;
+
+  const baseFollowLeader = proto._followLeader;
+  proto._followLeader = function alpha2057RegroupMovementOwnerFollowLeader(context, team, reason) {
+    const ownership = activeRegroupOwnership(this.runtime, team);
+    if (!ownership) {
+      this.__alpha2057RegroupMovementHoldKey = null;
+      return baseFollowLeader.call(this, context, team, reason);
+    }
+
+    const { crossMap, objective } = ownership;
+    const at = typeof this.now === 'function' ? this.now() : Date.now();
+    this.lastDecision = {
+      at,
+      action: 'FORMATION_HOLD',
+      reason: HOLD_REASON,
+      requestedReason: reason || null,
+      leaderName: team && team.leaderName || objective.leaderName || null,
+      planId: crossMap.activePlanId,
+      objectiveId: objective.id,
+      movementOwner: 'alpha28-controlled-farmer-travel'
+    };
+
+    const holdKey = `${objective.id}:${crossMap.activePlanId}`;
+    if (this.__alpha2057RegroupMovementHoldKey !== holdKey) {
+      this.__alpha2057RegroupMovementHoldKey = holdKey;
+      if (typeof this._event === 'function') {
+        this._event('TEAM_FORMATION_MOVE_SUPPRESSED', 'info', HOLD_REASON, { ...this.lastDecision });
+      }
+    }
+    return true;
+  };
+  proto[TEAM_PATCH] = true;
+  return true;
+}
+
+function patchCrossMapSmartMoveFailureTelemetry() {
+  const proto = Alpha28CrossMapFarmerProgression && Alpha28CrossMapFarmerProgression.prototype;
+  if (!proto || typeof proto._execute !== 'function') return false;
+  if (proto[CROSS_MAP_PATCH]) return true;
+
+  const baseExecute = proto._execute;
+  proto._execute = async function alpha2057NormalizedCrossMapExecute(objective, snapshot) {
+    const root = this.root || {};
+    const property = typeof root.smart_move === 'function'
+      ? 'smart_move'
+      : (typeof root.smartMove === 'function' ? 'smartMove' : null);
+    if (!property) return baseExecute.call(this, objective, snapshot);
+
+    const original = root[property];
+    const owner = this;
+    const emitFailure = (source, value, fallback) => {
+      const reason = normalizeFailureReason(value, fallback);
+      if (typeof owner.event === 'function') {
+        owner.event('ALPHA28_SMART_MOVE_REJECTED', 'error', reason, {
+          source,
+          planId: owner.activePlanId || null,
+          objectiveId: objective && objective.id || null,
+          objectiveKind: objective && objective.kind || null,
+          failure: failureDetails(value)
+        });
+      }
+      return reason;
+    };
+
+    const wrapped = function alpha2057NormalizedSmartMove(...args) {
+      let result;
+      try {
+        result = original.apply(this, args);
+      } catch (error) {
+        const reason = emitFailure('throw', error, 'SMART_MOVE_THROWN');
+        throw new Error(reason);
+      }
+      return Promise.resolve(result).then((response) => {
+        if (response && response.failed === true) {
+          const reason = emitFailure('resolved-failure', response.reason, 'SMART_MOVE_FAILED');
+          return { ...response, reason };
+        }
+        return response;
+      }, (error) => {
+        const reason = emitFailure('rejection', error, 'SMART_MOVE_REJECTED');
+        throw new Error(reason);
+      });
+    };
+
+    root[property] = wrapped;
+    try {
+      return await baseExecute.call(this, objective, snapshot);
+    } finally {
+      if (root[property] === wrapped) root[property] = original;
+    }
+  };
+  proto[CROSS_MAP_PATCH] = true;
+  return true;
+}
+
+function installAlpha2057RegroupMovementOwnership() {
+  const teamPatched = patchTeamMovementOwnership();
+  const crossMapPatched = patchCrossMapSmartMoveFailureTelemetry();
+  return teamPatched && crossMapPatched;
+}
+
+module.exports = {
+  HOLD_REASON,
+  normalizeFailureReason,
+  failureDetails,
+  activeRegroupOwnership,
+  installAlpha2057RegroupMovementOwnership
+};
+
+},
+"src/reliability/alpha28-cross-map-farmer.js": function(require,module,exports){
+'use strict';
+
+const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+
+const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
+const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
+const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const TEAM_REGROUP_KIND = 'TEAM_REGROUP';
+const PROGRESSION_KIND = 'PROGRESSION';
+
+function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
+function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
+function characterOf(runtime) { return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || runtime && runtime.root && runtime.root.character || null; }
+
+class Alpha28CrossMapFarmerProgression {
+  constructor(runtime, shared) {
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.parent = this.root && this.root.parent || this.root;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.stats = shared.stats;
+    this.busy = false;
+    this.activePlanId = null;
+    this.activeObjectiveId = null;
+    this.lastAction = null;
+    this.timeoutMs = 120000;
+    this.receiverInstalled = false;
+    this.receivedObjective = null;
+    this.lastRegroupPublishAt = -Infinity;
+    this.regroupPublishIntervalMs = 2000;
+    this.regroupObjectiveTtlMs = 15000;
+    this.patchProgressionStatus();
+  }
+
+  event(event, severity = 'info', reason = null, data = {}) {
+    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-farmer-travel', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _progression() { return this.runtime.progressionIntelligence || null; }
+
+  patchProgressionStatus() {
+    const progression = this._progression();
+    if (!progression || progression.__alpha28CrossMapStatusPatched || typeof progression.status !== 'function') return false;
+    const base = progression.status.bind(progression);
+    progression.status = () => {
+      const status = base();
+      return { ...status, policy: { ...(status.policy || {}), crossMapPromotionRecommendationOnly: false, crossMapPromotionAutomatic: true, directSmartMoveAuthority: false, controlledFarmerTravelAuthority: true, crossMapTeamRegroupAutomatic: true } };
+    };
+    progression.__alpha28CrossMapStatusPatched = true;
+    return true;
+  }
+  _team(snapshot) {
+    try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
+  }
+  _transport() {
+    return this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport || null;
+  }
+  _ensureReceiver() {
+    if (this.receiverInstalled) return true;
+    const transport = this._transport();
+    if (!transport || typeof transport.installDirectReceiver !== 'function') return false;
+    transport.installDirectReceiver(CROSS_MAP_RECEIVER, (sender, payload) => {
+      const snapshot = this.runtime.lastSnapshot;
+      const team = snapshot && this._team(snapshot);
+      if (!team || team.selfName === team.leaderName) return false;
+      if (String(sender || '') !== String(team.leaderName || '')) return false;
+      if (!payload || payload.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
+      if (!this._objectiveValid(payload, team)) return false;
+      this.receivedObjective = clone(payload);
+      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(payload);
+      this.stats.crossMapObjectivesReceived += 1;
+      if (payload.kind === TEAM_REGROUP_KIND) this.stats.crossMapRegroupObjectivesReceived = (this.stats.crossMapRegroupObjectivesReceived || 0) + 1;
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED', 'info', payload.kind === TEAM_REGROUP_KIND ? 'VALIDATED_LEADER_REGROUP_OBJECTIVE' : 'VALIDATED_LEADER_OBJECTIVE', { objectiveId: payload.id, kind: payload.kind || PROGRESSION_KIND, leaderName: team.leaderName, map: payload.map, monster: payload.monster || null });
+      return true;
+    });
+    this.receiverInstalled = true;
+    return true;
+  }
+  _publishCrossMap(team, objective) {
+    const transport = this._transport();
+    if (!transport || typeof transport.send !== 'function') return false;
+    for (const member of team.members || []) {
+      if (!member || !member.name || String(member.name) === String(team.leaderName)) continue;
+      Promise.resolve(transport.send(member.name, objective, { receiver: CROSS_MAP_RECEIVER, sender: team.leaderName })).catch(() => {});
+    }
+    return true;
+  }
+  _supervisorAllowed() {
+    try { const s = this.runtime.globalSupervisor && this.runtime.globalSupervisor.status(); return !!(s && SUPERVISOR_ALLOWED.has(String(s.state || ''))); } catch (_) { return false; }
+  }
+  _inCombat(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c) return true;
+    if (c.rip || c.dead || this.runtime.pendingEmergencyRetreat) return true;
+    const farmer = this.runtime.farmer;
+    if (farmer && farmer.state === 'ENGAGE' && farmer.targetId != null) return true;
+    return (snapshot.entities || []).some((e) => e && e.mtype && !e.dead && !e.rip && String(e.target || '') === String(c.name || ''));
+  }
+  _objectiveKind(objective) {
+    return String(objective && objective.kind || PROGRESSION_KIND);
+  }
+  _objectiveValid(objective, team) {
+    if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
+    if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
+    if (objective.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
+    const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
+    if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
+    if (this._objectiveKind(objective) === TEAM_REGROUP_KIND) {
+      if (!Number.isFinite(Number(objective.x)) || !Number.isFinite(Number(objective.y))) return false;
+      if (team.leader && team.leader.map && String(team.leader.map) !== String(objective.map)) return false;
+      return true;
+    }
+    if (!gameData.monsters || !gameData.monsters[objective.monster]) return false;
+    if (!isApprovedDisposition(contentDisposition(this.runtime.world, objective.monster))) return false;
+    if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('maps', objective.map)) return false;
+    return true;
+  }
+
+  _makeRegroupObjective(snapshot, team) {
+    const c = snapshot && snapshot.character;
+    if (!c || team.selfName !== team.leaderName || !c.map || !Number.isFinite(Number(c.x)) || !Number.isFinite(Number(c.y))) return null;
+    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (existing && this._objectiveKind(existing) === TEAM_REGROUP_KIND && existing.expiresAt > this.now() && String(existing.leaderName) === String(team.leaderName) && String(existing.map) === String(c.map)) {
+      const delta = Math.hypot(Number(existing.x) - Number(c.x), Number(existing.y) - Number(c.y));
+      if (Number.isFinite(delta) && delta <= 80) return clone(existing);
+    }
+    const createdAt = this.now();
+    const objective = {
+      id: `alpha28-regroup-${createdAt}-${team.leaderName}`,
+      kind: TEAM_REGROUP_KIND,
+      leaderName: team.leaderName,
+      partyFingerprint: null,
+      map: String(c.map),
+      monster: null,
+      spawnIndex: null,
+      x: Number(c.x),
+      y: Number(c.y),
+      createdAt,
+      expiresAt: createdAt + this.regroupObjectiveTtlMs,
+      readiness: null,
+      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+    };
+    if (!this._objectiveValid(objective, team)) return null;
+    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    return objective;
+  }
+
+  _publishRegroup(team, objective) {
+    if (!objective) return false;
+    if (this.now() - this.lastRegroupPublishAt < this.regroupPublishIntervalMs) return true;
+    this.lastRegroupPublishAt = this.now();
+    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    this._publishCrossMap(team, objective);
+    this.stats.crossMapObjectivesPublished += 1;
+    this.stats.crossMapRegroupObjectivesPublished = (this.stats.crossMapRegroupObjectivesPublished || 0) + 1;
+    this.event('ALPHA28_TEAM_REGROUP_OBJECTIVE_PUBLISHED', 'warn', 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', { objective: clone(objective), memberMaps: (team.members || []).map((row) => ({ name: row.name, map: row.map })) });
+    return true;
+  }
+
+  _makeLeaderObjective(snapshot, team) {
+    const progression = this._progression();
+    const decision = progression && progression.lastDecision;
+    const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
+    if (!selected || selected.map === snapshot.character.map) return null;
+    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+    if (existing && this._objectiveKind(existing) === PROGRESSION_KIND && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+    const objective = {
+      id: `alpha28-crossmap-${this.now()}-${selected.id}`,
+      kind: PROGRESSION_KIND,
+      leaderName: team.leaderName,
+      partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
+      map: selected.map,
+      monster: selected.monster,
+      spawnIndex: selected.spawnIndex,
+      x: selected.x,
+      y: selected.y,
+      createdAt: this.now(),
+      expiresAt: this.now() + Math.max(60000, finite(progression && progression.options && progression.options.objectiveTtlMs, 300000)),
+      readiness: clone(selected.readiness),
+      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+    };
+    if (!this._objectiveValid(objective, team)) return null;
+    if (progression && typeof progression._publish === 'function') progression._publish(team, objective);
+    else if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+    this._publishCrossMap(team, objective);
+    this.stats.crossMapObjectivesPublished += 1;
+    this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'LIVE_READINESS_AND_CONTROLLED_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+    return objective;
+  }
+
+  _sharedObjective(team) {
+    if (this._objectiveValid(this.receivedObjective, team)) return clone(this.receivedObjective);
+    const objective = this.parent && this.parent[SHARED_OBJECTIVE];
+    return this._objectiveValid(objective, team) ? clone(objective) : null;
+  }
+
+  _startControlled(plan) {
+    const controller = this.runtime.safeTravel;
+    if (!controller) return { started: false, reason: 'SAFE_TRAVEL_UNAVAILABLE' };
+    if (typeof controller.startControlled === 'function') return controller.startControlled(plan.id);
+    const row = controller.plans && controller.plans.get(String(plan.id));
+    if (!row || row.state !== 'PLANNED') return { started: false, reason: 'PLAN_NOT_STARTABLE' };
+    if (controller.breaker().open) return { started: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
+    row.state = 'TRAVELLING'; row.updatedAt = this.now(); row.lastProgressAt = row.updatedAt; row.reason = 'ALPHA28_FARMER_CONTROLLED_EXECUTION_STARTED';
+    controller.stats.controlledStarts = (controller.stats.controlledStarts || 0) + 1;
+    return { started: true, plan: clone(row) };
+  }
+
+  _snapshot() {
+    const c = this.root.character || {};
+    return { observedAt: this.now(), character: { name: c.name, ctype: c.ctype || c.type, map: c.map, x: c.x != null ? c.x : c.real_x, y: c.y != null ? c.y : c.real_y, real_x: c.real_x, real_y: c.real_y, hp: c.hp, max_hp: c.max_hp, rip: c.rip === true } };
+  }
+  _failSafe(planId, reason) {
+    const controller = this.runtime.safeTravel;
+    if (!controller) return false;
+    if (typeof controller.failSafe === 'function') return controller.failSafe(planId, reason);
+    const row = controller.plans && typeof controller.plans.get === 'function' ? controller.plans.get(String(planId)) : null;
+    if (!row || ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(String(row.state || ''))) return false;
+    row.state = 'FAILED_SAFE';
+    row.reason = String(reason || 'FARMER_TRAVEL_FAILED_SAFE');
+    row.updatedAt = this.now();
+    controller.stats.failedSafe = (controller.stats.failedSafe || 0) + 1;
+    if (typeof controller._failure === 'function') controller._failure(row.reason, row);
+    if (typeof controller._event === 'function') controller._event('TRAVEL_FAILED_SAFE', 'error', row.reason, { planId: row.id, alpha28FarmerCrossMap: true });
+    return true;
+  }
+
+  async _execute(objective, snapshot) {
+    const controller = this.runtime.safeTravel;
+    if (!controller || typeof controller.plan !== 'function') return false;
+    const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
+    const destinationMapAttestation = regroup ? {
+      map: objective.map,
+      trusted: true,
+      source: 'trusted-party-regroup-leader',
+      observedAt: objective.createdAt,
+      maxAgeMs: Math.min(30000, Math.max(1000, Number(objective.expiresAt) - Number(objective.createdAt))),
+      subject: objective.leaderName
+    } : null;
+    const planned = controller.plan({ destination: { map: objective.map, x: objective.x, y: objective.y }, metadata: { alpha28FarmerCrossMap: true, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), leaderName: objective.leaderName, monster: objective.monster || null } }, { snapshot, gameData: this.runtime.adapter.getGameData() || {}, contentDrift: this.runtime.contentDrift, destinationMapAttestation });
+    if (!planned || !planned.accepted || !planned.plan) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: planned && planned.reason || 'TRAVEL_PLAN_REJECTED', objectiveId: objective.id }; return false; }
+    const plan = planned.plan;
+    const started = this._startControlled(plan);
+    if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE', objectiveId: objective.id }; return false; }
+    const smartMove = this.root.smart_move || this.root.smartMove;
+    const stop = this.root.stop;
+    if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
+    this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
+    if (regroup) this.stats.crossMapRegroupTravelAttempts = (this.stats.crossMapRegroupTravelAttempts || 0) + 1;
+    this.event(regroup ? 'ALPHA28_TEAM_REGROUP_STARTED' : 'ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', regroup ? 'CONTROLLED_TEAM_REGROUP_TRAVEL' : 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
+    let timer;
+    try {
+      const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
+      const response = await Promise.race([Promise.resolve(smartMove.call(this.root, { map: objective.map, x: objective.x, y: objective.y })), timeout]);
+      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+      controller.observe(this._snapshot());
+      const final = controller.get(plan.id);
+      if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
+      this.stats.crossMapTravelCompleted += 1;
+      if (regroup) this.stats.crossMapRegroupTravelCompleted = (this.stats.crossMapRegroupTravelCompleted || 0) + 1;
+      this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), map: objective.map, monster: objective.monster || null };
+      if (!regroup) {
+        const progression = this._progression();
+        if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
+      }
+      if (this.runtime.localFarming && typeof this.runtime.localFarming._abort === 'function') this.runtime.localFarming._abort(regroup ? 'ALPHA28_TEAM_REGROUP_ARRIVED_REPLAN' : 'ALPHA28_CROSS_MAP_ARRIVED_REPLAN', this.now(), { objectiveId: objective.id });
+      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_COMPLETED' : 'ALPHA28_FARMER_CROSS_MAP_COMPLETED', 'info', 'ARRIVAL_VERIFIED', clone(this.lastAction));
+      return true;
+    } catch (error) {
+      const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
+      try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
+      this._failSafe(plan.id, reason);
+      this.stats.crossMapTravelFailedSafe += 1;
+      if (regroup) this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective) };
+      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_FAILED_SAFE' : 'ALPHA28_FARMER_CROSS_MAP_FAILED_SAFE', 'error', reason, clone(this.lastAction));
+      return false;
+    } finally {
+      if (timer != null) (this.root.clearTimeout || clearTimeout)(timer);
+      this.busy = false; this.activePlanId = null; this.activeObjectiveId = null;
+    }
+  }
+
+  tick() {
+    this.patchProgressionStatus();
+    this._ensureReceiver();
+    if (this.busy) return false;
+    const snapshot = this.runtime.lastSnapshot;
+    const c = snapshot && snapshot.character;
+    if (!c || String(c.ctype || '').toLowerCase() === 'merchant' || String(this.runtime.adapter && this.runtime.adapter.mode || '') !== 'active') return false;
+    if (!this._supervisorAllowed() || this._inCombat(snapshot)) return false;
+    const team = this._team(snapshot);
+    if (!team || !team.complete || !team.alive || !team.positionsKnown) return false;
+    const isLeader = team.selfName === team.leaderName;
+
+    if (!team.sameMap) {
+      if (isLeader) {
+        const regroup = this._makeRegroupObjective(snapshot, team);
+        if (!regroup) return false;
+        this._publishRegroup(team, regroup);
+        this.lastAction = { at: this.now(), result: 'PUBLISHED', reason: 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND, map: regroup.map };
+        return true;
+      }
+      const regroup = this._sharedObjective(team);
+      if (!regroup || this._objectiveKind(regroup) !== TEAM_REGROUP_KIND || regroup.map === c.map) return false;
+      if (this.lastAction && this.lastAction.objectiveId === regroup.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
+      Promise.resolve(this._execute(regroup, snapshot)).catch((error) => {
+        this.stats.crossMapTravelFailedSafe += 1;
+        this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
+        this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND };
+      });
+      return true;
+    }
+
+    if (!team.cohesive) return false;
+    const objective = isLeader ? this._makeLeaderObjective(snapshot, team) : this._sharedObjective(team);
+    if (!objective || this._objectiveKind(objective) === TEAM_REGROUP_KIND || objective.map === c.map) return false;
+    if (this.lastAction && this.lastAction.objectiveId === objective.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
+    Promise.resolve(this._execute(objective, snapshot)).catch((error) => {
+      this.stats.crossMapTravelFailedSafe += 1;
+      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: objective.id };
+    });
+    return true;
+  }
+
+  status() {
+    return { automaticCrossMapFarmerProgression: true, automaticCrossMapTeamRegroup: true, directAlpha21SmartMoveAuthority: false, controlledFarmerSmartMoveAuthority: true, leaderOwnsObjective: true, leaderPublishesRegroupWhenMapSplit: true, followersOnlyFollowValidatedLeaderObjective: true, crossMapReceiverInstalled: this.receiverInstalled, busy: this.busy, activePlanId: this.activePlanId, activeObjectiveId: this.activeObjectiveId, lastAction: clone(this.lastAction) };
+  }
+}
+
+module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER, TEAM_REGROUP_KIND, PROGRESSION_KIND };
+
 },
 "src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
@@ -32331,341 +33451,6 @@ class Alpha28MerchantTransfers {
 }
 
 module.exports = { Alpha28MerchantTransfers };
-
-},
-"src/reliability/alpha28-cross-map-farmer.js": function(require,module,exports){
-'use strict';
-
-const { contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
-
-const SHARED_OBJECTIVE = '__AIO_V3_ALPHA21_OBJECTIVE';
-const CROSS_MAP_RECEIVER = 'alpha28.progression.crossmap';
-const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
-const TEAM_REGROUP_KIND = 'TEAM_REGROUP';
-const PROGRESSION_KIND = 'PROGRESSION';
-
-function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
-function clone(value) { try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; } }
-function characterOf(runtime) { return runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || runtime && runtime.root && runtime.root.character || null; }
-
-class Alpha28CrossMapFarmerProgression {
-  constructor(runtime, shared) {
-    this.runtime = runtime;
-    this.root = runtime.root || globalThis;
-    this.parent = this.root && this.root.parent || this.root;
-    this.now = shared.now;
-    this.log = shared.log;
-    this.stats = shared.stats;
-    this.busy = false;
-    this.activePlanId = null;
-    this.activeObjectiveId = null;
-    this.lastAction = null;
-    this.timeoutMs = 120000;
-    this.receiverInstalled = false;
-    this.receivedObjective = null;
-    this.lastRegroupPublishAt = -Infinity;
-    this.regroupPublishIntervalMs = 2000;
-    this.regroupObjectiveTtlMs = 15000;
-    this.patchProgressionStatus();
-  }
-
-  event(event, severity = 'info', reason = null, data = {}) {
-    try { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'alpha28-farmer-travel', event, severity, reason, data }); } catch (_) {}
-  }
-
-  _progression() { return this.runtime.progressionIntelligence || null; }
-
-  patchProgressionStatus() {
-    const progression = this._progression();
-    if (!progression || progression.__alpha28CrossMapStatusPatched || typeof progression.status !== 'function') return false;
-    const base = progression.status.bind(progression);
-    progression.status = () => {
-      const status = base();
-      return { ...status, policy: { ...(status.policy || {}), crossMapPromotionRecommendationOnly: false, crossMapPromotionAutomatic: true, directSmartMoveAuthority: false, controlledFarmerTravelAuthority: true, crossMapTeamRegroupAutomatic: true } };
-    };
-    progression.__alpha28CrossMapStatusPatched = true;
-    return true;
-  }
-  _team(snapshot) {
-    try { return this.runtime.teamCombatCohesionHotfix && this.runtime.teamCombatCohesionHotfix._team(snapshot); } catch (_) { return null; }
-  }
-  _transport() {
-    return this.runtime.partyAccountCommunication && this.runtime.partyAccountCommunication.transport || null;
-  }
-  _ensureReceiver() {
-    if (this.receiverInstalled) return true;
-    const transport = this._transport();
-    if (!transport || typeof transport.installDirectReceiver !== 'function') return false;
-    transport.installDirectReceiver(CROSS_MAP_RECEIVER, (sender, payload) => {
-      const snapshot = this.runtime.lastSnapshot;
-      const team = snapshot && this._team(snapshot);
-      if (!team || team.selfName === team.leaderName) return false;
-      if (String(sender || '') !== String(team.leaderName || '')) return false;
-      if (!payload || payload.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
-      if (!this._objectiveValid(payload, team)) return false;
-      this.receivedObjective = clone(payload);
-      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(payload);
-      this.stats.crossMapObjectivesReceived += 1;
-      if (payload.kind === TEAM_REGROUP_KIND) this.stats.crossMapRegroupObjectivesReceived = (this.stats.crossMapRegroupObjectivesReceived || 0) + 1;
-      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_RECEIVED', 'info', payload.kind === TEAM_REGROUP_KIND ? 'VALIDATED_LEADER_REGROUP_OBJECTIVE' : 'VALIDATED_LEADER_OBJECTIVE', { objectiveId: payload.id, kind: payload.kind || PROGRESSION_KIND, leaderName: team.leaderName, map: payload.map, monster: payload.monster || null });
-      return true;
-    });
-    this.receiverInstalled = true;
-    return true;
-  }
-  _publishCrossMap(team, objective) {
-    const transport = this._transport();
-    if (!transport || typeof transport.send !== 'function') return false;
-    for (const member of team.members || []) {
-      if (!member || !member.name || String(member.name) === String(team.leaderName)) continue;
-      Promise.resolve(transport.send(member.name, objective, { receiver: CROSS_MAP_RECEIVER, sender: team.leaderName })).catch(() => {});
-    }
-    return true;
-  }
-  _supervisorAllowed() {
-    try { const s = this.runtime.globalSupervisor && this.runtime.globalSupervisor.status(); return !!(s && SUPERVISOR_ALLOWED.has(String(s.state || ''))); } catch (_) { return false; }
-  }
-  _inCombat(snapshot) {
-    const c = snapshot && snapshot.character;
-    if (!c) return true;
-    if (c.rip || c.dead || this.runtime.pendingEmergencyRetreat) return true;
-    const farmer = this.runtime.farmer;
-    if (farmer && farmer.state === 'ENGAGE' && farmer.targetId != null) return true;
-    return (snapshot.entities || []).some((e) => e && e.mtype && !e.dead && !e.rip && String(e.target || '') === String(c.name || ''));
-  }
-  _objectiveKind(objective) {
-    return String(objective && objective.kind || PROGRESSION_KIND);
-  }
-  _objectiveValid(objective, team) {
-    if (!objective || !team || !objective.id || objective.expiresAt <= this.now()) return false;
-    if (String(objective.leaderName || '') !== String(team.leaderName || '')) return false;
-    if (objective.crossMapAuthorizedBy !== 'alpha28-controlled-farmer-travel') return false;
-    const gameData = this.runtime.adapter && this.runtime.adapter.getGameData ? this.runtime.adapter.getGameData() || {} : {};
-    if (!gameData.maps || !Object.prototype.hasOwnProperty.call(gameData.maps, objective.map)) return false;
-    if (this._objectiveKind(objective) === TEAM_REGROUP_KIND) {
-      if (!Number.isFinite(Number(objective.x)) || !Number.isFinite(Number(objective.y))) return false;
-      if (team.leader && team.leader.map && String(team.leader.map) !== String(objective.map)) return false;
-      return true;
-    }
-    if (!gameData.monsters || !gameData.monsters[objective.monster]) return false;
-    if (!isApprovedDisposition(contentDisposition(this.runtime.world, objective.monster))) return false;
-    if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('maps', objective.map)) return false;
-    return true;
-  }
-
-  _makeRegroupObjective(snapshot, team) {
-    const c = snapshot && snapshot.character;
-    if (!c || team.selfName !== team.leaderName || !c.map || !Number.isFinite(Number(c.x)) || !Number.isFinite(Number(c.y))) return null;
-    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-    if (existing && this._objectiveKind(existing) === TEAM_REGROUP_KIND && existing.expiresAt > this.now() && String(existing.leaderName) === String(team.leaderName) && String(existing.map) === String(c.map)) {
-      const delta = Math.hypot(Number(existing.x) - Number(c.x), Number(existing.y) - Number(c.y));
-      if (Number.isFinite(delta) && delta <= 80) return clone(existing);
-    }
-    const createdAt = this.now();
-    const objective = {
-      id: `alpha28-regroup-${createdAt}-${team.leaderName}`,
-      kind: TEAM_REGROUP_KIND,
-      leaderName: team.leaderName,
-      partyFingerprint: null,
-      map: String(c.map),
-      monster: null,
-      spawnIndex: null,
-      x: Number(c.x),
-      y: Number(c.y),
-      createdAt,
-      expiresAt: createdAt + this.regroupObjectiveTtlMs,
-      readiness: null,
-      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
-    };
-    if (!this._objectiveValid(objective, team)) return null;
-    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
-    return objective;
-  }
-
-  _publishRegroup(team, objective) {
-    if (!objective) return false;
-    if (this.now() - this.lastRegroupPublishAt < this.regroupPublishIntervalMs) return true;
-    this.lastRegroupPublishAt = this.now();
-    if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
-    this._publishCrossMap(team, objective);
-    this.stats.crossMapObjectivesPublished += 1;
-    this.stats.crossMapRegroupObjectivesPublished = (this.stats.crossMapRegroupObjectivesPublished || 0) + 1;
-    this.event('ALPHA28_TEAM_REGROUP_OBJECTIVE_PUBLISHED', 'warn', 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', { objective: clone(objective), memberMaps: (team.members || []).map((row) => ({ name: row.name, map: row.map })) });
-    return true;
-  }
-
-  _makeLeaderObjective(snapshot, team) {
-    const progression = this._progression();
-    const decision = progression && progression.lastDecision;
-    const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
-    if (!selected || selected.map === snapshot.character.map) return null;
-    const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-    if (existing && this._objectiveKind(existing) === PROGRESSION_KIND && existing.expiresAt > this.now() && existing.map === selected.map && existing.monster === selected.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
-    const objective = {
-      id: `alpha28-crossmap-${this.now()}-${selected.id}`,
-      kind: PROGRESSION_KIND,
-      leaderName: team.leaderName,
-      partyFingerprint: progression && progression._party ? progression._party(snapshot).fingerprint : null,
-      map: selected.map,
-      monster: selected.monster,
-      spawnIndex: selected.spawnIndex,
-      x: selected.x,
-      y: selected.y,
-      createdAt: this.now(),
-      expiresAt: this.now() + Math.max(60000, finite(progression && progression.options && progression.options.objectiveTtlMs, 300000)),
-      readiness: clone(selected.readiness),
-      crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
-    };
-    if (!this._objectiveValid(objective, team)) return null;
-    if (progression && typeof progression._publish === 'function') progression._publish(team, objective);
-    else if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
-    this._publishCrossMap(team, objective);
-    this.stats.crossMapObjectivesPublished += 1;
-    this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'LIVE_READINESS_AND_CONTROLLED_TRAVEL_AUTHORIZED', { objective: clone(objective) });
-    return objective;
-  }
-
-  _sharedObjective(team) {
-    if (this._objectiveValid(this.receivedObjective, team)) return clone(this.receivedObjective);
-    const objective = this.parent && this.parent[SHARED_OBJECTIVE];
-    return this._objectiveValid(objective, team) ? clone(objective) : null;
-  }
-
-  _startControlled(plan) {
-    const controller = this.runtime.safeTravel;
-    if (!controller) return { started: false, reason: 'SAFE_TRAVEL_UNAVAILABLE' };
-    if (typeof controller.startControlled === 'function') return controller.startControlled(plan.id);
-    const row = controller.plans && controller.plans.get(String(plan.id));
-    if (!row || row.state !== 'PLANNED') return { started: false, reason: 'PLAN_NOT_STARTABLE' };
-    if (controller.breaker().open) return { started: false, reason: 'TRAVEL_CIRCUIT_OPEN' };
-    row.state = 'TRAVELLING'; row.updatedAt = this.now(); row.lastProgressAt = row.updatedAt; row.reason = 'ALPHA28_FARMER_CONTROLLED_EXECUTION_STARTED';
-    controller.stats.controlledStarts = (controller.stats.controlledStarts || 0) + 1;
-    return { started: true, plan: clone(row) };
-  }
-
-  _snapshot() {
-    const c = this.root.character || {};
-    return { observedAt: this.now(), character: { name: c.name, ctype: c.ctype || c.type, map: c.map, x: c.x != null ? c.x : c.real_x, y: c.y != null ? c.y : c.real_y, real_x: c.real_x, real_y: c.real_y, hp: c.hp, max_hp: c.max_hp, rip: c.rip === true } };
-  }
-  _failSafe(planId, reason) {
-    const controller = this.runtime.safeTravel;
-    if (!controller) return false;
-    if (typeof controller.failSafe === 'function') return controller.failSafe(planId, reason);
-    const row = controller.plans && typeof controller.plans.get === 'function' ? controller.plans.get(String(planId)) : null;
-    if (!row || ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(String(row.state || ''))) return false;
-    row.state = 'FAILED_SAFE';
-    row.reason = String(reason || 'FARMER_TRAVEL_FAILED_SAFE');
-    row.updatedAt = this.now();
-    controller.stats.failedSafe = (controller.stats.failedSafe || 0) + 1;
-    if (typeof controller._failure === 'function') controller._failure(row.reason, row);
-    if (typeof controller._event === 'function') controller._event('TRAVEL_FAILED_SAFE', 'error', row.reason, { planId: row.id, alpha28FarmerCrossMap: true });
-    return true;
-  }
-
-  async _execute(objective, snapshot) {
-    const controller = this.runtime.safeTravel;
-    if (!controller || typeof controller.plan !== 'function') return false;
-    const regroup = this._objectiveKind(objective) === TEAM_REGROUP_KIND;
-    const destinationMapAttestation = regroup ? {
-      map: objective.map,
-      trusted: true,
-      source: 'trusted-party-regroup-leader',
-      observedAt: objective.createdAt,
-      maxAgeMs: Math.min(30000, Math.max(1000, Number(objective.expiresAt) - Number(objective.createdAt))),
-      subject: objective.leaderName
-    } : null;
-    const planned = controller.plan({ destination: { map: objective.map, x: objective.x, y: objective.y }, metadata: { alpha28FarmerCrossMap: true, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), leaderName: objective.leaderName, monster: objective.monster || null } }, { snapshot, gameData: this.runtime.adapter.getGameData() || {}, contentDrift: this.runtime.contentDrift, destinationMapAttestation });
-    if (!planned || !planned.accepted || !planned.plan) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: planned && planned.reason || 'TRAVEL_PLAN_REJECTED', objectiveId: objective.id }; return false; }
-    const plan = planned.plan;
-    const started = this._startControlled(plan);
-    if (!started || !started.started) { this.lastAction = { at: this.now(), result: 'REJECTED', reason: started && started.reason || 'PLAN_NOT_STARTABLE', objectiveId: objective.id }; return false; }
-    const smartMove = this.root.smart_move || this.root.smartMove;
-    const stop = this.root.stop;
-    if (typeof smartMove !== 'function' || typeof stop !== 'function') { this._failSafe(plan.id, 'SMART_MOVE_OR_STOP_API_UNAVAILABLE'); return false; }
-    this.busy = true; this.activePlanId = plan.id; this.activeObjectiveId = objective.id; this.stats.crossMapTravelAttempts += 1;
-    if (regroup) this.stats.crossMapRegroupTravelAttempts = (this.stats.crossMapRegroupTravelAttempts || 0) + 1;
-    this.event(regroup ? 'ALPHA28_TEAM_REGROUP_STARTED' : 'ALPHA28_FARMER_CROSS_MAP_STARTED', 'warn', regroup ? 'CONTROLLED_TEAM_REGROUP_TRAVEL' : 'CONTROLLED_FARMER_TRAVEL', { planId: plan.id, objectiveId: objective.id, destination: plan.target });
-    let timer;
-    try {
-      const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
-      const response = await Promise.race([Promise.resolve(smartMove.call(this.root, { map: objective.map, x: objective.x, y: objective.y })), timeout]);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
-      controller.observe(this._snapshot());
-      const final = controller.get(plan.id);
-      if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
-      this.stats.crossMapTravelCompleted += 1;
-      if (regroup) this.stats.crossMapRegroupTravelCompleted = (this.stats.crossMapRegroupTravelCompleted || 0) + 1;
-      this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), map: objective.map, monster: objective.monster || null };
-      if (!regroup) {
-        const progression = this._progression();
-        if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
-      }
-      if (this.runtime.localFarming && typeof this.runtime.localFarming._abort === 'function') this.runtime.localFarming._abort(regroup ? 'ALPHA28_TEAM_REGROUP_ARRIVED_REPLAN' : 'ALPHA28_CROSS_MAP_ARRIVED_REPLAN', this.now(), { objectiveId: objective.id });
-      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_COMPLETED' : 'ALPHA28_FARMER_CROSS_MAP_COMPLETED', 'info', 'ARRIVAL_VERIFIED', clone(this.lastAction));
-      return true;
-    } catch (error) {
-      const reason = String(error && error.message || error || 'FARMER_TRAVEL_FAILED');
-      try { await Promise.resolve(stop.call(this.root, 'smart')); } catch (_) {}
-      this._failSafe(plan.id, reason);
-      this.stats.crossMapTravelFailedSafe += 1;
-      if (regroup) this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
-      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason, planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective) };
-      this.event(regroup ? 'ALPHA28_TEAM_REGROUP_FAILED_SAFE' : 'ALPHA28_FARMER_CROSS_MAP_FAILED_SAFE', 'error', reason, clone(this.lastAction));
-      return false;
-    } finally {
-      if (timer != null) (this.root.clearTimeout || clearTimeout)(timer);
-      this.busy = false; this.activePlanId = null; this.activeObjectiveId = null;
-    }
-  }
-
-  tick() {
-    this.patchProgressionStatus();
-    this._ensureReceiver();
-    if (this.busy) return false;
-    const snapshot = this.runtime.lastSnapshot;
-    const c = snapshot && snapshot.character;
-    if (!c || String(c.ctype || '').toLowerCase() === 'merchant' || String(this.runtime.adapter && this.runtime.adapter.mode || '') !== 'active') return false;
-    if (!this._supervisorAllowed() || this._inCombat(snapshot)) return false;
-    const team = this._team(snapshot);
-    if (!team || !team.complete || !team.alive || !team.positionsKnown) return false;
-    const isLeader = team.selfName === team.leaderName;
-
-    if (!team.sameMap) {
-      if (isLeader) {
-        const regroup = this._makeRegroupObjective(snapshot, team);
-        if (!regroup) return false;
-        this._publishRegroup(team, regroup);
-        this.lastAction = { at: this.now(), result: 'PUBLISHED', reason: 'TEAM_MAP_SPLIT_CONTROLLED_REGROUP', objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND, map: regroup.map };
-        return true;
-      }
-      const regroup = this._sharedObjective(team);
-      if (!regroup || this._objectiveKind(regroup) !== TEAM_REGROUP_KIND || regroup.map === c.map) return false;
-      if (this.lastAction && this.lastAction.objectiveId === regroup.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
-      Promise.resolve(this._execute(regroup, snapshot)).catch((error) => {
-        this.stats.crossMapTravelFailedSafe += 1;
-        this.stats.crossMapRegroupTravelFailedSafe = (this.stats.crossMapRegroupTravelFailedSafe || 0) + 1;
-        this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: regroup.id, objectiveKind: TEAM_REGROUP_KIND };
-      });
-      return true;
-    }
-
-    if (!team.cohesive) return false;
-    const objective = isLeader ? this._makeLeaderObjective(snapshot, team) : this._sharedObjective(team);
-    if (!objective || this._objectiveKind(objective) === TEAM_REGROUP_KIND || objective.map === c.map) return false;
-    if (this.lastAction && this.lastAction.objectiveId === objective.id && ['COMPLETED','FAILED_SAFE'].includes(this.lastAction.result)) return false;
-    Promise.resolve(this._execute(objective, snapshot)).catch((error) => {
-      this.stats.crossMapTravelFailedSafe += 1;
-      this.lastAction = { at: this.now(), result: 'FAILED_SAFE', reason: String(error && error.message || error).slice(0, 220), objectiveId: objective.id };
-    });
-    return true;
-  }
-
-  status() {
-    return { automaticCrossMapFarmerProgression: true, automaticCrossMapTeamRegroup: true, directAlpha21SmartMoveAuthority: false, controlledFarmerSmartMoveAuthority: true, leaderOwnsObjective: true, leaderPublishesRegroupWhenMapSplit: true, followersOnlyFollowValidatedLeaderObjective: true, crossMapReceiverInstalled: this.receiverInstalled, busy: this.busy, activePlanId: this.activePlanId, activeObjectiveId: this.activeObjectiveId, lastAction: clone(this.lastAction) };
-  }
-}
-
-module.exports = { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, CROSS_MAP_RECEIVER, TEAM_REGROUP_KIND, PROGRESSION_KIND };
 
 },
 "src/reliability/alpha28-brain-cloud.js": function(require,module,exports){
