@@ -1,0 +1,21 @@
+name: aio-forgejo-local
+
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:15.0.8
+    container_name: aio-forgejo
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      FORGEJO__database__DB_TYPE: sqlite3
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      - forgejo-data:/data
+
+volumes:
+  forgejo-data:
+    name: aio-forgejo-data
