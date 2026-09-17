@@ -1,21 +1,9 @@
 'use strict';
 
+const { finite } = require('../core/numeric');
+const { distance } = require('../core/geometry');
+
 const NON_FARM_MONSTER_TYPES = new Set(['target']);
-
-function finite(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function distance(a, b) {
-  if (!a || !b) return Infinity;
-  const ax = finite(a.x);
-  const ay = finite(a.y);
-  const bx = finite(b.x);
-  const by = finite(b.y);
-  if (ax == null || ay == null || bx == null || by == null) return Infinity;
-  return Math.hypot(ax - bx, ay - by);
-}
 
 function spawnType(entry) {
   if (!entry) return null;
@@ -38,13 +26,13 @@ function boundaryCenter(boundary) {
     if (nums.length >= 2) return { x: nums[0], y: nums[1] };
   }
   if (typeof boundary === 'object') {
-    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left);
-    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top);
-    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right);
-    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom);
+    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left, null);
+    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top, null);
+    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right, null);
+    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom, null);
     if (x1 != null && y1 != null && x2 != null && y2 != null) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-    const x = finite(boundary.x);
-    const y = finite(boundary.y);
+    const x = finite(boundary.x, null);
+    const y = finite(boundary.y, null);
     if (x != null && y != null) return { x, y };
   }
   return null;
@@ -59,8 +47,8 @@ function spawnCenter(entry) {
   if (typeof entry !== 'object') return null;
   const direct = boundaryCenter(entry.boundary || entry.bound || entry.bounds || entry.area);
   if (direct) return direct;
-  const x = finite(entry.x);
-  const y = finite(entry.y);
+  const x = finite(entry.x, null);
+  const y = finite(entry.y, null);
   if (x != null && y != null) return { x, y };
   return null;
 }
