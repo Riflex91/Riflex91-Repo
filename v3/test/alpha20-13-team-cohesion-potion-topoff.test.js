@@ -5,8 +5,8 @@ const assert = require('node:assert/strict');
 const { GameAdapter } = require('../src/game/adapter');
 const { RetreatFarmerController } = require('../src/farmer/retreat-farmer');
 const { LocalFarmOrchestrator } = require('../src/autonomy/local-farm-orchestrator');
-const { installFarmerResourceTopoffHotfix } = require('../src/reliability/farmer-resource-topoff-hotfix');
-const { installTeamCombatCohesionHotfix } = require('../src/reliability/team-combat-cohesion-hotfix');
+const { installFarmerResourceTopoffHotfix } = require('../src/farmer/farmer-resource-topoff-hotfix');
+const { installTeamCombatCohesionHotfix } = require('../src/party/team-combat-cohesion-hotfix');
 
 function planner() {
   return {
