@@ -20,6 +20,7 @@ class PartyAccountCommunicationReliability {
       root: this.root,
       now: this.now,
       log: this.log,
+      adapter: runtime.adapter,
       fallbackEnabled: options.fallbackEnabled !== false
     });
     this.telemetryFailureStreak = 0;
