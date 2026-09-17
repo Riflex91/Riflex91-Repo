@@ -17,7 +17,9 @@ const pflichtDateien = [
   'laufzeit/tests/kampfsicherheit-wiederholung.test.mjs',
   'laufzeit/tests/adventure-land-kampf-bereitschaft.test.mjs',
   'laufzeit/tests/sicheres-farmen.test.mjs',
-  'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs'
+  'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs',
+  'laufzeit/tests/block7-schattenlauf-kontextbruecke.test.mjs',
+  'werkzeuge/block7-schattenlauf-kontextbruecke.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -49,7 +51,8 @@ for (const pflichtText of [
   'pruefeAngriffsBereitschaft',
   'maxAktionsBereitschaftAlterMillisekunden',
   "farm.art !== 'angreifen'",
-  "bereitschaft.ergebnis === 'abklingzeit' ? 'abklingzeit' : 'blockiert'"
+  "bereitschaft.ergebnis === 'abklingzeit' ? 'abklingzeit' : 'blockiert'",
+  "bereitschaft.zustand === 'abklingzeit'"
 ]) {
   if (!sichereFarmLogik.includes(pflichtText)) throw new Error(`Block-7-Sicher-vor-Farm-Logik ist unvollstaendig: ${pflichtText}`);
 }
@@ -68,12 +71,22 @@ for (const muster of [/\bDate\.now\s*\(/, /\bMath\.random\s*\(/]) {
 }
 
 const bereitschaftLeser = await readFile(path.join(wurzel, 'laufzeit/quelle/adventure-land/adventure-land-kampf-bereitschaft.ts'), 'utf8');
-for (const pflichtText of ['ms_to_next_skill', 'liesNormalenAngriff', "zustand: 'unbekannt'"]) {
+for (const pflichtText of ['is_on_cooldown', 'can_use', 'next_skill', 'liesNormalenAngriff', "zustand: 'unbekannt'"]) {
   if (!bereitschaftLeser.includes(pflichtText)) throw new Error(`Block-7-Aktionsbereitschaft ist unvollstaendig: ${pflichtText}`);
 }
 for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot']) {
   if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(bereitschaftLeser)) {
     throw new Error(`Der Bereitschaftsleser darf keine Adventure-Land-Spielaktion aufrufen: ${aktionsName}.`);
+  }
+}
+
+const schattenAdapter = await readFile(path.join(wurzel, 'werkzeuge/block7-schattenlauf-kontextbruecke.js'), 'utf8');
+for (const pflichtText of ['is_on_cooldown', 'next_skill', 'ms_to_next_skill', 'boolescher_cooldown']) {
+  if (!schattenAdapter.includes(pflichtText)) throw new Error(`Block-7-Schatten-Bereitschaftsadapter ist unvollstaendig: ${pflichtText}`);
+}
+for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot']) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(schattenAdapter)) {
+    throw new Error(`Der Schatten-Bereitschaftsadapter darf keine Adventure-Land-Spielaktion aufrufen: ${aktionsName}.`);
   }
 }
 
@@ -123,6 +136,7 @@ const sichereFarmTests = await readFile(path.join(wurzel, 'laufzeit/tests/sicher
 for (const pflichtText of [
   'Kampfsicherheit wird vor dem normalen Farmplan ausgewertet',
   'Attack-Cooldown verhindert einen geplanten Angriff ohne den Farmzustand vorzutreiben',
+  'beobachteter Attack-Cooldown ohne bekannte Restdauer bleibt sicher blockiert',
   'unbekannte Angriffsbereitschaft erzeugt keinen geratenen Angriff',
   'veraltete Angriffsbereitschaft wird blockiert',
   'Attack-Cooldown blockiert keine notwendige Bewegung zum Ziel'
@@ -133,9 +147,20 @@ for (const pflichtText of [
 const bereitschaftTests = await readFile(path.join(wurzel, 'laufzeit/tests/adventure-land-kampf-bereitschaft.test.mjs'), 'utf8');
 for (const pflichtText of [
   'Adventure-Land-Bereitschaft liest Attack-Cooldown ohne Spielaktion',
+  'geteilter Adventure-Land-Cooldown wird ueber G.skills.share aufgeloest',
+  'can_use ist nur positiver Fallback und erfindet bei false keinen Cooldown',
   'fehlende Cooldown-Schnittstelle wird nicht durch eine Annahme ersetzt'
 ]) {
   if (!bereitschaftTests.includes(pflichtText)) throw new Error(`Block-7-Bereitschaftstest fehlt: ${pflichtText}`);
+}
+
+const schattenAdapterTests = await readFile(path.join(wurzel, 'laufzeit/tests/block7-schattenlauf-kontextbruecke.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'is_on_cooldown wird ohne Aktivierungsaufruf fuer den Schattenrunner adaptiert',
+  'geteilter Cooldown folgt G.skills.share wie Adventure Land',
+  'can_use ist nur positiver Fallback; false bleibt unbekannt'
+]) {
+  if (!schattenAdapterTests.includes(pflichtText)) throw new Error(`Block-7-Schatten-Bereitschaftstest fehlt: ${pflichtText}`);
 }
 
 const ausfuehrungsTests = await readFile(path.join(wurzel, 'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs'), 'utf8');
@@ -169,9 +194,10 @@ for (const regel of [
   'Kampfsicherheit wird vor jedem normalen Farmplan ausgewertet.',
   'Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.',
   'Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.',
-  'Reichweite unmittelbar vor `attack(...)` erneut geprueft'
+  'Reichweite unmittelbar vor `attack(...)` erneut geprueft',
+  '`is_on_cooldown("attack")`'
 ]) {
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 7 fehlt: ${regel}`);
 }
 
-console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, Cooldown-Gate, Safety-vor-Farm, aktive Sicherheitsgrenze, Reichweiten-Recheck und Replay.`);
+console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, reale Adventure-Land-Cooldown-Beobachtung, Safety-vor-Farm, aktive Sicherheitsgrenze, Reichweiten-Recheck und Replay.`);
