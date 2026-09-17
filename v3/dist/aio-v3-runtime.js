@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.75 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.76 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -953,7 +953,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.75';
+const RELEASE_VERSION = '3.0.0-alpha.20.76';
 
 module.exports = { RELEASE_VERSION };
 
@@ -2672,9 +2672,8 @@ module.exports = { CLASS_PRIORS, capabilitiesFor, partyProfile };
 "src/planner/farm-planner.js": function(require,module,exports){
 'use strict';
 
-const { clamp01, ratio } = require('../core/numeric');
-
-function normalize(value, max) { return ratio(Math.max(0, Number(value) || 0), max, 0); }
+function clamp01(n) { return Math.max(0, Math.min(1, Number(n) || 0)); }
+function normalize(value, max) { return max > 0 ? Math.max(0, Number(value) || 0) / max : 0; }
 
 class FarmPlanner {
   constructor(options = {}) {
@@ -2736,32 +2735,6 @@ class FarmPlanner {
 }
 
 module.exports = { FarmPlanner };
-
-},
-"src/core/numeric.js": function(require,module,exports){
-'use strict';
-
-function finite(value, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function clamp(value, min, max, fallback = min) {
-  const number = finite(value, fallback);
-  return Math.max(min, Math.min(max, number));
-}
-
-function clamp01(value) {
-  return clamp(value, 0, 1, 0);
-}
-
-function ratio(value, max, fallback = 0) {
-  const denominator = finite(max, 0);
-  if (denominator <= 0) return clamp01(fallback);
-  return clamp01(finite(value, 0) / denominator);
-}
-
-module.exports = { finite, clamp, clamp01, ratio };
 
 },
 "src/farmer/retreat-farmer.js": function(require,module,exports){
@@ -4309,7 +4282,10 @@ module.exports = { SkillUsagePolicy, isDirectDamageSkill };
 "src/farmer/target-reassessment.js": function(require,module,exports){
 'use strict';
 
-const { distance } = require('../core/geometry');
+function distance(a, b) {
+  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
+  return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
+}
 
 function liveMonster(entity, character) {
   if (!entity || !entity.mtype || entity.dead || (entity.hp != null && Number(entity.hp) <= 0)) return false;
@@ -4499,24 +4475,6 @@ class TargetReassessmentPolicy {
 }
 
 module.exports = { TargetReassessmentPolicy, threatScore };
-
-},
-"src/core/geometry.js": function(require,module,exports){
-'use strict';
-
-const { finite } = require('./numeric');
-
-function distance(a, b) {
-  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
-  const ax = finite(a.x, null);
-  const ay = finite(a.y, null);
-  const bx = finite(b.x, null);
-  const by = finite(b.y, null);
-  if (ax == null || ay == null || bx == null || by == null) return Infinity;
-  return Math.hypot(ax - bx, ay - by);
-}
-
-module.exports = { distance };
 
 },
 "src/farmer/safe-retreat.js": function(require,module,exports){
@@ -5481,18 +5439,18 @@ module.exports = { StabilityGameAdapter };
 "src/game/command-outcomes.js": function(require,module,exports){
 'use strict';
 
-const { finite } = require('../core/numeric');
-const { createSnapshotEntityIndex, entityById: indexedEntityById } = require('../core/snapshot-entity-index');
-
 const CommandOutcomeState = Object.freeze({
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
   TIMED_OUT: 'TIMED_OUT'
 });
 
-function entityById(snapshot, id, index = null) {
+function finite(value) {
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function entityById(snapshot, id) {
   if (!snapshot || id == null) return null;
-  if (index && index.snapshot === snapshot) return indexedEntityById(index, id);
   const wanted = String(id);
   return (snapshot.entities || []).find((entity) => entity && String(entity.id) === wanted) || null;
 }
@@ -5565,7 +5523,7 @@ class CommandOutcomeTracker {
     return { ...record };
   }
 
-  _effect(record, snapshot, entityIndex = null) {
+  _effect(record, snapshot) {
     if (!snapshot || !snapshot.character || !record.before) return null;
     const before = record.before;
     const c = snapshot.character;
@@ -5573,10 +5531,10 @@ class CommandOutcomeTracker {
 
     if (action === 'move' || action === 'smart_move' || action === 'town') {
       if (before.map && c.map && before.map !== c.map) return { kind: 'MAP_CHANGED', map: c.map };
-      const bx = finite(before.x, null);
-      const by = finite(before.y, null);
-      const x = finite(c.x, null);
-      const y = finite(c.y, null);
+      const bx = finite(before.x);
+      const by = finite(before.y);
+      const x = finite(c.x);
+      const y = finite(c.y);
       if (bx != null && by != null && x != null && y != null) {
         const delta = Math.hypot(x - bx, y - by);
         if (delta >= this.moveMinDelta) return { kind: 'POSITION_CHANGED', delta: Number(delta.toFixed(2)), x, y };
@@ -5593,7 +5551,7 @@ class CommandOutcomeTracker {
 
     if (action === 'attack' || action === 'use_skill') {
       const targetId = action === 'attack' ? record.args[0] : record.args[1];
-      const target = entityById(snapshot, targetId, entityIndex);
+      const target = entityById(snapshot, targetId);
       if (before.targetPresent && !target) return { kind: 'TARGET_GONE', targetId: targetId || null };
       if (target && (target.dead || (target.hp != null && Number(target.hp) <= 0))) return { kind: 'TARGET_DEAD', targetId: target.id };
       if (target && before.targetHp != null && target.hp != null && Number(target.hp) < Number(before.targetHp)) {
@@ -5658,9 +5616,8 @@ class CommandOutcomeTracker {
   observe(snapshot) {
     const now = this.now();
     const completed = [];
-    const entityIndex = createSnapshotEntityIndex(snapshot);
     for (const record of [...this.pending.values()]) {
-      const effect = this._effect(record, snapshot, entityIndex);
+      const effect = this._effect(record, snapshot);
       if (effect) {
         completed.push(this._terminal(record, CommandOutcomeState.CONFIRMED, effect.kind, now, effect));
         continue;
@@ -5706,30 +5663,6 @@ class CommandOutcomeTracker {
 }
 
 module.exports = { CommandOutcomeTracker, CommandOutcomeState, inventoryCount, entityById };
-
-},
-"src/core/snapshot-entity-index.js": function(require,module,exports){
-'use strict';
-
-function snapshotEntities(snapshot) {
-  return snapshot && Array.isArray(snapshot.entities) ? snapshot.entities : [];
-}
-
-function createSnapshotEntityIndex(snapshot) {
-  const byId = new Map();
-  for (const entity of snapshotEntities(snapshot)) {
-    if (!entity || entity.id == null) continue;
-    byId.set(String(entity.id), entity);
-  }
-  return { snapshot, byId, size: byId.size };
-}
-
-function entityById(index, id) {
-  if (!index || !(index.byId instanceof Map) || id == null) return null;
-  return index.byId.get(String(id)) || null;
-}
-
-module.exports = { snapshotEntities, createSnapshotEntityIndex, entityById };
 
 },
 "src/core/stable-scheduler.js": function(require,module,exports){
@@ -6453,10 +6386,22 @@ module.exports = { Alpha9Runtime };
 "src/autonomy/local-farm-planner.js": function(require,module,exports){
 'use strict';
 
-const { finite } = require('../core/numeric');
-const { distance } = require('../core/geometry');
-
 const NON_FARM_MONSTER_TYPES = new Set(['target']);
+
+function finite(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function distance(a, b) {
+  if (!a || !b) return Infinity;
+  const ax = finite(a.x);
+  const ay = finite(a.y);
+  const bx = finite(b.x);
+  const by = finite(b.y);
+  if (ax == null || ay == null || bx == null || by == null) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
 
 function spawnType(entry) {
   if (!entry) return null;
@@ -6479,13 +6424,13 @@ function boundaryCenter(boundary) {
     if (nums.length >= 2) return { x: nums[0], y: nums[1] };
   }
   if (typeof boundary === 'object') {
-    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left, null);
-    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top, null);
-    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right, null);
-    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom, null);
+    const x1 = finite(boundary.x1 != null ? boundary.x1 : boundary.left);
+    const y1 = finite(boundary.y1 != null ? boundary.y1 : boundary.top);
+    const x2 = finite(boundary.x2 != null ? boundary.x2 : boundary.right);
+    const y2 = finite(boundary.y2 != null ? boundary.y2 : boundary.bottom);
     if (x1 != null && y1 != null && x2 != null && y2 != null) return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-    const x = finite(boundary.x, null);
-    const y = finite(boundary.y, null);
+    const x = finite(boundary.x);
+    const y = finite(boundary.y);
     if (x != null && y != null) return { x, y };
   }
   return null;
@@ -6500,8 +6445,8 @@ function spawnCenter(entry) {
   if (typeof entry !== 'object') return null;
   const direct = boundaryCenter(entry.boundary || entry.bound || entry.bounds || entry.area);
   if (direct) return direct;
-  const x = finite(entry.x, null);
-  const y = finite(entry.y, null);
+  const x = finite(entry.x);
+  const y = finite(entry.y);
   if (x != null && y != null) return { x, y };
   return null;
 }
@@ -7268,8 +7213,6 @@ module.exports = {
 "src/brain/feature-encoder.js": function(require,module,exports){
 'use strict';
 
-const { finite, clamp01, ratio } = require('../core/numeric');
-
 const FEATURE_SCHEMA_VERSION = 1;
 const FEATURE_NAMES = Object.freeze([
   'xpRate',
@@ -7282,6 +7225,21 @@ const FEATURE_NAMES = Object.freeze([
   'mpReserve',
   'currentPlanAffinity'
 ]);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, finite(value, 0)));
+}
+
+function ratio(value, max) {
+  const denominator = finite(max, 0);
+  if (denominator <= 0) return 0;
+  return clamp01(finite(value, 0) / denominator);
+}
 
 function candidateId(candidate) {
   if (!candidate) return null;
@@ -7306,8 +7264,8 @@ class StrategicFeatureEncoder {
 
     const maxXp = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.xpPerHour, 0))));
     const maxGold = Math.max(1, ...usable.map((candidate) => Math.max(0, finite(candidate.goldPerHour, 0))));
-    const hpReserve = ratio(character.hp, character.max_hp, 0);
-    const mpReserve = ratio(character.mp, character.max_mp, 0);
+    const hpReserve = ratio(character.hp, character.max_hp);
+    const mpReserve = ratio(character.mp, character.max_mp);
 
     return usable.map((candidate) => {
       const id = candidateId(candidate);
@@ -21443,9 +21401,18 @@ module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE 
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
-const { finite, clamp } = require('../core/numeric');
 
 const CONTROLLED_FARMER_LOOT_MODE = 'controlled-farmer-loot';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, min, max, fallback) {
+  const number = finite(value, fallback);
+  return Math.max(min, Math.min(max, number));
+}
 
 function clone(value) {
   if (value == null) return value;
@@ -21557,7 +21524,7 @@ class ControlledFarmerLoot {
       this._event('FARMER_LOOT_DELTA_OBSERVED', 'info', 'POST_LOOT_DELTA', { requestId, delta, freeSlots: after.freeSlots });
     }
     this.pendingObservation = null;
-    return this.lastObservation;
+    return clone(this.lastObservation);
   }
 
   tick(snapshot) {
@@ -47161,7 +47128,8 @@ module.exports = {
 
 const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-hotfix');
 
-const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v1';
+const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
+const FARMER_STATE_ACTION = 'FARMER_STATE';
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -47170,6 +47138,11 @@ function finite(value, fallback = null) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value)));
+}
+
+function cleanName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
 }
 
 function characterOf(runtime) {
@@ -47243,6 +47216,22 @@ function effectActiveOn(entity, effectName, now = Date.now()) {
   return false;
 }
 
+function equipmentView(raw, maxSlots = 32) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const slot of Object.keys(raw).sort().slice(0, maxSlots)) {
+    const item = raw[slot];
+    if (!item || !item.name) continue;
+    out[slot] = {
+      name: String(item.name),
+      level: levelOf(item),
+      locked: !!(item.locked || item.l),
+      special: !!(item.special || item.p)
+    };
+  }
+  return out;
+}
+
 class Alpha33MarkOrbitMerchantDelivery {
   constructor(runtime, options = {}) {
     if (!runtime) throw new Error('runtime required');
@@ -47253,8 +47242,16 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusFactor = clamp(options.trainingRadiusFactor == null ? 2.1 : options.trainingRadiusFactor, 1.4, 3.5);
     this.trainingRadiusMin = Math.max(120, Math.min(360, finite(options.trainingRadiusMin, 180)));
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
+    this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
+    this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
+    this.lastFarmerStateSentAt = -Infinity;
+    this.lastMerchantRendezvousAt = -Infinity;
+    this.merchantRendezvousBusy = false;
+    this.farmerStates = new Map();
     this.stats = {
       huntersMarkExistingDebuffSkips: 0,
+      huntersMarkOwnershipSkips: 0,
+      huntersMarkOwnerAllows: 0,
       orbitSpiralEscapes: 0,
       orbitAnchorCorrections: 0,
       orbitRadialFallbacks: 0,
@@ -47262,17 +47259,28 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantCombatOwnersPatched: 0,
       gearDeliveryUnknownTargetGearHolds: 0,
       gearDeliveryStaleGoalHolds: 0,
-      farmerGearLootReservations: 0
+      farmerGearLootReservations: 0,
+      farmerStateSent: 0,
+      farmerStateReceived: 0,
+      farmerGearRegistryUpdates: 0,
+      staleGearGoalsReleased: 0,
+      merchantRendezvousAttempts: 0,
+      merchantRendezvousCompleted: 0,
+      merchantRendezvousFailed: 0,
+      merchantRendezvousAlreadyNear: 0
     };
     this.lastGearHold = null;
+    this.lastMerchantRendezvous = null;
 
     this.huntersMarkGuardInstalled = this._installHuntersMarkGuard();
     this.anchoredOrbitInstalled = this._installAnchoredOrbit();
     this.merchantIncomingAggroInstalled = this._installMerchantIncomingAggro();
     this.gearDeliverySafetyInstalled = this._installGearDeliverySafety();
     this.farmerGearReservationInstalled = this._installFarmerGearReservation();
+    this.partyStateTelemetryInstalled = this._installPartyStateTelemetry();
+    this.merchantRendezvousAuthorityInstalled = this._installMerchantRendezvousAuthority();
     this.installedAt = this.now();
-    this._event('ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_INSTALLED', 'warn', 'LIVE_LOG_CORRECTIONS', this.status());
+    this._event('ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_INSTALLED', 'warn', 'LIVE_LOG_CORRECTIONS_V2', this.status());
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -47285,22 +47293,53 @@ class Alpha33MarkOrbitMerchantDelivery {
     return effectActiveOn(raw || target, effectName, this.now());
   }
 
+  _huntersMarkOwner(team, context = null) {
+    const members = Array.isArray(team && team.members) ? team.members : [];
+    const rangerNames = members
+      .filter((row) => row && cleanName(row.name) && String(row.ctype || row.type || '').toLowerCase() === 'ranger' && !row.rip && !row.dead && row.present !== false)
+      .map((row) => cleanName(row.name))
+      .filter(Boolean)
+      .sort();
+    if (rangerNames.length) return rangerNames[0];
+    const leader = cleanName(team && team.leaderName);
+    if (leader) return leader;
+    const self = context && context.snapshot && context.snapshot.character || characterOf(this.runtime);
+    return self && String(self.ctype || '').toLowerCase() === 'ranger' ? cleanName(self.name) : null;
+  }
+
   _installHuntersMarkGuard() {
     const engine = this.runtime.partySkillEngine;
-    if (!engine || typeof engine._supportDecision !== 'function' || engine.__alpha33HuntersMarkDebuffGuardInstalled) return false;
+    if (!engine || typeof engine._supportDecision !== 'function' || engine.__alpha33HuntersMarkDebuffGuardV2Installed) return false;
     const base = engine._supportDecision.bind(engine);
     engine._supportDecision = (context, target, team) => {
       const decision = base(context, target, team);
       if (!decision || String(decision.id || '').toLowerCase() !== 'huntersmark') return decision;
-      if (!this._targetHasEffect(target, 'huntersmark')) return decision;
-      this.stats.huntersMarkExistingDebuffSkips += 1;
-      this._event('HUNTERS_MARK_SKIPPED_EXISTING_DEBUFF', 'info', 'TARGET_ALREADY_HAS_HUNTERS_MARK', {
-        targetId: target && target.id != null ? String(target.id) : null,
-        targetType: target && target.mtype || null
-      });
-      return null;
+      const self = cleanName(context && context.snapshot && context.snapshot.character && context.snapshot.character.name)
+        || cleanName(characterOf(this.runtime) && characterOf(this.runtime).name);
+      const owner = this._huntersMarkOwner(team, context);
+      if (!owner || !self || self !== owner) {
+        this.stats.huntersMarkOwnershipSkips += 1;
+        this._event('HUNTERS_MARK_SKIPPED_NOT_OWNER', 'info', owner ? 'DETERMINISTIC_PARTY_MARK_OWNER' : 'HUNTERS_MARK_OWNER_UNKNOWN', {
+          self,
+          owner,
+          targetId: target && target.id != null ? String(target.id) : null,
+          targetType: target && target.mtype || null
+        });
+        return null;
+      }
+      if (this._targetHasEffect(target, 'huntersmark')) {
+        this.stats.huntersMarkExistingDebuffSkips += 1;
+        this._event('HUNTERS_MARK_SKIPPED_EXISTING_DEBUFF', 'info', 'TARGET_ALREADY_HAS_HUNTERS_MARK', {
+          owner,
+          targetId: target && target.id != null ? String(target.id) : null,
+          targetType: target && target.mtype || null
+        });
+        return null;
+      }
+      this.stats.huntersMarkOwnerAllows += 1;
+      return decision;
     };
-    engine.__alpha33HuntersMarkDebuffGuardInstalled = true;
+    engine.__alpha33HuntersMarkDebuffGuardV2Installed = true;
     return true;
   }
 
@@ -47344,12 +47383,12 @@ class Alpha33MarkOrbitMerchantDelivery {
     const preferred = alpha31 && typeof alpha31._orbitDirection === 'function' ? alpha31._orbitDirection(character) : 1;
     const anchor = this._trainingAnchor(character);
     let best = null;
-    for (const offsetDeg of [preferred * 22, preferred * 32, preferred * 42, preferred * 52, -preferred * 22, -preferred * 32, -preferred * 42]) {
+    for (const offsetDeg of [preferred * 22, preferred * 32, preferred * 42, preferred * 52, preferred * 72, preferred * 92, -preferred * 22, -preferred * 32, -preferred * 52, -preferred * 72, -preferred * 92]) {
       const angle = baseAngle + offsetDeg * Math.PI / 180;
       const x = t.x + Math.cos(angle) * nextRadius;
       const y = t.y + Math.sin(angle) * nextRadius;
       const step = Math.hypot(x - c.x, y - c.y);
-      if (step < 4 || step > maxStep * 1.30) continue;
+      if (step < 4 || step > maxStep * 1.45) continue;
       if (alpha31 && typeof alpha31._canMoveTo === 'function' && !alpha31._canMoveTo(x, y)) continue;
       const candidate = { x, y };
       if (!this._anchorAllows(character, candidate, anchor)) continue;
@@ -47381,13 +47420,13 @@ class Alpha33MarkOrbitMerchantDelivery {
     const speed = Math.max(1, finite(character && character.speed, 40));
     const maxStep = Math.max(12, speed * clamp(finite(alpha31 && alpha31.orbitStepSeconds, 0.8), 0.35, 1.3));
     let best = null;
-    for (const offsetDeg of [preferred * 10, preferred * 16, preferred * 22, preferred * 30, -preferred * 10, -preferred * 16, -preferred * 22]) {
+    for (const offsetDeg of [preferred * 10, preferred * 16, preferred * 22, preferred * 30, preferred * 45, preferred * 70, -preferred * 10, -preferred * 16, -preferred * 22, -preferred * 45, -preferred * 70]) {
       const angle = baseAngle + offsetDeg * Math.PI / 180;
       for (const radius of [desiredDistance, clamp(currentDistance, hardSafeDistance + 5, maxRangeDistance)]) {
         const x = t.x + Math.cos(angle) * radius;
         const y = t.y + Math.sin(angle) * radius;
         const step = Math.hypot(x - c.x, y - c.y);
-        if (step < 3 || step > maxStep * 1.35) continue;
+        if (step < 3 || step > maxStep * 1.45) continue;
         if (alpha31 && typeof alpha31._canMoveTo === 'function' && !alpha31._canMoveTo(x, y)) continue;
         const candidate = { x, y };
         if (!this._anchorAllows(character, candidate, anchor)) continue;
@@ -47548,9 +47587,212 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
+  _farmerStatePayload(snapshot = null) {
+    const logistics = this.runtime.controlledPartyLogistics;
+    const snap = snapshot || (logistics && logistics.adapter && typeof logistics.adapter.snapshot === 'function' ? logistics.adapter.snapshot() : this.runtime.lastSnapshot);
+    const sc = snap && snap.character || {};
+    const live = characterOf(this.runtime) || {};
+    const gear = equipmentView(live.slots || live.equipment || sc.equipment || sc.gear || {});
+    return {
+      runtimeActive: true,
+      name: cleanName(sc.name || live.name),
+      ctype: sc.ctype || live.ctype || null,
+      level: Math.max(0, finite(sc.level != null ? sc.level : live.level, 0)),
+      map: sc.map || live.map || null,
+      x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
+      y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
+      rip: !!(sc.rip || live.rip),
+      gear
+    };
+  }
+
+  _releaseStaleGearGoals(name, gear) {
+    const progression = this.runtime.gearProgression;
+    if (!progression || !(progression.goals instanceof Map) || !name || !gear || typeof gear !== 'object') return 0;
+    let released = 0;
+    for (const [id, goal] of [...progression.goals.entries()]) {
+      if (!goal || String(goal.character || '') !== String(name)) continue;
+      const observed = gear[goal.slot] || null;
+      const expectedName = goal.currentItem == null ? null : String(goal.currentItem);
+      const expectedLevel = Math.max(0, finite(goal.currentLevel, 0));
+      const matches = expectedName == null
+        ? !observed || !observed.name
+        : !!observed && String(observed.name || '') === expectedName && levelOf(observed) === expectedLevel;
+      if (matches) continue;
+      progression.goals.delete(id);
+      released += 1;
+    }
+    if (released) this.stats.staleGearGoalsReleased += released;
+    return released;
+  }
+
+  _acceptFarmerState(sender, data) {
+    const name = cleanName(sender || data && data.sender || data && data.name);
+    if (!name) return false;
+    const gear = equipmentView(data && data.gear || {});
+    const row = {
+      name,
+      ctype: data && data.ctype || null,
+      level: Math.max(0, finite(data && data.level, 0)),
+      map: data && data.map || null,
+      x: finite(data && data.x),
+      y: finite(data && data.y),
+      online: true,
+      available: !(data && data.rip),
+      dead: !!(data && data.rip),
+      gear
+    };
+    this.farmerStates.set(name, { ...row, at: this.now(), sourceAt: finite(data && data.at, this.now()), runtimeActive: data && data.runtimeActive === true });
+    this.stats.farmerStateReceived += 1;
+    const registry = this.runtime.characterRegistry;
+    if (registry && typeof registry._merge === 'function') {
+      try {
+        registry._merge(row, 'party', { at: finite(data && data.at, this.now()), live: true, confidence: 0.98 });
+        this.stats.farmerGearRegistryUpdates += 1;
+      } catch (_) {}
+    }
+    const released = this._releaseStaleGearGoals(name, gear);
+    this._event('FARMER_STATE_OBSERVED_BY_MERCHANT', 'info', 'TRUSTED_PARTY_STATE', {
+      name,
+      map: row.map,
+      gearSlots: Object.keys(gear).length,
+      staleGearGoalsReleased: released
+    });
+    return true;
+  }
+
+  _maybeSendFarmerState(target) {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics._send !== 'function' || typeof logistics._isMerchant !== 'function' || logistics._isMerchant()) return false;
+    const now = this.now();
+    if (now - this.lastFarmerStateSentAt < this.farmerStateIntervalMs) return false;
+    const payload = this._farmerStatePayload();
+    if (!payload.name || !payload.map || payload.x == null || payload.y == null) return false;
+    this.lastFarmerStateSentAt = now;
+    this.stats.farmerStateSent += 1;
+    Promise.resolve(logistics._send(target, FARMER_STATE_ACTION, payload)).catch(() => {});
+    return true;
+  }
+
+  _installPartyStateTelemetry() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics.receive !== 'function' || logistics.__alpha33PartyStateTelemetryV2Installed) return false;
+    const baseReceive = logistics.receive.bind(logistics);
+    logistics.receive = (sender, data) => {
+      const action = String(data && data.action || '');
+      if (action === FARMER_STATE_ACTION) {
+        const from = cleanName(sender || data && data.sender);
+        const merchant = typeof logistics._isMerchant === 'function' && logistics._isMerchant();
+        const valid = typeof logistics._validEnvelope === 'function' && logistics._validEnvelope(from, data);
+        if (!merchant || !valid) {
+          if (data && data.type && logistics.stats) logistics.stats.messagesRejected = (logistics.stats.messagesRejected || 0) + 1;
+          return false;
+        }
+        if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
+        return this._acceptFarmerState(from, data);
+      }
+      const accepted = baseReceive(sender, data);
+      if (accepted && action === 'STATUS' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
+      if (accepted && action === 'STOP_FULL' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
+      return accepted;
+    };
+    logistics.__alpha33PartyStateTelemetryV2Installed = true;
+    return true;
+  }
+
+  _merchantRendezvousCandidate() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || !(logistics.rendezvousRequests instanceof Map)) return null;
+    const now = this.now();
+    const ttl = Math.max(3000, finite(logistics.config && logistics.config.rendezvousRequestTtlMs, 15000));
+    const rows = [...logistics.rendezvousRequests.values()].filter((row) => row
+      && row.map
+      && finite(row.x) != null
+      && finite(row.y) != null
+      && now - finite(row.at, 0) <= ttl
+      && ['RENDEZVOUS', 'LOOT_OFFER', 'GOLD_OFFER', 'SUPPLY_REQUEST'].includes(String(row.action || 'RENDEZVOUS')));
+    if (!rows.length) return null;
+    const byMap = new Map();
+    for (const row of rows) {
+      const list = byMap.get(String(row.map)) || [];
+      list.push(row);
+      byMap.set(String(row.map), list);
+    }
+    const groups = [...byMap.entries()].map(([map, list]) => ({
+      map,
+      rows: list,
+      freshestAt: Math.max(...list.map((row) => finite(row.at, 0)))
+    })).sort((a, b) => b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
+    const selected = groups[0];
+    const x = selected.rows.reduce((sum, row) => sum + Number(row.x), 0) / selected.rows.length;
+    const y = selected.rows.reduce((sum, row) => sum + Number(row.y), 0) / selected.rows.length;
+    return { map: selected.map, x, y, count: selected.rows.length, names: selected.rows.map((row) => row.name).filter(Boolean).sort() };
+  }
+
+  async _driveMerchantRendezvous(merchant) {
+    if (this.merchantRendezvousBusy || this.now() - this.lastMerchantRendezvousAt < this.merchantRendezvousCooldownMs) return false;
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant' || c.rip) return false;
+    if (hasIncomingAggro(this.runtime)) return false;
+    const plan = merchant && merchant.lastMerchantPlan;
+    if (!plan || plan.action !== 'IDLE' || plan.reason !== 'NO_LEDGER_AUTHORIZED_ACTION') return false;
+    if (!merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function' || merchant.atomic.serviceTravelBusy || merchant.atomic.merchantBusy) return false;
+    const candidate = this._merchantRendezvousCandidate();
+    if (!candidate) return false;
+    const logistics = this.runtime.controlledPartyLogistics;
+    const nearDistance = Math.max(120, Math.min(
+      finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
+      finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
+    ));
+    if (String(c.map || '') === String(candidate.map) && distance(c, candidate) <= nearDistance) {
+      this.stats.merchantRendezvousAlreadyNear += 1;
+      return false;
+    }
+    const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
+    this.merchantRendezvousBusy = true;
+    this.lastMerchantRendezvousAt = this.now();
+    this.stats.merchantRendezvousAttempts += 1;
+    merchant.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'PARTY_LOGISTICS_RENDEZVOUS', destination, workers: candidate.names.slice(), pendingTransfers: candidate.count };
+    this._event('MERCHANT_IDLE_RENDEZVOUS_STARTED', 'info', 'PENDING_PARTY_TRANSFER_WORK', merchant.lastMerchantPlan);
+    try {
+      const result = await merchant.atomic.namedServiceTravel(destination);
+      const ok = result === true || !!(result && result.ok === true);
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: candidate.names.slice() };
+      if (ok) {
+        this.stats.merchantRendezvousCompleted += 1;
+        this._event('MERCHANT_IDLE_RENDEZVOUS_COMPLETED', 'info', 'PARTY_TRANSFER_RANGE_RESTORED', this.lastMerchantRendezvous);
+      } else {
+        this.stats.merchantRendezvousFailed += 1;
+        this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', result && result.reason || 'RENDEZVOUS_TRAVEL_FAILED', this.lastMerchantRendezvous);
+      }
+      return ok;
+    } catch (error) {
+      this.stats.merchantRendezvousFailed += 1;
+      this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: candidate.names.slice() };
+      this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', 'RENDEZVOUS_TRAVEL_EXCEPTION', this.lastMerchantRendezvous);
+      return false;
+    } finally {
+      this.merchantRendezvousBusy = false;
+    }
+  }
+
+  _installMerchantRendezvousAuthority() {
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    const merchant = alpha27 && alpha27.merchant;
+    if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV2Installed) return false;
+    const baseCycle = merchant.cycle.bind(merchant);
+    merchant.cycle = async () => {
+      const acted = await baseCycle();
+      if (acted) return acted;
+      return this._driveMerchantRendezvous(merchant);
+    };
+    merchant.__alpha33MerchantRendezvousV2Installed = true;
+    return true;
+  }
+
   status() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
       installedAt: this.installedAt || null,
       installed: {
@@ -47558,24 +47800,36 @@ class Alpha33MarkOrbitMerchantDelivery {
         anchoredAggroOrbit: this.anchoredOrbitInstalled,
         merchantIncomingAggro: this.merchantIncomingAggroInstalled,
         gearDeliverySafety: this.gearDeliverySafetyInstalled,
-        farmerGearReservation: this.farmerGearReservationInstalled
+        farmerGearReservation: this.farmerGearReservationInstalled,
+        partyStateTelemetry: this.partyStateTelemetryInstalled,
+        merchantRendezvousAuthority: this.merchantRendezvousAuthorityInstalled
       },
       policies: {
+        huntersMarkSinglePartyOwner: true,
+        huntersMarkOwnerSelection: 'FIRST_LIVE_RANGER_BY_NAME',
         huntersMarkExistingDebuffSkipped: true,
         activeAggroUsesTangentialSpiralEscape: true,
         trainingAreaAnchorBoundsOrbit: true,
         merchantOwnTargetIsNotCombat: true,
         merchantCombatRequiresIncomingMonsterAggro: true,
         gearDeliveryRequiresObservedTargetGear: true,
+        trustedFarmerGearStateReplicatedToMerchant: true,
+        staleGearGoalsReleasedOnFreshTargetState: true,
         staleGearGoalsFailClosed: true,
-        localProgressionGearIsNotReturnedAsLoot: true
+        localProgressionGearIsNotReturnedAsLoot: true,
+        alpha27OwnsCrossMapMerchantRendezvous: true,
+        merchantRendezvousRequiresPendingTransferWork: true
       },
       config: {
         trainingRadiusFactor: this.trainingRadiusFactor,
         trainingRadiusMin: this.trainingRadiusMin,
-        trainingRadiusMax: this.trainingRadiusMax
+        trainingRadiusMax: this.trainingRadiusMax,
+        farmerStateIntervalMs: this.farmerStateIntervalMs,
+        merchantRendezvousCooldownMs: this.merchantRendezvousCooldownMs
       },
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
+      lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
+      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length })),
       stats: { ...this.stats }
     };
   }
@@ -47583,19 +47837,22 @@ class Alpha33MarkOrbitMerchantDelivery {
 
 function installAlpha33MarkOrbitMerchantDelivery(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha33MarkOrbitMerchantDelivery) return runtime.alpha33MarkOrbitMerchantDelivery;
+  const existing = runtime.alpha33MarkOrbitMerchantDelivery;
+  if (existing && existing.mode === ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE) return existing;
   const module = new Alpha33MarkOrbitMerchantDelivery(runtime, options);
+  module.mode = ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE;
   runtime.alpha33MarkOrbitMerchantDelivery = module;
   return module;
 }
 
 module.exports = {
   ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
+  FARMER_STATE_ACTION,
   effectActiveOn,
+  equipmentView,
   Alpha33MarkOrbitMerchantDelivery,
   installAlpha33MarkOrbitMerchantDelivery
 };
-
 },
 "src/reliability/live-farmer-merchant-recovery.js": function(require,module,exports){
 'use strict';
