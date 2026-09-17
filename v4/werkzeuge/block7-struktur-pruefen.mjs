@@ -19,7 +19,10 @@ const pflichtDateien = [
   'laufzeit/tests/sicheres-farmen.test.mjs',
   'laufzeit/tests/kampfsicherheits-ausfuehrung.test.mjs',
   'laufzeit/tests/block7-schattenlauf-kontextbruecke.test.mjs',
-  'werkzeuge/block7-schattenlauf-kontextbruecke.js'
+  'laufzeit/tests/block7-abnahme.test.mjs',
+  'laufzeit/tests/block7-kontrollierter-aktivtest.test.mjs',
+  'werkzeuge/block7-schattenlauf-kontextbruecke.js',
+  'werkzeuge/block7-kontrollierter-aktivtest.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -180,6 +183,39 @@ for (const pflichtText of [
   if (!farmAusfuehrungsTests.includes(pflichtText)) throw new Error(`Block-7-Reichweiten-Ausfuehrungstest fehlt: ${pflichtText}`);
 }
 
+const abnahmeTests = await readFile(path.join(wurzel, 'laufzeit/tests/block7-abnahme.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'kritische HP unter Beschuss verdraengen Farmen und starten genau eine freigegebene Rueckzugsbewegung',
+  'zu kleiner Abstand erzeugt kontrolliertes Abstandhalten statt normalem Farmen',
+  'niedriges Mana erzwingt Rueckzug und fehlendes Mana blockiert fail-safe',
+  'gestartete Sicherheitsbewegung ohne Fortschritt wird als blockiert erkannt',
+  'Ziel ausserhalb der aktuellen Reichweite erreicht attack nicht',
+  'aktive Sicherheitsbewegung bleibt ohne explizite Freigabe gesperrt'
+]) {
+  if (!abnahmeTests.includes(pflichtText)) throw new Error(`Block-7-Abnahmeszenario fehlt: ${pflichtText}`);
+}
+
+const aktivWerkzeug = await readFile(path.join(wurzel, 'werkzeuge/block7-kontrollierter-aktivtest.js'), 'utf8');
+for (const pflichtText of ['V4Block7Aktivtest', 'BLOCK7-AKTIVTEST-FREIGEBEN', 'MAXIMALE_TESTDISTANZ = 20', 'Reflect.apply(move', 'automatischWiederGesperrt']) {
+  if (!aktivWerkzeug.includes(pflichtText)) throw new Error(`Block-7-Live-Aktivtest ist unvollstaendig: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'use_hp_or_mp', 'loot']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(aktivWerkzeug)) {
+    throw new Error(`Der kontrollierte Block-7-Live-Aktivtest darf ${unerlaubt} nicht aufrufen.`);
+  }
+}
+
+const aktivWerkzeugTests = await readFile(path.join(wurzel, 'laufzeit/tests/block7-kontrollierter-aktivtest.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'startet gesperrt und Vorschau bleibt read-only',
+  'verlangt exakten Freigabetext und ist one-shot',
+  'erfindet ohne aktuellen Angreifer keine Sicherheitsbewegung',
+  'begrenzt jede echte Bewegung auf hoechstens 20 Einheiten',
+  'besitzt keinen Pfad zu Angriff, Skill, Heal, Mana oder Loot'
+]) {
+  if (!aktivWerkzeugTests.includes(pflichtText)) throw new Error(`Block-7-Live-Aktivtesttest fehlt: ${pflichtText}`);
+}
+
 const replayTests = await readFile(path.join(wurzel, 'laufzeit/tests/kampfsicherheit-wiederholung.test.mjs'), 'utf8');
 for (const pflichtText of ['ausgabeFingerabdruck', "['rueckzug', 'rueckzug']"]) {
   if (!replayTests.includes(pflichtText)) throw new Error(`Block-7-Replaytest fehlt: ${pflichtText}`);
@@ -195,9 +231,11 @@ for (const regel of [
   'Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.',
   'Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.',
   'Reichweite unmittelbar vor `attack(...)` erneut geprueft',
-  '`is_on_cooldown("attack")`'
+  '`is_on_cooldown("attack")`',
+  'V4Block7Aktivtest',
+  'maximal 20 Einheiten'
 ]) {
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 7 fehlt: ${regel}`);
 }
 
-console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, reale Adventure-Land-Cooldown-Beobachtung, Safety-vor-Farm, aktive Sicherheitsgrenze, Reichweiten-Recheck und Replay.`);
+console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, reale Adventure-Land-Cooldown-Beobachtung, Safety-vor-Farm, aktive Sicherheitsgrenze, kontrollierter Live-Smoke-Test, Reichweiten-Recheck, Abnahmesuite und Replay.`);
