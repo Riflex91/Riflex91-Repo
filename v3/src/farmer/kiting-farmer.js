@@ -32,7 +32,6 @@ class KitingFarmerController extends FarmerController {
             const result = context.adapter.command('move', [decision.x, decision.y]);
             if (result.executed || result.shadow) {
               this.lastKiteAt = now;
-              this.lastActionAt = now;
               this.lastKiteMove = {
                 at: now,
                 targetId: target.id || null,
@@ -53,19 +52,21 @@ class KitingFarmerController extends FarmerController {
                 x: Math.round(decision.x),
                 y: Math.round(decision.y)
               });
-              return;
+            } else {
+              this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
+                distance: decision.distance,
+                x: Math.round(decision.x),
+                y: Math.round(decision.y)
+              });
             }
-
-            this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
-              distance: decision.distance,
-              x: Math.round(decision.x),
-              y: Math.round(decision.y)
-            });
           }
         }
       }
     }
 
+    // Kiting is movement, not a replacement for the attack cycle. Adventure Land
+    // can keep moving toward the requested waypoint while a basic attack is sent,
+    // so always let the normal engagement pipeline evaluate the shot as well.
     return super._engage(context, target);
   }
 

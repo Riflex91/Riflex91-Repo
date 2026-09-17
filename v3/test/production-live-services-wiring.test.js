@@ -4,6 +4,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+  refreshAdventureLandSpriteHook,
+  SPRITE_HOT_RELOAD_HOOK_VERSION
+} = require('../src/production-live-services');
 
 const root = path.resolve(__dirname, '..');
 function read(rel) { return fs.readFileSync(path.resolve(root, rel), 'utf8'); }
@@ -30,6 +34,49 @@ test('production live services wire Alpha25 cloud control, Alpha26 updater, and 
   assert.match(source, /safeAutoUpdaterInstalled/);
 });
 
+test('Alpha31 and Alpha32 live recovery stay passive during install and run only from the runtime tick chain', () => {
+  const source = read('src/production-live-services.js');
+  assert.match(source, /const roleLiveness = installAlpha31PartyRoleLivenessHotfix\(runtime, options\)/);
+  assert.match(source, /const liveRecovery = installAlpha32NavigationMerchantRecovery\(runtime, options\)/);
+  assert.match(source, /runtime\.tick = \(\.\.\.args\) => \{[\s\S]*runService\(runtime, runtime\.alpha32NavigationMerchantRecovery, 'alpha32-navigation-merchant-recovery'\);[\s\S]*runService\(runtime, runtime\.alpha31PartyRoleLivenessHotfix, 'alpha31-party-role-liveness'\)/);
+  assert.doesNotMatch(source, /runService\(runtime, roleLiveness, 'alpha31-party-role-liveness'\)/);
+  assert.doesNotMatch(source, /runService\(runtime, liveRecovery, 'alpha32-navigation-merchant-recovery'\)/);
+});
+
+test('same-version hot reload replaces an already-installed stale sprite snapshot hook exactly once', () => {
+  const runtime = {
+    lastSnapshot: { character: { name: 'R1', isize: 42 } },
+    adapter: {
+      getGameData: () => ({
+        items: { hpot0: { skin: 'hpot_skin' } },
+        positions: {
+          hpot_skin: ['pack_20', 1, 2],
+          shade_helmet: ['pack_20', 2, 1]
+        },
+        imagesets: { pack_20: { file: '/images/tiles/items.png', size: 20, columns: 16, rows: 8 } }
+      })
+    },
+    characterRegistry: {
+      status: () => ({ characters: [{ name: 'R1', inventory: [{ index: 0, name: 'hpot0', q: 5 }], gear: {} }] })
+    }
+  };
+  const cloud = {
+    __adventureLandItemSpritesInstalled: true,
+    _runtimeSnapshot() {
+      return { character: { name: 'R1' }, itemSprites: {}, equipmentShades: {} };
+    }
+  };
+  runtime.cloudControlPlane = cloud;
+
+  assert.equal(refreshAdventureLandSpriteHook(runtime, { cloud }), true);
+  assert.equal(cloud.__adventureLandSpriteHotReloadHookVersion, SPRITE_HOT_RELOAD_HOOK_VERSION);
+  const snapshot = cloud._runtimeSnapshot();
+  assert.equal(snapshot.itemSprites.hpot0.file, 'https://adventure.land/images/tiles/items.png');
+  assert.equal(snapshot.equipmentShades.helmet.skin, 'shade_helmet');
+  assert.equal(snapshot.character.isize, 42);
+  assert.equal(refreshAdventureLandSpriteHook(runtime, { cloud }), false);
+});
+
 test('merchant production and Alpha27 autonomy mutually observe busy ownership', () => {
   const production = read('src/merchant/merchant-production-controller.js');
   const autonomy = read('src/reliability/alpha27-merchant-autonomy.js');
@@ -50,11 +97,12 @@ test('production entry replaces an older in-memory AIO runtime before reinstalli
   assert.match(source, /replaceOlderRuntime\(root\)/);
 });
 
-test('live diagnostics expose cloud, updater, convergence, and live-authority state', () => {
+test('live diagnostics expose cloud, updater, convergence, live-authority, and Alpha32 recovery state', () => {
   const source = read('src/production-live-services.js');
   assert.match(source, /api\.cloud\s*=/);
   assert.match(source, /api\.autoUpdate\s*=/);
   assert.match(source, /api\.liveServices\s*=/);
   assert.match(source, /convergence:/);
   assert.match(source, /liveAuthority:/);
+  assert.match(source, /navigationMerchantRecovery:/);
 });

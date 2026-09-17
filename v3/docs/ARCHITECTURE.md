@@ -8,19 +8,19 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1115 |
+| (root) | 6 | 1164 |
 | autonomy | 21 | 3981 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
 | core | 5 | 645 |
 | economy | 12 | 3861 |
-| farmer | 14 | 2582 |
+| farmer | 14 | 2583 |
 | game | 3 | 703 |
 | merchant | 5 | 1522 |
 | ops | 26 | 7224 |
 | party | 19 | 3827 |
 | planner | 1 | 65 |
-| reliability | 68 | 15174 |
+| reliability | 70 | 16711 |
 | research | 1 | 101 |
 | stability | 3 | 727 |
 | telemetry | 1 | 263 |
@@ -51,7 +51,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | (root) | ops | 10 |
 | (root) | party | 13 |
 | (root) | planner | 2 |
-| (root) | reliability | 10 |
+| (root) | reliability | 12 |
 | (root) | research | 2 |
 | (root) | stability | 3 |
 | (root) | telemetry | 2 |

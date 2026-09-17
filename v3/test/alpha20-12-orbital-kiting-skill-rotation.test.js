@@ -81,7 +81,7 @@ test('Alpha20.12 raises ranged kite distance and removes the routine offensive M
   assert.equal(hotfix.status().skillRotation.reserveRatio, 0);
 });
 
-test('blocked radial kite chooses a reachable orbital waypoint around the monster', () => {
+test('blocked radial kite chooses a reachable orbital waypoint while continuing damage', () => {
   let now = 10000;
   const commands = [];
   const { farmer, hotfix } = makeRuntime({
@@ -97,9 +97,11 @@ test('blocked radial kite chooses a reachable orbital waypoint around the monste
   now += 1000;
   farmer.step(ctx);
 
-  assert.equal(commands.at(-1).action, 'move');
-  assert.ok(commands.at(-1).args[0] >= -1);
-  assert.ok(Math.abs(commands.at(-1).args[1]) > 1);
+  const move = commands.findLast((entry) => entry.action === 'move');
+  assert.ok(move, 'Expected an orbital kite move before attacking');
+  assert.ok(move.args[0] >= -1);
+  assert.ok(Math.abs(move.args[1]) > 1);
+  assert.equal(commands.at(-1).action, 'attack');
   const status = hotfix.status();
   assert.ok(status.stats.kiteOrbitalWaypoints >= 1);
   assert.notEqual(status.combatMovement.lastKiteDecision.offsetDeg, 0);

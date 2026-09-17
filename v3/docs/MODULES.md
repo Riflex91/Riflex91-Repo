@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1115 Zeilen**
+**6 Dateien · 1164 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 159 |
+| `src/production-live-services.js` | 208 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |
@@ -101,7 +101,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**14 Dateien · 2582 Zeilen**
+**14 Dateien · 2583 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -111,7 +111,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 219 |
 | `src/farmer/farmer-fsm.js` | 526 |
-| `src/farmer/kiting-farmer.js` | 84 |
+| `src/farmer/kiting-farmer.js` | 85 |
 | `src/farmer/retreat-farmer.js` | 166 |
 | `src/farmer/safe-retreat.js` | 89 |
 | `src/farmer/skill-farmer.js` | 477 |
@@ -211,13 +211,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**68 Dateien · 15174 Zeilen**
+**70 Dateien · 16711 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/reliability/alpha20-15-combat-logistics-hotfix.js` | 333 |
 | `src/reliability/alpha20-15-logistics-fairness-hotfix.js` | 39 |
-| `src/reliability/alpha20-19-account-transport-hotfix.js` | 175 |
+| `src/reliability/alpha20-19-account-transport-hotfix.js` | 181 |
 | `src/reliability/alpha20-19-logistics-stabilization.js` | 133 |
 | `src/reliability/alpha20-20-alpha22-autonomy.js` | 239 |
 | `src/reliability/alpha20-20-live-regression-hotfix.js` | 188 |
@@ -229,7 +229,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 430 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 548 |
-| `src/reliability/alpha25-control-center-brain.js` | 166 |
+| `src/reliability/alpha25-control-center-brain.js` | 345 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 48 |
@@ -253,6 +253,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
+| `src/reliability/alpha31-party-role-liveness-hotfix.js` | 620 |
+| `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
 | `src/reliability/content-drift-semantic-recovery.js` | 219 |
 | `src/reliability/content-drift-storage-hotfix.js` | 88 |
 | `src/reliability/controlled-party-logistics.js` | 870 |
@@ -280,7 +282,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/party-focus-fire-hotfix.js` | 217 |
 | `src/reliability/party-persistence-quota-hotfix.js` | 382 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
-| `src/reliability/team-cohesion-deadlock-hotfix.js` | 297 |
+| `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
 | `src/reliability/team-combat-cohesion-hotfix-base.js` | 526 |
 | `src/reliability/team-combat-cohesion-hotfix.js` | 215 |
 

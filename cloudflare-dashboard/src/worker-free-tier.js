@@ -28,6 +28,12 @@ const PUBLIC_RELEASE_PATHS = new Set([
   RUNTIME_RELEASE_PATH
 ]);
 const lastR2WriteAt = new Map();
+const CHARACTER_INVENTORY_STYLE = `<style id="character-inventory-presentation-fix">
+.char-details .al-panel{overflow:hidden!important;max-width:100%;box-sizing:border-box}
+.char-details .al-inventory-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important;width:100%!important;max-width:100%;margin:0!important}
+.char-details .al-inventory-grid .al-slot{width:100%!important;height:auto!important;aspect-ratio:1/1;min-width:0}
+@media(max-width:760px){.char-details .al-panel{padding:5px}.char-details .al-inventory-grid{gap:2px}}
+</style>`;
 
 function bytesOf(value) {
   if (typeof value === 'string') return new TextEncoder().encode(value).byteLength;
@@ -140,13 +146,35 @@ async function withFreeTierHealth(request, response) {
   }
 }
 
+async function withCharacterInventoryPresentation(request, response) {
+  if (request.method !== 'GET' || new URL(request.url).pathname !== '/' || response.status >= 400) return response;
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('text/html')) return response;
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  const currentCsp = headers.get('content-security-policy') || '';
+  if (currentCsp) {
+    const allowed = "img-src 'self' data: https://adventure.land https://www.adventure.land https://*.adventure.land;";
+    headers.set('content-security-policy', currentCsp.includes("img-src 'self' data:;")
+      ? currentCsp.replace("img-src 'self' data:;", allowed)
+      : currentCsp);
+  }
+  const html = await response.text();
+  const patched = html.includes('character-inventory-presentation-fix')
+    ? html
+    : html.replace('</head>', CHARACTER_INVENTORY_STYLE + '</head>');
+  return new Response(patched, { status: response.status, statusText: response.statusText, headers });
+}
+
 export {
   PUBLIC_RELEASE_PATHS,
+  CHARACTER_INVENTORY_STYLE,
   archiveScope,
   bytesOf,
   guardedArchiveBinding,
   guardedEnv,
   isPublicReleaseRead,
+  withCharacterInventoryPresentation,
   WORKER_NAME,
   R2_BINDING,
   R2_BUCKET
@@ -165,6 +193,7 @@ export default {
     }
     response = await withQuotaOverview(request, response, env);
     response = await withFreeTierHealth(request, response);
+    response = await withCharacterInventoryPresentation(request, response);
     maybeFlushUsage(env, ctx, now);
     return response;
   }

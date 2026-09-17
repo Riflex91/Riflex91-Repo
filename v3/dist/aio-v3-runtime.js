@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.62 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.72 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -953,7 +953,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.62';
+const RELEASE_VERSION = '3.0.0-alpha.20.72';
 
 module.exports = { RELEASE_VERSION };
 
@@ -3421,7 +3421,6 @@ class KitingFarmerController extends FarmerController {
             const result = context.adapter.command('move', [decision.x, decision.y]);
             if (result.executed || result.shadow) {
               this.lastKiteAt = now;
-              this.lastActionAt = now;
               this.lastKiteMove = {
                 at: now,
                 targetId: target.id || null,
@@ -3442,19 +3441,21 @@ class KitingFarmerController extends FarmerController {
                 x: Math.round(decision.x),
                 y: Math.round(decision.y)
               });
-              return;
+            } else {
+              this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
+                distance: decision.distance,
+                x: Math.round(decision.x),
+                y: Math.round(decision.y)
+              });
             }
-
-            this._event('FARMER_KITE_MOVE_FAILED', 'warn', result.reason || 'KITE_MOVE_FAILED', {
-              distance: decision.distance,
-              x: Math.round(decision.x),
-              y: Math.round(decision.y)
-            });
           }
         }
       }
     }
 
+    // Kiting is movement, not a replacement for the attack cycle. Adventure Land
+    // can keep moving toward the requested waypoint while a basic attack is sent,
+    // so always let the normal engagement pipeline evaluate the shot as well.
     return super._engage(context, target);
   }
 
@@ -3471,7 +3472,6 @@ class KitingFarmerController extends FarmerController {
 }
 
 module.exports = { KitingFarmerController };
-
 },
 "src/farmer/farmer-fsm.js": function(require,module,exports){
 'use strict';
@@ -25536,7 +25536,7 @@ const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fair
 const { installIntegratedPartyControl } = require('./integrated-party-control');
 const { installAlpha27CombatMerchantConvergence } = require('./alpha27-combat-merchant-convergence');
 
-const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v2';
+const TEAM_COHESION_DEADLOCK_MODE = 'pairwise-safe-team-formation-v3-terrain-recovery';
 
 function finite(value, fallback = null) {
   const number = Number(value);
@@ -25564,6 +25564,13 @@ function maxPairDistance(members = [], overrideName = null, overridePoint = null
     }
   }
   return max;
+}
+
+function terrainRecoveryOwner(team, stopRadius = 60) {
+  if (!team || !team.leaderName || !team.leader || !Array.isArray(team.members)) return null;
+  return team.members
+    .filter((row) => row && row.name !== team.leaderName && distance(row, team.leader) > stopRadius)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)))[0] || null;
 }
 
 function bestLeaderRecoveryWaypoint(team, options = {}) {
@@ -25638,12 +25645,31 @@ class TeamCohesionDeadlockHotfix {
     this.leaderRecoveryMinImprovement = Math.max(3, finite(options.leaderRecoveryMinImprovement, 6));
     this.lastLeaderRecoveryAt = -Infinity;
     this.lastLeaderRecovery = null;
+
+    this.terrainRecoveryNoProgressMs = Math.max(2500, finite(options.terrainRecoveryNoProgressMs, 5000));
+    this.terrainRecoveryMinProgress = Math.max(4, finite(options.terrainRecoveryMinProgress, 12));
+    this.terrainRecoveryCooldownMs = Math.max(2500, finite(options.terrainRecoveryCooldownMs, 8000));
+    this.terrainRecoveryTimeoutMs = Math.max(10000, finite(options.terrainRecoveryTimeoutMs, 45000));
+    this.terrainRecoveryStopRadius = Math.max(35, Math.min(this.cohesionRadius - 10, finite(options.terrainRecoveryStopRadius, this.appliedFollowRadius)));
+    this.formationProgress = new Map();
+    this.activeTerrainRecovery = null;
+    this.nextTerrainRecoveryId = 1;
+
     this.stats = {
       leaderRecoveryAttempts: 0,
       leaderRecoveryMoves: 0,
       leaderRecoveryShadowMoves: 0,
       leaderRecoveryTerrainHolds: 0,
-      leaderRecoverySafetyHolds: 0
+      leaderRecoverySafetyHolds: 0,
+      terrainRecoveryTriggers: 0,
+      terrainRecoveryMoves: 0,
+      terrainRecoveryShadowMoves: 0,
+      terrainRecoveryPeerHolds: 0,
+      terrainRecoverySafetyHolds: 0,
+      terrainRecoveryFailures: 0,
+      terrainRecoveryCompletions: 0,
+      terrainRecoveryTimeouts: 0,
+      terrainRecoveryUnexpectedMapChanges: 0
     };
 
     this.alpha20_15 = installAlpha2015CombatLogisticsHotfix(runtime);
@@ -25651,10 +25677,13 @@ class TeamCohesionDeadlockHotfix {
     const hasIntegratedRuntimeSurfaces = !!(runtime.farmer && runtime.localFarming);
     this.alpha20_16_19 = hasIntegratedRuntimeSurfaces ? installIntegratedPartyControl(runtime) : null;
     this.alpha20_16_19SkippedReason = hasIntegratedRuntimeSurfaces ? null : 'INTEGRATED_RUNTIME_SURFACES_UNAVAILABLE';
-    if (hasIntegratedRuntimeSurfaces) this._installLeaderRecovery();
+    if (hasIntegratedRuntimeSurfaces) {
+      this._installLeaderRecovery();
+      this._installFollowerTerrainRecovery();
+    }
 
     this.installedAt = this.now();
-    this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_AND_BOUNDED_LEADER_RECOVERY', this.status());
+    this._event('TEAM_COHESION_DEADLOCK_HOTFIX_INSTALLED', 'warn', 'PAIRWISE_RADIUS_AND_TERRAIN_RECOVERY', this.status());
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -25692,6 +25721,195 @@ class TeamCohesionDeadlockHotfix {
     return !!(farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state));
   }
 
+  _progressState(name, currentDistance) {
+    const key = String(name || '');
+    let row = this.formationProgress.get(key);
+    if (!row) {
+      row = {
+        bestDistance: currentDistance,
+        lastMeaningfulProgressAt: this.now(),
+        lastRecoveryAt: -Infinity,
+        lastObservedDistance: currentDistance
+      };
+      this.formationProgress.set(key, row);
+      return row;
+    }
+    if (Number.isFinite(currentDistance) && (!Number.isFinite(row.bestDistance) || currentDistance <= row.bestDistance - this.terrainRecoveryMinProgress)) {
+      row.bestDistance = currentDistance;
+      row.lastMeaningfulProgressAt = this.now();
+    }
+    row.lastObservedDistance = currentDistance;
+    return row;
+  }
+
+  _resetProgress(name, currentDistance) {
+    const row = this._progressState(name, currentDistance);
+    row.bestDistance = currentDistance;
+    row.lastMeaningfulProgressAt = this.now();
+    row.lastObservedDistance = currentDistance;
+    return row;
+  }
+
+  _stopTerrainRecovery(reason, data = {}) {
+    const active = this.activeTerrainRecovery;
+    if (!active) return false;
+    const adapter = this.runtime.adapter;
+    if (adapter && typeof adapter.command === 'function') {
+      try { adapter.command('stop', ['smart']); } catch (_) {}
+    }
+    this.activeTerrainRecovery = null;
+    this._event('TEAM_TERRAIN_RECOVERY_STOPPED', 'warn', reason, { ...active, ...data });
+    return true;
+  }
+
+  _startTerrainRecovery(context, team, reason) {
+    const snapshot = context && context.snapshot || this.runtime.lastSnapshot;
+    if (!snapshot || !snapshot.character || !team || !team.self || !team.leader) return false;
+    if (this._combatOrSafetyBusy(snapshot) || !this._movementAvailable()) {
+      this.stats.terrainRecoverySafetyHolds += 1;
+      return false;
+    }
+    if (!team.sameMap || !team.positionsKnown || snapshot.character.map == null) return false;
+    if (finite(team.leader.x) == null || finite(team.leader.y) == null) return false;
+
+    const adapter = this.runtime.adapter;
+    if (!adapter || typeof adapter.command !== 'function') return false;
+    const destination = {
+      map: snapshot.character.map,
+      x: Number(team.leader.x),
+      y: Number(team.leader.y)
+    };
+    const id = `terrain-recovery-${this.nextTerrainRecoveryId++}`;
+    const startedAt = this.now();
+    const command = adapter.command('smart_move', [destination]);
+    this.stats.terrainRecoveryTriggers += 1;
+
+    if (!command || (!command.executed && !command.shadow && !command.coalesced)) {
+      this.stats.terrainRecoveryFailures += 1;
+      this._event('TEAM_TERRAIN_RECOVERY_FAILED', 'warn', command && command.reason || 'SMART_MOVE_NOT_EXECUTED', {
+        id,
+        ownerName: team.selfName,
+        leaderName: team.leaderName,
+        destination,
+        triggerReason: reason || null
+      });
+      return false;
+    }
+
+    if (command.shadow) this.stats.terrainRecoveryShadowMoves += 1;
+    else this.stats.terrainRecoveryMoves += 1;
+    this.activeTerrainRecovery = {
+      id,
+      ownerName: team.selfName,
+      leaderName: team.leaderName,
+      map: snapshot.character.map,
+      destination,
+      startedAt,
+      startDistance: distance(team.self, team.leader),
+      triggerReason: reason || null,
+      settled: false,
+      settledReason: null
+    };
+
+    const value = command.value;
+    if (value && typeof value.then === 'function') {
+      Promise.resolve(value).then((response) => {
+        if (!this.activeTerrainRecovery || this.activeTerrainRecovery.id !== id) return;
+        this.activeTerrainRecovery.settled = true;
+        this.activeTerrainRecovery.settledReason = response && response.failed === true
+          ? String(response.reason || 'SMART_MOVE_FAILED')
+          : 'SMART_MOVE_RESOLVED';
+      }).catch((error) => {
+        if (!this.activeTerrainRecovery || this.activeTerrainRecovery.id !== id) return;
+        this.stats.terrainRecoveryFailures += 1;
+        this.activeTerrainRecovery.settled = true;
+        this.activeTerrainRecovery.settledReason = String(error && error.message || error || 'SMART_MOVE_REJECTED');
+      });
+    }
+
+    this._event('TEAM_TERRAIN_RECOVERY_STARTED', 'warn', 'FORMATION_LOCAL_PROGRESS_STALLED', {
+      ...this.activeTerrainRecovery,
+      sameMapOnly: true,
+      serverChangeAllowed: false
+    });
+    return true;
+  }
+
+  _installFollowerTerrainRecovery() {
+    if (!this.team || typeof this.team._followLeader !== 'function' || this.team.__terrainRecoveryInstalled) return false;
+    const baseFollow = this.team._followLeader.bind(this.team);
+    this.team._followLeader = (context, team, reason) => {
+      if (!team || !team.self || !team.leader || team.selfName === team.leaderName) return baseFollow(context, team, reason);
+      const snapshot = context && context.snapshot || this.runtime.lastSnapshot;
+      const d = distance(team.self, team.leader);
+      const progress = this._progressState(team.selfName, d);
+
+      if (d <= this.terrainRecoveryStopRadius || team.cohesive) {
+        if (this.activeTerrainRecovery && this.activeTerrainRecovery.ownerName === team.selfName) {
+          this.stats.terrainRecoveryCompletions += 1;
+          this._stopTerrainRecovery('FORMATION_COHESION_RECOVERED', { finalDistance: d });
+        }
+        this._resetProgress(team.selfName, d);
+        return baseFollow(context, team, reason);
+      }
+
+      const active = this.activeTerrainRecovery;
+      if (active && active.ownerName === team.selfName) {
+        if (snapshot && snapshot.character && String(snapshot.character.map || '') !== String(active.map || '')) {
+          this.stats.terrainRecoveryUnexpectedMapChanges += 1;
+          this._stopTerrainRecovery('UNEXPECTED_MAP_CHANGE', { observedMap: snapshot.character.map || null });
+          progress.lastRecoveryAt = this.now();
+          return true;
+        }
+        if (this._combatOrSafetyBusy(snapshot)) {
+          this.stats.terrainRecoverySafetyHolds += 1;
+          this._stopTerrainRecovery('COMBAT_OR_SAFETY_PREEMPTION', { finalDistance: d });
+          progress.lastRecoveryAt = this.now();
+          return true;
+        }
+        if (active.settled && active.settledReason && active.settledReason !== 'SMART_MOVE_RESOLVED') {
+          this._stopTerrainRecovery('SMART_MOVE_FAILED', { failure: active.settledReason, finalDistance: d });
+          progress.lastRecoveryAt = this.now();
+          this._resetProgress(team.selfName, d);
+          return true;
+        }
+        if (this.now() - active.startedAt >= this.terrainRecoveryTimeoutMs) {
+          this.stats.terrainRecoveryTimeouts += 1;
+          this._stopTerrainRecovery('TERRAIN_RECOVERY_TIMEOUT', { finalDistance: d });
+          progress.lastRecoveryAt = this.now();
+          this._resetProgress(team.selfName, d);
+          return true;
+        }
+        return true;
+      }
+
+      const stalledFor = this.now() - progress.lastMeaningfulProgressAt;
+      if (stalledFor >= this.terrainRecoveryNoProgressMs) {
+        const owner = terrainRecoveryOwner(team, this.terrainRecoveryStopRadius);
+        if (owner && String(owner.name) !== String(team.selfName)) {
+          this.stats.terrainRecoveryPeerHolds += 1;
+          this.team.lastDecision = {
+            at: this.now(),
+            action: 'FORMATION_HOLD',
+            reason: 'WAITING_FOR_TERRAIN_RECOVERY_OWNER',
+            leaderName: team.leaderName,
+            recoveryOwnerName: owner.name,
+            distance: d
+          };
+          return true;
+        }
+        if (owner && this.now() - progress.lastRecoveryAt >= this.terrainRecoveryCooldownMs) {
+          progress.lastRecoveryAt = this.now();
+          if (this._startTerrainRecovery(context, team, reason)) return true;
+        }
+      }
+
+      return baseFollow(context, team, reason);
+    };
+    this.team.__terrainRecoveryInstalled = true;
+    return true;
+  }
+
   _installLeaderRecovery() {
     const local = this.runtime.localFarming;
     if (!local || typeof local.tick !== 'function' || local.__teamLeaderDeadlockRecoveryInstalled) return false;
@@ -25711,9 +25929,6 @@ class TeamCohesionDeadlockHotfix {
         return result;
       }
       if (this.now() - this.lastLeaderRecoveryAt < this.leaderRecoveryCooldownMs) return result;
-      // Rate-limit attempts as well as successful commands. Previously a
-      // no-waypoint result retried every runtime tick and produced thousands of
-      // hot-loop terrain holds.
       this.lastLeaderRecoveryAt = this.now();
 
       const waypoint = bestLeaderRecoveryWaypoint(team, {
@@ -25769,7 +25984,7 @@ class TeamCohesionDeadlockHotfix {
 
   status() {
     return {
-      schemaVersion: 4,
+      schemaVersion: 5,
       mode: TEAM_COHESION_DEADLOCK_MODE,
       installedAt: this.installedAt || null,
       cohesionRadius: this.cohesionRadius,
@@ -25790,6 +26005,29 @@ class TeamCohesionDeadlockHotfix {
         last: this.lastLeaderRecovery ? { ...this.lastLeaderRecovery } : null,
         stats: { ...this.stats }
       },
+      terrainRecovery: {
+        enabled: !!(this.team && this.team.__terrainRecoveryInstalled),
+        sameMapOnly: true,
+        serverChangeAllowed: false,
+        deterministicSingleFollowerOwner: true,
+        noProgressMs: this.terrainRecoveryNoProgressMs,
+        minMeaningfulProgress: this.terrainRecoveryMinProgress,
+        cooldownMs: this.terrainRecoveryCooldownMs,
+        timeoutMs: this.terrainRecoveryTimeoutMs,
+        stopRadius: this.terrainRecoveryStopRadius,
+        active: this.activeTerrainRecovery ? { ...this.activeTerrainRecovery } : null,
+        stats: {
+          triggers: this.stats.terrainRecoveryTriggers,
+          moves: this.stats.terrainRecoveryMoves,
+          shadowMoves: this.stats.terrainRecoveryShadowMoves,
+          peerHolds: this.stats.terrainRecoveryPeerHolds,
+          safetyHolds: this.stats.terrainRecoverySafetyHolds,
+          failures: this.stats.terrainRecoveryFailures,
+          completions: this.stats.terrainRecoveryCompletions,
+          timeouts: this.stats.terrainRecoveryTimeouts,
+          unexpectedMapChanges: this.stats.terrainRecoveryUnexpectedMapChanges
+        }
+      },
       alpha20_15: this.alpha20_15 && typeof this.alpha20_15.status === 'function' ? this.alpha20_15.status() : null,
       alpha20_15FairItemGoldScheduling: !!this.alpha20_15_fairness,
       alpha20_16_19: this.alpha20_16_19 && typeof this.alpha20_16_19.status === 'function' ? this.alpha20_16_19.status() : null,
@@ -25800,8 +26038,6 @@ class TeamCohesionDeadlockHotfix {
 
 function installTeamCohesionDeadlockHotfix(runtime, options = {}) {
   const hotfix = new TeamCohesionDeadlockHotfix(runtime, options);
-  // Bind the completed hotfix before Alpha27 installs its ownership patch.
-  // The caller's property assignment happens only after this function returns.
   if (runtime) runtime.teamCohesionDeadlockHotfix = hotfix;
   try {
     installAlpha27CombatMerchantConvergence(runtime, { ...(options.alpha27 || {}), deadlock: hotfix });
@@ -25824,7 +26060,8 @@ module.exports = {
   installTeamCohesionDeadlockHotfix,
   TEAM_COHESION_DEADLOCK_MODE,
   maxPairDistance,
-  bestLeaderRecoveryWaypoint
+  bestLeaderRecoveryWaypoint,
+  terrainRecoveryOwner
 };
 
 },
@@ -35049,7 +35286,6 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
               const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
               if (result && (result.executed || result.shadow || result.coalesced)) {
                 lastFirePositionAt = now;
-                farmer.lastActionAt = now;
                 stats.rangedFirePositionMoves += 1;
                 if (typeof farmer._event === 'function') farmer._event('FARMER_RANGE_POSITION_REQUESTED', 'info', 'MAXIMIZE_RANGED_FIRE_POSITION', {
                   distance: Number(d.toFixed(2)),
@@ -35057,12 +35293,13 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
                   desiredDistance: Number(desired.toFixed(2)),
                   tank: tankProfile(runtime, target, snapshot)
                 });
-                return;
               }
             }
           }
         }
       }
+      // Repositioning changes movement only. Keep the normal engagement pipeline
+      // live so ranged followers can fire in the same cycle while moving outward.
       return baseEngage(context, target);
     };
   }
@@ -35263,7 +35500,6 @@ module.exports = {
   Alpha24AdaptiveRangeRiskLogisticsHotfix,
   installAlpha24AdaptiveRangeRiskLogisticsHotfix
 };
-
 },
 "src/reliability/alpha25-control-center-brain.js": function(require,module,exports){
 'use strict';
@@ -35275,6 +35511,171 @@ const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoun
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
 const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
+const ADVENTURE_LAND_ASSET_BASE = 'https://adventure.land/';
+const EQUIPMENT_SHADE_SKINS = Object.freeze({
+  earring1: 'shade_earring', helmet: 'shade_helmet', earring2: 'shade_earring', amulet: 'shade_amulet',
+  mainhand: 'shade_mainhand', chest: 'shade_chest', offhand: 'shade_offhand', cape: 'shade20_cape',
+  ring1: 'shade_ring', pants: 'shade_pants', ring2: 'shade_ring', orb: 'shade20_orb',
+  belt: 'shade_belt', shoes: 'shade_shoes', gloves: 'shade_gloves', elixir: 'shade20_elixir'
+});
+
+function adventureLandAssetUrl(file) {
+  const value = String(file == null ? '' : file).trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('//')) return `https:${value}`;
+  return ADVENTURE_LAND_ASSET_BASE + value.replace(/^\/+/, '');
+}
+
+function gameDataSources(runtime) {
+  const sources = [];
+  const add = (value) => {
+    if (!value || typeof value !== 'object' || sources.includes(value)) return;
+    sources.push(value);
+  };
+  try {
+    if (runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function') add(runtime.adapter.getGameData());
+  } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.root && runtime.adapter.root.G); } catch (_) {}
+  try { add(runtime && runtime.adapter && runtime.adapter.parent && runtime.adapter.parent.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.G); } catch (_) {}
+  try { add(runtime && runtime.root && runtime.root.parent && runtime.root.parent.G); } catch (_) {}
+  return sources;
+}
+
+function mergeGameData(runtime) {
+  const merged = { items: {}, positions: {}, imagesets: {} };
+  for (const source of gameDataSources(runtime)) {
+    for (const [name, def] of Object.entries(source && source.items || {})) {
+      if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+      const existing = merged.items[name];
+      merged.items[name] = existing ? { ...def, ...existing } : { ...def };
+    }
+    for (const [skin, position] of Object.entries(source && source.positions || {})) {
+      if (!Array.isArray(position) || Array.isArray(merged.positions[skin])) continue;
+      merged.positions[skin] = position.slice();
+    }
+    for (const [packName, pack] of Object.entries(source && source.imagesets || {})) {
+      if (!pack || typeof pack !== 'object' || Array.isArray(pack)) continue;
+      const existing = merged.imagesets[packName];
+      merged.imagesets[packName] = existing ? { ...pack, ...existing } : { ...pack };
+    }
+  }
+  return merged;
+}
+
+function positionFromImageSets(gameData, skin) {
+  for (const [packName, pack] of Object.entries(gameData && gameData.imagesets || {})) {
+    const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
+    for (let y = 0; y < matrix.length; y += 1) {
+      const row = Array.isArray(matrix[y]) ? matrix[y] : [];
+      for (let x = 0; x < row.length; x += 1) {
+        const cell = row[x];
+        if (cell === skin || (Array.isArray(cell) && cell.includes(skin))) return [packName, x, y];
+      }
+    }
+  }
+  return null;
+}
+
+function spritePosition(gameData, skin) {
+  const direct = skin && gameData && gameData.positions && gameData.positions[skin];
+  return Array.isArray(direct) ? direct : positionFromImageSets(gameData, skin);
+}
+
+function inferredImageSetRows(gameData, packName, pack) {
+  const explicit = Number(pack && pack.rows);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (Array.isArray(pack && pack.matrix) && pack.matrix.length) return pack.matrix.length;
+  let maxY = -1;
+  for (const position of Object.values(gameData && gameData.positions || {})) {
+    if (!Array.isArray(position) || (position[0] || 'pack_20') !== packName) continue;
+    const y = Number(position[2]);
+    if (Number.isFinite(y) && y >= 0) maxY = Math.max(maxY, y);
+  }
+  return maxY >= 0 ? maxY + 1 : null;
+}
+
+function spriteMeta(gameData, skin) {
+  const position = spritePosition(gameData, skin);
+  const packName = Array.isArray(position) && position[0] || 'pack_20';
+  const pack = gameData && gameData.imagesets && gameData.imagesets[packName];
+  const file = adventureLandAssetUrl(pack && pack.file);
+  const x = Number(Array.isArray(position) ? position[1] : NaN);
+  const y = Number(Array.isArray(position) ? position[2] : NaN);
+  const size = Number(pack && pack.size);
+  const columns = Number(pack && pack.columns);
+  const rows = inferredImageSetRows(gameData, packName, pack);
+  if (!skin || !file || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size) || size <= 0 || !Number.isFinite(columns) || columns <= 0 || !Number.isFinite(rows) || rows <= 0) return null;
+  return { skin, file, x, y, size, columns, rows };
+}
+
+function liveCharacterOf(runtime) {
+  try {
+    return runtime && runtime.root && (runtime.root.character || runtime.root.parent && runtime.root.parent.character)
+      || runtime && runtime.adapter && (runtime.adapter.root && runtime.adapter.root.character || runtime.adapter.parent && runtime.adapter.parent.character)
+      || null;
+  } catch (_) { return null; }
+}
+
+function itemSpriteCatalog(runtime, maxItems = 160) {
+  const gameData = mergeGameData(runtime);
+  let registry = null;
+  try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
+  const names = new Set();
+  const add = (item) => {
+    const name = String(item && item.name || '').trim();
+    if (name && names.size < maxItems) names.add(name);
+  };
+  for (const character of registry && Array.isArray(registry.characters) ? registry.characters : []) {
+    for (const item of Array.isArray(character && character.inventory) ? character.inventory : []) add(item);
+    for (const item of Object.values(character && character.gear && typeof character.gear === 'object' ? character.gear : {})) add(item);
+    if (names.size >= maxItems) break;
+  }
+  const snapshotCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+  for (const item of Array.isArray(snapshotCharacter && snapshotCharacter.inventory) ? snapshotCharacter.inventory : []) add(item);
+  const liveCharacter = liveCharacterOf(runtime);
+  for (const item of Array.isArray(liveCharacter && liveCharacter.items) ? liveCharacter.items : []) add(item);
+  for (const item of Object.values(liveCharacter && liveCharacter.slots && typeof liveCharacter.slots === 'object' ? liveCharacter.slots : {})) add(item);
+
+  const catalog = {};
+  for (const name of names) {
+    const def = gameData.items && gameData.items[name];
+    const skin = def && (def.skin_c || def.skin);
+    const meta = spriteMeta(gameData, skin);
+    if (meta) catalog[name] = meta;
+  }
+  return catalog;
+}
+
+function equipmentShadeCatalog(runtime) {
+  const gameData = mergeGameData(runtime);
+  const catalog = {};
+  for (const [slot, skin] of Object.entries(EQUIPMENT_SHADE_SKINS)) {
+    const meta = spriteMeta(gameData, skin);
+    if (meta) catalog[slot] = meta;
+  }
+  return catalog;
+}
+
+function installAdventureLandItemSprites(runtime, cloud) {
+  if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
+  const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
+  cloud._runtimeSnapshot = () => {
+    const snapshot = originalRuntimeSnapshot();
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      snapshot.equipmentShades = equipmentShadeCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
+    return snapshot;
+  };
+  cloud.__adventureLandItemSpritesInstalled = true;
+  return true;
+}
 
 class Alpha25ControlCenterBrain {
   constructor(runtime, options = {}) {
@@ -35292,6 +35693,7 @@ class Alpha25ControlCenterBrain {
     runtime.brain = this.brain;
     this.cloud = runtime.cloudControlPlane || new CloudControlPlane({ runtime, root: runtime.root, now: this.now, log: this.log, controlPlane: this.controlPlane, brain: this.brain, onSettingsChanged: (changed) => this._applyExtendedSettings(changed) });
     runtime.cloudControlPlane = this.cloud;
+    installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
     this.stats = { ticks: 0, outcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
@@ -35425,13 +35827,26 @@ class Alpha25ControlCenterBrain {
 
 function installAlpha25ControlCenterBrain(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
-  if (runtime.alpha25ControlCenterBrain) return runtime.alpha25ControlCenterBrain;
+  if (runtime.alpha25ControlCenterBrain) {
+    const existing = runtime.alpha25ControlCenterBrain;
+    const cloud = runtime.cloudControlPlane || existing.cloud;
+    installAdventureLandItemSprites(runtime, cloud);
+    return existing;
+  }
   const module = new Alpha25ControlCenterBrain(runtime, options);
   runtime.alpha25ControlCenterBrain = module;
   return module;
 }
 
-module.exports = { ALPHA25_MODE, Alpha25ControlCenterBrain, installAlpha25ControlCenterBrain };
+module.exports = {
+  ALPHA25_MODE,
+  Alpha25ControlCenterBrain,
+  installAlpha25ControlCenterBrain,
+  adventureLandAssetUrl,
+  itemSpriteCatalog,
+  equipmentShadeCatalog,
+  installAdventureLandItemSprites
+};
 },
 "src/control/control-plane-config.js": function(require,module,exports){
 'use strict';
@@ -43016,7 +43431,7 @@ module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRO
 "src/production-live-services.js": function(require,module,exports){
 'use strict';
 
-const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
@@ -43025,8 +43440,11 @@ const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = requ
 const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = require('./reliability/p0-potion-bundle-delta-fix');
 const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./reliability/p0-potion-policy-4500');
 const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
+const { installAlpha31PartyRoleLivenessHotfix, ALPHA31_PARTY_ROLE_LIVENESS_MODE } = require('./reliability/alpha31-party-role-liveness-hotfix');
+const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE } = require('./reliability/alpha32-navigation-merchant-recovery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
+const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
 
 function emitFailure(runtime, service, error) {
   try {
@@ -43053,7 +43471,29 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500) {
+function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
+  const cloud = runtime && (runtime.cloudControlPlane || alpha25 && alpha25.cloud);
+  if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (cloud.__adventureLandSpriteHotReloadHookVersion === SPRITE_HOT_RELOAD_HOOK_VERSION) return false;
+
+  const previousRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
+  cloud._runtimeSnapshot = () => {
+    const snapshot = previousRuntimeSnapshot();
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      snapshot.equipmentShades = equipmentShadeCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
+    return snapshot;
+  };
+  cloud.__adventureLandSpriteHotReloadHookVersion = SPRITE_HOT_RELOAD_HOOK_VERSION;
+  return true;
+}
+
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -43067,7 +43507,9 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null,
       p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500: potionPolicy4500 || null,
-      p0PotionHardCap4500: potionHardCap4500 || null
+      p0PotionHardCap4500: potionHardCap4500 || null,
+      partyRoleLiveness: roleLiveness && typeof roleLiveness.status === 'function' ? roleLiveness.status() : null,
+      navigationMerchantRecovery: liveRecovery && typeof liveRecovery.status === 'function' ? liveRecovery.status() : null
     })
   };
   api.cloud = {
@@ -43090,7 +43532,10 @@ function installProductionLiveServices(api, options = {}) {
   // return so a same-version hot reload can repair a runtime that was created by
   // an older production bundle where Alpha27/28 were present in source but never
   // actually attached to the live tick chain.
+  const preexistingCloud = runtime.cloudControlPlane || runtime.alpha25ControlCenterBrain && runtime.alpha25ControlCenterBrain.cloud;
+  const spriteHookAlreadyInstalled = !!(preexistingCloud && preexistingCloud.__adventureLandItemSpritesInstalled);
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
+  if (spriteHookAlreadyInstalled) refreshAdventureLandSpriteHook(runtime, alpha25);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
@@ -43099,6 +43544,11 @@ function installProductionLiveServices(api, options = {}) {
   installP0PotionBundleDeltaFix(runtime);
   const potionPolicy4500 = installP0PotionPolicy4500(runtime);
   const potionHardCap4500 = installP0PotionHardCap4500(runtime);
+  const roleLiveness = installAlpha31PartyRoleLivenessHotfix(runtime, options);
+  const liveRecovery = installAlpha32NavigationMerchantRecovery(runtime, options);
+  // Alpha31/32 beforeTick can wake or pause live merchant authorities. Installation
+  // and same-version hot reload must stay passive; the runtime.tick wrapper below
+  // is the only production-live-services path that executes these services.
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -43111,9 +43561,11 @@ function installProductionLiveServices(api, options = {}) {
       p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
       p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
-      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed)
+      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
+      alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+      alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
     return runtime.productionLiveServices;
   }
 
@@ -43124,6 +43576,10 @@ function installProductionLiveServices(api, options = {}) {
       runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
       runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
       runService(runtime, runtime.p0RegroupSupplyRecovery, 'p0-regroup-supply-recovery');
+      // Alpha32 must run before Alpha31 so a low-HP merchant can enter recovery
+      // before Alpha31 drives another autonomous merchant turn.
+      runService(runtime, runtime.alpha32NavigationMerchantRecovery, 'alpha32-navigation-merchant-recovery');
+      runService(runtime, runtime.alpha31PartyRoleLivenessHotfix, 'alpha31-party-role-liveness');
       return result;
     };
     runtime.__productionLiveServicesTickPatched = true;
@@ -43142,10 +43598,12 @@ function installProductionLiveServices(api, options = {}) {
     p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
     p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
     p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
+    alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+    alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -43161,7 +43619,9 @@ function installProductionLiveServices(api, options = {}) {
 
 module.exports = {
   PRODUCTION_LIVE_SERVICES_MODE,
+  SPRITE_HOT_RELOAD_HOOK_VERSION,
   installProductionLiveServices,
+  refreshAdventureLandSpriteHook,
   runService,
   exposeDiagnostics,
   installP0RegroupSupplyRecovery,
@@ -43171,7 +43631,11 @@ module.exports = {
   installP0PotionPolicy4500,
   P0_POTION_POLICY_4500_MODE,
   installP0PotionHardCap4500,
-  P0_POTION_HARDCAP_4500_MODE
+  P0_POTION_HARDCAP_4500_MODE,
+  installAlpha31PartyRoleLivenessHotfix,
+  ALPHA31_PARTY_ROLE_LIVENESS_MODE,
+  installAlpha32NavigationMerchantRecovery,
+  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE
 };
 
 },
@@ -45089,6 +45553,1126 @@ module.exports = {
   P0_POTION_HARDCAP_4500_MODE,
   installP0PotionHardCap4500,
   assessAdaptivePlan
+};
+
+},
+"src/reliability/alpha31-party-role-liveness-hotfix.js": function(require,module,exports){
+'use strict';
+
+const ALPHA31_PARTY_ROLE_LIVENESS_MODE = 'alpha31-party-role-liveness-v1';
+const MERCHANT_TRAVEL_ATTESTATION_SOURCE = 'trusted-owned-merchant-service';
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value)));
+}
+
+function distance(a, b) {
+  const ax = finite(a && (a.real_x != null ? a.real_x : a.x));
+  const ay = finite(a && (a.real_y != null ? a.real_y : a.y));
+  const bx = finite(b && (b.real_x != null ? b.real_x : b.x));
+  const by = finite(b && (b.real_y != null ? b.real_y : b.y));
+  if ([ax, ay, bx, by].some((value) => value == null)) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function characterOf(runtime) {
+  const root = runtime && runtime.root;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
+function gameDataOf(runtime) {
+  try {
+    return runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+      ? runtime.adapter.getGameData() || {}
+      : runtime && runtime.root && (runtime.root.G || runtime.root.parent && runtime.root.parent.G) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function liveMonster(entity) {
+  return !!(entity && entity.mtype && !entity.dead && !entity.rip && (entity.hp == null || Number(entity.hp) > 0));
+}
+
+class Alpha31PartyRoleLivenessHotfix {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+
+    this.orbitDesiredFactor = clamp(options.orbitDesiredFactor == null ? 0.80 : options.orbitDesiredFactor, 0.68, 0.90);
+    this.orbitMaxRangeFactor = clamp(options.orbitMaxRangeFactor == null ? 0.92 : options.orbitMaxRangeFactor, this.orbitDesiredFactor, 0.96);
+    this.orbitMonsterBuffer = Math.max(12, Math.min(60, finite(options.orbitMonsterBuffer, 20)));
+    this.orbitSpeedBufferSeconds = clamp(options.orbitSpeedBufferSeconds == null ? 0.50 : options.orbitSpeedBufferSeconds, 0.20, 1.20);
+    this.orbitStepSeconds = clamp(options.orbitStepSeconds == null ? 0.80 : options.orbitStepSeconds, 0.35, 1.30);
+
+    this.regroupTriggerDistance = Math.max(90, finite(options.regroupTriggerDistance, 120));
+    this.regroupStopDistance = Math.max(35, Math.min(this.regroupTriggerDistance - 10, finite(options.regroupStopDistance, 60)));
+    this.regroupRetargetDistance = Math.max(20, finite(options.regroupRetargetDistance, 35));
+    this.regroupRetargetMs = Math.max(700, finite(options.regroupRetargetMs, 1400));
+    this.regroupTimeoutMs = Math.max(5000, finite(options.regroupTimeoutMs, 45000));
+
+    this.merchantPotionLowWatermark = Math.max(1200, Math.min(4200, Math.floor(finite(options.merchantPotionLowWatermark, 3500))));
+    this.merchantAttestationMaxAgeMs = Math.max(1000, Math.min(5000, finite(options.merchantAttestationMaxAgeMs, 2500)));
+
+    this.followerSmartMove = null;
+    this.nextFollowerSmartMoveId = 1;
+    this.stats = {
+      aggroOrbitEvaluations: 0,
+      aggroOrbitMoves: 0,
+      aggroOrbitEscapeMoves: 0,
+      aggroOrbitNoWaypoint: 0,
+      visiblePartyPositionRefreshes: 0,
+      followerSmartRegroups: 0,
+      followerSmartRetargets: 0,
+      followerSmartStops: 0,
+      followerSmartCompletions: 0,
+      followerSmartFailures: 0,
+      followerSmartTimeouts: 0,
+      followerSmartSafetyPreemptions: 0,
+      followerSmartCoalescedHolds: 0,
+      followerRegroupSafetyHolds: 0,
+      merchantPotionHysteresisApplies: 0,
+      merchantAutonomyDriverTicks: 0,
+      merchantAutonomyDriverAccepted: 0,
+      merchantTravelAttestations: 0,
+      merchantTravelAttestationAccepts: 0
+    };
+
+    this.aggroOrbitInstalled = this._installAggroOrbit();
+    this.freshPartyPositionsInstalled = this._installFreshPartyPositions();
+    this.followerRegroupInstalled = this._installFollowerRegroup();
+    this.merchantTravelAttestationInstalled = this._installMerchantTravelAttestation();
+    this.installedAt = this.now();
+
+    this._event('ALPHA31_PARTY_ROLE_LIVENESS_INSTALLED', 'warn', 'LIVE_KITING_MERCHANT_AND_REGROUP_RECOVERY', this.status());
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'alpha31-party-role-liveness', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _canMoveTo(x, y) {
+    const parent = this.root && this.root.parent || this.root;
+    const fn = this.root && this.root.can_move_to || parent && parent.can_move_to;
+    if (typeof fn !== 'function') return true;
+    try { return fn.call(this.root, x, y) !== false; } catch (_) { return false; }
+  }
+
+  _orbitDirection(character) {
+    const terrain = this.runtime.farmerTerrainNavigationHotfix;
+    if (terrain && typeof terrain._orbitDirection === 'function') {
+      try { return terrain._orbitDirection(character); } catch (_) {}
+    }
+    const name = String(character && character.name || 'local');
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = ((hash * 31) + name.charCodeAt(i)) | 0;
+    return (Math.abs(hash) % 2) ? 1 : -1;
+  }
+
+  _setOrbitDirection(character, direction) {
+    const terrain = this.runtime.farmerTerrainNavigationHotfix;
+    if (terrain && typeof terrain._setOrbitDirection === 'function') {
+      try { terrain._setOrbitDirection(character, direction); return; } catch (_) {}
+    }
+  }
+
+  _monsterMovementProfile(target) {
+    const gd = gameDataOf(this.runtime);
+    const meta = gd.monsters && target && target.mtype ? gd.monsters[target.mtype] || {} : {};
+    return {
+      range: Math.max(0, finite(target && target.range, finite(meta.range, 25)) || 0),
+      speed: Math.max(1, finite(target && target.speed, finite(meta.speed, 40)) || 40)
+    };
+  }
+
+  _segmentSafe(a, b, target, minimumDistance) {
+    const ax = finite(a && (a.real_x != null ? a.real_x : a.x));
+    const ay = finite(a && (a.real_y != null ? a.real_y : a.y));
+    const bx = finite(b && b.x);
+    const by = finite(b && b.y);
+    const tx = finite(target && (target.real_x != null ? target.real_x : target.x));
+    const ty = finite(target && (target.real_y != null ? target.real_y : target.y));
+    if ([ax, ay, bx, by, tx, ty].some((value) => value == null)) return false;
+    for (const t of [0.25, 0.5, 0.75, 1]) {
+      const x = ax + (bx - ax) * t;
+      const y = ay + (by - ay) * t;
+      if (Math.hypot(x - tx, y - ty) < minimumDistance) return false;
+    }
+    return true;
+  }
+
+  _radialEscape(character, target, desiredDistance, hardSafeDistance, maxRangeDistance) {
+    const cx = finite(character && (character.real_x != null ? character.real_x : character.x));
+    const cy = finite(character && (character.real_y != null ? character.real_y : character.y));
+    const tx = finite(target && (target.real_x != null ? target.real_x : target.x));
+    const ty = finite(target && (target.real_y != null ? target.real_y : target.y));
+    if ([cx, cy, tx, ty].some((value) => value == null)) return null;
+    const current = Math.hypot(cx - tx, cy - ty);
+    if (!Number.isFinite(current) || current < 0.001) return null;
+    const speed = Math.max(1, finite(character && character.speed, 40));
+    const step = Math.max(8, Math.min(desiredDistance - current, speed * this.orbitStepSeconds, Math.max(20, maxRangeDistance * 0.25)));
+    if (step < 1) return null;
+    const base = Math.atan2(cy - ty, cx - tx);
+    const preferred = this._orbitDirection(character);
+    for (const offsetDeg of [preferred * 12, preferred * 22, 0, -preferred * 12, -preferred * 22]) {
+      const angle = base + offsetDeg * Math.PI / 180;
+      const x = cx + Math.cos(angle) * step;
+      const y = cy + Math.sin(angle) * step;
+      if (!this._canMoveTo(x, y)) continue;
+      const afterDistance = Math.hypot(x - tx, y - ty);
+      if (afterDistance <= current + 2 || afterDistance > maxRangeDistance) continue;
+      return { x, y, step, afterDistance, offsetDeg, direction: offsetDeg === 0 ? preferred : Math.sign(offsetDeg), escape: true, hardSafeDistance };
+    }
+    return null;
+  }
+
+  _orbitWaypoint(character, target) {
+    const cx = finite(character && (character.real_x != null ? character.real_x : character.x));
+    const cy = finite(character && (character.real_y != null ? character.real_y : character.y));
+    const tx = finite(target && (target.real_x != null ? target.real_x : target.x));
+    const ty = finite(target && (target.real_y != null ? target.real_y : target.y));
+    const range = finite(character && character.range);
+    if ([cx, cy, tx, ty, range].some((value) => value == null) || range < 60) return null;
+
+    const monster = this._monsterMovementProfile(target);
+    const hardSafeDistance = monster.range + this.orbitMonsterBuffer + monster.speed * this.orbitSpeedBufferSeconds;
+    const maxRangeDistance = range * this.orbitMaxRangeFactor;
+    if (hardSafeDistance + 8 >= maxRangeDistance) return null;
+
+    const currentDistance = Math.hypot(cx - tx, cy - ty);
+    const desiredDistance = Math.min(maxRangeDistance, Math.max(range * this.orbitDesiredFactor, hardSafeDistance + 16));
+    if (currentDistance < hardSafeDistance + 4) {
+      return this._radialEscape(character, target, desiredDistance, hardSafeDistance, maxRangeDistance);
+    }
+
+    const speed = Math.max(1, finite(character && character.speed, 40));
+    const chordTarget = Math.max(10, Math.min(speed * this.orbitStepSeconds, range * 0.22));
+    const ratio = Math.min(0.98, chordTarget / Math.max(1, 2 * desiredDistance));
+    const baseDelta = clamp(2 * Math.asin(ratio), 8 * Math.PI / 180, 28 * Math.PI / 180);
+    const currentAngle = Math.atan2(cy - ty, cx - tx);
+    const preferred = this._orbitDirection(character);
+    let best = null;
+
+    for (const direction of [preferred, -preferred]) {
+      for (const scale of [1, 0.72, 0.48]) {
+        const delta = baseDelta * scale * direction;
+        const angle = currentAngle + delta;
+        for (const radius of [desiredDistance, clamp(currentDistance, hardSafeDistance + 8, maxRangeDistance)]) {
+          const x = tx + Math.cos(angle) * radius;
+          const y = ty + Math.sin(angle) * radius;
+          if (!this._canMoveTo(x, y)) continue;
+          const afterDistance = Math.hypot(x - tx, y - ty);
+          if (afterDistance < hardSafeDistance + 4 || afterDistance > maxRangeDistance + 0.01) continue;
+          if (!this._segmentSafe(character, { x, y }, target, hardSafeDistance)) continue;
+          const step = Math.hypot(x - cx, y - cy);
+          if (step < 4) continue;
+          const switchPenalty = direction === preferred ? 0 : 12;
+          const radiusPenalty = Math.abs(afterDistance - desiredDistance);
+          const stepPenalty = Math.abs(step - chordTarget) * 0.12;
+          const score = radiusPenalty + switchPenalty + stepPenalty;
+          const candidate = { x, y, step, afterDistance, desiredDistance, hardSafeDistance, maxRangeDistance, direction, deltaDeg: delta * 180 / Math.PI, escape: false, score };
+          if (!best || candidate.score < best.score) best = candidate;
+        }
+      }
+    }
+    return best;
+  }
+
+  _installAggroOrbit() {
+    const farmer = this.runtime.farmer;
+    const kiting = farmer && farmer.kiting;
+    if (!kiting || typeof kiting.evaluate !== 'function' || kiting.__alpha31SafeOrbitInstalled) return false;
+    const base = kiting.evaluate.bind(kiting);
+    kiting.evaluate = (character, target) => {
+      const decision = base(character, target);
+      if (!character || !target || character.rip || character.dead || this.runtime.pendingEmergencyRetreat) return decision;
+      if (!target.target || String(target.target) !== String(character.name || '')) return decision;
+      if (!liveMonster(target)) return decision;
+
+      this.stats.aggroOrbitEvaluations += 1;
+      const waypoint = this._orbitWaypoint(character, target);
+      if (!waypoint) {
+        this.stats.aggroOrbitNoWaypoint += 1;
+        return decision;
+      }
+      if (waypoint.direction) this._setOrbitDirection(character, waypoint.direction);
+      if (waypoint.escape) this.stats.aggroOrbitEscapeMoves += 1;
+      else this.stats.aggroOrbitMoves += 1;
+      return {
+        ...decision,
+        shouldMove: true,
+        reason: waypoint.escape ? 'AGGRO_ESCAPE_TO_SAFE_ORBIT' : 'AGGRO_SAFE_ORBIT',
+        x: waypoint.x,
+        y: waypoint.y,
+        step: waypoint.step,
+        distance: Number(distance(character, target).toFixed(2)),
+        range: Number(character.range),
+        desiredDistance: Number((waypoint.desiredDistance || waypoint.afterDistance).toFixed(2)),
+        safeEnemyDistance: Number(waypoint.hardSafeDistance.toFixed(2)),
+        orbitDirection: waypoint.direction,
+        orbitDeltaDeg: waypoint.deltaDeg == null ? null : Number(waypoint.deltaDeg.toFixed(2)),
+        terrainAware: true,
+        alpha31SafeOrbit: true
+      };
+    };
+    kiting.__alpha31SafeOrbitInstalled = true;
+    return true;
+  }
+
+  _installFreshPartyPositions() {
+    const team = this.runtime.teamCombatCohesionHotfix;
+    if (!team || typeof team._member !== 'function' || team.__alpha31FreshVisiblePartyPositionsInstalled) return false;
+    const base = team._member.bind(team);
+    team._member = (snapshot, name, typeHint) => {
+      const row = base(snapshot, name, typeHint);
+      let visible = null;
+      try { visible = typeof team._visiblePlayer === 'function' ? team._visiblePlayer(snapshot, name) : null; } catch (_) {}
+      if (!visible) return row;
+      const x = finite(visible.real_x != null ? visible.real_x : visible.x);
+      const y = finite(visible.real_y != null ? visible.real_y : visible.y);
+      if (x == null || y == null) return row;
+      this.stats.visiblePartyPositionRefreshes += 1;
+      return {
+        ...row,
+        map: visible.map || row.map,
+        x,
+        y,
+        hp: finite(visible.hp, row.hp),
+        max_hp: finite(visible.max_hp, row.max_hp),
+        mp: finite(visible.mp, row.mp),
+        max_mp: finite(visible.max_mp, row.max_mp),
+        target: visible.target != null ? visible.target : row.target,
+        rip: visible.rip === true || visible.dead === true || row.rip
+      };
+    };
+    team.__alpha31FreshVisiblePartyPositionsInstalled = true;
+    return true;
+  }
+
+  _regroupSafetyBusy(snapshot) {
+    const c = snapshot && snapshot.character;
+    if (!c || c.rip || c.dead || this.runtime.pendingEmergencyRetreat) return true;
+    if (c.target) return true;
+    if ((snapshot.entities || []).some((entity) => liveMonster(entity) && String(entity.target || '') === String(c.name || ''))) return true;
+    const farmer = this.runtime.farmer;
+    if (!farmer) return false;
+    if (farmer.state === 'ENGAGE' || farmer.state === 'RECOVER') return true;
+    if (farmer.state === 'TRAVEL' && farmer.targetId != null) {
+      const liveTarget = (snapshot.entities || []).find((entity) => liveMonster(entity) && String(entity.id) === String(farmer.targetId));
+      if (liveTarget) return true;
+    }
+    return false;
+  }
+
+  _supersedeMovement(reason) {
+    const adapter = this.runtime.adapter;
+    if (!adapter || typeof adapter.supersedeMovement !== 'function') return false;
+    try { return adapter.supersedeMovement(`ALPHA31_${String(reason || 'FOLLOWER_SMART_MOVE_STOPPED')}`) === true; }
+    catch (_) { return false; }
+  }
+
+  _stopFollowerSmartMove(reason) {
+    if (!this.followerSmartMove) return false;
+    const adapter = this.runtime.adapter;
+    if (adapter && typeof adapter.command === 'function') {
+      try { adapter.command('stop', ['smart']); } catch (_) {}
+    }
+    this._supersedeMovement(reason);
+    const previous = this.followerSmartMove;
+    this.followerSmartMove = null;
+    this.stats.followerSmartStops += 1;
+    this._event('ALPHA31_FOLLOWER_SMART_REGROUP_STOPPED', 'info', reason, { previous });
+    return true;
+  }
+
+  _observeFollowerSmartMove(result, active) {
+    const value = result && result.value;
+    if (!active || !value || typeof value.then !== 'function') return false;
+    const id = active.id;
+    Promise.resolve(value).then((response) => {
+      const current = this.followerSmartMove;
+      if (!current || current.id !== id) return;
+      this.followerSmartMove = null;
+      if (response && response.failed === true) {
+        this._supersedeMovement('FOLLOWER_SMART_MOVE_FAILED');
+        this.stats.followerSmartFailures += 1;
+        this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(response.reason || 'SMART_MOVE_FAILED'), { move: current });
+        return;
+      }
+      this.stats.followerSmartCompletions += 1;
+      this._event('ALPHA31_FOLLOWER_SMART_REGROUP_COMPLETED', 'info', 'SMART_MOVE_RESOLVED', { move: current });
+    }).catch((error) => {
+      const current = this.followerSmartMove;
+      if (!current || current.id !== id) return;
+      this.followerSmartMove = null;
+      this._supersedeMovement('FOLLOWER_SMART_MOVE_REJECTED');
+      this.stats.followerSmartFailures += 1;
+      this._event('ALPHA31_FOLLOWER_SMART_REGROUP_FAILED', 'warn', String(error && error.message || error || 'SMART_MOVE_REJECTED').slice(0, 160), { move: current });
+    });
+    return true;
+  }
+
+  _installFollowerRegroup() {
+    const teamController = this.runtime.teamCombatCohesionHotfix;
+    if (!teamController || typeof teamController._followLeader !== 'function' || teamController.__alpha31FollowerRegroupInstalled) return false;
+    const baseFollow = teamController._followLeader.bind(teamController);
+    teamController._followLeader = (context, team, reason) => {
+      if (!team || !team.self || !team.leader || team.selfName === team.leaderName) return baseFollow(context, team, reason);
+      const snapshot = context && context.snapshot || this.runtime.lastSnapshot;
+      const d = distance(team.self, team.leader);
+      if (!Number.isFinite(d)) return baseFollow(context, team, reason);
+
+      const stopDistance = Math.min(this.regroupStopDistance, Math.max(35, finite(teamController.followRadius, this.regroupStopDistance)));
+      if (d <= stopDistance || team.cohesive) {
+        this._stopFollowerSmartMove('FOLLOWER_REJOINED_FORMATION');
+        return baseFollow(context, team, reason);
+      }
+      if (!team.sameMap || !team.positionsKnown) {
+        this._stopFollowerSmartMove('FOLLOWER_REGROUP_CONTEXT_INVALID');
+        return baseFollow(context, team, reason);
+      }
+      if (d < this.regroupTriggerDistance) return baseFollow(context, team, reason);
+      if (this._regroupSafetyBusy(snapshot)) {
+        this.stats.followerRegroupSafetyHolds += 1;
+        if (this.followerSmartMove) {
+          this.stats.followerSmartSafetyPreemptions += 1;
+          this._stopFollowerSmartMove('COMBAT_OR_SAFETY_PREEMPTION');
+          return true;
+        }
+        return baseFollow(context, team, reason);
+      }
+
+      const adapter = this.runtime.adapter;
+      if (!adapter || typeof adapter.command !== 'function') return baseFollow(context, team, reason);
+      const destination = { map: snapshot && snapshot.character && snapshot.character.map || team.leader.map, x: Number(team.leader.x), y: Number(team.leader.y) };
+      if (!destination.map || !Number.isFinite(destination.x) || !Number.isFinite(destination.y)) return baseFollow(context, team, reason);
+
+      let active = this.followerSmartMove;
+      const now = this.now();
+      if (active && now - active.at >= this.regroupTimeoutMs) {
+        this.stats.followerSmartTimeouts += 1;
+        this._stopFollowerSmartMove('FOLLOWER_REGROUP_TIMEOUT');
+        active = null;
+      }
+      const shifted = active ? distance(active.destination, destination) : Infinity;
+      const shouldRetarget = !!(active && shifted >= this.regroupRetargetDistance && now - active.at >= this.regroupRetargetMs);
+      if (active && !shouldRetarget) return true;
+      if (shouldRetarget) {
+        this._stopFollowerSmartMove('LEADER_POSITION_REFRESH');
+        this.stats.followerSmartRetargets += 1;
+      } else {
+        const deadlock = this.runtime.teamCohesionDeadlockHotfix;
+        if (deadlock && deadlock.activeTerrainRecovery && deadlock.activeTerrainRecovery.ownerName === team.selfName) {
+          if (typeof deadlock._stopTerrainRecovery === 'function') {
+            try { deadlock._stopTerrainRecovery('SUPERSEDED_BY_ALPHA31_SMART_REGROUP', { ownerName: team.selfName }); }
+            catch (_) {
+              try { adapter.command('stop', ['smart']); } catch (_) {}
+              deadlock.activeTerrainRecovery = null;
+            }
+          } else {
+            try { adapter.command('stop', ['smart']); } catch (_) {}
+            deadlock.activeTerrainRecovery = null;
+          }
+          this._supersedeMovement('TERRAIN_RECOVERY_SUPERSEDED');
+        }
+      }
+
+      const result = adapter.command('smart_move', [destination]);
+      if (result && result.coalesced === true) {
+        this.stats.followerSmartCoalescedHolds += 1;
+        this._event('ALPHA31_FOLLOWER_SMART_REGROUP_HELD', 'info', result.reason || 'MOVEMENT_OUTCOME_PENDING', { leaderName: team.leaderName, destination });
+        return true;
+      }
+      if (!result || (!result.executed && !result.shadow)) return baseFollow(context, team, reason);
+      const activeMove = {
+        id: `alpha31-follow-${this.nextFollowerSmartMoveId++}`,
+        at: now,
+        leaderName: team.leaderName,
+        destination,
+        startDistance: d,
+        reason: reason || 'REGROUP_WITH_TEAM_LEADER'
+      };
+      this.followerSmartMove = activeMove;
+      this._observeFollowerSmartMove(result, activeMove);
+      this.stats.followerSmartRegroups += 1;
+      teamController.lastDecision = {
+        at: now,
+        action: 'FORMATION_SMART_REGROUP',
+        reason: shouldRetarget ? 'FOLLOW_MOVING_LEADER' : 'FOLLOWER_OUTSIDE_RECOVERY_RADIUS',
+        leaderName: team.leaderName,
+        distance: d,
+        destination,
+        executed: !!result.executed,
+        shadow: !!result.shadow,
+        coalesced: !!result.coalesced
+      };
+      this._event('ALPHA31_FOLLOWER_SMART_REGROUP_STARTED', 'warn', teamController.lastDecision.reason, { ...teamController.lastDecision });
+      return true;
+    };
+    teamController.__alpha31FollowerRegroupInstalled = true;
+    return true;
+  }
+
+  _merchantServiceAttestation(map, request) {
+    const c = characterOf(this.runtime);
+    const gd = gameDataOf(this.runtime);
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return null;
+    if (!this.runtime.adapter || String(this.runtime.adapter.mode || '') !== 'active') return null;
+    if (!gd.maps || !Object.prototype.hasOwnProperty.call(gd.maps, map)) return null;
+    const metadata = request && request.metadata || {};
+    if (String(metadata.source || '') !== 'ALPHA27_MERCHANT_SERVICE_TRAVEL') return null;
+    if (request.server || request.region || request.serverChange === true) return null;
+    return {
+      trusted: true,
+      map: String(map),
+      source: MERCHANT_TRAVEL_ATTESTATION_SOURCE,
+      observedAt: this.now(),
+      maxAgeMs: this.merchantAttestationMaxAgeMs,
+      subject: String(metadata.requestedDestination || metadata.npcId || 'merchant-service').slice(0, 64)
+    };
+  }
+
+  _installMerchantTravelAttestation() {
+    let installed = false;
+    const safeTravel = this.runtime.safeTravel;
+    if (safeTravel && typeof safeTravel._trustedMapAttestation === 'function' && !safeTravel.__alpha31MerchantAttestationInstalled) {
+      const baseTrusted = safeTravel._trustedMapAttestation.bind(safeTravel);
+      safeTravel._trustedMapAttestation = (map, context = {}) => {
+        const attestation = context && context.destinationMapAttestation;
+        if (attestation && attestation.trusted === true && String(attestation.source || '') === MERCHANT_TRAVEL_ATTESTATION_SOURCE && String(attestation.map || '') === String(map || '')) {
+          const observedAt = Number(attestation.observedAt);
+          const maxAgeMs = Math.max(1000, Math.min(5000, finite(attestation.maxAgeMs, this.merchantAttestationMaxAgeMs)));
+          const ageMs = this.now() - observedAt;
+          if (Number.isFinite(observedAt) && observedAt > 0 && ageMs >= -2000 && ageMs <= maxAgeMs) {
+            this.stats.merchantTravelAttestationAccepts += 1;
+            return { map: String(map), source: MERCHANT_TRAVEL_ATTESTATION_SOURCE, observedAt, ageMs, maxAgeMs, subject: attestation.subject == null ? null : String(attestation.subject).slice(0, 64) };
+          }
+        }
+        return baseTrusted(map, context);
+      };
+      safeTravel.__alpha31MerchantAttestationInstalled = true;
+      installed = true;
+    }
+
+    if (typeof this.runtime.planTravel === 'function' && !this.runtime.__alpha31MerchantTravelPlanAttestationInstalled) {
+      const basePlanTravel = this.runtime.planTravel.bind(this.runtime);
+      this.runtime.planTravel = (request = {}, context = {}) => {
+        const destination = typeof request.destination === 'string' ? { map: request.destination } : request.destination || {};
+        const map = String(destination.map || '').trim();
+        const attestation = map ? this._merchantServiceAttestation(map, request) : null;
+        if (!attestation) return basePlanTravel(request, context);
+        this.stats.merchantTravelAttestations += 1;
+        return basePlanTravel(request, { ...context, destinationMapAttestation: attestation });
+      };
+      this.runtime.__alpha31MerchantTravelPlanAttestationInstalled = true;
+      installed = true;
+    }
+    return installed;
+  }
+
+  _applyMerchantPotionHysteresis() {
+    const planner = this.runtime.merchantServicePlanner;
+    if (!planner) return false;
+    const target = Math.max(this.merchantPotionLowWatermark + 1, finite(planner.targetPotionCount, 4500));
+    const critical = Math.max(0, finite(planner.criticalPotionCount, 1000));
+    const nextLow = Math.max(critical + 250, Math.min(this.merchantPotionLowWatermark, target - 250));
+    if (planner.lowPotionCount === nextLow) return false;
+    planner.lowPotionCount = nextLow;
+    if (this.runtime.p0PotionPolicy4500 && typeof this.runtime.p0PotionPolicy4500 === 'object') this.runtime.p0PotionPolicy4500.lowWatermark = nextLow;
+    this.stats.merchantPotionHysteresisApplies += 1;
+    this._event('ALPHA31_MERCHANT_POTION_HYSTERESIS_APPLIED', 'info', 'BATCH_SUPPLY_INSTEAD_OF_MICRO_DELIVERIES', { targetPotionCount: target, lowPotionCount: nextLow, criticalPotionCount: critical });
+    return true;
+  }
+
+  _driveMerchantAutonomy() {
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return false;
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    const merchant = alpha27 && alpha27.merchant;
+    if (!merchant || typeof merchant.tick !== 'function') return false;
+    this.stats.merchantAutonomyDriverTicks += 1;
+    let accepted = false;
+    try { accepted = merchant.tick() === true; } catch (_) { return false; }
+    if (accepted) this.stats.merchantAutonomyDriverAccepted += 1;
+    return accepted;
+  }
+
+  beforeTick() {
+    this._applyMerchantPotionHysteresis();
+    this._driveMerchantAutonomy();
+    return true;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: ALPHA31_PARTY_ROLE_LIVENESS_MODE,
+      installedAt: this.installedAt || null,
+      aggroOrbitInstalled: this.aggroOrbitInstalled,
+      freshPartyPositionsInstalled: this.freshPartyPositionsInstalled,
+      followerRegroupInstalled: this.followerRegroupInstalled,
+      merchantTravelAttestationInstalled: this.merchantTravelAttestationInstalled,
+      orbit: {
+        desiredRangeFactor: this.orbitDesiredFactor,
+        maximumRangeFactor: this.orbitMaxRangeFactor,
+        monsterBuffer: this.orbitMonsterBuffer,
+        monsterSpeedBufferSeconds: this.orbitSpeedBufferSeconds,
+        stepSeconds: this.orbitStepSeconds
+      },
+      followerRegroup: {
+        triggerDistance: this.regroupTriggerDistance,
+        stopDistance: this.regroupStopDistance,
+        retargetDistance: this.regroupRetargetDistance,
+        retargetMs: this.regroupRetargetMs,
+        timeoutMs: this.regroupTimeoutMs,
+        active: this.followerSmartMove ? { ...this.followerSmartMove } : null,
+        independentFollowers: true,
+        sameMapOnly: true,
+        combatPreemption: true
+      },
+      merchant: {
+        potionTargetUnchanged: 4500,
+        lowWatermark: this.merchantPotionLowWatermark,
+        microDeliverySuppression: true,
+        autonomyLivenessDriver: true,
+        trustedServiceTravelAttestationSource: MERCHANT_TRAVEL_ATTESTATION_SOURCE,
+        arbitraryTravelBypass: false
+      },
+      policies: {
+        onlyActiveAggroHolderOrbits: true,
+        orbitMaintainsEnemySafetyBuffer: true,
+        emergencyRetreatStillOutranksOrbit: true,
+        visiblePartyCoordinatesOutrankStalePartyCoordinates: true,
+        everySeparatedFollowerMayRecoverIndependently: true,
+        newPullSafetyGateUnchanged: true,
+        merchantEconomyAuthorityUnchanged: true,
+        merchantServiceTravelOnlyAttestation: true,
+        serverChangeAuthorityUnchanged: true
+      },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installAlpha31PartyRoleLivenessHotfix(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.alpha31PartyRoleLivenessHotfix) return runtime.alpha31PartyRoleLivenessHotfix;
+  const hotfix = new Alpha31PartyRoleLivenessHotfix(runtime, options);
+  runtime.alpha31PartyRoleLivenessHotfix = hotfix;
+  return hotfix;
+}
+
+module.exports = {
+  ALPHA31_PARTY_ROLE_LIVENESS_MODE,
+  MERCHANT_TRAVEL_ATTESTATION_SOURCE,
+  Alpha31PartyRoleLivenessHotfix,
+  installAlpha31PartyRoleLivenessHotfix
+};
+},
+"src/reliability/alpha32-navigation-merchant-recovery.js": function(require,module,exports){
+'use strict';
+
+const ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE = 'alpha32-navigation-merchant-recovery-v1';
+
+const STALE_TRANSACTION_REASONS = new Set([
+  'INVENTORY_INDEX_OUT_OF_RANGE',
+  'LEDGER_ITEM_NOT_FOUND',
+  'ITEM_IDENTITY_CHANGED',
+  'LEDGER_DISPOSITION_CHANGED',
+  'ITEM_QUANTITY_CHANGED',
+  'LIVE_ITEM_IDENTITY_MISMATCH',
+  'LIVE_ITEM_QUANTITY_MISMATCH',
+  'BANK_REQUIRES_FULL_STACK'
+]);
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value)));
+}
+
+function characterOf(runtime) {
+  const root = runtime && runtime.root;
+  return root && (root.character || root.parent && root.parent.character) || null;
+}
+
+function hpRatio(character) {
+  const hp = finite(character && character.hp);
+  const maxHp = finite(character && (character.max_hp != null ? character.max_hp : character.maxHp));
+  if (hp == null || maxHp == null || maxHp <= 0) return 1;
+  return Math.max(0, Math.min(1, hp / maxHp));
+}
+
+function isMerchant(character) {
+  return !!(character && String(character.ctype || character.type || '').toLowerCase() === 'merchant');
+}
+
+function itemQuantity(character, prefix) {
+  const items = character && Array.isArray(character.items) ? character.items : [];
+  let total = 0;
+  for (const item of items) {
+    if (!item || !String(item.name || '').startsWith(prefix)) continue;
+    total += Math.max(1, Math.floor(finite(item.q, 1)));
+  }
+  return total;
+}
+
+function hashDirection(value) {
+  const text = String(value || 'local');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) hash = ((hash * 31) + text.charCodeAt(i)) | 0;
+  return (Math.abs(hash) % 2) ? 1 : -1;
+}
+
+class Alpha32NavigationMerchantRecovery {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = runtime.root || globalThis;
+    this.now = runtime.now || (() => Date.now());
+    this.log = runtime.log || null;
+
+    this.merchantRecoveryTriggerHpRatio = clamp(options.merchantRecoveryTriggerHpRatio == null ? 0.50 : options.merchantRecoveryTriggerHpRatio, 0.20, 0.80);
+    this.merchantRecoveryResumeHpRatio = clamp(options.merchantRecoveryResumeHpRatio == null ? 0.72 : options.merchantRecoveryResumeHpRatio, this.merchantRecoveryTriggerHpRatio + 0.05, 0.95);
+    this.merchantPotionCooldownMs = Math.max(500, Math.min(5000, finite(options.merchantPotionCooldownMs, 1100)));
+    this.localDetourMaxAttempts = Math.max(2, Math.min(12, Math.floor(finite(options.localDetourMaxAttempts, 7))));
+    this.localDetourMaxRegressionFactor = clamp(options.localDetourMaxRegressionFactor == null ? 0.40 : options.localDetourMaxRegressionFactor, 0.10, 0.80);
+
+    this.merchantRecoveryActive = false;
+    this.lastMerchantPotionAt = -Infinity;
+    this.lastMerchantRecoveryState = null;
+    this.merchantTravelAbortPending = false;
+    this.gearDeliveryBackoffUntil = 0;
+    this.localDetours = new Map();
+
+    this.stats = {
+      blockedTargetIdsFiltered: 0,
+      blockedTargetSelectionCycles: 0,
+      localFarmDetours: 0,
+      localFarmDetourExhaustions: 0,
+      staleMerchantTransactionsReleased: 0,
+      merchantRecoveryEntries: 0,
+      merchantRecoveryExits: 0,
+      merchantRecoveryPotionAttempts: 0,
+      merchantRecoveryPotionAccepted: 0,
+      merchantRecoveryNoPotion: 0,
+      merchantWorkHolds: 0,
+      merchantTravelSafetyAborts: 0,
+      merchantTravelAbortFailures: 0,
+      gearDeliveryBudgetBackoffs: 0,
+      gearDeliveryBackoffSkips: 0
+    };
+
+    this.blockedTargetSelectionInstalled = this._installBlockedTargetSelection();
+    this.localFarmDetourInstalled = this._installLocalFarmDetour();
+    this.staleMerchantTransactionReleaseInstalled = this._installStaleMerchantTransactionRelease();
+    this.merchantSafetyGatesInstalled = this._installMerchantSafetyGates();
+    this.merchantAutonomyHoldInstalled = this._installMerchantAutonomyHold();
+    this.gearDeliveryBackoffInstalled = this._installGearDeliveryBackoff();
+    this.installedAt = this.now();
+
+    this._event('ALPHA32_NAVIGATION_MERCHANT_RECOVERY_INSTALLED', 'warn', 'LIVE_LOG_VERIFIED_RECOVERY', this.status());
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'alpha32-navigation-merchant-recovery', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _terrain() {
+    return this.runtime.farmerTerrainNavigationHotfix || null;
+  }
+
+  _blockedTargetIds() {
+    const terrain = this._terrain();
+    if (!terrain || !(terrain.blockedTargets instanceof Map)) return new Set();
+    try { if (typeof terrain._pruneBlocked === 'function') terrain._pruneBlocked(); } catch (_) {}
+    const now = this.now();
+    return new Set([...terrain.blockedTargets.entries()].filter(([, until]) => finite(until, 0) > now).map(([id]) => String(id)));
+  }
+
+  _installBlockedTargetSelection() {
+    const farmer = this.runtime.farmer;
+    const reliability = this.runtime.preFarmingReliability;
+    if (!farmer || typeof farmer._selectTarget !== 'function' || farmer.__alpha32BlockedTargetSelectionInstalled) return false;
+    const base = farmer._selectTarget.bind(farmer);
+    farmer._selectTarget = (context) => {
+      const blocked = this._blockedTargetIds();
+      const safeIds = reliability && reliability.safeEntityIds;
+      if (!blocked.size || !(safeIds instanceof Set)) return base(context);
+
+      const filtered = new Set([...safeIds].filter((id) => !blocked.has(String(id))));
+      const removed = Math.max(0, safeIds.size - filtered.size);
+      if (!removed) return base(context);
+
+      this.stats.blockedTargetIdsFiltered += removed;
+      this.stats.blockedTargetSelectionCycles += 1;
+      reliability.safeEntityIds = filtered;
+      try {
+        return base(context);
+      } finally {
+        reliability.safeEntityIds = safeIds;
+      }
+    };
+    farmer.__alpha32BlockedTargetSelectionInstalled = true;
+    return true;
+  }
+
+  _canMoveTo(x, y) {
+    const parent = this.root && this.root.parent || this.root;
+    const fn = this.root && this.root.can_move_to || parent && parent.can_move_to;
+    if (typeof fn !== 'function') return null;
+    try { return fn.call(this.root, x, y) !== false; } catch (_) { return false; }
+  }
+
+  _localFarmDetour(character, plan) {
+    const cx = finite(character && character.x);
+    const cy = finite(character && character.y);
+    const px = finite(plan && plan.x);
+    const py = finite(plan && plan.y);
+    if ([cx, cy, px, py].some((value) => value == null)) return null;
+
+    const dx = px - cx;
+    const dy = py - cy;
+    const remaining = Math.hypot(dx, dy);
+    if (!Number.isFinite(remaining) || remaining <= 0) return null;
+
+    const local = this.runtime.localFarming;
+    const config = local && local.config || {};
+    const speed = Math.max(1, finite(character && character.speed, 40));
+    const minStep = Math.max(16, finite(config.minStep, 50));
+    const maxStep = Math.max(minStep, finite(config.maxStep, 120));
+    const stepSeconds = clamp(config.stepSeconds == null ? 2.5 : config.stepSeconds, 0.5, 4);
+    const baseStep = Math.min(remaining, Math.max(minStep, Math.min(maxStep, speed * stepSeconds)));
+    const planId = String(plan && plan.id || `${plan && plan.monster || 'spawn'}:${px}:${py}`);
+    const previous = this.localDetours.get(planId) || { attempts: 0, direction: hashDirection(planId) };
+    if (previous.attempts >= this.localDetourMaxAttempts) {
+      this.stats.localFarmDetourExhaustions += 1;
+      return null;
+    }
+
+    const preferred = previous.direction || 1;
+    const offsets = [preferred * 75, preferred * 90, preferred * 105, preferred * 120, -preferred * 75, -preferred * 90, -preferred * 105, -preferred * 120];
+    const scales = [1, 0.75, 0.5, 0.35];
+    const baseAngle = Math.atan2(dy, dx);
+    let best = null;
+
+    for (const scale of scales) {
+      const step = Math.max(16, baseStep * scale);
+      const maxRegression = Math.max(12, step * this.localDetourMaxRegressionFactor);
+      for (const offsetDeg of offsets) {
+        const angle = baseAngle + offsetDeg * Math.PI / 180;
+        const x = cx + Math.cos(angle) * step;
+        const y = cy + Math.sin(angle) * step;
+        if (this._canMoveTo(x, y) !== true) continue;
+        const after = Math.hypot(px - x, py - y);
+        const regression = after - remaining;
+        if (regression > maxRegression) continue;
+        const score = Math.max(0, regression) * 10 + Math.abs(Math.abs(offsetDeg) - 90) * 0.06 + (1 - scale) * 3;
+        const candidate = { x, y, step, remaining, after, regression, offsetDeg, score, terrainDetour: true };
+        if (!best || candidate.score < best.score) best = candidate;
+      }
+    }
+
+    if (!best) return null;
+    const direction = best.offsetDeg < 0 ? -1 : 1;
+    this.localDetours.set(planId, { attempts: previous.attempts + 1, direction, at: this.now() });
+    if (plan && typeof plan === 'object') plan.lastProgressAt = this.now();
+    this.stats.localFarmDetours += 1;
+    this._event('ALPHA32_LOCAL_FARM_DETOUR_SELECTED', previous.attempts === 0 ? 'warn' : 'info', 'LATERAL_PROGRESS_TEMPORARILY_ALLOWED', {
+      planId,
+      monster: plan && plan.monster || null,
+      attempt: previous.attempts + 1,
+      offsetDeg: best.offsetDeg,
+      regression: Number(best.regression.toFixed(2)),
+      remaining: Number(best.remaining.toFixed(2)),
+      after: Number(best.after.toFixed(2))
+    });
+    return best;
+  }
+
+  _installLocalFarmDetour() {
+    const local = this.runtime.localFarming;
+    if (!local || typeof local._boundedDestination !== 'function' || local.__alpha32LateralDetourInstalled) return false;
+    const base = local._boundedDestination.bind(local);
+    local._boundedDestination = (character, plan) => {
+      const waypoint = base(character, plan);
+      const planId = String(plan && plan.id || '');
+      if (waypoint) {
+        if (planId) this.localDetours.delete(planId);
+        return waypoint;
+      }
+      return this._localFarmDetour(character, plan);
+    };
+    local.__alpha32LateralDetourInstalled = true;
+    return true;
+  }
+
+  _installStaleMerchantTransactionRelease() {
+    const executor = this.runtime.controlledMerchant;
+    const engine = this.runtime.transactionEngine;
+    if (!executor || typeof executor.execute !== 'function' || !engine || typeof engine.cancel !== 'function' || executor.__alpha32StaleTransactionReleaseInstalled) return false;
+    const base = executor.execute.bind(executor);
+    executor.execute = async (transactionId) => {
+      const result = await base(transactionId);
+      const reason = String(result && result.reason || '');
+      if (!result || result.executed === true || result.committed === true || !STALE_TRANSACTION_REASONS.has(reason)) return result;
+      const tx = typeof engine.get === 'function' ? engine.get(String(transactionId)) : null;
+      if (!tx || ['COMMITTED', 'ABORTED', 'FAILED_SAFE'].includes(String(tx.state || ''))) return result;
+      const cancelReason = `PREFLIGHT_ABORTED:${reason}`;
+      const cancelled = engine.cancel(tx.id, cancelReason) !== false;
+      if (cancelled) {
+        this.stats.staleMerchantTransactionsReleased += 1;
+        this._event('ALPHA32_STALE_MERCHANT_TRANSACTION_RELEASED', 'warn', reason, { transactionId: tx.id, type: tx.type || null, cancelReason });
+      }
+      return { ...result, aborted: cancelled, staleReservationReleased: cancelled, cancelReason: cancelled ? cancelReason : null };
+    };
+    executor.__alpha32StaleTransactionReleaseInstalled = true;
+    return true;
+  }
+
+  _updateMerchantRecoveryState() {
+    const c = characterOf(this.runtime);
+    if (!isMerchant(c) || c.rip === true || c.dead === true) {
+      this.merchantRecoveryActive = false;
+      return false;
+    }
+    const ratio = hpRatio(c);
+    const previous = this.merchantRecoveryActive;
+    if (!previous && ratio <= this.merchantRecoveryTriggerHpRatio) this.merchantRecoveryActive = true;
+    else if (previous && ratio >= this.merchantRecoveryResumeHpRatio) this.merchantRecoveryActive = false;
+
+    if (this.merchantRecoveryActive !== previous) {
+      if (this.merchantRecoveryActive) this.stats.merchantRecoveryEntries += 1;
+      else this.stats.merchantRecoveryExits += 1;
+      this.lastMerchantRecoveryState = { at: this.now(), active: this.merchantRecoveryActive, hpRatio: ratio };
+      this._event('ALPHA32_MERCHANT_RECOVERY_STATE_CHANGED', this.merchantRecoveryActive ? 'warn' : 'info', this.merchantRecoveryActive ? 'LOW_HP_RECOVERY_REQUIRED' : 'HP_RECOVERY_COMPLETE', {
+        hpRatio: Number(ratio.toFixed(4)),
+        triggerHpRatio: this.merchantRecoveryTriggerHpRatio,
+        resumeHpRatio: this.merchantRecoveryResumeHpRatio
+      });
+    }
+    return this.merchantRecoveryActive;
+  }
+
+  _merchantRecoveryRequired() {
+    return this._updateMerchantRecoveryState();
+  }
+
+  _gatePreflight(system, flag) {
+    if (!system || typeof system._preflight !== 'function' || system[flag]) return false;
+    const base = system._preflight.bind(system);
+    system._preflight = (...args) => {
+      const result = base(...args);
+      if (!result || result.ok !== true) return result;
+      if (!this._merchantRecoveryRequired()) return result;
+      this.stats.merchantWorkHolds += 1;
+      return { ok: false, reason: 'MERCHANT_HP_RECOVERY_REQUIRED', hpRatio: hpRatio(characterOf(this.runtime)) };
+    };
+    system[flag] = true;
+    return true;
+  }
+
+  _installMerchantSafetyGates() {
+    let installed = false;
+    installed = this._gatePreflight(this.runtime.controlledMerchant, '__alpha32MerchantHpGateInstalled') || installed;
+    installed = this._gatePreflight(this.runtime.controlledMerchantService, '__alpha32MerchantHpGateInstalled') || installed;
+    installed = this._gatePreflight(this.runtime.controlledMerchantProduction, '__alpha32MerchantHpGateInstalled') || installed;
+    installed = this._gatePreflight(this.runtime.controlledTravel, '__alpha32MerchantHpGateInstalled') || installed;
+    return installed;
+  }
+
+  _installMerchantAutonomyHold() {
+    let installed = false;
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    const merchant = alpha27 && alpha27.merchant;
+    if (merchant && typeof merchant.tick === 'function' && !merchant.__alpha32MerchantRecoveryHoldInstalled) {
+      const baseTick = merchant.tick.bind(merchant);
+      merchant.tick = (...args) => {
+        if (this._merchantRecoveryRequired()) {
+          this.stats.merchantWorkHolds += 1;
+          return false;
+        }
+        return baseTick(...args);
+      };
+      merchant.__alpha32MerchantRecoveryHoldInstalled = true;
+      installed = true;
+    }
+
+    if (typeof this.runtime._merchantServiceCycle === 'function' && !this.runtime.__alpha32MerchantServiceRecoveryHoldInstalled) {
+      const baseCycle = this.runtime._merchantServiceCycle.bind(this.runtime);
+      this.runtime._merchantServiceCycle = (...args) => {
+        if (this._merchantRecoveryRequired()) {
+          this.stats.merchantWorkHolds += 1;
+          return null;
+        }
+        return baseCycle(...args);
+      };
+      this.runtime.__alpha32MerchantServiceRecoveryHoldInstalled = true;
+      installed = true;
+    }
+    return installed;
+  }
+
+  _abortActiveMerchantTravel() {
+    const travel = this.runtime.controlledTravel;
+    if (!travel || typeof travel.status !== 'function' || typeof travel.abort !== 'function' || this.merchantTravelAbortPending) return false;
+    let status = null;
+    try { status = travel.status(); } catch (_) { return false; }
+    if (!status || status.busy !== true || !status.activePlanId) return false;
+
+    const planId = status.activePlanId;
+    this.merchantTravelAbortPending = true;
+    Promise.resolve(travel.abort('MERCHANT_HP_RECOVERY_REQUIRED'))
+      .then((result) => {
+        if (result && result.aborted === true) {
+          this.stats.merchantTravelSafetyAborts += 1;
+          this._event('ALPHA32_MERCHANT_TRAVEL_ABORTED_FOR_RECOVERY', 'warn', 'MERCHANT_HP_RECOVERY_REQUIRED', { planId });
+          return;
+        }
+        this.stats.merchantTravelAbortFailures += 1;
+        this._event('ALPHA32_MERCHANT_TRAVEL_ABORT_FAILED', 'warn', result && result.reason || 'TRAVEL_ABORT_NOT_CONFIRMED', { planId });
+      })
+      .catch((error) => {
+        this.stats.merchantTravelAbortFailures += 1;
+        this._event('ALPHA32_MERCHANT_TRAVEL_ABORT_FAILED', 'error', 'TRAVEL_ABORT_REJECTED', { planId, message: String(error && error.message || error) });
+      })
+      .finally(() => { this.merchantTravelAbortPending = false; });
+    return true;
+  }
+
+  _merchantServiceBudgetRetryAt() {
+    const service = this.runtime.controlledMerchantService;
+    const now = this.now();
+    if (!service) return now + 5000;
+    try { if (typeof service._rawBudget === 'function') service._rawBudget(); } catch (_) {}
+    const rows = Array.isArray(service.actionTimes) ? service.actionTimes.filter((at) => Number.isFinite(Number(at))) : [];
+    const windowMs = Math.max(1000, finite(service.actionWindowMs, 60000));
+    if (!rows.length) return now + Math.min(5000, windowMs);
+    return Math.max(now + 1000, Math.min(now + 60000, Math.min(...rows) + windowMs + 50));
+  }
+
+  _installGearDeliveryBackoff() {
+    const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
+    const merchant = alpha27 && alpha27.merchant;
+    if (!merchant || typeof merchant.deliverGearGoal !== 'function' || merchant.__alpha32GearBudgetBackoffInstalled) return false;
+    const base = merchant.deliverGearGoal.bind(merchant);
+    merchant.deliverGearGoal = async (...args) => {
+      const now = this.now();
+      if (now < this.gearDeliveryBackoffUntil) {
+        this.stats.gearDeliveryBackoffSkips += 1;
+        return false;
+      }
+      const result = await base(...args);
+      const reason = String(merchant.lastMerchantAction && merchant.lastMerchantAction.result && merchant.lastMerchantAction.result.reason || '');
+      if (reason === 'MERCHANT_SERVICE_ACTION_BUDGET_EXHAUSTED') {
+        this.gearDeliveryBackoffUntil = this._merchantServiceBudgetRetryAt();
+        this.stats.gearDeliveryBudgetBackoffs += 1;
+        this._event('ALPHA32_GEAR_DELIVERY_BUDGET_BACKOFF', 'info', reason, { retryAt: this.gearDeliveryBackoffUntil, retryAfterMs: Math.max(0, this.gearDeliveryBackoffUntil - now) });
+      }
+      return result;
+    };
+    merchant.__alpha32GearBudgetBackoffInstalled = true;
+    return true;
+  }
+
+  _driveMerchantRecovery() {
+    const c = characterOf(this.runtime);
+    if (!isMerchant(c) || !this._merchantRecoveryRequired()) return false;
+    const adapter = this.runtime.adapter;
+    if (!adapter || String(adapter.mode || '') !== 'active' || typeof adapter.command !== 'function') return true;
+    const now = this.now();
+    if (now - this.lastMerchantPotionAt < this.merchantPotionCooldownMs) return true;
+    if (itemQuantity(c, 'hpot') <= 0) {
+      this.stats.merchantRecoveryNoPotion += 1;
+      this.lastMerchantPotionAt = now;
+      this._event('ALPHA32_MERCHANT_RECOVERY_BLOCKED', 'warn', 'NO_HP_POTION_AVAILABLE', { hpRatio: hpRatio(c) });
+      return true;
+    }
+
+    this.stats.merchantRecoveryPotionAttempts += 1;
+    let result = null;
+    try { result = adapter.command('use_hp', []); } catch (_) { result = null; }
+    this.lastMerchantPotionAt = now;
+    if (result && result.executed === true && result.accepted !== false) this.stats.merchantRecoveryPotionAccepted += 1;
+    this._event('ALPHA32_MERCHANT_HP_POTION_REQUESTED', 'warn', 'LOW_HP_RECOVERY_REQUIRED', {
+      hpRatio: Number(hpRatio(c).toFixed(4)),
+      executed: !!(result && result.executed),
+      accepted: result && result.accepted == null ? null : !!result.accepted,
+      reason: result && result.reason || null
+    });
+    return true;
+  }
+
+  beforeTick() {
+    this._installMerchantSafetyGates();
+    this._installMerchantAutonomyHold();
+    this._installGearDeliveryBackoff();
+    if (this._merchantRecoveryRequired()) this._abortActiveMerchantTravel();
+    this._driveMerchantRecovery();
+    return true;
+  }
+
+  status() {
+    const c = characterOf(this.runtime);
+    return {
+      schemaVersion: 1,
+      mode: ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE,
+      installedAt: this.installedAt || null,
+      blockedTargetSelectionInstalled: this.blockedTargetSelectionInstalled,
+      localFarmDetourInstalled: this.localFarmDetourInstalled,
+      staleMerchantTransactionReleaseInstalled: this.staleMerchantTransactionReleaseInstalled,
+      merchantSafetyGatesInstalled: this.merchantSafetyGatesInstalled,
+      merchantAutonomyHoldInstalled: this.merchantAutonomyHoldInstalled,
+      gearDeliveryBackoffInstalled: this.gearDeliveryBackoffInstalled,
+      navigation: {
+        blockedTargetFallbackRespectsTerrainCooldown: true,
+        boundedLateralDetours: true,
+        detourMaxAttempts: this.localDetourMaxAttempts,
+        detourMaxRegressionFactor: this.localDetourMaxRegressionFactor,
+        activeDetourPlans: this.localDetours.size
+      },
+      merchant: {
+        recoveryActive: this.merchantRecoveryActive,
+        hpRatio: isMerchant(c) ? hpRatio(c) : null,
+        triggerHpRatio: this.merchantRecoveryTriggerHpRatio,
+        resumeHpRatio: this.merchantRecoveryResumeHpRatio,
+        potionCooldownMs: this.merchantPotionCooldownMs,
+        lastPotionAt: Number.isFinite(this.lastMerchantPotionAt) ? this.lastMerchantPotionAt : null,
+        travelAbortPending: this.merchantTravelAbortPending,
+        gearDeliveryBackoffUntil: this.gearDeliveryBackoffUntil || null,
+        staleTransactionReasons: [...STALE_TRANSACTION_REASONS]
+      },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installAlpha32NavigationMerchantRecovery(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.alpha32NavigationMerchantRecovery) return runtime.alpha32NavigationMerchantRecovery;
+  const hotfix = new Alpha32NavigationMerchantRecovery(runtime, options);
+  runtime.alpha32NavigationMerchantRecovery = hotfix;
+  return hotfix;
+}
+
+module.exports = {
+  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE,
+  STALE_TRANSACTION_REASONS,
+  Alpha32NavigationMerchantRecovery,
+  installAlpha32NavigationMerchantRecovery
 };
 
 },

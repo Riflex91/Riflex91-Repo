@@ -1,6 +1,6 @@
 'use strict';
 
-const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
@@ -9,8 +9,11 @@ const { installP0RegroupSupplyRecovery, P0_REGROUP_SUPPLY_RECOVERY_MODE } = requ
 const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = require('./reliability/p0-potion-bundle-delta-fix');
 const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./reliability/p0-potion-policy-4500');
 const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
+const { installAlpha31PartyRoleLivenessHotfix, ALPHA31_PARTY_ROLE_LIVENESS_MODE } = require('./reliability/alpha31-party-role-liveness-hotfix');
+const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE } = require('./reliability/alpha32-navigation-merchant-recovery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
+const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
 
 function emitFailure(runtime, service, error) {
   try {
@@ -37,7 +40,29 @@ function runService(runtime, service, name) {
   }
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500) {
+function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
+  const cloud = runtime && (runtime.cloudControlPlane || alpha25 && alpha25.cloud);
+  if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (cloud.__adventureLandSpriteHotReloadHookVersion === SPRITE_HOT_RELOAD_HOOK_VERSION) return false;
+
+  const previousRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
+  cloud._runtimeSnapshot = () => {
+    const snapshot = previousRuntimeSnapshot();
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      snapshot.equipmentShades = equipmentShadeCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
+    return snapshot;
+  };
+  cloud.__adventureLandSpriteHotReloadHookVersion = SPRITE_HOT_RELOAD_HOOK_VERSION;
+  return true;
+}
+
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -51,7 +76,9 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       p0RegroupSupplyRecovery: p0Recovery && typeof p0Recovery.status === 'function' ? p0Recovery.status() : null,
       p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500: potionPolicy4500 || null,
-      p0PotionHardCap4500: potionHardCap4500 || null
+      p0PotionHardCap4500: potionHardCap4500 || null,
+      partyRoleLiveness: roleLiveness && typeof roleLiveness.status === 'function' ? roleLiveness.status() : null,
+      navigationMerchantRecovery: liveRecovery && typeof liveRecovery.status === 'function' ? liveRecovery.status() : null
     })
   };
   api.cloud = {
@@ -74,7 +101,10 @@ function installProductionLiveServices(api, options = {}) {
   // return so a same-version hot reload can repair a runtime that was created by
   // an older production bundle where Alpha27/28 were present in source but never
   // actually attached to the live tick chain.
+  const preexistingCloud = runtime.cloudControlPlane || runtime.alpha25ControlCenterBrain && runtime.alpha25ControlCenterBrain.cloud;
+  const spriteHookAlreadyInstalled = !!(preexistingCloud && preexistingCloud.__adventureLandItemSpritesInstalled);
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
+  if (spriteHookAlreadyInstalled) refreshAdventureLandSpriteHook(runtime, alpha25);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
@@ -83,6 +113,11 @@ function installProductionLiveServices(api, options = {}) {
   installP0PotionBundleDeltaFix(runtime);
   const potionPolicy4500 = installP0PotionPolicy4500(runtime);
   const potionHardCap4500 = installP0PotionHardCap4500(runtime);
+  const roleLiveness = installAlpha31PartyRoleLivenessHotfix(runtime, options);
+  const liveRecovery = installAlpha32NavigationMerchantRecovery(runtime, options);
+  // Alpha31/32 beforeTick can wake or pause live merchant authorities. Installation
+  // and same-version hot reload must stay passive; the runtime.tick wrapper below
+  // is the only production-live-services path that executes these services.
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -95,9 +130,11 @@ function installProductionLiveServices(api, options = {}) {
       p0RegroupSupplyRecoveryInstalled: !!runtime.p0RegroupSupplyRecovery,
       p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
-      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed)
+      p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
+      alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+      alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
     return runtime.productionLiveServices;
   }
 
@@ -108,6 +145,10 @@ function installProductionLiveServices(api, options = {}) {
       runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
       runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
       runService(runtime, runtime.p0RegroupSupplyRecovery, 'p0-regroup-supply-recovery');
+      // Alpha32 must run before Alpha31 so a low-HP merchant can enter recovery
+      // before Alpha31 drives another autonomous merchant turn.
+      runService(runtime, runtime.alpha32NavigationMerchantRecovery, 'alpha32-navigation-merchant-recovery');
+      runService(runtime, runtime.alpha31PartyRoleLivenessHotfix, 'alpha31-party-role-liveness');
       return result;
     };
     runtime.__productionLiveServicesTickPatched = true;
@@ -126,10 +167,12 @@ function installProductionLiveServices(api, options = {}) {
     p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
     p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
     p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
+    alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+    alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -145,7 +188,9 @@ function installProductionLiveServices(api, options = {}) {
 
 module.exports = {
   PRODUCTION_LIVE_SERVICES_MODE,
+  SPRITE_HOT_RELOAD_HOOK_VERSION,
   installProductionLiveServices,
+  refreshAdventureLandSpriteHook,
   runService,
   exposeDiagnostics,
   installP0RegroupSupplyRecovery,
@@ -155,5 +200,9 @@ module.exports = {
   installP0PotionPolicy4500,
   P0_POTION_POLICY_4500_MODE,
   installP0PotionHardCap4500,
-  P0_POTION_HARDCAP_4500_MODE
+  P0_POTION_HARDCAP_4500_MODE,
+  installAlpha31PartyRoleLivenessHotfix,
+  ALPHA31_PARTY_ROLE_LIVENESS_MODE,
+  installAlpha32NavigationMerchantRecovery,
+  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE
 };

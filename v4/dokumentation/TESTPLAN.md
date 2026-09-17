@@ -4,6 +4,19 @@
 
 Jeder zeitlich begrenzte Live-Test mit V4-Testkonsole zeigt waehrend des Laufs eine sichtbare Restzeit in der Titelleiste der GUI. Der Countdown wird mindestens sekundenweise aktualisiert und darf den eigentlichen Testablauf nicht beeinflussen. Nach Abschluss oder manuellem Stopp zeigt die Titelleiste einen eindeutigen Endzustand.
 
+## Dokumentierter Block-7-Abschluss
+
+Block 7 – Kampfsicherheit und Rueckzug – ist am 17. September 2026 technisch abgeschlossen worden. Der Abschluss beruht auf der Kombination aus:
+
+- bestandenem 10-Minuten-Read-only-Schattenlauf mit 601/601 Schritten, 100 % Sampling-Abdeckung, maximal 1016 ms Tick-Luecke, 0 Fehlern, 0 Stillstaenden und 0 echten Spielaktionen,
+- realer Adventure-Land-Angriffsbereitschaft mit 601/601 bekannten `bereit`-Beobachtungen,
+- gruener integrierter Produktionscode-Abnahmesuite `block7-abnahme.test.mjs`,
+- bestandenem one-shot Adventure-Land-Live-Smoke-Test mit exakt einem `move`, 0 sonstigen Spielaktionen, 8 Einheiten beobachteter Sicherheitsbewegung und automatischer Wiedersperrung.
+
+Der detaillierte Nachweis steht in `BLOCK-7-ABSCHLUSS.md`.
+
+Dieser Block-7-Abschluss ersetzt **nicht** die allgemeinen spaeteren V4-Systemtests. Insbesondere bleiben der 24-Stunden-Schattenbetrieb, aktive Einzelcharakter- und Gruppenlaeufe sowie der 7-Tage-Dauertest eigenstaendige Freigabestufen.
+
 ## Stufe 1 – statische Pruefung
 
 - TypeScript streng
