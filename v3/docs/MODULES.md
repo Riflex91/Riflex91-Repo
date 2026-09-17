@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 3983 Zeilen**
+**21 Dateien · 4023 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -37,7 +37,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha18-runtime.js` | 212 |
 | `src/autonomy/alpha19-runtime.js` | 174 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 330 |
-| `src/autonomy/alpha20-5-merchant-runtime.js` | 325 |
+| `src/autonomy/alpha20-5-merchant-runtime.js` | 365 |
 | `src/autonomy/alpha20-runtime.js` | 392 |
 | `src/autonomy/alpha9-runtime.js` | 64 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
@@ -132,12 +132,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**5 Dateien · 1522 Zeilen**
+**7 Dateien · 1916 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/merchant/controlled-merchant-production-executor.js` | 143 |
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
+| `src/merchant/merchant-mluck-policy.js` | 112 |
+| `src/merchant/merchant-mluck-service.js` | 282 |
 | `src/merchant/merchant-production-controller.js` | 180 |
 | `src/merchant/merchant-production-planner.js` | 440 |
 | `src/merchant/merchant-service-planner.js` | 225 |

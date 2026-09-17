@@ -9,14 +9,14 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
 | (root) | 6 | 1171 |
-| autonomy | 21 | 3983 |
+| autonomy | 21 | 4023 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
 | core | 5 | 645 |
 | economy | 12 | 3891 |
 | farmer | 14 | 2595 |
 | game | 3 | 723 |
-| merchant | 5 | 1522 |
+| merchant | 7 | 1916 |
 | ops | 26 | 7224 |
 | party | 19 | 3863 |
 | planner | 1 | 65 |
@@ -61,7 +61,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | autonomy | brain | 1 |
 | autonomy | economy | 11 |
 | autonomy | farmer | 1 |
-| autonomy | merchant | 2 |
+| autonomy | merchant | 3 |
 | autonomy | ops | 5 |
 | autonomy | party | 12 |
 | autonomy | reliability | 20 |
