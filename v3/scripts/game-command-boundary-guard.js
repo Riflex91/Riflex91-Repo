@@ -19,6 +19,7 @@ const PROTECTED_MUTATION_APIS = Object.freeze([
   'send_item',
   'send_gold',
   'sell',
+  'bank_retrieve',
   'bank_store',
   'start_character',
   'stop_character',
