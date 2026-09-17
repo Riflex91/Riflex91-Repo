@@ -91,14 +91,15 @@ test('ranged classes use near-maximum engagement and kiting range', () => {
   assert.equal(s.rangedEngagementRangeEvaluations, 1);
 });
 
-test('non-aggro ranger repositions outward to a stable firing band without becoming the kiter', () => {
+test('non-aggro ranger repositions outward and continues the firing pipeline in the same cycle', () => {
   const commands = [];
+  let baseEngages = 0;
   const farmer = {
     kiting: { tooCloseFactor: 0.52, desiredFactor: 0.70 },
     lastActionAt: 0,
     _engagementRange: () => 100,
     _needsRecovery: () => ({ hpUnsafe: false }),
-    _engage: () => { throw new Error('base engage should be deferred after a range-position move'); },
+    _engage: () => { baseEngages += 1; return 'base'; },
     _event: () => {}
   };
   const runtime = { farmer, now: () => 5000, root: { can_move_to: () => true } };
@@ -107,9 +108,12 @@ test('non-aggro ranger repositions outward to a stable firing band without becom
   const character = { name: 'My_Ranger2', ctype: 'ranger', range: 140, speed: 60, x: 20, y: 0, hp: 3000, max_hp: 3000 };
   const target = { id: 'm1', mtype: 'crab', hp: 1000, x: 0, y: 0, target: 'My_Ranger1' };
   const context = { snapshot: { character, party: [{ name: 'My_Ranger1', ctype: 'ranger' }], entities: [target] }, adapter: { command: (name, args) => { commands.push({ name, args }); return { executed: true }; } } };
-  farmer._engage(context, target);
+  const result = farmer._engage(context, target);
+  assert.equal(result, 'base');
   assert.equal(commands.length, 1);
   assert.equal(commands[0].name, 'move');
+  assert.equal(baseEngages, 1);
+  assert.equal(farmer.lastActionAt, 0);
   assert.equal(s.rangedFirePositionMoves, 1);
 });
 
