@@ -8,7 +8,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1115 |
+| (root) | 6 | 1143 |
 | autonomy | 21 | 3981 |
 | brain | 4 | 887 |
 | control | 5 | 1047 |
