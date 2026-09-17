@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1115 Zeilen**
+**6 Dateien · 1143 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
 | `src/index.js` | 384 |
-| `src/production-live-services.js` | 159 |
+| `src/production-live-services.js` | 187 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
 | `src/version.js` | 9 |

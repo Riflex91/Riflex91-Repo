@@ -1,6 +1,6 @@
 'use strict';
 
-const { installAlpha25ControlCenterBrain } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
@@ -12,6 +12,7 @@ const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./r
 const { installAlpha31PartyRoleLivenessHotfix, ALPHA31_PARTY_ROLE_LIVENESS_MODE } = require('./reliability/alpha31-party-role-liveness-hotfix');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
+const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
 
 function emitFailure(runtime, service, error) {
   try {
@@ -36,6 +37,28 @@ function runService(runtime, service, name) {
     emitFailure(runtime, name, error);
     return false;
   }
+}
+
+function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
+  const cloud = runtime && (runtime.cloudControlPlane || alpha25 && alpha25.cloud);
+  if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (cloud.__adventureLandSpriteHotReloadHookVersion === SPRITE_HOT_RELOAD_HOOK_VERSION) return false;
+
+  const previousRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
+  cloud._runtimeSnapshot = () => {
+    const snapshot = previousRuntimeSnapshot();
+    if (snapshot && typeof snapshot === 'object') {
+      snapshot.itemSprites = itemSpriteCatalog(runtime);
+      snapshot.equipmentShades = equipmentShadeCatalog(runtime);
+      const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
+        snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
+      }
+    }
+    return snapshot;
+  };
+  cloud.__adventureLandSpriteHotReloadHookVersion = SPRITE_HOT_RELOAD_HOOK_VERSION;
+  return true;
 }
 
 function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness) {
@@ -76,7 +99,10 @@ function installProductionLiveServices(api, options = {}) {
   // return so a same-version hot reload can repair a runtime that was created by
   // an older production bundle where Alpha27/28 were present in source but never
   // actually attached to the live tick chain.
+  const preexistingCloud = runtime.cloudControlPlane || runtime.alpha25ControlCenterBrain && runtime.alpha25ControlCenterBrain.cloud;
+  const spriteHookAlreadyInstalled = !!(preexistingCloud && preexistingCloud.__adventureLandItemSpritesInstalled);
   const alpha25 = installAlpha25ControlCenterBrain(runtime, options);
+  if (spriteHookAlreadyInstalled) refreshAdventureLandSpriteHook(runtime, alpha25);
   const alpha26 = installAlpha26CloudUpdateLogisticsUiHotfix(runtime, options);
   const alpha27 = installAlpha27CombatMerchantConvergence(runtime, options);
   const ownershipGuard = installAlpha27MerchantLegacyOwnershipGuard(runtime);
@@ -154,7 +180,9 @@ function installProductionLiveServices(api, options = {}) {
 
 module.exports = {
   PRODUCTION_LIVE_SERVICES_MODE,
+  SPRITE_HOT_RELOAD_HOOK_VERSION,
   installProductionLiveServices,
+  refreshAdventureLandSpriteHook,
   runService,
   exposeDiagnostics,
   installP0RegroupSupplyRecovery,

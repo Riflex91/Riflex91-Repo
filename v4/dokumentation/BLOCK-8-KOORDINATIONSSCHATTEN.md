@@ -1,5 +1,7 @@
 # Block 8 – Koordinationsschatten mit echten Lebensnachweisen
 
+Status: **Live-Abnahme bestanden am 2026-09-17**.
+
 ## Ziel
 
 Dieser Nachweis verbindet die bereits live bestaetigte Ranger-zu-Ranger-Lebensnachweis-Kommunikation mit der produktiven V4-Gruppenkoordination.
@@ -13,6 +15,65 @@ Beobachtet werden die Zustaende:
 5. seine Aufgabe wird wieder zugeordnet.
 
 Es werden weiterhin keine Kampf-, Bewegungs-, Skill-, Heil-, Loot-, Handels- oder Party-Aktionen ausgefuehrt. Eine Auswertung darf lediglich ueber den vorhandenen Lebensnachweis einmal `send_cm` ausloesen.
+
+## Live-Abnahme vom 2026-09-17
+
+Der komplette Zyklus wurde mit `My_Ranger1` und `My_Ranger2` auf dem echten Adventure-Land-Server erfolgreich nachgewiesen.
+
+### Phase A – beide aktiv
+
+Beobachtet:
+
+- `betriebsArt: "normal"`
+- `gemeinsameGefahrenStufe: "sicher"`
+- `My_Ranger1`: `aktiv`, Alter 0 ms
+- `My_Ranger2`: `aktiv`, Alter 730 ms
+- aktive Teilnehmer: `My_Ranger1`, `My_Ranger2`
+- `aufgaben.schaden: "My_Ranger1"`
+- `aufgaben.unterstuetzung: "My_Ranger2"`
+- `verworfen: 0`
+- `echteSpielaktionenAusgefuehrt: false`
+
+Ergebnis: **bestanden**.
+
+### Phase B – Ranger2 veraltet
+
+Nach Stoppen des Lebensnachweises auf `My_Ranger2` wurde auf Ranger1 beobachtet:
+
+- `My_Ranger1`: weiterhin `aktiv`
+- `My_Ranger2`: `veraltet`
+- Alter von Ranger2: 18.061 ms
+- aktive Teilnehmer: nur `My_Ranger1`
+- `aufgaben.schaden: "My_Ranger1"`
+- `aufgaben.unterstuetzung: null`
+- `verworfen: 0`
+- `echteSpielaktionenAusgefuehrt: false`
+
+Ergebnis: **bestanden**. Der veraltete Teilnehmer wurde nicht nur erkannt, sondern verlor seine Faehigkeitsaufgabe automatisch.
+
+### Phase C – Reconnect
+
+Nach erneutem Start des Lebensnachweises auf `My_Ranger2` wurde beobachtet:
+
+- `My_Ranger1`: `aktiv`, Alter 1 ms
+- `My_Ranger2`: wieder `aktiv`, Alter 806 ms
+- aktive Teilnehmer: `My_Ranger1`, `My_Ranger2`
+- `aufgaben.schaden: "My_Ranger1"`
+- `aufgaben.unterstuetzung: "My_Ranger2"`
+- `verworfen: 0`
+- `echteSpielaktionenAusgefuehrt: false`
+
+Ergebnis: **bestanden**. Der Teilnehmer wurde nach frischem Lebensnachweis automatisch wieder aufgenommen und seine Aufgabe wieder zugeordnet.
+
+### Gesamtergebnis
+
+Der Live-Test bestaetigt den vorgesehenen Block-8-Zyklus:
+
+```text
+aktiv -> veraltet -> Aufgabe entzogen -> Reconnect -> aktiv -> Aufgabe wieder zugeordnet
+```
+
+Dabei wurden keine echten Spielaktionen aus der Gruppenkoordination ausgefuehrt.
 
 ## Produktionskern im Browser
 
