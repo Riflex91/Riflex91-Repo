@@ -45,8 +45,8 @@
       "name": "game-command-boundary",
       "title": "GameAdapter as the technical write boundary",
       "branch": "architecture/02-game-command-boundary",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": "220",
       "merge_commit": null,
       "required_outcomes": [
         "structured command catalog/allowlist",
