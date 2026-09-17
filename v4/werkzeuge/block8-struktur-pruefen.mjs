@@ -15,6 +15,7 @@ const pflichtDateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-lebensnachweis-austausch.ts',
   'laufzeit/tests/block8-gruppenkoordination.test.mjs',
   'laufzeit/tests/block8-lebensnachweis-austausch.test.mjs',
+  'laufzeit/tests/block8-kampfsicherheits-kopplung.test.mjs',
   'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs',
   'werkzeuge/block8-lebensnachweis-schatten.js',
   'werkzeuge/block8-gruppenkoordination-kern.js',
@@ -36,6 +37,11 @@ for (const pflichtText of [
   'lebensnachweisMaximalAlterMillisekunden'
 ]) {
   if (!vertrag.includes(pflichtText)) throw new Error(`Block-8-Gruppenvertrag ist unvollstaendig: ${pflichtText}`);
+}
+
+const lebensnachweisVertrag = await readFile(path.join(wurzel, 'laufzeit/quelle/vertraege/gruppen-lebensnachweis.ts'), 'utf8');
+for (const pflichtText of ['GruppenTeilnehmerMeldungsSicherheitsEingabe', 'KampfSicherheitsEntscheidung', 'sicherheitsEntscheidung']) {
+  if (!lebensnachweisVertrag.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweisvertrag hat keine feste Block-7-Kopplung: ${pflichtText}`);
 }
 
 const logikPfad = path.join(wurzel, 'laufzeit/quelle/spiellogik/gruppen-koordination.ts');
@@ -66,6 +72,10 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
 const lebensnachweisLogik = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/gruppen-lebensnachweis.ts'), 'utf8');
 for (const pflichtText of [
   'erstelleGruppenTeilnehmerMeldungAusSpielzustand',
+  'erstelleGruppenTeilnehmerMeldungAusKampfsicherheit',
+  'sicherheitsEntscheidung',
+  'gefahrenBewertung',
+  'selben Spielzustandszeitpunkt',
   'spielzustand.aufgenommenAm',
   'spielzustand.laufendeNummer',
   'Serverkennung',
@@ -125,6 +135,16 @@ for (const pflichtText of [
   'Parent-send_cm wird genutzt waehrend on_cm im lokalen Codekontext bleibt'
 ]) {
   if (!austauschTests.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweistest fehlt: ${pflichtText}`);
+}
+
+const kopplungsTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-kampfsicherheits-kopplung.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'sichere Block-7-Bewertung wird unveraendert in den Lebensnachweis uebernommen',
+  'kritische Block-7-Bewertung kann von Block 8 nicht abgeschwaecht werden',
+  'unbekannte Block-7-Sicherheitslage bleibt unbekannt und damit gruppenweit fail-safe',
+  'Sicherheitsentscheidung eines anderen Spielzustandszeitpunkts wird blockiert'
+]) {
+  if (!kopplungsTests.includes(pflichtText)) throw new Error(`Block-8-Kampfsicherheits-Kopplungstest fehlt: ${pflichtText}`);
 }
 
 const schattenTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs'), 'utf8');

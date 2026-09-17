@@ -6,7 +6,8 @@ import {
 } from '../vertraege/gruppen-koordination.js';
 import type {
   GruppenTeilnehmerMeldungsEingabe,
-  GruppenTeilnehmerMeldungsErgebnis
+  GruppenTeilnehmerMeldungsErgebnis,
+  GruppenTeilnehmerMeldungsSicherheitsEingabe
 } from '../vertraege/gruppen-lebensnachweis.js';
 import type { CharakterZustand, Spielzustand, WissensWert } from '../vertraege/spielzustand.js';
 
@@ -34,6 +35,10 @@ function pruefeGefahrenStufe(gefahrenStufe: KampfGefahrenStufe): readonly string
   return (KAMPF_GEFAHREN_STUFEN as readonly string[]).includes(gefahrenStufe)
     ? []
     : ['Gefahrenstufe ist ungueltig.'];
+}
+
+function blockiert(gruende: readonly string[]): GruppenTeilnehmerMeldungsErgebnis {
+  return Object.freeze({ schemaVersion: 1, status: 'blockiert', gruende: Object.freeze([...gruende]), meldung: null });
 }
 
 function fehltText(wert: string | null, name: string, gruende: string[]): void {
@@ -92,7 +97,7 @@ export function erstelleGruppenTeilnehmerMeldungAusSpielzustand(
   const charakter = bekannterWert(spielzustand.beobachtet.charakter);
   if (charakter === null) {
     gruende.push('Charakterzustand fehlt; Lebensnachweis wird nicht erzeugt.');
-    return Object.freeze({ schemaVersion: 1, status: 'blockiert', gruende: Object.freeze(gruende), meldung: null });
+    return blockiert(gruende);
   }
 
   const charakterKennung = bekannterWert(charakter.kennung);
@@ -112,7 +117,7 @@ export function erstelleGruppenTeilnehmerMeldungAusSpielzustand(
   fehltText(instanz, 'Instanz', gruende);
 
   if (gruende.length > 0 || charakterKennung === null || charakterName === null || klasse === null || serverRegion === null || serverKennung === null || karte === null || instanz === null) {
-    return Object.freeze({ schemaVersion: 1, status: 'blockiert', gruende: Object.freeze(gruende), meldung: null });
+    return blockiert(gruende);
   }
 
   return Object.freeze({
@@ -132,5 +137,33 @@ export function erstelleGruppenTeilnehmerMeldungAusSpielzustand(
       karte,
       instanz
     )
+  });
+}
+
+export function erstelleGruppenTeilnehmerMeldungAusKampfsicherheit(
+  spielzustand: Spielzustand,
+  eingabe: GruppenTeilnehmerMeldungsSicherheitsEingabe
+): GruppenTeilnehmerMeldungsErgebnis {
+  const sicherheit = eingabe.sicherheitsEntscheidung;
+  const gruende: string[] = [...pruefeFaehigkeiten(eingabe.faehigkeiten)];
+
+  if (sicherheit?.schemaVersion !== 1) {
+    gruende.push('Block-7-Kampfsicherheitsentscheidung fehlt oder hat eine unbekannte Schemaversion.');
+  }
+
+  if (!Number.isFinite(sicherheit?.zeitpunkt) || sicherheit.zeitpunkt !== spielzustand.aufgenommenAm) {
+    gruende.push('Block-7-Kampfsicherheitsentscheidung gehoert nicht zum selben Spielzustandszeitpunkt.');
+  }
+
+  const gefahrenStufe = sicherheit?.gefahrenBewertung?.stufe;
+  if (typeof gefahrenStufe !== 'string' || !(KAMPF_GEFAHREN_STUFEN as readonly string[]).includes(gefahrenStufe)) {
+    gruende.push('Block-7-Kampfsicherheitsentscheidung enthaelt keine gueltige Gefahrenstufe.');
+  }
+
+  if (gruende.length > 0 || typeof gefahrenStufe !== 'string') return blockiert(gruende);
+
+  return erstelleGruppenTeilnehmerMeldungAusSpielzustand(spielzustand, {
+    gefahrenStufe: gefahrenStufe as KampfGefahrenStufe,
+    faehigkeiten: eingabe.faehigkeiten
   });
 }

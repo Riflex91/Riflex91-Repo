@@ -1,4 +1,4 @@
-import type { KampfGefahrenStufe } from './kampfsicherheit.js';
+import type { KampfGefahrenStufe, KampfSicherheitsEntscheidung } from './kampfsicherheit.js';
 import type { GruppenFaehigkeitsProfil, GruppenTeilnehmerMeldung } from './gruppen-koordination.js';
 
 export const GRUPPEN_LEBENSNACHWEIS_PROTOKOLL = 'v4-gruppen-lebensnachweis-v1' as const;
@@ -8,6 +8,11 @@ export type GruppenTeilnehmerMeldungsStatus = (typeof GRUPPEN_TEILNEHMER_MELDUNG
 
 export interface GruppenTeilnehmerMeldungsEingabe {
   readonly gefahrenStufe: KampfGefahrenStufe;
+  readonly faehigkeiten: GruppenFaehigkeitsProfil;
+}
+
+export interface GruppenTeilnehmerMeldungsSicherheitsEingabe {
+  readonly sicherheitsEntscheidung: KampfSicherheitsEntscheidung;
   readonly faehigkeiten: GruppenFaehigkeitsProfil;
 }
 
