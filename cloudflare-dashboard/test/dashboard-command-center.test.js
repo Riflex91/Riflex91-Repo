@@ -19,10 +19,12 @@ test('character cards show online and offline duration with hours, minutes and s
   assert.match(DASHBOARD_HTML, /Offlinezeit/);
   assert.match(DASHBOARD_HTML, /startedAt/);
   assert.match(DASHBOARD_HTML, /durationHms/);
+  assert.match(DASHBOARD_HTML, /durationHms\(age\)/);
   assert.match(DASHBOARD_HTML, /Std · /);
   assert.match(DASHBOARD_HTML, /Min · /);
   assert.match(DASHBOARD_HTML, /Sek/);
   assert.match(DASHBOARD_HTML, /Number\(age\)\|\|0\)-120/);
+  assert.doesNotMatch(DASHBOARD_HTML, /fmt\(age\)\+'s'/);
 });
 
 test('command center exposes an alternate touch-first mobile interface', () => {
