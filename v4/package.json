@@ -18,12 +18,13 @@
     "block8-struktur:pruefen": "node werkzeuge/block8-struktur-pruefen.mjs",
     "block8-gruppenaktionsplanung:pruefen": "node werkzeuge/block8-gruppenaktionsplanung-struktur-pruefen.mjs",
     "block8-gruppenaktionsschatten:pruefen": "node werkzeuge/block8-gruppenaktionsschatten-struktur-pruefen.mjs && node --check werkzeuge/block8-gruppenaktionsplanung-kern.js && node --check werkzeuge/block8-gruppenaktionsplanung-schatten.js",
+    "block8-gruppenaktionsanfragen:pruefen": "node werkzeuge/block8-gruppenaktionsanfragen-struktur-pruefen.mjs && node --check werkzeuge/block8-gruppenaktionsanfragen-kern.js && node --check werkzeuge/block8-gruppenaktionsanfragen-schatten.js",
     "testkonsole:pruefen": "node --check werkzeuge/adventure-land-testkonsole.js",
     "block2-beobachtung:pruefen": "node --check werkzeuge/block2-beobachtung.js",
     "block6-live-test:pruefen": "node --check werkzeuge/block6-live-test.js",
     "block8-lebensnachweis:pruefen": "node --check werkzeuge/block7-kampfsicherheits-quelle.js && node --check werkzeuge/block8-lebensnachweis-schatten.js",
     "block8-gruppenkoordination:pruefen": "node --check werkzeuge/block8-gruppenkoordination-kern.js && node --check werkzeuge/block8-gruppenkoordination-schatten.js",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run block8-struktur:pruefen && npm run block8-gruppenaktionsplanung:pruefen && npm run block8-gruppenaktionsschatten:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen && npm run block8-lebensnachweis:pruefen && npm run block8-gruppenkoordination:pruefen"
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run block8-struktur:pruefen && npm run block8-gruppenaktionsplanung:pruefen && npm run block8-gruppenaktionsschatten:pruefen && npm run block8-gruppenaktionsanfragen:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen && npm run block8-lebensnachweis:pruefen && npm run block8-gruppenkoordination:pruefen"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
