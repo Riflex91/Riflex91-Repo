@@ -30,6 +30,35 @@ test('character cards show compact online and offline durations', () => {
   assert.doesNotMatch(DASHBOARD_HTML, /fmt\(age\)\+'s'/);
 });
 
+test('character cards show worn equipment and inventory from the character registry', () => {
+  assert.match(DASHBOARD_HTML, /Getragene Ausrüstung/);
+  assert.match(DASHBOARD_HTML, /Inventar/);
+  assert.match(DASHBOARD_HTML, /equipment-board/);
+  assert.match(DASHBOARD_HTML, /inventory-grid/);
+  assert.match(DASHBOARD_HTML, /s\.party&&Array\.isArray\(s\.party\.characters\)/);
+  assert.match(DASHBOARD_HTML, /registryCharacter\.inventory/);
+  assert.match(DASHBOARD_HTML, /registryCharacter\.gear/);
+  assert.match(DASHBOARD_HTML, /earring1/);
+  assert.match(DASHBOARD_HTML, /ring1/);
+  assert.match(DASHBOARD_HTML, /helmet/);
+  assert.match(DASHBOARD_HTML, /mainhand/);
+  assert.match(DASHBOARD_HTML, /offhand/);
+  assert.match(DASHBOARD_HTML, /locked/);
+  assert.match(DASHBOARD_HTML, /special/);
+});
+
+test('event importance is visually obvious for ok warning and critical events', () => {
+  assert.match(DASHBOARD_HTML, /\.event\.ok/);
+  assert.match(DASHBOARD_HTML, /\.event\.warn/);
+  assert.match(DASHBOARD_HTML, /\.event\.critical/);
+  assert.match(DASHBOARD_HTML, /priorityPulse/);
+  assert.match(DASHBOARD_HTML, /content:'✓ '/);
+  assert.match(DASHBOARD_HTML, /content:'⚠ '/);
+  assert.match(DASHBOARD_HTML, /content:'⛔ '/);
+  assert.match(DASHBOARD_HTML, /KRITISCH/);
+  assert.match(DASHBOARD_HTML, /WARNUNG/);
+});
+
 test('command center exposes an alternate touch-first mobile interface', () => {
   assert.match(DASHBOARD_HTML, /mobile-ui/);
   assert.match(DASHBOARD_HTML, /mobile-bottom-nav/);
