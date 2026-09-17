@@ -46092,6 +46092,7 @@ class Alpha32NavigationMerchantRecovery {
     this.merchantRecoveryActive = false;
     this.lastMerchantPotionAt = -Infinity;
     this.lastMerchantRecoveryState = null;
+    this.merchantTravelAbortPending = false;
     this.gearDeliveryBackoffUntil = 0;
     this.localDetours = new Map();
 
@@ -46107,6 +46108,8 @@ class Alpha32NavigationMerchantRecovery {
       merchantRecoveryPotionAccepted: 0,
       merchantRecoveryNoPotion: 0,
       merchantWorkHolds: 0,
+      merchantTravelSafetyAborts: 0,
+      merchantTravelAbortFailures: 0,
       gearDeliveryBudgetBackoffs: 0,
       gearDeliveryBackoffSkips: 0
     };
@@ -46326,6 +46329,7 @@ class Alpha32NavigationMerchantRecovery {
     installed = this._gatePreflight(this.runtime.controlledMerchant, '__alpha32MerchantHpGateInstalled') || installed;
     installed = this._gatePreflight(this.runtime.controlledMerchantService, '__alpha32MerchantHpGateInstalled') || installed;
     installed = this._gatePreflight(this.runtime.controlledMerchantProduction, '__alpha32MerchantHpGateInstalled') || installed;
+    installed = this._gatePreflight(this.runtime.controlledTravel, '__alpha32MerchantHpGateInstalled') || installed;
     return installed;
   }
 
@@ -46359,6 +46363,33 @@ class Alpha32NavigationMerchantRecovery {
       installed = true;
     }
     return installed;
+  }
+
+  _abortActiveMerchantTravel() {
+    const travel = this.runtime.controlledTravel;
+    if (!travel || typeof travel.status !== 'function' || typeof travel.abort !== 'function' || this.merchantTravelAbortPending) return false;
+    let status = null;
+    try { status = travel.status(); } catch (_) { return false; }
+    if (!status || status.busy !== true || !status.activePlanId) return false;
+
+    const planId = status.activePlanId;
+    this.merchantTravelAbortPending = true;
+    Promise.resolve(travel.abort('MERCHANT_HP_RECOVERY_REQUIRED'))
+      .then((result) => {
+        if (result && result.aborted === true) {
+          this.stats.merchantTravelSafetyAborts += 1;
+          this._event('ALPHA32_MERCHANT_TRAVEL_ABORTED_FOR_RECOVERY', 'warn', 'MERCHANT_HP_RECOVERY_REQUIRED', { planId });
+          return;
+        }
+        this.stats.merchantTravelAbortFailures += 1;
+        this._event('ALPHA32_MERCHANT_TRAVEL_ABORT_FAILED', 'warn', result && result.reason || 'TRAVEL_ABORT_NOT_CONFIRMED', { planId });
+      })
+      .catch((error) => {
+        this.stats.merchantTravelAbortFailures += 1;
+        this._event('ALPHA32_MERCHANT_TRAVEL_ABORT_FAILED', 'error', 'TRAVEL_ABORT_REJECTED', { planId, message: String(error && error.message || error) });
+      })
+      .finally(() => { this.merchantTravelAbortPending = false; });
+    return true;
   }
 
   _merchantServiceBudgetRetryAt() {
@@ -46428,6 +46459,7 @@ class Alpha32NavigationMerchantRecovery {
     this._installMerchantSafetyGates();
     this._installMerchantAutonomyHold();
     this._installGearDeliveryBackoff();
+    if (this._merchantRecoveryRequired()) this._abortActiveMerchantTravel();
     this._driveMerchantRecovery();
     return true;
   }
@@ -46458,6 +46490,7 @@ class Alpha32NavigationMerchantRecovery {
         resumeHpRatio: this.merchantRecoveryResumeHpRatio,
         potionCooldownMs: this.merchantPotionCooldownMs,
         lastPotionAt: Number.isFinite(this.lastMerchantPotionAt) ? this.lastMerchantPotionAt : null,
+        travelAbortPending: this.merchantTravelAbortPending,
         gearDeliveryBackoffUntil: this.gearDeliveryBackoffUntil || null,
         staleTransactionReasons: [...STALE_TRANSACTION_REASONS]
       },
