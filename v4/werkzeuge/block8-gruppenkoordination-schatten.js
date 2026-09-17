@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V4Block8Gruppenkoordination';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const MAX_VERLAUF = 20;
   let letzteAuswertung = null;
   const verlauf = [];
@@ -51,7 +51,8 @@
       betriebsArt: ergebnis.entscheidung.betriebsArt,
       aktiveTeilnehmerKennungen: ergebnis.entscheidung.aktiveTeilnehmerKennungen,
       teilnehmerBewertungen: ergebnis.entscheidung.teilnehmerBewertungen,
-      aufgaben: ergebnis.entscheidung.aufgaben
+      aufgaben: ergebnis.entscheidung.aufgaben,
+      meldungsAnzahl: ergebnis.meldungen.length
     }));
     while (verlauf.length > MAX_VERLAUF) verlauf.shift();
   }
@@ -67,7 +68,7 @@
     if (!eigeneMeldung) throw new Error('Der lokale Lebensnachweis lieferte keine gueltige eigene Meldung.');
 
     const lebensStatus = lebensnachweis.status();
-    const meldungen = [eigeneMeldung, ...remoteMeldungen(lebensStatus)];
+    const meldungen = Object.freeze([eigeneMeldung, ...remoteMeldungen(lebensStatus)]);
     const ausgewertetAm = Date.now();
     const konfiguration = kern.erstelleGruppenKoordinationsKonfiguration({
       lebensnachweisMaximalAlterMillisekunden: optionen.lebensnachweisMaximalAlterMillisekunden ?? 5_000
@@ -86,6 +87,7 @@
       }),
       lokalerCharakter: eigeneMeldung.charakterName,
       meldungsAnzahl: meldungen.length,
+      meldungen,
       lebensnachweis: Object.freeze({
         version: lebensStatus.version,
         gesendet: lebensStatus.gesendet,
@@ -123,7 +125,7 @@
 
   ausgeben({
     version: VERSION,
-    hinweis: 'Read-only Koordinationsschatten: wertet echte Block-8-Lebensnachweise mit dem source-locked Produktionskern aus; keine Spielaktion wird ausgefuehrt.',
+    hinweis: 'Read-only Koordinationsschatten: wertet echte Block-8-Lebensnachweise mit dem source-locked Produktionskern aus und stellt den geprueften Meldungssnapshot fuer nachgelagerte read-only Planung bereit; keine Spielaktion wird ausgefuehrt.',
     start: 'await V4Block8Gruppenkoordination.pruefe()'
   }, 'Block-8-Gruppenkoordination-Schattenwerkzeug bereit');
 })();
