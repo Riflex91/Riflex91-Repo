@@ -8,6 +8,7 @@ const pflichtDateien = [
   'dokumentation/BLOCK-8-GRUPPENKOORDINATION.md',
   'dokumentation/BLOCK-8-LEBENSNACHWEIS.md',
   'dokumentation/BLOCK-8-KOORDINATIONSSCHATTEN.md',
+  'dokumentation/BLOCK-8-KAMPFSICHERHEITS-KOPPLUNG.md',
   'laufzeit/quelle/vertraege/gruppen-koordination.ts',
   'laufzeit/quelle/vertraege/gruppen-lebensnachweis.ts',
   'laufzeit/quelle/spiellogik/gruppen-koordination.ts',
@@ -16,7 +17,9 @@ const pflichtDateien = [
   'laufzeit/tests/block8-gruppenkoordination.test.mjs',
   'laufzeit/tests/block8-lebensnachweis-austausch.test.mjs',
   'laufzeit/tests/block8-kampfsicherheits-kopplung.test.mjs',
+  'laufzeit/tests/block8-live-kampfsicherheit.test.mjs',
   'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs',
+  'werkzeuge/block7-kampfsicherheits-quelle.js',
   'werkzeuge/block8-lebensnachweis-schatten.js',
   'werkzeuge/block8-gruppenkoordination-kern.js',
   'werkzeuge/block8-gruppenkoordination-schatten.js'
@@ -147,6 +150,17 @@ for (const pflichtText of [
   if (!kopplungsTests.includes(pflichtText)) throw new Error(`Block-8-Kampfsicherheits-Kopplungstest fehlt: ${pflichtText}`);
 }
 
+const liveSicherheitsTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-live-kampfsicherheit.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'Browserquelle bleibt fuer sicher bei der produktiven Block-7-Gefahrenbewertung',
+  'kritische Block-7-Bewertung wird automatisch in den gesendeten Lebensnachweis uebernommen',
+  'manuelle gefahrenStufe ist im Live-Lebensnachweis verboten',
+  'fehlende Block-7-Quelle blockiert vor send_cm',
+  'stale Block-7-Bewertung blockiert vor send_cm'
+]) {
+  if (!liveSicherheitsTests.includes(pflichtText)) throw new Error(`Block-8-Live-Kampfsicherheitstest fehlt: ${pflichtText}`);
+}
+
 const schattenTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs'), 'utf8');
 for (const pflichtText of [
   'Browserkern bleibt fuer Aktiv, Stale, Reconnect und Safety identisch zur produktiven koordiniereGruppe',
@@ -156,10 +170,29 @@ for (const pflichtText of [
   if (!schattenTests.includes(pflichtText)) throw new Error(`Block-8-Koordinationsschattentest fehlt: ${pflichtText}`);
 }
 
+const kampfLogikPfad = path.join(wurzel, 'laufzeit/quelle/spiellogik/kampfsicherheit.ts');
+const kampfProduktivBlobSha = execFileSync('git', ['hash-object', kampfLogikPfad], { encoding: 'utf8' }).trim();
+const sicherheitsQuelle = await readFile(path.join(wurzel, 'werkzeuge/block7-kampfsicherheits-quelle.js'), 'utf8');
+if (!sicherheitsQuelle.includes(`QUELL_BLOB_SHA = '${kampfProduktivBlobSha}'`)) {
+  throw new Error(`Block-7-Live-Sicherheitsquelle ist nicht an den aktuellen Produktionskern gebunden: erwartet ${kampfProduktivBlobSha}.`);
+}
+for (const pflichtText of ['V4Block7KampfsicherheitsQuelle', 'bewerteGefahr', 'gefahrenBewertung', 'echteSpielaktionenAusgefuehrt: false']) {
+  if (!sicherheitsQuelle.includes(pflichtText)) throw new Error(`Block-7-Live-Sicherheitsquelle ist unvollstaendig: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(sicherheitsQuelle)) {
+    throw new Error(`Die Block-7-Live-Sicherheitsquelle darf ${unerlaubt} nicht aufrufen.`);
+  }
+}
+
 const schattenWerkzeug = await readFile(path.join(wurzel, 'werkzeuge/block8-lebensnachweis-schatten.js'), 'utf8');
 for (const pflichtText of [
   'V4Block8Lebensnachweis',
   'v4-gruppen-lebensnachweis-v1',
+  'V4Block7KampfsicherheitsQuelle',
+  'leseSicherheitsBewertung',
+  'sicherheitsMaximalAlterMillisekunden',
+  'gefahrenStufe darf nicht mehr manuell konfiguriert werden',
   'holeEmpfangsFenster',
   'holeSpielFunktion',
   "empfangsKontext: 'lokaler_codekontext'",
@@ -169,6 +202,9 @@ for (const pflichtText of [
   'echteSpielaktionenAusgefuehrt: false'
 ]) {
   if (!schattenWerkzeug.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweis-Schattenwerkzeug ist unvollstaendig: ${pflichtText}`);
+}
+if (schattenWerkzeug.includes('gefahrenStufe: konfiguration.gefahrenStufe')) {
+  throw new Error('Block-8-Live-Lebensnachweis darf keine statisch konfigurierte Gefahrenstufe mehr senden.');
 }
 for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot', 'command_character', 'send_party_invite']) {
   if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(schattenWerkzeug)) {
