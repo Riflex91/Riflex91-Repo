@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 2,
+  "next_step": 3,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -45,9 +45,9 @@
       "name": "game-command-boundary",
       "title": "GameAdapter as the technical write boundary",
       "branch": "architecture/02-game-command-boundary",
-      "status": "in_progress",
+      "status": "completed",
       "pr":  220,
-      "merge_commit": null,
+      "merge_commit": "04f0ea9598d63961638f0c35149bc05f809b7e97",
       "required_outcomes": [
         "structured command catalog/allowlist",
         "merchant stand commands through adapter",
