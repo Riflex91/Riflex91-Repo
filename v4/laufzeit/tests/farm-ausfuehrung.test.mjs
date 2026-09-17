@@ -35,10 +35,14 @@ test('Aktive Ausfuehrung ist standardmaessig gesperrt', async () => {
   assert.equal(aufrufe, 0);
 });
 
-test('Nur zentral gestarteter Angriff wird an Adventure Land weitergegeben', async () => {
+test('Nur zentral gestarteter Angriff in aktueller Reichweite wird an Adventure Land weitergegeben', async () => {
   const aufrufe = [];
-  const ziel = { id: 'm1' };
-  const spiel = { entities: { m1: ziel }, attack(wert) { aufrufe.push(['attack', wert]); } };
+  const ziel = { id: 'm1', real_x: 50, real_y: 0 };
+  const spiel = {
+    character: { real_x: 0, real_y: 0, range: 100 },
+    entities: { m1: ziel },
+    attack(wert) { aufrufe.push(['attack', wert]); }
+  };
   const { steuerung, schritt } = starte(anfrage('FARM_ANGREIFEN', { zielKennung: 'm1' }));
   const ausfuehrung = new AdventureLandFarmAusfuehrung(spiel, { aktivFreigegeben: true });
   const ergebnis = await ausfuehrung.fuehreFreigegebeneAktionAus(schritt, steuerung, () => 11);
@@ -46,6 +50,42 @@ test('Nur zentral gestarteter Angriff wird an Adventure Land weitergegeben', asy
   assert.equal(ergebnis.aktionsName, 'FARM_ANGREIFEN');
   assert.equal(steuerung.holeAktionsZustand('farm-FARM_ANGREIFEN')?.phase, 'abgeschlossen');
   assert.equal(steuerung.listeRessourcenSperren().length, 0);
+});
+
+test('Ziel ausserhalb der aktuellen Reichweite wird unmittelbar vor attack sicher abgebrochen', async () => {
+  let angriffe = 0;
+  const spiel = {
+    character: { real_x: 0, real_y: 0, range: 100 },
+    entities: { m1: { id: 'm1', real_x: 150, real_y: 0 } },
+    attack() { angriffe += 1; }
+  };
+  const { steuerung, schritt } = starte(anfrage('FARM_ANGREIFEN', { zielKennung: 'm1' }));
+  const ausfuehrung = new AdventureLandFarmAusfuehrung(spiel, { aktivFreigegeben: true });
+
+  await assert.rejects(
+    () => ausfuehrung.fuehreFreigegebeneAktionAus(schritt, steuerung, () => 11),
+    /ausserhalb der aktuellen Angriffsreichweite/
+  );
+  assert.equal(angriffe, 0);
+  assert.equal(steuerung.holeAktionsZustand('farm-FARM_ANGREIFEN')?.phase, 'abgebrochen');
+  assert.equal(steuerung.listeRessourcenSperren().length, 0);
+});
+
+test('Unbekannte aktuelle Reichweite fuehrt nicht zu einem geratenen Angriff', async () => {
+  let angriffe = 0;
+  const spiel = {
+    character: { real_x: 0, real_y: 0 },
+    entities: { m1: { id: 'm1', real_x: 50, real_y: 0 } },
+    attack() { angriffe += 1; }
+  };
+  const { steuerung, schritt } = starte(anfrage('FARM_ANGREIFEN', { zielKennung: 'm1' }));
+  const ausfuehrung = new AdventureLandFarmAusfuehrung(spiel, { aktivFreigegeben: true });
+
+  await assert.rejects(
+    () => ausfuehrung.fuehreFreigegebeneAktionAus(schritt, steuerung, () => 11),
+    /kann nicht sicher geprueft werden/
+  );
+  assert.equal(angriffe, 0);
 });
 
 test('Bewegung, Wiederherstellung und Loot verwenden nur ihre expliziten Block-6-Aufrufe', async () => {

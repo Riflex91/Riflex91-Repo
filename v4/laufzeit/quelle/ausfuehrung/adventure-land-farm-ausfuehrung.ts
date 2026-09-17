@@ -24,6 +24,14 @@ function istObjekt(wert: unknown): wert is Readonly<Record<string, unknown>> {
   return typeof wert === 'object' && wert !== null;
 }
 
+function ersteEndlicheZahl(objekt: Readonly<Record<string, unknown>>, felder: readonly string[]): number | null {
+  for (const feld of felder) {
+    const wert = objekt[feld];
+    if (typeof wert === 'number' && Number.isFinite(wert)) return wert;
+  }
+  return null;
+}
+
 export class AdventureLandFarmAusfuehrung {
   private readonly aktivFreigegeben: boolean;
 
@@ -86,6 +94,7 @@ export class AdventureLandFarmAusfuehrung {
       }
       const ziel = this.holeEntity(details.zielKennung);
       if (!ziel) throw new Error(`Farmziel ${details.zielKennung} ist bei der Ausfuehrung nicht mehr sichtbar.`);
+      this.pruefeAktuelleAngriffsReichweite(details.zielKennung, ziel);
       return this.rufeSpielFunktionAuf('attack', [ziel]);
     }
 
@@ -102,6 +111,27 @@ export class AdventureLandFarmAusfuehrung {
     }
 
     throw new Error(`Nicht freigegebene Farmaktion: ${aktionsName}.`);
+  }
+
+  private pruefeAktuelleAngriffsReichweite(zielKennung: string, ziel: object): void {
+    const charakterWert = Reflect.get(this.spielFenster, 'character');
+    if (!istObjekt(charakterWert) || !istObjekt(ziel)) {
+      throw new Error(`Aktuelle Angriffsreichweite fuer Farmziel ${zielKennung} kann nicht sicher geprueft werden.`);
+    }
+
+    const charakterX = ersteEndlicheZahl(charakterWert, ['real_x', 'x']);
+    const charakterY = ersteEndlicheZahl(charakterWert, ['real_y', 'y']);
+    const zielX = ersteEndlicheZahl(ziel, ['real_x', 'x']);
+    const zielY = ersteEndlicheZahl(ziel, ['real_y', 'y']);
+    const reichweite = ersteEndlicheZahl(charakterWert, ['range']);
+    if (charakterX === null || charakterY === null || zielX === null || zielY === null || reichweite === null || reichweite < 0) {
+      throw new Error(`Aktuelle Angriffsreichweite fuer Farmziel ${zielKennung} kann nicht sicher geprueft werden.`);
+    }
+
+    const abstand = Math.hypot(zielX - charakterX, zielY - charakterY);
+    if (abstand > reichweite) {
+      throw new Error(`Farmziel ${zielKennung} ist bei der Ausfuehrung ausserhalb der aktuellen Angriffsreichweite.`);
+    }
   }
 
   private rufeWiederherstellungAuf(name: 'use_hp' | 'use_mp'): unknown {
