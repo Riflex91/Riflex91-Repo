@@ -196,6 +196,14 @@ function findViolations(source, fileName = 'inline.js') {
     addViolation(violations, seen, raw, fileName, match.index, match[2], 'raw-binding-helper');
   }
 
+  // Some legacy reliability patches use fn(instance, 'api') as a generic
+  // root/parent binding helper. Protected mutation names in that second argument
+  // are writes and must cross GameAdapter just like the named binding helpers.
+  const genericBinding = new RegExp(`\\bfn\\s*\\(\\s*[^,\\n)]+\\s*,\\s*(['\"])(?:(${apiAlternation}))\\1`, 'g');
+  while ((match = genericBinding.exec(codeWithStrings))) {
+    addViolation(violations, seen, raw, fileName, match.index, match[2], 'raw-binding-helper');
+  }
+
   const destructure = /\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*((?:globalThis|window|parent|root|this\.root|this\.parent|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.(?:root|parent)))\b/g;
   while ((match = destructure.exec(code))) {
     const body = match[1];
