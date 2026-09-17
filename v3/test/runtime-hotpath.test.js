@@ -33,6 +33,7 @@ test('shared geometry returns deterministic Euclidean distance and fails closed'
   assert.equal(distance({ x: 0, y: 0 }, { x: 3, y: 4 }), 5);
   assert.equal(distance({ x: '1', y: '2' }, { x: 4, y: 6 }), 5);
   assert.equal(distance({ x: 0 }, { x: 1, y: 1 }), Infinity);
+  assert.equal(distance({ x: 0, y: null }, { x: 1, y: 1 }), Infinity);
   assert.equal(distance({ x: 'bad', y: 0 }, { x: 1, y: 1 }), Infinity);
 });
 
