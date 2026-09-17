@@ -1,7 +1,8 @@
 'use strict';
 
-function clamp01(n) { return Math.max(0, Math.min(1, Number(n) || 0)); }
-function normalize(value, max) { return max > 0 ? Math.max(0, Number(value) || 0) / max : 0; }
+const { clamp01, ratio } = require('../core/numeric');
+
+function normalize(value, max) { return ratio(Math.max(0, Number(value) || 0), max, 0); }
 
 class FarmPlanner {
   constructor(options = {}) {
