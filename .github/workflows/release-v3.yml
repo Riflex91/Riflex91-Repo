@@ -1,7 +1,7 @@
 name: release-v3-alpha
 on:
   push:
-    branches: ["v3/**", "fix/**"]
+    branches: ["v3/**"]
     paths:
       - "v3/**"
       - ".github/workflows/release-v3.yml"
