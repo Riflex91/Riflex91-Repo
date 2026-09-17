@@ -4507,7 +4507,7 @@ module.exports = { TargetReassessmentPolicy, threatScore };
 const { finite } = require('./numeric');
 
 function distance(a, b) {
-  if (!a || !b) return Infinity;
+  if (!a || !b || a.x == null || a.y == null || b.x == null || b.y == null) return Infinity;
   const ax = finite(a.x, null);
   const ay = finite(a.y, null);
   const bx = finite(b.x, null);
