@@ -1,11 +1,13 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { execFileSync } from 'node:child_process';
 
 const wurzel = process.cwd();
 const pflichtDateien = [
   'dokumentation/BLOCK-8-GRUPPENKOORDINATION.md',
   'dokumentation/BLOCK-8-LEBENSNACHWEIS.md',
+  'dokumentation/BLOCK-8-KOORDINATIONSSCHATTEN.md',
   'laufzeit/quelle/vertraege/gruppen-koordination.ts',
   'laufzeit/quelle/vertraege/gruppen-lebensnachweis.ts',
   'laufzeit/quelle/spiellogik/gruppen-koordination.ts',
@@ -13,7 +15,10 @@ const pflichtDateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-lebensnachweis-austausch.ts',
   'laufzeit/tests/block8-gruppenkoordination.test.mjs',
   'laufzeit/tests/block8-lebensnachweis-austausch.test.mjs',
-  'werkzeuge/block8-lebensnachweis-schatten.js'
+  'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs',
+  'werkzeuge/block8-lebensnachweis-schatten.js',
+  'werkzeuge/block8-gruppenkoordination-kern.js',
+  'werkzeuge/block8-gruppenkoordination-schatten.js'
 ];
 
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -33,7 +38,8 @@ for (const pflichtText of [
   if (!vertrag.includes(pflichtText)) throw new Error(`Block-8-Gruppenvertrag ist unvollstaendig: ${pflichtText}`);
 }
 
-const logik = await readFile(path.join(wurzel, 'laufzeit/quelle/spiellogik/gruppen-koordination.ts'), 'utf8');
+const logikPfad = path.join(wurzel, 'laufzeit/quelle/spiellogik/gruppen-koordination.ts');
+const logik = await readFile(logikPfad, 'utf8');
 for (const pflichtText of [
   'koordiniereGruppe',
   'verdichteNeuesteMeldungen',
@@ -121,6 +127,15 @@ for (const pflichtText of [
   if (!austauschTests.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweistest fehlt: ${pflichtText}`);
 }
 
+const schattenTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenkoordination-schatten.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'Browserkern bleibt fuer Aktiv, Stale, Reconnect und Safety identisch zur produktiven koordiniereGruppe',
+  'veralteter Teilnehmer verliert seine Aufgabe und frischer Reconnect erhaelt sie zurueck',
+  'Live-Werkzeug fuehrt nur Lebensnachweis-Kommunikation und die Koordinationsauswertung aus'
+]) {
+  if (!schattenTests.includes(pflichtText)) throw new Error(`Block-8-Koordinationsschattentest fehlt: ${pflichtText}`);
+}
+
 const schattenWerkzeug = await readFile(path.join(wurzel, 'werkzeuge/block8-lebensnachweis-schatten.js'), 'utf8');
 for (const pflichtText of [
   'V4Block8Lebensnachweis',
@@ -139,6 +154,29 @@ for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 
   if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(schattenWerkzeug)) {
     throw new Error(`Das Block-8-Lebensnachweis-Schattenwerkzeug darf ${unerlaubt} nicht aufrufen.`);
   }
+}
+
+const browserKern = await readFile(path.join(wurzel, 'werkzeuge/block8-gruppenkoordination-kern.js'), 'utf8');
+const produktivBlobSha = execFileSync('git', ['hash-object', logikPfad], { encoding: 'utf8' }).trim();
+if (!browserKern.includes(`QUELL_BLOB_SHA = '${produktivBlobSha}'`)) {
+  throw new Error(`Block-8-Browserkern ist nicht an den aktuellen Produktionskern gebunden: erwartet ${produktivBlobSha}.`);
+}
+for (const pflichtText of ['V4Block8GruppenKoordinationKern', 'koordiniereGruppe', 'erstelleGruppenKoordinationsKonfiguration', 'quellBlobSha']) {
+  if (!browserKern.includes(pflichtText)) throw new Error(`Block-8-Browserkern ist unvollstaendig: ${pflichtText}`);
+}
+for (const muster of [/\bDate\.now\s*\(/, /\bMath\.random\s*\(/]) {
+  if (muster.test(browserKern)) throw new Error('Block-8-Browserkern muss wie der Produktionskern deterministisch bleiben.');
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(browserKern)) throw new Error(`Block-8-Browserkern darf ${unerlaubt} nicht aufrufen.`);
+}
+
+const koordinationsSchatten = await readFile(path.join(wurzel, 'werkzeuge/block8-gruppenkoordination-schatten.js'), 'utf8');
+for (const pflichtText of ['V4Block8Gruppenkoordination', 'V4Block8Lebensnachweis', 'V4Block8GruppenKoordinationKern', 'sendeEinmal', 'koordiniereGruppe', 'echteSpielaktionenAusgefuehrt: false']) {
+  if (!koordinationsSchatten.includes(pflichtText)) throw new Error(`Block-8-Koordinationsschatten ist unvollstaendig: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(koordinationsSchatten)) throw new Error(`Block-8-Koordinationsschatten darf ${unerlaubt} nicht aufrufen.`);
 }
 
 console.log('Block-8-Strukturpruefung bestanden.');
