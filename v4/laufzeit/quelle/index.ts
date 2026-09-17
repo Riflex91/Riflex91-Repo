@@ -137,3 +137,5 @@ export * from './adventure-land/adventure-land-kampf-bereitschaft.js';
 export * from './vertraege/sicheres-farmen.js';
 export * from './spiellogik/sicheres-farmen.js';
 export * from './ausfuehrung/adventure-land-kampfsicherheits-ausfuehrung.js';
+export * from './vertraege/gruppen-koordination.js';
+export * from './spiellogik/gruppen-koordination.js';
