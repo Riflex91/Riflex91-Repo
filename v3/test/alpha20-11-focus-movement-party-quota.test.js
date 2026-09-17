@@ -2,9 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installFarmerTerrainNavigationHotfix } = require('../src/reliability/farmer-terrain-navigation-hotfix');
-const { installPartyFocusFireHotfix } = require('../src/reliability/party-focus-fire-hotfix');
-const { installPartyPersistenceQuotaHotfix } = require('../src/reliability/party-persistence-quota-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../src/farmer/farmer-terrain-navigation-hotfix');
+const { installPartyFocusFireHotfix } = require('../src/party/party-focus-fire-hotfix');
+const { installPartyPersistenceQuotaHotfix } = require('../src/party/party-persistence-quota-hotfix');
 
 function createLocalStorage(entries = {}) {
   const values = new Map(Object.entries(entries).map(([key, value]) => [String(key), String(value)]));
