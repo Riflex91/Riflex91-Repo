@@ -2,6 +2,8 @@
 
 Status: **in Arbeit**.
 
+Live-Stand vom 2026-09-17: echter Ranger-zu-Ranger-Lebensnachweis sowie read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sind erfolgreich bestaetigt.
+
 ## Ziel
 
 Mehrere eigene Charaktere sollen als Gruppe zusammenarbeiten, ohne hart verdrahtete Klassenrollen und ohne dass ein einzelner Charakter eigenmaechtig Gruppenentscheidungen erfindet.
@@ -109,13 +111,20 @@ Spaetere aktive Gruppenaktionen muessen weiterhin ueber die zentrale `AktionsSte
 - deterministische Ergebnisse unabhaengig von Eingabereihenfolge,
 - Blockierung bei fehlendem oder veraltetem eigenem Lebensnachweis.
 
+Der zusaetzliche Live-Koordinationsschatten wurde am 2026-09-17 mit `My_Ranger1` und `My_Ranger2` erfolgreich abgenommen. Nachgewiesen wurden aktive Aufgabenverteilung, Stale-Erkennung mit Aufgabenentzug und automatische Wiederaufnahme nach Reconnect, weiterhin ohne echte Spielaktion.
+
 ## Naechste Block-8-Schritte
 
-Auf diesem Unterbau folgen getrennt und testbar:
+Bereits erreicht:
 
-1. Erzeugung der Teilnehmermeldungen aus echten `Spielzustand`-Daten und Kampfsicherheitsbewertung.
-2. read-only Austausch der Lebensnachweise zwischen eigenen Charakteren.
-3. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
-4. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
-5. Mehrcharakter-Wiederholungen und gezielte Ausfalltests.
-6. erst danach begrenzte aktive Gruppen-Smoke-Tests und der spaetere 72-Stunden-Gruppentest.
+1. Teilnehmermeldungen aus echten `Spielzustand`-Daten.
+2. read-only Lebensnachweis-Austausch zwischen eigenen Charakteren.
+3. echter read-only Koordinationsschatten mit Aktiv/Stale/Reconnect-Aufgabenwechsel.
+
+Als naechstes folgen getrennt und testbar:
+
+1. reale Kampfsicherheitsbewertung aus Block 7 statt manuell gesetzter `gefahrenStufe` in die Teilnehmermeldungen einspeisen.
+2. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
+3. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
+4. Mehrcharakter-Wiederholungen und gezielte Ausfalltests.
+5. erst danach begrenzte aktive Gruppen-Smoke-Tests und der spaetere 72-Stunden-Gruppentest.
