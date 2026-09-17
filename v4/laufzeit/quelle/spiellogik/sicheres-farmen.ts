@@ -65,9 +65,15 @@ function pruefeAngriffsBereitschaft(
   if (bereitschaft.zustand === 'unbekannt') {
     return Object.freeze({ ergebnis: 'blockiert', grund: `Die Angriffsbereitschaft ist unbekannt: ${bereitschaft.grund}` });
   }
+  if (bereitschaft.zustand === 'abklingzeit') {
+    if (bereitschaft.bereitAb !== null && Number.isFinite(bereitschaft.bereitAb) && bereitschaft.bereitAb >= 0) {
+      return Object.freeze({ ergebnis: 'abklingzeit', grund: `Normaler Angriff ist bis ${bereitschaft.bereitAb} in Abklingzeit.` });
+    }
+    return Object.freeze({ ergebnis: 'abklingzeit', grund: 'Adventure Land meldet einen aktiven Attack-Cooldown; die exakte Restdauer ist nicht erforderlich.' });
+  }
   if (bereitschaft.bereitAb === null || !Number.isFinite(bereitschaft.bereitAb) || bereitschaft.bereitAb < 0 ||
       bereitschaft.restMillisekunden === null || !Number.isFinite(bereitschaft.restMillisekunden) || bereitschaft.restMillisekunden < 0) {
-    return Object.freeze({ ergebnis: 'blockiert', grund: 'Die bekannte Angriffsbereitschaft enthaelt ungueltige Zeitwerte.' });
+    return Object.freeze({ ergebnis: 'blockiert', grund: 'Die als bereit gemeldete Angriffsbereitschaft enthaelt ungueltige Zeitwerte.' });
   }
   if (bereitschaft.bereitAb > jetzt) {
     return Object.freeze({ ergebnis: 'abklingzeit', grund: `Normaler Angriff ist bis ${bereitschaft.bereitAb} in Abklingzeit.` });
