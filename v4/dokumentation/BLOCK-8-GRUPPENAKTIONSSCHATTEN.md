@@ -1,6 +1,6 @@
 # Block 8 – Gruppenaktionsschatten
 
-Status: **read-only Mehrcharakter-Nachweis fuer die Gruppenaktionsplanung**.
+Status: **read-only Mehrcharakter-Nachweis fuer die Gruppenaktionsplanung live bestanden**.
 
 ## Ziel
 
@@ -106,7 +106,7 @@ Die Faehigkeitswerte sind in dieser Stufe nur deklarative Koordinationswerte. De
 Nach einigen Heartbeats auf **beiden** Charakteren ausfuehren:
 
 ```js
-await V4Block8Gruppenaktionsplanung.pruefe()
+await V4Block8GruppenAktionsplanung.pruefe()
 ```
 
 Erwartungen auf beiden Charakteren:
@@ -131,7 +131,7 @@ V4Block8Lebensnachweis.stoppe()
 4. Auf `My_Ranger1` erneut ausfuehren:
 
 ```js
-await V4Block8Gruppenaktionsplanung.pruefe()
+await V4Block8GruppenAktionsplanung.pruefe()
 ```
 
 Erwartung:
@@ -147,6 +147,53 @@ await V4Block8Lebensnachweis.starte()
 ```
 
 Nach mindestens einem frischen Heartbeat auf `My_Ranger1` erneut pruefen. `My_Ranger2` soll wieder `aktiv` sein und seine faehigkeitsbasierte Aufgabe wieder erhalten koennen.
+
+## Live-Abnahme am 17.09.2026
+
+Der echte Zwei-Ranger-Schatten wurde mit `My_Ranger1` und `My_Ranger2` auf `EU I`, Karte/Instanz `main` durchlaufen und hat die erwartete Kette bestaetigt.
+
+### Phase A – beide Teilnehmer aktiv
+
+Beide Charaktere meldeten `gefahrenStufe: 'sicher'`, waren aktiv und sahen dieselbe Aufgabenverteilung:
+
+- `schaden: 'My_Ranger1'`,
+- `unterstuetzung: 'My_Ranger2'`.
+
+Da beide zu diesem Zeitpunkt `zielKennung: null` meldeten, entstand kein Schadensschritt. Der gemeinsame semantische Plan bestand auf beiden Seiten aus:
+
+```text
+gruppe_unterstuetzen|My_Ranger2|gruppe|-|normal|500
+```
+
+`My_Ranger1` hatte folgerichtig keine eigenen Schritte; `My_Ranger2` erhielt den Unterstuetzungsschritt. In allen Auswertungen blieben `aktionsAnfragenErzeugt: false` und `echteSpielaktionenAusgefuehrt: false`.
+
+### Phase B – Teilnehmer wird stale
+
+Nach dem Stoppen des Lebensnachweises auf `My_Ranger2` wurde auf `My_Ranger1` ein Alter von `19101 ms` beobachtet. `My_Ranger2` wechselte auf `status: 'veraltet'`, wurde aus `aktiveTeilnehmerKennungen` entfernt und verlor die Unterstuetzungsaufgabe.
+
+Der nachgelagerte Aktionsplan wurde korrekt leer:
+
+```text
+status: leer
+schritte: []
+planSignatur: []
+```
+
+Damit ist live nachgewiesen, dass ein stale Teilnehmer nicht nur aus der Koordination, sondern auch aus der Gruppenaktionsplanung entfernt wird.
+
+### Phase C – Reconnect
+
+Nach erneutem Start des Lebensnachweises auf `My_Ranger2` wurde auf `My_Ranger1` wieder ein frischer Heartbeat mit `990 ms` Alter beobachtet. `My_Ranger2` wechselte zurueck auf `aktiv`, die Aufgabe `unterstuetzung` wurde wieder `My_Ranger2` zugewiesen und der gemeinsame Gruppenplan stellte den Unterstuetzungsschritt wieder her:
+
+```text
+gruppe_unterstuetzen|My_Ranger2|gruppe|-|normal|500
+```
+
+Der komplette Live-Zyklus ist damit bestaetigt:
+
+`aktiv -> stale -> Aufgabe und Plan-Schritt entfernt -> reconnect -> aktiv -> Aufgabe und Plan-Schritt wiederhergestellt`
+
+Zu keinem Zeitpunkt wurden `AktionsAnfrage` oder echte Adventure-Land-Spielaktionen erzeugt.
 
 ## Safety-Nachweis
 
@@ -172,4 +219,4 @@ entstehen. `ziel_aggro_binden`, `gruppe_unterstuetzen` und `gemeinsames_ziel_bea
 
 ## Naechster Schritt
 
-Erst wenn der reale Zwei-Ranger-Nachweis diese Erwartungen bestaetigt, wird die naechste getrennte Stufe entworfen: eine weiterhin standardmaessig gesperrte Uebersetzung einzelner freigegebener Gruppenplan-Schritte in `AktionsAnfrage` fuer die zentrale `AktionsSteuerung`.
+Der reale Zwei-Ranger-Nachweis ist bestanden. Die naechste getrennte Stufe ist eine weiterhin standardmaessig gesperrte Uebersetzung einzelner freigegebener Gruppenplan-Schritte in `AktionsAnfrage` fuer die zentrale `AktionsSteuerung`. Vor jeder spaeteren echten Ausfuehrung bleiben Sicherheits-, Ressourcen- und Zielpruefungen zentral verbindlich.
