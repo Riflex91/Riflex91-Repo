@@ -31,7 +31,8 @@ test('item sprite catalog exposes only inventory and equipped Adventure Land spr
             unused_skin: ['pack_20', 6, 7]
           },
           imagesets: {
-            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10, rows: 8 }
+            // Adventure Land imagesets commonly omit `rows`; the runtime must infer it.
+            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10 }
           }
         };
       }
@@ -59,10 +60,11 @@ test('item sprite catalog exposes only inventory and equipped Adventure Land spr
     rows: 8
   });
   assert.equal(catalog.hpot0.x, 4);
+  assert.equal(catalog.hpot0.rows, 8);
   assert.equal(catalog.unused, undefined);
 });
 
-test('equipment shade catalog mirrors Adventure Land empty slot artwork', () => {
+test('equipment shade catalog mirrors Adventure Land empty slot artwork without explicit rows metadata', () => {
   const runtime = {
     adapter: {
       getGameData() {
@@ -73,7 +75,7 @@ test('equipment shade catalog mirrors Adventure Land empty slot artwork', () => 
             shade_ring: ['pack_20', 3, 1]
           },
           imagesets: {
-            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10, rows: 8 }
+            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10 }
           }
         };
       }
@@ -81,6 +83,7 @@ test('equipment shade catalog mirrors Adventure Land empty slot artwork', () => 
   };
   const shades = equipmentShadeCatalog(runtime);
   assert.equal(shades.helmet.skin, 'shade_helmet');
+  assert.equal(shades.helmet.rows, 2);
   assert.equal(shades.mainhand.x, 2);
   assert.equal(shades.ring1.skin, 'shade_ring');
   assert.equal(shades.ring2.skin, 'shade_ring');
