@@ -5,6 +5,7 @@ import process from 'node:process';
 const wurzel = process.cwd();
 const pflichtDateien = [
   'dokumentation/BLOCK-7-KAMPFSICHERHEIT.md',
+  'dokumentation/BLOCK-7-AKTIVTEST.md',
   'laufzeit/quelle/vertraege/kampfsicherheit.ts',
   'laufzeit/quelle/vertraege/kampf-aktionsbereitschaft.ts',
   'laufzeit/quelle/vertraege/sicheres-farmen.ts',
@@ -231,11 +232,21 @@ for (const regel of [
   'Ein Angriff ohne frische und bekannte Aktionsbereitschaft wird nicht angefordert.',
   'Aktive Kampfsicherheitsausfuehrung bleibt standardmaessig gesperrt.',
   'Reichweite unmittelbar vor `attack(...)` erneut geprueft',
-  '`is_on_cooldown("attack")`',
-  'V4Block7Aktivtest',
-  'maximal 20 Einheiten'
+  '`is_on_cooldown("attack")`'
 ]) {
   if (!dokument.includes(regel)) throw new Error(`Pflichtregel fuer Block 7 fehlt: ${regel}`);
+}
+
+const aktivDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-7-AKTIVTEST.md'), 'utf8');
+for (const regel of [
+  'V4Block7Aktivtest',
+  'maximal 20 Einheiten',
+  'BLOCK7-AKTIVTEST-FREIGEBEN',
+  'genau einen `move`-Aufruf pro Freigabe',
+  'Der Live-Test senkt keine HP kuenstlich',
+  'block7-abnahme.test.mjs'
+]) {
+  if (!aktivDokument.includes(regel)) throw new Error(`Pflichtregel fuer den Block-7-Aktivtest fehlt: ${regel}`);
 }
 
 console.log(`Block 7 geprueft: ${pflichtDateien.length} Pflichtdateien, Gefahrenbewertung, zentral priorisierter Rueckzug, reale Adventure-Land-Cooldown-Beobachtung, Safety-vor-Farm, aktive Sicherheitsgrenze, kontrollierter Live-Smoke-Test, Reichweiten-Recheck, Abnahmesuite und Replay.`);
