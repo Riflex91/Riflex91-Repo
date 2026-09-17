@@ -6,17 +6,120 @@ const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-consta
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
-  criticalPartySupplyPlan() {
-    const plan = this.runtime.lastMerchantServicePlan;
+  _partySupplyPlanFreshMs() {
+    return Math.max(5000, Math.min(20000, finite(this.options && this.options.merchantServiceChainPlanFreshMs, 10000)));
+  }
+
+  _partySupplyChainTimeoutMs() {
+    return Math.max(30000, Math.min(180000, finite(this.options && this.options.merchantServiceChainTimeoutMs, 130000)));
+  }
+
+  _adaptivePartySupplyPlan(plan) {
     if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500)) return null;
     const kind = String(plan.kind || '');
     if (!['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(kind)) return null;
     const deliveries = Array.isArray(plan.deliveries) ? plan.deliveries.filter((row) => row && Number(row.quantity) > 0) : [];
     if (!deliveries.length) return null;
-    const at = finite(plan.at, 0);
-    const maxAgeMs = Math.max(5000, Math.min(20000, finite(this.options && this.options.merchantServiceChainMaxAgeMs, 10000)));
-    if (at <= 0 || this.now() - at > maxAgeMs) return null;
-    return plan;
+    return { ...clone(plan), deliveries: clone(deliveries) };
+  }
+
+  _partySupplyDeliveryCommitted(chain) {
+    if (!chain) return false;
+    const execution = this.runtime.lastMerchantServiceExecution;
+    if (!execution || String(execution.kind || '') !== 'SERVICE_DELIVERY' || !(execution.result && execution.result.committed === true)) return false;
+    const executionAt = finite(execution.at, 0);
+    if (executionAt <= 0 || executionAt < finite(chain.startedAt, 0)) return false;
+    const targetName = String(chain.targetName || '');
+    const executionTarget = String(execution.result && execution.result.targetName || '');
+    if (targetName && executionTarget && targetName !== executionTarget) return false;
+    return true;
+  }
+
+  _clearPartySupplyChain(reason = 'PARTY_SUPPLY_CHAIN_RELEASED') {
+    const chain = this.partySupplyChain;
+    if (!chain) return null;
+    const now = this.now();
+    this.partySupplyChain = null;
+    this.stats.partySupplyChainReleases = (this.stats.partySupplyChainReleases || 0) + 1;
+    this.lastPartySupplyChainRelease = {
+      at: now,
+      reason,
+      targetName: chain.targetName || null,
+      lastKind: chain.plan && chain.plan.kind || null,
+      startedAt: chain.startedAt,
+      refreshedAt: chain.refreshedAt,
+      ageMs: Math.max(0, now - finite(chain.startedAt, now))
+    };
+    this._event('ALPHA27_PARTY_SUPPLY_CHAIN_RELEASED', 'info', reason, clone(this.lastPartySupplyChainRelease));
+    return null;
+  }
+
+  _latchPartySupplyPlan(plan) {
+    const normalized = this._adaptivePartySupplyPlan(plan);
+    if (!normalized) return null;
+    const now = this.now();
+    const targetName = normalized.target && String(normalized.target.name || '') || null;
+    const existing = this.partySupplyChain;
+    const sameTarget = !!(existing && String(existing.targetName || '') === String(targetName || ''));
+    if (existing && !sameTarget) return clone(existing.plan);
+
+    if (!existing) {
+      this.stats.partySupplyChainLatches = (this.stats.partySupplyChainLatches || 0) + 1;
+      this._event('ALPHA27_PARTY_SUPPLY_CHAIN_LATCHED', 'info', 'ADAPTIVE_PARTY_SUPPLY_CHAIN_STARTED', {
+        targetName,
+        kind: normalized.kind,
+        planId: normalized.id || null
+      });
+    } else {
+      this.stats.partySupplyChainRefreshes = (this.stats.partySupplyChainRefreshes || 0) + 1;
+    }
+
+    this.partySupplyChain = {
+      startedAt: existing ? existing.startedAt : now,
+      refreshedAt: now,
+      targetName,
+      plan: clone(normalized)
+    };
+    return clone(normalized);
+  }
+
+  _partySupplyTerminalHold(plan) {
+    if (!plan || String(plan.kind || '') !== 'HOLD') return false;
+    return ['FARMER_POTION_TARGET_SATISFIED', 'NO_SERVICE_NEED', 'STAND_IDLE'].includes(String(plan.reason || ''));
+  }
+
+  criticalPartySupplyPlan() {
+    const now = this.now();
+    const current = this.runtime.lastMerchantServicePlan;
+    const latched = this.partySupplyChain;
+
+    if (latched && this._partySupplyDeliveryCommitted(latched)) {
+      return this._clearPartySupplyChain('PARTY_SUPPLY_DELIVERY_COMMITTED');
+    }
+
+    const adaptive = this._adaptivePartySupplyPlan(current);
+    if (adaptive) {
+      const at = finite(adaptive.at, 0);
+      if (at > 0 && now - at <= this._partySupplyPlanFreshMs()) {
+        if (!latched || String(latched.targetName || '') === String(adaptive.target && adaptive.target.name || '')) {
+          return this._latchPartySupplyPlan(adaptive);
+        }
+      }
+    }
+
+    if (!this.partySupplyChain) return null;
+    const chain = this.partySupplyChain;
+    const ageMs = Math.max(0, now - finite(chain.startedAt, now));
+    if (ageMs > this._partySupplyChainTimeoutMs()) return this._clearPartySupplyChain('PARTY_SUPPLY_CHAIN_TIMEOUT');
+
+    if (this._partySupplyTerminalHold(current)) {
+      const currentAt = finite(current && current.at, 0);
+      if (currentAt <= 0 || currentAt >= finite(chain.startedAt, 0)) return this._clearPartySupplyChain(`PARTY_SUPPLY_${String(current.reason || 'NO_SERVICE_NEED')}`);
+    }
+
+    // Keep the chain alive across transient planner HOLDs such as
+    // CONTROLLED_SUBSYSTEM_BUSY while vendor/farmer travel is in progress.
+    return clone(chain.plan);
   }
 
   preemptReservedLowRiskForPartySupply(active, plan) {
@@ -223,6 +326,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   }
 
   status() {
+    const chain = this.partySupplyChain;
     return {
       autonomous: true,
       centralLedgerPlanner: true,
@@ -232,11 +336,25 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       economyBeforeNonCriticalGearDelivery: true,
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
+      partySupplyChainLatched: !!chain,
+      partySupplyChain: chain ? {
+        targetName: chain.targetName || null,
+        planKind: chain.plan && chain.plan.kind || null,
+        planId: chain.plan && chain.plan.id || null,
+        startedAt: chain.startedAt,
+        refreshedAt: chain.refreshedAt,
+        ageMs: Math.max(0, this.now() - finite(chain.startedAt, this.now())),
+        timeoutMs: this._partySupplyChainTimeoutMs()
+      } : null,
       completedGearGoalClaims: this.completedGearGoalClaims instanceof Map ? this.completedGearGoalClaims.size : 0,
       gearGoalClaimSuppressions: this.gearGoalClaimSuppressions || 0,
       partySupplyServiceChainHolds: this.stats.partySupplyServiceChainHolds || 0,
       partySupplyLowRiskPreemptions: this.stats.partySupplyLowRiskPreemptions || 0,
       partySupplyPreemptionFailures: this.stats.partySupplyPreemptionFailures || 0,
+      partySupplyChainLatches: this.stats.partySupplyChainLatches || 0,
+      partySupplyChainRefreshes: this.stats.partySupplyChainRefreshes || 0,
+      partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
+      lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
       realCompound: true,
