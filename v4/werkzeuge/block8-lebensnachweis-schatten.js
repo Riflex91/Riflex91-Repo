@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V4Block8Lebensnachweis';
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   const PROTOKOLL = 'v4-gruppen-lebensnachweis-v1';
   const STANDARD_INTERVALL_MS = 1000;
   const MIN_INTERVALL_MS = 500;
@@ -29,23 +29,38 @@
     return null;
   }
 
-  function holeSpielFenster() {
-    return holeElternFenster() ?? globalThis;
+  function holeEmpfangsFenster() {
+    return globalThis;
   }
 
   function holeSpielWert(name) {
-    const spielFenster = holeSpielFenster();
-    try {
-      if (name in spielFenster) return spielFenster[name];
-    } catch {
-      // Fallback auf lokalen Codekontext.
-    }
     try {
       if (name in globalThis) return globalThis[name];
+    } catch {
+      // Fallback auf Parent-Kontext.
+    }
+    const eltern = holeElternFenster();
+    try {
+      if (eltern && name in eltern) return eltern[name];
     } catch {
       // Nicht vorhanden.
     }
     return undefined;
+  }
+
+  function holeSpielFunktion(name) {
+    try {
+      if (typeof globalThis[name] === 'function') return { funktion: globalThis[name], kontext: globalThis, quelle: 'lokal' };
+    } catch {
+      // Fallback auf Parent-Kontext.
+    }
+    const eltern = holeElternFenster();
+    try {
+      if (eltern && typeof eltern[name] === 'function') return { funktion: eltern[name], kontext: eltern, quelle: 'parent' };
+    } catch {
+      // Nicht vorhanden.
+    }
+    return null;
   }
 
   function ausgeben(wert, titel) {
@@ -164,11 +179,11 @@
 
   function installiereEmpfang() {
     if (eigenerOnCm) return;
-    const spielFenster = holeSpielFenster();
-    vorherigerOnCm = typeof spielFenster.on_cm === 'function' ? spielFenster.on_cm : null;
+    const empfangsFenster = holeEmpfangsFenster();
+    vorherigerOnCm = typeof empfangsFenster.on_cm === 'function' ? empfangsFenster.on_cm : null;
     eigenerOnCm = function block8LebensnachweisOnCm(absenderRoh, daten) {
       if (!istUmschlag(daten)) {
-        return vorherigerOnCm ? Reflect.apply(vorherigerOnCm, spielFenster, [absenderRoh, daten]) : undefined;
+        return vorherigerOnCm ? Reflect.apply(vorherigerOnCm, empfangsFenster, [absenderRoh, daten]) : undefined;
       }
       const absender = name(absenderRoh);
       const umschlagAbsender = name(daten.absenderName);
@@ -181,33 +196,34 @@
       empfangen += 1;
       return true;
     };
-    spielFenster.on_cm = eigenerOnCm;
+    empfangsFenster.on_cm = eigenerOnCm;
   }
 
   function entferneEmpfang() {
     if (!eigenerOnCm) return;
-    const spielFenster = holeSpielFenster();
-    if (spielFenster.on_cm === eigenerOnCm) spielFenster.on_cm = vorherigerOnCm ?? undefined;
+    const empfangsFenster = holeEmpfangsFenster();
+    if (empfangsFenster.on_cm === eigenerOnCm) empfangsFenster.on_cm = vorherigerOnCm ?? undefined;
     eigenerOnCm = null;
     vorherigerOnCm = null;
   }
 
   async function sendeEinmal() {
     if (!konfiguration) throw new Error('Werkzeug ist nicht konfiguriert.');
-    const sendCm = holeSpielWert('send_cm');
-    if (typeof sendCm !== 'function') throw new Error('Adventure Land stellt send_cm nicht bereit.');
+    const sendePfad = holeSpielFunktion('send_cm');
+    if (!sendePfad) throw new Error('Adventure Land stellt send_cm weder lokal noch im Parent-Kontext bereit.');
     const meldung = baueMeldung();
     const umschlag = Object.freeze({ schemaVersion: 1, protokoll: PROTOKOLL, absenderName: meldung.charakterName, meldung });
     const ziele = konfiguration.vertrauensNamen.filter((ziel) => ziel !== meldung.charakterName);
     for (const ziel of ziele) {
-      await Promise.resolve(Reflect.apply(sendCm, holeSpielFenster(), [ziel, umschlag]));
+      await Promise.resolve(Reflect.apply(sendePfad.funktion, sendePfad.kontext, [ziel, umschlag]));
       gesendet += 1;
     }
-    return Object.freeze({ meldung, ziele: Object.freeze([...ziele]) });
+    return Object.freeze({ meldung, ziele: Object.freeze([...ziele]), sendeKontext: sendePfad.quelle });
   }
 
   function status() {
     const jetzt = Date.now();
+    const sendePfad = holeSpielFunktion('send_cm');
     const teilnehmer = [...letzteMeldungen.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([charakterName, eintrag]) => Object.freeze({
@@ -230,6 +246,8 @@
       empfangen,
       verworfen,
       empfangInstalliert: eigenerOnCm !== null,
+      empfangsKontext: 'lokaler_codekontext',
+      sendeKontext: sendePfad?.quelle ?? null,
       teilnehmer: Object.freeze(teilnehmer),
       echteSpielaktionenAusgefuehrt: false,
       kommunikation: 'send_cm'
@@ -290,7 +308,7 @@
 
   ausgeben({
     version: VERSION,
-    hinweis: 'Read-only gegen Spielzustand: nur Lebensnachweis-Kommunikation ueber send_cm; keine Kampf-, Bewegungs-, Skill-, Heal-, Loot-, Handels- oder Party-Aktion.',
+    hinweis: 'Read-only gegen Spielzustand: on_cm bleibt im lokalen Codekontext; send_cm darf lokal oder im Parent liegen; keine Kampf-, Bewegungs-, Skill-, Heal-, Loot-, Handels- oder Party-Aktion.',
     beispiel: 'V4Block8Lebensnachweis.konfiguriere({vertrauensNamen:["CharA","CharB"],faehigkeiten:{heilen:0,schaden:1,aggro:0,schutz:0,unterstuetzung:0},gefahrenStufe:"unbekannt"})'
   }, 'Block-8-Lebensnachweis-Schattenwerkzeug bereit');
 })();

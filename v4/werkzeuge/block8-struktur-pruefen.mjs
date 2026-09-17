@@ -83,6 +83,8 @@ for (const pflichtText of [
   'vertrauensNamen',
   'sendeLebensnachweis',
   'installiereEmpfang',
+  'findeSendeFunktion',
+  "empfangsKontext: 'lokaler_codekontext'",
   'send_cm',
   'on_cm'
 ]) {
@@ -113,13 +115,24 @@ for (const pflichtText of [
   'Senden ist standardmaessig gesperrt',
   'freigegebener Lebensnachweis geht genau an einen vertrauten Namen und nutzt nur send_cm',
   'nicht vertraute Ziele werden vor send_cm blockiert',
-  'Empfang akzeptiert nur vertraute, namensgebundene V4-Umschlaege'
+  'Empfang akzeptiert nur vertraute, namensgebundene V4-Umschlaege',
+  'Parent-send_cm wird genutzt waehrend on_cm im lokalen Codekontext bleibt'
 ]) {
   if (!austauschTests.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweistest fehlt: ${pflichtText}`);
 }
 
 const schattenWerkzeug = await readFile(path.join(wurzel, 'werkzeuge/block8-lebensnachweis-schatten.js'), 'utf8');
-for (const pflichtText of ['V4Block8Lebensnachweis', 'v4-gruppen-lebensnachweis-v1', 'send_cm', 'on_cm', 'vertrauensNamen', 'echteSpielaktionenAusgefuehrt: false']) {
+for (const pflichtText of [
+  'V4Block8Lebensnachweis',
+  'v4-gruppen-lebensnachweis-v1',
+  'holeEmpfangsFenster',
+  'holeSpielFunktion',
+  "empfangsKontext: 'lokaler_codekontext'",
+  'send_cm',
+  'on_cm',
+  'vertrauensNamen',
+  'echteSpielaktionenAusgefuehrt: false'
+]) {
   if (!schattenWerkzeug.includes(pflichtText)) throw new Error(`Block-8-Lebensnachweis-Schattenwerkzeug ist unvollstaendig: ${pflichtText}`);
 }
 for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'loot', 'command_character', 'send_party_invite']) {
