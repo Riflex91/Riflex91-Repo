@@ -16,6 +16,14 @@ HP-/MP-Anteile duerfen dagegen `null` bleiben, wenn Adventure Land diese Werte n
 
 `AdventureLandGruppenLebensnachweisAustausch` liegt an der Ausfuehrungsgrenze. Senden ist standardmaessig gesperrt und muss explizit freigegeben werden. Ziele ausserhalb der Vertrauensliste werden vor `send_cm` blockiert.
 
+Adventure Land trennt den Charakter-Codekontext von Spiel-Funktionen, die je nach Laufumgebung im Parent-Kontext liegen koennen. Deshalb gilt fuer den Lebensnachweis verbindlich:
+
+- `on_cm` wird im lokalen Charakter-Codekontext installiert,
+- `send_cm` darf lokal oder im Parent-Kontext gefunden werden,
+- der Parent-`on_cm` wird nicht als Ersatz fuer den lokalen Empfang verwendet.
+
+Diese Trennung entspricht dem bewaehrten v3-Transportmodell und verhindert den Fehlerzustand `gesendet > 0`, `empfangen = 0`, obwohl der Empfaenger scheinbar installiert ist.
+
 Eingehende V4-Umschlaege werden nur akzeptiert, wenn:
 
 - der Absender in der Vertrauensliste steht,
@@ -23,7 +31,7 @@ Eingehende V4-Umschlaege werden nur akzeptiert, wenn:
 - `meldung.charakterName` demselben Absender entspricht,
 - der Umschlag das Protokoll `v4-gruppen-lebensnachweis-v1` verwendet.
 
-Nicht-V4-`on_cm`-Nachrichten werden an einen bereits vorhandenen Handler weitergereicht.
+Nicht-V4-`on_cm`-Nachrichten werden an einen bereits vorhandenen lokalen Empfaenger weitergereicht.
 
 ## Mehrcharakter-Schattennachweis
 
@@ -78,12 +86,24 @@ Nach einigen Sekunden sollen auf jedem beteiligten Charakter gelten:
 - `gesendet > 0`
 - `empfangen > 0`
 - `verworfen: 0` bei sauberem Test
+- `empfangsKontext: "lokaler_codekontext"`
+- `sendeKontext: "lokal"` oder `"parent"`
 - mindestens ein fremder Eintrag in `teilnehmer`
 - fallendes bzw. regelmaessig erneuertes `alterMillisekunden`
 - `echteSpielaktionenAusgefuehrt: false`
 - `kommunikation: "send_cm"`
 
 Der Austausch darf weder `attack`, `move`, `smart_move`, `use_skill`, `use_hp`, `use_mp`, `loot`, `send_party_invite` noch `command_character` aufrufen.
+
+## Wiederholung nach einem alten Werkzeuglauf
+
+Vor dem Laden einer korrigierten Werkzeugversion einen noch laufenden alten Austausch auf jedem Charakter zuerst stoppen:
+
+```js
+V4Block8Lebensnachweis.stoppe()
+```
+
+Danach die neue Datei laden, erneut konfigurieren und starten. So werden alter Timer und alter `on_cm`-Empfaenger sauber entfernt.
 
 ## Reconnect-/Stale-Verhalten
 
