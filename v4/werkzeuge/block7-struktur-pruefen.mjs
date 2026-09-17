@@ -37,8 +37,7 @@ for (const muster of [/\bDate\.now\s*\(/, /\bMath\.random\s*\(/]) {
 }
 
 const wiederholung = await readFile(path.join(wurzel, 'laufzeit/quelle/wiederholung/kampfsicherheit-wiederholung.ts'), 'utf8');
-for (const pflichtText of ['erstelleKampfSicherheitsWiederholungsEntscheider', 'ausgabeFingerabdruck', 'aktionsWichtigkeit']) {
-  if (pflichtText === 'ausgabeFingerabdruck') continue;
+for (const pflichtText of ['erstelleKampfSicherheitsWiederholungsEntscheider', 'aktionsWichtigkeit']) {
   if (!wiederholung.includes(pflichtText)) throw new Error(`Block-7-Wiederholungsanbindung ist unvollstaendig: ${pflichtText}`);
 }
 
@@ -53,9 +52,14 @@ for (const pflichtText of [
   if (!tests.includes(pflichtText)) throw new Error(`Block-7-Fehlereinspritztest fehlt: ${pflichtText}`);
 }
 
+const replayTests = await readFile(path.join(wurzel, 'laufzeit/tests/kampfsicherheit-wiederholung.test.mjs'), 'utf8');
+for (const pflichtText of ['ausgabeFingerabdruck', "['rueckzug', 'rueckzug']"]) {
+  if (!replayTests.includes(pflichtText)) throw new Error(`Block-7-Replaytest fehlt: ${pflichtText}`);
+}
+
 const dokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-7-KAMPFSICHERHEIT.md'), 'utf8');
 for (const regel of [
-  'Sicherheit Vorrang vor Farmleistung',
+  'Kampfsicherheit Vorrang vor Farmleistung',
   '`wichtigkeit: "notfall"`',
   'keine Bewegungsrichtung erfunden',
   'Eine nur geplante Schattenbewegung gilt nicht automatisch als ausgefuehrte Sicherheitsbewegung.'
