@@ -5,7 +5,7 @@
   const VERSION = '1.0.0';
   const QUELL_BLOB_SHAS = Object.freeze({
     aktionsSteuerung: '8d6686d59cb49124cc4ce3073bc1071286c282e9',
-    aktionsAuswahl: '8bd3c08a7bfe37139fc9052bfc3e9dbfb79afa',
+    aktionsAuswahl: '8bd3c08a7bfe37139fc9052bfc3e9dbfbfb79afa',
     ressourcenVergabe: '209f94c5db0dd52c6b9182f0e4ef52cdfac13120',
     schattenAusfuehrung: 'f991c1082e87ae74f21f5c0912a79f8f78484429',
     ressourcenVertrag: '3b8396d48fc08190a20bab7d46928cda3693bf5e'
