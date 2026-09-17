@@ -86,6 +86,9 @@ test('fresh adaptive potion delivery safely releases a merely reserved bank tran
   assert.equal(f.lowRiskPlans, 0);
   assert.equal(f.autonomy.stats.partySupplyLowRiskPreemptions, 1);
   assert.equal(f.autonomy.lastMerchantPlan.reason, 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE');
+  const status = f.autonomy.status();
+  assert.equal(status.partySupplyLowRiskPreemptions, 1);
+  assert.equal(status.partySupplyPreemptionFailures, 0);
 });
 
 test('rejected low-risk cancellation fails closed and never executes the competing bank transaction', async () => {
