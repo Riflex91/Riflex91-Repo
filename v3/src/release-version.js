@@ -1,5 +1,5 @@
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.73';
+const RELEASE_VERSION = '3.0.0-alpha.20.74';
 
 module.exports = { RELEASE_VERSION };
