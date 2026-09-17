@@ -10,6 +10,7 @@ const { installP0PotionBundleDeltaFix, P0_POTION_BUNDLE_DELTA_FIX_MODE } = requi
 const { installP0PotionPolicy4500, P0_POTION_POLICY_4500_MODE } = require('./reliability/p0-potion-policy-4500');
 const { installP0PotionHardCap4500, P0_POTION_HARDCAP_4500_MODE } = require('./reliability/p0-potion-hardcap-4500');
 const { installAlpha31PartyRoleLivenessHotfix, ALPHA31_PARTY_ROLE_LIVENESS_MODE } = require('./reliability/alpha31-party-role-liveness-hotfix');
+const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE } = require('./reliability/alpha32-navigation-merchant-recovery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
 const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
@@ -61,7 +62,7 @@ function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
   return true;
 }
 
-function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness) {
+function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery) {
   if (!api || typeof api !== 'object') return false;
   api.liveServices = {
     status: () => ({
@@ -76,7 +77,8 @@ function exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, trave
       p0PotionBundleDeltaFixInstalled: !!(api.__runtime && api.__runtime.controlledMerchantService && api.__runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500: potionPolicy4500 || null,
       p0PotionHardCap4500: potionHardCap4500 || null,
-      partyRoleLiveness: roleLiveness && typeof roleLiveness.status === 'function' ? roleLiveness.status() : null
+      partyRoleLiveness: roleLiveness && typeof roleLiveness.status === 'function' ? roleLiveness.status() : null,
+      navigationMerchantRecovery: liveRecovery && typeof liveRecovery.status === 'function' ? liveRecovery.status() : null
     })
   };
   api.cloud = {
@@ -112,9 +114,10 @@ function installProductionLiveServices(api, options = {}) {
   const potionPolicy4500 = installP0PotionPolicy4500(runtime);
   const potionHardCap4500 = installP0PotionHardCap4500(runtime);
   const roleLiveness = installAlpha31PartyRoleLivenessHotfix(runtime, options);
-  // Alpha31 beforeTick can wake live merchant authorities. Installation and
-  // same-version hot reload must stay passive; the runtime.tick wrapper below
-  // is the only production-live-services path that executes this service.
+  const liveRecovery = installAlpha32NavigationMerchantRecovery(runtime, options);
+  // Alpha31/32 beforeTick can wake or pause live merchant authorities. Installation
+  // and same-version hot reload must stay passive; the runtime.tick wrapper below
+  // is the only production-live-services path that executes these services.
 
   if (runtime.productionLiveServices && runtime.productionLiveServices.mode === PRODUCTION_LIVE_SERVICES_MODE) {
     Object.assign(runtime.productionLiveServices, {
@@ -128,9 +131,10 @@ function installProductionLiveServices(api, options = {}) {
       p0PotionBundleDeltaFixInstalled: !!(runtime.controlledMerchantService && runtime.controlledMerchantService.__p0PotionBundleDeltaFixInstalled),
       p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
       p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
-      alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix
+      alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+      alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery
     });
-    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness);
+    exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
     return runtime.productionLiveServices;
   }
 
@@ -141,6 +145,9 @@ function installProductionLiveServices(api, options = {}) {
       runService(runtime, runtime.alpha25ControlCenterBrain, 'alpha25-control-center');
       runService(runtime, runtime.alpha26CloudUpdateLogisticsUiHotfix, 'alpha26-release-manager');
       runService(runtime, runtime.p0RegroupSupplyRecovery, 'p0-regroup-supply-recovery');
+      // Alpha32 must run before Alpha31 so a low-HP merchant can enter recovery
+      // before Alpha31 drives another autonomous merchant turn.
+      runService(runtime, runtime.alpha32NavigationMerchantRecovery, 'alpha32-navigation-merchant-recovery');
       runService(runtime, runtime.alpha31PartyRoleLivenessHotfix, 'alpha31-party-role-liveness');
       return result;
     };
@@ -161,10 +168,11 @@ function installProductionLiveServices(api, options = {}) {
     p0PotionPolicy4500Installed: !!(runtime.p0PotionPolicy4500 && runtime.p0PotionPolicy4500.installed),
     p0PotionHardCap4500Installed: !!(runtime.p0PotionHardCap4500 && runtime.p0PotionHardCap4500.installed),
     alpha31PartyRoleLivenessInstalled: !!runtime.alpha31PartyRoleLivenessHotfix,
+    alpha32NavigationMerchantRecoveryInstalled: !!runtime.alpha32NavigationMerchantRecovery,
     tickPatched: runtime.__productionLiveServicesTickPatched === true
   };
   runtime.productionLiveServices = state;
-  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness);
+  exposeDiagnostics(api, alpha25, alpha26, alpha27, ownershipGuard, travelIntelligence, p0Recovery, potionPolicy4500, potionHardCap4500, roleLiveness, liveRecovery);
 
   runService(runtime, alpha25, 'alpha25-control-center');
   runService(runtime, alpha26, 'alpha26-release-manager');
@@ -194,5 +202,7 @@ module.exports = {
   installP0PotionHardCap4500,
   P0_POTION_HARDCAP_4500_MODE,
   installAlpha31PartyRoleLivenessHotfix,
-  ALPHA31_PARTY_ROLE_LIVENESS_MODE
+  ALPHA31_PARTY_ROLE_LIVENESS_MODE,
+  installAlpha32NavigationMerchantRecovery,
+  ALPHA32_NAVIGATION_MERCHANT_RECOVERY_MODE
 };
