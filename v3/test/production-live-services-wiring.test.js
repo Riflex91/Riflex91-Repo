@@ -30,6 +30,13 @@ test('production live services wire Alpha25 cloud control, Alpha26 updater, and 
   assert.match(source, /safeAutoUpdaterInstalled/);
 });
 
+test('Alpha31 liveness stays passive during install and runs only from the runtime tick chain', () => {
+  const source = read('src/production-live-services.js');
+  assert.match(source, /const roleLiveness = installAlpha31PartyRoleLivenessHotfix\(runtime, options\)/);
+  assert.match(source, /runtime\.tick = \(\.\.\.args\) => \{[\s\S]*runService\(runtime, runtime\.alpha31PartyRoleLivenessHotfix, 'alpha31-party-role-liveness'\)/);
+  assert.doesNotMatch(source, /runService\(runtime, roleLiveness, 'alpha31-party-role-liveness'\)/);
+});
+
 test('merchant production and Alpha27 autonomy mutually observe busy ownership', () => {
   const production = read('src/merchant/merchant-production-controller.js');
   const autonomy = read('src/reliability/alpha27-merchant-autonomy.js');
