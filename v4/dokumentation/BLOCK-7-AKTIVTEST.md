@@ -109,6 +109,25 @@ Manuelles sofortiges Sperren:
 V4Block7Aktivtest.sperren()
 ```
 
+## Tatsaechlich ausgefuehrter Abschlusslauf
+
+Der abschliessende Live-Smoke-Test wurde am 17. September 2026 mit `art: "abstand"` und einer angeforderten Distanz von 8 ausgefuehrt.
+
+Ergebnis:
+
+- `status: "bestanden"`
+- Startposition `[-159.45629894664802, 772.5426842690484]`
+- Zielposition `[-153.07871021690252, 777.372421528385]`
+- beobachtete Endposition entsprach exakt der Zielposition
+- beobachtete Bewegung `8.000000000000016`
+- `bewegungBeobachtet: true`
+- genau ein sichtbarer angreifender `goo`
+- `echteSpielaktionen.move: 1`
+- `echteSpielaktionen.sonstige: 0`
+- `automatischWiederGesperrt: true`
+
+Damit ist der reale Spielclient-Nachweis fuer die aktive Sicherheitsbewegungsgrenze bestanden. Ein zusaetzlicher echter Rueckzug-Smoke-Test ist fuer den Blockabschluss nicht erforderlich, weil Rueckzug und Abstand dieselbe kontrollierte `move`-Ausfuehrungsgrenze verwenden und der Rueckzugspfad bereits in der integrierten Produktionscode-Abnahmesuite abgedeckt ist.
+
 ## Block-7-Abschluss
 
 Der kontrollierte Live-Smoke-Test wird zusammen mit folgenden Nachweisen bewertet:
@@ -118,4 +137,4 @@ Der kontrollierte Live-Smoke-Test wird zusammen mit folgenden Nachweisen bewerte
 3. gruene integrierte Produktionscode-Abnahmesuite `block7-abnahme.test.mjs`,
 4. erfolgreicher one-shot Live-Smoke-Test fuer die aktive Sicherheitsbewegungsgrenze.
 
-Erst diese Kombination bildet den Block-7-Abschlussnachweis; der Live-Smoke-Test allein reicht nicht aus.
+Diese Kombination ist erfuellt. Block 7 ist technisch abgeschlossen. Der vollstaendige Nachweis steht in `BLOCK-7-ABSCHLUSS.md`.
