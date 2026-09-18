@@ -169,12 +169,38 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     };
   }
 
+  _criticalSupplyDirectFallbackAllowed(plan) {
+    const metadata = plan && plan.metadata || {};
+    const need = plan && plan.need || {};
+    return !!(
+      metadata.p0PotionPolicy4500 === true
+      && ['hp', 'mp'].includes(String(need.family || ''))
+      && Number(need.priority || 0) >= 95
+      && plan && plan.target && plan.target.name
+    );
+  }
+
   async _executeMerchantTravel(plan) {
     if (!this.merchantServiceAllowTravel) return { executed: false, reason: 'MERCHANT_SERVICE_TRAVEL_AUTHORITY_DISABLED' };
     if (!this.controlledTravel || !this.controlledTravel.status().enabled) return { executed: false, reason: 'CONTROLLED_TRAVEL_NOT_ENABLED' };
     if (!plan.target || !plan.target.map || finite(plan.target.x) == null || finite(plan.target.y) == null) return { executed: false, reason: 'SERVICE_TARGET_POSITION_UNAVAILABLE' };
     if (this.lastMerchantRouteDecision && this.lastMerchantRouteDecision.route === 'TOWN') {
-      return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
+      if (!this._criticalSupplyDirectFallbackAllowed(plan)) {
+        return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
+      }
+      if (this.log && typeof this.log.emit === 'function') {
+        this.log.emit({
+          component: 'merchant-service',
+          event: 'MERCHANT_SERVICE_TOWN_RECOMMENDATION_FALLBACK',
+          severity: 'warn',
+          reason: 'CRITICAL_PARTY_SUPPLY_DIRECT_FALLBACK',
+          data: {
+            planId: plan.id || null,
+            targetName: plan.target && plan.target.name || null,
+            route: clone(this.lastMerchantRouteDecision)
+          }
+        });
+      }
     }
     const sourceReportAt = finite(plan.sourceReportAt);
     const destinationMapAttestation = sourceReportAt == null ? null : {
@@ -287,6 +313,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       controlled: this.controlledMerchantService.status(),
       allowTravel: this.merchantServiceAllowTravel,
       liveTownAuthority: false,
+      criticalSupplyTownRecommendationFallsBackToControlledDirect: true,
       liveBuyAuthority: false,
       liveCollectionAuthority: false,
       routeEstimator: this.merchantRouteEstimator.status(),
