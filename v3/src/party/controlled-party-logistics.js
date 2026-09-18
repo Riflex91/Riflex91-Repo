@@ -100,6 +100,7 @@ class ControlledPartyLogistics {
       verifyTimeoutMs: Math.max(1500, finite(options.verifyTimeoutMs, 3500)),
       failureBackoffMs: Math.max(3000, finite(options.failureBackoffMs, 7000)),
       grantTtlMs: Math.max(2000, finite(options.grantTtlMs, 4500)),
+      recipientSettleTimeoutMs: Math.max(2000, Math.min(15000, finite(options.recipientSettleTimeoutMs, 6000))),
       maxTransferDistance: Math.max(150, Math.min(600, finite(options.maxTransferDistance, 380))),
       rendezvousDistance: Math.max(80, Math.min(400, finite(options.rendezvousDistance, 260))),
       rendezvousStep: Math.max(40, Math.min(140, finite(options.rendezvousStep, 100))),
@@ -156,6 +157,8 @@ class ControlledPartyLogistics {
       rejectedLootBlocks: 0,
       lootTransfers: 0,
       lootVerified: 0,
+      lootRecipientVerified: 0,
+      lootRecipientSettleTimeouts: 0,
       goldOffers: 0,
       goldGrants: 0,
       goldTransfers: 0,
@@ -336,14 +339,59 @@ class ControlledPartyLogistics {
   _prune() {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
-    for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    for (const [id, grant] of this.activeLootGrants) {
+      const deadline = grant && grant.senderCommittedAt != null
+        ? finite(grant.settleUntil, grant.expiresAt)
+        : finite(grant && grant.expiresAt, 0);
+      if (deadline <= now) this.activeLootGrants.delete(id);
+    }
     if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
     for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
   }
 
+  _reconcileActiveLootGrants(snapshot) {
+    if (!snapshot || !snapshot.character || !(this.activeLootGrants instanceof Map)) return false;
+    const now = this.now();
+    let changed = false;
+    for (const [id, grant] of this.activeLootGrants) {
+      if (!grant || grant.senderCommittedAt == null) continue;
+      const actual = countItem(snapshot, grant.item && grant.item.name, grant.item && grant.item.level);
+      const expected = Math.max(0, finite(grant.merchantBeforeCount, 0)) + Math.max(1, finite(grant.quantity, 1));
+      if (actual >= expected) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientVerified += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLED', 'info', 'MERCHANT_INVENTORY_DELTA_VERIFIED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+        continue;
+      }
+      if (now >= finite(grant.settleUntil, Infinity)) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientSettleTimeouts += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLE_TIMEOUT', 'warn', 'MERCHANT_INVENTORY_DELTA_NOT_OBSERVED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+      }
+    }
+    return changed;
+  }
+
   _merchantCapacity(snapshot) {
+    this._reconcileActiveLootGrants(snapshot);
     const metrics = inventoryMetrics(snapshot);
     const reservedIncomingSlots = [...this.activeLootGrants.values()].filter((grant) => grant.expiresAt > this.now()).length;
     const effectiveFreeSlots = Math.max(0, metrics.freeSlots - reservedIncomingSlots);
@@ -469,7 +517,18 @@ class ControlledPartyLogistics {
     if (!offerId || offerId.length > 160) return true;
     const grantId = `grant-${this.now()}-${++this.sequence}`;
     const expiresAt = this.now() + this.config.grantTtlMs;
-    this.activeLootGrants.set(grantId, { grantId, offerId, sender, item: { name: safe.name, level: safe.level }, expiresAt });
+    const maxQuantity = Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer);
+    this.activeLootGrants.set(grantId, {
+      grantId,
+      offerId,
+      sender,
+      item: { name: safe.name, level: safe.level },
+      quantity: maxQuantity,
+      merchantBeforeCount: countItem(snapshot, safe.name, safe.level),
+      expiresAt,
+      senderCommittedAt: null,
+      settleUntil: null
+    });
     this.stats.lootGrants += 1;
     this._send(sender, Action.LOOT_GRANT, {
       offerId,
@@ -477,7 +536,7 @@ class ControlledPartyLogistics {
       expiresAt,
       merchant: snapshot.character.name,
       item: { name: safe.name, level: safe.level },
-      maxQuantity: Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer),
+      maxQuantity,
       capacitySequence: this.capacitySequence
     });
     return true;
@@ -602,8 +661,16 @@ class ControlledPartyLogistics {
     if (action === Action.GOLD_OFFER) return this._handleGoldOffer(from, data);
     if (action === Action.TRANSFER_COMMIT) {
       const grantId = String(data.grantId || '');
-      if (grantId) this.activeLootGrants.delete(grantId);
-      this._broadcastStatus(this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null, true);
+      const grant = grantId ? this.activeLootGrants.get(grantId) : null;
+      if (grant && String(grant.sender || '') === String(from || '') && data.committed !== false) {
+        const now = this.now();
+        grant.senderCommittedAt = now;
+        grant.settleUntil = now + this.config.recipientSettleTimeoutMs;
+        grant.expiresAt = Math.max(finite(grant.expiresAt, 0), grant.settleUntil);
+        this.activeLootGrants.set(grantId, grant);
+      }
+      const snapshot = this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null;
+      if (snapshot) this._broadcastStatus(snapshot, true);
       return true;
     }
     return false;
@@ -1103,6 +1170,8 @@ class ControlledPartyLogistics {
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
         closedLoopLocalDeltaVerification: true,
+        merchantRecipientDeltaVerificationBeforeGrantRelease: true,
+        lastSlotGrantReservationHeldUntilRecipientSettle: true,
         explicitLootRejectProtocol: true,
         rejectedLootBackoffPreventsOfferLoop: true,
         engageStateDoesNotBlockTransfer: true,
