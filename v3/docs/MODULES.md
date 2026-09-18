@@ -151,11 +151,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## game
 
-**3 Dateien · 726 Zeilen**
+**3 Dateien · 727 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/game/adapter.js` | 293 |
+| `src/game/adapter.js` | 294 |
 | `src/game/command-outcomes.js` | 227 |
 | `src/game/stability-adapter.js` | 206 |
 
@@ -210,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7836 Zeilen**
+**33 Dateien · 7979 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -225,7 +225,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-lifecycle-coordinator-base.js` | 573 |
 | `src/party/controlled-lifecycle-coordinator.js` | 225 |
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
-| `src/party/controlled-party-bootstrap-base.js` | 591 |
+| `src/party/controlled-party-bootstrap-base.js` | 734 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
 | `src/party/controlled-party-logistics.js` | 1247 |
 | `src/party/elixir-policy.js` | 225 |
