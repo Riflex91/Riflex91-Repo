@@ -27,7 +27,7 @@ function spiel() {
     server_identifier: 'I',
     is_on_cooldown: () => false,
     attack() { return true; },
-    send_cm(name, daten) { gesendet.push({ name, daten }); return true; }
+    send_cm(name, daten) { gesendet.push({ name, daten }); return { receivers: [name], locals: [] }; }
   };
   const code = { parent, character: parent.character, on_cm: undefined };
   return { parent, code, ziel, gesendet };
