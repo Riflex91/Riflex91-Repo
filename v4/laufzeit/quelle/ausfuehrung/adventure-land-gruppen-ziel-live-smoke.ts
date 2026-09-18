@@ -232,11 +232,10 @@ export class AdventureLandGruppenZielLiveSmoke {
 
   public vorschau(): Readonly<AdventureLandGruppenZielLiveSmokeVorschau> {
     if (this.versuchVerbraucht) throw new Error('Der Live-Smoke-Versuch wurde bereits verbraucht.');
-    const jetzt = this.liesZeitpunkt('Der Smoke-Vorschauzeitpunkt');
-    const basis = this.pruefeGesamtenZustand(jetzt);
+    const basis = this.pruefeGesamtenZustand();
     const vorschau = Object.freeze({
       schemaVersion: 1 as const,
-      erstelltAm: jetzt,
+      erstelltAm: basis.geprueftAm,
       aktionsKennung: basis.aktionsKennung,
       aktionsName: GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten,
       charakterName: this.erwartung.charakterName,
@@ -261,12 +260,12 @@ export class AdventureLandGruppenZielLiveSmoke {
     if (text !== GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT) {
       throw new Error(`Falscher Live-Smoke-Freigabetext. Erwartet wird exakt: ${GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT}`);
     }
-    const jetzt = this.liesZeitpunkt('Der Smoke-Freigabezeitpunkt');
     if (!this.letzteVorschau) throw new Error('Vor der Live-Smoke-Freigabe ist eine frische Produktionsvorschau erforderlich.');
+    const basis = this.pruefeGesamtenZustand();
+    const jetzt = basis.geprueftAm;
     if (jetzt - this.letzteVorschau.erstelltAm > this.vorschauMaximalAlterMillisekunden) {
       throw new Error('Die Produktionsvorschau fuer den Live-Smoke ist zu alt.');
     }
-    const basis = this.pruefeGesamtenZustand(jetzt);
     if (basis.aktionsKennung !== this.letzteVorschau.aktionsKennung) {
       throw new Error('Der zentral laufende Gruppenauftrag hat sich seit der Produktionsvorschau geaendert.');
     }
@@ -302,7 +301,7 @@ export class AdventureLandGruppenZielLiveSmoke {
     let bindung: AdventureLandGruppenZielLiveBindung | null = null;
 
     try {
-      const basis = this.pruefeGesamtenZustand(gestartetAm);
+      const basis = this.pruefeGesamtenZustand();
       aktionsKennung = basis.aktionsKennung;
       if (this.letzteVorschau?.aktionsKennung !== aktionsKennung) {
         throw new Error('Der zentral laufende Gruppenauftrag stimmt beim Start nicht mehr mit der Vorschau ueberein.');
@@ -329,7 +328,9 @@ export class AdventureLandGruppenZielLiveSmoke {
       );
       const fassade = bindung.installiere(this.zielKontext, GRUPPEN_ZIEL_LIVE_BINDUNG_FREIGABE_TEXT);
 
-      const sicherheit = this.pruefeSicherheit(this.liesAktuelleSicherheit(), gestartetAm);
+      const sicherheitRoh = this.liesAktuelleSicherheit();
+      const sicherheitsPruefungAm = this.liesZeitpunkt('Der Smoke-Sicherheitspruefzeitpunkt');
+      const sicherheit = this.pruefeSicherheit(sicherheitRoh, sicherheitsPruefungAm);
       const ergebnis = await fassade.fuehreEinmalAus(Object.freeze({
         schemaVersion: 1,
         aktionsKennung,
@@ -398,9 +399,10 @@ export class AdventureLandGruppenZielLiveSmoke {
     return this.letzterBericht;
   }
 
-  private pruefeGesamtenZustand(jetzt: number): Readonly<{
+  private pruefeGesamtenZustand(): Readonly<{
     aktionsKennung: string;
     sicherheit: Readonly<KampfSicherheitsEntscheidung>;
+    geprueftAm: number;
   }> {
     this.pruefeIdentitaetUndZiel();
     if (eigenerWert(this.zielKontext, GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME) !== undefined) {
@@ -419,21 +421,28 @@ export class AdventureLandGruppenZielLiveSmoke {
       throw new Error(`Der Live-Smoke benoetigt genau eine laufende zentrale Gruppenzielanfrage fuer ${this.erwartung.zielKennung}; gefunden: ${passend.length}.`);
     }
     const zustand = passend[0]!;
-    if (zustand.anfrage.gueltigBis !== undefined && zustand.anfrage.gueltigBis <= jetzt) {
-      throw new Error('Die zentrale Gruppenzielanfrage ist bereits abgelaufen.');
-    }
     const sperren = this.steuerung.listeRessourcenSperren();
     for (const ressource of ['gruppe', 'kampfziel'] as const) {
       if (sperren.find((sperre) => sperre.ressource === ressource)?.besitzer !== zustand.anfrage.kennung) {
         throw new Error(`Die zentrale Gruppenzielanfrage besitzt die Ressource ${ressource} nicht.`);
       }
     }
-    const sicherheit = this.pruefeSicherheit(this.liesAktuelleSicherheit(), jetzt);
-    const bereitschaft = new AdventureLandKampfBereitschaftLesezugriff(this.spielFenster).liesNormalenAngriff(jetzt);
+
+    // Die Produktions-Safety darf ihren eigenen Zeitstempel waehrend der Berechnung erst erzeugen.
+    // Deshalb wird der Vergleichszeitpunkt bewusst NACH der Safety-Erzeugung gelesen.
+    const sicherheitRoh = this.liesAktuelleSicherheit();
+    const geprueftAm = this.liesZeitpunkt('Der Smoke-Zustandspruefzeitpunkt');
+    const sicherheit = this.pruefeSicherheit(sicherheitRoh, geprueftAm);
+
+    if (zustand.anfrage.gueltigBis !== undefined && zustand.anfrage.gueltigBis <= geprueftAm) {
+      throw new Error('Die zentrale Gruppenzielanfrage ist bereits abgelaufen.');
+    }
+
+    const bereitschaft = new AdventureLandKampfBereitschaftLesezugriff(this.spielFenster).liesNormalenAngriff(geprueftAm);
     if (bereitschaft.zustand !== 'bereit') {
       throw new Error(`Der normale Angriff ist fuer den Live-Smoke nicht explizit bereit: ${bereitschaft.zustand}.`);
     }
-    return Object.freeze({ aktionsKennung: zustand.anfrage.kennung, sicherheit });
+    return Object.freeze({ aktionsKennung: zustand.anfrage.kennung, sicherheit, geprueftAm });
   }
 
   private pruefeIdentitaetUndZiel(): void {
