@@ -150,6 +150,8 @@ Dafuer ist nun zusaetzlich ein Adventure-Land-Nachweisrunner vorbereitet, der au
 
 Der Runtime-1.1.5-Build ist als reproduzierbarer Release-Candidate an `88185523c81687dc16f9647ca5e7568c5e2c228c` und `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer exakt diesen Candidate bestaetigt; die realen Adventure-Land-Nachweise bleiben offen.
 
+Die Freigabestufe **Offline** ist jetzt ebenfalls fuer exakt denselben Candidate bestanden und als kanonischer `FreigabeNachweis` dokumentiert. Grundlage sind `v4-ci` Run `35402650442` und `v4-grundlage-pruefen` Run `35402650416`, beide `success` auf Head `88185523c81687dc16f9647ca5e7568c5e2c228c`. Die Freigabeauswertung fordert damit als naechste Stufe `schatten`; Block 9 bleibt gesperrt.
+
 Ein isolierter manueller V4-only Release-Workflow ist fuer zukuenftige V4-Releases vorbereitet, damit eine Veroeffentlichung kein V3, keinen Worker, kein D1 und keine Lifecycle-Regel veraendert. Dieser neue Workflow selbst wurde noch nicht ausgefuehrt; fuer den aktuellen Candidate ist kein erneuter Release erforderlich.
 
 Der zuvor breite automatische Cloudflare-Workflow wird auf V3/Dashboard-only getrennt. Ein beim Merge von PR #358 automatisch erzeugter V4-Nebenrelease unter `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` gilt nicht als Candidate-Nachweis, weil das Freigabe-Gate unveraendert an `git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden bleibt.

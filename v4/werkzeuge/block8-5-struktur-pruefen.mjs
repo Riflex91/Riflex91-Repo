@@ -58,7 +58,10 @@ const dateien = [
   '../.github/workflows/release-v4-runtime.yml',
   'werkzeuge/block8-5-v4-runtime-release-workflow-pruefen.mjs',
   'dokumentation/BLOCK-8-5-V4-RUNTIME-RELEASE-WORKFLOW.md',
-  'dokumentation/BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md'
+  'dokumentation/BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
+  'dokumentation/BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json',
+  'laufzeit/tests/block8-5-offline-freigabe-nachweis.test.mjs',
+  'dokumentation/BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -950,7 +953,7 @@ for (const pflicht of [
 const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
 for (const pflicht of [
   '8.5.9 Freigabe-Gate implementiert',
-  'operative Freigabe',
+  'Offline-Stufe fuer den exakten Candidate bestanden',
   'Offline-Test oder Wiederholung',
   'Schattenbetrieb ohne echte Spielaktion',
   'begrenzter kontrollierter Live-Test',
@@ -1285,4 +1288,123 @@ if (runtimeReleaseKandidatDokument.includes('fuer diesen Block-8.5-Runtime-Nachw
   throw new Error('Runtime-Release-Candidate grenzt den breiten historischen Deployment-Workflow noch nicht ab.');
 }
 
-console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner, Runtime-1.1.5-Release-Candidate und isoliertem V4-only Release-Workflow geprueft: Candidate-Deployment und oeffentliche HTTPS-Verifikation sind fuer 88185523 durch Run 35402650432 bestaetigt; Schatten, kontrolliert live, Soak und Block 9 bleiben offen.');
+const offlineFreigabeRoh = await readFile(path.join(wurzel, dateien[55]), 'utf8');
+const offlineFreigabe = JSON.parse(offlineFreigabeRoh);
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c'
+})) {
+  if (offlineFreigabe[feld] !== erwartet) {
+    throw new Error(`Offline-Freigabenachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c',
+  stufe: 'offline',
+  nachweisKennung: 'offline-ci:88185523c81687dc16f9647ca5e7568c5e2c228c',
+  ergebnis: 'bestanden',
+  durchgefuehrtAm: 1789771311000,
+  deterministisch: true,
+  spielAktionAusgefuehrt: false,
+  begrenzt: false,
+  telemetrieNachweis: false,
+  recoveryNachweis: false,
+  gesamtauswertungBestanden: false
+})) {
+  if (offlineFreigabe.nachweis?.[feld] !== erwartet) {
+    throw new Error(`Offline-Freigabenachweis.nachweis besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+if (!Array.isArray(offlineFreigabe.ciEvidence) || offlineFreigabe.ciEvidence.length !== 2) {
+  throw new Error('Offline-Freigabenachweis muss exakt zwei erforderliche Candidate-CI-Eintraege besitzen.');
+}
+for (const [index, erwartet] of [
+  [0, {
+    workflow: 'v4-ci',
+    runId: 35402650442,
+    jobId: 105785689353,
+    runNumber: 287,
+    headSha: '88185523c81687dc16f9647ca5e7568c5e2c228c',
+    conclusion: 'success',
+    completedAt: '2026-09-18T22:41:51Z'
+  }],
+  [1, {
+    workflow: 'v4-grundlage-pruefen',
+    runId: 35402650416,
+    jobId: 105785688933,
+    runNumber: 1150,
+    headSha: '88185523c81687dc16f9647ca5e7568c5e2c228c',
+    conclusion: 'success',
+    completedAt: '2026-09-18T22:41:45Z'
+  }]
+]) {
+  for (const [feld, wert] of Object.entries(erwartet)) {
+    if (offlineFreigabe.ciEvidence[index]?.[feld] !== wert) {
+      throw new Error(`Offline-CI-Evidenz ${index} besitzt unerwarteten Wert fuer ${feld}.`);
+    }
+  }
+  if (offlineFreigabe.ciEvidence[index].requiredStep !== 'Typen, Tests, Namen und Struktur pruefen') {
+    throw new Error(`Offline-CI-Evidenz ${index} ist nicht an den erforderlichen Pruefschritt gebunden.`);
+  }
+}
+for (const [feld, erwartet] of Object.entries({
+  offline: 'bestanden',
+  naechsteStufe: 'schatten',
+  freigabeVollstaendig: false,
+  block9Freigegeben: false
+})) {
+  if (offlineFreigabe.auswertungErwartet?.[feld] !== erwartet) {
+    throw new Error(`Offline-Freigabeauswertung besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+
+const offlineFreigabeTests = await readFile(path.join(wurzel, dateien[56]), 'utf8');
+for (const pflicht of [
+  'Offline-Nachweis ist an exakten Candidate und zwei erfolgreiche Pflicht-CI-Laeufe gebunden',
+  'Offline-Nachweis gibt nur Offline frei und fordert als naechstes Schattenbetrieb',
+  'Offline-Nachweis enthaelt keine spaetere Freigabebehauptung',
+  'werteFreigabestufenAus',
+  '35402650442',
+  '105785689353',
+  '35402650416',
+  '105785688933',
+  "assert.equal(status.naechsteStufe, 'schatten')",
+  'assert.equal(status.block9Freigegeben, false)'
+]) {
+  if (!offlineFreigabeTests.includes(pflicht)) {
+    throw new Error(`Offline-Freigabenachweis-Test fehlt: ${pflicht}`);
+  }
+}
+
+const offlineFreigabeDokument = await readFile(path.join(wurzel, dateien[57]), 'utf8');
+for (const pflicht of [
+  'Stufe 1 Offline fuer den exakten Runtime-1.1.5-Candidate bestanden',
+  'BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json',
+  '35402650442',
+  '105785689353',
+  '35402650416',
+  '105785688933',
+  '1789771311000',
+  'offline -> bestanden',
+  'schatten -> offen',
+  'naechsteStufe: schatten',
+  'block9Freigegeben: false',
+  'Schattenbetrieb',
+  'Block 9 bleibt gesperrt'
+]) {
+  if (!offlineFreigabeDokument.includes(pflicht)) {
+    throw new Error(`Offline-Freigabenachweis-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+if (!freigabeDokument.includes('BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json')) {
+  throw new Error('Freigabestufen-Dokumentation verweist noch nicht auf den kanonischen Offline-Nachweis.');
+}
+if (!block85PlanFreigabe.includes('Die Freigabestufe **Offline** ist jetzt ebenfalls')) {
+  throw new Error('Block-8.5-Plan markiert Offline noch nicht als bestanden.');
+}
+
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabestufe sind fuer git:88185523 eindeutig bestanden; die reale Auswertung fordert als naechstes Schattenbetrieb, kontrolliert live und Soak bleiben blockiert und Block 9 bleibt gesperrt.');

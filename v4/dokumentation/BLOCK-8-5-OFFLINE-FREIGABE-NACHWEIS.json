@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+  "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+  "nachweis": {
+    "schemaVersion": 1,
+    "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
+    "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "stufe": "offline",
+    "nachweisKennung": "offline-ci:88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "ergebnis": "bestanden",
+    "durchgefuehrtAm": 1789771311000,
+    "deterministisch": true,
+    "spielAktionAusgefuehrt": false,
+    "begrenzt": false,
+    "telemetrieNachweis": false,
+    "recoveryNachweis": false,
+    "gesamtauswertungBestanden": false
+  },
+  "ciEvidence": [
+    {
+      "workflow": "v4-ci",
+      "runId": 35402650442,
+      "jobId": 105785689353,
+      "runNumber": 287,
+      "headSha": "88185523c81687dc16f9647ca5e7568c5e2c228c",
+      "conclusion": "success",
+      "completedAt": "2026-09-18T22:41:51Z",
+      "requiredStep": "Typen, Tests, Namen und Struktur pruefen"
+    },
+    {
+      "workflow": "v4-grundlage-pruefen",
+      "runId": 35402650416,
+      "jobId": 105785688933,
+      "runNumber": 1150,
+      "headSha": "88185523c81687dc16f9647ca5e7568c5e2c228c",
+      "conclusion": "success",
+      "completedAt": "2026-09-18T22:41:45Z",
+      "requiredStep": "Typen, Tests, Namen und Struktur pruefen"
+    }
+  ],
+  "auswertungErwartet": {
+    "offline": "bestanden",
+    "naechsteStufe": "schatten",
+    "freigabeVollstaendig": false,
+    "block9Freigegeben": false
+  }
+}
