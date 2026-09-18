@@ -170,6 +170,9 @@ class SafeTravelController {
       start,
       lastObserved: start,
       target,
+      arrivalRadius: request.arrivalRadius == null
+        ? this.arrivalRadius
+        : Math.max(5, Math.min(300, finite(request.arrivalRadius, this.arrivalRadius))),
       reason: mapAttestation ? 'SAFE_PLAN_CREATED_WITH_TRUSTED_MAP_ATTESTATION' : 'SAFE_PLAN_CREATED',
       actionAuthority: false,
       liveExecutionAllowed: false,
@@ -180,7 +183,7 @@ class SafeTravelController {
     };
     this.plans.set(id, row);
     this.stats.planned += 1;
-    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation });
+    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation, arrivalRadius: row.arrivalRadius });
     return { accepted: true, plan: clone(row) };
   }
 
@@ -200,7 +203,7 @@ class SafeTravelController {
   _arrived(row, observed) {
     if (!row || !observed || observed.map !== row.target.map) return false;
     if (row.target.x == null || row.target.y == null) return true;
-    return distance(observed, row.target) <= this.arrivalRadius;
+    return distance(observed, row.target) <= Math.max(5, finite(row.arrivalRadius, this.arrivalRadius));
   }
 
   observe(snapshot) {
