@@ -123,9 +123,36 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
-      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character } };
+      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
     }
-    return null;
+
+    // If no party goal claims an upgradeable level-0 item, perform one bounded
+    // economy lifecycle upgrade. The result is re-evaluated against the party
+    // before it can become an authorized processed-gear SELL candidate.
+    const fallback = ledger.list(1000)
+      .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
+      .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
+      .find((entry) => {
+        const meta = gd.items && gd.items[entry.name];
+        if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
+        if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
+        const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+        return value <= this.options.upgradeValueCap;
+      });
+    if (!fallback) return null;
+    return {
+      type: 'UPGRADE',
+      character: c.name,
+      index: fallback.index,
+      indices: [fallback.index],
+      metadata: {
+        source: 'ALPHA27_AUTONOMOUS_PLANNER',
+        lifecycle: 'ECONOMIC_PROCESSING',
+        economicLifecycle: true,
+        targetLevel: 1,
+        targetCharacter: null
+      }
+    };
   }
 
   planCompound() {
@@ -155,7 +182,21 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     if (!c || !ledger) return null;
     const rows = ledger.list(1000).filter((row) => row && row.character === c.name);
     const sell = rows.find((row) => row.disposition === 'SELL');
-    if (sell) return { type: 'SELL', character: c.name, index: sell.index, quantity: Math.max(1, finite(sell.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
+    if (sell) {
+      const reasons = Array.isArray(sell.reasons) ? sell.reasons.map(String) : [];
+      const processed = reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+      return {
+        type: 'SELL',
+        character: c.name,
+        index: sell.index,
+        quantity: Math.max(1, finite(sell.q, 1)),
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          lifecycleProcessedSale: processed,
+          lifecycleReasons: processed ? reasons.filter((reason) => /^AUTONOMOUS_(PROCESSED_GEAR_SELL|COMPOUND_RESULT|UPGRADE_RESULT)$/.test(reason)) : []
+        }
+      };
+    }
     const bank = rows.find((row) => row.disposition === 'BANK');
     if (bank) return { type: 'BANK', character: c.name, index: bank.index, quantity: Math.max(1, finite(bank.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
     return null;
