@@ -9,7 +9,10 @@ import {
 import {
   erstelleGruppenTeilnehmerMeldungAusKampfsicherheit
 } from '../spiellogik/gruppen-lebensnachweis.js';
-import { koordiniereGruppe } from '../spiellogik/gruppen-koordination.js';
+import {
+  erstelleGruppenKoordinationsKonfiguration,
+  koordiniereGruppe
+} from '../spiellogik/gruppen-koordination.js';
 import {
   erstelleGruppenAktionsPlanKonfiguration,
   planeGruppenAktionen
@@ -37,10 +40,11 @@ import {
   type AdventureLandGruppenZielLiveSmokeFassade
 } from './adventure-land-gruppen-ziel-live-smoke.js';
 
-export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.1';
+export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.2';
 export const PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT = 'BLOCK8-PRODUKTIONS-GRUPPENZIEL-VORBEREITEN';
 export const PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT = 'BLOCK8-PRODUKTIONS-LIVE-SMOKE-INSTALLIEREN';
 const MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2;
+export const PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS = 8_000;
 
 export interface AdventureLandProduktionsBootstrapOptionen {
   readonly aktivFreigegeben?: boolean;
@@ -54,6 +58,7 @@ export interface AdventureLandProduktionsBootstrapStatus {
   readonly version: typeof PRODUKTIONS_BOOTSTRAP_VERSION;
   readonly aktivFreigegeben: boolean;
   readonly empfangInstalliert: boolean;
+  readonly gruppenLebensnachweisMaximalAlterMillisekunden: typeof PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS;
   readonly bekannteTeilnehmer: readonly string[];
   readonly laufendeGruppenAnfragen: readonly string[];
   readonly ressourcenSperren: readonly Readonly<{ ressource: string; besitzer: string }>[];
@@ -114,6 +119,9 @@ export class AdventureLandProduktionsBootstrap {
   private readonly austausch: AdventureLandGruppenLebensnachweisAustausch;
   private readonly teilnehmerNachName = new Map<string, Readonly<GespeicherterTeilnehmerLebensnachweis>>();
   private readonly kampfKonfiguration = erstelleKampfSicherheitsKonfiguration();
+  private readonly gruppenKoordinationsKonfiguration = erstelleGruppenKoordinationsKonfiguration({
+    lebensnachweisMaximalAlterMillisekunden: PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS
+  });
   private laufendeNummer = 0;
   private letzterSicherheitsZeitpunkt: number | null = null;
   private gruppenZielVorbereitungVerbraucht = false;
@@ -144,6 +152,7 @@ export class AdventureLandProduktionsBootstrap {
       version: PRODUKTIONS_BOOTSTRAP_VERSION,
       aktivFreigegeben: this.aktivFreigegeben,
       empfangInstalliert: this.empfangInstalliert,
+      gruppenLebensnachweisMaximalAlterMillisekunden: PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS,
       bekannteTeilnehmer: Object.freeze(
         [...this.teilnehmerNachName.values()].map((eintrag) => eintrag.meldung.charakterKennung).sort()
       ),
@@ -208,7 +217,12 @@ export class AdventureLandProduktionsBootstrap {
     const gespeicherteMeldungen = this.liesEindeutigeTeilnehmerMeldungen()
       .filter((eintrag) => eintrag.charakterName !== meldung.charakterName);
     const meldungen = Object.freeze([...gespeicherteMeldungen, meldung]);
-    const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
+    const koordination = koordiniereGruppe(
+      meldungen,
+      meldung.charakterKennung,
+      jetzt,
+      this.gruppenKoordinationsKonfiguration
+    );
     const status = this.status();
 
     return Object.freeze({
@@ -242,7 +256,12 @@ export class AdventureLandProduktionsBootstrap {
     }));
 
     const meldungen = this.liesEindeutigeTeilnehmerMeldungen();
-    const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
+    const koordination = koordiniereGruppe(
+      meldungen,
+      meldung.charakterKennung,
+      jetzt,
+      this.gruppenKoordinationsKonfiguration
+    );
     if (koordination.aktiveTeilnehmerKennungen.length < MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER) {
       throw new Error(
         `Produktions-Gruppenziel benoetigt mindestens ${MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER} aktive frische Teilnehmer; gefunden: ${koordination.aktiveTeilnehmerKennungen.length}.`
