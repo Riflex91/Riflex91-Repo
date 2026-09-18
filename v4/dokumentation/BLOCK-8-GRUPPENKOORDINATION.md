@@ -27,7 +27,7 @@ Jeder eigene Charakter liefert einen `GruppenTeilnehmerMeldung`-Datensatz mit:
 
 Die produktive Kopplung verlangt eine `KampfSicherheitsEntscheidung` desselben `Spielzustand`-Zeitpunkts. Im Adventure-Land-Livepfad kommt die Gefahrenstufe aus `V4Block7KampfsicherheitsQuelle`; eine manuelle `gefahrenStufe` ist seit Lebensnachweis-Version `1.1.0` verboten.
 
-Standardmaessig gilt ein Gruppen-Lebensnachweis nach 5 Sekunden als veraltet. Die Live-Sicherheitsbewertung selbst muss deutlich frischer sein; der Live-Lebensnachweis verwendet dafuer standardmaessig maximal 1500 ms.
+Standardmaessig gilt ein Gruppen-Lebensnachweis nach 5 Sekunden als veraltet. In der Produktionsruntime ab Version **1.1.1** wird dieses Alter bei Remote-Teilnehmern ab dem lokalen `empfangenAm` gemessen; `gesendetAm` und `laufendeNummer` bleiben ausschliesslich fuer Senderreihenfolge und Replay-Schutz massgeblich. So zaehlen Netzwerk-/Serverlatenz und unterschiedliche CODE-Kontext-Uhren nicht gegen die Freshness-TTL. Die Live-Sicherheitsbewertung selbst muss deutlich frischer sein; der Live-Lebensnachweis verwendet dafuer standardmaessig maximal 1500 ms.
 
 ## Faehigkeiten statt Klassenrollen
 

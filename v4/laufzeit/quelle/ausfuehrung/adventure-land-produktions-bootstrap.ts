@@ -37,7 +37,7 @@ import {
   type AdventureLandGruppenZielLiveSmokeFassade
 } from './adventure-land-gruppen-ziel-live-smoke.js';
 
-export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.0';
+export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.1';
 export const PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT = 'BLOCK8-PRODUKTIONS-GRUPPENZIEL-VORBEREITEN';
 export const PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT = 'BLOCK8-PRODUKTIONS-LIVE-SMOKE-INSTALLIEREN';
 const MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2;
@@ -71,6 +71,11 @@ export interface AdventureLandProduktionsGruppenDiagnose {
   readonly ressourcenSperren: readonly Readonly<{ ressource: string; besitzer: string }>[];
   readonly liveSmokeInstalliert: boolean;
   readonly gruppenZielVorbereitungVerbraucht: boolean;
+}
+
+interface GespeicherterTeilnehmerLebensnachweis {
+  readonly meldung: GruppenTeilnehmerMeldung;
+  readonly frischeReferenzAm: number;
 }
 
 export interface AdventureLandGruppenZielVorbereitung {
@@ -107,7 +112,7 @@ export class AdventureLandProduktionsBootstrap {
   private readonly leser: AdventureLandLesezugriff;
   private readonly steuerung = new AktionsSteuerung();
   private readonly austausch: AdventureLandGruppenLebensnachweisAustausch;
-  private readonly teilnehmerNachName = new Map<string, GruppenTeilnehmerMeldung>();
+  private readonly teilnehmerNachName = new Map<string, Readonly<GespeicherterTeilnehmerLebensnachweis>>();
   private readonly kampfKonfiguration = erstelleKampfSicherheitsKonfiguration();
   private laufendeNummer = 0;
   private letzterSicherheitsZeitpunkt: number | null = null;
@@ -140,7 +145,7 @@ export class AdventureLandProduktionsBootstrap {
       aktivFreigegeben: this.aktivFreigegeben,
       empfangInstalliert: this.empfangInstalliert,
       bekannteTeilnehmer: Object.freeze(
-        [...this.teilnehmerNachName.values()].map((meldung) => meldung.charakterKennung).sort()
+        [...this.teilnehmerNachName.values()].map((eintrag) => eintrag.meldung.charakterKennung).sort()
       ),
       laufendeGruppenAnfragen: Object.freeze(
         this.steuerung.listeAktionsZustaende()
@@ -179,7 +184,10 @@ export class AdventureLandProduktionsBootstrap {
   }>> {
     this.pruefeAktiv('Lebensnachweis senden');
     const { meldung } = this.erzeugeLokalenLebensnachweis();
-    this.teilnehmerNachName.set(meldung.charakterName, meldung);
+    this.teilnehmerNachName.set(meldung.charakterName, Object.freeze({
+      meldung,
+      frischeReferenzAm: meldung.gesendetAm
+    }));
 
     const ziele = [...new Set(this.optionen.vertrauensNamen.map((name) => name.trim()).filter((name) => name.length > 0 && name !== meldung.charakterName))].sort();
     const ergebnisse = [];
@@ -228,7 +236,10 @@ export class AdventureLandProduktionsBootstrap {
 
     const jetzt = this.liesZeitpunkt('Der Produktions-Gruppenplanzeitpunkt');
     const { meldung } = this.erzeugeLokalenLebensnachweis(jetzt);
-    this.teilnehmerNachName.set(meldung.charakterName, meldung);
+    this.teilnehmerNachName.set(meldung.charakterName, Object.freeze({
+      meldung,
+      frischeReferenzAm: meldung.gesendetAm
+    }));
 
     const meldungen = this.liesEindeutigeTeilnehmerMeldungen();
     const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
@@ -344,7 +355,7 @@ export class AdventureLandProduktionsBootstrap {
   private uebernehmeEmpfang(empfang: Readonly<GruppenLebensnachweisEmpfang>): void {
     if (this.gestoppt) return;
     const neu = empfang.meldung;
-    const vorher = this.teilnehmerNachName.get(neu.charakterName);
+    const vorher = this.teilnehmerNachName.get(neu.charakterName)?.meldung;
     if (
       vorher !== undefined &&
       (
@@ -354,13 +365,17 @@ export class AdventureLandProduktionsBootstrap {
     ) {
       return;
     }
-    this.teilnehmerNachName.set(neu.charakterName, neu);
+    this.teilnehmerNachName.set(neu.charakterName, Object.freeze({
+      meldung: neu,
+      frischeReferenzAm: empfang.empfangenAm
+    }));
   }
 
   private liesEindeutigeTeilnehmerMeldungen(): readonly GruppenTeilnehmerMeldung[] {
-    const meldungen = [...this.teilnehmerNachName.values()];
+    const gespeicherte = [...this.teilnehmerNachName.values()];
     const nameNachKennung = new Map<string, string>();
-    for (const meldung of meldungen) {
+    for (const eintrag of gespeicherte) {
+      const meldung = eintrag.meldung;
       const vorherigerName = nameNachKennung.get(meldung.charakterKennung);
       if (vorherigerName !== undefined && vorherigerName !== meldung.charakterName) {
         throw new Error(
@@ -369,7 +384,13 @@ export class AdventureLandProduktionsBootstrap {
       }
       nameNachKennung.set(meldung.charakterKennung, meldung.charakterName);
     }
-    return Object.freeze(meldungen);
+
+    return Object.freeze(gespeicherte.map((eintrag) => Object.freeze({
+      ...eintrag.meldung,
+      // In der Produktionskoordination misst Freshness ab lokalem Empfang.
+      // Der originale Senderzeitpunkt bleibt separat im Speicher fuer Replay-/Reihenfolgepruefung erhalten.
+      gesendetAm: eintrag.frischeReferenzAm
+    })));
   }
 
   private erzeugeLokalenLebensnachweis(jetzt = this.liesZeitpunkt('Der lokale Lebensnachweiszeitpunkt')): Readonly<{

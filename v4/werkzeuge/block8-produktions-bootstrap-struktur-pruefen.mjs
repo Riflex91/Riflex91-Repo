@@ -179,14 +179,15 @@ for (const pflicht of [
   'berechnet lokalen Lebensnachweis aus echter Produktions-Safety',
   'nutzt vorhandenen vertrauensgebundenen Empfang fuer reale Gruppenplanung',
   'Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und Aufgabenwechsel ohne zentrale Aktion',
+  'Produktions-Gruppendiagnose misst Remote-Freshness ab lokalem Empfang statt Senderuhr',
   'verwirft replayte und zeitlich aeltere Remote-Meldungen',
   'blockiert doppelte Teilnehmerkennungen',
   'blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer',
-  'blockiert Gruppenziel wenn der zweite Teilnehmer veraltet ist',
+  'blockiert Gruppenziel wenn der zweite Teilnehmer seit lokalem Empfang veraltet ist',
   'installiert Live-Smoke nur fuer den exakt vorbereiteten zentralen Zielauftrag',
   'stoppt Empfang, Smoke und laufende Gruppenarbeit fail-safe'
 ]) {
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, Empfangszeit-Freshness bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
