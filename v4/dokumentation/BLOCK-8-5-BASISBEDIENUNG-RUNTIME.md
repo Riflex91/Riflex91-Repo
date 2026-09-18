@@ -1,6 +1,6 @@
 # Block 8.5 – sichere Basisbedienung · Produktionsruntime-Grenze
 
-Status: **8.5.7 in Arbeit – Kern und Produktionsruntime-Grenze implementiert; sichtbarer HUD-Bedienadapter folgt separat.**
+Status: **8.5.7 Produktionsruntime-Grenze implementiert; der sichtbare HUD-Bedienadapter ist inzwischen ebenfalls vorhanden.**
 
 ## Zweck
 
@@ -135,14 +135,6 @@ Die neue Runtime-Grenze:
 - bietet keine generische Methode zum direkten Veraendern von `AktionsSteuerung`,
 - bietet keine automatische Fortsetzung.
 
-## Noch offen in 8.5.7
+## Abschluss
 
-Der naechste und letzte Teil von 8.5.7 ist der kleine HUD-Bedienadapter mit:
-
-- **Diagnose aktualisieren**
-- **Pause anfordern**
-- **Fortsetzen** mit expliziter zweiter Bestaetigung
-
-Dieser Adapter darf ausschliesslich die drei oben beschriebenen sicheren Produktionsruntime-Methoden benutzen.
-
-Erst nach dessen Tests, CI und Merge wird 8.5.7 als vollstaendig implementiert markiert.
+Der getrennte HUD-Bedienadapter verwendet inzwischen ausschliesslich die drei oben beschriebenen sicheren Produktionsruntime-Methoden. Diagnose, Pause und zweistufig bestaetigtes Fortsetzen sind damit an die Produktionsgrenze angebunden, ohne direkten Zugriff auf Heartbeat-, Aktions- oder Adventure-Land-Funktionen. Schritt 8.5.7 ist vollstaendig implementiert; als naechstes folgt 8.5.8 Recovery-Abnahme.
