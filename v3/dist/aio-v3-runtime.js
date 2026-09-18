@@ -11730,6 +11730,13 @@ const EXPECTED_DISPOSITIONS = Object.freeze({
   [TransactionType.COMPOUND]: ['RESERVE_COMPOUND'],
   [TransactionType.UPGRADE]: ['RESERVE_UPGRADE', 'RESERVE_PROGRESSION']
 });
+const COLLECTION_CAPACITY_BANK_DISPOSITIONS = new Set([
+  'KEEP',
+  'RESERVE_GROUP',
+  'RESERVE_PROGRESSION',
+  'RESERVE_COMPOUND',
+  'RESERVE_UPGRADE'
+]);
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -11868,7 +11875,10 @@ class EconomyTransactionEngine {
     const entry = this._ledgerEntry(context.ledger, character, index);
     if (!entry) return this._reject('LEDGER_ITEM_NOT_FOUND', { type, character, index });
     if (entry.actionAuthority !== false) return this._reject('LEDGER_AUTHORITY_CONTRACT_INVALID', { type, character, index });
-    if (!EXPECTED_DISPOSITIONS[type].includes(entry.disposition)) {
+    const collectionCapacityBank = type === TransactionType.BANK
+      && request.metadata && request.metadata.collectionCapacityPrep === true
+      && COLLECTION_CAPACITY_BANK_DISPOSITIONS.has(String(entry.disposition || ''));
+    if (!EXPECTED_DISPOSITIONS[type].includes(entry.disposition) && !collectionCapacityBank) {
       return this._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
     }
     if (quantity > Math.max(1, finite(entry.q, 1))) return this._reject('QUANTITY_EXCEEDS_OBSERVED_STACK', { type, quantity, observed: entry.q });
@@ -11897,7 +11907,7 @@ class EconomyTransactionEngine {
       item: String(entry.name),
       level: Math.max(0, Math.floor(finite(entry.level, 0))),
       disposition: entry.disposition,
-      expectedDisposition: EXPECTED_DISPOSITIONS[type].slice(),
+      expectedDisposition: collectionCapacityBank ? [entry.disposition] : EXPECTED_DISPOSITIONS[type].slice(),
       reason: 'PREFLIGHT_OK_RESERVED',
       executionAllowed: false,
       actionAuthority: false,
@@ -12833,6 +12843,13 @@ const { sellMetadataConsensus, rawSellProtectionReasons, sellSafetyStatus } = re
 const CONTROLLED_MERCHANT_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+const COLLECTION_CAPACITY_BANK_DISPOSITIONS = new Set([
+  'KEEP',
+  'RESERVE_GROUP',
+  'RESERVE_PROGRESSION',
+  'RESERVE_COMPOUND',
+  'RESERVE_UPGRADE'
+]);
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -13033,7 +13050,11 @@ class ControlledMerchantExecutor {
     const entry = this._ledgerEntry(tx);
     if (!entry) return { ok: false, reason: 'LEDGER_ITEM_NOT_FOUND' };
     if (entry.name !== tx.item || Math.max(0, Math.floor(finite(entry.level, 0))) !== Math.max(0, Math.floor(finite(tx.level, 0)))) return { ok: false, reason: 'ITEM_IDENTITY_CHANGED' };
-    if (entry.disposition !== tx.type) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', disposition: entry.disposition };
+    const collectionCapacityBank = tx.type === 'BANK'
+      && tx.metadata && tx.metadata.collectionCapacityPrep === true
+      && COLLECTION_CAPACITY_BANK_DISPOSITIONS.has(String(entry.disposition || ''))
+      && String(tx.disposition || '') === String(entry.disposition || '');
+    if (entry.disposition !== tx.type && !collectionCapacityBank) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', disposition: entry.disposition };
     if (finite(entry.q, 0) < finite(tx.quantity, 1)) return { ok: false, reason: 'ITEM_QUANTITY_CHANGED' };
     if (this.contentDrift && typeof this.contentDrift.requiresRevalidation === 'function' && this.contentDrift.requiresRevalidation('items', tx.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION' };
 
@@ -13111,13 +13132,34 @@ class ControlledMerchantExecutor {
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
     }
     if (tx.type === 'BANK') {
+      if (collectionCapacityBank) {
+        const name = String(tx.item || '');
+        if (/^(?:hpot|mpot|elixir)/i.test(name)) return { ok: false, reason: 'COLLECTION_CAPACITY_OPERATIONAL_ITEM_PROTECTED' };
+        if (rawLiveItem && (rawLiveItem.locked === true || rawLiveItem.l === true || rawLiveItem.special === true || rawLiveItem.p)) {
+          return { ok: false, reason: 'COLLECTION_CAPACITY_LIVE_ITEM_PROTECTED' };
+        }
+        const goals = this.runtime && this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function'
+          ? this.runtime.gearProgression.list(256)
+          : [];
+        const activeFarmerGoal = goals.some((goal) => goal
+          && String(goal.sourceCharacter || '') === String(character.name || '')
+          && Number(goal.sourceIndex) === txIndex
+          && String(goal.item || '') === name
+          && Math.max(0, Math.floor(finite(goal.observedLevel, 0))) === Math.max(0, Math.floor(finite(tx.level, 0)))
+          && goal.character
+          && String(goal.character) !== String(character.name || ''));
+        if (activeFarmerGoal) return { ok: false, reason: 'COLLECTION_CAPACITY_ACTIVE_FARMER_GEAR_GOAL' };
+      }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('bank_store')) return { ok: false, reason: 'BANK_STORE_API_UNAVAILABLE' };
       if (!character.bank || typeof character.bank !== 'object') return { ok: false, reason: 'NOT_IN_BANK' };
       if (finite(tx.quantity, 1) !== liveItem.q) return { ok: false, reason: 'BANK_REQUIRES_FULL_STACK' };
     }
 
     this._pruneActions();
-    if (this.actionTimes.length >= this.maxActionsPerWindow) return { ok: false, reason: 'ACTION_BUDGET_EXHAUSTED' };
+    const collectionCapacityBudget = tx.metadata && tx.metadata.collectionCapacityPrep === true && ['SELL', 'BANK'].includes(tx.type)
+      ? Math.max(this.maxActionsPerWindow, 20)
+      : this.maxActionsPerWindow;
+    if (this.actionTimes.length >= collectionCapacityBudget) return { ok: false, reason: 'ACTION_BUDGET_EXHAUSTED' };
     return { ok: true, entry, liveItem, supervisor, txIndex, inventorySize };
   }
 
