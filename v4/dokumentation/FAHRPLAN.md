@@ -230,11 +230,11 @@ Abschlusspruefung:
 - reale Adventure-Land-Angriffsbereitschaft ohne unbekannte Bereitschaftszustaende im Abschlusslauf — **erfuellt**
 - kontrollierter one-shot Live-Smoke-Test mit exakt einem Sicherheits-`move`, 0 sonstigen Spielaktionen und automatischer Wiedersperrung — **erfuellt**
 
-Hinweis: Dieser Blockabschluss ersetzt nicht die spaeteren allgemeinen 24-Stunden-, 72-Stunden- und 7-Tage-Systemtests der gesamten V4.
+Hinweis: Der fuer Block 8 auf 10 Minuten reduzierte Gruppentest ersetzt nicht die spaeteren allgemeinen 24-Stunden-, 72-Stunden- und 7-Tage-Systemtests der gesamten V4.
 
 ## Block 8 – Gruppenkoordination
 
-Status: **in Arbeit; technische/offline Abschlusshaertung weit fortgeschritten, aktiver 72-Stunden-Gruppentest noch offen; vor Block 9 folgt verbindlich Block 8.5**.
+Status: **in Arbeit; technische/offline Abschlusshaertung und one-shot Live-Smoke bestanden, aktiver 10-Minuten-Gruppentest noch offen; vor Block 9 folgt verbindlich Block 8.5**.
 
 Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 
@@ -254,7 +254,7 @@ Abschlusspruefung:
 - Mehrcharakter-Wiederholungen — **erfuellt**
 - gezielte Ausfalltests einzelner Gruppenmitglieder — **automatisiert und read-only live erfuellt**
 - Wiederaufbau nach Verbindungsabbruch — **read-only live erfuellt; aktiver Pfad bleibt Teil der Abschlusskampagne**
-- anschliessender 72-Stunden-Gruppentest — **offen**
+- anschliessender 10-Minuten-Gruppentest — **offen**
 
 Der aktuelle Nachweisstand und die verbleibende aktive Freigabekampagne stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`. Block 8 bleibt bis zum bestandenen 72-Stunden-Gruppentest formal offen.
 

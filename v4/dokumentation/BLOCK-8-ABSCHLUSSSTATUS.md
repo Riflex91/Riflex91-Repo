@@ -6,7 +6,7 @@ Stand: 2026-09-18
 
 Block 8 ist **noch nicht formal abgeschlossen**.
 
-Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Die kontrollierte aktive Freigabekampagne inklusive echtem one-shot Live-Smoke ist bestanden. Offen ist noch der im Fahrplan geforderte 72-Stunden-Gruppentest.
+Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Die kontrollierte aktive Freigabekampagne inklusive echtem one-shot Live-Smoke ist bestanden. Offen ist noch der im Fahrplan geforderte 10-Minuten-Gruppentest.
 
 Es wird **kein weiterer Zwischenblock zwischen Block 8 und Block 8.5** eingefuehrt. Die noch fehlende aktive Freigabekampagne ist Abschlussarbeit innerhalb von Block 8. Erst nach ihrem erfolgreichen Abschluss beginnt Block 8.5.
 
@@ -112,9 +112,9 @@ Erst nach gruenem Offline-/Replay-/Schattennachweis:
 
 Ein unerwarteter Adventure-Land-Aufruf oder eine fehlende Wiedersperrung macht den Smoke-Test rot.
 
-### 4. 72-Stunden-Gruppentest
+### 4. 10-Minuten-Gruppentest
 
-Der 72-Stunden-Test beginnt erst nach bestandenem kontrollierten Live-Smoke.
+Der 10-Minuten-Test beginnt erst nach bestandenem kontrollierten Live-Smoke.
 
 Mindestens zu beobachten sind:
 
@@ -142,13 +142,13 @@ Der Test ist sofort als fehlgeschlagen zu behandeln, wenn unter anderem:
 
 ## Entscheidung zum Blockabschluss
 
-Der Code- und Schattenstand ist ausreichend gehaertet, um die spaetere **kontrollierte aktive Freigabekampagne** vorzubereiten.
+Der Code- und Schattenstand ist ausreichend gehaertet; die kontrollierte aktive one-shot Freigabe ist bereits bestanden. Fuer den formalen Blockabschluss bleibt nur der 10-Minuten-Gruppentest.
 
 Block 8 darf aber erst als **abgeschlossen** markiert werden, wenn:
 
 1. der minimale aktive Gruppenpfad seine deterministischen Tests, Replay/Simulation und Schattenpruefung bestanden hat,
 2. der one-shot Live-Smoke bestanden und automatisch wiedergesperrt wurde,
-3. der 72-Stunden-Gruppentest bestanden ist,
+3. der 10-Minuten-Gruppentest bestanden ist,
 4. die relevanten V4-Gates auf dem finalen Block-8-Stand gruen sind.
 
-Danach folgt verbindlich Block 8.5. Block 9 beginnt vorher nicht.
+Der 10-Minuten-Gruppentest ist ein Block-8-Abschlussgate und ersetzt **nicht** die spaeteren uebergeordneten 72-Stunden-/7-Tage-Systemkampagnen der gesamten V4. Danach folgt verbindlich Block 8.5. Block 9 beginnt vorher nicht.

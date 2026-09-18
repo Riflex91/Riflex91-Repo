@@ -201,6 +201,6 @@ Auch bei Nachweis C wird nur der zentrale Schattenzustand veraendert. Die Browse
 
 ## Naechster Schritt
 
-Die zentrale Schattenstufe sowie die Abschluss-Haertung fuer Ressourcenblockierung, Preemption, Expiry, Plan-Invalidierung und fail-safe Neustart sind bestanden. Der formale Block-8-Abschluss bleibt wegen der aktiven Freigabekampagne und des 72-Stunden-Gruppentests offen.
+Die zentrale Schattenstufe sowie die Abschluss-Haertung fuer Ressourcenblockierung, Preemption, Expiry, Plan-Invalidierung und fail-safe Neustart sind bestanden. Die aktive one-shot Freigabekampagne ist bestanden. Der formale Block-8-Abschluss bleibt nur noch wegen des 10-Minuten-Gruppentests offen.
 
 Der genaue Gate-Ablauf steht in `BLOCK-8-ABSCHLUSSSTATUS.md`. Bis ein dort beschriebener minimaler Adapter seine Offline-, Replay-/Simulations-, Schatten- und one-shot-Live-Gates bestanden hat, endet Block 8 strikt in `SchattenAusfuehrung`.

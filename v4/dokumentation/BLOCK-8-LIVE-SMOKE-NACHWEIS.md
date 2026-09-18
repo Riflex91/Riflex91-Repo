@@ -112,4 +112,4 @@ Der begrenzte echte Adventure-Land-one-shot Live-Smoke ist **bestanden**.
 
 Damit ist die kontrollierte aktive Freigabe des ersten minimalen Gruppenpfads fuer Block 8 nachgewiesen.
 
-Block 8 bleibt trotzdem formal offen, bis der vorgesehene **72-Stunden-Gruppentest** erfolgreich abgeschlossen und dokumentiert wurde.
+Block 8 bleibt trotzdem formal offen, bis der auf **10 Minuten reduzierte Gruppentest** erfolgreich abgeschlossen und dokumentiert wurde. Dieser kurze Block-8-Test ersetzt nicht die spaeteren uebergeordneten V4-Langzeitkampagnen.
