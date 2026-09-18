@@ -206,6 +206,8 @@ vorbereitet.
 
 Er akzeptiert ausschliesslich Runtime 1.1.5 und laedt oder veroeffentlicht selbst keinen Runtime-Build.
 
+Fuer die reale Schattenausfuehrung ist zusaetzlich das source-locked Copy/Paste-Paket `block8-5-schatten-paket.js` vorbereitet. Es kombiniert Bootstrap, GUI und Runner, laedt den immutable Candidate mit `aktivFreigegeben: false`, ruft die Runtime nicht `starte()`-aktiv und entsperrt die Schattenaktion erst nach einem erneuten strikten Null-Heartbeat-Preflight.
+
 Der Schattenmodus ist jetzt zusaetzlich fail-safe getrennt: Runtime `aktivFreigegeben: false`, nicht gestartet, kein CM-Empfang, kein `performance_trick()`-Aufruf und exakt 0 Heartbeat-Sendeversuche. Erst eine daraus erzeugte `schattenUebergabe` darf in einer **separaten aktiven Sitzung** den kontrollierten Live-Test freischalten. Live und Soak markieren `spielAktionAusgefuehrt: true`, weil der aktive Produktionsheartbeat ueber `send_cm(...)` laeuft; der Runner selbst besitzt weiterhin keinen direkten Adventure-Land-Spielaktionsaufruf.
 
 Der Release-Candidate ist exakt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer genau diesen Candidate bestaetigt. Ein erneuter Release ist fuer diesen Nachweis nicht erforderlich. Fuer zukuenftige V4-Releases ist der separate manuelle `release-v4-runtime.yml`-Workflow der vorgesehene Pfad.
