@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen · Adventure-Land-Nachweisrunner
 
-Status: **Runner implementiert und offline testbar; reale Ausfuehrung bleibt bis zu einem explizit verifizierten Runtime-1.1.5-Build offen.**
+Status: **Runner implementiert und offline testbar; Runtime 1.1.5 ist als reproduzierbarer Release-Candidate gebunden, Deployment/HTTPS-Verifikation und reale Ausfuehrung bleiben offen.**
 
 ## Zweck
 
@@ -44,13 +44,15 @@ Vor dem Laden des Runners muss gesetzt sein:
 
 ```js
 globalThis.AIO_V4_BLOCK85_FREIGABE_CONFIG = Object.freeze({
-  aenderungsKennung: 'EXAKTER-GETESTETER-AENDERUNGSSTAND',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c',
   laufKennung: 'eindeutiger-lauf',
   soakDauerMillisekunden: 600000
 });
 ```
 
 `aenderungsKennung` muss spaeter exakt dieselbe Kennung sein, die auch dem Offline-Nachweis und der Freigabeauswertung zugeordnet wird.
+
+Fuer den vorbereiteten Runtime-1.1.5-Candidate ist diese Kennung fest `git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Der Candidate besitzt den erwarteten Runtime-SHA-256 `95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f`; ein realer Lauf darf trotzdem erst nach erfolgreichem immutablem Deployment und oeffentlicher HTTPS-Verifikation erfolgen.
 
 `laufKennung` trennt die Vorgangskennungen dieses konkreten Adventure-Land-Laufs.
 
@@ -220,6 +222,6 @@ prueft unter anderem:
 
 Der Runner ist vorbereitet und offline abgesichert.
 
-Ein echter Schatten-/Live-/Soak-Lauf wird hier **nicht** als bestanden dokumentiert, solange kein explizit verifizierter Runtime-1.1.5-Build fuer genau den finalen Block-8.5-Aenderungsstand geladen wurde.
+Ein echter Schatten-/Live-/Soak-Lauf wird hier **nicht** als bestanden dokumentiert. Der Build ist zwar als Release-Candidate reproduzierbar gebunden, aber `deploymentPerformed`, `publicHttpsVerified` und alle drei Adventure-Land-Nachweisfelder stehen weiterhin auf `false`; erst nach deren realer Verifikation darf der Runner gegen die immutable Candidate-URL ausgefuehrt werden.
 
 Block 9 bleibt bis zu diesen realen Nachweisen weiterhin gesperrt.
