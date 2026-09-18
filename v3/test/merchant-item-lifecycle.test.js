@@ -365,7 +365,7 @@ test('processed gear SELL is fail-closed when no explicit future Farmer evaluati
     type: 'SELL', character: 'Merchant', index: 0, quantity: 1,
     metadata: { lifecycleProcessedSale: true }
   }, { ledger });
-  assert.equal(planned.accepted, true);
+  assert.equal(planned.accepted, true, planned.reason);
 
   const executor = new ControlledMerchantExecutor({
     runtime: { root, gearProgression: { futureProtectionFor: () => null, futureSellSafetyFor: () => null } },
@@ -509,7 +509,7 @@ test('ControlledMerchant final preflight blocks a stale processed SELL when futu
     type: 'SELL', character: 'Merchant', index: 0, quantity: 1,
     metadata: { lifecycleProcessedSale: true }
   }, { ledger });
-  assert.equal(planned.accepted, true);
+  assert.equal(planned.accepted, true, planned.reason);
 
   const runtime = {
     root,
