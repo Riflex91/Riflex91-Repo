@@ -625,6 +625,7 @@ class ControlledPartyBootstrap {
       }
 
       const generation = this.generation;
+      this._setState('REPAIRING', `LEAVING_NON_MERCHANT_PARTY_LEADER_${leader}`, false);
       this.inFlight = Promise.resolve()
         .then(() => this._repairNonMerchantLeader(observation, generation))
         .catch((error) => {
