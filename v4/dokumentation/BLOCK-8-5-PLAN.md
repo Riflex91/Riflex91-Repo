@@ -40,7 +40,7 @@ Keine Telemetriekomponente darf selbst eine Aktion einreichen oder ausfuehren.
 
 Umgesetzt sind die fail-safe Verknuepfung mit Gruppen-AktionsAnfragen sowie die read-only Auswertung von `AktionsLaufZustand` und `AktionsErgebnis`. Fehlende oder fremde Ergebnisse bleiben explizit offen; die fachlichen Fingerabdruecke werden durch Laufzeitkennungen nicht veraendert.
 
-### Schritt 8.5.3 – RuntimeGesundheit und RecoveryZustand
+### Schritt 8.5.3 – RuntimeGesundheit und RecoveryZustand — **IMPLEMENTIERT**
 
 Ein gemeinsamer read-only Zustand fasst mindestens zusammen:
 
@@ -57,6 +57,8 @@ Recovery-Eskalation:
 `normal -> beobachten -> sicher_pausiert -> neustart_empfohlen -> blockiert`
 
 Ein Prozess-/Host-Neustart wird nicht von der Adventure-Land-Laufzeit selbst ausgefuehrt.
+
+Umgesetzt sind ein versionierter Gesundheitsvertrag, die Recovery-Stufen `normal -> beobachten -> sicher_pausiert -> neustart_empfohlen -> blockiert`, getrennte Freshness-/Fortschrittsbewertung, Gruppen-Liveness und Safety. `hostNeustartEmpfohlen` bleibt eine read-only Empfehlung; `automatischerNeustart` ist fest `false`.
 
 ### Schritt 8.5.4 – Recovery-Checkpoint v1
 
