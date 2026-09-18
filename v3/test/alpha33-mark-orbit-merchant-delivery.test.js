@@ -234,7 +234,6 @@ test('Alpha33 requires Farmer pre-delivery snapshot ACK before Merchant sends ge
       return true;
     }
   };
-  const sent = [];
   const logistics = {
     stats: { messagesReceived: 0, messagesRejected: 0 },
     receive: () => false,
@@ -320,6 +319,7 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
       inventory: []
     }
   };
+  const sent = [];
   const logistics = {
     stats: { messagesReceived: 0, messagesRejected: 0 },
     receive: () => false,
