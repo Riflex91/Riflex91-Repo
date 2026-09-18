@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, autonome Lebensnachweis-Laufzeit, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; Runtime 1.1.4 aktiviert im Browser vor dem Produktionsheartbeat Adventure Lands `performance_trick()`, um Hintergrund-Timer-Drosselung zu vermeiden, und behaelt die bestaetigte `send_cm`-Empfaengerliste bei. Ein neuer immutable Release wird nach Merge automatisch gebaut und verifiziert.**
+Status: **Produktions-Bootstrap, autonome Lebensnachweis-Laufzeit, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; Runtime 1.1.4 aktiviert im Browser vor dem Produktionsheartbeat Adventure Lands `performance_trick()`, um Hintergrund-Timer-Drosselung zu vermeiden, und behaelt die bestaetigte `send_cm`-Empfaengerliste bei. Der immutable Release `024c121246a3ad1b579e2dc8d32771b284b3f6e1` ist unter SHA-256 `a5d70d798eb66725ceac6b6ffc80fe4e95751ce9b86e547a427183ee8b24a5a6` veroeffentlicht.**
 
 ## Zweck
 
