@@ -3832,6 +3832,56 @@ class FarmerController {
     return { state: TaskState.RUNNING };
   }
 
+  _moveToMaterialObjective(context) {
+    const objective = this.materialObjective;
+    const snapshot = context && context.snapshot;
+    const c = snapshot && snapshot.character;
+    if (!objective || !c || Number(objective.expiresAt || 0) <= this.now()) return false;
+    if (!objective.map || String(objective.map) !== String(c.map || '')) return false;
+    const visible = (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.mtype === objective.monster);
+    if (visible) return false;
+    const ox = Number(objective.x), oy = Number(objective.y);
+    if (!Number.isFinite(ox) || !Number.isFinite(oy) || !Number.isFinite(Number(c.x)) || !Number.isFinite(Number(c.y))) return false;
+    const d = Math.hypot(ox - Number(c.x), oy - Number(c.y));
+    if (d <= 120) {
+      this.lastSelection = {
+        monster: objective.monster,
+        source: 'elixir-material-objective-same-map',
+        score: Number.MAX_SAFE_INTEGER,
+        travelSeconds: 0,
+        material: objective.material || null,
+        elixirName: objective.elixirName || null
+      };
+      this._transition(FarmerState.SELECT_TARGET, 'MATERIAL_OBJECTIVE_SPAWN_WAIT', { monster: objective.monster, distance: Math.round(d) });
+      return true;
+    }
+    const now = this.now();
+    if (now - this.lastActionAt < this.config.moveCooldownMs) return true;
+    const result = context.adapter.command('move', [ox, oy]);
+    this.lastActionAt = now;
+    if (!result.executed && !result.shadow) {
+      this._block(result.reason === 'COMMAND_UNAVAILABLE' ? 'MATERIAL_OBJECTIVE_MOVE_UNAVAILABLE' : 'MATERIAL_OBJECTIVE_MOVE_FAILED');
+      return true;
+    }
+    this.lastSelection = {
+      monster: objective.monster,
+      source: 'elixir-material-objective-same-map',
+      score: Number.MAX_SAFE_INTEGER,
+      travelSeconds: d / Math.max(1, Number(c.speed) || 40),
+      material: objective.material || null,
+      elixirName: objective.elixirName || null
+    };
+    this._event('FARMER_MATERIAL_OBJECTIVE_MOVE_REQUESTED', 'info', 'SAME_MAP_ELIXIR_MATERIAL_OBJECTIVE', {
+      monster: objective.monster,
+      material: objective.material || null,
+      elixirName: objective.elixirName || null,
+      x: Math.round(ox),
+      y: Math.round(oy),
+      distance: Math.round(d)
+    });
+    return true;
+  }
+
   _travel(context, target) {
     const snapshot = context.snapshot;
     const c = snapshot.character;
@@ -3930,6 +3980,7 @@ class FarmerController {
         break;
 
       case FarmerState.SELECT_TARGET: {
+        if (this._moveToMaterialObjective(context)) break;
         const selection = this._selectTarget(context);
         this.lastSelection = selection && selection.ranking || null;
         if (!selection) {
@@ -13122,10 +13173,16 @@ module.exports = { ControlledMerchantExecutor, CONTROLLED_MERCHANT_MODE, CONTROL
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
+const { normalizeReason } = require('../core/event-log');
 
 const CONTROLLED_TRAVEL_MODE = 'controlled-live-default-off';
 const LIVE_ACK = 'CONTROLLED_CANARY';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
+
+function reasonText(value, fallback = 'UNKNOWN_REASON') {
+  const normalized = normalizeReason(value);
+  return normalized && normalized.reason ? normalized.reason : fallback;
+}
 
 function clone(value) {
   if (value == null) return value;
@@ -13262,7 +13319,7 @@ class ControlledTravelExecutor {
     const row = map && typeof map.get === 'function' ? map.get(String(planId)) : null;
     if (!row || ['COMPLETED', 'ABORTED', 'FAILED_SAFE'].includes(row.state)) return false;
     row.state = 'FAILED_SAFE';
-    row.reason = String(reason || 'FAILED_SAFE');
+    row.reason = reasonText(reason, 'FAILED_SAFE');
     row.updatedAt = this.now();
     this.controller.stats.failedSafe = (this.controller.stats.failedSafe || 0) + 1;
     if (typeof this.controller._failure === 'function') this.controller._failure(row.reason, row);
@@ -13274,7 +13331,7 @@ class ControlledTravelExecutor {
     try {
       this._syncAdapterMode();
       const command = this.adapter.command('stop', ['smart']);
-      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'STOP_COMMAND_REJECTED'));
+      if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'STOP_COMMAND_REJECTED'));
       const result = await Promise.resolve(command.value);
       this._event('CONTROLLED_TRAVEL_STOPPED', 'warn', reason, { result: clone(result) });
       return true;
@@ -13309,11 +13366,11 @@ class ControlledTravelExecutor {
     try {
       this._syncAdapterMode();
       const command = this.adapter.command('smart_move', [destination]);
-      if (!command.executed) throw new Error(command.reason || (command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
+      if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
       const routePromise = Promise.resolve(command.value);
       routePromise.catch(() => {});
       const response = await this._timeout(routePromise);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+      if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
       this.controller.observe(this._snapshot());
       const finalPlan = this.controller.get(plan.id);
       if (!finalPlan || finalPlan.state !== 'COMPLETED') {
@@ -13328,7 +13385,7 @@ class ControlledTravelExecutor {
       this._event('CONTROLLED_TRAVEL_COMPLETED', 'info', null, this.lastAction);
       return { executed: true, completed: true, reason: 'ARRIVAL_VERIFIED', response: clone(response) };
     } catch (error) {
-      const reason = String(error && error.message || error || 'SMART_MOVE_FAILED');
+      const reason = reasonText(error && (error.reason || error.code || error.message) || error, 'SMART_MOVE_FAILED');
       if (reason === 'SMART_MOVE_TIMEOUT') {
         this.stats.timeouts += 1;
         await this._stopSmart(reason);
@@ -27903,10 +27960,9 @@ class ControlledPartyLogistics {
     if (!snapshot || !snapshot.character || snapshot.character.rip) return false;
     const self = snapshot.character.name;
     const aggro = (snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && entity.target === self);
-    if (aggro) return false;
-    const farmer = this.runtime.farmer;
-    if (farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state)) return false;
-    return true;
+    // ENGAGE is the normal 24/7 farming state and must not suppress logistics.
+    // Only an actually hostile entity targeting this Farmer blocks a new offer.
+    return !aggro;
   }
 
   _verifyPendingOutbound(snapshot) {
@@ -28097,7 +28153,9 @@ class ControlledPartyLogistics {
         farmerGoldTransfer: true,
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
-        closedLoopLocalDeltaVerification: true
+        closedLoopLocalDeltaVerification: true,
+        engageStateDoesNotBlockTransfer: true,
+        activeAggroBlocksNewOfferOnly: true
       },
       lastMerchantStatus: clone(this.lastMerchantStatus),
       lastSupplyResult: clone(this.lastSupplyResult),
