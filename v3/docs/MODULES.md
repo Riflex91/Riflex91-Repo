@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 4084 Zeilen**
+**21 Dateien · 4113 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -37,7 +37,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha18-runtime.js` | 216 |
 | `src/autonomy/alpha19-runtime.js` | 178 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 345 |
-| `src/autonomy/alpha20-5-merchant-runtime.js` | 369 |
+| `src/autonomy/alpha20-5-merchant-runtime.js` | 398 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 68 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
@@ -161,7 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2498 Zeilen**
+**9 Dateien · 2505 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -171,7 +171,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/merchant-mluck-service.js` | 282 |
 | `src/merchant/merchant-production-controller.js` | 351 |
 | `src/merchant/merchant-production-planner.js` | 594 |
-| `src/merchant/merchant-service-planner.js` | 225 |
+| `src/merchant/merchant-service-planner.js` | 232 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
 
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14440 Zeilen**
+**50 Dateien · 14665 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -284,7 +284,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 578 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 633 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
@@ -308,7 +308,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/merchant-self-gear.js` | 381 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
-| `src/reliability/p0-potion-policy-4500.js` | 704 |
+| `src/reliability/p0-potion-policy-4500.js` | 874 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
