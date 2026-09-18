@@ -113,19 +113,14 @@ Live bestaetigt sind inzwischen:
 
 ## Naechste Block-8-Schritte
 
-Bereits erreicht:
+Die zuvor geplanten Stufen fuer Gruppenaktionsplanung, Gruppenaktionsanfragen, zentrale Schattensteuerung, Mehrcharakter-Wiederholung sowie gezielte Stale-/Reconnect-Pfade sind inzwischen umgesetzt und automatisiert abgesichert.
 
-1. Teilnehmermeldungen aus echten `Spielzustand`-Daten.
-2. read-only Lebensnachweis-Austausch zwischen eigenen Charakteren.
-3. echter read-only Koordinationsschatten mit Aktiv/Stale/Reconnect-Aufgabenwechsel.
-4. Produktionskopplung der Gefahrenstufe an Block 7.
-5. automatische, source-locked Live-Sicherheitsquelle und Lebensnachweis v1.1.0.
-6. echte Zwei-Ranger-Live-Abnahme der automatischen Block-7-Gefahrenquelle.
-7. Live-Fail-safe bei fehlender Block-7-Quelle ohne `send_cm`.
+Die verbleibende Block-8-Arbeit ist die aktive Abschlusskampagne:
 
-Als naechstes folgen getrennt und testbar:
+1. genau einen minimalen `GRUPPE_*`-Ausfuehrungspfad unter `ausfuehrung/` vorbereiten, weiterhin standardmaessig gesperrt,
+2. diesen Pfad deterministisch, per Replay/Simulation und im Schatten pruefen,
+3. einen begrenzten one-shot Live-Smoke mit automatischer Wiedersperrung bestehen,
+4. danach den 72-Stunden-Gruppentest durchlaufen,
+5. erst dann Block 8 formal abschliessen und Block 8.5 beginnen.
 
-1. konkrete Gruppenaktionsplanung fuer Heilen, Aggro, Schutz, Unterstuetzung und gemeinsames Ziel.
-2. Wiederverbindungs- und Gruppenwiederaufbau-Planung ueber die zentrale Aktionssteuerung.
-3. Mehrcharakter-Wiederholungen und gezielte Ausfalltests fuer die konkreten Gruppenplaene.
-4. erst danach begrenzte aktive Gruppen-Smoke-Tests und der spaetere 72-Stunden-Gruppentest.
+Der verbindliche aktuelle Stand und die Stop-Kriterien stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`.
