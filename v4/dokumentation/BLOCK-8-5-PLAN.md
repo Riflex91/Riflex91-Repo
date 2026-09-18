@@ -28,7 +28,7 @@ Zeitstempel und reine Laufzeitkennungen duerfen den fachlichen Wiederholungsverg
 
 Umgesetzt sind der allgemeine `EntscheidungsDatensatz`-Vertrag, die read-only Gruppen-Erzeugung, getrennte Eingabe-/Entscheidungs-Fingerabdruecke sowie Regressionstests fuer Zeitverschiebung, Eingabereihenfolge, Freshness und Safety. Aktions-/Ergebnis-Korrelation bleibt bewusst Schritt 8.5.2.
 
-### Schritt 8.5.2 – Entscheidung -> Aktion -> Ergebnis
+### Schritt 8.5.2 – Entscheidung -> Aktion -> Ergebnis — **IMPLEMENTIERT**
 
 Die vorhandene `AktionsSteuerung` bleibt Autoritaet.
 
@@ -37,6 +37,8 @@ Block 8.5 ergaenzt nur Korrelation:
 `EntscheidungsDatensatz -> AktionsAnfrage -> AktionsLaufZustand/AktionsErgebnis`
 
 Keine Telemetriekomponente darf selbst eine Aktion einreichen oder ausfuehren.
+
+Umgesetzt sind die fail-safe Verknuepfung mit Gruppen-AktionsAnfragen sowie die read-only Auswertung von `AktionsLaufZustand` und `AktionsErgebnis`. Fehlende oder fremde Ergebnisse bleiben explizit offen; die fachlichen Fingerabdruecke werden durch Laufzeitkennungen nicht veraendert.
 
 ### Schritt 8.5.3 – RuntimeGesundheit und RecoveryZustand
 
