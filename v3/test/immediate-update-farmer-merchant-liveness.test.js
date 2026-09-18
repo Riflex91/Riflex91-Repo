@@ -130,7 +130,7 @@ test('merchant gear delivery rejected by the raw-action budget does not consume 
   assert.equal(fixture.planning.completedGearGoalClaims.size, 0);
 });
 
-test('merchant executes ledger-authorized economy work before non-critical gear delivery', async () => {
+test('merchant delivers a current gear goal before low-risk sell or bank disposal', async () => {
   const runtime = {
     root: { character: { name: 'Merchant', ctype: 'merchant', map: 'main', items: [] }, parent: { entities: {} } },
     now: () => 3000,
@@ -167,9 +167,8 @@ test('merchant executes ledger-authorized economy work before non-critical gear 
   autonomy.deliverGearGoal = async () => { gearCalls += 1; return true; };
 
   assert.equal(await autonomy.cycle(), true);
-  assert.equal(economyExecutions, 1);
-  assert.equal(gearCalls, 0);
-  assert.equal(autonomy.lastMerchantPlan.type, 'SELL');
+  assert.equal(economyExecutions, 0);
+  assert.equal(gearCalls, 1);
 });
 
 test('open upgrade circuit does not starve sell or bank work', async () => {
