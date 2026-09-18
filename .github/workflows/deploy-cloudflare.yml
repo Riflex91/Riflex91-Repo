@@ -221,19 +221,11 @@ jobs:
             "$sha_url"
           cmp ../v4/dist/aio-v4-runtime.js /tmp/aio-v4-public.js
           cmp ../v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-public.sha256
-          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*      - name: Remove temporary deploy config
-        if: always()
-        working-directory: cloudflare-dashboard
-        run: rm -f wrangler.deploy.jsonc d1-list.json
- /tmp/aio-v4-runtime.headers
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' /tmp/aio-v4-runtime.headers
           grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-runtime.headers
           grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-runtime.headers
           grep -Eiq '^content-type:[[:space:]]*application/javascript' /tmp/aio-v4-runtime.headers
-          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*      - name: Remove temporary deploy config
-        if: always()
-        working-directory: cloudflare-dashboard
-        run: rm -f wrangler.deploy.jsonc d1-list.json
- /tmp/aio-v4-sha.headers
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' /tmp/aio-v4-sha.headers
           grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-sha.headers
           grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-sha.headers
           grep -Eiq '^content-type:[[:space:]]*text/plain' /tmp/aio-v4-sha.headers
