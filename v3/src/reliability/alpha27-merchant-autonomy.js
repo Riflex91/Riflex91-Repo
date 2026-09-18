@@ -187,6 +187,56 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  async executeEconomyRequest(request) {
+    if (!request) return false;
+    if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+
+    if (request.type === 'BANK') {
+      const c = characterOf(this.runtime);
+      if (!c.bank || typeof c.bank !== 'object') {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
+        await this.atomic.namedServiceTravel('bank');
+        return true;
+      }
+    }
+    if (request.type === 'SELL') {
+      const canSell = rawFunction(this.root, 'can_sell');
+      let near = false;
+      if (canSell) {
+        try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+      }
+      if (!near) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
+        const travelled = await this.atomic.namedServiceTravel('scroll0');
+        const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
+        if (!travelSucceeded) {
+          this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
+          return true;
+        }
+        if (canSell) {
+          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+          if (!near) {
+            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
+            return true;
+          }
+        }
+      }
+    }
+
+    const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
+      ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
+      : this.runtime.planEconomyTransaction(request);
+    if (!planned || planned.accepted !== true || !planned.transaction) {
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
+      return false;
+    }
+    this.stats.autonomousMerchantPlans += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
+    const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
+    return true;
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -241,73 +291,21 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
-    // A scoped mutation circuit must not starve independent economy work.
-    // Skip the blocked family and continue with the next ledger-authorized
-    // action instead of reserving the same doomed item every cycle.
+    // Progression is processed before disposal. This restores the intended
+    // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
+    // Family-scoped circuits still allow unrelated later stages to continue.
     let request = this.transactionFamilyOpen('UPGRADE') ? null : this.planUpgrade();
     if (!request && !this.transactionFamilyOpen('COMPOUND')) request = this.planCompound();
-    if (!request) {
-      const lowRiskRequest = this.planSellOrBank();
-      if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) request = lowRiskRequest;
-    }
-    if (request) {
-      if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+    if (request) return this.executeEconomyRequest(request);
 
-      if (request.type === 'BANK') {
-        const c = characterOf(this.runtime);
-        if (!c.bank || typeof c.bank !== 'object') {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
-          await this.atomic.namedServiceTravel('bank');
-          return true;
-        }
-      }
-      if (request.type === 'SELL') {
-        const canSell = rawFunction(this.root, 'can_sell');
-        let near = false;
-        if (canSell) {
-          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
-        }
-        // Adventure Land does not guarantee a public can_sell() helper. The old
-        // code treated a missing probe as proof that the merchant was already in
-        // range, which produced repeated sell()->distance failures. Unknown
-        // proximity is now fail-closed: travel to a known vendor first, then
-        // execute the already-authorized transaction in the same cycle.
-        if (!near) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
-          const travelled = await this.atomic.namedServiceTravel('scroll0');
-          const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
-          if (!travelSucceeded) {
-            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
-            return true;
-          }
-          if (canSell) {
-            try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
-            if (!near) {
-              this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
-              return true;
-            }
-          }
-        }
-      }
-
-      const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
-        ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
-        : this.runtime.planEconomyTransaction(request);
-      if (!planned || planned.accepted !== true || !planned.transaction) {
-        this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
-        return false;
-      }
-      this.stats.autonomousMerchantPlans += 1;
-      this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
-      const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
-      this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
-      return true;
-    }
-
-    // Non-critical gear goals use otherwise-idle merchant turns. A rejected
-    // service execution now returns false from deliverGearGoal(), so a full raw
-    // action budget does not masquerade as useful work.
+    // Re-evaluate useful gear before any disposal action. A current GearProgression
+    // reservation therefore always gets the chance to reach its Farmer first.
     if (await this.deliverGearGoal()) return true;
+
+    const lowRiskRequest = this.planSellOrBank();
+    if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) {
+      return this.executeEconomyRequest(lowRiskRequest);
+    }
 
     this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
     return false;
@@ -333,7 +331,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
-      economyBeforeNonCriticalGearDelivery: true,
+      economyBeforeNonCriticalGearDelivery: false,
+      itemLifecycleOrder: ['UPGRADE', 'COMPOUND', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
