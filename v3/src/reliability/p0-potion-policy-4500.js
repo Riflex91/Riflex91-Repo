@@ -2,7 +2,7 @@
 
 const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
 
-const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v4';
+const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v5';
 const POTION_TARGET_COUNT = 4500;
 // A latched service order is bounded so stale party telemetry cannot pin a target forever.
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
@@ -29,7 +29,7 @@ function potionServiceChainState(runtime) {
       sequence: 0,
       active: null,
       lastRelease: null,
-      stats: { starts: 0, refreshes: 0, releases: 0, timeouts: 0, downwardClamps: 0 }
+      stats: { starts: 0, refreshes: 0, releases: 0, timeouts: 0, downwardClamps: 0, freshReportRebinds: 0, zeroSupplyPreemptions: 0 }
     };
   }
   return runtime.__p0PotionPolicy4500ServiceChainState;
@@ -227,9 +227,9 @@ function installPlannerPolicy(runtime) {
   planner.targetPotionCount = POTION_TARGET_COUNT;
   planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
 
-  if (planner.__p0PotionPolicy4500PlannerVersion === 4 || typeof planner.plan !== 'function') return true;
-  // Versioned wrapping is intentional: a live runtime may already carry the v3 wrapper.
-  // Wrapping that existing planner once lets the fix take effect without requiring a page restart.
+  if (planner.__p0PotionPolicy4500PlannerVersion === 5 || typeof planner.plan !== 'function') return true;
+  // Versioned wrapping is intentional: a live runtime may already carry the v4 wrapper.
+  // Wrapping that existing planner once lets the liveness fix take effect without requiring a page restart.
   const basePlan = planner.plan.bind(planner);
 
   const targetReportFor = (input, targetName) => {
@@ -239,6 +239,24 @@ function installPlannerPolicy(runtime) {
       const at = finite(row.at);
       return at != null && now - at <= planner.reportTtlMs;
     }) || null;
+  };
+
+  const shouldPreemptForZeroSupply = (input, base, chain) => {
+    if (!base || !chain || !base.target || !base.need) return false;
+    const nextTarget = String(base.target.name || '');
+    if (!nextTarget || nextTarget === String(chain.targetName || '')) return false;
+    const family = String(base.need.family || '');
+    if (!['hp', 'mp'].includes(family)) return false;
+    if (Number(base.need.priority || 0) < 95 || Number(base.need.count) !== 0) return false;
+
+    // Do not churn between equally empty targets. Preemption is reserved for
+    // absolute starvation (0 potions) overtaking a target that still has stock,
+    // or a target whose evidence is no longer fresh.
+    const activeReport = targetReportFor(input, chain.targetName);
+    if (!activeReport) return true;
+    const activeFamily = chain.deliveries && chain.deliveries[0] && chain.deliveries[0].family;
+    const activeCount = farmerCount(activeReport, activeFamily || family);
+    return activeCount > 0;
   };
 
   const buildChainPlan = (input, base, chain) => {
@@ -306,6 +324,7 @@ function installPlannerPolicy(runtime) {
       return hold;
     }
 
+    const freshSourceReportAt = finite(report.at, chain.sourceReportAt);
     const target = {
       ...clone(chain.target || {}),
       name: chain.targetName,
@@ -340,7 +359,9 @@ function installPlannerPolicy(runtime) {
     const next = {
       ...clone(base),
       target,
-      sourceReportAt: chain.sourceReportAt,
+      // Bind travel/delivery authority to the fresh report that supplied the
+      // current coordinates, not to the first report that started the chain.
+      sourceReportAt: freshSourceReportAt,
       deliveries: clone(deliveries),
       delivery: clone(deliveries[0]),
       metadata
@@ -369,6 +390,10 @@ function installPlannerPolicy(runtime) {
 
     chain.refreshedAt = now;
     chain.target = clone(target);
+    if (freshSourceReportAt != null && freshSourceReportAt !== chain.sourceReportAt) {
+      chain.sourceReportAt = freshSourceReportAt;
+      potionServiceChainState(runtime).stats.freshReportRebinds += 1;
+    }
     potionServiceChainState(runtime).stats.refreshes += 1;
     publishPotionServiceChain(runtime);
     planner.lastPlan = clone(next);
@@ -378,6 +403,11 @@ function installPlannerPolicy(runtime) {
   planner.plan = (input = {}) => {
     const plan = basePlan(input);
     const state = potionServiceChainState(runtime);
+    if (state.active && shouldPreemptForZeroSupply(input, plan, state.active)) {
+      releasePotionServiceChain(runtime, 'ZERO_POTION_TARGET_PREEMPT');
+      state.stats.zeroSupplyPreemptions += 1;
+      publishPotionServiceChain(runtime);
+    }
     if (state.active) {
       const chained = buildChainPlan(input, plan, state.active);
       if (chained) return chained;
@@ -454,7 +484,7 @@ function installPlannerPolicy(runtime) {
     return clone(next);
   };
   planner.__p0PotionPolicy4500PlannerInstalled = true;
-  planner.__p0PotionPolicy4500PlannerVersion = 4;
+  planner.__p0PotionPolicy4500PlannerVersion = 5;
   return true;
 }
 
@@ -623,7 +653,7 @@ function installDeliveryPolicy(runtime) {
   };
 
   service.__p0PotionPolicy4500DeliveryInstalled = true;
-  service.__p0PotionPolicy4500DeliveryVersion = 4;
+  service.__p0PotionPolicy4500DeliveryVersion = 5;
   return true;
 }
 
