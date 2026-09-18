@@ -116,6 +116,7 @@ class Alpha27BankRecovery {
   _recoverableRows() {
     const c = characterOf(this.runtime);
     if (!c || !c.bank || typeof c.bank !== 'object') return [];
+    if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(c);
     const gd = gameDataOf(this.runtime);
     const local = inventoryOf(this.root);
     const bank = bankRows(c.bank);
@@ -334,6 +335,7 @@ class Alpha27BankRecovery {
       if (result && result.committed === true) {
         this.stats.retrievesCommitted += 1;
         this.nextProbeAt = this.now();
+        if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
       } else if (result && result.executed === true) {
         this.stats.retrievesFailedSafe += 1;
         this.nextProbeAt = this.now() + this.failureRetryMs;
