@@ -32,6 +32,8 @@ if (!integrationBrowser.includes(`QUELL_BLOB_SHA = '${integrationSha}'`)) {
 const zentralBrowser = await readFile(path.join(wurzel, 'werkzeuge/aktions-steuerung-schatten-kern.js'), 'utf8');
 const zentraleQuellen = {
   aktionsSteuerung: 'laufzeit/quelle/kern/aktions-steuerung.ts',
+  laufzeitSteuerung: 'laufzeit/quelle/kern/laufzeit-steuerung.ts',
+  laufzeitVertrag: 'laufzeit/quelle/vertraege/laufzeit-steuerung.ts',
   aktionsAuswahl: 'laufzeit/quelle/kern/aktions-auswahl.ts',
   ressourcenVergabe: 'laufzeit/quelle/kern/ressourcen-vergabe.ts',
   schattenAusfuehrung: 'laufzeit/quelle/kern/schatten-ausfuehrung.ts',
