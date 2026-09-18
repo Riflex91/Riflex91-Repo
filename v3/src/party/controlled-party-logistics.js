@@ -340,10 +340,11 @@ class ControlledPartyLogistics {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
     for (const [id, grant] of this.activeLootGrants) {
-      const deadline = grant && grant.senderCommittedAt != null
-        ? finite(grant.settleUntil, grant.expiresAt)
-        : finite(grant && grant.expiresAt, 0);
-      if (deadline <= now) this.activeLootGrants.delete(id);
+      // Once the Farmer has observed its outbound delta, only Merchant-side
+      // reconciliation may release this reservation. That prevents the generic
+      // TTL pruner from reopening the last slot before recipient settlement.
+      if (grant && grant.senderCommittedAt != null) continue;
+      if (finite(grant && grant.expiresAt, 0) <= now) this.activeLootGrants.delete(id);
     }
     if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
     for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
