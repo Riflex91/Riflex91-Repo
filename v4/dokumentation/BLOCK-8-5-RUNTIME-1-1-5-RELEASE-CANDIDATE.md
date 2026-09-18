@@ -18,6 +18,13 @@ Dieser Commit enthaelt den final vorbereiteten 8.5.9-Live-Nachweisrunner und die
 
 Der Candidate wird bewusst an einen exakten Git-SHA gebunden und nicht an `main`, `latest` oder einen beweglichen Branch.
 
+Die Freigabe-Nachweise muessen exakt folgende Bindung verwenden:
+
+- `laufzeitPfadKennung: block8.5-basisbedienung-runtime`
+- `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`
+
+Damit verweisen Runtime-Release, Schatten-, Live- und Soak-Nachweis auf denselben unveraenderlichen Aenderungsstand.
+
 ## Reproduzierbarer Runtime-Build
 
 Manifest:
