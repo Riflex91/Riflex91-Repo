@@ -108,8 +108,13 @@ test('Gear Progression finds the first meaningful upgrade level instead of assum
   const goal = result.goals.find((row) => row.character === 'R1' && row.item === 'blade' && row.slot === 'mainhand');
   assert.ok(goal);
   assert.equal(goal.observedLevel, 0);
-  assert.equal(goal.targetLevel, 4);
+  assert.equal(goal.targetLevel, 5);
   assert.equal(goal.projectedUpgradeRequired, true);
+  const future = evaluator.futureProtectionFor('R1', 0, 'blade', 0);
+  assert.ok(future);
+  assert.equal(future.firstMeaningfulLevel, 4);
+  assert.equal(future.targetLevel, 5);
+  assert.equal(future.upgradeLifecycle, 'FARMER_POTENTIAL_TO_PLUS5');
   assert.equal(goal.feasibility, 'MATERIALS_AND_RISK_UNMODELED');
   assert.equal(goal.actionAuthority, false);
   assert.ok(result.reservations.some((row) => row.name === 'blade' && row.level === 0));

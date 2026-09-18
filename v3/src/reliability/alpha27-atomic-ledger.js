@@ -105,24 +105,33 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         }
       }
 
-      // Generic low-risk upgradeable gear gets exactly one economy lifecycle
-      // upgrade unless an active GearProgression reservation has already claimed
-      // it for a higher party target. Higher levels are then either delivered by
-      // the gear-goal path or sold through the tightly scoped processed-gear gate.
+      // Upgradeable gear that has been explicitly evaluated as having no
+      // Farmer value by +5 still receives a bounded economic processing path:
+      // try up to +3 with scroll0 only, then allow the normal processed-gear
+      // sale gate to dispose of low-value results. Re-evaluation is required
+      // after every observed level change, so a newly useful item immediately
+      // leaves this fallback and moves into the Farmer +5 progression path.
       if (meta.upgrade) {
-        if (level === 0 && this.options.maxUpgradeLevel > 0 && grade < 4 && (value != null && value <= this.options.upgradeValueCap)) {
+        if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
-            disposition: 'RESERVE_UPGRADE',
-            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_UPGRADE']
+            disposition: 'KEEP',
+            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
           };
         }
-        if (level > 0 && grade < 4 && underKeepValue) {
-          if (!futureSellSafety || futureSellSafety.checked !== true) {
-            return {
-              disposition: 'KEEP',
-              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
-            };
-          }
+        const economicTargetLevel = Math.min(3, this.options.maxUpgradeLevel);
+        if (level < economicTargetLevel && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [
+              ...baseReasons,
+              'AUTONOMOUS_ECONOMIC_UPGRADE',
+              'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3',
+              'FUTURE_FARMER_GEAR_EVALUATED_SAFE'
+            ],
+            economicTargetLevel
+          };
+        }
+        if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -167,6 +176,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         processedGearSaleRequiresLifecycleAuthorization: true,
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
+        farmerPotentialUpgradeTargetLevel: 5,
+        nonImprovingUpgradeProcessingTargetLevel: 3,
+        nonImprovingUpgradeProcessingScrollPolicy: 'SCROLL0_ONLY',
         processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });

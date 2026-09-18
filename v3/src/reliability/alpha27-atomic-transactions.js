@@ -37,7 +37,23 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const meta = gd.items && gd.items[row.name];
       if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
       const grade = gradeForLevel(meta, levelOf(row));
-      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      let wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      if (type === 'UPGRADE') {
+        const level = levelOf(row);
+        const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
+        let protection = null;
+        try {
+          const gear = this.runtime.gearProgression;
+          protection = gear && typeof gear.futureProtectionFor === 'function'
+            ? gear.futureProtectionFor(c.name, row.index, row.name, level)
+            : null;
+        } catch (_) {}
+        if (protection && Math.floor(finite(protection.targetLevel, 0)) === 5 && level < 5) {
+          wantedScroll = level < 3 ? 'scroll0' : 'scroll1';
+        } else if (reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3') && level < 3) {
+          wantedScroll = 'scroll0';
+        }
+      }
       if (wantedScroll !== scrollName || grade >= 4) continue;
       const key = `${type}|${row.name}|${levelOf(row)}`;
       const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
@@ -133,17 +149,44 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
+      const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
       if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (goal && tx.metadata && tx.metadata.targetLevel != null && requestedTarget !== Math.floor(finite(goal.targetLevel, requestedTarget))) {
+        return { ok: false, reason: 'GEAR_GOAL_TARGET_MISMATCH' };
+      }
       if (!goal && economicLifecycle && !selfGear) {
-        const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
-        if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
+        if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
         const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE')) {
+        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
         }
       }
-      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, selfGear, value, grade, scroll: `scroll${grade}` };
+
+      let scroll = `scroll${grade}`;
+      const farmerPlus5 = !!(
+        goal
+        && String(goal.character || '') !== String(tx.character || '')
+        && Math.floor(finite(goal.targetLevel, 0)) === 5
+      );
+      if (farmerPlus5) {
+        if (levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
+        scroll = levelOf(tx) < 3 ? 'scroll0' : 'scroll1';
+      } else if (economicLifecycle && !selfGear) {
+        scroll = 'scroll0';
+      }
+      return {
+        ok: true,
+        inputs,
+        meta,
+        goal: goal || null,
+        economicLifecycle,
+        selfGear,
+        value,
+        grade,
+        scroll,
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE'
+      };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };

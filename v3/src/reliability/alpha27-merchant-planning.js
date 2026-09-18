@@ -127,22 +127,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
       const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
       if (!budget.allowed) continue;
-      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
+      const farmerPlus5 = String(goal.character || '') !== String(c.name || '') && Math.floor(finite(goal.targetLevel, 0)) === 5;
+      return {
+        type: 'UPGRADE',
+        character: c.name,
+        index: entry.index,
+        indices: [entry.index],
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          goalId: goal.id,
+          targetLevel: goal.targetLevel,
+          targetCharacter: goal.character,
+          lifecycle: 'PARTY_GEAR_GOAL',
+          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
+          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT'
+        }
+      };
     }
 
-    // If no party goal claims an upgradeable level-0 item, perform one bounded
-    // economy lifecycle upgrade. The result is re-evaluated against the party
-    // before it can become an authorized processed-gear SELL candidate.
+    // No Farmer value by +5: keep processing the exact observed item through
+    // +3 with scroll0 only. GearProgression is re-run after every level change;
+    // if the item becomes useful, the Farmer +5 goal above takes ownership.
     const fallback = ledger.list(1000)
       .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
       .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
       .find((entry) => {
         const meta = gd.items && gd.items[entry.name];
-        if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
-        if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
+        const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+        const level = levelOf(entry);
+        if (!meta || !meta.upgrade || level >= 3 || this.options.maxUpgradeLevel < 1) return false;
+        if (!reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) return false;
+        if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
-        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) }).allowed;
+        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level }).allowed;
       });
     if (!fallback) return null;
     return {
@@ -154,8 +172,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         source: 'ALPHA27_AUTONOMOUS_PLANNER',
         lifecycle: 'ECONOMIC_PROCESSING',
         economicLifecycle: true,
-        targetLevel: 1,
-        targetCharacter: null
+        targetLevel: 3,
+        targetCharacter: null,
+        upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
+        scrollPolicy: 'SCROLL0_ONLY'
       }
     };
   }

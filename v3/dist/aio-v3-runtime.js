@@ -11043,6 +11043,8 @@ module.exports = {
 
 const GEAR_PROGRESSION_SCHEMA_VERSION = 1;
 const GEAR_PROGRESSION_MODE = 'shadow-planning-only';
+const FARMER_UPGRADE_MAX_LEVEL = 5;
+const ECONOMIC_UPGRADE_FALLBACK_LEVEL = 3;
 
 const CLASS_WEIGHTS = Object.freeze({
   warrior: { attack: 1.0, armor: 1.25, resistance: 0.85, hp: 0.04, str: 0.8, dex: 0.2, int: 0.1, crit: 0.3, evasion: 0.2, speed: 0.15 },
@@ -11221,9 +11223,10 @@ class GearProgressionEvaluator {
     return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype) };
   }
 
-  _firstMeaningful(meta, observedLevel, currentScore, ctype) {
+  _firstMeaningful(meta, observedLevel, currentScore, ctype, probeMaxLevel = this.maxProbeLevel) {
     const start = Math.max(0, observedLevel);
-    const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
+    const boundedProbeMax = Math.max(start, Math.min(this.maxProbeLevel, Math.max(0, Math.floor(finite(probeMaxLevel, this.maxProbeLevel)))));
+    const max = meta && (meta.upgrade || meta.compound) ? boundedProbeMax : start;
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
       const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
@@ -11324,14 +11327,27 @@ class GearProgressionEvaluator {
         let best = null;
         for (const slot of candidate.slots) {
           const current = this._currentItem(character, slot, gameData);
-          const meaningful = this._firstMeaningful(candidate.meta, levelOf(candidate.item), current.score, character.ctype);
+          const observedLevel = levelOf(candidate.item);
+          const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+          // Upgradeable feeder gear is only considered "future Farmer gear" if
+          // it becomes meaningful by +5. That gives the executor a bounded,
+          // explicit risk horizon instead of protecting arbitrary +6..+12 hopes.
+          const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
+            ? FARMER_UPGRADE_MAX_LEVEL
+            : this.maxProbeLevel;
+          const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
           if (!meaningful) continue;
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
-          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement };
-          if (String(character.ctype || '').toLowerCase() !== 'merchant'
-            && meaningful.level > levelOf(candidate.item)
+          const projectedFarmerUpgrade = isFarmerTarget
+            && !!candidate.meta.upgrade
+            && meaningful.level > observedLevel
+            && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
+          const progressionTargetLevel = projectedFarmerUpgrade ? FARMER_UPGRADE_MAX_LEVEL : meaningful.level;
+          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement, progressionTargetLevel };
+          if (isFarmerTarget
+            && meaningful.level > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
             const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
             const existingProtection = this.futureFarmerProtection.get(protectionKey);
@@ -11339,12 +11355,14 @@ class GearProgressionEvaluator {
               sourceCharacter: candidate.sourceCharacter,
               sourceIndex: Number(candidate.item.index),
               item: candidate.item.name,
-              observedLevel: levelOf(candidate.item),
-              targetLevel: meaningful.level,
+              observedLevel,
+              targetLevel: progressionTargetLevel,
+              firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
               improvement,
               survivalImprovement,
+              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
               reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
             };
             if (!existingProtection
@@ -11364,7 +11382,7 @@ class GearProgressionEvaluator {
           if (better) best = row;
         }
         if (!best) continue;
-        const targetLevel = best.meaningful.level;
+        const targetLevel = best.progressionTargetLevel;
         const id = this._goalId(character.name, best.slot, candidate.item.name, targetLevel);
         seenGoalIds.add(id);
         const existing = this.goals.get(id);
@@ -11548,7 +11566,9 @@ class GearProgressionEvaluator {
       goals: this.goals.size,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
-      futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      futureProtectionMode: 'UPGRADE_TO_PLUS5_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      farmerUpgradePotentialMaxLevel: FARMER_UPGRADE_MAX_LEVEL,
+      economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       merchantPrimaryGearStat: 'speed',
       merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
@@ -33040,7 +33060,23 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const meta = gd.items && gd.items[row.name];
       if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
       const grade = gradeForLevel(meta, levelOf(row));
-      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      let wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      if (type === 'UPGRADE') {
+        const level = levelOf(row);
+        const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
+        let protection = null;
+        try {
+          const gear = this.runtime.gearProgression;
+          protection = gear && typeof gear.futureProtectionFor === 'function'
+            ? gear.futureProtectionFor(c.name, row.index, row.name, level)
+            : null;
+        } catch (_) {}
+        if (protection && Math.floor(finite(protection.targetLevel, 0)) === 5 && level < 5) {
+          wantedScroll = level < 3 ? 'scroll0' : 'scroll1';
+        } else if (reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3') && level < 3) {
+          wantedScroll = 'scroll0';
+        }
+      }
       if (wantedScroll !== scrollName || grade >= 4) continue;
       const key = `${type}|${row.name}|${levelOf(row)}`;
       const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
@@ -33136,17 +33172,44 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
+      const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
       if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (goal && tx.metadata && tx.metadata.targetLevel != null && requestedTarget !== Math.floor(finite(goal.targetLevel, requestedTarget))) {
+        return { ok: false, reason: 'GEAR_GOAL_TARGET_MISMATCH' };
+      }
       if (!goal && economicLifecycle && !selfGear) {
-        const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
-        if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
+        if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
         const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
-        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE')) {
+        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
         }
       }
-      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, selfGear, value, grade, scroll: `scroll${grade}` };
+
+      let scroll = `scroll${grade}`;
+      const farmerPlus5 = !!(
+        goal
+        && String(goal.character || '') !== String(tx.character || '')
+        && Math.floor(finite(goal.targetLevel, 0)) === 5
+      );
+      if (farmerPlus5) {
+        if (levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
+        scroll = levelOf(tx) < 3 ? 'scroll0' : 'scroll1';
+      } else if (economicLifecycle && !selfGear) {
+        scroll = 'scroll0';
+      }
+      return {
+        ok: true,
+        inputs,
+        meta,
+        goal: goal || null,
+        economicLifecycle,
+        selfGear,
+        value,
+        grade,
+        scroll,
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE'
+      };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
@@ -33422,24 +33485,33 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         }
       }
 
-      // Generic low-risk upgradeable gear gets exactly one economy lifecycle
-      // upgrade unless an active GearProgression reservation has already claimed
-      // it for a higher party target. Higher levels are then either delivered by
-      // the gear-goal path or sold through the tightly scoped processed-gear gate.
+      // Upgradeable gear that has been explicitly evaluated as having no
+      // Farmer value by +5 still receives a bounded economic processing path:
+      // try up to +3 with scroll0 only, then allow the normal processed-gear
+      // sale gate to dispose of low-value results. Re-evaluation is required
+      // after every observed level change, so a newly useful item immediately
+      // leaves this fallback and moves into the Farmer +5 progression path.
       if (meta.upgrade) {
-        if (level === 0 && this.options.maxUpgradeLevel > 0 && grade < 4 && (value != null && value <= this.options.upgradeValueCap)) {
+        if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
-            disposition: 'RESERVE_UPGRADE',
-            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_UPGRADE']
+            disposition: 'KEEP',
+            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
           };
         }
-        if (level > 0 && grade < 4 && underKeepValue) {
-          if (!futureSellSafety || futureSellSafety.checked !== true) {
-            return {
-              disposition: 'KEEP',
-              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
-            };
-          }
+        const economicTargetLevel = Math.min(3, this.options.maxUpgradeLevel);
+        if (level < economicTargetLevel && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [
+              ...baseReasons,
+              'AUTONOMOUS_ECONOMIC_UPGRADE',
+              'AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3',
+              'FUTURE_FARMER_GEAR_EVALUATED_SAFE'
+            ],
+            economicTargetLevel
+          };
+        }
+        if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -33484,6 +33556,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         processedGearSaleRequiresLifecycleAuthorization: true,
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
+        farmerPotentialUpgradeTargetLevel: 5,
+        nonImprovingUpgradeProcessingTargetLevel: 3,
+        nonImprovingUpgradeProcessingScrollPolicy: 'SCROLL0_ONLY',
         processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });
@@ -34348,22 +34423,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
       const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
       if (!budget.allowed) continue;
-      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
+      const farmerPlus5 = String(goal.character || '') !== String(c.name || '') && Math.floor(finite(goal.targetLevel, 0)) === 5;
+      return {
+        type: 'UPGRADE',
+        character: c.name,
+        index: entry.index,
+        indices: [entry.index],
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          goalId: goal.id,
+          targetLevel: goal.targetLevel,
+          targetCharacter: goal.character,
+          lifecycle: 'PARTY_GEAR_GOAL',
+          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
+          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT'
+        }
+      };
     }
 
-    // If no party goal claims an upgradeable level-0 item, perform one bounded
-    // economy lifecycle upgrade. The result is re-evaluated against the party
-    // before it can become an authorized processed-gear SELL candidate.
+    // No Farmer value by +5: keep processing the exact observed item through
+    // +3 with scroll0 only. GearProgression is re-run after every level change;
+    // if the item becomes useful, the Farmer +5 goal above takes ownership.
     const fallback = ledger.list(1000)
       .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
       .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
       .find((entry) => {
         const meta = gd.items && gd.items[entry.name];
-        if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
-        if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
+        const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+        const level = levelOf(entry);
+        if (!meta || !meta.upgrade || level >= 3 || this.options.maxUpgradeLevel < 1) return false;
+        if (!reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3')) return false;
+        if (gradeForLevel(meta, level) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
         if (value > this.options.upgradeValueCap) return false;
-        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) }).allowed;
+        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level }).allowed;
       });
     if (!fallback) return null;
     return {
@@ -34375,8 +34468,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         source: 'ALPHA27_AUTONOMOUS_PLANNER',
         lifecycle: 'ECONOMIC_PROCESSING',
         economicLifecycle: true,
-        targetLevel: 1,
-        targetCharacter: null
+        targetLevel: 3,
+        targetCharacter: null,
+        upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
+        scrollPolicy: 'SCROLL0_ONLY'
       }
     };
   }
@@ -51623,6 +51718,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.lastMerchantRendezvousAt = -Infinity;
     this.merchantRendezvousBusy = false;
     this.collectionRoute = null;
+    this.suspendedCollectionRoute = null;
     this.lastCollectionCapacityPlan = null;
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
@@ -51655,7 +51751,11 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
       collectionFollowMoves: 0,
-      collectionRoutesPreemptedForCriticalSupply: 0
+      collectionDrainedWaits: 0,
+      collectionUnavailableCompletions: 0,
+      collectionRoutesPreemptedForCriticalSupply: 0,
+      collectionRoutesSuspendedForCriticalSupply: 0,
+      collectionRoutesResumedAfterCriticalSupply: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -52201,6 +52301,41 @@ class Alpha33MarkOrbitMerchantDelivery {
     };
   }
 
+  _collectionPresenceCandidate(route) {
+    const wanted = new Set(Array.isArray(route && route.farmers) ? route.farmers.map(String) : []);
+    const rows = this._freshFarmerRows().filter((row) => wanted.size === 0 || wanted.has(String(row.name || '')));
+    if (!rows.length) return null;
+    const c = characterOf(this.runtime) || {};
+    const sameMap = rows.filter((row) => String(row.map || '') === String(c.map || ''));
+    const pool = sameMap.length ? sameMap : rows;
+    const selected = pool.slice().sort((a, b) => (
+      distance(c, a) - distance(c, b)
+      || finite(b.sourceAt, 0) - finite(a.sourceAt, 0)
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    ))[0];
+    return {
+      map: selected.map,
+      x: Number(selected.x),
+      y: Number(selected.y),
+      targetName: selected.name || null,
+      count: rows.length,
+      names: rows.map((row) => row.name).filter(Boolean).sort(),
+      rows: rows.map((row) => ({ ...row, gear: undefined })),
+      pickupEntryCount: 0,
+      pickupQuantity: 0,
+      observedAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
+    };
+  }
+
+  _collectionRouteExplicitlyUnavailable(route) {
+    const names = Array.isArray(route && route.farmers) ? route.farmers.map(String).filter(Boolean) : [];
+    if (!names.length) return false;
+    return names.every((name) => {
+      const row = this.farmerStates.get(name);
+      return !!row && (row.runtimeActive === false || row.available === false || row.dead === true);
+    });
+  }
+
   _merchantCapacitySnapshot() {
     const c = characterOf(this.runtime) || {};
     const items = Array.isArray(c.items) ? c.items : [];
@@ -52342,6 +52477,65 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
+  _suspendCollectionRouteForCriticalSupply(plan) {
+    const route = this.collectionRoute ? { ...this.collectionRoute, farmers: this.collectionRoute.farmers.slice() } : null;
+    if (!route) return false;
+    const details = {
+      serviceKind: plan && plan.kind || null,
+      target: plan && plan.target && plan.target.name || null,
+      deliveries: plan && plan.deliveries || []
+    };
+    this._finishCollectionRoute('CRITICAL_PARTY_SUPPLY_PREEMPT', details);
+    this.suspendedCollectionRoute = {
+      ...route,
+      suspendedAt: this.now(),
+      suspendReason: 'CRITICAL_PARTY_SUPPLY_PREEMPT',
+      stage: route.stage === 'PREPARE_CAPACITY' ? 'TRAVEL_TO_FARMERS' : route.stage
+    };
+    this.stats.collectionRoutesSuspendedForCriticalSupply += 1;
+    this._event('MERCHANT_COLLECTION_ROUTE_SUSPENDED', 'info', 'CRITICAL_PARTY_SUPPLY_PREEMPT', {
+      routeId: route.id,
+      farmers: route.farmers.slice(),
+      details
+    });
+    return true;
+  }
+
+  _resumeSuspendedCollectionRoute() {
+    const suspended = this.suspendedCollectionRoute;
+    if (!suspended) return false;
+    const pressure = this._merchantCapacitySnapshot();
+    if (pressure.freeSlots <= 0) {
+      this.suspendedCollectionRoute = null;
+      return false;
+    }
+    const coordinator = this._collectionCoordinator();
+    const lock = coordinator && typeof coordinator.acquire === 'function'
+      ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
+          farmers: suspended.farmers.slice(),
+          resumedAfter: suspended.suspendReason,
+          previousRouteId: suspended.id
+        }, { leaseMs: Math.max(120000, this.collectionPrepareMaxMs + 60000) })
+      : { acquired: true };
+    if (!lock.acquired) return false;
+    const now = this.now();
+    this.collectionRoute = {
+      ...suspended,
+      updatedAt: now,
+      lastProgressAt: now,
+      resumedAt: now,
+      stage: suspended.stage === 'PREPARE_CAPACITY' ? 'TRAVEL_TO_FARMERS' : suspended.stage
+    };
+    this.suspendedCollectionRoute = null;
+    this.stats.collectionRoutesResumedAfterCriticalSupply += 1;
+    this._event('MERCHANT_COLLECTION_ROUTE_RESUMED', 'info', 'CRITICAL_PARTY_SUPPLY_COMPLETE_RESUME_COLLECTION', {
+      routeId: this.collectionRoute.id,
+      farmers: this.collectionRoute.farmers.slice(),
+      freeSlots: pressure.freeSlots
+    });
+    return true;
+  }
+
   async _travelToFreshCandidate(merchant, candidate, follow = false) {
     if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
     const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
@@ -52390,13 +52584,67 @@ class Alpha33MarkOrbitMerchantDelivery {
     const coordinator = this._collectionCoordinator();
     if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
 
+    const pressure = this._merchantCapacitySnapshot();
+    if (pressure.freeSlots <= 0) {
+      return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', {
+        pickupQuantityRemaining: candidate && candidate.pickupQuantity || 0,
+        occupied: pressure.occupied,
+        capacity: pressure.capacity
+      });
+    }
+
     candidate = this._merchantRendezvousCandidate();
     if (!candidate) {
       this._requestFarmerStateRefresh();
-      if (this.now() - route.lastProgressAt >= this.collectionSettleMs) {
-        return this._finishCollectionRoute('NO_FRESH_PICKUP_DEMAND_AFTER_SETTLE');
+
+      // A transient "drained" snapshot is not a terminal collection state.
+      // Farmers continue farming and can produce new loot immediately after the
+      // settle window. Keep the collection task lock and stay/follow the known
+      // Farmer group until the Merchant is actually full.
+      const presence = this._collectionPresenceCandidate(route);
+      if (presence) {
+        const logistics = this.runtime.controlledPartyLogistics;
+        const nearDistance = Math.max(120, Math.min(
+          finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
+          finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
+        ));
+        const nearPresence = String(c.map || '') === String(presence.map) && distance(c, presence) <= nearDistance;
+        if (!nearPresence) {
+          await this._travelToFreshCandidate(merchant, presence, true);
+          return true;
+        }
+        this.stats.collectionDrainedWaits += 1;
+        route.stage = 'COLLECT';
+        route.updatedAt = this.now();
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'WAITING_FOR_NEW_FARMER_LOOT_UNTIL_MERCHANT_FULL',
+          routeId: route.id,
+          workers: presence.names.slice(),
+          freeSlots: pressure.freeSlots
+        };
+        return true;
       }
-      merchant.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'WAITING_FOR_FRESH_FARMER_COLLECTION_STATE', routeId: route.id };
+
+      if (this._collectionRouteExplicitlyUnavailable(route)) {
+        this.stats.collectionUnavailableCompletions += 1;
+        return this._finishCollectionRoute('FARMERS_EXPLICITLY_UNAVAILABLE', {
+          freeSlots: pressure.freeSlots,
+          occupied: pressure.occupied,
+          capacity: pressure.capacity
+        });
+      }
+
+      this.stats.collectionDrainedWaits += 1;
+      merchant.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'WAITING_FOR_FRESH_FARMER_STATE_UNTIL_MERCHANT_FULL',
+        routeId: route.id,
+        workers: route.farmers.slice(),
+        freeSlots: pressure.freeSlots
+      };
       return true;
     }
 
@@ -52405,10 +52653,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       route.lastPickupQuantity = candidate.pickupQuantity;
     }
     route.updatedAt = this.now();
-    route.farmers = candidate.names.slice();
-
-    const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', { pickupQuantityRemaining: candidate.pickupQuantity });
+    route.farmers = [...new Set([...route.farmers, ...candidate.names])].sort();
 
     if (route.stage === 'PREPARE_CAPACITY') {
       const prepared = await this._prepareCollectionCapacity(merchant, candidate);
@@ -52502,13 +52747,28 @@ class Alpha33MarkOrbitMerchantDelivery {
       if (['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(criticalSupplyKind)) {
         if (this.collectionRoute) {
           this.stats.collectionRoutesPreemptedForCriticalSupply += 1;
-          this._finishCollectionRoute('CRITICAL_PARTY_SUPPLY_PREEMPT', {
-            serviceKind: criticalSupplyKind,
-            target: criticalSupplyPlan && criticalSupplyPlan.target && criticalSupplyPlan.target.name || null,
-            deliveries: criticalSupplyPlan && criticalSupplyPlan.deliveries || []
-          });
+          this._suspendCollectionRouteForCriticalSupply(criticalSupplyPlan);
         }
         return baseCycle();
+      }
+
+      // A critical supply detour releases the task lock so potions cannot
+      // deadlock, but the Farmer collection obligation survives the detour.
+      // Resume it before ordinary progression/production can pull the Merchant
+      // back into town with free inventory slots.
+      if (!this.collectionRoute && this.suspendedCollectionRoute) {
+        const pressure = this._merchantCapacitySnapshot();
+        if (pressure.freeSlots > 0 && !this._resumeSuspendedCollectionRoute()) {
+          merchant.lastMerchantPlan = {
+            at: this.now(),
+            action: 'HOLD',
+            reason: 'WAITING_TO_RESUME_COLLECTION_AFTER_CRITICAL_SUPPLY',
+            routeId: this.suspendedCollectionRoute.id,
+            freeSlots: pressure.freeSlots
+          };
+          return true;
+        }
+        if (pressure.freeSlots <= 0) this.suspendedCollectionRoute = null;
       }
 
       // Fresh collection work still preempts ordinary progression/production.
@@ -52555,7 +52815,10 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
         collectionRouteTaskLockedUntilTerminal: true,
+        transientFarmerDrainDoesNotEndCollection: true,
+        collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
+        criticalPartySupplySuspendsAndResumesCollection: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
@@ -52573,6 +52836,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
       lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
       collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
+      suspendedCollectionRoute: this.suspendedCollectionRoute ? { ...this.suspendedCollectionRoute } : null,
       lastCollectionCapacityPlan: this.lastCollectionCapacityPlan ? { ...this.lastCollectionCapacityPlan } : null,
       farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length, pickupEntryCount: row.pickupEntryCount || 0, pickupQuantity: row.pickupQuantity || 0 })),
       stats: { ...this.stats }
