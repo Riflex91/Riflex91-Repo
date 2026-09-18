@@ -8,7 +8,7 @@ const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK
 const { planElixirAcquisition, preferredAcquisitionElixir, activeElixir } = require('../src/party/elixir-policy');
 const { MerchantSelfGear } = require('../src/reliability/merchant-self-gear');
 const { Alpha27CombatMerchantConvergence } = require('../src/reliability/alpha27-combat-merchant-convergence');
-const { makeLedger, makeRuntime } = require('./alpha27-convergence-test-helpers');
+const { makeEngine, makeLedger, makeRuntime } = require('./alpha27-convergence-test-helpers');
 
 test('default mutation risk budget is the requested 10x experiment', () => {
   const runtime = makeRuntime({ gameData: { items: {}, monsters: {}, maps: {} } });
@@ -36,6 +36,7 @@ test('scroll batching counts the currently actionable compound backlog', () => {
   const ledger = makeLedger(entries);
   const runtime = makeRuntime({
     ledger,
+    engine: makeEngine(),
     gameData: {
       items: {
         ringsj: { type: 'ring', g: 1000, compound: { dex: 1 }, grades: [] },
