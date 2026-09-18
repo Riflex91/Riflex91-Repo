@@ -1,4 +1,4 @@
-import type { BedienAnfrage, BedienEntscheidung } from '../vertraege/bedien-anfrage.js';
+import type { BedienEntscheidung } from '../vertraege/bedien-anfrage.js';
 import type {
   BasisBedienAktion,
   BasisBedienAnfrage,
@@ -58,7 +58,7 @@ export function erstelleBasisBedienAnfrage(
       auswirkung: 'Es werden nur neue Diagnosedaten gelesen.',
       risiko: 'unkritisch',
       angefordertAm: daten.angefordertAm,
-      voraussetzungen: Object.freeze([generationsVoraussetzung])
+      voraussetzungen: Object.freeze([])
     });
   }
 
