@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -125,5 +126,5 @@ const direktGestartet = process.argv[1] && path.resolve(process.argv[1]) === pat
 if (direktGestartet) {
   const pruefen = process.argv.includes('--pruefen');
   const ergebnis = await baueProduktionsRuntime({ schreiben: !pruefen });
-  console.log(`V4 Produktionsruntime ${pruefen ? 'geprueft' : 'gebaut'}: ${ergebnis.module} Module, ${ergebnis.bytes} Bytes${pruefen ? '' : `, ${ergebnis.ausgabe}`}.`);
+  console.log(`V4 Produktionsruntime ${pruefen ? 'geprueft' : 'gebaut'}: ${ergebnis.module} Module, ${ergebnis.bytes} Bytes, SHA-256 ${ergebnis.sha256}${pruefen ? '' : `, ${ergebnis.ausgabe}, ${ergebnis.sha256Ausgabe}`}.`);
 }
