@@ -665,7 +665,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         stats: clone(this.gearDeliveryFinalizationStats)
       },
       economyBeforeNonCriticalGearDelivery: false,
-      itemLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY', 'GENERAL_COMPOUND', 'GENERAL_UPGRADE', 'SELL', 'BANK'],
+      gearDeliveryLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY'],
+      itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       collectionSession: this.collectionStatus(),
