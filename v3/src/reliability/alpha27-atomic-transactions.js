@@ -75,8 +75,18 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       if (value > this.options.upgradeValueCap) return { ok: false, reason: 'UPGRADE_VALUE_RISK_CAP' };
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
-      if (!goal) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
-      return { ok: true, inputs, meta, goal, value, grade, scroll: `scroll${grade}` };
+      const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
+      if (!goal && !economicLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && economicLifecycle) {
+        const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
+        if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
+        const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
+        const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE')) {
+          return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
+        }
+      }
+      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, value, grade, scroll: `scroll${grade}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
