@@ -194,6 +194,26 @@ Required behavior:
 
 This step does not add login credentials, public CDP exposure, arbitrary remote evaluation, gameplay action authority, or OS service installation.
 
+## Step 10 — Production host service and machine-reboot recovery
+
+**Branch:** `architecture/10-production-host-service`
+
+Make the existing production host harness a bounded operating-system service that can recover after host-process or machine restart without creating a restart loop.
+
+Required behavior:
+
+- add an OS-neutral service supervisor around `ProductionHostHarness`;
+- persist service start attempts/circuit state outside the browser process so crash loops remain bounded across service and machine restarts;
+- start the browser process first, then let the Step-9 CDP session discover the Adventure Land runtime through the existing bounded retry policy;
+- provide graceful SIGTERM/SIGINT shutdown that closes the harness, browser session/API and managed browser process through existing bounded stop paths;
+- add a concrete systemd unit/install baseline with boot autostart, outer restart delay/start limit, hardened filesystem/network permissions and persistent state directories;
+- keep secrets in host environment files only and never serialize them into service status/state;
+- fail closed on corrupt service state or invalid production configuration;
+- add reboot/crash-loop/start-budget/clean-shutdown tests and a long service-supervisor soak;
+- preserve `gameplayActionAuthority:false` and `rawGameplayActionAuthority:false`.
+
+This step does not add cold-boot Adventure Land credential automation, public CDP access, arbitrary browser evaluation, remote shell access or gameplay policy to the host.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.
@@ -209,4 +229,4 @@ The `next_step` field should be the lowest numbered step that is not `completed`
 
 ## Completion condition
 
-The architecture run is finished when all eight steps are `completed`, the full repository check is green, no obsolete architecture-run hotfix/patch layer remains, and new features can be implemented without extending the old alpha inheritance chain.
+The architecture run is finished when all defined steps are `completed`, the full repository check is green, no obsolete architecture-run hotfix/patch layer remains, and new features can be implemented without extending the old alpha inheritance chain.
