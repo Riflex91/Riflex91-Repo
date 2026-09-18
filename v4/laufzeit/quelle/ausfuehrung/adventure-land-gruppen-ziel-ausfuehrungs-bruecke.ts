@@ -128,6 +128,10 @@ export class AdventureLandGruppenZielAusfuehrungsBruecke {
 
     const jetzt = this.liesZeitpunkt('Der Bruecken-Ausfuehrungszeitpunkt');
     let passendeLaufendeKennung: string | null = null;
+    if (istObjekt(rohAuftrag) && typeof rohAuftrag.aktionsKennung === 'string') {
+      const moeglicherZustand = this.steuerung.holeAktionsZustand(rohAuftrag.aktionsKennung);
+      if (moeglicherZustand?.phase === 'laeuft') passendeLaufendeKennung = rohAuftrag.aktionsKennung;
+    }
 
     try {
       const auftrag = this.pruefeAuftrag(rohAuftrag, jetzt);
