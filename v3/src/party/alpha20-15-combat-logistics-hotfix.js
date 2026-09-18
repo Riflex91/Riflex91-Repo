@@ -64,7 +64,15 @@ function patchLogisticsPrototype() {
 
   proto.install = function installAlpha2015Logistics() {
     // Alpha20.15 contract: request only when critically low, then refill deeply.
-    this.config.merchantReserveSlots = 0;
+    // Keep one physical inventory slot unused during Farmer pickup. This is
+    // intentionally independent from active-grant reservations and gives the
+    // Merchant one settlement / operational buffer slot at all times.
+    this.config.merchantReserveSlots = 1;
+    // Closed-loop transfer verification now protects capacity, so the old
+    // 1.4s cadence is unnecessary. Keep one outbound mutation per Farmer at a
+    // time, but allow the next item almost immediately after local verification.
+    this.config.transferIntervalMs = Math.min(Number(this.config.transferIntervalMs) || 1400, 300);
+    this.config.verifyDelayMs = Math.min(Number(this.config.verifyDelayMs) || 700, 250);
     this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
@@ -285,7 +293,11 @@ function patchLogisticsPrototype() {
         ...(base.authority || {}),
         farmerLootPolicy: 'all-transferable-inventory-except-hp-mp-potions',
         farmerGoldTransfer: 'all-gold-when-nearby-even-if-merchant-inventory-full',
-        merchantStopsItemsOnlyWhenInventoryFull: true,
+        merchantStopsItemsOnlyWhenInventoryFull: false,
+        merchantKeepsOnePickupReserveSlot: true,
+        acceleratedClosedLoopItemTransfers: true,
+        itemTransferIntervalMs: this.config.transferIntervalMs,
+        itemTransferVerifyDelayMs: this.config.verifyDelayMs,
         lockedItemsRemainLocal: true
       },
       alpha20_15: {
