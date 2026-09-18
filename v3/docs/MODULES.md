@@ -123,7 +123,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4356 Zeilen**
+**21 Dateien · 4368 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -137,7 +137,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
 | `src/farmer/farmer-resource-topoff-hotfix.js` | 211 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
-| `src/farmer/farmer-terrain-navigation-hotfix.js` | 496 |
+| `src/farmer/farmer-terrain-navigation-hotfix.js` | 508 |
 | `src/farmer/farmer-travel-safety-hotfix.js` | 138 |
 | `src/farmer/kiting-farmer.js` | 85 |
 | `src/farmer/live-navigation-hotfix.js` | 222 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14370 Zeilen**
+**50 Dateien · 14413 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -297,7 +297,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
-| `src/reliability/alpha31-party-role-liveness-hotfix.js` | 620 |
+| `src/reliability/alpha31-party-role-liveness-hotfix.js` | 663 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
 | `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1095 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
