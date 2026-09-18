@@ -181,7 +181,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const ledger = this.runtime.inventoryLedger;
     if (!c || !ledger) return null;
     const rows = ledger.list(1000).filter((row) => row && row.character === c.name);
-    const sell = rows.find((row) => row.disposition === 'SELL');
+    const gear = this.runtime.gearProgression;
+    let gearStatus = null;
+    let gearGoals = [];
+    try {
+      gearStatus = gear && typeof gear.status === 'function' ? gear.status() : null;
+      gearGoals = gear && typeof gear.list === 'function' ? gear.list(256) : [];
+    } catch (_) {
+      gearStatus = null;
+      gearGoals = [];
+    }
+
+    const sell = rows.find((row) => {
+      if (row.disposition !== 'SELL') return false;
+      const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
+      if (!reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL')) return true;
+
+      // Never race a freshly mutated item against stale GearProgression state.
+      // At least one gear evaluation must have observed this ledger generation,
+      // and any still-active Farmer goal blocks disposal.
+      const observedAt = finite(row.observedAt, 0);
+      const evaluatedAt = finite(gearStatus && gearStatus.lastEvaluatedAt, 0);
+      if (!gearStatus || evaluatedAt < observedAt) return false;
+      const activeFarmerGoal = gearGoals.find((goal) => (
+        goal
+        && goal.sourceCharacter === c.name
+        && goal.character
+        && goal.character !== c.name
+        && goal.item === row.name
+        && levelOf({ level: goal.observedLevel }) === levelOf(row)
+        && !(goal.id != null && this.completedGearGoalClaims.has(String(goal.id)))
+      ));
+      return !activeFarmerGoal;
+    });
+
     if (sell) {
       const reasons = Array.isArray(sell.reasons) ? sell.reasons.map(String) : [];
       const processed = reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
@@ -193,7 +226,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         metadata: {
           source: 'ALPHA27_AUTONOMOUS_PLANNER',
           lifecycleProcessedSale: processed,
-          lifecycleReasons: processed ? reasons.filter((reason) => /^AUTONOMOUS_(PROCESSED_GEAR_SELL|COMPOUND_RESULT|UPGRADE_RESULT)$/.test(reason)) : []
+          lifecycleReasons: processed ? reasons.filter((reason) => /^AUTONOMOUS_(PROCESSED_GEAR_SELL|COMPOUND_RESULT|UPGRADE_RESULT)$/.test(reason)) : [],
+          gearEvaluationAt: processed ? finite(gearStatus && gearStatus.lastEvaluatedAt, null) : null
         }
       };
     }
