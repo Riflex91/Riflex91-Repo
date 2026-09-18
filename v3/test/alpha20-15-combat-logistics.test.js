@@ -186,7 +186,7 @@ test('transient send_item rejection uses short retry guard instead of two-minute
   });
   logistics.pendingOutbound = {
     kind: 'item',
-    at: clock.now - 100,
+    at: clock.now - 1000,
     offerId: 'offer-transient',
     grantId: 'grant-transient',
     name: 'hpbelt',
