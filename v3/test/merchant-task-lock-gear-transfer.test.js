@@ -189,6 +189,52 @@ test('Merchant gear treats movement speed as the lexicographic primary stat', ()
   assert.equal(result.status.merchantSpeedPriority, 'LEXICOGRAPHIC_FIRST');
 });
 
+test('leader farms a safe visible fallback while the material-objective spawn is empty', () => {
+  let now = 2000;
+  const farmer = new FarmerController({ now: () => now, moveCooldownMs: 250 });
+  farmer.state = FarmerState.SELECT_TARGET;
+  farmer.materialObjective = {
+    kind: 'ELIXIR_MATERIAL',
+    monster: 'crabxx',
+    material: 'seashell',
+    elixirName: 'elixirdex0',
+    map: 'main',
+    x: 1000,
+    y: 500,
+    expiresAt: 60000
+  };
+  const context = {
+    adapter: {
+      mode: 'active',
+      command: () => ({ executed: true }),
+      getGameData: () => ({
+        items: {},
+        monsters: { tortoise: { xp: 100 } }
+      })
+    },
+    snapshot: {
+      character: {
+        name: 'R1', ctype: 'ranger', map: 'main', x: 1000, y: 500,
+        hp: 1000, max_hp: 1000, mp: 1000, max_mp: 1000,
+        range: 120, speed: 60, inventory: []
+      },
+      entities: [
+        { id: 't1', mtype: 'tortoise', map: 'main', x: 1040, y: 500, hp: 500, dead: false, target: null }
+      ]
+    },
+    party: { fingerprint: 'party:R1', members: [{ name: 'R1' }] },
+    world: null
+  };
+
+  farmer.step(context);
+
+  assert.equal(farmer.targetId, 't1');
+  assert.equal(farmer.targetType, 'tortoise');
+  assert.equal(farmer.state, FarmerState.ENGAGE);
+  assert.ok(farmer.materialObjective, 'material objective remains latched for when crabxx appears');
+  assert.notEqual(farmer.reason, 'MATERIAL_OBJECTIVE_SPAWN_WAIT');
+});
+
 test('normal ENGAGE state does not by itself block Farmer outbound logistics', () => {
   const logistics = Object.create(ControlledPartyLogistics.prototype);
   logistics.runtime = { farmer: { state: 'ENGAGE' } };

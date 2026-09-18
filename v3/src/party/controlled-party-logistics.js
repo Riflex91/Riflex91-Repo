@@ -95,11 +95,12 @@ class ControlledPartyLogistics {
       merchantPotionReserve: Math.max(100, Math.min(2000, Math.floor(finite(options.merchantPotionReserve, 300)))),
       maxSupplyBatch: Math.max(50, Math.min(1000, Math.floor(finite(options.maxSupplyBatch, 500)))),
       supplyRequestIntervalMs: Math.max(3000, finite(options.supplyRequestIntervalMs, 6000)),
-      transferIntervalMs: Math.max(700, finite(options.transferIntervalMs, 1400)),
+      transferIntervalMs: Math.max(250, finite(options.transferIntervalMs, 1400)),
       verifyDelayMs: Math.max(250, finite(options.verifyDelayMs, 700)),
       verifyTimeoutMs: Math.max(1500, finite(options.verifyTimeoutMs, 3500)),
       failureBackoffMs: Math.max(3000, finite(options.failureBackoffMs, 7000)),
       grantTtlMs: Math.max(2000, finite(options.grantTtlMs, 4500)),
+      recipientSettleTimeoutMs: Math.max(2000, Math.min(15000, finite(options.recipientSettleTimeoutMs, 6000))),
       maxTransferDistance: Math.max(150, Math.min(600, finite(options.maxTransferDistance, 380))),
       rendezvousDistance: Math.max(80, Math.min(400, finite(options.rendezvousDistance, 260))),
       rendezvousStep: Math.max(40, Math.min(140, finite(options.rendezvousStep, 100))),
@@ -156,6 +157,8 @@ class ControlledPartyLogistics {
       rejectedLootBlocks: 0,
       lootTransfers: 0,
       lootVerified: 0,
+      lootRecipientVerified: 0,
+      lootRecipientSettleTimeouts: 0,
       goldOffers: 0,
       goldGrants: 0,
       goldTransfers: 0,
@@ -336,14 +339,60 @@ class ControlledPartyLogistics {
   _prune() {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
-    for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    for (const [id, grant] of this.activeLootGrants) {
+      // Once the Farmer has observed its outbound delta, only Merchant-side
+      // reconciliation may release this reservation. That prevents the generic
+      // TTL pruner from reopening the last slot before recipient settlement.
+      if (grant && grant.senderCommittedAt != null) continue;
+      if (finite(grant && grant.expiresAt, 0) <= now) this.activeLootGrants.delete(id);
+    }
     if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
     for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
   }
 
+  _reconcileActiveLootGrants(snapshot) {
+    if (!snapshot || !snapshot.character || !(this.activeLootGrants instanceof Map)) return false;
+    const now = this.now();
+    let changed = false;
+    for (const [id, grant] of this.activeLootGrants) {
+      if (!grant || grant.senderCommittedAt == null) continue;
+      const actual = countItem(snapshot, grant.item && grant.item.name, grant.item && grant.item.level);
+      const expected = Math.max(0, finite(grant.merchantBeforeCount, 0)) + Math.max(1, finite(grant.quantity, 1));
+      if (actual >= expected) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientVerified += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLED', 'info', 'MERCHANT_INVENTORY_DELTA_VERIFIED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+        continue;
+      }
+      if (now >= finite(grant.settleUntil, Infinity)) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientSettleTimeouts += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLE_TIMEOUT', 'warn', 'MERCHANT_INVENTORY_DELTA_NOT_OBSERVED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+      }
+    }
+    return changed;
+  }
+
   _merchantCapacity(snapshot) {
+    this._reconcileActiveLootGrants(snapshot);
     const metrics = inventoryMetrics(snapshot);
     const reservedIncomingSlots = [...this.activeLootGrants.values()].filter((grant) => grant.expiresAt > this.now()).length;
     const effectiveFreeSlots = Math.max(0, metrics.freeSlots - reservedIncomingSlots);
@@ -467,9 +516,46 @@ class ControlledPartyLogistics {
     }
     const offerId = String(data.offerId || '');
     if (!offerId || offerId.length > 160) return true;
+
+    // Do not let two concurrent grants for the same item identity share the
+    // same recipient baseline. Different identities may still flow in parallel.
+    // Same-identity serialization is short-lived and avoids false recipient
+    // settlement when only one of two concurrent transfers has arrived.
+    const sameIdentityInFlight = [...this.activeLootGrants.values()].some((grant) => grant
+      && grant.item
+      && String(grant.item.name || '') === String(safe.name || '')
+      && Number(grant.item.level || 0) === Number(safe.level || 0));
+    if (sameIdentityInFlight) {
+      const retryAfterMs = Math.max(250, Math.min(750, Math.floor(finite(this.config.transferIntervalMs, 300))));
+      this.stats.lootRejectsSent += 1;
+      this._send(sender, Action.LOOT_REJECT, {
+        offerId,
+        reason: 'IDENTITY_TRANSFER_IN_FLIGHT',
+        retryAfterMs
+      });
+      this._event('PARTY_LOOT_IDENTITY_SERIALIZED', 'info', 'IDENTITY_TRANSFER_IN_FLIGHT', {
+        sender,
+        offerId,
+        item: { name: safe.name, level: safe.level },
+        retryAfterMs
+      });
+      return true;
+    }
+
     const grantId = `grant-${this.now()}-${++this.sequence}`;
     const expiresAt = this.now() + this.config.grantTtlMs;
-    this.activeLootGrants.set(grantId, { grantId, offerId, sender, item: { name: safe.name, level: safe.level }, expiresAt });
+    const maxQuantity = Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer);
+    this.activeLootGrants.set(grantId, {
+      grantId,
+      offerId,
+      sender,
+      item: { name: safe.name, level: safe.level },
+      quantity: maxQuantity,
+      merchantBeforeCount: countItem(snapshot, safe.name, safe.level),
+      expiresAt,
+      senderCommittedAt: null,
+      settleUntil: null
+    });
     this.stats.lootGrants += 1;
     this._send(sender, Action.LOOT_GRANT, {
       offerId,
@@ -477,7 +563,7 @@ class ControlledPartyLogistics {
       expiresAt,
       merchant: snapshot.character.name,
       item: { name: safe.name, level: safe.level },
-      maxQuantity: Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer),
+      maxQuantity,
       capacitySequence: this.capacitySequence
     });
     return true;
@@ -566,15 +652,21 @@ class ControlledPartyLogistics {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       const offer = this.pendingOffer;
       if (!offer || offer.kind !== 'item' || String(data.offerId || '') !== String(offer.offerId || '')) return false;
-      this._blockRejectedLoot(offer.item, data.reason || 'LOOT_REJECTED_BY_MERCHANT', finite(data.retryAfterMs, this.config.rejectedLootBackoffMs));
+      const rejectReason = String(data.reason || 'LOOT_REJECTED_BY_MERCHANT');
+      const retryAfterMs = finite(data.retryAfterMs, this.config.rejectedLootBackoffMs);
+      this._blockRejectedLoot(offer.item, rejectReason, retryAfterMs);
       this.pendingOffer = null;
       this.pendingGrant = null;
-      this.backoffUntil = Math.max(this.backoffUntil, this.now() + Math.min(3000, this.config.failureBackoffMs));
+      const transientIdentitySerialization = rejectReason === 'IDENTITY_TRANSFER_IN_FLIGHT';
+      const retryGateMs = transientIdentitySerialization
+        ? Math.max(250, Math.min(750, Math.floor(finite(retryAfterMs, this.config.transferIntervalMs))))
+        : Math.min(3000, this.config.failureBackoffMs);
+      this.backoffUntil = Math.max(this.backoffUntil, this.now() + retryGateMs);
       this.stats.lootRejectsReceived += 1;
       this.lastDecision = {
         at: this.now(),
         action: 'HOLD',
-        reason: 'LOOT_OFFER_REJECTED',
+        reason: transientIdentitySerialization ? 'LOOT_IDENTITY_SERIALIZED_RETRY' : 'LOOT_OFFER_REJECTED',
         rejectReason: data.reason || null,
         offerId: data.offerId || null
       };
@@ -602,8 +694,16 @@ class ControlledPartyLogistics {
     if (action === Action.GOLD_OFFER) return this._handleGoldOffer(from, data);
     if (action === Action.TRANSFER_COMMIT) {
       const grantId = String(data.grantId || '');
-      if (grantId) this.activeLootGrants.delete(grantId);
-      this._broadcastStatus(this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null, true);
+      const grant = grantId ? this.activeLootGrants.get(grantId) : null;
+      if (grant && String(grant.sender || '') === String(from || '') && data.committed !== false) {
+        const now = this.now();
+        grant.senderCommittedAt = now;
+        grant.settleUntil = now + this.config.recipientSettleTimeoutMs;
+        grant.expiresAt = Math.max(finite(grant.expiresAt, 0), grant.settleUntil);
+        this.activeLootGrants.set(grantId, grant);
+      }
+      const snapshot = this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null;
+      if (snapshot) this._broadcastStatus(snapshot, true);
       return true;
     }
     return false;
@@ -1103,6 +1203,9 @@ class ControlledPartyLogistics {
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
         closedLoopLocalDeltaVerification: true,
+        merchantRecipientDeltaVerificationBeforeGrantRelease: true,
+        sameItemIdentityGrantsSerializedUntilRecipientSettle: true,
+        lastSlotGrantReservationHeldUntilRecipientSettle: true,
         explicitLootRejectProtocol: true,
         rejectedLootBackoffPreventsOfferLoop: true,
         engageStateDoesNotBlockTransfer: true,

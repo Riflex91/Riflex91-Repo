@@ -345,6 +345,19 @@ class FarmerController {
         material: objective.material || null,
         elixirName: objective.elixirName || null
       };
+      const fallbackVisible = this._safeLiveMonsters(snapshot, context.party)
+        .some((entity) => entity && entity.mtype !== objective.monster);
+      if (fallbackVisible) {
+        this._event('FARMER_MATERIAL_OBJECTIVE_IDLE_FALLBACK', 'info', 'OBJECTIVE_SPAWN_EMPTY_USE_SAFE_LOCAL_TARGET', {
+          monster: objective.monster,
+          material: objective.material || null,
+          distance: Math.round(d)
+        });
+        // Keep the material objective latched, but let normal target selection
+        // use a safe visible monster until the requested spawn appears. This
+        // prevents a leader from pinning every follower in direction HOLD.
+        return false;
+      }
       this._transition(FarmerState.SELECT_TARGET, 'MATERIAL_OBJECTIVE_SPAWN_WAIT', { monster: objective.monster, distance: Math.round(d) });
       return true;
     }
@@ -483,10 +496,12 @@ class FarmerController {
         }
         this.targetId = String(selection.target.id);
         this.targetType = selection.target.mtype;
+        const rankingScore = Number(selection.ranking && selection.ranking.score);
+        const rankingTravelSeconds = Number(selection.ranking && selection.ranking.travelSeconds);
         this._event('FARMER_TARGET_SELECTED', 'info', 'PLANNER_TOP_SAFE_LIVE_TARGET', {
-          score: Number(selection.ranking.score.toFixed(5)),
-          source: selection.ranking.source,
-          travelSeconds: Number(selection.ranking.travelSeconds.toFixed(2))
+          score: Number.isFinite(rankingScore) ? Number(rankingScore.toFixed(5)) : 0,
+          source: selection.ranking && selection.ranking.source || 'safe-live-fallback',
+          travelSeconds: Number.isFinite(rankingTravelSeconds) ? Number(rankingTravelSeconds.toFixed(2)) : 0
         });
         const d = distance(c, selection.target);
         this._transition(d <= this._engagementRange(snapshot) ? FarmerState.ENGAGE : FarmerState.TRAVEL, d <= this._engagementRange(snapshot) ? 'TARGET_IN_RANGE' : 'TARGET_OUT_OF_RANGE');

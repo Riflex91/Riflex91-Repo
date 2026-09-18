@@ -44,6 +44,58 @@ function planned(engine, ledger) {
   );
 }
 
+test('collection capacity prep may bank a deferred KEEP item but not an operational potion', async () => {
+  const engine = new EconomyTransactionEngine({ failureThreshold: 1, circuitCooldownMs: 5000 });
+  const ledger = fakeLedger({
+    character: 'MerchantA', index: 0, name: 'bankme', level: 0, q: 1, disposition: 'KEEP'
+  });
+  const root = gameRoot(async () => ({ success: true, place: 'bank', bank_action: 'store' }));
+  const executor = new ControlledMerchantExecutor({
+    root, engine, ledger,
+    runtime: { gearProgression: { list: () => [] } },
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    verifyDelayMs: 0
+  });
+  executor.configure({ enabled: true, bank: true, ack: CONTROLLED_MERCHANT_ACK });
+
+  const plannedDeferred = engine.plan({
+    type: 'BANK',
+    character: 'MerchantA',
+    index: 0,
+    quantity: 1,
+    metadata: { collectionCapacityPrep: true, originalDisposition: 'KEEP' }
+  }, { ledger, snapshot: {} });
+  assert.equal(plannedDeferred.accepted, true);
+  assert.deepEqual(plannedDeferred.transaction.expectedDisposition, ['KEEP']);
+  const committed = await executor.execute(plannedDeferred.transaction.id);
+  assert.equal(committed.committed, true);
+
+  const potionLedger = fakeLedger({
+    character: 'MerchantA', index: 0, name: 'hpot0', level: 0, q: 1, disposition: 'KEEP'
+  });
+  const potionEngine = new EconomyTransactionEngine();
+  root.character.items[0] = { name: 'hpot0', level: 0, q: 1 };
+  const potionExecutor = new ControlledMerchantExecutor({
+    root, engine: potionEngine, ledger: potionLedger,
+    runtime: { gearProgression: { list: () => [] } },
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  potionExecutor.configure({ enabled: true, bank: true, ack: CONTROLLED_MERCHANT_ACK });
+  const potionTx = potionEngine.plan({
+    type: 'BANK',
+    character: 'MerchantA',
+    index: 0,
+    quantity: 1,
+    metadata: { collectionCapacityPrep: true, originalDisposition: 'KEEP' }
+  }, { ledger: potionLedger, snapshot: {} });
+  assert.equal(potionTx.accepted, true);
+  const rejected = await potionExecutor.execute(potionTx.transaction.id);
+  assert.equal(rejected.committed, false);
+  assert.equal(rejected.reason, 'COLLECTION_CAPACITY_OPERATIONAL_ITEM_PROTECTED');
+});
+
 test('explicit Adventure Land bank store acknowledgement commits even when local cache stays stale', async () => {
   const engine = new EconomyTransactionEngine({ failureThreshold: 1, circuitCooldownMs: 5000 });
   const ledger = fakeLedger({
