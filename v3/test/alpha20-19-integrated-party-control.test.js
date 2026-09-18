@@ -3,11 +3,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountCharacterTransport } = require('../src/party/account-character-transport');
-const { installAlpha2019AccountTransportHotfix } = require('../src/reliability/alpha20-19-account-transport-hotfix');
-const { ControlledPartyLogistics } = require('../src/reliability/controlled-party-logistics');
-const { patchLogisticsPrototype } = require('../src/reliability/alpha20-15-combat-logistics-hotfix');
-const { patchAlpha2019LogisticsStabilization } = require('../src/reliability/alpha20-19-logistics-stabilization');
-const { FarmAreaPressureHotfix, areaKey } = require('../src/reliability/farm-area-pressure-hotfix');
+const { installAlpha2019AccountTransportHotfix } = require('../src/party/alpha20-19-account-transport-hotfix');
+const { ControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
+const { patchLogisticsPrototype } = require('../src/party/alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2019LogisticsStabilization } = require('../src/party/alpha20-19-logistics-stabilization');
+const { FarmAreaPressureHotfix, areaKey } = require('../src/farmer/farm-area-pressure-hotfix');
 const { patchAdaptiveFarmIntelligence } = require('../src/autonomy/adaptive-farm-intelligence');
 const { TacticalPartyCombat } = require('../src/autonomy/tactical-party-combat');
 const { AdvancedPartyMovement } = require('../src/autonomy/advanced-party-movement');
