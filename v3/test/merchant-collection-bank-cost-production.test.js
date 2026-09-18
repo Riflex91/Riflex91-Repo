@@ -189,6 +189,9 @@ test('Farmer runtime never acquires Merchant production or BANK_CATALOG work', a
   assert.equal(bankTravels, 0);
   assert.equal(controller.status().roleEligible, false);
   assert.equal(controller.status().controlled.enabled, false);
+  const rejectedEnable = runtime.configureMerchantProduction({ enabled: true });
+  assert.equal(rejectedEnable.enableRejected, 'MERCHANT_PRODUCTION_ROLE_MISMATCH');
+  assert.equal(rejectedEnable.controlled.enabled, false);
 
   now = 5000;
   runtime.tick();
