@@ -469,6 +469,107 @@ test('Alpha33 bounded capacity preparation departs instead of deadlocking on rej
   assert.equal(hotfix.stats.collectionCapacityConstrainedDepartures, 1);
 });
 
+test('Alpha33 critical party supply preempts an active collection route', async () => {
+  let now = 150000;
+  let baseCycles = 0;
+  const releases = [];
+  const coordinator = {
+    release(owner, key, reason, details) {
+      releases.push({ owner, key, reason, details });
+      return true;
+    }
+  };
+  const merchant = {
+    criticalPartySupplyPlan: () => ({
+      kind: 'RESTOCK_REQUIRED',
+      target: { name: 'My_Ranger1', map: 'main', x: 0, y: 0 },
+      deliveries: [{ family: 'mp', itemName: 'mpot0', quantity: 4500 }]
+    }),
+    cycle: async () => {
+      baseCycles += 1;
+      return true;
+    }
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, items: [], isize: 42 },
+      parent: { entities: {} }
+    },
+    merchantTaskCoordinator: coordinator,
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  hotfix.collectionRoute = {
+    id: 'collection-live-deadlock',
+    startedAt: now - 60000,
+    updatedAt: now - 1000,
+    lastProgressAt: now - 30000,
+    lastPickupQuantity: 95,
+    stage: 'COLLECT',
+    farmers: ['My_Ranger1', 'My_Ranger2', 'My_Ranger3'],
+    targetMap: 'main',
+    targetX: 0,
+    targetY: 0
+  };
+
+  const acted = await merchant.cycle();
+
+  assert.equal(acted, true);
+  assert.equal(baseCycles, 1);
+  assert.equal(hotfix.collectionRoute, null);
+  assert.equal(hotfix.stats.collectionRoutesPreemptedForCriticalSupply, 1);
+  assert.equal(releases.length, 1);
+  assert.equal(releases[0].owner, 'RENDEZVOUS');
+  assert.equal(releases[0].key, 'rendezvous:farmer-collection');
+  assert.equal(releases[0].reason, 'CRITICAL_PARTY_SUPPLY_PREEMPT');
+  assert.equal(releases[0].details.serviceKind, 'RESTOCK_REQUIRED');
+  assert.equal(releases[0].details.target, 'My_Ranger1');
+  assert.equal(hotfix.status().policies.criticalPartySupplyPreemptsCollectionRoute, true);
+});
+
+test('Alpha33 Farmer pickup telemetry excludes temporarily rejected loot', () => {
+  const snapshot = {
+    character: {
+      name: 'My_Ranger1',
+      ctype: 'ranger',
+      level: 59,
+      map: 'main',
+      x: -865,
+      y: 754,
+      isize: 42,
+      inventory: [
+        { index: 0, name: 'blockedgear', level: 0, q: 1 },
+        { index: 1, name: 'seashell', level: 0, q: 2 }
+      ]
+    }
+  };
+  const logistics = {
+    adapter: { snapshot: () => snapshot },
+    receive: () => false,
+    _isMerchant: () => false,
+    _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: item.q || 1, metadataType: 'test' }),
+    _lootBlocked: (item) => item && item.name === 'blockedgear'
+  };
+  const runtime = {
+    now: () => 160000,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Ranger1', ctype: 'ranger', level: 59, map: 'main', x: -865, y: 754, items: snapshot.character.inventory },
+      parent: { entities: {} }
+    },
+    controlledPartyLogistics: logistics
+  };
+
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  const payload = hotfix._farmerStatePayload(snapshot);
+
+  assert.equal(payload.pickupEntryCount, 1);
+  assert.equal(payload.pickupQuantity, 2);
+  assert.deepEqual(payload.pickupItems.map((row) => row.name), ['seashell']);
+});
+
 test('production live services wires Alpha33 before same-version early return', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/production-live-services.js'), 'utf8');
   assert.match(source, /installAlpha33MarkOrbitMerchantDelivery/);

@@ -77,6 +77,9 @@ function patchAlpha2019LogisticsStabilization() {
     if (offer && !this.pendingGrant && now - Number(offer.at || 0) >= (this.__alpha2019OfferTtlMs || OFFER_TTL_MS)) {
       ensureStats(this);
       const stale = { kind: offer.kind || null, offerId: offer.offerId || null, ageMs: now - Number(offer.at || 0) };
+      if (offer.kind === 'item' && offer.item && typeof this._blockRejectedLoot === 'function') {
+        this._blockRejectedLoot(offer.item, 'OFFER_GRANT_TIMEOUT', this.config.rejectedLootBackoffMs);
+      }
       this.pendingOffer = null;
       this.stats.staleOffersCleared += 1;
       this.backoffUntil = Math.max(Number(this.backoffUntil) || 0, now + Math.min(3000, Number(this.config.failureBackoffMs) || 3000));
@@ -105,6 +108,7 @@ function patchAlpha2019LogisticsStabilization() {
       alpha20_19: {
         offerTtlMs: this.__alpha2019OfferTtlMs || OFFER_TTL_MS,
         staleOfferProtection: true,
+        staleRejectedItemTemporarilyExcluded: true,
         failedOfferReleasesChannel: true,
         transportFalseIsFailure: true,
         merchantPotionReservePerType: this.config.merchantPotionReserve,

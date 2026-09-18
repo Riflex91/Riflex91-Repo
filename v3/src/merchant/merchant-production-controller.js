@@ -224,6 +224,13 @@ function installMerchantProduction(runtime, options = {}) {
     return true;
   }
   function cycle() {
+    // Merchant production is installed in the shared runtime on every owned
+    // character, but only the Merchant may acquire production tasks or travel
+    // for bank/vendor work. Gate before any side effect, including auto-enable
+    // and BANK_CATALOG task acquisition.
+    if (!isMerchant()) {
+      return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
+    }
     ensureAutoEnabled();
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
@@ -261,6 +268,9 @@ function installMerchantProduction(runtime, options = {}) {
     return plan;
   }
   function configure(config = {}) {
+    if (config.enabled === true && !isMerchant()) {
+      return { ...status(), enableRejected: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
+    }
     if (config.enabled === true && typeof runtime._liveEnableGate === 'function') {
       const gate = runtime._liveEnableGate();
       if (!gate || gate.allowed !== true) return { ...status(), enableRejected: gate && gate.reason || 'LIVE_GATE_REJECTED' };
@@ -282,7 +292,9 @@ function installMerchantProduction(runtime, options = {}) {
         npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
       },
       bankCatalog: bankCatalog.status(),
-      autoLiveEnabled: true,
+      roleEligible: isMerchant(),
+      autoLiveEnabled: isMerchant(),
+      nonMerchantSideEffectsBlocked: true,
       collectionSessionBlocksProduction: collectionBusy(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
@@ -301,7 +313,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.tick = function merchantProductionTick() {
     const result = baseTick();
     const now = runtime.now();
-    if (now - state.lastCycleAt >= state.intervalMs) { state.lastCycleAt = now; cycle(); }
+    if (isMerchant() && now - state.lastCycleAt >= state.intervalMs) { state.lastCycleAt = now; cycle(); }
     return result;
   };
 

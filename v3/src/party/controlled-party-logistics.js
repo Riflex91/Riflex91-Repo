@@ -15,6 +15,7 @@ const Action = Object.freeze({
   SUPPLY_RESULT: 'SUPPLY_RESULT',
   LOOT_OFFER: 'LOOT_OFFER',
   LOOT_GRANT: 'LOOT_GRANT',
+  LOOT_REJECT: 'LOOT_REJECT',
   GOLD_OFFER: 'GOLD_OFFER',
   GOLD_GRANT: 'GOLD_GRANT',
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
@@ -107,6 +108,7 @@ class ControlledPartyLogistics {
       farmerGoldReserve: Math.max(0, Math.floor(finite(options.farmerGoldReserve, 250000))),
       maxGoldBatch: Math.max(10000, Math.floor(finite(options.maxGoldBatch, 1000000))),
       maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999))),
+      rejectedLootBackoffMs: Math.max(5000, Math.min(10 * 60 * 1000, finite(options.rejectedLootBackoffMs, 120000))),
       elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
       elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
       elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
@@ -131,6 +133,7 @@ class ControlledPartyLogistics {
     this.supplyRequests = new Map();
     this.rendezvousRequests = new Map();
     this.activeLootGrants = new Map();
+    this.rejectedLoot = new Map();
     this.pendingOffer = null;
     this.pendingGrant = null;
     this.pendingOutbound = null;
@@ -148,6 +151,9 @@ class ControlledPartyLogistics {
       supplyFailed: 0,
       lootOffers: 0,
       lootGrants: 0,
+      lootRejectsSent: 0,
+      lootRejectsReceived: 0,
+      rejectedLootBlocks: 0,
       lootTransfers: 0,
       lootVerified: 0,
       goldOffers: 0,
@@ -287,10 +293,52 @@ class ControlledPartyLogistics {
     });
   }
 
+  _lootSignature(item) {
+    if (!item || !item.name) return null;
+    const index = finite(item.index);
+    return `${index == null ? 'na' : Math.floor(index)}:${String(item.name)}:${Math.max(0, Math.floor(finite(item.level, 0)))}`;
+  }
+
+  _blockRejectedLoot(item, reason = 'LOOT_REJECTED', durationMs = null) {
+    const signature = this._lootSignature(item);
+    if (!signature) return false;
+    if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
+    const configuredBackoff = finite(this.config && this.config.rejectedLootBackoffMs, 120000);
+    const requestedDuration = durationMs == null
+      ? configuredBackoff
+      : finite(durationMs, configuredBackoff);
+    const duration = Math.max(1000, Math.min(10 * 60 * 1000, requestedDuration));
+    this.rejectedLoot.set(signature, {
+      signature,
+      name: String(item.name),
+      level: Math.max(0, Math.floor(finite(item.level, 0))),
+      index: finite(item.index),
+      reason: String(reason || 'LOOT_REJECTED'),
+      blockedAt: this.now(),
+      blockedUntil: this.now() + duration
+    });
+    if (this.stats) this.stats.rejectedLootBlocks = (Number(this.stats.rejectedLootBlocks) || 0) + 1;
+    return true;
+  }
+
+  _lootBlocked(item) {
+    const signature = this._lootSignature(item);
+    if (!signature || !(this.rejectedLoot instanceof Map)) return false;
+    const row = this.rejectedLoot.get(signature);
+    if (!row) return false;
+    if (finite(row.blockedUntil, 0) <= this.now()) {
+      this.rejectedLoot.delete(signature);
+      return false;
+    }
+    return true;
+  }
+
   _prune() {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
     for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
+    for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
   }
@@ -374,6 +422,7 @@ class ControlledPartyLogistics {
     const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
     for (const item of inventory) {
       if (!item) continue;
+      if (this._lootBlocked(item)) continue;
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) { this.stats.protectedLootSkipped += 1; continue; }
       return { ...safe, index: item.index, quantity: Math.min(safe.quantity, this.config.maxLootStackTransfer) };
@@ -392,6 +441,15 @@ class ControlledPartyLogistics {
     const safe = this._safeLootDescriptor(offered);
     if (!safe.ok) {
       this.stats.messagesRejected += 1;
+      const offerId = String(data && data.offerId || '');
+      if (offerId && offerId.length <= 160) {
+        this.stats.lootRejectsSent += 1;
+        this._send(sender, Action.LOOT_REJECT, {
+          offerId,
+          reason: safe.reason || 'LOOT_REJECTED_BY_MERCHANT',
+          retryAfterMs: this.config.rejectedLootBackoffMs
+        });
+      }
       return true;
     }
     const snapshot = this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null;
@@ -501,6 +559,29 @@ class ControlledPartyLogistics {
       const expiresAt = finite(data.expiresAt);
       if (expiresAt == null || expiresAt <= this.now() || expiresAt - this.now() > this.config.grantTtlMs + 1000) return false;
       this.pendingGrant = { ...clone(data), receivedAt: this.now() };
+      return true;
+    }
+
+    if (action === Action.LOOT_REJECT) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const offer = this.pendingOffer;
+      if (!offer || offer.kind !== 'item' || String(data.offerId || '') !== String(offer.offerId || '')) return false;
+      this._blockRejectedLoot(offer.item, data.reason || 'LOOT_REJECTED_BY_MERCHANT', finite(data.retryAfterMs, this.config.rejectedLootBackoffMs));
+      this.pendingOffer = null;
+      this.pendingGrant = null;
+      this.backoffUntil = Math.max(this.backoffUntil, this.now() + Math.min(3000, this.config.failureBackoffMs));
+      this.stats.lootRejectsReceived += 1;
+      this.lastDecision = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'LOOT_OFFER_REJECTED',
+        rejectReason: data.reason || null,
+        offerId: data.offerId || null
+      };
+      this._event('PARTY_LOGISTICS_LOOT_REJECTED', 'info', data.reason || 'LOOT_REJECTED_BY_MERCHANT', {
+        offerId: data.offerId || null,
+        retryAfterMs: finite(data.retryAfterMs, this.config.rejectedLootBackoffMs)
+      });
       return true;
     }
 
@@ -1022,6 +1103,8 @@ class ControlledPartyLogistics {
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
         closedLoopLocalDeltaVerification: true,
+        explicitLootRejectProtocol: true,
+        rejectedLootBackoffPreventsOfferLoop: true,
         engageStateDoesNotBlockTransfer: true,
         activeAggroBlocksNewOfferOnly: true
       },
@@ -1033,6 +1116,7 @@ class ControlledPartyLogistics {
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
+      rejectedLoot: [...this.rejectedLoot.values()].map(clone),
       pendingOffer: clone(this.pendingOffer),
       pendingGrant: clone(this.pendingGrant),
       pendingOutbound: clone(this.pendingOutbound),
