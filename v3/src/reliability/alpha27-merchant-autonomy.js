@@ -425,14 +425,17 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      if (this.selfGear && await this.selfGear.cycle()) {
-        this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
-        return true;
-      }
+      // Farmer gear is first-class work. Ready Farmer upgrades are delivered
+      // before general mutation backlog, and Merchant self-gear is deliberately
+      // last so it cannot consume time/items needed by the party.
+      if (await this.deliverGearGoal()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
       if (request) return this.executeEconomyRequest(request);
-      if (await this.deliverGearGoal()) return true;
+      if (this.selfGear && await this.selfGear.cycle()) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+        return true;
+      }
       this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
       task = null;
     }
@@ -449,14 +452,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
       const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
-        if (this.selfGear && await this.selfGear.cycle()) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
-          return true;
-        }
+        if (await this.deliverGearGoal()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
         if (request) return this.executeEconomyRequest(request);
-        if (await this.deliverGearGoal()) return true;
+        if (this.selfGear && await this.selfGear.cycle()) {
+          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+          return true;
+        }
         this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
       }
     }
@@ -513,6 +516,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       centralLedgerPlanner: true,
       taskCoordinator: this.taskCoordinator ? this.taskCoordinator.status() : null,
       nonPreemptiveMerchantTasks: true,
+      farmerGearBeforeMerchantSelfGear: true,
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
