@@ -220,6 +220,25 @@ class ControlledMerchantExecutor {
       const lifecycleReasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
       const lifecycleProcessedSale = !!(tx.metadata && tx.metadata.lifecycleProcessedSale === true)
         && lifecycleReasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+      if (lifecycleProcessedSale) {
+        const gear = this.runtime && this.runtime.gearProgression;
+        let futureProtection = null;
+        try {
+          futureProtection = gear && typeof gear.futureProtectionFor === 'function'
+            ? gear.futureProtectionFor(character.name, txIndex, tx.item, tx.level)
+            : null;
+        } catch (_) {
+          futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        }
+        if (futureProtection) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED',
+            futureFarmerProtection: futureProtection
+          };
+        }
+      }
 
       // Ordinary SELL remains plain-stackable-material-only. The only exception
       // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then
