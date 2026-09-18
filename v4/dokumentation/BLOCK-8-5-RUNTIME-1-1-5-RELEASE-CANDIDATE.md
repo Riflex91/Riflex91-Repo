@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Release-Candidate
 
-Status: **Release-Candidate reproduzierbar gebunden; noch nicht deployed und noch nicht real in Adventure Land freigegeben.**
+Status: **Release-Candidate reproduzierbar gebunden; Deployment und oeffentliche HTTPS-Verifikation bestaetigt; reale Adventure-Land-Freigaben noch offen.**
 
 ## Zweck
 
@@ -54,7 +54,7 @@ Die Pruefung:
 3. prueft den isolierten V4-only Runtime-Release-Workflow auf expliziten `release_sha`, manuelle Bestaetigung und fehlende V3-/Worker-Autoritaet,
 4. baut die Produktionsruntime erneut aus den TypeScript-Quellen,
 5. vergleicht Module, Bytegroesse und SHA-256 exakt mit dem Manifest,
-6. verweigert jede vorzeitige Behauptung von Deployment oder realer Adventure-Land-Freigabe.
+6. verlangt den bestaetigten Deployment-/HTTPS-Nachweis und verweigert weiterhin jede vorzeitige Adventure-Land-Freigabe.
 
 Damit wird ein Quellcode-Drift nach dem Candidate sichtbar, bevor der Candidate als derselbe Runtime-Build verwendet werden kann.
 
@@ -85,14 +85,37 @@ Der breite historische `.github/workflows/deploy-cloudflare.yml` ist fuer diesen
 
 Der Candidate selbst loest den V4-only Workflow **nicht** aus.
 
-Ein bereits existierender Nebenrelease unter `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` stammt aus dem alten automatisch gekoppelten Workflow und wird fuer 8.5.9 ausdruecklich **nicht** anerkannt. Der gueltige Candidate bleibt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Daher bleiben `deploymentPerformed: false` und `publicHttpsVerified: false` fuer den Candidate korrekt.
+Ein bereits existierender Nebenrelease unter `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` stammt aus dem alten automatisch gekoppelten Workflow und wird fuer 8.5.9 ausdruecklich **nicht** anerkannt. Der gueltige Candidate bleibt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`.
+
+## Deployment und oeffentliche HTTPS-Verifikation
+
+Der exakte Candidate wurde bereits im historischen Run
+
+`35402650432`
+
+mit Job
+
+`105785689083`
+
+erfolgreich gebaut, immutable nach R2 veroeffentlicht, aus R2 bytegleich rueckverifiziert und ueber den oeffentlichen HTTPS-Endpunkt erneut verifiziert.
+
+Der oeffentliche SHA-Endpunkt liefert:
+
+`95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f`
+
+Damit sind im Manifest korrekt:
+
+- `deploymentPerformed: true`
+- `publicHttpsVerified: true`
+
+Der detaillierte Nachweis steht in:
+
+`BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md`
 
 ## Noch ausdrücklich offen
 
-Das Manifest setzt weiterhin fest:
+Weiterhin **false** bleiben:
 
-- `deploymentPerformed: false`
-- `publicHttpsVerified: false`
 - `adventureLandShadowVerified: false`
 - `adventureLandControlledLiveVerified: false`
 - `adventureLandSoakVerified: false`
@@ -100,21 +123,9 @@ Das Manifest setzt weiterhin fest:
 
 Diese Felder sind keine Schalter fuer die Runtime.
 
-Sie dokumentieren nur, welche externen Nachweise noch fehlen.
+Sie dokumentieren die noch fehlenden realen Adventure-Land-Nachweise.
 
-## Warum noch kein Deployment in diesem Schritt
-
-Ein Deployment veroeffentlicht reale Artefakte in der externen Cloudflare-/R2-Infrastruktur.
-
-Dieser Commit bereitet nur die reproduzierbare technische Bindung vor.
-
-Erst ein tatsaechlich erfolgreich durchgelaufener Deployment-Workflow fuer exakt
-
-`88185523c81687dc16f9647ca5e7568c5e2c228c`
-
-kann einen Deployment- und HTTPS-Nachweis liefern.
-
-Danach darf der 8.5.9-Adventure-Land-Nachweisrunner gegen genau diese immutable URL und genau den verifizierten SHA-256 ausgefuehrt werden.
+Der 8.5.9-Adventure-Land-Nachweisrunner darf jetzt gegen genau diese immutable URL und genau den verifizierten SHA-256 ausgefuehrt werden.
 
 ## Block-9-Grenze
 
