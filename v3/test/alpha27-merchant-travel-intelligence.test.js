@@ -140,7 +140,9 @@ test('distant same-map service chooses town teleport when estimated faster, then
 
 test('nearby service keeps smart_move and does not waste time channeling town', async () => {
   const { convergence, root, intelligence } = install();
-  root.character.x = 80;
+  // 150 units away: outside the 108-unit interaction buffer, but still
+  // close enough that smart_move should beat a town teleport.
+  root.character.x = 200;
   root.character.y = 0;
   root.character.speed = 50;
   root.find_npc = (id) => id === 'fancypots' ? { map: 'main', x: 50, y: 0 } : null;
