@@ -4,8 +4,14 @@ const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, identityQu
 const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-constants');
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
+const { Alpha27BankRecovery } = require('./alpha27-bank-recovery');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
+  constructor(runtime, atomic, shared) {
+    super(runtime, atomic, shared);
+    this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+  }
+
   _partySupplyPlanFreshMs() {
     return Math.max(5000, Math.min(20000, finite(this.options && this.options.merchantServiceChainPlanFreshMs, 10000)));
   }
@@ -303,7 +309,29 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (await this.deliverGearGoal()) return true;
 
     const lowRiskRequest = this.planSellOrBank();
-    if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) {
+    // Free disposable local inventory before making a bank-recovery trip.
+    if (lowRiskRequest && lowRiskRequest.type === 'SELL' && !this.transactionFamilyOpen('SELL')) {
+      return this.executeEconomyRequest(lowRiskRequest);
+    }
+
+    // Recover legacy progression items only after current inventory work is drained.
+    // One verified bank retrieval is followed by a full normal re-evaluation on the
+    // next cycle, so the retrieved item must pass COMPOUND/UPGRADE -> GEAR -> SELL
+    // before ordinary BANK fallback may run.
+    if (this.bankRecovery) {
+      const recoveryPlan = this.bankRecovery.plan();
+      if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'BANK_RECOVERY',
+          reason: recoveryPlan.reason,
+          recovery: clone(recoveryPlan)
+        };
+        if (await this.bankRecovery.execute(recoveryPlan)) return true;
+      }
+    }
+
+    if (lowRiskRequest && lowRiskRequest.type === 'BANK' && !this.transactionFamilyOpen('BANK')) {
       return this.executeEconomyRequest(lowRiskRequest);
     }
 
@@ -333,6 +361,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousGearGoalDelivery: true,
       economyBeforeNonCriticalGearDelivery: false,
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
+      bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
+      bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
