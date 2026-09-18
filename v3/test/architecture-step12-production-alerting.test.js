@@ -280,6 +280,7 @@ test('Windows PowerShell alert path uses DPAPI CurrentUser and clears decrypted 
   assert.match(run, /AIO_V3_ALERT_SECRETS_JSON/);
   assert.match(run, /Remove-Item Env:AIO_V3_ALERT_SECRETS_JSON/);
   assert.match(canary, /Remove-Item Env:AIO_V3_ALERT_SECRETS_JSON/);
-  assert.match(install, /criticalAlertingEnabled = \$false/);
+  assert.match(install, /\$existingCriticalAlertingEnabled = \$false/);
+  assert.match(install, /criticalAlertingEnabled = \$existingCriticalAlertingEnabled/);
   assert.doesNotMatch(install, /https:\/\/.*webhook/i);
 });
