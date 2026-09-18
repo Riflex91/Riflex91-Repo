@@ -101,6 +101,35 @@ test('fresh adaptive potion delivery safely releases a merely reserved bank tran
   assert.equal(status.partySupplyChainLatched, true);
 });
 
+test('critical supply aborts a RESERVED compound before any raw mutation and proceeds to restock', async () => {
+  const active = { id: 'compound-reserved', type: 'COMPOUND', state: 'RESERVED' };
+  const f = fixture({ plan: adaptivePlan('RESTOCK_REQUIRED'), active });
+  let restocks = 0;
+  f.autonomy.restockPartyPotions = async () => { restocks += 1; return true; };
+
+  assert.equal(await f.autonomy.cycle(), true);
+  assert.deepEqual(f.cancelled, { id: 'compound-reserved', reason: 'PARTY_SUPPLY_SERVICE_CHAIN_PREEMPT' });
+  assert.equal(f.executed, 0);
+  assert.equal(restocks, 1);
+  assert.equal(f.autonomy.stats.partySupplyMutationPreemptions, 1);
+  const status = f.autonomy.status();
+  assert.equal(status.criticalPartySupplyPreemptsUnexecutedReservedMutations, true);
+  assert.equal(status.criticalPartySupplyNeverPreemptsExecutingMutation, true);
+});
+
+test('critical supply never cancels an EXECUTING compound with an uncertain raw outcome', async () => {
+  const active = { id: 'compound-executing', type: 'COMPOUND', state: 'EXECUTING' };
+  const f = fixture({ plan: adaptivePlan('RESTOCK_REQUIRED'), active });
+  let restocks = 0;
+  f.autonomy.restockPartyPotions = async () => { restocks += 1; return true; };
+
+  assert.equal(await f.autonomy.cycle(), false);
+  assert.equal(f.cancelled, null);
+  assert.equal(f.executed, 0);
+  assert.equal(restocks, 0);
+  assert.equal(f.autonomy.stats.partySupplyMutationPreemptions || 0, 0);
+});
+
 test('rejected low-risk cancellation fails closed and never executes the competing bank transaction', async () => {
   const active = { id: 'bank-reserved', type: 'BANK', state: 'RESERVED' };
   const f = fixture({
