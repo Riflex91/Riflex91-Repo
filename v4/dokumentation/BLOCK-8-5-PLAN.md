@@ -60,11 +60,13 @@ Ein Prozess-/Host-Neustart wird nicht von der Adventure-Land-Laufzeit selbst aus
 
 Umgesetzt sind ein versionierter Gesundheitsvertrag, die Recovery-Stufen `normal -> beobachten -> sicher_pausiert -> neustart_empfohlen -> blockiert`, getrennte Freshness-/Fortschrittsbewertung, Gruppen-Liveness und Safety. `hostNeustartEmpfohlen` bleibt eine read-only Empfehlung; `automatischerNeustart` ist fest `false`.
 
-### Schritt 8.5.4 – Recovery-Checkpoint v1
+### Schritt 8.5.4 – Recovery-Checkpoint v1 — **IMPLEMENTIERT**
 
 Ein kleiner versionierter und pruefbarer Checkpoint speichert nur die Informationen, die fuer einen eindeutigen Wiederanlauf benoetigt werden.
 
 Nicht gespeichert wird fluechtige Autoritaet, die nach Neustart ungeprueft weiterlaufen koennte.
+
+Umgesetzt sind SHA-256-Integritaet ueber kanonische Nutzlast, A/B-Slots mit Fallback, monotone Sequenzen, Byte-Limit und strukturierte Speicherfehler. Jeder Checkpoint erzwingt `wiederaufnahmeErlaubt: false`, `abgleichErforderlich: true` und `aktionsAutoritaet: false`; offene Arbeit wird nur als Kennungsliste gespeichert.
 
 ### Schritt 8.5.5 – gemeinsame StatusSchnittstelle
 
