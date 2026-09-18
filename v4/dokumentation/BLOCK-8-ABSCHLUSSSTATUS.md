@@ -6,7 +6,7 @@ Stand: 2026-09-18
 
 Block 8 ist **noch nicht formal abgeschlossen**.
 
-Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Das verbleibende formale Abschluss-Gate ist der im Fahrplan geforderte 72-Stunden-Gruppentest.
+Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Offen sind noch die kontrollierte aktive Freigabekampagne mit one-shot Live-Smoke und danach der im Fahrplan geforderte 72-Stunden-Gruppentest.
 
 Es wird **kein weiterer Zwischenblock zwischen Block 8 und Block 8.5** eingefuehrt. Die noch fehlende aktive Freigabekampagne ist Abschlussarbeit innerhalb von Block 8. Erst nach ihrem erfolgreichen Abschluss beginnt Block 8.5.
 
@@ -61,7 +61,7 @@ Die zentrale Verarbeitung endet weiterhin in `SchattenAusfuehrung`.
 
 Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ist inzwischen **implementiert, aber standardmaessig gesperrt und noch nicht live freigegeben**.
 
-Er liegt ausschliesslich unter `ausfuehrung/` und besitzt noch keinen one-shot Browser-Live-Runner. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
+Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt inzwischen ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Die feste delegierte Ausfuehrungsbruecke unter `ausfuehrung/` fehlt noch; daher ist weiterhin keine echte Live-Gruppenaktion freigegeben. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
 
 ## Verbleibende Block-8-Schritte
 
@@ -94,7 +94,11 @@ Vor einer echten Aktion sind mindestens erforderlich:
 
 Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
-### 3. Begrenzter one-shot Live-Smoke
+### 3. Begrenzter one-shot Live-Smoke — **Freigabe-/Testwerkzeug vorbereitet, echte Bruecke und Smoke noch offen**
+
+Das Browserwerkzeug startet gesperrt, verlangt eine frische read-only Vorschau, bindet die Freigabe an genau eine AktionsAnfrage und sperrt vor der Delegation wieder. Es besitzt selbst keinen Adventure-Land-Aktionsaufruf.
+
+Vor dem echten Smoke fehlt noch eine feste `V4Block8GruppenZielAusfuehrungsBruecke`, deren Implementierung innerhalb der `ausfuehrung/`-Grenze bleibt und die Produktions-Einmal-Freigabe nutzt.
 
 Erst nach gruenem Offline-/Replay-/Schattennachweis:
 
