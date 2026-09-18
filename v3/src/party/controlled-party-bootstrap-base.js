@@ -134,7 +134,16 @@ class ControlledPartyBootstrap {
   _partyListNames() {
     const parent = this.root && (this.root.parent || this.root);
     const list = parent && parent.party_list;
-    return Array.isArray(list) ? uniqueNames(list.map(cleanName).filter(Boolean)) : [];
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const value of list) {
+      const name = cleanName(value);
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      out.push(name);
+    }
+    return out;
   }
 
   _partyNames() {
