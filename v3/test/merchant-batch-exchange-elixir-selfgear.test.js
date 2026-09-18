@@ -268,7 +268,9 @@ test('exact self-gear reservation can authorize a non-progression ledger disposi
   }, { ledger });
   assert.equal(accepted.accepted, true);
 
-  runtime.transactionEngine.cancel(accepted.transaction.id, 'TEST');
+  const acceptedRow = runtime.transactionEngine.transactions.get(accepted.transaction.id);
+  runtime.transactionEngine._release(acceptedRow);
+  runtime.transactionEngine.transactions.delete(accepted.transaction.id);
   const rejected = runtime.transactionEngine.planAtomic({
     type: 'UPGRADE',
     character: 'Merchant',
