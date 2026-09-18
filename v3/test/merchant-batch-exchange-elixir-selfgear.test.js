@@ -10,6 +10,7 @@ const { MerchantSelfGear } = require('../src/reliability/merchant-self-gear');
 const { Alpha27CombatMerchantConvergence } = require('../src/reliability/alpha27-combat-merchant-convergence');
 const { makeEngine, makeLedger, makeRuntime } = require('./alpha27-convergence-test-helpers');
 
+// Integrated live regression coverage for alpha.20.94 Merchant economy behavior.
 test('default mutation risk budget is the requested 10x experiment', () => {
   const runtime = makeRuntime({ gameData: { items: {}, monsters: {}, maps: {} } });
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
