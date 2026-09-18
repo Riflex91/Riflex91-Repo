@@ -197,6 +197,8 @@ vorbereitet.
 
 Er akzeptiert ausschliesslich Runtime 1.1.5 und laedt oder veroeffentlicht selbst keinen Runtime-Build.
 
+Der vorbereitete Release-Candidate ist exakt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Seine reproduzierbare Build-Pruefung ersetzt noch kein Deployment und keinen oeffentlichen HTTPS-Nachweis.
+
 Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 
 1. finalen Aenderungsstand eindeutig festlegen,

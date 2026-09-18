@@ -148,6 +148,8 @@ Die Freigabemechanik ist damit implementiert. Die operativen Schatten-, kontroll
 
 Dafuer ist nun zusaetzlich ein Adventure-Land-Nachweisrunner vorbereitet, der ausschliesslich Runtime 1.1.5 akzeptiert, Schatten nur ueber read-only Diagnose prueft, kontrolliert live genau eine sichere Pause/Fortsetzung ausfuehrt und einen mindestens zehnminuetigen read-only Soak mit Heartbeat-/Generationspruefung erzeugt. Der Runner veroeffentlicht oder laedt selbst keine Runtime; die reale Ausfuehrung bleibt bis zu einem explizit verifizierten Runtime-1.1.5-Build offen.
 
+Der Runtime-1.1.5-Build ist inzwischen als reproduzierbarer Release-Candidate an `88185523c81687dc16f9647ca5e7568c5e2c228c` und `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Deployment, oeffentliche HTTPS-Verifikation und die realen Adventure-Land-Nachweise bleiben weiterhin offen.
+
 ## Nicht Teil von Block 8.5
 
 - neue Merchant-/Bank-Fachlogik
