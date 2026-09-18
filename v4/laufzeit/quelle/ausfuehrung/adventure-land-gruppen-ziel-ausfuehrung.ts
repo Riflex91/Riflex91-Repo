@@ -5,9 +5,85 @@ import { GRUPPEN_AKTIONS_NAMEN, type GruppenAktionsAnfrageDetails } from '../ver
 import type { KampfSicherheitsEntscheidung } from '../vertraege/kampfsicherheit.js';
 
 const STANDARD_SICHERHEITS_MAXIMAL_ALTER_MILLISEKUNDEN = 1_500;
+const STANDARD_EINMAL_FREIGABE_DAUER_MILLISEKUNDEN = 30_000;
+
+export const GRUPPEN_ZIEL_EINMAL_FREIGABE_TEXT = 'BLOCK8-GRUPPENZIEL-EINMAL-FREIGEBEN';
+
+export interface AdventureLandGruppenZielEinmalFreigabeStatus {
+  readonly freigegeben: boolean;
+  readonly aktionsKennung: string | null;
+  readonly erteiltAm: number | null;
+  readonly gueltigBis: number | null;
+  readonly restMillisekunden: number;
+}
+
+export class AdventureLandGruppenZielEinmalFreigabe {
+  private freigabe: Readonly<{ aktionsKennung: string; erteiltAm: number; gueltigBis: number }> | null = null;
+
+  public constructor(
+    private readonly dauerMillisekunden = STANDARD_EINMAL_FREIGABE_DAUER_MILLISEKUNDEN
+  ) {
+    if (!Number.isFinite(this.dauerMillisekunden) || this.dauerMillisekunden <= 0) {
+      throw new Error('Die Einmal-Freigabedauer muss eine positive endliche Zahl sein.');
+    }
+  }
+
+  public erteile(freigabeText: string, aktionsKennung: string, jetzt: number): Readonly<AdventureLandGruppenZielEinmalFreigabeStatus> {
+    pruefeZeitpunkt('Der Einmal-Freigabezeitpunkt', jetzt);
+    if (freigabeText !== GRUPPEN_ZIEL_EINMAL_FREIGABE_TEXT) {
+      throw new Error(`Falscher Einmal-Freigabetext. Erwartet wird exakt: ${GRUPPEN_ZIEL_EINMAL_FREIGABE_TEXT}`);
+    }
+    if (aktionsKennung.trim().length === 0) throw new Error('Die Einmal-Freigabe benoetigt eine AktionsAnfrage-Kennung.');
+    this.freigabe = Object.freeze({
+      aktionsKennung,
+      erteiltAm: jetzt,
+      gueltigBis: jetzt + this.dauerMillisekunden
+    });
+    return this.status(jetzt);
+  }
+
+  public sperre(jetzt: number): Readonly<AdventureLandGruppenZielEinmalFreigabeStatus> {
+    pruefeZeitpunkt('Der Einmal-Sperrzeitpunkt', jetzt);
+    this.freigabe = null;
+    return this.status(jetzt);
+  }
+
+  public status(jetzt: number): Readonly<AdventureLandGruppenZielEinmalFreigabeStatus> {
+    pruefeZeitpunkt('Der Einmal-Freigabestatuszeitpunkt', jetzt);
+    if (this.freigabe && jetzt > this.freigabe.gueltigBis) this.freigabe = null;
+    if (!this.freigabe) {
+      return Object.freeze({
+        freigegeben: false,
+        aktionsKennung: null,
+        erteiltAm: null,
+        gueltigBis: null,
+        restMillisekunden: 0
+      });
+    }
+    return Object.freeze({
+      freigegeben: true,
+      aktionsKennung: this.freigabe.aktionsKennung,
+      erteiltAm: this.freigabe.erteiltAm,
+      gueltigBis: this.freigabe.gueltigBis,
+      restMillisekunden: Math.max(0, this.freigabe.gueltigBis - jetzt)
+    });
+  }
+
+  public verbrauche(aktionsKennung: string, jetzt: number): void {
+    pruefeZeitpunkt('Der Einmal-Freigabeverbrauchszeitpunkt', jetzt);
+    const freigabe = this.freigabe;
+    this.freigabe = null;
+    if (!freigabe) throw new Error('Keine aktive Einmal-Freigabe fuer die Gruppenzielausfuehrung vorhanden.');
+    if (jetzt > freigabe.gueltigBis) throw new Error('Die Einmal-Freigabe fuer die Gruppenzielausfuehrung ist abgelaufen.');
+    if (freigabe.aktionsKennung !== aktionsKennung) {
+      throw new Error(`Die Einmal-Freigabe ist an eine andere AktionsAnfrage gebunden: ${freigabe.aktionsKennung}.`);
+    }
+  }
+}
 
 export interface AdventureLandGruppenZielAusfuehrungOptionen {
   readonly aktivFreigegeben?: boolean;
+  readonly einmalFreigabe?: AdventureLandGruppenZielEinmalFreigabe;
   readonly sicherheitsMaximalAlterMillisekunden?: number;
 }
 
@@ -56,6 +132,7 @@ function kontexte(spielFenster: object): readonly object[] {
 
 export class AdventureLandGruppenZielAusfuehrung {
   private readonly aktivFreigegeben: boolean;
+  private readonly einmalFreigabe: AdventureLandGruppenZielEinmalFreigabe | null;
   private readonly sicherheitsMaximalAlterMillisekunden: number;
 
   public constructor(
@@ -63,6 +140,7 @@ export class AdventureLandGruppenZielAusfuehrung {
     optionen: AdventureLandGruppenZielAusfuehrungOptionen = {}
   ) {
     this.aktivFreigegeben = optionen.aktivFreigegeben === true;
+    this.einmalFreigabe = optionen.einmalFreigabe ?? null;
     this.sicherheitsMaximalAlterMillisekunden = optionen.sicherheitsMaximalAlterMillisekunden ?? STANDARD_SICHERHEITS_MAXIMAL_ALTER_MILLISEKUNDEN;
     if (!Number.isFinite(this.sicherheitsMaximalAlterMillisekunden) || this.sicherheitsMaximalAlterMillisekunden <= 0) {
       throw new Error('sicherheitsMaximalAlterMillisekunden muss eine positive endliche Zahl sein.');
@@ -98,6 +176,11 @@ export class AdventureLandGruppenZielAusfuehrung {
       if (anfrage.aktion !== GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten) {
         throw new Error(`Nicht freigegebene Gruppenaktion: ${anfrage.aktion}.`);
       }
+
+      if (!this.einmalFreigabe) {
+        throw new Error('Aktive Gruppenzielausfuehrung benoetigt zusaetzlich eine gebundene Einmal-Freigabe.');
+      }
+      this.einmalFreigabe.verbrauche(anfrage.kennung, jetzt);
 
       const details = this.pruefeDetails(anfrage.details);
       this.pruefeRessourcen(anfrage.kennung, anfrage.benoetigteRessourcen, steuerung);
