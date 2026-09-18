@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 4082 Zeilen**
+**21 Dateien · 4083 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -33,7 +33,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha14-runtime.js` | 116 |
 | `src/autonomy/alpha15-runtime.js` | 105 |
 | `src/autonomy/alpha16-runtime.js` | 77 |
-| `src/autonomy/alpha17-runtime.js` | 307 |
+| `src/autonomy/alpha17-runtime.js` | 308 |
 | `src/autonomy/alpha18-runtime.js` | 216 |
 | `src/autonomy/alpha19-runtime.js` | 178 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 344 |
@@ -104,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 3994 Zeilen**
+**12 Dateien · 4192 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -112,10 +112,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/bank-expansion-transactions.js` | 289 |
 | `src/economy/controlled-bank-consolidation-executor.js` | 285 |
 | `src/economy/controlled-bank-expansion-executor.js` | 184 |
-| `src/economy/controlled-merchant-executor.js` | 534 |
+| `src/economy/controlled-merchant-executor.js` | 567 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 366 |
+| `src/economy/gear-progression.js` | 531 |
 | `src/economy/inventory-ledger.js` | 394 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
@@ -161,7 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2446 Zeilen**
+**9 Dateien · 2486 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -169,8 +169,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 282 |
-| `src/merchant/merchant-production-controller.js` | 319 |
-| `src/merchant/merchant-production-planner.js` | 574 |
+| `src/merchant/merchant-production-controller.js` | 339 |
+| `src/merchant/merchant-production-planner.js` | 594 |
 | `src/merchant/merchant-service-planner.js` | 225 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
@@ -210,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7557 Zeilen**
+**33 Dateien · 7566 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -227,7 +227,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 583 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1043 |
+| `src/party/controlled-party-logistics.js` | 1052 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 13761 Zeilen**
+**50 Dateien · 14309 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -277,20 +277,20 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 48 |
 | `src/reliability/alpha27-atomic-economy.js` | 291 |
-| `src/reliability/alpha27-atomic-ledger.js` | 121 |
-| `src/reliability/alpha27-atomic-service.js` | 241 |
+| `src/reliability/alpha27-atomic-ledger.js` | 179 |
+| `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 150 |
 | `src/reliability/alpha27-atomic-transactions.js` | 158 |
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 574 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 578 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 284 |
+| `src/reliability/alpha27-merchant-planning.js` | 298 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
-| `src/reliability/alpha27-merchant-travel-intelligence.js` | 362 |
+| `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
 | `src/reliability/alpha28-cross-map-farmer.js` | 380 |
@@ -299,13 +299,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 620 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
-| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 729 |
+| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1056 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
 | `src/reliability/integrated-party-control.js` | 90 |
 | `src/reliability/live-farmer-merchant-recovery.js` | 288 |
-| `src/reliability/merchant-self-gear.js` | 364 |
+| `src/reliability/merchant-self-gear.js` | 381 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 704 |
@@ -341,13 +341,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## travel
 
-**3 Dateien · 650 Zeilen**
+**3 Dateien · 678 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/travel/controlled-travel-executor.js` | 263 |
+| `src/travel/controlled-travel-executor.js` | 288 |
 | `src/travel/route-cost-estimator.js` | 77 |
-| `src/travel/safe-travel.js` | 310 |
+| `src/travel/safe-travel.js` | 313 |
 
 ## world
 
