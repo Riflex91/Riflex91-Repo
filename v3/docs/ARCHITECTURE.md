@@ -16,13 +16,13 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | control | 5 | 1047 |
 | core | 8 | 704 |
 | economy | 12 | 3942 |
-| farmer | 21 | 4279 |
-| game | 3 | 724 |
-| merchant | 8 | 2115 |
+| farmer | 21 | 4305 |
+| game | 3 | 726 |
+| merchant | 8 | 2245 |
 | ops | 26 | 7278 |
-| party | 32 | 7169 |
+| party | 33 | 7556 |
 | planner | 1 | 66 |
-| reliability | 49 | 13229 |
+| reliability | 50 | 13709 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
@@ -101,7 +101,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | reliability | autonomy | 7 |
 | reliability | brain | 1 |
 | reliability | control | 4 |
-| reliability | economy | 2 |
+| reliability | economy | 3 |
 | reliability | farmer | 1 |
 | reliability | game | 1 |
 | reliability | merchant | 6 |

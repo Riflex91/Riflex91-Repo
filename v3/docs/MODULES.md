@@ -123,7 +123,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4279 Zeilen**
+**21 Dateien · 4305 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -133,7 +133,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 222 |
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
-| `src/farmer/farmer-fsm.js` | 526 |
+| `src/farmer/farmer-fsm.js` | 552 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
 | `src/farmer/farmer-resource-topoff-hotfix.js` | 211 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
@@ -151,26 +151,26 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## game
 
-**3 Dateien · 724 Zeilen**
+**3 Dateien · 726 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/game/adapter.js` | 291 |
+| `src/game/adapter.js` | 293 |
 | `src/game/command-outcomes.js` | 227 |
 | `src/game/stability-adapter.js` | 206 |
 
 ## merchant
 
-**8 Dateien · 2115 Zeilen**
+**8 Dateien · 2245 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/merchant/controlled-merchant-production-executor.js` | 143 |
+| `src/merchant/controlled-merchant-production-executor.js` | 168 |
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 282 |
-| `src/merchant/merchant-production-controller.js` | 233 |
-| `src/merchant/merchant-production-planner.js` | 478 |
+| `src/merchant/merchant-production-controller.js` | 249 |
+| `src/merchant/merchant-production-planner.js` | 567 |
 | `src/merchant/merchant-service-planner.js` | 225 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
 
@@ -209,13 +209,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**32 Dateien · 7169 Zeilen**
+**33 Dateien · 7556 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/party/account-character-transport.js` | 280 |
-| `src/party/alpha20-15-combat-logistics-hotfix.js` | 336 |
-| `src/party/alpha20-15-logistics-fairness-hotfix.js` | 39 |
+| `src/party/alpha20-15-combat-logistics-hotfix.js` | 339 |
+| `src/party/alpha20-15-logistics-fairness-hotfix.js` | 40 |
 | `src/party/alpha20-19-account-transport-hotfix.js` | 191 |
 | `src/party/alpha20-19-logistics-stabilization.js` | 133 |
 | `src/party/capabilities.js` | 37 |
@@ -226,7 +226,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 583 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 884 |
+| `src/party/controlled-party-logistics.js` | 1042 |
+| `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
 | `src/party/orchestrator-base.js` | 56 |
@@ -256,7 +257,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**49 Dateien · 13229 Zeilen**
+**50 Dateien · 13709 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -274,24 +275,24 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 48 |
-| `src/reliability/alpha27-atomic-economy.js` | 274 |
+| `src/reliability/alpha27-atomic-economy.js` | 291 |
 | `src/reliability/alpha27-atomic-ledger.js` | 121 |
-| `src/reliability/alpha27-atomic-service.js` | 220 |
-| `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
-| `src/reliability/alpha27-atomic-transactions.js` | 101 |
+| `src/reliability/alpha27-atomic-service.js` | 241 |
+| `src/reliability/alpha27-atomic-transaction-engine.js` | 150 |
+| `src/reliability/alpha27-atomic-transactions.js` | 158 |
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
-| `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
+| `src/reliability/alpha27-combat-merchant-convergence.js` | 307 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 513 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 525 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 278 |
+| `src/reliability/alpha27-merchant-planning.js` | 284 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
-| `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
+| `src/reliability/alpha27-merchant-travel-intelligence.js` | 362 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 350 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 380 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
@@ -303,6 +304,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/economy-v2-planning.js` | 58 |
 | `src/reliability/integrated-party-control.js` | 90 |
 | `src/reliability/live-farmer-merchant-recovery.js` | 288 |
+| `src/reliability/merchant-self-gear.js` | 364 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 704 |
