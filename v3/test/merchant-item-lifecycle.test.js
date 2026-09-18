@@ -332,3 +332,137 @@ test('Merchant status publishes the enforced lifecycle order', () => {
     ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK']
   );
 });
+
+
+test('processed +1 compound gear is protected and continued when +5 becomes a Farmer upgrade', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01, maxProbeLevel: 12 });
+  const gameData = {
+    items: {
+      hpbelt: { type: 'belt', hp: 100, g: 1000, compound: { hp: 100 }, grades: [] }
+    }
+  };
+  const registry = {
+    characters: [
+      {
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        inventory: [{ index: 0, name: 'hpbelt', level: 1, q: 1 }],
+        gear: {}
+      },
+      {
+        name: 'Ranger1',
+        ctype: 'ranger',
+        level: 80,
+        inventory: [],
+        gear: { belt: { name: 'hpbelt', level: 4 } }
+      }
+    ]
+  };
+
+  const evaluation = evaluator.evaluate({
+    registry,
+    gameData,
+    contentDrift: { requiresRevalidation: () => false }
+  });
+  const protection = evaluator.futureProtectionFor('Merchant', 0, 'hpbelt', 1);
+  assert.ok(protection);
+  assert.equal(protection.targetCharacter, 'Ranger1');
+  assert.equal(protection.targetLevel, 5);
+  assert.equal(evaluation.currentGoals.some((goal) => goal.character === 'Ranger1' && goal.item === 'hpbelt' && goal.targetLevel === 5), true);
+
+  const ledger = makeLedger([]);
+  const runtime = makeRuntime({ ledger, gameData });
+  runtime.gearProgression = evaluator;
+  new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000000, compoundValueCap: 500000 });
+
+  const disposition = ledger._baseDisposition(
+    { character: 'Merchant', index: 0, name: 'hpbelt', level: 1, q: 1 },
+    gameData,
+    runtime.contentDrift,
+    new Map([['hpbelt:1', 1]])
+  );
+  assert.notEqual(disposition.disposition, 'SELL');
+  assert.equal(disposition.disposition, 'KEEP');
+  assert.ok(disposition.reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION'));
+  assert.ok(disposition.reasons.includes('AUTONOMOUS_COMPOUND_ACCUMULATION'));
+});
+
+test('processed gear sell planner fails closed on exact future Farmer protection', () => {
+  const ledger = makeLedger([{
+    character: 'Merchant',
+    index: 0,
+    name: 'hpbelt',
+    level: 1,
+    observedAt: 100,
+    disposition: 'SELL',
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+  }]);
+  const runtime = makeRuntime({
+    ledger,
+    gameData: { items: { hpbelt: { type: 'belt', hp: 100, g: 1000, compound: { hp: 100 }, grades: [] } }, monsters: {}, maps: {} }
+  });
+  runtime.gearProgression = {
+    status: () => ({ lastEvaluatedAt: 100 }),
+    list: () => [],
+    futureProtectionFor(character, index, name, level) {
+      return character === 'Merchant' && index === 0 && name === 'hpbelt' && level === 1
+        ? { targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' }
+        : null;
+    }
+  };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  assert.equal(convergence._planSellOrBank(), null);
+});
+
+test('ControlledMerchant final preflight blocks a stale processed SELL when future Farmer value appears', async () => {
+  const engine = new EconomyTransactionEngine({ now: () => 1000 });
+  const entry = {
+    key: 'Merchant:0',
+    character: 'Merchant',
+    index: 0,
+    name: 'hpbelt',
+    level: 1,
+    q: 1,
+    disposition: 'SELL',
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+  };
+  const ledger = {
+    status: () => ({ stale: false }),
+    get: (name, index) => name === 'Merchant' && index === 0 ? { ...entry } : null
+  };
+  const root = {
+    character: { name: 'Merchant', ctype: 'merchant', isize: 42, items: [{ name: 'hpbelt', level: 1, q: 1 }], gold: 1000, rip: false },
+    parent: { entities: {} },
+    G: { items: { hpbelt: { type: 'belt', g: 1000, compound: { hp: 100 }, grades: [] } } },
+    sell: async () => { throw new Error('sell must never be reached'); }
+  };
+  const planned = engine.plan({
+    type: 'SELL', character: 'Merchant', index: 0, quantity: 1,
+    metadata: { lifecycleProcessedSale: true }
+  }, { ledger });
+  assert.equal(planned.accepted, true);
+
+  const runtime = {
+    root,
+    gearProgression: {
+      futureProtectionFor: () => ({ targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' })
+    }
+  };
+  const executor = new ControlledMerchantExecutor({
+    runtime,
+    root,
+    engine,
+    ledger,
+    now: () => 1000,
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    verifyDelayMs: 0
+  });
+  executor.configure({ enabled: true, sell: true, ack: CONTROLLED_MERCHANT_ACK });
+  const result = await executor.execute(planned.transaction.id);
+  assert.equal(result.executed, false);
+  assert.equal(result.committed, false);
+  assert.equal(result.reason, 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED');
+  assert.ok(root.character.items[0]);
+});
