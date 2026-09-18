@@ -379,6 +379,51 @@ test('gear delivery selects the exact sourceIndex when duplicate ready identitie
   assert.equal(candidate.goal.id, goal.id);
 });
 
+test('currently meaningful Farmer upgrade gear below +5 stays projected instead of becoming delivery-ready', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const gameData = {
+    items: {
+      quiver: { type: 'quiver', dex: 10, g: 1000, upgrade: { dex: 2 }, grades: [] }
+    }
+  };
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [
+        {
+          name: 'Merchant',
+          ctype: 'merchant',
+          level: 80,
+          inventory: [{ index: 0, name: 'quiver', level: 4, q: 1 }],
+          gear: {}
+        },
+        {
+          name: 'Ranger1',
+          ctype: 'ranger',
+          level: 80,
+          inventory: [],
+          gear: { offhand: { name: 'quiver', level: 3 } }
+        }
+      ]
+    },
+    gameData,
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const goal = result.currentGoals.find((row) => row.character === 'Ranger1' && row.item === 'quiver');
+  assert.ok(goal);
+  assert.equal(goal.observedLevel, 4);
+  assert.equal(goal.targetLevel, 5);
+  assert.equal(goal.projectedUpgradeRequired, true);
+  assert.equal(goal.feasibility, 'MATERIALS_AND_RISK_UNMODELED');
+  assert.equal(result.currentGoals.some((row) => row.character === 'Ranger1' && row.item === 'quiver' && row.targetLevel === 4 && row.projectedUpgradeRequired === false), false);
+
+  const protection = evaluator.futureProtectionFor('Merchant', 0, 'quiver', 4);
+  assert.ok(protection);
+  assert.equal(protection.targetLevel, 5);
+  assert.equal(protection.firstMeaningfulLevel, 4);
+  assert.equal(protection.targetCharacter, 'Ranger1');
+});
+
 test('ready Farmer upgrade is finalized to +5 before any lower-tier delivery', () => {
   const engine = makeEngine();
   const controlledMerchant = makeControlledMerchant();
