@@ -324,12 +324,27 @@ class ControlledPartyLogistics {
     if (!item || !item.name) return { ok: false, reason: 'ITEM_UNKNOWN' };
     const name = String(item.name);
     if (/^hpot/i.test(name) || /^mpot/i.test(name)) return { ok: false, reason: 'GROUP_POTION_RESERVED' };
-    if (item.locked === true || item.special === true) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
-    if (Number(item.level || 0) !== 0) return { ok: false, reason: 'LEVELLED_ITEM_PROTECTED' };
+    if (item.locked === true || item.l === true || item.special === true || item.p) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
     const meta = this._metadata(name);
+    if (!meta || typeof meta !== 'object') return { ok: false, reason: 'ITEM_METADATA_UNKNOWN' };
+
+    // Farmer -> Merchant is a central-processing transfer, not a SELL decision.
+    // Progression/equipment signals therefore must not block the handoff. Only
+    // genuinely character-bound/special-purpose metadata stays on the Farmer.
+    const hardSignals = ['quest', 'exchange', 'event', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
+    if (hardBlockers.length) return { ok: false, reason: 'FARMER_ITEM_HARD_PROTECTED', blockers: hardBlockers };
+
+    const level = Math.max(0, Math.floor(finite(item.level, 0)));
+    const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
+    const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
+    if (processableGear) {
+      return { ok: true, name, level, quantity: 1, metadataType: meta.type || null, merchantLifecycle: 'GEAR_OR_PROGRESSION' };
+    }
+
     const blockers = sellProtectionReasons(meta);
     if (blockers.length) return { ok: false, reason: blockers[0], blockers };
-    return { ok: true, name, level: 0, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta && meta.type || null };
+    return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'LOW_RISK_MATERIAL' };
   }
 
   _safeLootCandidate(snapshot) {
@@ -829,7 +844,8 @@ class ControlledPartyLogistics {
       authority: {
         genericSendItem: false,
         merchantSupplyAllowlist: ['hpot0', 'mpot0'],
-        farmerLootPolicy: 'plain-stackable-material-only',
+        farmerLootPolicy: 'merchant-central-processing-nonbound-items',
+        farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
