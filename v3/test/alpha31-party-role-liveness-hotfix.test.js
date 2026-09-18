@@ -93,6 +93,7 @@ test('self-aggro ranger escapes through reachable retreat geometry when every in
   assert.equal(decision.shouldMove, true);
   assert.equal(decision.reason, 'AGGRO_EMERGENCY_TERRAIN_ESCAPE');
   assert.equal(decision.alpha31EmergencyTerrainEscape, true);
+  assert.equal(decision.alpha31SafeOrbit, true);
   assert.ok(Math.hypot(decision.x - target.x, decision.y - target.y) > 30);
   assert.equal(hotfix.stats.aggroEmergencyTerrainEscapes, 1);
   assert.equal(hotfix.stats.aggroOrbitNoWaypoint, 0);
