@@ -52574,6 +52574,14 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.farmerGearEquipVerifyMs = Math.max(500, Math.min(10000, finite(options.farmerGearEquipVerifyMs, 2500)));
     this.farmerGearEquipRetryMs = Math.max(500, Math.min(30000, finite(options.farmerGearEquipRetryMs, 3000)));
     this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
+    this.collectionMinPickupEntries = Math.max(1, Math.min(42, Math.floor(finite(options.collectionMinPickupEntries, 4))));
+    this.collectionMinPickupQuantity = Math.max(1, Math.min(1000000, Math.floor(finite(options.collectionMinPickupQuantity, 20))));
+    this.collectionFarmerPressureThreshold = clamp(
+      options.collectionFarmerPressureThreshold == null ? 0.75 : options.collectionFarmerPressureThreshold,
+      0.25,
+      0.98
+    );
+    this.collectionMaxBatchWaitMs = Math.max(10000, Math.min(600000, finite(options.collectionMaxBatchWaitMs, 120000)));
     this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
     this.lastFarmerStateSentAt = -Infinity;
@@ -52582,6 +52590,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.collectionRoute = null;
     this.suspendedCollectionRoute = null;
     this.lastCollectionCapacityPlan = null;
+    this.lastCollectionBatchDecision = null;
     this.collectionCapacityBlockedIndexes = new Set();
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
@@ -52627,6 +52636,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       farmerStateRefreshRequests: 0,
       collectionRoutesStarted: 0,
       collectionRoutesCompleted: 0,
+      collectionBatchStartsByEntries: 0,
+      collectionBatchStartsByQuantity: 0,
+      collectionBatchStartsByPressure: 0,
+      collectionBatchStartsByMaxWait: 0,
       collectionCapacityDisposals: 0,
       collectionCapacityBlockedActions: 0,
       collectionCapacityPrepareTimeouts: 0,
@@ -53395,6 +53408,13 @@ class Alpha33MarkOrbitMerchantDelivery {
     const live = characterOf(this.runtime) || {};
     const gear = equipmentView(live.slots || live.equipment || sc.equipment || sc.gear || {});
     const inventory = Array.isArray(sc.inventory) ? sc.inventory : Array.isArray(live.items) ? live.items.map((item, index) => item ? { ...item, index } : null) : [];
+    const inventoryCapacity = Math.max(0, Math.floor(finite(
+      sc.isize != null ? sc.isize : (live.isize != null ? live.isize : inventory.length),
+      inventory.length
+    )));
+    const inventoryOccupied = inventory.slice(0, inventoryCapacity || inventory.length).filter(Boolean).length;
+    const inventoryFreeSlots = Math.max(0, inventoryCapacity - inventoryOccupied);
+    const inventoryPressure = inventoryCapacity > 0 ? inventoryOccupied / inventoryCapacity : 0;
     const pickupItems = pickupItemsView(logistics, inventory);
     return {
       runtimeActive: true,
@@ -53409,7 +53429,11 @@ class Alpha33MarkOrbitMerchantDelivery {
       gear,
       pickupItems,
       pickupEntryCount: pickupItems.length,
-      pickupQuantity: pickupItems.reduce((sum, item) => sum + Math.max(1, finite(item.quantity, 1)), 0)
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + Math.max(1, finite(item.quantity, 1)), 0),
+      inventoryCapacity,
+      inventoryOccupied,
+      inventoryFreeSlots,
+      inventoryPressure
     };
   }
 
@@ -53436,6 +53460,8 @@ class Alpha33MarkOrbitMerchantDelivery {
   _acceptFarmerState(sender, data) {
     const name = cleanName(sender || data && data.sender || data && data.name);
     if (!name) return false;
+    const now = this.now();
+    const previous = this.farmerStates.get(name) || null;
     const gear = equipmentView(data && data.gear || {});
     const pickupItems = Array.isArray(data && data.pickupItems)
       ? data.pickupItems.slice(0, 64).filter((item) => item && item.name).map((item) => ({
@@ -53445,6 +53471,26 @@ class Alpha33MarkOrbitMerchantDelivery {
           metadataType: item.metadataType || null
         }))
       : [];
+    const inventoryCapacity = Math.max(0, Math.floor(finite(data && data.inventoryCapacity, 0)));
+    const inventoryOccupiedRaw = Math.max(0, Math.floor(finite(data && data.inventoryOccupied, 0)));
+    const inventoryOccupied = inventoryCapacity > 0 ? Math.min(inventoryCapacity, inventoryOccupiedRaw) : inventoryOccupiedRaw;
+    const inventoryFreeSlots = inventoryCapacity > 0
+      ? Math.max(0, Math.min(inventoryCapacity, Math.floor(finite(data && data.inventoryFreeSlots, inventoryCapacity - inventoryOccupied))))
+      : null;
+    const inventoryPressure = clamp(
+      data && data.inventoryPressure != null
+        ? finite(data.inventoryPressure, 0)
+        : (inventoryCapacity > 0 ? inventoryOccupied / inventoryCapacity : 0),
+      0,
+      1
+    );
+    const continuityMs = Math.max(this.farmerPositionFreshMs * 2, this.farmerStateIntervalMs * 3);
+    const previousPickupContinuous = !!(previous
+      && previous.pickupEntryCount > 0
+      && now - finite(previous.at, 0) <= continuityMs);
+    const pickupSince = pickupItems.length > 0
+      ? (previousPickupContinuous && previous.pickupSince != null ? finite(previous.pickupSince, now) : now)
+      : null;
     const row = {
       name,
       ctype: data && data.ctype || null,
@@ -53458,9 +53504,14 @@ class Alpha33MarkOrbitMerchantDelivery {
       gear,
       pickupItems,
       pickupEntryCount: pickupItems.length,
-      pickupQuantity: pickupItems.reduce((sum, item) => sum + item.quantity, 0)
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + item.quantity, 0),
+      pickupSince,
+      inventoryCapacity,
+      inventoryOccupied,
+      inventoryFreeSlots,
+      inventoryPressure
     };
-    this.farmerStates.set(name, { ...row, at: this.now(), sourceAt: finite(data && data.at, this.now()), runtimeActive: data && data.runtimeActive === true });
+    this.farmerStates.set(name, { ...row, at: now, sourceAt: finite(data && data.at, now), runtimeActive: data && data.runtimeActive === true });
     this.stats.farmerStateReceived += 1;
     const registry = this.runtime.characterRegistry;
     if (registry && typeof registry._merge === 'function') {
@@ -53474,6 +53525,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       name,
       map: row.map,
       gearSlots: Object.keys(gear).length,
+      pickupEntryCount: row.pickupEntryCount,
+      pickupQuantity: row.pickupQuantity,
+      pickupSince: row.pickupSince,
+      inventoryPressure: row.inventoryPressure,
       staleGearGoalsReleased: released
     });
     return true;
@@ -53608,13 +53663,24 @@ class Alpha33MarkOrbitMerchantDelivery {
       list.push(row);
       byMap.set(String(row.map), list);
     }
-    const groups = [...byMap.entries()].map(([map, rows]) => ({
-      map,
-      rows,
-      pickupEntryCount: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupEntryCount, 0)), 0),
-      pickupQuantity: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupQuantity, 0)), 0),
-      freshestAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
-    })).sort((a, b) => b.pickupEntryCount - a.pickupEntryCount || b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
+    const groups = [...byMap.entries()].map(([map, rows]) => {
+      const freeSlots = rows
+        .map((row) => row.inventoryFreeSlots != null ? finite(row.inventoryFreeSlots, null) : null)
+        .filter((value) => value != null);
+      return {
+        map,
+        rows,
+        pickupEntryCount: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupEntryCount, 0)), 0),
+        pickupQuantity: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupQuantity, 0)), 0),
+        freshestAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0)))),
+        oldestPickupSince: Math.min(...rows.map((row) => finite(
+          row.pickupSince,
+          Math.min(finite(row.at, this.now()), finite(row.sourceAt, this.now()))
+        ))),
+        maxInventoryPressure: Math.max(...rows.map((row) => clamp(finite(row.inventoryPressure, 0), 0, 1))),
+        minInventoryFreeSlots: freeSlots.length ? Math.min(...freeSlots) : null
+      };
+    }).sort((a, b) => b.pickupEntryCount - a.pickupEntryCount || b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
     const selected = groups[0];
     const target = selected.rows.slice().sort((a, b) =>
       Math.max(0, finite(b.pickupEntryCount, 0)) - Math.max(0, finite(a.pickupEntryCount, 0))
@@ -53632,8 +53698,56 @@ class Alpha33MarkOrbitMerchantDelivery {
       rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
       pickupEntryCount: selected.pickupEntryCount,
       pickupQuantity: selected.pickupQuantity,
-      observedAt: selected.freshestAt
+      observedAt: selected.freshestAt,
+      oldestPickupSince: selected.oldestPickupSince,
+      maxInventoryPressure: selected.maxInventoryPressure,
+      minInventoryFreeSlots: selected.minInventoryFreeSlots
     };
+  }
+
+  _collectionStartDecision(candidate) {
+    const now = this.now();
+    const pickupEntryCount = Math.max(0, Math.floor(finite(candidate && candidate.pickupEntryCount, 0)));
+    const pickupQuantity = Math.max(0, Math.floor(finite(candidate && candidate.pickupQuantity, 0)));
+    const maxInventoryPressure = clamp(finite(candidate && candidate.maxInventoryPressure, 0), 0, 1);
+    const oldestPickupSince = candidate && candidate.oldestPickupSince != null
+      ? finite(candidate.oldestPickupSince, now)
+      : now;
+    const waitAgeMs = Math.max(0, now - oldestPickupSince);
+    const byPressure = maxInventoryPressure >= this.collectionFarmerPressureThreshold;
+    const byEntries = pickupEntryCount >= this.collectionMinPickupEntries;
+    const byQuantity = pickupQuantity >= this.collectionMinPickupQuantity;
+    const byMaxWait = waitAgeMs >= this.collectionMaxBatchWaitMs;
+    const ready = byPressure || byEntries || byQuantity || byMaxWait;
+    const reason = byPressure
+      ? 'FARMER_INVENTORY_PRESSURE'
+      : byEntries
+        ? 'PICKUP_ENTRY_BATCH'
+        : byQuantity
+          ? 'PICKUP_QUANTITY_BATCH'
+          : byMaxWait
+            ? 'MAX_BATCH_WAIT'
+            : 'WAIT_FOR_EFFICIENT_BATCH';
+    const decision = {
+      at: now,
+      ready,
+      reason,
+      pickupEntryCount,
+      pickupQuantity,
+      maxInventoryPressure,
+      minInventoryFreeSlots: candidate && candidate.minInventoryFreeSlots != null ? candidate.minInventoryFreeSlots : null,
+      oldestPickupSince,
+      waitAgeMs,
+      remainingWaitMs: Math.max(0, this.collectionMaxBatchWaitMs - waitAgeMs),
+      thresholds: {
+        minPickupEntries: this.collectionMinPickupEntries,
+        minPickupQuantity: this.collectionMinPickupQuantity,
+        farmerPressure: this.collectionFarmerPressureThreshold,
+        maxBatchWaitMs: this.collectionMaxBatchWaitMs
+      }
+    };
+    this.lastCollectionBatchDecision = decision;
+    return decision;
   }
 
   _collectionPresenceCandidate(route) {
@@ -53839,7 +53953,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     return this.runtime.merchantTaskCoordinator || null;
   }
 
-  _startCollectionRoute(candidate) {
+  _startCollectionRoute(candidate, batchDecision = null) {
     if (!candidate || !candidate.pickupEntryCount) return false;
     this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
@@ -53847,7 +53961,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
           farmers: candidate.names.slice(),
           pickupEntries: candidate.pickupEntryCount,
-          pickupQuantity: candidate.pickupQuantity
+          pickupQuantity: candidate.pickupQuantity,
+          batchReason: batchDecision && batchDecision.reason || null
         }, { leaseMs: Math.max(120000, this.collectionPrepareMaxMs + 60000) })
       : { acquired: true };
     if (!lock.acquired) return false;
@@ -53859,6 +53974,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       lastProgressAt: now,
       lastPickupQuantity: candidate.pickupQuantity,
       drainedSince: null,
+      batchReason: batchDecision && batchDecision.reason || null,
       stage: 'PREPARE_CAPACITY',
       farmers: candidate.names.slice(),
       targetMap: candidate.map,
@@ -53866,8 +53982,13 @@ class Alpha33MarkOrbitMerchantDelivery {
       targetY: candidate.y
     };
     this.stats.collectionRoutesStarted += 1;
-    this._event('MERCHANT_COLLECTION_ROUTE_STARTED', 'info', 'FRESH_FARMER_PICKUP_DEMAND', {
+    if (batchDecision && batchDecision.reason === 'PICKUP_ENTRY_BATCH') this.stats.collectionBatchStartsByEntries += 1;
+    if (batchDecision && batchDecision.reason === 'PICKUP_QUANTITY_BATCH') this.stats.collectionBatchStartsByQuantity += 1;
+    if (batchDecision && batchDecision.reason === 'FARMER_INVENTORY_PRESSURE') this.stats.collectionBatchStartsByPressure += 1;
+    if (batchDecision && batchDecision.reason === 'MAX_BATCH_WAIT') this.stats.collectionBatchStartsByMaxWait += 1;
+    this._event('MERCHANT_COLLECTION_ROUTE_STARTED', 'info', batchDecision && batchDecision.reason || 'FRESH_FARMER_PICKUP_DEMAND', {
       route: { ...this.collectionRoute },
+      batchDecision: batchDecision ? { ...batchDecision } : null,
       capacity: this._collectionCapacityPlan(candidate)
     });
     return true;
@@ -53994,7 +54115,20 @@ class Alpha33MarkOrbitMerchantDelivery {
     let candidate = this._merchantRendezvousCandidate();
     if (!this.collectionRoute) {
       if (!candidate || !candidate.pickupEntryCount) return false;
-      if (!this._startCollectionRoute(candidate)) return false;
+      const batchDecision = this._collectionStartDecision(candidate);
+      if (!batchDecision.ready) {
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'WAITING_FOR_EFFICIENT_FARMER_COLLECTION_BATCH',
+          workers: candidate.names.slice(),
+          batchDecision
+        };
+        // Do not claim Merchant authority: ordinary economy/production may run
+        // while a tiny Farmer pickup batch accumulates.
+        return false;
+      }
+      if (!this._startCollectionRoute(candidate, batchDecision)) return false;
     }
 
     const route = this.collectionRoute;
@@ -54256,6 +54390,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         alpha27OwnsCrossMapMerchantRendezvous: true,
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
+        smallPickupDoesNotPreemptMerchantEconomy: true,
+        collectionStartBatchedByDemandPressureOrAge: true,
         collectionRouteTaskLockedUntilTerminal: true,
         transientFarmerDrainDoesNotEndCollection: false,
         collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable: false,
@@ -54286,6 +54422,10 @@ class Alpha33MarkOrbitMerchantDelivery {
         farmerGearEquipVerifyMs: this.farmerGearEquipVerifyMs,
         farmerGearEquipRetryMs: this.farmerGearEquipRetryMs,
         collectionSettleMs: this.collectionSettleMs,
+        collectionMinPickupEntries: this.collectionMinPickupEntries,
+        collectionMinPickupQuantity: this.collectionMinPickupQuantity,
+        collectionFarmerPressureThreshold: this.collectionFarmerPressureThreshold,
+        collectionMaxBatchWaitMs: this.collectionMaxBatchWaitMs,
         collectionPrepareMaxMs: this.collectionPrepareMaxMs,
         merchantRendezvousCooldownMs: this.merchantRendezvousCooldownMs
       },
@@ -54297,7 +54437,22 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
       suspendedCollectionRoute: this.suspendedCollectionRoute ? { ...this.suspendedCollectionRoute } : null,
       lastCollectionCapacityPlan: this.lastCollectionCapacityPlan ? { ...this.lastCollectionCapacityPlan } : null,
-      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length, pickupEntryCount: row.pickupEntryCount || 0, pickupQuantity: row.pickupQuantity || 0 })),
+      lastCollectionBatchDecision: this.lastCollectionBatchDecision ? { ...this.lastCollectionBatchDecision } : null,
+      farmerStates: [...this.farmerStates.values()].map((row) => ({
+        name: row.name,
+        map: row.map,
+        at: row.at,
+        sourceAt: row.sourceAt,
+        runtimeActive: row.runtimeActive,
+        gearSlots: Object.keys(row.gear || {}).length,
+        pickupEntryCount: row.pickupEntryCount || 0,
+        pickupQuantity: row.pickupQuantity || 0,
+        pickupSince: row.pickupSince == null ? null : row.pickupSince,
+        inventoryCapacity: row.inventoryCapacity || 0,
+        inventoryOccupied: row.inventoryOccupied || 0,
+        inventoryFreeSlots: row.inventoryFreeSlots == null ? null : row.inventoryFreeSlots,
+        inventoryPressure: row.inventoryPressure || 0
+      })),
       stats: { ...this.stats }
     };
   }
