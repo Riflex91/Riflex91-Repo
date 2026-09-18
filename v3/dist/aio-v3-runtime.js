@@ -3852,6 +3852,19 @@ class FarmerController {
         material: objective.material || null,
         elixirName: objective.elixirName || null
       };
+      const fallbackVisible = this._safeLiveMonsters(snapshot, context.party)
+        .some((entity) => entity && entity.mtype !== objective.monster);
+      if (fallbackVisible) {
+        this._event('FARMER_MATERIAL_OBJECTIVE_IDLE_FALLBACK', 'info', 'OBJECTIVE_SPAWN_EMPTY_USE_SAFE_LOCAL_TARGET', {
+          monster: objective.monster,
+          material: objective.material || null,
+          distance: Math.round(d)
+        });
+        // Keep the material objective latched, but let normal target selection
+        // use a safe visible monster until the requested spawn appears. This
+        // prevents a leader from pinning every follower in direction HOLD.
+        return false;
+      }
       this._transition(FarmerState.SELECT_TARGET, 'MATERIAL_OBJECTIVE_SPAWN_WAIT', { monster: objective.monster, distance: Math.round(d) });
       return true;
     }
@@ -3990,10 +4003,12 @@ class FarmerController {
         }
         this.targetId = String(selection.target.id);
         this.targetType = selection.target.mtype;
+        const rankingScore = Number(selection.ranking && selection.ranking.score);
+        const rankingTravelSeconds = Number(selection.ranking && selection.ranking.travelSeconds);
         this._event('FARMER_TARGET_SELECTED', 'info', 'PLANNER_TOP_SAFE_LIVE_TARGET', {
-          score: Number(selection.ranking.score.toFixed(5)),
-          source: selection.ranking.source,
-          travelSeconds: Number(selection.ranking.travelSeconds.toFixed(2))
+          score: Number.isFinite(rankingScore) ? Number(rankingScore.toFixed(5)) : 0,
+          source: selection.ranking && selection.ranking.source || 'safe-live-fallback',
+          travelSeconds: Number.isFinite(rankingTravelSeconds) ? Number(rankingTravelSeconds.toFixed(2)) : 0
         });
         const d = distance(c, selection.target);
         this._transition(d <= this._engagementRange(snapshot) ? FarmerState.ENGAGE : FarmerState.TRAVEL, d <= this._engagementRange(snapshot) ? 'TARGET_IN_RANGE' : 'TARGET_OUT_OF_RANGE');
@@ -27444,12 +27459,21 @@ function patchLogisticsPrototype() {
       const now = this.now();
       if (pending.asyncRejected || now - pending.at >= this.config.verifyTimeoutMs) {
         const signature = pending.signature || `${Number(pending.index)}:${pending.name}:${pending.level}`;
-        if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + 120000);
+        // A rejected send_item near Merchant capacity is a transient transport /
+        // recipient-settlement condition, not evidence that this exact item is
+        // unsafe for two minutes. The base verifier already applies a global
+        // failure backoff; keep only a short per-item retry guard for explicit
+        // promise rejection. True verify timeouts stay conservative.
+        const blockMs = pending.asyncRejected
+          ? Math.max(3000, Math.min(15000, Number(this.config.failureBackoffMs) || 7000))
+          : 120000;
+        const reason = pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED_TRANSIENT' : 'OUTBOUND_VERIFY_TIMEOUT';
+        if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + blockMs);
         if (typeof this._blockRejectedLoot === 'function') {
           this._blockRejectedLoot(
             { index: pending.index, name: pending.name, level: pending.level },
-            pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED' : 'OUTBOUND_VERIFY_TIMEOUT',
-            120000
+            reason,
+            blockMs
           );
         }
       }
@@ -27759,6 +27783,7 @@ class ControlledPartyLogistics {
       verifyTimeoutMs: Math.max(1500, finite(options.verifyTimeoutMs, 3500)),
       failureBackoffMs: Math.max(3000, finite(options.failureBackoffMs, 7000)),
       grantTtlMs: Math.max(2000, finite(options.grantTtlMs, 4500)),
+      recipientSettleTimeoutMs: Math.max(2000, Math.min(15000, finite(options.recipientSettleTimeoutMs, 6000))),
       maxTransferDistance: Math.max(150, Math.min(600, finite(options.maxTransferDistance, 380))),
       rendezvousDistance: Math.max(80, Math.min(400, finite(options.rendezvousDistance, 260))),
       rendezvousStep: Math.max(40, Math.min(140, finite(options.rendezvousStep, 100))),
@@ -27815,6 +27840,8 @@ class ControlledPartyLogistics {
       rejectedLootBlocks: 0,
       lootTransfers: 0,
       lootVerified: 0,
+      lootRecipientVerified: 0,
+      lootRecipientSettleTimeouts: 0,
       goldOffers: 0,
       goldGrants: 0,
       goldTransfers: 0,
@@ -27995,14 +28022,60 @@ class ControlledPartyLogistics {
   _prune() {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
-    for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    for (const [id, grant] of this.activeLootGrants) {
+      // Once the Farmer has observed its outbound delta, only Merchant-side
+      // reconciliation may release this reservation. That prevents the generic
+      // TTL pruner from reopening the last slot before recipient settlement.
+      if (grant && grant.senderCommittedAt != null) continue;
+      if (finite(grant && grant.expiresAt, 0) <= now) this.activeLootGrants.delete(id);
+    }
     if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
     for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
   }
 
+  _reconcileActiveLootGrants(snapshot) {
+    if (!snapshot || !snapshot.character || !(this.activeLootGrants instanceof Map)) return false;
+    const now = this.now();
+    let changed = false;
+    for (const [id, grant] of this.activeLootGrants) {
+      if (!grant || grant.senderCommittedAt == null) continue;
+      const actual = countItem(snapshot, grant.item && grant.item.name, grant.item && grant.item.level);
+      const expected = Math.max(0, finite(grant.merchantBeforeCount, 0)) + Math.max(1, finite(grant.quantity, 1));
+      if (actual >= expected) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientVerified += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLED', 'info', 'MERCHANT_INVENTORY_DELTA_VERIFIED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+        continue;
+      }
+      if (now >= finite(grant.settleUntil, Infinity)) {
+        this.activeLootGrants.delete(id);
+        this.stats.lootRecipientSettleTimeouts += 1;
+        changed = true;
+        this._event('PARTY_LOOT_RECIPIENT_SETTLE_TIMEOUT', 'warn', 'MERCHANT_INVENTORY_DELTA_NOT_OBSERVED', {
+          grantId: id,
+          sender: grant.sender || null,
+          item: grant.item || null,
+          quantity: grant.quantity,
+          expected,
+          actual
+        });
+      }
+    }
+    return changed;
+  }
+
   _merchantCapacity(snapshot) {
+    this._reconcileActiveLootGrants(snapshot);
     const metrics = inventoryMetrics(snapshot);
     const reservedIncomingSlots = [...this.activeLootGrants.values()].filter((grant) => grant.expiresAt > this.now()).length;
     const effectiveFreeSlots = Math.max(0, metrics.freeSlots - reservedIncomingSlots);
@@ -28128,7 +28201,18 @@ class ControlledPartyLogistics {
     if (!offerId || offerId.length > 160) return true;
     const grantId = `grant-${this.now()}-${++this.sequence}`;
     const expiresAt = this.now() + this.config.grantTtlMs;
-    this.activeLootGrants.set(grantId, { grantId, offerId, sender, item: { name: safe.name, level: safe.level }, expiresAt });
+    const maxQuantity = Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer);
+    this.activeLootGrants.set(grantId, {
+      grantId,
+      offerId,
+      sender,
+      item: { name: safe.name, level: safe.level },
+      quantity: maxQuantity,
+      merchantBeforeCount: countItem(snapshot, safe.name, safe.level),
+      expiresAt,
+      senderCommittedAt: null,
+      settleUntil: null
+    });
     this.stats.lootGrants += 1;
     this._send(sender, Action.LOOT_GRANT, {
       offerId,
@@ -28136,7 +28220,7 @@ class ControlledPartyLogistics {
       expiresAt,
       merchant: snapshot.character.name,
       item: { name: safe.name, level: safe.level },
-      maxQuantity: Math.min(Math.max(1, Math.floor(finite(data.quantity, safe.quantity))), this.config.maxLootStackTransfer),
+      maxQuantity,
       capacitySequence: this.capacitySequence
     });
     return true;
@@ -28261,8 +28345,16 @@ class ControlledPartyLogistics {
     if (action === Action.GOLD_OFFER) return this._handleGoldOffer(from, data);
     if (action === Action.TRANSFER_COMMIT) {
       const grantId = String(data.grantId || '');
-      if (grantId) this.activeLootGrants.delete(grantId);
-      this._broadcastStatus(this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null, true);
+      const grant = grantId ? this.activeLootGrants.get(grantId) : null;
+      if (grant && String(grant.sender || '') === String(from || '') && data.committed !== false) {
+        const now = this.now();
+        grant.senderCommittedAt = now;
+        grant.settleUntil = now + this.config.recipientSettleTimeoutMs;
+        grant.expiresAt = Math.max(finite(grant.expiresAt, 0), grant.settleUntil);
+        this.activeLootGrants.set(grantId, grant);
+      }
+      const snapshot = this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null;
+      if (snapshot) this._broadcastStatus(snapshot, true);
       return true;
     }
     return false;
@@ -28762,6 +28854,8 @@ class ControlledPartyLogistics {
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
         closedLoopLocalDeltaVerification: true,
+        merchantRecipientDeltaVerificationBeforeGrantRelease: true,
+        lastSlotGrantReservationHeldUntilRecipientSettle: true,
         explicitLootRejectProtocol: true,
         rejectedLootBackoffPreventsOfferLoop: true,
         engageStateDoesNotBlockTransfer: true,
@@ -51762,6 +51856,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.collectionRoute = null;
     this.suspendedCollectionRoute = null;
     this.lastCollectionCapacityPlan = null;
+    this.collectionCapacityBlockedIndexes = new Set();
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
     this.stats = {
@@ -51792,6 +51887,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityBlockedActions: 0,
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
+      collectionCapacityDeferredBanks: 0,
+      collectionCapacityMaxSafePrepCompleted: 0,
       collectionFollowMoves: 0,
       collectionDrainedWaits: 0,
       collectionUnavailableCompletions: 0,
@@ -52437,29 +52534,87 @@ class Alpha33MarkOrbitMerchantDelivery {
     return plan;
   }
 
+  _collectionHasActiveFarmerGearGoal(entry) {
+    const gear = this.runtime.gearProgression;
+    if (!gear || typeof gear.list !== 'function' || !entry) return false;
+    let goals = [];
+    try { goals = gear.list(256) || []; } catch (_) { goals = []; }
+    const c = characterOf(this.runtime) || {};
+    return goals.some((goal) => goal
+      && String(goal.sourceCharacter || '') === String(c.name || '')
+      && Number(goal.sourceIndex) === Number(entry.index)
+      && String(goal.item || '') === String(entry.name || '')
+      && levelOf({ level: goal.observedLevel }) === levelOf(entry)
+      && goal.character
+      && String(goal.character) !== String(c.name || ''));
+  }
+
+  _collectionDeferredBankRequest() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.list !== 'function') return null;
+    const allowed = new Set(['KEEP', 'RESERVE_GROUP', 'RESERVE_PROGRESSION', 'RESERVE_COMPOUND', 'RESERVE_UPGRADE']);
+    const order = { KEEP: 0, RESERVE_GROUP: 1, RESERVE_COMPOUND: 2, RESERVE_UPGRADE: 3, RESERVE_PROGRESSION: 4 };
+    const rows = ledger.list(1000)
+      .filter((row) => row
+        && String(row.character || '') === String(c.name || '')
+        && allowed.has(String(row.disposition || ''))
+        && !this.collectionCapacityBlockedIndexes.has(Number(row.index)))
+      .sort((a, b) => finite(order[String(a.disposition)], 9) - finite(order[String(b.disposition)], 9)
+        || Number(a.index) - Number(b.index));
+    for (const row of rows) {
+      const name = String(row.name || '');
+      if (!name || /^(?:hpot|mpot|elixir)/i.test(name)) continue;
+      if (this._collectionHasActiveFarmerGearGoal(row)) continue;
+      const live = Array.isArray(c.items) ? c.items[Number(row.index)] : null;
+      if (!live || String(live.name || '') !== name || levelOf(live) !== levelOf(row)) continue;
+      if (live.locked === true || live.l === true || live.special === true || live.p) continue;
+      return {
+        type: 'BANK',
+        character: c.name,
+        index: Number(row.index),
+        quantity: Math.max(1, Math.floor(finite(row.q, finite(live.q, 1)))),
+        metadata: {
+          source: 'ALPHA33_COLLECTION_CAPACITY_PREP',
+          collectionCapacityPrep: true,
+          originalDisposition: String(row.disposition || ''),
+          reason: 'DEFERRED_ITEM_BANKED_FOR_MAX_FARMER_PICKUP_CAPACITY'
+        }
+      };
+    }
+    return null;
+  }
+
   async _prepareCollectionCapacity(merchant, candidate) {
     const plan = this._collectionCapacityPlan(candidate);
-    if (plan.slotsToFree <= 0) return { ready: true, acted: false, plan };
-
-    const request = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
-    if (request && ['SELL', 'BANK'].includes(String(request.type || ''))) {
+    const normal = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
+    if (normal && ['SELL', 'BANK'].includes(String(normal.type || '')) && !this.collectionCapacityBlockedIndexes.has(Number(normal.index))) {
+      const request = {
+        ...normal,
+        metadata: { ...(normal.metadata || {}), collectionCapacityPrep: true, source: normal.metadata && normal.metadata.source || 'ALPHA33_COLLECTION_CAPACITY_PREP' }
+      };
       this.stats.collectionCapacityDisposals += 1;
       const acted = await merchant.executeEconomyRequest(request);
-      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
-      return { ready: false, acted: !!acted, plan, request, blocked: !acted };
+      if (!acted) {
+        this.stats.collectionCapacityBlockedActions += 1;
+        this.collectionCapacityBlockedIndexes.add(Number(request.index));
+      }
+      return { ready: false, acted: !!acted, plan, request, blocked: !acted, maximumSafeCapacityPending: true };
     }
-
-    // A complete compound set frees two inventory slots. Use it only when no
-    // safe SELL/BANK disposal is available and capacity still blocks collection.
-    const compound = merchant && typeof merchant.planCompound === 'function' ? merchant.planCompound() : null;
-    if (compound) {
-      const acted = await merchant.executeEconomyRequest(compound);
-      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
-      return { ready: false, acted: !!acted, plan, request: compound, blocked: !acted };
+    const deferredBank = this._collectionDeferredBankRequest();
+    if (deferredBank) {
+      this.stats.collectionCapacityDisposals += 1;
+      this.stats.collectionCapacityDeferredBanks += 1;
+      const acted = await merchant.executeEconomyRequest(deferredBank);
+      if (!acted) {
+        this.stats.collectionCapacityBlockedActions += 1;
+        this.collectionCapacityBlockedIndexes.add(Number(deferredBank.index));
+      }
+      return { ready: false, acted: !!acted, plan, request: deferredBank, blocked: !acted, maximumSafeCapacityPending: true };
     }
-
-    this.stats.collectionCapacityConstrainedDepartures += 1;
-    return { ready: true, acted: false, plan, constrained: true };
+    this.stats.collectionCapacityMaxSafePrepCompleted += 1;
+    const finalPlan = this._collectionCapacityPlan(candidate);
+    return { ready: true, acted: false, plan: finalPlan, maximumSafeCapacityPrepared: true, constrained: finalPlan.slotsToFree > 0 };
   }
 
   _collectionCoordinator() {
@@ -52468,6 +52623,7 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _startCollectionRoute(candidate) {
     if (!candidate || !candidate.pickupEntryCount) return false;
+    this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
       ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
@@ -52701,25 +52857,23 @@ class Alpha33MarkOrbitMerchantDelivery {
       const prepared = await this._prepareCollectionCapacity(merchant, candidate);
       if (!prepared.ready) {
         const prepareAgeMs = Math.max(0, this.now() - finite(route.startedAt, this.now()));
-        if (prepareAgeMs < this.collectionPrepareMaxMs) {
-          merchant.lastMerchantPlan = {
-            at: this.now(),
-            action: 'COLLECTION_PREPARE',
-            reason: prepared.blocked ? 'CAPACITY_DISPOSAL_BLOCKED_RETRY_BOUNDED' : 'FREEING_CAPACITY_FOR_FARMER_PICKUP',
-            capacity: prepared.plan,
-            prepareAgeMs,
-            prepareMaxMs: this.collectionPrepareMaxMs
-          };
-          return true;
-        }
-        this.stats.collectionCapacityPrepareTimeouts += 1;
-        this.stats.collectionCapacityConstrainedDepartures += 1;
-        this._event('MERCHANT_COLLECTION_CAPACITY_PREPARE_TIMEOUT', 'warn', 'BOUNDED_COLLECTION_PREPARE_EXPIRED', {
-          routeId: route.id,
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'COLLECTION_PREPARE',
+          reason: prepared.blocked ? 'SKIPPING_BLOCKED_CAPACITY_ITEM_CONTINUE_PREP' : 'MAXIMIZING_SAFE_CAPACITY_BEFORE_FARMER_PICKUP',
+          capacity: prepared.plan,
           prepareAgeMs,
           prepareMaxMs: this.collectionPrepareMaxMs,
-          blocked: prepared.blocked === true,
-          capacity: prepared.plan
+          request: prepared.request || null
+        };
+        return true;
+      }
+      if (prepared.constrained) {
+        this.stats.collectionCapacityConstrainedDepartures += 1;
+        this._event('MERCHANT_COLLECTION_CAPACITY_CONSTRAINED', 'warn', 'NO_MORE_SAFE_CAPACITY_RELIEF', {
+          routeId: route.id,
+          capacity: prepared.plan,
+          blockedIndexes: [...this.collectionCapacityBlockedIndexes]
         });
       }
       route.stage = 'TRAVEL_TO_FARMERS';
@@ -52863,6 +53017,9 @@ class Alpha33MarkOrbitMerchantDelivery {
         criticalPartySupplySuspendsAndResumesCollection: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
+        merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: true,
+        collectionDeferredItemsBankedBeforeDeparture: true,
+        operationalPotionsAndActiveFarmerGearGoalsStayLocal: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
