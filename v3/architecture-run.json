@@ -174,7 +174,7 @@
       "title": "Windows host autostart and machine-reboot recovery",
       "branch": "architecture/10-production-host-service",
       "status": "in_progress",
-      "pr": null,
+      "pr": 271,
       "merge_commit": null,
       "required_outcomes": [
         "Windows Task Scheduler autostart in the interactive user session",
