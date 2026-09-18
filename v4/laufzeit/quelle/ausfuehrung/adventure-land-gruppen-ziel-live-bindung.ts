@@ -138,7 +138,7 @@ export class AdventureLandGruppenZielLiveBindung {
       aktionsName: GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten,
       version: GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_VERSION,
       status: () => bruecke.status(),
-      fuehreEinmalAus: async (auftrag) => this.fuehreInstalliertenVersuchAus(auftrag)
+      fuehreEinmalAus: async (auftrag: Readonly<GruppenZielAusfuehrungsBrueckenAuftrag>) => this.fuehreInstalliertenVersuchAus(auftrag)
     });
 
     const installiert = Reflect.defineProperty(zielKontext, GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME, {
