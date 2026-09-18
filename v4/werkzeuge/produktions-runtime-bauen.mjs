@@ -55,7 +55,6 @@ function transpiliere(source, datei) {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,
       module: ts.ModuleKind.CommonJS,
-      moduleResolution: ts.ModuleResolutionKind.NodeNext,
       esModuleInterop: false,
       sourceMap: false,
       declaration: false,
