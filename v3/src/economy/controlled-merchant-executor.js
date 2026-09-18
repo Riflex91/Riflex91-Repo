@@ -62,7 +62,8 @@ function hasExplicitBankBinding(response) {
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
-    this.root = options.root || globalThis;
+    this.runtime = options.runtime || null;
+    this.root = options.root || this.runtime && this.runtime.root || globalThis;
     this.engine = options.engine;
     this.ledger = options.ledger;
     this.contentDrift = options.contentDrift || null;
