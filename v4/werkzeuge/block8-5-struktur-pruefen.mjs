@@ -54,7 +54,10 @@ const dateien = [
   'dokumentation/BLOCK-8-5-FREIGABE-LIVE-TEST.md',
   'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
   'werkzeuge/block8-5-runtime-1-1-5-release-kandidat-pruefen.mjs',
-  'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.md'
+  'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.md',
+  '../.github/workflows/release-v4-runtime.yml',
+  'werkzeuge/block8-5-v4-runtime-release-workflow-pruefen.mjs',
+  'dokumentation/BLOCK-8-5-V4-RUNTIME-RELEASE-WORKFLOW.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -1127,9 +1130,15 @@ for (const pflicht of [
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block9Freigegeben',
+  'name: release-v4-runtime-immutable',
   'workflow_dispatch:',
-  'Publish immutable V4 runtime release to R2',
-  'Verify immutable V4 runtime release over public HTTPS',
+  'confirmation:',
+  'PUBLISH-V4-IMMUTABLE:$RELEASE_SHA',
+  'BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  '--experimental-auto-create=false',
+  '--experimental-provision=false',
+  'Verify immutable V4 objects from R2',
+  'Verify immutable V4 release over existing public HTTPS worker',
   'x-aio-v4-release-sha',
   'build.sha256 !== manifest.sha256'
 ]) {
@@ -1162,4 +1171,88 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner und Runtime-1.1.5-Release-Candidate geprueft: Candidate 88185523 ist reproduzierbar an 31 Module, 228607 Bytes und SHA-256 95fa6795... gebunden; Deployment, oeffentlicher HTTPS-Nachweis und reale Adventure-Land-Freigaben bleiben explizit offen.');
+const v4OnlyReleaseWorkflow = await readFile(path.join(wurzel, dateien[51]), 'utf8');
+for (const pflicht of [
+  'name: release-v4-runtime-immutable',
+  'workflow_dispatch:',
+  'release_sha:',
+  'confirmation:',
+  'PUBLISH-V4-IMMUTABLE:$RELEASE_SHA',
+  'ref: ${{ github.sha }}',
+  'ref: ${{ inputs.release_sha }}',
+  'BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  'npm run produktions-runtime:bauen',
+  '--experimental-auto-create=false',
+  '--experimental-provision=false',
+  'releases/v4/$RELEASE_SHA/aio-v4-runtime.js',
+  'releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256',
+  'Verify immutable V4 objects from R2',
+  'Verify immutable V4 release over existing public HTTPS worker',
+  'x-aio-v4-release-sha'
+]) {
+  if (!v4OnlyReleaseWorkflow.includes(pflicht)) {
+    throw new Error(`V4-only Runtime-Release-Workflow fehlt: ${pflicht}`);
+  }
+}
+for (const verboten of [
+  'wrangler deploy',
+  'wrangler d1',
+  'bucket lifecycle',
+  'releases/v3/',
+  'working-directory: v3',
+  'aio-v3-runtime.js',
+  'aio-v3.js',
+  'release-version.js'
+]) {
+  if (v4OnlyReleaseWorkflow.includes(verboten)) {
+    throw new Error(`V4-only Runtime-Release-Workflow darf V3/Worker/D1/Lifecycle nicht veraendern: ${verboten}`);
+  }
+}
+
+const v4OnlyReleaseWorkflowPruefer = await readFile(path.join(wurzel, dateien[52]), 'utf8');
+for (const pflicht of [
+  'V4-only Runtime-Release-Workflow darf keinen push-Trigger besitzen',
+  'V4-only Runtime-Release-Workflow darf keinen pull_request-Trigger besitzen',
+  'automatische Provisionierung an allen vier Wrangler-R2-Aufrufen deaktivieren',
+  'genau einen zentralen R2-put-Aufruf',
+  'cmp "$file" "$temp"',
+  'releases\\/v4\\/\\$RELEASE_SHA',
+  'kein V3/Worker/D1/Lifecycle-Pfad'
+]) {
+  if (!v4OnlyReleaseWorkflowPruefer.includes(pflicht)) {
+    throw new Error(`V4-only Runtime-Release-Workflow-Pruefer fehlt: ${pflicht}`);
+  }
+}
+
+const v4OnlyReleaseDokument = await readFile(path.join(wurzel, dateien[53]), 'utf8');
+for (const pflicht of [
+  'isolierter manueller Release-Pfad implementiert',
+  'noch nicht ausgefuehrt',
+  'release-v4-runtime.yml',
+  'workflow_dispatch',
+  'PUBLISH-V4-IMMUTABLE:<release_sha>',
+  'Zwei getrennte Checkouts',
+  'Keine V3- oder Worker-Aenderung',
+  'Immutable ohne blindes Ueberschreiben',
+  'HTTP 200',
+  'HTTP 404',
+  'R2-Rueckverifikation',
+  'Oeffentliche HTTPS-Rueckverifikation',
+  'deploymentPerformed: false',
+  'publicHttpsVerified: false',
+  'block9Freigegeben: false',
+  'Block 9 bleibt'
+]) {
+  if (!v4OnlyReleaseDokument.includes(pflicht)) {
+    throw new Error(`V4-only Runtime-Release-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+if (!runtimeReleaseKandidatDokument.includes('.github/workflows/release-v4-runtime.yml')) {
+  throw new Error('Runtime-Release-Candidate verweist noch nicht auf den isolierten V4-only Release-Workflow.');
+}
+if (runtimeReleaseKandidatDokument.includes('fuer diesen Block-8.5-Runtime-Nachweis nicht mehr der vorgesehene Release-Pfad') !== true) {
+  throw new Error('Runtime-Release-Candidate grenzt den breiten historischen Deployment-Workflow noch nicht ab.');
+}
+
+console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner, Runtime-1.1.5-Release-Candidate und isoliertem V4-only Release-Workflow geprueft: kein automatischer Trigger, kein V3/Worker/D1/Lifecycle-Pfad, kein blindes Immutable-Ueberschreiben; externe Veroeffentlichung und reale Adventure-Land-Freigaben bleiben offen.');
