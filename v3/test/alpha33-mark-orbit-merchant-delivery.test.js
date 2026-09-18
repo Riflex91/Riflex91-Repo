@@ -520,7 +520,8 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
 });
 
 // Live alpha.20.114 regression: one advertised pickup item with 30 free slots
-// must not trigger a broad BANK sweep before Farmer rendezvous.
+// must not trigger a broad BANK sweep before Farmer rendezvous. This assertion
+// also guards the final generated-bundle head used by pull-request CI.
 test('Alpha33 capacity prep performs no disposal when current Farmer pickup already fits', async () => {
   const disposed = [];
   let plannerCalls = 0;
