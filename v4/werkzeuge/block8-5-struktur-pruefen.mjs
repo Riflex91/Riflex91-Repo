@@ -24,7 +24,10 @@ const dateien = [
   'laufzeit/quelle/vertraege/status-schnittstelle.ts',
   'laufzeit/quelle/telemetrie/status-schnittstelle.ts',
   'laufzeit/tests/block8-5-status-schnittstelle.test.mjs',
-  'dokumentation/BLOCK-8-5-STATUSSCHNITTSTELLE.md'
+  'dokumentation/BLOCK-8-5-STATUSSCHNITTSTELLE.md',
+  'werkzeuge/block8-5-ingame-hud.js',
+  'laufzeit/tests/block8-5-ingame-hud.test.mjs',
+  'dokumentation/BLOCK-8-5-INGAME-HUD.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -386,4 +389,79 @@ for (const pflicht of [
   if (!statusDokument.includes(pflicht)) throw new Error(`StatusSchnittstellen-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1 bis 8.5.5 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, Recovery-Checkpoint und gemeinsame StatusSchnittstelle ohne neue Spiel-/Bedien-/Neustartautoritaet.');
+const hud = await readFile(path.join(wurzel, dateien[21]), 'utf8');
+for (const pflicht of [
+  'V4IngameHud',
+  'pruefeStatusSicht',
+  'erstelleAnzeigeModell',
+  'erstelleHud',
+  'nurLesen',
+  'spielAutoritaet',
+  'bedienAutoritaet',
+  'neustartAutoritaet',
+  'statusLieferant',
+  'clearInterval',
+  'HUD minimieren',
+  'HUD schliessen'
+]) {
+  if (!hud.includes(pflicht)) throw new Error(`Ingame-HUD fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'location.reload(',
+  'window.close(',
+  '.reicheAnfrageEin(',
+  '.verarbeiteNaechsteAktion(',
+  '.brecheAktionAb(',
+  '.schliesseAktionAb(',
+  'BedienSicherung',
+  'registriereAktion'
+]) {
+  if (hud.includes(verboten)) {
+    throw new Error(`Ingame-HUD darf keine versteckte Fach-/Aktions-/Neustartautoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(hud)) {
+    throw new Error(`Ingame-HUD darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+if (/createElement\(['"]input['"]\)/.test(hud)) {
+  throw new Error('Ingame-HUD 8.5.6 darf noch keine veraendernde Eingabe anbieten.');
+}
+
+const hudTests = await readFile(path.join(wurzel, dateien[22]), 'utf8');
+for (const pflicht of [
+  'HUD-API ist vorhanden und bietet nur Anzeige-Helfer',
+  'HUD akzeptiert nur die explizit read-only StatusSicht ohne Autoritaet',
+  'AnzeigeModell zeigt Charakter Runtime Gruppe Entscheidung Aktion Checkpoint und Meldung',
+  'bekanntes null fehlend und unbekannt bleiben in der Anzeige unterscheidbar',
+  'fehlende optionale Statusbereiche erzeugen nur Anzeigehinweise und keine Ersatzlogik',
+  'AnzeigeModell veraendert die gelieferte StatusSicht nicht',
+  'HUD verweigert unvollstaendigen Runtime- oder Charakterstatus fail-safe',
+  'ohne Dokument kann kein HUD erzeugt werden aber die Bot-Statuslogik bleibt nutzbar'
+]) {
+  if (!hudTests.includes(pflicht)) throw new Error(`Ingame-HUD-Test fehlt: ${pflicht}`);
+}
+
+const hudDokument = await readFile(path.join(wurzel, dateien[23]), 'utf8');
+for (const pflicht of [
+  '8.5.6 implementiert',
+  'V4IngameHud',
+  'nurLesen: true',
+  'spielAutoritaet: false',
+  'bedienAutoritaet: false',
+  'neustartAutoritaet: false',
+  'Minimieren',
+  'Schliessen',
+  '8.5.7'
+]) {
+  if (!hudDokument.includes(pflicht)) throw new Error(`Ingame-HUD-Dokumentation fehlt: ${pflicht}`);
+}
+
+console.log('Block 8.5.1 bis 8.5.6 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, Recovery-Checkpoint, StatusSchnittstelle und Ingame-HUD ohne neue Spiel-/Bedien-/Neustartautoritaet.');
