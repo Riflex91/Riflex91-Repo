@@ -1,0 +1,142 @@
+# Block 8.5 – Implementierungsplan
+
+Status: **gestartet**.
+
+## Ziel
+
+Block 8.5 macht die bereits vorhandenen V4-Faehigkeiten einheitlich erklaerbar, beobachtbar, sicher bedienbar und recovery-faehig, bevor mit Haendler-, Bank- und Wirtschaftslogik begonnen wird.
+
+Die fachliche Grundlage bleibt unveraendert. Block 8.5 fuehrt keine neue Kampf-, Gruppen-, Bank- oder Handelsstrategie ein.
+
+## Reihenfolge
+
+### Schritt 8.5.1 – EntscheidungsDatensatz v1
+
+Fuer wichtige Gruppenentscheidungen wird ein versionierter Datensatz eingefuehrt mit:
+
+- stabiler Entscheidungskennung,
+- fachlicher Eingabe bzw. Fingerabdruck,
+- erkannter Situation,
+- betrachteten/zulaessigen Moeglichkeiten,
+- gewaehlter Entscheidung,
+- Begruendung,
+- erwartetem Ergebnis,
+- zugeordneten AktionsAnfragen,
+- spaeterem tatsaechlichen Ergebnis.
+
+Zeitstempel und reine Laufzeitkennungen duerfen den fachlichen Wiederholungsvergleich nicht verfaelschen.
+
+### Schritt 8.5.2 – Entscheidung -> Aktion -> Ergebnis
+
+Die vorhandene `AktionsSteuerung` bleibt Autoritaet.
+
+Block 8.5 ergaenzt nur Korrelation:
+
+`EntscheidungsDatensatz -> AktionsAnfrage -> AktionsLaufZustand/AktionsErgebnis`
+
+Keine Telemetriekomponente darf selbst eine Aktion einreichen oder ausfuehren.
+
+### Schritt 8.5.3 – RuntimeGesundheit und RecoveryZustand
+
+Ein gemeinsamer read-only Zustand fasst mindestens zusammen:
+
+- Runtime-Freshness,
+- letzter fachlicher Fortschritt,
+- Gruppen-Liveness,
+- Safety,
+- offene/abgebrochene Arbeit,
+- Recovery-Stufe,
+- Nutzer-Handlungsbedarf.
+
+Recovery-Eskalation:
+
+`normal -> beobachten -> sicher_pausiert -> neustart_empfohlen -> blockiert`
+
+Ein Prozess-/Host-Neustart wird nicht von der Adventure-Land-Laufzeit selbst ausgefuehrt.
+
+### Schritt 8.5.4 – Recovery-Checkpoint v1
+
+Ein kleiner versionierter und pruefbarer Checkpoint speichert nur die Informationen, die fuer einen eindeutigen Wiederanlauf benoetigt werden.
+
+Nicht gespeichert wird fluechtige Autoritaet, die nach Neustart ungeprueft weiterlaufen koennte.
+
+### Schritt 8.5.5 – gemeinsame StatusSchnittstelle
+
+Eine read-only Schnittstelle verbindet V4-Kern mit:
+
+- Ingame-HUD,
+- spaeterem Web-Command-Center,
+- spaeterem Host-Supervisor.
+
+Sie enthaelt keine Bot-Fachlogik und keine generische Spiel-/Host-Autoritaet.
+
+### Schritt 8.5.6 – schlankes Ingame-HUD
+
+Anzeigen:
+
+- Charakterstatus,
+- Gruppenstatus,
+- aktuelle Entscheidung,
+- aktuelle Aktion/Phase,
+- Safety,
+- Recovery-Stufe,
+- Warnungen,
+- Heartbeat/Freshness,
+- letzte relevante BotMeldung.
+
+HUD-Ausfall oder Schliessen darf die Bot-Laufzeit nicht beeinflussen.
+
+### Schritt 8.5.7 – sichere Basisbedienung
+
+Erste veraendernde HUD-Funktionen bleiben bewusst klein:
+
+- Pause anfordern,
+- Fortsetzen anfordern,
+- Diagnose aktualisieren.
+
+Jede veraendernde Aktion:
+
+`HUD -> BedienAnfrage -> BedienSicherung -> zentrale Aktions-/Laufzeitsteuerung`
+
+Kein direkter Adventure-Land-Aufruf im HUD.
+
+### Schritt 8.5.8 – Recovery-Abnahme
+
+Mindestens:
+
+- Reconnect,
+- stale Daten,
+- Browser-Hintergrundbetrieb,
+- Runtime-Neustart,
+- HUD-Schliessen/Fehler,
+- unterbrochene Aktion,
+- offener Checkpoint,
+- doppelte Bedienanfrage,
+- ungueltiger/veralteter Status,
+- Telemetrie-/Speicherfehler.
+
+### Schritt 8.5.9 – Freigabestufen
+
+Fuer neue oder wesentlich geaenderte Laufzeitpfade:
+
+1. deterministischer Offline-Test/Wiederholung,
+2. Schattenbetrieb,
+3. begrenzter kontrollierter Live-Test,
+4. Soak-Test mit Telemetrie und Recovery-Nachweis.
+
+Erst danach darf Block 9 beginnen.
+
+## Nicht Teil von Block 8.5
+
+- neue Merchant-/Bank-Fachlogik
+- Kaufen/Verkaufen/Upgrade/Kombinieren
+- lernende Strategieaenderung
+- vollstaendiges Web-Command-Center
+- automatische Host-Neustarts
+- automatische Updates/Rollbacks
+
+## Referenz
+
+Der formale V3->V4-Wissenstransfer steht in:
+
+`BLOCK-8-5-WISSENSTRANSFER-V3-V4.md`
