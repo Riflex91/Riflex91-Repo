@@ -24927,6 +24927,7 @@ class FarmerTerrainNavigationHotfix {
       kiteOrbitalWaypoints: 0,
       kiteRadialWaypoints: 0,
       kiteNoReachableWaypoint: 0,
+      kiteDelegatedAggroFallbacks: 0,
       kiteDirectionSwitches: 0,
       retreatEvaluations: 0,
       retreatAlternateWaypoints: 0,
@@ -25145,7 +25146,18 @@ class FarmerTerrainNavigationHotfix {
           at: this.now(), reason: 'KITE_TERRAIN_BLOCKED', targetId: target && target.id || null,
           targetType: target && target.mtype || null, distance: decision.distance, desiredDistance: decision.desiredDistance
         };
-        this._event('FARMER_KITE_TERRAIN_BLOCKED', 'warn', 'NO_REACHABLE_KITE_WAYPOINT', { ...this.lastKiteDecision });
+        const delegatedAggroFallback = kiting.__alpha31SafeOrbitInstalled === true
+          && target && character && target.target != null
+          && String(target.target) === String(character.name || '');
+        if (delegatedAggroFallback) {
+          // Alpha31 is the final self-aggro movement owner and may deliberately
+          // leave attack range if every in-range terrain waypoint is blocked.
+          // Do not emit a premature warning from this lower layer; Alpha31 will
+          // either produce an emergency escape or report the final failure.
+          this.stats.kiteDelegatedAggroFallbacks += 1;
+        } else {
+          this._event('FARMER_KITE_TERRAIN_BLOCKED', 'warn', 'NO_REACHABLE_KITE_WAYPOINT', { ...this.lastKiteDecision });
+        }
         return { ...decision, shouldMove: false, reason: 'KITE_TERRAIN_BLOCKED', terrainBlocked: true };
       }
       if (waypoint.offsetDeg === 0) this.stats.kiteRadialWaypoints += 1;
@@ -49864,6 +49876,7 @@ class Alpha31PartyRoleLivenessHotfix {
       aggroOrbitMoves: 0,
       aggroOrbitEscapeMoves: 0,
       aggroOrbitNoWaypoint: 0,
+      aggroEmergencyTerrainEscapes: 0,
       visiblePartyPositionRefreshes: 0,
       followerSmartRegroups: 0,
       followerSmartRetargets: 0,
@@ -50036,7 +50049,49 @@ class Alpha31PartyRoleLivenessHotfix {
       this.stats.aggroOrbitEvaluations += 1;
       const waypoint = this._orbitWaypoint(character, target);
       if (!waypoint) {
+        let emergency = null;
+        try {
+          emergency = farmer.safeRetreat && typeof farmer.safeRetreat.evaluate === 'function'
+            ? farmer.safeRetreat.evaluate(character, [target])
+            : null;
+        } catch (_) { emergency = null; }
+        const beforeDistance = distance(character, target);
+        const afterDistance = emergency && emergency.x != null && emergency.y != null
+          ? distance({ x: emergency.x, y: emergency.y }, target)
+          : -Infinity;
+        if (emergency && emergency.shouldMove === true
+          && Number.isFinite(afterDistance)
+          && afterDistance > beforeDistance + 1) {
+          this.stats.aggroEmergencyTerrainEscapes += 1;
+          this._event('ALPHA31_AGGRO_EMERGENCY_TERRAIN_ESCAPE', 'warn', 'NO_SAFE_IN_RANGE_KITE_WAYPOINT', {
+            targetId: target.id != null ? String(target.id) : null,
+            targetType: target.mtype || null,
+            beforeDistance: Number(beforeDistance.toFixed(2)),
+            afterDistance: Number(afterDistance.toFixed(2)),
+            retreatReason: emergency.reason || null
+          });
+          return {
+            ...decision,
+            shouldMove: true,
+            reason: 'AGGRO_EMERGENCY_TERRAIN_ESCAPE',
+            x: emergency.x,
+            y: emergency.y,
+            step: emergency.step,
+            distance: Number(beforeDistance.toFixed(2)),
+            range: Number(character.range),
+            desiredDistance: emergency.desiredDistance == null ? null : Number(emergency.desiredDistance),
+            safeEnemyDistance: afterDistance,
+            terrainAware: emergency.terrainAware !== false,
+            alpha31SafeOrbit: true,
+            alpha31EmergencyTerrainEscape: true
+          };
+        }
         this.stats.aggroOrbitNoWaypoint += 1;
+        this._event('ALPHA31_AGGRO_TERRAIN_ESCAPE_UNAVAILABLE', 'warn', 'NO_REACHABLE_AGGRO_ESCAPE_WAYPOINT', {
+          targetId: target.id != null ? String(target.id) : null,
+          targetType: target.mtype || null,
+          distance: Number.isFinite(beforeDistance) ? Number(beforeDistance.toFixed(2)) : null
+        });
         return decision;
       }
       if (waypoint.direction) this._setOrbitDirection(character, waypoint.direction);
