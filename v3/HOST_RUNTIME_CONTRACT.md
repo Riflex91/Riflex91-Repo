@@ -57,7 +57,7 @@ The browser execution context is kept private to the bridge. The in-page dispatc
 
 Only one page evaluation may be in flight. If an evaluation reaches its timeout, the bridge reports the timeout but continues treating the underlying evaluation as in flight until it actually settles; this prevents a stalled browser context from accumulating parallel requests.
 
-This bridge is a **contract adapter**, not yet the production browser/session driver. A later deployment layer must still launch or attach to the intended browser, identify the correct Adventure Land page/frame, handle navigation/reconnect/login/session lifecycle and then supply that validated execution context to `BrowserBotClient`. That driver must not expose generic browser evaluation as a remote-control API.
+This bridge is a **contract adapter**. The production host can now pair it with `CdpAdventureLandSessionDriver`, which attaches only to an explicitly configured loopback CDP endpoint, filters page targets to the configured Adventure Land origin, discovers an execution context that actually exposes the narrow `AIO_V3.operations` contract, and reconnects after bounded context/page loss. Login credentials and cold-boot authentication remain outside the driver. That driver must not expose generic browser evaluation as a remote-control API.
 
 ## Dead-man / process watchdog
 
@@ -118,7 +118,7 @@ The concrete deployment and operating procedure is documented in `PRODUCTION_HOS
 
 Before the unattended overnight gate, the deployed stack must prove all of the following with real production evidence:
 
-- a concrete production browser/session driver can supply the correct Adventure Land execution context to `BrowserBotClient` without exposing generic page-evaluation or gameplay authority;
+- the loopback CDP production session driver can supply the correct Adventure Land execution context to `BrowserBotClient` without exposing generic page-evaluation or gameplay authority;
 - all four narrow bridge calls work against a real Adventure Land session, including bot-owned `reconciliationStatus()`;
 - live beacon/dead-man detection continues outside the browser process;
 - bounded real browser/process restart and restart-circuit behavior work under the target operating system/service manager;

@@ -18,6 +18,7 @@ The migration order is fixed:
 6. Absorb reliability hotfixes into owning modules
 7. Remove the hotfix layer
 8. Replace runtime inheritance with composition
+9. Add the production Adventure Land browser/session driver
 
 ## Global execution rules
 
@@ -173,6 +174,25 @@ Recommended order inside the step:
 7. replace `StabilityGameAdapter extends GameAdapter` with composed tracking/guard services where practical.
 
 Add API/status parity tests before deleting the old chain.
+
+## Step 9 — Production browser/session driver
+
+**Branch:** `architecture/09-production-browser-session`
+
+Add the concrete host-side browser/session layer required for unattended operation without widening gameplay authority.
+
+Required behavior:
+
+- connect only to an explicitly configured loopback CDP endpoint;
+- discover only page targets whose origin matches the configured Adventure Land origin;
+- locate an allowed same-origin execution context that actually exposes the narrow `AIO_V3.operations` contract;
+- reconnect with bounded retry/backoff after navigation, execution-context loss or page replacement;
+- provide the validated execution context to the existing `BrowserBotClient` without exposing generic browser evaluation as a public host API;
+- integrate with `ProductionHostHarness` lifecycle and observability;
+- keep automatic process restart authority separate/default-off;
+- add synthetic recovery and soak tests for target replacement, wrong-origin rejection, missing operations and bounded reconnect behavior.
+
+This step does not add login credentials, public CDP exposure, arbitrary remote evaluation, gameplay action authority, or OS service installation.
 
 ## Status and checkpoints
 

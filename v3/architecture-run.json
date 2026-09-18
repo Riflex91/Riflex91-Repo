@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": null,
+  "next_step": 9,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -149,6 +149,23 @@
         "public facade compatibility maintained",
         "alpha inheritance layers removed",
         "API/status parity tests green"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "production-browser-session",
+      "title": "Production Adventure Land browser/session driver",
+      "branch": "architecture/09-production-browser-session",
+      "status": "in_progress",
+      "pr": 269,
+      "merge_commit": null,
+      "required_outcomes": [
+        "loopback-only CDP endpoint",
+        "Adventure Land origin target discovery",
+        "AIO_V3 operations execution-context discovery",
+        "bounded reconnect after navigation/page loss",
+        "ProductionHostHarness integration without generic browser authority",
+        "session-driver soak and recovery tests"
       ]
     }
   ]
