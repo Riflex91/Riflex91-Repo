@@ -71,6 +71,48 @@ test('rejected progression work releases the Merchant batch lease instead of pin
   assert.equal(production.acquired, true);
 });
 
+test('self-gear wait releases the Merchant progression lease so Production can continue', async () => {
+  const coordinator = new MerchantTaskCoordinator({ now: () => 1000, defaultLeaseMs: 600000 });
+  assert.equal(coordinator.acquire('ALPHA27', 'PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' }).acquired, true);
+
+  const merchant = Object.create(Alpha27MerchantAutonomy.prototype);
+  merchant.stats = { autonomousMerchantCycles: 0, autonomousMerchantHolds: 0 };
+  merchant.now = () => 1000;
+  merchant.taskCoordinator = coordinator;
+  merchant.runtime = {};
+  merchant.atomic = {
+    merchantActive: () => true,
+    supervisorAllowed: () => true,
+    merchantInCombat: () => false,
+    serviceTravelBusy: false,
+    merchantBusy: false
+  };
+  merchant.ensureAutonomousAuthorities = () => {};
+  merchant.reconcileRecovering = () => false;
+  merchant.activeTransaction = () => null;
+  merchant.criticalPartySupplyPlan = () => null;
+  merchant.restockPartyPotions = async () => false;
+  merchant.progressOrDeliverFarmerGear = async () => false;
+  merchant.transactionFamilyOpen = () => false;
+  merchant.planCompound = () => null;
+  merchant.planUpgrade = () => null;
+  merchant.selfGear = {
+    cycle: async () => false,
+    status: () => ({ session: { stage: 'WAIT_LEDGER' } })
+  };
+  merchant._updateCollectionSession = () => ({ active: false });
+  merchant.planSellOrBank = () => null;
+  merchant.bankRecovery = null;
+  merchant._event = () => {};
+
+  const acted = await merchant.cycle();
+  assert.equal(acted, false);
+  assert.equal(coordinator.current(), null);
+
+  const production = coordinator.acquire('PRODUCTION', 'EXCHANGE_BATCH', 'production:exchange:seashell:elixirdex0');
+  assert.equal(production.acquired, true);
+});
+
 test('gear finalization HOLD is reported as no progress so the global progression lease may drain', async () => {
   const merchant = Object.create(Alpha27MerchantAutonomy.prototype);
   merchant.stats = { autonomousMerchantHolds: 0 };
