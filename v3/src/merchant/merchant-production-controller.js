@@ -72,6 +72,7 @@ function installMerchantProduction(runtime, options = {}) {
     return {
       character: c,
       bankCatalog: bankCatalog.status(),
+      exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       contentDrift: runtime.contentDrift,
