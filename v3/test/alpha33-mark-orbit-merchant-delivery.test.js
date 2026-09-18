@@ -526,6 +526,7 @@ test('Alpha33 critical party supply preempts an active collection route', async 
   assert.equal(releases[0].reason, 'CRITICAL_PARTY_SUPPLY_PREEMPT');
   assert.equal(releases[0].details.serviceKind, 'RESTOCK_REQUIRED');
   assert.equal(releases[0].details.target, 'My_Ranger1');
+  assert.equal(hotfix.status().policies.criticalPartySupplyPreemptsCollectionRoute, true);
 });
 
 test('Alpha33 Farmer pickup telemetry excludes temporarily rejected loot', () => {
