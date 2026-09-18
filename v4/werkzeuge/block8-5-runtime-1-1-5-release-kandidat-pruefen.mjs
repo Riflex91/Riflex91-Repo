@@ -53,16 +53,36 @@ if (!/^[a-f0-9]{64}$/.test(manifest.sha256)) {
   throw new Error('Release-Candidate sha256 ist ungueltig.');
 }
 
+for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
+  if (manifest[feld] !== true) {
+    throw new Error(`Release-Candidate muss den bestaetigten Deployment-/HTTPS-Nachweis fuer ${feld} tragen.`);
+  }
+}
 for (const feld of [
-  'deploymentPerformed',
-  'publicHttpsVerified',
   'adventureLandShadowVerified',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block9Freigegeben'
 ]) {
   if (manifest[feld] !== false) {
-    throw new Error(`Release-Candidate darf ${feld} noch nicht als bestanden markieren.`);
+    throw new Error(`Release-Candidate darf ${feld} ohne realen Adventure-Land-Nachweis noch nicht als bestanden markieren.`);
+  }
+}
+
+if (!manifest.deploymentEvidence || typeof manifest.deploymentEvidence !== 'object') {
+  throw new Error('Release-Candidate braucht den bestaetigten DeploymentEvidence-Nachweis.');
+}
+for (const [feld, erwartet] of Object.entries({
+  workflow: 'deploy-cloudflare',
+  runId: 35402650432,
+  jobId: 105785689083,
+  releaseSha: manifest.releaseSha,
+  sha256: manifest.sha256,
+  publicRuntimeUrl: `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/${manifest.releaseSha}/aio-v4-runtime.js`,
+  publicSha256Url: `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/${manifest.releaseSha}/aio-v4-runtime.sha256`
+})) {
+  if (manifest.deploymentEvidence[feld] !== erwartet) {
+    throw new Error(`Release-Candidate DeploymentEvidence besitzt unerwarteten Wert fuer ${feld}.`);
   }
 }
 
@@ -110,5 +130,5 @@ if (build.sha256 !== manifest.sha256) {
 }
 
 console.log(
-  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment und reale Adventure-Land-Freigaben bleiben offen.`
+  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment und oeffentliche HTTPS-Verifikation sind durch Run 35402650432 bestaetigt, Adventure-Land-Schatten/Live/Soak bleiben offen.`
 );
