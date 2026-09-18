@@ -1,6 +1,6 @@
 # Block 8 – kontrollierter Gruppenziel-Live-Smoke
 
-Status: **Produktions-Smoke-Huelle und Browser-Runner implementiert und offline getestet; echter Adventure-Land-Smoke noch nicht ausgefuehrt.**
+Status: **BESTANDEN – echter Adventure-Land-one-shot Live-Smoke erfolgreich ausgefuehrt und dokumentiert.**
 
 ## Ziel
 
@@ -94,7 +94,7 @@ Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt
 
 Nach dem im echten Smoke entdeckten Millisekunden-Zeitordnungsfehler und der danach sichtbar gewordenen Adventure-Land-Code-/Parent-Kontexttrennung wurden beide Produktionspfade korrigiert. Die kontrollierte Veroeffentlichung ist fuer den aktuellen korrigierten immutable Main-Release `6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec` bestanden. Runtime und SHA-256 wurden aus R2 und ueber den oeffentlichen HTTPS-Worker bytegenau verifiziert. Der veroeffentlichte SHA-256 ist `d0c2893784891b971caf2cbaca495b62643ffa098009c49bd508781c2e014aa6`.
 
-Der echte Smoke bleibt offen, bis genau diese URL/Hash-Kombination read-only im echten Adventure-Land-Kontext geladen wurde und die gesperrte Produktionsruntime ohne Gruppenanfrage, Ressourcensperre oder Spielaktion bestaetigt ist.
+Der echte Smoke mit genau dieser URL/Hash-Kombination wurde am 2026-09-18 erfolgreich ausgefuehrt. Der detaillierte Nachweis steht in `BLOCK-8-LIVE-SMOKE-NACHWEIS.md`.
 
 
 ## Einheitliche Live-Test-GUI
@@ -126,3 +126,12 @@ Der echte one-shot vom 2026-09-18 erreichte alle Safety-, Ziel-, Ressourcen- und
 Die Ursache war kein fehlendes Adventure-Land-API, sondern eine falsche Testannahme: Offline lag `attack` bisher im simulierten Spielfenster, waehrend Adventure Land die Aktionsfunktion im lokalen Codekontext bereitstellt und den read-only Spielzustand im `parent`-Fenster.
 
 Der Regressionstest bildet diese reale Trennung nun ausdruecklich ab: `spielFenster.attack === undefined`, `zielKontext.attack === function`. Der Produktions-Smoke muss damit exakt einen auditierten Angriff ueber den lokalen Codekontext ausfuehren.
+
+
+## Erfolgreicher echter Live-Smoke
+
+Am 2026-09-18 bestand der reale one-shot mit `My_Ranger1` und `My_Ranger2` auf `EU I`, Karte/Instanz `main/main`, gegen das gebundene Ziel `2002152` vom Typ `tortoise`.
+
+Der Produktionsbericht bestaetigte exakt einen `attack`, keine sonstige Adventure-Land-Aktion, automatische Wiedersperrung, entfernte Ausfuehrungsbruecke, zentrale Phase `abgeschlossen` und keine verbleibenden Ressourcen.
+
+Siehe: `BLOCK-8-LIVE-SMOKE-NACHWEIS.md`.
