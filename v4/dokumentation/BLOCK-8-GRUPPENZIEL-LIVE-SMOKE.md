@@ -85,4 +85,6 @@ Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt
 
 `V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)` installiert die Smoke-Fassade auf genau dieser zentralen Steuerung.
 
-Die kontrollierte Veroeffentlichung ist als immutable Cloudflare-Release-Pfad vorbereitet: `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/<release-sha>/aio-v4-runtime.js` plus die danebenliegende `.sha256`-Datei. Der Deploy-Workflow prueft R2 und den oeffentlichen HTTPS-Endpunkt bytegenau sowie auf CORS, `no-store` und den exakten Release-SHA. Der echte Smoke bleibt offen, bis ein finaler Main-Commit diese Deployment-Pruefung bestanden hat und genau dessen URL/Hash in Adventure Land geladen wurden.
+Die kontrollierte Veroeffentlichung ist fuer den immutable Main-Release `47288ddfdef03ded63142670cdaca5d7ed251a75` bestanden. Runtime und SHA-256 wurden aus R2 und ueber den oeffentlichen HTTPS-Worker bytegenau verifiziert. Der veroeffentlichte SHA-256 ist `8e50143a671a8ce30d14150cb14971c20c89daa5dbb651064dfb1ea4f13cdcfa`.
+
+Der echte Smoke bleibt offen, bis genau diese URL/Hash-Kombination read-only im echten Adventure-Land-Kontext geladen wurde und die gesperrte Produktionsruntime ohne Gruppenanfrage, Ressourcensperre oder Spielaktion bestaetigt ist.

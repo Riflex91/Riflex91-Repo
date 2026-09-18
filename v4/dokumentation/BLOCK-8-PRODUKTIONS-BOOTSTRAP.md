@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; noch nicht live veroeffentlicht.**
+Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; immutable Runtime-Release `${releaseSha}` erfolgreich ueber Cloudflare/R2 veroeffentlicht und oeffentlich verifiziert.**
 
 ## Zweck
 
@@ -152,17 +152,17 @@ Fremde globale Runtime- oder Smoke-Objekte werden nicht ueberschrieben.
 
 ## Noch offen vor dem echten Live-Smoke
 
-1. Runtime-Bundle aus dem finalen Main bauen.
-2. Bundle an einen kontrollierten, versionierten HTTPS-Endpunkt veroeffentlichen.
-3. CORS/no-store und exakte Datei pruefen.
-4. `AIO_V4_RUNTIME_CONFIG` fuer den vorgesehenen Charakter explizit setzen.
-5. `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl` auf genau diese Version setzen.
-6. Den von `produktions-runtime:bauen` erzeugten SHA-256 unveraendert als `AIO_V4_BOOTSTRAP_CONFIG.runtimeSha256` setzen.
-7. Runtime laden und nur Read-only-`status()` pruefen.
-8. Lebensnachweis-Empfang starten und mindestens zwei frische Produktionsmeldungen pruefen.
-9. Erst dann den bereits dokumentierten one-shot Gruppenziel-Live-Smoke ausfuehren.
+Die Runtime-Veroeffentlichung ist fuer `47288ddfdef03ded63142670cdaca5d7ed251a75` abgeschlossen und in `BLOCK-8-RUNTIME-RELEASE-NACHWEIS.md` festgehalten.
 
-Der echte Live-Smoke bleibt bis zu dieser Veroeffentlichung offen.
+Offen sind jetzt:
+
+1. exakt diesen immutable Release mit `aktivFreigegeben: false` im echten Adventure-Land-Codekontext laden,
+2. nur `V4Bootstrap.status()` und `V4ProduktionsLaufzeit.status()` pruefen,
+3. nachweisen, dass keine Gruppenanfrage, keine Ressourcensperre und keine Spielaktion entstanden ist,
+4. erst danach den Lebensnachweis-Empfang kontrolliert starten und mindestens zwei frische Produktionsmeldungen pruefen,
+5. danach die bestehende one-shot Gruppenziel-Live-Smoke-Abfolge ausfuehren.
+
+Der echte Live-Smoke bleibt bis zum read-only Runtime-PASS offen.
 
 
 ## Immutable Cloudflare-Veroeffentlichung
