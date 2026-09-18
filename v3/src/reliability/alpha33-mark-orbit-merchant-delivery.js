@@ -177,6 +177,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
       collectionFollowMoves: 0,
+      collectionDrainedWaits: 0,
+      collectionUnavailableCompletions: 0,
       collectionRoutesPreemptedForCriticalSupply: 0
     };
     this.lastGearHold = null;
@@ -723,6 +725,41 @@ class Alpha33MarkOrbitMerchantDelivery {
     };
   }
 
+  _collectionPresenceCandidate(route) {
+    const wanted = new Set(Array.isArray(route && route.farmers) ? route.farmers.map(String) : []);
+    const rows = this._freshFarmerRows().filter((row) => wanted.size === 0 || wanted.has(String(row.name || '')));
+    if (!rows.length) return null;
+    const c = characterOf(this.runtime) || {};
+    const sameMap = rows.filter((row) => String(row.map || '') === String(c.map || ''));
+    const pool = sameMap.length ? sameMap : rows;
+    const selected = pool.slice().sort((a, b) => (
+      distance(c, a) - distance(c, b)
+      || finite(b.sourceAt, 0) - finite(a.sourceAt, 0)
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    ))[0];
+    return {
+      map: selected.map,
+      x: Number(selected.x),
+      y: Number(selected.y),
+      targetName: selected.name || null,
+      count: rows.length,
+      names: rows.map((row) => row.name).filter(Boolean).sort(),
+      rows: rows.map((row) => ({ ...row, gear: undefined })),
+      pickupEntryCount: 0,
+      pickupQuantity: 0,
+      observedAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
+    };
+  }
+
+  _collectionRouteExplicitlyUnavailable(route) {
+    const names = Array.isArray(route && route.farmers) ? route.farmers.map(String).filter(Boolean) : [];
+    if (!names.length) return false;
+    return names.every((name) => {
+      const row = this.farmerStates.get(name);
+      return !!row && (row.runtimeActive === false || row.available === false || row.dead === true);
+    });
+  }
+
   _merchantCapacitySnapshot() {
     const c = characterOf(this.runtime) || {};
     const items = Array.isArray(c.items) ? c.items : [];
@@ -912,13 +949,67 @@ class Alpha33MarkOrbitMerchantDelivery {
     const coordinator = this._collectionCoordinator();
     if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
 
+    const pressure = this._merchantCapacitySnapshot();
+    if (pressure.freeSlots <= 0) {
+      return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', {
+        pickupQuantityRemaining: candidate && candidate.pickupQuantity || 0,
+        occupied: pressure.occupied,
+        capacity: pressure.capacity
+      });
+    }
+
     candidate = this._merchantRendezvousCandidate();
     if (!candidate) {
       this._requestFarmerStateRefresh();
-      if (this.now() - route.lastProgressAt >= this.collectionSettleMs) {
-        return this._finishCollectionRoute('NO_FRESH_PICKUP_DEMAND_AFTER_SETTLE');
+
+      // A transient "drained" snapshot is not a terminal collection state.
+      // Farmers continue farming and can produce new loot immediately after the
+      // settle window. Keep the collection task lock and stay/follow the known
+      // Farmer group until the Merchant is actually full.
+      const presence = this._collectionPresenceCandidate(route);
+      if (presence) {
+        const logistics = this.runtime.controlledPartyLogistics;
+        const nearDistance = Math.max(120, Math.min(
+          finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
+          finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
+        ));
+        const nearPresence = String(c.map || '') === String(presence.map) && distance(c, presence) <= nearDistance;
+        if (!nearPresence) {
+          await this._travelToFreshCandidate(merchant, presence, true);
+          return true;
+        }
+        this.stats.collectionDrainedWaits += 1;
+        route.stage = 'COLLECT';
+        route.updatedAt = this.now();
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'WAITING_FOR_NEW_FARMER_LOOT_UNTIL_MERCHANT_FULL',
+          routeId: route.id,
+          workers: presence.names.slice(),
+          freeSlots: pressure.freeSlots
+        };
+        return true;
       }
-      merchant.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'WAITING_FOR_FRESH_FARMER_COLLECTION_STATE', routeId: route.id };
+
+      if (this._collectionRouteExplicitlyUnavailable(route)) {
+        this.stats.collectionUnavailableCompletions += 1;
+        return this._finishCollectionRoute('FARMERS_EXPLICITLY_UNAVAILABLE', {
+          freeSlots: pressure.freeSlots,
+          occupied: pressure.occupied,
+          capacity: pressure.capacity
+        });
+      }
+
+      this.stats.collectionDrainedWaits += 1;
+      merchant.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'WAITING_FOR_FRESH_FARMER_STATE_UNTIL_MERCHANT_FULL',
+        routeId: route.id,
+        workers: route.farmers.slice(),
+        freeSlots: pressure.freeSlots
+      };
       return true;
     }
 
@@ -927,10 +1018,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       route.lastPickupQuantity = candidate.pickupQuantity;
     }
     route.updatedAt = this.now();
-    route.farmers = candidate.names.slice();
-
-    const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', { pickupQuantityRemaining: candidate.pickupQuantity });
+    route.farmers = [...new Set([...route.farmers, ...candidate.names])].sort();
 
     if (route.stage === 'PREPARE_CAPACITY') {
       const prepared = await this._prepareCollectionCapacity(merchant, candidate);
@@ -1077,6 +1165,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
         collectionRouteTaskLockedUntilTerminal: true,
+        transientFarmerDrainDoesNotEndCollection: true,
+        collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
