@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 8,
+  "next_step": null,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -138,9 +138,9 @@
       "name": "runtime-composition",
       "title": "Replace alpha runtime inheritance with composition",
       "branch": "architecture/08-runtime-composition",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 267,
-      "merge_commit": null,
+      "merge_commit": "c73afdcd823276a42b8e375299d485141c5e6fa2",
       "required_outcomes": [
         "composition root introduced",
         "game/stability services composed",
