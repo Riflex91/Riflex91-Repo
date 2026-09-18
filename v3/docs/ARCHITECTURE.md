@@ -15,14 +15,14 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | content | 3 | 447 |
 | control | 5 | 1047 |
 | core | 8 | 704 |
-| economy | 12 | 4192 |
+| economy | 12 | 4212 |
 | farmer | 21 | 4481 |
 | game | 3 | 726 |
 | merchant | 9 | 2505 |
 | ops | 26 | 7278 |
 | party | 33 | 7685 |
 | planner | 1 | 66 |
-| reliability | 50 | 14722 |
+| reliability | 50 | 14966 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
