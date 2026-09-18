@@ -35112,17 +35112,26 @@ class MerchantSelfGear {
       const matches = inventoryOf(this.root)
         .filter((item) => item && item.name === equipped.name && levelOf(item) === level && !item.locked && !item.l && !item.special && !item.p)
         .map((item) => ({ index: item.index, name: item.name, level }));
+
+      const usesSpare = type === 'UPGRADE' ? matches.length >= 1 : matches.length >= 3;
       if (type === 'COMPOUND' && matches.length < 2) continue;
 
-      const excluded = new Set(type === 'COMPOUND' ? matches.slice(0, 2).map((row) => Number(row.index)) : []);
-      const fallback = this._fallback(slot, excluded);
-      // Mutation can destroy the equipped item. Never voluntarily leave the
-      // Merchant without a valid replacement for that slot.
-      if (!fallback) {
-        this.stats.skippedNoFallback += 1;
-        continue;
+      let fallback = { slot, name: equipped.name, level, equipped: true };
+      if (!usesSpare) {
+        const excluded = new Set(type === 'COMPOUND' ? matches.slice(0, 2).map((row) => Number(row.index)) : []);
+        fallback = this._fallback(slot, excluded);
+        // If the worn item must participate, mutation can destroy it. Never
+        // voluntarily leave the Merchant without a valid replacement.
+        if (!fallback) {
+          this.stats.skippedNoFallback += 1;
+          continue;
+        }
       }
-      rows.push({ slot, type, name: equipped.name, level, fallback, budget, inventoryMatches: matches.slice(0, 2) });
+      rows.push({
+        slot, type, name: equipped.name, level, fallback, budget,
+        usesSpare,
+        inventoryMatches: matches.slice(0, type === 'COMPOUND' ? 3 : 1)
+      });
     }
     rows.sort((a, b) => a.level - b.level || (a.type === 'COMPOUND' ? -1 : 1) || a.slot.localeCompare(b.slot));
     return rows[0] || null;
@@ -35196,7 +35205,7 @@ class MerchantSelfGear {
         id: `selfgear-${this.now().toString(36)}-${candidate.slot}`,
         startedAt: this.now(),
         updatedAt: this.now(),
-        stage: 'UNEQUIP',
+        stage: candidate.usesSpare ? 'WAIT_LEDGER' : 'UNEQUIP',
         character: c.name,
         ...clone(candidate)
       };
@@ -35272,10 +35281,19 @@ class MerchantSelfGear {
       const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
       session.mutationResult = clone(result);
       session.outcome = result && result.outcome || null;
-      session.stage = 'REEQUIP';
       session.updatedAt = this.now();
-      if (result && result.outcome === 'SUCCESS') this.stats.mutationSuccesses += 1;
-      else this.stats.mutationFailures += 1;
+      if (result && result.outcome === 'SUCCESS') {
+        this.stats.mutationSuccesses += 1;
+        session.stage = 'REEQUIP';
+      } else {
+        this.stats.mutationFailures += 1;
+        if (session.usesSpare) {
+          this.runtime.merchantSelfGearReservation = null;
+          this._finish('MUTATION_FAILED_CURRENT_GEAR_RETAINED', { outcome: session.outcome });
+          return true;
+        }
+        session.stage = 'REEQUIP';
+      }
       this.runtime.merchantSelfGearReservation = null;
       this._save();
       return true;
@@ -35318,6 +35336,7 @@ class MerchantSelfGear {
       mode: SELF_GEAR_MODE,
       enabled: true,
       requiresFallbackBeforeRisk: true,
+      spareFirst: true,
       session: clone(this.session),
       lastSession: clone(this.lastSession),
       stats: clone(this.stats)
