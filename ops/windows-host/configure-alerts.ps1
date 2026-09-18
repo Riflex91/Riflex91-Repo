@@ -54,8 +54,16 @@ finally {
 }
 
 $config = Get-Content -Raw $configPath | ConvertFrom-Json
-$config.criticalAlertingEnabled = $true
-$config.alertSecretsEnvironmentVariable = 'AIO_V3_ALERT_SECRETS_JSON'
+if ($null -eq $config.PSObject.Properties['criticalAlertingEnabled']) {
+  $config | Add-Member -NotePropertyName criticalAlertingEnabled -NotePropertyValue $true
+} else {
+  $config.criticalAlertingEnabled = $true
+}
+if ($null -eq $config.PSObject.Properties['alertSecretsEnvironmentVariable']) {
+  $config | Add-Member -NotePropertyName alertSecretsEnvironmentVariable -NotePropertyValue 'AIO_V3_ALERT_SECRETS_JSON'
+} else {
+  $config.alertSecretsEnvironmentVariable = 'AIO_V3_ALERT_SECRETS_JSON'
+}
 $config | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $configPath
 
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
