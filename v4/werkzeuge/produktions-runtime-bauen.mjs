@@ -1,4 +1,5 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import * as tsPaket from 'typescript';
@@ -9,6 +10,7 @@ const quelleWurzel = path.join(wurzel, 'laufzeit', 'quelle');
 const einstieg = path.join(quelleWurzel, 'ausfuehrung', 'adventure-land-produktions-einstieg.ts');
 const versionPfad = path.join(wurzel, 'version.json');
 const ausgabe = path.join(wurzel, 'dist', 'aio-v4-runtime.js');
+const sha256Ausgabe = path.join(wurzel, 'dist', 'aio-v4-runtime.sha256');
 
 function posix(wert) {
   return wert.split(path.sep).join('/');
@@ -89,15 +91,26 @@ export async function baueProduktionsRuntime({ schreiben = true } = {}) {
   if (!bundle.includes('V4ProduktionsLaufzeit')) throw new Error('Runtime enthaelt die Produktionslaufzeit nicht.');
   const bytes = Buffer.byteLength(bundle, 'utf8');
   if (bytes < 10_000 || bytes > 8 * 1024 * 1024) throw new Error(`V4-Produktionsruntime hat unplausible Groesse: ${bytes} Bytes.`);
+  const sha256 = createHash('sha256').update(bundle, 'utf8').digest('hex');
+  if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error('V4-Produktionsruntime konnte keinen gueltigen SHA-256 erzeugen.');
   if (schreiben) {
     await mkdir(path.dirname(ausgabe), { recursive: true });
     await writeFile(ausgabe, bundle, 'utf8');
+    await writeFile(sha256Ausgabe, `${sha256}  aio-v4-runtime.js\n`, 'utf8');
   }
-  return Object.freeze({ version, module: module.size, bytes, ausgabe: posix(path.relative(wurzel, ausgabe)), bundle });
+  return Object.freeze({
+    version,
+    module: module.size,
+    bytes,
+    sha256,
+    ausgabe: posix(path.relative(wurzel, ausgabe)),
+    sha256Ausgabe: posix(path.relative(wurzel, sha256Ausgabe)),
+    bundle
+  });
 }
 
 if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const pruefen = process.argv.includes('--pruefen');
   const ergebnis = await baueProduktionsRuntime({ schreiben: !pruefen });
-  console.log(`V4 Produktionsruntime ${pruefen ? 'geprueft' : 'gebaut'}: ${ergebnis.module} Module, ${ergebnis.bytes} Bytes${pruefen ? '' : `, ${ergebnis.ausgabe}`}.`);
+  console.log(`V4 Produktionsruntime ${pruefen ? 'geprueft' : 'gebaut'}: ${ergebnis.module} Module, ${ergebnis.bytes} Bytes, SHA-256 ${ergebnis.sha256}${pruefen ? '' : `, ${ergebnis.ausgabe}, ${ergebnis.sha256Ausgabe}`}.`);
 }
