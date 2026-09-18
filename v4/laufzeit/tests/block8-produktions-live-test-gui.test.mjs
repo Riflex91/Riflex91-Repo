@@ -185,7 +185,9 @@ test('Block-8 Live-Test-GUI fuehrt Leiterablauf nur ueber Produktions-APIs bis z
 
   await u.fuehre('runtime-laden');
   await u.fuehre('empfang-starten');
+  assert.equal(u.aktive.get('gruppenziel-vorschau'), false);
   await u.fuehre('heartbeat-senden');
+  assert.equal(u.aktive.get('gruppenziel-vorschau'), true);
   await u.fuehre('gruppenziel-vorschau');
   assert.equal(u.aktive.get('one-shot'), true);
 
