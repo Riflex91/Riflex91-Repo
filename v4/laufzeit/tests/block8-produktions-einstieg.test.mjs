@@ -9,6 +9,7 @@ function spiel() {
   let intervalCallback = null;
   let intervalMillisekunden = null;
   let intervalId = 0;
+  let performanceTrickAufrufe = 0;
   const gesendet = [];
   const parent = {
     character: {
@@ -29,6 +30,9 @@ function spiel() {
     parent,
     character: parent.character,
     on_cm: undefined,
+    performance_trick() {
+      performanceTrickAufrufe += 1;
+    },
     setInterval(fn, millisekunden) {
       intervalCallback = fn;
       intervalMillisekunden = millisekunden;
@@ -44,6 +48,7 @@ function spiel() {
     parent,
     gesendet,
     intervalMillisekunden: () => intervalMillisekunden,
+    performanceTrickAufrufe: () => performanceTrickAufrufe,
     feuereIntervall() {
       assert.notEqual(intervalCallback, null);
       intervalCallback();
@@ -68,6 +73,10 @@ test('V4 Produktionslaufzeit installiert standardmaessig nur eine gesperrte eing
   const gestartet = api.starte();
   assert.equal(gestartet.empfangInstalliert, true);
   assert.equal(gestartet.lebensnachweisAutomatikAktiv, false);
+  assert.equal(gestartet.performanceTrickErforderlich, true);
+  assert.equal(gestartet.performanceTrickVerfuegbar, true);
+  assert.equal(gestartet.performanceTrickAufgerufen, false);
+  assert.equal(u.performanceTrickAufrufe(), 0);
   assert.throws(() => api.bereiteGruppenZielVor(api.gruppenzielFreigabeText()), /standardmaessig gesperrt/);
 });
 
@@ -84,6 +93,12 @@ test('V4 Produktionslaufzeit besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen
   assert.equal(gestartet.lebensnachweisAutomatikAktiv, true);
   assert.equal(gestartet.lebensnachweisAutomatikPausiert, false);
   assert.equal(gestartet.lebensnachweisIntervallMillisekunden, 2_000);
+  assert.equal(gestartet.performanceTrickErforderlich, true);
+  assert.equal(gestartet.performanceTrickVerfuegbar, true);
+  assert.equal(gestartet.performanceTrickAufgerufen, true);
+  assert.equal(gestartet.performanceTrickAufrufe, 1);
+  assert.equal(gestartet.performanceTrickLetzterFehler, null);
+  assert.equal(u.performanceTrickAufrufe(), 1);
   assert.equal(u.intervalMillisekunden(), 2_000);
 
   await flush();
@@ -108,11 +123,55 @@ test('V4 Produktionslaufzeit besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen
   await flush();
   assert.equal(api.status().lebensnachweisSendeVersuche, 3);
   assert.equal(api.status().lebensnachweisSendeErfolge, 3);
+  assert.equal(api.status().performanceTrickAufrufe, 1);
+  assert.equal(u.performanceTrickAufrufe(), 1);
 
   const gestoppt = api.stoppe();
   assert.equal(gestoppt.empfangInstalliert, false);
   assert.equal(gestoppt.lebensnachweisAutomatikAktiv, false);
   assert.equal(u.hatIntervall(), false);
+});
+
+test('V4 Produktionslaufzeit blockiert aktive Browserlaufzeit fail-safe ohne performance_trick', () => {
+  const u = spiel();
+  delete u.code.performance_trick;
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  assert.throws(
+    () => api.starte(),
+    /benoetigt Adventure Lands performance_trick/
+  );
+  const status = api.status();
+  assert.equal(status.performanceTrickErforderlich, true);
+  assert.equal(status.performanceTrickVerfuegbar, false);
+  assert.equal(status.performanceTrickAufgerufen, false);
+  assert.match(status.performanceTrickLetzterFehler, /stellt performance_trick nicht bereit/);
+  assert.equal(status.empfangInstalliert, false);
+  assert.equal(status.lebensnachweisAutomatikAktiv, false);
+});
+
+test('V4 Produktionslaufzeit verlangt performance_trick nicht in Adventure Lands Desktoplaufzeit', async () => {
+  const u = spiel();
+  delete u.code.performance_trick;
+  u.parent.is_electron = true;
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  const gestartet = api.starte();
+  await flush();
+  assert.equal(gestartet.performanceTrickErforderlich, false);
+  assert.equal(gestartet.performanceTrickVerfuegbar, false);
+  assert.equal(gestartet.performanceTrickAufgerufen, false);
+  assert.equal(gestartet.empfangInstalliert, true);
+  assert.equal(api.status().lebensnachweisSendeErfolge, 1);
+  api.stoppe();
 });
 
 test('V4 Produktionslaufzeit zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler', async () => {
