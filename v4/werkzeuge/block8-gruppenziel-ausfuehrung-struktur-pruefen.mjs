@@ -7,11 +7,15 @@ const pflichtDateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrung.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-bindung.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-smoke.ts',
   'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs',
   'laufzeit/tests/block8-gruppenziel-ausfuehrungs-bruecke.test.mjs',
   'laufzeit/tests/block8-gruppenziel-live-bindung.test.mjs',
+  'laufzeit/tests/block8-gruppenziel-live-smoke.test.mjs',
+  'laufzeit/tests/block8-gruppenziel-live-smoke-runner.test.mjs',
   'laufzeit/tests/block8-gruppenziel-one-shot.test.mjs',
   'werkzeuge/block8-gruppenziel-one-shot.js',
+  'werkzeuge/block8-gruppenziel-live-smoke.js',
   'dokumentation/BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md'
 ];
 for (const relativ of pflichtDateien) await access(path.join(wurzel, relativ));
@@ -120,6 +124,85 @@ for (const pflichtText of [
   if (!liveBindungsTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Bindungstest fehlt: ${pflichtText}`);
 }
 
+const liveSmoke = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-smoke.ts'), 'utf8');
+for (const pflichtText of [
+  'AdventureLandGruppenZielLiveSmoke',
+  "GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT = 'BLOCK8-GRUPPENZIEL-LIVE-SMOKE-EINMAL'",
+  'charakterName',
+  'serverRegion',
+  'serverKennung',
+  'karte',
+  'instanz',
+  'zielKennung',
+  'monsterArt',
+  'genau eine laufende zentrale Gruppenzielanfrage',
+  'besitzt die Ressource',
+  'AdventureLandKampfBereitschaftLesezugriff',
+  'Produktions-Safety',
+  'new AdventureLandGruppenZielLiveBindung',
+  'this.versuchVerbraucht = true',
+  "eigenschaft === 'attack'",
+  'audit.attack += 1',
+  'Unerwartete Adventure-Land-Aktion im Gruppenziel-Live-Smoke blockiert',
+  'ausfuehrungsBrueckeEntfernt',
+  "phase !== 'abgeschlossen'",
+  'verbleibendeRessourcen',
+  'bestehende Autoritaet wird nicht uebernommen oder entfernt'
+]) {
+  if (!liveSmoke.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Smoke fehlt: ${pflichtText}`);
+}
+for (const unerlaubteBrowserAutoritaet of ['V4Block7KampfsicherheitsQuelle', 'V4Block8GruppenAktionsSteuerung', 'V4AktionsSteuerungSchattenKern']) {
+  if (liveSmoke.includes(unerlaubteBrowserAutoritaet)) {
+    throw new Error(`Der Produktions-Live-Smoke darf keine Browser-/Schattenautoritaet direkt verwenden: ${unerlaubteBrowserAutoritaet}.`);
+  }
+}
+
+const liveSmokeTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-live-smoke.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'startet standardmaessig gesperrt und Vorschau ist read-only auf realer Zentralsteuerung',
+  'bindet Charakter, Server, Karte, Instanz, Ziel und Monsterart exakt',
+  'verlangt genau eine laufende reale Gruppenanfrage und zentralen Ressourcenbesitz',
+  'blockiert unsichere oder alte Produktions-Safety und unbekannte Angriffsbereitschaft',
+  'verlangt frische Vorschau und exakten Freigabetext',
+  'fuehrt exakt einen attack aus, entfernt Bruecke und gibt Ressourcen frei',
+  'protokolliert attack-Versuch auch wenn Adventure Land attack fehlschlaegt',
+  'Live-Smoke-Fassade ist eingefroren und ueberschreibt keine bestehende Smoke-Autoritaet'
+]) {
+  if (!liveSmokeTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Smoke-Test fehlt: ${pflichtText}`);
+}
+
+const liveSmokeRunner = await readFile(path.join(wurzel, 'werkzeuge/block8-gruppenziel-live-smoke.js'), 'utf8');
+for (const pflichtText of [
+  'V4Block8GruppenZielLiveSmokeRunner',
+  'V4Block8GruppenZielLiveSmoke',
+  'BLOCK8-GRUPPENZIEL-LIVE-SMOKE-STARTEN',
+  "api.quelleBereich !== 'ausfuehrung'",
+  "api.modus !== 'one-shot-live-smoke'",
+  'api.vorschau()',
+  'api.freigeben(produktionsFreigabeText)',
+  'api.starte()',
+  'echteSpielaktionenDurchRunner: false'
+]) {
+  if (!liveSmokeRunner.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Smoke-Runner fehlt: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(liveSmokeRunner)) {
+    throw new Error(`Der Live-Smoke-Runner darf Adventure Land nicht direkt aufrufen: ${unerlaubt}.`);
+  }
+}
+
+const liveSmokeRunnerTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-live-smoke-runner.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'bleibt ohne Produktions-Smoke blockiert',
+  'zeigt zuerst Produktionsvorschau und fuehrt dabei nichts aus',
+  'verlangt exakten Starttext und frische angezeigte Vorschau',
+  'delegiert nach Starttext genau einmal an den Produktions-Smoke',
+  'kann nach Vorschau wieder sperren ohne Start',
+  'besitzt selbst keinen Adventure-Land-Aktionsaufruf'
+]) {
+  if (!liveSmokeRunnerTests.includes(pflichtText)) throw new Error(`Block-8-Live-Smoke-Runner-Test fehlt: ${pflichtText}`);
+}
+
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs'), 'utf8');
 for (const pflichtText of [
   'aktive Ausfuehrung ist standardmaessig gesperrt und bleibt Schatten',
@@ -183,4 +266,4 @@ for (const datei of await readdir(spiellogikWurzel)) {
   }
 }
 
-console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, feste one-shot Ausfuehrungsbruecke, one-shot Live-Bindung mit Entfernung vor Delegation, zentrale Autoritaet, frische Produktions-Safety, Ressourcenbesitz, Bereitschaft, Ziel/Reichweite und Browser-One-shot ohne eigenen Spielaufruf.');
+console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, feste one-shot Ausfuehrungsbruecke, Live-Bindung, produktionsgebundene Live-Smoke-Huelle mit Aktionsaudit und Browser-Runner ohne eigenen Spielaufruf.');

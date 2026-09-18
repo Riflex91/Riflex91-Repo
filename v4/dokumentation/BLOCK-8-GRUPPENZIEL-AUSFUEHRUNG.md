@@ -1,6 +1,6 @@
 # Block 8 – minimaler Gruppenziel-Ausfuehrungspfad
 
-Status: **Adapter, gebundene Einmal-Freigabe, feste Ausfuehrungsbruecke und one-shot Live-Bindung implementiert und offline getestet; kein Live-Smoke ausgefuehrt**.
+Status: **Adapter, gebundene Einmal-Freigabe, feste Ausfuehrungsbruecke, one-shot Live-Bindung und kontrollierte Live-Smoke-Huelle implementiert und offline getestet; echter Live-Smoke noch nicht ausgefuehrt**.
 
 ## Entscheidung fuer die erste Aktion
 
@@ -109,3 +109,16 @@ Automatisiert werden unter anderem geprueft:
 - alle anderen `GRUPPE_*`-Aktionsnamen besitzen keinen aktiven Pfad.
 
 Der naechste Schritt nach gruenem Merge ist die **kontrollierte Vorbereitung und Durchfuehrung des one-shot Live-Smokes** mit exakt definiertem Charakter, Server, Karte und Ziel. Vor der echten Aktion muss die Produktions-Safety frisch berechnet werden; nach dem Versuch muessen globale Fassade, zentrale Aktionsphase und Ressourcensperren ausgewertet werden.
+
+
+## Kontrollierter Live-Smoke
+
+Die Produktions-Smoke-Huelle `AdventureLandGruppenZielLiveSmoke` bindet den Versuch an exakten Charakter, Server, Karte, Instanz, Ziel und Monsterart sowie an genau eine real laufende zentrale Gruppenanfrage.
+
+Sie besitzt ein Produktions-Aktionsaudit: `attack` wird gezaehlt, jede andere ueber diesen Pfad angeforderte Adventure-Land-Aktion wird vor Ausfuehrung blockiert. Nach Erfolg muessen zentrale Phase `abgeschlossen`, keine verbleibende Ressourcensperre und keine globale Ausfuehrungsbruecke mehr vorhanden sein.
+
+Der Browser-Runner `V4Block8GruppenZielLiveSmokeRunner` zeigt zuerst diese reale Produktionsvorschau und verlangt danach den exakten Starttext `BLOCK8-GRUPPENZIEL-LIVE-SMOKE-STARTEN`. Er besitzt selbst keinen Spielaufruf.
+
+Details und PASS/FAIL-Kriterien: `BLOCK-8-GRUPPENZIEL-LIVE-SMOKE.md`.
+
+Der echte Smoke bleibt offen, weil V4 aktuell noch keinen Produktions-Bootstrap besitzt, der die TypeScript-Laufzeit im Adventure-Land-Kontext instanziiert und die Smoke-Fassade installiert.
