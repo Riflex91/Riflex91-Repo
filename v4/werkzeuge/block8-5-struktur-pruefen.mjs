@@ -57,7 +57,8 @@ const dateien = [
   'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.md',
   '../.github/workflows/release-v4-runtime.yml',
   'werkzeuge/block8-5-v4-runtime-release-workflow-pruefen.mjs',
-  'dokumentation/BLOCK-8-5-V4-RUNTIME-RELEASE-WORKFLOW.md'
+  'dokumentation/BLOCK-8-5-V4-RUNTIME-RELEASE-WORKFLOW.md',
+  'dokumentation/BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -1100,8 +1101,8 @@ for (const [feld, erwartet] of Object.entries({
   moduleCount: 31,
   bytes: 228607,
   sha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
-  deploymentPerformed: false,
-  publicHttpsVerified: false,
+  deploymentPerformed: true,
+  publicHttpsVerified: true,
   adventureLandShadowVerified: false,
   adventureLandControlledLiveVerified: false,
   adventureLandSoakVerified: false,
@@ -1126,6 +1127,11 @@ for (const pflicht of [
   'manifest.sha256',
   'deploymentPerformed',
   'publicHttpsVerified',
+  'deploymentEvidence',
+  '35402650432',
+  '105785689083',
+  'publicRuntimeUrl',
+  'publicSha256Url',
   'adventureLandShadowVerified',
   'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
@@ -1150,7 +1156,7 @@ for (const pflicht of [
 const runtimeReleaseKandidatDokument = await readFile(path.join(wurzel, dateien[50]), 'utf8');
 for (const pflicht of [
   'Release-Candidate reproduzierbar gebunden',
-  'noch nicht deployed',
+  'Deployment und oeffentliche HTTPS-Verifikation',
   '88185523c81687dc16f9647ca5e7568c5e2c228c',
   'Runtime-API-Version: **1.1.5**',
   'laufzeitPfadKennung: block8.5-basisbedienung-runtime',
@@ -1158,8 +1164,8 @@ for (const pflicht of [
   'Module: **31**',
   'Groesse: **228607 Bytes**',
   '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
-  'deploymentPerformed: false',
-  'publicHttpsVerified: false',
+  'deploymentPerformed: true',
+  'publicHttpsVerified: true',
   'adventureLandShadowVerified: false',
   'adventureLandControlledLiveVerified: false',
   'adventureLandSoakVerified: false',
@@ -1238,13 +1244,37 @@ for (const pflicht of [
   'HTTP 404',
   'R2-Rueckverifikation',
   'Oeffentliche HTTPS-Rueckverifikation',
-  'deploymentPerformed: false',
-  'publicHttpsVerified: false',
+  'deploymentPerformed: true',
+  'publicHttpsVerified: true',
   'block9Freigegeben: false',
   'Block 9 bleibt'
 ]) {
   if (!v4OnlyReleaseDokument.includes(pflicht)) {
     throw new Error(`V4-only Runtime-Release-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const candidateDeploymentNachweis = await readFile(path.join(wurzel, dateien[54]), 'utf8');
+for (const pflicht of [
+  'Deployment und oeffentliche HTTPS-Verifikation fuer den exakten Candidate bestaetigt',
+  '88185523c81687dc16f9647ca5e7568c5e2c228c',
+  '35402650432',
+  '105785689083',
+  'Build and verify V4 production runtime artifacts',
+  'Publish immutable V4 runtime release to R2',
+  'Verify immutable V4 runtime release in R2',
+  'Verify immutable V4 runtime release over public HTTPS',
+  '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  'deploymentPerformed: true',
+  'publicHttpsVerified: true',
+  'adventureLandShadowVerified: false',
+  'adventureLandControlledLiveVerified: false',
+  'adventureLandSoakVerified: false',
+  'block9Freigegeben: false',
+  'Block 9 bleibt'
+]) {
+  if (!candidateDeploymentNachweis.includes(pflicht)) {
+    throw new Error(`Candidate-Deploymentnachweis fehlt: ${pflicht}`);
   }
 }
 
@@ -1255,4 +1285,4 @@ if (runtimeReleaseKandidatDokument.includes('fuer diesen Block-8.5-Runtime-Nachw
   throw new Error('Runtime-Release-Candidate grenzt den breiten historischen Deployment-Workflow noch nicht ab.');
 }
 
-console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner, Runtime-1.1.5-Release-Candidate und isoliertem V4-only Release-Workflow geprueft: kein automatischer Trigger, kein V3/Worker/D1/Lifecycle-Pfad, kein blindes Immutable-Ueberschreiben; externe Veroeffentlichung und reale Adventure-Land-Freigaben bleiben offen.');
+console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner, Runtime-1.1.5-Release-Candidate und isoliertem V4-only Release-Workflow geprueft: Candidate-Deployment und oeffentliche HTTPS-Verifikation sind fuer 88185523 durch Run 35402650432 bestaetigt; Schatten, kontrolliert live, Soak und Block 9 bleiben offen.');

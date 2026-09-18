@@ -7,12 +7,21 @@
   "moduleCount": 31,
   "bytes": 228607,
   "sha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
-  "deploymentPerformed": false,
-  "publicHttpsVerified": false,
+  "deploymentPerformed": true,
+  "publicHttpsVerified": true,
   "adventureLandShadowVerified": false,
   "adventureLandControlledLiveVerified": false,
   "adventureLandSoakVerified": false,
   "block9Freigegeben": false,
   "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
-  "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c"
+  "aenderungsKennung": "git:88185523c81687dc16f9647ca5e7568c5e2c228c",
+  "deploymentEvidence": {
+    "workflow": "deploy-cloudflare",
+    "runId": 35402650432,
+    "jobId": 105785689083,
+    "releaseSha": "88185523c81687dc16f9647ca5e7568c5e2c228c",
+    "sha256": "95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f",
+    "publicRuntimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js",
+    "publicSha256Url": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.sha256"
+  }
 }

@@ -204,10 +204,10 @@ Er wurde fuer Runtime 1.1.5 noch **nicht ausgefuehrt**.
 
 Beim Merge des vorbereitenden PR #358 wurde der damals noch gekoppelte historische `deploy-cloudflare.yml`-Workflow jedoch automatisch ueber seinen alten `v4/**`-Push-Trigger gestartet. Run `35403715822` veroeffentlichte dadurch unter dem Merge-SHA `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` eine immutable V4-Runtime und verifizierte sie ueber R2 und HTTPS. Dieser Nebenrelease wurde **nicht** ueber den isolierten V4-only Workflow gestartet und ist nicht an die Freigabe-`aenderungsKennung` `git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Er zaehlt deshalb nicht als 8.5.9-Deploymentnachweis.
 
-Damit bleiben im Candidate-Manifest weiterhin:
+Der exakte Candidate `88185523c81687dc16f9647ca5e7568c5e2c228c` wurde bereits zuvor durch Run `35402650432` immutable veroeffentlicht und oeffentlich verifiziert. Deshalb stehen im Candidate-Manifest jetzt korrekt:
 
-- `deploymentPerformed: false`
-- `publicHttpsVerified: false`
+- `deploymentPerformed: true`
+- `publicHttpsVerified: true`
 - `adventureLandShadowVerified: false`
 - `adventureLandControlledLiveVerified: false`
 - `adventureLandSoakVerified: false`
@@ -215,11 +215,7 @@ Damit bleiben im Candidate-Manifest weiterhin:
 
 ## Danach
 
-Erst nach einem erfolgreichen manuellen Release-Lauf fuer exakt:
-
-`88185523c81687dc16f9647ca5e7568c5e2c228c`
-
-darf die reale Adventure-Land-Abfolge beginnen:
+Ein erneuter manueller Release-Lauf fuer `88185523c81687dc16f9647ca5e7568c5e2c228c` ist nicht erforderlich. Der bereits bestaetigte Deployment-/HTTPS-Nachweis erfuellt den Release-Preflight. Damit kann als naechstes die reale Adventure-Land-Abfolge beginnen:
 
 1. Schattennachweis,
 2. kontrollierter Live-Nachweis,

@@ -197,14 +197,12 @@ vorbereitet.
 
 Er akzeptiert ausschliesslich Runtime 1.1.5 und laedt oder veroeffentlicht selbst keinen Runtime-Build.
 
-Der vorbereitete Release-Candidate ist exakt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Seine reproduzierbare Build-Pruefung ersetzt noch kein Deployment und keinen oeffentlichen HTTPS-Nachweis.
-
-Fuer dessen externe Veroeffentlichung ist nun ein separater manueller `release-v4-runtime.yml`-Workflow vorbereitet. Er darf ausschliesslich die zwei immutable V4-Artefakte veroeffentlichen und weder V3 noch Worker, D1 oder Lifecycle-Regeln veraendern. Der Workflow wurde noch nicht ausgefuehrt.
+Der Release-Candidate ist exakt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer genau diesen Candidate bestaetigt. Ein erneuter Release ist fuer diesen Nachweis nicht erforderlich. Fuer zukuenftige V4-Releases ist der separate manuelle `release-v4-runtime.yml`-Workflow der vorgesehene Pfad.
 
 Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 
 1. finalen Aenderungsstand eindeutig festlegen,
-2. exakt diesen Runtime-1.1.5-Build reproduzierbar bauen und verifizieren,
+2. Runtime-1.1.5-Build und immutable Deployment/HTTPS-Nachweis fuer diesen Stand bestaetigen — **ERFUELLT**,
 3. Offline-Nachweis an denselben Aenderungsstand binden,
 4. Schattenlauf im Adventure-Land-Kontext ohne echte Spielaktion ueber den Nachweisrunner,
 5. begrenzter kontrollierter Live-Test ueber genau eine sichere Pause/Fortsetzung,
