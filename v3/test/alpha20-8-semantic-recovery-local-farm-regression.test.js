@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { WorldModel } = require('../src/world/world-model');
 const { ContentSafetyGate, ContentDisposition } = require('../src/farmer/content-safety');
-const { ContentDriftSemanticRecovery } = require('../src/reliability/content-drift-semantic-recovery');
+const { ContentDriftSemanticRecovery } = require('../src/content/content-drift-semantic-recovery');
 const { LocalFarmPlanner } = require('../src/autonomy/local-farm-planner');
 
 function falseNoveltyRecord(id, firstSeenAt, extra = {}) {

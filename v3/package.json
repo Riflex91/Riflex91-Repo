@@ -14,14 +14,16 @@
     "typecheck:logic": "tsc -p tsconfig.logic.json",
     "check:architecture": "depcruise --config .dependency-cruiser.cjs src",
     "check:commands": "node scripts/game-command-boundary-guard.js",
-    "static:guard": "npm run typecheck:logic && npm run check:architecture && npm run check:commands",
+    "static:guard": "npm run typecheck:logic && npm run check:architecture && npm run check:commands && npm run check:legacy-reliability-layer",
     "preflight": "npm run release:guard && npm run logic:guard && npm run static:guard",
     "version:check": "node scripts/release-guardian.js --version-only",
     "release:patch": "node scripts/release-bump.js patch",
     "validate:live-recovery": "node scripts/validate-live-recovery-logs.js",
     "check:cloud": "cd ../cloudflare-dashboard && npm run check",
     "check:full": "npm run build && npm test && node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js && npm run check:cloud",
-    "check": "npm run preflight && npm run check:full"
+    "check": "npm run preflight && npm run check:full",
+    "prebuild": "npm run check:legacy-reliability-layer",
+    "check:legacy-reliability-layer": "node scripts/legacy-reliability-layer-guard.js"
   },
   "dependencies": {
     "basic-ftp": "6.2.1"

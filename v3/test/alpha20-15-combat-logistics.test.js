@@ -2,12 +2,12 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ControlledPartyLogistics, Action } = require('../src/reliability/controlled-party-logistics');
+const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
 const {
   installFarmerRankingGuard,
   patchLogisticsPrototype,
   normalizeRanking
-} = require('../src/reliability/alpha20-15-combat-logistics-hotfix');
+} = require('../src/party/alpha20-15-combat-logistics-hotfix');
 const { RELEASE_VERSION } = require('../src/release-version');
 
 class FakeTransport {

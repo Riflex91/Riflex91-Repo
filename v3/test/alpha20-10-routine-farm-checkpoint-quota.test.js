@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { evaluateTargetEfficiency } = require('../src/farmer/target-efficiency');
-const { installFarmerTargetEfficiencyHotfix } = require('../src/reliability/farmer-target-efficiency-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../src/farmer/farmer-target-efficiency-hotfix');
 const { ReliabilityCheckpointStore } = require('../src/ops/reliability-checkpoint');
 
 function createLocalStorage(entries = {}) {

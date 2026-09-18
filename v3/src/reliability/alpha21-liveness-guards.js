@@ -1,6 +1,6 @@
 'use strict';
 
-const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
+const { ControlledPartyLogistics, Action } = require('../party/controlled-party-logistics');
 const { EconomyEquipmentAutonomyV2, HomePhase } = require('./economy-equipment-autonomy-v2');
 
 const ALPHA21_LIVENESS_MODE = 'alpha21-farmer-merchant-liveness-guards-v2';

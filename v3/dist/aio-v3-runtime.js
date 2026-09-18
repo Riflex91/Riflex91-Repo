@@ -21117,24 +21117,24 @@ const {
   createObservableBankCapacityManager,
   installPreFarmingReliability
 } = require('../reliability/pre-farming-reliability');
-const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
-const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
-const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
-const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
-const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-terrain-navigation-hotfix');
-const { installFarmerResourceTopoffHotfix } = require('../reliability/farmer-resource-topoff-hotfix');
-const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
-const { installTeamCombatCohesionHotfix } = require('../reliability/team-combat-cohesion-hotfix');
+const { installFarmerLocalPlanPriority } = require('../farmer/farmer-local-plan-priority');
+const { installLiveNavigationHotfix } = require('../farmer/live-navigation-hotfix');
+const { installFarmerTravelSafetyHotfix } = require('../farmer/farmer-travel-safety-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../farmer/farmer-target-efficiency-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../farmer/farmer-terrain-navigation-hotfix');
+const { installFarmerResourceTopoffHotfix } = require('../farmer/farmer-resource-topoff-hotfix');
+const { installPartyFocusFireHotfix } = require('../party/party-focus-fire-hotfix');
+const { installTeamCombatCohesionHotfix } = require('../party/team-combat-cohesion-hotfix');
 const { installTeamCohesionDeadlockHotfix } = require('../reliability/team-cohesion-deadlock-hotfix');
-const { installControlledPartyLogistics } = require('../reliability/controlled-party-logistics');
-const { installFarmAreaPressureHotfix } = require('../reliability/farm-area-pressure-hotfix');
-const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
-const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
-const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
-const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
-const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
-const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
-const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
+const { installControlledPartyLogistics } = require('../party/controlled-party-logistics');
+const { installFarmAreaPressureHotfix } = require('../farmer/farm-area-pressure-hotfix');
+const { installPartyPersistenceQuotaHotfix } = require('../party/party-persistence-quota-hotfix');
+const { installDangerousContentHotfix } = require('../content/dangerous-content-hotfix');
+const { installContentDriftStorageHotfix } = require('../content/content-drift-storage-hotfix');
+const { installContentDriftSemanticRecovery } = require('../content/content-drift-semantic-recovery');
+const { installPartyAccountCommunication } = require('../party/party-account-communication');
+const { installPartyBootstrapFarmerGate } = require('../party/party-bootstrap-farmer-gate');
+const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../party/party-bootstrap-merchant-discovery-hotfix');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -21180,9 +21180,6 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxAvoidance: options.farmerMaxTargetAvoidance
     });
 
-    // Live reliability fixes remain modular so the proven Alpha.20 action
-    // boundaries are unchanged. Persistence failure may reduce observability,
-    // but must never rewrite combat-safety semantics.
     this.dangerousContentHotfix = installDangerousContentHotfix(this);
     this.farmerTravelSafetyHotfix = installFarmerTravelSafetyHotfix(this, {
       minStep: options.farmerTravelMinStep,
@@ -21292,18 +21289,26 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     return super.stop();
   }
 
-  tick() {
+  _beforeFarmReadinessTick() {
     this.contentDriftSemanticRecovery.beforeTick();
     this.dangerousContentHotfix.beforeTick();
     this.partyBootstrap.tick();
     this.preFarmingReliability.beforeTick();
-    super.tick();
-    const snapshot = this.lastSnapshot;
-    if (!snapshot || !snapshot.character) return;
+  }
+
+  _afterFarmReadinessTick(snapshot) {
     this.controlledAutoRespawn.tick(snapshot);
     this.controlledFarmerLoot.tick(snapshot);
     this.controlledPartyLogistics.tick(snapshot);
     this.farmAreaPressureHotfix.tick(snapshot);
+  }
+
+  tick() {
+    this._beforeFarmReadinessTick();
+    super.tick();
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return;
+    this._afterFarmReadinessTick(snapshot);
   }
 
   farmReadinessStatus() {
@@ -23369,12 +23374,6 @@ module.exports = {
 };
 
 },
-"src/reliability/farmer-local-plan-priority.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farmer-local-plan-priority');
-
-},
 "src/farmer/farmer-local-plan-priority.js": function(require,module,exports){
 'use strict';
 
@@ -23622,12 +23621,6 @@ function ensurePatchRegistry(runtime) {
 module.exports = { PatchRegistry, ensurePatchRegistry, PATCH_KINDS };
 
 },
-"src/reliability/live-navigation-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/live-navigation-hotfix');
-
-},
 "src/farmer/live-navigation-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -23853,12 +23846,6 @@ module.exports = {
 };
 
 },
-"src/reliability/farmer-travel-safety-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farmer-travel-safety-hotfix');
-
-},
 "src/farmer/farmer-travel-safety-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -23998,12 +23985,6 @@ function installFarmerTravelSafetyHotfix(runtime, options = {}) {
 }
 
 module.exports = { FarmerTravelSafetyHotfix, installFarmerTravelSafetyHotfix, FARMER_TRAVEL_SAFETY_MODE };
-
-},
-"src/reliability/farmer-target-efficiency-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farmer-target-efficiency-hotfix');
 
 },
 "src/farmer/farmer-target-efficiency-hotfix.js": function(require,module,exports){
@@ -24343,12 +24324,6 @@ module.exports = {
   evaluateTargetEfficiency,
   resolveMonsterType
 };
-
-},
-"src/reliability/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farmer-terrain-navigation-hotfix');
 
 },
 "src/farmer/farmer-terrain-navigation-hotfix.js": function(require,module,exports){
@@ -24850,12 +24825,6 @@ function installFarmerTerrainNavigationHotfix(runtime, options = {}) {
 module.exports = { FarmerTerrainNavigationHotfix, installFarmerTerrainNavigationHotfix, FARMER_TERRAIN_NAVIGATION_MODE };
 
 },
-"src/reliability/farmer-resource-topoff-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farmer-resource-topoff-hotfix');
-
-},
 "src/farmer/farmer-resource-topoff-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -25068,12 +25037,6 @@ module.exports = {
   installFarmerResourceTopoffHotfix,
   FARMER_RESOURCE_TOPOFF_MODE
 };
-
-},
-"src/reliability/party-focus-fire-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/party-focus-fire-hotfix');
 
 },
 "src/party/party-focus-fire-hotfix.js": function(require,module,exports){
@@ -25294,12 +25257,6 @@ function installPartyFocusFireHotfix(runtime, options = {}) {
 }
 
 module.exports = { PartyFocusFireHotfix, installPartyFocusFireHotfix, PARTY_FOCUS_FIRE_MODE };
-
-},
-"src/reliability/team-combat-cohesion-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/team-combat-cohesion-hotfix');
 
 },
 "src/party/team-combat-cohesion-hotfix.js": function(require,module,exports){
@@ -26052,8 +26009,8 @@ module.exports = {
 "src/reliability/team-cohesion-deadlock-hotfix.js": function(require,module,exports){
 'use strict';
 
-const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
-const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+const { installAlpha2015CombatLogisticsHotfix } = require('../party/alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2015LogisticsFairness } = require('../party/alpha20-15-logistics-fairness-hotfix');
 const { installIntegratedPartyControl } = require('./integrated-party-control');
 const { installAlpha27CombatMerchantConvergence } = require('./alpha27-combat-merchant-convergence');
 
@@ -26584,12 +26541,6 @@ module.exports = {
   bestLeaderRecoveryWaypoint,
   terrainRecoveryOwner
 };
-
-},
-"src/reliability/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/alpha20-15-combat-logistics-hotfix');
 
 },
 "src/party/alpha20-15-combat-logistics-hotfix.js": function(require,module,exports){
@@ -27799,12 +27750,6 @@ module.exports = {
 };
 
 },
-"src/reliability/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/alpha20-15-logistics-fairness-hotfix');
-
-},
 "src/party/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -27850,8 +27795,8 @@ module.exports = {
 "src/reliability/integrated-party-control.js": function(require,module,exports){
 'use strict';
 
-const { installAlpha2019AccountTransportHotfix } = require('./alpha20-19-account-transport-hotfix');
-const { patchAlpha2019LogisticsStabilization } = require('./alpha20-19-logistics-stabilization');
+const { installAlpha2019AccountTransportHotfix } = require('../party/alpha20-19-account-transport-hotfix');
+const { patchAlpha2019LogisticsStabilization } = require('../party/alpha20-19-logistics-stabilization');
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
@@ -27938,12 +27883,6 @@ function installIntegratedPartyControl(runtime, options = {}) {
 }
 
 module.exports = { IntegratedPartyControl, installIntegratedPartyControl, INTEGRATED_PARTY_CONTROL_MODE };
-
-},
-"src/reliability/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/alpha20-19-account-transport-hotfix');
 
 },
 "src/party/alpha20-19-account-transport-hotfix.js": function(require,module,exports){
@@ -28140,12 +28079,6 @@ function installAlpha2019AccountTransportHotfix() {
 module.exports = { DIRECT_BACKOFF_MS, DIRECT_SKIP_LOG_INTERVAL_MS, strongLiveEvidence, shouldLogDirectSkip, installAlpha2019AccountTransportHotfix };
 
 },
-"src/reliability/alpha20-19-logistics-stabilization.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/alpha20-19-logistics-stabilization');
-
-},
 "src/party/alpha20-19-logistics-stabilization.js": function(require,module,exports){
 'use strict';
 
@@ -28285,7 +28218,7 @@ module.exports = {
 "src/autonomy/adaptive-farm-intelligence.js": function(require,module,exports){
 'use strict';
 
-const { FarmAreaPressureHotfix, areaKey } = require('../reliability/farm-area-pressure-hotfix');
+const { FarmAreaPressureHotfix, areaKey } = require('../farmer/farm-area-pressure-hotfix');
 
 const PATCH = Symbol.for('AIO_V3_ALPHA20_16_ADAPTIVE_FARM_INTELLIGENCE');
 const STORAGE_KEY = 'aio_v3_farm_intelligence_v2';
@@ -28511,12 +28444,6 @@ function patchAdaptiveFarmIntelligence() {
 }
 
 module.exports = { STORAGE_KEY, MAX_HISTORY, empiricalBonus, patchAdaptiveFarmIntelligence };
-
-},
-"src/reliability/farm-area-pressure-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../farmer/farm-area-pressure-hotfix');
 
 },
 "src/farmer/farm-area-pressure-hotfix.js": function(require,module,exports){
@@ -29478,7 +29405,7 @@ module.exports = { PartySkillEngine, installPartySkillEngine, PARTY_SKILL_ENGINE
 "src/reliability/alpha21-liveness-guards.js": function(require,module,exports){
 'use strict';
 
-const { ControlledPartyLogistics, Action } = require('./controlled-party-logistics');
+const { ControlledPartyLogistics, Action } = require('../party/controlled-party-logistics');
 const { EconomyEquipmentAutonomyV2, HomePhase } = require('./economy-equipment-autonomy-v2');
 
 const ALPHA21_LIVENESS_MODE = 'alpha21-farmer-merchant-liveness-guards-v2';
@@ -29821,12 +29748,6 @@ module.exports = {
   patchEconomyV2PartyStarvation,
   patchAlpha21LivenessGuards
 };
-
-},
-"src/reliability/controlled-party-logistics.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/controlled-party-logistics');
 
 },
 "src/reliability/economy-equipment-autonomy-v2.js": function(require,module,exports){
@@ -34723,12 +34644,6 @@ module.exports = {
 };
 
 },
-"src/reliability/party-persistence-quota-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/party-persistence-quota-hotfix');
-
-},
 "src/party/party-persistence-quota-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -35114,12 +35029,6 @@ function installPartyPersistenceQuotaHotfix(runtime, options = {}) {
 module.exports = { PartyPersistenceQuotaHotfix, installPartyPersistenceQuotaHotfix, PARTY_PERSISTENCE_QUOTA_MODE };
 
 },
-"src/reliability/dangerous-content-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../content/dangerous-content-hotfix');
-
-},
 "src/content/dangerous-content-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -35267,8 +35176,8 @@ module.exports = { DangerousContentHotfix, installDangerousContentHotfix };
 'use strict';
 
 const { installIntegratedPartyControl } = require('./integrated-party-control');
-const { installAlpha2015CombatLogisticsHotfix } = require('./alpha20-15-combat-logistics-hotfix');
-const { patchAlpha2015LogisticsFairness } = require('./alpha20-15-logistics-fairness-hotfix');
+const { installAlpha2015CombatLogisticsHotfix } = require('../party/alpha20-15-combat-logistics-hotfix');
+const { patchAlpha2015LogisticsFairness } = require('../party/alpha20-15-logistics-fairness-hotfix');
 const { sellMetadataConsensus, rawSellProtectionReasons } = require('../economy/sell-safety');
 
 const ALPHA20_20_MODE = 'alpha20.20-continuous-combat-service-v1';
@@ -35447,38 +35356,38 @@ class MerchantEconomyAutonomy {
   }
   _move(target, reason) {
     const c = this._c(); if (!c || !target || this.now() - this.lastMove < 2500) return false; const x = num(target.x), y = num(target.y), map = target.map || c.map;
-    if (map === c.map && x != null && y != null && dist(c, target) > this.cfg.range * .7 && this.runtime.adapter && this.runtime.adapter.command) { const d = dist(c,target), cx = num(c.real_x != null ? c.real_x : c.x,0), cy = num(c.real_y != null ? c.real_y : c.y,0), step = Math.min(120, Math.max(20, d - this.cfg.range * .55)); this.runtime.adapter.command('move',[cx+(x-cx)/d*step,cy+(y-cy)/d*step]); this.lastMove=this.now(); this.stats.travelRequests+=1; return true; }
-    if (map !== c.map) { try { const command=this._command('smart_move',[x != null && y != null ? { map,x,y } : map]); if(command){Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;return true;} } catch (_) {} }
+    if (map === c.map && x != null && y != null && dist(c, target) > this.cfg.range * .7 && this.runtime.adapter && this.runtime.adapter.command) { const d = dist(c,target), cx = num(c.real_x != null ? c.real_x : c.x,0), cy = num(c.real_y != null ? c.real_y : c.y,0), step = Math.min(120, Math.max(20, d - this.cfg.range * .55)); this.runtime.adapter.command('move',[cx+(x-cx)/d*step,cy+(y-cy)/d*step]); this.lastMove=this.now();this.stats.travelRequests+=1;return true; }
+    if(map!==c.map){try{const command=this._command('smart_move',[x!=null&&y!=null?{map,x,y}:map]);if(command){Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;return true;}}catch(_){}}
     return false;
   }
-  _serviceMove(dest, reason) { if (this.now()-this.lastMove<2500) return false; try{const command=this._command('smart_move',[dest]);if(!command)return false;Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;this.lastDecision={at:this.now(),action:'SERVICE_TRAVEL',reason,destination:dest};return true;}catch(_){return false;} }
-  classifyItem(item, reservations = this._goals()) {
-    if (!item || !item.name) return { disposition:'KEEP', reason:'ITEM_UNKNOWN', quote:null }; const itemName=item.name, level=levelOf(item), meta=this._g().items&&this._g().items[itemName], quote=this.oracle.quote(itemName,level);
-    if (/^(hpot|mpot|scroll|cscroll)/i.test(itemName)) return { disposition:'KEEP', reason:'SERVICE_RESOURCE', quote };
-    if (item.locked || item.l || item.special || item.p) return { disposition:'KEEP', reason:'LOCKED_OR_SPECIAL', quote };
-    if (reservations.keys.has(`${itemName}:${level}`)) return { disposition:'KEEP', reason:'GEAR_PROGRESSION_RESERVED', quote };
-    if (meta && (meta.quest||meta.q||meta.event||meta.cash||meta.cash_item||meta.soulbound||meta.soul_bound||meta.exchange||meta.e)) return { disposition:'KEEP', reason:'RARE_OR_PROTECTED_METADATA', quote };
-    if (quote.fairValue != null && quote.fairValue >= this.cfg.keepValue) return { disposition:'BANK', reason:'MARKET_VALUE_KEEP', quote };
-    const safe=sellMetadataConsensus(this.root,itemName), raw=rawSellProtectionReasons(item); if (safe.ok && !raw.length && level===0) return { disposition:'SELL', reason:'LOW_RISK_SURPLUS_MATERIAL', quote };
-    return { disposition:'BANK', reason: meta && (meta.upgrade||meta.compound) ? 'PROGRESSION_ITEM' : 'CONSERVATIVE_KEEP', quote };
+  _serviceMove(dest,reason){if(this.now()-this.lastMove<2500)return false;try{const command=this._command('smart_move',[dest]);if(!command)return false;Promise.resolve(command.value).catch(()=>{});this.lastMove=this.now();this.stats.travelRequests+=1;this.lastDecision={at:this.now(),action:'SERVICE_TRAVEL',reason,destination:dest};return true;}catch(_){return false;}}
+  classifyItem(item,reservations=this._goals()){
+    if(!item||!item.name)return{disposition:'KEEP',reason:'ITEM_UNKNOWN',quote:null};const itemName=item.name,level=levelOf(item),meta=this._g().items&&this._g().items[itemName],quote=this.oracle.quote(itemName,level);
+    if(/^(hpot|mpot|scroll|cscroll)/i.test(itemName))return{disposition:'KEEP',reason:'SERVICE_RESOURCE',quote};
+    if(item.locked||item.l||item.special||item.p)return{disposition:'KEEP',reason:'LOCKED_OR_SPECIAL',quote};
+    if(reservations.keys.has(`${itemName}:${level}`))return{disposition:'KEEP',reason:'GEAR_PROGRESSION_RESERVED',quote};
+    if(meta&&(meta.quest||meta.q||meta.event||meta.cash||meta.cash_item||meta.soulbound||meta.soul_bound||meta.exchange||meta.e))return{disposition:'KEEP',reason:'RARE_OR_PROTECTED_METADATA',quote};
+    if(quote.fairValue!=null&&quote.fairValue>=this.cfg.keepValue)return{disposition:'BANK',reason:'MARKET_VALUE_KEEP',quote};
+    const safe=sellMetadataConsensus(this.root,itemName),raw=rawSellProtectionReasons(item);if(safe.ok&&!raw.length&&level===0)return{disposition:'SELL',reason:'LOW_RISK_SURPLUS_MATERIAL',quote};
+    return{disposition:'BANK',reason:meta&&(meta.upgrade||meta.compound)?'PROGRESSION_ITEM':'CONSERVATIVE_KEEP',quote};
   }
-  async _buy(itemName, wanted) {
-    const c=this._c(), b=fn(this.root,'buy'); if(!c||!b||wanted<=0)return false; const meta=this._g().items&&this._g().items[itemName], price=num(meta&&(meta.g!=null?meta.g:meta.gold),0)||0, affordable=price>0?Math.max(0,Math.floor((Math.max(0,num(c.gold,0)-this.cfg.goldReserve))/price)):wanted, q=Math.min(Math.floor(wanted),affordable); if(q<=0)return false; const before=count(c,itemName);
-    try{const r=await Promise.resolve(b.fn.call(b.owner,itemName,q));if(await this._verify(()=>count(this._c(),itemName)>before)||r&&r.success===true){this.stats.buys+=1;this.lastAction={at:this.now(),kind:'BUY',name:itemName,quantity:q};return true;}}catch(_){} return false;
+  async _buy(itemName,wanted){
+    const c=this._c(),b=fn(this.root,'buy');if(!c||!b||wanted<=0)return false;const meta=this._g().items&&this._g().items[itemName],price=num(meta&&(meta.g!=null?meta.g:meta.gold),0)||0,affordable=price>0?Math.max(0,Math.floor((Math.max(0,num(c.gold,0)-this.cfg.goldReserve))/price)):wanted,q=Math.min(Math.floor(wanted),affordable);if(q<=0)return false;const before=count(c,itemName);
+    try{const r=await Promise.resolve(b.fn.call(b.owner,itemName,q));if(await this._verify(()=>count(this._c(),itemName)>before)||r&&r.success===true){this.stats.buys+=1;this.lastAction={at:this.now(),kind:'BUY',name:itemName,quantity:q};return true;}}catch(_){}return false;
   }
-  async _ensure(itemName,target) { const have=count(this._c(),itemName); if(have>=target)return true; const cb=fn(this.root,'can_buy'); let near=false; if(cb)try{near=!!cb.fn.call(cb.owner,itemName);}catch(_){} if(cb&&!near){this._serviceMove(itemName,`RESTOCK_${itemName}`);return false;} if(await this._buy(itemName,target-have))return true; this._serviceMove(itemName,`RESTOCK_${itemName}`);return false; }
+  async _ensure(itemName,target){const have=count(this._c(),itemName);if(have>=target)return true;const cb=fn(this.root,'can_buy');let near=false;if(cb)try{near=!!cb.fn.call(cb.owner,itemName);}catch(_){}if(cb&&!near){this._serviceMove(itemName,`RESTOCK_${itemName}`);return false;}if(await this._buy(itemName,target-have))return true;this._serviceMove(itemName,`RESTOCK_${itemName}`);return false;}
   async _restockPotions(){for(const itemName of ['hpot0','mpot0'])if(count(this._c(),itemName)<this.cfg.potionLow){await this._ensure(itemName,this.cfg.potionTarget);return true;}return false;}
   _visible(characterName){const p=this.root.parent||this.root;return Object.values(p.entities||{}).find((x)=>x&&!x.mtype&&x.name===characterName)||null;}
   async _gearTransfer(res){
-    const c=this._c(), goals=res.goals.filter((g)=>g&&g.sourceCharacter===c.name&&g.character!==c.name&&!g.projectedUpgradeRequired).sort((a,b)=>num(b.survivalImprovement,0)-num(a.survivalImprovement,0));
+    const c=this._c(),goals=res.goals.filter((g)=>g&&g.sourceCharacter===c.name&&g.character!==c.name&&!g.projectedUpgradeRequired).sort((a,b)=>num(b.survivalImprovement,0)-num(a.survivalImprovement,0));
     for(const g of goals){if(!this._trusted().includes(g.character))continue;const item=this._inv().find((x)=>x&&x.name===g.item&&levelOf(x)===Number(g.observedLevel||0));if(!item)continue;const target=this._visible(g.character);if(!target||dist(c,target)>this.cfg.range){const r=this._reports().find((x)=>x&&x.name===g.character);if(r)this._move(r,'GEAR_DELIVERY');return true;}const before=count(c,g.item);try{const command=this.runtime.adapter&&typeof this.runtime.adapter.command==='function'?this.runtime.adapter.command('send_item',[g.character,item.index,1]):{executed:false,reason:'ADAPTER_UNAVAILABLE'};if(!command.executed)return false;const r=await Promise.resolve(command.value);if(await this._verify(()=>count(this._c(),g.item)<before)||r&&r.success===true){this.stats.gearTransfers+=1;this.lastAction={at:this.now(),kind:'GEAR_TRANSFER',target:g.character,item:g.item,level:g.observedLevel};return true;}}catch(_){return false;}}
     return false;
   }
   async _upgrade(res){
-    const c=this._c(), goal=res.goals.filter((g)=>g&&g.sourceCharacter===c.name&&g.projectedUpgradeRequired&&Number(g.observedLevel)<Number(g.targetLevel)&&Number(g.observedLevel)<this.cfg.maxUpgrade).sort((a,b)=>num(b.survivalImprovement,0)-num(a.survivalImprovement,0))[0]; if(!goal)return false; const item=this._inv().find((x)=>x&&x.name===goal.item&&levelOf(x)===Number(goal.observedLevel||0)), meta=this._g().items&&this._g().items[goal.item]; if(!item||!meta||!meta.upgrade||item.locked||item.l||item.special||item.p)return false;const level=levelOf(item), quote=this.oracle.quote(goal.item,level);if(quote.fairValue!=null&&quote.fairValue>this.cfg.upgradeCap)return false;const scroll=`scroll${gradeForLevel(meta,level)}`;if(count(c,scroll)<1){await this._ensure(scroll,1);return true;}const s=this._inv().find((x)=>x&&x.name===scroll), up=fn(this.root,'upgrade');if(!s||!up)return false;if(!this._begin('UPGRADE',{item:goal.item,level,itemIndex:item.index,scroll,scrollIndex:s.index,target:goal.character}))return false;this._state('EXECUTING','RAW_ACTION_STARTING');try{const r=await Promise.resolve(up.fn.call(up.owner,item.index,s.index));this._state('VERIFYING','RAW_ACTION_RETURNED',{response:clone(r)});if(!await this._verify(()=>this._inv().some((x)=>x&&x.name===goal.item&&levelOf(x)>level))){this._state('FAILED_SAFE','UPGRADE_DELTA_NOT_OBSERVED_NO_RETRY');this.stats.failedSafe+=1;return true;}this._state('COMMITTED','UPGRADE_VERIFIED');this.stats.upgrades+=1;this.lastAction={at:this.now(),kind:'UPGRADE',item:goal.item,fromLevel:level,toLevel:level+1,target:goal.character};return true;}catch(e){this._state('FAILED_SAFE','UPGRADE_REJECTED_NO_RETRY',{error:String(e&&e.message||e).slice(0,180)});this.stats.failedSafe+=1;return true;}
+    const c=this._c(),goal=res.goals.filter((g)=>g&&g.sourceCharacter===c.name&&g.projectedUpgradeRequired&&Number(g.observedLevel)<Number(g.targetLevel)&&Number(g.observedLevel)<this.cfg.maxUpgrade).sort((a,b)=>num(b.survivalImprovement,0)-num(a.survivalImprovement,0))[0];if(!goal)return false;const item=this._inv().find((x)=>x&&x.name===goal.item&&levelOf(x)===Number(goal.observedLevel||0)),meta=this._g().items&&this._g().items[goal.item];if(!item||!meta||!meta.upgrade||item.locked||item.l||item.special||item.p)return false;const level=levelOf(item),quote=this.oracle.quote(goal.item,level);if(quote.fairValue!=null&&quote.fairValue>this.cfg.upgradeCap)return false;const scroll=`scroll${gradeForLevel(meta,level)}`;if(count(c,scroll)<1){await this._ensure(scroll,1);return true;}const s=this._inv().find((x)=>x&&x.name===scroll),up=fn(this.root,'upgrade');if(!s||!up)return false;if(!this._begin('UPGRADE',{item:goal.item,level,itemIndex:item.index,scroll,scrollIndex:s.index,target:goal.character}))return false;this._state('EXECUTING','RAW_ACTION_STARTING');try{const r=await Promise.resolve(up.fn.call(up.owner,item.index,s.index));this._state('VERIFYING','RAW_ACTION_RETURNED',{response:clone(r)});if(!await this._verify(()=>this._inv().some((x)=>x&&x.name===goal.item&&levelOf(x)>level))){this._state('FAILED_SAFE','UPGRADE_DELTA_NOT_OBSERVED_NO_RETRY');this.stats.failedSafe+=1;return true;}this._state('COMMITTED','UPGRADE_VERIFIED');this.stats.upgrades+=1;this.lastAction={at:this.now(),kind:'UPGRADE',item:goal.item,fromLevel:level,toLevel:level+1,target:goal.character};return true;}catch(e){this._state('FAILED_SAFE','UPGRADE_REJECTED_NO_RETRY',{error:String(e&&e.message||e).slice(0,180)});this.stats.failedSafe+=1;return true;}
   }
   async _compound(res){
-    const groups=new Map();for(const item of this._inv()){if(!item||!item.name||item.locked||item.l||item.special||item.p)continue;const level=levelOf(item),meta=this._g().items&&this._g().items[item.name];if(!meta||!meta.compound||level>this.cfg.maxCompound||res.keys.has(`${item.name}:${level}`))continue;const q=this.oracle.quote(item.name,level);if(q.fairValue!=null&&q.fairValue>this.cfg.compoundCap)continue;const k=`${item.name}:${level}`,a=groups.get(k)||[];a.push(item);groups.set(k,a);}const items=[...groups.values()].find((a)=>a.length>=3);if(!items)return false;const trio=items.slice(0,3),meta=this._g().items[trio[0].name],level=levelOf(trio[0]),scroll=`cscroll${gradeForLevel(meta,level)}`;if(count(this._c(),scroll)<1){await this._ensure(scroll,1);return true;}const s=this._inv().find((x)=>x&&x.name===scroll), cp=fn(this.root,'compound');if(!s||!cp)return false;const before=this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length;if(!this._begin('COMPOUND',{item:trio[0].name,level,indices:trio.map((x)=>x.index),scroll,scrollIndex:s.index}))return false;this._state('EXECUTING','RAW_ACTION_STARTING');try{const r=await Promise.resolve(cp.fn.call(cp.owner,trio[0].index,trio[1].index,trio[2].index,s.index));this._state('VERIFYING','RAW_ACTION_RETURNED',{response:clone(r)});const changed=await this._verify(()=>this._inv().some((x)=>x&&x.name===trio[0].name&&levelOf(x)>level)||this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length<before);if(!changed){this._state('FAILED_SAFE','COMPOUND_DELTA_NOT_OBSERVED_NO_RETRY');this.stats.failedSafe+=1;return true;}this._state('COMMITTED','COMPOUND_VERIFIED');this.stats.compounds+=1;this.lastAction={at:this.now(),kind:'COMPOUND',item:trio[0].name,fromLevel:level,toLevel:level+1};return true;}catch(e){this._state('FAILED_SAFE','COMPOUND_REJECTED_NO_RETRY',{error:String(e&&e.message||e).slice(0,180)});this.stats.failedSafe+=1;return true;}
+    const groups=new Map();for(const item of this._inv()){if(!item||!item.name||item.locked||item.l||item.special||item.p)continue;const level=levelOf(item),meta=this._g().items&&this._g().items[item.name];if(!meta||!meta.compound||level>this.cfg.maxCompound||res.keys.has(`${item.name}:${level}`))continue;const q=this.oracle.quote(item.name,level);if(q.fairValue!=null&&q.fairValue>this.cfg.compoundCap)continue;const k=`${item.name}:${level}`,a=groups.get(k)||[];a.push(item);groups.set(k,a);}const items=[...groups.values()].find((a)=>a.length>=3);if(!items)return false;const trio=items.slice(0,3),meta=this._g().items[trio[0].name],level=levelOf(trio[0]),scroll=`cscroll${gradeForLevel(meta,level)}`;if(count(this._c(),scroll)<1){await this._ensure(scroll,1);return true;}const s=this._inv().find((x)=>x&&x.name===scroll),cp=fn(this.root,'compound');if(!s||!cp)return false;const before=this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length;if(!this._begin('COMPOUND',{item:trio[0].name,level,indices:trio.map((x)=>x.index),scroll,scrollIndex:s.index}))return false;this._state('EXECUTING','RAW_ACTION_STARTING');try{const r=await Promise.resolve(cp.fn.call(cp.owner,trio[0].index,trio[1].index,trio[2].index,s.index));this._state('VERIFYING','RAW_ACTION_RETURNED',{response:clone(r)});const changed=await this._verify(()=>this._inv().some((x)=>x&&x.name===trio[0].name&&levelOf(x)>level)||this._inv().filter((x)=>x&&x.name===trio[0].name&&levelOf(x)===level).length<before);if(!changed){this._state('FAILED_SAFE','COMPOUND_DELTA_NOT_OBSERVED_NO_RETRY');this.stats.failedSafe+=1;return true;}this._state('COMMITTED','COMPOUND_VERIFIED');this.stats.compounds+=1;this.lastAction={at:this.now(),kind:'COMPOUND',item:trio[0].name,fromLevel:level,toLevel:level+1};return true;}catch(e){this._state('FAILED_SAFE','COMPOUND_REJECTED_NO_RETRY',{error:String(e&&e.message||e).slice(0,180)});this.stats.failedSafe+=1;return true;}
   }
   async _drain(res){
     if(metrics(this._c()).freeSlots>this.cfg.lowSlots)return false;const candidates=this._inv().filter(Boolean).map((item)=>({item,c:this.classifyItem(item,res)}));const sellable=candidates.find((x)=>x.c.disposition==='SELL');if(sellable){const cs=fn(this.root,'can_sell');let near=!cs;if(cs)try{near=!!cs.fn.call(cs.owner);}catch(_){}if(near){const before=count(this._c(),sellable.item.name);try{const sell=this._command('sell',[sellable.item.index,qtyOf(sellable.item)]);if(sell){const r=await Promise.resolve(sell.value);if(await this._verify(()=>count(this._c(),sellable.item.name)<before)||r&&r.success===true){this.stats.sells+=1;this.lastAction={at:this.now(),kind:'SELL',item:sellable.item.name,quote:sellable.c.quote};return true;}}}catch(_){}}}
@@ -35490,9 +35399,9 @@ class MerchantEconomyAutonomy {
 }
 
 class Alpha2020Alpha22Autonomy {
-  constructor(runtime, options = {}) {
-    if (!runtime) throw new Error('runtime required'); this.runtime=runtime; this.now=runtime.now||(()=>Date.now()); this.log=runtime.log||null; this.installedAt=this.now(); this.stats={combatGateContinuations:0,combatFallbackSelections:0,combatLootWindows:0,broadcastFallbacks:0,broadcastAcks:0,broadcastReceived:0,broadcastRejected:0,broadcastTimeouts:0};
-    this.alpha2015=installAlpha2015CombatLogisticsHotfix(runtime); patchAlpha2015LogisticsFairness(); if(!runtime.integratedPartyControl) installIntegratedPartyControl(runtime,options.integratedPartyControl||{});
+  constructor(runtime,options={}){
+    if(!runtime)throw new Error('runtime required');this.runtime=runtime;this.now=runtime.now||(()=>Date.now());this.log=runtime.log||null;this.installedAt=this.now();this.stats={combatGateContinuations:0,combatFallbackSelections:0,combatLootWindows:0,broadcastFallbacks:0,broadcastAcks:0,broadcastReceived:0,broadcastRejected:0,broadcastTimeouts:0};
+    this.alpha2015=installAlpha2015CombatLogisticsHotfix(runtime);patchAlpha2015LogisticsFairness();if(!runtime.integratedPartyControl)installIntegratedPartyControl(runtime,options.integratedPartyControl||{});
     const l=runtime.controlledPartyLogistics;if(l&&l.config){l.config.farmerPotionLow=50;l.config.farmerPotionTarget=5000;l.config.maxSupplyBatch=Math.max(5000,Number(l.config.maxSupplyBatch)||0);l.config.farmerGoldReserve=0;l.config.maxGoldBatch=Number.MAX_SAFE_INTEGER;l.config.maxLootStackTransfer=Math.max(9999,Number(l.config.maxLootStackTransfer)||0);l.config.merchantReserveSlots=Math.max(4,Number(l.config.merchantReserveSlots)||0);l.__alpha2019OfferTtlMs=Math.max(15000,Number(l.__alpha2019OfferTtlMs)||0);}
     this.combatInstalled=installCombatContinuity(runtime,this.stats);this.logisticsInstalled=installCombatLootHandoff(runtime,this.stats);this.broadcastInstalled=installQuotaSafeBroadcastFallback(runtime,this.stats);this.marketValueOracle=new MarketValueOracle({root:runtime.root,runtime,now:this.now,maxAgeMs:options.marketValueMaxAgeMs});this.economy=new MerchantEconomyAutonomy(runtime,this.marketValueOracle,options.economy||{});runtime.marketValueOracle=this.marketValueOracle;runtime.merchantEconomyAutonomy=this.economy;this._hook();
     if(this.log&&this.log.emit)try{this.log.emit({component:'alpha20.20-alpha22-autonomy',event:'ALPHA20_20_ALPHA22_AUTONOMY_INSTALLED',severity:'warn',reason:'CLOSED_LOOP_AUTONOMY_ACTIVE',data:this.status()});}catch(_){}
@@ -35501,9 +35410,9 @@ class Alpha2020Alpha22Autonomy {
   status(){return{schemaVersion:1,alpha20_20:{mode:ALPHA20_20_MODE,combatContinuityInstalled:this.combatInstalled,combatLootHandoffInstalled:this.logisticsInstalled,quotaBroadcastFallbackInstalled:this.broadcastInstalled,commandCharacterAuthorityWidened:false,activeEncounterMayFinishOutsidePerfectFormation:true,newPullSafetyStillRequired:true,stats:{...this.stats}},alpha22:this.economy.status(),installedAt:this.installedAt};}
 }
 
-function installAlpha2020Alpha22Autonomy(runtime, options = {}) { if (!runtime) throw new Error('runtime required'); if (runtime.alpha2020Alpha22Autonomy) return runtime.alpha2020Alpha22Autonomy; return runtime.alpha2020Alpha22Autonomy = new Alpha2020Alpha22Autonomy(runtime, options); }
+function installAlpha2020Alpha22Autonomy(runtime,options={}){if(!runtime)throw new Error('runtime required');if(runtime.alpha2020Alpha22Autonomy)return runtime.alpha2020Alpha22Autonomy;return runtime.alpha2020Alpha22Autonomy=new Alpha2020Alpha22Autonomy(runtime,options);}
 
-module.exports = { Alpha2020Alpha22Autonomy, MerchantEconomyAutonomy, MarketValueOracle, installAlpha2020Alpha22Autonomy, installCombatContinuity, installCombatLootHandoff, installQuotaSafeBroadcastFallback, median, gradeForLevel, isQuotaError, ALPHA20_20_MODE, ALPHA22_MODE };
+module.exports={Alpha2020Alpha22Autonomy,MerchantEconomyAutonomy,MarketValueOracle,installAlpha2020Alpha22Autonomy,installCombatContinuity,installCombatLootHandoff,installQuotaSafeBroadcastFallback,median,gradeForLevel,isQuotaError,ALPHA20_20_MODE,ALPHA22_MODE};
 
 },
 "src/reliability/alpha20-20-live-regression-hotfix.js": function(require,module,exports){
@@ -39427,12 +39336,6 @@ function installAlpha2022LiveSmokeRecovery(runtime) { if (runtime.alpha2022LiveS
 module.exports = { ALPHA20_22_MODE, CM_QUOTA_BACKOFF_MS, Alpha2022LiveSmokeRecovery, installAlpha2022LiveSmokeRecovery, installLocalFarmTerrainGuard, installCloudBackoff, installPersistenceBackoff, installCmQuotaBackoff, isD1QuotaMessage, isStorageQuotaMessage };
 
 },
-"src/reliability/content-drift-storage-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../content/content-drift-storage-hotfix');
-
-},
 "src/content/content-drift-storage-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -39522,12 +39425,6 @@ function installContentDriftStorageHotfix(runtime, options = {}) {
 }
 
 module.exports = { ContentDriftStorageHotfix, installContentDriftStorageHotfix };
-
-},
-"src/reliability/content-drift-semantic-recovery.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../content/content-drift-semantic-recovery');
 
 },
 "src/content/content-drift-semantic-recovery.js": function(require,module,exports){
@@ -39750,12 +39647,6 @@ module.exports = {
   NON_FARM_MONSTERS,
   installContentDriftSemanticRecovery
 };
-
-},
-"src/reliability/party-account-communication.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/party-account-communication');
 
 },
 "src/party/party-account-communication.js": function(require,module,exports){
@@ -39981,12 +39872,6 @@ module.exports = {
 };
 
 },
-"src/reliability/party-bootstrap-farmer-gate.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/party-bootstrap-farmer-gate');
-
-},
 "src/party/party-bootstrap-farmer-gate.js": function(require,module,exports){
 'use strict';
 
@@ -40099,12 +39984,6 @@ function installPartyBootstrapFarmerGate(runtime, bootstrap) {
 }
 
 module.exports = { PartyBootstrapFarmerGate, installPartyBootstrapFarmerGate };
-
-},
-"src/reliability/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){
-'use strict';
-
-module.exports = require('../party/party-bootstrap-merchant-discovery-hotfix');
 
 },
 "src/party/party-bootstrap-merchant-discovery-hotfix.js": function(require,module,exports){

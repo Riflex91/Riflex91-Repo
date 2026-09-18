@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { RetreatFarmerController } = require('../src/farmer/retreat-farmer');
-const { installFarmerTerrainNavigationHotfix } = require('../src/reliability/farmer-terrain-navigation-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../src/farmer/farmer-terrain-navigation-hotfix');
 
 function planner() {
   return { rank: (rows) => rows.map((row, index) => ({ ...row, score: 1 - index * 0.1 })) };

@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { ControlledPartyBootstrap, PartyBootstrapAction } = require('../src/party/controlled-party-bootstrap');
-const { installPartyBootstrapFarmerGate } = require('../src/reliability/party-bootstrap-farmer-gate');
+const { installPartyBootstrapFarmerGate } = require('../src/party/party-bootstrap-farmer-gate');
 const { WorldPersistence } = require('../src/world/persistence');
 
 const ROSTER = ['My_Merchant', 'My_Ranger1', 'My_Ranger2', 'My_Ranger3'];

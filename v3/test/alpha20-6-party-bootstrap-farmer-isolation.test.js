@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { installPartyBootstrapFarmerGate } = require('../src/reliability/party-bootstrap-farmer-gate');
+const { installPartyBootstrapFarmerGate } = require('../src/party/party-bootstrap-farmer-gate');
 
 function runtimeWith(name = 'My_Ranger3') {
   let steps = 0;

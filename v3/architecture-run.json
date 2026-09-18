@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 6,
+  "next_step": 7,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -108,9 +108,9 @@
       "name": "absorb-reliability",
       "title": "Move reliability hotfix behavior into owning modules",
       "branch": "architecture/06-absorb-reliability",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 262,
-      "merge_commit": null,
+      "merge_commit": "44e3fd6e0d8523c6d695b9f5b90c085e2850e5ab",
       "required_outcomes": [
         "farmer/navigation hotfix behavior absorbed",
         "party/combat/logistics hotfix behavior absorbed",
@@ -123,8 +123,8 @@
       "name": "remove-hotfix-layer",
       "title": "Remove obsolete reliability hotfix layer",
       "branch": "architecture/07-remove-hotfix-layer",
-      "status": "pending",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 264,
       "merge_commit": null,
       "required_outcomes": [
         "obsolete installers removed",

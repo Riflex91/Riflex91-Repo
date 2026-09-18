@@ -8,24 +8,24 @@ const {
   createObservableBankCapacityManager,
   installPreFarmingReliability
 } = require('../reliability/pre-farming-reliability');
-const { installFarmerLocalPlanPriority } = require('../reliability/farmer-local-plan-priority');
-const { installLiveNavigationHotfix } = require('../reliability/live-navigation-hotfix');
-const { installFarmerTravelSafetyHotfix } = require('../reliability/farmer-travel-safety-hotfix');
-const { installFarmerTargetEfficiencyHotfix } = require('../reliability/farmer-target-efficiency-hotfix');
-const { installFarmerTerrainNavigationHotfix } = require('../reliability/farmer-terrain-navigation-hotfix');
-const { installFarmerResourceTopoffHotfix } = require('../reliability/farmer-resource-topoff-hotfix');
-const { installPartyFocusFireHotfix } = require('../reliability/party-focus-fire-hotfix');
-const { installTeamCombatCohesionHotfix } = require('../reliability/team-combat-cohesion-hotfix');
+const { installFarmerLocalPlanPriority } = require('../farmer/farmer-local-plan-priority');
+const { installLiveNavigationHotfix } = require('../farmer/live-navigation-hotfix');
+const { installFarmerTravelSafetyHotfix } = require('../farmer/farmer-travel-safety-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../farmer/farmer-target-efficiency-hotfix');
+const { installFarmerTerrainNavigationHotfix } = require('../farmer/farmer-terrain-navigation-hotfix');
+const { installFarmerResourceTopoffHotfix } = require('../farmer/farmer-resource-topoff-hotfix');
+const { installPartyFocusFireHotfix } = require('../party/party-focus-fire-hotfix');
+const { installTeamCombatCohesionHotfix } = require('../party/team-combat-cohesion-hotfix');
 const { installTeamCohesionDeadlockHotfix } = require('../reliability/team-cohesion-deadlock-hotfix');
-const { installControlledPartyLogistics } = require('../reliability/controlled-party-logistics');
-const { installFarmAreaPressureHotfix } = require('../reliability/farm-area-pressure-hotfix');
-const { installPartyPersistenceQuotaHotfix } = require('../reliability/party-persistence-quota-hotfix');
-const { installDangerousContentHotfix } = require('../reliability/dangerous-content-hotfix');
-const { installContentDriftStorageHotfix } = require('../reliability/content-drift-storage-hotfix');
-const { installContentDriftSemanticRecovery } = require('../reliability/content-drift-semantic-recovery');
-const { installPartyAccountCommunication } = require('../reliability/party-account-communication');
-const { installPartyBootstrapFarmerGate } = require('../reliability/party-bootstrap-farmer-gate');
-const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../reliability/party-bootstrap-merchant-discovery-hotfix');
+const { installControlledPartyLogistics } = require('../party/controlled-party-logistics');
+const { installFarmAreaPressureHotfix } = require('../farmer/farm-area-pressure-hotfix');
+const { installPartyPersistenceQuotaHotfix } = require('../party/party-persistence-quota-hotfix');
+const { installDangerousContentHotfix } = require('../content/dangerous-content-hotfix');
+const { installContentDriftStorageHotfix } = require('../content/content-drift-storage-hotfix');
+const { installContentDriftSemanticRecovery } = require('../content/content-drift-semantic-recovery');
+const { installPartyAccountCommunication } = require('../party/party-account-communication');
+const { installPartyBootstrapFarmerGate } = require('../party/party-bootstrap-farmer-gate');
+const { installPartyBootstrapMerchantDiscoveryHotfix } = require('../party/party-bootstrap-merchant-discovery-hotfix');
 
 const ALPHA20_5_FARM_READINESS_MODE = 'alpha20.5-farm-readiness';
 
@@ -71,9 +71,6 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       maxAvoidance: options.farmerMaxTargetAvoidance
     });
 
-    // Live reliability fixes remain modular so the proven Alpha.20 action
-    // boundaries are unchanged. Persistence failure may reduce observability,
-    // but must never rewrite combat-safety semantics.
     this.dangerousContentHotfix = installDangerousContentHotfix(this);
     this.farmerTravelSafetyHotfix = installFarmerTravelSafetyHotfix(this, {
       minStep: options.farmerTravelMinStep,
@@ -183,18 +180,26 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
     return super.stop();
   }
 
-  tick() {
+  _beforeFarmReadinessTick() {
     this.contentDriftSemanticRecovery.beforeTick();
     this.dangerousContentHotfix.beforeTick();
     this.partyBootstrap.tick();
     this.preFarmingReliability.beforeTick();
-    super.tick();
-    const snapshot = this.lastSnapshot;
-    if (!snapshot || !snapshot.character) return;
+  }
+
+  _afterFarmReadinessTick(snapshot) {
     this.controlledAutoRespawn.tick(snapshot);
     this.controlledFarmerLoot.tick(snapshot);
     this.controlledPartyLogistics.tick(snapshot);
     this.farmAreaPressureHotfix.tick(snapshot);
+  }
+
+  tick() {
+    this._beforeFarmReadinessTick();
+    super.tick();
+    const snapshot = this.lastSnapshot;
+    if (!snapshot || !snapshot.character) return;
+    this._afterFarmReadinessTick(snapshot);
   }
 
   farmReadinessStatus() {

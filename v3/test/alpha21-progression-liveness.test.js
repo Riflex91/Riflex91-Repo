@@ -21,7 +21,7 @@ const {
   progressionGoalScore,
   enumerateProgressionCandidates
 } = require('../src/reliability/alpha21-progression-intelligence');
-const { ControlledPartyLogistics, Action } = require('../src/reliability/controlled-party-logistics');
+const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
 const { EconomyEquipmentAutonomyV2, HomePhase } = require('../src/reliability/economy-equipment-autonomy-v2');
 
 test('empty logistics work never creates a rendezvous request', () => {

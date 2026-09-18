@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL } = require('../src/party/account-character-transport');
-const { installAlpha2019AccountTransportHotfix } = require('../src/reliability/alpha20-19-account-transport-hotfix');
+const { installAlpha2019AccountTransportHotfix } = require('../src/party/alpha20-19-account-transport-hotfix');
 const { Alpha27CombatOwnership } = require('../src/reliability/alpha27-combat-ownership');
 
 installAlpha2019AccountTransportHotfix();

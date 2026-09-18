@@ -1,7 +1,7 @@
 'use strict';
 
-const { installAlpha2019AccountTransportHotfix } = require('./alpha20-19-account-transport-hotfix');
-const { patchAlpha2019LogisticsStabilization } = require('./alpha20-19-logistics-stabilization');
+const { installAlpha2019AccountTransportHotfix } = require('../party/alpha20-19-account-transport-hotfix');
+const { patchAlpha2019LogisticsStabilization } = require('../party/alpha20-19-logistics-stabilization');
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');

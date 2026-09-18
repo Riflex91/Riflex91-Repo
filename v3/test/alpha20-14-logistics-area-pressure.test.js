@@ -4,8 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { GameAdapter } = require('../src/game/adapter');
 const { installTeamCohesionDeadlockHotfix } = require('../src/reliability/team-cohesion-deadlock-hotfix');
-const { installControlledPartyLogistics } = require('../src/reliability/controlled-party-logistics');
-const { installFarmAreaPressureHotfix } = require('../src/reliability/farm-area-pressure-hotfix');
+const { installControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
+const { installFarmAreaPressureHotfix } = require('../src/farmer/farm-area-pressure-hotfix');
 
 function gameData() {
   return {
