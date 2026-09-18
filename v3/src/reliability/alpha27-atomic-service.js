@@ -146,24 +146,31 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     const target = resolved.destination;
     const controlledTarget = target && typeof target === 'object' && target.map && Number.isFinite(Number(target.x)) && Number.isFinite(Number(target.y));
     const controlledMap = typeof target === 'string' && gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, target);
+    const c = characterOf(this.runtime);
+    const interactionKind = resolved.npcId ? 'npc' : null;
+    const interactionMax = interactionKind ? interactionMaxRange(this.root, interactionKind) : null;
+    const interactionRadius = interactionKind ? bufferedInteractionRange(this.root, interactionKind) : null;
+
+    // Interaction readiness is independent of which travel backend is
+    // installed. Never smart_move merely because controlled travel APIs are
+    // unavailable when the Merchant is already inside the verified NPC buffer.
+    if (controlledTarget && interactionRadius != null && c
+      && String(c.map || '') === String(target.map || '')
+      && serviceDistance(c, target) <= interactionRadius) {
+      this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+        transactionId: tx && tx.id || null,
+        requestedDestination: resolved.requested,
+        npcId: resolved.npcId,
+        interactionKind,
+        interactionMaxRange: interactionMax,
+        interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+        bufferedRange: interactionRadius,
+        distance: serviceDistance(c, target)
+      });
+      return { ok: true, controlled: typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function', alreadyInRange: true, resolved, bufferedRange: interactionRadius };
+    }
+
     if ((controlledTarget || controlledMap) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
-      const c = characterOf(this.runtime);
-      const interactionKind = resolved.npcId ? 'npc' : null;
-      const interactionMax = interactionKind ? interactionMaxRange(this.root, interactionKind) : null;
-      const interactionRadius = interactionKind ? bufferedInteractionRange(this.root, interactionKind) : null;
-      if (interactionRadius != null && c && String(c.map || '') === String(target.map || '') && serviceDistance(c, target) <= interactionRadius) {
-        this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
-          transactionId: tx && tx.id || null,
-          requestedDestination: resolved.requested,
-          npcId: resolved.npcId,
-          interactionKind,
-          interactionMaxRange: interactionMax,
-          interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
-          bufferedRange: interactionRadius,
-          distance: serviceDistance(c, target)
-        });
-        return { ok: true, controlled: true, alreadyInRange: true, resolved, bufferedRange: interactionRadius };
-      }
       const planned = this.runtime.planTravel({
         destination: clone(target),
         arrivalRadius: interactionRadius == null ? undefined : interactionRadius,
