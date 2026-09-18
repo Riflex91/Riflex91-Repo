@@ -48,6 +48,23 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       return { executed: false, committed: false, aborted: true, reason };
     }
 
+    if (tx && reason === 'MUTATION_RISK_BUDGET_EXHAUSTED') {
+      const retryAt = finite(check && check.mutationBudget && check.mutationBudget.retryAt, null);
+      if (engine && typeof engine.cancel === 'function') engine.cancel(tx.id, 'PREFLIGHT_RELEASED:MUTATION_RISK_BUDGET_EXHAUSTED');
+      this.lastMerchantAction = {
+        at: now,
+        transactionId: tx.id,
+        type: tx.type,
+        result: 'RELEASED',
+        reason,
+        retryAt,
+        mutationBudget: clone(check && check.mutationBudget || null)
+      };
+      if (executor) executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_PREFLIGHT_RELEASED', 'info', reason, this.lastMerchantAction);
+      return { executed: false, committed: false, released: true, reason, retryAt, mutationBudget: clone(check && check.mutationBudget || null) };
+    }
+
     if (tx && TRANSIENT_ATOMIC_PREFLIGHT_REASONS.has(reason)) {
       const liveTx = engine && engine.transactions && engine.transactions.get(String(tx.id));
       if (liveTx && liveTx.state === 'RESERVED') {
