@@ -127,8 +127,9 @@ class Alpha27BankRecovery {
 
     const candidates = [];
     for (const row of bank) {
+      const raw = c.bank && Array.isArray(c.bank[row.pack]) ? c.bank[row.pack][row.index] : null;
       const meta = gd.items && gd.items[row.name];
-      if (!meta || this._contentUnsafe(row.name) || hardProtected(meta)) {
+      if (!raw || raw.l === true || raw.locked === true || raw.p || raw.special || !meta || this._contentUnsafe(row.name) || hardProtected(meta)) {
         this.stats.skippedProtected += 1;
         continue;
       }
