@@ -167,6 +167,7 @@ test('ControlledPartyLogistics preserves the shared AccountCharacterTransport on
   const router = transport._cmRouter;
 
   assert.equal(typeof router, 'function');
+  assert.equal(transport._cmRouterInstalled, true);
   assert.equal(root.on_cm, router);
   assert.equal(logistics.previousOnCm, null);
 
