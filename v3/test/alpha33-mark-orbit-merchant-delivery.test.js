@@ -390,8 +390,10 @@ test('Alpha33 collection capacity plan uses total Farmer pickup demand and stack
 
   assert.equal(plan.pickupQuantity, 5);
   assert.equal(plan.incomingSlotsNeeded, 3);
+  assert.equal(plan.reserveSlots, 1);
+  assert.equal(plan.targetFreeSlots, 4);
   assert.equal(plan.currentFreeSlots, 1);
-  assert.equal(plan.slotsToFree, 2);
+  assert.equal(plan.slotsToFree, 3);
   const shell = plan.identities.find((row) => row.name === 'seashell');
   assert.equal(shell.existingHeadroom, 2);
   assert.equal(shell.newSlotsNeeded, 1);
@@ -539,7 +541,7 @@ test('Alpha33 bounded capacity preparation departs instead of deadlocking on rej
 });
 
 // Live alpha.20.104 regression: temporary zero pickup demand must not release a half-empty Merchant.
-test('Alpha33 drained Farmer snapshot keeps collection at Farmers until Merchant inventory is full', async () => {
+test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merchant reserve slot remains', async () => {
   let now = 145000;
   let travelCalls = 0;
   const merchant = {
@@ -610,15 +612,16 @@ test('Alpha33 drained Farmer snapshot keeps collection at Farmers until Merchant
   assert.equal(hotfix.stats.collectionDrainedWaits, 1);
 
   root.character.items[2] = { name: 'loot1' };
-  root.character.items[3] = { name: 'loot2' };
   now += 100;
 
   const full = await hotfix._driveMerchantRendezvous(merchant);
   assert.equal(full, true);
   assert.equal(hotfix.collectionRoute, null);
-  assert.equal(hotfix.lastMerchantRendezvous.result, 'MERCHANT_INVENTORY_FULL');
-  assert.equal(hotfix.lastMerchantRendezvous.details.occupied, 4);
+  assert.equal(hotfix.lastMerchantRendezvous.result, 'MERCHANT_PICKUP_RESERVE_REACHED');
+  assert.equal(hotfix.lastMerchantRendezvous.details.occupied, 3);
   assert.equal(hotfix.lastMerchantRendezvous.details.capacity, 4);
+  assert.equal(hotfix.lastMerchantRendezvous.details.freeSlots, 1);
+  assert.equal(hotfix.lastMerchantRendezvous.details.reserveSlots, 1);
   assert.equal(hotfix.status().policies.transientFarmerDrainDoesNotEndCollection, true);
   assert.equal(hotfix.status().policies.collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable, true);
 });
