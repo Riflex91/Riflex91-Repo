@@ -20,13 +20,13 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | 3 | 726 |
 | merchant | 9 | 2486 |
 | ops | 26 | 7278 |
-| party | 33 | 7566 |
+| party | 33 | 7589 |
 | planner | 1 | 66 |
-| reliability | 50 | 14348 |
+| reliability | 50 | 14370 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
-| travel | 3 | 678 |
+| travel | 3 | 718 |
 | world | 6 | 1273 |
 
 ## Root-Entrypoints unter src/

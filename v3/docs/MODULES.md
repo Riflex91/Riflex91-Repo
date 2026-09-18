@@ -210,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7566 Zeilen**
+**33 Dateien · 7589 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -221,20 +221,20 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/alpha20-19-logistics-stabilization.js` | 133 |
 | `src/party/capabilities.js` | 37 |
 | `src/party/character-registry.js` | 500 |
-| `src/party/control-lease.js` | 326 |
+| `src/party/control-lease.js` | 329 |
 | `src/party/controlled-lifecycle-coordinator-base.js` | 573 |
 | `src/party/controlled-lifecycle-coordinator.js` | 225 |
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
-| `src/party/controlled-party-bootstrap-base.js` | 583 |
+| `src/party/controlled-party-bootstrap-base.js` | 591 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1052 |
+| `src/party/controlled-party-logistics.js` | 1060 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
 | `src/party/orchestrator-base.js` | 56 |
 | `src/party/orchestrator.js` | 59 |
 | `src/party/paladin-aura-policy.js` | 20 |
-| `src/party/party-account-communication.js` | 220 |
+| `src/party/party-account-communication.js` | 224 |
 | `src/party/party-bootstrap-farmer-gate.js` | 111 |
 | `src/party/party-bootstrap-merchant-discovery-hotfix-base.js` | 29 |
 | `src/party/party-bootstrap-merchant-discovery-hotfix.js` | 23 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14348 Zeilen**
+**50 Dateien · 14370 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -293,7 +293,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 380 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 402 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
@@ -341,11 +341,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## travel
 
-**3 Dateien · 678 Zeilen**
+**3 Dateien · 718 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/travel/controlled-travel-executor.js` | 288 |
+| `src/travel/controlled-travel-executor.js` | 328 |
 | `src/travel/route-cost-estimator.js` | 77 |
 | `src/travel/safe-travel.js` | 313 |
 
