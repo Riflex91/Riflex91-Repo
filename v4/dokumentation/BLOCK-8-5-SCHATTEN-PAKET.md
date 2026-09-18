@@ -1,6 +1,6 @@
 # Block 8.5 – Striktes Schatten-Komplettpaket
 
-Status: **source-locked Schatten-Launcher vorbereitet; realer Adventure-Land-Schattenlauf noch nicht ausgefuehrt.**
+Status: **source-locked Schatten-Launcher verwendet; realer Adventure-Land-Schattenlauf bestanden.**
 
 ## Zweck
 
@@ -105,9 +105,13 @@ Der Builder erzeugt das Paket deterministisch aus den drei kanonischen Quellen. 
 
 ## Aktueller Freigabestand
 
+Der reale Lauf wurde unter `block8-5-schatten-1789775266269` bestanden und in `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json` gebunden.
+
 - Candidate Deployment/HTTPS: **bestanden**
 - Offline: **bestanden**
-- Schatten: **offen**
-- Kontrolliert live: **blockiert**
+- Schatten: **bestanden**
+- Kontrolliert live: **offen**
 - Soak: **blockiert**
 - Block 9: **gesperrt**
+
+Der naechste operative Pfad ist das separate `block8-5-live-paket.js`.
