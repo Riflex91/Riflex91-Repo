@@ -116,6 +116,24 @@ function vendorTravelSucceeded(result) {
   return result === true || !!(result && result.ok === true);
 }
 
+function potionStockRequirements(plan) {
+  const metadata = plan && plan.metadata || {};
+  if (metadata.p0PotionBatch === true && Array.isArray(metadata.batchStockRequirements)) {
+    return metadata.batchStockRequirements
+      .map((row) => ({
+        itemName: String(row && row.itemName || ''),
+        requiredStock: Math.max(0, Math.floor(finite(row && row.requiredStock, 0)))
+      }))
+      .filter((row) => ['hpot0', 'mpot0'].includes(row.itemName) && row.requiredStock > 0);
+  }
+  return (Array.isArray(plan && plan.deliveries) ? plan.deliveries : [])
+    .map((row) => ({
+      itemName: String(row && row.itemName || ''),
+      requiredStock: Math.max(0, Math.floor(finite(row && row.quantity, 0)))
+    }))
+    .filter((row) => ['hpot0', 'mpot0'].includes(row.itemName) && row.requiredStock > 0);
+}
+
 function installPotionVendorContinuation(runtime, state) {
   const merchant = alpha27MerchantOf(runtime);
   if (!merchant || typeof merchant.restockPartyPotions !== 'function') return false;
@@ -125,15 +143,16 @@ function installPotionVendorContinuation(runtime, state) {
   merchant.restockPartyPotions = async () => {
     const plan = runtime.lastMerchantServicePlan;
     const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : [];
-    const isAdaptive4500 = !!(plan && plan.kind === 'RESTOCK_REQUIRED' && plan.metadata && plan.metadata.p0PotionPolicy4500 && deliveries.length);
+    const requirements = potionStockRequirements(plan);
+    const isAdaptive4500 = !!(plan && plan.kind === 'RESTOCK_REQUIRED' && plan.metadata && plan.metadata.p0PotionPolicy4500 && deliveries.length && requirements.length);
     if (!isAdaptive4500) return baseRestock();
 
     if (!await merchant.ensureStandClosed('PARTY_SUPPLY_ADAPTIVE_RESTOCK')) return true;
-    const needed = deliveries.find((row) => ['hpot0', 'mpot0'].includes(String(row && row.itemName || '')) && itemTotal(runtime, row.itemName) < Math.max(0, Math.floor(finite(row.quantity, 0))));
+    const needed = requirements.find((row) => itemTotal(runtime, row.itemName) < row.requiredStock);
     if (!needed) return false;
 
     const itemName = String(needed.itemName);
-    const requiredStock = Math.max(0, Math.floor(finite(needed.quantity, 0)));
+    const requiredStock = Math.max(0, Math.floor(finite(needed.requiredStock, 0)));
     let before = itemTotal(runtime, itemName);
     let vendorTravelAttested = false;
     const canBuy = rawFunction(merchant.root, 'can_buy');
@@ -179,7 +198,12 @@ function installPotionVendorContinuation(runtime, state) {
     const price = Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
     const goldReserve = Math.max(0, finite(merchant.options && merchant.options.goldReserve, 0));
     const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - goldReserve) / price)) : deficit;
-    const maxBuy = Math.max(1, Math.floor(finite(merchant.options && merchant.options.merchantMaxPotionBuy, FARMER_POTION_TARGET)));
+    const batchTargets = Math.max(1, Math.min(3, Math.floor(finite(plan && plan.metadata && plan.metadata.p0PotionBatchTargetCount, 1))));
+    const aggregateBatchCap = FARMER_POTION_TARGET * batchTargets;
+    const configuredMaxBuy = Math.max(1, Math.floor(finite(merchant.options && merchant.options.merchantMaxPotionBuy, FARMER_POTION_TARGET)));
+    const maxBuy = plan && plan.metadata && plan.metadata.p0PotionBatch === true
+      ? Math.max(configuredMaxBuy, aggregateBatchCap)
+      : configuredMaxBuy;
     const quantity = Math.max(0, Math.min(deficit, affordable, maxBuy));
     if (quantity <= 0) {
       merchant.lastMerchantPlan = { at: merchant.now(), action: 'HOLD', reason: 'PARTY_SUPPLY_GOLD_RESERVE_PROTECTED', itemName, have: before, requiredStock };
@@ -197,7 +221,13 @@ function installPotionVendorContinuation(runtime, state) {
         at: merchant.now(), type: 'BUY_SUPPLY_ADAPTIVE', result: 'COMMITTED', itemName,
         quantity, requiredStock, merchantReserve: 0, vendorTravelAttested
       };
-      event(runtime, 'LIVE_POTION_RESTOCK_COMMITTED', 'info', 'CURRENT_DELIVERY_DEFICIT_PURCHASED', clone(merchant.lastMerchantAction));
+      event(
+        runtime,
+        'LIVE_POTION_RESTOCK_COMMITTED',
+        'info',
+        plan && plan.metadata && plan.metadata.p0PotionBatch === true ? 'AGGREGATE_BATCH_DEFICIT_PURCHASED' : 'CURRENT_DELIVERY_DEFICIT_PURCHASED',
+        clone(merchant.lastMerchantAction)
+      );
       return true;
     } catch (error) {
       merchant.stats.failedSafe = (merchant.stats.failedSafe || 0) + 1;
@@ -233,7 +263,8 @@ function installP0StatusCorrection(runtime) {
         bothFamiliesRequiredBeforeTravel: false,
         exactDelivery: false,
         exactTopUpToTarget: true,
-        buyOnlyCurrentDeliveryDeficit: true,
+        buyOnlyCurrentDeliveryDeficit: false,
+        aggregateBatchDemandBeforeFarmerTravel: true,
         existingMerchantSurplusMayRemain: true
       }
     };
