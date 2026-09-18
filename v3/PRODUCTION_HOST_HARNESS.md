@@ -16,7 +16,7 @@ A process restart is not gameplay recovery. After a restart, the new browser run
 
 ## Narrow browser bot client
 
-`BrowserBotClient` is now the canonical host-side adapter for an already validated Adventure Land Page/Frame-like execution context. It exposes exactly four asynchronous methods:
+`CdpAdventureLandSessionDriver` is the canonical production session-discovery layer for an existing Chromium-family browser exposed through a loopback CDP endpoint. It discovers only same-origin Adventure Land page targets, finds the default same-origin execution context that actually exposes the narrow `AIO_V3.operations` contract, and reconnects with bounded retry/backoff after context or page replacement. `BrowserBotClient` remains the canonical narrow host-side adapter over that private execution context. It exposes exactly four asynchronous methods:
 
 - `hostHeartbeat()` — return the current host watchdog beacon;
 - `pendingAlerts(limit)` — return pending bot alerts without mutation;
@@ -25,7 +25,7 @@ A process restart is not gameplay recovery. After a restart, the new browser run
 
 The adapter has no public generic `evaluate`, `invoke` or `call` method. Its in-page dispatcher contains a hard-coded allowlist for those four operations only. Claim IDs, results, pending-alert limits and execution time are bounded; the production origin defaults to `https://adventure.land`.
 
-`ProductionHostHarness` may receive an existing `botClient`, or it may construct `BrowserBotClient` from `browserPage`, `browserFrame` or `browserContext`. Supplying the execution context is still the responsibility of a later production browser/session driver.
+`ProductionHostHarness` may receive an existing `botClient`, an injected Page/Frame-like context, an injected session driver, or a loopback `browserCdpEndpoint`. When CDP is configured, the harness owns the `CdpAdventureLandSessionDriver` lifecycle and passes only its private validated execution context into `BrowserBotClient`.
 
 A bridge timeout is fail-closed. The underlying page evaluation remains marked in flight until it actually settles, preventing a stalled page from accumulating parallel host requests.
 
@@ -136,7 +136,7 @@ Pending durable alerts are not discarded merely because the browser process stop
 
 The following remain separate work and must not be inferred from the existence of the harness or `BrowserBotClient`:
 
-- concrete production Playwright/Puppeteer/CDP-or-equivalent session driver, page/frame discovery and Adventure Land login/session boot handling;
+- Adventure Land login/session bootstrap and credential handling for a cold machine boot; the CDP driver deliberately attaches only to an already authenticated browser profile/session;
 - OS service definitions such as systemd/Windows Service/container orchestration and machine reboot recovery;
 - production secret-manager integration;
 - provider-specific email/WhatsApp/push account setup and fallback routing;
