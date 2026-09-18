@@ -38,7 +38,13 @@ export interface BasisBedienAnfrageDaten {
   readonly aktion: BasisBedienAktion;
   readonly angefordertAm: number;
   readonly laufzeitStatus: LaufzeitSteuerungsStatus;
+  readonly erwarteteLaufzeitGeneration?: number;
   readonly ausdruecklichBestaetigt?: boolean;
+}
+
+export interface BasisBedienAnfrage extends BedienAnfrage {
+  readonly basisAktion: BasisBedienAktion;
+  readonly erwarteteLaufzeitGeneration: number;
 }
 
 export interface BasisBedienErgebnis<TDiagnose = unknown> {
@@ -59,7 +65,7 @@ export interface LaufzeitAktionsTor {
 }
 
 export interface BasisBedienAnfrageErzeuger {
-  erstelle(daten: BasisBedienAnfrageDaten): Readonly<BedienAnfrage>;
+  erstelle(daten: BasisBedienAnfrageDaten): Readonly<BasisBedienAnfrage>;
 }
 
 export function istPauseGeschuetzteWichtigkeit(wichtigkeit: AktionsWichtigkeit): boolean {
