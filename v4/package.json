@@ -25,7 +25,7 @@
     "block6-live-test:pruefen": "node --check werkzeuge/block6-live-test.js",
     "block8-lebensnachweis:pruefen": "node --check werkzeuge/block7-kampfsicherheits-quelle.js && node --check werkzeuge/block8-lebensnachweis-schatten.js",
     "block8-gruppenkoordination:pruefen": "node --check werkzeuge/block8-gruppenkoordination-kern.js && node --check werkzeuge/block8-gruppenkoordination-schatten.js",
-    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run block8-struktur:pruefen && npm run block8-gruppenaktionsplanung:pruefen && npm run block8-gruppenaktionsschatten:pruefen && npm run block8-gruppenaktionsanfragen:pruefen && npm run block8-gruppenaktionssteuerung:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen && npm run block8-lebensnachweis:pruefen && npm run block8-gruppenkoordination:pruefen && npm run block8-gruppenziel-ausfuehrung:pruefen && npm run block8-produktions-bootstrap:pruefen && npm run block8-live-test-gui:pruefen && npm run block8-10-minuten-gruppentest:pruefen",
+    "pruefen": "npm run typen:pruefen && npm run testen && npm run namen:pruefen && npm run struktur:pruefen && npm run block4-struktur:pruefen && npm run block5-struktur:pruefen && npm run block6-struktur:pruefen && npm run block7-struktur:pruefen && npm run block8-struktur:pruefen && npm run block8-gruppenaktionsplanung:pruefen && npm run block8-gruppenaktionsschatten:pruefen && npm run block8-gruppenaktionsanfragen:pruefen && npm run block8-gruppenaktionssteuerung:pruefen && npm run testkonsole:pruefen && npm run block2-beobachtung:pruefen && npm run block6-live-test:pruefen && npm run block8-lebensnachweis:pruefen && npm run block8-gruppenkoordination:pruefen && npm run block8-gruppenziel-ausfuehrung:pruefen && npm run block8-produktions-bootstrap:pruefen && npm run block8-live-test-gui:pruefen && npm run block8-10-minuten-gruppentest:pruefen && npm run block8-5-struktur:pruefen",
     "block8-gruppenziel-ausfuehrung:pruefen": "node werkzeuge/block8-gruppenziel-ausfuehrung-struktur-pruefen.mjs && node --check werkzeuge/block8-gruppenziel-one-shot.js && node --check werkzeuge/block8-gruppenziel-live-smoke.js",
     "produktions-runtime:bauen": "node werkzeuge/produktions-runtime-bauen.mjs",
     "produktions-runtime:pruefen": "node werkzeuge/produktions-runtime-bauen.mjs --pruefen && node --check werkzeuge/adventure-land-v4-bootstrap.js",
@@ -33,7 +33,8 @@
     "block8-live-test-gui:bauen": "node werkzeuge/block8-live-test-paket-bauen.mjs",
     "block8-live-test-gui:pruefen": "node werkzeuge/block8-live-test-gui-struktur-pruefen.mjs && node --check werkzeuge/adventure-land-test-gui.js && node --check werkzeuge/block8-produktions-live-test-gui.js && node --check werkzeuge/block8-live-test-paket.js && node werkzeuge/block8-live-test-paket-bauen.mjs --pruefen",
     "block8-10-minuten-gruppentest:pruefen": "node werkzeuge/block8-10-minuten-gruppentest-struktur-pruefen.mjs && node --check werkzeuge/block8-10-minuten-gruppentest-gui.js && node --check werkzeuge/block8-10-minuten-gruppentest-paket.js && node werkzeuge/block8-10-minuten-paket-bauen.mjs --pruefen",
-    "block8-10-minuten-gruppentest:bauen": "node werkzeuge/block8-10-minuten-paket-bauen.mjs"
+    "block8-10-minuten-gruppentest:bauen": "node werkzeuge/block8-10-minuten-paket-bauen.mjs",
+    "block8-5-struktur:pruefen": "node werkzeuge/block8-5-struktur-pruefen.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
