@@ -216,14 +216,36 @@ class ControlledMerchantExecutor {
 
     if (tx.type === 'SELL') {
       const consensus = sellMetadataConsensus(this.root, tx.item);
-      const blockers = [...new Set([...rawSellProtectionReasons(rawLiveItem), ...consensus.blockers])];
+      const rawBlockers = rawSellProtectionReasons(rawLiveItem);
+      const lifecycleReasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      const lifecycleProcessedSale = !!(tx.metadata && tx.metadata.lifecycleProcessedSale === true)
+        && lifecycleReasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+
+      // Ordinary SELL remains plain-stackable-material-only. The only exception
+      // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then
+      // hard protection (quest/event/cash/exchange/soulbound/special/conflict,
+      // locked or special live item) remains fail-closed.
+      const ignorableProcessedReasons = (reason) => (
+        reason === 'SELL_TYPE_NOT_LOW_RISK'
+        || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
+        || reason === 'SELL_COMPOUND_ITEM_PROTECTED'
+        || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
+        || /^SELL_GEAR_SIGNAL_/.test(reason)
+      );
+      const blockers = lifecycleProcessedSale
+        ? [...new Set([
+            ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
+            ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
+          ])]
+        : [...new Set([...rawBlockers, ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
         return {
           ok: false,
           reason: 'SELL_ITEM_NOT_LOW_RISK',
           sellProtectionReasons: blockers,
-          sellMetadataSources: consensus.sources
+          sellMetadataSources: consensus.sources,
+          lifecycleProcessedSale
         };
       }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
@@ -487,7 +509,11 @@ class ControlledMerchantExecutor {
         fallbackSource: 'items.length',
         validRange: '0..isize-1'
       },
-      sellSafety: sellSafetyStatus(),
+      sellSafety: {
+        ...sellSafetyStatus(),
+        processedGearLifecycleException: 'LEDGER_AUTHORIZED_AFTER_UPGRADE_OR_COMPOUND_ONLY',
+        processedGearHardProtectionRetained: true
+      },
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
