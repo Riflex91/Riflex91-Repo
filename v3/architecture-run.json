@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 9,
+  "next_step": null,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -156,9 +156,9 @@
       "name": "production-browser-session",
       "title": "Production Adventure Land browser/session driver",
       "branch": "architecture/09-production-browser-session",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 269,
-      "merge_commit": null,
+      "merge_commit": "23d7f94519ed2d99c24b269f239b199bdbece7a7",
       "required_outcomes": [
         "loopback-only CDP endpoint",
         "Adventure Land origin target discovery",
