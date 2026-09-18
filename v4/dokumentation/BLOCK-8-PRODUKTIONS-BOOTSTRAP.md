@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, URL-neutraler Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; noch nicht live veroeffentlicht.**
+Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; noch nicht live veroeffentlicht.**
 
 ## Zweck
 
@@ -49,7 +49,10 @@ Es wird der vorhandene `AdventureLandGruppenLebensnachweisAustausch` verwendet.
 - Fremde `on_cm`-Nachrichten werden weiterhin an den vorherigen Handler weitergereicht.
 - Senden ist nur bei aktiv freigegebenem Produktions-Bootstrap moeglich.
 - Die eigene Teilnehmermeldung entsteht aus derselben Produktions-Safety wie die lokale Sicherheitsentscheidung.
+- Replayte oder zeitlich aeltere Meldungen desselben Charakternamens ersetzen keinen neueren Stand.
+- Zwei verschiedene Charakternamen duerfen nicht dieselbe `charakterKennung` beanspruchen; das blockiert die Gruppenplanung.
 - Gruppenfaehigkeiten werden explizit konfiguriert; der Bootstrap leitet keine Rolle aus einer Klasse ab.
+- Der aktive Gruppenziel-Smoke verlangt mindestens **zwei aktive, frische Teilnehmer**. Solo- oder stale-Peer-Zustaende starten keinen Gruppenauftrag.
 
 ## Globale Produktions-Laufzeit
 
@@ -84,7 +87,7 @@ Live-Smoke-Fassade installieren:
 
 Danach gelten weiterhin die separaten Freigaben der Live-Smoke-Huelle und des Browser-Runners.
 
-Damit sind Bootstrap, Gruppenplanung, Live-Smoke und Smoke-Start voneinander getrennte Gates.
+Damit sind Bootstrap, Gruppenplanung, Live-Smoke und Smoke-Start voneinander getrennte Gates. Die Produktions-Gruppenziel-Vorbereitung selbst ist zusaetzlich one-shot: Nach dem ersten korrekten Vorbereitungsversuch muss fuer einen weiteren Versuch eine neue Runtime-Instanz erzeugt werden.
 
 ## Runtime-Bundle
 
@@ -104,19 +107,24 @@ Ausgabe:
 
 `dist/aio-v4-runtime.js`
 
-CI prueft Reproduzierbarkeit, Mindest-/Maximalgroesse, Runtime-Marker und eine passive Installation im simulierten Browserkontext.
+und der dazugehoerige Hashnachweis:
+
+`dist/aio-v4-runtime.sha256`
+
+CI prueft Reproduzierbarkeit, Mindest-/Maximalgroesse, Runtime-Marker, den unabhaengig nachberechneten SHA-256 und eine passive Installation im simulierten Browserkontext.
 
 ## Adventure-Land-Loader
 
 `werkzeuge/adventure-land-v4-bootstrap.js` ist der kleine Loader fuer den Adventure-Land-Codeplatz.
 
-Er erwartet:
+Er erwartet **beides**:
 
-`AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl`
+- `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl`
+- `AIO_V4_BOOTSTRAP_CONFIG.runtimeSha256`
 
-Es gibt absichtlich **keine Standard-URL**.
+Es gibt absichtlich **keine Standard-URL und keinen Standard-Hash**.
 
-Ohne explizite URL bleibt die Runtime ungeladen.
+Die URL muss HTTPS verwenden. Ohne explizite URL oder ohne exakt 64-stelligen SHA-256 bleibt die Runtime ungeladen.
 
 Der Loader:
 
@@ -124,7 +132,8 @@ Der Loader:
 - verwendet `fetch(..., { cache: "no-store" })`,
 - begrenzt die akzeptierte Bundlegroesse,
 - verlangt den Produktionsruntime-Marker,
-- evaluiert nur die explizit konfigurierte Runtime-Datei,
+- berechnet den SHA-256 der heruntergeladenen Datei mit Web Crypto und vergleicht ihn exakt mit `runtimeSha256`,
+- evaluiert erst nach erfolgreicher Hashpruefung die explizit konfigurierte Runtime-Datei,
 - erlaubt pro Loader-Instanz nur einen Ladeversuch,
 - besitzt keine Adventure-Land-Spielaktion.
 
@@ -146,8 +155,9 @@ Fremde globale Runtime- oder Smoke-Objekte werden nicht ueberschrieben.
 3. CORS/no-store und exakte Datei pruefen.
 4. `AIO_V4_RUNTIME_CONFIG` fuer den vorgesehenen Charakter explizit setzen.
 5. `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl` auf genau diese Version setzen.
-6. Runtime laden und nur Read-only-`status()` pruefen.
-7. Lebensnachweis-Empfang starten und Produktionsmeldungen pruefen.
-8. Erst dann den bereits dokumentierten one-shot Gruppenziel-Live-Smoke ausfuehren.
+6. Den von `produktions-runtime:bauen` erzeugten SHA-256 unveraendert als `AIO_V4_BOOTSTRAP_CONFIG.runtimeSha256` setzen.
+7. Runtime laden und nur Read-only-`status()` pruefen.
+8. Lebensnachweis-Empfang starten und mindestens zwei frische Produktionsmeldungen pruefen.
+9. Erst dann den bereits dokumentierten one-shot Gruppenziel-Live-Smoke ausfuehren.
 
 Der echte Live-Smoke bleibt bis zu dieser Veroeffentlichung offen.
