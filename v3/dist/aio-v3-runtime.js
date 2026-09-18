@@ -34245,6 +34245,71 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  async progressOrDeliverFarmerGear() {
+    const finalization = typeof this.planGearDeliveryFinalization === 'function'
+      ? this.planGearDeliveryFinalization()
+      : { state: 'NONE', reason: 'FINALIZATION_PLANNER_UNAVAILABLE' };
+    // Preserve the pre-existing delivery contract when there is nothing to
+    // finalize. In production deliverGearGoal() simply returns false without a
+    // candidate; tests/patch layers may also provide their own delivery source.
+    if (!finalization || finalization.state === 'NONE') return this.deliverGearGoal();
+
+    if (finalization.state === 'HOLD') {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: finalization.reason || 'GEAR_DELIVERY_FINALIZATION_HOLD',
+        finalization: clone({
+          state: finalization.state,
+          reason: finalization.reason,
+          targetLevel: finalization.targetLevel,
+          retryAt: finalization.retryAt,
+          targetName: finalization.candidate && finalization.candidate.goal && finalization.candidate.goal.character,
+          slot: finalization.candidate && finalization.candidate.goal && finalization.candidate.goal.slot,
+          item: finalization.candidate && finalization.candidate.item && finalization.candidate.item.name,
+          level: finalization.candidate && finalization.candidate.item ? levelOf(finalization.candidate.item) : null,
+          sourceIndex: finalization.candidate && finalization.candidate.item && finalization.candidate.item.index
+        })
+      };
+      return true;
+    }
+
+    if (finalization.state === 'MUTATE' && finalization.request) {
+      const family = String(finalization.request.type || '').toUpperCase();
+      if (this.transactionFamilyOpen(family)) {
+        this.stats.autonomousMerchantHolds += 1;
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'GEAR_FINALIZATION_TRANSACTION_CIRCUIT_OPEN',
+          type: family,
+          targetLevel: finalization.targetLevel,
+          request: clone(finalization.request)
+        };
+        return true;
+      }
+      const acted = await this.executeEconomyRequest(finalization.request);
+      if (!acted) {
+        // Never fall through to delivery after a targeted finalization request
+        // was rejected. A later tick may re-evaluate the exact live identity.
+        this.stats.autonomousMerchantHolds += 1;
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'GEAR_FINALIZATION_TRANSACTION_NOT_EXECUTED',
+          type: family,
+          targetLevel: finalization.targetLevel,
+          request: clone(finalization.request)
+        };
+      }
+      return true;
+    }
+
+    if (finalization.state === 'READY') return this.deliverGearGoal();
+    return false;
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -34316,10 +34381,11 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      // Farmer gear is first-class work. Ready Farmer upgrades are delivered
-      // before general mutation backlog, and Merchant self-gear is deliberately
-      // last so it cannot consume time/items needed by the party.
-      if (await this.deliverGearGoal()) return true;
+      // Farmer gear is first-class work, but a ready lower tier is never
+      // delivered while that exact gear path can still be safely improved.
+      // Targeted finalization runs before delivery; unrelated mutation backlog
+      // remains behind Farmer delivery so it cannot starve the party upgrade.
+      if (await this.progressOrDeliverFarmerGear()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
       if (request) return this.executeEconomyRequest(request);
@@ -34343,7 +34409,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
       const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
-        if (await this.deliverGearGoal()) return true;
+        if (await this.progressOrDeliverFarmerGear()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
         if (request) return this.executeEconomyRequest(request);
@@ -34411,7 +34477,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
+      targetedGearFinalizationBeforeDelivery: true,
+      targetedGearFinalizationPolicy: 'HIGHEST_CURRENT_SAFE_REACHABLE_LEVEL',
+      targetedGearFinalization: {
+        last: clone(this.lastGearDeliveryFinalization),
+        stats: clone(this.gearDeliveryFinalizationStats)
+      },
       economyBeforeNonCriticalGearDelivery: false,
+      gearDeliveryLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY'],
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
@@ -34499,6 +34572,258 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     this.gearGoalClaimSuppressions = 0;
     this.lastCompoundIdentity = null;
     this.compoundSelectionCounts = new Map();
+    this.lastGearDeliveryFinalization = null;
+    this.gearDeliveryFinalizationStats = {
+      checks: 0,
+      upgradeMutations: 0,
+      compoundMutations: 0,
+      holds: 0,
+      ready: 0,
+      lowerTierDeliveriesPrevented: 0
+    };
+  }
+
+  _liveGearItemForGoal(goal) {
+    const inventory = inventoryOf(this.root);
+    const matches = inventory.filter((row) => row
+      && String(row.name || '') === String(goal && goal.item || '')
+      && levelOf(row) === levelOf({ level: goal && goal.observedLevel })
+      && !row.locked && !row.l && !row.special && !row.p);
+    if (!matches.length) return null;
+    const exactIndex = Number(goal && goal.sourceIndex);
+    if (Number.isInteger(exactIndex)) {
+      const exact = matches.find((row) => Number(row.index) === exactIndex);
+      if (exact) return exact;
+    }
+    return matches.sort((a, b) => Number(a.index) - Number(b.index))[0] || null;
+  }
+
+  _gearFinalizationRecord(state, reason, candidate, extra = {}) {
+    const row = {
+      at: this.now(),
+      state,
+      reason,
+      targetName: candidate && candidate.goal && candidate.goal.character || null,
+      slot: candidate && candidate.goal && candidate.goal.slot || null,
+      item: candidate && candidate.item && candidate.item.name || candidate && candidate.goal && candidate.goal.item || null,
+      level: candidate && candidate.item ? levelOf(candidate.item) : null,
+      sourceIndex: candidate && candidate.item && Number.isInteger(Number(candidate.item.index)) ? Number(candidate.item.index) : null,
+      ...clone(extra)
+    };
+    this.lastGearDeliveryFinalization = row;
+    return row;
+  }
+
+  _compoundReachability(itemName, meta) {
+    const counts = new Map();
+    for (const row of inventoryOf(this.root)) {
+      if (!row || String(row.name || '') !== String(itemName || '') || row.locked || row.l || row.special || row.p) continue;
+      const level = levelOf(row);
+      counts.set(level, (counts.get(level) || 0) + 1);
+    }
+    const initialCounts = new Map(counts);
+    let reachableLevel = -1;
+    for (let level = 0; level < this.options.maxCompoundLevel; level += 1) {
+      const count = counts.get(level) || 0;
+      if (count < 3 || gradeForLevel(meta, level) >= 4) continue;
+      const produced = Math.floor(count / 3);
+      counts.set(level, count % 3);
+      counts.set(level + 1, (counts.get(level + 1) || 0) + produced);
+      if (produced > 0) reachableLevel = Math.max(reachableLevel, level + 1);
+    }
+    // Only levels that can actually be CREATED by the current compound stock
+    // count as reachable. A separate already-existing higher item must not hold
+    // this candidate forever merely because it shares the same identity.
+    return { reachableLevel, initialCounts, projectedCounts: counts };
+  }
+
+  _targetedCompoundRequest(candidate, meta, reachable) {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || !candidate || !candidate.item) return null;
+    const currentLevel = levelOf(candidate.item);
+    const rows = ledger.list(1000)
+      .filter((row) => row
+        && row.character === c.name
+        && String(row.name || '') === String(candidate.item.name || '')
+        && row.disposition === 'RESERVE_COMPOUND'
+        && levelOf(row) < reachable.reachableLevel
+        && !this.atomic.mutationRetryBlocked(row, 'COMPOUND'));
+    const byLevel = new Map();
+    for (const row of rows) {
+      const level = levelOf(row);
+      const list = byLevel.get(level) || [];
+      list.push(row);
+      byLevel.set(level, list);
+    }
+    const levels = [...byLevel.keys()].sort((a, b) => b - a);
+    for (const level of levels) {
+      const group = byLevel.get(level).sort((a, b) => Number(a.index) - Number(b.index));
+      if (group.length < 3) continue;
+      const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: candidate.item.name, level });
+      if (!budget.allowed) {
+        return {
+          hold: true,
+          reason: 'GEAR_FINALIZATION_COMPOUND_BUDGET_WAIT',
+          retryAt: budget.retryAt,
+          mutationBudget: budget,
+          targetLevel: reachable.reachableLevel
+        };
+      }
+      return {
+        request: {
+          type: 'COMPOUND',
+          character: c.name,
+          index: group[0].index,
+          indices: group.slice(0, 3).map((row) => row.index),
+          metadata: {
+            source: 'ALPHA27_GEAR_DELIVERY_FINALIZATION',
+            lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
+            targetCharacter: candidate.goal.character,
+            targetSlot: candidate.goal.slot,
+            deliveryItem: candidate.item.name,
+            deliveryObservedLevel: currentLevel,
+            deliveryTargetLevel: reachable.reachableLevel,
+            compoundIdentity: `${candidate.item.name}:${level}`,
+            targetedGearFinalization: true
+          }
+        },
+        targetLevel: reachable.reachableLevel
+      };
+    }
+    return {
+      hold: true,
+      reason: 'GEAR_FINALIZATION_COMPOUND_LEDGER_PENDING',
+      targetLevel: reachable.reachableLevel
+    };
+  }
+
+  _targetedUpgradeRequest(candidate, meta) {
+    const c = characterOf(this.runtime);
+    const gear = this.runtime.gearProgression;
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !gear || !ledger || !candidate || !candidate.item) return null;
+    const item = candidate.item;
+    const level = levelOf(item);
+    let protection = null;
+    try {
+      protection = typeof gear.futureProtectionFor === 'function'
+        ? gear.futureProtectionFor(c.name, item.index, item.name, level)
+        : null;
+    } catch (_) { protection = null; }
+    const targetLevel = Math.max(level, Math.floor(finite(protection && protection.targetLevel, level)));
+    if (!protection || targetLevel <= level) return null;
+
+    // Structural safety caps mean the current level is the highest level this
+    // runtime is allowed to deliver; do not create a permanent progression stall.
+    const value = Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
+    if (level >= this.options.maxUpgradeLevel || gradeForLevel(meta, level) >= 4 || value > this.options.upgradeValueCap) {
+      return { blocked: true, reason: 'GEAR_FINALIZATION_UPGRADE_RISK_CAP', targetLevel };
+    }
+
+    const entry = typeof ledger.get === 'function' ? ledger.get(c.name, item.index) : null;
+    if (!entry
+      || String(entry.name || '') !== String(item.name || '')
+      || levelOf(entry) !== level
+      || !EXPECTED_DISPOSITIONS.UPGRADE.has(String(entry.disposition || ''))) {
+      return { hold: true, reason: 'GEAR_FINALIZATION_UPGRADE_LEDGER_PENDING', targetLevel };
+    }
+    if (this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) {
+      return { blocked: true, reason: 'GEAR_FINALIZATION_UPGRADE_RETRY_BLOCKED', targetLevel };
+    }
+    const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: item.name, level });
+    if (!budget.allowed) {
+      return { hold: true, reason: 'GEAR_FINALIZATION_UPGRADE_BUDGET_WAIT', retryAt: budget.retryAt, mutationBudget: budget, targetLevel };
+    }
+
+    let projectedGoal = null;
+    try {
+      projectedGoal = gear.list(256).find((goal) => goal
+        && goal.sourceCharacter === c.name
+        && Number(goal.sourceIndex) === Number(item.index)
+        && String(goal.item || '') === String(item.name || '')
+        && levelOf({ level: goal.observedLevel }) === level
+        && goal.projectedUpgradeRequired === true
+        && finite(goal.targetLevel, 0) > level) || null;
+    } catch (_) { projectedGoal = null; }
+    if (!projectedGoal) return { hold: true, reason: 'GEAR_FINALIZATION_PROJECTED_GOAL_PENDING', targetLevel };
+
+    const farmerPlus5 = String(projectedGoal.character || '') !== String(c.name || '') && targetLevel === 5;
+    return {
+      request: {
+        type: 'UPGRADE',
+        character: c.name,
+        index: entry.index,
+        indices: [entry.index],
+        metadata: {
+          source: 'ALPHA27_GEAR_DELIVERY_FINALIZATION',
+          goalId: projectedGoal.id,
+          targetLevel,
+          targetCharacter: projectedGoal.character,
+          targetSlot: projectedGoal.slot,
+          lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
+          upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
+          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT',
+          targetedGearFinalization: true
+        }
+      },
+      targetLevel
+    };
+  }
+
+  planGearDeliveryFinalization(candidate = null) {
+    const selected = candidate || this.gearDeliveryCandidate();
+    if (!selected || !selected.goal || !selected.item) return { state: 'NONE', reason: 'NO_READY_GEAR_DELIVERY', candidate: null };
+    this.gearDeliveryFinalizationStats.checks += 1;
+    const gd = gameDataOf(this.runtime);
+    const meta = gd.items && gd.items[selected.item.name];
+    if (!meta || typeof meta !== 'object') {
+      this.gearDeliveryFinalizationStats.holds += 1;
+      return { state: 'HOLD', reason: 'GEAR_FINALIZATION_METADATA_UNKNOWN', candidate: selected };
+    }
+
+    if (meta.upgrade) {
+      const upgrade = this._targetedUpgradeRequest(selected, meta);
+      if (upgrade && upgrade.request) {
+        this.gearDeliveryFinalizationStats.upgradeMutations += 1;
+        this.gearDeliveryFinalizationStats.lowerTierDeliveriesPrevented += 1;
+        this._gearFinalizationRecord('MUTATE', 'TARGETED_UPGRADE_BEFORE_DELIVERY', selected, { targetLevel: upgrade.targetLevel, type: 'UPGRADE' });
+        return { state: 'MUTATE', reason: 'TARGETED_UPGRADE_BEFORE_DELIVERY', candidate: selected, request: upgrade.request, targetLevel: upgrade.targetLevel };
+      }
+      if (upgrade && upgrade.hold) {
+        this.gearDeliveryFinalizationStats.holds += 1;
+        this.gearDeliveryFinalizationStats.lowerTierDeliveriesPrevented += 1;
+        this._gearFinalizationRecord('HOLD', upgrade.reason, selected, upgrade);
+        return { state: 'HOLD', candidate: selected, ...upgrade };
+      }
+      if (upgrade && upgrade.blocked) {
+        this._gearFinalizationRecord('READY', upgrade.reason, selected, { targetLevel: levelOf(selected.item), structuralBlock: true });
+      }
+    }
+
+    if (meta.compound) {
+      const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+      if (value <= this.options.compoundValueCap) {
+        const reachable = this._compoundReachability(selected.item.name, meta);
+        if (reachable.reachableLevel > levelOf(selected.item)) {
+          const compound = this._targetedCompoundRequest(selected, meta, reachable);
+          if (compound && compound.request) {
+            this.gearDeliveryFinalizationStats.compoundMutations += 1;
+            this.gearDeliveryFinalizationStats.lowerTierDeliveriesPrevented += 1;
+            this._gearFinalizationRecord('MUTATE', 'TARGETED_COMPOUND_BEFORE_DELIVERY', selected, { targetLevel: compound.targetLevel, type: 'COMPOUND' });
+            return { state: 'MUTATE', reason: 'TARGETED_COMPOUND_BEFORE_DELIVERY', candidate: selected, request: compound.request, targetLevel: compound.targetLevel };
+          }
+          this.gearDeliveryFinalizationStats.holds += 1;
+          this.gearDeliveryFinalizationStats.lowerTierDeliveriesPrevented += 1;
+          this._gearFinalizationRecord('HOLD', compound && compound.reason || 'GEAR_FINALIZATION_COMPOUND_PENDING', selected, compound || { targetLevel: reachable.reachableLevel });
+          return { state: 'HOLD', candidate: selected, ...(compound || { reason: 'GEAR_FINALIZATION_COMPOUND_PENDING', targetLevel: reachable.reachableLevel }) };
+        }
+      }
+    }
+
+    this.gearDeliveryFinalizationStats.ready += 1;
+    this._gearFinalizationRecord('READY', 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED', selected, { targetLevel: levelOf(selected.item) });
+    return { state: 'READY', reason: 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED', candidate: selected, targetLevel: levelOf(selected.item) };
   }
 
   gearDeliveryCandidate() {
@@ -34516,7 +34841,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         this.gearGoalClaimSuppressions += 1;
         continue;
       }
-      const item = inventoryOf(this.root).find((row) => row && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && !row.locked && !row.l && !row.special && !row.p);
+      const item = this._liveGearItemForGoal(goal);
       if (item) return { goal, item };
     }
     return null;
