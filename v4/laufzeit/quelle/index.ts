@@ -148,3 +148,5 @@ export * from './spiellogik/gruppen-aktionsplanung.js';
 export * from './ausfuehrung/adventure-land-gruppen-ziel-ausfuehrung.js';
 
 export * from './ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.js';
+
+export * from './ausfuehrung/adventure-land-gruppen-ziel-live-bindung.js';

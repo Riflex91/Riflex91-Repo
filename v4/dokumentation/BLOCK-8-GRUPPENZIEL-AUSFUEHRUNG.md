@@ -1,6 +1,6 @@
 # Block 8 – minimaler Gruppenziel-Ausfuehrungspfad
 
-Status: **Adapter, gebundene Einmal-Freigabe und feste Ausfuehrungsbruecke implementiert und offline getestet; keine Live-Freigabe**.
+Status: **Adapter, gebundene Einmal-Freigabe, feste Ausfuehrungsbruecke und one-shot Live-Bindung implementiert und offline getestet; kein Live-Smoke ausgefuehrt**.
 
 ## Entscheidung fuer die erste Aktion
 
@@ -71,9 +71,27 @@ Die Bruecke ist selbst standardmaessig gesperrt und jede aktivierte Instanz besi
 - ruft selbst keine Adventure-Land-Spielaktion direkt auf,
 - bricht eine passende noch laufende zentrale Anfrage fail-safe ab, wenn der verbrauchte Brueckenversuch scheitert.
 
+## One-shot Live-Bindung
+
+`v4/laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-bindung.ts` bindet die feste Produktionsbruecke an genau eine bereits vorhandene zentrale `AktionsSteuerung` und eine injizierte Produktions-Sicherheitsquelle.
+
+Die Bindung:
+
+- startet ebenfalls gesperrt,
+- verlangt den separaten exakten Freigabetext `BLOCK8-GRUPPENZIEL-LIVE-BINDUNG-EINMAL`,
+- erzeugt keine zweite `AktionsSteuerung`,
+- uebernimmt keine Browser-/Schatten-Safety als Produktionsautoritaet,
+- ruft die injizierte Produktions-Sicherheitsquelle erst unmittelbar waehrend des delegierten Versuchs auf,
+- exponiert ausschliesslich eine eingefrorene Fassade unter `V4Block8GruppenZielAusfuehrungsBruecke`,
+- ueberschreibt keine bereits vorhandene globale Laufzeitautoritaet,
+- entfernt ihre eigene globale Fassade **vor** der Delegation,
+- kann auch ueber eine zuvor behaltene Referenz niemals zweimal delegieren,
+- blockiert bei manipulierter/ersetzter Fassade vor der Spielaktion und bricht die passende laufende Gruppenanfrage fail-safe ab,
+- besitzt selbst keinen direkten Adventure-Land-Spielaufruf.
+
 ## Aktueller Freigabestand
 
-Die one-shot Freigabelogik und die feste Produktionsbruecke sind implementiert und offline abgesichert. **Noch nicht vorhanden ist die Live-Bindung**, die genau eine explizit aktivierte Brueckeninstanz mit der realen zentralen `AktionsSteuerung` und einer frischen Produktions-Sicherheitsquelle im Adventure-Land-Kontext verbindet und als `V4Block8GruppenZielAusfuehrungsBruecke` exponiert. Ohne diese Bindung kann das Browserwerkzeug weiterhin keine echte Gruppen-Spielaktion ausloesen; der Live-Smoke bleibt gesperrt.
+Adapter, Produktionsbruecke und Live-Bindung sind implementiert und offline abgesichert. Der **kontrollierte one-shot Live-Smoke wurde weiterhin nicht ausgefuehrt**. Fuer eine echte Abnahme muss die Bindung im Adventure-Land-Kontext bewusst mit der realen zentralen Steuerung und einer frisch berechneten Produktions-`KampfSicherheitsEntscheidung` instanziiert werden. Bis zu dieser expliziten Aktivierung bleibt keine globale Ausfuehrungsbruecke installiert.
 
 Automatisiert werden unter anderem geprueft:
 
@@ -85,7 +103,9 @@ Automatisiert werden unter anderem geprueft:
 - unsichtbares, totes oder zu weit entferntes Ziel blockiert,
 - abgelaufene, falsch gebundene oder bereits verbrauchte Einmal-Freigaben blockieren,
 - die feste Produktionsbruecke akzeptiert pro Instanz hoechstens einen Versuch und vertraut nicht auf Browser-Safety als Autoritaet,
-- das Browser-One-shot delegiert hoechstens einmal und bleibt bei Safety-Wechsel oder fehlender Live-Bindung gesperrt,
+- die Live-Bindung ueberschreibt keine bestehende Autoritaet und entfernt ihre Fassade vor Delegation,
+- die Live-Bindung liest Produktions-Safety erst beim Versuch und kann nicht zweimal delegieren,
+- das Browser-One-shot delegiert hoechstens einmal und bleibt ohne explizit installierte Live-Bindung gesperrt,
 - alle anderen `GRUPPE_*`-Aktionsnamen besitzen keinen aktiven Pfad.
 
-Der naechste Schritt nach gruenem Merge ist die **eng begrenzte Live-Bindung der festen Bruecke** an die reale zentrale Steuerung und eine frische Produktions-Sicherheitsquelle. Auch diese Bindung wird zuerst offline getestet. Erst danach darf der kontrollierte one-shot Live-Smoke tatsaechlich ausgefuehrt werden.
+Der naechste Schritt nach gruenem Merge ist die **kontrollierte Vorbereitung und Durchfuehrung des one-shot Live-Smokes** mit exakt definiertem Charakter, Server, Karte und Ziel. Vor der echten Aktion muss die Produktions-Safety frisch berechnet werden; nach dem Versuch muessen globale Fassade, zentrale Aktionsphase und Ressourcensperren ausgewertet werden.
