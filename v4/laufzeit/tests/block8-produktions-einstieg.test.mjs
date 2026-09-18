@@ -232,3 +232,153 @@ test('V4 Produktionslaufzeit stoppt den installierten Empfang fail-safe', () => 
   const status = api.stoppe();
   assert.equal(status.empfangInstalliert, false);
 });
+
+
+test('Block 8.5.7 Produktionslaufzeit bietet nur den gesicherten Basisbedienungs-Kanal', () => {
+  const u = spiel();
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code);
+
+  assert.equal(typeof api.basisBedienStatus, 'function');
+  assert.equal(typeof api.erstelleBasisBedienAnfrage, 'function');
+  assert.equal(typeof api.fuehreBasisBedienAnfrage, 'function');
+  assert.equal(api.basisBedienStatus().laufzeit.zustand, 'laeuft');
+  assert.equal(api.basisBedienStatus().laufzeit.generation, 0);
+  assert.equal(api.basisBedienStatus().laufzeit.automatischeFortsetzung, false);
+  assert.equal('pausiere' in api, false);
+  assert.equal('setzeFort' in api, false);
+});
+
+test('Block 8.5.7 Bot-Pause laeuft durch BedienSicherung und laesst Produktionsheartbeat aktiv', async () => {
+  const u = spiel();
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  api.starte();
+  await flush();
+  const vorPause = api.status().lebensnachweisSendeErfolge;
+  assert.equal(u.hatIntervall(), true);
+
+  const pause = api.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'runtime-pause-1',
+    aktion: 'laufzeit_pausieren',
+    erwarteteLaufzeitGeneration: 0
+  });
+  const pauseErgebnis = api.fuehreBasisBedienAnfrage(pause);
+
+  assert.equal(pauseErgebnis.status, 'ausgefuehrt');
+  assert.equal(pauseErgebnis.laufzeitStatus.zustand, 'pausiert');
+  assert.equal(api.status().laufzeitSteuerung.zustand, 'pausiert');
+  assert.equal(api.status().lebensnachweisAutomatikAktiv, true);
+  assert.equal(api.status().lebensnachweisAutomatikPausiert, false);
+  assert.equal(u.hatIntervall(), true);
+
+  u.feuereIntervall();
+  await flush();
+  assert.equal(api.status().lebensnachweisSendeErfolge, vorPause + 1);
+
+  const resumeOhne = api.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'runtime-resume-ohne',
+    aktion: 'laufzeit_fortsetzen',
+    erwarteteLaufzeitGeneration: 1,
+    ausdruecklichBestaetigt: false
+  });
+  const blockiert = api.fuehreBasisBedienAnfrage(resumeOhne);
+  assert.equal(blockiert.status, 'blockiert');
+  assert.equal(blockiert.bedienEntscheidung.brauchtBestaetigung, true);
+  assert.equal(api.status().laufzeitSteuerung.zustand, 'pausiert');
+
+  const resumeMit = api.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'runtime-resume-mit',
+    aktion: 'laufzeit_fortsetzen',
+    erwarteteLaufzeitGeneration: 1,
+    ausdruecklichBestaetigt: true
+  });
+  const fortgesetzt = api.fuehreBasisBedienAnfrage(resumeMit);
+  assert.equal(fortgesetzt.status, 'ausgefuehrt');
+  assert.equal(fortgesetzt.laufzeitStatus.zustand, 'laeuft');
+  assert.equal(api.status().laufzeitSteuerung.zustand, 'laeuft');
+  assert.equal(u.hatIntervall(), true);
+
+  api.stoppe();
+});
+
+test('Block 8.5.7 Produktionsruntime blockiert stale Basisbedienung an der aktuellen Generation', () => {
+  const u = spiel();
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  const alt = api.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'runtime-stale-pause',
+    aktion: 'laufzeit_pausieren',
+    erwarteteLaufzeitGeneration: 0
+  });
+  const zuerst = api.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'runtime-pause-zuerst',
+    aktion: 'laufzeit_pausieren',
+    erwarteteLaufzeitGeneration: 0
+  });
+  assert.equal(api.fuehreBasisBedienAnfrage(zuerst).status, 'ausgefuehrt');
+
+  const stale = api.fuehreBasisBedienAnfrage(alt);
+  assert.equal(stale.status, 'blockiert');
+  assert.ok(
+    stale.bedienEntscheidung.fehlendeVoraussetzungen.some(
+      (voraussetzung) => voraussetzung.kennung === 'laufzeit-generation-aktuell'
+    )
+  );
+  assert.equal(api.status().laufzeitSteuerung.generation, 1);
+});
+
+test('Block 8.5.7 gesperrte oder gestoppte Produktionsruntime erlaubt nur read-only Diagnose', () => {
+  const gesperrtUmgebung = spiel();
+  const gesperrt = installiereAdventureLandProduktionsLaufzeit(gesperrtUmgebung.code);
+
+  assert.throws(
+    () => gesperrt.erstelleBasisBedienAnfrage({
+      vorgangsKennung: 'gesperrt-pause',
+      aktion: 'laufzeit_pausieren',
+      erwarteteLaufzeitGeneration: 0
+    }),
+    /standardmaessig gesperrt/
+  );
+
+  const diagnose = gesperrt.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'gesperrt-diagnose',
+    aktion: 'diagnose_aktualisieren'
+  });
+  const diagnoseErgebnis = gesperrt.fuehreBasisBedienAnfrage(diagnose);
+  assert.equal(diagnoseErgebnis.status, 'ausgefuehrt');
+  assert.equal(diagnoseErgebnis.diagnose?.aktivFreigegeben, false);
+  assert.equal(gesperrt.basisBedienStatus().laufzeit.generation, 0);
+
+  const aktivUmgebung = spiel();
+  const aktiv = installiereAdventureLandProduktionsLaufzeit(aktivUmgebung.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+  aktiv.stoppe();
+
+  assert.throws(
+    () => aktiv.erstelleBasisBedienAnfrage({
+      vorgangsKennung: 'gestoppt-pause',
+      aktion: 'laufzeit_pausieren',
+      erwarteteLaufzeitGeneration: 0
+    }),
+    /bereits gestoppt/
+  );
+
+  const diagnoseNachStopp = aktiv.erstelleBasisBedienAnfrage({
+    vorgangsKennung: 'gestoppt-diagnose',
+    aktion: 'diagnose_aktualisieren'
+  });
+  const nachStopp = aktiv.fuehreBasisBedienAnfrage(diagnoseNachStopp);
+  assert.equal(nachStopp.status, 'ausgefuehrt');
+  assert.equal(nachStopp.diagnose?.gestoppt, true);
+});
