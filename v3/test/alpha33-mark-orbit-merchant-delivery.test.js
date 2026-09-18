@@ -157,6 +157,61 @@ test('Alpha33 holds Merchant gear delivery until target gear is observed and sti
   assert.equal(hotfix.stats.gearDeliveryStaleGoalHolds, 1);
 });
 
+test('Alpha33 blocks persisted gear goals that are impossible for the target class slot', () => {
+  const goal = {
+    id: 'My_Ranger1:offhand:shield:0',
+    character: 'My_Ranger1',
+    slot: 'offhand',
+    item: 'shield',
+    observedLevel: 0,
+    currentItem: 'quiver',
+    currentLevel: 3,
+    projectedUpgradeRequired: false
+  };
+  const candidate = { goal, item: { index: 4, name: 'shield', level: 0 } };
+  const merchant = { gearDeliveryCandidate: () => candidate };
+  const gameData = {
+    classes: {
+      ranger: {
+        mainhand: { bow: {} },
+        doublehand: { fist: {}, dagger: {} },
+        offhand: { quiver: {} }
+      }
+    },
+    items: {
+      shield: { type: 'shield', armor: 60 },
+      bow: { type: 'weapon', wtype: 'bow', attack: 40 },
+      quiver: { type: 'quiver', dex: 12 }
+    }
+  };
+  const runtime = {
+    now: () => 49500,
+    log: quietLog(),
+    root: { character: { name: 'My_Merchant', ctype: 'merchant' }, G: gameData },
+    adapter: { getGameData: () => gameData },
+    characterRegistry: {
+      status: () => ({
+        characters: [{
+          name: 'My_Ranger1',
+          ctype: 'ranger',
+          level: 60,
+          gear: {
+            mainhand: { name: 'bow', level: 5 },
+            offhand: { name: 'quiver', level: 3 }
+          }
+        }]
+      })
+    },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+
+  assert.equal(merchant.gearDeliveryCandidate(), null);
+  assert.equal(hotfix.stats.gearDeliveryIncompatibleGoalHolds, 1);
+  assert.equal(hotfix.lastGearHold.reason, 'TARGET_ITEM_SLOT_INCOMPATIBLE');
+});
+
 test('Alpha33 reserves only the exact active self gear assignment and leaves cross-Farmer duplicates transferable', () => {
   let activeGoalIds = ['My_Ranger2:amulet:hpamulet:2'];
   const selfGoal = {
@@ -356,6 +411,98 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   assert.equal(hotfix.pendingFarmerGearEquip, null);
   assert.equal(hotfix.status().policies.farmerReceivedReadyGearAutoEquippedAndVerified, true);
   assert.equal(hotfix.status().policies.localProgressionReservationRequiresExactActivePhysicalAssignment, true);
+  assert.equal(baseTicks, 0);
+});
+
+test('Alpha33 targeted gear intent blocks same-identity loot and can equip an item from a pre-existing reused index', () => {
+  let now = 55000;
+  let baseTicks = 0;
+  const root = {
+    character: {
+      name: 'My_Ranger2',
+      ctype: 'ranger',
+      items: [null, null, null, null, null, { name: 'ringsj', level: 3 }],
+      slots: { ring2: { name: 'ringsj', level: 1 } }
+    }
+  };
+  const snapshot = {
+    character: {
+      name: 'My_Ranger2',
+      ctype: 'ranger',
+      inventory: [{ index: 5, name: 'ringsj', level: 3 }]
+    }
+  };
+  const logistics = {
+    stats: { messagesReceived: 0, messagesRejected: 0 },
+    receive: () => false,
+    _isMerchant: () => false,
+    _merchantName: () => 'My_Merchant',
+    _validEnvelope: () => true,
+    _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: 1 }),
+    _farmerTick: () => {
+      baseTicks += 1;
+      return { action: 'BASE' };
+    },
+    adapter: {
+      snapshot: () => snapshot,
+      command: (name, args) => {
+        assert.equal(name, 'equip');
+        assert.deepEqual(args, [5, 'ring2']);
+        const [index, slot] = args;
+        const replacement = root.character.items[index];
+        const previous = root.character.slots[slot];
+        root.character.slots[slot] = replacement;
+        root.character.items[index] = previous;
+        snapshot.character.inventory = [{ index, ...root.character.items[index] }];
+        return { executed: true, value: Promise.resolve({ success: true }) };
+      }
+    }
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root,
+    controlledPartyLogistics: logistics
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+
+  const accepted = logistics.receive('My_Merchant', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: GEAR_DELIVERY_INTENT_ACTION,
+    sender: 'My_Merchant',
+    at: now,
+    goalId: 'My_Ranger2:ring2:ringsj:3',
+    targetName: 'My_Ranger2',
+    itemName: 'ringsj',
+    itemLevel: 3,
+    slot: 'ring2',
+    currentItem: 'ringsj',
+    currentLevel: 1,
+    expiresAt: now + 30000
+  });
+  assert.equal(accepted, true);
+  assert.deepEqual(hotfix.incomingGearIntents.get('My_Ranger2:ring2:ringsj:3').beforeIndices, [5]);
+
+  const held = logistics._safeLootDescriptor({ index: 5, name: 'ringsj', level: 3 });
+  assert.equal(held.ok, false, 'the old identical row must be held so it cannot ping-pong during targeted delivery');
+  assert.equal(held.reason, 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED');
+  assert.equal(hotfix.stats.farmerGearIntentLootHolds, 1);
+
+  const first = logistics._farmerTick(snapshot);
+  assert.equal(first.reason, 'LOCAL_GEAR_UPGRADE_READY');
+  assert.equal(root.character.slots.ring2.name, 'ringsj');
+  assert.equal(root.character.slots.ring2.level, 3);
+  assert.equal(hotfix.stats.farmerGearEquipAttempts, 1);
+  assert.equal(baseTicks, 0);
+
+  now += 100;
+  const second = logistics._farmerTick(snapshot);
+  assert.equal(second.reason, 'LOCAL_EQUIP_VERIFIED');
+  assert.equal(hotfix.stats.farmerGearEquipCommitted, 1);
+  assert.equal(hotfix.incomingGearIntents.size, 0);
+  assert.equal(hotfix.status().policies.targetedGearIdentityHeldOutOfFarmerLootUntilEquip, true);
+  assert.equal(hotfix.status().policies.existingEquivalentGearMaySatisfyTargetedIntent, true);
   assert.equal(baseTicks, 0);
 });
 
