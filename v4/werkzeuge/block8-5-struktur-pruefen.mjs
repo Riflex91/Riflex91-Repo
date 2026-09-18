@@ -953,7 +953,7 @@ for (const pflicht of [
 const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
 for (const pflicht of [
   '8.5.9 Freigabe-Gate implementiert',
-  'operative Freigabe',
+  'Offline-Stufe fuer den exakten Candidate bestanden',
   'Offline-Test oder Wiederholung',
   'Schattenbetrieb ohne echte Spielaktion',
   'begrenzter kontrollierter Live-Test',
