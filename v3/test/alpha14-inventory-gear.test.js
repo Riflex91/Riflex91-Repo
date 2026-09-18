@@ -24,6 +24,8 @@ function G() {
     items: {
       currentblade: { type: 'weapon', attack: 25 },
       blade: { type: 'weapon', attack: 10, upgrade: { attack: 5 }, class: ['ranger'] },
+      quiver: { type: 'quiver', dex: 2, attack: 1 },
+      shield: { type: 'shield', armor: 250, resistance: 100 },
       coat: { type: 'chest', armor: 20, resistance: 5, upgrade: { armor: 3, resistance: 1 } },
       hpot1: { type: 'pot', gives: [['hp', 400]] },
       mpot1: { type: 'pot', gives: [['mp', 500]] },
@@ -127,6 +129,29 @@ test('Gear Progression respects class compatibility and content quarantine', () 
   const result = evaluator.evaluate({ registry: registry(rows), gameData: G(), contentDrift });
   assert.equal(result.goals.filter((row) => row.item === 'blade').length, 0);
   assert.ok(result.status.lastEvaluation.blockedUnknownContent > 0);
+});
+
+test('Gear Progression rejects the live-proven impossible Ranger shield offhand goal', () => {
+  const evaluator = new GearProgressionEvaluator({ minImprovementRatio: 0.01 });
+  const row = ranger({
+    gear: {
+      mainhand: { name: 'currentblade', level: 0 },
+      offhand: { name: 'quiver', level: 0 }
+    },
+    inventory: [{ index: 0, name: 'shield', level: 0, q: 1 }]
+  });
+
+  const result = evaluator.evaluate({ registry: registry([row]), gameData: G() });
+
+  assert.equal(
+    result.goals.some((goal) => goal.character === 'R1' && goal.item === 'shield' && goal.slot === 'offhand'),
+    false,
+    'a shield must not be proposed to a Ranger just because its weighted armor score beats a quiver'
+  );
+  const future = evaluator.futureSellSafetyFor('R1', 0, 'shield', 0);
+  assert.ok(future);
+  assert.equal(future.checked, true, 'incompatibility is a completed future-Farmer value check');
+  assert.equal(future.protected, false);
 });
 
 test('Gear Progression persistence is schema-versioned and corrupt data fails closed', () => {
