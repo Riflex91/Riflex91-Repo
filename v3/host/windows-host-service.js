@@ -46,7 +46,8 @@ function validateWindowsBrowserBootstrap(args, cdpEndpoint, allowedOrigin) {
   }
   if (!launchUrls.some((url) => url.origin === origin)) throw new Error('WINDOWS_HOST_ADVENTURE_LAND_START_URL_REQUIRED');
 
-  return { profilePath: path.resolve(profilePath), remoteDebuggingPort: actualPort, allowedOrigin: origin };
+  const normalizedProfilePath = path.win32.isAbsolute(profilePath) ? path.win32.normalize(profilePath) : path.resolve(profilePath);
+  return { profilePath: normalizedProfilePath, remoteDebuggingPort: actualPort, allowedOrigin: origin };
 }
 
 function configPathFromArgs(argv = process.argv.slice(2)) {
