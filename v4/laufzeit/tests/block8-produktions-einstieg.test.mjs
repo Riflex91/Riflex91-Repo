@@ -6,6 +6,10 @@ import {
 } from '../../erzeugt/ausfuehrung/adventure-land-produktions-einstieg.js';
 
 function spiel() {
+  let intervalCallback = null;
+  let intervalMillisekunden = null;
+  let intervalId = 0;
+  const gesendet = [];
   const parent = {
     character: {
       id: 'ranger-1', name: 'My_Ranger1', ctype: 'ranger', level: 80,
@@ -15,10 +19,43 @@ function spiel() {
       target: null, rip: false, stand: false, items: [], slots: {}
     },
     entities: {}, party: {}, G: {}, server_region: 'EU', server_identifier: 'I',
-    is_on_cooldown: () => false
+    is_on_cooldown: () => false,
+    send_cm(name, daten) {
+      gesendet.push({ name, daten });
+      return { receivers: [name], locals: [] };
+    }
   };
-  const code = { parent, character: parent.character, on_cm: undefined };
-  return { code, parent };
+  const code = {
+    parent,
+    character: parent.character,
+    on_cm: undefined,
+    setInterval(fn, millisekunden) {
+      intervalCallback = fn;
+      intervalMillisekunden = millisekunden;
+      intervalId += 1;
+      return intervalId;
+    },
+    clearInterval() {
+      intervalCallback = null;
+    }
+  };
+  return {
+    code,
+    parent,
+    gesendet,
+    intervalMillisekunden: () => intervalMillisekunden,
+    feuereIntervall() {
+      assert.notEqual(intervalCallback, null);
+      intervalCallback();
+    },
+    hatIntervall: () => intervalCallback !== null
+  };
+}
+
+async function flush() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 test('V4 Produktionslaufzeit installiert standardmaessig nur eine gesperrte eingefrorene API', () => {
@@ -30,7 +67,52 @@ test('V4 Produktionslaufzeit installiert standardmaessig nur eine gesperrte eing
   assert.equal(api.status().empfangInstalliert, false);
   const gestartet = api.starte();
   assert.equal(gestartet.empfangInstalliert, true);
+  assert.equal(gestartet.lebensnachweisAutomatikAktiv, false);
   assert.throws(() => api.bereiteGruppenZielVor(api.gruppenzielFreigabeText()), /standardmaessig gesperrt/);
+});
+
+test('V4 Produktionslaufzeit besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen und Transportmetriken', async () => {
+  const u = spiel();
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  const gestartet = api.starte();
+  assert.equal(gestartet.empfangInstalliert, true);
+  assert.equal(gestartet.lebensnachweisAutomatikAktiv, true);
+  assert.equal(gestartet.lebensnachweisAutomatikPausiert, false);
+  assert.equal(gestartet.lebensnachweisIntervallMillisekunden, 2_000);
+  assert.equal(u.intervalMillisekunden(), 2_000);
+
+  await flush();
+  assert.equal(api.status().lebensnachweisSendeVersuche, 1);
+  assert.equal(api.status().lebensnachweisSendeErfolge, 1);
+  assert.equal(api.status().lebensnachweisSendeFehler, 0);
+  assert.equal(u.gesendet.length, 1);
+
+  u.feuereIntervall();
+  await flush();
+  assert.equal(api.status().lebensnachweisSendeVersuche, 2);
+  assert.equal(api.status().lebensnachweisSendeErfolge, 2);
+
+  const pausiert = api.pausiereLebensnachweisAutomatik();
+  assert.equal(pausiert.lebensnachweisAutomatikAktiv, false);
+  assert.equal(pausiert.lebensnachweisAutomatikPausiert, true);
+  assert.equal(u.hatIntervall(), false);
+
+  const fortgesetzt = api.setzeLebensnachweisAutomatikFort();
+  assert.equal(fortgesetzt.lebensnachweisAutomatikAktiv, true);
+  assert.equal(fortgesetzt.lebensnachweisAutomatikPausiert, false);
+  await flush();
+  assert.equal(api.status().lebensnachweisSendeVersuche, 3);
+  assert.equal(api.status().lebensnachweisSendeErfolge, 3);
+
+  const gestoppt = api.stoppe();
+  assert.equal(gestoppt.empfangInstalliert, false);
+  assert.equal(gestoppt.lebensnachweisAutomatikAktiv, false);
+  assert.equal(u.hatIntervall(), false);
 });
 
 test('V4 Produktionslaufzeit exportiert read-only Gruppendiagnose ohne Gruppenaktion', () => {
