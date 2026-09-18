@@ -10,6 +10,7 @@ import { AKTIONS_WICHTIGKEITS_RANG, AktionsAuswahl } from './aktions-auswahl.js'
 import { RessourcenVergabe } from './ressourcen-vergabe.js';
 import type { RessourcenSperrErgebnis } from './ressourcen-vergabe.js';
 import { SchattenAusfuehrung } from './schatten-ausfuehrung.js';
+import { LaufzeitSteuerung } from './laufzeit-steuerung.js';
 
 const GUELTIGE_RESSOURCEN = new Set<string>(RESSOURCEN_NAMEN);
 
@@ -17,6 +18,7 @@ export interface AktionsSteuerungOptionen {
   readonly aktionsAuswahl?: AktionsAuswahl;
   readonly ressourcenVergabe?: RessourcenVergabe;
   readonly schattenAusfuehrung?: SchattenAusfuehrung;
+  readonly laufzeitSteuerung?: LaufzeitSteuerung;
 }
 
 function friereListe<T>(werte: readonly T[]): readonly T[] {
@@ -34,12 +36,14 @@ export class AktionsSteuerung {
   private readonly aktionsAuswahl: AktionsAuswahl;
   private readonly ressourcenVergabe: RessourcenVergabe;
   private readonly schattenAusfuehrung: SchattenAusfuehrung;
+  private readonly laufzeitSteuerung: LaufzeitSteuerung;
   private readonly zustaende = new Map<string, AktionsLaufZustand>();
 
   constructor(optionen: AktionsSteuerungOptionen = {}) {
     this.aktionsAuswahl = optionen.aktionsAuswahl ?? new AktionsAuswahl();
     this.ressourcenVergabe = optionen.ressourcenVergabe ?? new RessourcenVergabe();
     this.schattenAusfuehrung = optionen.schattenAusfuehrung ?? new SchattenAusfuehrung();
+    this.laufzeitSteuerung = optionen.laufzeitSteuerung ?? new LaufzeitSteuerung();
   }
 
   reicheAnfrageEin(anfrage: AktionsAnfrage): AktionsLaufZustand {
@@ -49,13 +53,16 @@ export class AktionsSteuerung {
     }
 
     const gespeicherteAnfrage = kopiereAnfrage(anfrage);
+    const laufzeitFreigabe = this.laufzeitSteuerung.pruefeAktionsAnfrage(gespeicherteAnfrage);
     const zustand: AktionsLaufZustand = Object.freeze({
       anfrage: gespeicherteAnfrage,
-      phase: 'wartend',
+      phase: laufzeitFreigabe.erlaubt ? 'wartend' : 'abgebrochen',
       eingereihtAm: gespeicherteAnfrage.angefordertAm,
       gestartetAm: null,
-      beendetAm: null,
-      zustandsGrund: 'Anfrage wartet auf die zentrale AktionsSteuerung.',
+      beendetAm: laufzeitFreigabe.erlaubt ? null : gespeicherteAnfrage.angefordertAm,
+      zustandsGrund: laufzeitFreigabe.erlaubt
+        ? 'Anfrage wartet auf die zentrale AktionsSteuerung.'
+        : laufzeitFreigabe.grund,
       blockiertDurch: Object.freeze([])
     });
     this.zustaende.set(gespeicherteAnfrage.kennung, zustand);
@@ -76,6 +83,13 @@ export class AktionsSteuerung {
     const blockierteAnfragen: string[] = [];
 
     for (const anfrage of kandidaten) {
+      const laufzeitFreigabe = this.laufzeitSteuerung.pruefeAktionsAnfrage(anfrage);
+      if (!laufzeitFreigabe.erlaubt) {
+        this.brecheAktionAb(anfrage.kennung, jetzt, laufzeitFreigabe.grund);
+        blockierteAnfragen.push(anfrage.kennung);
+        continue;
+      }
+
       const sperrErgebnis = this.versucheRessourcenFuerAnfrageZuSperren(anfrage);
 
       if (!sperrErgebnis.gesperrt) {
@@ -185,6 +199,28 @@ export class AktionsSteuerung {
     });
     this.zustaende.set(aktionsAnfrageKennung, abgeschlossen);
     return abgeschlossen;
+  }
+
+  brecheNormaleArbeitFuerPauseAb(
+    jetzt: number,
+    grund = 'Laufzeit wurde pausiert; normale und Hintergrundarbeit wird fail-safe abgebrochen.'
+  ): readonly string[] {
+    this.pruefeZeitpunkt(jetzt);
+    if (grund.trim().length === 0) throw new Error('Ein Pause-Abbruch benoetigt einen Grund.');
+
+    const abgebrochen: string[] = [];
+    for (const zustand of this.listeAktionsZustaende()) {
+      if (!['wartend', 'blockiert', 'laeuft'].includes(zustand.phase)) continue;
+      if (zustand.anfrage.wichtigkeit === 'notfall' || zustand.anfrage.wichtigkeit === 'sicherheit') continue;
+      if (this.brecheAktionAb(zustand.anfrage.kennung, jetzt, grund)) {
+        abgebrochen.push(zustand.anfrage.kennung);
+      }
+    }
+    return Object.freeze(abgebrochen.sort());
+  }
+
+  laufzeitStatus() {
+    return this.laufzeitSteuerung.status();
   }
 
   holeAktionsZustand(aktionsAnfrageKennung: string): AktionsLaufZustand | null {
