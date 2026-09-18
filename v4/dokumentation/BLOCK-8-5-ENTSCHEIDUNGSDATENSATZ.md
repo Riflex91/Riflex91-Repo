@@ -1,6 +1,6 @@
 # Block 8.5 – EntscheidungsDatensatz v1
 
-Status: **8.5.1 implementiert; deterministischer Vertrag und Gruppen-Erzeugung vorhanden, noch ohne Aktions-/Ergebnis-Korrelation aus 8.5.2**.
+Status: **8.5.1 implementiert; die darauf aufbauende Aktions-/Ergebnis-Korrelation aus 8.5.2 ist inzwischen ebenfalls implementiert**.
 
 ## Ziel
 
@@ -39,7 +39,7 @@ Pflichtfelder sind unter anderem:
 - `aktionsAnfrageKennungen`
 - `tatsaechlichesErgebnis`
 
-8.5.1 erzeugt `aktionsAnfrageKennungen` zunaechst leer und `tatsaechlichesErgebnis` als `null`. Die eindeutige Korrelation zu AktionsAnfragen und Ergebnis folgt getrennt in Schritt 8.5.2.
+8.5.1 erzeugt `aktionsAnfrageKennungen` zunaechst leer und `tatsaechlichesErgebnis` als `null`. Schritt 8.5.2 verknuepft diese Felder anschliessend read-only mit der echten zentralen Aktionskette.
 
 ## Gruppen-EntscheidungsDatensatz
 
@@ -154,8 +154,6 @@ Der Regressionstest `block8-5-entscheidungs-datensatz.test.mjs` prueft:
 - Freshness-Klasse als fachlich relevante Information,
 - fail-safe Ablehnung ungueltiger Metadaten.
 
-## Naechster Schritt
+## Weiterfuehrung
 
-**8.5.2 – Entscheidung -> AktionsAnfrage -> Ergebnis.**
-
-Dabei bleibt die zentrale `AktionsSteuerung` die einzige Autoritaet. Die neue Instrumentierung erhaelt lediglich eindeutige Korrelationsdaten.
+Die Entscheidung-Aktion-Ergebnis-Korrelation ist in `BLOCK-8-5-ENTSCHEIDUNG-AKTION-ERGEBNIS.md` dokumentiert. Die zentrale `AktionsSteuerung` bleibt dabei die einzige Autoritaet.
