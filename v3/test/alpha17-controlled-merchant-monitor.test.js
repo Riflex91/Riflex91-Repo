@@ -188,6 +188,40 @@ test('Controlled Travel requires canary acknowledgement and verifies observed ar
   assert.equal(controller.stats.controlledStarts, 1);
 });
 
+test('Controlled Travel does not treat immediate smart_move return as arrival', async () => {
+  let now = 2000;
+  const controller = new SafeTravelController({ now: () => now, arrivalRadius: 20 });
+  const root = runtimeRoot();
+  root.smart_move = () => {
+    setTimeout(() => {
+      now += 100;
+      root.character.map = 'winterland';
+      root.character.x = 40;
+      root.character.y = 50;
+      root.character.real_x = 40;
+      root.character.real_y = 50;
+    }, 20);
+    return undefined;
+  };
+  root.stop = async () => ({ success: true });
+  const planned = controller.plan(
+    { destination: { map: 'winterland', x: 40, y: 50 } },
+    { gameData: gameData(), snapshot: { character: root.character } }
+  );
+  const executor = new ControlledTravelExecutor({
+    root, controller, now: () => now, getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }), timeoutMs: 5000
+  });
+  executor.configure({ enabled: true, ack: CONTROLLED_TRAVEL_ACK });
+
+  const result = await executor.execute(planned.plan.id);
+
+  assert.equal(result.completed, true);
+  assert.equal(controller.get(planned.plan.id).state, 'COMPLETED');
+  assert.equal(controller.breaker().open, false);
+  assert.equal(executor.status().stats.failedSafe, 0);
+});
+
 test('Controlled Travel failures become FAILED_SAFE and feed the travel circuit breaker', async () => {
   const controller = new SafeTravelController({ failureThreshold: 1, circuitCooldownMs: 5000 });
   const root = runtimeRoot({ smart_move: async () => { throw new Error('route_failed'); }, stop: async () => ({ success: true }) });
