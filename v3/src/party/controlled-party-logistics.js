@@ -530,8 +530,16 @@ class ControlledPartyLogistics {
 
   install() {
     if (this.installed) return false;
-    this.transport.installDirectReceiver(PARTY_LOGISTICS_RECEIVER, (sender, payload) => this.receive(sender, payload));
-    if (this.root) {
+    const directInstalled = !!(this.transport
+      && typeof this.transport.installDirectReceiver === 'function'
+      && this.transport.installDirectReceiver(PARTY_LOGISTICS_RECEIVER, (sender, payload) => this.receive(sender, payload)));
+
+    // AccountCharacterTransport owns the shared on_cm router whenever named
+    // receivers are available. Replacing root.on_cm here would displace that
+    // router and make addressed send_cm envelopes time out despite successful
+    // transport sends. Keep the legacy raw-protocol hook only as a fallback for
+    // transports that cannot install a named receiver.
+    if (!directInstalled && this.root) {
       const self = this;
       this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
       this.root.on_cm = function onPartyLogisticsMessage(name, data) {

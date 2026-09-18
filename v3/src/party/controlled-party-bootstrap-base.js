@@ -277,19 +277,27 @@ class ControlledPartyBootstrap {
 
     this.previousDirectReceiver = this.root[PARTY_BOOTSTRAP_RECEIVER];
     this.directReceiver = (sender, payload) => this.receive(sender, payload);
-    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver);
+    const directInstalled = !!(this.transport
+      && typeof this.transport.installDirectReceiver === 'function'
+      && this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver));
 
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    const self = this;
-    this.cmWrapper = function onPartyBootstrapMessage(name, data) {
-      if (self._isBootstrapMessage(data)) {
-        self.receive(name, data);
+    // The AccountCharacterTransport named-receiver router owns root.on_cm.
+    // Installing another wrapper here displaces that router and breaks all
+    // addressed receivers (telemetry, logistics, cross-map objectives, ...).
+    // Keep raw bootstrap handling only for transports without named receivers.
+    if (!directInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      const self = this;
+      this.cmWrapper = function onPartyBootstrapMessage(name, data) {
+        if (self._isBootstrapMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
-    this.root.on_cm = this.cmWrapper;
+      };
+      this.root.on_cm = this.cmWrapper;
+    }
     this.installed = true;
     this.stats.installs += 1;
     return true;

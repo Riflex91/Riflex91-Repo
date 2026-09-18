@@ -169,26 +169,44 @@ class ControlledTravelExecutor {
     }
   }
 
-  async _waitForBufferedArrival(plan) {
-    if (!plan || !plan.metadata || plan.metadata.stopWhenInteractionReady !== true) return null;
-    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata.interactionPollMs) || 100));
+  async _waitForObservedArrival(plan) {
+    if (!plan) return null;
+    const buffered = !!(plan.metadata && plan.metadata.stopWhenInteractionReady === true);
+    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata && plan.metadata.interactionPollMs) || 100));
     const setTimer = (this.root && this.root.setTimeout) || setTimeout;
     while (this.busy && this.activePlanId === plan.id) {
       this.controller.observe(this._snapshot());
       const current = this.controller.get(plan.id);
       if (current && current.state === 'COMPLETED') {
-        this.stats.bufferedEarlyStops += 1;
-        await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
-        this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
-          planId: plan.id,
-          arrivalRadius: current.arrivalRadius,
-          interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
-          interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
-          interactionKind: plan.metadata.interactionKind || null
-        });
-        return { success: true, bufferedArrival: true };
+        if (buffered) {
+          this.stats.bufferedEarlyStops += 1;
+          await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
+          this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+            planId: plan.id,
+            arrivalRadius: current.arrivalRadius,
+            interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
+            interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
+            interactionKind: plan.metadata.interactionKind || null
+          });
+        }
+        return { success: true, observedArrival: true, bufferedArrival: buffered };
+      }
+      if (current && current.state === 'ABORTED') {
+        return { success: false, aborted: true, reason: current.reason || 'TRAVEL_ABORTED' };
+      }
+      if (current && current.state === 'FAILED_SAFE') {
+        await this._stopSmart(current.reason || 'TRAVEL_FAILED_SAFE');
+        throw new Error(current.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
       }
       await new Promise((resolve) => setTimer(resolve, pollMs));
+    }
+    const terminal = this.controller.get(plan.id);
+    if (terminal && terminal.state === 'ABORTED') {
+      return { success: false, aborted: true, reason: terminal.reason || 'TRAVEL_ABORTED' };
+    }
+    if (terminal && terminal.state === 'FAILED_SAFE') {
+      await this._stopSmart(terminal.reason || 'TRAVEL_FAILED_SAFE');
+      throw new Error(terminal.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
     }
     return null;
   }
@@ -219,20 +237,42 @@ class ControlledTravelExecutor {
       this._syncAdapterMode();
       const command = this.adapter.command('smart_move', [destination]);
       if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
-      const routePromise = Promise.resolve(command.value);
-      routePromise.catch(() => {});
-      const bufferedArrivalPromise = this._waitForBufferedArrival(plan);
-      const response = await this._timeout(bufferedArrivalPromise ? Promise.race([routePromise, bufferedArrivalPromise]) : routePromise);
-      if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
-      this.controller.observe(this._snapshot());
+      let routeResponse = null;
+      // Adventure Land smart_move may return a non-Promise or resolve before the
+      // character has actually arrived. Command completion is therefore not
+      // arrival evidence. Only SafeTravel's observed position/map transition
+      // may complete the plan; the raw command promise is used only to surface
+      // an explicit route failure.
+      const ignoreSuccessfulRouteSettlement = () => new Promise(() => {});
+      const routeFailure = (reason, response = null) => {
+        // stop('smart') intentionally interrupts Adventure Land's smart_move
+        // promise after a buffered arrival. Re-observe before classifying that
+        // settlement: once SafeTravel has verified arrival, "interrupted" is
+        // expected cleanup rather than a route failure.
+        this.controller.observe(this._snapshot());
+        const current = this.controller.get(plan.id);
+        if (current && current.state === 'COMPLETED') return ignoreSuccessfulRouteSettlement();
+        if (response != null) routeResponse = response;
+        throw new Error(reasonText(reason, 'SMART_MOVE_FAILED'));
+      };
+      const routeFailurePromise = Promise.resolve(command.value).then(
+        (response) => {
+          routeResponse = response;
+          if (response && response.failed === true) return routeFailure(response.reason, response);
+          return ignoreSuccessfulRouteSettlement();
+        },
+        (error) => routeFailure(error && (error.reason || error.code || error.message) || error)
+      );
+      routeFailurePromise.catch(() => {});
+      const observedArrivalPromise = this._waitForObservedArrival(plan);
+      const arrival = await this._timeout(Promise.race([routeFailurePromise, observedArrivalPromise]));
+      const response = routeResponse == null ? arrival : routeResponse;
       const finalPlan = this.controller.get(plan.id);
-      if (!finalPlan || finalPlan.state !== 'COMPLETED') {
-        this._failSafe(plan.id, 'ARRIVAL_VERIFICATION_FAILED');
-        this.stats.failedSafe += 1;
-        this.lastAction = { at: this.now(), planId: plan.id, result: 'FAILED_SAFE', reason: 'ARRIVAL_VERIFICATION_FAILED' };
-        this._event('CONTROLLED_TRAVEL_FAILED_SAFE', 'error', 'ARRIVAL_VERIFICATION_FAILED', this.lastAction);
-        return { executed: true, completed: false, reason: 'ARRIVAL_VERIFICATION_FAILED', response: clone(response) };
+      if (arrival && arrival.aborted === true || finalPlan && finalPlan.state === 'ABORTED') {
+        const reason = finalPlan && finalPlan.reason || arrival && arrival.reason || 'TRAVEL_ABORTED';
+        return { executed: true, completed: false, aborted: true, reason, response: clone(response) };
       }
+      if (!finalPlan || finalPlan.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.completed += 1;
       this.lastAction = { at: this.now(), planId: plan.id, result: 'COMPLETED', destination: clone(destination) };
       this._event('CONTROLLED_TRAVEL_COMPLETED', 'info', null, this.lastAction);

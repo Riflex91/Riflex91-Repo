@@ -140,6 +140,59 @@ function logisticsRuntime(clock, transportResult = { delivered: true }) {
   return { runtime, root, transport };
 }
 
+test('ControlledPartyLogistics preserves the shared AccountCharacterTransport on_cm router', () => {
+  const now = 10000;
+  const root = {
+    character: { name: 'My_Ranger1', ctype: 'ranger', map: 'main', x: 0, y: 0, gold: 0, isize: 42, items: [] },
+    parent: {},
+    get_active_characters: () => ({ My_Ranger1: 'self', My_Merchant: 'active' }),
+    send_cm: () => ({ success: true })
+  };
+  root.parent.character = root.character;
+  const transport = new AccountCharacterTransport({ root, trustedNames: ['My_Ranger1', 'My_Merchant'] });
+  const runtime = {
+    root,
+    now: () => now,
+    log: { emit() {} },
+    adapter: {
+      mode: 'active',
+      snapshot: () => ({ character: { ...root.character, inventory: [] }, entities: [] })
+    },
+    partyAccountCommunication: { transport },
+    partyControlLease: { merchantName: 'My_Merchant' },
+    partyBootstrap: { trustedRosterNames: () => ['My_Ranger1', 'My_Merchant'] }
+  };
+
+  const logistics = new ControlledPartyLogistics(runtime);
+  const router = transport._cmRouter;
+
+  assert.equal(typeof router, 'function');
+  assert.equal(transport._cmRouterInstalled, true);
+  assert.equal(root.on_cm, router);
+  assert.equal(logistics.previousOnCm, null);
+
+  const delivered = root.on_cm('My_Merchant', {
+    __aioProtocol: 'aio-v3-named-receiver-v1',
+    receiver: '__AIO_V3_PARTY_LOGISTICS_RECEIVE',
+    payload: {
+      type: 'aio-v3-party-logistics',
+      protocol: 1,
+      action: 'STATUS',
+      sender: 'My_Merchant',
+      at: now,
+      acceptingLoot: true,
+      map: 'main',
+      x: 20,
+      y: 0
+    }
+  });
+
+  assert.equal(delivered, true);
+  assert.ok(logistics.lastMerchantStatus);
+  assert.equal(logistics.lastMerchantStatus.acceptingLoot, true);
+  assert.equal(transport.stats.fallbackReceived, 1);
+});
+
 test('Alpha20.19 failed LOOT_OFFER releases pendingOffer instead of deadlocking item and gold logistics', async () => {
   patchLogisticsPrototype(); patchAlpha2019LogisticsStabilization();
   const clock = { now: 10000 }; const { runtime } = logisticsRuntime(clock, { delivered: false, reason: 'quota' });

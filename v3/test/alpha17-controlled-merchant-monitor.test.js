@@ -188,6 +188,146 @@ test('Controlled Travel requires canary acknowledgement and verifies observed ar
   assert.equal(controller.stats.controlledStarts, 1);
 });
 
+test('Controlled Travel does not treat immediate smart_move return as arrival', async () => {
+  let now = 2000;
+  const controller = new SafeTravelController({ now: () => now, arrivalRadius: 20 });
+  const root = runtimeRoot();
+  root.smart_move = () => {
+    setTimeout(() => {
+      now += 100;
+      root.character.map = 'winterland';
+      root.character.x = 40;
+      root.character.y = 50;
+      root.character.real_x = 40;
+      root.character.real_y = 50;
+    }, 20);
+    return undefined;
+  };
+  root.stop = async () => ({ success: true });
+  const planned = controller.plan(
+    { destination: { map: 'winterland', x: 40, y: 50 } },
+    { gameData: gameData(), snapshot: { character: root.character } }
+  );
+  const executor = new ControlledTravelExecutor({
+    root, controller, now: () => now, getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }), timeoutMs: 5000
+  });
+  executor.configure({ enabled: true, ack: CONTROLLED_TRAVEL_ACK });
+
+  const result = await executor.execute(planned.plan.id);
+
+  assert.equal(result.completed, true);
+  assert.equal(controller.get(planned.plan.id).state, 'COMPLETED');
+  assert.equal(controller.breaker().open, false);
+  assert.equal(executor.status().stats.failedSafe, 0);
+});
+
+test('Buffered arrival ignores smart_move interruption caused by the intentional stop', async () => {
+  let rejectRoute = null;
+  let stopCalls = 0;
+  const controller = new SafeTravelController({ arrivalRadius: 20 });
+  const root = runtimeRoot({
+    smart_move: () => new Promise((_, reject) => { rejectRoute = reject; }),
+    stop: async () => {
+      stopCalls += 1;
+      if (rejectRoute) rejectRoute(new Error('interrupted'));
+      return { success: true };
+    }
+  });
+  const planned = controller.plan(
+    {
+      destination: { map: 'main', x: 100, y: 0 },
+      arrivalRadius: 108,
+      metadata: {
+        stopWhenInteractionReady: true,
+        interactionKind: 'npc',
+        interactionMaxRange: 120,
+        interactionSafetyFactor: 0.9
+      }
+    },
+    { gameData: gameData(), snapshot: { character: root.character } }
+  );
+  const executor = new ControlledTravelExecutor({
+    root, controller, getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }), timeoutMs: 5000
+  });
+  executor.configure({ enabled: true, ack: CONTROLLED_TRAVEL_ACK });
+
+  const result = await executor.execute(planned.plan.id);
+
+  assert.equal(result.completed, true);
+  assert.equal(result.reason, 'ARRIVAL_VERIFIED');
+  assert.equal(controller.get(planned.plan.id).state, 'COMPLETED');
+  assert.equal(executor.status().stats.failedSafe, 0);
+  assert.equal(executor.status().stats.completed, 1);
+  assert.equal(executor.status().stats.bufferedEarlyStops, 1);
+  assert.equal(stopCalls, 1);
+});
+
+test('Controlled Travel stops active smart movement when observed travel fails safe', async () => {
+  let now = 3000;
+  let stopCalls = 0;
+  const controller = new SafeTravelController({
+    now: () => now,
+    noProgressMs: 2000,
+    failureThreshold: 3
+  });
+  const root = runtimeRoot({
+    smart_move: () => {
+      setTimeout(() => { now += 3000; }, 20);
+      return undefined;
+    },
+    stop: async () => { stopCalls += 1; return { success: true }; }
+  });
+  const planned = controller.plan(
+    { destination: { map: 'main', x: 500, y: 0 } },
+    { gameData: gameData(), snapshot: { character: root.character } }
+  );
+  const executor = new ControlledTravelExecutor({
+    root, controller, now: () => now, getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }), timeoutMs: 5000
+  });
+  executor.configure({ enabled: true, ack: CONTROLLED_TRAVEL_ACK });
+
+  const result = await executor.execute(planned.plan.id);
+
+  assert.equal(result.completed, false);
+  assert.equal(controller.get(planned.plan.id).state, 'FAILED_SAFE');
+  assert.ok(stopCalls >= 1);
+  assert.equal(executor.status().busy, false);
+});
+
+test('Controlled Travel preserves ABORTED result without adding a failed-safe count', async () => {
+  let stopCalls = 0;
+  const controller = new SafeTravelController();
+  const root = runtimeRoot({
+    smart_move: () => undefined,
+    stop: async () => { stopCalls += 1; return { success: true }; }
+  });
+  const planned = controller.plan(
+    { destination: { map: 'winterland', x: 40, y: 50 } },
+    { gameData: gameData(), snapshot: { character: root.character } }
+  );
+  const executor = new ControlledTravelExecutor({
+    root, controller, getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }), timeoutMs: 5000
+  });
+  executor.configure({ enabled: true, ack: CONTROLLED_TRAVEL_ACK });
+
+  const executing = executor.execute(planned.plan.id);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const aborted = await executor.abort('TEST_ABORT');
+  const result = await executing;
+
+  assert.equal(aborted.aborted, true);
+  assert.equal(result.aborted, true);
+  assert.equal(result.reason, 'TEST_ABORT');
+  assert.equal(controller.get(planned.plan.id).state, 'ABORTED');
+  assert.equal(executor.status().stats.aborts, 1);
+  assert.equal(executor.status().stats.failedSafe, 0);
+  assert.ok(stopCalls >= 1);
+});
+
 test('Controlled Travel failures become FAILED_SAFE and feed the travel circuit breaker', async () => {
   const controller = new SafeTravelController({ failureThreshold: 1, circuitCooldownMs: 5000 });
   const root = runtimeRoot({ smart_move: async () => { throw new Error('route_failed'); }, stop: async () => ({ success: true }) });

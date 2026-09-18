@@ -272,16 +272,19 @@ class PartyControlLease {
   install() {
     if (this.installed || !this.root) return false;
     const self = this;
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
-    this.root.on_cm = function onPartyControlMessage(name, data) {
-      if (self._isControlMessage(data)) {
-        self.receive(name, data);
+    const namedControlReceiverInstalled = this.__aioAccountTransportControlReceiverInstalled === true;
+    if (!namedControlReceiverInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      this.root.on_cm = function onPartyControlMessage(name, data) {
+        if (self._isControlMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
+      };
+    }
+    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
     this.root.on_party_invite = function onPartyControlInvite(name) {
       if (self._handleInvite(name)) return undefined;
       if (self.previousOnPartyInvite) return self.previousOnPartyInvite.apply(this, arguments);

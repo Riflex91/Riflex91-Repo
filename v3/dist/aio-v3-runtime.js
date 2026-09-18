@@ -9492,16 +9492,19 @@ class PartyControlLease {
   install() {
     if (this.installed || !this.root) return false;
     const self = this;
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
-    this.root.on_cm = function onPartyControlMessage(name, data) {
-      if (self._isControlMessage(data)) {
-        self.receive(name, data);
+    const namedControlReceiverInstalled = this.__aioAccountTransportControlReceiverInstalled === true;
+    if (!namedControlReceiverInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      this.root.on_cm = function onPartyControlMessage(name, data) {
+        if (self._isControlMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
+      };
+    }
+    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
     this.root.on_party_invite = function onPartyControlInvite(name) {
       if (self._handleInvite(name)) return undefined;
       if (self.previousOnPartyInvite) return self.previousOnPartyInvite.apply(this, arguments);
@@ -13543,26 +13546,44 @@ class ControlledTravelExecutor {
     }
   }
 
-  async _waitForBufferedArrival(plan) {
-    if (!plan || !plan.metadata || plan.metadata.stopWhenInteractionReady !== true) return null;
-    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata.interactionPollMs) || 100));
+  async _waitForObservedArrival(plan) {
+    if (!plan) return null;
+    const buffered = !!(plan.metadata && plan.metadata.stopWhenInteractionReady === true);
+    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata && plan.metadata.interactionPollMs) || 100));
     const setTimer = (this.root && this.root.setTimeout) || setTimeout;
     while (this.busy && this.activePlanId === plan.id) {
       this.controller.observe(this._snapshot());
       const current = this.controller.get(plan.id);
       if (current && current.state === 'COMPLETED') {
-        this.stats.bufferedEarlyStops += 1;
-        await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
-        this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
-          planId: plan.id,
-          arrivalRadius: current.arrivalRadius,
-          interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
-          interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
-          interactionKind: plan.metadata.interactionKind || null
-        });
-        return { success: true, bufferedArrival: true };
+        if (buffered) {
+          this.stats.bufferedEarlyStops += 1;
+          await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
+          this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+            planId: plan.id,
+            arrivalRadius: current.arrivalRadius,
+            interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
+            interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
+            interactionKind: plan.metadata.interactionKind || null
+          });
+        }
+        return { success: true, observedArrival: true, bufferedArrival: buffered };
+      }
+      if (current && current.state === 'ABORTED') {
+        return { success: false, aborted: true, reason: current.reason || 'TRAVEL_ABORTED' };
+      }
+      if (current && current.state === 'FAILED_SAFE') {
+        await this._stopSmart(current.reason || 'TRAVEL_FAILED_SAFE');
+        throw new Error(current.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
       }
       await new Promise((resolve) => setTimer(resolve, pollMs));
+    }
+    const terminal = this.controller.get(plan.id);
+    if (terminal && terminal.state === 'ABORTED') {
+      return { success: false, aborted: true, reason: terminal.reason || 'TRAVEL_ABORTED' };
+    }
+    if (terminal && terminal.state === 'FAILED_SAFE') {
+      await this._stopSmart(terminal.reason || 'TRAVEL_FAILED_SAFE');
+      throw new Error(terminal.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
     }
     return null;
   }
@@ -13593,20 +13614,42 @@ class ControlledTravelExecutor {
       this._syncAdapterMode();
       const command = this.adapter.command('smart_move', [destination]);
       if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
-      const routePromise = Promise.resolve(command.value);
-      routePromise.catch(() => {});
-      const bufferedArrivalPromise = this._waitForBufferedArrival(plan);
-      const response = await this._timeout(bufferedArrivalPromise ? Promise.race([routePromise, bufferedArrivalPromise]) : routePromise);
-      if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
-      this.controller.observe(this._snapshot());
+      let routeResponse = null;
+      // Adventure Land smart_move may return a non-Promise or resolve before the
+      // character has actually arrived. Command completion is therefore not
+      // arrival evidence. Only SafeTravel's observed position/map transition
+      // may complete the plan; the raw command promise is used only to surface
+      // an explicit route failure.
+      const ignoreSuccessfulRouteSettlement = () => new Promise(() => {});
+      const routeFailure = (reason, response = null) => {
+        // stop('smart') intentionally interrupts Adventure Land's smart_move
+        // promise after a buffered arrival. Re-observe before classifying that
+        // settlement: once SafeTravel has verified arrival, "interrupted" is
+        // expected cleanup rather than a route failure.
+        this.controller.observe(this._snapshot());
+        const current = this.controller.get(plan.id);
+        if (current && current.state === 'COMPLETED') return ignoreSuccessfulRouteSettlement();
+        if (response != null) routeResponse = response;
+        throw new Error(reasonText(reason, 'SMART_MOVE_FAILED'));
+      };
+      const routeFailurePromise = Promise.resolve(command.value).then(
+        (response) => {
+          routeResponse = response;
+          if (response && response.failed === true) return routeFailure(response.reason, response);
+          return ignoreSuccessfulRouteSettlement();
+        },
+        (error) => routeFailure(error && (error.reason || error.code || error.message) || error)
+      );
+      routeFailurePromise.catch(() => {});
+      const observedArrivalPromise = this._waitForObservedArrival(plan);
+      const arrival = await this._timeout(Promise.race([routeFailurePromise, observedArrivalPromise]));
+      const response = routeResponse == null ? arrival : routeResponse;
       const finalPlan = this.controller.get(plan.id);
-      if (!finalPlan || finalPlan.state !== 'COMPLETED') {
-        this._failSafe(plan.id, 'ARRIVAL_VERIFICATION_FAILED');
-        this.stats.failedSafe += 1;
-        this.lastAction = { at: this.now(), planId: plan.id, result: 'FAILED_SAFE', reason: 'ARRIVAL_VERIFICATION_FAILED' };
-        this._event('CONTROLLED_TRAVEL_FAILED_SAFE', 'error', 'ARRIVAL_VERIFICATION_FAILED', this.lastAction);
-        return { executed: true, completed: false, reason: 'ARRIVAL_VERIFICATION_FAILED', response: clone(response) };
+      if (arrival && arrival.aborted === true || finalPlan && finalPlan.state === 'ABORTED') {
+        const reason = finalPlan && finalPlan.reason || arrival && arrival.reason || 'TRAVEL_ABORTED';
+        return { executed: true, completed: false, aborted: true, reason, response: clone(response) };
       }
+      if (!finalPlan || finalPlan.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.completed += 1;
       this.lastAction = { at: this.now(), planId: plan.id, result: 'COMPLETED', destination: clone(destination) };
       this._event('CONTROLLED_TRAVEL_COMPLETED', 'info', null, this.lastAction);
@@ -22769,19 +22812,27 @@ class ControlledPartyBootstrap {
 
     this.previousDirectReceiver = this.root[PARTY_BOOTSTRAP_RECEIVER];
     this.directReceiver = (sender, payload) => this.receive(sender, payload);
-    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver);
+    const directInstalled = !!(this.transport
+      && typeof this.transport.installDirectReceiver === 'function'
+      && this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver));
 
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    const self = this;
-    this.cmWrapper = function onPartyBootstrapMessage(name, data) {
-      if (self._isBootstrapMessage(data)) {
-        self.receive(name, data);
+    // The AccountCharacterTransport named-receiver router owns root.on_cm.
+    // Installing another wrapper here displaces that router and breaks all
+    // addressed receivers (telemetry, logistics, cross-map objectives, ...).
+    // Keep raw bootstrap handling only for transports without named receivers.
+    if (!directInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      const self = this;
+      this.cmWrapper = function onPartyBootstrapMessage(name, data) {
+        if (self._isBootstrapMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
-    this.root.on_cm = this.cmWrapper;
+      };
+      this.root.on_cm = this.cmWrapper;
+    }
     this.installed = true;
     this.stats.installs += 1;
     return true;
@@ -27906,8 +27957,16 @@ class ControlledPartyLogistics {
 
   install() {
     if (this.installed) return false;
-    this.transport.installDirectReceiver(PARTY_LOGISTICS_RECEIVER, (sender, payload) => this.receive(sender, payload));
-    if (this.root) {
+    const directInstalled = !!(this.transport
+      && typeof this.transport.installDirectReceiver === 'function'
+      && this.transport.installDirectReceiver(PARTY_LOGISTICS_RECEIVER, (sender, payload) => this.receive(sender, payload)));
+
+    // AccountCharacterTransport owns the shared on_cm router whenever named
+    // receivers are available. Replacing root.on_cm here would displace that
+    // router and make addressed send_cm envelopes time out despite successful
+    // transport sends. Keep the legacy raw-protocol hook only as a fallback for
+    // transports that cannot install a named receiver.
+    if (!directInstalled && this.root) {
       const self = this;
       this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
       this.root.on_cm = function onPartyLogisticsMessage(name, data) {
@@ -36883,9 +36942,31 @@ class Alpha28CrossMapFarmerProgression {
       const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
       const smartMoveCommand = adapter.command('smart_move', [{ map: objective.map, x: objective.x, y: objective.y }]);
       if (!smartMoveCommand.executed) throw new Error(smartMoveCommand.reason || (smartMoveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
-      const response = await Promise.race([Promise.resolve(smartMoveCommand.value), timeout]);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
-      controller.observe(this._snapshot());
+      let routeResponse = null;
+      const routeFailurePromise = Promise.resolve(smartMoveCommand.value).then((response) => {
+        routeResponse = response;
+        if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+        // A resolved/undefined smart_move return is not arrival evidence.
+        // Keep this branch pending and let observed SafeTravel state decide.
+        return new Promise(() => {});
+      });
+      routeFailurePromise.catch(() => {});
+      const pollMs = 100;
+      const setTimer = this.root.setTimeout || setTimeout;
+      const observedArrival = (async () => {
+        while (this.busy && this.activePlanId === plan.id) {
+          controller.observe(this._snapshot());
+          const current = controller.get(plan.id);
+          if (current && current.state === 'COMPLETED') return { success: true, observedArrival: true };
+          if (current && ['FAILED_SAFE', 'ABORTED'].includes(String(current.state || ''))) {
+            throw new Error(current.reason || 'FARMER_TRAVEL_TERMINATED_BEFORE_ARRIVAL');
+          }
+          await new Promise((resolve) => setTimer(resolve, pollMs));
+        }
+        return null;
+      })();
+      const arrival = await Promise.race([routeFailurePromise, observedArrival, timeout]);
+      const response = routeResponse == null ? arrival : routeResponse;
       const final = controller.get(plan.id);
       if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.crossMapTravelCompleted += 1;
@@ -43018,6 +43099,10 @@ class PartyAccountCommunicationReliability {
       this.stats.controlDirectReceiverCalls += 1;
       return lease.receive(sender, payload);
     });
+    // PartyControlLease may be stopped/resumed independently of the account
+    // transport. Mark the named receiver as authoritative so a later lease
+    // reinstall does not overwrite the shared on_cm router.
+    lease.__aioAccountTransportControlReceiverInstalled = true;
     if (!this.originalControlSend) this.originalControlSend = typeof lease._send === 'function' ? lease._send.bind(lease) : null;
     lease._send = async (target, payload) => this.transport.send(target, payload, {
       receiver: CONTROL_RECEIVER,

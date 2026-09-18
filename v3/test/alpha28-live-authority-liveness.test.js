@@ -173,6 +173,73 @@ test('Alpha28 cross-map receiver accepts only validated leader objective while p
   assert.equal(state.stats.crossMapObjectivesReceived, 1);
 });
 
+test('Alpha28 cross-map travel waits for observed arrival when smart_move returns immediately', async () => {
+  let now = 80;
+  const root = {
+    parent: {},
+    character: { name: 'Leader', ctype: 'ranger', map: 'main', x: 0, y: 0, real_x: 0, real_y: 0 },
+    smart_move: () => {
+      setTimeout(() => {
+        now += 100;
+        root.character.map = 'cave';
+        root.character.x = 5;
+        root.character.y = 6;
+        root.character.real_x = 5;
+        root.character.real_y = 6;
+      }, 20);
+      return undefined;
+    },
+    stop: async () => true,
+    setTimeout,
+    clearTimeout
+  };
+  const safeTravel = {
+    plans: new Map(),
+    stats: {},
+    breaker: () => ({ open: false }),
+    plan(request) {
+      const row = { id: 'travel-immediate', state: 'PLANNED', target: request.destination, leaseExpiresAt: now + 5000 };
+      this.plans.set(row.id, row);
+      return { accepted: true, plan: { ...row } };
+    },
+    get(id) { const row = this.plans.get(id); return row ? { ...row } : null; },
+    observe(snapshot) {
+      const row = this.plans.get('travel-immediate');
+      if (row && snapshot && snapshot.character && snapshot.character.map === 'cave') row.state = 'COMPLETED';
+    },
+    cancel() {}
+  };
+  const adapter = {
+    mode: 'active',
+    getGameData: () => ({ maps: { main: {}, cave: {} }, monsters: { bat: {} } }),
+    command(action, args) {
+      if (action === 'smart_move') return { executed: true, value: root.smart_move(args[0]) };
+      if (action === 'stop') return { executed: true, value: root.stop(args[0]) };
+      return { executed: false, reason: 'UNAVAILABLE' };
+    }
+  };
+  const runtime = {
+    root,
+    now: () => now,
+    adapter,
+    world: { fact: () => ({ value: 'APPROVED' }) },
+    contentDrift: { requiresRevalidation: () => false },
+    safeTravel,
+    lastSnapshot: { character: { name: 'Leader', ctype: 'ranger', map: 'main', x: 0, y: 0 }, entities: [] },
+    progressionIntelligence: { stats: { promotions: 0 } },
+    localFarming: { _abort: () => true }
+  };
+  const state = shared(() => now);
+  const crossMap = new Alpha28CrossMapFarmerProgression(runtime, state);
+  crossMap.timeoutMs = 5000;
+  const objective = { id: 'x-immediate', leaderName: 'Leader', map: 'cave', monster: 'bat', x: 5, y: 6, expiresAt: now + 10000, crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel' };
+
+  assert.equal(await crossMap._execute(objective, runtime.lastSnapshot), true);
+  assert.equal(root.character.map, 'cave');
+  assert.equal(safeTravel.get('travel-immediate').state, 'COMPLETED');
+  assert.equal(state.stats.crossMapTravelFailedSafe, 0);
+});
+
 test('Alpha28 Brain Canary and Cloud are ON without direct executor authority', () => {
   const values = { 'brain.mode': 'shadow', 'cloud.enabled': false, 'runtime.brainAuditMs': 5000 };
   const controlPlane = { get: (key, fallback) => values[key] === undefined ? fallback : values[key] };
