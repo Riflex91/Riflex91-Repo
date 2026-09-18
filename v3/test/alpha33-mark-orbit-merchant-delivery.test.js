@@ -519,11 +519,18 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
   assert.ok(hotfix.stats.staleFarmerPositionsRejected >= 1);
 });
 
-test('Alpha33 capacity prep banks deferred items even when current Farmer pickup already fits', async () => {
-  const banked = [];
+// Live alpha.20.114 regression: one advertised pickup item with 30 free slots
+// must not trigger a broad BANK sweep before Farmer rendezvous. This assertion
+// also guards the final generated-bundle head used by pull-request CI.
+test('Alpha33 capacity prep performs no disposal when current Farmer pickup already fits', async () => {
+  const disposed = [];
+  let plannerCalls = 0;
   const merchant = {
-    planSellOrBank: () => null,
-    executeEconomyRequest: async (request) => { banked.push(request); return true; },
+    planSellOrBank: () => {
+      plannerCalls += 1;
+      return { type: 'BANK', index: 1, character: 'My_Merchant' };
+    },
+    executeEconomyRequest: async (request) => { disposed.push(request); return true; },
     planCompound: () => null
   };
   const root = {
@@ -539,7 +546,8 @@ test('Alpha33 capacity prep banks deferred items even when current Farmer pickup
       ],
       bank: { items0: Array(42).fill(null) }
     },
-    parent: { entities: {} }
+    parent: { entities: {} },
+    G: { items: { seashell: { type: 'material', s: 9999 } } }
   };
   const rows = [
     { character: 'My_Merchant', index: 0, name: 'hpot0', level: 0, q: 5000, disposition: 'KEEP' },
@@ -550,6 +558,7 @@ test('Alpha33 capacity prep banks deferred items even when current Farmer pickup
     now: () => 1000,
     log: quietLog(),
     root,
+    adapter: { getGameData: () => root.G },
     inventoryLedger: { list: () => rows },
     gearProgression: {
       list: () => [{
@@ -571,16 +580,14 @@ test('Alpha33 capacity prep banks deferred items even when current Farmer pickup
 
   const prepared = await hotfix._prepareCollectionCapacity(merchant, candidate);
 
-  assert.equal(prepared.ready, false, 'pickup already fits, but safe deferred bank work must still run');
-  assert.equal(banked.length, 1);
-  assert.equal(banked[0].type, 'BANK');
-  assert.equal(banked[0].index, 1);
-  assert.equal(banked[0].metadata.collectionCapacityPrep, true);
-  assert.equal(banked[0].metadata.originalDisposition, 'KEEP');
-  assert.equal(hotfix.stats.collectionCapacityDeferredBanks, 1);
-  assert.equal(hotfix._collectionDeferredBankRequest().index, 1, 'test fixture is unchanged until execution commits');
-  assert.equal(banked.some((row) => row.index === 0), false, 'operational potion stack must stay local');
-  assert.equal(banked.some((row) => row.index === 2), false, 'active Farmer gear goal must stay local for delivery');
+  assert.equal(prepared.plan.slotsToFree, 0);
+  assert.equal(prepared.ready, true);
+  assert.equal(prepared.acted, false);
+  assert.equal(plannerCalls, 0, 'ordinary SELL/BANK planner must not run for collection when no slot is needed');
+  assert.equal(disposed.length, 0, 'no inventory item may be banked or sold just to maximize empty space');
+  assert.equal(hotfix.stats.collectionCapacityDeferredBanks, 0);
+  assert.equal(hotfix.status().policies.merchantCollectionFreesOnlyRequiredSlotsBeforeDeparture, true);
+  assert.equal(hotfix.status().policies.collectionDeferredItemsBankedOnlyWhenRequiredForPickupCapacity, true);
 });
 
 test('Alpha33 collection capacity plan uses total Farmer pickup demand and stack headroom', () => {
@@ -779,10 +786,12 @@ test('Alpha33 bounded capacity preparation departs instead of deadlocking on rej
   assert.equal(hotfix.stats.collectionCapacityConstrainedDepartures, 1);
 });
 
-// Live alpha.20.104 regression: temporary zero pickup demand must not release a half-empty Merchant.
-test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merchant reserve slot remains', async () => {
+// Live alpha.20.114 regression: after the advertised pickup is drained, the
+// Merchant must not camp at Farmers waiting for future loot indefinitely.
+test('Alpha33 drained Farmer snapshot releases collection after bounded settle window', async () => {
   let now = 145000;
   let travelCalls = 0;
+  const releases = [];
   const merchant = {
     lastMerchantPlan: null,
     atomic: {
@@ -800,6 +809,13 @@ test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merc
     _trustedNames: () => ['My_Ranger1'],
     _send: async () => ({ delivered: true })
   };
+  const coordinator = {
+    heartbeat: () => true,
+    release(owner, key, reason, details) {
+      releases.push({ owner, key, reason, details });
+      return true;
+    }
+  };
   const root = {
     character: {
       name: 'My_Merchant', ctype: 'merchant', map: 'main', x: -1000, y: 1000,
@@ -812,11 +828,12 @@ test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merc
     now: () => now,
     log: quietLog(),
     root,
+    merchantTaskCoordinator: coordinator,
     controlledPartyLogistics: logistics,
     alpha27CombatMerchantConvergence: { merchant }
   };
   const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
-    farmerPositionFreshMs: 5000,
+    farmerPositionFreshMs: 10000,
     collectionSettleMs: 5000
   });
   hotfix._acceptFarmerState('My_Ranger1', {
@@ -829,11 +846,12 @@ test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merc
     pickupItems: []
   });
   hotfix.collectionRoute = {
-    id: 'collection-stay-until-full',
+    id: 'collection-drained-settle',
     startedAt: now - 30000,
     updatedAt: now - 10000,
-    lastProgressAt: now - 20000,
-    lastPickupQuantity: 0,
+    lastProgressAt: now - 1000,
+    lastPickupQuantity: 1,
+    drainedSince: null,
     stage: 'COLLECT',
     farmers: ['My_Ranger1'],
     targetMap: 'main',
@@ -841,28 +859,50 @@ test('Alpha33 drained Farmer snapshot keeps collection at Farmers until one Merc
     targetY: 1005
   };
 
-  const held = await hotfix._driveMerchantRendezvous(merchant);
-  assert.equal(held, true);
-  assert.ok(hotfix.collectionRoute, 'transient drained state must not end collection');
-  assert.equal(hotfix.collectionRoute.stage, 'COLLECT');
-  assert.equal(merchant.lastMerchantPlan.reason, 'WAITING_FOR_NEW_FARMER_LOOT_UNTIL_MERCHANT_FULL');
-  assert.equal(merchant.lastMerchantPlan.freeSlots, 2);
+  const first = await hotfix._driveMerchantRendezvous(merchant);
+  assert.equal(first, true);
+  assert.ok(hotfix.collectionRoute);
+  assert.equal(hotfix.collectionRoute.drainedSince, now);
+  assert.equal(merchant.lastMerchantPlan.reason, 'WAITING_FOR_FARMER_COLLECTION_SETTLE');
   assert.equal(travelCalls, 0);
-  assert.equal(hotfix.stats.collectionDrainedWaits, 1);
+  assert.equal(releases.length, 0);
 
-  root.character.items[2] = { name: 'loot1' };
-  now += 100;
+  now += 4999;
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1010,
+    y: 1005,
+    pickupItems: []
+  });
+  const beforeDeadline = await hotfix._driveMerchantRendezvous(merchant);
+  assert.equal(beforeDeadline, true);
+  assert.ok(hotfix.collectionRoute, 'settle window protects in-flight Farmer updates');
 
-  const full = await hotfix._driveMerchantRendezvous(merchant);
-  assert.equal(full, true);
+  now += 1;
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1010,
+    y: 1005,
+    pickupItems: []
+  });
+  const drained = await hotfix._driveMerchantRendezvous(merchant);
+  assert.equal(drained, true);
   assert.equal(hotfix.collectionRoute, null);
-  assert.equal(hotfix.lastMerchantRendezvous.result, 'MERCHANT_PICKUP_RESERVE_REACHED');
-  assert.equal(hotfix.lastMerchantRendezvous.details.occupied, 3);
-  assert.equal(hotfix.lastMerchantRendezvous.details.capacity, 4);
-  assert.equal(hotfix.lastMerchantRendezvous.details.freeSlots, 1);
-  assert.equal(hotfix.lastMerchantRendezvous.details.reserveSlots, 1);
-  assert.equal(hotfix.status().policies.transientFarmerDrainDoesNotEndCollection, true);
-  assert.equal(hotfix.status().policies.collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable, true);
+  assert.equal(hotfix.lastMerchantRendezvous.result, 'FARMER_PICKUP_DRAINED');
+  assert.equal(releases.length, 1);
+  assert.equal(releases[0].owner, 'RENDEZVOUS');
+  assert.equal(releases[0].key, 'rendezvous:farmer-collection');
+  assert.equal(releases[0].reason, 'FARMER_PICKUP_DRAINED');
+  assert.equal(hotfix.status().policies.farmerDrainEndsCollectionAfterSettleWindow, true);
+  assert.equal(hotfix.status().policies.collectionReturnsToEconomyAfterDrainedSettle, true);
+  assert.equal(hotfix.status().policies.transientFarmerDrainDoesNotEndCollection, false);
+  assert.equal(hotfix.status().policies.collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable, false);
 });
 
 test('Alpha33 critical party supply preempts an active collection route', async () => {

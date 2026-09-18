@@ -1362,6 +1362,21 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   async _prepareCollectionCapacity(merchant, candidate) {
     const plan = this._collectionCapacityPlan(candidate);
+
+    // Collection capacity prep is demand-driven. If the currently advertised
+    // Farmer pickup already fits (including the reserve slot), do not turn the
+    // rendezvous into an unrelated BANK/SELL sweep.
+    if (plan.slotsToFree <= 0) {
+      this.stats.collectionCapacityMaxSafePrepCompleted += 1;
+      return {
+        ready: true,
+        acted: false,
+        plan,
+        maximumSafeCapacityPrepared: true,
+        constrained: false
+      };
+    }
+
     const normal = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
     if (normal && ['SELL', 'BANK'].includes(String(normal.type || '')) && !this.collectionCapacityBlockedIndexes.has(Number(normal.index))) {
       const request = {
@@ -1415,6 +1430,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       updatedAt: now,
       lastProgressAt: now,
       lastPickupQuantity: candidate.pickupQuantity,
+      drainedSince: null,
       stage: 'PREPARE_CAPACITY',
       farmers: candidate.names.slice(),
       targetMap: candidate.map,
@@ -1496,6 +1512,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       ...suspended,
       updatedAt: now,
       lastProgressAt: now,
+      drainedSince: null,
       resumedAt: now,
       stage: suspended.stage === 'PREPARE_CAPACITY' ? 'TRAVEL_TO_FARMERS' : suspended.stage
     };
@@ -1573,10 +1590,9 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (!candidate) {
       this._requestFarmerStateRefresh();
 
-      // A transient "drained" snapshot is not a terminal collection state.
-      // Farmers continue farming and can produce new loot immediately after the
-      // settle window. Keep the collection task lock and stay/follow the known
-      // Farmer group until the Merchant is actually full.
+      // A fresh zero-pickup Farmer state means the advertised work is drained.
+      // Hold only for a short settle window so in-flight grants/status updates can
+      // arrive, then release the collection task back to economy/progression.
       const presence = this._collectionPresenceCandidate(route);
       if (presence) {
         const logistics = this.runtime.controlledPartyLogistics;
@@ -1589,15 +1605,32 @@ class Alpha33MarkOrbitMerchantDelivery {
           await this._travelToFreshCandidate(merchant, presence, true);
           return true;
         }
+
+        const now = this.now();
+        if (route.drainedSince == null) route.drainedSince = now;
+        const drainedForMs = Math.max(0, now - finite(route.drainedSince, now));
+        if (drainedForMs >= this.collectionSettleMs) {
+          return this._finishCollectionRoute('FARMER_PICKUP_DRAINED', {
+            workers: presence.names.slice(),
+            drainedForMs,
+            settleMs: this.collectionSettleMs,
+            freeSlots: pressure.freeSlots,
+            occupied: pressure.occupied,
+            capacity: pressure.capacity
+          });
+        }
+
         this.stats.collectionDrainedWaits += 1;
         route.stage = 'COLLECT';
-        route.updatedAt = this.now();
+        route.updatedAt = now;
         merchant.lastMerchantPlan = {
-          at: this.now(),
+          at: now,
           action: 'HOLD',
-          reason: 'WAITING_FOR_NEW_FARMER_LOOT_UNTIL_MERCHANT_FULL',
+          reason: 'WAITING_FOR_FARMER_COLLECTION_SETTLE',
           routeId: route.id,
           workers: presence.names.slice(),
+          drainedForMs,
+          settleMs: this.collectionSettleMs,
           freeSlots: pressure.freeSlots
         };
         return true;
@@ -1624,8 +1657,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       return true;
     }
 
-    if (candidate.pickupQuantity < route.lastPickupQuantity) {
-      route.lastProgressAt = this.now();
+    route.drainedSince = null;
+    if (candidate.pickupQuantity !== route.lastPickupQuantity) {
+      if (candidate.pickupQuantity < route.lastPickupQuantity) route.lastProgressAt = this.now();
       route.lastPickupQuantity = candidate.pickupQuantity;
     }
     route.updatedAt = this.now();
@@ -1795,14 +1829,18 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
         collectionRouteTaskLockedUntilTerminal: true,
-        transientFarmerDrainDoesNotEndCollection: true,
-        collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable: true,
+        transientFarmerDrainDoesNotEndCollection: false,
+        collectionReturnsToEconomyOnlyWhenInventoryFullOrFarmersExplicitlyUnavailable: false,
+        farmerDrainEndsCollectionAfterSettleWindow: true,
+        collectionReturnsToEconomyAfterDrainedSettle: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
         criticalPartySupplySuspendsAndResumesCollection: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
-        merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: true,
-        collectionDeferredItemsBankedBeforeDeparture: true,
+        merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: false,
+        collectionDeferredItemsBankedBeforeDeparture: false,
+        merchantCollectionFreesOnlyRequiredSlotsBeforeDeparture: true,
+        collectionDeferredItemsBankedOnlyWhenRequiredForPickupCapacity: true,
         operationalPotionsAndActiveFarmerGearGoalsStayLocal: true,
         merchantPickupReserveSlots: 1,
         merchantStopsCollectionWithOnePhysicalSlotFree: true,
