@@ -104,13 +104,14 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
 
 const bundler = await readFile(path.join(wurzel, 'werkzeuge/produktions-runtime-bauen.mjs'), 'utf8');
 for (const pflicht of [
-  "import { createHash } from 'node:crypto'",
   "import { execFile } from 'node:child_process'",
+  "import { createHash } from 'node:crypto'",
   "node_modules', 'typescript', 'bin', 'tsc'",
-  "type: 'commonjs'",
   "module: 'NodeNext'",
   "moduleResolution: 'NodeNext'",
-  'Temporärer CommonJS-tsc-Build fehlgeschlagen',
+  'strict: true',
+  'exactOptionalPropertyTypes: true',
+  'noEmitOnError: true',
   'Externer Runtime-Import ist nicht erlaubt',
   'Adventure Land AiO Bot V4 | generated | production runtime',
   'entry.installiereAdventureLandProduktionsLaufzeit',
