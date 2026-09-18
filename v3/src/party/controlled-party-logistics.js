@@ -95,7 +95,7 @@ class ControlledPartyLogistics {
       merchantPotionReserve: Math.max(100, Math.min(2000, Math.floor(finite(options.merchantPotionReserve, 300)))),
       maxSupplyBatch: Math.max(50, Math.min(1000, Math.floor(finite(options.maxSupplyBatch, 500)))),
       supplyRequestIntervalMs: Math.max(3000, finite(options.supplyRequestIntervalMs, 6000)),
-      transferIntervalMs: Math.max(700, finite(options.transferIntervalMs, 1400)),
+      transferIntervalMs: Math.max(250, finite(options.transferIntervalMs, 1400)),
       verifyDelayMs: Math.max(250, finite(options.verifyDelayMs, 700)),
       verifyTimeoutMs: Math.max(1500, finite(options.verifyTimeoutMs, 3500)),
       failureBackoffMs: Math.max(3000, finite(options.failureBackoffMs, 7000)),
