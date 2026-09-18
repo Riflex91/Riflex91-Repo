@@ -178,12 +178,10 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       if (!near) {
         const travelled = await this.namedServiceTravel(scrollName, tx);
         if (!travelled.ok) return travelled;
-        if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
-        if (!near) {
-          this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
-          this.stats.failedSafe += 1;
-          return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
-        }
+        // Adventure Land's can_buy() probe can remain false even after a
+        // verified arrival at the correct vendor. Trust controlled travel here
+        // and let the actual buy + inventory-delta verification be authoritative.
+        near = true;
       }
 
       const buy = rawFunction(this.root, 'buy');
