@@ -11048,7 +11048,7 @@ const CLASS_WEIGHTS = Object.freeze({
   rogue: { attack: 1.15, armor: 0.5, resistance: 0.45, hp: 0.02, dex: 0.95, crit: 0.55, evasion: 0.35, speed: 0.25, frequency: 0.45 },
   mage: { attack: 1.1, armor: 0.35, resistance: 0.75, hp: 0.02, mp: 0.025, int: 1.0, crit: 0.25, speed: 0.1, range: 0.1 },
   priest: { attack: 0.75, armor: 0.45, resistance: 1.0, hp: 0.04, mp: 0.03, int: 0.9, speed: 0.1, range: 0.08 },
-  merchant: { attack: 0.3, armor: 0.7, resistance: 0.7, hp: 0.04, str: 0.15, dex: 0.15, int: 0.15, speed: 0.3 }
+  merchant: { attack: 0.3, armor: 0.7, resistance: 0.7, hp: 0.04, str: 0.15, dex: 0.15, int: 0.15, speed: 10.0 }
 });
 
 const DEFAULT_WEIGHTS = Object.freeze({ attack: 1, armor: 0.7, resistance: 0.7, hp: 0.03, mp: 0.015, str: 0.35, dex: 0.35, int: 0.35, vit: 0.4, crit: 0.25, evasion: 0.2, speed: 0.15, range: 0.08, frequency: 0.3 });
@@ -11132,6 +11132,41 @@ function scoreItem(meta, level, ctype) {
   return { total, survival, stats };
 }
 
+function scoreImprovement(currentScore, targetScore, ctype, minImprovementRatio = 0) {
+  const current = currentScore || { total: 0, survival: 0, stats: {} };
+  const target = targetScore || { total: 0, survival: 0, stats: {} };
+  const improvement = finite(target.total, 0) - finite(current.total, 0);
+  const survivalImprovement = finite(target.survival, 0) - finite(current.survival, 0);
+  const currentSpeed = finite(current.stats && current.stats.speed, 0);
+  const targetSpeed = finite(target.stats && target.stats.speed, 0);
+  const speedImprovement = targetSpeed - currentSpeed;
+  const merchant = String(ctype || '').toLowerCase() === 'merchant';
+
+  // Merchant logistics are movement-bound. Speed is a lexicographic primary
+  // stat: any real speed gain is an upgrade even if it trades secondary stats,
+  // while a speed loss can never be justified by attack/armor/etc.
+  if (merchant && speedImprovement !== 0) {
+    return {
+      meaningful: speedImprovement > 0,
+      reason: speedImprovement > 0 ? 'MERCHANT_SPEED_GAIN' : 'MERCHANT_SPEED_LOSS_REJECTED',
+      improvement,
+      survivalImprovement,
+      speedImprovement
+    };
+  }
+
+  const threshold = finite(current.total, 0) <= 0
+    ? 0.001
+    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
+  return {
+    meaningful: improvement > threshold,
+    reason: improvement > threshold ? 'WEIGHTED_GEAR_IMPROVEMENT' : 'INSUFFICIENT_GEAR_IMPROVEMENT',
+    improvement,
+    survivalImprovement,
+    speedImprovement
+  };
+}
+
 class GearProgressionEvaluator {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -11186,10 +11221,10 @@ class GearProgressionEvaluator {
   _firstMeaningful(meta, observedLevel, currentScore, ctype) {
     const start = Math.max(0, observedLevel);
     const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
-    const threshold = currentScore.total <= 0 ? 0.001 : currentScore.total * (1 + this.minImprovementRatio);
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
-      if (score.total > threshold) return { level, score };
+      const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
+      if (delta.meaningful) return { level, score, delta };
     }
     return null;
   }
@@ -11288,9 +11323,10 @@ class GearProgressionEvaluator {
           const current = this._currentItem(character, slot, gameData);
           const meaningful = this._firstMeaningful(candidate.meta, levelOf(candidate.item), current.score, character.ctype);
           if (!meaningful) continue;
-          const improvement = meaningful.score.total - current.score.total;
-          const survivalImprovement = meaningful.score.survival - current.score.survival;
-          const row = { slot, current, meaningful, improvement, survivalImprovement };
+          const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
+          const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
+          const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
+          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement };
           if (String(character.ctype || '').toLowerCase() !== 'merchant'
             && meaningful.level > levelOf(candidate.item)
             && Number.isInteger(Number(candidate.item.index))) {
@@ -11314,7 +11350,15 @@ class GearProgressionEvaluator {
               this.futureFarmerProtection.set(protectionKey, protection);
             }
           }
-          if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
+          const merchantTarget = String(character.ctype || '').toLowerCase() === 'merchant';
+          const better = !best
+            || (merchantTarget
+              ? (row.speedImprovement > best.speedImprovement
+                || (row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
+                || (row.speedImprovement === best.speedImprovement && row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement))
+              : (row.improvement > best.improvement
+                || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)));
+          if (better) best = row;
         }
         if (!best) continue;
         const targetLevel = best.meaningful.level;
@@ -11338,9 +11382,12 @@ class GearProgressionEvaluator {
           targetScore: best.meaningful.score.total,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
+          speedImprovement: best.speedImprovement,
           projectedUpgradeRequired: targetLevel > levelOf(candidate.item),
           feasibility: targetLevel > levelOf(candidate.item) ? 'MATERIALS_AND_RISK_UNMODELED' : 'HELD_AND_READY_FOR_LATER_EXECUTOR',
-          priority: best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
+          priority: String(character.ctype || '').toLowerCase() === 'merchant' && best.speedImprovement > 0
+            ? 'MERCHANT_MOBILITY'
+            : best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
           actionAuthority: false,
           firstSeenAt: existing ? existing.firstSeenAt : now,
           lastSeenAt: now
@@ -11364,8 +11411,12 @@ class GearProgressionEvaluator {
     const usedTargetSlots = new Set();
     const ctypeByName = new Map(characters.filter(Boolean).map((row) => [String(row.name || ''), String(row.ctype || row.type || '').toLowerCase()]));
     const compareGoal = (a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id);
+    const compareMerchantGoal = (a, b) => finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0)
+      || b.improvement - a.improvement
+      || b.survivalImprovement - a.survivalImprovement
+      || a.id.localeCompare(b.id);
     const farmers = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').sort(compareGoal);
-    const merchants = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').sort(compareGoal);
+    const merchants = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').sort(compareMerchantGoal);
     const currentGoals = [];
 
     const take = (queue, limit) => {
@@ -11496,6 +11547,9 @@ class GearProgressionEvaluator {
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
       processedGearSellRequiresExplicitFutureSafety: true,
+      merchantPrimaryGearStat: 'speed',
+      merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
+      merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
@@ -11510,6 +11564,7 @@ module.exports = {
   CLASS_WEIGHTS,
   effectiveStats,
   scoreItem,
+  scoreImprovement,
   candidateSlots
 };
 
@@ -34758,7 +34813,7 @@ module.exports = { Alpha27BankRecovery, ALPHA27_BANK_RECOVERY_MODE };
 "src/merchant/merchant-production-planner.js": function(require,module,exports){
 'use strict';
 
-const { scoreItem, candidateSlots } = require('../economy/gear-progression');
+const { scoreItem, scoreImprovement, candidateSlots } = require('../economy/gear-progression');
 
 const MERCHANT_PRODUCTION_PLANNER_MODE = 'deterministic-merchant-production-planner';
 
@@ -34948,12 +35003,25 @@ class MerchantProductionPlanner {
         let best = null;
         for (const slot of slots) {
           const current = currentItem(character, slot, gameData);
-          const threshold = current.score.total <= 0 ? 0 : current.score.total * this.minImprovementRatio;
-          const improvement = target.total - current.score.total;
-          if (improvement <= Math.max(0.001, threshold)) continue;
-          const survivalImprovement = target.survival - current.score.survival;
-          const row = { slot, current, improvement, survivalImprovement };
-          if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
+          const delta = scoreImprovement(current.score, target, character.ctype, this.minImprovementRatio);
+          if (!delta.meaningful) continue;
+          const row = {
+            slot,
+            current,
+            improvement: delta.improvement,
+            survivalImprovement: delta.survivalImprovement,
+            speedImprovement: delta.speedImprovement,
+            improvementReason: delta.reason
+          };
+          const merchantTarget = String(character.ctype || '').toLowerCase() === 'merchant';
+          const better = !best
+            || (merchantTarget
+              ? (row.speedImprovement > best.speedImprovement
+                || (row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
+                || (row.speedImprovement === best.speedImprovement && row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement))
+              : (row.improvement > best.improvement
+                || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)));
+          if (better) best = row;
         }
         if (!best) continue;
         candidates.push({
@@ -34966,12 +35034,19 @@ class MerchantProductionPlanner {
           currentLevel: best.current.level,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
+          speedImprovement: best.speedImprovement,
+          improvementReason: best.improvementReason,
           targetRank: targetRank.has(output) ? targetRank.get(output) : Infinity
         });
       }
     }
     candidates.sort((a, b) => {
       if (a.targetRank !== b.targetRank) return a.targetRank - b.targetRank;
+      const aMerchant = String(a.ctype || '').toLowerCase() === 'merchant';
+      const bMerchant = String(b.ctype || '').toLowerCase() === 'merchant';
+      if (aMerchant && bMerchant && finite(a.speedImprovement, 0) !== finite(b.speedImprovement, 0)) {
+        return finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0);
+      }
       if ((a.survivalImprovement > 0) !== (b.survivalImprovement > 0)) return a.survivalImprovement > 0 ? -1 : 1;
       return b.improvement - a.improvement || b.survivalImprovement - a.survivalImprovement || a.output.localeCompare(b.output) || a.recipient.localeCompare(b.recipient);
     });
@@ -35507,7 +35582,7 @@ module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRO
 'use strict';
 
 const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, gradeForLevel } = require('./alpha27-utils');
-const { candidateSlots } = require('../economy/gear-progression');
+const { candidateSlots, effectiveStats } = require('../economy/gear-progression');
 
 const SELF_GEAR_MODE = 'alpha27-merchant-self-gear-v1';
 const TERMINAL_STAGES = new Set(['DONE', 'FAILED_SAFE']);
@@ -35543,7 +35618,8 @@ class MerchantSelfGear {
       fallbackEquips: 0,
       skippedNoFallback: 0,
       skippedNoWorkspace: 0,
-      failedSafe: 0
+      failedSafe: 0,
+      speedPrioritySelections: 0
     };
     this._load();
   }
@@ -35601,9 +35677,11 @@ class MerchantSelfGear {
       if (!item || excluded.has(Number(item.index)) || item.locked || item.l || item.special || item.p) continue;
       const meta = gd.items && gd.items[item.name];
       if (!meta || !compatible(meta, c.ctype) || !candidateSlots(meta).includes(slot)) continue;
-      rows.push({ index: item.index, name: item.name, level: levelOf(item) });
+      const level = levelOf(item);
+      const stats = effectiveStats(meta, level);
+      rows.push({ index: item.index, name: item.name, level, speed: finite(stats.speed, 0) });
     }
-    rows.sort((a, b) => b.level - a.level || a.name.localeCompare(b.name) || a.index - b.index);
+    rows.sort((a, b) => b.speed - a.speed || b.level - a.level || a.name.localeCompare(b.name) || a.index - b.index);
     return rows[0] || null;
   }
 
@@ -35650,14 +35728,25 @@ class MerchantSelfGear {
           continue;
         }
       }
+      const currentStats = effectiveStats(meta, level);
+      const nextStats = effectiveStats(meta, level + 1);
+      const speedGain = finite(nextStats.speed, 0) - finite(currentStats.speed, 0);
       rows.push({
         slot, type, name: equipped.name, level, fallback, budget,
         usesSpare,
+        speedGain,
+        currentSpeed: finite(currentStats.speed, 0),
         inventoryMatches: matches.slice(0, type === 'COMPOUND' ? 3 : 1)
       });
     }
-    rows.sort((a, b) => a.level - b.level || (a.type === 'COMPOUND' ? -1 : 1) || a.slot.localeCompare(b.slot));
-    return rows[0] || null;
+    rows.sort((a, b) => b.speedGain - a.speedGain
+      || b.currentSpeed - a.currentSpeed
+      || a.level - b.level
+      || (a.type === 'COMPOUND' ? -1 : 1)
+      || a.slot.localeCompare(b.slot));
+    const selected = rows[0] || null;
+    if (selected && selected.speedGain > 0) this.stats.speedPrioritySelections += 1;
+    return selected;
   }
 
   _reservationMatches(session, indices) {
@@ -35860,6 +35949,9 @@ class MerchantSelfGear {
       enabled: true,
       requiresFallbackBeforeRisk: true,
       spareFirst: true,
+      primaryStat: 'speed',
+      speedPriority: 'NEXT_LEVEL_SPEED_GAIN_FIRST',
+      fallbackSpeedFirst: true,
       session: clone(this.session),
       lastSession: clone(this.lastSession),
       stats: clone(this.stats)
