@@ -135,7 +135,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
-    this.collectionSettleMs = Math.max(3000, Math.min(20000, finite(options.collectionSettleMs, 7000)));
+    this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
     this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
     this.lastFarmerStateSentAt = -Infinity;
@@ -681,12 +681,17 @@ class Alpha33MarkOrbitMerchantDelivery {
       freshestAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
     })).sort((a, b) => b.pickupEntryCount - a.pickupEntryCount || b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
     const selected = groups[0];
-    const x = selected.rows.reduce((sum, row) => sum + Number(row.x), 0) / selected.rows.length;
-    const y = selected.rows.reduce((sum, row) => sum + Number(row.y), 0) / selected.rows.length;
+    const target = selected.rows.slice().sort((a, b) =>
+      Math.max(0, finite(b.pickupEntryCount, 0)) - Math.max(0, finite(a.pickupEntryCount, 0))
+      || Math.max(0, finite(b.pickupQuantity, 0)) - Math.max(0, finite(a.pickupQuantity, 0))
+      || Math.min(finite(b.at, 0), finite(b.sourceAt, 0)) - Math.min(finite(a.at, 0), finite(a.sourceAt, 0))
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    )[0];
     return {
       map: selected.map,
-      x,
-      y,
+      x: Number(target.x),
+      y: Number(target.y),
+      targetName: target.name || null,
       count: selected.rows.length,
       names: selected.rows.map((row) => row.name).filter(Boolean).sort(),
       rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
