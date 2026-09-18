@@ -94,6 +94,9 @@ function pickupItemsView(logistics, inventory, maxItems = 64) {
   const out = [];
   for (const item of Array.isArray(inventory) ? inventory : []) {
     if (!item || !item.name || out.length >= maxItems) continue;
+    try {
+      if (logistics && typeof logistics._lootBlocked === 'function' && logistics._lootBlocked(item)) continue;
+    } catch (_) {}
     let descriptor = null;
     try { descriptor = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null; } catch (_) {}
     if (!descriptor || descriptor.ok !== true) continue;
@@ -173,7 +176,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityBlockedActions: 0,
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
-      collectionFollowMoves: 0
+      collectionFollowMoves: 0,
+      collectionRoutesPreemptedForCriticalSupply: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -1007,9 +1011,30 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV3Installed) return false;
     const baseCycle = merchant.cycle.bind(merchant);
     merchant.cycle = async () => {
-      // Fresh collection work preempts ordinary progression/production. Once
-      // started, the collection route owns the global Merchant task lock until
-      // all transferable Farmer inventory is drained or Merchant inventory fills.
+      // Critical Farmer potion service must outrank collection. The live failure
+      // mode was a circular wait: collection held the global Merchant task lock,
+      // while the Rangers refused combat until that same Merchant delivered MP.
+      // Ask Alpha27's already-latched supply-chain owner first; if it has real
+      // RESTOCK/TRAVEL/DELIVERY work, release any collection lock and delegate.
+      let criticalSupplyPlan = null;
+      if (typeof merchant.criticalPartySupplyPlan === 'function') {
+        try { criticalSupplyPlan = merchant.criticalPartySupplyPlan(); } catch (_) { criticalSupplyPlan = null; }
+      }
+      const criticalSupplyKind = String(criticalSupplyPlan && criticalSupplyPlan.kind || '');
+      if (['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(criticalSupplyKind)) {
+        if (this.collectionRoute) {
+          this.stats.collectionRoutesPreemptedForCriticalSupply += 1;
+          this._finishCollectionRoute('CRITICAL_PARTY_SUPPLY_PREEMPT', {
+            serviceKind: criticalSupplyKind,
+            target: criticalSupplyPlan && criticalSupplyPlan.target && criticalSupplyPlan.target.name || null,
+            deliveries: criticalSupplyPlan && criticalSupplyPlan.deliveries || []
+          });
+        }
+        return baseCycle();
+      }
+
+      // Fresh collection work still preempts ordinary progression/production.
+      // It no longer preempts the critical party-supply service chain above.
       const candidate = this._merchantRendezvousCandidate();
       if (this.collectionRoute || candidate && candidate.pickupEntryCount > 0) {
         const handled = await this._driveMerchantRendezvous(merchant);
@@ -1052,6 +1077,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
         collectionRouteTaskLockedUntilTerminal: true,
+        criticalPartySupplyPreemptsCollectionRoute: true,
+        rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
