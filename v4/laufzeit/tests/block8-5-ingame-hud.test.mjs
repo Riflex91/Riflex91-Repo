@@ -180,7 +180,7 @@ test('Block 8.5.6: AnzeigeModell zeigt Charakter Runtime Gruppe Entscheidung Akt
   assert.equal(modell.charakterName, 'My_Ranger1');
   assert.equal(modell.recoveryStufe, 'normal');
   assert.deepEqual(
-    modell.abschnitte.map((eintrag) => eintrag.kennung),
+    Array.from(modell.abschnitte, (eintrag) => eintrag.kennung),
     ['charakter', 'runtime', 'gruppe', 'entscheidung', 'aktionen', 'checkpoint', 'meldung']
   );
 
