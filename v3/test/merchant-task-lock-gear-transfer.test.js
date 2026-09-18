@@ -8,6 +8,7 @@ const { InventoryLedger, ItemDisposition } = require('../src/economy/inventory-l
 const { GearProgressionEvaluator } = require('../src/economy/gear-progression');
 const { ControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
 const { FarmerController, FarmerState } = require('../src/farmer/farmer-fsm');
+const { Alpha27MerchantAutonomy } = require('../src/reliability/alpha27-merchant-autonomy');
 
 test('Merchant task coordinator is non-preemptive across subsystem owners', () => {
   let now = 1000;
@@ -27,6 +28,66 @@ test('Merchant task coordinator is non-preemptive across subsystem owners', () =
   assert.equal(coordinator.release('ALPHA27', 'alpha27:progression-batch', 'PROGRESSION_BATCH_DRAINED'), true);
   const second = coordinator.acquire('PRODUCTION', 'EXCHANGE_BATCH', 'production:exchange:seashell:elixirdex0');
   assert.equal(second.acquired, true);
+});
+
+test('rejected progression work releases the Merchant batch lease instead of pinning Production', async () => {
+  const coordinator = new MerchantTaskCoordinator({ now: () => 1000, defaultLeaseMs: 600000 });
+  assert.equal(coordinator.acquire('ALPHA27', 'PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' }).acquired, true);
+
+  const merchant = Object.create(Alpha27MerchantAutonomy.prototype);
+  merchant.stats = { autonomousMerchantCycles: 0, autonomousMerchantHolds: 0 };
+  merchant.now = () => 1000;
+  merchant.taskCoordinator = coordinator;
+  merchant.runtime = {};
+  merchant.atomic = {
+    merchantActive: () => true,
+    supervisorAllowed: () => true,
+    merchantInCombat: () => false,
+    serviceTravelBusy: false,
+    merchantBusy: false
+  };
+  merchant.ensureAutonomousAuthorities = () => {};
+  merchant.reconcileRecovering = () => false;
+  merchant.activeTransaction = () => null;
+  merchant.criticalPartySupplyPlan = () => null;
+  merchant.restockPartyPotions = async () => false;
+  merchant.progressOrDeliverFarmerGear = async () => false;
+  merchant.transactionFamilyOpen = () => false;
+  merchant.planCompound = () => ({ type: 'COMPOUND', character: 'Merchant', indices: [1, 2, 3] });
+  merchant.planUpgrade = () => null;
+  merchant.executeEconomyRequest = async () => false;
+  merchant.selfGear = null;
+  merchant._updateCollectionSession = () => ({ active: false });
+  merchant.planSellOrBank = () => null;
+  merchant.bankRecovery = null;
+  merchant._event = () => {};
+
+  const acted = await merchant.cycle();
+  assert.equal(acted, false);
+  assert.equal(coordinator.current(), null);
+  assert.equal(merchant.stats.progressionTaskNoProgressReleases, 1);
+
+  const production = coordinator.acquire('PRODUCTION', 'EXCHANGE_BATCH', 'production:exchange:seashell:elixirdex0');
+  assert.equal(production.acquired, true);
+});
+
+test('gear finalization HOLD is reported as no progress so the global progression lease may drain', async () => {
+  const merchant = Object.create(Alpha27MerchantAutonomy.prototype);
+  merchant.stats = { autonomousMerchantHolds: 0 };
+  merchant.now = () => 1000;
+  merchant.planGearDeliveryFinalization = () => ({
+    state: 'HOLD',
+    reason: 'GEAR_FINALIZATION_UPGRADE_LEDGER_PENDING',
+    targetLevel: 5,
+    candidate: {
+      goal: { character: 'My_Ranger1', slot: 'offhand' },
+      item: { name: 'quiver', level: 4, index: 7 }
+    }
+  });
+  merchant.deliverGearGoal = async () => { throw new Error('HOLD must not deliver'); };
+
+  assert.equal(await merchant.progressOrDeliverFarmerGear(), false);
+  assert.equal(merchant.lastMerchantPlan.reason, 'GEAR_FINALIZATION_UPGRADE_LEDGER_PENDING');
 });
 
 test('Inventory ledger reserves only the exact physical gear-goal item', () => {

@@ -91,7 +91,7 @@ test('ranged classes use near-maximum engagement and kiting range', () => {
   assert.equal(s.rangedEngagementRangeEvaluations, 1);
 });
 
-test('non-aggro ranger repositions outward and continues the firing pipeline in the same cycle', () => {
+test('non-aggro ranger holds position and leaves movement to the normal range-closing pipeline', () => {
   const commands = [];
   let baseEngages = 0;
   const farmer = {
@@ -110,11 +110,10 @@ test('non-aggro ranger repositions outward and continues the firing pipeline in 
   const context = { snapshot: { character, party: [{ name: 'My_Ranger1', ctype: 'ranger' }], entities: [target] }, adapter: { command: (name, args) => { commands.push({ name, args }); return { executed: true }; } } };
   const result = farmer._engage(context, target);
   assert.equal(result, 'base');
-  assert.equal(commands.length, 1);
-  assert.equal(commands[0].name, 'move');
+  assert.equal(commands.length, 0);
   assert.equal(baseEngages, 1);
   assert.equal(farmer.lastActionAt, 0);
-  assert.equal(s.rangedFirePositionMoves, 1);
+  assert.equal(s.rangedFirePositionMoves, 0);
 });
 
 test('kite-capable ranged tank can accept bounded extra aggro but content safety remains absolute', () => {

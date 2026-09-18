@@ -43,7 +43,7 @@ test('aggro holder uses a tangential safe orbit instead of standing still in the
   assert.equal(decision.alpha31SafeOrbit, true);
   const afterDistance = Math.hypot(decision.x - target.x, decision.y - target.y);
   assert.ok(afterDistance > decision.safeEnemyDistance);
-  assert.ok(afterDistance <= character.range * 0.92 + 0.01);
+  assert.ok(afterDistance <= character.range * 0.82 + 0.01);
   assert.ok(Math.abs(decision.y) > 1, 'orbit step should be tangential, not only radial');
 });
 

@@ -38,7 +38,7 @@ class TeamCombatCohesionHotfix {
     this.requiredCombatMembers = Math.max(2, Math.min(3, Number(options.requiredCombatMembers) || 3));
     this.cohesionRadius = Math.max(90, Math.min(220, Number(options.cohesionRadius) || 150));
     this.followRadius = Math.max(45, Math.min(this.cohesionRadius - 15, Number(options.followRadius) || 85));
-    this.kiteFormationRadius = Math.max(this.followRadius, Math.min(this.cohesionRadius, Number(options.kiteFormationRadius) || 125));
+    this.kiteFormationRadius = Math.max(this.followRadius, Math.min(this.cohesionRadius, Number(options.kiteFormationRadius) || 100));
     this.followStep = Math.max(25, Math.min(100, Number(options.followStep) || 70));
     this.followCooldownMs = Math.max(500, Number(options.followCooldownMs) || 850);
     this.minNewFightHpRatio = Math.max(0.65, Math.min(0.99, Number(options.minNewFightHpRatio) || 0.90));
@@ -63,7 +63,10 @@ class TeamCombatCohesionHotfix {
       leaderHolds: 0,
       kiteCohesionBlocks: 0,
       localFarmFollowerSuppressed: 0,
-      localFarmLeaderWaits: 0
+      localFarmLeaderWaits: 0,
+      combatFormationHolds: 0,
+      hardKiteTetherBlocks: 0,
+      hardKiteTetherRecoveryMoves: 0
     };
     this.installed = false;
     this._tuneKiting();
@@ -341,8 +344,52 @@ class TeamCombatCohesionHotfix {
     return null;
   }
 
+  _activeTeamCombat(context, team) {
+    const snapshot = context && context.snapshot || this.runtime.lastSnapshot;
+    if (!snapshot || !team) return null;
+    const names = new Set(Array.isArray(team.names) ? team.names.map(String) : []);
+    const targetIds = new Set((Array.isArray(team.members) ? team.members : [])
+      .map((member) => member && member.target != null ? String(member.target) : null)
+      .filter(Boolean));
+    return (snapshot.entities || []).find((entity) => entity
+      && entity.mtype
+      && !entity.dead
+      && !entity.rip
+      && (entity.hp == null || Number(entity.hp) > 0)
+      && (
+        (entity.target != null && names.has(String(entity.target)))
+        || (entity.id != null && targetIds.has(String(entity.id)))
+      )) || null;
+  }
+
+  _isActiveTeamCombatTarget(context, team, target) {
+    if (!target || target.dead || target.rip || (target.hp != null && Number(target.hp) <= 0)) return false;
+    const names = new Set(Array.isArray(team && team.names) ? team.names.map(String) : []);
+    if (target.target != null && names.has(String(target.target))) return this._candidateAllowed(context, target);
+    const id = target.id == null ? null : String(target.id);
+    if (!id) return false;
+    const targetedByParty = (Array.isArray(team && team.members) ? team.members : [])
+      .some((member) => member && member.target != null && String(member.target) === id);
+    return targetedByParty && this._candidateAllowed(context, target);
+  }
+
   _followLeader(context, team, reason) {
     if (!team || !team.self || !team.leader || team.selfName === team.leaderName) return false;
+    const activeCombat = this._activeTeamCombat(context, team);
+    if (activeCombat) {
+      this.stats.combatFormationHolds += 1;
+      this.lastDecision = {
+        at: this.now(),
+        action: 'FORMATION_HOLD',
+        reason: 'ACTIVE_COMBAT_POSITION_OWNED_BY_COMBAT',
+        requestedReason: reason || null,
+        leaderName: team.leaderName,
+        targetId: activeCombat.id == null ? null : String(activeCombat.id),
+        aggroOwner: activeCombat.target == null ? null : String(activeCombat.target),
+        distance: distance(team.self, team.leader)
+      };
+      return true;
+    }
     if (this.now() - this.lastFormationMoveAt < this.followCooldownMs) return true;
     const waypoint = this._followWaypoint(team.self, team.leader);
     if (!waypoint) {
@@ -367,13 +414,19 @@ class TeamCombatCohesionHotfix {
     const supply = this._localSupply(snapshot);
     if (!supply.ready) return { allowed: false, team, reason: 'LOCAL_POTION_SUPPLY_INCOMPLETE' };
     if (!team.complete || !team.alive || !team.sameMap || !team.positionsKnown) return { allowed: false, team, reason: 'TEAM_NOT_READY' };
-    if (!team.cohesive) return { allowed: false, team, reason: 'TEAM_NOT_COHESIVE' };
+    const activeTeamCombatTarget = this._isActiveTeamCombatTarget(context, team, target);
+    if (!team.cohesive && !activeTeamCombatTarget) return { allowed: false, team, reason: 'TEAM_NOT_COHESIVE' };
     if (team.selfName !== team.leaderName) {
       const matchesLeader = !!(team.leaderTargetId && target && String(target.id) === String(team.leaderTargetId));
       const sharedAggro = this._isSharedAggroTarget(context, team, target);
-      if (!matchesLeader && !sharedAggro) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
+      if (!matchesLeader && !sharedAggro && !activeTeamCombatTarget) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
     }
-    return { allowed: true, team, reason: null, phase };
+    return {
+      allowed: true,
+      team,
+      reason: activeTeamCombatTarget && !team.cohesive ? 'ACTIVE_TEAM_COMBAT_CONTINUES_OUTSIDE_COHESION' : null,
+      phase
+    };
   }
 
   _installCombatMovementGates() {
@@ -469,13 +522,30 @@ class TeamCombatCohesionHotfix {
       const team = snapshot && snapshot.character ? this._team(snapshot) : null;
       if (!team || !team.complete || !team.positionsKnown || !team.self) return decision;
       const proposed = { x: decision.x, y: decision.y };
-      const tooFar = team.members.some((member) => member.name !== team.selfName && distance(proposed, member) > this.kiteFormationRadius);
-      if (tooFar) {
+      const peers = team.members.filter((member) => member.name !== team.selfName);
+      const currentMax = peers.reduce((max, member) => Math.max(max, distance(team.self, member)), 0);
+      const proposedMax = peers.reduce((max, member) => Math.max(max, distance(proposed, member)), 0);
+      const outsideHardTether = proposedMax > this.kiteFormationRadius;
+      const recoveryMove = outsideHardTether
+        && Number.isFinite(currentMax)
+        && proposedMax + 0.5 < currentMax;
+      if (outsideHardTether && !recoveryMove) {
         this.stats.kiteCohesionBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'KITE_HOLD', reason: 'TEAM_COHESION_KITE_LIMIT', targetId: target && target.id || null, leaderName: team.leaderName };
-        return { ...decision, shouldMove: false, reason: 'TEAM_COHESION_KITE_LIMIT', teamCohesionBlocked: true };
+        this.stats.hardKiteTetherBlocks += 1;
+        this.lastDecision = {
+          at: this.now(),
+          action: 'KITE_HOLD',
+          reason: 'TEAM_COHESION_KITE_LIMIT',
+          targetId: target && target.id || null,
+          leaderName: team.leaderName,
+          currentMaxDistance: Number.isFinite(currentMax) ? currentMax : null,
+          proposedMaxDistance: Number.isFinite(proposedMax) ? proposedMax : null,
+          kiteFormationRadius: this.kiteFormationRadius
+        };
+        return { ...decision, shouldMove: false, reason: 'TEAM_COHESION_KITE_LIMIT', teamCohesionBlocked: true, hardTeamTether: true };
       }
-      return decision;
+      if (recoveryMove) this.stats.hardKiteTetherRecoveryMoves += 1;
+      return { ...decision, hardTeamTether: true, hardTeamTetherRecoveryMove: recoveryMove };
     };
     kiting.__teamCohesionGuardInstalled = true;
   }
@@ -494,7 +564,10 @@ class TeamCombatCohesionHotfix {
         sharedAggroBecomesTeamTarget: true,
         existingSafetyStillRequired: true,
         emergencyRetreatStillHasPriority: true,
-        merchantExcluded: true
+        merchantExcluded: true,
+        hardKiteTeamTether: true,
+        formationMovementSuppressedDuringActiveSharedCombat: true,
+        sharedAggroCombatMayContinueOutsideCohesionRadius: true
       },
       team: team ? {
         names: team.names,

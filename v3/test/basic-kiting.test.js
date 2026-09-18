@@ -70,6 +70,14 @@ test('BasicKitingPolicy does not reposition a target focused on somebody else', 
   assert.equal(result.reason, 'TARGET_FOCUSED_ELSEWHERE');
 });
 
+test('BasicKitingPolicy does not kite an uncommitted target without active self aggro', () => {
+  const policy = new BasicKitingPolicy();
+  const result = policy.evaluate(character(), monster({ x: 20, target: null }));
+  assert.equal(result.shouldMove, false);
+  assert.equal(result.reason, 'NO_ACTIVE_SELF_AGGRO');
+});
+
+
 test('KitingFarmer requests a move and keeps attacking when the target is too close', () => {
   let now = 10000;
   const commands = [];

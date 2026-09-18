@@ -11,6 +11,7 @@ const {
 function stats() {
   return {
     kitingCohesionBypasses: 0,
+    activeAggroKiteTetherHolds: 0,
     nonAggroOutwardMovesBlocked: 0,
     merchantTargetOnlyCombatHoldsPrevented: 0,
     goldLootObservations: 0,
@@ -21,20 +22,22 @@ function stats() {
   };
 }
 
-test('active self-aggro restores a kite blocked only by soft team cohesion', () => {
+test('active self-aggro cannot bypass the hard team kite tether', () => {
   const s = stats();
   const runtime = {
-    farmer: { kiting: { evaluate: () => ({ shouldMove:false, reason:'TEAM_COHESION_KITE_LIMIT', x:20, y:30, teamCohesionBlocked:true }) } },
+    farmer: { kiting: { evaluate: () => ({ shouldMove:false, reason:'TEAM_COHESION_KITE_LIMIT', x:20, y:30, teamCohesionBlocked:true, hardTeamTether:true }) } },
     lastSnapshot: { character:{ name:'My_Ranger1' }, entities:[] }
   };
   installActiveAggroKiteCohesionBypass(runtime, s);
   const ownAggro = runtime.farmer.kiting.evaluate({ name:'My_Ranger1' }, { id:'m1', mtype:'tortoise', hp:100, target:'My_Ranger1' });
-  assert.equal(ownAggro.shouldMove, true);
-  assert.equal(ownAggro.reason, 'ACTIVE_AGGRO_KITE_COHESION_BYPASS');
-  assert.equal(ownAggro.x, 20);
-  assert.equal(s.kitingCohesionBypasses, 1);
+  assert.equal(ownAggro.shouldMove, false);
+  assert.equal(ownAggro.reason, 'TEAM_COHESION_KITE_LIMIT');
+  assert.equal(ownAggro.hardTeamTether, true);
+  assert.equal(s.kitingCohesionBypasses, 0);
+  assert.equal(s.activeAggroKiteTetherHolds, 1);
   const otherAggro = runtime.farmer.kiting.evaluate({ name:'My_Ranger1' }, { id:'m2', mtype:'tortoise', hp:100, target:'My_Ranger2' });
   assert.equal(otherAggro.shouldMove, false);
+  assert.equal(s.activeAggroKiteTetherHolds, 1);
 });
 
 test('supporter outward move is blocked without self aggro but combat falls through', () => {
