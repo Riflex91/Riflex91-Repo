@@ -104,6 +104,11 @@ class ControlledPartyBootstrap {
       failures: 0,
       foreignPartyBlocks: 0,
       leaderWarnings: 0,
+      leaderRepairAttempts: 0,
+      leaderRepairLeaves: 0,
+      leaderRepairVerified: 0,
+      leaderRepairFailures: 0,
+      leaderRepairWaits: 0,
       activeLimitBlocks: 0,
       breakerOpens: 0,
       cancels: 0,
@@ -126,18 +131,38 @@ class ControlledPartyBootstrap {
     return this.desiredRoster.slice();
   }
 
+  _partyListNames() {
+    const parent = this.root && (this.root.parent || this.root);
+    const list = parent && parent.party_list;
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const value of list) {
+      const name = cleanName(value);
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      out.push(name);
+    }
+    return out;
+  }
+
   _partyNames() {
     const parent = this.root && (this.root.parent || this.root);
-    const names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
+    let names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
     const local = cleanName(this._character() && this._character().name);
-    if (local && !names.includes(local)) names.push(local);
+    const listed = this._partyListNames();
+    // party_list is authoritative for local membership during leader repair.
+    // parent.party can lag briefly after leave_party(), so remove a stale local
+    // row when the observable list already confirms that the character left.
+    if (local && listed.length && !listed.includes(local)) names = names.filter((name) => name !== local);
+    // Adventure Land can otherwise omit the local character from parent.party.
+    if (local && !names.includes(local) && (!listed.length || listed.includes(local))) names.push(local);
     return uniqueNames(names);
   }
 
   _observableLeader() {
-    const parent = this.root && (this.root.parent || this.root);
-    const list = parent && parent.party_list;
-    return Array.isArray(list) && list.length ? cleanName(list[0]) : null;
+    const listed = this._partyListNames();
+    return listed.length ? listed[0] : null;
   }
 
   _activeSnapshot() {
@@ -423,6 +448,81 @@ class ControlledPartyBootstrap {
     return this.lastResult;
   }
 
+  _leaderRepairKey(name) {
+    return `leader:${cleanName(name) || 'unknown'}`;
+  }
+
+  async _repairNonMerchantLeader(observation, generation) {
+    this._assertGeneration(generation);
+    const local = cleanName(this._character() && this._character().name);
+    const leader = cleanName(observation && observation.leader);
+    if (!local || !leader || leader === this.merchantName || local !== leader) {
+      throw new Error('PARTY_LEADER_REPAIR_AUTHORITY_MISMATCH');
+    }
+    if (!this.adapter || typeof this.adapter.command !== 'function') throw new Error('GAME_ADAPTER_UNAVAILABLE');
+    if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('leave_party')) {
+      throw new Error('LEAVE_PARTY_UNAVAILABLE');
+    }
+
+    this.stats.leaderRepairAttempts += 1;
+    this._setState('REPAIRING', `LEAVING_NON_MERCHANT_PARTY_LEADER_${local}`, false);
+    const command = this.adapter.command('leave_party', []);
+    if (!command.executed) {
+      throw new Error(command.reason || (command.shadow ? 'ACTIVE_MODE_REQUIRED_FOR_LEADER_REPAIR' : 'LEAVE_PARTY_UNAVAILABLE'));
+    }
+    await Promise.resolve(command.value);
+    this.stats.leaderRepairLeaves += 1;
+    this._setState('VERIFYING', `VERIFYING_PARTY_LEADER_RELEASE_${local}`, false);
+    await this._waitUntil(
+      () => !this._partyListNames().includes(local),
+      this.verifyTimeoutMs,
+      generation,
+      `PARTY_LEADER_REPAIR_VERIFY_TIMEOUT:${local}`
+    );
+
+    this.stats.leaderRepairVerified += 1;
+    const key = this._leaderRepairKey(local);
+    this.attempts.delete(key);
+    this.nextAttemptAt.delete(key);
+    this.lastResult = {
+      ok: true,
+      action: 'LEAVE_FOR_MERCHANT_LEADERSHIP',
+      leader: local,
+      merchantName: this.merchantName,
+      at: this.now()
+    };
+    this._event('PARTY_LEADER_REPAIR_LEAVE_VERIFIED', 'info', 'MERCHANT_LEADERSHIP_REPAIR_PROGRESS', {
+      leader: local,
+      merchantName: this.merchantName
+    });
+    return this.lastResult;
+  }
+
+  _noteLeaderRepairFailure(leader, error) {
+    const key = this._leaderRepairKey(leader);
+    const attempts = (this.attempts.get(key) || 0) + 1;
+    this.attempts.set(key, attempts);
+    this.stats.failures += 1;
+    this.stats.leaderRepairFailures += 1;
+    const message = String(error && error.message || error || 'PARTY_LEADER_REPAIR_FAILED').slice(0, 240);
+    if (attempts >= this.maxAttempts) {
+      this.breakerUntil = this.now() + this.breakerMs;
+      this.stats.breakerOpens += 1;
+      this._setState('BLOCKED', 'PARTY_LEADER_REPAIR_CIRCUIT_OPEN', false);
+    } else {
+      const delay = Math.min(this.retryMaxMs, this.retryBaseMs * Math.pow(2, attempts - 1));
+      this.nextAttemptAt.set(key, this.now() + delay);
+      this._setState('BACKOFF', `RETRY_PARTY_LEADER_REPAIR_${leader}`, false);
+    }
+    this.lastResult = { ok: false, action: 'LEADER_REPAIR', leader, attempts, message, at: this.now() };
+    this._event('PARTY_LEADER_REPAIR_FAILED', 'warn', message, {
+      leader,
+      merchantName: this.merchantName,
+      attempts,
+      breakerUntil: this.breakerUntil || null
+    });
+  }
+
   _noteFailure(target, error) {
     const attempts = (this.attempts.get(target) || 0) + 1;
     this.attempts.set(target, attempts);
@@ -456,6 +556,9 @@ class ControlledPartyBootstrap {
     }
     if (observation.foreignPartyNames.length) {
       return { allowed: false, reason: 'FOREIGN_PARTY_MEMBER_PRESENT', full: observation.full };
+    }
+    if (observation.leaderWrong) {
+      return { allowed: false, reason: 'NON_MERCHANT_PARTY_LEADER_REPAIR_REQUIRED', full: observation.full };
     }
     if (observation.full) {
       return { allowed: true, reason: 'FULL_TRUSTED_PARTY', full: true };
@@ -492,14 +595,50 @@ class ControlledPartyBootstrap {
       this._setState('BLOCKED', 'FOREIGN_OR_INACTIVE_PARTY_MEMBER_PRESENT', false);
       return this.status();
     }
+    if (observation.leaderWrong) {
+      this.stats.leaderWarnings += 1;
+      const leader = observation.leader;
+      const repairKey = this._leaderRepairKey(leader);
+
+      if (this.breakerUntil > this.now()) {
+        this._setState('BLOCKED', 'PARTY_LEADER_REPAIR_CIRCUIT_OPEN', false);
+        return this.status();
+      }
+      if (this.breakerUntil && this.breakerUntil <= this.now()) {
+        this.breakerUntil = 0;
+        this.attempts.clear();
+      }
+      if (observation.local !== leader) {
+        this.stats.leaderRepairWaits += 1;
+        this._setState('REPAIRING', `WAITING_FOR_CURRENT_PARTY_LEADER_${leader}`, false);
+        return this.status();
+      }
+      if (!this.adapter || this.adapter.mode !== 'active') {
+        this._setState('PARTIAL', 'ACTIVE_MODE_REQUIRED_FOR_LEADER_REPAIR', false);
+        return this.status();
+      }
+      if (this.inFlight) return this.status();
+      const nextAttemptAt = this.nextAttemptAt.get(repairKey) || 0;
+      if (this.now() < nextAttemptAt) {
+        this._setState('BACKOFF', `RETRY_PARTY_LEADER_REPAIR_${leader}`, false);
+        return this.status();
+      }
+
+      const generation = this.generation;
+      this._setState('REPAIRING', `LEAVING_NON_MERCHANT_PARTY_LEADER_${leader}`, false);
+      this.inFlight = Promise.resolve()
+        .then(() => this._repairNonMerchantLeader(observation, generation))
+        .catch((error) => {
+          if (String(error && error.message || error) === 'PARTY_BOOTSTRAP_CANCELLED') return;
+          this._noteLeaderRepairFailure(leader, error);
+        })
+        .finally(() => { this.inFlight = null; });
+      return this.status();
+    }
+
     if (observation.full) {
-      if (observation.leaderWrong) this.stats.leaderWarnings += 1;
       this.stats.noops += 1;
-      this._setState(
-        'READY',
-        observation.leaderWrong ? 'FULL_TRUSTED_PARTY_NON_MERCHANT_LEADER' : 'FULL_PARTY_VERIFIED',
-        true
-      );
+      this._setState('READY', 'FULL_PARTY_VERIFIED', true);
       return this.status();
     }
 
@@ -569,6 +708,10 @@ class ControlledPartyBootstrap {
       actionAuthority: this.active
         && this.runtime && this.runtime.adapter && this.runtime.adapter.mode === 'active'
         && this.lastObserved && this.lastObserved.local === this.merchantName,
+      leaderRepairAuthority: this.active
+        && this.adapter && this.adapter.mode === 'active'
+        && this.lastObserved && this.lastObserved.leaderWrong === true
+        && this.lastObserved.local === this.lastObserved.leader,
       inFlight: !!this.inFlight,
       breakerUntil: this.breakerUntil || null,
       breakerRemainingMs: Math.max(0, this.breakerUntil - this.now()),

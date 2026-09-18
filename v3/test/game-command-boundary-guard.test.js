@@ -14,6 +14,7 @@ test('guard rejects direct Adventure Land mutations and raw binding aliases', ()
     parent['send_gold']('MerchantA', 1000);
     const invite = this._function('send_party_invite');
     const cm = fn(this, 'send_cm');
+    parent.leave_party();
     const player = fn(this, 'get_player');
     smart_move({ map: 'main', x: 1, y: 2 });
   `;
@@ -25,6 +26,7 @@ test('guard rejects direct Adventure Land mutations and raw binding aliases', ()
       ['send_gold', 'raw-element'],
       ['send_party_invite', 'raw-binding-helper'],
       ['send_cm', 'raw-binding-helper'],
+      ['leave_party', 'raw-property'],
       ['smart_move', 'raw-global-call']
     ]
   );
@@ -35,6 +37,7 @@ test('guard accepts adapter command routing', () => {
     adapter.command('sell', [2, 1]);
     adapter.command('send_gold', ['MerchantA', 1000]);
     adapter.command('send_party_invite', ['RangerA']);
+    adapter.command('leave_party', []);
     adapter.command('smart_move', [{ map: 'main', x: 1, y: 2 }]);
   `;
   assert.deepEqual(findViolations(source, 'fixture.js'), []);

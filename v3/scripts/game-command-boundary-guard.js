@@ -25,6 +25,7 @@ const PROTECTED_MUTATION_APIS = Object.freeze([
   'stop_character',
   'send_party_invite',
   'accept_party_invite',
+  'leave_party',
   'send_cm',
   'command_character'
 ]);
