@@ -182,6 +182,7 @@ test('Merchant keeps the last-slot grant reserved until recipient inventory obse
   assert.equal(capacity.acceptingLoot, false);
 });
 
+// Live alpha.20.105 regression: identical concurrent grants must not share one Merchant recipient baseline.
 test('Merchant serializes concurrent grants for the same item identity until recipient settlement', () => {
   const { runtime, root, clock } = makeRuntime('My_Merchant', 'merchant');
   root.G = { items: { hpbelt: { type: 'belt', upgrade: { armor: 1 } }, mpot0: { type: 'pot' } } };
