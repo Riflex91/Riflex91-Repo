@@ -130,6 +130,84 @@ test('Merchant accepts item loot until the last slot is consumed, then emits ful
   assert.equal(logistics._merchantCapacity(full).stopReason, 'OKAY_STOP_MERCHANT_INVENTORY_FULL');
 });
 
+test('Merchant keeps the last-slot grant reserved until recipient inventory observes the Farmer item', () => {
+  const { runtime, root, clock } = makeRuntime('My_Merchant', 'merchant');
+  root.G = { items: { hpbelt: { type: 'belt', upgrade: { armor: 1 } }, mpot0: { type: 'pot' } } };
+  root.character.isize = 2;
+  root.character.items = [{ index: 0, name: 'mpot0', q: 5000 }, null];
+  runtime.adapter.snapshot = () => ({
+    character: { ...root.character, inventory: root.character.items },
+    entities: []
+  });
+  const logistics = new ControlledPartyLogistics(runtime, { recipientSettleTimeoutMs: 6000 });
+  logistics._send = () => Promise.resolve({ delivered: true });
+
+  assert.equal(logistics._handleLootOffer('My_Ranger1', {
+    offerId: 'offer-last-slot',
+    quantity: 1,
+    item: { name: 'hpbelt', level: 0, q: 1, index: 7 },
+    map: 'main',
+    x: 20,
+    y: 0
+  }), true);
+  const grant = [...logistics.activeLootGrants.values()][0];
+  assert.ok(grant);
+  assert.equal(logistics._merchantCapacity(runtime.adapter.snapshot()).effectiveFreeSlots, 0);
+
+  assert.equal(logistics.receive('My_Ranger1', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: Action.TRANSFER_COMMIT,
+    sender: 'My_Ranger1',
+    at: clock.now,
+    grantId: grant.grantId,
+    offerId: grant.offerId,
+    kind: 'item',
+    committed: true
+  }), true);
+
+  assert.equal(logistics.activeLootGrants.has(grant.grantId), true, 'sender commit alone must not release last-slot reservation');
+  assert.equal(logistics._merchantCapacity(runtime.adapter.snapshot()).acceptingLoot, false);
+
+  root.character.items[1] = { index: 1, name: 'hpbelt', level: 0, q: 1 };
+  clock.now += 100;
+  const capacity = logistics._merchantCapacity(runtime.adapter.snapshot());
+  assert.equal(logistics.activeLootGrants.has(grant.grantId), false);
+  assert.equal(logistics.stats.lootRecipientVerified, 1);
+  assert.equal(capacity.freeSlots, 0);
+  assert.equal(capacity.acceptingLoot, false);
+});
+
+test('transient send_item rejection uses short retry guard instead of two-minute item lockout', () => {
+  const { runtime, clock } = makeRuntime('My_Ranger1', 'ranger');
+  const logistics = new ControlledPartyLogistics(runtime, { failureBackoffMs: 7000, verifyTimeoutMs: 3500 });
+  const snap = snapshot('My_Ranger1', 'ranger', {
+    inventory: [{ index: 0, name: 'hpbelt', level: 0, q: 1 }]
+  });
+  logistics.pendingOutbound = {
+    kind: 'item',
+    at: clock.now - 100,
+    offerId: 'offer-transient',
+    grantId: 'grant-transient',
+    name: 'hpbelt',
+    level: 0,
+    quantity: 1,
+    beforeCount: 1,
+    index: 0,
+    signature: '0:hpbelt:0',
+    asyncRejected: true
+  };
+
+  logistics._verifyPendingOutbound(snap);
+
+  const blocked = logistics.rejectedLoot.get('0:hpbelt:0');
+  assert.ok(blocked);
+  assert.equal(blocked.reason, 'OUTBOUND_SEND_REJECTED_TRANSIENT');
+  assert.ok(blocked.blockedUntil - clock.now <= 15000);
+  assert.ok(blocked.blockedUntil - clock.now >= 3000);
+  assert.equal(logistics.pendingOutbound, null);
+});
+
 test('Gold offer uses the entire farmer balance while Merchant is nearby even when Merchant inventory is full', () => {
   const { runtime, clock } = makeRuntime('My_Ranger1', 'ranger');
   const logistics = new ControlledPartyLogistics(runtime);
