@@ -655,6 +655,9 @@ function installStatusPolicy(runtime) {
 
   const logistics = runtime && runtime.controlledPartyLogistics;
   if (logistics && logistics.config) {
+    // Enforce the live logistics contract on the already-created instance too;
+    // this avoids older prototype/default values surviving hot reloads.
+    logistics.config.merchantReserveSlots = 0;
     logistics.config.farmerPotionLow = POTION_REQUEST_BELOW;
     logistics.config.farmerPotionTarget = POTION_TARGET_COUNT;
     logistics.config.maxSupplyBatch = POTION_TARGET_COUNT;
