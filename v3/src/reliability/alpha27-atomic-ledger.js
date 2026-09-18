@@ -28,20 +28,20 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const value = Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : null;
       const same = safeCounts.get(`${name}:${level}`) || 0;
       const grade = gradeForLevel(meta, level);
-      const underKeepValue = value == null || value < this.options.keepValue;
+      const underKeepValue = value != null && value < this.options.keepValue;
 
       // Progression lifecycle comes before generic BANK fallback. Adventure Land
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
       // A complete compound set is actionable now; an incomplete level-0 set is
       // retained until a third copy arrives instead of being hidden in the bank.
       if (meta.compound) {
-        if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value == null || value <= this.options.compoundValueCap)) {
+        if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'RESERVE_COMPOUND',
             reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_SET_AVAILABLE']
           };
         }
-        if (level === 0 && grade < 4 && (value == null || value <= this.options.compoundValueCap)) {
+        if (level === 0 && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'KEEP',
             reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_ACCUMULATION']
@@ -61,7 +61,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // it for a higher party target. Higher levels are then either delivered by
       // the gear-goal path or sold through the tightly scoped processed-gear gate.
       if (meta.upgrade) {
-        if (level === 0 && this.options.maxUpgradeLevel > 0 && grade < 4 && (value == null || value <= this.options.upgradeValueCap)) {
+        if (level === 0 && this.options.maxUpgradeLevel > 0 && grade < 4 && (value != null && value <= this.options.upgradeValueCap)) {
           return {
             disposition: 'RESERVE_UPGRADE',
             reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_UPGRADE']
