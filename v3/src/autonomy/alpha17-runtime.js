@@ -35,6 +35,7 @@ this.log.version = ALPHA17_VERSION;
       });
     }
     this.controlledMerchant = options.controlledMerchant || new ControlledMerchantExecutor({
+      runtime: this,
       root: this.root,
       engine: this.transactionEngine,
       ledger: this.inventoryLedger,
