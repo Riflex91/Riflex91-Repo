@@ -170,19 +170,19 @@
     },
     {
       "id": 10,
-      "name": "production-host-service",
-      "title": "Production host service and machine-reboot recovery",
+      "name": "windows-host-service",
+      "title": "Windows host autostart and machine-reboot recovery",
       "branch": "architecture/10-production-host-service",
       "status": "in_progress",
       "pr": null,
       "merge_commit": null,
       "required_outcomes": [
-        "OS-neutral host service supervisor",
-        "persistent start budget across service and machine restarts",
-        "graceful signal shutdown",
-        "systemd autostart and restart policy",
-        "persistent host state directories",
+        "Windows Task Scheduler autostart in the interactive user session",
+        "persistent service start budget across process and machine restarts",
+        "graceful SIGINT/SIGTERM shutdown",
         "ProductionHostHarness and CDP startup sequencing",
+        "dedicated persistent Windows host-state directories",
+        "bounded scheduled-task restart policy",
         "crash-loop and reboot recovery tests",
         "no gameplay authority added"
       ]
