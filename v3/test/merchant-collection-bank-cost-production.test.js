@@ -139,6 +139,64 @@ test('merchant production auto-enables scoped BUY/BANK/CRAFT authority in active
   assert.equal(status.autoLiveEnabled, true);
 });
 
+test('Farmer runtime never acquires Merchant production or BANK_CATALOG work', async () => {
+  let now = 1000;
+  let taskAcquires = 0;
+  let bankTravels = 0;
+  const storage = memoryStorage();
+  const root = {
+    character: { name: 'My_Ranger1', ctype: 'ranger', map: 'main', gold: 0, items: [], isize: 42 },
+    parent: {},
+    G: { items: {}, craft: {}, maps: {}, npcs: {} },
+    localStorage: { getItem: storage.get, setItem: storage.set }
+  };
+  root.parent.character = root.character;
+  const coordinator = {
+    current: () => null,
+    acquire: () => { taskAcquires += 1; return { acquired: true }; },
+    release: () => true,
+    status: () => ({ activeTask: null })
+  };
+  const runtime = {
+    root,
+    now: () => now,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    merchantTaskCoordinator: coordinator,
+    alpha27CombatMerchantConvergence: {
+      atomic: {
+        merchantBusy: false,
+        serviceTravelBusy: false,
+        namedServiceTravel: async () => { bankTravels += 1; return { ok: true }; }
+      }
+    },
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, { storage, merchantProductionIntervalMs: 1000 });
+  const decision = controller.cycle();
+  assert.equal(decision.state, 'HOLD');
+  assert.equal(decision.reason, 'MERCHANT_PRODUCTION_ROLE_MISMATCH');
+  assert.equal(taskAcquires, 0);
+  assert.equal(bankTravels, 0);
+  assert.equal(controller.status().roleEligible, false);
+  assert.equal(controller.status().controlled.enabled, false);
+
+  now = 5000;
+  runtime.tick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(taskAcquires, 0);
+  assert.equal(bankTravels, 0);
+});
+
 test('Farmer progression gear is transferable to the Merchant while bound/special items remain protected', () => {
   const logistics = Object.create(ControlledPartyLogistics.prototype);
   logistics.root = {
