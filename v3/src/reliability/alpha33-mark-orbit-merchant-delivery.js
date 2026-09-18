@@ -170,6 +170,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionRoutesStarted: 0,
       collectionRoutesCompleted: 0,
       collectionCapacityDisposals: 0,
+      collectionCapacityBlockedActions: 0,
+      collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
       collectionFollowMoves: 0
     };
@@ -582,11 +584,12 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
-  _maybeSendFarmerState(target) {
+  _maybeSendFarmerState(target, options = {}) {
     const logistics = this.runtime.controlledPartyLogistics;
     if (!logistics || typeof logistics._send !== 'function' || typeof logistics._isMerchant !== 'function' || logistics._isMerchant()) return false;
     const now = this.now();
-    if (now - this.lastFarmerStateSentAt < this.farmerStateIntervalMs) return false;
+    const force = options && options.force === true;
+    if (!force && now - this.lastFarmerStateSentAt < this.farmerStateIntervalMs) return false;
     const payload = this._farmerStatePayload();
     if (!payload.name || !payload.map || payload.x == null || payload.y == null) return false;
     this.lastFarmerStateSentAt = now;
@@ -612,10 +615,25 @@ class Alpha33MarkOrbitMerchantDelivery {
         if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
         return this._acceptFarmerState(from, data);
       }
+      const farmerReceiver = typeof logistics._isMerchant === 'function' && !logistics._isMerchant();
+      if (action === 'STATUS_REQUEST' && farmerReceiver) {
+        const from = cleanName(sender || data && data.sender);
+        const merchant = typeof logistics._merchantName === 'function' ? cleanName(logistics._merchantName()) : null;
+        const valid = typeof logistics._validEnvelope === 'function' && logistics._validEnvelope(from, data);
+        if (!valid || !merchant || from !== merchant) {
+          if (data && data.type && logistics.stats) logistics.stats.messagesRejected = (logistics.stats.messagesRejected || 0) + 1;
+          return false;
+        }
+        if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
+        // Explicit Merchant refreshes are already rate-limited by the requester.
+        // Bypass the periodic Farmer telemetry throttle so a lost state packet
+        // cannot keep a stale collection route blind for another interval.
+        this._maybeSendFarmerState(from, { force: true });
+        return true;
+      }
       const accepted = baseReceive(sender, data);
-      if (accepted && action === 'STATUS' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
-      if (accepted && action === 'STATUS_REQUEST' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
-      if (accepted && action === 'STOP_FULL' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
+      if (accepted && action === 'STATUS' && farmerReceiver) this._maybeSendFarmerState(sender || data && data.sender);
+      if (accepted && action === 'STOP_FULL' && farmerReceiver) this._maybeSendFarmerState(sender || data && data.sender);
       return accepted;
     };
     logistics.__alpha33PartyStateTelemetryV2Installed = true;
@@ -768,7 +786,8 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (request && ['SELL', 'BANK'].includes(String(request.type || ''))) {
       this.stats.collectionCapacityDisposals += 1;
       const acted = await merchant.executeEconomyRequest(request);
-      return { ready: false, acted: !!acted, plan, request };
+      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
+      return { ready: false, acted: !!acted, plan, request, blocked: !acted };
     }
 
     // A complete compound set frees two inventory slots. Use it only when no
@@ -776,7 +795,8 @@ class Alpha33MarkOrbitMerchantDelivery {
     const compound = merchant && typeof merchant.planCompound === 'function' ? merchant.planCompound() : null;
     if (compound) {
       const acted = await merchant.executeEconomyRequest(compound);
-      return { ready: false, acted: !!acted, plan, request: compound };
+      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
+      return { ready: false, acted: !!acted, plan, request: compound, blocked: !acted };
     }
 
     this.stats.collectionCapacityConstrainedDepartures += 1;
@@ -911,8 +931,27 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (route.stage === 'PREPARE_CAPACITY') {
       const prepared = await this._prepareCollectionCapacity(merchant, candidate);
       if (!prepared.ready) {
-        merchant.lastMerchantPlan = { at: this.now(), action: 'COLLECTION_PREPARE', reason: 'FREEING_CAPACITY_FOR_FARMER_PICKUP', capacity: prepared.plan };
-        return true;
+        const prepareAgeMs = Math.max(0, this.now() - finite(route.startedAt, this.now()));
+        if (prepareAgeMs < this.collectionPrepareMaxMs) {
+          merchant.lastMerchantPlan = {
+            at: this.now(),
+            action: 'COLLECTION_PREPARE',
+            reason: prepared.blocked ? 'CAPACITY_DISPOSAL_BLOCKED_RETRY_BOUNDED' : 'FREEING_CAPACITY_FOR_FARMER_PICKUP',
+            capacity: prepared.plan,
+            prepareAgeMs,
+            prepareMaxMs: this.collectionPrepareMaxMs
+          };
+          return true;
+        }
+        this.stats.collectionCapacityPrepareTimeouts += 1;
+        this.stats.collectionCapacityConstrainedDepartures += 1;
+        this._event('MERCHANT_COLLECTION_CAPACITY_PREPARE_TIMEOUT', 'warn', 'BOUNDED_COLLECTION_PREPARE_EXPIRED', {
+          routeId: route.id,
+          prepareAgeMs,
+          prepareMaxMs: this.collectionPrepareMaxMs,
+          blocked: prepared.blocked === true,
+          capacity: prepared.plan
+        });
       }
       route.stage = 'TRAVEL_TO_FARMERS';
       route.updatedAt = this.now();

@@ -333,6 +333,142 @@ test('Alpha33 collection capacity plan uses total Farmer pickup demand and stack
   assert.equal(shell.newSlotsNeeded, 1);
 });
 
+
+test('Alpha33 Farmer honors explicit Merchant STATUS_REQUEST even inside telemetry throttle window', () => {
+  let now = 90000;
+  const sent = [];
+  const snapshot = {
+    character: {
+      name: 'My_Ranger1', ctype: 'ranger', level: 59, map: 'main', x: -1200, y: 1040,
+      inventory: [], isize: 42
+    }
+  };
+  const logistics = {
+    stats: { messagesReceived: 0, messagesRejected: 0 },
+    adapter: { snapshot: () => snapshot },
+    receive: () => false,
+    _isMerchant: () => false,
+    _merchantName: () => 'My_Merchant',
+    _validEnvelope: (from, data) => from === 'My_Merchant'
+      && data && data.type === 'aio-v3-party-logistics'
+      && Number(data.protocol) === 1
+      && data.sender === 'My_Merchant',
+    _safeLootDescriptor: () => ({ ok: false, reason: 'NONE' }),
+    _send: (targetName, action, payload) => {
+      sent.push({ targetName, action, payload });
+      return Promise.resolve({ delivered: true });
+    }
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: { character: { name: 'My_Ranger1', ctype: 'ranger', level: 59, map: 'main', x: -1200, y: 1040, items: [] } },
+    controlledPartyLogistics: logistics
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { farmerStateIntervalMs: 5000 });
+  hotfix.lastFarmerStateSentAt = now;
+
+  const accepted = logistics.receive('My_Merchant', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: 'STATUS_REQUEST',
+    sender: 'My_Merchant',
+    at: now,
+    reason: 'MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED'
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].targetName, 'My_Merchant');
+  assert.equal(sent[0].action, FARMER_STATE_ACTION);
+  assert.equal(sent[0].payload.name, 'My_Ranger1');
+  assert.equal(sent[0].payload.map, 'main');
+  assert.equal(sent[0].payload.x, -1200);
+  assert.equal(sent[0].payload.y, 1040);
+  assert.equal(hotfix.stats.farmerStateSent, 1);
+  assert.equal(logistics.stats.messagesReceived, 1);
+});
+
+test('Alpha33 bounded capacity preparation departs instead of deadlocking on rejected disposal', async () => {
+  let now = 120000;
+  let travelled = null;
+  let disposalAttempts = 0;
+  const merchant = {
+    lastMerchantPlan: null,
+    atomic: {
+      merchantBusy: false,
+      serviceTravelBusy: false,
+      namedServiceTravel: async (destination) => {
+        travelled = destination;
+        return { ok: true };
+      }
+    },
+    planSellOrBank: () => ({ type: 'SELL', item: { name: 'junk', level: 0, index: 0 } }),
+    planCompound: () => null,
+    executeEconomyRequest: async () => {
+      disposalAttempts += 1;
+      return false;
+    },
+    cycle: async () => false
+  };
+  const logistics = {
+    config: { rendezvousDistance: 260, maxTransferDistance: 380 },
+    _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: item.q || 1 }),
+    _trustedNames: () => ['My_Ranger1'],
+    _send: async () => ({ delivered: true })
+  };
+  const root = {
+    character: {
+      name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: -37, real_x: 0, real_y: -37,
+      isize: 4,
+      items: [
+        { name: 'junk', level: 0 },
+        { name: 'keep1', level: 0 },
+        { name: 'keep2', level: 0 },
+        null
+      ]
+    },
+    parent: { entities: {} },
+    G: { items: { ringsj: { type: 'ring', s: 1 }, junk: { type: 'material', s: 1 } } }
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root,
+    adapter: { getGameData: () => root.G },
+    controlledPartyLogistics: logistics,
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 5000,
+    collectionPrepareMaxMs: 10000
+  });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1200,
+    y: 1040,
+    pickupItems: [{ name: 'ringsj', level: 0, quantity: 3 }]
+  });
+  const candidate = hotfix._merchantRendezvousCandidate();
+  assert.ok(candidate);
+  assert.equal(hotfix._startCollectionRoute(candidate), true);
+  hotfix.collectionRoute.startedAt = now - hotfix.collectionPrepareMaxMs - 1;
+
+  const handled = await hotfix._driveMerchantRendezvous(merchant);
+
+  assert.equal(handled, true);
+  assert.equal(disposalAttempts, 1);
+  assert.ok(travelled, 'collection should travel after the bounded prepare window expires');
+  assert.equal(travelled.map, 'main');
+  assert.equal(hotfix.collectionRoute.stage, 'TRAVEL_TO_FARMERS');
+  assert.equal(hotfix.stats.collectionCapacityBlockedActions, 1);
+  assert.equal(hotfix.stats.collectionCapacityPrepareTimeouts, 1);
+  assert.equal(hotfix.stats.collectionCapacityConstrainedDepartures, 1);
+});
+
 test('production live services wires Alpha33 before same-version early return', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/production-live-services.js'), 'utf8');
   assert.match(source, /installAlpha33MarkOrbitMerchantDelivery/);
