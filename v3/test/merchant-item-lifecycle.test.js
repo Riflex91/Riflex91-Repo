@@ -124,6 +124,10 @@ test('Alpha27 lifecycle classifies progression before BANK and disposes only pro
     compoundValueCap: 500000,
     upgradeValueCap: 2000000
   });
+  runtime.gearProgression = {
+    futureProtectionFor: () => null,
+    futureSellSafetyFor: () => ({ checked: true, protected: false })
+  };
 
   const ringSet = new Map([['ringsj:0', 3]]);
   const singleRing = new Map([['ringsj:0', 1]]);
@@ -228,7 +232,9 @@ test('processed gear SELL waits for a fresh party gear evaluation and an empty F
   let goals = [];
   runtime.gearProgression = {
     status: () => ({ lastEvaluatedAt: evaluatedAt }),
-    list: () => goals.map((row) => ({ ...row }))
+    list: () => goals.map((row) => ({ ...row })),
+    futureProtectionFor: () => null,
+    futureSellSafetyFor: () => ({ checked: true, protected: false })
   };
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
 
@@ -306,7 +312,15 @@ test('ControlledMerchant permits only explicitly lifecycle-authorized processed 
   }, { ledger });
   assert.equal(planned.accepted, true);
 
+  const runtime = {
+    root,
+    gearProgression: {
+      futureProtectionFor: () => null,
+      futureSellSafetyFor: () => ({ checked: true, protected: false })
+    }
+  };
   const executor = new ControlledMerchantExecutor({
+    runtime,
     root,
     engine,
     ledger,
@@ -322,6 +336,50 @@ test('ControlledMerchant permits only explicitly lifecycle-authorized processed 
   assert.equal(result.committed, true);
   assert.equal(root.character.items[0], null);
   assert.equal(executor.status().sellSafety.processedGearHardProtectionRetained, true);
+});
+
+test('processed gear SELL is fail-closed when no explicit future Farmer evaluation exists', async () => {
+  const engine = new EconomyTransactionEngine({ now: () => 1000 });
+  const entry = {
+    key: 'Merchant:0',
+    character: 'Merchant',
+    index: 0,
+    name: 'hpbelt',
+    level: 1,
+    q: 1,
+    disposition: 'SELL',
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+  };
+  const ledger = {
+    status: () => ({ stale: false }),
+    get: () => ({ ...entry })
+  };
+  const root = {
+    character: { name: 'Merchant', ctype: 'merchant', isize: 42, items: [{ name: 'hpbelt', level: 1, q: 1 }], gold: 1000, rip: false },
+    parent: { entities: {} },
+    G: { items: { hpbelt: { type: 'belt', g: 1000, compound: { hp: 100 }, grades: [] } } },
+    sell: async () => { throw new Error('sell must not be reached without future evaluation'); }
+  };
+  const planned = engine.plan({
+    type: 'SELL', character: 'Merchant', index: 0, quantity: 1,
+    metadata: { lifecycleProcessedSale: true }
+  }, { ledger });
+  assert.equal(planned.accepted, true);
+
+  const executor = new ControlledMerchantExecutor({
+    runtime: { root, gearProgression: { futureProtectionFor: () => null, futureSellSafetyFor: () => null } },
+    root,
+    engine,
+    ledger,
+    now: () => 1000,
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' })
+  });
+  executor.configure({ enabled: true, sell: true, ack: CONTROLLED_MERCHANT_ACK });
+  const result = await executor.execute(planned.transaction.id);
+  assert.equal(result.executed, false);
+  assert.equal(result.reason, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED');
+  assert.ok(root.character.items[0]);
 });
 
 test('Merchant status publishes the enforced lifecycle order', () => {
@@ -366,7 +424,10 @@ test('processed +1 compound gear is protected and continued when +5 becomes a Fa
     contentDrift: { requiresRevalidation: () => false }
   });
   const protection = evaluator.futureProtectionFor('Merchant', 0, 'hpbelt', 1);
+  const sellSafety = evaluator.futureSellSafetyFor('Merchant', 0, 'hpbelt', 1);
   assert.ok(protection);
+  assert.equal(sellSafety.checked, true);
+  assert.equal(sellSafety.protected, true);
   assert.equal(protection.targetCharacter, 'Ranger1');
   assert.equal(protection.targetLevel, 5);
   assert.equal(evaluation.currentGoals.some((goal) => goal.character === 'Ranger1' && goal.item === 'hpbelt' && goal.targetLevel === 5), true);
@@ -409,7 +470,12 @@ test('processed gear sell planner fails closed on exact future Farmer protection
       return character === 'Merchant' && index === 0 && name === 'hpbelt' && level === 1
         ? { targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' }
         : null;
-    }
+    },
+    futureSellSafetyFor: () => ({
+      checked: true,
+      protected: true,
+      protection: { targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' }
+    })
   };
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
   assert.equal(convergence._planSellOrBank(), null);
@@ -446,7 +512,12 @@ test('ControlledMerchant final preflight blocks a stale processed SELL when futu
   const runtime = {
     root,
     gearProgression: {
-      futureProtectionFor: () => ({ targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' })
+      futureProtectionFor: () => ({ targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' }),
+      futureSellSafetyFor: () => ({
+        checked: true,
+        protected: true,
+        protection: { targetCharacter: 'Ranger1', targetLevel: 5, reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' }
+      })
     }
   };
   const executor = new ControlledMerchantExecutor({
