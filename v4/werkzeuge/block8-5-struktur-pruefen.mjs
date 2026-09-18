@@ -51,7 +51,10 @@ const dateien = [
   'dokumentation/FAHRPLAN.md',
   'werkzeuge/block8-5-freigabestufen-live-test.js',
   'laufzeit/tests/block8-5-freigabestufen-live-test.test.mjs',
-  'dokumentation/BLOCK-8-5-FREIGABE-LIVE-TEST.md'
+  'dokumentation/BLOCK-8-5-FREIGABE-LIVE-TEST.md',
+  'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  'werkzeuge/block8-5-runtime-1-1-5-release-kandidat-pruefen.mjs',
+  'dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -1081,4 +1084,82 @@ if (!block85PlanFreigabe.includes('Adventure-Land-Nachweisrunner vorbereitet')) 
   throw new Error('Block-8.5-Plan dokumentiert den vorbereiteten Live-Nachweisrunner noch nicht.');
 }
 
-console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner geprueft: das sequenzielle Gate bleibt an denselben Aenderungsstand gebunden; der Adventure-Land-Runner akzeptiert nur Runtime 1.1.5, besitzt keinen direkten Spielaktionspfad und prueft Schatten, genau eine sichere Pause/Fortsetzung sowie einen mindestens zehnminuetigen read-only Soak.');
+const runtimeReleaseKandidatRoh = await readFile(path.join(wurzel, dateien[48]), 'utf8');
+const runtimeReleaseKandidat = JSON.parse(runtimeReleaseKandidatRoh);
+for (const [feld, erwartet] of Object.entries({
+  schemaVersion: 1,
+  status: 'release_candidate',
+  releaseSha: '88185523c81687dc16f9647ca5e7568c5e2c228c',
+  runtimeVersion: '1.1.5',
+  laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c',
+  bundleVersion: '4.0.0-alpha.0',
+  moduleCount: 31,
+  bytes: 228607,
+  sha256: '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  deploymentPerformed: false,
+  publicHttpsVerified: false,
+  adventureLandShadowVerified: false,
+  adventureLandControlledLiveVerified: false,
+  adventureLandSoakVerified: false,
+  block9Freigegeben: false
+})) {
+  if (runtimeReleaseKandidat[feld] !== erwartet) {
+    throw new Error(`Runtime-1.1.5-Release-Candidate besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+
+const runtimeReleaseKandidatPruefer = await readFile(path.join(wurzel, dateien[49]), 'utf8');
+for (const pflicht of [
+  'baueProduktionsRuntime',
+  'BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  "manifest.runtimeVersion !== '1.1.5'",
+  'manifest.releaseSha',
+  'manifest.laufzeitPfadKennung',
+  'manifest.aenderungsKennung',
+  'git:<releaseSha>',
+  'manifest.moduleCount',
+  'manifest.bytes',
+  'manifest.sha256',
+  'deploymentPerformed',
+  'publicHttpsVerified',
+  'adventureLandShadowVerified',
+  'adventureLandControlledLiveVerified',
+  'adventureLandSoakVerified',
+  'block9Freigegeben',
+  'workflow_dispatch:',
+  'Publish immutable V4 runtime release to R2',
+  'Verify immutable V4 runtime release over public HTTPS',
+  'x-aio-v4-release-sha',
+  'build.sha256 !== manifest.sha256'
+]) {
+  if (!runtimeReleaseKandidatPruefer.includes(pflicht)) {
+    throw new Error(`Runtime-Release-Candidate-Pruefer fehlt: ${pflicht}`);
+  }
+}
+
+const runtimeReleaseKandidatDokument = await readFile(path.join(wurzel, dateien[50]), 'utf8');
+for (const pflicht of [
+  'Release-Candidate reproduzierbar gebunden',
+  'noch nicht deployed',
+  '88185523c81687dc16f9647ca5e7568c5e2c228c',
+  'Runtime-API-Version: **1.1.5**',
+  'laufzeitPfadKennung: block8.5-basisbedienung-runtime',
+  'aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c',
+  'Module: **31**',
+  'Groesse: **228607 Bytes**',
+  '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  'deploymentPerformed: false',
+  'publicHttpsVerified: false',
+  'adventureLandShadowVerified: false',
+  'adventureLandControlledLiveVerified: false',
+  'adventureLandSoakVerified: false',
+  'block9Freigegeben: false',
+  'Block 9 gesperrt'
+]) {
+  if (!runtimeReleaseKandidatDokument.includes(pflicht)) {
+    throw new Error(`Runtime-Release-Candidate-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner und Runtime-1.1.5-Release-Candidate geprueft: Candidate 88185523 ist reproduzierbar an 31 Module, 228607 Bytes und SHA-256 95fa6795... gebunden; Deployment, oeffentlicher HTTPS-Nachweis und reale Adventure-Land-Freigaben bleiben explizit offen.');
