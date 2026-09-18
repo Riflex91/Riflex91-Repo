@@ -111,7 +111,7 @@ function installMerchantProduction(runtime, options = {}) {
   function ensureAutoEnabled() {
     if (!isMerchant() || String(runtime.adapter && runtime.adapter.mode || '') !== 'active') return false;
     if (executor.status().enabled) return true;
-    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true });
+    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true, allowExchange: true });
     return !!(configured && configured.controlled && configured.controlled.enabled);
   }
   function ensureBankCatalog() {
@@ -143,6 +143,13 @@ function installMerchantProduction(runtime, options = {}) {
         state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
         return;
       }
+      if (step.kind === ProductionStepKind.EXCHANGE) {
+        const travel = await travelNamed(step.destination || 'exchange');
+        if (!travel || travel.ok !== true) {
+          state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.reason || 'EXCHANGE_NPC_TRAVEL_FAILED', travel: clone(travel) } };
+          return;
+        }
+      }
       const result = await executor.execute(plan, step);
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
@@ -158,7 +165,15 @@ function installMerchantProduction(runtime, options = {}) {
     ensureAutoEnabled();
     if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
     const plan = evaluate();
-    schedule(plan);
+    if (schedule(plan)) return plan;
+    if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
+      const exchangePlan = planner.planExchange(input(), plan.reservations || {});
+      if (exchangePlan) {
+        state.lastPlan = clone(exchangePlan);
+        schedule(exchangePlan);
+        return clone(exchangePlan);
+      }
+    }
     return plan;
   }
   function configure(config = {}) {
@@ -166,7 +181,7 @@ function installMerchantProduction(runtime, options = {}) {
       const gate = runtime._liveEnableGate();
       if (!gate || gate.allowed !== true) return { ...status(), enableRejected: gate && gate.reason || 'LIVE_GATE_REJECTED' };
     }
-    executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true });
+    executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true, allowExchange: config.allowExchange === true });
     return status();
   }
   function disable(reason = 'OPERATOR_DISABLED') { executor.disable(reason); return status(); }
