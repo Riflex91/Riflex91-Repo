@@ -236,6 +236,23 @@ export class AdventureLandProduktionsBootstrap {
       throw new Error(`Falscher Produktions-Live-Smoke-Installationsfreigabetext. Erwartet wird exakt: ${PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT}`);
     }
     if (this.smokeFassade !== null) throw new Error('Die Produktions-Live-Smoke-Fassade ist bereits installiert.');
+    const laufendeZiele = this.steuerung.listeAktionsZustaende().filter((zustand) =>
+      zustand.phase === 'laeuft' &&
+      zustand.anfrage.angefordertVon === 'gruppen-aktionsplanung' &&
+      zustand.anfrage.aktion === GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten
+    );
+    if (laufendeZiele.length !== 1) {
+      throw new Error(`Live-Smoke-Installation benoetigt genau eine laufende zentrale Gruppenzielanfrage; gefunden: ${laufendeZiele.length}.`);
+    }
+    const laufendeDetails = laufendeZiele[0]?.anfrage.details;
+    if (
+      typeof laufendeDetails !== 'object' ||
+      laufendeDetails === null ||
+      !('zielKennung' in laufendeDetails) ||
+      laufendeDetails.zielKennung !== erwartung.zielKennung
+    ) {
+      throw new Error('Die laufende zentrale Gruppenzielanfrage passt nicht zur erwarteten Live-Smoke-Zielkennung.');
+    }
 
     const smoke = new AdventureLandGruppenZielLiveSmoke(
       this.codeKontext,
@@ -252,6 +269,8 @@ export class AdventureLandProduktionsBootstrap {
   }
 
   public stoppe(): Readonly<AdventureLandProduktionsBootstrapStatus> {
+    if (this.gestoppt) return this.status();
+    this.gestoppt = true;
     if (this.smokeFassade !== null) {
       try { this.smokeFassade.sperren(); } catch { /* Fail-safe: zentrale Arbeit wird unten beendet. */ }
       const aktuellerSmoke = eigenerWert(this.codeKontext, 'V4Block8GruppenZielLiveSmoke');
@@ -271,7 +290,6 @@ export class AdventureLandProduktionsBootstrap {
         'Produktions-Bootstrap wurde gestoppt; Gruppenarbeit wird fail-safe beendet.'
       );
     }
-    this.gestoppt = true;
     return this.status();
   }
 
