@@ -235,6 +235,8 @@ test('resource topoff tries viable HP when preferred MP would be wasteful', () =
   assert.equal(hotfix.status().lastUse.action, 'use_hp');
   assert.ok(hotfix.status().lastUse.utilization >= 0.5);
   assert.equal(hotfix.status().stats.overhealAvoided, 1);
+  assert.equal(hotfix.status().stats.hpRequests, 1);
+  assert.equal(hotfix.status().stats.mpRequests, 0);
 });
 
 test('resource topoff uses a known MP potion once at least half its restore is useful', () => {
