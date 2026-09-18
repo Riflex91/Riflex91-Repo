@@ -54,13 +54,13 @@ test('merchant surplus never blocks the current farmer demand', () => {
 
   const plan = planner.plan({
     merchant: { ...root.character, inventory: items },
-    reports: [report('My_Ranger1', 99900, 4400, 4300)],
+    reports: [report('My_Ranger1', 99900, 199, 3000)],
     deliveryDistance: 400
   });
 
-  assert.equal(plan.kind, MerchantServicePlanKind.RESTOCK_REQUIRED);
-  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 100], ['mpot0', 200]]);
-  assert.deepEqual(plan.missingStock.map((row) => [row.itemName, row.buyQuantity]), [['mpot0', 100]]);
+  assert.equal(plan.kind, MerchantServicePlanKind.SERVICE_DELIVERY);
+  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 4301]]);
+  assert.equal(plan.missingStock, undefined);
   assert.equal(plan.metadata.merchantExcessBlocksDelivery, false);
   assert.equal(plan.metadata.overdeliveryAllowed, false);
   assert.equal(hardCap.merchantExcessBlocksDelivery, false);
