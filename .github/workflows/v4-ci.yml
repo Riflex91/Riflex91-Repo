@@ -5,11 +5,15 @@ on:
     branches: [main]
     paths:
       - 'v4/**'
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/deploy-cloudflare.yml'
       - '.github/workflows/v4-ci.yml'
       - '.github/workflows/v4-pruefung.yml'
   pull_request:
     paths:
       - 'v4/**'
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/deploy-cloudflare.yml'
       - '.github/workflows/v4-ci.yml'
       - '.github/workflows/v4-pruefung.yml'
   workflow_dispatch:
@@ -34,3 +38,6 @@ jobs:
         run: npm install --ignore-scripts
       - name: Typen, Tests, Namen und Struktur pruefen
         run: npm run pruefen
+      - name: Cloudflare Runtime-Release und Worker pruefen
+        working-directory: cloudflare-dashboard
+        run: npm run check
