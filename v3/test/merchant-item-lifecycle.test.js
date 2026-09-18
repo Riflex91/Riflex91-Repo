@@ -564,6 +564,11 @@ test('exactly three identical +0 rings are compounded to +1 before Farmer delive
   assert.equal(planned.accepted, true, planned.reason);
   assert.equal(planned.transaction.inputs[0].disposition, 'RESERVE_PROGRESSION');
   assert.deepEqual(planned.transaction.inputs.slice(1).map((row) => row.disposition), ['RESERVE_COMPOUND', 'RESERVE_COMPOUND']);
+
+  controlledMerchant.configure({ enabled: true, ack: 'CONTROLLED_CANARY', sell: true, bank: true, upgrade: true, compound: true });
+  const preflight = convergence.atomic.atomicPreflight(engine.get(planned.transaction.id));
+  assert.equal(preflight.ok, true, preflight.reason);
+  assert.equal(preflight.inputs.length, 3);
 });
 
 test('nine identical +0 rings expose +2 as the highest currently producible delivery tier', () => {
