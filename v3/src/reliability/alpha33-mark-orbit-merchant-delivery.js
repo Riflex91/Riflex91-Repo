@@ -181,6 +181,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       gearDeliveryIntentAckTimeouts: 0,
       gearDeliveryIntentsReceived: 0,
       farmerGearLootReservations: 0,
+      farmerGearIntentIdentityHolds: 0,
       farmerGearExactReservations: 0,
       farmerGearEquipAttempts: 0,
       farmerGearEquipCommitted: 0,
@@ -680,7 +681,12 @@ class Alpha33MarkOrbitMerchantDelivery {
     for (const intent of this.incomingGearIntents.values()) {
       if (!intent || String(intent.targetName || '') !== String(c.name || '')) continue;
       if (String(intent.itemName || '') !== String(item.name || '') || Math.max(0, finite(intent.itemLevel, 0)) !== levelOf(item)) continue;
-      if (Array.isArray(intent.beforeIndices) && intent.beforeIndices.includes(Number(item.index))) continue;
+      // Once the Farmer has ACKed a targeted gear intent, freeze this whole
+      // name+level identity out of generic loot until the intent is resolved.
+      // A pre-existing identical item can otherwise be sent after the ACK,
+      // freeing its index; Adventure Land may then place the Merchant-delivered
+      // upgrade into that same index, making it look "pre-existing" and sending
+      // it straight back to the Merchant.
       return intent;
     }
     return null;
@@ -713,7 +719,10 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _localGearGoalMatches(item) {
     const intent = this._matchingGearIntentForItem(item);
-    if (intent) return true;
+    if (intent) {
+      this.stats.farmerGearIntentIdentityHolds += 1;
+      return true;
+    }
     const goal = this._activeLocalGearGoalForItem(item);
     if (goal) this.stats.farmerGearExactReservations += 1;
     return !!goal;
@@ -1778,6 +1787,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         staleGearGoalsFailClosed: true,
         targetedGearDeliveryIntentBeforeSend: true,
         gearDeliveryIntentRequiresFarmerPredeliverySnapshotAck: true,
+        targetedGearIdentityHeldOutOfGenericLootUntilEquip: true,
         farmerReceivedReadyGearAutoEquippedAndVerified: true,
         localProgressionReservationRequiresExactActivePhysicalAssignment: true,
         localProgressionGearIsNotReturnedAsLoot: true,
