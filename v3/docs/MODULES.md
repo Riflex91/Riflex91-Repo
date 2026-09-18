@@ -6,12 +6,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1171 Zeilen**
+**6 Dateien · 1173 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
-| `src/index.js` | 384 |
+| `src/index.js` | 386 |
 | `src/production-live-services.js` | 215 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 482 |
@@ -19,27 +19,27 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 4016 Zeilen**
+**21 Dateien · 4082 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/autonomy/adaptive-farm-intelligence.js` | 228 |
 | `src/autonomy/advanced-party-movement.js` | 217 |
-| `src/autonomy/alpha10-runtime.js` | 76 |
-| `src/autonomy/alpha11-runtime.js` | 62 |
-| `src/autonomy/alpha12-hardened-runtime.js` | 156 |
-| `src/autonomy/alpha12-runtime.js` | 67 |
-| `src/autonomy/alpha13-runtime.js` | 131 |
-| `src/autonomy/alpha14-runtime.js` | 112 |
-| `src/autonomy/alpha15-runtime.js` | 101 |
-| `src/autonomy/alpha16-runtime.js` | 73 |
-| `src/autonomy/alpha17-runtime.js` | 303 |
-| `src/autonomy/alpha18-runtime.js` | 212 |
-| `src/autonomy/alpha19-runtime.js` | 174 |
-| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 335 |
-| `src/autonomy/alpha20-5-merchant-runtime.js` | 365 |
-| `src/autonomy/alpha20-runtime.js` | 392 |
-| `src/autonomy/alpha9-runtime.js` | 64 |
+| `src/autonomy/alpha10-runtime.js` | 80 |
+| `src/autonomy/alpha11-runtime.js` | 66 |
+| `src/autonomy/alpha12-hardened-runtime.js` | 160 |
+| `src/autonomy/alpha12-runtime.js` | 72 |
+| `src/autonomy/alpha13-runtime.js` | 135 |
+| `src/autonomy/alpha14-runtime.js` | 116 |
+| `src/autonomy/alpha15-runtime.js` | 105 |
+| `src/autonomy/alpha16-runtime.js` | 77 |
+| `src/autonomy/alpha17-runtime.js` | 307 |
+| `src/autonomy/alpha18-runtime.js` | 216 |
+| `src/autonomy/alpha19-runtime.js` | 178 |
+| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 344 |
+| `src/autonomy/alpha20-5-merchant-runtime.js` | 369 |
+| `src/autonomy/alpha20-runtime.js` | 396 |
+| `src/autonomy/alpha9-runtime.js` | 68 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
 | `src/autonomy/local-farm-planner.js` | 153 |
 | `src/autonomy/party-skill-engine.js` | 189 |
@@ -55,6 +55,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/brain/replay-buffer.js` | 48 |
 | `src/brain/shadow-brain.js` | 202 |
 | `src/brain/strategic-brain-v2.js` | 533 |
+
+## composition
+
+**2 Dateien · 192 Zeilen**
+
+| Datei | Zeilen |
+| --- | ---: |
+| `src/composition/runtime-composition.js` | 173 |
+| `src/composition/runtime-lifecycle.js` | 19 |
 
 ## content
 
@@ -309,13 +318,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## stability
 
-**3 Dateien · 727 Zeilen**
+**3 Dateien · 731 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/stability/combat-stability-supervisor.js` | 223 |
 | `src/stability/global-supervisor.js` | 316 |
-| `src/stability/stability-runtime.js` | 188 |
+| `src/stability/stability-runtime.js` | 192 |
 
 ## telemetry
 

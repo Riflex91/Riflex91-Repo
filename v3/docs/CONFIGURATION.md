@@ -15,6 +15,7 @@ Diese Datei inventarisiert statisch sichtbare Konfigurationsoberflächen. Sie er
 | `check:commands` | `node scripts/game-command-boundary-guard.js` |
 | `check:full` | `npm run build && npm test && node --check dist/aio-v3.js && node --check dist/aio-v3-runtime.js && node scripts/smoke-runtime-bundle.js && node scripts/smoke-bootstrap.js && npm run check:cloud` |
 | `check:legacy-reliability-layer` | `node scripts/legacy-reliability-layer-guard.js` |
+| `check:runtime-composition` | `node scripts/runtime-composition-guard.js` |
 | `docs:check` | `node scripts/generate-docs.js --check` |
 | `docs:generate` | `node scripts/generate-docs.js` |
 | `logic:guard` | `node scripts/logic-guardian.js` |
@@ -22,7 +23,7 @@ Diese Datei inventarisiert statisch sichtbare Konfigurationsoberflächen. Sie er
 | `preflight` | `npm run release:guard && npm run logic:guard && npm run static:guard` |
 | `release:guard` | `node scripts/release-guardian.js` |
 | `release:patch` | `node scripts/release-bump.js patch` |
-| `static:guard` | `npm run typecheck:logic && npm run check:architecture && npm run check:commands && npm run check:legacy-reliability-layer` |
+| `static:guard` | `npm run typecheck:logic && npm run check:architecture && npm run check:commands && npm run check:legacy-reliability-layer && npm run check:runtime-composition` |
 | `test` | `node --test test/*.test.js` |
 | `test:properties` | `node --test test/logic-guardian-property.test.js` |
 | `typecheck:logic` | `tsc -p tsconfig.logic.json` |

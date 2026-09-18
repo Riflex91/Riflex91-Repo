@@ -8,9 +8,10 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1171 |
-| autonomy | 21 | 4016 |
+| (root) | 6 | 1173 |
+| autonomy | 21 | 4082 |
 | brain | 4 | 874 |
+| composition | 2 | 192 |
 | content | 3 | 447 |
 | control | 5 | 1047 |
 | core | 8 | 704 |
@@ -23,7 +24,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | planner | 1 | 66 |
 | reliability | 48 | 12274 |
 | research | 1 | 101 |
-| stability | 3 | 727 |
+| stability | 3 | 731 |
 | telemetry | 1 | 263 |
 | travel | 3 | 644 |
 | world | 6 | 1273 |
@@ -43,6 +44,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | --- | --- | ---: |
 | (root) | autonomy | 16 |
 | (root) | brain | 3 |
+| (root) | composition | 1 |
 | (root) | control | 1 |
 | (root) | core | 6 |
 | (root) | economy | 10 |
@@ -72,6 +74,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | autonomy | travel | 3 |
 | autonomy | world | 1 |
 | brain | core | 1 |
+| composition | (root) | 1 |
+| composition | autonomy | 15 |
+| composition | stability | 1 |
 | content | farmer | 2 |
 | content | reliability | 10 |
 | content | world | 1 |
