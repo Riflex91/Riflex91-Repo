@@ -294,8 +294,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // Progression is processed before disposal. This restores the intended
     // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
     // Family-scoped circuits still allow unrelated later stages to continue.
-    let request = this.transactionFamilyOpen('UPGRADE') ? null : this.planUpgrade();
-    if (!request && !this.transactionFamilyOpen('COMPOUND')) request = this.planCompound();
+    let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
+    if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
     if (request) return this.executeEconomyRequest(request);
 
     // Re-evaluate useful gear before any disposal action. A current GearProgression
@@ -332,7 +332,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
       economyBeforeNonCriticalGearDelivery: false,
-      itemLifecycleOrder: ['UPGRADE', 'COMPOUND', 'GEAR_DELIVERY', 'SELL', 'BANK'],
+      itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
