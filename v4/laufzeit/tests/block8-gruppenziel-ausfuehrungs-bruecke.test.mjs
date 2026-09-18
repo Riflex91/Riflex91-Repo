@@ -247,6 +247,10 @@ test('feste Block-8-Gruppenziel-Bruecke blockiert falsche Anfrage, falsches Ziel
     await assert.rejects(() => bruecke.fuehreEinmalAus(angepasst), muster);
     assert.equal(aufrufe.length, 0);
     assert.equal(bruecke.status().versuchVerbraucht, true);
+    if (name !== 'falsche-kennung') {
+      assert.equal(steuerung.holeAktionsZustand(req.kennung)?.phase, 'abgebrochen');
+      assert.equal(steuerung.listeRessourcenSperren().length, 0);
+    }
   }
 });
 
