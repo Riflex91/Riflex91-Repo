@@ -16,6 +16,23 @@ function friereStrings(werte: readonly string[]): readonly string[] {
   return Object.freeze([...werte]);
 }
 
+function brecheVeralteteGruppenArbeitAb(
+  steuerung: AktionsSteuerung,
+  jetzt: number,
+  grund: string
+): readonly string[] {
+  const abgebrochen: string[] = [];
+  for (const zustand of steuerung.listeAktionsZustaende()) {
+    if (!['wartend', 'blockiert', 'laeuft'].includes(zustand.phase)) continue;
+    if (zustand.anfrage.angefordertVon !== 'gruppen-aktionsplanung') continue;
+    if (!ALLE_GRUPPEN_AKTIONS_NAMEN_MENGE.has(zustand.anfrage.aktion)) continue;
+    if (steuerung.brecheAktionAb(zustand.anfrage.kennung, jetzt, grund)) {
+      abgebrochen.push(zustand.anfrage.kennung);
+    }
+  }
+  return friereStrings(abgebrochen.sort());
+}
+
 export function erstelleGruppenAktionsSteuerungKonfiguration(
   aenderungen: Partial<GruppenAktionsSteuerungKonfiguration> = {}
 ): GruppenAktionsSteuerungKonfiguration {
@@ -66,7 +83,16 @@ export function uebergibGruppenAktionsAnfragenAnSteuerung(
     });
 
   if (uebersetzung.status === 'blockiert') {
-    return leer('blockiert', `Die Gruppenaktionsanfrage-Uebersetzung ist blockiert: ${uebersetzung.grund}`);
+    const grund = `Aktuelle Gruppenplanung ist blockiert; bestehende Gruppenarbeit darf nicht fortgesetzt werden: ${uebersetzung.grund}`;
+    const abgebrochen = brecheVeralteteGruppenArbeitAb(steuerung, jetzt, grund);
+    const suffix = abgebrochen.length > 0 ? ` Abgebrochen: ${abgebrochen.join(', ')}.` : '';
+    return leer('blockiert', `Die Gruppenaktionsanfrage-Uebersetzung ist blockiert: ${uebersetzung.grund}.${suffix}`);
+  }
+  if (uebersetzung.status === 'leer') {
+    const grund = `Aktuelle Gruppenplanung enthaelt keinen lokalen Gruppenauftrag; bestehende Gruppenarbeit darf nicht fortgesetzt werden: ${uebersetzung.grund}`;
+    const abgebrochen = brecheVeralteteGruppenArbeitAb(steuerung, jetzt, grund);
+    const suffix = abgebrochen.length > 0 ? ` Abgebrochen: ${abgebrochen.join(', ')}.` : '';
+    return leer('leer', `Die Gruppenaktionsanfrage-Uebersetzung enthaelt keine einreichbare Anfrage.${suffix}`);
   }
   if (kandidaten.length === 0) {
     return leer('leer', 'Die Gruppenaktionsanfrage-Uebersetzung enthaelt keine einreichbare Anfrage.');
