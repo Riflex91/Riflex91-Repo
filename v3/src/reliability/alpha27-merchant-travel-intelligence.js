@@ -33,8 +33,9 @@ function serviceNpcCandidates(destination, gameData = {}) {
   if (Object.prototype.hasOwnProperty.call(npcs, key)) return [key];
   const candidates = [];
   for (const [id, npc] of Object.entries(npcs)) {
-    if (!npc || !Array.isArray(npc.items)) continue;
-    if (npc.items.some((item) => item != null && String(item) === key)) candidates.push(id);
+    if (!npc) continue;
+    if (String(npc.quest || '') === key || String(npc.role || '') === key) candidates.push(id);
+    if (Array.isArray(npc.items) && npc.items.some((item) => item != null && String(item) === key)) candidates.push(id);
   }
   return uniq(candidates);
 }
@@ -165,6 +166,7 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
 
   const baseResolve = atomic.resolveServiceDestination.bind(atomic);
   const baseTravel = atomic.namedServiceTravel.bind(atomic);
+  const baseEnsureScroll = atomic.ensureScroll.bind(atomic);
 
   atomic.resolveServiceDestination = function resolveServiceDestinationIntelligent(destination) {
     if (destination && typeof destination === 'object') return baseResolve(destination);
@@ -283,52 +285,10 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
   };
 
   atomic.ensureScroll = async function ensureScrollAfterVerifiedTravel(tx, scrollName) {
-    let scroll = findItem(this.root, scrollName);
-    if (!scroll) {
-      const canBuy = rawFunction(this.root, 'can_buy');
-      let definitelyNear = false;
-      if (canBuy) { try { definitelyNear = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
-      if (!definitelyNear) {
-        const travelled = await this.namedServiceTravel(scrollName, tx);
-        if (!travelled || travelled.ok !== true) return travelled || { ok: false, reason: 'SCROLL_VENDOR_TRAVEL_FAILED' };
-      }
-
-      const buy = rawFunction(this.root, 'buy');
-      if (!buy) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
-        this.stats.failedSafe += 1;
-        return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
-      }
-      const gd = gameDataOf(this.runtime);
-      const scrollMeta = gd.items && gd.items[scrollName];
-      const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
-      const c = characterOf(this.runtime);
-      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
-        this.stats.failedSafe += 1;
-        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
-      }
-      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
-      try {
-        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-        if (response && response.failed === true) throw response;
-        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
-        this.stats.scrollPurchases += 1;
-        scroll = findItem(this.root, scrollName);
-        if (!scroll) throw new Error('SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE');
-      } catch (error) {
-        const details = errorDetails(error);
-        const reason = details.reason || 'BUY_SCROLL_FAILED';
-        this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-        this.stats.failedSafe += 1;
-        return { ok: false, reason, error: details };
-      }
-    }
-
-    const service = await this.ensureMutationService(tx);
-    if (!service.ok) return service;
-    return { ok: true, scroll, service };
+    // The base service now owns batch sizing and verification. It calls the
+    // intelligent namedServiceTravel wrapper installed above, so duplicating
+    // purchase logic here would reintroduce one-scroll-at-a-time behavior.
+    return baseEnsureScroll(tx, scrollName);
   };
 
   merchant.restockPartyPotions = async function restockPartyPotionsAfterVerifiedTravel() {

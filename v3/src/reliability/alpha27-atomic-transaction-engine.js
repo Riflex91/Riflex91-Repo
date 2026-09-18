@@ -27,12 +27,22 @@ class Alpha27AtomicTransactionEngine extends Alpha27AtomicLedger {
       const ledger = context.ledger || this.runtime.inventoryLedger;
       const ledgerStatus = ledger && typeof ledger.status === 'function' ? ledger.status() : null;
       if (!ledgerStatus || ledgerStatus.stale === true) return engine._reject('LEDGER_UNAVAILABLE_OR_STALE', { type, character, indices });
+      const reservation = this.runtime && this.runtime.merchantSelfGearReservation;
+      const selfGear = !!(request.metadata && request.metadata.selfGear === true
+        && reservation
+        && reservation.sessionId === request.metadata.selfGearSessionId
+        && reservation.type === type
+        && reservation.character === character
+        && Array.isArray(reservation.indices)
+        && reservation.indices.length === indices.length
+        && reservation.indices.every((value) => indices.includes(Number(value))));
       const inputs = [];
       for (const index of indices) {
         let entry = null;
         try { entry = ledger.get(character, index); } catch (_) {}
         if (!entry) return engine._reject('LEDGER_ITEM_NOT_FOUND', { type, character, index });
-        if (!EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || ''))) return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        if (!selfGear && !EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || ''))) return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return engine._reject('SELF_GEAR_RESERVATION_IDENTITY_MISMATCH', { type, character, index });
         const key = String(entry.key || `${character}:${index}`);
         const existing = engine.reservations && engine.reservations.get(key);
         if (existing) return engine._reject('ITEM_ALREADY_RESERVED', { type, reservationKey: key, transactionId: existing });

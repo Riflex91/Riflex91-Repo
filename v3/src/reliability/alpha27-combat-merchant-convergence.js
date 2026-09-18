@@ -22,8 +22,11 @@ function boundedOptions(options = {}) {
     merchantPotionTarget: Math.max(80, finite(options.merchantPotionTarget, 500)),
     merchantMaxPotionBuy: Math.max(1, Math.min(2000, Math.floor(finite(options.merchantMaxPotionBuy, 500)))),
     mutationAttemptWindowMs: Math.max(60000, finite(options.mutationAttemptWindowMs, 60 * 60 * 1000)),
-    maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 3)))),
-    maxCompoundAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 2)))),
+    // Temporary live-observation experiment: 10x the former defaults while
+    // keeping the same one-hour window and all per-attempt atomic safeguards.
+    // Upgrade: 3 -> 30, Compound: 2 -> 20.
+    maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 30)))),
+    maxCompoundAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 20)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
     maxCompoundLevel: Math.max(0, Math.min(10, Math.floor(finite(options.maxCompoundLevel, 10)))),

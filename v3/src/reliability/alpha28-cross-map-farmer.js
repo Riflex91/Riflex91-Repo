@@ -160,6 +160,36 @@ class Alpha28CrossMapFarmerProgression {
   }
 
   _makeLeaderObjective(snapshot, team) {
+    const farmer = this.runtime.farmer;
+    const material = farmer && farmer.materialObjective;
+    if (material && material.expiresAt > this.now() && material.map && material.monster && material.map !== snapshot.character.map) {
+      const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+      if (existing && this._objectiveKind(existing) === 'ELIXIR_MATERIAL' && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+      const objective = {
+        id: `alpha28-elixir-material-${this.now()}-${material.monster}`,
+        kind: 'ELIXIR_MATERIAL',
+        leaderName: team.leaderName,
+        partyFingerprint: null,
+        map: material.map,
+        monster: material.monster,
+        spawnIndex: material.spawnIndex,
+        x: material.x,
+        y: material.y,
+        material: material.material || null,
+        elixirName: material.elixirName || null,
+        createdAt: this.now(),
+        expiresAt: material.expiresAt,
+        readiness: null,
+        crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+      };
+      if (!this._objectiveValid(objective, team)) return null;
+      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+      this._publishCrossMap(team, objective);
+      this.stats.crossMapObjectivesPublished += 1;
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'ELIXIR_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+      return objective;
+    }
+
     const progression = this._progression();
     const decision = progression && progression.lastDecision;
     const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
@@ -275,7 +305,7 @@ class Alpha28CrossMapFarmerProgression {
       this.stats.crossMapTravelCompleted += 1;
       if (regroup) this.stats.crossMapRegroupTravelCompleted = (this.stats.crossMapRegroupTravelCompleted || 0) + 1;
       this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), map: objective.map, monster: objective.monster || null };
-      if (!regroup) {
+      if (!regroup && this._objectiveKind(objective) === PROGRESSION_KIND) {
         const progression = this._progression();
         if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
       }

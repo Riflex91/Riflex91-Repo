@@ -29,9 +29,9 @@ class ControlledMerchantProductionExecutor {
     this.maxActionsPerWindow = Math.max(1, Math.min(30, Math.floor(n(options.maxActionsPerWindow, 10))));
     this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(n(options.maxBuyQuantity, 1000))));
     this.goldReserve = Math.max(0, Math.floor(n(options.goldReserve, 1000000)));
-    this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.busy = false;
+    this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this.busy = false;
     this.activeOperation = null; this.lastAction = null; this.history = []; this.actionTimes = [];
-    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, verificationRetries: 0 };
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, exchanges: 0, verificationRetries: 0 };
     this._load();
   }
 
@@ -54,10 +54,11 @@ class ControlledMerchantProductionExecutor {
     this.allowBuy = this.enabled && config.allowBuy === true;
     this.allowBank = this.enabled && config.allowBank === true;
     this.allowCraft = this.enabled && config.allowCraft === true;
-    this._event('MERCHANT_PRODUCTION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft });
+    this.allowExchange = this.enabled && config.allowExchange === true;
+    this._event('MERCHANT_PRODUCTION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange });
     return this.status();
   }
-  disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
+  disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
   _budgetOk() { const now = this.now(); this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs); return this.actionTimes.length < this.maxActionsPerWindow; }
   _sleep(ms) { const setTimer = this.root && this.root.setTimeout || setTimeout; return new Promise((resolve) => setTimer(resolve, ms)); }
   async _verify(fn) { for (let i = 0; i < this.verifyAttempts; i += 1) { if (fn()) return true; if (i + 1 < this.verifyAttempts) { this.stats.verificationRetries += 1; await this._sleep(this.verifyDelayMs); } } return false; }
@@ -104,6 +105,20 @@ class ControlledMerchantProductionExecutor {
       if (n(c.gold, 0) - recipe.cost < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
       return { ok: true, api, name, level: 0, recipe };
     }
+    if (kind === ProductionStepKind.EXCHANGE) {
+      if (!this.allowExchange) return { ok: false, reason: 'EXCHANGE_AUTHORITY_DISABLED' };
+      const api = this._api('exchange');
+      const index = Number(step.inventoryIndex);
+      const item = Number.isInteger(index) && Array.isArray(c.items) ? c.items[index] : null;
+      const meta = this._gameData() && this._gameData().items && this._gameData().items[name] || {};
+      const required = Math.max(1, Math.floor(n(step.quantity, n(meta.e, 0))));
+      if (!api) return { ok: false, reason: 'EXCHANGE_API_UNAVAILABLE' };
+      if (!item || String(item.name || '') !== name || levelOf(item) !== level) return { ok: false, reason: 'EXCHANGE_ITEM_IDENTITY_CHANGED' };
+      if (item.locked || item.l || item.special || item.p) return { ok: false, reason: 'EXCHANGE_ITEM_PROTECTED' };
+      if (Math.max(1, Math.floor(n(item.q, 1))) < required) return { ok: false, reason: 'EXCHANGE_REQUIREMENT_NOT_MET' };
+      if (Math.max(0, Math.floor(n(meta.e, 0))) !== required) return { ok: false, reason: 'EXCHANGE_REQUIREMENT_CHANGED' };
+      return { ok: true, api, name, level, index, quantity: required };
+    }
     return { ok: false, reason: 'PRODUCTION_STEP_KIND_NOT_EXECUTABLE' };
   }
 
@@ -125,6 +140,16 @@ class ControlledMerchantProductionExecutor {
       if (step.kind === ProductionStepKind.BANK_STORE) {
         if (!this._start(plan, step, { action: 'bank_store', expectedInventory: beforeInv - check.quantity, expectedBank: beforeBank + check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'BANK_STORE_STARTING'); this.stats.bankStores += 1; await this._timeout(check.api[0].call(check.api[1], check.index), 'BANK_STORE'); this._transition('VERIFYING', 'BANK_STORE_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity && this._bankQty(check.name, check.level) >= beforeBank + check.quantity); return this._finish(step, ok, ok ? 'BANK_STORE_DELTA_VERIFIED' : 'BANK_STORE_DELTA_VERIFICATION_FAILED', { quantity: check.quantity });
       }
+      if (step.kind === ProductionStepKind.EXCHANGE) {
+        if (!this._start(plan, step, { action: 'exchange', inventoryIndex: check.index, consumedQuantity: check.quantity, expectedInventoryMax: beforeInv - check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+        this._transition('EXECUTING', 'EXCHANGE_STARTING');
+        this.stats.exchanges += 1;
+        const response = await this._timeout(check.api[0].call(check.api[1], check.index), 'EXCHANGE');
+        if (response && response.success === false) throw new Error(`EXCHANGE_REJECTED:${response.reason || 'unknown'}`);
+        this._transition('VERIFYING', 'EXCHANGE_RETURNED');
+        const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity);
+        return this._finish(step, ok, ok ? 'EXCHANGE_INPUT_DELTA_VERIFIED' : 'EXCHANGE_INPUT_DELTA_VERIFICATION_FAILED', { consumedQuantity: check.quantity, reward: response && response.reward || null });
+      }
       const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1))); if (!this._start(plan, step, { action: 'auto_craft', expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'AUTO_CRAFT_STARTING'); this.stats.crafts += 1; await this._timeout(check.api[0].call(check.api[1], check.name), 'AUTO_CRAFT'); this._transition('VERIFYING', 'AUTO_CRAFT_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out); return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_VERIFICATION_FAILED', { outputQuantity: out });
     } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
     finally { this.busy = false; }
@@ -133,11 +158,11 @@ class ControlledMerchantProductionExecutor {
   reconcile() {
     const op = this.activeOperation; if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_PRODUCTION_OPERATION' }; if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'PRODUCTION_OPERATION_NOT_RECOVERING' };
     const inv = itemQuantity(this._inventory(), op.item, op.level), bank = this._bankQty(op.item, op.level); let ok = false;
-    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
+    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
     this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
   }
 
-  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
+  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft || this.allowExchange), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, exchangeAllowed: this.enabled && this.allowExchange, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT', 'EXCHANGE'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
 }
 
 module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };

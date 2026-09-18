@@ -5,11 +5,13 @@ const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-cons
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 const { Alpha27BankRecovery } = require('./alpha27-bank-recovery');
+const { MerchantSelfGear } = require('./merchant-self-gear');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   constructor(runtime, atomic, shared) {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+    this.selfGear = new MerchantSelfGear(runtime, atomic, shared);
     this.collectionSession = null;
     this.lastCollectionSession = null;
     this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
@@ -395,6 +397,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
+    // Improve Merchant's own equipped gear before ordinary inventory economy.
+    // The self-gear controller preserves a verified fallback and owns the
+    // unequip -> atomic mutation -> re-equip lifecycle.
+    if (this.selfGear && await this.selfGear.cycle()) {
+      this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
+      return true;
+    }
+
     // Progression is processed before disposal. This restores the intended
     // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
     // Family-scoped circuits still allow unrelated later stages to continue.
@@ -463,6 +473,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       collectionSession: this.collectionStatus(),
       collectionSessionPreemptsEconomy: true,
+      selfGear: this.selfGear ? this.selfGear.status() : null,
+      selfGearLifecycle: ['UNEQUIP', 'ATOMIC_UPGRADE_OR_COMPOUND', 'REEQUIP_OR_FALLBACK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
