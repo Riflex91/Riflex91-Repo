@@ -111,6 +111,8 @@ und der dazugehoerige Hashnachweis:
 
 `dist/aio-v4-runtime.sha256`
 
+Die Datei enthaelt ausschliesslich den 64-stelligen lowercase SHA-256-Hexwert der Runtime, ohne Dateinamen oder `sha256sum -c`-Metadaten.
+
 CI prueft Reproduzierbarkeit, Mindest-/Maximalgroesse, Runtime-Marker, den unabhaengig nachberechneten SHA-256 und eine passive Installation im simulierten Browserkontext.
 
 ## Adventure-Land-Loader
@@ -187,7 +189,7 @@ Der Deploy-Workflow:
 
 1. checkt exakt den vorgesehenen Release-Commit aus,
 2. baut die V4-Produktionsruntime mit dem strikten TypeScript-Build,
-3. prueft lokal `sha256sum -c`,
+3. liest den rohen 64-stelligen Hash aus `aio-v4-runtime.sha256`, berechnet `sha256sum` fuer die Runtime und vergleicht beide Werte exakt,
 4. deployt zuerst den Worker mit der V4-Release-Route,
 5. schreibt Runtime und Hashdatei unter den immutable R2-Schluessel,
 6. liest beide Artefakte aus R2 zurueck und vergleicht sie bytegenau,
