@@ -6,7 +6,8 @@ const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v4';
 const POTION_TARGET_COUNT = 4500;
 // A latched service order is bounded so stale party telemetry cannot pin a target forever.
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
-const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
+const POTION_REQUEST_BELOW = 200;
+const POTION_LOW_WATERMARK = POTION_REQUEST_BELOW - 1;
 // Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
 const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
 // Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
@@ -128,7 +129,9 @@ function dynamicBundle(input, plan) {
     const farmerBefore = farmerCount(report, def.family);
     const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
     const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    const quantity = farmerShortfall;
+    // Request/refill each potion family independently. A healthy HP stack must
+    // not be topped up just because MP crossed the low threshold (and vice versa).
+    const quantity = farmerBefore < POTION_REQUEST_BELOW ? farmerShortfall : 0;
     if (quantity > MAX_DYNAMIC_DELIVERY) return null;
     rows.push({
       family: def.family,
@@ -194,6 +197,7 @@ function policyMetadata(plan, rows) {
     adaptivePotionDelivery: true,
     bundlePolicy: 'TOP_UP_FARMER_TO_4500_WITH_DEMAND_ONLY_PURCHASE',
     farmerTarget: POTION_TARGET_COUNT,
+    potionRequestBelow: POTION_REQUEST_BELOW,
     merchantReserve: MERCHANT_POTION_RESERVE,
     noPurchasedReserve: true,
     merchantExcessBlocksDelivery: false,
@@ -219,6 +223,7 @@ function installPlannerPolicy(runtime) {
 
   planner.merchantPotionReserve = MERCHANT_POTION_RESERVE;
   planner.lowPotionCount = POTION_LOW_WATERMARK;
+  planner.criticalPotionCount = Math.min(planner.criticalPotionCount, POTION_LOW_WATERMARK);
   planner.targetPotionCount = POTION_TARGET_COUNT;
   planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
 
@@ -633,6 +638,7 @@ function installStatusPolicy(runtime) {
         potionPolicy: {
           ...(status.potionPolicy || {}),
           farmerTarget: POTION_TARGET_COUNT,
+          potionRequestBelow: POTION_REQUEST_BELOW,
           lowWatermark: POTION_LOW_WATERMARK,
           deliveryMode: 'adaptive-demand-top-up',
           merchantReserve: MERCHANT_POTION_RESERVE,
@@ -649,7 +655,7 @@ function installStatusPolicy(runtime) {
 
   const logistics = runtime && runtime.controlledPartyLogistics;
   if (logistics && logistics.config) {
-    logistics.config.farmerPotionLow = POTION_LOW_WATERMARK;
+    logistics.config.farmerPotionLow = POTION_REQUEST_BELOW;
     logistics.config.farmerPotionTarget = POTION_TARGET_COUNT;
     logistics.config.maxSupplyBatch = POTION_TARGET_COUNT;
   }
@@ -665,6 +671,7 @@ function installP0PotionPolicy4500(runtime) {
   runtime.p0PotionPolicy4500 = {
     mode: P0_POTION_POLICY_4500_MODE,
     farmerTarget: POTION_TARGET_COUNT,
+    potionRequestBelow: POTION_REQUEST_BELOW,
     lowWatermark: POTION_LOW_WATERMARK,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     adaptiveDelivery: true,
@@ -686,6 +693,7 @@ module.exports = {
   P0_POTION_POLICY_4500_MODE,
   POTION_TARGET_COUNT,
   POTION_DELIVERY_QUANTITY,
+  POTION_REQUEST_BELOW,
   POTION_LOW_WATERMARK,
   MERCHANT_POTION_RESERVE,
   POTION_SERVICE_CHAIN_TIMEOUT_MS,
