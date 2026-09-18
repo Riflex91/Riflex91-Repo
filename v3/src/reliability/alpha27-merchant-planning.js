@@ -125,6 +125,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
+      const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
+      if (!budget.allowed) continue;
       return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
     }
 
@@ -139,7 +141,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
         if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
-        return value <= this.options.upgradeValueCap;
+        if (value > this.options.upgradeValueCap) return false;
+        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) }).allowed;
       });
     if (!fallback) return null;
     return {
@@ -177,14 +180,17 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .filter((rows) => rows.length >= 3)
       .map((rows) => {
         const identity = `${rows[0].name}:${levelOf(rows[0])}`;
+        const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: rows[0].name, level: levelOf(rows[0]) });
         return {
           rows,
           identity,
           completeSets: Math.floor(rows.length / 3),
+          mutationBudget: budget,
           previousSelections: this.compoundSelectionCounts.get(identity) || 0,
           repeated: identity === this.lastCompoundIdentity
         };
       })
+      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed)
       .sort((a, b) => (
         // Drain the largest actionable backlog first, but never repeatedly starve
         // another identity merely because its item name sorts later (ringsj was
