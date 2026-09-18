@@ -71,6 +71,10 @@ test('central ledger processes low-risk progression before bank fallback', () =>
   };
   const runtime = makeRuntime({ ledger, gameData });
   new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000 });
+  // Economic +3 processing is allowed only after an explicit fresh Farmer
+  // future-value evaluation proves the item has no useful path by +5.
+  runtime.gearProgression.futureProtectionFor = () => null;
+  runtime.gearProgression.futureSellSafetyFor = () => ({ checked: true, protected: false });
   const counts = new Map([['ring:0', 3]]);
   const classify = (name, level = 0) => ledger._baseDisposition({ name, level }, gameData, runtime.contentDrift, counts).disposition;
   assert.equal(classify('material'), 'SELL');
