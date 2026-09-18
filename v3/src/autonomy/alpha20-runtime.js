@@ -12,10 +12,8 @@ const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 function finite(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
 function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
 
-class Alpha20Runtime extends Alpha19Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = RELEASE_VERSION;
+function composeAlpha20Runtime(options = {}) {
+this.log.version = RELEASE_VERSION;
 
     // Legacy Alpha.12 live switches are permanently closed in Alpha.20.
     // Live authority can only be borrowed inside the controlled lifecycle operation.
@@ -77,6 +75,12 @@ class Alpha20Runtime extends Alpha19Runtime {
     });
     this.lastLifecyclePlan = null;
     this.lastLifecycleExecution = null;
+}
+
+class Alpha20Runtime extends Alpha19Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha20Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -389,4 +393,4 @@ class Alpha20Runtime extends Alpha19Runtime {
   }
 }
 
-module.exports = { Alpha20Runtime };
+module.exports = { Alpha20Runtime, composeAlpha20Runtime };
