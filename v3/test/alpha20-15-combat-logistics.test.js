@@ -93,10 +93,10 @@ test('Alpha20.15 normalizes synthetic team rankings before Farmer telemetry form
   assert.equal(selection.ranking.confidence, 1);
 });
 
-test('Alpha20.15 logistics uses below-50 refill threshold and 5000 target with no farmer gold reserve', () => {
+test('Alpha20.15 logistics requests each potion family only below 200 and keeps zero Merchant loot reserve', () => {
   const { runtime } = makeRuntime();
   const logistics = new ControlledPartyLogistics(runtime);
-  assert.equal(logistics.config.farmerPotionLow, 50);
+  assert.equal(logistics.config.farmerPotionLow, 200);
   assert.equal(logistics.config.farmerPotionTarget, 5000);
   assert.equal(logistics.config.maxSupplyBatch, 5000);
   assert.equal(logistics.config.farmerGoldReserve, 0);
@@ -171,6 +171,30 @@ test('Inventory offer skips potions and offers levelled gear while Merchant stil
   assert.equal(sent[0].action, Action.LOOT_OFFER);
   assert.equal(sent[0].data.item.name, 'hpamulet');
   assert.equal(sent[0].data.item.level, 4);
+});
+
+test('Farmer loot offers and granted transfers are not blocked by normal ENGAGE combat state', () => {
+  const { runtime } = makeRuntime('My_Ranger1', 'ranger');
+  runtime.farmer.state = 'ENGAGE';
+  const logistics = new ControlledPartyLogistics(runtime);
+  let offers = 0;
+  let grants = 0;
+  logistics._requestSupply = () => false;
+  logistics._verifyPendingOutbound = () => false;
+  logistics._offerInventoryItem = () => { offers += 1; return true; };
+  logistics._offerGoldAnytime = () => false;
+  logistics._executeGrant = () => { grants += 1; logistics.pendingGrant = null; logistics.pendingOffer = null; return true; };
+
+  const snap = snapshot('My_Ranger1', 'ranger', { inventory: [{ index: 0, name: 'gslime', q: 1 }] });
+  logistics._farmerTick(snap);
+  assert.equal(offers, 1);
+
+  logistics.pendingOffer = { kind: 'item', offerId: 'offer-1', item: { index: 0, name: 'gslime', level: 0 } };
+  logistics.pendingGrant = { action: Action.LOOT_GRANT, offerId: 'offer-1', grantId: 'grant-1', expiresAt: 20000 };
+  offers = 0;
+  logistics._farmerTick(snap);
+  assert.equal(grants, 1);
+  assert.equal(offers, 1);
 });
 
 test('visible release version matches integrated Alpha20.23', () => {
