@@ -235,6 +235,27 @@ Required behavior:
 
 This step does not bypass Adventure Land login, automate passwords/2FA, expose CDP remotely or add gameplay authority.
 
+## Step 12 — Production CRITICAL alerting and Windows host secrets
+
+**Branch:** `architecture/12-production-alerting-windows-secrets`
+
+Turn the existing durable alert relay into a Windows production alert path without exposing provider credentials to the browser/runtime.
+
+Required behavior:
+
+- configure two independently hosted HTTPS CRITICAL alert routes for production redundancy;
+- store the complete transport secrets outside `host.json`, protected with Windows DPAPI `CurrentUser`;
+- decrypt secrets only into the Windows host process environment and remove the parent PowerShell environment value after the child exits;
+- build transports from a strict allowlisted secret schema, with bounded headers/values and no Host/Cookie/connection-control header injection;
+- require distinct route hostnames when production critical alerting is enabled;
+- pass both routes as required CRITICAL transports into the existing persist-before-claim `AlertRelay`;
+- keep durable spool records pending until both required routes have accepted the alert, so a partial outage cannot silently look complete;
+- provide an explicit canary command that exercises each route independently without acknowledging any gameplay/operator alert;
+- expose route health/status without URL, header values or credentials;
+- preserve bounded retry/backoff and fail closed if durable persistence or secret configuration is unavailable.
+
+This step does not add gameplay authority, operator acknowledgement authority, public alert endpoints, remote shell access or Adventure Land credentials.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.
