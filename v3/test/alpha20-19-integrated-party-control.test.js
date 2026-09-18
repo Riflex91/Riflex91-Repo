@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountCharacterTransport } = require('../src/party/account-character-transport');
 const { installAlpha2019AccountTransportHotfix } = require('../src/party/alpha20-19-account-transport-hotfix');
-const { ControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
+const { ControlledPartyLogistics, Action } = require('../src/party/controlled-party-logistics');
 const { patchLogisticsPrototype } = require('../src/party/alpha20-15-combat-logistics-hotfix');
 const { patchAlpha2019LogisticsStabilization } = require('../src/party/alpha20-19-logistics-stabilization');
 const { FarmAreaPressureHotfix, areaKey } = require('../src/farmer/farm-area-pressure-hotfix');
@@ -206,13 +206,89 @@ test('Alpha20.19 failed LOOT_OFFER releases pendingOffer instead of deadlocking 
   assert.equal(logistics.status().alpha20_19.stats.offerTransportFailures, 1);
 });
 
+test('Merchant explicitly rejects an unserviceable loot offer', async () => {
+  patchLogisticsPrototype(); patchAlpha2019LogisticsStabilization();
+  const clock = { now: 20000 };
+  const sent = [];
+  const transport = {
+    trustedRosterNames: () => ['My_Merchant', 'My_Ranger1'],
+    activeNames: () => ['My_Merchant', 'My_Ranger1'],
+    installDirectReceiver: () => true,
+    send(target, payload) { sent.push({ target, payload }); return Promise.resolve({ delivered: true }); }
+  };
+  const root = {
+    character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, gold: 0, isize: 42, items: [] },
+    parent: {},
+    G: { items: {} }
+  };
+  root.parent.character = root.character;
+  const runtime = {
+    root,
+    now: () => clock.now,
+    log: { emit() {} },
+    adapter: { mode: 'active', snapshot: () => ({ character: { ...root.character, inventory: root.character.items }, entities: [] }) },
+    partyAccountCommunication: { transport },
+    partyControlLease: { merchantName: 'My_Merchant' },
+    partyBootstrap: { trustedRosterNames: () => transport.trustedRosterNames() }
+  };
+  const logistics = new ControlledPartyLogistics(runtime);
+  logistics._safeLootDescriptor = () => ({ ok: false, reason: 'MERCHANT_POLICY_REJECT' });
+
+  assert.equal(logistics._handleLootOffer('My_Ranger1', {
+    offerId: 'offer-reject-1',
+    item: { name: 'mystery', level: 0, q: 1 },
+    map: 'main',
+    x: 10,
+    y: 0
+  }), true);
+
+  await new Promise((resolve) => setImmediate(resolve));
+  const reject = sent.find((row) => row.payload && row.payload.action === Action.LOOT_REJECT);
+  assert.ok(reject);
+  assert.equal(reject.target, 'My_Ranger1');
+  assert.equal(reject.payload.offerId, 'offer-reject-1');
+  assert.equal(reject.payload.reason, 'MERCHANT_POLICY_REJECT');
+  assert.equal(logistics.stats.lootRejectsSent, 1);
+});
+
+test('Farmer LOOT_REJECT immediately releases and blocks the exact offered item', () => {
+  patchLogisticsPrototype(); patchAlpha2019LogisticsStabilization();
+  const clock = { now: 25000 };
+  const { runtime } = logisticsRuntime(clock);
+  const logistics = new ControlledPartyLogistics(runtime, { rejectedLootBackoffMs: 120000 });
+  const item = { index: 0, name: 'hpbelt', level: 0, q: 1 };
+  logistics.pendingOffer = { kind: 'item', offerId: 'offer-1', item: { ...item }, at: clock.now };
+
+  const accepted = logistics.receive('My_Merchant', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: Action.LOOT_REJECT,
+    sender: 'My_Merchant',
+    at: clock.now,
+    offerId: 'offer-1',
+    reason: 'MERCHANT_POLICY_REJECT',
+    retryAfterMs: 120000
+  });
+
+  assert.equal(accepted, true);
+  assert.equal(logistics.pendingOffer, null);
+  assert.equal(logistics.pendingGrant, null);
+  assert.equal(logistics._lootBlocked(item), true);
+  assert.equal(logistics._safeLootCandidate(runtime.adapter.snapshot()), null);
+  assert.equal(logistics.stats.lootRejectsReceived, 1);
+  assert.equal(logistics.stats.rejectedLootBlocks, 1);
+});
+
 test('Alpha20.19 stale offer expires and Merchant status exposes explicit loot signal and 300 potion reserve', () => {
   patchLogisticsPrototype(); patchAlpha2019LogisticsStabilization();
   const clock = { now: 30000 }; const { runtime, root } = logisticsRuntime(clock);
   const logistics = new ControlledPartyLogistics(runtime);
-  logistics.pendingOffer = { kind: 'item', offerId: 'stale', at: 1000 };
+  const staleItem = { index: 0, name: 'hpbelt', level: 0, q: 1 };
+  logistics.pendingOffer = { kind: 'item', offerId: 'stale', item: { ...staleItem }, at: 1000 };
   logistics._prune();
   assert.equal(logistics.pendingOffer, null);
+  assert.equal(logistics._lootBlocked(staleItem), true);
+  assert.equal(logistics._safeLootCandidate(runtime.adapter.snapshot()), null);
   root.character.name = 'My_Merchant'; root.character.ctype = 'merchant'; root.character.items = [null]; root.character.isize = 1;
   const payload = logistics._statusPayload(runtime.adapter.snapshot());
   assert.equal(payload.lootSignal, 'ACCEPTING_LOOT');
