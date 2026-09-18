@@ -234,17 +234,19 @@ test('Block-8 Gruppenziel Live-Smoke protokolliert attack-Versuch auch wenn Adve
   const u = umgebung({ attackFehler: true });
   const req = anfrage();
   const steuerung = starte(req);
+  let sicherheitsZeit = 10_050;
   const smoke = new AdventureLandGruppenZielLiveSmoke(
     u.zielKontext,
     u.spielFenster,
     steuerung,
-    () => sicherheit(10_052),
+    () => sicherheit(sicherheitsZeit),
     zeiten(10_050, 10_051, 10_052, 10_053, 10_054, 10_055, 10_056, 10_057),
     erwartung,
     { aktivFreigegeben: true }
   );
   smoke.vorschau();
   smoke.freigeben(GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT);
+  sicherheitsZeit = 10_052;
   await assert.rejects(
     () => smoke.starte(),
     (fehler) => {
