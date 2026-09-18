@@ -393,6 +393,7 @@ test('Merchant status publishes the enforced lifecycle order', () => {
 });
 
 
+// Live alpha.20.96 regression: +1 feeder gear must survive until future Farmer value is disproven.
 test('processed +1 compound gear is protected and continued when +5 becomes a Farmer upgrade', () => {
   const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01, maxProbeLevel: 12 });
   const gameData = {
