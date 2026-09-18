@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 7,
+  "next_step": 8,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -123,9 +123,9 @@
       "name": "remove-hotfix-layer",
       "title": "Remove obsolete reliability hotfix layer",
       "branch": "architecture/07-remove-hotfix-layer",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 264,
-      "merge_commit": null,
+      "merge_commit": "eec5b9ce20a8c6e140828e89b50fb59edb3f49d6",
       "required_outcomes": [
         "obsolete installers removed",
         "farm-readiness constructor/tick wiring simplified",
@@ -138,7 +138,7 @@
       "name": "runtime-composition",
       "title": "Replace alpha runtime inheritance with composition",
       "branch": "architecture/08-runtime-composition",
-      "status": "pending",
+      "status": "in_progress",
       "pr": null,
       "merge_commit": null,
       "required_outcomes": [
