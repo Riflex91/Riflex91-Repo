@@ -129,6 +129,55 @@ test('Gear Progression respects class compatibility and content quarantine', () 
   assert.ok(result.status.lastEvaluation.blockedUnknownContent > 0);
 });
 
+test('Gear Progression rejects class-incompatible offhand goals using Adventure Land class metadata', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const result = evaluator.evaluate({
+    registry: registry([
+      {
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        inventory: [{ index: 0, name: 'shield', level: 0, q: 1 }],
+        gear: {}
+      },
+      {
+        name: 'R1',
+        ctype: 'ranger',
+        level: 80,
+        inventory: [],
+        gear: {
+          mainhand: { name: 'bow', level: 5 },
+          offhand: { name: 'quiver', level: 3 }
+        }
+      }
+    ]),
+    gameData: {
+      classes: {
+        ranger: {
+          mainhand: { bow: {} },
+          doublehand: { fist: {}, dagger: {} },
+          offhand: { quiver: {} }
+        },
+        merchant: {
+          mainhand: { staff: {} },
+          doublehand: {},
+          offhand: { shield: {}, source: {}, quiver: {}, misc_offhand: {} }
+        }
+      },
+      items: {
+        shield: { type: 'shield', armor: 60, upgrade: { armor: 4 } },
+        bow: { type: 'weapon', wtype: 'bow', attack: 40 },
+        quiver: { type: 'quiver', dex: 12 }
+      }
+    },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  assert.equal(result.goals.some((goal) => goal.character === 'R1' && goal.item === 'shield'), false);
+  assert.equal(result.currentGoals.some((goal) => goal.character === 'R1' && goal.item === 'shield'), false);
+  assert.equal(evaluator.futureProtectionFor('Merchant', 0, 'shield', 0), null);
+});
+
 test('Gear Progression persistence is schema-versioned and corrupt data fails closed', () => {
   let raw = null;
   const storage = { get: () => raw, set: (_, value) => { raw = value; } };
