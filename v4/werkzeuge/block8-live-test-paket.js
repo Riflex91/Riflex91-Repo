@@ -429,7 +429,7 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
           setzeStatus('fail', meldung);
           protokolliere(`FEHLER ${datensatz.titel || aktionsKennung}`, meldung);
           setzeErgebnis({ status: 'fehlgeschlagen', fehler: meldung }, 'fail', meldung);
-          throw fehler;
+          return undefined;
         } finally {
           if (datensatz.einmalig !== true) knopf.disabled = false;
         }
@@ -930,7 +930,6 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
       : 'Empfangs-Preflight ist nicht sauber.');
     test.protokolliere('Empfang gestartet', ergebnis);
     test.setzeAktionAktiv('heartbeat-senden', pass);
-    if (istLeiter) test.setzeAktionAktiv('gruppenziel-vorschau', pass);
     return ergebnis;
   }
 
@@ -949,10 +948,15 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
       laufendeGruppenAnfragen: status.laufendeGruppenAnfragen,
       ressourcenSperren: status.ressourcenSperren
     });
-    test.setzeErgebnis(ergebnis, pass ? 'pass' : 'fail', pass
-      ? 'Lebensnachweis an alle konfigurierten Gegenstellen gesendet.'
-      : 'Mindestens ein Lebensnachweis wurde nicht gesendet.');
+    const mindestensZweiTeilnehmer = Array.isArray(status.bekannteTeilnehmer) && status.bekannteTeilnehmer.length >= 2;
+    const vorbereitungBereit = pass && mindestensZweiTeilnehmer;
+    test.setzeErgebnis(ergebnis, vorbereitungBereit ? 'pass' : pass ? 'warn' : 'fail', vorbereitungBereit
+      ? 'Heartbeat gesendet und mindestens zwei Teilnehmer sind bekannt. Gruppenziel-Vorschau ist freigegeben.'
+      : pass
+        ? 'Heartbeat gesendet, aber noch nicht mindestens zwei Teilnehmer bekannt.'
+        : 'Mindestens ein Lebensnachweis wurde nicht gesendet.');
     test.protokolliere('Heartbeat', ergebnis);
+    if (istLeiter) test.setzeAktionAktiv('gruppenziel-vorschau', vorbereitungBereit);
     return ergebnis;
   }
 
