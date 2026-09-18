@@ -116,11 +116,11 @@ test('migrated representative modules cannot return to direct monkey-patching', 
   const sourceRoot = path.resolve(__dirname, '..', 'src');
   const protectedFiles = [
     {
-      path: 'reliability/farmer-local-plan-priority.js',
+      path: 'farmer/farmer-local-plan-priority.js',
       pattern: /\bfarmer\.step\s*=/
     },
     {
-      path: 'reliability/live-navigation-hotfix.js',
+      path: 'farmer/live-navigation-hotfix.js',
       pattern: /\._visibleMonsters\s*=/
     }
   ];
