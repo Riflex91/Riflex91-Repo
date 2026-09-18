@@ -16,6 +16,15 @@ function pruefeGrund(grund: string): void {
   if (grund.trim().length === 0) throw new Error('Die Laufzeitsteuerung benoetigt einen Grund.');
 }
 
+function pruefeNichtVorLetzterAenderung(
+  zeitpunkt: number,
+  letzteAenderungAm: number | null
+): void {
+  if (letzteAenderungAm !== null && zeitpunkt < letzteAenderungAm) {
+    throw new Error('Der Laufzeitsteuerungs-Zeitpunkt liegt vor der letzten Zustandsaenderung.');
+  }
+}
+
 export class LaufzeitSteuerung implements LaufzeitAktionsTor {
   private zustand: 'laeuft' | 'pausiert' = 'laeuft';
   private generation = 0;
@@ -36,6 +45,7 @@ export class LaufzeitSteuerung implements LaufzeitAktionsTor {
   pausiere(zeitpunkt: number, grund: string): LaufzeitSteuerungsStatus {
     pruefeZeitpunkt(zeitpunkt);
     pruefeGrund(grund);
+    pruefeNichtVorLetzterAenderung(zeitpunkt, this.letzteAenderungAm);
     if (this.zustand === 'pausiert') return this.status();
 
     this.zustand = 'pausiert';
@@ -48,6 +58,7 @@ export class LaufzeitSteuerung implements LaufzeitAktionsTor {
   setzeFort(zeitpunkt: number, grund: string): LaufzeitSteuerungsStatus {
     pruefeZeitpunkt(zeitpunkt);
     pruefeGrund(grund);
+    pruefeNichtVorLetzterAenderung(zeitpunkt, this.letzteAenderungAm);
     if (this.zustand === 'laeuft') return this.status();
 
     this.zustand = 'laeuft';
