@@ -147,6 +147,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.collectionRoute = null;
     this.suspendedCollectionRoute = null;
     this.lastCollectionCapacityPlan = null;
+    this.collectionCapacityBlockedIndexes = new Set();
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
     this.stats = {
@@ -177,6 +178,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityBlockedActions: 0,
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
+      collectionCapacityDeferredBanks: 0,
+      collectionCapacityMaxSafePrepCompleted: 0,
       collectionFollowMoves: 0,
       collectionDrainedWaits: 0,
       collectionUnavailableCompletions: 0,
@@ -822,29 +825,87 @@ class Alpha33MarkOrbitMerchantDelivery {
     return plan;
   }
 
+  _collectionHasActiveFarmerGearGoal(entry) {
+    const gear = this.runtime.gearProgression;
+    if (!gear || typeof gear.list !== 'function' || !entry) return false;
+    let goals = [];
+    try { goals = gear.list(256) || []; } catch (_) { goals = []; }
+    const c = characterOf(this.runtime) || {};
+    return goals.some((goal) => goal
+      && String(goal.sourceCharacter || '') === String(c.name || '')
+      && Number(goal.sourceIndex) === Number(entry.index)
+      && String(goal.item || '') === String(entry.name || '')
+      && levelOf({ level: goal.observedLevel }) === levelOf(entry)
+      && goal.character
+      && String(goal.character) !== String(c.name || ''));
+  }
+
+  _collectionDeferredBankRequest() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.list !== 'function') return null;
+    const allowed = new Set(['KEEP', 'RESERVE_GROUP', 'RESERVE_PROGRESSION', 'RESERVE_COMPOUND', 'RESERVE_UPGRADE']);
+    const order = { KEEP: 0, RESERVE_GROUP: 1, RESERVE_COMPOUND: 2, RESERVE_UPGRADE: 3, RESERVE_PROGRESSION: 4 };
+    const rows = ledger.list(1000)
+      .filter((row) => row
+        && String(row.character || '') === String(c.name || '')
+        && allowed.has(String(row.disposition || ''))
+        && !this.collectionCapacityBlockedIndexes.has(Number(row.index)))
+      .sort((a, b) => finite(order[String(a.disposition)], 9) - finite(order[String(b.disposition)], 9)
+        || Number(a.index) - Number(b.index));
+    for (const row of rows) {
+      const name = String(row.name || '');
+      if (!name || /^(?:hpot|mpot|elixir)/i.test(name)) continue;
+      if (this._collectionHasActiveFarmerGearGoal(row)) continue;
+      const live = Array.isArray(c.items) ? c.items[Number(row.index)] : null;
+      if (!live || String(live.name || '') !== name || levelOf(live) !== levelOf(row)) continue;
+      if (live.locked === true || live.l === true || live.special === true || live.p) continue;
+      return {
+        type: 'BANK',
+        character: c.name,
+        index: Number(row.index),
+        quantity: Math.max(1, Math.floor(finite(row.q, finite(live.q, 1)))),
+        metadata: {
+          source: 'ALPHA33_COLLECTION_CAPACITY_PREP',
+          collectionCapacityPrep: true,
+          originalDisposition: String(row.disposition || ''),
+          reason: 'DEFERRED_ITEM_BANKED_FOR_MAX_FARMER_PICKUP_CAPACITY'
+        }
+      };
+    }
+    return null;
+  }
+
   async _prepareCollectionCapacity(merchant, candidate) {
     const plan = this._collectionCapacityPlan(candidate);
-    if (plan.slotsToFree <= 0) return { ready: true, acted: false, plan };
-
-    const request = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
-    if (request && ['SELL', 'BANK'].includes(String(request.type || ''))) {
+    const normal = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
+    if (normal && ['SELL', 'BANK'].includes(String(normal.type || '')) && !this.collectionCapacityBlockedIndexes.has(Number(normal.index))) {
+      const request = {
+        ...normal,
+        metadata: { ...(normal.metadata || {}), collectionCapacityPrep: true, source: normal.metadata && normal.metadata.source || 'ALPHA33_COLLECTION_CAPACITY_PREP' }
+      };
       this.stats.collectionCapacityDisposals += 1;
       const acted = await merchant.executeEconomyRequest(request);
-      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
-      return { ready: false, acted: !!acted, plan, request, blocked: !acted };
+      if (!acted) {
+        this.stats.collectionCapacityBlockedActions += 1;
+        this.collectionCapacityBlockedIndexes.add(Number(request.index));
+      }
+      return { ready: false, acted: !!acted, plan, request, blocked: !acted, maximumSafeCapacityPending: true };
     }
-
-    // A complete compound set frees two inventory slots. Use it only when no
-    // safe SELL/BANK disposal is available and capacity still blocks collection.
-    const compound = merchant && typeof merchant.planCompound === 'function' ? merchant.planCompound() : null;
-    if (compound) {
-      const acted = await merchant.executeEconomyRequest(compound);
-      if (!acted) this.stats.collectionCapacityBlockedActions += 1;
-      return { ready: false, acted: !!acted, plan, request: compound, blocked: !acted };
+    const deferredBank = this._collectionDeferredBankRequest();
+    if (deferredBank) {
+      this.stats.collectionCapacityDisposals += 1;
+      this.stats.collectionCapacityDeferredBanks += 1;
+      const acted = await merchant.executeEconomyRequest(deferredBank);
+      if (!acted) {
+        this.stats.collectionCapacityBlockedActions += 1;
+        this.collectionCapacityBlockedIndexes.add(Number(deferredBank.index));
+      }
+      return { ready: false, acted: !!acted, plan, request: deferredBank, blocked: !acted, maximumSafeCapacityPending: true };
     }
-
-    this.stats.collectionCapacityConstrainedDepartures += 1;
-    return { ready: true, acted: false, plan, constrained: true };
+    this.stats.collectionCapacityMaxSafePrepCompleted += 1;
+    const finalPlan = this._collectionCapacityPlan(candidate);
+    return { ready: true, acted: false, plan: finalPlan, maximumSafeCapacityPrepared: true, constrained: finalPlan.slotsToFree > 0 };
   }
 
   _collectionCoordinator() {
@@ -853,6 +914,7 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _startCollectionRoute(candidate) {
     if (!candidate || !candidate.pickupEntryCount) return false;
+    this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
       ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
@@ -1086,25 +1148,23 @@ class Alpha33MarkOrbitMerchantDelivery {
       const prepared = await this._prepareCollectionCapacity(merchant, candidate);
       if (!prepared.ready) {
         const prepareAgeMs = Math.max(0, this.now() - finite(route.startedAt, this.now()));
-        if (prepareAgeMs < this.collectionPrepareMaxMs) {
-          merchant.lastMerchantPlan = {
-            at: this.now(),
-            action: 'COLLECTION_PREPARE',
-            reason: prepared.blocked ? 'CAPACITY_DISPOSAL_BLOCKED_RETRY_BOUNDED' : 'FREEING_CAPACITY_FOR_FARMER_PICKUP',
-            capacity: prepared.plan,
-            prepareAgeMs,
-            prepareMaxMs: this.collectionPrepareMaxMs
-          };
-          return true;
-        }
-        this.stats.collectionCapacityPrepareTimeouts += 1;
-        this.stats.collectionCapacityConstrainedDepartures += 1;
-        this._event('MERCHANT_COLLECTION_CAPACITY_PREPARE_TIMEOUT', 'warn', 'BOUNDED_COLLECTION_PREPARE_EXPIRED', {
-          routeId: route.id,
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'COLLECTION_PREPARE',
+          reason: prepared.blocked ? 'SKIPPING_BLOCKED_CAPACITY_ITEM_CONTINUE_PREP' : 'MAXIMIZING_SAFE_CAPACITY_BEFORE_FARMER_PICKUP',
+          capacity: prepared.plan,
           prepareAgeMs,
           prepareMaxMs: this.collectionPrepareMaxMs,
-          blocked: prepared.blocked === true,
-          capacity: prepared.plan
+          request: prepared.request || null
+        };
+        return true;
+      }
+      if (prepared.constrained) {
+        this.stats.collectionCapacityConstrainedDepartures += 1;
+        this._event('MERCHANT_COLLECTION_CAPACITY_CONSTRAINED', 'warn', 'NO_MORE_SAFE_CAPACITY_RELIEF', {
+          routeId: route.id,
+          capacity: prepared.plan,
+          blockedIndexes: [...this.collectionCapacityBlockedIndexes]
         });
       }
       route.stage = 'TRAVEL_TO_FARMERS';
@@ -1248,6 +1308,9 @@ class Alpha33MarkOrbitMerchantDelivery {
         criticalPartySupplySuspendsAndResumesCollection: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
+        merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: true,
+        collectionDeferredItemsBankedBeforeDeparture: true,
+        operationalPotionsAndActiveFarmerGearGoalsStayLocal: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
