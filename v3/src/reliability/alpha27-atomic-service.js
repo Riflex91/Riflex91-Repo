@@ -12,8 +12,9 @@ function serviceNpcId(destination, gameData = {}) {
   const npcs = gameData && gameData.npcs && typeof gameData.npcs === 'object' ? gameData.npcs : {};
   if (Object.prototype.hasOwnProperty.call(npcs, key)) return key;
   for (const [id, npc] of Object.entries(npcs)) {
-    if (!npc || !Array.isArray(npc.items)) continue;
-    if (npc.items.some((item) => item != null && String(item) === key)) return id;
+    if (!npc) continue;
+    if (String(npc.quest || '') === key || String(npc.role || '') === key) return id;
+    if (Array.isArray(npc.items) && npc.items.some((item) => item != null && String(item) === key)) return id;
   }
   return null;
 }
@@ -236,6 +237,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     const service = await this.ensureMutationService(tx);
     if (!service.ok) return service;
     return { ok: true, scroll, service, batch: clone(batch), desiredScrollQuantity: desired };
-  }}
+  }
+}
 
 module.exports = { Alpha27AtomicService, serviceNpcId, usableNpcLocation };
