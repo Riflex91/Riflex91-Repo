@@ -33,6 +33,10 @@ module.exports = {
   DEFAULT_ALLOWED_ORIGINS,
   MAX_CLAIM_IDS,
   MAX_ID_LENGTH,
+  CdpAdventureLandSessionDriver,
+  CDP_SESSION_SCHEMA_VERSION,
+  DEFAULT_CDP_ENDPOINT,
+  DEFAULT_ADVENTURE_LAND_ORIGIN,
   ProductionHostHarness,
   FtpsDiagnosticsUploader,
   ProblemDiagnosticsArchive
