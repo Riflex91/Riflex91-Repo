@@ -161,10 +161,11 @@ const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-o
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor');
+const { RuntimeComposition, createRuntimeComposition, COMPOSITION_MODE } = require('./composition/runtime-composition');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20_5FarmReadinessRuntime({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
+  const runtime = createRuntimeComposition({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -402,6 +403,7 @@ function install(root = globalThis, options = {}) {
       arm: () => runtime.backgroundExecution.arm('API_MANUAL'),
       setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled)
     },
+    runtimeComposition: { status: () => runtime.compositionStatus() },
     localFarming: { status: () => runtime.localFarming.status() },
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
@@ -434,7 +436,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
+  install, Runtime, RuntimeComposition, createRuntimeComposition, COMPOSITION_MODE, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
@@ -5078,10 +5080,8 @@ const { ResilientWorldPersistence } = require('../world/resilient-persistence');
 const { KnowledgeAgingPolicy, installKnowledgeAging, installStaleRiskGuard } = require('../world/knowledge-aging');
 const { CombatStabilitySupervisor } = require('./combat-stability-supervisor');
 
-class StabilityRuntime extends Runtime {
-  constructor(options = {}) {
-    super(options);
-    // Runtime alpha.8.13 remains the historical base implementation. The
+function composeStabilityRuntime(options = {}) {
+// Runtime alpha.8.13 remains the historical base implementation. The
     // stability runtime owns the phase-freeze version without rewriting that
     // large proven file, and all emitted events use the phase version.
     this.log.version = VERSION;
@@ -5147,6 +5147,12 @@ class StabilityRuntime extends Runtime {
 
     this._installFarmerStableWaitContract();
     this._installKitingCircuitGuard();
+}
+
+class StabilityRuntime extends Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeStabilityRuntime.call(this, options);
   }
 
   _installFarmerStableWaitContract() {
@@ -5254,7 +5260,7 @@ class StabilityRuntime extends Runtime {
   }
 }
 
-module.exports = { StabilityRuntime };
+module.exports = { StabilityRuntime, composeStabilityRuntime };
 
 },
 "src/version.js": function(require,module,exports){
@@ -6390,10 +6396,8 @@ const { StabilityRuntime } = require('../stability/stability-runtime');
 const { LocalFarmPlanner } = require('./local-farm-planner');
 const { LocalFarmOrchestrator } = require('./local-farm-orchestrator');
 
-class Alpha9Runtime extends StabilityRuntime {
-  constructor(options = {}) {
-    super(options);
-    this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
+function composeAlpha9Runtime(options = {}) {
+this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
       log: this.log,
       minExpectedImprovement: options.localFarmMinExpectedImprovement,
       maxCandidates: options.localFarmMaxCandidates
@@ -6415,6 +6419,12 @@ class Alpha9Runtime extends StabilityRuntime {
       maxPlanFailures: options.localFarmMaxPlanFailures,
       engageHpRatio: options.localFarmEngageHpRatio
     });
+}
+
+class Alpha9Runtime extends StabilityRuntime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha9Runtime.call(this, options);
   }
 
   tick() {
@@ -6447,7 +6457,7 @@ class Alpha9Runtime extends StabilityRuntime {
   }
 }
 
-module.exports = { Alpha9Runtime };
+module.exports = { Alpha9Runtime, composeAlpha9Runtime };
 
 },
 "src/autonomy/local-farm-planner.js": function(require,module,exports){
@@ -6987,10 +6997,8 @@ module.exports = { LocalFarmOrchestrator };
 const { Alpha9Runtime } = require('./alpha9-runtime');
 const { ShadowStrategicBrain } = require('../brain/shadow-brain');
 
-class Alpha10Runtime extends Alpha9Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.brain = options.brain || new ShadowStrategicBrain({
+function composeAlpha10Runtime(options = {}) {
+this.brain = options.brain || new ShadowStrategicBrain({
       now: this.now,
       log: this.log,
       replayCapacity: options.brainReplayCapacity,
@@ -7005,6 +7013,12 @@ class Alpha10Runtime extends Alpha9Runtime {
     });
     this.brainAuditMs = Math.max(1000, Math.min(60000, Number(options.brainAuditMs) || 5000));
     this.lastBrainAudit = -Infinity;
+}
+
+class Alpha10Runtime extends Alpha9Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha10Runtime.call(this, options);
   }
 
   _brainAudit() {
@@ -7057,7 +7071,7 @@ class Alpha10Runtime extends Alpha9Runtime {
   }
 }
 
-module.exports = { Alpha10Runtime };
+module.exports = { Alpha10Runtime, composeAlpha10Runtime };
 
 },
 "src/brain/shadow-brain.js": function(require,module,exports){
@@ -7416,10 +7430,8 @@ module.exports = { BoundedReplayBuffer };
 const { Alpha10Runtime } = require('./alpha10-runtime');
 const { CharacterRegistry } = require('../party/character-registry');
 
-class Alpha11Runtime extends Alpha10Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.characterRegistry = options.characterRegistry || new CharacterRegistry({
+function composeAlpha11Runtime(options = {}) {
+this.characterRegistry = options.characterRegistry || new CharacterRegistry({
       now: this.now,
       log: this.log,
       capacity: options.characterRegistryCapacity,
@@ -7429,6 +7441,12 @@ class Alpha11Runtime extends Alpha10Runtime {
     });
     this.partyObservationMs = Math.max(500, Math.min(60000, Number(options.partyObservationMs) || 1000));
     this.lastPartyObservation = -Infinity;
+}
+
+class Alpha11Runtime extends Alpha10Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha11Runtime.call(this, options);
   }
 
   _partyObservation() {
@@ -7472,7 +7490,7 @@ class Alpha11Runtime extends Alpha10Runtime {
   }
 }
 
-module.exports = { Alpha11Runtime };
+module.exports = { Alpha11Runtime, composeAlpha11Runtime };
 
 },
 "src/party/character-registry.js": function(require,module,exports){
@@ -8006,10 +8024,8 @@ function activeOwnedNames(root) {
   }
 }
 
-class Alpha12Runtime extends BaseAlpha12Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA12_VERSION;
+function composeHardenedAlpha12Runtime(options = {}) {
+this.log.version = ALPHA12_VERSION;
     const roster = this.characterRegistry.status().characters || [];
     const owned = activeOwnedNames(this.root);
     const ownedSet = new Set(owned);
@@ -8033,6 +8049,12 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     this.partyControlLease.install();
     this.partyTransitions.setControlLease(this.partyControlLease);
     this.syncPartyControlConfig();
+}
+
+class Alpha12Runtime extends BaseAlpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeHardenedAlpha12Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -8134,7 +8156,7 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 }
 
-module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames };
+module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames, composeHardenedAlpha12Runtime };
 
 },
 "src/autonomy/alpha12-runtime.js": function(require,module,exports){
@@ -8151,15 +8173,20 @@ const { PartyTransitionController } = require('../party/transition-controller');
 const { BackgroundExecutionGuard } = require('../ops/background-execution-guard');
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
-class Alpha12Runtime extends Alpha11Runtime {
-  constructor(options = {}) {
-    super(options); this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.min(60000, Number(options.partyDecisionMs) || 5000)); this.lastPartyDecisionAt = -Infinity; this.lastPerformanceSampleAt = null; this.currentPartyFingerprint = null; this.currentEncounterFingerprint = null; this.lastPartyDecision = null; this.lastAuraRecommendation = null; this.lastAuraExecution = null; this.auraAutomationEnabled = options.partyAuraAutomationEnabled === true;
+function composeAlpha12Runtime(options = {}) {
+this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.min(60000, Number(options.partyDecisionMs) || 5000)); this.lastPartyDecisionAt = -Infinity; this.lastPerformanceSampleAt = null; this.currentPartyFingerprint = null; this.currentEncounterFingerprint = null; this.lastPartyDecision = null; this.lastAuraRecommendation = null; this.lastAuraExecution = null; this.auraAutomationEnabled = options.partyAuraAutomationEnabled === true;
     this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
     this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
     const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
     this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
     this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
     this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
+}
+
+class Alpha12Runtime extends Alpha11Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha12Runtime.call(this, options);
   }
   start() { const started = super.start(); this.backgroundExecution.start(); return started; }
   stop() { this.partyPerformance.save({ force: true }); return super.stop(); }
@@ -8204,7 +8231,7 @@ class Alpha12Runtime extends Alpha11Runtime {
   }
   exportDiagnostics() { const base = JSON.parse(super.exportDiagnostics()); base.context = base.context || {}; base.context.backgroundExecution = this.backgroundExecution.status(); base.context.party = this.status().party; return JSON.stringify(base, null, 2); }
 }
-module.exports = { Alpha12Runtime };
+module.exports = { Alpha12Runtime, composeAlpha12Runtime };
 
 },
 "src/party/fingerprints.js": function(require,module,exports){
@@ -9456,10 +9483,8 @@ function contentDriftStorageKey(root, explicitKey = null) {
   return name ? `aio-v3-content-drift-v1:${name}` : undefined;
 }
 
-class Alpha13Runtime extends Alpha12Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA13_VERSION;
+function composeAlpha13Runtime(options = {}) {
+this.log.version = ALPHA13_VERSION;
     this.contentDriftScanMs = Math.max(1000, Math.min(60000, Number(options.contentDriftScanMs) || 5000));
     this.supervisorIntervalMs = Math.max(500, Math.min(30000, Number(options.globalSupervisorIntervalMs) || 1000));
     this.lastContentDriftScanAt = -Infinity;
@@ -9493,6 +9518,12 @@ class Alpha13Runtime extends Alpha12Runtime {
       recoveryWindowMs: options.globalSupervisorRecoveryWindowMs,
       maxRecoveriesPerWindow: options.globalSupervisorMaxRecoveriesPerWindow
     });
+}
+
+class Alpha13Runtime extends Alpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha13Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -9571,7 +9602,7 @@ class Alpha13Runtime extends Alpha12Runtime {
   }
 }
 
-module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey };
+module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey, composeAlpha13Runtime };
 
 },
 "src/stability/global-supervisor.js": function(require,module,exports){
@@ -10281,10 +10312,8 @@ const { GearProgressionEvaluator } = require('../economy/gear-progression');
 
 const ALPHA14_VERSION = '3.0.0-alpha.14.0';
 
-class Alpha14Runtime extends Alpha13Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA14_VERSION;
+function composeAlpha14Runtime(options = {}) {
+this.log.version = ALPHA14_VERSION;
     this.inventoryPlanningIntervalMs = Math.max(1000, Math.min(60000, Number(options.inventoryPlanningIntervalMs) || 3000));
     this.lastInventoryPlanningAt = -Infinity;
     this.lastInventoryPlanningResult = null;
@@ -10312,6 +10341,12 @@ class Alpha14Runtime extends Alpha13Runtime {
       bankAllowlist: options.inventoryBankAllowlist,
       exchangeAllowlist: options.inventoryExchangeAllowlist
     });
+}
+
+class Alpha14Runtime extends Alpha13Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha14Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -10384,7 +10419,7 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 }
 
-module.exports = { Alpha14Runtime, ALPHA14_VERSION };
+module.exports = { Alpha14Runtime, ALPHA14_VERSION, composeAlpha14Runtime };
 
 },
 "src/economy/inventory-ledger.js": function(require,module,exports){
@@ -11221,10 +11256,8 @@ const { EconomyTransactionEngine } = require('../economy/transaction-engine');
 
 const ALPHA15_VERSION = '3.0.0-alpha.15.0';
 
-class Alpha15Runtime extends Alpha14Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA15_VERSION;
+function composeAlpha15Runtime(options = {}) {
+this.log.version = ALPHA15_VERSION;
     this.transactionMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.transactionMaintenanceIntervalMs) || 1000));
     this.lastTransactionMaintenanceAt = -Infinity;
     this.transactionEngine = options.transactionEngine || new EconomyTransactionEngine({
@@ -11238,6 +11271,12 @@ class Alpha15Runtime extends Alpha14Runtime {
       circuitCooldownMs: options.transactionCircuitCooldownMs
     });
     this.transactionEngine.load();
+}
+
+class Alpha15Runtime extends Alpha14Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha15Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -11314,7 +11353,7 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 }
 
-module.exports = { Alpha15Runtime, ALPHA15_VERSION };
+module.exports = { Alpha15Runtime, ALPHA15_VERSION, composeAlpha15Runtime };
 
 },
 "src/economy/transaction-engine.js": function(require,module,exports){
@@ -11742,10 +11781,8 @@ const { SafeTravelController } = require('../travel/safe-travel');
 
 const ALPHA16_VERSION = '3.0.0-alpha.16.0';
 
-class Alpha16Runtime extends Alpha15Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA16_VERSION;
+function composeAlpha16Runtime(options = {}) {
+this.log.version = ALPHA16_VERSION;
     this.travelMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.travelMaintenanceIntervalMs) || 1000));
     this.lastTravelMaintenanceAt = -Infinity;
     this.safeTravel = options.safeTravel || new SafeTravelController({
@@ -11760,6 +11797,12 @@ class Alpha16Runtime extends Alpha15Runtime {
       failureWindowMs: options.travelFailureWindowMs,
       circuitCooldownMs: options.travelCircuitCooldownMs
     });
+}
+
+class Alpha16Runtime extends Alpha15Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha16Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -11807,7 +11850,7 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 }
 
-module.exports = { Alpha16Runtime, ALPHA16_VERSION };
+module.exports = { Alpha16Runtime, ALPHA16_VERSION, composeAlpha16Runtime };
 
 },
 "src/travel/safe-travel.js": function(require,module,exports){
@@ -12144,10 +12187,8 @@ function registryName(value) {
   return name || null;
 }
 
-class Alpha17Runtime extends Alpha16Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA17_VERSION;
+function composeAlpha17Runtime(options = {}) {
+this.log.version = ALPHA17_VERSION;
     if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
       this.inventoryLedger.setSellSafetyResolver(({ row }) => {
         const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
@@ -12188,6 +12229,12 @@ class Alpha17Runtime extends Alpha16Runtime {
     });
     this.lastControlledGuardReason = null;
     this.registryVisibility = { foreignVisibleIgnored: 0, lastObservedAt: null };
+}
+
+class Alpha17Runtime extends Alpha16Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha17Runtime.call(this, options);
   }
 
   _partyObservation() {
@@ -12426,7 +12473,7 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 }
 
-module.exports = { Alpha17Runtime, ALPHA17_VERSION };
+module.exports = { Alpha17Runtime, ALPHA17_VERSION, composeAlpha17Runtime };
 
 },
 "src/economy/controlled-merchant-executor.js": function(require,module,exports){
@@ -13214,10 +13261,8 @@ const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
-class Alpha18Runtime extends Alpha17Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA18_VERSION;
+function composeAlpha18Runtime(options = {}) {
+this.log.version = ALPHA18_VERSION;
     this.bankCapacityObservationIntervalMs = Math.max(1000, Math.min(60000, Number(options.bankCapacityObservationIntervalMs) || 3000));
     this.lastBankCapacityObservationAt = -Infinity;
 
@@ -13262,6 +13307,12 @@ class Alpha18Runtime extends Alpha17Runtime {
       sleep: options.alpha18LiveGateSleep
     });
     this._observeBankCapacity();
+}
+
+class Alpha18Runtime extends Alpha17Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha18Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -13412,7 +13463,7 @@ class Alpha18Runtime extends Alpha17Runtime {
   }
 }
 
-module.exports = { Alpha18Runtime, ALPHA18_VERSION };
+module.exports = { Alpha18Runtime, ALPHA18_VERSION, composeAlpha18Runtime };
 
 },
 "src/economy/bank-capacity-manager.js": function(require,module,exports){
@@ -14828,10 +14879,8 @@ const { Alpha19CombinedLiveGate, ALPHA19_LIVE_GATE_ACK } = require('../ops/alpha
 const ALPHA19_VERSION = '3.0.0-alpha.19.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
-class Alpha19Runtime extends Alpha18Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA19_VERSION;
+function composeAlpha19Runtime(options = {}) {
+this.log.version = ALPHA19_VERSION;
     this.merchantSpaceRecoveryJournal = options.merchantSpaceRecoveryJournal || new MerchantSpaceRecoveryJournal({
       now: this.now,
       log: this.log,
@@ -14883,6 +14932,12 @@ class Alpha19Runtime extends Alpha18Runtime {
       sampleMs: options.alpha19LiveGateSampleMs,
       sleep: options.alpha19LiveGateSleep
     });
+}
+
+class Alpha19Runtime extends Alpha18Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha19Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -14990,7 +15045,7 @@ class Alpha19Runtime extends Alpha18Runtime {
   }
 }
 
-module.exports = { Alpha19Runtime, ALPHA19_VERSION };
+module.exports = { Alpha19Runtime, ALPHA19_VERSION, composeAlpha19Runtime };
 
 },
 "src/economy/merchant-space-recovery-journal.js": function(require,module,exports){
@@ -16918,10 +16973,8 @@ const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 function finite(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
 function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
 
-class Alpha20Runtime extends Alpha19Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = RELEASE_VERSION;
+function composeAlpha20Runtime(options = {}) {
+this.log.version = RELEASE_VERSION;
 
     // Legacy Alpha.12 live switches are permanently closed in Alpha.20.
     // Live authority can only be borrowed inside the controlled lifecycle operation.
@@ -16983,6 +17036,12 @@ class Alpha20Runtime extends Alpha19Runtime {
     });
     this.lastLifecyclePlan = null;
     this.lastLifecycleExecution = null;
+}
+
+class Alpha20Runtime extends Alpha19Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha20Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -17295,7 +17354,8 @@ class Alpha20Runtime extends Alpha19Runtime {
   }
 }
 
-module.exports = { Alpha20Runtime };
+module.exports = { Alpha20Runtime, composeAlpha20Runtime };
+
 },
 "src/party/lifecycle-store.js": function(require,module,exports){
 'use strict';
@@ -19511,10 +19571,8 @@ function finite(value, fallback = null) {
 }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
-class Alpha20_5MerchantRuntime extends Alpha20Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
+function composeAlpha20_5MerchantRuntime(options = {}) {
+this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
       now: this.now,
       reportTtlMs: options.merchantServiceReportTtlMs,
       criticalPotionCount: options.merchantServiceCriticalPotionCount,
@@ -19574,6 +19632,12 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     this.merchantTownEtaMs = finite(options.merchantTownEtaMs);
     this.merchantServiceExecutionPending = false;
     this.merchantServiceNoticeKey = null;
+}
+
+class Alpha20_5MerchantRuntime extends Alpha20Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha20_5MerchantRuntime.call(this, options);
   }
 
   _localMerchant() {
@@ -19858,7 +19922,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
   }
 }
 
-module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK, composeAlpha20_5MerchantRuntime };
 
 },
 "src/merchant/merchant-service-planner.js": function(require,module,exports){
@@ -21143,10 +21207,12 @@ function clone(value) {
   try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
 }
 
-class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
-  constructor(options = {}) {
-    const injectedBankCapacity = options.bankCapacity || createObservableBankCapacityManager(options);
-    super({ ...options, bankCapacity: injectedBankCapacity });
+function prepareAlpha20_5FarmReadinessOptions(options = {}) {
+  const injectedBankCapacity = options.bankCapacity || createObservableBankCapacityManager(options);
+  return { ...options, bankCapacity: injectedBankCapacity };
+}
+
+function composeAlpha20_5FarmReadinessRuntime(options = {}) {
     if (!options.bankCapacity && this.bankCapacity) this.bankCapacity.log = this.log;
 
     this.controlledFarmerLoot = options.controlledFarmerLoot || new ControlledFarmerLoot({
@@ -21277,6 +21343,13 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       exclusionMs: options.farmAreaPressureExclusionMs,
       switchCooldownMs: options.farmAreaPressureSwitchCooldownMs
     });
+}
+
+class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
+  constructor(options = {}) {
+    const preparedOptions = prepareAlpha20_5FarmReadinessOptions(options);
+    super(preparedOptions);
+    composeAlpha20_5FarmReadinessRuntime.call(this, options);
   }
 
   start() {
@@ -21441,7 +21514,7 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
   }
 }
 
-module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE };
+module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, prepareAlpha20_5FarmReadinessOptions, composeAlpha20_5FarmReadinessRuntime };
 
 },
 "src/farmer/controlled-farmer-loot.js": function(require,module,exports){
@@ -43352,6 +43425,204 @@ module.exports = {
   OPERATOR_RUN_CONTROL_SCHEMA_VERSION,
   OPERATOR_RUN_CONTROL_MODE
 };
+
+},
+"src/composition/runtime-composition.js": function(require,module,exports){
+'use strict';
+
+const { Runtime } = require('../runtime');
+const { StabilityRuntime, composeStabilityRuntime } = require('../stability/stability-runtime');
+const { Alpha9Runtime, composeAlpha9Runtime } = require('../autonomy/alpha9-runtime');
+const { Alpha10Runtime, composeAlpha10Runtime } = require('../autonomy/alpha10-runtime');
+const { Alpha11Runtime, composeAlpha11Runtime } = require('../autonomy/alpha11-runtime');
+const { Alpha12Runtime: BaseAlpha12Runtime, composeAlpha12Runtime } = require('../autonomy/alpha12-runtime');
+const { Alpha12Runtime: HardenedAlpha12Runtime, composeHardenedAlpha12Runtime } = require('../autonomy/alpha12-hardened-runtime');
+const { Alpha13Runtime, composeAlpha13Runtime } = require('../autonomy/alpha13-runtime');
+const { Alpha14Runtime, composeAlpha14Runtime } = require('../autonomy/alpha14-runtime');
+const { Alpha15Runtime, composeAlpha15Runtime } = require('../autonomy/alpha15-runtime');
+const { Alpha16Runtime, composeAlpha16Runtime } = require('../autonomy/alpha16-runtime');
+const { Alpha17Runtime, composeAlpha17Runtime } = require('../autonomy/alpha17-runtime');
+const { Alpha18Runtime, composeAlpha18Runtime } = require('../autonomy/alpha18-runtime');
+const { Alpha19Runtime, composeAlpha19Runtime } = require('../autonomy/alpha19-runtime');
+const { Alpha20Runtime, composeAlpha20Runtime } = require('../autonomy/alpha20-runtime');
+const { Alpha20_5MerchantRuntime, composeAlpha20_5MerchantRuntime } = require('../autonomy/alpha20-5-merchant-runtime');
+const {
+  Alpha20_5FarmReadinessRuntime,
+  prepareAlpha20_5FarmReadinessOptions,
+  composeAlpha20_5FarmReadinessRuntime
+} = require('../autonomy/alpha20-5-farm-readiness-runtime');
+const { assertRuntimeLifecycle } = require('./runtime-lifecycle');
+
+const COMPOSED_RUNTIME = Symbol.for('AIO_V3_RUNTIME_COMPOSED');
+const COMPOSITION_MODE = 'runtime-composition-v1';
+
+const METHOD_LAYERS = Object.freeze([
+  StabilityRuntime,
+  Alpha9Runtime,
+  Alpha10Runtime,
+  Alpha11Runtime,
+  BaseAlpha12Runtime,
+  HardenedAlpha12Runtime,
+  Alpha13Runtime,
+  Alpha14Runtime,
+  Alpha15Runtime,
+  Alpha16Runtime,
+  Alpha17Runtime,
+  Alpha18Runtime,
+  Alpha19Runtime,
+  Alpha20Runtime,
+  Alpha20_5MerchantRuntime,
+  Alpha20_5FarmReadinessRuntime
+]);
+
+const COMPATIBILITY_TYPES = METHOD_LAYERS;
+
+function bindLayerMethods(targetType, layerTypes) {
+  for (const LayerType of layerTypes) {
+    for (const name of Object.getOwnPropertyNames(LayerType.prototype)) {
+      if (name === 'constructor') continue;
+      const descriptor = Object.getOwnPropertyDescriptor(LayerType.prototype, name);
+      if (!descriptor || typeof descriptor.value !== 'function') continue;
+      Object.defineProperty(targetType.prototype, name, {
+        configurable: true,
+        writable: true,
+        value: function composedLayerMethod(...args) {
+          return descriptor.value.apply(this, args);
+        }
+      });
+    }
+  }
+}
+
+function installCompatibilityHasInstance(Type) {
+  if (!Type || Type.__aioComposedHasInstanceInstalled) return;
+  const nativeHasInstance = Function.prototype[Symbol.hasInstance];
+  Object.defineProperty(Type, Symbol.hasInstance, {
+    configurable: true,
+    value(instance) {
+      return nativeHasInstance.call(this, instance) || !!(instance && instance[COMPOSED_RUNTIME]);
+    }
+  });
+  Object.defineProperty(Type, '__aioComposedHasInstanceInstalled', { value: true });
+}
+
+function serviceGroup(runtime, names) {
+  const result = {};
+  for (const name of names) if (runtime[name] !== undefined) result[name] = runtime[name];
+  return Object.freeze(result);
+}
+
+function buildServiceGroups(runtime) {
+  return Object.freeze({
+    gameStability: serviceGroup(runtime, [
+      'adapter', 'scheduler', 'world', 'persistence', 'knowledgeAging',
+      'stability', 'globalSupervisor', 'contentDrift'
+    ]),
+    merchantEconomyTravel: serviceGroup(runtime, [
+      'inventoryLedger', 'gearProgression', 'transactionEngine', 'controlledMerchant',
+      'safeTravel', 'controlledTravel', 'bankCapacity', 'bankExpansionTransactions',
+      'controlledBankExpansion', 'merchantSpaceRecoveryJournal',
+      'controlledBankConsolidation', 'controlledMerchantSpaceRecovery',
+      'merchantServicePlanner', 'merchantRouteEstimator', 'controlledMerchantService',
+      'merchantMluck'
+    ]),
+    farmerPartyReliability: serviceGroup(runtime, [
+      'farmer', 'localFarmPlanner', 'localFarming', 'brain', 'characterRegistry',
+      'partyPerformance', 'partyOrchestrator', 'auraPolicy', 'partyTelemetry',
+      'partyTransitions', 'partyControlLease', 'partyLifecycle',
+      'controlledPartyLifecycle', 'controlledPaladinAura', 'controlledFarmerLoot',
+      'controlledAutoRespawn', 'preFarmingReliability', 'liveNavigationHotfix',
+      'farmerLocalPlanPriority', 'farmerTargetEfficiencyHotfix',
+      'farmerTravelSafetyHotfix', 'farmerTerrainNavigationHotfix',
+      'farmerResourceTopoffHotfix', 'partyFocusFireHotfix',
+      'teamCombatCohesionHotfix', 'teamCohesionDeadlockHotfix',
+      'controlledPartyLogistics', 'farmAreaPressureHotfix',
+      'partyPersistenceQuotaHotfix', 'dangerousContentHotfix',
+      'contentDriftStorageHotfix', 'contentDriftSemanticRecovery',
+      'partyAccountCommunication', 'partyBootstrap',
+      'partyBootstrapMerchantDiscoveryHotfix', 'partyBootstrapFarmerGate'
+    ])
+  });
+}
+
+class RuntimeComposition extends Runtime {
+  constructor(options = {}) {
+    const preparedOptions = prepareAlpha20_5FarmReadinessOptions(options);
+    super(preparedOptions);
+
+    composeStabilityRuntime.call(this, preparedOptions);
+    composeAlpha9Runtime.call(this, preparedOptions);
+    composeAlpha10Runtime.call(this, preparedOptions);
+    composeAlpha11Runtime.call(this, preparedOptions);
+    composeAlpha12Runtime.call(this, preparedOptions);
+    composeHardenedAlpha12Runtime.call(this, preparedOptions);
+    composeAlpha13Runtime.call(this, preparedOptions);
+    composeAlpha14Runtime.call(this, preparedOptions);
+    composeAlpha15Runtime.call(this, preparedOptions);
+    composeAlpha16Runtime.call(this, preparedOptions);
+    composeAlpha17Runtime.call(this, preparedOptions);
+    composeAlpha18Runtime.call(this, preparedOptions);
+    composeAlpha19Runtime.call(this, preparedOptions);
+    composeAlpha20Runtime.call(this, preparedOptions);
+    composeAlpha20_5MerchantRuntime.call(this, preparedOptions);
+    composeAlpha20_5FarmReadinessRuntime.call(this, options);
+
+    Object.defineProperty(this, COMPOSED_RUNTIME, { value: true });
+    this.runtimeCompositionServices = buildServiceGroups(this);
+    assertRuntimeLifecycle(this);
+  }
+
+  compositionStatus() {
+    return {
+      schemaVersion: 1,
+      mode: COMPOSITION_MODE,
+      productionConstruction: 'composition-root',
+      inheritedAlphaRuntime: false,
+      compatibilityFacadePreserved: true,
+      serviceGroups: {
+        gameStability: Object.keys(this.runtimeCompositionServices.gameStability),
+        merchantEconomyTravel: Object.keys(this.runtimeCompositionServices.merchantEconomyTravel),
+        farmerPartyReliability: Object.keys(this.runtimeCompositionServices.farmerPartyReliability)
+      }
+    };
+  }
+}
+
+bindLayerMethods(RuntimeComposition, METHOD_LAYERS);
+for (const Type of COMPATIBILITY_TYPES) installCompatibilityHasInstance(Type);
+
+function createRuntimeComposition(options = {}) {
+  return new RuntimeComposition(options);
+}
+
+module.exports = {
+  COMPOSED_RUNTIME,
+  COMPOSITION_MODE,
+  RuntimeComposition,
+  createRuntimeComposition
+};
+
+},
+"src/composition/runtime-lifecycle.js": function(require,module,exports){
+'use strict';
+
+const RUNTIME_LIFECYCLE_METHODS = Object.freeze([
+  'start',
+  'stop',
+  'tick',
+  'setMode',
+  'status',
+  'exportDiagnostics'
+]);
+
+function assertRuntimeLifecycle(runtime) {
+  if (!runtime || typeof runtime !== 'object') throw new TypeError('runtime object required');
+  const missing = RUNTIME_LIFECYCLE_METHODS.filter((name) => typeof runtime[name] !== 'function');
+  if (missing.length) throw new Error(`runtime lifecycle incomplete: ${missing.join(', ')}`);
+  return true;
+}
+
+module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 
 },
 "src/merchant/merchant-production-controller.js": function(require,module,exports){
