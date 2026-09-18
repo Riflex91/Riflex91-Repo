@@ -52,6 +52,33 @@ function installMerchantProduction(runtime, options = {}) {
     failureCooldownMs: Math.max(5000, Math.min(30 * 60 * 1000, n(options.merchantProductionFailureCooldownMs, 120000)))
   };
 
+  function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
+  function currentTask() { const c = taskCoordinator(); return c && typeof c.current === 'function' ? c.current() : null; }
+  function productionTaskKey(plan) {
+    if (!plan) return null;
+    if (plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE) {
+      return `production:exchange:${String(plan.nextStep.name || '')}:${String(plan.exchangeDemand && plan.exchangeDemand.target || plan.target && plan.target.item || '')}`;
+    }
+    const output = plan.target && (plan.target.output || plan.target.item) || null;
+    const recipient = plan.target && plan.target.recipient || null;
+    return output ? `production:chain:${String(output)}:${String(recipient || '')}` : null;
+  }
+  function acquireTask(plan, kind = null) {
+    const coordinator = taskCoordinator();
+    if (!coordinator || typeof coordinator.acquire !== 'function') return { acquired: true, task: null };
+    const key = productionTaskKey(plan);
+    if (!key) return { acquired: false, reason: 'PRODUCTION_TASK_KEY_UNAVAILABLE', task: coordinator.current() };
+    const metadata = plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE
+      ? { exchangeItem: plan.nextStep.name, target: plan.exchangeDemand && plan.exchangeDemand.target || null }
+      : { output: plan.target && plan.target.output || null, recipient: plan.target && plan.target.recipient || null, slot: plan.target && plan.target.slot || null };
+    return coordinator.acquire('PRODUCTION', kind || (plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE ? 'EXCHANGE_BATCH' : 'PRODUCTION_CHAIN'), key, metadata);
+  }
+  function releaseTask(reason = 'PRODUCTION_TASK_COMPLETE', details = {}) {
+    const coordinator = taskCoordinator();
+    const task = currentTask();
+    if (!coordinator || !task || task.owner !== 'PRODUCTION' || typeof coordinator.release !== 'function') return false;
+    return coordinator.release('PRODUCTION', task.key, reason, details);
+  }
   function character() { return runtime.root && (runtime.root.character || (runtime.root.parent && runtime.root.parent.character)) || null; }
   function isMerchant() { const c = character(); return !!(c && String(c.ctype || c.type || '').toLowerCase() === 'merchant'); }
   function inCombat() { const c = character(); if (!c) return false; if (c.target) return true; const entities = runtime.root && runtime.root.parent && runtime.root.parent.entities || runtime.root && runtime.root.entities || {}; const ids = new Set([c.name, c.id].filter(Boolean).map(String)); return Object.values(entities).some((e) => e && e.target && ids.has(String(e.target))); }
@@ -64,14 +91,19 @@ function installMerchantProduction(runtime, options = {}) {
   function collectionBusy() { try { return typeof runtime._merchantCollectionSessionActive === 'function' && runtime._merchantCollectionSessionActive() === true; } catch (_) { return true; } }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
-    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy() || collectionBusy();
+    const task = currentTask();
+    const taskBlocked = !!(task && task.owner !== 'PRODUCTION');
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy() || collectionBusy() || taskBlocked;
   }
   function input() {
     const c = character() || {};
     bankCatalog.observe(c);
+    const task = currentTask();
+    const productionTaskTarget = task && task.owner === 'PRODUCTION' ? clone(task.metadata || {}) : null;
     return {
       character: c,
       bankCatalog: bankCatalog.status(),
+      productionTaskTarget,
       exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
@@ -119,16 +151,29 @@ function installMerchantProduction(runtime, options = {}) {
     const c = character() || {};
     if (c.bank && typeof c.bank === 'object') { bankCatalog.observe(c); return false; }
     if (!bankCatalog.needsRefresh() || collectionBusy() || state.executionPending || controlledBusy()) return false;
+    const coordinator = taskCoordinator();
+    const lock = coordinator && typeof coordinator.acquire === 'function'
+      ? coordinator.acquire('PRODUCTION', 'BANK_CATALOG', 'production:bank-catalog', { destination: 'bank' })
+      : { acquired: true };
+    if (!lock.acquired) return false;
     state.executionPending = true;
     Promise.resolve(travelNamed('bank')).then((result) => {
       state.lastExecution = { at: runtime.now(), planId: null, kind: 'BANK_CATALOG_REFRESH', result: clone(result) };
       if (result && result.ok) bankCatalog.observe(character());
-    }).finally(() => { state.executionPending = false; });
+    }).finally(() => {
+      state.executionPending = false;
+      const active = currentTask();
+      if (active && active.owner === 'PRODUCTION' && active.key === 'production:bank-catalog' && coordinator && typeof coordinator.release === 'function') {
+        coordinator.release('PRODUCTION', active.key, 'BANK_CATALOG_REFRESH_COMPLETE');
+      }
+    });
     return true;
   }
   function schedule(plan) {
     if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled || collectionBusy()) return false;
     if (runtime.now() < state.pausedUntil) return false;
+    const lock = acquireTask(plan);
+    if (!lock.acquired) return false;
     const step = plan.nextStep;
     state.executionPending = true;
     Promise.resolve().then(async () => {
@@ -158,15 +203,33 @@ function installMerchantProduction(runtime, options = {}) {
       if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
     }).catch((error) => {
       state.pausedUntil = runtime.now() + state.failureCooldownMs;
-      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: error && typeof error === 'object' ? { reason: error.reason || error.code || error.message || 'STRUCTURED_ERROR', message: error.message || null } : String(error) } };
+      releaseTask('PRODUCTION_STEP_FAILED_SAFE', { step: step.kind, item: step.name });
     }).finally(() => { state.executionPending = false; });
     return true;
   }
   function cycle() {
     ensureAutoEnabled();
+    const task = currentTask();
+    if (task && task.owner !== 'PRODUCTION') {
+      return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
+    }
     if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
+
+    const active = currentTask();
+    if (active && active.owner === 'PRODUCTION' && active.kind === 'EXCHANGE_BATCH') {
+      const exchangePlan = planner.planExchange(input(), state.lastPlan && state.lastPlan.reservations || {});
+      if (exchangePlan) {
+        state.lastPlan = clone(exchangePlan);
+        schedule(exchangePlan);
+        return clone(exchangePlan);
+      }
+      releaseTask('EXCHANGE_BATCH_DRAINED');
+    }
+
     const plan = evaluate();
     if (schedule(plan)) return plan;
+
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
       const exchangePlan = planner.planExchange(input(), plan.reservations || {});
       if (exchangePlan) {
@@ -174,6 +237,11 @@ function installMerchantProduction(runtime, options = {}) {
         schedule(exchangePlan);
         return clone(exchangePlan);
       }
+    }
+
+    const remaining = currentTask();
+    if (remaining && remaining.owner === 'PRODUCTION' && remaining.kind === 'PRODUCTION_CHAIN' && (!plan || plan.state !== 'READY')) {
+      releaseTask('PRODUCTION_CHAIN_DRAINED', { reason: plan && plan.reason || null });
     }
     return plan;
   }
@@ -203,6 +271,8 @@ function installMerchantProduction(runtime, options = {}) {
       alpha27Busy: alpha27Busy(),
       pausedUntil: state.pausedUntil || null,
       failureCooldownMs: state.failureCooldownMs,
+      taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
+      nonPreemptiveTaskOwner: 'PRODUCTION',
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
     };
   }

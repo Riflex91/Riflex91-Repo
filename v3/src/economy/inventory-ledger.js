@@ -63,6 +63,8 @@ class InventoryLedger {
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
     this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
+    this.progressionReservationSlots = new Map();
+    this.progressionReservationCounts = new Map();
     this.entries = new Map();
     this.lastObservedAt = null;
     this.lastSummary = null;
@@ -91,16 +93,33 @@ class InventoryLedger {
 
   setProgressionReservations(reservations) {
     this.progressionReservations.clear();
+    this.progressionReservationSlots.clear();
+    this.progressionReservationCounts.clear();
     for (const row of Array.isArray(reservations) ? reservations : []) {
       if (!row || !row.name) continue;
-      const key = stackKey(row.name, row.level);
       const quantity = Math.max(1, Math.floor(finite(row.quantity, 1)));
-      this.progressionReservations.set(key, {
-        name: String(row.name), level: Math.max(0, Math.floor(finite(row.level, 0))), quantity,
+      const normalized = {
+        name: String(row.name),
+        level: Math.max(0, Math.floor(finite(row.level, 0))),
+        quantity,
+        sourceCharacter: normalizeName(row.sourceCharacter),
+        sourceIndex: Number.isInteger(Number(row.sourceIndex)) ? Number(row.sourceIndex) : null,
         goalIds: Array.isArray(row.goalIds) ? row.goalIds.map(String).slice(0, 32) : []
-      });
+      };
+      if (normalized.sourceCharacter && normalized.sourceIndex != null) {
+        this.progressionReservationSlots.set(itemKey(normalized.sourceCharacter, normalized.sourceIndex), normalized);
+      } else {
+        const countKey = `${normalized.sourceCharacter || '*'}|${stackKey(normalized.name, normalized.level)}`;
+        const previous = this.progressionReservationCounts.get(countKey);
+        this.progressionReservationCounts.set(countKey, {
+          ...normalized,
+          quantity: (previous ? previous.quantity : 0) + quantity,
+          goalIds: uniqueStrings([...(previous ? previous.goalIds : []), ...normalized.goalIds]).slice(0, 32)
+        });
+      }
+      this.progressionReservations.set(`${normalized.sourceCharacter || '*'}|${stackKey(normalized.name, normalized.level)}`, normalized);
     }
-    return this.progressionReservations.size;
+    return this.progressionReservationSlots.size + this.progressionReservationCounts.size;
   }
 
   _registryRows(registry) {
@@ -138,15 +157,25 @@ class InventoryLedger {
     return blockers;
   }
 
-  _baseDisposition(row, gameData, contentDrift, counts) {
+  _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map()) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
     if (row.locked || row.special) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
 
-    const progression = this.progressionReservations.get(stackKey(row.name, row.level));
-    if (progression) return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL'], reservation: clone(progression) };
+    const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
+    if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
+    }
+    const specificKey = `${row.character}|${stackKey(row.name, row.level)}`;
+    const wildcardKey = `*|${stackKey(row.name, row.level)}`;
+    const countKey = reservationRemaining.has(specificKey) ? specificKey : reservationRemaining.has(wildcardKey) ? wildcardKey : null;
+    if (countKey && reservationRemaining.get(countKey) > 0) {
+      reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
+      const progression = this.progressionReservationCounts.get(countKey);
+      return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
+    }
 
     const lower = String(row.name).toLowerCase();
     if (/^hpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_HP_POTION_RESERVE'] };
@@ -227,13 +256,14 @@ class InventoryLedger {
     }
 
     this.entries.clear();
+    const progressionRemaining = new Map([...this.progressionReservationCounts.entries()].map(([key, value]) => [key, Math.max(0, Math.floor(finite(value && value.quantity, 0)))]));
     let hpReserved = 0;
     let mpReserved = 0;
     let truncated = 0;
     let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
-      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map());
+      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map(), progressionRemaining);
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
       if (classified.sellProtected === true) sellProtected += 1;
@@ -347,7 +377,8 @@ class InventoryLedger {
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
         defaultDisposition: ItemDisposition.UNDECIDED,
         sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
-        sellSafety: sellSafetyStatus()
+        sellSafety: sellSafetyStatus(),
+        progressionReservationMode: 'EXACT_ITEM_THEN_QUANTITY_ALLOCATED'
       },
       stats: clone(this.stats)
     };

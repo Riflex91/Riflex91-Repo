@@ -104,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 3942 Zeilen**
+**12 Dateien · 3994 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -115,15 +115,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-executor.js` | 534 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 345 |
-| `src/economy/inventory-ledger.js` | 363 |
+| `src/economy/gear-progression.js` | 366 |
+| `src/economy/inventory-ledger.js` | 394 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
 | `src/economy/transaction-engine.js` | 414 |
 
 ## farmer
 
-**21 Dateien · 4305 Zeilen**
+**21 Dateien · 4356 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -133,7 +133,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 222 |
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
-| `src/farmer/farmer-fsm.js` | 552 |
+| `src/farmer/farmer-fsm.js` | 603 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
 | `src/farmer/farmer-resource-topoff-hotfix.js` | 211 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
@@ -161,7 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**8 Dateien · 2245 Zeilen**
+**9 Dateien · 2446 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -169,9 +169,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 282 |
-| `src/merchant/merchant-production-controller.js` | 249 |
-| `src/merchant/merchant-production-planner.js` | 567 |
+| `src/merchant/merchant-production-controller.js` | 319 |
+| `src/merchant/merchant-production-planner.js` | 574 |
 | `src/merchant/merchant-service-planner.js` | 225 |
+| `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
 
 ## ops
@@ -209,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7556 Zeilen**
+**33 Dateien · 7557 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -226,7 +227,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 583 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1042 |
+| `src/party/controlled-party-logistics.js` | 1043 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -257,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 13709 Zeilen**
+**50 Dateien · 13761 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -281,9 +282,9 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 150 |
 | `src/reliability/alpha27-atomic-transactions.js` | 158 |
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
-| `src/reliability/alpha27-combat-merchant-convergence.js` | 307 |
+| `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 525 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 574 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
@@ -340,11 +341,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## travel
 
-**3 Dateien · 644 Zeilen**
+**3 Dateien · 650 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/travel/controlled-travel-executor.js` | 257 |
+| `src/travel/controlled-travel-executor.js` | 263 |
 | `src/travel/route-cost-estimator.js` | 77 |
 | `src/travel/safe-travel.js` | 310 |
 

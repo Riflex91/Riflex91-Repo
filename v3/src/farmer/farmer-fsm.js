@@ -325,6 +325,56 @@ class FarmerController {
     return { state: TaskState.RUNNING };
   }
 
+  _moveToMaterialObjective(context) {
+    const objective = this.materialObjective;
+    const snapshot = context && context.snapshot;
+    const c = snapshot && snapshot.character;
+    if (!objective || !c || Number(objective.expiresAt || 0) <= this.now()) return false;
+    if (!objective.map || String(objective.map) !== String(c.map || '')) return false;
+    const visible = (snapshot.entities || []).some((entity) => entity && !entity.dead && entity.mtype === objective.monster);
+    if (visible) return false;
+    const ox = Number(objective.x), oy = Number(objective.y);
+    if (!Number.isFinite(ox) || !Number.isFinite(oy) || !Number.isFinite(Number(c.x)) || !Number.isFinite(Number(c.y))) return false;
+    const d = Math.hypot(ox - Number(c.x), oy - Number(c.y));
+    if (d <= 120) {
+      this.lastSelection = {
+        monster: objective.monster,
+        source: 'elixir-material-objective-same-map',
+        score: Number.MAX_SAFE_INTEGER,
+        travelSeconds: 0,
+        material: objective.material || null,
+        elixirName: objective.elixirName || null
+      };
+      this._transition(FarmerState.SELECT_TARGET, 'MATERIAL_OBJECTIVE_SPAWN_WAIT', { monster: objective.monster, distance: Math.round(d) });
+      return true;
+    }
+    const now = this.now();
+    if (now - this.lastActionAt < this.config.moveCooldownMs) return true;
+    const result = context.adapter.command('move', [ox, oy]);
+    this.lastActionAt = now;
+    if (!result.executed && !result.shadow) {
+      this._block(result.reason === 'COMMAND_UNAVAILABLE' ? 'MATERIAL_OBJECTIVE_MOVE_UNAVAILABLE' : 'MATERIAL_OBJECTIVE_MOVE_FAILED');
+      return true;
+    }
+    this.lastSelection = {
+      monster: objective.monster,
+      source: 'elixir-material-objective-same-map',
+      score: Number.MAX_SAFE_INTEGER,
+      travelSeconds: d / Math.max(1, Number(c.speed) || 40),
+      material: objective.material || null,
+      elixirName: objective.elixirName || null
+    };
+    this._event('FARMER_MATERIAL_OBJECTIVE_MOVE_REQUESTED', 'info', 'SAME_MAP_ELIXIR_MATERIAL_OBJECTIVE', {
+      monster: objective.monster,
+      material: objective.material || null,
+      elixirName: objective.elixirName || null,
+      x: Math.round(ox),
+      y: Math.round(oy),
+      distance: Math.round(d)
+    });
+    return true;
+  }
+
   _travel(context, target) {
     const snapshot = context.snapshot;
     const c = snapshot.character;
@@ -423,6 +473,7 @@ class FarmerController {
         break;
 
       case FarmerState.SELECT_TARGET: {
+        if (this._moveToMaterialObjective(context)) break;
         const selection = this._selectTarget(context);
         this.lastSelection = selection && selection.ranking || null;
         if (!selection) {

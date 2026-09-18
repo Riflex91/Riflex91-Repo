@@ -1,0 +1,178 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const { MerchantTaskCoordinator } = require('../src/merchant/merchant-task-coordinator');
+const { InventoryLedger, ItemDisposition } = require('../src/economy/inventory-ledger');
+const { GearProgressionEvaluator } = require('../src/economy/gear-progression');
+const { ControlledPartyLogistics } = require('../src/party/controlled-party-logistics');
+const { FarmerController, FarmerState } = require('../src/farmer/farmer-fsm');
+
+test('Merchant task coordinator is non-preemptive across subsystem owners', () => {
+  let now = 1000;
+  const coordinator = new MerchantTaskCoordinator({ now: () => now, defaultLeaseMs: 60000 });
+  const first = coordinator.acquire('ALPHA27', 'PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
+  assert.equal(first.acquired, true);
+
+  const blocked = coordinator.acquire('PRODUCTION', 'EXCHANGE_BATCH', 'production:exchange:seashell:elixirdex0');
+  assert.equal(blocked.acquired, false);
+  assert.equal(blocked.reason, 'MERCHANT_TASK_LOCKED');
+  assert.equal(blocked.task.owner, 'ALPHA27');
+
+  const continued = coordinator.acquire('ALPHA27', 'PROGRESSION_BATCH', 'alpha27:progression-batch');
+  assert.equal(continued.acquired, true);
+  assert.equal(continued.continued, true);
+
+  assert.equal(coordinator.release('ALPHA27', 'alpha27:progression-batch', 'PROGRESSION_BATCH_DRAINED'), true);
+  const second = coordinator.acquire('PRODUCTION', 'EXCHANGE_BATCH', 'production:exchange:seashell:elixirdex0');
+  assert.equal(second.acquired, true);
+});
+
+test('Inventory ledger reserves only the exact physical gear-goal item', () => {
+  const ledger = new InventoryLedger({ now: () => 1000 });
+  ledger.setProgressionReservations([{
+    name: 'ringsj',
+    level: 1,
+    quantity: 1,
+    sourceCharacter: 'Farmer',
+    sourceIndex: 1,
+    goalIds: ['goal-1']
+  }]);
+  ledger.observe({
+    observedAt: 1000,
+    registry: {
+      characters: [{
+        name: 'Farmer',
+        ctype: 'ranger',
+        stateConfidence: 1,
+        inventory: [
+          { index: 0, name: 'ringsj', level: 1, q: 1 },
+          { index: 1, name: 'ringsj', level: 1, q: 1 },
+          { index: 2, name: 'ringsj', level: 1, q: 1 }
+        ]
+      }]
+    },
+    gameData: {
+      items: {
+        ringsj: { type: 'ring', g: 1000, compound: { dex: 1 }, grades: [] }
+      }
+    }
+  });
+  assert.equal(ledger.get('Farmer', 1).disposition, ItemDisposition.RESERVE_PROGRESSION);
+  assert.equal(ledger.get('Farmer', 0).disposition, ItemDisposition.RESERVE_COMPOUND);
+  assert.equal(ledger.get('Farmer', 2).disposition, ItemDisposition.RESERVE_COMPOUND);
+});
+
+test('legacy quantity reservation consumes only its requested quantity', () => {
+  const ledger = new InventoryLedger({ now: () => 1000 });
+  ledger.setProgressionReservations([{ name: 'ringsj', level: 1, quantity: 1, sourceCharacter: 'Farmer', goalIds: ['goal-1'] }]);
+  ledger.observe({
+    observedAt: 1000,
+    registry: {
+      characters: [{
+        name: 'Farmer',
+        ctype: 'ranger',
+        inventory: [
+          { index: 0, name: 'ringsj', level: 1, q: 1 },
+          { index: 1, name: 'ringsj', level: 1, q: 1 },
+          { index: 2, name: 'ringsj', level: 1, q: 1 }
+        ]
+      }]
+    },
+    gameData: { items: { ringsj: { type: 'ring', g: 1000, compound: { dex: 1 }, grades: [] } } }
+  });
+  const rows = ledger.list(10).filter((row) => row.name === 'ringsj');
+  assert.equal(rows.filter((row) => row.disposition === ItemDisposition.RESERVE_PROGRESSION).length, 1);
+  assert.equal(rows.filter((row) => row.disposition === ItemDisposition.RESERVE_COMPOUND).length, 2);
+});
+
+test('GearProgression assigns one physical candidate to at most one target slot', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [
+        {
+          name: 'Merchant',
+          ctype: 'merchant',
+          level: 80,
+          inventory: [{ index: 0, name: 'goodbow', level: 0, q: 1 }],
+          gear: {}
+        },
+        {
+          name: 'R1',
+          ctype: 'ranger',
+          level: 80,
+          inventory: [],
+          gear: { mainhand: { name: 'weakbow', level: 0 } }
+        },
+        {
+          name: 'R2',
+          ctype: 'ranger',
+          level: 80,
+          inventory: [],
+          gear: { mainhand: { name: 'weakbow', level: 0 } }
+        }
+      ]
+    },
+    gameData: {
+      items: {
+        goodbow: { type: 'weapon', class: ['ranger'], attack: 100, g: 1000, upgrade: { attack: 5 }, grades: [] },
+        weakbow: { type: 'weapon', class: ['ranger'], attack: 5, g: 100, upgrade: { attack: 1 }, grades: [] }
+      }
+    }
+  });
+  assert.equal(result.currentGoals.length, 1);
+  assert.equal(result.reservations.length, 1);
+  assert.equal(result.reservations[0].sourceCharacter, 'Merchant');
+  assert.equal(result.reservations[0].sourceIndex, 0);
+});
+
+test('normal ENGAGE state does not by itself block Farmer outbound logistics', () => {
+  const logistics = Object.create(ControlledPartyLogistics.prototype);
+  logistics.runtime = { farmer: { state: 'ENGAGE' } };
+  const snapshot = {
+    character: { name: 'R1', rip: false },
+    entities: []
+  };
+  assert.equal(logistics._safeForOutbound(snapshot), true);
+  snapshot.entities.push({ id: 'm1', mtype: 'goo', dead: false, target: 'R1' });
+  assert.equal(logistics._safeForOutbound(snapshot), false);
+});
+
+test('same-map elixir material objective moves toward its spawn even before monster is visible', () => {
+  let now = 1000;
+  const moves = [];
+  const farmer = new FarmerController({ now: () => now, moveCooldownMs: 250 });
+  farmer.state = FarmerState.SELECT_TARGET;
+  farmer.materialObjective = {
+    kind: 'ELIXIR_MATERIAL',
+    monster: 'crabxx',
+    material: 'seashell',
+    elixirName: 'elixirdex0',
+    map: 'main',
+    x: 1000,
+    y: 500,
+    expiresAt: 60000
+  };
+  const context = {
+    adapter: {
+      mode: 'active',
+      command(name, args) {
+        if (name === 'move') moves.push(args);
+        return { executed: true };
+      },
+      getGameData: () => ({ items: {}, monsters: {} })
+    },
+    snapshot: {
+      character: { name: 'R1', ctype: 'ranger', map: 'main', x: 0, y: 0, hp: 1000, max_hp: 1000, mp: 1000, max_mp: 1000, inventory: [] },
+      entities: []
+    },
+    party: { members: [] },
+    world: null
+  };
+  farmer.step(context);
+  assert.equal(moves.length, 1);
+  assert.deepEqual(moves[0], [1000, 500]);
+  assert.equal(farmer.lastSelection.source, 'elixir-material-objective-same-map');
+});
