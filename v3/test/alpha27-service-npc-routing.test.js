@@ -91,6 +91,10 @@ test('party potion restock travel resolves mpot0 to fancypots and uses controlle
   assert.deepEqual(plannedRequest.destination, { map: 'main', in: 'main', x: 56, y: -122 });
   assert.equal(plannedRequest.metadata.npcId, 'fancypots');
   assert.equal(plannedRequest.metadata.requestedDestination, 'mpot0');
+  assert.equal(plannedRequest.metadata.stopWhenInteractionReady, true);
+  assert.equal(plannedRequest.metadata.interactionSafetyFactor, 0.9);
+  assert.equal(plannedRequest.metadata.interactionMaxRange, 120);
+  assert.equal(plannedRequest.arrivalRadius, 108);
 });
 
 test('scroll procurement travel resolves scroll0 to the scroll merchant', async () => {
@@ -116,4 +120,20 @@ test('known NPC resolution never falls back to the original invalid action/item 
   assert.equal(convergence.atomic.resolveServiceDestination('compound').destination, 'newupgrade');
   assert.equal(convergence.atomic.resolveServiceDestination('mpot0').destination, 'fancypots');
   assert.equal(convergence.atomic.resolveServiceDestination('scroll0').destination, 'scrolls');
+});
+
+
+test('Merchant service skips travel when already inside the 90% NPC interaction buffer', async () => {
+  const { runtime, convergence, root } = mutationFixture('UPGRADE');
+  runtime.adapter.getGameData = () => gameData('UPGRADE');
+  root.find_npc = (id) => id === 'fancypots' ? { map: 'main', x: 60, y: 0 } : null;
+  let travelPlans = 0;
+  runtime.planTravel = () => { travelPlans += 1; return { accepted: false, reason: 'SHOULD_NOT_PLAN' }; };
+
+  const result = await convergence.atomic.namedServiceTravel('mpot0');
+
+  assert.equal(result.ok, true);
+  assert.equal(result.alreadyInRange, true);
+  assert.equal(result.bufferedRange, 108);
+  assert.equal(travelPlans, 0);
 });
