@@ -276,7 +276,9 @@ class Alpha27BankRecovery {
       const ok = result === true || !!(result && result.ok === true);
       if (ok) {
         this.stats.bankTravels += 1;
-        this.nextProbeAt = this.now();
+        // Bank data can appear a tick after smart_move resolves. Give the client a
+        // short visibility window before another outside-bank probe is permitted.
+        this.nextProbeAt = this.now() + 5000;
       }
       this.lastAction = { at: this.now(), result: ok ? 'TRAVELLED' : 'FAILED_SAFE', reason: plan.reason, travel: clone(result) };
       this._event('ALPHA27_BANK_RECOVERY_TRAVEL', ok ? 'info' : 'warn', plan.reason, this.lastAction);
