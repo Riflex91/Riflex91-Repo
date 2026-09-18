@@ -145,6 +145,77 @@ test('adaptive potion restock continues to exact purchase after verified vendor 
   assert.equal(merchant.lastMerchantAction.vendorTravelAttested, true);
 });
 
+test('live recovery buys aggregate batch deficit when current Farmer delivery is already fully stocked', async () => {
+  const purchases = [];
+  const travels = [];
+  const root = {
+    character: {
+      name: 'My_Merchant',
+      ctype: 'merchant',
+      gold: 20_000_000,
+      items: [{ name: 'mpot0', q: 4500 }]
+    },
+    can_buy: () => true,
+    buy: async (name, quantity) => {
+      purchases.push({ name, quantity });
+      const item = root.character.items.find((row) => row && row.name === name);
+      item.q += quantity;
+      return { success: true };
+    }
+  };
+  root.parent = root;
+
+  const merchant = {
+    root,
+    now: () => 2500,
+    options: { goldReserve: 1_000_000, merchantMaxPotionBuy: 4500 },
+    stats: { potionRestocks: 0, failedSafe: 0 },
+    ensureStandClosed: async () => true,
+    restockPartyPotions: async () => { throw new Error('legacy restock must not own batched 4500 plan'); },
+    atomic: {
+      namedServiceTravel: async (destination) => {
+        travels.push(destination);
+        return { ok: true };
+      },
+      _timeout: async (promise) => promise,
+      verifyEventually: async (probe) => probe()
+    }
+  };
+  const runtime = {
+    root,
+    now: () => 2500,
+    log: log(),
+    adapter: { getGameData: () => ({ items: { mpot0: { g: 100 } } }) },
+    lastMerchantServicePlan: {
+      kind: 'RESTOCK_REQUIRED',
+      metadata: {
+        p0PotionPolicy4500: true,
+        p0PotionBatch: true,
+        p0PotionBatchTargetCount: 3,
+        batchStockRequirements: [
+          { itemName: 'mpot0', requiredStock: 11983, merchantReserve: 0 }
+        ]
+      },
+      deliveries: [
+        { family: 'mp', itemName: 'mpot0', quantity: 4500 }
+      ]
+    },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+
+  const recovery = installLiveFarmerMerchantRecovery(runtime);
+  const acted = await merchant.restockPartyPotions();
+
+  assert.equal(acted, true);
+  assert.deepEqual(travels, []);
+  assert.deepEqual(purchases, [{ name: 'mpot0', quantity: 7483 }]);
+  assert.equal(root.character.items[0].q, 11983);
+  assert.equal(merchant.stats.potionRestocks, 1);
+  assert.equal(recovery.stats.potionRestocksCommitted, 1);
+  assert.equal(merchant.lastMerchantAction.requiredStock, 11983);
+  assert.equal(merchant.lastMerchantAction.quantity, 7483);
+});
+
 test('P0 diagnostics report the active demand-driven 4500 policy instead of legacy fixed 5000 semantics', () => {
   const runtime = {
     now: () => 3000,
@@ -171,5 +242,6 @@ test('P0 diagnostics report the active demand-driven 4500 policy instead of lega
   assert.equal(policy.bothFamiliesRequiredBeforeTravel, false);
   assert.equal(policy.exactDelivery, false);
   assert.equal(policy.exactTopUpToTarget, true);
-  assert.equal(policy.buyOnlyCurrentDeliveryDeficit, true);
+  assert.equal(policy.buyOnlyCurrentDeliveryDeficit, false);
+  assert.equal(policy.aggregateBatchDemandBeforeFarmerTravel, true);
 });
