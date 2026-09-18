@@ -47,6 +47,58 @@ test('aggro holder uses a tangential safe orbit instead of standing still in the
   assert.ok(Math.abs(decision.y) > 1, 'orbit step should be tangential, not only radial');
 });
 
+test('self-aggro ranger escapes through reachable retreat geometry when every in-range orbit is blocked', () => {
+  const root = rootWithCharacter({ name: 'My_Ranger2', ctype: 'ranger' }, {
+    can_move_to: () => false,
+    G: { monsters: { tortoise: { range: 25, speed: 40 } } }
+  });
+  const farmer = {
+    kiting: {
+      evaluate() {
+        return {
+          shouldMove: false,
+          reason: 'KITE_TERRAIN_BLOCKED',
+          terrainBlocked: true,
+          distance: 31.48,
+          desiredDistance: 127.88
+        };
+      }
+    },
+    safeRetreat: {
+      evaluate() {
+        return {
+          shouldMove: true,
+          reason: 'EMERGENCY_THREAT_RETREAT',
+          x: 95,
+          y: 35,
+          step: 72,
+          terrainAware: true
+        };
+      }
+    }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: quietLog(),
+    farmer,
+    adapter: { mode: 'active', getGameData: () => root.G }
+  };
+  const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime);
+  const character = { name: 'My_Ranger2', ctype: 'ranger', x: 30, y: 0, range: 149, speed: 59 };
+  const target = { id: 't1', mtype: 'tortoise', x: 0, y: 0, hp: 5000, target: 'My_Ranger2', range: 25, speed: 40 };
+
+  const decision = farmer.kiting.evaluate(character, target);
+
+  assert.equal(decision.shouldMove, true);
+  assert.equal(decision.reason, 'AGGRO_EMERGENCY_TERRAIN_ESCAPE');
+  assert.equal(decision.alpha31EmergencyTerrainEscape, true);
+  assert.equal(decision.alpha31SafeOrbit, true);
+  assert.ok(Math.hypot(decision.x - target.x, decision.y - target.y) > 30);
+  assert.equal(hotfix.stats.aggroEmergencyTerrainEscapes, 1);
+  assert.equal(hotfix.stats.aggroOrbitNoWaypoint, 0);
+});
+
 test('safe orbit never takes movement authority from a non-aggro ranger or emergency retreat', () => {
   const root = rootWithCharacter({ name: 'My_Ranger2', ctype: 'ranger' }, { can_move_to: () => true });
   const farmer = { kiting: { evaluate() { return { shouldMove: false, reason: 'DISTANCE_OK' }; } } };
