@@ -78,10 +78,11 @@ const { CommandOutcomeTracker, CommandOutcomeState } = require('./game/command-o
 const { StabilityGameAdapter } = require('./game/stability-adapter');
 const { CombatStabilitySupervisor } = require('./stability/combat-stability-supervisor');
 const { GlobalSupervisor, HealthState } = require('./stability/global-supervisor');
+const { RuntimeComposition, createRuntimeComposition, COMPOSITION_MODE } = require('./composition/runtime-composition');
 
 function install(root = globalThis, options = {}) {
   if (root.AIO_V3 && root.AIO_V3.__runtime) return root.AIO_V3;
-  const runtime = new Alpha20_5FarmReadinessRuntime({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
+  const runtime = createRuntimeComposition({ ...options, root, mode: options.mode === 'shadow' ? 'shadow' : 'active' });
   const operations = new HeadlessOperations({
     runtime,
     log: runtime.log,
@@ -319,6 +320,7 @@ function install(root = globalThis, options = {}) {
       arm: () => runtime.backgroundExecution.arm('API_MANUAL'),
       setEnabled: (enabled) => runtime.backgroundExecution.setEnabled(enabled)
     },
+    runtimeComposition: { status: () => runtime.compositionStatus() },
     localFarming: { status: () => runtime.localFarming.status() },
     farmer: {
       enable: () => runtime.setFarmerEnabled(true),
@@ -351,7 +353,7 @@ function install(root = globalThis, options = {}) {
 }
 
 module.exports = {
-  install, Runtime, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
+  install, Runtime, RuntimeComposition, createRuntimeComposition, COMPOSITION_MODE, StabilityRuntime, Alpha9Runtime, Alpha10Runtime, Alpha11Runtime, Alpha12Runtime, Alpha13Runtime, Alpha14Runtime, Alpha15Runtime, Alpha16Runtime, ALPHA16_VERSION, Alpha17Runtime, Alpha18Runtime, ALPHA18_VERSION, Alpha19Runtime, ALPHA19_VERSION, Alpha20Runtime, Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, VERSION,
   EventLog, Scheduler, StableScheduler, TaskState, createTask,
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
