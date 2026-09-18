@@ -1,6 +1,6 @@
 'use strict';
 
-const { scoreItem, candidateSlots } = require('../economy/gear-progression');
+const { scoreItem, scoreImprovement, candidateSlots } = require('../economy/gear-progression');
 
 const MERCHANT_PRODUCTION_PLANNER_MODE = 'deterministic-merchant-production-planner';
 
@@ -190,12 +190,22 @@ class MerchantProductionPlanner {
         let best = null;
         for (const slot of slots) {
           const current = currentItem(character, slot, gameData);
-          const threshold = current.score.total <= 0 ? 0 : current.score.total * this.minImprovementRatio;
-          const improvement = target.total - current.score.total;
-          if (improvement <= Math.max(0.001, threshold)) continue;
-          const survivalImprovement = target.survival - current.score.survival;
-          const row = { slot, current, improvement, survivalImprovement };
-          if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
+          const delta = scoreImprovement(current.score, target, character.ctype, this.minImprovementRatio);
+          if (!delta.meaningful) continue;
+          const row = {
+            slot,
+            current,
+            improvement: delta.improvement,
+            survivalImprovement: delta.survivalImprovement,
+            speedImprovement: delta.speedImprovement,
+            improvementReason: delta.reason
+          };
+          const merchantTarget = String(character.ctype || '').toLowerCase() === 'merchant';
+          if (!best
+            || (merchantTarget && row.speedImprovement > best.speedImprovement)
+            || (merchantTarget && row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
+            || (!merchantTarget && row.improvement > best.improvement)
+            || (row.improvement === best.improvement && row.speedImprovement === best.speedImprovement && row.survivalImprovement > best.survivalImprovement)) best = row;
         }
         if (!best) continue;
         candidates.push({
@@ -208,12 +218,19 @@ class MerchantProductionPlanner {
           currentLevel: best.current.level,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
+          speedImprovement: best.speedImprovement,
+          improvementReason: best.improvementReason,
           targetRank: targetRank.has(output) ? targetRank.get(output) : Infinity
         });
       }
     }
     candidates.sort((a, b) => {
       if (a.targetRank !== b.targetRank) return a.targetRank - b.targetRank;
+      const aMerchant = String(a.ctype || '').toLowerCase() === 'merchant';
+      const bMerchant = String(b.ctype || '').toLowerCase() === 'merchant';
+      if (aMerchant && bMerchant && finite(a.speedImprovement, 0) !== finite(b.speedImprovement, 0)) {
+        return finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0);
+      }
       if ((a.survivalImprovement > 0) !== (b.survivalImprovement > 0)) return a.survivalImprovement > 0 ? -1 : 1;
       return b.improvement - a.improvement || b.survivalImprovement - a.survivalImprovement || a.output.localeCompare(b.output) || a.recipient.localeCompare(b.recipient);
     });
