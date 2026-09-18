@@ -6,20 +6,20 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1173 Zeilen**
+**6 Dateien · 1323 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
-| `src/index.js` | 386 |
+| `src/index.js` | 458 |
 | `src/production-live-services.js` | 215 |
 | `src/release-version.js` | 5 |
-| `src/runtime.js` | 482 |
+| `src/runtime.js` | 560 |
 | `src/version.js` | 9 |
 
 ## autonomy
 
-**21 Dateien · 4113 Zeilen**
+**26 Dateien · 5733 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -29,7 +29,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha11-runtime.js` | 66 |
 | `src/autonomy/alpha12-hardened-runtime.js` | 160 |
 | `src/autonomy/alpha12-runtime.js` | 72 |
-| `src/autonomy/alpha13-runtime.js` | 135 |
+| `src/autonomy/alpha13-runtime.js` | 141 |
 | `src/autonomy/alpha14-runtime.js` | 116 |
 | `src/autonomy/alpha15-runtime.js` | 105 |
 | `src/autonomy/alpha16-runtime.js` | 77 |
@@ -40,9 +40,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 398 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 68 |
+| `src/autonomy/capability-resolver.js` | 405 |
+| `src/autonomy/character-combat-profile.js` | 257 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
 | `src/autonomy/local-farm-planner.js` | 153 |
-| `src/autonomy/party-skill-engine.js` | 189 |
+| `src/autonomy/party-skill-engine.js` | 221 |
+| `src/autonomy/skill-catalog-service.js` | 478 |
+| `src/autonomy/skill-policy.js` | 196 |
+| `src/autonomy/skill-semantics.js` | 246 |
 | `src/autonomy/tactical-party-combat.js` | 234 |
 
 ## brain
@@ -58,11 +63,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## composition
 
-**2 Dateien · 192 Zeilen**
+**2 Dateien · 193 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/composition/runtime-composition.js` | 173 |
+| `src/composition/runtime-composition.js` | 174 |
 | `src/composition/runtime-lifecycle.js` | 19 |
 
 ## content
@@ -123,7 +128,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4503 Zeilen**
+**21 Dateien · 4506 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -143,32 +148,32 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/live-navigation-hotfix.js` | 222 |
 | `src/farmer/retreat-farmer.js` | 166 |
 | `src/farmer/safe-retreat.js` | 89 |
-| `src/farmer/skill-farmer.js` | 477 |
-| `src/farmer/skill-usage.js` | 175 |
+| `src/farmer/skill-farmer.js` | 478 |
+| `src/farmer/skill-usage.js` | 177 |
 | `src/farmer/target-efficiency.js` | 112 |
 | `src/farmer/target-reassessment.js` | 192 |
 | `src/farmer/target-safety.js` | 68 |
 
 ## game
 
-**3 Dateien · 727 Zeilen**
+**3 Dateien · 870 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/game/adapter.js` | 294 |
+| `src/game/adapter.js` | 437 |
 | `src/game/command-outcomes.js` | 227 |
 | `src/game/stability-adapter.js` | 206 |
 
 ## merchant
 
-**9 Dateien · 2505 Zeilen**
+**9 Dateien · 2509 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/merchant/controlled-merchant-production-executor.js` | 168 |
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
-| `src/merchant/merchant-mluck-service.js` | 282 |
+| `src/merchant/merchant-mluck-service.js` | 286 |
 | `src/merchant/merchant-production-controller.js` | 351 |
 | `src/merchant/merchant-production-planner.js` | 594 |
 | `src/merchant/merchant-service-planner.js` | 232 |
@@ -177,7 +182,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**26 Dateien · 7278 Zeilen**
+**26 Dateien · 7551 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -190,7 +195,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/background-execution-guard.js` | 131 |
 | `src/ops/control-gateway.js` | 133 |
 | `src/ops/controlled-auto-respawn.js` | 216 |
-| `src/ops/debug-monitor-ui.js` | 575 |
+| `src/ops/debug-monitor-ui.js` | 848 |
 | `src/ops/flight-recorder.js` | 173 |
 | `src/ops/group-liveness.js` | 164 |
 | `src/ops/headless-operations.js` | 437 |
@@ -210,7 +215,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 8052 Zeilen**
+**33 Dateien · 8054 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -224,7 +229,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/control-lease.js` | 329 |
 | `src/party/controlled-lifecycle-coordinator-base.js` | 573 |
 | `src/party/controlled-lifecycle-coordinator.js` | 225 |
-| `src/party/controlled-paladin-aura-executor.js` | 95 |
+| `src/party/controlled-paladin-aura-executor.js` | 97 |
 | `src/party/controlled-party-bootstrap-base.js` | 734 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
 | `src/party/controlled-party-logistics.js` | 1247 |
