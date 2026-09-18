@@ -214,6 +214,32 @@ class FarmerController {
   _selectTarget(context) {
     const { rows, monsters } = this._candidateRows(context);
     if (!rows.length || !monsters.length) return null;
+
+    const objective = this.materialObjective;
+    if (objective && Number(objective.expiresAt || 0) > this.now() && objective.monster) {
+      const objectiveTargets = monsters
+        .filter((entity) => entity.mtype === objective.monster)
+        .sort((a, b) => distance(context.snapshot.character, a) - distance(context.snapshot.character, b));
+      if (objectiveTargets.length) {
+        const row = rows.find((candidate) => (candidate.monster || candidate.id) === objective.monster) || {};
+        return {
+          target: objectiveTargets[0],
+          ranking: {
+            ...row,
+            monster: objective.monster,
+            score: Number.MAX_SAFE_INTEGER,
+            source: 'elixir-material-objective',
+            objectiveKind: objective.kind || 'MATERIAL',
+            material: objective.material || null,
+            elixirName: objective.elixirName || null,
+            objectiveExpiresAt: objective.expiresAt
+          }
+        };
+      }
+    } else if (objective) {
+      this.materialObjective = null;
+    }
+
     const ranked = this.planner && this.planner.rank ? this.planner.rank(rows, {
       character: context.snapshot.character.name,
       partyFingerprint: context.party && context.party.fingerprint || null
