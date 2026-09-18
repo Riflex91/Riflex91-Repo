@@ -297,9 +297,31 @@ class Alpha28CrossMapFarmerProgression {
       const timeout = new Promise((_, reject) => { timer = (this.root.setTimeout || setTimeout)(() => reject(new Error('FARMER_SMART_MOVE_TIMEOUT')), this.timeoutMs); });
       const smartMoveCommand = adapter.command('smart_move', [{ map: objective.map, x: objective.x, y: objective.y }]);
       if (!smartMoveCommand.executed) throw new Error(smartMoveCommand.reason || (smartMoveCommand.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
-      const response = await Promise.race([Promise.resolve(smartMoveCommand.value), timeout]);
-      if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
-      controller.observe(this._snapshot());
+      let routeResponse = null;
+      const routeFailurePromise = Promise.resolve(smartMoveCommand.value).then((response) => {
+        routeResponse = response;
+        if (response && response.failed === true) throw new Error(String(response.reason || 'SMART_MOVE_FAILED'));
+        // A resolved/undefined smart_move return is not arrival evidence.
+        // Keep this branch pending and let observed SafeTravel state decide.
+        return new Promise(() => {});
+      });
+      routeFailurePromise.catch(() => {});
+      const pollMs = 100;
+      const setTimer = this.root.setTimeout || setTimeout;
+      const observedArrival = (async () => {
+        while (this.busy && this.activePlanId === plan.id) {
+          controller.observe(this._snapshot());
+          const current = controller.get(plan.id);
+          if (current && current.state === 'COMPLETED') return { success: true, observedArrival: true };
+          if (current && ['FAILED_SAFE', 'ABORTED'].includes(String(current.state || ''))) {
+            throw new Error(current.reason || 'FARMER_TRAVEL_TERMINATED_BEFORE_ARRIVAL');
+          }
+          await new Promise((resolve) => setTimer(resolve, pollMs));
+        }
+        return null;
+      })();
+      const arrival = await Promise.race([routeFailurePromise, observedArrival, timeout]);
+      const response = routeResponse == null ? arrival : routeResponse;
       const final = controller.get(plan.id);
       if (!final || final.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.crossMapTravelCompleted += 1;
