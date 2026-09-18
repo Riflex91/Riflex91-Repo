@@ -10,6 +10,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     super(runtime, atomic, shared);
     this.completedGearGoalClaims = new Map();
     this.gearGoalClaimSuppressions = 0;
+    this.lastCompoundIdentity = null;
+    this.compoundSelectionCounts = new Map();
   }
 
   gearDeliveryCandidate() {
@@ -171,9 +173,45 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       list.push(row);
       groups.set(key, list);
     }
-    const group = [...groups.values()].filter((rows) => rows.length >= 3).sort((a, b) => levelOf(a[0]) - levelOf(b[0]) || String(a[0].name).localeCompare(String(b[0].name)))[0];
-    if (!group) return null;
-    return { type: 'COMPOUND', character: c.name, index: group[0].index, indices: group.slice(0, 3).map((row) => row.index), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
+    const candidates = [...groups.values()]
+      .filter((rows) => rows.length >= 3)
+      .map((rows) => {
+        const identity = `${rows[0].name}:${levelOf(rows[0])}`;
+        return {
+          rows,
+          identity,
+          completeSets: Math.floor(rows.length / 3),
+          previousSelections: this.compoundSelectionCounts.get(identity) || 0,
+          repeated: identity === this.lastCompoundIdentity
+        };
+      })
+      .sort((a, b) => (
+        // Drain the largest actionable backlog first, but never repeatedly starve
+        // another identity merely because its item name sorts later (ringsj was
+        // previously stuck behind hpamulet/hpbelt under the 3/min mutation budget).
+        b.completeSets - a.completeSets
+        || Number(a.repeated) - Number(b.repeated)
+        || a.previousSelections - b.previousSelections
+        || levelOf(a.rows[0]) - levelOf(b.rows[0])
+        || String(a.rows[0].name).localeCompare(String(b.rows[0].name))
+      ));
+    const picked = candidates[0] || null;
+    if (!picked) return null;
+    const group = picked.rows;
+    this.lastCompoundIdentity = picked.identity;
+    this.compoundSelectionCounts.set(picked.identity, picked.previousSelections + 1);
+    return {
+      type: 'COMPOUND',
+      character: c.name,
+      index: group[0].index,
+      indices: group.slice(0, 3).map((row) => row.index),
+      metadata: {
+        source: 'ALPHA27_AUTONOMOUS_PLANNER',
+        compoundIdentity: picked.identity,
+        completeSetsBefore: picked.completeSets,
+        fairSelectionCount: picked.previousSelections + 1
+      }
+    };
   }
 
   planSellOrBank() {
