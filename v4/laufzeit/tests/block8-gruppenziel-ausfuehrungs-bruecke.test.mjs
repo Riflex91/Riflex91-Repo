@@ -241,7 +241,7 @@ test('feste Block-8-Gruppenziel-Bruecke blockiert falsche Anfrage, falsches Ziel
       steuerung,
       () => sicherheit(10_060),
       zeiten(10_060, 10_061),
-      { aktivFreigegeben: true }
+      { aktivFreigegeben: true, auftragMaximalAlterMillisekunden: 1_000 }
     );
 
     await assert.rejects(() => bruecke.fuehreEinmalAus(angepasst), muster);
