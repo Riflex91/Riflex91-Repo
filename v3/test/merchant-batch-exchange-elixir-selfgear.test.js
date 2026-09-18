@@ -302,6 +302,7 @@ test('Merchant self-gear upgrades speed-gaining equipment before non-speed equip
   assert.equal(manager.status().speedPriority, 'NEXT_LEVEL_SPEED_GAIN_FIRST');
 });
 
+// Live alpha.20.113 regression: WAIT_LEDGER must not masquerade as task progress.
 test('Merchant self-gear WAIT_LEDGER reports no progress while live inputs or ledger state are not executable', async () => {
   const root = {
     character: {
