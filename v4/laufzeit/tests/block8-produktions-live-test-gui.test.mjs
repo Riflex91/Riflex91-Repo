@@ -41,6 +41,7 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
   let smoke = false;
   let gestoppt = false;
   let oneShot = false;
+  const aufrufReihenfolge = [];
   const ziel = { id: 'tortoise-1', mtype: 'tortoise', hp: 100, dead: false };
 
   const runtime = {
@@ -61,6 +62,7 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
     },
     starte() { empfang = true; return this.status(); },
     async sendeLebensnachweis() {
+      aufrufReihenfolge.push('heartbeat');
       return Object.freeze({
         meldung: Object.freeze({ charakterName: name, zielKennung: 'tortoise-1' }),
         ergebnisse: Object.freeze([
@@ -70,6 +72,7 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
     },
     gruppenzielFreigabeText() { return 'VORBEREITEN'; },
     bereiteGruppenZielVor(text) {
+      aufrufReihenfolge.push('vorbereiten');
       assert.equal(text, 'VORBEREITEN');
       vorbereitet = true;
       return Object.freeze({
@@ -83,6 +86,7 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
     },
     liveSmokeInstallationsText() { return 'SMOKE-INSTALL'; },
     installiereGruppenZielLiveSmoke(erwartung, text) {
+      aufrufReihenfolge.push('smoke-installieren');
       assert.equal(text, 'SMOKE-INSTALL');
       assert.equal(erwartung.zielKennung, 'tortoise-1');
       smoke = true;
@@ -113,8 +117,12 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
   const runner = {
     status() { return Object.freeze({ versuchGestartet: oneShot }); },
     startText() { return 'BLOCK8-GRUPPENZIEL-LIVE-SMOKE-STARTEN'; },
-    vorschau() { return Object.freeze({ letzteVorschau: vorschau }); },
+    vorschau() {
+      aufrufReihenfolge.push('produktions-vorschau');
+      return Object.freeze({ letzteVorschau: vorschau });
+    },
     async starte(text) {
+      aufrufReihenfolge.push('one-shot-start');
       assert.equal(text, this.startText());
       oneShot = true;
       return Object.freeze({
@@ -175,61 +183,80 @@ async function lade({ name = 'My_Ranger1', leiterName = 'My_Ranger1' } = {}) {
     protokoll,
     ergebnisse,
     fuehre,
-    zustand() { return { runtimeGeladen, empfang, vorbereitet, smoke, gestoppt, oneShot }; }
+    zustand() { return { runtimeGeladen, empfang, vorbereitet, smoke, gestoppt, oneShot, aufrufReihenfolge: [...aufrufReihenfolge] }; }
   };
 }
 
-test('Block-8 Live-Test-GUI fuehrt Leiterablauf nur ueber Produktions-APIs bis zum bestandenen one-shot', async () => {
+test('Block-8 Live-Test-GUI fuehrt passive Vorpruefung ohne zentrale Anfrage und finalen one-shot atomar aus', async () => {
   const u = await lade();
   assert.equal(u.kontext.V4Block8ProduktionsLiveTestGui.istLeiter, true);
 
   await u.fuehre('runtime-laden');
   await u.fuehre('empfang-starten');
-  assert.equal(u.aktive.get('gruppenziel-vorschau'), false);
+  assert.equal(u.aktive.get('gruppenziel-vorpruefung'), false);
   await u.fuehre('heartbeat-senden');
-  assert.equal(u.aktive.get('gruppenziel-vorschau'), true);
-  await u.fuehre('gruppenziel-vorschau');
-  assert.equal(u.aktive.get('one-shot'), true);
+  assert.equal(u.aktive.get('gruppenziel-vorpruefung'), true);
 
+  await u.fuehre('gruppenziel-vorpruefung');
+  assert.equal(u.aktive.get('one-shot'), true);
+  assert.equal(u.zustand().vorbereitet, false);
+  assert.equal(u.zustand().smoke, false);
+  assert.equal(u.ergebnisse.at(-1).wert.schritt, 'gruppenziel_passive_vorpruefung');
+  assert.deepEqual(u.ergebnisse.at(-1).wert.runtime.laufendeGruppenAnfragen, []);
+  assert.deepEqual(u.ergebnisse.at(-1).wert.runtime.ressourcenSperren, []);
+
+  const aufrufeVorOneShot = u.zustand().aufrufReihenfolge.length;
   await u.fuehre('one-shot');
+  const finaleAufrufe = u.zustand().aufrufReihenfolge.slice(aufrufeVorOneShot);
+  assert.deepEqual(finaleAufrufe, [
+    'heartbeat',
+    'vorbereiten',
+    'smoke-installieren',
+    'produktions-vorschau',
+    'one-shot-start'
+  ]);
+
   const letzter = u.ergebnisse.at(-1);
   assert.equal(letzter.status, 'pass');
   assert.equal(letzter.wert.schritt, 'one_shot_live_smoke');
   assert.equal(letzter.wert.bericht.echteSpielaktionen.attack, 1);
   assert.equal(letzter.wert.bericht.echteSpielaktionen.sonstige, 0);
+  assert.equal(letzter.wert.finaleProduktionsVorschau.zielKennung, 'tortoise-1');
   assert.equal(u.zustand().oneShot, true);
 });
 
-test('Block-8 Live-Test-GUI deaktiviert aktive Ziel-/Smoke-Schritte auf Nicht-Leiter', async () => {
+test('Block-8 Live-Test-GUI deaktiviert Vorpruefung und one-shot auf Nicht-Leiter', async () => {
   const u = await lade({ name: 'My_Ranger2' });
   assert.equal(u.kontext.V4Block8ProduktionsLiveTestGui.istLeiter, false);
-  assert.equal(u.aktive.get('gruppenziel-vorschau'), false);
+  assert.equal(u.aktive.get('gruppenziel-vorpruefung'), false);
   assert.equal(u.aktive.get('one-shot'), false);
 
   await u.fuehre('runtime-laden');
   await u.fuehre('empfang-starten');
   await u.fuehre('heartbeat-senden');
-  assert.equal(u.aktive.get('gruppenziel-vorschau'), false);
+  assert.equal(u.aktive.get('gruppenziel-vorpruefung'), false);
   assert.equal(u.aktive.get('one-shot'), false);
 });
 
-test('Block-8 Live-Test-GUI findet Ziel auch ueber entity.id statt nur ueber Objekt-Key', async () => {
+test('Block-8 Live-Test-GUI findet passives Vorpruefungsziel auch ueber entity.id statt nur ueber Objekt-Key', async () => {
   const u = await lade();
   await u.fuehre('runtime-laden');
   await u.fuehre('empfang-starten');
   await u.fuehre('heartbeat-senden');
-  await u.fuehre('gruppenziel-vorschau');
+  await u.fuehre('gruppenziel-vorpruefung');
   const letzter = u.ergebnisse.at(-1);
   assert.equal(letzter.status, 'pass');
+  assert.equal(letzter.wert.schritt, 'gruppenziel_passive_vorpruefung');
   assert.equal(letzter.wert.erwartung.zielKennung, 'tortoise-1');
+  assert.equal(u.zustand().vorbereitet, false);
 });
 
-test('Block-8 Live-Test-GUI stoppt zentral und meldet freigegebene Ressourcen', async () => {
+test('Block-8 Live-Test-GUI stoppt nach passiver Vorpruefung ohne zentrale Ressourcen', async () => {
   const u = await lade();
   await u.fuehre('runtime-laden');
   await u.fuehre('empfang-starten');
   await u.fuehre('heartbeat-senden');
-  await u.fuehre('gruppenziel-vorschau');
+  await u.fuehre('gruppenziel-vorpruefung');
   await u.fuehre('stoppen');
   const letzter = u.ergebnisse.at(-1);
   assert.equal(letzter.wert.schritt, 'stoppen');
@@ -243,5 +270,6 @@ test('Block-8 Live-Test-GUI besitzt selbst keinen direkten Adventure-Land-Aktion
     assert.doesNotMatch(u.code, new RegExp(`\\b${name}\\s*\\(`));
   }
   assert.match(u.code, /runtimeApi\(\)\.sendeLebensnachweis\(\)/);
+  assert.match(u.code, /runtime\.bereiteGruppenZielVor\(runtime\.gruppenzielFreigabeText\(\)\)/);
   assert.match(u.code, /runner\.starte\(runner\.startText\(\)\)/);
 });
