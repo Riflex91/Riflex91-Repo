@@ -51758,6 +51758,7 @@ const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-h
 
 const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
 const FARMER_STATE_ACTION = 'FARMER_STATE';
+const GEAR_DELIVERY_INTENT_ACTION = 'GEAR_DELIVERY_INTENT';
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -51892,6 +51893,10 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.farmerGearGoalFreshMs = Math.max(5000, Math.min(120000, finite(options.farmerGearGoalFreshMs, 30000)));
+    this.gearDeliveryIntentTtlMs = Math.max(5000, Math.min(120000, finite(options.gearDeliveryIntentTtlMs, 30000)));
+    this.farmerGearEquipVerifyMs = Math.max(500, Math.min(10000, finite(options.farmerGearEquipVerifyMs, 2500)));
+    this.farmerGearEquipRetryMs = Math.max(500, Math.min(30000, finite(options.farmerGearEquipRetryMs, 3000)));
     this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
     this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
@@ -51904,6 +51909,9 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.collectionCapacityBlockedIndexes = new Set();
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
+    this.incomingGearIntents = new Map();
+    this.pendingFarmerGearEquip = null;
+    this.farmerGearEquipRetryAt = new Map();
     this.stats = {
       huntersMarkExistingDebuffSkips: 0,
       huntersMarkOwnershipSkips: 0,
@@ -51915,7 +51923,15 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantCombatOwnersPatched: 0,
       gearDeliveryUnknownTargetGearHolds: 0,
       gearDeliveryStaleGoalHolds: 0,
+      gearDeliveryIntentsSent: 0,
+      gearDeliveryIntentSendFailures: 0,
+      gearDeliveryIntentsReceived: 0,
       farmerGearLootReservations: 0,
+      farmerGearExactReservations: 0,
+      farmerGearEquipAttempts: 0,
+      farmerGearEquipCommitted: 0,
+      farmerGearEquipRejected: 0,
+      farmerGearEquipTimeouts: 0,
       farmerStateSent: 0,
       farmerStateReceived: 0,
       farmerGearRegistryUpdates: 0,
@@ -51949,6 +51965,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.merchantIncomingAggroInstalled = this._installMerchantIncomingAggro();
     this.gearDeliverySafetyInstalled = this._installGearDeliverySafety();
     this.farmerGearReservationInstalled = this._installFarmerGearReservation();
+    this.farmerGearEquipInstalled = this._installFarmerGearEquip();
     this.partyStateTelemetryInstalled = this._installPartyStateTelemetry();
     this.merchantRendezvousAuthorityInstalled = this._installMerchantRendezvousAuthority();
     this.installedAt = this.now();
@@ -52217,9 +52234,9 @@ class Alpha33MarkOrbitMerchantDelivery {
     const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
     const merchant = alpha27 && alpha27.merchant;
     if (!merchant || typeof merchant.gearDeliveryCandidate !== 'function' || merchant.__alpha33GearDeliverySafetyInstalled) return false;
-    const base = merchant.gearDeliveryCandidate.bind(merchant);
+    const baseCandidate = merchant.gearDeliveryCandidate.bind(merchant);
     merchant.gearDeliveryCandidate = () => {
-      const candidate = base();
+      const candidate = baseCandidate();
       if (!candidate || !candidate.goal) return candidate;
       const state = this._gearGoalTargetState(candidate.goal);
       if (state.safe) return candidate;
@@ -52228,21 +52245,301 @@ class Alpha33MarkOrbitMerchantDelivery {
       this._noteGearHold(state.reason, candidate.goal);
       return null;
     };
+
+    if (typeof merchant.deliverGearGoal === 'function') {
+      const baseDeliver = merchant.deliverGearGoal.bind(merchant);
+      merchant.deliverGearGoal = async () => {
+        const candidate = merchant.gearDeliveryCandidate();
+        if (!candidate || !candidate.goal || !candidate.item) return baseDeliver();
+        const logistics = this.runtime.controlledPartyLogistics;
+        if (!logistics || typeof logistics._send !== 'function') return baseDeliver();
+        const goal = candidate.goal;
+        const targetName = cleanName(goal.character);
+        const intent = {
+          goalId: String(goal.id || ''),
+          targetName,
+          itemName: String(goal.item || candidate.item.name || ''),
+          itemLevel: levelOf(candidate.item),
+          slot: String(goal.slot || ''),
+          currentItem: goal.currentItem == null ? null : String(goal.currentItem),
+          currentLevel: Math.max(0, finite(goal.currentLevel, 0)),
+          expiresAt: this.now() + this.gearDeliveryIntentTtlMs
+        };
+        if (!targetName || !intent.goalId || !intent.itemName || !intent.slot) return baseDeliver();
+        const sent = await Promise.resolve(logistics._send(targetName, GEAR_DELIVERY_INTENT_ACTION, intent)).catch(() => null);
+        if (!sent || sent.delivered !== true) {
+          this.stats.gearDeliveryIntentSendFailures += 1;
+          this._event('GEAR_DELIVERY_INTENT_SEND_FAILED', 'warn', sent && sent.reason || 'INTENT_TRANSPORT_FAILED', intent);
+          return false;
+        }
+        this.stats.gearDeliveryIntentsSent += 1;
+        this._event('GEAR_DELIVERY_INTENT_SENT', 'info', 'TARGETED_FARMER_EQUIP_INTENT', intent);
+        return baseDeliver();
+      };
+    }
     merchant.__alpha33GearDeliverySafetyInstalled = true;
     return true;
   }
 
-  _localGearGoalMatches(item) {
+  _liveEquipment(slot) {
+    const c = characterOf(this.runtime);
+    const gear = c && (c.slots || c.equipment) || {};
+    return gear && slot ? gear[slot] || null : null;
+  }
+
+  _goalTargetStillMatches(goal) {
+    if (!goal || !goal.slot) return false;
+    const observed = this._liveEquipment(goal.slot);
+    const expectedName = goal.currentItem == null ? null : String(goal.currentItem);
+    const expectedLevel = Math.max(0, finite(goal.currentLevel, 0));
+    if (expectedName == null) return !(observed && observed.name);
+    return !!(observed && String(observed.name || '') === expectedName && levelOf(observed) === expectedLevel);
+  }
+
+  _pruneGearIntents() {
+    const now = this.now();
+    for (const [id, intent] of this.incomingGearIntents) {
+      if (!intent || finite(intent.expiresAt, 0) <= now) this.incomingGearIntents.delete(id);
+    }
+    for (const [key, until] of this.farmerGearEquipRetryAt) {
+      if (finite(until, 0) <= now) this.farmerGearEquipRetryAt.delete(key);
+    }
+  }
+
+  _matchingGearIntentForItem(item) {
+    if (!item || !item.name || !Number.isInteger(Number(item.index))) return null;
+    this._pruneGearIntents();
+    const c = characterOf(this.runtime);
+    if (!c) return null;
+    for (const intent of this.incomingGearIntents.values()) {
+      if (!intent || String(intent.targetName || '') !== String(c.name || '')) continue;
+      if (String(intent.itemName || '') !== String(item.name || '') || Math.max(0, finite(intent.itemLevel, 0)) !== levelOf(item)) continue;
+      if (Array.isArray(intent.beforeIndices) && intent.beforeIndices.includes(Number(item.index))) continue;
+      return intent;
+    }
+    return null;
+  }
+
+  _activeLocalGearGoalForItem(item) {
     const c = characterOf(this.runtime);
     const gear = this.runtime.gearProgression;
-    if (!c || !item || !gear || typeof gear.list !== 'function') return false;
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !item || !gear || typeof gear.list !== 'function' || !ledger || typeof ledger.get !== 'function') return null;
+    const index = Number(item.index);
+    if (!Number.isInteger(index)) return null;
+    let entry = null;
+    try { entry = ledger.get(c.name, index); } catch (_) { return null; }
+    const goalIds = entry && entry.reservation && Array.isArray(entry.reservation.goalIds) ? new Set(entry.reservation.goalIds.map(String)) : new Set();
+    if (!goalIds.size) return null;
     try {
-      return gear.list(256).some((goal) => goal
+      return gear.list(256).find((goal) => goal
+        && goalIds.has(String(goal.id || ''))
         && String(goal.character || '') === String(c.name || '')
+        && String(goal.sourceCharacter || '') === String(c.name || '')
+        && Number(goal.sourceIndex) === index
         && String(goal.item || '') === String(item.name || '')
         && Math.max(0, finite(goal.observedLevel, 0)) === levelOf(item)
-        && goal.projectedUpgradeRequired !== true);
-    } catch (_) { return false; }
+        && goal.projectedUpgradeRequired !== true
+        && this.now() - finite(goal.lastSeenAt, 0) <= this.farmerGearGoalFreshMs
+        && this._goalTargetStillMatches(goal)) || null;
+    } catch (_) { return null; }
+  }
+
+  _localGearGoalMatches(item) {
+    const intent = this._matchingGearIntentForItem(item);
+    if (intent) return true;
+    const goal = this._activeLocalGearGoalForItem(item);
+    if (goal) this.stats.farmerGearExactReservations += 1;
+    return !!goal;
+  }
+
+  _acceptGearDeliveryIntent(sender, data) {
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || '').toLowerCase() === 'merchant') return false;
+    const targetName = cleanName(data && data.targetName);
+    const goalId = String(data && data.goalId || '').slice(0, 200);
+    const itemName = String(data && data.itemName || '').slice(0, 120);
+    const itemLevel = Math.max(0, Math.floor(finite(data && data.itemLevel, 0)));
+    const slot = String(data && data.slot || '').slice(0, 40);
+    if (!targetName || targetName !== cleanName(c.name) || !goalId || !itemName || !slot) return false;
+    const inventory = Array.isArray(c.items) ? c.items : [];
+    const beforeIndices = [];
+    for (let index = 0; index < inventory.length; index += 1) {
+      const item = inventory[index];
+      if (item && String(item.name || '') === itemName && levelOf(item) === itemLevel) beforeIndices.push(index);
+    }
+    const intent = {
+      id: goalId,
+      goalId,
+      sender: cleanName(sender),
+      targetName,
+      itemName,
+      itemLevel,
+      slot,
+      currentItem: data && data.currentItem == null ? null : String(data.currentItem),
+      currentLevel: Math.max(0, finite(data && data.currentLevel, 0)),
+      beforeIndices,
+      receivedAt: this.now(),
+      expiresAt: Math.min(
+        finite(data && data.expiresAt, this.now() + this.gearDeliveryIntentTtlMs),
+        this.now() + this.gearDeliveryIntentTtlMs
+      ),
+      failures: 0
+    };
+    this.incomingGearIntents.set(goalId, intent);
+    this.stats.gearDeliveryIntentsReceived += 1;
+    this._event('GEAR_DELIVERY_INTENT_RECEIVED', 'info', 'MERCHANT_TARGETED_GEAR_DELIVERY', {
+      goalId, sender: intent.sender, targetName, itemName, itemLevel, slot
+    });
+    return true;
+  }
+
+  _farmerGearEquipCandidate(snapshot) {
+    this._pruneGearIntents();
+    const sc = snapshot && snapshot.character || {};
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || sc.ctype || '').toLowerCase() === 'merchant' || c.rip || c.dead) return null;
+    const inventory = Array.isArray(sc.inventory)
+      ? sc.inventory
+      : Array.isArray(c.items) ? c.items.map((item, index) => item ? { ...item, index } : null) : [];
+
+    for (const intent of [...this.incomingGearIntents.values()].sort((a, b) => finite(a.receivedAt, 0) - finite(b.receivedAt, 0))) {
+      if (!intent || String(intent.targetName || '') !== String(c.name || '')) continue;
+      const expected = {
+        slot: intent.slot,
+        currentItem: intent.currentItem,
+        currentLevel: intent.currentLevel
+      };
+      if (!this._goalTargetStillMatches(expected)) {
+        this.incomingGearIntents.delete(intent.goalId);
+        this.stats.gearDeliveryStaleGoalHolds += 1;
+        this._event('FARMER_GEAR_EQUIP_INTENT_DROPPED', 'info', 'TARGET_SLOT_CHANGED_BEFORE_DELIVERY', {
+          goalId: intent.goalId, slot: intent.slot
+        });
+        continue;
+      }
+      const retryKey = String(intent.goalId || '');
+      if (finite(this.farmerGearEquipRetryAt.get(retryKey), 0) > this.now()) continue;
+      const item = inventory.find((row) => row
+        && Number.isInteger(Number(row.index))
+        && !intent.beforeIndices.includes(Number(row.index))
+        && String(row.name || '') === intent.itemName
+        && levelOf(row) === intent.itemLevel);
+      if (item) return { kind: 'MERCHANT_INTENT', goalId: intent.goalId, intent, item, slot: intent.slot };
+    }
+
+    const candidates = [];
+    for (const item of inventory) {
+      if (!item || !Number.isInteger(Number(item.index))) continue;
+      const goal = this._activeLocalGearGoalForItem(item);
+      if (!goal) continue;
+      const retryKey = String(goal.id || '');
+      if (finite(this.farmerGearEquipRetryAt.get(retryKey), 0) > this.now()) continue;
+      candidates.push({ kind: 'ACTIVE_LOCAL_GOAL', goalId: goal.id, goal, item, slot: goal.slot });
+    }
+    candidates.sort((a, b) => finite(b.goal && b.goal.survivalImprovement, 0) - finite(a.goal && a.goal.survivalImprovement, 0)
+      || finite(b.goal && b.goal.improvement, 0) - finite(a.goal && a.goal.improvement, 0)
+      || String(a.goalId || '').localeCompare(String(b.goalId || '')));
+    return candidates[0] || null;
+  }
+
+  _farmerGearEquipTick(snapshot) {
+    const logistics = this.runtime.controlledPartyLogistics;
+    const c = characterOf(this.runtime);
+    if (!logistics || !c || String(c.ctype || '').toLowerCase() === 'merchant') return false;
+
+    if (this.pendingFarmerGearEquip) {
+      const pending = this.pendingFarmerGearEquip;
+      const equipped = this._liveEquipment(pending.slot);
+      if (equipped && String(equipped.name || '') === pending.itemName && levelOf(equipped) === pending.itemLevel) {
+        this.pendingFarmerGearEquip = null;
+        if (pending.intentId) this.incomingGearIntents.delete(pending.intentId);
+        this.farmerGearEquipRetryAt.delete(String(pending.goalId || ''));
+        this.stats.farmerGearEquipCommitted += 1;
+        this._event('FARMER_GEAR_UPGRADE_EQUIPPED', 'info', 'LOCAL_EQUIP_VERIFIED', {
+          goalId: pending.goalId,
+          item: pending.itemName,
+          level: pending.itemLevel,
+          slot: pending.slot,
+          sourceIndex: pending.sourceIndex,
+          source: pending.kind
+        });
+        logistics.lastDecision = { at: this.now(), action: 'LOCAL_GEAR_EQUIP', reason: 'LOCAL_EQUIP_VERIFIED', goalId: pending.goalId };
+        return true;
+      }
+      if (!pending.asyncRejected && this.now() < pending.deadline) {
+        logistics.lastDecision = { at: this.now(), action: 'LOCAL_GEAR_EQUIP', reason: 'LOCAL_EQUIP_VERIFYING', goalId: pending.goalId };
+        return true;
+      }
+      this.pendingFarmerGearEquip = null;
+      const key = String(pending.goalId || '');
+      this.farmerGearEquipRetryAt.set(key, this.now() + this.farmerGearEquipRetryMs);
+      const intent = pending.intentId ? this.incomingGearIntents.get(pending.intentId) : null;
+      if (intent) {
+        intent.failures = Math.max(0, finite(intent.failures, 0)) + 1;
+        if (intent.failures >= 3) this.incomingGearIntents.delete(pending.intentId);
+        else this.incomingGearIntents.set(pending.intentId, intent);
+      }
+      if (pending.asyncRejected) this.stats.farmerGearEquipRejected += 1;
+      else this.stats.farmerGearEquipTimeouts += 1;
+      this._event('FARMER_GEAR_EQUIP_FAILED_SAFE', 'warn', pending.asyncRejected ? 'EQUIP_COMMAND_REJECTED' : 'EQUIP_VERIFICATION_TIMEOUT', {
+        goalId: pending.goalId,
+        item: pending.itemName,
+        level: pending.itemLevel,
+        slot: pending.slot,
+        failures: intent ? intent.failures : null
+      });
+      logistics.lastDecision = { at: this.now(), action: 'LOCAL_GEAR_EQUIP', reason: 'LOCAL_EQUIP_FAILED_SAFE', goalId: pending.goalId };
+      return true;
+    }
+
+    const candidate = this._farmerGearEquipCandidate(snapshot);
+    if (!candidate) return false;
+    const adapter = logistics.adapter || this.runtime.adapter;
+    if (!adapter || typeof adapter.command !== 'function') return false;
+    const item = candidate.item;
+    const command = adapter.command('equip', [Number(item.index), candidate.slot]);
+    this.stats.farmerGearEquipAttempts += 1;
+    if (!command || command.executed !== true) {
+      this.stats.farmerGearEquipRejected += 1;
+      this.farmerGearEquipRetryAt.set(String(candidate.goalId || ''), this.now() + this.farmerGearEquipRetryMs);
+      this._event('FARMER_GEAR_EQUIP_FAILED_SAFE', 'warn', command && command.reason || 'EQUIP_COMMAND_REJECTED', {
+        goalId: candidate.goalId, item: item.name, level: levelOf(item), slot: candidate.slot, sourceIndex: item.index
+      });
+      return true;
+    }
+    const pending = {
+      startedAt: this.now(),
+      deadline: this.now() + this.farmerGearEquipVerifyMs,
+      goalId: candidate.goalId || null,
+      intentId: candidate.intent && candidate.intent.goalId || null,
+      kind: candidate.kind,
+      itemName: String(item.name),
+      itemLevel: levelOf(item),
+      sourceIndex: Number(item.index),
+      slot: candidate.slot,
+      asyncRejected: false
+    };
+    this.pendingFarmerGearEquip = pending;
+    Promise.resolve(command.value).then((response) => {
+      if (response && response.success === false && this.pendingFarmerGearEquip === pending) pending.asyncRejected = true;
+    }).catch(() => {
+      if (this.pendingFarmerGearEquip === pending) pending.asyncRejected = true;
+    });
+    logistics.lastDecision = { at: this.now(), action: 'LOCAL_GEAR_EQUIP', reason: 'LOCAL_GEAR_UPGRADE_READY', goalId: candidate.goalId || null };
+    return true;
+  }
+
+  _installFarmerGearEquip() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics._farmerTick !== 'function' || logistics.__alpha33FarmerGearEquipInstalled) return false;
+    const base = logistics._farmerTick.bind(logistics);
+    logistics._farmerTick = (snapshot) => {
+      if (this._farmerGearEquipTick(snapshot)) return logistics.lastDecision;
+      return base(snapshot);
+    };
+    logistics.__alpha33FarmerGearEquipInstalled = true;
+    return true;
   }
 
   _installFarmerGearReservation() {
@@ -52382,6 +52679,17 @@ class Alpha33MarkOrbitMerchantDelivery {
         return this._acceptFarmerState(from, data);
       }
       const farmerReceiver = typeof logistics._isMerchant === 'function' && !logistics._isMerchant();
+      if (action === GEAR_DELIVERY_INTENT_ACTION && farmerReceiver) {
+        const from = cleanName(sender || data && data.sender);
+        const merchant = typeof logistics._merchantName === 'function' ? cleanName(logistics._merchantName()) : null;
+        const valid = typeof logistics._validEnvelope === 'function' && logistics._validEnvelope(from, data);
+        if (!valid || !merchant || from !== merchant) {
+          if (data && data.type && logistics.stats) logistics.stats.messagesRejected = (logistics.stats.messagesRejected || 0) + 1;
+          return false;
+        }
+        if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
+        return this._acceptGearDeliveryIntent(from, data);
+      }
       if (action === 'STATUS_REQUEST' && farmerReceiver) {
         const from = cleanName(sender || data && data.sender);
         const merchant = typeof logistics._merchantName === 'function' ? cleanName(logistics._merchantName()) : null;
@@ -53046,6 +53354,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantIncomingAggro: this.merchantIncomingAggroInstalled,
         gearDeliverySafety: this.gearDeliverySafetyInstalled,
         farmerGearReservation: this.farmerGearReservationInstalled,
+        farmerGearAutoEquip: this.farmerGearEquipInstalled,
         partyStateTelemetry: this.partyStateTelemetryInstalled,
         merchantRendezvousAuthority: this.merchantRendezvousAuthorityInstalled
       },
@@ -53061,6 +53370,9 @@ class Alpha33MarkOrbitMerchantDelivery {
         trustedFarmerGearStateReplicatedToMerchant: true,
         staleGearGoalsReleasedOnFreshTargetState: true,
         staleGearGoalsFailClosed: true,
+        targetedGearDeliveryIntentBeforeSend: true,
+        farmerReceivedReadyGearAutoEquippedAndVerified: true,
+        localProgressionReservationRequiresExactActivePhysicalAssignment: true,
         localProgressionGearIsNotReturnedAsLoot: true,
         alpha27OwnsCrossMapMerchantRendezvous: true,
         merchantRendezvousRequiresPendingTransferWork: true,
@@ -53085,11 +53397,17 @@ class Alpha33MarkOrbitMerchantDelivery {
         trainingRadiusMax: this.trainingRadiusMax,
         farmerStateIntervalMs: this.farmerStateIntervalMs,
         farmerPositionFreshMs: this.farmerPositionFreshMs,
+        farmerGearGoalFreshMs: this.farmerGearGoalFreshMs,
+        gearDeliveryIntentTtlMs: this.gearDeliveryIntentTtlMs,
+        farmerGearEquipVerifyMs: this.farmerGearEquipVerifyMs,
+        farmerGearEquipRetryMs: this.farmerGearEquipRetryMs,
         collectionSettleMs: this.collectionSettleMs,
         collectionPrepareMaxMs: this.collectionPrepareMaxMs,
         merchantRendezvousCooldownMs: this.merchantRendezvousCooldownMs
       },
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
+      pendingFarmerGearEquip: this.pendingFarmerGearEquip ? { ...this.pendingFarmerGearEquip } : null,
+      incomingGearIntents: [...this.incomingGearIntents.values()].map((row) => ({ ...row, beforeIndices: [...(row.beforeIndices || [])] })),
       lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
       collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
       suspendedCollectionRoute: this.suspendedCollectionRoute ? { ...this.suspendedCollectionRoute } : null,
@@ -53113,6 +53431,7 @@ function installAlpha33MarkOrbitMerchantDelivery(runtime, options = {}) {
 module.exports = {
   ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
   FARMER_STATE_ACTION,
+  GEAR_DELIVERY_INTENT_ACTION,
   effectActiveOn,
   equipmentView,
   Alpha33MarkOrbitMerchantDelivery,
