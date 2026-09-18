@@ -331,16 +331,17 @@
     kennung: `block8-5-freigabe-${cfg.laufKennung}`,
     titel: 'V4 Block 8.5.9 · Freigabestufen',
     beschreibung:
-      'Schatten -> kontrolliert live -> Soak fuer Runtime 1.1.5. Keine Adventure-Land-Spielaktion wird von diesem Runner direkt aufgerufen.'
+      'Modusgebundene Freigabe fuer Runtime 1.1.5: Schatten strikt gesperrt/nicht gestartet; Live/Soak erst in separater aktiver Sitzung mit importierter Schattenuebergabe.'
   });
 
-  let schattenNachweis = null;
+  let schattenNachweis = cfg.schattenUebergabe?.nachweis ?? null;
+  let schattenUebergabe = cfg.schattenUebergabe;
   let liveNachweis = null;
   let soakNachweis = null;
 
   function schatten() {
     const gestartetAm = Date.now();
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, bootstrapStatus, runtimeStatus, basisStatus } = schattenPreflight();
     const generationVorher = basisStatus.laufzeit.generation;
 
     const anfrage = runtime.erstelleBasisBedienAnfrage(Object.freeze({
@@ -350,19 +351,39 @@
     }));
     const ergebnis = runtime.fuehreBasisBedienAnfrage(anfrage);
     const basisNachher = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeSchattenRuntimeStatus(runtime.status());
 
     const pass =
       ergebnis?.status === 'ausgefuehrt' &&
       ergebnis?.aktion === 'diagnose_aktualisieren' &&
-      basisNachher.laufzeit.generation === generationVorher &&
-      runtimeNachher.lebensnachweisSendeErfolge >= runtimeStatus.lebensnachweisSendeErfolge;
+      generationVorher === 0 &&
+      basisNachher.laufzeit.generation === 0 &&
+      runtimeNachher.lebensnachweisSendeVersuche === 0 &&
+      runtimeNachher.lebensnachweisSendeErfolge === 0 &&
+      runtimeNachher.lebensnachweisSendeFehler === 0;
 
     schattenNachweis = erstelleNachweis(
       'schatten',
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now()
     );
+    schattenUebergabe = pass
+      ? Object.freeze({
+          schemaVersion: 1,
+          laufzeitPfadKennung: LAUFZEIT_PFAD,
+          aenderungsKennung: cfg.aenderungsKennung,
+          laufKennung: cfg.laufKennung,
+          runtimeVersion: ERWARTETE_RUNTIME_VERSION,
+          runtimeSha256: ERWARTETE_RUNTIME_SHA256,
+          runtimeUrl: ERWARTETE_RUNTIME_URL,
+          betriebsart: 'gesperrt_nicht_gestartet',
+          generation: 0,
+          heartbeatVersuche: 0,
+          heartbeatErfolge: 0,
+          heartbeatFehler: 0,
+          nachweis: schattenNachweis
+        })
+      : null;
 
     const bericht = Object.freeze({
       stufe: 'schatten',
@@ -372,18 +393,19 @@
       generationVorher,
       generationNachher: basisNachher.laufzeit.generation,
       diagnoseStatus: ergebnis?.status ?? null,
+      bootstrap: bootstrapStatus,
       runtimeVorher: runtimeStatus,
-      runtimeNachher
+      runtimeNachher,
+      schattenUebergabe
     });
     test.setzeErgebnis(
       bericht,
       pass ? 'pass' : 'fail',
       pass
-        ? 'Schattennachweis bestanden: Diagnose lief ueber den sicheren Kanal ohne Laufzeitmutation.'
+        ? 'Schattennachweis bestanden: Runtime blieb gesperrt, nicht gestartet und bei 0 Heartbeat-/CM-Versuchen. Fuer Live eine neue aktive Sitzung mit der ausgegebenen schattenUebergabe verwenden.'
         : 'Schattennachweis fehlgeschlagen.'
     );
     test.protokolliere('Schattennachweis', bericht);
-    test.setzeAktionAktiv('kontrolliert-live', pass);
     return bericht;
   }
 
@@ -393,7 +415,7 @@
     }
 
     const gestartetAm = Date.now();
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, runtimeStatus, basisStatus } = livePreflight();
     const generationVorher = basisStatus.laufzeit.generation;
 
     const pauseAnfrage = runtime.erstelleBasisBedienAnfrage(Object.freeze({
@@ -403,14 +425,15 @@
     }));
     const pause = runtime.fuehreBasisBedienAnfrage(pauseAnfrage);
     const nachPause = pruefeBasisStatus(runtime.basisBedienStatus(), 'pausiert');
-    const runtimeNachPause = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachPause = pruefeLiveRuntimeStatus(runtime.status());
 
     if (
       pause?.status !== 'ausgefuehrt' ||
       nachPause.laufzeit.generation !== generationVorher + 1
     ) {
       liveNachweis = erstelleNachweis('kontrolliert_live', 'fehlgeschlagen', Date.now(), {
-        begrenzt: true
+        begrenzt: true,
+        spielAktionAusgefuehrt: true
       });
       throw new Error(
         'Kontrollierter Live-Test konnte die sichere Pause nicht eindeutig bestaetigen; Runtime bleibt fail-safe im beobachteten Zustand.'
@@ -425,7 +448,7 @@
     }));
     const fortsetzen = runtime.fuehreBasisBedienAnfrage(fortsetzenAnfrage);
     const nachFortsetzen = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeLiveRuntimeStatus(runtime.status());
 
     const pass =
       fortsetzen?.status === 'ausgefuehrt' &&
@@ -438,7 +461,7 @@
       'kontrolliert_live',
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now(),
-      { begrenzt: true }
+      { begrenzt: true, spielAktionAusgefuehrt: true }
     );
 
     const bericht = Object.freeze({
@@ -473,7 +496,7 @@
       throw new Error('Soak-Test verlangt zuerst einen bestandenen kontrollierten Live-Test.');
     }
 
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, runtimeStatus, basisStatus } = livePreflight();
     const generation = basisStatus.laufzeit.generation;
     const gestartetAm = Date.now();
     const fehler = [];
@@ -491,7 +514,7 @@
       const timer = setInterval(() => {
         samples += 1;
         try {
-          const status = pruefeRuntimeStatus(runtime.status());
+          const status = pruefeLiveRuntimeStatus(runtime.status());
           const basis = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
           if (basis.laufzeit.generation !== generation) {
             fehler.push(
@@ -514,7 +537,7 @@
       }, SOAK_SAMPLE_MILLIS);
     });
 
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeLiveRuntimeStatus(runtime.status());
     const basisNachher = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
     const erwarteteSamples = Math.max(
       1,
@@ -539,6 +562,7 @@
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now(),
       {
+        spielAktionAusgefuehrt: true,
         telemetrieNachweis: pass,
         recoveryNachweis: pass && liveNachweis?.ergebnis === 'bestanden',
         gesamtauswertungBestanden: pass
@@ -582,6 +606,7 @@
     kennung: 'schatten',
     titel: '1 · Schattennachweis',
     art: 'primaer',
+    aktiviert: cfg.modus === 'schatten',
     einmalig: true,
     ausfuehren: schatten
   });
@@ -589,7 +614,7 @@
     kennung: 'kontrolliert-live',
     titel: '2 · Kontrolliert live',
     art: 'gefahr',
-    aktiviert: false,
+    aktiviert: cfg.modus === 'live' && schattenNachweis?.ergebnis === 'bestanden',
     einmalig: true,
     bestaetigungsText: LIVE_TEXT,
     ausfuehren: kontrolliertLive
@@ -609,6 +634,9 @@
     erwarteteRuntimeVersion: ERWARTETE_RUNTIME_VERSION,
     aenderungsKennung: cfg.aenderungsKennung,
     laufKennung: cfg.laufKennung,
+    modus: cfg.modus,
+    erwarteteRuntimeSha256: ERWARTETE_RUNTIME_SHA256,
+    erwarteteRuntimeUrl: ERWARTETE_RUNTIME_URL,
     liveBestaetigungsText: () => LIVE_TEXT,
     soakBestaetigungsText: () => SOAK_TEXT,
     test,
@@ -618,8 +646,10 @@
         erwarteteRuntimeVersion: ERWARTETE_RUNTIME_VERSION,
         aenderungsKennung: cfg.aenderungsKennung,
         laufKennung: cfg.laufKennung,
+        modus: cfg.modus,
         soakDauerMillisekunden: cfg.soakDauerMillisekunden,
         schattenNachweis,
+        schattenUebergabe,
         liveNachweis,
         soakNachweis,
         gui: test.status()
