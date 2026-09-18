@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; immutable Runtime-Release `6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec` erfolgreich ueber Cloudflare/R2 veroeffentlicht und oeffentlich verifiziert.**
+Status: **Produktions-Bootstrap, autonome Lebensnachweis-Laufzeit, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; Runtime 1.1.3 macht den 2-Sekunden-Gruppenheartbeat zum Produktionsdienst und verlangt die von Adventure Land bestaetigte `send_cm`-Empfaengerliste. Ein neuer immutable Release wird nach Merge automatisch gebaut und verifiziert.**
 
 ## Zweck
 
@@ -67,11 +67,17 @@ Wesentliche Methoden:
 - `V4ProduktionsLaufzeit.status()`
 - `V4ProduktionsLaufzeit.starte()`
 - `V4ProduktionsLaufzeit.sendeLebensnachweis()`
+- `V4ProduktionsLaufzeit.pausiereLebensnachweisAutomatik()`
+- `V4ProduktionsLaufzeit.setzeLebensnachweisAutomatikFort()`
 - `V4ProduktionsLaufzeit.bereiteGruppenZielVor(...)`
 - `V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)`
 - `V4ProduktionsLaufzeit.stoppe()`
 
-`starte()` installiert nur den vorhandenen Lebensnachweis-Empfang. Es fuehrt keine Kampf- oder Gruppenaktion aus.
+`starte()` installiert den Lebensnachweis-Empfang und startet bei aktiv freigegebener Runtime den **autonomen Produktionsheartbeat**. Der Standardtakt ist **2000 ms** und kann nur innerhalb von 500 bis 10000 ms konfiguriert werden. Der Heartbeat fuehrt keine Kampf- oder Gruppenaktion aus.
+
+Der Runtime-Status weist `lebensnachweisAutomatikAktiv`, `lebensnachweisAutomatikPausiert`, Intervall, Sendeversuche, bestaetigte Erfolge, Fehler, offene Sends, Maximalzahl offener Sends sowie letzten Erfolg/Fehler aus. Pause/Fortsetzen dient kontrolliertem Recovery-/Stoerungstest; `stoppe()` entfernt Timer und Empfang fail-safe.
+
+Ein Sendeversuch gilt nur dann als erfolgreich, wenn Adventure Lands `send_cm(...)` den Zielnamen in `receivers` oder `locals` bestaetigt. Ein aufgeloestes Promise ohne bestaetigten Zielcharakter wird als Fehler gewertet.
 
 Eine aktiv freigegebene Runtime benoetigt ein explizites `faehigkeiten`-Profil. Fehlende Faehigkeiten werden im aktiven Modus nicht geraten.
 

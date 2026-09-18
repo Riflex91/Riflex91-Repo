@@ -111,7 +111,7 @@ test('Block 8 Austausch: freigegebener Lebensnachweis geht genau an einen vertra
   const aufrufe = [];
   const spiel = {
     character: { name: 'My_Ranger1' },
-    send_cm(name, daten) { aufrufe.push({ name, daten }); return true; }
+    send_cm(name, daten) { aufrufe.push({ name, daten }); return { receivers: [name], locals: [] }; }
   };
   const austausch = new AdventureLandGruppenLebensnachweisAustausch(spiel, {
     aktivFreigegeben: true,
@@ -124,6 +124,27 @@ test('Block 8 Austausch: freigegebener Lebensnachweis geht genau an einen vertra
   assert.equal(aufrufe[0].name, 'My_Priest1');
   assert.equal(aufrufe[0].daten.protokoll, GRUPPEN_LEBENSNACHWEIS_PROTOKOLL);
   assert.equal(aufrufe[0].daten.absenderName, 'My_Ranger1');
+});
+
+test('Block 8 Austausch: fehlende send_cm-Empfaengerbestaetigung gilt als Sendefehler', async () => {
+  const aufrufe = [];
+  const spiel = {
+    character: { name: 'My_Ranger1' },
+    send_cm(name, daten) {
+      aufrufe.push({ name, daten });
+      return { receivers: [], locals: [] };
+    }
+  };
+  const austausch = new AdventureLandGruppenLebensnachweisAustausch(spiel, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Priest1'],
+    jetzt: () => 11_000
+  });
+
+  const ergebnis = await austausch.sendeLebensnachweis('My_Priest1', erstelleMeldung());
+  assert.equal(ergebnis.gesendet, false);
+  assert.match(ergebnis.grund, /nicht als Empfaenger bestaetigt/);
+  assert.equal(aufrufe.length, 1);
 });
 
 test('Block 8 Austausch: nicht vertraute Ziele werden vor send_cm blockiert', async () => {
@@ -175,7 +196,7 @@ test('Block 8 Austausch: Parent-send_cm wird genutzt waehrend on_cm im lokalen C
   const empfangen = [];
   const parentOnCm = () => 'parent-darf-unveraendert-bleiben';
   const parent = {
-    send_cm(name, daten) { gesendet.push({ name, daten, kontext: this }); return true; },
+    send_cm(name, daten) { gesendet.push({ name, daten, kontext: this }); return { receivers: [name], locals: [] }; },
     on_cm: parentOnCm
   };
   const lokal = {

@@ -8,21 +8,40 @@ import {
 } from './adventure-land-produktions-bootstrap.js';
 
 export const PRODUKTIONS_LAUFZEIT_GLOBALER_NAME = 'V4ProduktionsLaufzeit';
-export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.2';
+export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.3';
+export const PRODUKTIONS_LEBENSNACHWEIS_INTERVALL_MILLIS = 2_000;
 
 export interface AdventureLandProduktionsLaufzeitKonfiguration {
   readonly aktivFreigegeben?: boolean;
   readonly ablaufKennung?: string;
   readonly vertrauensNamen?: readonly string[];
   readonly faehigkeiten?: GruppenFaehigkeitsProfil;
+  readonly lebensnachweisIntervallMillisekunden?: number;
 }
+
+export type AdventureLandProduktionsLaufzeitStatus = Readonly<
+  ReturnType<AdventureLandProduktionsBootstrap['status']> & {
+    readonly lebensnachweisAutomatikAktiv: boolean;
+    readonly lebensnachweisAutomatikPausiert: boolean;
+    readonly lebensnachweisIntervallMillisekunden: number;
+    readonly lebensnachweisSendeVersuche: number;
+    readonly lebensnachweisSendeErfolge: number;
+    readonly lebensnachweisSendeFehler: number;
+    readonly lebensnachweisSendeOffen: number;
+    readonly lebensnachweisSendeMaxOffen: number;
+    readonly lebensnachweisLetzterErfolgAm: number | null;
+    readonly lebensnachweisLetzterFehler: string | null;
+  }
+>;
 
 export interface AdventureLandProduktionsLaufzeitApi {
   readonly version: typeof PRODUKTIONS_LAUFZEIT_VERSION;
   readonly bootstrapVersion: typeof PRODUKTIONS_BOOTSTRAP_VERSION;
-  readonly status: () => ReturnType<AdventureLandProduktionsBootstrap['status']>;
-  readonly starte: () => ReturnType<AdventureLandProduktionsBootstrap['status']>;
+  readonly status: () => AdventureLandProduktionsLaufzeitStatus;
+  readonly starte: () => AdventureLandProduktionsLaufzeitStatus;
   readonly sendeLebensnachweis: () => ReturnType<AdventureLandProduktionsBootstrap['sendeLokalenLebensnachweis']>;
+  readonly pausiereLebensnachweisAutomatik: () => AdventureLandProduktionsLaufzeitStatus;
+  readonly setzeLebensnachweisAutomatikFort: () => AdventureLandProduktionsLaufzeitStatus;
   readonly pruefeGruppenZustand: () => ReturnType<AdventureLandProduktionsBootstrap['pruefeGruppenZustand']>;
   readonly bereiteGruppenZielVor: (freigabeText: string) => ReturnType<AdventureLandProduktionsBootstrap['bereiteGruppenZielVor']>;
   readonly installiereGruppenZielLiveSmoke: (
@@ -68,7 +87,23 @@ function normalisiereKonfiguration(
     [...new Set((konfiguration.vertrauensNamen ?? []).map((name) => name.trim()).filter((name) => name.length > 0))].sort()
   );
   const faehigkeiten = normalisiereFaehigkeiten(konfiguration.faehigkeiten, aktivFreigegeben);
-  return Object.freeze({ aktivFreigegeben, ablaufKennung, vertrauensNamen, faehigkeiten });
+  const lebensnachweisIntervallMillisekunden = Number(
+    konfiguration.lebensnachweisIntervallMillisekunden ?? PRODUKTIONS_LEBENSNACHWEIS_INTERVALL_MILLIS
+  );
+  if (
+    !Number.isFinite(lebensnachweisIntervallMillisekunden) ||
+    lebensnachweisIntervallMillisekunden < 500 ||
+    lebensnachweisIntervallMillisekunden > 10_000
+  ) {
+    throw new Error('lebensnachweisIntervallMillisekunden muss zwischen 500 und 10000 liegen.');
+  }
+  return Object.freeze({
+    aktivFreigegeben,
+    ablaufKennung,
+    vertrauensNamen,
+    faehigkeiten,
+    lebensnachweisIntervallMillisekunden
+  });
 }
 
 function eigenerWert(ziel: object, name: string): unknown {
@@ -96,22 +131,117 @@ export function installiereAdventureLandProduktionsLaufzeit(
     cfg
   );
 
+  let lebensnachweisTimer: unknown = null;
+  let lebensnachweisAutomatikPausiert = false;
+  let lebensnachweisSendeVersuche = 0;
+  let lebensnachweisSendeErfolge = 0;
+  let lebensnachweisSendeFehler = 0;
+  let lebensnachweisSendeOffen = 0;
+  let lebensnachweisSendeMaxOffen = 0;
+  let lebensnachweisLetzterErfolgAm: number | null = null;
+  let lebensnachweisLetzterFehler: string | null = null;
+
+  function runtimeStatus(): AdventureLandProduktionsLaufzeitStatus {
+    return Object.freeze({
+      ...bootstrap.status(),
+      lebensnachweisAutomatikAktiv: lebensnachweisTimer !== null,
+      lebensnachweisAutomatikPausiert,
+      lebensnachweisIntervallMillisekunden: cfg.lebensnachweisIntervallMillisekunden,
+      lebensnachweisSendeVersuche,
+      lebensnachweisSendeErfolge,
+      lebensnachweisSendeFehler,
+      lebensnachweisSendeOffen,
+      lebensnachweisSendeMaxOffen,
+      lebensnachweisLetzterErfolgAm,
+      lebensnachweisLetzterFehler
+    });
+  }
+
+  function timerFunktion(name: 'setInterval' | 'clearInterval'): (...argumente: unknown[]) => unknown {
+    const funktion = Reflect.get(codeKontext, name);
+    if (typeof funktion !== 'function') {
+      throw new Error(`Adventure-Land-Codekontext stellt ${name} nicht bereit.`);
+    }
+    return funktion as (...argumente: unknown[]) => unknown;
+  }
+
+  function stoppeLebensnachweisTimer(): void {
+    if (lebensnachweisTimer === null) return;
+    Reflect.apply(timerFunktion('clearInterval'), codeKontext, [lebensnachweisTimer]);
+    lebensnachweisTimer = null;
+  }
+
+  function sendeAutomatischenLebensnachweis(): void {
+    if (!cfg.aktivFreigegeben || lebensnachweisAutomatikPausiert || bootstrap.status().gestoppt) return;
+
+    lebensnachweisSendeVersuche += 1;
+    lebensnachweisSendeOffen += 1;
+    lebensnachweisSendeMaxOffen = Math.max(lebensnachweisSendeMaxOffen, lebensnachweisSendeOffen);
+
+    void Promise.resolve(bootstrap.sendeLokalenLebensnachweis()).then((ergebnis) => {
+      lebensnachweisSendeOffen = Math.max(0, lebensnachweisSendeOffen - 1);
+      const bestaetigt =
+        ergebnis.ergebnisse.length > 0 &&
+        ergebnis.ergebnisse.every((eintrag) => eintrag.gesendet === true);
+      if (!bestaetigt) {
+        lebensnachweisSendeFehler += 1;
+        lebensnachweisLetzterFehler = 'Mindestens ein Lebensnachweisziel wurde von send_cm nicht als Empfaenger bestaetigt.';
+        return;
+      }
+      lebensnachweisSendeErfolge += 1;
+      lebensnachweisLetzterErfolgAm = Date.now();
+      lebensnachweisLetzterFehler = null;
+    }, (fehler) => {
+      lebensnachweisSendeOffen = Math.max(0, lebensnachweisSendeOffen - 1);
+      lebensnachweisSendeFehler += 1;
+      lebensnachweisLetzterFehler = fehler instanceof Error ? fehler.message : String(fehler);
+    });
+  }
+
+  function starteLebensnachweisTimer(): void {
+    if (!cfg.aktivFreigegeben || lebensnachweisAutomatikPausiert || lebensnachweisTimer !== null) return;
+    const setIntervalFn = timerFunktion('setInterval');
+    lebensnachweisTimer = Reflect.apply(setIntervalFn, codeKontext, [
+      () => sendeAutomatischenLebensnachweis(),
+      cfg.lebensnachweisIntervallMillisekunden
+    ]);
+    sendeAutomatischenLebensnachweis();
+  }
+
   const api: Readonly<AdventureLandProduktionsLaufzeitApi> = Object.freeze({
     version: PRODUKTIONS_LAUFZEIT_VERSION,
     bootstrapVersion: PRODUKTIONS_BOOTSTRAP_VERSION,
-    status: () => bootstrap.status(),
+    status: () => runtimeStatus(),
     starte: () => {
       bootstrap.installiereLebensnachweisEmpfang();
-      return bootstrap.status();
+      starteLebensnachweisTimer();
+      return runtimeStatus();
     },
     sendeLebensnachweis: () => bootstrap.sendeLokalenLebensnachweis(),
+    pausiereLebensnachweisAutomatik: () => {
+      if (!cfg.aktivFreigegeben) throw new Error('Gesperrte Produktionslaufzeit besitzt keine aktive Lebensnachweis-Automatik.');
+      stoppeLebensnachweisTimer();
+      lebensnachweisAutomatikPausiert = true;
+      return runtimeStatus();
+    },
+    setzeLebensnachweisAutomatikFort: () => {
+      if (!cfg.aktivFreigegeben) throw new Error('Gesperrte Produktionslaufzeit besitzt keine aktive Lebensnachweis-Automatik.');
+      lebensnachweisAutomatikPausiert = false;
+      starteLebensnachweisTimer();
+      return runtimeStatus();
+    },
     pruefeGruppenZustand: () => bootstrap.pruefeGruppenZustand(),
     bereiteGruppenZielVor: (freigabeText: string) => bootstrap.bereiteGruppenZielVor(freigabeText),
     installiereGruppenZielLiveSmoke: (
       erwartung: Readonly<AdventureLandGruppenZielLiveSmokeErwartung>,
       freigabeText: string
     ) => bootstrap.installiereGruppenZielLiveSmoke(erwartung, freigabeText),
-    stoppe: () => bootstrap.stoppe(),
+    stoppe: () => {
+      stoppeLebensnachweisTimer();
+      lebensnachweisAutomatikPausiert = false;
+      bootstrap.stoppe();
+      return runtimeStatus();
+    },
     gruppenzielFreigabeText: () => PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT,
     liveSmokeInstallationsText: () => PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT
   });

@@ -32,6 +32,20 @@ function saubererName(wert: unknown): string | null {
   return name.length > 0 ? name : null;
 }
 
+function bestaetigteCmEmpfaenger(wert: unknown): ReadonlySet<string> {
+  if (!istObjekt(wert)) return new Set();
+  const ergebnis = new Set<string>();
+  for (const feld of ['receivers', 'locals'] as const) {
+    const liste = wert[feld];
+    if (!Array.isArray(liste)) continue;
+    for (const eintrag of liste) {
+      const name = saubererName(eintrag);
+      if (name !== null) ergebnis.add(name);
+    }
+  }
+  return ergebnis;
+}
+
 function liesCharakter(spielFenster: AdventureLandGruppenKommunikationsFenster): unknown {
   if (istObjekt(spielFenster.character)) return spielFenster.character;
   if (istObjekt(spielFenster.parent) && istObjekt(spielFenster.parent.character)) return spielFenster.parent.character;
@@ -143,8 +157,24 @@ export class AdventureLandGruppenLebensnachweisAustausch {
       meldung
     });
 
-    await Promise.resolve(Reflect.apply(sendePfad.funktion, sendePfad.kontext, [zielName, umschlag]));
-    return Object.freeze({ schemaVersion: 1, zielName, gesendet: true, grund: 'Lebensnachweis wurde an einen vertrauten Charakter gesendet.' });
+    const bestaetigung = await Promise.resolve(
+      Reflect.apply(sendePfad.funktion, sendePfad.kontext, [zielName, umschlag])
+    );
+    const empfaenger = bestaetigteCmEmpfaenger(bestaetigung);
+    if (!empfaenger.has(zielName)) {
+      return Object.freeze({
+        schemaVersion: 1,
+        zielName,
+        gesendet: false,
+        grund: 'send_cm hat den Zielcharakter nicht als Empfaenger bestaetigt.'
+      });
+    }
+    return Object.freeze({
+      schemaVersion: 1,
+      zielName,
+      gesendet: true,
+      grund: 'send_cm hat den vertrauten Zielcharakter als Empfaenger bestaetigt.'
+    });
   }
 
   public installiereEmpfang(empfaenger: LebensnachweisEmpfaenger): boolean {
