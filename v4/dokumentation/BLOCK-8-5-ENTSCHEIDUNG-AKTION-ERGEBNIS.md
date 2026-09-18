@@ -91,7 +91,7 @@ Insbesondere gibt es:
 - keinen direkten Adventure-Land-Aufruf,
 - keine neue Freigabe,
 - keine neue Gruppenaktion,
-- keine automatische Verarbeitung einer AktionsAnfrage,
+- die Korrelationskomponente reicht selbst keine AktionsAnfrage ein und verarbeitet keine AktionsAnfrage automatisch,
 - keine Umgehung von Safety, RessourcenVergabe oder AktionsSteuerung.
 
 ## Tests
