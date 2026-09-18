@@ -4,7 +4,7 @@ const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-
 
 const P0_REGROUP_SUPPLY_RECOVERY_MODE = 'p0-regroup-supply-recovery-v1';
 const POTION_DELIVERY_QUANTITY = 5000;
-const POTION_LOW_WATERMARK = 5000;
+const POTION_LOW_WATERMARK = 199;
 const RECOVERY_SUPERVISOR_STATES = new Set(['DEGRADED', 'SAFE_MODE']);
 const RECOVERY_REASON_ALLOWLIST = new Set([
   'NO_PROGRESS_WATCH',
@@ -211,7 +211,7 @@ function installPlannerBundlePolicy(runtime, stats) {
   const planner = runtime && runtime.merchantServicePlanner;
   if (!planner || planner.__p0BundlePolicyInstalled || typeof planner.plan !== 'function') return false;
   planner.lowPotionCount = Math.max(planner.lowPotionCount || 0, POTION_LOW_WATERMARK);
-  planner.criticalPotionCount = Math.max(planner.criticalPotionCount || 0, Math.min(1000, POTION_LOW_WATERMARK));
+  planner.criticalPotionCount = Math.min(Math.max(0, planner.criticalPotionCount || 0), POTION_LOW_WATERMARK);
   planner.targetPotionCount = POTION_DELIVERY_QUANTITY;
   planner.maxDeliveryQuantity = POTION_DELIVERY_QUANTITY;
   const basePlan = planner.plan.bind(planner);

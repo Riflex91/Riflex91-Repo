@@ -2,7 +2,8 @@
 
 const LIVE_FARMER_MERCHANT_RECOVERY_MODE = 'live-farmer-merchant-recovery-v1';
 const FARMER_POTION_TARGET = 4500;
-const FARMER_POTION_LOW_WATERMARK = FARMER_POTION_TARGET - 1;
+const FARMER_POTION_REQUEST_BELOW = 200;
+const FARMER_POTION_LOW_WATERMARK = FARMER_POTION_REQUEST_BELOW - 1;
 
 function finite(value, fallback = null) {
   const number = Number(value);
@@ -226,6 +227,7 @@ function installP0StatusCorrection(runtime) {
         ...(status.potionPolicy || {}),
         deliveryPerFarmer: { hpot0: FARMER_POTION_TARGET, mpot0: FARMER_POTION_TARGET },
         farmerTarget: FARMER_POTION_TARGET,
+        potionRequestBelow: FARMER_POTION_REQUEST_BELOW,
         lowWatermark: FARMER_POTION_LOW_WATERMARK,
         merchantReserve: 0,
         bothFamiliesRequiredBeforeTravel: false,
@@ -266,6 +268,7 @@ function installLiveFarmerMerchantRecovery(runtime) {
     potionVendorContinuationInstalled: state.potionVendorContinuationInstalled,
     p0StatusCorrectionInstalled: state.p0StatusCorrectionInstalled,
     farmerPotionTarget: FARMER_POTION_TARGET,
+    farmerPotionRequestBelow: FARMER_POTION_REQUEST_BELOW,
     stats: { ...state.stats }
   });
   runtime.liveFarmerMerchantRecovery = state;
@@ -276,6 +279,7 @@ function installLiveFarmerMerchantRecovery(runtime) {
 module.exports = {
   LIVE_FARMER_MERCHANT_RECOVERY_MODE,
   FARMER_POTION_TARGET,
+  FARMER_POTION_REQUEST_BELOW,
   FARMER_POTION_LOW_WATERMARK,
   installLiveFarmerMerchantRecovery,
   installAddressedCmRouterRecovery,

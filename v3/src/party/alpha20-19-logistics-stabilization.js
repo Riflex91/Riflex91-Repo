@@ -41,7 +41,7 @@ function patchAlpha2019LogisticsStabilization() {
 
   proto.install = function alpha2019Install() {
     const result = baseInstall.apply(this, arguments);
-    this.config.farmerPotionLow = 50;
+    this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
     this.config.merchantPotionReserve = MERCHANT_POTION_RESERVE;

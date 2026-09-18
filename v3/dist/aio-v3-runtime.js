@@ -26735,7 +26735,7 @@ function patchLogisticsPrototype() {
   proto.install = function installAlpha2015Logistics() {
     // Alpha20.15 contract: request only when critically low, then refill deeply.
     this.config.merchantReserveSlots = 0;
-    this.config.farmerPotionLow = 50;
+    this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
     this.config.farmerGoldReserve = 0;
@@ -26909,18 +26909,21 @@ function patchLogisticsPrototype() {
     // Existing grants must complete even if the combat state changed after the
     // offer. Gold grants are always permitted; item grants were only created
     // from a safe outbound state.
-    if (this.pendingGrant && this.pendingOffer) {
-      if (this.pendingOffer.kind === 'gold' || this._safeForOutbound(snapshot)) this._executeGrant(snapshot);
+    if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
+      // A grant was already scoped to the trusted Merchant and the exact item
+      // identity is revalidated by _executeGrant. Combat state must not let the
+      // short-lived grant expire before send_item executes.
+      this._executeGrant(snapshot);
     }
     if (this.pendingOffer || this.pendingGrant || this.pendingOutbound) return this.lastDecision;
 
     // Gold has no slot cost and may be sent whenever Merchant is nearby.
     if (this._offerGoldAnytime(snapshot)) return this.lastDecision;
 
-    // Inventory items still wait for a non-combat window so logistics cannot
-    // steal combat turns. They are otherwise unrestricted except potions and
-    // technically locked items.
-    if (this._safeForOutbound(snapshot)) this._offerInventoryItem(snapshot);
+    // send_item is independent from the combat target/action loop. Keep draining
+    // transferable loot while farming; the grant/identity checks still serialize
+    // one outbound mutation at a time.
+    if (snapshot && snapshot.character && snapshot.character.rip !== true) this._offerInventoryItem(snapshot);
     return this.lastDecision;
   };
 
@@ -26978,7 +26981,7 @@ class Alpha2015CombatLogisticsHotfix {
       liveLogistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_15 || null : null,
       policies: {
         syntheticTeamRankingsAlwaysHaveTravelSeconds: true,
-        potionRequestBelow: 50,
+        potionRequestBelow: 200,
         potionTarget: 5000,
         farmerGoldReserve: 0,
         allTransferableInventoryExceptHpMpPotions: true,
@@ -27092,7 +27095,7 @@ class ControlledPartyLogistics {
       statusIntervalMs: Math.max(1000, finite(options.statusIntervalMs, 2000)),
       statusFreshMs: Math.max(3000, finite(options.statusFreshMs, 7000)),
       messageTtlMs: Math.max(3000, finite(options.messageTtlMs, 10000)),
-      merchantReserveSlots: Math.max(2, Math.min(10, Math.floor(finite(options.merchantReserveSlots, 4)))),
+      merchantReserveSlots: Math.max(0, Math.min(10, Math.floor(finite(options.merchantReserveSlots, 0)))),
       farmerPotionLow: Math.max(20, Math.min(1000, Math.floor(finite(options.farmerPotionLow, 120)))),
       farmerPotionTarget: Math.max(100, Math.min(2000, Math.floor(finite(options.farmerPotionTarget, 500)))),
       merchantPotionReserve: Math.max(100, Math.min(2000, Math.floor(finite(options.merchantPotionReserve, 300)))),
@@ -27891,15 +27894,15 @@ function patchAlpha2015LogisticsFairness() {
     this._verifyPendingOutbound(snapshot);
     this._requestSupply(snapshot);
 
-    if (this.pendingGrant && this.pendingOffer) {
-      if (this.pendingOffer.kind === 'gold' || this._safeForOutbound(snapshot)) this._executeGrant(snapshot);
+    if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
+      this._executeGrant(snapshot);
     }
     if (this.pendingOffer || this.pendingGrant || this.pendingOutbound) return this.lastDecision;
 
-    // In a calm window, inventory drain gets the first transfer slot. This is
-    // required because combat continuously creates small gold deltas; always
-    // sending gold first could otherwise starve item delivery indefinitely.
-    if (this._safeForOutbound(snapshot) && this._offerInventoryItem(snapshot)) return this.lastDecision;
+    // Inventory drain keeps first priority even during normal farming combat.
+    // Offers are serialized and the exact inventory identity is revalidated
+    // again when the Merchant grant is executed.
+    if (snapshot && snapshot.character && snapshot.character.rip !== true && this._offerInventoryItem(snapshot)) return this.lastDecision;
 
     // Gold has no inventory-slot cost and remains allowed whenever Merchant is
     // nearby, including during combat or after Merchant has stopped item intake.
@@ -28247,7 +28250,7 @@ function patchAlpha2019LogisticsStabilization() {
 
   proto.install = function alpha2019Install() {
     const result = baseInstall.apply(this, arguments);
-    this.config.farmerPotionLow = 50;
+    this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
     this.config.merchantPotionReserve = MERCHANT_POTION_RESERVE;
@@ -45854,7 +45857,7 @@ const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-
 
 const P0_REGROUP_SUPPLY_RECOVERY_MODE = 'p0-regroup-supply-recovery-v1';
 const POTION_DELIVERY_QUANTITY = 5000;
-const POTION_LOW_WATERMARK = 5000;
+const POTION_LOW_WATERMARK = 199;
 const RECOVERY_SUPERVISOR_STATES = new Set(['DEGRADED', 'SAFE_MODE']);
 const RECOVERY_REASON_ALLOWLIST = new Set([
   'NO_PROGRESS_WATCH',
@@ -46061,7 +46064,7 @@ function installPlannerBundlePolicy(runtime, stats) {
   const planner = runtime && runtime.merchantServicePlanner;
   if (!planner || planner.__p0BundlePolicyInstalled || typeof planner.plan !== 'function') return false;
   planner.lowPotionCount = Math.max(planner.lowPotionCount || 0, POTION_LOW_WATERMARK);
-  planner.criticalPotionCount = Math.max(planner.criticalPotionCount || 0, Math.min(1000, POTION_LOW_WATERMARK));
+  planner.criticalPotionCount = Math.min(Math.max(0, planner.criticalPotionCount || 0), POTION_LOW_WATERMARK);
   planner.targetPotionCount = POTION_DELIVERY_QUANTITY;
   planner.maxDeliveryQuantity = POTION_DELIVERY_QUANTITY;
   const basePlan = planner.plan.bind(planner);
@@ -46656,7 +46659,8 @@ const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v4';
 const POTION_TARGET_COUNT = 4500;
 // A latched service order is bounded so stale party telemetry cannot pin a target forever.
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
-const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
+const POTION_REQUEST_BELOW = 200;
+const POTION_LOW_WATERMARK = POTION_REQUEST_BELOW - 1;
 // Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
 const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
 // Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
@@ -46778,7 +46782,9 @@ function dynamicBundle(input, plan) {
     const farmerBefore = farmerCount(report, def.family);
     const farmerShortfall = Math.max(0, POTION_TARGET_COUNT - farmerBefore);
     const merchantHave = Math.max(0, Math.floor(itemQuantity(inventory, def.itemName)));
-    const quantity = farmerShortfall;
+    // Request/refill each potion family independently. A healthy HP stack must
+    // not be topped up just because MP crossed the low threshold (and vice versa).
+    const quantity = farmerBefore < POTION_REQUEST_BELOW ? farmerShortfall : 0;
     if (quantity > MAX_DYNAMIC_DELIVERY) return null;
     rows.push({
       family: def.family,
@@ -46844,6 +46850,7 @@ function policyMetadata(plan, rows) {
     adaptivePotionDelivery: true,
     bundlePolicy: 'TOP_UP_FARMER_TO_4500_WITH_DEMAND_ONLY_PURCHASE',
     farmerTarget: POTION_TARGET_COUNT,
+    potionRequestBelow: POTION_REQUEST_BELOW,
     merchantReserve: MERCHANT_POTION_RESERVE,
     noPurchasedReserve: true,
     merchantExcessBlocksDelivery: false,
@@ -46869,6 +46876,7 @@ function installPlannerPolicy(runtime) {
 
   planner.merchantPotionReserve = MERCHANT_POTION_RESERVE;
   planner.lowPotionCount = POTION_LOW_WATERMARK;
+  planner.criticalPotionCount = Math.min(planner.criticalPotionCount, POTION_LOW_WATERMARK);
   planner.targetPotionCount = POTION_TARGET_COUNT;
   planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
 
@@ -47283,6 +47291,7 @@ function installStatusPolicy(runtime) {
         potionPolicy: {
           ...(status.potionPolicy || {}),
           farmerTarget: POTION_TARGET_COUNT,
+          potionRequestBelow: POTION_REQUEST_BELOW,
           lowWatermark: POTION_LOW_WATERMARK,
           deliveryMode: 'adaptive-demand-top-up',
           merchantReserve: MERCHANT_POTION_RESERVE,
@@ -47299,7 +47308,10 @@ function installStatusPolicy(runtime) {
 
   const logistics = runtime && runtime.controlledPartyLogistics;
   if (logistics && logistics.config) {
-    logistics.config.farmerPotionLow = POTION_LOW_WATERMARK;
+    // Enforce the live logistics contract on the already-created instance too;
+    // this avoids older prototype/default values surviving hot reloads.
+    logistics.config.merchantReserveSlots = 0;
+    logistics.config.farmerPotionLow = POTION_REQUEST_BELOW;
     logistics.config.farmerPotionTarget = POTION_TARGET_COUNT;
     logistics.config.maxSupplyBatch = POTION_TARGET_COUNT;
   }
@@ -47315,6 +47327,7 @@ function installP0PotionPolicy4500(runtime) {
   runtime.p0PotionPolicy4500 = {
     mode: P0_POTION_POLICY_4500_MODE,
     farmerTarget: POTION_TARGET_COUNT,
+    potionRequestBelow: POTION_REQUEST_BELOW,
     lowWatermark: POTION_LOW_WATERMARK,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     adaptiveDelivery: true,
@@ -47336,6 +47349,7 @@ module.exports = {
   P0_POTION_POLICY_4500_MODE,
   POTION_TARGET_COUNT,
   POTION_DELIVERY_QUANTITY,
+  POTION_REQUEST_BELOW,
   POTION_LOW_WATERMARK,
   MERCHANT_POTION_RESERVE,
   POTION_SERVICE_CHAIN_TIMEOUT_MS,
@@ -49334,7 +49348,8 @@ module.exports = {
 
 const LIVE_FARMER_MERCHANT_RECOVERY_MODE = 'live-farmer-merchant-recovery-v1';
 const FARMER_POTION_TARGET = 4500;
-const FARMER_POTION_LOW_WATERMARK = FARMER_POTION_TARGET - 1;
+const FARMER_POTION_REQUEST_BELOW = 200;
+const FARMER_POTION_LOW_WATERMARK = FARMER_POTION_REQUEST_BELOW - 1;
 
 function finite(value, fallback = null) {
   const number = Number(value);
@@ -49558,6 +49573,7 @@ function installP0StatusCorrection(runtime) {
         ...(status.potionPolicy || {}),
         deliveryPerFarmer: { hpot0: FARMER_POTION_TARGET, mpot0: FARMER_POTION_TARGET },
         farmerTarget: FARMER_POTION_TARGET,
+        potionRequestBelow: FARMER_POTION_REQUEST_BELOW,
         lowWatermark: FARMER_POTION_LOW_WATERMARK,
         merchantReserve: 0,
         bothFamiliesRequiredBeforeTravel: false,
@@ -49598,6 +49614,7 @@ function installLiveFarmerMerchantRecovery(runtime) {
     potionVendorContinuationInstalled: state.potionVendorContinuationInstalled,
     p0StatusCorrectionInstalled: state.p0StatusCorrectionInstalled,
     farmerPotionTarget: FARMER_POTION_TARGET,
+    farmerPotionRequestBelow: FARMER_POTION_REQUEST_BELOW,
     stats: { ...state.stats }
   });
   runtime.liveFarmerMerchantRecovery = state;
@@ -49608,6 +49625,7 @@ function installLiveFarmerMerchantRecovery(runtime) {
 module.exports = {
   LIVE_FARMER_MERCHANT_RECOVERY_MODE,
   FARMER_POTION_TARGET,
+  FARMER_POTION_REQUEST_BELOW,
   FARMER_POTION_LOW_WATERMARK,
   installLiveFarmerMerchantRecovery,
   installAddressedCmRouterRecovery,

@@ -86,7 +86,7 @@ class ControlledPartyLogistics {
       statusIntervalMs: Math.max(1000, finite(options.statusIntervalMs, 2000)),
       statusFreshMs: Math.max(3000, finite(options.statusFreshMs, 7000)),
       messageTtlMs: Math.max(3000, finite(options.messageTtlMs, 10000)),
-      merchantReserveSlots: Math.max(2, Math.min(10, Math.floor(finite(options.merchantReserveSlots, 4)))),
+      merchantReserveSlots: Math.max(0, Math.min(10, Math.floor(finite(options.merchantReserveSlots, 0)))),
       farmerPotionLow: Math.max(20, Math.min(1000, Math.floor(finite(options.farmerPotionLow, 120)))),
       farmerPotionTarget: Math.max(100, Math.min(2000, Math.floor(finite(options.farmerPotionTarget, 500)))),
       merchantPotionReserve: Math.max(100, Math.min(2000, Math.floor(finite(options.merchantPotionReserve, 300)))),
