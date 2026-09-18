@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14665 Zeilen**
+**50 Dateien · 14722 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -284,7 +284,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 633 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 659 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
@@ -304,7 +304,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
 | `src/reliability/integrated-party-control.js` | 90 |
-| `src/reliability/live-farmer-merchant-recovery.js` | 288 |
+| `src/reliability/live-farmer-merchant-recovery.js` | 319 |
 | `src/reliability/merchant-self-gear.js` | 381 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
