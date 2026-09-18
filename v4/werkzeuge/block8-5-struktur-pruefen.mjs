@@ -43,7 +43,12 @@ const dateien = [
   'laufzeit/tests/block8-5-ingame-hud-bedienung.test.mjs',
   'dokumentation/BLOCK-8-5-BASISBEDIENUNG-HUD.md',
   'laufzeit/tests/block8-5-recovery-abnahme.test.mjs',
-  'dokumentation/BLOCK-8-5-RECOVERY-ABNAHME.md'
+  'dokumentation/BLOCK-8-5-RECOVERY-ABNAHME.md',
+  'laufzeit/quelle/vertraege/freigabestufen.ts',
+  'laufzeit/quelle/telemetrie/freigabestufen.ts',
+  'laufzeit/tests/block8-5-freigabestufen.test.mjs',
+  'dokumentation/BLOCK-8-5-FREIGABESTUFEN.md',
+  'dokumentation/FAHRPLAN.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -847,4 +852,136 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.8 vollstaendig geprueft: Recovery-Abnahme deckt Reconnect, stale Daten, Browser-Hintergrundbetrieb, Runtime-Neustart, HUD-Ausfall, unterbrochene Arbeit, Checkpoints, Idempotenz, Statusfehler und Speicherfehler fail-safe ohne automatische Wiederaufnahme- oder Host-Neustartautoritaet ab.');
+const freigabeVertrag = await readFile(path.join(wurzel, dateien[40]), 'utf8');
+for (const pflicht of [
+  'FREIGABE_STUFEN',
+  "'offline'",
+  "'schatten'",
+  "'kontrolliert_live'",
+  "'soak'",
+  'FreigabeNachweis',
+  'laufzeitPfadKennung',
+  'aenderungsKennung',
+  'block9Freigegeben',
+  'spielAutoritaet: false',
+  'neustartAutoritaet: false'
+]) {
+  if (!freigabeVertrag.includes(pflicht)) {
+    throw new Error(`Freigabestufen-Vertrag fehlt: ${pflicht}`);
+  }
+}
+
+const freigabeAuswertung = await readFile(path.join(wurzel, dateien[41]), 'utf8');
+for (const pflicht of [
+  'werteFreigabestufenAus',
+  'anderen Laufzeitpfad',
+  'anderen Aenderungsstand',
+  'mehr als einen Nachweis',
+  'Offline-Freigabe braucht einen deterministischen Test- oder Wiederholungsnachweis',
+  'Schattenbetrieb darf keine echte Spielaktion ausfuehren',
+  'Kontrollierter Live-Test muss explizit begrenzt sein',
+  'Soak-Test braucht einen Telemetrie-Nachweis',
+  'Soak-Test braucht einen Recovery-Nachweis',
+  'Soak-Test braucht eine bestandene Gesamtauswertung',
+  'vor der zuvor bestandenen Freigabestufe',
+  'block9Freigegeben: freigabeVollstaendig',
+  'spielAutoritaet: false',
+  'neustartAutoritaet: false'
+]) {
+  if (!freigabeAuswertung.includes(pflicht)) {
+    throw new Error(`Freigabestufen-Auswertung fehlt: ${pflicht}`);
+  }
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'setInterval(',
+  'setTimeout(',
+  'location.reload(',
+  'window.close(',
+  '.reicheAnfrageEin(',
+  '.verarbeiteNaechsteAktion(',
+  '.brecheAktionAb(',
+  '.schliesseAktionAb('
+]) {
+  if (freigabeAuswertung.includes(verboten)) {
+    throw new Error(`Freigabestufen-Auswertung darf keine versteckte Laufzeit-/Aktions-/Neustartautoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(freigabeAuswertung)) {
+    throw new Error(`Freigabestufen-Auswertung darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+
+const freigabeTests = await readFile(path.join(wurzel, dateien[42]), 'utf8');
+for (const pflicht of [
+  'alle vier sequenziellen Nachweise geben Block 9 fuer exakt denselben Aenderungsstand frei',
+  'bestandener Offline-Test allein laesst Block 9 gesperrt und fordert Schattenbetrieb',
+  'Nachweis eines anderen Aenderungsstands kann nicht wiederverwendet werden',
+  'Schattenbetrieb mit echter Spielaktion wird fail-safe nicht anerkannt',
+  'kontrollierter Live-Test muss explizit begrenzt sein',
+  'Soak-Test braucht Telemetrie Recovery-Nachweis und bestandene Gesamtauswertung',
+  'spaetere Nachweise duerfen eine offene vorherige Stufe nicht ueberspringen',
+  'fehlgeschlagene Stufe blockiert alle spaeteren Nachweise',
+  'zeitlich rueckwaertiger Nachweis kann die Reihenfolge nicht umgehen',
+  'doppelte Nachweise derselben Stufe werden als mehrdeutig abgewiesen',
+  'leere Pfad- oder Aenderungskennung wird fail-safe abgewiesen'
+]) {
+  if (!freigabeTests.includes(pflicht)) {
+    throw new Error(`Freigabestufen-Test fehlt: ${pflicht}`);
+  }
+}
+
+const freigabeDokument = await readFile(path.join(wurzel, dateien[43]), 'utf8');
+for (const pflicht of [
+  '8.5.9 Freigabe-Gate implementiert',
+  'operative Freigabe',
+  'Offline-Test oder Wiederholung',
+  'Schattenbetrieb ohne echte Spielaktion',
+  'begrenzter kontrollierter Live-Test',
+  'Soak-Test mit Telemetrie',
+  'laufzeitPfadKennung',
+  'aenderungsKennung',
+  'spielAutoritaet: false',
+  'neustartAutoritaet: false',
+  'block9Freigegeben: true',
+  'block9Freigegeben: false',
+  'historische Block-8-Nachweise',
+  'Block 9'
+]) {
+  if (!freigabeDokument.includes(pflicht)) {
+    throw new Error(`Freigabestufen-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const fahrplan = await readFile(path.join(wurzel, dateien[44]), 'utf8');
+for (const pflicht of [
+  '8.5.9-Freigabe-Gate implementiert',
+  'Block 9 bleibt bis dahin gesperrt',
+  'BLOCK-8-5-FREIGABESTUFEN.md',
+  'Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand'
+]) {
+  if (!fahrplan.includes(pflicht)) {
+    throw new Error(`Fahrplan fehlt auf 8.5.9-Freigabestand: ${pflicht}`);
+  }
+}
+
+const block85PlanFreigabe = await readFile(path.join(wurzel, dateien[12]), 'utf8');
+for (const pflicht of [
+  '8.5.9 – Freigabestufen — **GATE IMPLEMENTIERT, OPERATIVE FREIGABE OFFEN**',
+  'werteFreigabestufenAus(...)',
+  'aenderungsKennung',
+  'block9Freigegeben: true',
+  'Block 9 gesperrt'
+]) {
+  if (!block85PlanFreigabe.includes(pflicht)) {
+    throw new Error(`Block-8.5-Plan fehlt auf Freigabestufenstand: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 Freigabe-Gate geprueft: vier sequenzielle Nachweisstufen sind an denselben Laufzeitpfad und Aenderungsstand gebunden; Block 9 bleibt ohne Offline-, Schatten-, begrenzten Live- und Soak-Nachweis gesperrt, die Auswertung besitzt keine Spiel- oder Neustartautoritaet.');
