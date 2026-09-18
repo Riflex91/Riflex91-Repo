@@ -212,6 +212,7 @@ class GearProgressionEvaluator {
           ctype: character.ctype,
           slot: best.slot,
           sourceCharacter: candidate.sourceCharacter,
+          sourceIndex: Number.isInteger(Number(candidate.item.index)) ? Number(candidate.item.index) : null,
           item: candidate.item.name,
           observedLevel: levelOf(candidate.item),
           targetLevel,
@@ -242,28 +243,48 @@ class GearProgressionEvaluator {
     this.lastEvaluatedAt = now;
 
     const goals = this.list(this.capacity);
-    const currentGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
-    const reservations = new Map();
-    // Persisted goals remain useful history, but only goals confirmed in this
-    // exact evaluation may reserve live inventory. This prevents an already
-    // delivered/stale goal from trapping the next copy in RESERVE_PROGRESSION.
+    const observedGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
+    const usedPhysicalItems = new Set();
+    const usedTargetSlots = new Set();
+    const currentGoals = observedGoals
+      .slice()
+      .sort((a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id))
+      .filter((goal) => {
+        const physical = goal.sourceIndex != null
+          ? `${goal.sourceCharacter}:${goal.sourceIndex}`
+          : `${goal.sourceCharacter}:${goal.item}:${goal.observedLevel}`;
+        const target = `${goal.character}:${goal.slot}`;
+        if (usedPhysicalItems.has(physical) || usedTargetSlots.has(target)) return false;
+        usedPhysicalItems.add(physical);
+        usedTargetSlots.add(target);
+        return true;
+      });
+    const reservations = [];
+    // Reserve exact physical inventory rows whenever possible. One physical
+    // item can satisfy at most one active gear goal and one target slot can
+    // receive at most one item in an evaluation.
     for (const goal of currentGoals) {
-      const key = `${goal.item}:${goal.observedLevel}`;
-      const current = reservations.get(key) || { name: goal.item, level: goal.observedLevel, quantity: 0, goalIds: [] };
-      current.quantity += 1;
-      current.goalIds.push(goal.id);
-      reservations.set(key, current);
+      reservations.push({
+        name: goal.item,
+        level: goal.observedLevel,
+        quantity: 1,
+        sourceCharacter: goal.sourceCharacter,
+        sourceIndex: goal.sourceIndex,
+        goalIds: [goal.id]
+      });
     }
     this.lastEvaluation = {
       at: now,
       characters: characters.length,
       candidates: candidates.length,
       activeGoals: currentGoals.length,
+      observedGoals: observedGoals.length,
+      physicalAssignments: currentGoals.length,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
     this.save();
-    return { status: this.status(), goals, currentGoals: currentGoals.map(clone), reservations: [...reservations.values()].map(clone) };
+    return { status: this.status(), goals, currentGoals: currentGoals.map(clone), reservations: reservations.map(clone) };
   }
 
   load() {

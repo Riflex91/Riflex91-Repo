@@ -811,10 +811,9 @@ class ControlledPartyLogistics {
     if (!snapshot || !snapshot.character || snapshot.character.rip) return false;
     const self = snapshot.character.name;
     const aggro = (snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && entity.target === self);
-    if (aggro) return false;
-    const farmer = this.runtime.farmer;
-    if (farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state)) return false;
-    return true;
+    // ENGAGE is the normal 24/7 farming state and must not suppress logistics.
+    // Only an actually hostile entity targeting this Farmer blocks a new offer.
+    return !aggro;
   }
 
   _verifyPendingOutbound(snapshot) {
@@ -1005,7 +1004,9 @@ class ControlledPartyLogistics {
         farmerGoldTransfer: true,
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
-        closedLoopLocalDeltaVerification: true
+        closedLoopLocalDeltaVerification: true,
+        engageStateDoesNotBlockTransfer: true,
+        activeAggroBlocksNewOfferOnly: true
       },
       lastMerchantStatus: clone(this.lastMerchantStatus),
       lastSupplyResult: clone(this.lastSupplyResult),

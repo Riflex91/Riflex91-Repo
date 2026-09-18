@@ -389,8 +389,10 @@ class MerchantProductionPlanner {
       ? input.bankCatalog.snapshot.rows
       : [];
     const bankPool = bank.length ? bank : catalogRows;
+    const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
     const demands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
-      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()))
+      .filter((row) => !lockedExchangeItem || String(row.item) === lockedExchangeItem);
     if (!demands.length) return null;
     const demandByItem = new Map(demands.map((row) => [String(row.item), row]));
     const candidates = [];
@@ -477,8 +479,13 @@ class MerchantProductionPlanner {
     const gameData = input.gameData || {};
     if (!gameData.craft || !gameData.items) return this._hold('CRAFT_DATA_UNAVAILABLE');
 
-    const candidates = this._candidateOutputs(gameData, input.registry);
-    if (!candidates.length) return this._hold('NO_CRAFTED_GEAR_IMPROVEMENT');
+    let candidates = this._candidateOutputs(gameData, input.registry);
+    const lockedOutput = input.productionTaskTarget && input.productionTaskTarget.output ? String(input.productionTaskTarget.output) : null;
+    const lockedRecipient = input.productionTaskTarget && input.productionTaskTarget.recipient ? String(input.productionTaskTarget.recipient) : null;
+    if (lockedOutput) {
+      candidates = candidates.filter((row) => String(row.output || '') === lockedOutput && (!lockedRecipient || String(row.recipient || '') === lockedRecipient));
+    }
+    if (!candidates.length) return this._hold(lockedOutput ? 'LOCKED_PRODUCTION_TARGET_COMPLETE_OR_UNAVAILABLE' : 'NO_CRAFTED_GEAR_IMPROVEMENT');
 
     let bestBlocked = null;
     for (const candidate of candidates.slice(0, 32)) {

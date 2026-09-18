@@ -12,9 +12,29 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
     this.selfGear = new MerchantSelfGear(runtime, atomic, shared);
+    this.taskCoordinator = shared.taskCoordinator || runtime.merchantTaskCoordinator || null;
     this.collectionSession = null;
     this.lastCollectionSession = null;
     this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
+  }
+
+  _taskCurrent() {
+    return this.taskCoordinator && typeof this.taskCoordinator.current === 'function' ? this.taskCoordinator.current() : null;
+  }
+
+  _taskAcquire(kind, key, metadata = {}) {
+    if (!this.taskCoordinator || typeof this.taskCoordinator.acquire !== 'function') return { acquired: true, task: null };
+    return this.taskCoordinator.acquire('ALPHA27', kind, key, metadata);
+  }
+
+  _taskRelease(key, reason, details = {}) {
+    if (!this.taskCoordinator || typeof this.taskCoordinator.release !== 'function') return false;
+    return this.taskCoordinator.release('ALPHA27', key, reason, details);
+  }
+
+  _taskBlockedByOther() {
+    const task = this._taskCurrent();
+    return !!(task && task.owner !== 'ALPHA27');
   }
 
   _collectionSettleMs() {
@@ -340,34 +360,34 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
+
+    const taskAtStart = this._taskCurrent();
+    if (taskAtStart && taskAtStart.owner !== 'ALPHA27') {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(taskAtStart) };
+      return false;
+    }
+
     const productionStatus = typeof this.runtime.merchantProductionStatus === 'function' ? this.runtime.merchantProductionStatus() : null;
     if (productionStatus && (productionStatus.executionPending === true || productionStatus.controlled && productionStatus.controlled.busy === true)) {
       this.stats.autonomousMerchantHolds += 1;
       this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'MERCHANT_PRODUCTION_BUSY' };
       return false;
     }
+
     this.ensureAutonomousAuthorities();
     if (this.atomic.serviceTravelBusy || this.atomic.merchantBusy) return false;
     if (this.runtime._controlledMerchantBusy && this.runtime._controlledMerchantBusy()) return false;
     const service = this.runtime.controlledMerchantService;
     if (service && service.activeOperation && service.activeOperation.state === 'RECOVERING' && typeof service.reconcile === 'function') { service.reconcile(); return true; }
 
-    // Finish/reconcile already-started economy work, but a fresh critical party
-    // potion chain may safely preempt a merely RESERVED low-risk SELL/BANK row.
-    // No EXECUTING/VERIFYING/RECOVERING transaction is ever interrupted here.
     if (this.reconcileRecovering()) return true;
     let supplyPlan = this.criticalPartySupplyPlan();
     const active = this.activeTransaction();
     if (active) {
       const lowRiskReserved = active.state === 'RESERVED' && ['SELL', 'BANK'].includes(String(active.type || ''));
       if (supplyPlan && lowRiskReserved) {
-        if (this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
-          // Reservation released before any raw action; continue the same cycle so
-          // the potion chain can make progress immediately.
-        } else {
-          // Fail closed: never execute the competing low-risk transaction merely
-          // because cancellation was rejected or threw. Let the service chain
-          // retain priority and re-evaluate the reservation on the next cycle.
+        if (!this.preemptReservedLowRiskForPartySupply(active, supplyPlan)) {
           this.holdForCriticalPartySupply(supplyPlan);
           return false;
         }
@@ -380,10 +400,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       }
     }
 
-    // Critical party consumables keep priority. RESTOCK_REQUIRED is executed by
-    // Alpha27; SERVICE_TRAVEL/SERVICE_DELIVERY remain owned by the controlled
-    // merchant-service cycle. Keep the whole chain together so ordinary bank or
-    // sell backlog cannot pull the merchant away between purchase and delivery.
     if (await this.restockPartyPotions()) return true;
     supplyPlan = this.criticalPartySupplyPlan();
     if (supplyPlan) {
@@ -391,56 +407,87 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
-    const collection = this._updateCollectionSession();
-    if (collection.active) {
-      this.holdForCollectionSession(collection);
-      return false;
+    let task = this._taskCurrent();
+
+    // A collection session owns the Merchant until the inventory is actually
+    // full or every nearby Farmer has been drained for the settle window.
+    if (task && task.owner === 'ALPHA27' && task.kind === 'COLLECTION') {
+      const collection = this._updateCollectionSession();
+      if (collection.active) {
+        this.holdForCollectionSession(collection);
+        return false;
+      }
+      this._taskRelease(task.key, collection.reason || 'COLLECTION_COMPLETE', { collection: clone(collection) });
+      task = null;
     }
 
-    // Improve Merchant's own equipped gear before ordinary inventory economy.
-    // The self-gear controller preserves a verified fallback and owns the
-    // unequip -> atomic mutation -> re-equip lifecycle.
-    if (this.selfGear && await this.selfGear.cycle()) {
-      this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
-      return true;
+    // Progression is a batch task because COMPOUND/UPGRADE/SelfGear share the
+    // same service area. Do not let Production/Exchange pull the Merchant away
+    // between individual mutations.
+    if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
+      if (this.selfGear && await this.selfGear.cycle()) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
+        return true;
+      }
+      let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
+      if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
+      if (request) return this.executeEconomyRequest(request);
+      if (await this.deliverGearGoal()) return true;
+      this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
+      task = null;
     }
 
-    // Progression is processed before disposal. This restores the intended
-    // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
-    // Family-scoped circuits still allow unrelated later stages to continue.
-    let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
-    if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
-    if (request) return this.executeEconomyRequest(request);
+    if (!task) {
+      const collection = this._updateCollectionSession();
+      if (collection.active) {
+        const lock = this._taskAcquire('COLLECTION', 'alpha27:collection', { farmers: collection.session && collection.session.farmers || [] });
+        if (lock.acquired) {
+          this.holdForCollectionSession(collection);
+          return false;
+        }
+      }
 
-    // Re-evaluate useful gear before any disposal action. A current GearProgression
-    // reservation therefore always gets the chance to reach its Farmer first.
-    if (await this.deliverGearGoal()) return true;
+      const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
+      if (progression.acquired) {
+        if (this.selfGear && await this.selfGear.cycle()) {
+          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
+          return true;
+        }
+        let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
+        if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
+        if (request) return this.executeEconomyRequest(request);
+        if (await this.deliverGearGoal()) return true;
+        this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
+      }
+    }
 
     const lowRiskRequest = this.planSellOrBank();
-    // Free disposable local inventory before making a bank-recovery trip.
     if (lowRiskRequest && lowRiskRequest.type === 'SELL' && !this.transactionFamilyOpen('SELL')) {
-      return this.executeEconomyRequest(lowRiskRequest);
+      const lock = this._taskAcquire('DISPOSAL', 'alpha27:disposal-sell', { type: 'SELL' });
+      if (!lock.acquired) return false;
+      try { return await this.executeEconomyRequest(lowRiskRequest); }
+      finally { this._taskRelease('alpha27:disposal-sell', 'SELL_STEP_COMPLETE'); }
     }
 
-    // Recover legacy progression items only after current inventory work is drained.
-    // One verified bank retrieval is followed by a full normal re-evaluation on the
-    // next cycle, so the retrieved item must pass COMPOUND/UPGRADE -> GEAR -> SELL
-    // before ordinary BANK fallback may run.
     if (this.bankRecovery) {
       const recoveryPlan = this.bankRecovery.plan();
       if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
-        this.lastMerchantPlan = {
-          at: this.now(),
-          action: 'BANK_RECOVERY',
-          reason: recoveryPlan.reason,
-          recovery: clone(recoveryPlan)
-        };
-        if (await this.bankRecovery.execute(recoveryPlan)) return true;
+        const lock = this._taskAcquire('BANK_RECOVERY', 'alpha27:bank-recovery', { action: recoveryPlan.action, reason: recoveryPlan.reason });
+        if (!lock.acquired) return false;
+        this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+        try {
+          if (await this.bankRecovery.execute(recoveryPlan)) return true;
+        } finally {
+          this._taskRelease('alpha27:bank-recovery', 'BANK_RECOVERY_STEP_COMPLETE');
+        }
       }
     }
 
     if (lowRiskRequest && lowRiskRequest.type === 'BANK' && !this.transactionFamilyOpen('BANK')) {
-      return this.executeEconomyRequest(lowRiskRequest);
+      const lock = this._taskAcquire('DISPOSAL', 'alpha27:disposal-bank', { type: 'BANK' });
+      if (!lock.acquired) return false;
+      try { return await this.executeEconomyRequest(lowRiskRequest); }
+      finally { this._taskRelease('alpha27:disposal-bank', 'BANK_STEP_COMPLETE'); }
     }
 
     this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
@@ -464,6 +511,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return {
       autonomous: true,
       centralLedgerPlanner: true,
+      taskCoordinator: this.taskCoordinator ? this.taskCoordinator.status() : null,
+      nonPreemptiveMerchantTasks: true,
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
