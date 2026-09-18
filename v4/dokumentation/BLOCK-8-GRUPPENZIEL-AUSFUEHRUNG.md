@@ -1,6 +1,6 @@
 # Block 8 – minimaler Gruppenziel-Ausfuehrungspfad
 
-Status: **implementiert, doppelt gesperrt, one-shot vorbereitet und offline getestet; keine Live-Freigabe**.
+Status: **Adapter, gebundene Einmal-Freigabe und feste Ausfuehrungsbruecke implementiert und offline getestet; keine Live-Freigabe**.
 
 ## Entscheidung fuer die erste Aktion
 
@@ -53,9 +53,27 @@ Das Werkzeug:
 
 Eine echte Delegation ist nur an die feste API `V4Block8GruppenZielAusfuehrungsBruecke` erlaubt. Diese muss sich mit `quelleBereich: "ausfuehrung"` und dem exakt erlaubten Aktionsnamen ausweisen.
 
+## Feste Produktionsbruecke
+
+`v4/laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.ts` implementiert diesen Vertrag jetzt als Produktionsklasse.
+
+Die Bruecke ist selbst standardmaessig gesperrt und jede aktivierte Instanz besitzt genau **einen** Ausfuehrungsversuch. Dieser Versuch wird vor der weiteren Auftragsvalidierung verbraucht. Die Bruecke:
+
+- akzeptiert nur `schemaVersion: 1`, den exakten Aktionsnamen und den exakten One-shot-Freigabetext,
+- verwirft alte oder zukuenftige Freigaben,
+- rekonstruiert die Anfrage ausschliesslich aus der zentralen `AktionsSteuerung`,
+- verlangt weiterhin den Zustand `laeuft`, Herkunft `gruppen-aktionsplanung` und ein noch gueltiges Zeitfenster,
+- vergleicht die Zielkennung des Browserauftrags mit der zentral laufenden Anfrage,
+- **ignoriert Browser-Vorpruefungen als Autoritaet**,
+- verlangt stattdessen eine neue Produktions-`KampfSicherheitsEntscheidung`, die nicht aelter als die explizite One-shot-Freigabe ist,
+- erzeugt intern eine frische gebundene `AdventureLandGruppenZielEinmalFreigabe`,
+- delegiert danach ausschliesslich an `AdventureLandGruppenZielAusfuehrung`,
+- ruft selbst keine Adventure-Land-Spielaktion direkt auf,
+- bricht eine passende noch laufende zentrale Anfrage fail-safe ab, wenn der verbrauchte Brueckenversuch scheitert.
+
 ## Aktueller Freigabestand
 
-Die one-shot Freigabelogik ist implementiert und offline abgesichert. Die feste `V4Block8GruppenZielAusfuehrungsBruecke` existiert bewusst **noch nicht**. Daher kann das Browserwerkzeug derzeit keine echte Gruppen-Spielaktion ausloesen und der Live-Smoke ist weiterhin nicht freigegeben.
+Die one-shot Freigabelogik und die feste Produktionsbruecke sind implementiert und offline abgesichert. **Noch nicht vorhanden ist die Live-Bindung**, die genau eine explizit aktivierte Brueckeninstanz mit der realen zentralen `AktionsSteuerung` und einer frischen Produktions-Sicherheitsquelle im Adventure-Land-Kontext verbindet und als `V4Block8GruppenZielAusfuehrungsBruecke` exponiert. Ohne diese Bindung kann das Browserwerkzeug weiterhin keine echte Gruppen-Spielaktion ausloesen; der Live-Smoke bleibt gesperrt.
 
 Automatisiert werden unter anderem geprueft:
 
@@ -66,7 +84,8 @@ Automatisiert werden unter anderem geprueft:
 - unbekannte Angriffsbereitschaft blockiert,
 - unsichtbares, totes oder zu weit entferntes Ziel blockiert,
 - abgelaufene, falsch gebundene oder bereits verbrauchte Einmal-Freigaben blockieren,
-- das Browser-One-shot delegiert hoechstens einmal und bleibt bei Safety-Wechsel oder fehlender Bruecke gesperrt,
+- die feste Produktionsbruecke akzeptiert pro Instanz hoechstens einen Versuch und vertraut nicht auf Browser-Safety als Autoritaet,
+- das Browser-One-shot delegiert hoechstens einmal und bleibt bei Safety-Wechsel oder fehlender Live-Bindung gesperrt,
 - alle anderen `GRUPPE_*`-Aktionsnamen besitzen keinen aktiven Pfad.
 
-Der naechste Schritt nach gruenem Merge ist die **feste Ausfuehrungsbruecke unter der `ausfuehrung/`-Grenze**, ebenfalls offline abgesichert. Erst danach darf der kontrollierte one-shot Live-Smoke tatsaechlich ausgefuehrt werden.
+Der naechste Schritt nach gruenem Merge ist die **eng begrenzte Live-Bindung der festen Bruecke** an die reale zentrale Steuerung und eine frische Produktions-Sicherheitsquelle. Auch diese Bindung wird zuerst offline getestet. Erst danach darf der kontrollierte one-shot Live-Smoke tatsaechlich ausgefuehrt werden.
