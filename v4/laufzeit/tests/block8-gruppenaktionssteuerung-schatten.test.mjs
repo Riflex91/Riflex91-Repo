@@ -135,3 +135,43 @@ test('Block 8 Gruppen-AktionsSteuerung: explizite Verarbeitung startet nur zentr
   assert.deepEqual(normal(ergebnis.steuerungsErgebnis.laufZustaende[0]?.anfrage.benoetigteRessourcen), ['gruppe']);
   assert.equal(ergebnis.echteSpielaktionenAusgefuehrt, false);
 });
+
+
+test('Block 8 Gruppen-AktionsSteuerung Browserkern: blockierte Folge bricht laufende Gruppenarbeit identisch zur Produktion ab', async () => {
+  const kontext = await ladeBrowserKerne();
+  const BrowserSteuerung = kontext.V4AktionsSteuerungSchattenKern.AktionsSteuerung;
+  const browserSteuerung = new BrowserSteuerung();
+  const produktivSteuerung = new ProduktionsSteuerung();
+  const browserCfg = kontext.V4Block8GruppenAktionsSteuerungKern.erstelleGruppenAktionsSteuerungKonfiguration({
+    aktiviert: true, freigegebeneAktionen: ['GRUPPE_UNTERSTUETZEN'], verarbeiten: true
+  });
+  const produktivCfg = erstelleGruppenAktionsSteuerungKonfiguration({
+    aktiviert: true, freigegebeneAktionen: ['GRUPPE_UNTERSTUETZEN'], verarbeiten: true
+  });
+
+  kontext.V4Block8GruppenAktionsSteuerungKern.uebergibGruppenAktionsAnfragenAnSteuerung(
+    uebersetzung(), browserSteuerung, 10_000, browserCfg
+  );
+  uebergibGruppenAktionsAnfragenAnSteuerung(uebersetzung(), produktivSteuerung, 10_000, produktivCfg);
+
+  const blockiert = Object.freeze({
+    ...uebersetzung(),
+    zeitpunkt: 10_100,
+    status: 'blockiert',
+    grund: 'Sicherheitslage unbekannt.',
+    planStatus: 'blockiert',
+    eigeneSchrittKennungen: Object.freeze([]),
+    aktionsAnfragen: Object.freeze([])
+  });
+  const browser = kontext.V4Block8GruppenAktionsSteuerungKern.uebergibGruppenAktionsAnfragenAnSteuerung(
+    blockiert, browserSteuerung, 10_100, browserCfg
+  );
+  const produktiv = uebergibGruppenAktionsAnfragenAnSteuerung(
+    blockiert, produktivSteuerung, 10_100, produktivCfg
+  );
+
+  assert.deepEqual(normal(browser), normal(produktiv));
+  assert.equal(browser.laufZustaende[0]?.phase, 'abgebrochen');
+  assert.equal(browser.schattenEintraege[0]?.phase, 'abgebrochen');
+  assert.equal(browserSteuerung.listeRessourcenSperren().length, 0);
+});
