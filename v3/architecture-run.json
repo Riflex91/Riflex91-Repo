@@ -212,7 +212,7 @@
       "title": "Production CRITICAL alerting and Windows host secrets",
       "branch": "architecture/12-production-alerting-windows-secrets",
       "status": "in_progress",
-      "pr": null,
+      "pr": 273,
       "merge_commit": null,
       "required_outcomes": [
         "two independently configured CRITICAL delivery routes",
