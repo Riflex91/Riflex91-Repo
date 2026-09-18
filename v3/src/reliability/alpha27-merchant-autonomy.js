@@ -433,7 +433,10 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     const finalization = typeof this.planGearDeliveryFinalization === 'function'
       ? this.planGearDeliveryFinalization()
       : { state: 'NONE', reason: 'FINALIZATION_PLANNER_UNAVAILABLE' };
-    if (!finalization || finalization.state === 'NONE') return false;
+    // Preserve the pre-existing delivery contract when there is nothing to
+    // finalize. In production deliverGearGoal() simply returns false without a
+    // candidate; tests/patch layers may also provide their own delivery source.
+    if (!finalization || finalization.state === 'NONE') return this.deliverGearGoal();
 
     if (finalization.state === 'HOLD') {
       this.stats.autonomousMerchantHolds += 1;
