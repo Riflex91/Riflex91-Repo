@@ -225,6 +225,37 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
       return { ok: false, reason, resolved };
     }
 
+    const current = characterOf(this.runtime);
+    const target = resolved.destination;
+    const sellDistance = finite(
+      this.root && this.root.B && this.root.B.sell_dist,
+      finite(this.root && this.root.parent && this.root.parent.B && this.root.parent.B.sell_dist, 120)
+    );
+    const bufferedRange = Math.max(45, sellDistance * 0.90);
+    if (resolved.npcId && target && typeof target === 'object'
+      && current && String(current.map || '') === String(target.map || '')
+      && distance(current, target) <= bufferedRange) {
+      const strategy = {
+        strategy: 'ALREADY_IN_RANGE',
+        reason: 'BUFFERED_INTERACTION_RANGE_REACHED',
+        currentDistance: Math.round(distance(current, target)),
+        walkEtaMs: 0,
+        townEtaMs: null,
+        estimatedSavingsMs: 0,
+        town: null,
+        target: clone(target)
+      };
+      state.lastStrategy = { at: typeof this.now === 'function' ? this.now() : Date.now(), requestedDestination: resolved.requested, npcId: resolved.npcId, ...strategy };
+      this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', strategy.reason, {
+        transactionId: tx && tx.id || null,
+        requestedDestination: resolved.requested,
+        npcId: resolved.npcId,
+        bufferedRange,
+        distance: distance(current, target)
+      });
+      return { ok: true, controlled: true, alreadyInRange: true, resolved, bufferedRange, strategy };
+    }
+
     const strategy = estimateTravelStrategy(this.root, this.runtime, resolved, state);
     state.lastStrategy = { at: typeof this.now === 'function' ? this.now() : Date.now(), requestedDestination: resolved.requested, npcId: resolved.npcId, ...strategy };
     state.strategySelections[strategy.strategy] = (state.strategySelections[strategy.strategy] || 0) + 1;
