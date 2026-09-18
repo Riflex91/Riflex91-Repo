@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -28,17 +28,43 @@ function requireAnfragen(source) {
 }
 
 async function kompiliereCommonJs(tempWurzel) {
-  await execFileAsync(process.execPath, [
-    tscPfad,
-    '-p', path.join(wurzel, 'tsconfig.json'),
-    '--module', 'commonjs',
-    '--moduleResolution', 'node',
-    '--outDir', tempWurzel,
-    '--rootDir', path.join(wurzel, 'laufzeit', 'quelle'),
-    '--declaration', 'false',
-    '--sourceMap', 'false',
-    '--noEmitOnError', 'true'
-  ], { cwd: wurzel, maxBuffer: 10 * 1024 * 1024 });
+  const quelle = path.join(tempWurzel, 'quelle');
+  const ausgabeWurzel = path.join(tempWurzel, 'ausgabe');
+  await cp(path.join(wurzel, 'laufzeit', 'quelle'), quelle, { recursive: true });
+  await writeFile(path.join(tempWurzel, 'package.json'), JSON.stringify({ type: 'commonjs' }) + '\n', 'utf8');
+  const tempTsconfig = {
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+      rootDir: './quelle',
+      outDir: './ausgabe',
+      strict: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+      useUnknownInCatchVariables: true,
+      noImplicitOverride: true,
+      noFallthroughCasesInSwitch: true,
+      noEmitOnError: true,
+      declaration: false,
+      sourceMap: false,
+      skipLibCheck: true
+    },
+    include: ['./quelle/**/*.ts']
+  };
+  const tsconfigPfad = path.join(tempWurzel, 'tsconfig.json');
+  await writeFile(tsconfigPfad, JSON.stringify(tempTsconfig, null, 2) + '\n', 'utf8');
+  try {
+    await execFileAsync(process.execPath, [tscPfad, '-p', tsconfigPfad], {
+      cwd: tempWurzel,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (fehler) {
+    const stdout = typeof fehler?.stdout === 'string' ? fehler.stdout.trim() : '';
+    const stderr = typeof fehler?.stderr === 'string' ? fehler.stderr.trim() : '';
+    throw new Error(`Temporärer CommonJS-tsc-Build fehlgeschlagen.${stdout ? ` stdout: ${stdout}` : ''}${stderr ? ` stderr: ${stderr}` : ''}`);
+  }
+  return ausgabeWurzel;
 }
 
 async function sammle(tempWurzel, id, module) {
@@ -63,10 +89,10 @@ export async function baueProduktionsRuntime({ schreiben = true } = {}) {
   const version = JSON.parse(await readFile(versionPfad, 'utf8')).version;
   const tempWurzel = await mkdtemp(path.join(os.tmpdir(), 'aio-v4-runtime-'));
   try {
-    await kompiliereCommonJs(tempWurzel);
+    const commonJsWurzel = await kompiliereCommonJs(tempWurzel);
     const entryId = 'ausfuehrung/adventure-land-produktions-einstieg.js';
     const module = new Map();
-    await sammle(tempWurzel, entryId, module);
+    await sammle(commonJsWurzel, entryId, module);
     const bundle = runtimeBundle(module, version, entryId);
     if (!bundle.includes('Adventure Land AiO Bot V4 | generated | production runtime')) throw new Error('Runtime-Marker fehlt.');
     if (!bundle.includes('V4ProduktionsLaufzeit')) throw new Error('Runtime enthaelt die Produktionslaufzeit nicht.');
