@@ -62,16 +62,18 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       counts.set(level, (counts.get(level) || 0) + 1);
     }
     const initialCounts = new Map(counts);
+    let reachableLevel = -1;
     for (let level = 0; level < this.options.maxCompoundLevel; level += 1) {
       const count = counts.get(level) || 0;
       if (count < 3 || gradeForLevel(meta, level) >= 4) continue;
       const produced = Math.floor(count / 3);
       counts.set(level, count % 3);
       counts.set(level + 1, (counts.get(level + 1) || 0) + produced);
+      if (produced > 0) reachableLevel = Math.max(reachableLevel, level + 1);
     }
-    const reachableLevel = [...counts.entries()]
-      .filter(([, count]) => count > 0)
-      .reduce((max, [level]) => Math.max(max, level), -1);
+    // Only levels that can actually be CREATED by the current compound stock
+    // count as reachable. A separate already-existing higher item must not hold
+    // this candidate forever merely because it shares the same identity.
     return { reachableLevel, initialCounts, projectedCounts: counts };
   }
 
