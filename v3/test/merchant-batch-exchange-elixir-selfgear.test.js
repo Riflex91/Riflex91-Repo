@@ -243,6 +243,7 @@ test('exact self-gear reservation can authorize a non-progression ledger disposi
   }]);
   const runtime = makeRuntime({
     ledger,
+    engine: makeEngine(),
     gameData: {
       items: { sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [] } },
       monsters: {},
