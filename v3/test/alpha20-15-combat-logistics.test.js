@@ -93,14 +93,16 @@ test('Alpha20.15 normalizes synthetic team rankings before Farmer telemetry form
   assert.equal(selection.ranking.confidence, 1);
 });
 
-test('Alpha20.15 logistics requests each potion family only below 200 and keeps zero Merchant loot reserve', () => {
+test('Alpha20.15 logistics keeps one Merchant pickup slot and uses accelerated closed-loop transfer cadence', () => {
   const { runtime } = makeRuntime();
   const logistics = new ControlledPartyLogistics(runtime);
   assert.equal(logistics.config.farmerPotionLow, 200);
   assert.equal(logistics.config.farmerPotionTarget, 5000);
   assert.equal(logistics.config.maxSupplyBatch, 5000);
   assert.equal(logistics.config.farmerGoldReserve, 0);
-  assert.equal(logistics.config.merchantReserveSlots, 0);
+  assert.equal(logistics.config.merchantReserveSlots, 1);
+  assert.equal(logistics.config.transferIntervalMs, 300);
+  assert.equal(logistics.config.verifyDelayMs, 250);
   assert.ok(logistics.config.maxGoldBatch >= Number.MAX_SAFE_INTEGER);
 });
 
@@ -114,7 +116,7 @@ test('Alpha20.15 farmer loot accepts transferable gear and special items but kee
   assert.equal(logistics._safeLootDescriptor({ name: 'lockedgear', level: 0, locked: true, q: 1, index: 4 }).ok, false);
 });
 
-test('Merchant accepts item loot until the last slot is consumed, then emits full-stop capacity', () => {
+test('Merchant stops item intake with one physical pickup-reserve slot remaining', () => {
   const { runtime } = makeRuntime('My_Merchant', 'merchant');
   const logistics = new ControlledPartyLogistics(runtime);
   const oneFree = snapshot('My_Merchant', 'merchant', {
@@ -125,7 +127,8 @@ test('Merchant accepts item loot until the last slot is consumed, then emits ful
     isize: 2,
     inventory: [{ index: 0, name: 'mpot0', q: 6000 }, { index: 1, name: 'loot', q: 1 }]
   });
-  assert.equal(logistics._merchantCapacity(oneFree).acceptingLoot, true);
+  assert.equal(logistics._merchantCapacity(oneFree).acceptingLoot, false);
+  assert.equal(logistics._merchantCapacity(oneFree).reserveSlots, 1);
   assert.equal(logistics._merchantCapacity(full).acceptingLoot, false);
   assert.equal(logistics._merchantCapacity(full).stopReason, 'OKAY_STOP_MERCHANT_INVENTORY_FULL');
 });
@@ -133,8 +136,8 @@ test('Merchant accepts item loot until the last slot is consumed, then emits ful
 test('Merchant keeps the last-slot grant reserved until recipient inventory observes the Farmer item', () => {
   const { runtime, root, clock } = makeRuntime('My_Merchant', 'merchant');
   root.G = { items: { hpbelt: { type: 'belt', upgrade: { armor: 1 } }, mpot0: { type: 'pot' } } };
-  root.character.isize = 2;
-  root.character.items = [{ index: 0, name: 'mpot0', q: 5000 }, null];
+  root.character.isize = 3;
+  root.character.items = [{ index: 0, name: 'mpot0', q: 5000 }, null, null];
   runtime.adapter.snapshot = () => ({
     character: { ...root.character, inventory: root.character.items },
     entities: []
@@ -174,7 +177,8 @@ test('Merchant keeps the last-slot grant reserved until recipient inventory obse
   const capacity = logistics._merchantCapacity(runtime.adapter.snapshot());
   assert.equal(logistics.activeLootGrants.has(grant.grantId), false);
   assert.equal(logistics.stats.lootRecipientVerified, 1);
-  assert.equal(capacity.freeSlots, 0);
+  assert.equal(capacity.freeSlots, 1);
+  assert.equal(capacity.reserveSlots, 1);
   assert.equal(capacity.acceptingLoot, false);
 });
 
