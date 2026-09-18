@@ -8,7 +8,8 @@ const {
   Alpha33MarkOrbitMerchantDelivery,
   effectActiveOn,
   FARMER_STATE_ACTION,
-  GEAR_DELIVERY_INTENT_ACTION
+  GEAR_DELIVERY_INTENT_ACTION,
+  GEAR_DELIVERY_INTENT_ACK_ACTION
 } = require('../src/reliability/alpha33-mark-orbit-merchant-delivery');
 
 function quietLog() { return { emit() {} }; }
@@ -213,7 +214,7 @@ test('Alpha33 reserves only the exact active self gear assignment and leaves cro
   assert.equal(duplicate.ok, true, 'same-name/level duplicates without the exact reservation must not inherit the hold');
 });
 
-test('Alpha33 sends a targeted Farmer equip intent before Merchant gear delivery', async () => {
+test('Alpha33 requires Farmer pre-delivery snapshot ACK before Merchant sends gear item', async () => {
   const calls = [];
   const goal = {
     id: 'My_Ranger1:ring1:ringsj:3',
@@ -233,6 +234,16 @@ test('Alpha33 sends a targeted Farmer equip intent before Merchant gear delivery
       return true;
     }
   };
+  const logistics = {
+    stats: { messagesReceived: 0, messagesRejected: 0 },
+    receive: () => false,
+    _isMerchant: () => true,
+    _validEnvelope: () => true,
+    _send: async (targetName, action, payload) => {
+      calls.push({ kind: 'intent', targetName, action, payload });
+      return { delivered: true };
+    }
+  };
   const runtime = {
     now: () => 51000,
     log: quietLog(),
@@ -245,20 +256,15 @@ test('Alpha33 sends a targeted Farmer equip intent before Merchant gear delivery
         }]
       })
     },
-    controlledPartyLogistics: {
-      _send: async (targetName, action, payload) => {
-        calls.push({ kind: 'intent', targetName, action, payload });
-        return { delivered: true };
-      }
-    },
+    controlledPartyLogistics: logistics,
     alpha27CombatMerchantConvergence: { merchant }
   };
-  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { gearDeliveryIntentAckTimeoutMs: 1000 });
 
-  const acted = await merchant.deliverGearGoal();
+  const deliveryPromise = merchant.deliverGearGoal();
+  await new Promise((resolve) => setImmediate(resolve));
 
-  assert.equal(acted, true);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1, 'physical gear delivery must wait for Farmer ACK');
   assert.equal(calls[0].kind, 'intent');
   assert.equal(calls[0].targetName, 'My_Ranger1');
   assert.equal(calls[0].action, GEAR_DELIVERY_INTENT_ACTION);
@@ -266,8 +272,33 @@ test('Alpha33 sends a targeted Farmer equip intent before Merchant gear delivery
   assert.equal(calls[0].payload.slot, 'ring1');
   assert.equal(calls[0].payload.currentItem, 'ringsj');
   assert.equal(calls[0].payload.currentLevel, 1);
+  assert.ok(calls[0].payload.intentToken);
+
+  const acked = logistics.receive('My_Ranger1', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: GEAR_DELIVERY_INTENT_ACK_ACTION,
+    sender: 'My_Ranger1',
+    at: 51000,
+    intentToken: calls[0].payload.intentToken,
+    goalId: goal.id,
+    targetName: 'My_Ranger1',
+    itemName: 'ringsj',
+    itemLevel: 3,
+    slot: 'ring1',
+    beforeIndices: [2]
+  });
+  assert.equal(acked, true);
+
+  const acted = await deliveryPromise;
+  assert.equal(acted, true);
+  assert.equal(calls.length, 2);
   assert.equal(calls[1].kind, 'delivery');
   assert.equal(hotfix.stats.gearDeliveryIntentsSent, 1);
+  assert.equal(hotfix.stats.gearDeliveryIntentAcksReceived, 1);
+  assert.equal(hotfix.stats.gearDeliveryIntentAckTimeouts, 0);
+  assert.equal(hotfix.pendingGearDeliveryIntentAcks.size, 0);
+  assert.equal(hotfix.status().policies.gearDeliveryIntentRequiresFarmerPredeliverySnapshotAck, true);
 });
 
 test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with closed-loop slot verification', async () => {
@@ -277,7 +308,7 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
     character: {
       name: 'My_Ranger1',
       ctype: 'ranger',
-      items: [null, null, null, null, null, null],
+      items: [null, null, { name: 'ringsj', level: 3 }, null, null, null],
       slots: { ring1: { name: 'ringsj', level: 1 } }
     }
   };
@@ -288,12 +319,17 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
       inventory: []
     }
   };
+  const sent = [];
   const logistics = {
     stats: { messagesReceived: 0, messagesRejected: 0 },
     receive: () => false,
     _isMerchant: () => false,
     _merchantName: () => 'My_Merchant',
     _validEnvelope: () => true,
+    _send: async (targetName, action, payload) => {
+      sent.push({ targetName, action, payload });
+      return { delivered: true };
+    },
     _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: 1 }),
     _farmerTick: () => {
       baseTicks += 1;
@@ -327,6 +363,7 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
     action: GEAR_DELIVERY_INTENT_ACTION,
     sender: 'My_Merchant',
     at: now,
+    intentToken: 'intent-ringsj-3',
     goalId: 'My_Ranger1:ring1:ringsj:3',
     targetName: 'My_Ranger1',
     itemName: 'ringsj',
@@ -338,9 +375,23 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   });
   assert.equal(accepted, true);
   assert.equal(hotfix.stats.gearDeliveryIntentsReceived, 1);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].targetName, 'My_Merchant');
+  assert.equal(sent[0].action, GEAR_DELIVERY_INTENT_ACK_ACTION);
+  assert.equal(sent[0].payload.intentToken, 'intent-ringsj-3');
+  assert.deepEqual(sent[0].payload.beforeIndices, [2]);
 
+  // The same-identity row that existed before the intent remains generic loot,
+  // but the newly delivered physical row must be protected immediately.
+  assert.equal(logistics._safeLootDescriptor({ index: 2, name: 'ringsj', level: 3 }).ok, true);
   root.character.items[5] = { name: 'ringsj', level: 3 };
-  snapshot.character.inventory = [{ index: 5, name: 'ringsj', level: 3 }];
+  snapshot.character.inventory = [
+    { index: 2, name: 'ringsj', level: 3 },
+    { index: 5, name: 'ringsj', level: 3 }
+  ];
+  const newlyDelivered = logistics._safeLootDescriptor({ index: 5, name: 'ringsj', level: 3 });
+  assert.equal(newlyDelivered.ok, false);
+  assert.equal(newlyDelivered.reason, 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED');
 
   const first = logistics._farmerTick(snapshot);
   assert.equal(first.reason, 'LOCAL_GEAR_UPGRADE_READY');
