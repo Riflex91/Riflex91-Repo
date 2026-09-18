@@ -11144,6 +11144,7 @@ class GearProgressionEvaluator {
     this.minImprovementRatio = Math.max(0.01, Math.min(1, finite(options.minImprovementRatio, 0.05)));
     this.goals = new Map();
     this.futureFarmerProtection = new Map();
+    this.futureFarmerEvaluation = new Map();
     this.loaded = false;
     this.lastEvaluatedAt = null;
     this.lastEvaluation = null;
@@ -11202,6 +11203,21 @@ class GearProgressionEvaluator {
     return clone(row);
   }
 
+  futureSellSafetyFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const evaluation = this.futureFarmerEvaluation.get(exactKey);
+    if (!evaluation) return null;
+    if (String(evaluation.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(evaluation.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    const protection = this.futureProtectionFor(character, index, name, level);
+    return {
+      ...clone(evaluation),
+      checked: evaluation.checkedFarmerCount > 0 && evaluation.blockedByUnknownContent !== true,
+      protected: !!protection,
+      protection
+    };
+  }
+
   _goalId(character, slot, item, targetLevel) {
     return `${character}:${slot}:${item}:${targetLevel}`;
   }
@@ -11233,12 +11249,40 @@ class GearProgressionEvaluator {
     this.stats.candidates += candidates.length;
     const seenGoalIds = new Set();
     this.futureFarmerProtection.clear();
+    this.futureFarmerEvaluation.clear();
+    for (const candidate of candidates) {
+      if (!Number.isInteger(Number(candidate.item && candidate.item.index))) continue;
+      const key = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+      this.futureFarmerEvaluation.set(key, {
+        sourceCharacter: candidate.sourceCharacter,
+        sourceIndex: Number(candidate.item.index),
+        item: candidate.item.name,
+        observedLevel: levelOf(candidate.item),
+        evaluatedAt: now,
+        maxProbeLevel: this.maxProbeLevel,
+        checkedFarmerCount: 0,
+        blockedByUnknownContent: false
+      });
+    }
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
       for (const candidate of candidates) {
         if (!compatible(candidate.meta, character)) continue;
-        if (this._unsafe(context.contentDrift, candidate.item.name)) { blockedUnknownContent += 1; continue; }
+        const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
+          ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
+          : null;
+        const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+        if (this._unsafe(context.contentDrift, candidate.item.name)) {
+          blockedUnknownContent += 1;
+          if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+            this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
+          }
+          continue;
+        }
+        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        }
         let best = null;
         for (const slot of candidate.slots) {
           const current = this._currentItem(character, slot, gameData);
@@ -11341,18 +11385,18 @@ class GearProgressionEvaluator {
       return accepted;
     };
 
-    // Better gear is Farmer-first. The target allocation is approximately
-    // 80/20: four Farmer assignments for each Merchant assignment whenever
-    // both sides have useful, non-conflicting upgrades. If only Farmers or
-    // only the Merchant have valid goals, do not leave useful gear idle.
-    while (farmers.length || merchants.length) {
-      const before = currentGoals.length;
-      if (farmers.length) take(farmers, 4);
-      if (merchants.length && (!farmers.length || currentGoals.length - before >= 4)) take(merchants, 1);
-      if (currentGoals.length === before) {
-        if (farmers.length) take(farmers, 1);
-        else if (merchants.length) take(merchants, 1);
-      }
+    // Better gear is Farmer-first. Allocate all non-conflicting Farmer goals
+    // first, then permit at most one Merchant assignment per four Farmer
+    // assignments (80/20). If there are no useful Farmer goals at all, Merchant
+    // upgrades may use otherwise-idle gear.
+    const farmerGoalCount = farmers.length;
+    take(farmers, Number.MAX_SAFE_INTEGER);
+    const farmerAssignments = currentGoals.length;
+    if (farmerGoalCount === 0) {
+      take(merchants, Number.MAX_SAFE_INTEGER);
+    } else {
+      const merchantBudget = Math.floor(farmerAssignments / 4);
+      if (merchantBudget > 0) take(merchants, merchantBudget);
     }
     const reservations = [];
     // Reserve exact physical inventory rows whenever possible. One physical
@@ -11379,6 +11423,7 @@ class GearProgressionEvaluator {
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
       farmerTargetShare: 0.8,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
@@ -11448,7 +11493,9 @@ class GearProgressionEvaluator {
       minImprovementRatio: this.minImprovementRatio,
       goals: this.goals.size,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      processedGearSellRequiresExplicitFutureSafety: true,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
@@ -12245,6 +12292,9 @@ class SafeTravelController {
       start,
       lastObserved: start,
       target,
+      arrivalRadius: request.arrivalRadius == null
+        ? this.arrivalRadius
+        : Math.max(5, Math.min(300, finite(request.arrivalRadius, this.arrivalRadius))),
       reason: mapAttestation ? 'SAFE_PLAN_CREATED_WITH_TRUSTED_MAP_ATTESTATION' : 'SAFE_PLAN_CREATED',
       actionAuthority: false,
       liveExecutionAllowed: false,
@@ -12255,7 +12305,7 @@ class SafeTravelController {
     };
     this.plans.set(id, row);
     this.stats.planned += 1;
-    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation });
+    this._event('TRAVEL_PLAN_CREATED', 'info', null, { planId: id, from: start.map, to: map, routeKind: row.routeKind, mapAttested: !!mapAttestation, arrivalRadius: row.arrivalRadius });
     return { accepted: true, plan: clone(row) };
   }
 
@@ -12275,7 +12325,7 @@ class SafeTravelController {
   _arrived(row, observed) {
     if (!row || !observed || observed.map !== row.target.map) return false;
     if (row.target.x == null || row.target.y == null) return true;
-    return distance(observed, row.target) <= this.arrivalRadius;
+    return distance(observed, row.target) <= Math.max(5, finite(row.arrivalRadius, this.arrivalRadius));
   }
 
   observe(snapshot) {
@@ -12423,6 +12473,7 @@ this.log.version = ALPHA17_VERSION;
       });
     }
     this.controlledMerchant = options.controlledMerchant || new ControlledMerchantExecutor({
+      runtime: this,
       root: this.root,
       engine: this.transactionEngine,
       ledger: this.inventoryLedger,
@@ -12760,7 +12811,8 @@ function hasExplicitBankBinding(response) {
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
-    this.root = options.root || globalThis;
+    this.runtime = options.runtime || null;
+    this.root = options.root || this.runtime && this.runtime.root || globalThis;
     this.engine = options.engine;
     this.ledger = options.ledger;
     this.contentDrift = options.contentDrift || null;
@@ -12921,19 +12973,32 @@ class ControlledMerchantExecutor {
       if (lifecycleProcessedSale) {
         const gear = this.runtime && this.runtime.gearProgression;
         let futureProtection = null;
+        let futureSellSafety = null;
         try {
           futureProtection = gear && typeof gear.futureProtectionFor === 'function'
             ? gear.futureProtectionFor(character.name, txIndex, tx.item, tx.level)
             : null;
+          futureSellSafety = gear && typeof gear.futureSellSafetyFor === 'function'
+            ? gear.futureSellSafetyFor(character.name, txIndex, tx.item, tx.level)
+            : null;
         } catch (_) {
           futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+          futureSellSafety = null;
         }
-        if (futureProtection) {
+        if (!futureSellSafety || futureSellSafety.checked !== true) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED',
+            futureFarmerSellSafety: futureSellSafety
+          };
+        }
+        if (futureProtection || futureSellSafety.protected === true) {
           this.stats.sellSafetyRejected += 1;
           return {
             ok: false,
             reason: 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED',
-            futureFarmerProtection: futureProtection
+            futureFarmerProtection: futureProtection || futureSellSafety.protection || null
           };
         }
       }
@@ -13286,7 +13351,7 @@ class ControlledTravelExecutor {
     this.busy = false;
     this.activePlanId = null;
     this.lastAction = null;
-    this.stats = { attempts: 0, completed: 0, rejected: 0, failedSafe: 0, timeouts: 0, aborts: 0 };
+    this.stats = { attempts: 0, completed: 0, rejected: 0, failedSafe: 0, timeouts: 0, aborts: 0, bufferedEarlyStops: 0 };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -13423,6 +13488,30 @@ class ControlledTravelExecutor {
     }
   }
 
+  async _waitForBufferedArrival(plan) {
+    if (!plan || !plan.metadata || plan.metadata.stopWhenInteractionReady !== true) return null;
+    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata.interactionPollMs) || 100));
+    const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+    while (this.busy && this.activePlanId === plan.id) {
+      this.controller.observe(this._snapshot());
+      const current = this.controller.get(plan.id);
+      if (current && current.state === 'COMPLETED') {
+        this.stats.bufferedEarlyStops += 1;
+        await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
+        this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+          planId: plan.id,
+          arrivalRadius: current.arrivalRadius,
+          interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
+          interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
+          interactionKind: plan.metadata.interactionKind || null
+        });
+        return { success: true, bufferedArrival: true };
+      }
+      await new Promise((resolve) => setTimer(resolve, pollMs));
+    }
+    return null;
+  }
+
   async execute(planId) {
     const plan = this.controller && this.controller.get(String(planId));
     const check = this._preflight(plan);
@@ -13451,7 +13540,8 @@ class ControlledTravelExecutor {
       if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
       const routePromise = Promise.resolve(command.value);
       routePromise.catch(() => {});
-      const response = await this._timeout(routePromise);
+      const bufferedArrivalPromise = this._waitForBufferedArrival(plan);
+      const response = await this._timeout(bufferedArrivalPromise ? Promise.race([routePromise, bufferedArrivalPromise]) : routePromise);
       if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
       this.controller.observe(this._snapshot());
       const finalPlan = this.controller.get(plan.id);
@@ -32220,6 +32310,38 @@ function serviceNpcId(destination, gameData = {}) {
   return null;
 }
 
+const INTERACTION_SAFETY_FACTOR = 0.90;
+const DEFAULT_NPC_INTERACTION_MAX = 120;
+const DOOR_SERVER_INTERACTION_MAX = 112;
+
+function serviceDistance(a, b) {
+  if (!a || !b) return Infinity;
+  if (a.map && b.map && String(a.map) !== String(b.map)) return Infinity;
+  const ax = Number(a.real_x != null ? a.real_x : a.x);
+  const ay = Number(a.real_y != null ? a.real_y : a.y);
+  const bx = Number(b.real_x != null ? b.real_x : b.x);
+  const by = Number(b.real_y != null ? b.real_y : b.y);
+  if (![ax, ay, bx, by].every(Number.isFinite)) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function interactionMaxRange(root, kind = 'npc') {
+  if (kind === 'door') return DOOR_SERVER_INTERACTION_MAX;
+  const candidates = [
+    root && root.B && root.B.sell_dist,
+    root && root.parent && root.parent.B && root.parent.B.sell_dist
+  ];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 50 && n <= 500) return n;
+  }
+  return DEFAULT_NPC_INTERACTION_MAX;
+}
+
+function bufferedInteractionRange(root, kind = 'npc') {
+  return interactionMaxRange(root, kind) * INTERACTION_SAFETY_FACTOR;
+}
+
 function usableNpcLocation(value, fallbackMap = null) {
   if (!value || typeof value !== 'object') return null;
   const x = Number(value.x);
@@ -32295,11 +32417,67 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       return { ok: false, reason, resolved };
     }
     const gd = gameDataOf(this.runtime);
+    // Re-locate a known NPC immediately before travel. This protects callers
+    // that resolved earlier through an id fallback and guarantees that the
+    // buffered interaction-range check can still prevent unnecessary movement.
+    if (resolved.npcId && (!resolved.destination || typeof resolved.destination !== 'object')) {
+      const finder = rawFunction(this.root, 'find_npc');
+      if (finder) {
+        try {
+          const current = characterOf(this.runtime);
+          const found = finder.fn.call(finder.owner, resolved.npcId);
+          const location = usableNpcLocation(found, current && current.map);
+          if (location) {
+            resolved.destination = location;
+            resolved.source = 'FIND_NPC_TRAVEL_REFRESH';
+          }
+        } catch (_) {}
+      }
+    }
     const target = resolved.destination;
     const controlledTarget = target && typeof target === 'object' && target.map && Number.isFinite(Number(target.x)) && Number.isFinite(Number(target.y));
     const controlledMap = typeof target === 'string' && gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, target);
+    const c = characterOf(this.runtime);
+    const interactionKind = resolved.npcId ? 'npc' : null;
+    const interactionMax = interactionKind ? interactionMaxRange(this.root, interactionKind) : null;
+    const interactionRadius = interactionKind ? bufferedInteractionRange(this.root, interactionKind) : null;
+
+    // Interaction readiness is independent of which travel backend is
+    // installed. Never smart_move merely because controlled travel APIs are
+    // unavailable when the Merchant is already inside the verified NPC buffer.
+    if (controlledTarget && interactionRadius != null && c
+      && String(c.map || '') === String(target.map || '')
+      && serviceDistance(c, target) <= interactionRadius) {
+      this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+        transactionId: tx && tx.id || null,
+        requestedDestination: resolved.requested,
+        npcId: resolved.npcId,
+        interactionKind,
+        interactionMaxRange: interactionMax,
+        interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+        bufferedRange: interactionRadius,
+        distance: serviceDistance(c, target)
+      });
+      return { ok: true, controlled: typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function', alreadyInRange: true, resolved, bufferedRange: interactionRadius };
+    }
+
     if ((controlledTarget || controlledMap) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
-      const planned = this.runtime.planTravel({ destination: clone(target), metadata: { source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL', transactionId: tx && tx.id || null, requestedDestination: resolved.requested, npcId: resolved.npcId, resolutionSource: resolved.source } });
+      const planned = this.runtime.planTravel({
+        destination: clone(target),
+        arrivalRadius: interactionRadius == null ? undefined : interactionRadius,
+        metadata: {
+          source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL',
+          transactionId: tx && tx.id || null,
+          requestedDestination: resolved.requested,
+          npcId: resolved.npcId,
+          resolutionSource: resolved.source,
+          stopWhenInteractionReady: interactionRadius != null,
+          interactionKind,
+          interactionMaxRange: interactionMax,
+          interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+          bufferedInteractionRange: interactionRadius
+        }
+      });
       if (!planned || planned.accepted !== true || !planned.plan) {
         const reason = planned && planned.reason || 'CONTROLLED_SERVICE_TRAVEL_PLAN_REJECTED';
         if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
@@ -32439,7 +32617,16 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
   }
 }
 
-module.exports = { Alpha27AtomicService, serviceNpcId, usableNpcLocation };
+module.exports = {
+  Alpha27AtomicService,
+  serviceNpcId,
+  usableNpcLocation,
+  INTERACTION_SAFETY_FACTOR,
+  DEFAULT_NPC_INTERACTION_MAX,
+  DOOR_SERVER_INTERACTION_MAX,
+  interactionMaxRange,
+  bufferedInteractionRange
+};
 },
 "src/reliability/alpha27-atomic-transactions.js": function(require,module,exports){
 'use strict';
@@ -32790,12 +32977,17 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
 
       const gearProgression = this.runtime.gearProgression;
       let futureFarmerProtection = null;
+      let futureSellSafety = null;
       try {
         futureFarmerProtection = gearProgression && typeof gearProgression.futureProtectionFor === 'function'
           ? gearProgression.futureProtectionFor(row.character, row.index, name, level)
           : null;
+        futureSellSafety = gearProgression && typeof gearProgression.futureSellSafetyFor === 'function'
+          ? gearProgression.futureSellSafetyFor(row.character, row.index, name, level)
+          : null;
       } catch (_) {
         futureFarmerProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        futureSellSafety = null;
       }
 
       if (futureFarmerProtection) {
@@ -32844,10 +33036,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level > 0 && grade < 4 && underKeepValue) {
+          if (!futureSellSafety || futureSellSafety.checked !== true) {
+            return {
+              disposition: 'KEEP',
+              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            };
+          }
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
           };
         }
       }
@@ -32864,10 +33062,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level > 0 && grade < 4 && underKeepValue) {
+          if (!futureSellSafety || futureSellSafety.checked !== true) {
+            return {
+              disposition: 'KEEP',
+              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            };
+          }
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
           };
         }
       }
@@ -32908,6 +33112,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         processedGearSaleRequiresLifecycleAuthorization: true,
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
+        processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });
     }
@@ -33398,14 +33603,17 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      if (this.selfGear && await this.selfGear.cycle()) {
-        this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
-        return true;
-      }
+      // Farmer gear is first-class work. Ready Farmer upgrades are delivered
+      // before general mutation backlog, and Merchant self-gear is deliberately
+      // last so it cannot consume time/items needed by the party.
+      if (await this.deliverGearGoal()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
       if (request) return this.executeEconomyRequest(request);
-      if (await this.deliverGearGoal()) return true;
+      if (this.selfGear && await this.selfGear.cycle()) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+        return true;
+      }
       this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
       task = null;
     }
@@ -33422,14 +33630,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
       const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
-        if (this.selfGear && await this.selfGear.cycle()) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
-          return true;
-        }
+        if (await this.deliverGearGoal()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
         if (request) return this.executeEconomyRequest(request);
-        if (await this.deliverGearGoal()) return true;
+        if (this.selfGear && await this.selfGear.cycle()) {
+          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+          return true;
+        }
         this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
       }
     }
@@ -33486,6 +33694,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       centralLedgerPlanner: true,
       taskCoordinator: this.taskCoordinator ? this.taskCoordinator.status() : null,
       nonPreemptiveMerchantTasks: true,
+      farmerGearBeforeMerchantSelfGear: true,
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
@@ -33816,14 +34025,20 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         && !(goal.id != null && this.completedGearGoalClaims.has(String(goal.id)))
       ));
       let futureProtection = null;
+      let futureSellSafety = null;
       try {
         futureProtection = gear && typeof gear.futureProtectionFor === 'function'
           ? gear.futureProtectionFor(c.name, row.index, row.name, levelOf(row))
           : null;
+        futureSellSafety = gear && typeof gear.futureSellSafetyFor === 'function'
+          ? gear.futureSellSafetyFor(c.name, row.index, row.name, levelOf(row))
+          : null;
       } catch (_) {
         futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        futureSellSafety = null;
       }
-      return !activeFarmerGoal && !futureProtection;
+      if (!futureSellSafety || futureSellSafety.checked !== true) return false;
+      return !activeFarmerGoal && !futureProtection && futureSellSafety.protected !== true;
     });
 
     if (sell) {
@@ -46574,6 +46789,7 @@ module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
+const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -46690,7 +46906,7 @@ function installMerchantProduction(runtime, options = {}) {
     if (step.vendor.map && c.map && String(step.vendor.map) !== String(c.map)) return false;
     const cx = n(c.real_x, n(c.x)); const cy = n(c.real_y, n(c.y)); const vx = n(step.vendor.x); const vy = n(step.vendor.y);
     if (cx == null || cy == null || vx == null || vy == null) return true;
-    return Math.hypot(cx - vx, cy - vy) <= 450;
+    return Math.hypot(cx - vx, cy - vy) <= bufferedInteractionRange(runtime.root, 'npc');
   }
 
   function evaluate() {
@@ -46707,7 +46923,21 @@ function installMerchantProduction(runtime, options = {}) {
   }
   async function travelVendor(step) {
     if (!step || !step.vendor || typeof runtime.planTravel !== 'function' || typeof runtime.executeTravelPlan !== 'function') return { ok: false, reason: 'VENDOR_TRAVEL_UNAVAILABLE' };
-    const planned = runtime.planTravel({ destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y }, metadata: { source: 'MERCHANT_PRODUCTION', item: step.name } });
+    const interactionMax = interactionMaxRange(runtime.root, 'npc');
+    const arrivalRadius = bufferedInteractionRange(runtime.root, 'npc');
+    const planned = runtime.planTravel({
+      destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y },
+      arrivalRadius,
+      metadata: {
+        source: 'MERCHANT_PRODUCTION',
+        item: step.name,
+        stopWhenInteractionReady: true,
+        interactionKind: 'npc',
+        interactionMaxRange: interactionMax,
+        interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+        bufferedInteractionRange: arrivalRadius
+      }
+    });
     if (!planned || planned.accepted !== true || !planned.plan) return { ok: false, reason: planned && planned.reason || 'VENDOR_TRAVEL_PLAN_REJECTED' };
     const result = await runtime.executeTravelPlan(planned.plan.id);
     return { ok: !!(result && (result.completed === true || result.ok === true || result.result === 'COMPLETED')), result: clone(result) };
@@ -46832,6 +47062,11 @@ function installMerchantProduction(runtime, options = {}) {
       mode: MERCHANT_PRODUCTION_CONTROLLER_MODE,
       planner: planner.status(),
       controlled: executor.status(),
+      interactionArrival: {
+        safetyFactor: INTERACTION_SAFETY_FACTOR,
+        npcMaxRange: interactionMaxRange(runtime.root, 'npc'),
+        npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
+      },
       bankCatalog: bankCatalog.status(),
       autoLiveEnabled: true,
       collectionSessionBlocksProduction: collectionBusy(),
@@ -47567,6 +47802,37 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
       this.stats.failedSafe += 1;
       this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: destination, resolved });
       return { ok: false, reason, resolved };
+    }
+
+    const current = characterOf(this.runtime);
+    const target = resolved.destination;
+    const sellDistance = finite(
+      this.root && this.root.B && this.root.B.sell_dist,
+      finite(this.root && this.root.parent && this.root.parent.B && this.root.parent.B.sell_dist, 120)
+    );
+    const bufferedRange = Math.max(45, sellDistance * 0.90);
+    if (resolved.npcId && target && typeof target === 'object'
+      && current && String(current.map || '') === String(target.map || '')
+      && distance(current, target) <= bufferedRange) {
+      const strategy = {
+        strategy: 'ALREADY_IN_RANGE',
+        reason: 'BUFFERED_INTERACTION_RANGE_REACHED',
+        currentDistance: Math.round(distance(current, target)),
+        walkEtaMs: 0,
+        townEtaMs: null,
+        estimatedSavingsMs: 0,
+        town: null,
+        target: clone(target)
+      };
+      state.lastStrategy = { at: typeof this.now === 'function' ? this.now() : Date.now(), requestedDestination: resolved.requested, npcId: resolved.npcId, ...strategy };
+      this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', strategy.reason, {
+        transactionId: tx && tx.id || null,
+        requestedDestination: resolved.requested,
+        npcId: resolved.npcId,
+        bufferedRange,
+        distance: distance(current, target)
+      });
+      return { ok: true, controlled: true, alreadyInRange: true, resolved, bufferedRange, strategy };
     }
 
     const strategy = estimateTravelStrategy(this.root, this.runtime, resolved, state);
@@ -50606,7 +50872,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
-    this.collectionSettleMs = Math.max(3000, Math.min(20000, finite(options.collectionSettleMs, 7000)));
+    this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
     this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
     this.lastFarmerStateSentAt = -Infinity;
@@ -50614,6 +50880,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.merchantRendezvousBusy = false;
     this.collectionRoute = null;
     this.lastCollectionCapacityPlan = null;
+    this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
     this.stats = {
       huntersMarkExistingDebuffSkips: 0,
@@ -50967,8 +51234,11 @@ class Alpha33MarkOrbitMerchantDelivery {
     const sc = snap && snap.character || {};
     const live = characterOf(this.runtime) || {};
     const gear = equipmentView(live.slots || live.equipment || sc.equipment || sc.gear || {});
+    const inventory = Array.isArray(sc.inventory) ? sc.inventory : Array.isArray(live.items) ? live.items.map((item, index) => item ? { ...item, index } : null) : [];
+    const pickupItems = pickupItemsView(logistics, inventory);
     return {
       runtimeActive: true,
+      at: this.now(),
       name: cleanName(sc.name || live.name),
       ctype: sc.ctype || live.ctype || null,
       level: Math.max(0, finite(sc.level != null ? sc.level : live.level, 0)),
@@ -50976,7 +51246,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
       y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
       rip: !!(sc.rip || live.rip),
-      gear
+      gear,
+      pickupItems,
+      pickupEntryCount: pickupItems.length,
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + Math.max(1, finite(item.quantity, 1)), 0)
     };
   }
 
@@ -51004,6 +51277,14 @@ class Alpha33MarkOrbitMerchantDelivery {
     const name = cleanName(sender || data && data.sender || data && data.name);
     if (!name) return false;
     const gear = equipmentView(data && data.gear || {});
+    const pickupItems = Array.isArray(data && data.pickupItems)
+      ? data.pickupItems.slice(0, 64).filter((item) => item && item.name).map((item) => ({
+          name: String(item.name),
+          level: Math.max(0, Math.floor(finite(item.level, 0))),
+          quantity: Math.max(1, Math.floor(finite(item.quantity, 1))),
+          metadataType: item.metadataType || null
+        }))
+      : [];
     const row = {
       name,
       ctype: data && data.ctype || null,
@@ -51014,7 +51295,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       online: true,
       available: !(data && data.rip),
       dead: !!(data && data.rip),
-      gear
+      gear,
+      pickupItems,
+      pickupEntryCount: pickupItems.length,
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + item.quantity, 0)
     };
     this.farmerStates.set(name, { ...row, at: this.now(), sourceAt: finite(data && data.at, this.now()), runtimeActive: data && data.runtimeActive === true });
     this.stats.farmerStateReceived += 1;
@@ -51067,6 +51351,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       }
       const accepted = baseReceive(sender, data);
       if (accepted && action === 'STATUS' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
+      if (accepted && action === 'STATUS_REQUEST' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
       if (accepted && action === 'STOP_FULL' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
       return accepted;
     };
@@ -51074,93 +51359,363 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
-  _merchantRendezvousCandidate() {
-    const logistics = this.runtime.controlledPartyLogistics;
-    if (!logistics || !(logistics.rendezvousRequests instanceof Map)) return null;
+  _freshFarmerRows() {
     const now = this.now();
-    const ttl = Math.max(3000, finite(logistics.config && logistics.config.rendezvousRequestTtlMs, 15000));
-    const rows = [...logistics.rendezvousRequests.values()].filter((row) => row
-      && row.map
-      && finite(row.x) != null
-      && finite(row.y) != null
-      && now - finite(row.at, 0) <= ttl
-      && ['RENDEZVOUS', 'LOOT_OFFER', 'GOLD_OFFER', 'SUPPLY_REQUEST'].includes(String(row.action || 'RENDEZVOUS')));
-    if (!rows.length) return null;
+    const rows = [];
+    for (const row of this.farmerStates.values()) {
+      if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) continue;
+      if (!row.map || finite(row.x) == null || finite(row.y) == null) continue;
+      const receivedAge = Math.max(0, now - finite(row.at, 0));
+      const sourceAge = Math.max(0, now - finite(row.sourceAt, 0));
+      if (receivedAge > this.farmerPositionFreshMs || sourceAge > this.farmerPositionFreshMs) {
+        this.stats.staleFarmerPositionsRejected += 1;
+        continue;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  _requestFarmerStateRefresh() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics._send !== 'function' || typeof logistics._trustedNames !== 'function') return false;
+    const now = this.now();
+    const fresh = new Set(this._freshFarmerRows().map((row) => String(row.name)));
+    let sent = false;
+    for (const name of logistics._trustedNames()) {
+      if (!name || name === cleanName(characterOf(this.runtime) && characterOf(this.runtime).name) || fresh.has(String(name))) continue;
+      const last = finite(this.farmerStateRefreshAt.get(String(name)), -Infinity);
+      if (now - last < this.farmerStateIntervalMs) continue;
+      this.farmerStateRefreshAt.set(String(name), now);
+      this.stats.farmerStateRefreshRequests += 1;
+      Promise.resolve(logistics._send(name, 'STATUS_REQUEST', {
+        at: now,
+        reason: 'MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED'
+      })).catch(() => {});
+      sent = true;
+    }
+    return sent;
+  }
+
+  _merchantRendezvousCandidate() {
+    const freshRows = this._freshFarmerRows();
+    const pickupRows = freshRows.filter((row) => Array.isArray(row.pickupItems) && row.pickupItems.length > 0);
+    if (!pickupRows.length) {
+      this._requestFarmerStateRefresh();
+      return null;
+    }
     const byMap = new Map();
-    for (const row of rows) {
+    for (const row of pickupRows) {
       const list = byMap.get(String(row.map)) || [];
       list.push(row);
       byMap.set(String(row.map), list);
     }
-    const groups = [...byMap.entries()].map(([map, list]) => ({
+    const groups = [...byMap.entries()].map(([map, rows]) => ({
       map,
-      rows: list,
-      freshestAt: Math.max(...list.map((row) => finite(row.at, 0)))
-    })).sort((a, b) => b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
+      rows,
+      pickupEntryCount: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupEntryCount, 0)), 0),
+      pickupQuantity: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupQuantity, 0)), 0),
+      freshestAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
+    })).sort((a, b) => b.pickupEntryCount - a.pickupEntryCount || b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
     const selected = groups[0];
-    const x = selected.rows.reduce((sum, row) => sum + Number(row.x), 0) / selected.rows.length;
-    const y = selected.rows.reduce((sum, row) => sum + Number(row.y), 0) / selected.rows.length;
-    return { map: selected.map, x, y, count: selected.rows.length, names: selected.rows.map((row) => row.name).filter(Boolean).sort() };
+    const target = selected.rows.slice().sort((a, b) =>
+      Math.max(0, finite(b.pickupEntryCount, 0)) - Math.max(0, finite(a.pickupEntryCount, 0))
+      || Math.max(0, finite(b.pickupQuantity, 0)) - Math.max(0, finite(a.pickupQuantity, 0))
+      || Math.min(finite(b.at, 0), finite(b.sourceAt, 0)) - Math.min(finite(a.at, 0), finite(a.sourceAt, 0))
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    )[0];
+    return {
+      map: selected.map,
+      x: Number(target.x),
+      y: Number(target.y),
+      targetName: target.name || null,
+      count: selected.rows.length,
+      names: selected.rows.map((row) => row.name).filter(Boolean).sort(),
+      rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
+      pickupEntryCount: selected.pickupEntryCount,
+      pickupQuantity: selected.pickupQuantity,
+      observedAt: selected.freshestAt
+    };
   }
 
-  async _driveMerchantRendezvous(merchant) {
-    if (this.merchantRendezvousBusy || this.now() - this.lastMerchantRendezvousAt < this.merchantRendezvousCooldownMs) return false;
-    const c = characterOf(this.runtime);
-    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant' || c.rip) return false;
-    if (hasIncomingAggro(this.runtime)) return false;
-    const plan = merchant && merchant.lastMerchantPlan;
-    if (!plan || plan.action !== 'IDLE' || plan.reason !== 'NO_LEDGER_AUTHORIZED_ACTION') return false;
-    if (!merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function' || merchant.atomic.serviceTravelBusy || merchant.atomic.merchantBusy) return false;
-    const candidate = this._merchantRendezvousCandidate();
-    if (!candidate) return false;
-    const logistics = this.runtime.controlledPartyLogistics;
-    const nearDistance = Math.max(120, Math.min(
-      finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
-      finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
-    ));
-    if (String(c.map || '') === String(candidate.map) && distance(c, candidate) <= nearDistance) {
-      this.stats.merchantRendezvousAlreadyNear += 1;
-      return false;
+  _merchantCapacitySnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const items = Array.isArray(c.items) ? c.items : [];
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    return { capacity, occupied, freeSlots: Math.max(0, capacity - occupied), items };
+  }
+
+  _collectionCapacityPlan(candidate) {
+    const snapshot = this._merchantCapacitySnapshot();
+    const gameData = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+      ? this.runtime.adapter.getGameData() || {}
+      : this.root && this.root.G || {};
+    const incoming = new Map();
+    for (const row of candidate && candidate.rows || []) {
+      for (const item of Array.isArray(row.pickupItems) ? row.pickupItems : []) {
+        const key = `${item.name}:${Math.max(0, Math.floor(finite(item.level, 0)))}`;
+        incoming.set(key, (incoming.get(key) || 0) + Math.max(1, Math.floor(finite(item.quantity, 1))));
+      }
     }
+
+    let incomingSlotsNeeded = 0;
+    const identities = [];
+    for (const [key, quantity] of incoming.entries()) {
+      const split = key.lastIndexOf(':');
+      const name = key.slice(0, split);
+      const level = Math.max(0, Math.floor(finite(key.slice(split + 1), 0)));
+      const meta = gameData.items && gameData.items[name];
+      const stackMax = Math.max(1, Math.floor(finite(meta && meta.s, 1)));
+      let headroom = 0;
+      for (const item of snapshot.items) {
+        if (!item || String(item.name || '') !== name || levelOf(item) !== level) continue;
+        headroom += Math.max(0, stackMax - Math.max(1, Math.floor(finite(item.q, 1))));
+      }
+      const remaining = Math.max(0, quantity - headroom);
+      const slots = Math.ceil(remaining / stackMax);
+      incomingSlotsNeeded += slots;
+      identities.push({ name, level, quantity, stackMax, existingHeadroom: headroom, newSlotsNeeded: slots });
+    }
+
+    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded);
+    const slotsToFree = Math.max(0, targetFreeSlots - snapshot.freeSlots);
+    const plan = {
+      at: this.now(),
+      farmerCount: candidate && candidate.count || 0,
+      farmerNames: candidate && candidate.names ? candidate.names.slice() : [],
+      pickupEntryCount: candidate && candidate.pickupEntryCount || 0,
+      pickupQuantity: candidate && candidate.pickupQuantity || 0,
+      incomingSlotsNeeded,
+      targetFreeSlots,
+      currentFreeSlots: snapshot.freeSlots,
+      slotsToFree,
+      constrainedByCapacity: incomingSlotsNeeded > snapshot.capacity,
+      identities
+    };
+    this.lastCollectionCapacityPlan = plan;
+    return plan;
+  }
+
+  async _prepareCollectionCapacity(merchant, candidate) {
+    const plan = this._collectionCapacityPlan(candidate);
+    if (plan.slotsToFree <= 0) return { ready: true, acted: false, plan };
+
+    const request = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
+    if (request && ['SELL', 'BANK'].includes(String(request.type || ''))) {
+      this.stats.collectionCapacityDisposals += 1;
+      const acted = await merchant.executeEconomyRequest(request);
+      return { ready: false, acted: !!acted, plan, request };
+    }
+
+    // A complete compound set frees two inventory slots. Use it only when no
+    // safe SELL/BANK disposal is available and capacity still blocks collection.
+    const compound = merchant && typeof merchant.planCompound === 'function' ? merchant.planCompound() : null;
+    if (compound) {
+      const acted = await merchant.executeEconomyRequest(compound);
+      return { ready: false, acted: !!acted, plan, request: compound };
+    }
+
+    this.stats.collectionCapacityConstrainedDepartures += 1;
+    return { ready: true, acted: false, plan, constrained: true };
+  }
+
+  _collectionCoordinator() {
+    return this.runtime.merchantTaskCoordinator || null;
+  }
+
+  _startCollectionRoute(candidate) {
+    if (!candidate || !candidate.pickupEntryCount) return false;
+    const coordinator = this._collectionCoordinator();
+    const lock = coordinator && typeof coordinator.acquire === 'function'
+      ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
+          farmers: candidate.names.slice(),
+          pickupEntries: candidate.pickupEntryCount,
+          pickupQuantity: candidate.pickupQuantity
+        }, { leaseMs: Math.max(120000, this.collectionPrepareMaxMs + 60000) })
+      : { acquired: true };
+    if (!lock.acquired) return false;
+    const now = this.now();
+    this.collectionRoute = {
+      id: `collection-${now.toString(36)}`,
+      startedAt: now,
+      updatedAt: now,
+      lastProgressAt: now,
+      lastPickupQuantity: candidate.pickupQuantity,
+      stage: 'PREPARE_CAPACITY',
+      farmers: candidate.names.slice(),
+      targetMap: candidate.map,
+      targetX: candidate.x,
+      targetY: candidate.y
+    };
+    this.stats.collectionRoutesStarted += 1;
+    this._event('MERCHANT_COLLECTION_ROUTE_STARTED', 'info', 'FRESH_FARMER_PICKUP_DEMAND', {
+      route: { ...this.collectionRoute },
+      capacity: this._collectionCapacityPlan(candidate)
+    });
+    return true;
+  }
+
+  _finishCollectionRoute(reason, details = {}) {
+    const route = this.collectionRoute;
+    if (!route) return false;
+    this.collectionRoute = null;
+    const coordinator = this._collectionCoordinator();
+    if (coordinator && typeof coordinator.release === 'function') {
+      coordinator.release('RENDEZVOUS', 'rendezvous:farmer-collection', reason, details);
+    }
+    this.stats.collectionRoutesCompleted += 1;
+    this.lastMerchantRendezvous = {
+      at: this.now(),
+      routeId: route.id,
+      workers: route.farmers.slice(),
+      ok: true,
+      result: reason,
+      details
+    };
+    this._event('MERCHANT_COLLECTION_ROUTE_COMPLETED', 'info', reason, this.lastMerchantRendezvous);
+    return true;
+  }
+
+  async _travelToFreshCandidate(merchant, candidate, follow = false) {
+    if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
     const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
     this.merchantRendezvousBusy = true;
     this.lastMerchantRendezvousAt = this.now();
     this.stats.merchantRendezvousAttempts += 1;
-    merchant.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'PARTY_LOGISTICS_RENDEZVOUS', destination, workers: candidate.names.slice(), pendingTransfers: candidate.count };
-    this._event('MERCHANT_IDLE_RENDEZVOUS_STARTED', 'info', 'PENDING_PARTY_TRANSFER_WORK', merchant.lastMerchantPlan);
+    if (follow) this.stats.collectionFollowMoves += 1;
+    merchant.lastMerchantPlan = {
+      at: this.now(),
+      action: 'SERVICE_TRAVEL',
+      reason: follow ? 'FOLLOW_FRESH_FARMER_COLLECTION_POSITION' : 'PARTY_LOGISTICS_RENDEZVOUS',
+      destination,
+      workers: candidate.names.slice(),
+      pendingTransfers: candidate.pickupEntryCount
+    };
     try {
       const result = await merchant.atomic.namedServiceTravel(destination);
       const ok = result === true || !!(result && result.ok === true);
       this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: candidate.names.slice() };
-      if (ok) {
-        this.stats.merchantRendezvousCompleted += 1;
-        this._event('MERCHANT_IDLE_RENDEZVOUS_COMPLETED', 'info', 'PARTY_TRANSFER_RANGE_RESTORED', this.lastMerchantRendezvous);
-      } else {
-        this.stats.merchantRendezvousFailed += 1;
-        this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', result && result.reason || 'RENDEZVOUS_TRAVEL_FAILED', this.lastMerchantRendezvous);
-      }
+      if (ok) this.stats.merchantRendezvousCompleted += 1;
+      else this.stats.merchantRendezvousFailed += 1;
       return ok;
     } catch (error) {
       this.stats.merchantRendezvousFailed += 1;
       this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: candidate.names.slice() };
-      this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', 'RENDEZVOUS_TRAVEL_EXCEPTION', this.lastMerchantRendezvous);
       return false;
     } finally {
       this.merchantRendezvousBusy = false;
     }
   }
 
+  async _driveMerchantRendezvous(merchant) {
+    if (this.merchantRendezvousBusy) return true;
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant' || c.rip) return false;
+    if (hasIncomingAggro(this.runtime)) return !!this.collectionRoute;
+
+    let candidate = this._merchantRendezvousCandidate();
+    if (!this.collectionRoute) {
+      if (!candidate || !candidate.pickupEntryCount) return false;
+      if (!this._startCollectionRoute(candidate)) return false;
+    }
+
+    const route = this.collectionRoute;
+    if (!route) return false;
+    const coordinator = this._collectionCoordinator();
+    if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
+
+    candidate = this._merchantRendezvousCandidate();
+    if (!candidate) {
+      this._requestFarmerStateRefresh();
+      if (this.now() - route.lastProgressAt >= this.collectionSettleMs) {
+        return this._finishCollectionRoute('NO_FRESH_PICKUP_DEMAND_AFTER_SETTLE');
+      }
+      merchant.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'WAITING_FOR_FRESH_FARMER_COLLECTION_STATE', routeId: route.id };
+      return true;
+    }
+
+    if (candidate.pickupQuantity < route.lastPickupQuantity) {
+      route.lastProgressAt = this.now();
+      route.lastPickupQuantity = candidate.pickupQuantity;
+    }
+    route.updatedAt = this.now();
+    route.farmers = candidate.names.slice();
+
+    const pressure = this._merchantCapacitySnapshot();
+    if (pressure.freeSlots <= 0) return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', { pickupQuantityRemaining: candidate.pickupQuantity });
+
+    if (route.stage === 'PREPARE_CAPACITY') {
+      const prepared = await this._prepareCollectionCapacity(merchant, candidate);
+      if (!prepared.ready) {
+        merchant.lastMerchantPlan = { at: this.now(), action: 'COLLECTION_PREPARE', reason: 'FREEING_CAPACITY_FOR_FARMER_PICKUP', capacity: prepared.plan };
+        return true;
+      }
+      route.stage = 'TRAVEL_TO_FARMERS';
+      route.updatedAt = this.now();
+    }
+
+    const logistics = this.runtime.controlledPartyLogistics;
+    const nearDistance = Math.max(120, Math.min(
+      finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
+      finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
+    ));
+    const nearFresh = String(c.map || '') === String(candidate.map) && distance(c, candidate) <= nearDistance;
+
+    if (route.stage === 'TRAVEL_TO_FARMERS') {
+      if (!nearFresh) {
+        await this._travelToFreshCandidate(merchant, candidate, false);
+        return true;
+      }
+      route.stage = 'COLLECT';
+      route.lastProgressAt = this.now();
+      route.updatedAt = this.now();
+    }
+
+    if (route.stage === 'COLLECT') {
+      if (!nearFresh) {
+        await this._travelToFreshCandidate(merchant, candidate, true);
+        return true;
+      }
+      if (candidate.pickupEntryCount <= 0 || candidate.pickupQuantity <= 0) {
+        if (this.now() - route.lastProgressAt >= this.collectionSettleMs) return this._finishCollectionRoute('FARMER_PICKUP_DRAINED');
+      } else {
+        // Stay put. ControlledPartyLogistics owns serialized grants/offers.
+        // Do not release the task lock just because Alpha27 has no local action.
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'FARMER_COLLECTION_ACTIVE',
+          routeId: route.id,
+          workers: candidate.names.slice(),
+          pickupEntriesRemaining: candidate.pickupEntryCount,
+          pickupQuantityRemaining: candidate.pickupQuantity,
+          freeSlots: pressure.freeSlots
+        };
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   _installMerchantRendezvousAuthority() {
     const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
     const merchant = alpha27 && alpha27.merchant;
-    if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV2Installed) return false;
+    if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV3Installed) return false;
     const baseCycle = merchant.cycle.bind(merchant);
     merchant.cycle = async () => {
-      const acted = await baseCycle();
-      if (acted) return acted;
-      return this._driveMerchantRendezvous(merchant);
+      // Fresh collection work preempts ordinary progression/production. Once
+      // started, the collection route owns the global Merchant task lock until
+      // all transferable Farmer inventory is drained or Merchant inventory fills.
+      const candidate = this._merchantRendezvousCandidate();
+      if (this.collectionRoute || candidate && candidate.pickupEntryCount > 0) {
+        const handled = await this._driveMerchantRendezvous(merchant);
+        if (handled) return true;
+      }
+      return baseCycle();
     };
-    merchant.__alpha33MerchantRendezvousV2Installed = true;
+    merchant.__alpha33MerchantRendezvousV3Installed = true;
     return true;
   }
 
@@ -51192,18 +51747,27 @@ class Alpha33MarkOrbitMerchantDelivery {
         staleGearGoalsFailClosed: true,
         localProgressionGearIsNotReturnedAsLoot: true,
         alpha27OwnsCrossMapMerchantRendezvous: true,
-        merchantRendezvousRequiresPendingTransferWork: true
+        merchantRendezvousRequiresPendingTransferWork: true,
+        farmerPositionMustBeFresh: true,
+        collectionRouteTaskLockedUntilTerminal: true,
+        merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
+        futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
         trainingRadiusFactor: this.trainingRadiusFactor,
         trainingRadiusMin: this.trainingRadiusMin,
         trainingRadiusMax: this.trainingRadiusMax,
         farmerStateIntervalMs: this.farmerStateIntervalMs,
+        farmerPositionFreshMs: this.farmerPositionFreshMs,
+        collectionSettleMs: this.collectionSettleMs,
+        collectionPrepareMaxMs: this.collectionPrepareMaxMs,
         merchantRendezvousCooldownMs: this.merchantRendezvousCooldownMs
       },
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
       lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
-      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length })),
+      collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
+      lastCollectionCapacityPlan: this.lastCollectionCapacityPlan ? { ...this.lastCollectionCapacityPlan } : null,
+      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length, pickupEntryCount: row.pickupEntryCount || 0, pickupQuantity: row.pickupQuantity || 0 })),
       stats: { ...this.stats }
     };
   }
