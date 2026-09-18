@@ -3,8 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountCharacterTransport } = require('../src/party/account-character-transport');
-const { ContentDriftStorageHotfix } = require('../src/reliability/content-drift-storage-hotfix');
-const { ContentDriftSemanticRecovery } = require('../src/reliability/content-drift-semantic-recovery');
+const { ContentDriftStorageHotfix } = require('../src/content/content-drift-storage-hotfix');
+const { ContentDriftSemanticRecovery } = require('../src/content/content-drift-semantic-recovery');
 const { WorldModel } = require('../src/world/world-model');
 const { ContentSafetyGate, ContentDisposition } = require('../src/farmer/content-safety');
 
