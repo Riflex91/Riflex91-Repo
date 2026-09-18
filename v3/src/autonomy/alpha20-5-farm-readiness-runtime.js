@@ -34,10 +34,12 @@ function clone(value) {
   try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
 }
 
-class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
-  constructor(options = {}) {
-    const injectedBankCapacity = options.bankCapacity || createObservableBankCapacityManager(options);
-    super({ ...options, bankCapacity: injectedBankCapacity });
+function prepareAlpha20_5FarmReadinessOptions(options = {}) {
+  const injectedBankCapacity = options.bankCapacity || createObservableBankCapacityManager(options);
+  return { ...options, bankCapacity: injectedBankCapacity };
+}
+
+function composeAlpha20_5FarmReadinessRuntime(options = {}) {
     if (!options.bankCapacity && this.bankCapacity) this.bankCapacity.log = this.log;
 
     this.controlledFarmerLoot = options.controlledFarmerLoot || new ControlledFarmerLoot({
@@ -168,6 +170,13 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
       exclusionMs: options.farmAreaPressureExclusionMs,
       switchCooldownMs: options.farmAreaPressureSwitchCooldownMs
     });
+}
+
+class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
+  constructor(options = {}) {
+    const preparedOptions = prepareAlpha20_5FarmReadinessOptions(options);
+    super(preparedOptions);
+    composeAlpha20_5FarmReadinessRuntime.call(this, options);
   }
 
   start() {
@@ -332,4 +341,4 @@ class Alpha20_5FarmReadinessRuntime extends Alpha20_5MerchantRuntime {
   }
 }
 
-module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE };
+module.exports = { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE, prepareAlpha20_5FarmReadinessOptions, composeAlpha20_5FarmReadinessRuntime };
