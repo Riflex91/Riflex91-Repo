@@ -52,6 +52,8 @@ class ProductionHostHarness {
       connectAttempts: options.browserCdpConnectAttempts,
       reconnectBaseMs: options.browserCdpReconnectBaseMs,
       reconnectMaxMs: options.browserCdpReconnectMaxMs,
+      startupWaitMs: options.browserCdpStartupWaitMs,
+      startupPollMs: options.browserCdpStartupPollMs,
       sleep: options.browserCdpSleep
     }) : null);
     const browserContext = options.browserPage || options.browserFrame || options.browserContext
