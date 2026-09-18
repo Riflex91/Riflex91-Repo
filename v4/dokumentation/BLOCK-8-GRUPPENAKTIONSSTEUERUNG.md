@@ -52,7 +52,9 @@ Die Logik:
 4. verwirft abgelaufene Anfragen **vor** `reicheAnfrageEin(...)`,
 5. reicht nur noch gueltige und freigegebene Anfragen ein,
 6. ruft `verarbeiteNaechsteAktion(jetzt)` nur bei `verarbeiten: true` auf,
-7. gibt Laufzustaende und Schattenprotokoll explizit zurueck.
+7. bricht alte wartende, blockierte oder laufende Gruppenarbeit fail-safe ab, wenn die aktuelle Gruppenplanung `blockiert` oder lokal `leer` ist,
+8. laesst andere zentrale Arbeit sowie reine Freigabesperren von diesem Safety-Abbruch unberuehrt,
+9. gibt Laufzustaende und Schattenprotokoll explizit zurueck.
 
 ## Zentrale Browser-Steuerung
 
@@ -199,4 +201,6 @@ Auch bei Nachweis C wird nur der zentrale Schattenzustand veraendert. Die Browse
 
 ## Naechster Schritt
 
-Erst nach Live-Abnahme dieser Stufe wird entschieden, welche konkrete `GRUPPE_*`-Aktion als erste einen Adventure-Land-Ausfuehrungsadapter erhalten darf. Bis dahin endet Block 8 strikt in `SchattenAusfuehrung`.
+Die zentrale Schattenstufe sowie die Abschluss-Haertung fuer Ressourcenblockierung, Preemption, Expiry, Plan-Invalidierung und fail-safe Neustart sind bestanden. Der formale Block-8-Abschluss bleibt wegen der aktiven Freigabekampagne und des 72-Stunden-Gruppentests offen.
+
+Der genaue Gate-Ablauf steht in `BLOCK-8-ABSCHLUSSSTATUS.md`. Bis ein dort beschriebener minimaler Adapter seine Offline-, Replay-/Simulations-, Schatten- und one-shot-Live-Gates bestanden hat, endet Block 8 strikt in `SchattenAusfuehrung`.
