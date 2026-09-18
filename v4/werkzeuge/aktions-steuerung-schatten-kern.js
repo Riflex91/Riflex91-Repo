@@ -4,7 +4,9 @@
   const API_NAME = 'V4AktionsSteuerungSchattenKern';
   const VERSION = '1.0.0';
   const QUELL_BLOB_SHAS = Object.freeze({
-    aktionsSteuerung: '8d6686d59cb49124cc4ce3073bc1071286c282e9',
+    aktionsSteuerung: '4f43b996a474a561d623f85261d5aca264167bbb',
+    laufzeitSteuerung: '22751accce38c92205c811d1be36c3f4dd0e7f30',
+    laufzeitVertrag: '452ecdfcba63092fe1a68b1312511c456fd2ef08',
     aktionsAuswahl: '8bd3c08a7bfe37139fc9052bfc3e9dbfbfb79afa',
     ressourcenVergabe: '209f94c5db0dd52c6b9182f0e4ef52cdfac13120',
     schattenAusfuehrung: 'f991c1082e87ae74f21f5c0912a79f8f78484429',
@@ -14,13 +16,92 @@
   const GUELTIGE_RESSOURCEN = new Set(RESSOURCEN_NAMEN);
   const AKTIONS_WICHTIGKEITS_RANG = Object.freeze({ notfall: 4, sicherheit: 3, normal: 2, hintergrund: 1 });
 
+  function istPauseGeschuetzteWichtigkeit(wichtigkeit) {
+    return wichtigkeit === 'notfall' || wichtigkeit === 'sicherheit';
+  }
+
+  function pruefeLaufzeitZeitpunkt(zeitpunkt) {
+    if (!Number.isFinite(zeitpunkt) || zeitpunkt < 0) {
+      throw new Error('Der Laufzeitsteuerungs-Zeitpunkt muss endlich und nichtnegativ sein.');
+    }
+  }
+
+  function pruefeLaufzeitGrund(grund) {
+    if (String(grund).trim().length === 0) throw new Error('Die Laufzeitsteuerung benoetigt einen Grund.');
+  }
+
+  class LaufzeitSteuerung {
+    constructor() {
+      this.zustand = 'laeuft';
+      this.generation = 0;
+      this.letzteAenderungAm = null;
+      this.grund = 'Laufzeit ist fuer normale Arbeit freigegeben.';
+    }
+
+    status() {
+      return Object.freeze({
+        schemaVersion: 1,
+        zustand: this.zustand,
+        generation: this.generation,
+        letzteAenderungAm: this.letzteAenderungAm,
+        grund: this.grund,
+        automatischeFortsetzung: false
+      });
+    }
+
+    pausiere(zeitpunkt, grund) {
+      pruefeLaufzeitZeitpunkt(zeitpunkt);
+      pruefeLaufzeitGrund(grund);
+      if (this.letzteAenderungAm !== null && zeitpunkt < this.letzteAenderungAm) {
+        throw new Error('Der Laufzeitsteuerungs-Zeitpunkt liegt vor der letzten Zustandsaenderung.');
+      }
+      if (this.zustand === 'pausiert') return this.status();
+      this.zustand = 'pausiert';
+      this.generation += 1;
+      this.letzteAenderungAm = zeitpunkt;
+      this.grund = grund;
+      return this.status();
+    }
+
+    setzeFort(zeitpunkt, grund) {
+      pruefeLaufzeitZeitpunkt(zeitpunkt);
+      pruefeLaufzeitGrund(grund);
+      if (this.letzteAenderungAm !== null && zeitpunkt < this.letzteAenderungAm) {
+        throw new Error('Der Laufzeitsteuerungs-Zeitpunkt liegt vor der letzten Zustandsaenderung.');
+      }
+      if (this.zustand === 'laeuft') return this.status();
+      this.zustand = 'laeuft';
+      this.generation += 1;
+      this.letzteAenderungAm = zeitpunkt;
+      this.grund = grund;
+      return this.status();
+    }
+
+    pruefeAktionsAnfrage(anfrage) {
+      if (this.zustand === 'laeuft') {
+        return Object.freeze({ erlaubt: true, grund: 'Laufzeit ist fuer normale Arbeit freigegeben.' });
+      }
+      if (istPauseGeschuetzteWichtigkeit(anfrage.wichtigkeit)) {
+        return Object.freeze({
+          erlaubt: true,
+          grund: 'Laufzeit ist pausiert; Notfall- und Sicherheitsarbeit bleibt ausdruecklich zugelassen.'
+        });
+      }
+      return Object.freeze({
+        erlaubt: false,
+        grund: 'Laufzeit ist pausiert; normale und Hintergrundarbeit darf nicht gestartet oder fortgesetzt werden.'
+      });
+    }
+  }
+
   function friereListe(werte) { return Object.freeze([...werte]); }
   function kopiereAnfrage(anfrage) {
     return Object.freeze({ ...anfrage, benoetigteRessourcen: Object.freeze([...new Set(anfrage.benoetigteRessourcen)].sort()) });
   }
 
   class AktionsSteuerung {
-    constructor() {
+    constructor(optionen = {}) {
+      this.laufzeitSteuerung = optionen.laufzeitSteuerung ?? new LaufzeitSteuerung();
       this.zustaende = new Map();
       this.ressourcenSperren = new Map();
       this.schattenEintraege = [];
@@ -32,13 +113,16 @@
       this.pruefeAnfrage(anfrage);
       if (this.zustaende.has(anfrage.kennung)) throw new Error(`Die AktionsAnfrage-Kennung ${anfrage.kennung} wurde bereits verwendet.`);
       const gespeicherteAnfrage = kopiereAnfrage(anfrage);
+      const laufzeitFreigabe = this.laufzeitSteuerung.pruefeAktionsAnfrage(gespeicherteAnfrage);
       const zustand = Object.freeze({
         anfrage: gespeicherteAnfrage,
-        phase: 'wartend',
+        phase: laufzeitFreigabe.erlaubt ? 'wartend' : 'abgebrochen',
         eingereihtAm: gespeicherteAnfrage.angefordertAm,
         gestartetAm: null,
-        beendetAm: null,
-        zustandsGrund: 'Anfrage wartet auf die zentrale AktionsSteuerung.',
+        beendetAm: laufzeitFreigabe.erlaubt ? null : gespeicherteAnfrage.angefordertAm,
+        zustandsGrund: laufzeitFreigabe.erlaubt
+          ? 'Anfrage wartet auf die zentrale AktionsSteuerung.'
+          : laufzeitFreigabe.grund,
         blockiertDurch: Object.freeze([])
       });
       this.zustaende.set(gespeicherteAnfrage.kennung, zustand);
@@ -62,6 +146,13 @@
       const blockierteAnfragen = [];
 
       for (const anfrage of kandidaten) {
+        const laufzeitFreigabe = this.laufzeitSteuerung.pruefeAktionsAnfrage(anfrage);
+        if (!laufzeitFreigabe.erlaubt) {
+          this.brecheAktionAb(anfrage.kennung, jetzt, laufzeitFreigabe.grund);
+          blockierteAnfragen.push(anfrage.kennung);
+          continue;
+        }
+
         const sperrErgebnis = this.versucheRessourcenFuerAnfrageZuSperren(anfrage);
         if (!sperrErgebnis.gesperrt) {
           const bisher = this.mussZustandHolen(anfrage.kennung);
@@ -144,6 +235,24 @@
       this.zustaende.set(kennung, abgeschlossen);
       return abgeschlossen;
     }
+
+    brecheNormaleArbeitFuerPauseAb(
+      jetzt,
+      grund = 'Laufzeit wurde pausiert; normale und Hintergrundarbeit wird fail-safe abgebrochen.'
+    ) {
+      this.pruefeZeitpunkt(jetzt);
+      if (String(grund).trim().length === 0) throw new Error('Ein Pause-Abbruch benoetigt einen Grund.');
+      const abgebrochen = [];
+      for (const zustand of this.listeAktionsZustaende()) {
+        if (!['wartend', 'blockiert', 'laeuft'].includes(zustand.phase)) continue;
+        if (zustand.anfrage.wichtigkeit === 'notfall' || zustand.anfrage.wichtigkeit === 'sicherheit') continue;
+        if (this.brecheAktionAb(zustand.anfrage.kennung, jetzt, grund)) abgebrochen.push(zustand.anfrage.kennung);
+      }
+      return Object.freeze(abgebrochen.sort());
+    }
+
+    laufzeitStatus() { return this.laufzeitSteuerung.status(); }
+    istMitLaufzeitSteuerungVerbunden(laufzeitSteuerung) { return this.laufzeitSteuerung === laufzeitSteuerung; }
 
     holeAktionsZustand(kennung) { return this.zustaende.get(kennung) ?? null; }
     listeAktionsZustaende() {
@@ -259,5 +368,10 @@
     }
   }
 
-  globalThis[API_NAME] = Object.freeze({ version: VERSION, quellBlobShas: QUELL_BLOB_SHAS, AktionsSteuerung });
+  globalThis[API_NAME] = Object.freeze({
+    version: VERSION,
+    quellBlobShas: QUELL_BLOB_SHAS,
+    LaufzeitSteuerung,
+    AktionsSteuerung
+  });
 })();
