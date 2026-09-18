@@ -65,7 +65,7 @@ function patchLogisticsPrototype() {
   proto.install = function installAlpha2015Logistics() {
     // Alpha20.15 contract: request only when critically low, then refill deeply.
     this.config.merchantReserveSlots = 0;
-    this.config.farmerPotionLow = 50;
+    this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
     this.config.farmerGoldReserve = 0;
@@ -239,18 +239,21 @@ function patchLogisticsPrototype() {
     // Existing grants must complete even if the combat state changed after the
     // offer. Gold grants are always permitted; item grants were only created
     // from a safe outbound state.
-    if (this.pendingGrant && this.pendingOffer) {
-      if (this.pendingOffer.kind === 'gold' || this._safeForOutbound(snapshot)) this._executeGrant(snapshot);
+    if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
+      // A grant was already scoped to the trusted Merchant and the exact item
+      // identity is revalidated by _executeGrant. Combat state must not let the
+      // short-lived grant expire before send_item executes.
+      this._executeGrant(snapshot);
     }
     if (this.pendingOffer || this.pendingGrant || this.pendingOutbound) return this.lastDecision;
 
     // Gold has no slot cost and may be sent whenever Merchant is nearby.
     if (this._offerGoldAnytime(snapshot)) return this.lastDecision;
 
-    // Inventory items still wait for a non-combat window so logistics cannot
-    // steal combat turns. They are otherwise unrestricted except potions and
-    // technically locked items.
-    if (this._safeForOutbound(snapshot)) this._offerInventoryItem(snapshot);
+    // send_item is independent from the combat target/action loop. Keep draining
+    // transferable loot while farming; the grant/identity checks still serialize
+    // one outbound mutation at a time.
+    if (snapshot && snapshot.character && snapshot.character.rip !== true) this._offerInventoryItem(snapshot);
     return this.lastDecision;
   };
 
@@ -308,7 +311,7 @@ class Alpha2015CombatLogisticsHotfix {
       liveLogistics: logistics && typeof logistics.status === 'function' ? logistics.status().alpha20_15 || null : null,
       policies: {
         syntheticTeamRankingsAlwaysHaveTravelSeconds: true,
-        potionRequestBelow: 50,
+        potionRequestBelow: 200,
         potionTarget: 5000,
         farmerGoldReserve: 0,
         allTransferableInventoryExceptHpMpPotions: true,
