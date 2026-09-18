@@ -276,7 +276,10 @@ test('Block 8.5.7 Kern: Anfrageerzeugung verwendet expliziten Laufzeitstatus und
     angefordertAm: 10_000,
     laufzeitStatus: laufzeit.status()
   });
-  assert.equal(pause.voraussetzungen[0]?.erfuellt, true);
+  assert.equal(
+    pause.voraussetzungen.find((voraussetzung) => voraussetzung.kennung === 'laufzeit-laeuft')?.erfuellt,
+    true
+  );
 
   const fortsetzen = erstelleBasisBedienAnfrage({
     vorgangsKennung: 'resume-falsch',
@@ -285,5 +288,74 @@ test('Block 8.5.7 Kern: Anfrageerzeugung verwendet expliziten Laufzeitstatus und
     laufzeitStatus: laufzeit.status(),
     ausdruecklichBestaetigt: true
   });
-  assert.equal(fortsetzen.voraussetzungen[0]?.erfuellt, false);
+  assert.equal(
+    fortsetzen.voraussetzungen.find((voraussetzung) => voraussetzung.kennung === 'laufzeit-pausiert')?.erfuellt,
+    false
+  );
+});
+
+test('Block 8.5.7 Kern: veraltete Laufzeit-Generation blockiert eine spaeter ausgefuehrte Bedienanfrage', () => {
+  const { laufzeitSteuerung, bedienung } = setup();
+
+  const altePause = bedienung.erstelleAnfrage({
+    vorgangsKennung: 'stale-pause',
+    aktion: 'laufzeit_pausieren',
+    angefordertAm: 10_100
+  });
+  assert.equal(altePause.erwarteteLaufzeitGeneration, 0);
+
+  laufzeitSteuerung.pausiere(10_110, 'Andere Zustandsaenderung.');
+  laufzeitSteuerung.setzeFort(10_120, 'Andere Fortsetzung.');
+  assert.equal(laufzeitSteuerung.status().generation, 2);
+
+  const ergebnis = bedienung.fuehreAus(altePause);
+  assert.equal(ergebnis.status, 'blockiert');
+  assert.equal(ergebnis.bedienEntscheidung.erlaubt, false);
+  assert.ok(
+    ergebnis.bedienEntscheidung.fehlendeVoraussetzungen.some(
+      (voraussetzung) => voraussetzung.kennung === 'laufzeit-generation-aktuell'
+    )
+  );
+  assert.equal(laufzeitSteuerung.status().zustand, 'laeuft');
+  assert.equal(laufzeitSteuerung.status().generation, 2);
+});
+
+test('Block 8.5.7 Kern: manipuliertes Risiko umgeht die kanonische BedienSicherung nicht', () => {
+  const { bedienung } = setup();
+
+  bedienung.fuehreAus(bedienung.erstelleAnfrage({
+    vorgangsKennung: 'pause-vor-manipulation',
+    aktion: 'laufzeit_pausieren',
+    angefordertAm: 10_100
+  }));
+
+  const original = bedienung.erstelleAnfrage({
+    vorgangsKennung: 'resume-manipuliert',
+    aktion: 'laufzeit_fortsetzen',
+    angefordertAm: 10_200,
+    ausdruecklichBestaetigt: false
+  });
+  const manipuliert = Object.freeze({
+    ...original,
+    risiko: 'unkritisch',
+    titel: 'Manipulierter Titel',
+    erklaerung: 'Manipuliert.',
+    auswirkung: 'Manipuliert.'
+  });
+
+  const ergebnis = bedienung.fuehreAus(manipuliert);
+  assert.equal(ergebnis.status, 'blockiert');
+  assert.equal(ergebnis.bedienEntscheidung.brauchtBestaetigung, true);
+  assert.match(ergebnis.bedienEntscheidung.grund, /ausdrueckliche Bestaetigung/);
+});
+
+test('Block 8.5.7 Kern: rueckwaertiger Zustandszeitpunkt wird fail-safe abgewiesen', () => {
+  const laufzeit = new LaufzeitSteuerung();
+  laufzeit.pausiere(10_200, 'Pause.');
+
+  assert.throws(
+    () => laufzeit.setzeFort(10_100, 'Zu alter Fortsetzungsversuch.'),
+    /vor der letzten Zustandsaenderung/
+  );
+  assert.equal(laufzeit.status().zustand, 'pausiert');
 });
