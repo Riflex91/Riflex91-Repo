@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 12,
+  "next_step": 13,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -211,9 +211,9 @@
       "name": "production-alerting-windows-secrets",
       "title": "Production CRITICAL alerting and Windows host secrets",
       "branch": "architecture/12-production-alerting-windows-secrets",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 273,
-      "merge_commit": null,
+      "merge_commit": "0e048dccb4e35fde5066d45d619fe8e6ce20721b",
       "required_outcomes": [
         "two independently configured CRITICAL delivery routes",
         "Windows DPAPI-protected alert transport secrets",
@@ -223,6 +223,25 @@
         "explicit independent route canary",
         "bounded retry/backoff remains durable",
         "no gameplay or operator-ack authority added"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "windows-production-certification",
+      "title": "Windows production canary and unattended certification",
+      "branch": "architecture/13-windows-production-certification",
+      "status": "in_progress",
+      "pr": 274,
+      "merge_commit": null,
+      "required_outcomes": [
+        "machine-readable staged certification gates",
+        "hash-chained durable local evidence",
+        "loopback host API sampling only",
+        "browser/session/watchdog/group-liveness/alert invariants",
+        "restart and reconciliation evidence",
+        "operator-recorded controlled fault and dual-route alert canary evidence",
+        "1h 24h 72h and 7d promotion gates",
+        "no gameplay authority added"
       ]
     }
   ]

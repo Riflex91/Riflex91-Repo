@@ -70,6 +70,20 @@ For real CRITICAL alerts, both routes are required. The existing durable `AlertR
 
 Host-only API/alert/diagnostics credentials are not inherited by Chromium. The Windows host launches the browser with a small allowlisted Windows environment instead of the Node host environment.
 
+## Unattended certification
+
+Step 13 adds a local, hash-chained production evidence path. See `v3/WINDOWS_UNATTENDED_CERTIFICATION.md` for the complete contract.
+
+The gate order is `canary → 1h → 24h → 72h → 7d`. The canary performs the dual-route CRITICAL alert test and a controlled browser termination/restart/reconciliation drill before the stable timer starts. Later gates require a passed hash-valid predecessor.
+
+Start the first gate with:
+
+```powershell
+.\ops\windows-host\start-certification.ps1 -RepoPath C:\path\to\repo -Gate canary -RestartAck ALPHA20_5_HOST_RESTART -Reset
+```
+
+Evidence remains local under `%LOCALAPPDATA%\AioBot\host-service\certification`. GitHub CI validates the collector implementation only; real 24h/72h/7d certification must come from the deployed Windows machine.
+
 ## Uninstall
 
 ```powershell

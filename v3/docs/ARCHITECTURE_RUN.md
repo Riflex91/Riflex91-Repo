@@ -256,6 +256,28 @@ Required behavior:
 
 This step does not add gameplay authority, operator acknowledgement authority, public alert endpoints, remote shell access or Adventure Land credentials.
 
+## Step 13 — Windows production canary and unattended certification
+
+**Branch:** `architecture/13-windows-production-certification`
+
+Turn the completed Windows production stack into a machine-verifiable staged 24/7 certification path.
+
+Required behavior:
+
+- add local read-only certification sampling over the authenticated loopback host API only;
+- persist append-only, hash-chained evidence under the existing per-user Windows host-state directory;
+- define ordered gates: canary → 1h → 24h → 72h → 7d;
+- require healthy browser/session discovery, watchdog liveness, four-character group readiness, durable alert health and zero host/browser gameplay authority at every accepted sample;
+- expose enough read-only host status to certify the Step-9 session and the last accepted beacon without adding a fifth browser operation;
+- require explicit evidence for a controlled browser/process interruption followed by fresh-run reconciliation before the canary can pass;
+- require an independently successful Step-12 dual-route alert canary before unattended promotion;
+- never infer success from elapsed time alone: missed samples, unhealthy intervals, open restart circuits, blocked reconciliation or unresolved CRITICAL alert state fail the gate;
+- keep certification evidence free of API tokens, alert credentials, cookies and browser secrets;
+- provide Windows commands to start/status/finalize each gate and resume evidence collection after collector restart;
+- add deterministic short-duration tests for all production-duration gate rules plus corruption/tamper detection.
+
+Real wall-clock 1h/24h/72h/7d observations must be collected on the deployed Windows machine; CI validates the certification engine and safety invariants, not production uptime itself.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.

@@ -29,6 +29,7 @@ class HostApiServer {
     this.port = Number.isInteger(Number(options.port)) ? Number(options.port) : 0;
     this.token = String(options.token || '');
     this.serverFactory = options.serverFactory || ((handler) => http.createServer(handler));
+    this.hostStatusProvider = typeof options.hostStatusProvider === 'function' ? options.hostStatusProvider : null;
     this.server = null;
     this.boundAddress = null;
     this.startedAt = null;
@@ -56,7 +57,8 @@ class HostApiServer {
     return {
       hostApi: this.status(),
       controller: this.controller && typeof this.controller.status === 'function' ? this.controller.status() : null,
-      launcher: this.launcher && typeof this.launcher.status === 'function' ? this.launcher.status() : null
+      launcher: this.launcher && typeof this.launcher.status === 'function' ? this.launcher.status() : null,
+      runtimeHost: this.hostStatusProvider ? this.hostStatusProvider() : null
     };
   }
 

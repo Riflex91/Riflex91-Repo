@@ -101,7 +101,8 @@ class ProductionHostHarness {
       host: options.apiHost || '127.0.0.1',
       port: options.apiPort,
       token: options.apiToken,
-      serverFactory: options.serverFactory
+      serverFactory: options.serverFactory,
+      hostStatusProvider: () => this.status()
     });
 
     const env = options.hostEnv || options.env || (typeof process !== 'undefined' && process.env) || {};

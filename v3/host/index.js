@@ -15,6 +15,7 @@ const { PersistentWindowsStartBudget, WindowsHostServiceSupervisor, WINDOWS_HOST
 const { WINDOWS_ALERT_SECRET_SCHEMA_VERSION, ALERT_SECRET_ENV, parseWindowsAlertSecrets, createWindowsCriticalAlertTransports, canaryWindowsCriticalAlertRoutes, criticalAlertTransportStatus } = require('./windows-alerting');
 const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
 const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
+const { CERTIFICATION_SCHEMA_VERSION, CERTIFICATION_TYPE, GATE_ORDER, CERTIFICATION_GATES, HashChainedCertificationEvidence, assessHostCertificationStatus, evaluateCertification, recoveryDrillEvidence, controlledRecoveryMarkerEvidence, verifyPassedEvidence, gateDefinition, previousGate } = require('./unattended-certification');
 
 module.exports = {
   HostWatchdogSupervisor,
@@ -50,5 +51,17 @@ module.exports = {
   canaryWindowsCriticalAlertRoutes,
   criticalAlertTransportStatus,
   FtpsDiagnosticsUploader,
-  ProblemDiagnosticsArchive
+  ProblemDiagnosticsArchive,
+  CERTIFICATION_SCHEMA_VERSION,
+  CERTIFICATION_TYPE,
+  GATE_ORDER,
+  CERTIFICATION_GATES,
+  HashChainedCertificationEvidence,
+  assessHostCertificationStatus,
+  evaluateCertification,
+  recoveryDrillEvidence,
+  controlledRecoveryMarkerEvidence,
+  verifyPassedEvidence,
+  gateDefinition,
+  previousGate
 };

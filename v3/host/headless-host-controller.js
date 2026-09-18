@@ -39,7 +39,7 @@ class HeadlessHostController {
     this.lastHeartbeatError = null;
     this.lastAlertError = null;
     this.lastRestartRunId = null;
-    this.stats = { ticks: 0, heartbeatFailures: 0, alertFailures: 0, reconciliationPolls: 0 };
+    this.stats = { ticks: 0, heartbeatFailures: 0, alertFailures: 0, reconciliationPolls: 0, currentReconciliationPolls: 0 };
   }
 
   configureRestart(config = {}) {
@@ -76,9 +76,16 @@ class HeadlessHostController {
 
   async _serviceReconciliation() {
     const state = this.reconciliation.status().state;
-    if (state !== 'WAITING_FOR_RECONCILIATION_EVIDENCE' && state !== 'BLOCKED') return null;
-    this.stats.reconciliationPolls += 1;
-    return this.reconciliation.observe();
+    if (state === 'WAITING_FOR_FRESH_RUN') return null;
+    if (state === 'WAITING_FOR_RECONCILIATION_EVIDENCE' || state === 'BLOCKED') {
+      this.stats.reconciliationPolls += 1;
+      return this.reconciliation.observe();
+    }
+    if (typeof this.reconciliation.observeCurrent === 'function') {
+      this.stats.currentReconciliationPolls += 1;
+      return this.reconciliation.observeCurrent();
+    }
+    return null;
   }
 
   async _serviceAlerts() {
