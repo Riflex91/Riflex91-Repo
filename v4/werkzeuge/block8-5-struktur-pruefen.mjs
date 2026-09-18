@@ -6,8 +6,11 @@ const wurzel = process.cwd();
 const dateien = [
   'laufzeit/quelle/vertraege/entscheidungs-datensatz.ts',
   'laufzeit/quelle/telemetrie/gruppen-entscheidungs-datensatz.ts',
+  'laufzeit/quelle/telemetrie/entscheidungs-aktions-korrelation.ts',
   'laufzeit/tests/block8-5-entscheidungs-datensatz.test.mjs',
+  'laufzeit/tests/block8-5-entscheidungs-aktions-korrelation.test.mjs',
   'dokumentation/BLOCK-8-5-ENTSCHEIDUNGSDATENSATZ.md',
+  'dokumentation/BLOCK-8-5-ENTSCHEIDUNG-AKTION-ERGEBNIS.md',
   'dokumentation/BLOCK-8-5-WISSENSTRANSFER-V3-V4.md',
   'dokumentation/BLOCK-8-5-PLAN.md'
 ];
@@ -56,7 +59,31 @@ for (const aktionsName of [
   }
 }
 
-const tests = await readFile(path.join(wurzel, dateien[2]), 'utf8');
+const korrelation = await readFile(path.join(wurzel, dateien[2]), 'utf8');
+for (const pflicht of [
+  'verknuepfeGruppenEntscheidungMitAktionsAnfragen',
+  'werteGruppenEntscheidungMitAktionsZustaendenAus',
+  'werteGruppenEntscheidungMitAktionsErgebnissenAus',
+  "angefordertVon !== 'gruppen-aktionsplanung'",
+  'planZeitpunkt !== datensatz.zeitpunkt',
+  'tatsaechlichesErgebnis'
+]) {
+  if (!korrelation.includes(pflicht)) throw new Error(`Entscheidungs-Aktions-Korrelation fehlt: ${pflicht}`);
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(korrelation)) {
+    throw new Error(`Entscheidungs-Aktions-Korrelation darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+if (/\.reicheAnfrageEin\s*\(|\.verarbeiteNaechsteAktion\s*\(/.test(korrelation)) {
+  throw new Error('Entscheidungs-Aktions-Korrelation darf die zentrale AktionsSteuerung nicht selbst antreiben.');
+}
+
+const tests = await readFile(path.join(wurzel, dateien[3]), 'utf8');
 for (const pflicht of [
   'Gruppenentscheidung ist versioniert erklaerbar und zunaechst aktionsfrei',
   'Zeitstempel und laufende Nummer veraendern fachliche Fingerabdruecke nicht',
@@ -68,7 +95,7 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`EntscheidungsDatensatz-Test fehlt: ${pflicht}`);
 }
 
-const dokument = await readFile(path.join(wurzel, dateien[3]), 'utf8');
+const dokument = await readFile(path.join(wurzel, dateien[5]), 'utf8');
 for (const pflicht of [
   '8.5.1 implementiert',
   '8.5.2',
@@ -79,4 +106,28 @@ for (const pflicht of [
   if (!dokument.includes(pflicht)) throw new Error(`EntscheidungsDatensatz-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1 geprueft: versionierter EntscheidungsDatensatz, deterministische fachliche Fingerabdruecke, zeit-/reihenfolgeunabhaengiger Vergleich und keine neue Spielautoritaet.');
+const korrelationsTests = await readFile(path.join(wurzel, dateien[4]), 'utf8');
+for (const pflicht of [
+  'EntscheidungsDatensatz wird read-only mit echter Gruppen-AktionsAnfrage verknuepft',
+  'Korrelation startet oder reicht selbst keine Aktion ein',
+  'zentrale AktionsSteuerung bleibt Autoritaet und Ergebnis wird danach beobachtet',
+  'AktionsErgebnis desselben Ablaufs kann eindeutig korreliert werden',
+  'fremdes AktionsErgebnis wird nicht als eigenes Ergebnis erfunden',
+  'falscher Planzeitpunkt oder fremde Herkunft wird fail-safe abgewiesen',
+  'Entscheidung ohne AktionsAnfrage wird explizit als keine Aktion ausgewertet'
+]) {
+  if (!korrelationsTests.includes(pflicht)) throw new Error(`Entscheidungs-Aktions-Korrelationstest fehlt: ${pflicht}`);
+}
+
+const korrelationsDokument = await readFile(path.join(wurzel, dateien[6]), 'utf8');
+for (const pflicht of [
+  '8.5.2 implementiert',
+  'AktionsSteuerung bleibt Autoritaet',
+  'AktionsLaufZustand',
+  'AktionsErgebnis',
+  'keine AktionsAnfrage ein'
+]) {
+  if (!korrelationsDokument.includes(pflicht)) throw new Error(`Entscheidungs-Aktions-Dokumentation fehlt: ${pflicht}`);
+}
+
+console.log('Block 8.5.1/8.5.2 geprueft: deterministischer EntscheidungsDatensatz, read-only Entscheidung-Aktion-Ergebnis-Korrelation und keine neue Spielautoritaet.');

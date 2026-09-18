@@ -115,6 +115,7 @@ export * from './telemetrie/flugschreiber.js';
 export * from './telemetrie/fortlaufender-ereignis-schreiber.js';
 export * from './telemetrie/entscheidungs-aktions-spur.js';
 export * from './telemetrie/gruppen-entscheidungs-datensatz.js';
+export * from './telemetrie/entscheidungs-aktions-korrelation.js';
 export * from './telemetrie/dienst-verbrauchs-telemetrie.js';
 export * from './telemetrie/telemetrie-speicher.js';
 export * from './telemetrie/vorfall-erkennung.js';
