@@ -230,6 +230,35 @@ test('Merchant self-gear only starts when a fallback remains available', () => {
   assert.equal(manager._candidate(), null);
 });
 
+test('Merchant self-gear upgrades a spare first without unequipping the live item', () => {
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      isize: 5,
+      items: [{ index: 0, name: 'sword', level: 0 }, null, null, null, null],
+      slots: { mainhand: { name: 'sword', level: 0 } }
+    },
+    G: {
+      items: { sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [] } }
+    },
+    localStorage: { getItem() { return null; }, setItem() {} }
+  };
+  const runtime = { root, adapter: { getGameData: () => root.G } };
+  const manager = new MerchantSelfGear(runtime, {
+    mutationAttemptBudget: () => ({ allowed: true, remaining: 30 }),
+    verifyEventually: async () => true
+  }, {
+    now: () => 1000,
+    log: { emit() {} },
+    options: { maxUpgradeLevel: 7, maxCompoundLevel: 10, upgradeValueCap: 2000000, compoundValueCap: 500000 }
+  });
+  const candidate = manager._candidate();
+  assert.equal(candidate.type, 'UPGRADE');
+  assert.equal(candidate.usesSpare, true);
+  assert.equal(candidate.fallback.equipped, true);
+});
+
 test('exact self-gear reservation can authorize a non-progression ledger disposition but nothing broader', () => {
   const ledger = makeLedger([{
     key: 'Merchant:0',
