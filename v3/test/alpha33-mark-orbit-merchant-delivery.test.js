@@ -354,6 +354,8 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   assert.equal(hotfix.stats.farmerGearEquipCommitted, 1);
   assert.equal(hotfix.incomingGearIntents.size, 0);
   assert.equal(hotfix.pendingFarmerGearEquip, null);
+  assert.equal(hotfix.status().policies.farmerReceivedReadyGearAutoEquippedAndVerified, true);
+  assert.equal(hotfix.status().policies.localProgressionReservationRequiresExactActivePhysicalAssignment, true);
   assert.equal(baseTicks, 0);
 });
 
