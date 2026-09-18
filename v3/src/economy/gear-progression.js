@@ -65,8 +65,15 @@ function effectiveStats(meta, level) {
     const n = finite(value);
     if (n != null) out[key] = n;
   }
-  const upgrade = meta.upgrade && typeof meta.upgrade === 'object' ? meta.upgrade : {};
-  for (const [key, value] of Object.entries(upgrade)) {
+  // Adventure Land uses the same item level field for both upgradeable and
+  // compoundable equipment. Their per-level stat deltas live in different
+  // metadata objects, so score the mechanic that actually applies to the item.
+  const progression = meta.upgrade && typeof meta.upgrade === 'object'
+    ? meta.upgrade
+    : meta.compound && typeof meta.compound === 'object'
+      ? meta.compound
+      : {};
+  for (const [key, value] of Object.entries(progression)) {
     const n = finite(value);
     if (n == null) continue;
     out[key] = finite(out[key], 0) + n * Math.max(0, level);
@@ -235,17 +242,28 @@ class GearProgressionEvaluator {
     this.lastEvaluatedAt = now;
 
     const goals = this.list(this.capacity);
+    const currentGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
     const reservations = new Map();
-    for (const goal of goals) {
+    // Persisted goals remain useful history, but only goals confirmed in this
+    // exact evaluation may reserve live inventory. This prevents an already
+    // delivered/stale goal from trapping the next copy in RESERVE_PROGRESSION.
+    for (const goal of currentGoals) {
       const key = `${goal.item}:${goal.observedLevel}`;
       const current = reservations.get(key) || { name: goal.item, level: goal.observedLevel, quantity: 0, goalIds: [] };
       current.quantity += 1;
       current.goalIds.push(goal.id);
       reservations.set(key, current);
     }
-    this.lastEvaluation = { at: now, characters: characters.length, candidates: candidates.length, activeGoals: goals.length, blockedUnknownContent };
+    this.lastEvaluation = {
+      at: now,
+      characters: characters.length,
+      candidates: candidates.length,
+      activeGoals: currentGoals.length,
+      persistedGoals: goals.length,
+      blockedUnknownContent
+    };
     this.save();
-    return { status: this.status(), goals, reservations: [...reservations.values()].map(clone) };
+    return { status: this.status(), goals, currentGoals: currentGoals.map(clone), reservations: [...reservations.values()].map(clone) };
   }
 
   load() {

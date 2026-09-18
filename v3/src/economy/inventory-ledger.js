@@ -153,7 +153,7 @@ class InventoryLedger {
     if (/^mpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_MP_POTION_RESERVE'] };
 
     const same = counts.get(stackKey(row.name, row.level)) || 0;
-    if (meta.compound === true && same >= 3) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
+    if (meta.compound && same >= 3) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
     if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
@@ -216,8 +216,15 @@ class InventoryLedger {
       }
     }
     raw.sort((a, b) => a.character.localeCompare(b.character) || a.index - b.index || a.name.localeCompare(b.name));
-    const counts = new Map();
-    for (const row of raw) counts.set(stackKey(row.name, row.level), (counts.get(stackKey(row.name, row.level)) || 0) + row.q);
+    // Compound availability is character-local. Three identical copies spread
+    // across Merchant/Farmers are not a valid combine set for any one character.
+    const countsByCharacter = new Map();
+    for (const row of raw) {
+      const counts = countsByCharacter.get(row.character) || new Map();
+      const key = stackKey(row.name, row.level);
+      counts.set(key, (counts.get(key) || 0) + row.q);
+      countsByCharacter.set(row.character, counts);
+    }
 
     this.entries.clear();
     let hpReserved = 0;
@@ -226,7 +233,7 @@ class InventoryLedger {
     let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
-      const classified = this._baseDisposition(row, gameData, contentDrift, counts);
+      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map());
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
       if (classified.sellProtected === true) sellProtected += 1;
