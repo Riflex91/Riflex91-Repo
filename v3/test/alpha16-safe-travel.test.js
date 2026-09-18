@@ -136,3 +136,19 @@ test('2000 travel planning/cancel cycles remain bounded and JSON-safe', () => {
   assert.doesNotThrow(() => JSON.stringify(travel.status()));
   assert.doesNotThrow(() => JSON.stringify(travel.list(1000)));
 });
+
+
+test('per-plan buffered arrival radius completes service travel before exact coordinates', () => {
+  let now = 1000;
+  const travel = new SafeTravelController({ now: () => now, arrivalRadius: 20 });
+  const planned = travel.plan(
+    { destination: { map: 'main', x: 100, y: 0 }, arrivalRadius: 90, metadata: { stopWhenInteractionReady: true } },
+    { gameData: gameData(), contentDrift: drift(), snapshot: snapshot() }
+  );
+  assert.equal(planned.accepted, true);
+  assert.equal(planned.plan.arrivalRadius, 90);
+  travel.startSynthetic(planned.plan.id);
+  now += 100;
+  travel.observe(snapshot('main', 15, 0));
+  assert.equal(travel.get(planned.plan.id).state, TravelState.COMPLETED);
+});
