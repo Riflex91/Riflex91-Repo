@@ -145,6 +145,7 @@ test('adaptive potion restock continues to exact purchase after verified vendor 
   assert.equal(merchant.lastMerchantAction.vendorTravelAttested, true);
 });
 
+// Live alpha.20.103 regression: the current Farmer needs 4500, but the three-Farmer batch needs 11983.
 test('live recovery buys aggregate batch deficit when current Farmer delivery is already fully stocked', async () => {
   const purchases = [];
   const travels = [];
