@@ -224,19 +224,32 @@ class ControlledMerchantExecutor {
       if (lifecycleProcessedSale) {
         const gear = this.runtime && this.runtime.gearProgression;
         let futureProtection = null;
+        let futureSellSafety = null;
         try {
           futureProtection = gear && typeof gear.futureProtectionFor === 'function'
             ? gear.futureProtectionFor(character.name, txIndex, tx.item, tx.level)
             : null;
+          futureSellSafety = gear && typeof gear.futureSellSafetyFor === 'function'
+            ? gear.futureSellSafetyFor(character.name, txIndex, tx.item, tx.level)
+            : null;
         } catch (_) {
           futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+          futureSellSafety = null;
         }
-        if (futureProtection) {
+        if (!futureSellSafety || futureSellSafety.checked !== true) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED',
+            futureFarmerSellSafety: futureSellSafety
+          };
+        }
+        if (futureProtection || futureSellSafety.protected === true) {
           this.stats.sellSafetyRejected += 1;
           return {
             ok: false,
             reason: 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED',
-            futureFarmerProtection: futureProtection
+            futureFarmerProtection: futureProtection || futureSellSafety.protection || null
           };
         }
       }
