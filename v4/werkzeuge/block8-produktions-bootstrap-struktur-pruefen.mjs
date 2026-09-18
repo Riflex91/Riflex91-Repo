@@ -26,6 +26,8 @@ for (const pflicht of [
   'erstelleGruppenTeilnehmerMeldungAusKampfsicherheit',
   'AdventureLandGruppenLebensnachweisAustausch',
   'koordiniereGruppe',
+  'PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS = 8_000',
+  'gruppenLebensnachweisMaximalAlterMillisekunden',
   'planeGruppenAktionen',
   'uebersetzeEigeneGruppenPlanSchritte',
   "freigegebeneArten: ['gemeinsames_ziel_bearbeiten']",
@@ -180,6 +182,7 @@ for (const pflicht of [
   'nutzt vorhandenen vertrauensgebundenen Empfang fuer reale Gruppenplanung',
   'Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und Aufgabenwechsel ohne zentrale Aktion',
   'Produktions-Gruppendiagnose misst Remote-Freshness ab lokalem Empfang statt Senderuhr',
+  'gruppenLebensnachweisMaximalAlterMillisekunden, 8_000',
   'verwirft replayte und zeitlich aeltere Remote-Meldungen',
   'blockiert doppelte Teilnehmerkennungen',
   'blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer',
@@ -190,4 +193,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, Empfangszeit-Freshness bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
