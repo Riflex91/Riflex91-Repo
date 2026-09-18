@@ -277,7 +277,6 @@ export class AdventureLandGruppenZielLiveSmoke {
 
   public sperren(): Readonly<AdventureLandGruppenZielLiveSmokeStatus> {
     this.entferneFreigabe();
-    this.entferneBrueckenRest();
     return this.status();
   }
 
@@ -370,7 +369,6 @@ export class AdventureLandGruppenZielLiveSmoke {
       return bericht;
     } catch (fehler) {
       bindung?.sperre();
-      this.entferneBrueckenRest();
       const beendetAm = this.liesZeitpunkt('Der Smoke-Fehlerzeitpunkt');
       if (aktionsKennung !== null && this.steuerung.holeAktionsZustand(aktionsKennung)?.phase === 'laeuft') {
         this.steuerung.brecheAktionAb(
@@ -405,6 +403,9 @@ export class AdventureLandGruppenZielLiveSmoke {
     sicherheit: Readonly<KampfSicherheitsEntscheidung>;
   }> {
     this.pruefeIdentitaetUndZiel();
+    if (eigenerWert(this.zielKontext, GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME) !== undefined) {
+      throw new Error('Im Smoke-Zielkontext ist bereits eine Ausfuehrungsbruecke vorhanden; bestehende Autoritaet wird nicht uebernommen oder entfernt.');
+    }
     const laufende = this.steuerung.listeAktionsZustaende().filter((zustand) =>
       zustand.phase === 'laeuft' &&
       zustand.anfrage.angefordertVon === 'gruppen-aktionsplanung' &&
@@ -509,13 +510,6 @@ export class AdventureLandGruppenZielLiveSmoke {
         .map((sperre) => sperre.ressource)
         .sort()
     );
-  }
-
-  private entferneBrueckenRest(): void {
-    const wert = eigenerWert(this.zielKontext, GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME);
-    if (wert !== undefined) {
-      try { Reflect.deleteProperty(this.zielKontext, GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME); } catch { /* Status wird spaeter rot. */ }
-    }
   }
 
   private baueBericht(
