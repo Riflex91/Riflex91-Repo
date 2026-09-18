@@ -128,7 +128,10 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       seen.add(input.index);
       const entry = this._ledgerEntry(input);
       if (!entry) return { ok: false, reason: 'LEDGER_ITEM_NOT_FOUND', index: input.index };
-      if (!selfGear && !EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || ''))) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      const targetedGearCompound = tx.type === 'COMPOUND' && this.targetedGearCompoundInputAllowed(entry, tx.metadata || {}, input.index);
+      if (!selfGear && !EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || '')) && !targetedGearCompound) {
+        return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      }
       if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return { ok: false, reason: 'SELF_GEAR_LEDGER_IDENTITY_CHANGED', index: input.index };
       if (String(entry.name || '') !== String(input.item || '') || levelOf(entry) !== levelOf(input)) return { ok: false, reason: 'LEDGER_ITEM_IDENTITY_CHANGED', index: input.index };
       if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', input.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION', item: input.item };
