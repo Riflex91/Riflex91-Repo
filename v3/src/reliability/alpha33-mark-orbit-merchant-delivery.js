@@ -1082,7 +1082,7 @@ class Alpha33MarkOrbitMerchantDelivery {
 
     const pressure = this._merchantCapacitySnapshot();
     const reserveSlots = this._collectionReserveSlots();
-    if (pressure.freeSlots <= reserveSlots) {
+    if (route.stage !== 'PREPARE_CAPACITY' && pressure.freeSlots <= reserveSlots) {
       return this._finishCollectionRoute('MERCHANT_PICKUP_RESERVE_REACHED', {
         pickupQuantityRemaining: candidate && candidate.pickupQuantity || 0,
         occupied: pressure.occupied,
