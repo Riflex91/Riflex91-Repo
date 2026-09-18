@@ -259,7 +259,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (adaptive) {
       const at = finite(adaptive.at, 0);
       if (at > 0 && now - at <= this._partySupplyPlanFreshMs()) {
-        if (!latched || String(latched.targetName || '') === String(adaptive.target && adaptive.target.name || '')) {
+        const adaptiveChainId = adaptive.metadata && adaptive.metadata.p0PotionServiceChainId || null;
+        const sameBatch = !!(
+          latched
+          && adaptive.metadata && adaptive.metadata.p0PotionBatch === true
+          && adaptiveChainId
+          && String(latched.serviceChainId || '') === String(adaptiveChainId)
+        );
+        if (!latched || String(latched.targetName || '') === String(adaptive.target && adaptive.target.name || '') || sameBatch) {
           return this._latchPartySupplyPlan(adaptive);
         }
       }
