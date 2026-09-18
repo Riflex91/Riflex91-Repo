@@ -68,7 +68,7 @@ Nicht gespeichert wird fluechtige Autoritaet, die nach Neustart ungeprueft weite
 
 Umgesetzt sind SHA-256-Integritaet ueber kanonische Nutzlast, A/B-Slots mit Fallback, monotone Sequenzen, Byte-Limit und strukturierte Speicherfehler. Jeder Checkpoint erzwingt `wiederaufnahmeErlaubt: false`, `abgleichErforderlich: true` und `aktionsAutoritaet: false`; offene Arbeit wird nur als Kennungsliste gespeichert.
 
-### Schritt 8.5.5 – gemeinsame StatusSchnittstelle
+### Schritt 8.5.5 – gemeinsame StatusSchnittstelle — **IMPLEMENTIERT**
 
 Eine read-only Schnittstelle verbindet V4-Kern mit:
 
@@ -77,6 +77,8 @@ Eine read-only Schnittstelle verbindet V4-Kern mit:
 - spaeterem Host-Supervisor.
 
 Sie enthaelt keine Bot-Fachlogik und keine generische Spiel-/Host-Autoritaet.
+
+Umgesetzt ist eine unveraenderliche gemeinsame Sicht fuer Charakter, RuntimeGesundheit, Gruppe, Entscheidung, Aktionsphasen, Recovery-Checkpoint und letzte BotMeldung. Die Schnittstelle setzt fest `nurLesen: true`, `spielAutoritaet: false`, `bedienAutoritaet: false` und `neustartAutoritaet: false`; bekannt/fehlend/unbekannt bleibt erhalten.
 
 ### Schritt 8.5.6 – schlankes Ingame-HUD
 
