@@ -88,3 +88,25 @@ Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt
 Die kontrollierte Veroeffentlichung ist fuer den immutable Main-Release `47288ddfdef03ded63142670cdaca5d7ed251a75` bestanden. Runtime und SHA-256 wurden aus R2 und ueber den oeffentlichen HTTPS-Worker bytegenau verifiziert. Der veroeffentlichte SHA-256 ist `8e50143a671a8ce30d14150cb14971c20c89daa5dbb651064dfb1ea4f13cdcfa`.
 
 Der echte Smoke bleibt offen, bis genau diese URL/Hash-Kombination read-only im echten Adventure-Land-Kontext geladen wurde und die gesperrte Produktionsruntime ohne Gruppenanfrage, Ressourcensperre oder Spielaktion bestaetigt ist.
+
+
+## Einheitliche Live-Test-GUI
+
+Die weitere manuelle Block-8-Abnahme verwendet ab jetzt die wiederverwendbare `V4TestGui` statt ausschliesslich das interne Adventure-Land-Log.
+
+Fuer den aktuellen Test existiert das source-locked Komplettpaket:
+
+`werkzeuge/block8-live-test-paket.js`
+
+Es ist auf beiden Rangern identisch und stellt einen gefuehrten Ablauf bereit:
+
+1. Runtime laden,
+2. Empfang starten,
+3. Heartbeat senden,
+4. auf dem Testleiter Gruppenziel + Produktions-Smoke-Vorschau,
+5. nach separatem exaktem Bestaetigungstext den one-shot,
+6. Stop/Aufraeumen.
+
+Jeder Schritt schreibt ein strukturiertes Ergebnis in ein kopierbares Textfeld. **Ergebnis kopieren** kopiert den letzten strukturierten Zustand; **Gesamtbericht kopieren** kopiert Ergebnis und komplettes Testprotokoll.
+
+Der one-shot-Button wird erst nach einer bestandenen Smoke-Vorschau aktiv. Der Gruppenziel-Button wird erst nach erfolgreichem Heartbeat und mindestens zwei bekannten Teilnehmern aktiv. Die GUI besitzt keinen direkten Adventure-Land-Aktionsaufruf.
