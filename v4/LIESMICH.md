@@ -24,6 +24,7 @@ V4 wird bewusst neu und getrennt von V3 aufgebaut. Die wichtigsten Ziele sind ei
 - Laufzeit und Server-Plattform bleiben getrennt.
 - Objektspeicher-Zugangsdaten gelangen niemals in Adventure Land oder die Web-Oberfläche.
 - Rohdaten werden nicht allein wegen Speicherknappheit gelöscht; automatische Freigabe verlangt einen erfolgreich bestätigten Lern- und Sicherungszyklus.
+- Die vorhandene 1-TB-SSD ist eine feste lokale Speicherstufe fuer Outbox, Rohtelemetrie, Blackbox, Vorfaelle, Wiederholungen und Lerndaten-Arbeitsbereiche; sie ersetzt kein getrenntes Backup.
 - E-Mail-Versandgeheimnisse für Tagesberichte existieren ausschließlich serverseitig.
 - Reale Probleme werden als reproduzierbare Vorfälle mit Wiederholungsdaten gespeichert.
 - V4 verwaltet keine Adventure-Land-Anmeldedaten. Die Laufzeit arbeitet innerhalb einer bereits bestehenden Adventure-Land-Sitzung.
