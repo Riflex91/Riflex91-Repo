@@ -115,6 +115,26 @@ test('V4 Produktionslaufzeit besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen
   assert.equal(u.hatIntervall(), false);
 });
 
+test('V4 Produktionslaufzeit zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler', async () => {
+  const u = spiel();
+  u.parent.send_cm = () => ({ receivers: [], locals: [] });
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code, {
+    aktivFreigegeben: true,
+    vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
+    faehigkeiten: { heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 }
+  });
+
+  api.starte();
+  await flush();
+
+  const status = api.status();
+  assert.equal(status.lebensnachweisSendeVersuche, 1);
+  assert.equal(status.lebensnachweisSendeErfolge, 0);
+  assert.equal(status.lebensnachweisSendeFehler, 1);
+  assert.match(status.lebensnachweisLetzterFehler, /nicht als Empfaenger bestaetigt/);
+  api.stoppe();
+});
+
 test('V4 Produktionslaufzeit exportiert read-only Gruppendiagnose ohne Gruppenaktion', () => {
   const u = spiel();
   const api = installiereAdventureLandProduktionsLaufzeit(u.code);
