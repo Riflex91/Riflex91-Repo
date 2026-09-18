@@ -11284,19 +11284,42 @@ class GearProgressionEvaluator {
     const observedGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
     const usedPhysicalItems = new Set();
     const usedTargetSlots = new Set();
-    const currentGoals = observedGoals
-      .slice()
-      .sort((a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id))
-      .filter((goal) => {
+    const ctypeByName = new Map(characters.filter(Boolean).map((row) => [String(row.name || ''), String(row.ctype || row.type || '').toLowerCase()]));
+    const compareGoal = (a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id);
+    const farmers = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').sort(compareGoal);
+    const merchants = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').sort(compareGoal);
+    const currentGoals = [];
+
+    const take = (queue, limit) => {
+      let accepted = 0;
+      while (queue.length && accepted < limit) {
+        const goal = queue.shift();
         const physical = goal.sourceIndex != null
           ? `${goal.sourceCharacter}:${goal.sourceIndex}`
           : `${goal.sourceCharacter}:${goal.item}:${goal.observedLevel}`;
         const target = `${goal.character}:${goal.slot}`;
-        if (usedPhysicalItems.has(physical) || usedTargetSlots.has(target)) return false;
+        if (usedPhysicalItems.has(physical) || usedTargetSlots.has(target)) continue;
         usedPhysicalItems.add(physical);
         usedTargetSlots.add(target);
-        return true;
-      });
+        currentGoals.push(goal);
+        accepted += 1;
+      }
+      return accepted;
+    };
+
+    // Better gear is Farmer-first. The target allocation is approximately
+    // 80/20: four Farmer assignments for each Merchant assignment whenever
+    // both sides have useful, non-conflicting upgrades. If only Farmers or
+    // only the Merchant have valid goals, do not leave useful gear idle.
+    while (farmers.length || merchants.length) {
+      const before = currentGoals.length;
+      if (farmers.length) take(farmers, 4);
+      if (merchants.length && (!farmers.length || currentGoals.length - before >= 4)) take(merchants, 1);
+      if (currentGoals.length === before) {
+        if (farmers.length) take(farmers, 1);
+        else if (merchants.length) take(merchants, 1);
+      }
+    }
     const reservations = [];
     // Reserve exact physical inventory rows whenever possible. One physical
     // item can satisfy at most one active gear goal and one target slot can
@@ -11318,6 +11341,9 @@ class GearProgressionEvaluator {
       activeGoals: currentGoals.length,
       observedGoals: observedGoals.length,
       physicalAssignments: currentGoals.length,
+      farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
+      merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
+      farmerTargetShare: 0.8,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
