@@ -74,6 +74,7 @@ function makeService(root) {
   return service;
 }
 
+// Live alpha.20.92 regression: ~2990 potions must not trigger Merchant service.
 test('adaptive policy waits until a potion family is below 200 and refills only that family', () => {
   const root = rootForMerchant();
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
