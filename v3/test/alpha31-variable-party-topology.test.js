@@ -174,17 +174,13 @@ test('cohesion selects the same role-aware combat leader on every member and use
     assert.equal(team.leaderPolicy, 'class-priority-then-name-v1');
   }
 
-  const ranged = cohesionHarness(['MerchantA', 'M1', 'R1', 'P1'], {
+  const rangedHarness = cohesionHarness(['MerchantA', 'M1', 'R1', 'P1'], {
     MerchantA: partyRow('merchant', 0, 0),
     M1: partyRow('mage', 20, 0),
     R1: partyRow('ranger', 30, 0),
     P1: partyRow('priest', 40, 0)
-  }, 'P1').instance._team(cohesionHarness(['MerchantA', 'M1', 'R1', 'P1'], {
-    MerchantA: partyRow('merchant', 0, 0),
-    M1: partyRow('mage', 20, 0),
-    R1: partyRow('ranger', 30, 0),
-    P1: partyRow('priest', 40, 0)
-  }, 'P1').snapshot);
+  }, 'P1');
+  const ranged = rangedHarness.instance._team(rangedHarness.snapshot);
   assert.equal(ranged.leaderName, 'R1');
 
   const duplicateParty = {
