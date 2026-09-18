@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { SafeTravelController } = require('../src/travel/safe-travel');
-const { TeamCombatCohesionHotfix } = require('../src/reliability/team-combat-cohesion-hotfix');
+const { TeamCombatCohesionHotfix } = require('../src/party/team-combat-cohesion-hotfix');
 const { Alpha28CrossMapFarmerProgression, SHARED_OBJECTIVE, TEAM_REGROUP_KIND } = require('../src/reliability/alpha28-cross-map-farmer');
 const { Alpha20_5MerchantRuntime } = require('../src/autonomy/alpha20-5-merchant-runtime');
 
