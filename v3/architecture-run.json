@@ -139,7 +139,7 @@
       "title": "Replace alpha runtime inheritance with composition",
       "branch": "architecture/08-runtime-composition",
       "status": "in_progress",
-      "pr": null,
+      "pr": 267,
       "merge_commit": null,
       "required_outcomes": [
         "composition root introduced",
