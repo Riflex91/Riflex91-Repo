@@ -6,6 +6,7 @@ const { ProductionHostHarness } = require('./production-host-harness');
 const { JsonFileStateStore } = require('./json-file-state-store');
 const { HOST_RESTART_ACK } = require('./host-watchdog-supervisor');
 const { PersistentWindowsStartBudget, WindowsHostServiceSupervisor } = require('./windows-host-service-supervisor');
+const { ALERT_SECRET_ENV, createWindowsCriticalAlertTransports } = require('./windows-alerting');
 
 function bounded(value, max = 4096) {
   return String(value == null ? '' : value).slice(0, max);
@@ -14,6 +15,20 @@ function finite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
+const WINDOWS_BROWSER_ENV_ALLOWLIST = Object.freeze([
+  'SystemRoot','WINDIR','TEMP','TMP','USERPROFILE','LOCALAPPDATA','APPDATA','PATH','PATHEXT',
+  'ComSpec','ProgramFiles','ProgramFiles(x86)','ProgramData','HOMEDRIVE','HOMEPATH','USERNAME',
+  'USERDOMAIN','PROCESSOR_ARCHITECTURE','NUMBER_OF_PROCESSORS'
+]);
+
+function sanitizeWindowsBrowserEnvironment(env = process.env) {
+  const out = {};
+  for (const key of WINDOWS_BROWSER_ENV_ALLOWLIST) {
+    if (Object.prototype.hasOwnProperty.call(env, key) && env[key] != null) out[key] = String(env[key]);
+  }
+  return out;
+}
+
 function validateWindowsBrowserBootstrap(args, cdpEndpoint, allowedOrigin) {
   const values = Array.isArray(args) ? args.map((value) => String(value)) : [];
   const cdp = new URL(String(cdpEndpoint));
@@ -75,6 +90,16 @@ function loadWindowsHostConfig(filePath, env = process.env) {
   const apiToken = String(env[tokenEnv] || '');
   if (apiToken.length < 32) throw new Error('WINDOWS_HOST_API_TOKEN_REQUIRED');
 
+  const criticalAlertingEnabled = raw.criticalAlertingEnabled === true;
+  const alertSecretsEnv = String(raw.alertSecretsEnvironmentVariable || ALERT_SECRET_ENV);
+  if (!/^[A-Z][A-Z0-9_]{2,80}$/.test(alertSecretsEnv)) throw new Error('WINDOWS_ALERT_SECRETS_ENV_INVALID');
+  let alertTransports = [];
+  if (criticalAlertingEnabled) {
+    const secretJson = String(env[alertSecretsEnv] || '');
+    if (!secretJson) throw new Error('WINDOWS_CRITICAL_ALERT_SECRETS_REQUIRED');
+    alertTransports = createWindowsCriticalAlertTransports(secretJson);
+  }
+
   return {
     schemaVersion: 1,
     browserCommand: bounded(raw.browserCommand),
@@ -90,13 +115,17 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     apiHost: '127.0.0.1',
     apiPort: Math.max(0, Math.min(65535, Math.floor(finite(raw.apiPort, 8791)))),
     apiToken,
+    criticalAlertingEnabled,
+    alertSecretsEnvironmentVariable: alertSecretsEnv,
+    alertTransports,
+    hostEnv: { ...env },
+    browserEnv: sanitizeWindowsBrowserEnvironment(env),
     tickIntervalMs: Math.max(1000, Math.min(60000, finite(raw.tickIntervalMs, 5000))),
     stableAfterMs: Math.max(10000, finite(raw.stableAfterMs, 120000)),
     startWindowMs: Math.max(60000, finite(raw.startWindowMs, 10 * 60 * 1000)),
     maxStartsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(raw.maxStartsPerWindow, 4)))),
     startCircuitCooldownMs: Math.max(60000, finite(raw.startCircuitCooldownMs, 15 * 60 * 1000)),
-    browserRestartEnabled: raw.browserRestartEnabled === true,
-    env
+    browserRestartEnabled: raw.browserRestartEnabled === true
   };
 }
 
@@ -106,12 +135,15 @@ function createWindowsHostService(config, options = {}) {
     command: config.browserCommand,
     args: config.browserArgs,
     cwd: config.browserCwd,
-    env: config.env,
+    browserEnv: config.browserEnv,
+    hostEnv: config.hostEnv,
+    inheritProcessEnv: false,
     browserCdpEndpoint: config.cdpEndpoint,
     browserAllowedOrigin: config.allowedOrigin,
     browserCdpStartupWaitMs: config.browserSessionStartupWaitMs,
     browserCdpStartupPollMs: config.browserSessionStartupPollMs,
     alertStatePath: config.alertStatePath,
+    alertTransports: config.alertTransports,
     apiHost: config.apiHost,
     apiPort: config.apiPort,
     apiToken: config.apiToken,
@@ -182,6 +214,7 @@ if (require.main === module) {
 
 module.exports = {
   configPathFromArgs,
+  sanitizeWindowsBrowserEnvironment,
   validateWindowsBrowserBootstrap,
   loadWindowsHostConfig,
   createWindowsHostService,
