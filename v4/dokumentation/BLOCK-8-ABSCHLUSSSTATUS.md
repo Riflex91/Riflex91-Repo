@@ -4,11 +4,11 @@ Stand: 2026-09-18
 
 ## Formales Ergebnis
 
-Block 8 ist **noch nicht formal abgeschlossen**.
+Block 8 ist **formal abgeschlossen am 18. September 2026**.
 
-Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Die kontrollierte aktive Freigabekampagne inklusive echtem one-shot Live-Smoke ist bestanden. Offen ist noch der im Fahrplan geforderte 10-Minuten-Gruppentest.
+Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade, die zentrale Gruppen-AktionsSteuerung, der begrenzte one-shot Live-Smoke und der abschliessende echte 10-Minuten-Gruppentest sind gemeinsam bestanden.
 
-Es wird **kein weiterer Zwischenblock zwischen Block 8 und Block 8.5** eingefuehrt. Die noch fehlende aktive Freigabekampagne ist Abschlussarbeit innerhalb von Block 8. Erst nach ihrem erfolgreichen Abschluss beginnt Block 8.5.
+Der Abschlusslauf lief auf `My_Ranger1` und `My_Ranger2` mit Produktionsruntime **1.1.4** und aktiviertem Adventure-Land-`performance_trick()`. Beide Charaktere meldeten PASS. Damit beginnt als naechster Entwicklungsblock verbindlich **Block 8.5**; Block 9 beginnt vorher nicht.
 
 ## Erreichte Block-8-Nachweise
 
@@ -63,9 +63,9 @@ Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_Z
 
 Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Die feste delegierte `V4Block8GruppenZielAusfuehrungsBruecke` und ihre one-shot Live-Bindung an eine vorhandene zentrale `AktionsSteuerung` plus frische Produktions-Safety sind inzwischen unter `ausfuehrung/` implementiert und offline abgesichert. Der echte one-shot Live-Smoke wurde am 2026-09-18 erfolgreich ausgefuehrt. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
 
-## Verbleibende Block-8-Schritte
+## Abgeschlossene Block-8-Freigabekampagne
 
-### 1. Genau einen minimalen Gruppen-Ausfuehrungspfad vorbereiten — **implementiert, Offline-Gates laufen**
+### 1. Genau einen minimalen Gruppen-Ausfuehrungspfad vorbereiten — **BESTANDEN**
 
 Es wurde ausschliesslich `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ausgewaehlt. Andere Gruppenaktionen bleiben ohne aktiven Pfad.
 
@@ -92,7 +92,7 @@ Vor einer echten Aktion sind mindestens erforderlich:
 - Wiederholung bzw. deterministische Simulation des Entscheidungs- und Freigabepfads,
 - Schattenbetrieb mit derselben Anfrage- und Ressourcenfolge.
 
-Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
+Der Adapter ist implementiert, bleibt standardmaessig gesperrt und wurde ueber die vorgesehenen Offline-/Replay-/Schatten-Gates sowie den begrenzten Live-Pfad abgesichert. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
 ### 3. Begrenzter one-shot Live-Smoke — **BESTANDEN**
 
@@ -112,9 +112,9 @@ Erst nach gruenem Offline-/Replay-/Schattennachweis:
 
 Ein unerwarteter Adventure-Land-Aufruf oder eine fehlende Wiedersperrung macht den Smoke-Test rot.
 
-### 4. 10-Minuten-Gruppentest
+### 4. 10-Minuten-Gruppentest — **BESTANDEN**
 
-Der 10-Minuten-Test beginnt erst nach bestandenem kontrollierten Live-Smoke. Die GUI, die read-only Produktionsdiagnose und das source-locked Copy/Paste-Paket sind implementiert; der echte Lauf steht noch aus. Details stehen in `BLOCK-8-10-MINUTEN-GRUPPENTEST.md`.
+Der echte Abschlusslauf mit `My_Ranger1` und `My_Ranger2` lief am 2026-09-18 ueber die vollen 10 Minuten auf beiden Seiten. Der Testleiter beobachtete den geplanten Stale, fail-safe Aufgabenentzug und Reconnect; der Stoerteilnehmer pausierte und setzte den echten Produktionsheartbeat kontrolliert fort. Beide Abschlussberichte melden PASS. Details und Metriken stehen in `BLOCK-8-10-MINUTEN-GRUPPENTEST.md` und `BLOCK-8-ABSCHLUSS.md`.
 
 Mindestens zu beobachten sind:
 
@@ -142,13 +142,11 @@ Der Test ist sofort als fehlgeschlagen zu behandeln, wenn unter anderem:
 
 ## Entscheidung zum Blockabschluss
 
-Der Code- und Schattenstand ist ausreichend gehaertet; die kontrollierte aktive one-shot Freigabe ist bereits bestanden. Fuer den formalen Blockabschluss bleibt nur der 10-Minuten-Gruppentest.
+Alle vier Block-8-Abschlussbedingungen sind erfuellt:
 
-Block 8 darf aber erst als **abgeschlossen** markiert werden, wenn:
+1. der minimale aktive Gruppenpfad hat deterministische Tests, Replay/Simulation und Schattenpruefung bestanden,
+2. der one-shot Live-Smoke wurde bestanden und automatisch wiedergesperrt,
+3. der echte 10-Minuten-Gruppentest wurde auf beiden Rangern bestanden,
+4. die relevanten V4-Gates wurden auf dem finalen Block-8-Stand erfolgreich durchlaufen.
 
-1. der minimale aktive Gruppenpfad seine deterministischen Tests, Replay/Simulation und Schattenpruefung bestanden hat,
-2. der one-shot Live-Smoke bestanden und automatisch wiedergesperrt wurde,
-3. der 10-Minuten-Gruppentest bestanden ist,
-4. die relevanten V4-Gates auf dem finalen Block-8-Stand gruen sind.
-
-Der 10-Minuten-Gruppentest ist ein Block-8-Abschlussgate und ersetzt **nicht** die spaeteren uebergeordneten 72-Stunden-/7-Tage-Systemkampagnen der gesamten V4. Danach folgt verbindlich Block 8.5. Block 9 beginnt vorher nicht.
+**Block 8 ist damit abgeschlossen.** Der 10-Minuten-Gruppentest ersetzt weiterhin **nicht** die spaeteren uebergeordneten 24-Stunden-, 72-Stunden- und 7-Tage-Systemkampagnen der gesamten V4. Als naechstes beginnt verbindlich Block 8.5. Block 9 beginnt vorher nicht.
