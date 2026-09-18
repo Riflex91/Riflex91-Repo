@@ -302,10 +302,10 @@ class ControlledPartyLogistics {
   _blockRejectedLoot(item, reason = 'LOOT_REJECTED', durationMs = null) {
     const signature = this._lootSignature(item);
     if (!signature) return false;
-    const duration = Math.max(1000, Math.min(
-      10 * 60 * 1000,
-      finite(durationMs, this.config.rejectedLootBackoffMs)
-    ));
+    const requestedDuration = durationMs == null
+      ? this.config.rejectedLootBackoffMs
+      : finite(durationMs, this.config.rejectedLootBackoffMs);
+    const duration = Math.max(1000, Math.min(10 * 60 * 1000, requestedDuration));
     this.rejectedLoot.set(signature, {
       signature,
       name: String(item.name),
