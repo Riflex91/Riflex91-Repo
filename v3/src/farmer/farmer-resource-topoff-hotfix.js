@@ -184,38 +184,64 @@ class FarmerResourceTopoffHotfix {
       return false;
     }
 
-    let action = null;
-    if (hpNeeded && hpRatio <= this.criticalHpRatio && supply.hpReady) action = 'use_hp';
-    else if (mpNeeded && supply.mpReady && (!hpNeeded || !supply.hpReady || (1 - mpRatio) >= (1 - hpRatio))) action = 'use_mp';
-    else if (hpNeeded && supply.hpReady) action = 'use_hp';
-    else if (mpNeeded && supply.mpReady) action = 'use_mp';
+    const orderedActions = [];
+    if (hpNeeded && hpRatio <= this.criticalHpRatio && supply.hpReady) orderedActions.push('use_hp');
+    if (mpNeeded && supply.mpReady && (!hpNeeded || !supply.hpReady || (1 - mpRatio) >= (1 - hpRatio))) orderedActions.push('use_mp');
+    if (hpNeeded && supply.hpReady && !orderedActions.includes('use_hp')) orderedActions.push('use_hp');
+    if (mpNeeded && supply.mpReady && !orderedActions.includes('use_mp')) orderedActions.push('use_mp');
 
-    if (!action) {
+    if (!orderedActions.length) {
       this.stats.potionUnavailable += 1;
       this.lastUse = { at: now, action: null, executed: false, reason: 'REQUIRED_POTION_UNAVAILABLE', hpRatio, mpRatio, supply };
       this._event('FARMER_RESOURCE_TOPOFF_UNAVAILABLE', 'warn', 'REQUIRED_POTION_UNAVAILABLE', { hpRatio, mpRatio, supply });
       return false;
     }
 
-    const resource = action === 'use_hp' ? 'hp' : 'mp';
-    const current = Math.max(0, finite(character[resource]) || 0);
-    const maximum = Math.max(current, finite(character[`max_${resource}`]) || current);
-    const deficit = Math.max(0, maximum - current);
-    const restoreAmount = this._potionRestoreAmount(snapshot, action);
-    const utilization = restoreAmount != null && restoreAmount > 0
-      ? Math.min(1, deficit / restoreAmount)
-      : null;
-    const criticalHp = action === 'use_hp' && hpRatio <= this.criticalHpRatio;
-
-    if (!criticalHp && utilization != null && utilization < this.minPotionUtilization) {
+    let selected = null;
+    let firstBlocked = null;
+    for (const candidateAction of orderedActions) {
+      const candidateResource = candidateAction === 'use_hp' ? 'hp' : 'mp';
+      const candidateCurrent = Math.max(0, finite(character[candidateResource]) || 0);
+      const candidateMaximum = Math.max(candidateCurrent, finite(character[`max_${candidateResource}`]) || candidateCurrent);
+      const candidateDeficit = Math.max(0, candidateMaximum - candidateCurrent);
+      const candidateRestoreAmount = this._potionRestoreAmount(snapshot, candidateAction);
+      const candidateUtilization = candidateRestoreAmount != null && candidateRestoreAmount > 0
+        ? Math.min(1, candidateDeficit / candidateRestoreAmount)
+        : null;
+      const candidateCriticalHp = candidateAction === 'use_hp' && hpRatio <= this.criticalHpRatio;
+      const viable = candidateCriticalHp
+        || candidateUtilization == null
+        || candidateUtilization >= this.minPotionUtilization;
+      const candidate = {
+        action: candidateAction,
+        resource: candidateResource,
+        current: candidateCurrent,
+        maximum: candidateMaximum,
+        deficit: candidateDeficit,
+        restoreAmount: candidateRestoreAmount,
+        utilization: candidateUtilization,
+        criticalHp: candidateCriticalHp
+      };
+      if (viable) {
+        selected = candidate;
+        break;
+      }
+      if (!firstBlocked) firstBlocked = candidate;
       this.stats.overhealAvoided += 1;
+    }
+
+    if (!selected) {
+      const blocked = firstBlocked || { action: orderedActions[0], resource: null, deficit: null, restoreAmount: null, utilization: null };
       this.lastUse = {
-        at: now, action, executed: false, shadow: false, reason: 'POTION_OVERHEAL_AVOIDED',
-        hpRatio, mpRatio, supply, resource, deficit, restoreAmount, utilization,
+        at: now, action: blocked.action, executed: false, shadow: false, reason: 'POTION_OVERHEAL_AVOIDED',
+        hpRatio, mpRatio, supply, resource: blocked.resource, deficit: blocked.deficit,
+        restoreAmount: blocked.restoreAmount, utilization: blocked.utilization,
         minPotionUtilization: this.minPotionUtilization
       };
       return false;
     }
+
+    const { action, resource, deficit, restoreAmount, utilization } = selected;
 
     if (this.adapter && this.adapter.mode === 'active' && !this._canUse(action)) {
       this.lastAttemptAt = now;
