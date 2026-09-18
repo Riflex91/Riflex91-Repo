@@ -380,6 +380,8 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   assert.equal(sent[0].action, GEAR_DELIVERY_INTENT_ACK_ACTION);
   assert.equal(sent[0].payload.intentToken, 'intent-ringsj-3');
   assert.deepEqual(sent[0].payload.beforeIndices, [2]);
+  await Promise.resolve();
+  assert.equal(hotfix.stats.gearDeliveryIntentAcksSent, 1);
 
   // The same-identity row that existed before the intent remains generic loot,
   // but the newly delivered physical row must be protected immediately.
