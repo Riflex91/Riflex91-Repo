@@ -255,7 +255,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**48 Dateien · 12656 Zeilen**
+**49 Dateien · 13112 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -278,13 +278,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-service.js` | 220 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
 | `src/reliability/alpha27-atomic-transactions.js` | 101 |
+| `src/reliability/alpha27-bank-recovery.js` | 388 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 383 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 413 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 240 |
+| `src/reliability/alpha27-merchant-planning.js` | 278 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
 | `src/reliability/alpha27-utils.js` | 149 |
