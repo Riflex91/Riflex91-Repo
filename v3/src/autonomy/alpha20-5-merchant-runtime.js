@@ -174,9 +174,11 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     const need = plan && plan.need || {};
     return !!(
       metadata.p0PotionPolicy4500 === true
-      && ['hp', 'mp'].includes(String(need.family || ''))
-      && Number(need.priority || 0) >= 95
       && plan && plan.target && plan.target.name
+      && (
+        metadata.p0PotionBatch === true
+        || (['hp', 'mp'].includes(String(need.family || '')) && Number(need.priority || 0) >= 95)
+      )
     );
   }
 
