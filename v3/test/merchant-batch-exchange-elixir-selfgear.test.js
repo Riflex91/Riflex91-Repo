@@ -260,6 +260,48 @@ test('Merchant self-gear upgrades a spare first without unequipping the live ite
   assert.equal(candidate.fallback.equipped, true);
 });
 
+test('Merchant self-gear upgrades speed-gaining equipment before non-speed equipment', () => {
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      isize: 8,
+      items: [
+        { index: 0, name: 'sword', level: 0 },
+        { index: 1, name: 'speedshoes', level: 3 },
+        null, null, null, null, null, null
+      ],
+      slots: {
+        mainhand: { name: 'sword', level: 0 },
+        shoes: { name: 'speedshoes', level: 3 }
+      }
+    },
+    G: {
+      items: {
+        sword: { type: 'weapon', g: 1000, attack: 100, upgrade: { attack: 100 }, grades: [] },
+        speedshoes: { type: 'shoes', g: 1000, speed: 5, upgrade: { speed: 1 }, grades: [] }
+      }
+    },
+    localStorage: { getItem() { return null; }, setItem() {} }
+  };
+  const runtime = { root, adapter: { getGameData: () => root.G } };
+  const manager = new MerchantSelfGear(runtime, {
+    mutationAttemptBudget: () => ({ allowed: true, remaining: 30 }),
+    verifyEventually: async () => true
+  }, {
+    now: () => 1000,
+    log: { emit() {} },
+    options: { maxUpgradeLevel: 7, maxCompoundLevel: 10, upgradeValueCap: 2000000, compoundValueCap: 500000 }
+  });
+
+  const candidate = manager._candidate();
+  assert.equal(candidate.slot, 'shoes');
+  assert.equal(candidate.name, 'speedshoes');
+  assert.equal(candidate.speedGain, 1);
+  assert.equal(manager.status().primaryStat, 'speed');
+  assert.equal(manager.status().speedPriority, 'NEXT_LEVEL_SPEED_GAIN_FIRST');
+});
+
 test('exact self-gear reservation can authorize a non-progression ledger disposition but nothing broader', () => {
   const ledger = makeLedger([{
     key: 'Merchant:0',

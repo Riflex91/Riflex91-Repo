@@ -217,7 +217,8 @@ test('Alpha33 trusted Farmer state makes remote gear observable and releases sta
   assert.equal(hotfix.stats.staleGearGoalsReleased, 1);
 });
 
-test('Alpha33 Alpha27 idle owner cross-map travels to real pending party transfer work', async () => {
+test('Alpha33 collection route travels only to fresh Farmer pickup positions and stays collection-owned', async () => {
+  let now = 70000;
   let travelled = null;
   const merchant = {
     lastMerchantPlan: null,
@@ -226,34 +227,110 @@ test('Alpha33 Alpha27 idle owner cross-map travels to real pending party transfe
       serviceTravelBusy: false,
       namedServiceTravel: async (destination) => { travelled = destination; return { ok: true }; }
     },
+    planSellOrBank: () => null,
+    planCompound: () => null,
     async cycle() {
-      this.lastMerchantPlan = { at: 70000, action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
+      this.lastMerchantPlan = { at: now, action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
       return false;
     }
   };
   const logistics = {
-    config: { rendezvousRequestTtlMs: 15000, rendezvousDistance: 260, maxTransferDistance: 380 },
-    rendezvousRequests: new Map([
-      ['My_Ranger1', { name: 'My_Ranger1', map: 'main', x: -1200, y: 1040, at: 69900, action: 'RENDEZVOUS', workReason: 'OUTBOUND_TRANSFER' }],
-      ['My_Ranger2', { name: 'My_Ranger2', map: 'main', x: -1170, y: 1220, at: 69920, action: 'RENDEZVOUS', workReason: 'OUTBOUND_TRANSFER' }],
-      ['My_Ranger3', { name: 'My_Ranger3', map: 'main', x: -1070, y: 1180, at: 69940, action: 'RENDEZVOUS', workReason: 'OUTBOUND_TRANSFER' }]
-    ])
+    config: { rendezvousDistance: 260, maxTransferDistance: 380 },
+    _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: item.q || 1 }),
+    _trustedNames: () => ['My_Ranger1', 'My_Ranger2', 'My_Ranger3'],
+    _send: async () => ({ sent: true })
   };
   const runtime = {
-    now: () => 70000,
+    now: () => now,
     log: quietLog(),
-    root: { character: { name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: -37 }, parent: { entities: {} } },
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: -37, real_x: 0, real_y: -37, items: [], isize: 42 },
+      parent: { entities: {} },
+      G: { items: { seashell: { type: 'material', s: 9999 } } }
+    },
+    adapter: { getGameData: () => ({ items: { seashell: { type: 'material', s: 9999 } } }) },
     controlledPartyLogistics: logistics,
     alpha27CombatMerchantConvergence: { merchant }
   };
-  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { merchantRendezvousCooldownMs: 2500 });
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { farmerPositionFreshMs: 5000, collectionSettleMs: 7000 });
+
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now - 12000, runtimeActive: true, ctype: 'ranger', map: 'main', x: 9000, y: 9000,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 1 }]
+  });
+  assert.equal(hotfix._merchantRendezvousCandidate(), null, 'stale position must not become a travel target');
+
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now, runtimeActive: true, ctype: 'ranger', map: 'main', x: -1200, y: 1040,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 4 }]
+  });
+  hotfix._acceptFarmerState('My_Ranger2', {
+    at: now, runtimeActive: true, ctype: 'ranger', map: 'main', x: -1170, y: 1220,
+    pickupItems: [{ name: 'seashell', level: 0, quantity: 3 }]
+  });
+
   const acted = await merchant.cycle();
   assert.equal(acted, true);
   assert.ok(travelled);
   assert.equal(travelled.map, 'main');
   assert.ok(travelled.x < -1000 && travelled.y > 1000);
-  assert.equal(hotfix.stats.merchantRendezvousAttempts, 1);
-  assert.equal(hotfix.stats.merchantRendezvousCompleted, 1);
+  assert.ok(hotfix.collectionRoute);
+  assert.equal(hotfix.collectionRoute.stage, 'TRAVEL_TO_FARMERS');
+  assert.equal(hotfix.stats.collectionRoutesStarted, 1);
+  assert.ok(hotfix.stats.staleFarmerPositionsRejected >= 1);
+});
+
+test('Alpha33 collection capacity plan uses total Farmer pickup demand and stack headroom', () => {
+  const merchant = {
+    atomic: { merchantBusy: false, serviceTravelBusy: false, namedServiceTravel: async () => ({ ok: true }) },
+    cycle: async () => false
+  };
+  const root = {
+    character: {
+      name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, real_x: 0, real_y: 0, isize: 6,
+      items: [
+        { name: 'seashell', level: 0, q: 8 },
+        { name: 'keep1', level: 0 },
+        { name: 'keep2', level: 0 },
+        { name: 'keep3', level: 0 },
+        { name: 'keep4', level: 0 },
+        null
+      ]
+    },
+    parent: { entities: {} },
+    G: { items: { seashell: { type: 'material', s: 10 }, ringsj: { type: 'ring', s: 1 } } }
+  };
+  const runtime = {
+    now: () => 1000,
+    log: quietLog(),
+    root,
+    adapter: { getGameData: () => root.G },
+    controlledPartyLogistics: {
+      _safeLootDescriptor: () => ({ ok: true }),
+      _trustedNames: () => [],
+      _send: async () => ({ sent: true })
+    },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  const plan = hotfix._collectionCapacityPlan({
+    count: 2,
+    names: ['R1', 'R2'],
+    pickupEntryCount: 3,
+    pickupQuantity: 5,
+    rows: [
+      { pickupItems: [{ name: 'seashell', level: 0, quantity: 3 }] },
+      { pickupItems: [{ name: 'ringsj', level: 0, quantity: 2 }] }
+    ]
+  });
+
+  assert.equal(plan.pickupQuantity, 5);
+  assert.equal(plan.incomingSlotsNeeded, 3);
+  assert.equal(plan.currentFreeSlots, 1);
+  assert.equal(plan.slotsToFree, 2);
+  const shell = plan.identities.find((row) => row.name === 'seashell');
+  assert.equal(shell.existingHeadroom, 2);
+  assert.equal(shell.newSlotsNeeded, 1);
 });
 
 test('production live services wires Alpha33 before same-version early return', () => {

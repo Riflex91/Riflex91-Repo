@@ -10,7 +10,7 @@ const CLASS_WEIGHTS = Object.freeze({
   rogue: { attack: 1.15, armor: 0.5, resistance: 0.45, hp: 0.02, dex: 0.95, crit: 0.55, evasion: 0.35, speed: 0.25, frequency: 0.45 },
   mage: { attack: 1.1, armor: 0.35, resistance: 0.75, hp: 0.02, mp: 0.025, int: 1.0, crit: 0.25, speed: 0.1, range: 0.1 },
   priest: { attack: 0.75, armor: 0.45, resistance: 1.0, hp: 0.04, mp: 0.03, int: 0.9, speed: 0.1, range: 0.08 },
-  merchant: { attack: 0.3, armor: 0.7, resistance: 0.7, hp: 0.04, str: 0.15, dex: 0.15, int: 0.15, speed: 0.3 }
+  merchant: { attack: 0.3, armor: 0.7, resistance: 0.7, hp: 0.04, str: 0.15, dex: 0.15, int: 0.15, speed: 10.0 }
 });
 
 const DEFAULT_WEIGHTS = Object.freeze({ attack: 1, armor: 0.7, resistance: 0.7, hp: 0.03, mp: 0.015, str: 0.35, dex: 0.35, int: 0.35, vit: 0.4, crit: 0.25, evasion: 0.2, speed: 0.15, range: 0.08, frequency: 0.3 });
@@ -94,6 +94,41 @@ function scoreItem(meta, level, ctype) {
   return { total, survival, stats };
 }
 
+function scoreImprovement(currentScore, targetScore, ctype, minImprovementRatio = 0) {
+  const current = currentScore || { total: 0, survival: 0, stats: {} };
+  const target = targetScore || { total: 0, survival: 0, stats: {} };
+  const improvement = finite(target.total, 0) - finite(current.total, 0);
+  const survivalImprovement = finite(target.survival, 0) - finite(current.survival, 0);
+  const currentSpeed = finite(current.stats && current.stats.speed, 0);
+  const targetSpeed = finite(target.stats && target.stats.speed, 0);
+  const speedImprovement = targetSpeed - currentSpeed;
+  const merchant = String(ctype || '').toLowerCase() === 'merchant';
+
+  // Merchant logistics are movement-bound. Speed is a lexicographic primary
+  // stat: any real speed gain is an upgrade even if it trades secondary stats,
+  // while a speed loss can never be justified by attack/armor/etc.
+  if (merchant && speedImprovement !== 0) {
+    return {
+      meaningful: speedImprovement > 0,
+      reason: speedImprovement > 0 ? 'MERCHANT_SPEED_GAIN' : 'MERCHANT_SPEED_LOSS_REJECTED',
+      improvement,
+      survivalImprovement,
+      speedImprovement
+    };
+  }
+
+  const threshold = finite(current.total, 0) <= 0
+    ? 0.001
+    : Math.max(0.001, finite(current.total, 0) * Math.max(0, finite(minImprovementRatio, 0)));
+  return {
+    meaningful: improvement > threshold,
+    reason: improvement > threshold ? 'WEIGHTED_GEAR_IMPROVEMENT' : 'INSUFFICIENT_GEAR_IMPROVEMENT',
+    improvement,
+    survivalImprovement,
+    speedImprovement
+  };
+}
+
 class GearProgressionEvaluator {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -105,6 +140,8 @@ class GearProgressionEvaluator {
     this.maxProbeLevel = Math.max(1, Math.min(20, Math.floor(finite(options.maxProbeLevel, 12))));
     this.minImprovementRatio = Math.max(0.01, Math.min(1, finite(options.minImprovementRatio, 0.05)));
     this.goals = new Map();
+    this.futureFarmerProtection = new Map();
+    this.futureFarmerEvaluation = new Map();
     this.loaded = false;
     this.lastEvaluatedAt = null;
     this.lastEvaluation = null;
@@ -145,13 +182,37 @@ class GearProgressionEvaluator {
 
   _firstMeaningful(meta, observedLevel, currentScore, ctype) {
     const start = Math.max(0, observedLevel);
-    const max = meta && meta.upgrade ? Math.max(start, this.maxProbeLevel) : start;
-    const threshold = currentScore.total <= 0 ? 0.001 : currentScore.total * (1 + this.minImprovementRatio);
+    const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
-      if (score.total > threshold) return { level, score };
+      const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
+      if (delta.meaningful) return { level, score, delta };
     }
     return null;
+  }
+
+  futureProtectionFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const row = this.futureFarmerProtection.get(exactKey);
+    if (!row) return null;
+    if (String(row.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(row.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    return clone(row);
+  }
+
+  futureSellSafetyFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const evaluation = this.futureFarmerEvaluation.get(exactKey);
+    if (!evaluation) return null;
+    if (String(evaluation.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(evaluation.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    const protection = this.futureProtectionFor(character, index, name, level);
+    return {
+      ...clone(evaluation),
+      checked: evaluation.checkedFarmerCount > 0 && evaluation.blockedByUnknownContent !== true,
+      protected: !!protection,
+      protection
+    };
   }
 
   _goalId(character, slot, item, targetLevel) {
@@ -184,21 +245,82 @@ class GearProgressionEvaluator {
     }
     this.stats.candidates += candidates.length;
     const seenGoalIds = new Set();
+    this.futureFarmerProtection.clear();
+    this.futureFarmerEvaluation.clear();
+    for (const candidate of candidates) {
+      if (!Number.isInteger(Number(candidate.item && candidate.item.index))) continue;
+      const key = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+      this.futureFarmerEvaluation.set(key, {
+        sourceCharacter: candidate.sourceCharacter,
+        sourceIndex: Number(candidate.item.index),
+        item: candidate.item.name,
+        observedLevel: levelOf(candidate.item),
+        evaluatedAt: now,
+        maxProbeLevel: this.maxProbeLevel,
+        checkedFarmerCount: 0,
+        blockedByUnknownContent: false
+      });
+    }
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
       for (const candidate of candidates) {
         if (!compatible(candidate.meta, character)) continue;
-        if (this._unsafe(context.contentDrift, candidate.item.name)) { blockedUnknownContent += 1; continue; }
+        const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
+          ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
+          : null;
+        const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+        if (this._unsafe(context.contentDrift, candidate.item.name)) {
+          blockedUnknownContent += 1;
+          if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+            this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
+          }
+          continue;
+        }
+        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        }
         let best = null;
         for (const slot of candidate.slots) {
           const current = this._currentItem(character, slot, gameData);
           const meaningful = this._firstMeaningful(candidate.meta, levelOf(candidate.item), current.score, character.ctype);
           if (!meaningful) continue;
-          const improvement = meaningful.score.total - current.score.total;
-          const survivalImprovement = meaningful.score.survival - current.score.survival;
-          const row = { slot, current, meaningful, improvement, survivalImprovement };
-          if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
+          const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
+          const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
+          const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
+          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement };
+          if (String(character.ctype || '').toLowerCase() !== 'merchant'
+            && meaningful.level > levelOf(candidate.item)
+            && Number.isInteger(Number(candidate.item.index))) {
+            const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+            const existingProtection = this.futureFarmerProtection.get(protectionKey);
+            const protection = {
+              sourceCharacter: candidate.sourceCharacter,
+              sourceIndex: Number(candidate.item.index),
+              item: candidate.item.name,
+              observedLevel: levelOf(candidate.item),
+              targetLevel: meaningful.level,
+              targetCharacter: character.name,
+              targetSlot: slot,
+              improvement,
+              survivalImprovement,
+              reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
+            };
+            if (!existingProtection
+              || protection.targetLevel < existingProtection.targetLevel
+              || protection.improvement > existingProtection.improvement) {
+              this.futureFarmerProtection.set(protectionKey, protection);
+            }
+          }
+          const merchantTarget = String(character.ctype || '').toLowerCase() === 'merchant';
+          const better = !best
+            || (merchantTarget
+              ? (row.speedImprovement > best.speedImprovement
+                || (row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
+                || (row.speedImprovement === best.speedImprovement && row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement))
+              : (row.improvement > best.improvement
+                || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)));
+          if (better) best = row;
         }
         if (!best) continue;
         const targetLevel = best.meaningful.level;
@@ -222,9 +344,12 @@ class GearProgressionEvaluator {
           targetScore: best.meaningful.score.total,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
+          speedImprovement: best.speedImprovement,
           projectedUpgradeRequired: targetLevel > levelOf(candidate.item),
           feasibility: targetLevel > levelOf(candidate.item) ? 'MATERIALS_AND_RISK_UNMODELED' : 'HELD_AND_READY_FOR_LATER_EXECUTOR',
-          priority: best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
+          priority: String(character.ctype || '').toLowerCase() === 'merchant' && best.speedImprovement > 0
+            ? 'MERCHANT_MOBILITY'
+            : best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
           actionAuthority: false,
           firstSeenAt: existing ? existing.firstSeenAt : now,
           lastSeenAt: now
@@ -246,19 +371,46 @@ class GearProgressionEvaluator {
     const observedGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
     const usedPhysicalItems = new Set();
     const usedTargetSlots = new Set();
-    const currentGoals = observedGoals
-      .slice()
-      .sort((a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id))
-      .filter((goal) => {
+    const ctypeByName = new Map(characters.filter(Boolean).map((row) => [String(row.name || ''), String(row.ctype || row.type || '').toLowerCase()]));
+    const compareGoal = (a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id);
+    const compareMerchantGoal = (a, b) => finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0)
+      || b.improvement - a.improvement
+      || b.survivalImprovement - a.survivalImprovement
+      || a.id.localeCompare(b.id);
+    const farmers = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').sort(compareGoal);
+    const merchants = observedGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').sort(compareMerchantGoal);
+    const currentGoals = [];
+
+    const take = (queue, limit) => {
+      let accepted = 0;
+      while (queue.length && accepted < limit) {
+        const goal = queue.shift();
         const physical = goal.sourceIndex != null
           ? `${goal.sourceCharacter}:${goal.sourceIndex}`
           : `${goal.sourceCharacter}:${goal.item}:${goal.observedLevel}`;
         const target = `${goal.character}:${goal.slot}`;
-        if (usedPhysicalItems.has(physical) || usedTargetSlots.has(target)) return false;
+        if (usedPhysicalItems.has(physical) || usedTargetSlots.has(target)) continue;
         usedPhysicalItems.add(physical);
         usedTargetSlots.add(target);
-        return true;
-      });
+        currentGoals.push(goal);
+        accepted += 1;
+      }
+      return accepted;
+    };
+
+    // Better gear is Farmer-first. Allocate all non-conflicting Farmer goals
+    // first, then permit at most one Merchant assignment per four Farmer
+    // assignments (80/20). If there are no useful Farmer goals at all, Merchant
+    // upgrades may use otherwise-idle gear.
+    const farmerGoalCount = farmers.length;
+    take(farmers, Number.MAX_SAFE_INTEGER);
+    const farmerAssignments = currentGoals.length;
+    if (farmerGoalCount === 0) {
+      take(merchants, Number.MAX_SAFE_INTEGER);
+    } else {
+      const merchantBudget = Math.floor(farmerAssignments / 4);
+      if (merchantBudget > 0) take(merchants, merchantBudget);
+    }
     const reservations = [];
     // Reserve exact physical inventory rows whenever possible. One physical
     // item can satisfy at most one active gear goal and one target slot can
@@ -280,6 +432,11 @@ class GearProgressionEvaluator {
       activeGoals: currentGoals.length,
       observedGoals: observedGoals.length,
       physicalAssignments: currentGoals.length,
+      farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
+      merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
+      farmerTargetShare: 0.8,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
@@ -348,6 +505,13 @@ class GearProgressionEvaluator {
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
       goals: this.goals.size,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
+      futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      processedGearSellRequiresExplicitFutureSafety: true,
+      merchantPrimaryGearStat: 'speed',
+      merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
+      merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
@@ -362,5 +526,6 @@ module.exports = {
   CLASS_WEIGHTS,
   effectiveStats,
   scoreItem,
+  scoreImprovement,
   candidateSlots
 };

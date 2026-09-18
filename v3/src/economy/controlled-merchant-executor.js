@@ -62,7 +62,8 @@ function hasExplicitBankBinding(response) {
 
 class ControlledMerchantExecutor {
   constructor(options = {}) {
-    this.root = options.root || globalThis;
+    this.runtime = options.runtime || null;
+    this.root = options.root || this.runtime && this.runtime.root || globalThis;
     this.engine = options.engine;
     this.ledger = options.ledger;
     this.contentDrift = options.contentDrift || null;
@@ -220,6 +221,38 @@ class ControlledMerchantExecutor {
       const lifecycleReasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
       const lifecycleProcessedSale = !!(tx.metadata && tx.metadata.lifecycleProcessedSale === true)
         && lifecycleReasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+      if (lifecycleProcessedSale) {
+        const gear = this.runtime && this.runtime.gearProgression;
+        let futureProtection = null;
+        let futureSellSafety = null;
+        try {
+          futureProtection = gear && typeof gear.futureProtectionFor === 'function'
+            ? gear.futureProtectionFor(character.name, txIndex, tx.item, tx.level)
+            : null;
+          futureSellSafety = gear && typeof gear.futureSellSafetyFor === 'function'
+            ? gear.futureSellSafetyFor(character.name, txIndex, tx.item, tx.level)
+            : null;
+        } catch (_) {
+          futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+          futureSellSafety = null;
+        }
+        if (!futureSellSafety || futureSellSafety.checked !== true) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED',
+            futureFarmerSellSafety: futureSellSafety
+          };
+        }
+        if (futureProtection || futureSellSafety.protected === true) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED',
+            futureFarmerProtection: futureProtection || futureSellSafety.protection || null
+          };
+        }
+      }
 
       // Ordinary SELL remains plain-stackable-material-only. The only exception
       // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then

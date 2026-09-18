@@ -3,6 +3,7 @@
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
+const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -119,7 +120,7 @@ function installMerchantProduction(runtime, options = {}) {
     if (step.vendor.map && c.map && String(step.vendor.map) !== String(c.map)) return false;
     const cx = n(c.real_x, n(c.x)); const cy = n(c.real_y, n(c.y)); const vx = n(step.vendor.x); const vy = n(step.vendor.y);
     if (cx == null || cy == null || vx == null || vy == null) return true;
-    return Math.hypot(cx - vx, cy - vy) <= 450;
+    return Math.hypot(cx - vx, cy - vy) <= bufferedInteractionRange(runtime.root, 'npc');
   }
 
   function evaluate() {
@@ -136,7 +137,21 @@ function installMerchantProduction(runtime, options = {}) {
   }
   async function travelVendor(step) {
     if (!step || !step.vendor || typeof runtime.planTravel !== 'function' || typeof runtime.executeTravelPlan !== 'function') return { ok: false, reason: 'VENDOR_TRAVEL_UNAVAILABLE' };
-    const planned = runtime.planTravel({ destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y }, metadata: { source: 'MERCHANT_PRODUCTION', item: step.name } });
+    const interactionMax = interactionMaxRange(runtime.root, 'npc');
+    const arrivalRadius = bufferedInteractionRange(runtime.root, 'npc');
+    const planned = runtime.planTravel({
+      destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y },
+      arrivalRadius,
+      metadata: {
+        source: 'MERCHANT_PRODUCTION',
+        item: step.name,
+        stopWhenInteractionReady: true,
+        interactionKind: 'npc',
+        interactionMaxRange: interactionMax,
+        interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+        bufferedInteractionRange: arrivalRadius
+      }
+    });
     if (!planned || planned.accepted !== true || !planned.plan) return { ok: false, reason: planned && planned.reason || 'VENDOR_TRAVEL_PLAN_REJECTED' };
     const result = await runtime.executeTravelPlan(planned.plan.id);
     return { ok: !!(result && (result.completed === true || result.ok === true || result.result === 'COMPLETED')), result: clone(result) };
@@ -261,6 +276,11 @@ function installMerchantProduction(runtime, options = {}) {
       mode: MERCHANT_PRODUCTION_CONTROLLER_MODE,
       planner: planner.status(),
       controlled: executor.status(),
+      interactionArrival: {
+        safetyFactor: INTERACTION_SAFETY_FACTOR,
+        npcMaxRange: interactionMaxRange(runtime.root, 'npc'),
+        npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
+      },
       bankCatalog: bankCatalog.status(),
       autoLiveEnabled: true,
       collectionSessionBlocksProduction: collectionBusy(),

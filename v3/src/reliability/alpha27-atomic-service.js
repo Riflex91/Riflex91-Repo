@@ -19,6 +19,38 @@ function serviceNpcId(destination, gameData = {}) {
   return null;
 }
 
+const INTERACTION_SAFETY_FACTOR = 0.90;
+const DEFAULT_NPC_INTERACTION_MAX = 120;
+const DOOR_SERVER_INTERACTION_MAX = 112;
+
+function serviceDistance(a, b) {
+  if (!a || !b) return Infinity;
+  if (a.map && b.map && String(a.map) !== String(b.map)) return Infinity;
+  const ax = Number(a.real_x != null ? a.real_x : a.x);
+  const ay = Number(a.real_y != null ? a.real_y : a.y);
+  const bx = Number(b.real_x != null ? b.real_x : b.x);
+  const by = Number(b.real_y != null ? b.real_y : b.y);
+  if (![ax, ay, bx, by].every(Number.isFinite)) return Infinity;
+  return Math.hypot(ax - bx, ay - by);
+}
+
+function interactionMaxRange(root, kind = 'npc') {
+  if (kind === 'door') return DOOR_SERVER_INTERACTION_MAX;
+  const candidates = [
+    root && root.B && root.B.sell_dist,
+    root && root.parent && root.parent.B && root.parent.B.sell_dist
+  ];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 50 && n <= 500) return n;
+  }
+  return DEFAULT_NPC_INTERACTION_MAX;
+}
+
+function bufferedInteractionRange(root, kind = 'npc') {
+  return interactionMaxRange(root, kind) * INTERACTION_SAFETY_FACTOR;
+}
+
 function usableNpcLocation(value, fallbackMap = null) {
   if (!value || typeof value !== 'object') return null;
   const x = Number(value.x);
@@ -94,11 +126,67 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       return { ok: false, reason, resolved };
     }
     const gd = gameDataOf(this.runtime);
+    // Re-locate a known NPC immediately before travel. This protects callers
+    // that resolved earlier through an id fallback and guarantees that the
+    // buffered interaction-range check can still prevent unnecessary movement.
+    if (resolved.npcId && (!resolved.destination || typeof resolved.destination !== 'object')) {
+      const finder = rawFunction(this.root, 'find_npc');
+      if (finder) {
+        try {
+          const current = characterOf(this.runtime);
+          const found = finder.fn.call(finder.owner, resolved.npcId);
+          const location = usableNpcLocation(found, current && current.map);
+          if (location) {
+            resolved.destination = location;
+            resolved.source = 'FIND_NPC_TRAVEL_REFRESH';
+          }
+        } catch (_) {}
+      }
+    }
     const target = resolved.destination;
     const controlledTarget = target && typeof target === 'object' && target.map && Number.isFinite(Number(target.x)) && Number.isFinite(Number(target.y));
     const controlledMap = typeof target === 'string' && gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, target);
+    const c = characterOf(this.runtime);
+    const interactionKind = resolved.npcId ? 'npc' : null;
+    const interactionMax = interactionKind ? interactionMaxRange(this.root, interactionKind) : null;
+    const interactionRadius = interactionKind ? bufferedInteractionRange(this.root, interactionKind) : null;
+
+    // Interaction readiness is independent of which travel backend is
+    // installed. Never smart_move merely because controlled travel APIs are
+    // unavailable when the Merchant is already inside the verified NPC buffer.
+    if (controlledTarget && interactionRadius != null && c
+      && String(c.map || '') === String(target.map || '')
+      && serviceDistance(c, target) <= interactionRadius) {
+      this._event('ALPHA27_SERVICE_ALREADY_IN_BUFFERED_RANGE', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+        transactionId: tx && tx.id || null,
+        requestedDestination: resolved.requested,
+        npcId: resolved.npcId,
+        interactionKind,
+        interactionMaxRange: interactionMax,
+        interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+        bufferedRange: interactionRadius,
+        distance: serviceDistance(c, target)
+      });
+      return { ok: true, controlled: typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function', alreadyInRange: true, resolved, bufferedRange: interactionRadius };
+    }
+
     if ((controlledTarget || controlledMap) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
-      const planned = this.runtime.planTravel({ destination: clone(target), metadata: { source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL', transactionId: tx && tx.id || null, requestedDestination: resolved.requested, npcId: resolved.npcId, resolutionSource: resolved.source } });
+      const planned = this.runtime.planTravel({
+        destination: clone(target),
+        arrivalRadius: interactionRadius == null ? undefined : interactionRadius,
+        metadata: {
+          source: 'ALPHA27_MERCHANT_SERVICE_TRAVEL',
+          transactionId: tx && tx.id || null,
+          requestedDestination: resolved.requested,
+          npcId: resolved.npcId,
+          resolutionSource: resolved.source,
+          stopWhenInteractionReady: interactionRadius != null,
+          interactionKind,
+          interactionMaxRange: interactionMax,
+          interactionSafetyFactor: INTERACTION_SAFETY_FACTOR,
+          bufferedInteractionRange: interactionRadius
+        }
+      });
       if (!planned || planned.accepted !== true || !planned.plan) {
         const reason = planned && planned.reason || 'CONTROLLED_SERVICE_TRAVEL_PLAN_REJECTED';
         if (tx) this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
@@ -238,4 +326,13 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
   }
 }
 
-module.exports = { Alpha27AtomicService, serviceNpcId, usableNpcLocation };
+module.exports = {
+  Alpha27AtomicService,
+  serviceNpcId,
+  usableNpcLocation,
+  INTERACTION_SAFETY_FACTOR,
+  DEFAULT_NPC_INTERACTION_MAX,
+  DOOR_SERVER_INTERACTION_MAX,
+  interactionMaxRange,
+  bufferedInteractionRange
+};

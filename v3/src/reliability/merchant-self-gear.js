@@ -1,7 +1,7 @@
 'use strict';
 
 const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, gradeForLevel } = require('./alpha27-utils');
-const { candidateSlots } = require('../economy/gear-progression');
+const { candidateSlots, effectiveStats } = require('../economy/gear-progression');
 
 const SELF_GEAR_MODE = 'alpha27-merchant-self-gear-v1';
 const TERMINAL_STAGES = new Set(['DONE', 'FAILED_SAFE']);
@@ -37,7 +37,8 @@ class MerchantSelfGear {
       fallbackEquips: 0,
       skippedNoFallback: 0,
       skippedNoWorkspace: 0,
-      failedSafe: 0
+      failedSafe: 0,
+      speedPrioritySelections: 0
     };
     this._load();
   }
@@ -95,9 +96,11 @@ class MerchantSelfGear {
       if (!item || excluded.has(Number(item.index)) || item.locked || item.l || item.special || item.p) continue;
       const meta = gd.items && gd.items[item.name];
       if (!meta || !compatible(meta, c.ctype) || !candidateSlots(meta).includes(slot)) continue;
-      rows.push({ index: item.index, name: item.name, level: levelOf(item) });
+      const level = levelOf(item);
+      const stats = effectiveStats(meta, level);
+      rows.push({ index: item.index, name: item.name, level, speed: finite(stats.speed, 0) });
     }
-    rows.sort((a, b) => b.level - a.level || a.name.localeCompare(b.name) || a.index - b.index);
+    rows.sort((a, b) => b.speed - a.speed || b.level - a.level || a.name.localeCompare(b.name) || a.index - b.index);
     return rows[0] || null;
   }
 
@@ -144,14 +147,25 @@ class MerchantSelfGear {
           continue;
         }
       }
+      const currentStats = effectiveStats(meta, level);
+      const nextStats = effectiveStats(meta, level + 1);
+      const speedGain = finite(nextStats.speed, 0) - finite(currentStats.speed, 0);
       rows.push({
         slot, type, name: equipped.name, level, fallback, budget,
         usesSpare,
+        speedGain,
+        currentSpeed: finite(currentStats.speed, 0),
         inventoryMatches: matches.slice(0, type === 'COMPOUND' ? 3 : 1)
       });
     }
-    rows.sort((a, b) => a.level - b.level || (a.type === 'COMPOUND' ? -1 : 1) || a.slot.localeCompare(b.slot));
-    return rows[0] || null;
+    rows.sort((a, b) => b.speedGain - a.speedGain
+      || b.currentSpeed - a.currentSpeed
+      || a.level - b.level
+      || (a.type === 'COMPOUND' ? -1 : 1)
+      || a.slot.localeCompare(b.slot));
+    const selected = rows[0] || null;
+    if (selected && selected.speedGain > 0) this.stats.speedPrioritySelections += 1;
+    return selected;
   }
 
   _reservationMatches(session, indices) {
@@ -354,6 +368,9 @@ class MerchantSelfGear {
       enabled: true,
       requiresFallbackBeforeRisk: true,
       spareFirst: true,
+      primaryStat: 'speed',
+      speedPriority: 'NEXT_LEVEL_SPEED_GAIN_FIRST',
+      fallbackSpeedFirst: true,
       session: clone(this.session),
       lastSession: clone(this.lastSession),
       stats: clone(this.stats)

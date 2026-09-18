@@ -32,7 +32,7 @@ class ControlledTravelExecutor {
     this.busy = false;
     this.activePlanId = null;
     this.lastAction = null;
-    this.stats = { attempts: 0, completed: 0, rejected: 0, failedSafe: 0, timeouts: 0, aborts: 0 };
+    this.stats = { attempts: 0, completed: 0, rejected: 0, failedSafe: 0, timeouts: 0, aborts: 0, bufferedEarlyStops: 0 };
   }
 
   _event(event, severity = 'info', reason = null, data = {}) {
@@ -169,6 +169,30 @@ class ControlledTravelExecutor {
     }
   }
 
+  async _waitForBufferedArrival(plan) {
+    if (!plan || !plan.metadata || plan.metadata.stopWhenInteractionReady !== true) return null;
+    const pollMs = Math.max(50, Math.min(250, Number(plan.metadata.interactionPollMs) || 100));
+    const setTimer = (this.root && this.root.setTimeout) || setTimeout;
+    while (this.busy && this.activePlanId === plan.id) {
+      this.controller.observe(this._snapshot());
+      const current = this.controller.get(plan.id);
+      if (current && current.state === 'COMPLETED') {
+        this.stats.bufferedEarlyStops += 1;
+        await this._stopSmart('BUFFERED_INTERACTION_RANGE_REACHED');
+        this._event('CONTROLLED_TRAVEL_BUFFERED_ARRIVAL', 'info', 'BUFFERED_INTERACTION_RANGE_REACHED', {
+          planId: plan.id,
+          arrivalRadius: current.arrivalRadius,
+          interactionSafetyFactor: plan.metadata.interactionSafetyFactor == null ? null : Number(plan.metadata.interactionSafetyFactor),
+          interactionMaxRange: plan.metadata.interactionMaxRange == null ? null : Number(plan.metadata.interactionMaxRange),
+          interactionKind: plan.metadata.interactionKind || null
+        });
+        return { success: true, bufferedArrival: true };
+      }
+      await new Promise((resolve) => setTimer(resolve, pollMs));
+    }
+    return null;
+  }
+
   async execute(planId) {
     const plan = this.controller && this.controller.get(String(planId));
     const check = this._preflight(plan);
@@ -197,7 +221,8 @@ class ControlledTravelExecutor {
       if (!command.executed) throw new Error(reasonText(command.reason, command.shadow ? 'RUNTIME_NOT_ACTIVE' : 'SMART_MOVE_COMMAND_REJECTED'));
       const routePromise = Promise.resolve(command.value);
       routePromise.catch(() => {});
-      const response = await this._timeout(routePromise);
+      const bufferedArrivalPromise = this._waitForBufferedArrival(plan);
+      const response = await this._timeout(bufferedArrivalPromise ? Promise.race([routePromise, bufferedArrivalPromise]) : routePromise);
       if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
       this.controller.observe(this._snapshot());
       const finalPlan = this.controller.get(plan.id);

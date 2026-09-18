@@ -128,6 +128,67 @@ test('GearProgression assigns one physical candidate to at most one target slot'
   assert.equal(result.reservations[0].sourceIndex, 0);
 });
 
+test('GearProgression keeps better gear allocation Farmer-first at approximately 80/20', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const inventory = [];
+  for (let i = 0; i < 10; i += 1) inventory.push({ index: i, name: `ring${i}`, level: 0, q: 1 });
+  const items = { weakring: { type: 'ring', dex: 1, g: 10 } };
+  for (let i = 0; i < 10; i += 1) items[`ring${i}`] = { type: 'ring', dex: 20 + i, luck: 20 + i, g: 1000, compound: { dex: 1, luck: 1 }, grades: [] };
+
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', level: 80, inventory, gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R1', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R2', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R3', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } }
+      ]
+    },
+    gameData: { items },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const farmers = result.currentGoals.filter((goal) => goal.ctype !== 'merchant').length;
+  const merchant = result.currentGoals.filter((goal) => goal.ctype === 'merchant').length;
+  assert.ok(farmers >= merchant * 4 || merchant === 0, `expected Farmer-first allocation, got ${farmers} Farmer vs ${merchant} Merchant`);
+  assert.equal(result.status.lastEvaluation.farmerTargetShare, 0.8);
+});
+
+test('Merchant gear treats movement speed as the lexicographic primary stat', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [{
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        inventory: [
+          { index: 0, name: 'tankboots', level: 0, q: 1 },
+          { index: 1, name: 'swiftboots', level: 0, q: 1 }
+        ],
+        gear: { shoes: { name: 'currentboots', level: 0 } }
+      }]
+    },
+    gameData: {
+      items: {
+        currentboots: { type: 'shoes', armor: 1000, speed: 5, g: 1000 },
+        tankboots: { type: 'shoes', armor: 100000, speed: 4, g: 1000 },
+        swiftboots: { type: 'shoes', armor: 0, speed: 6, g: 1000 }
+      }
+    },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const merchantGoals = result.currentGoals.filter((goal) => goal.character === 'Merchant');
+  assert.equal(merchantGoals.length, 1);
+  assert.equal(merchantGoals[0].item, 'swiftboots');
+  assert.equal(merchantGoals[0].priority, 'MERCHANT_MOBILITY');
+  assert.equal(merchantGoals[0].speedImprovement, 1);
+  assert.equal(merchantGoals.some((goal) => goal.item === 'tankboots'), false);
+  assert.equal(result.status.merchantPrimaryGearStat, 'speed');
+  assert.equal(result.status.merchantSpeedPriority, 'LEXICOGRAPHIC_FIRST');
+});
+
 test('normal ENGAGE state does not by itself block Farmer outbound logistics', () => {
   const logistics = Object.create(ControlledPartyLogistics.prototype);
   logistics.runtime = { farmer: { state: 'ENGAGE' } };

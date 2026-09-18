@@ -90,6 +90,23 @@ function effectActiveOn(entity, effectName, now = Date.now()) {
   return false;
 }
 
+function pickupItemsView(logistics, inventory, maxItems = 64) {
+  const out = [];
+  for (const item of Array.isArray(inventory) ? inventory : []) {
+    if (!item || !item.name || out.length >= maxItems) continue;
+    let descriptor = null;
+    try { descriptor = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null; } catch (_) {}
+    if (!descriptor || descriptor.ok !== true) continue;
+    out.push({
+      name: String(item.name),
+      level: levelOf(item),
+      quantity: Math.max(1, Math.floor(finite(item.q, descriptor.quantity || 1))),
+      metadataType: descriptor.metadataType || null
+    });
+  }
+  return out;
+}
+
 function equipmentView(raw, maxSlots = 32) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   const out = {};
@@ -117,10 +134,16 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMin = Math.max(120, Math.min(360, finite(options.trainingRadiusMin, 180)));
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
+    this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
+    this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
     this.lastFarmerStateSentAt = -Infinity;
     this.lastMerchantRendezvousAt = -Infinity;
     this.merchantRendezvousBusy = false;
+    this.collectionRoute = null;
+    this.lastCollectionCapacityPlan = null;
+    this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
     this.stats = {
       huntersMarkExistingDebuffSkips: 0,
@@ -141,7 +164,14 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantRendezvousAttempts: 0,
       merchantRendezvousCompleted: 0,
       merchantRendezvousFailed: 0,
-      merchantRendezvousAlreadyNear: 0
+      merchantRendezvousAlreadyNear: 0,
+      staleFarmerPositionsRejected: 0,
+      farmerStateRefreshRequests: 0,
+      collectionRoutesStarted: 0,
+      collectionRoutesCompleted: 0,
+      collectionCapacityDisposals: 0,
+      collectionCapacityConstrainedDepartures: 0,
+      collectionFollowMoves: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -467,8 +497,11 @@ class Alpha33MarkOrbitMerchantDelivery {
     const sc = snap && snap.character || {};
     const live = characterOf(this.runtime) || {};
     const gear = equipmentView(live.slots || live.equipment || sc.equipment || sc.gear || {});
+    const inventory = Array.isArray(sc.inventory) ? sc.inventory : Array.isArray(live.items) ? live.items.map((item, index) => item ? { ...item, index } : null) : [];
+    const pickupItems = pickupItemsView(logistics, inventory);
     return {
       runtimeActive: true,
+      at: this.now(),
       name: cleanName(sc.name || live.name),
       ctype: sc.ctype || live.ctype || null,
       level: Math.max(0, finite(sc.level != null ? sc.level : live.level, 0)),
@@ -476,7 +509,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
       y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
       rip: !!(sc.rip || live.rip),
-      gear
+      gear,
+      pickupItems,
+      pickupEntryCount: pickupItems.length,
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + Math.max(1, finite(item.quantity, 1)), 0)
     };
   }
 
@@ -504,6 +540,14 @@ class Alpha33MarkOrbitMerchantDelivery {
     const name = cleanName(sender || data && data.sender || data && data.name);
     if (!name) return false;
     const gear = equipmentView(data && data.gear || {});
+    const pickupItems = Array.isArray(data && data.pickupItems)
+      ? data.pickupItems.slice(0, 64).filter((item) => item && item.name).map((item) => ({
+          name: String(item.name),
+          level: Math.max(0, Math.floor(finite(item.level, 0))),
+          quantity: Math.max(1, Math.floor(finite(item.quantity, 1))),
+          metadataType: item.metadataType || null
+        }))
+      : [];
     const row = {
       name,
       ctype: data && data.ctype || null,
@@ -514,7 +558,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       online: true,
       available: !(data && data.rip),
       dead: !!(data && data.rip),
-      gear
+      gear,
+      pickupItems,
+      pickupEntryCount: pickupItems.length,
+      pickupQuantity: pickupItems.reduce((sum, item) => sum + item.quantity, 0)
     };
     this.farmerStates.set(name, { ...row, at: this.now(), sourceAt: finite(data && data.at, this.now()), runtimeActive: data && data.runtimeActive === true });
     this.stats.farmerStateReceived += 1;
@@ -567,6 +614,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       }
       const accepted = baseReceive(sender, data);
       if (accepted && action === 'STATUS' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
+      if (accepted && action === 'STATUS_REQUEST' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
       if (accepted && action === 'STOP_FULL' && typeof logistics._isMerchant === 'function' && !logistics._isMerchant()) this._maybeSendFarmerState(sender || data && data.sender);
       return accepted;
     };
@@ -574,93 +622,363 @@ class Alpha33MarkOrbitMerchantDelivery {
     return true;
   }
 
-  _merchantRendezvousCandidate() {
-    const logistics = this.runtime.controlledPartyLogistics;
-    if (!logistics || !(logistics.rendezvousRequests instanceof Map)) return null;
+  _freshFarmerRows() {
     const now = this.now();
-    const ttl = Math.max(3000, finite(logistics.config && logistics.config.rendezvousRequestTtlMs, 15000));
-    const rows = [...logistics.rendezvousRequests.values()].filter((row) => row
-      && row.map
-      && finite(row.x) != null
-      && finite(row.y) != null
-      && now - finite(row.at, 0) <= ttl
-      && ['RENDEZVOUS', 'LOOT_OFFER', 'GOLD_OFFER', 'SUPPLY_REQUEST'].includes(String(row.action || 'RENDEZVOUS')));
-    if (!rows.length) return null;
+    const rows = [];
+    for (const row of this.farmerStates.values()) {
+      if (!row || row.runtimeActive !== true || row.available === false || row.dead === true) continue;
+      if (!row.map || finite(row.x) == null || finite(row.y) == null) continue;
+      const receivedAge = Math.max(0, now - finite(row.at, 0));
+      const sourceAge = Math.max(0, now - finite(row.sourceAt, 0));
+      if (receivedAge > this.farmerPositionFreshMs || sourceAge > this.farmerPositionFreshMs) {
+        this.stats.staleFarmerPositionsRejected += 1;
+        continue;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  _requestFarmerStateRefresh() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (!logistics || typeof logistics._send !== 'function' || typeof logistics._trustedNames !== 'function') return false;
+    const now = this.now();
+    const fresh = new Set(this._freshFarmerRows().map((row) => String(row.name)));
+    let sent = false;
+    for (const name of logistics._trustedNames()) {
+      if (!name || name === cleanName(characterOf(this.runtime) && characterOf(this.runtime).name) || fresh.has(String(name))) continue;
+      const last = finite(this.farmerStateRefreshAt.get(String(name)), -Infinity);
+      if (now - last < this.farmerStateIntervalMs) continue;
+      this.farmerStateRefreshAt.set(String(name), now);
+      this.stats.farmerStateRefreshRequests += 1;
+      Promise.resolve(logistics._send(name, 'STATUS_REQUEST', {
+        at: now,
+        reason: 'MERCHANT_COLLECTION_FRESH_POSITION_REQUIRED'
+      })).catch(() => {});
+      sent = true;
+    }
+    return sent;
+  }
+
+  _merchantRendezvousCandidate() {
+    const freshRows = this._freshFarmerRows();
+    const pickupRows = freshRows.filter((row) => Array.isArray(row.pickupItems) && row.pickupItems.length > 0);
+    if (!pickupRows.length) {
+      this._requestFarmerStateRefresh();
+      return null;
+    }
     const byMap = new Map();
-    for (const row of rows) {
+    for (const row of pickupRows) {
       const list = byMap.get(String(row.map)) || [];
       list.push(row);
       byMap.set(String(row.map), list);
     }
-    const groups = [...byMap.entries()].map(([map, list]) => ({
+    const groups = [...byMap.entries()].map(([map, rows]) => ({
       map,
-      rows: list,
-      freshestAt: Math.max(...list.map((row) => finite(row.at, 0)))
-    })).sort((a, b) => b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
+      rows,
+      pickupEntryCount: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupEntryCount, 0)), 0),
+      pickupQuantity: rows.reduce((sum, row) => sum + Math.max(0, finite(row.pickupQuantity, 0)), 0),
+      freshestAt: Math.max(...rows.map((row) => Math.min(finite(row.at, 0), finite(row.sourceAt, 0))))
+    })).sort((a, b) => b.pickupEntryCount - a.pickupEntryCount || b.rows.length - a.rows.length || b.freshestAt - a.freshestAt || a.map.localeCompare(b.map));
     const selected = groups[0];
-    const x = selected.rows.reduce((sum, row) => sum + Number(row.x), 0) / selected.rows.length;
-    const y = selected.rows.reduce((sum, row) => sum + Number(row.y), 0) / selected.rows.length;
-    return { map: selected.map, x, y, count: selected.rows.length, names: selected.rows.map((row) => row.name).filter(Boolean).sort() };
+    const target = selected.rows.slice().sort((a, b) =>
+      Math.max(0, finite(b.pickupEntryCount, 0)) - Math.max(0, finite(a.pickupEntryCount, 0))
+      || Math.max(0, finite(b.pickupQuantity, 0)) - Math.max(0, finite(a.pickupQuantity, 0))
+      || Math.min(finite(b.at, 0), finite(b.sourceAt, 0)) - Math.min(finite(a.at, 0), finite(a.sourceAt, 0))
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    )[0];
+    return {
+      map: selected.map,
+      x: Number(target.x),
+      y: Number(target.y),
+      targetName: target.name || null,
+      count: selected.rows.length,
+      names: selected.rows.map((row) => row.name).filter(Boolean).sort(),
+      rows: selected.rows.map((row) => ({ ...row, gear: undefined })),
+      pickupEntryCount: selected.pickupEntryCount,
+      pickupQuantity: selected.pickupQuantity,
+      observedAt: selected.freshestAt
+    };
   }
 
-  async _driveMerchantRendezvous(merchant) {
-    if (this.merchantRendezvousBusy || this.now() - this.lastMerchantRendezvousAt < this.merchantRendezvousCooldownMs) return false;
-    const c = characterOf(this.runtime);
-    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant' || c.rip) return false;
-    if (hasIncomingAggro(this.runtime)) return false;
-    const plan = merchant && merchant.lastMerchantPlan;
-    if (!plan || plan.action !== 'IDLE' || plan.reason !== 'NO_LEDGER_AUTHORIZED_ACTION') return false;
-    if (!merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function' || merchant.atomic.serviceTravelBusy || merchant.atomic.merchantBusy) return false;
-    const candidate = this._merchantRendezvousCandidate();
-    if (!candidate) return false;
-    const logistics = this.runtime.controlledPartyLogistics;
-    const nearDistance = Math.max(120, Math.min(
-      finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
-      finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
-    ));
-    if (String(c.map || '') === String(candidate.map) && distance(c, candidate) <= nearDistance) {
-      this.stats.merchantRendezvousAlreadyNear += 1;
-      return false;
+  _merchantCapacitySnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const items = Array.isArray(c.items) ? c.items : [];
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    return { capacity, occupied, freeSlots: Math.max(0, capacity - occupied), items };
+  }
+
+  _collectionCapacityPlan(candidate) {
+    const snapshot = this._merchantCapacitySnapshot();
+    const gameData = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+      ? this.runtime.adapter.getGameData() || {}
+      : this.root && this.root.G || {};
+    const incoming = new Map();
+    for (const row of candidate && candidate.rows || []) {
+      for (const item of Array.isArray(row.pickupItems) ? row.pickupItems : []) {
+        const key = `${item.name}:${Math.max(0, Math.floor(finite(item.level, 0)))}`;
+        incoming.set(key, (incoming.get(key) || 0) + Math.max(1, Math.floor(finite(item.quantity, 1))));
+      }
     }
+
+    let incomingSlotsNeeded = 0;
+    const identities = [];
+    for (const [key, quantity] of incoming.entries()) {
+      const split = key.lastIndexOf(':');
+      const name = key.slice(0, split);
+      const level = Math.max(0, Math.floor(finite(key.slice(split + 1), 0)));
+      const meta = gameData.items && gameData.items[name];
+      const stackMax = Math.max(1, Math.floor(finite(meta && meta.s, 1)));
+      let headroom = 0;
+      for (const item of snapshot.items) {
+        if (!item || String(item.name || '') !== name || levelOf(item) !== level) continue;
+        headroom += Math.max(0, stackMax - Math.max(1, Math.floor(finite(item.q, 1))));
+      }
+      const remaining = Math.max(0, quantity - headroom);
+      const slots = Math.ceil(remaining / stackMax);
+      incomingSlotsNeeded += slots;
+      identities.push({ name, level, quantity, stackMax, existingHeadroom: headroom, newSlotsNeeded: slots });
+    }
+
+    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded);
+    const slotsToFree = Math.max(0, targetFreeSlots - snapshot.freeSlots);
+    const plan = {
+      at: this.now(),
+      farmerCount: candidate && candidate.count || 0,
+      farmerNames: candidate && candidate.names ? candidate.names.slice() : [],
+      pickupEntryCount: candidate && candidate.pickupEntryCount || 0,
+      pickupQuantity: candidate && candidate.pickupQuantity || 0,
+      incomingSlotsNeeded,
+      targetFreeSlots,
+      currentFreeSlots: snapshot.freeSlots,
+      slotsToFree,
+      constrainedByCapacity: incomingSlotsNeeded > snapshot.capacity,
+      identities
+    };
+    this.lastCollectionCapacityPlan = plan;
+    return plan;
+  }
+
+  async _prepareCollectionCapacity(merchant, candidate) {
+    const plan = this._collectionCapacityPlan(candidate);
+    if (plan.slotsToFree <= 0) return { ready: true, acted: false, plan };
+
+    const request = merchant && typeof merchant.planSellOrBank === 'function' ? merchant.planSellOrBank() : null;
+    if (request && ['SELL', 'BANK'].includes(String(request.type || ''))) {
+      this.stats.collectionCapacityDisposals += 1;
+      const acted = await merchant.executeEconomyRequest(request);
+      return { ready: false, acted: !!acted, plan, request };
+    }
+
+    // A complete compound set frees two inventory slots. Use it only when no
+    // safe SELL/BANK disposal is available and capacity still blocks collection.
+    const compound = merchant && typeof merchant.planCompound === 'function' ? merchant.planCompound() : null;
+    if (compound) {
+      const acted = await merchant.executeEconomyRequest(compound);
+      return { ready: false, acted: !!acted, plan, request: compound };
+    }
+
+    this.stats.collectionCapacityConstrainedDepartures += 1;
+    return { ready: true, acted: false, plan, constrained: true };
+  }
+
+  _collectionCoordinator() {
+    return this.runtime.merchantTaskCoordinator || null;
+  }
+
+  _startCollectionRoute(candidate) {
+    if (!candidate || !candidate.pickupEntryCount) return false;
+    const coordinator = this._collectionCoordinator();
+    const lock = coordinator && typeof coordinator.acquire === 'function'
+      ? coordinator.acquire('RENDEZVOUS', 'COLLECTION_ROUTE', 'rendezvous:farmer-collection', {
+          farmers: candidate.names.slice(),
+          pickupEntries: candidate.pickupEntryCount,
+          pickupQuantity: candidate.pickupQuantity
+        }, { leaseMs: Math.max(120000, this.collectionPrepareMaxMs + 60000) })
+      : { acquired: true };
+    if (!lock.acquired) return false;
+    const now = this.now();
+    this.collectionRoute = {
+      id: `collection-${now.toString(36)}`,
+      startedAt: now,
+      updatedAt: now,
+      lastProgressAt: now,
+      lastPickupQuantity: candidate.pickupQuantity,
+      stage: 'PREPARE_CAPACITY',
+      farmers: candidate.names.slice(),
+      targetMap: candidate.map,
+      targetX: candidate.x,
+      targetY: candidate.y
+    };
+    this.stats.collectionRoutesStarted += 1;
+    this._event('MERCHANT_COLLECTION_ROUTE_STARTED', 'info', 'FRESH_FARMER_PICKUP_DEMAND', {
+      route: { ...this.collectionRoute },
+      capacity: this._collectionCapacityPlan(candidate)
+    });
+    return true;
+  }
+
+  _finishCollectionRoute(reason, details = {}) {
+    const route = this.collectionRoute;
+    if (!route) return false;
+    this.collectionRoute = null;
+    const coordinator = this._collectionCoordinator();
+    if (coordinator && typeof coordinator.release === 'function') {
+      coordinator.release('RENDEZVOUS', 'rendezvous:farmer-collection', reason, details);
+    }
+    this.stats.collectionRoutesCompleted += 1;
+    this.lastMerchantRendezvous = {
+      at: this.now(),
+      routeId: route.id,
+      workers: route.farmers.slice(),
+      ok: true,
+      result: reason,
+      details
+    };
+    this._event('MERCHANT_COLLECTION_ROUTE_COMPLETED', 'info', reason, this.lastMerchantRendezvous);
+    return true;
+  }
+
+  async _travelToFreshCandidate(merchant, candidate, follow = false) {
+    if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
     const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
     this.merchantRendezvousBusy = true;
     this.lastMerchantRendezvousAt = this.now();
     this.stats.merchantRendezvousAttempts += 1;
-    merchant.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'PARTY_LOGISTICS_RENDEZVOUS', destination, workers: candidate.names.slice(), pendingTransfers: candidate.count };
-    this._event('MERCHANT_IDLE_RENDEZVOUS_STARTED', 'info', 'PENDING_PARTY_TRANSFER_WORK', merchant.lastMerchantPlan);
+    if (follow) this.stats.collectionFollowMoves += 1;
+    merchant.lastMerchantPlan = {
+      at: this.now(),
+      action: 'SERVICE_TRAVEL',
+      reason: follow ? 'FOLLOW_FRESH_FARMER_COLLECTION_POSITION' : 'PARTY_LOGISTICS_RENDEZVOUS',
+      destination,
+      workers: candidate.names.slice(),
+      pendingTransfers: candidate.pickupEntryCount
+    };
     try {
       const result = await merchant.atomic.namedServiceTravel(destination);
       const ok = result === true || !!(result && result.ok === true);
       this.lastMerchantRendezvous = { at: this.now(), destination, ok, result: result && result.reason || null, workers: candidate.names.slice() };
-      if (ok) {
-        this.stats.merchantRendezvousCompleted += 1;
-        this._event('MERCHANT_IDLE_RENDEZVOUS_COMPLETED', 'info', 'PARTY_TRANSFER_RANGE_RESTORED', this.lastMerchantRendezvous);
-      } else {
-        this.stats.merchantRendezvousFailed += 1;
-        this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', result && result.reason || 'RENDEZVOUS_TRAVEL_FAILED', this.lastMerchantRendezvous);
-      }
+      if (ok) this.stats.merchantRendezvousCompleted += 1;
+      else this.stats.merchantRendezvousFailed += 1;
       return ok;
     } catch (error) {
       this.stats.merchantRendezvousFailed += 1;
       this.lastMerchantRendezvous = { at: this.now(), destination, ok: false, result: String(error && error.message || error).slice(0, 160), workers: candidate.names.slice() };
-      this._event('MERCHANT_IDLE_RENDEZVOUS_FAILED', 'warn', 'RENDEZVOUS_TRAVEL_EXCEPTION', this.lastMerchantRendezvous);
       return false;
     } finally {
       this.merchantRendezvousBusy = false;
     }
   }
 
+  async _driveMerchantRendezvous(merchant) {
+    if (this.merchantRendezvousBusy) return true;
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant' || c.rip) return false;
+    if (hasIncomingAggro(this.runtime)) return !!this.collectionRoute;
+
+    let candidate = this._merchantRendezvousCandidate();
+    if (!this.collectionRoute) {
+      if (!candidate || !candidate.pickupEntryCount) return false;
+      if (!this._startCollectionRoute(candidate)) return false;
+    }
+
+    const route = this.collectionRoute;
+    if (!route) return false;
+    const coordinator = this._collectionCoordinator();
+    if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
+
+    candidate = this._merchantRendezvousCandidate();
+    if (!candidate) {
+      this._requestFarmerStateRefresh();
+      if (this.now() - route.lastProgressAt >= this.collectionSettleMs) {
+        return this._finishCollectionRoute('NO_FRESH_PICKUP_DEMAND_AFTER_SETTLE');
+      }
+      merchant.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'WAITING_FOR_FRESH_FARMER_COLLECTION_STATE', routeId: route.id };
+      return true;
+    }
+
+    if (candidate.pickupQuantity < route.lastPickupQuantity) {
+      route.lastProgressAt = this.now();
+      route.lastPickupQuantity = candidate.pickupQuantity;
+    }
+    route.updatedAt = this.now();
+    route.farmers = candidate.names.slice();
+
+    const pressure = this._merchantCapacitySnapshot();
+    if (pressure.freeSlots <= 0) return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', { pickupQuantityRemaining: candidate.pickupQuantity });
+
+    if (route.stage === 'PREPARE_CAPACITY') {
+      const prepared = await this._prepareCollectionCapacity(merchant, candidate);
+      if (!prepared.ready) {
+        merchant.lastMerchantPlan = { at: this.now(), action: 'COLLECTION_PREPARE', reason: 'FREEING_CAPACITY_FOR_FARMER_PICKUP', capacity: prepared.plan };
+        return true;
+      }
+      route.stage = 'TRAVEL_TO_FARMERS';
+      route.updatedAt = this.now();
+    }
+
+    const logistics = this.runtime.controlledPartyLogistics;
+    const nearDistance = Math.max(120, Math.min(
+      finite(logistics && logistics.config && logistics.config.rendezvousDistance, 260),
+      finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380) * 0.85
+    ));
+    const nearFresh = String(c.map || '') === String(candidate.map) && distance(c, candidate) <= nearDistance;
+
+    if (route.stage === 'TRAVEL_TO_FARMERS') {
+      if (!nearFresh) {
+        await this._travelToFreshCandidate(merchant, candidate, false);
+        return true;
+      }
+      route.stage = 'COLLECT';
+      route.lastProgressAt = this.now();
+      route.updatedAt = this.now();
+    }
+
+    if (route.stage === 'COLLECT') {
+      if (!nearFresh) {
+        await this._travelToFreshCandidate(merchant, candidate, true);
+        return true;
+      }
+      if (candidate.pickupEntryCount <= 0 || candidate.pickupQuantity <= 0) {
+        if (this.now() - route.lastProgressAt >= this.collectionSettleMs) return this._finishCollectionRoute('FARMER_PICKUP_DRAINED');
+      } else {
+        // Stay put. ControlledPartyLogistics owns serialized grants/offers.
+        // Do not release the task lock just because Alpha27 has no local action.
+        merchant.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'FARMER_COLLECTION_ACTIVE',
+          routeId: route.id,
+          workers: candidate.names.slice(),
+          pickupEntriesRemaining: candidate.pickupEntryCount,
+          pickupQuantityRemaining: candidate.pickupQuantity,
+          freeSlots: pressure.freeSlots
+        };
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   _installMerchantRendezvousAuthority() {
     const alpha27 = this.runtime.alpha27CombatMerchantConvergence;
     const merchant = alpha27 && alpha27.merchant;
-    if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV2Installed) return false;
+    if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV3Installed) return false;
     const baseCycle = merchant.cycle.bind(merchant);
     merchant.cycle = async () => {
-      const acted = await baseCycle();
-      if (acted) return acted;
-      return this._driveMerchantRendezvous(merchant);
+      // Fresh collection work preempts ordinary progression/production. Once
+      // started, the collection route owns the global Merchant task lock until
+      // all transferable Farmer inventory is drained or Merchant inventory fills.
+      const candidate = this._merchantRendezvousCandidate();
+      if (this.collectionRoute || candidate && candidate.pickupEntryCount > 0) {
+        const handled = await this._driveMerchantRendezvous(merchant);
+        if (handled) return true;
+      }
+      return baseCycle();
     };
-    merchant.__alpha33MerchantRendezvousV2Installed = true;
+    merchant.__alpha33MerchantRendezvousV3Installed = true;
     return true;
   }
 
@@ -692,18 +1010,27 @@ class Alpha33MarkOrbitMerchantDelivery {
         staleGearGoalsFailClosed: true,
         localProgressionGearIsNotReturnedAsLoot: true,
         alpha27OwnsCrossMapMerchantRendezvous: true,
-        merchantRendezvousRequiresPendingTransferWork: true
+        merchantRendezvousRequiresPendingTransferWork: true,
+        farmerPositionMustBeFresh: true,
+        collectionRouteTaskLockedUntilTerminal: true,
+        merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
+        futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
         trainingRadiusFactor: this.trainingRadiusFactor,
         trainingRadiusMin: this.trainingRadiusMin,
         trainingRadiusMax: this.trainingRadiusMax,
         farmerStateIntervalMs: this.farmerStateIntervalMs,
+        farmerPositionFreshMs: this.farmerPositionFreshMs,
+        collectionSettleMs: this.collectionSettleMs,
+        collectionPrepareMaxMs: this.collectionPrepareMaxMs,
         merchantRendezvousCooldownMs: this.merchantRendezvousCooldownMs
       },
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
       lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
-      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length })),
+      collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
+      lastCollectionCapacityPlan: this.lastCollectionCapacityPlan ? { ...this.lastCollectionCapacityPlan } : null,
+      farmerStates: [...this.farmerStates.values()].map((row) => ({ name: row.name, map: row.map, at: row.at, sourceAt: row.sourceAt, runtimeActive: row.runtimeActive, gearSlots: Object.keys(row.gear || {}).length, pickupEntryCount: row.pickupEntryCount || 0, pickupQuantity: row.pickupQuantity || 0 })),
       stats: { ...this.stats }
     };
   }
