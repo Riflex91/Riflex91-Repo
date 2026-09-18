@@ -12,6 +12,7 @@ function patchAlpha2015LogisticsFairness() {
   proto._farmerTick = function alpha2015FairFarmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    if (typeof this._maybeUseElixir === 'function') this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
 
     if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
