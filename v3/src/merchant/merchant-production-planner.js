@@ -227,7 +227,6 @@ class MerchantProductionPlanner {
     const bank = bankRows(character.bank);
     const vendors = vendorIndex(gameData);
     const localPool = new Map();
-    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
     const reservations = {};
     const steps = [];
     const blockers = [];
@@ -238,6 +237,7 @@ class MerchantProductionPlanner {
     if (!bank.length && catalogRows.length) {
       for (const row of catalogRows) bank.push({ ...clone(row) });
     }
+    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
 
     const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
       const need = Math.max(1, Math.floor(finite(quantity, 1)));
@@ -413,7 +413,9 @@ class MerchantProductionPlanner {
         reservations: built.reservations,
         blockers: [],
         totalGold: built.totalGold,
-        goldReserve: built.goldReserve
+        goldReserve: built.goldReserve,
+        bankSource: built.bankSource,
+        costStrategy: built.costStrategy
       };
       this.lastPlan = plan;
       this.stats.plans += 1;
