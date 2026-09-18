@@ -112,7 +112,9 @@ Jede veraendernde Aktion:
 
 Kein direkter Adventure-Land-Aufruf im HUD.
 
-Der zentrale Kern ist implementiert: `LaufzeitSteuerung` sperrt bei Pause normale/Hintergrundarbeit, laesst Notfall/Safety zu und ist mit `AktionsSteuerung` gekoppelt. `SichereBasisBedienung` erzwingt kanonische BedienAnfragen, Generationsschutz gegen stale Ansichten, Doppelklick-/Wiederholungsschutz und ausdrueckliche Bestaetigung fuer Fortsetzen. Die sichtbare HUD-Anbindung folgt als separater kleiner PR; erst danach ist 8.5.7 vollstaendig.
+Der zentrale Kern ist implementiert: `LaufzeitSteuerung` sperrt bei Pause normale/Hintergrundarbeit, laesst Notfall/Safety zu und ist mit `AktionsSteuerung` gekoppelt. `SichereBasisBedienung` erzwingt kanonische BedienAnfragen, Generationsschutz gegen stale Ansichten, Doppelklick-/Wiederholungsschutz und ausdrueckliche Bestaetigung fuer Fortsetzen.
+
+Die Produktionsruntime-Grenze ist ebenfalls implementiert: Bootstrap und AktionsSteuerung teilen dieselbe LaufzeitSteuerung; Runtime/Bootstrap werden fuer die neue Schnittstelle auf 1.1.5 angehoben. Nach aussen existieren nur `basisBedienStatus()`, `erstelleBasisBedienAnfrage(...)` und `fuehreBasisBedienAnfrage(...)`. Bot-Pause und Produktionsheartbeat bleiben getrennt. Die sichtbare HUD-Anbindung folgt als letzter separater PR; erst danach ist 8.5.7 vollstaendig.
 
 ### Schritt 8.5.8 – Recovery-Abnahme
 

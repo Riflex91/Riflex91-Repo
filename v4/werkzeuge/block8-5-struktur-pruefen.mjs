@@ -33,7 +33,12 @@ const dateien = [
   'laufzeit/quelle/kern/sichere-basis-bedienung.ts',
   'laufzeit/tests/block8-5-basisbedienung-kern.test.mjs',
   'dokumentation/BLOCK-8-5-BASISBEDIENUNG-KERN.md',
-  'laufzeit/quelle/kern/aktions-steuerung.ts'
+  'laufzeit/quelle/kern/aktions-steuerung.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-produktions-bootstrap.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-produktions-einstieg.ts',
+  'laufzeit/tests/block8-produktions-bootstrap.test.mjs',
+  'laufzeit/tests/block8-produktions-einstieg.test.mjs',
+  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-RUNTIME.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -597,4 +602,91 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.7-Kern geprueft: inklusive zentraler Laufzeit-Pause, BedienSicherung, Stale-/Replay-Schutz und Sicherheits-/Notfallfreigabe ohne direkte Adventure-Land-/Heartbeat-/Neustartautoritaet.');
+const produktionsBootstrap = await readFile(path.join(wurzel, dateien[30]), 'utf8');
+for (const pflicht of [
+  "PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.5'",
+  'new LaufzeitSteuerung()',
+  'new AktionsSteuerung({ laufzeitSteuerung: this.laufzeitSteuerung })',
+  'laufzeitSteuerung: this.laufzeitSteuerung.status()',
+  'holeLaufzeitSteuerung()',
+  'holeZentraleAktionsSteuerung()'
+]) {
+  if (!produktionsBootstrap.includes(pflicht)) {
+    throw new Error(`8.5.7 Produktions-Bootstrap fehlt: ${pflicht}`);
+  }
+}
+
+const produktionsEinstieg = await readFile(path.join(wurzel, dateien[31]), 'utf8');
+for (const pflicht of [
+  "PRODUKTIONS_LAUFZEIT_VERSION = '1.1.5'",
+  'SichereBasisBedienung',
+  'basisBedienStatus',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  'pruefeBasisBedienMutation',
+  'bootstrap.holeLaufzeitSteuerung()',
+  'bootstrap.holeZentraleAktionsSteuerung()',
+  'erwarteteLaufzeitGeneration',
+  'ausdruecklichBestaetigt',
+  'angefordertAm: Date.now()'
+]) {
+  if (!produktionsEinstieg.includes(pflicht)) {
+    throw new Error(`8.5.7 Produktions-Laufzeiteinstieg fehlt: ${pflicht}`);
+  }
+}
+for (const verboten of [
+  'readonly pausiere: ()',
+  'readonly setzeFort: ()',
+  'laufzeitSteuerung.pausiere(',
+  'laufzeitSteuerung.setzeFort(',
+  '.brecheNormaleArbeitFuerPauseAb('
+]) {
+  if (produktionsEinstieg.includes(verboten)) {
+    throw new Error(`Produktionsruntime darf den sicheren Basisbedienungs-Kern nicht direkt umgehen: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(produktionsEinstieg)) {
+    throw new Error(`Produktions-Basisbedienungsgrenze darf Adventure Land nicht direkt aufrufen: ${aktionsName}.`);
+  }
+}
+
+const produktionsBootstrapTests = await readFile(path.join(wurzel, dateien[32]), 'utf8');
+if (!produktionsBootstrapTests.includes('teilt exakt eine LaufzeitSteuerung mit der zentralen AktionsSteuerung')) {
+  throw new Error('Produktions-Bootstrap-Test fuer gemeinsame LaufzeitSteuerung fehlt.');
+}
+
+const produktionsEinstiegTests = await readFile(path.join(wurzel, dateien[33]), 'utf8');
+for (const pflicht of [
+  'bietet nur den gesicherten Basisbedienungs-Kanal',
+  'Bot-Pause laeuft durch BedienSicherung und laesst Produktionsheartbeat aktiv',
+  'blockiert stale Basisbedienung an der aktuellen Generation',
+  'gesperrte oder gestoppte Produktionsruntime erlaubt nur read-only Diagnose'
+]) {
+  if (!produktionsEinstiegTests.includes(pflicht)) {
+    throw new Error(`Produktions-Basisbedienungstest fehlt: ${pflicht}`);
+  }
+}
+
+const runtimeBedienDokument = await readFile(path.join(wurzel, dateien[34]), 'utf8');
+for (const pflicht of [
+  'Produktionsruntime-Grenze implementiert',
+  '1.1.5',
+  'Block-8-Abschluss bleibt historisch unveraendert',
+  'Runtime **1.1.4**',
+  'basisBedienStatus()',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  'Bot-Pause ist keine Heartbeat-Pause',
+  'Noch offen in 8.5.7'
+]) {
+  if (!runtimeBedienDokument.includes(pflicht)) {
+    throw new Error(`Produktions-Basisbedienungsdokumentation fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.7 Runtime-Grenze geprueft: zentraler Bedienkern und Produktionsruntime nutzen dieselbe Laufzeit-/AktionsSteuerung; mutierende Bedienung bleibt hinter BedienSicherung und Produktionsfreigabe, Bot-Pause bleibt vom Heartbeat getrennt.');

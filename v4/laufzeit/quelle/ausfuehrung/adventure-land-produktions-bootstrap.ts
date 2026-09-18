@@ -1,6 +1,8 @@
 import { AdventureLandLesezugriff } from '../adventure-land/adventure-land-lesezugriff.js';
 import { beobachteSpielzustand } from '../kern/spielzustand-erstellung.js';
 import { AktionsSteuerung } from '../kern/aktions-steuerung.js';
+import { LaufzeitSteuerung } from '../kern/laufzeit-steuerung.js';
+import type { LaufzeitSteuerungsStatus } from '../vertraege/laufzeit-steuerung.js';
 import {
   erstelleKampfSicherheitsAblaufZustand,
   erstelleKampfSicherheitsKonfiguration,
@@ -40,7 +42,7 @@ import {
   type AdventureLandGruppenZielLiveSmokeFassade
 } from './adventure-land-gruppen-ziel-live-smoke.js';
 
-export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.4';
+export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.5';
 export const PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT = 'BLOCK8-PRODUKTIONS-GRUPPENZIEL-VORBEREITEN';
 export const PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT = 'BLOCK8-PRODUKTIONS-LIVE-SMOKE-INSTALLIEREN';
 const MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2;
@@ -59,6 +61,7 @@ export interface AdventureLandProduktionsBootstrapStatus {
   readonly aktivFreigegeben: boolean;
   readonly empfangInstalliert: boolean;
   readonly gruppenLebensnachweisMaximalAlterMillisekunden: typeof PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS;
+  readonly laufzeitSteuerung: LaufzeitSteuerungsStatus;
   readonly bekannteTeilnehmer: readonly string[];
   readonly laufendeGruppenAnfragen: readonly string[];
   readonly ressourcenSperren: readonly Readonly<{ ressource: string; besitzer: string }>[];
@@ -115,7 +118,8 @@ function eigenerWert(ziel: object, name: string): unknown {
 export class AdventureLandProduktionsBootstrap {
   private readonly aktivFreigegeben: boolean;
   private readonly leser: AdventureLandLesezugriff;
-  private readonly steuerung = new AktionsSteuerung();
+  private readonly laufzeitSteuerung = new LaufzeitSteuerung();
+  private readonly steuerung = new AktionsSteuerung({ laufzeitSteuerung: this.laufzeitSteuerung });
   private readonly austausch: AdventureLandGruppenLebensnachweisAustausch;
   private readonly teilnehmerNachName = new Map<string, Readonly<GespeicherterTeilnehmerLebensnachweis>>();
   private readonly kampfKonfiguration = erstelleKampfSicherheitsKonfiguration();
@@ -153,6 +157,7 @@ export class AdventureLandProduktionsBootstrap {
       aktivFreigegeben: this.aktivFreigegeben,
       empfangInstalliert: this.empfangInstalliert,
       gruppenLebensnachweisMaximalAlterMillisekunden: PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS,
+      laufzeitSteuerung: this.laufzeitSteuerung.status(),
       bekannteTeilnehmer: Object.freeze(
         [...this.teilnehmerNachName.values()].map((eintrag) => eintrag.meldung.charakterKennung).sort()
       ),
@@ -369,6 +374,10 @@ export class AdventureLandProduktionsBootstrap {
 
   public holeZentraleAktionsSteuerung(): AktionsSteuerung {
     return this.steuerung;
+  }
+
+  public holeLaufzeitSteuerung(): LaufzeitSteuerung {
+    return this.laufzeitSteuerung;
   }
 
   private uebernehmeEmpfang(empfang: Readonly<GruppenLebensnachweisEmpfang>): void {
