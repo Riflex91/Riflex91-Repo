@@ -313,11 +313,14 @@ class GearProgressionEvaluator {
             }
           }
           const merchantTarget = String(character.ctype || '').toLowerCase() === 'merchant';
-          if (!best
-            || (merchantTarget && row.speedImprovement > best.speedImprovement)
-            || (merchantTarget && row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
-            || (!merchantTarget && row.improvement > best.improvement)
-            || (row.improvement === best.improvement && row.speedImprovement === best.speedImprovement && row.survivalImprovement > best.survivalImprovement)) best = row;
+          const better = !best
+            || (merchantTarget
+              ? (row.speedImprovement > best.speedImprovement
+                || (row.speedImprovement === best.speedImprovement && row.improvement > best.improvement)
+                || (row.speedImprovement === best.speedImprovement && row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement))
+              : (row.improvement > best.improvement
+                || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)));
+          if (better) best = row;
         }
         if (!best) continue;
         const targetLevel = best.meaningful.level;
