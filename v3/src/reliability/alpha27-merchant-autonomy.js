@@ -12,7 +12,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
     this.collectionSession = null;
     this.lastCollectionSession = null;
-    this.runtime._merchantCollectionSessionActive = () => !!(this.collectionStatus().active);
+    this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
   }
 
   _collectionSettleMs() {
@@ -328,6 +328,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     this.stats.autonomousMerchantPlans += 1;
     this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
     const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    if (request.type === 'BANK' && result && result.committed === true && this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') {
+      this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
+    }
     this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
     return true;
   }
