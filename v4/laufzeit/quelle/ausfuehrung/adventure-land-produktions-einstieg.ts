@@ -1,4 +1,10 @@
 import type { GruppenFaehigkeitsProfil } from '../vertraege/gruppen-koordination.js';
+import { SichereBasisBedienung } from '../kern/sichere-basis-bedienung.js';
+import type {
+  BasisBedienAktion,
+  BasisBedienAnfrage,
+  BasisBedienErgebnis
+} from '../vertraege/laufzeit-steuerung.js';
 import type { AdventureLandGruppenZielLiveSmokeErwartung } from './adventure-land-gruppen-ziel-live-smoke.js';
 import {
   AdventureLandProduktionsBootstrap,
@@ -8,7 +14,7 @@ import {
 } from './adventure-land-produktions-bootstrap.js';
 
 export const PRODUKTIONS_LAUFZEIT_GLOBALER_NAME = 'V4ProduktionsLaufzeit';
-export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.4';
+export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.5';
 export const PRODUKTIONS_LEBENSNACHWEIS_INTERVALL_MILLIS = 2_000;
 
 export interface AdventureLandProduktionsLaufzeitKonfiguration {
@@ -17,6 +23,13 @@ export interface AdventureLandProduktionsLaufzeitKonfiguration {
   readonly vertrauensNamen?: readonly string[];
   readonly faehigkeiten?: GruppenFaehigkeitsProfil;
   readonly lebensnachweisIntervallMillisekunden?: number;
+}
+
+export interface AdventureLandProduktionsBasisBedienDaten {
+  readonly vorgangsKennung: string;
+  readonly aktion: BasisBedienAktion;
+  readonly erwarteteLaufzeitGeneration?: number;
+  readonly ausdruecklichBestaetigt?: boolean;
 }
 
 export type AdventureLandProduktionsLaufzeitStatus = Readonly<
@@ -48,6 +61,13 @@ export interface AdventureLandProduktionsLaufzeitApi {
   readonly pausiereLebensnachweisAutomatik: () => AdventureLandProduktionsLaufzeitStatus;
   readonly setzeLebensnachweisAutomatikFort: () => AdventureLandProduktionsLaufzeitStatus;
   readonly pruefeGruppenZustand: () => ReturnType<AdventureLandProduktionsBootstrap['pruefeGruppenZustand']>;
+  readonly basisBedienStatus: () => ReturnType<SichereBasisBedienung<AdventureLandProduktionsLaufzeitStatus>['status']>;
+  readonly erstelleBasisBedienAnfrage: (
+    daten: Readonly<AdventureLandProduktionsBasisBedienDaten>
+  ) => Readonly<BasisBedienAnfrage>;
+  readonly fuehreBasisBedienAnfrage: (
+    anfrage: Readonly<BasisBedienAnfrage>
+  ) => Readonly<BasisBedienErgebnis<AdventureLandProduktionsLaufzeitStatus>>;
   readonly bereiteGruppenZielVor: (freigabeText: string) => ReturnType<AdventureLandProduktionsBootstrap['bereiteGruppenZielVor']>;
   readonly installiereGruppenZielLiveSmoke: (
     erwartung: Readonly<AdventureLandGruppenZielLiveSmokeErwartung>,
@@ -135,6 +155,7 @@ export function installiereAdventureLandProduktionsLaufzeit(
     () => Date.now(),
     cfg
   );
+  let basisBedienung: SichereBasisBedienung<AdventureLandProduktionsLaufzeitStatus>;
 
   const performanceTrickErforderlich =
     Reflect.get(spielFenster, 'is_tauri') !== true &&
@@ -247,6 +268,22 @@ export function installiereAdventureLandProduktionsLaufzeit(
     sendeAutomatischenLebensnachweis();
   }
 
+  function pruefeBasisBedienMutation(aktion: BasisBedienAktion): void {
+    if (aktion === 'diagnose_aktualisieren') return;
+    if (bootstrap.status().gestoppt) {
+      throw new Error('Produktionslaufzeit wurde bereits gestoppt; veraendernde Basisbedienung bleibt gesperrt.');
+    }
+    if (!cfg.aktivFreigegeben) {
+      throw new Error('Produktionslaufzeit ist standardmaessig gesperrt; veraendernde Basisbedienung ist nicht freigegeben.');
+    }
+  }
+
+  basisBedienung = new SichereBasisBedienung<AdventureLandProduktionsLaufzeitStatus>({
+    laufzeitSteuerung: bootstrap.holeLaufzeitSteuerung(),
+    aktionsSteuerung: bootstrap.holeZentraleAktionsSteuerung(),
+    diagnoseLieferant: () => runtimeStatus()
+  });
+
   const api: Readonly<AdventureLandProduktionsLaufzeitApi> = Object.freeze({
     version: PRODUKTIONS_LAUFZEIT_VERSION,
     bootstrapVersion: PRODUKTIONS_BOOTSTRAP_VERSION,
@@ -271,6 +308,25 @@ export function installiereAdventureLandProduktionsLaufzeit(
       return runtimeStatus();
     },
     pruefeGruppenZustand: () => bootstrap.pruefeGruppenZustand(),
+    basisBedienStatus: () => basisBedienung.status(),
+    erstelleBasisBedienAnfrage: (daten: Readonly<AdventureLandProduktionsBasisBedienDaten>) => {
+      pruefeBasisBedienMutation(daten.aktion);
+      return basisBedienung.erstelleAnfrage({
+        vorgangsKennung: daten.vorgangsKennung,
+        aktion: daten.aktion,
+        angefordertAm: Date.now(),
+        ...(daten.erwarteteLaufzeitGeneration === undefined
+          ? {}
+          : { erwarteteLaufzeitGeneration: daten.erwarteteLaufzeitGeneration }),
+        ...(daten.ausdruecklichBestaetigt === undefined
+          ? {}
+          : { ausdruecklichBestaetigt: daten.ausdruecklichBestaetigt })
+      });
+    },
+    fuehreBasisBedienAnfrage: (anfrage: Readonly<BasisBedienAnfrage>) => {
+      pruefeBasisBedienMutation(anfrage.basisAktion);
+      return basisBedienung.fuehreAus(anfrage);
+    },
     bereiteGruppenZielVor: (freigabeText: string) => bootstrap.bereiteGruppenZielVor(freigabeText),
     installiereGruppenZielLiveSmoke: (
       erwartung: Readonly<AdventureLandGruppenZielLiveSmokeErwartung>,
