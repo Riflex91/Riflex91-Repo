@@ -34618,12 +34618,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     return row;
   }
 
-  _compoundReachability(itemName, meta) {
+  _compoundFeederEligible(entry, candidate) {
+    if (!entry || !candidate || !candidate.item) return false;
+    if (String(entry.name || '') !== String(candidate.item.name || '')) return false;
+    if (Number(entry.index) === Number(candidate.item.index)) return true;
+    const disposition = String(entry.disposition || '');
+    if (disposition === 'RESERVE_PROGRESSION') return false;
+    if (disposition === 'RESERVE_COMPOUND') return true;
+    const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+    if (disposition === 'KEEP') {
+      return reasons.includes('AUTONOMOUS_COMPOUND_ACCUMULATION')
+        && !reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION');
+    }
+    if (disposition === 'SELL') {
+      return reasons.includes('AUTONOMOUS_COMPOUND_RESULT')
+        && reasons.includes('FUTURE_FARMER_GEAR_EVALUATED_SAFE');
+    }
+    return false;
+  }
+
+  _compoundReachability(candidate, meta) {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
     const counts = new Map();
+    const eligibleIndexes = new Set();
+    if (!c || !ledger || !candidate || !candidate.item) return { reachableLevel: -1, initialCounts: counts, projectedCounts: counts, eligibleIndexes };
+
     for (const row of inventoryOf(this.root)) {
-      if (!row || String(row.name || '') !== String(itemName || '') || row.locked || row.l || row.special || row.p) continue;
+      if (!row || String(row.name || '') !== String(candidate.item.name || '') || row.locked || row.l || row.special || row.p) continue;
+      let entry = null;
+      try { entry = ledger.get(c.name, row.index); } catch (_) { entry = null; }
+      if (!this._compoundFeederEligible(entry, candidate)) continue;
       const level = levelOf(row);
       counts.set(level, (counts.get(level) || 0) + 1);
+      eligibleIndexes.add(Number(row.index));
     }
     const initialCounts = new Map(counts);
     let reachableLevel = -1;
@@ -34635,10 +34663,10 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       counts.set(level + 1, (counts.get(level + 1) || 0) + produced);
       if (produced > 0) reachableLevel = Math.max(reachableLevel, level + 1);
     }
-    // Only levels that can actually be CREATED by the current compound stock
-    // count as reachable. A separate already-existing higher item must not hold
-    // this candidate forever merely because it shares the same identity.
-    return { reachableLevel, initialCounts, projectedCounts: counts };
+    // Only levels that can be created from the target item plus unallocated
+    // feeders count as reachable. Items reserved for other Farmer goals are
+    // excluded even when they have the same name and level.
+    return { reachableLevel, initialCounts, projectedCounts: counts, eligibleIndexes };
   }
 
   _targetedCompoundRequest(candidate, meta, reachable) {
@@ -34650,20 +34678,12 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .filter((row) => row
         && row.character === c.name
         && String(row.name || '') === String(candidate.item.name || '')
-        && row.disposition === 'RESERVE_COMPOUND'
+        && reachable.eligibleIndexes.has(Number(row.index))
         && levelOf(row) < reachable.reachableLevel
         && !this.atomic.mutationRetryBlocked(row, 'COMPOUND'));
-    const byLevel = new Map();
-    for (const row of rows) {
-      const level = levelOf(row);
-      const list = byLevel.get(level) || [];
-      list.push(row);
-      byLevel.set(level, list);
-    }
-    const levels = [...byLevel.keys()].sort((a, b) => b - a);
-    for (const level of levels) {
-      const group = byLevel.get(level).sort((a, b) => Number(a.index) - Number(b.index));
-      if (group.length < 3) continue;
+    const candidateEntry = rows.find((row) => Number(row.index) === Number(candidate.item.index)) || null;
+
+    const makeRequest = (group, level, feederPreparation = false) => {
       const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: candidate.item.name, level });
       if (!budget.allowed) {
         return {
@@ -34683,18 +34703,48 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           metadata: {
             source: 'ALPHA27_GEAR_DELIVERY_FINALIZATION',
             lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
+            goalId: candidate.goal && candidate.goal.id || null,
             targetCharacter: candidate.goal.character,
             targetSlot: candidate.goal.slot,
             deliveryItem: candidate.item.name,
             deliveryObservedLevel: currentLevel,
             deliveryTargetLevel: reachable.reachableLevel,
             compoundIdentity: `${candidate.item.name}:${level}`,
-            targetedGearFinalization: true
+            targetedGearFinalization: true,
+            progressionInputIndex: feederPreparation ? null : Number(candidate.item.index),
+            feederPreparation
           }
         },
         targetLevel: reachable.reachableLevel
       };
+    };
+
+    // Prefer advancing the exact delivery item whenever two safe same-level
+    // feeders already exist. This preserves identity continuity for the goal.
+    if (candidateEntry && levelOf(candidateEntry) === currentLevel && currentLevel < reachable.reachableLevel) {
+      const sameLevelFeeders = rows
+        .filter((row) => Number(row.index) !== Number(candidate.item.index)
+          && levelOf(row) === currentLevel
+          && String(row.disposition || '') !== 'RESERVE_PROGRESSION')
+        .sort((a, b) => Number(a.index) - Number(b.index));
+      if (sameLevelFeeders.length >= 2) return makeRequest([candidateEntry, ...sameLevelFeeders.slice(0, 2)], currentLevel, false);
     }
+
+    // Otherwise manufacture the highest useful unallocated feeder first.
+    const byLevel = new Map();
+    for (const row of rows) {
+      if (Number(row.index) === Number(candidate.item.index) || String(row.disposition || '') === 'RESERVE_PROGRESSION') continue;
+      const level = levelOf(row);
+      const list = byLevel.get(level) || [];
+      list.push(row);
+      byLevel.set(level, list);
+    }
+    const levels = [...byLevel.keys()].sort((a, b) => b - a);
+    for (const level of levels) {
+      const group = byLevel.get(level).sort((a, b) => Number(a.index) - Number(b.index));
+      if (group.length >= 3) return makeRequest(group.slice(0, 3), level, true);
+    }
+
     return {
       hold: true,
       reason: 'GEAR_FINALIZATION_COMPOUND_LEDGER_PENDING',
@@ -34808,7 +34858,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     if (meta.compound) {
       const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
       if (value <= this.options.compoundValueCap) {
-        const reachable = this._compoundReachability(selected.item.name, meta);
+        const reachable = this._compoundReachability(selected, meta);
         if (reachable.reachableLevel > levelOf(selected.item)) {
           const compound = this._targetedCompoundRequest(selected, meta, reachable);
           if (compound && compound.request) {
