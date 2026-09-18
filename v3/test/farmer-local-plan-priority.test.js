@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { TaskState } = require('../src/core/task');
-const { FarmerLocalPlanPriority } = require('../src/reliability/farmer-local-plan-priority');
+const { FarmerLocalPlanPriority } = require('../src/farmer/farmer-local-plan-priority');
 
 function fixture() {
   let originalSteps = 0;
