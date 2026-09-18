@@ -110,7 +110,7 @@ test('party potion restock travels once and buys in the same cycle without trust
   assert.equal(convergence.merchant.lastMerchantAction.result, 'COMMITTED');
 });
 
-test('distant same-map service chooses town teleport when estimated faster, then smart-moves the final leg', async () => {
+test('distant same-map service chooses town teleport and stops immediately when town lands inside interaction range', async () => {
   const { convergence, root, intelligence } = install();
   root.character.x = 1200;
   root.character.y = 0;
@@ -132,7 +132,8 @@ test('distant same-map service chooses town teleport when estimated faster, then
   assert.equal(result.ok, true);
   assert.equal(result.strategy.strategy, 'TOWN_THEN_SMART_MOVE');
   assert.equal(townCalls, 1);
-  assert.deepEqual(moves, [{ map: 'main', x: 50, y: 0 }]);
+  assert.deepEqual(moves, [], 'town spawn is already inside the 108-unit NPC buffer');
+  assert.equal(result.alreadyInRange, true);
   assert.equal(status.townTeleports, 1);
   assert.equal(status.strategySelections.TOWN_THEN_SMART_MOVE, 1);
   assert.ok(status.lastStrategy.estimatedSavingsMs >= 1500);
