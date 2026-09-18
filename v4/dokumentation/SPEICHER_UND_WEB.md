@@ -10,6 +10,35 @@
 
 Adventure Land spricht ausschliesslich per HTTPS mit einer begrenzten Schnittstelle. Es kennt keine Objektspeicher-Zugangsdaten und keine E-Mail-Versandgeheimnisse.
 
+
+## Lokale 1-TB-SSD
+
+Die vorhandene 1-TB-SSD ist eine feste V4-Speicherstufe. Sie dient als lokaler Hot-/Warm-Speicher und entkoppelt die Adventure-Land-Laufzeit von Netzwerk, Plattform und Objektspeicher.
+
+Die SSD uebernimmt insbesondere:
+
+- `outbox` – noch nicht bestaetigt uebertragene Segmente und Metadaten
+- `sitzungen` und `telemetrie` – aktuelle Rohdaten und abgeschlossene lokale Segmente
+- `blackbox` – rollierende Detailaufzeichnung fuer die Zeit vor und nach Stoerungen
+- `vorfaelle` und `wiederholungen` – geschuetzte Fehlerfaelle und lokal schnell verfuegbare Replays
+- `lerndaten` – Arbeitsbereich fuer vorbereitete und validierte Lerndatensaetze
+- `verarbeitung` – temporaere, erneut erzeugbare Zwischenprodukte
+
+Als erster Planwert werden ungefaehr 750 GB fuer V4 aktiv eingeplant. Mindestens 15 bis 20 Prozent der real nutzbaren SSD-Kapazitaet bleiben als Reserve frei. Die genaue Verteilung wird konfigurierbar umgesetzt und spaeter anhand gemessener Datenmengen angepasst.
+
+Die lokale Speicherverwaltung unterscheidet drei Schutzklassen:
+
+- Klasse A `kritisch`: Outbox, noch nicht replizierte Daten, Vorfallpakete und Manifeste; niemals allein wegen Speicherknappheit automatisch loeschen
+- Klasse B `wertvoll`: Rohsitzungen, Wiederholungen, Lerndaten und Experimente; nur nach bestaetigtem Sicherungs- beziehungsweise Lernzyklus freigeben
+- Klasse C `wiederherstellbar`: Caches, temporaere Dateien und neu erzeugbare Ableitungen; bei Speicherknappheit zuerst bereinigen
+
+Die SSD ist kein alleiniger Backup-Speicher. Kritische und wertvolle Daten muessen zusaetzlich auf der Plattform, im Objektspeicher oder einem getrennten Langzeitarchiv vorhanden sein. Ein SSD- oder Rechnerausfall darf nicht alle historischen Daten vernichten.
+
+Lokale Schreibvorgaenge werden gebuendelt und segmentiert. V4 erzeugt nicht fuer jedes Ereignis eine einzelne Datei. Abgeschlossene Segmente erhalten Groesse, Sequenzbereich und SHA-256, bevor sie asynchron uebertragen werden.
+
+Eine bestaetigte Uebertragung fuehrt nicht automatisch zur sofortigen Loeschung der lokalen Kopie. Die Freigabe richtet sich nach Schutzklasse, Aufbewahrungsregel und dem Speicher-Lern-Zyklus.
+
+
 Der Objektspeicher wird provider-neutral ueber eine S3-kompatible Schnittstelle angebunden. Die erste vorgesehene Konfiguration ist Backblaze B2 Cloud Storage. Ein spaeterer Wechsel zu einem anderen S3-kompatiblen Anbieter darf keine Aenderung an Wiederholungs-, Lern- oder Fachlogik erfordern.
 
 ## Datenklassen
