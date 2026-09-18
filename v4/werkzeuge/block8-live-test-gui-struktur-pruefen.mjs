@@ -62,8 +62,8 @@ const paket = await readFile(path.join(wurzel, 'werkzeuge/block8-live-test-paket
 for (const pflicht of [
   "vertrauensNamen: Object.freeze(['My_Ranger1', 'My_Ranger2'])",
   "leiterName: 'My_Ranger1'",
-  '47288ddfdef03ded63142670cdaca5d7ed251a75',
-  '8e50143a671a8ce30d14150cb14971c20c89daa5dbb651064dfb1ea4f13cdcfa',
+  'bd3cfc0bcd9e69a72a2c2913639e651c4930c182',
+  '9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632',
   'BEGIN werkzeuge/adventure-land-v4-bootstrap.js',
   'BEGIN werkzeuge/adventure-land-test-gui.js',
   'BEGIN werkzeuge/block8-gruppenziel-live-smoke.js',
