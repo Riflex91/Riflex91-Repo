@@ -153,7 +153,51 @@ test('cohesion handles two and three combat members pairwise and never counts me
   const trio = three.instance._team(three.snapshot);
   assert.equal(trio.complete, true);
   assert.equal(trio.names.length, 3);
-  assert.equal(trio.leaderName, 'P1');
+  assert.equal(trio.leaderName, 'W1');
+  assert.equal(trio.leaderPolicy, 'class-priority-then-name-v1');
+});
+
+// Every character must derive the same leader; names only break ties inside one class.
+test('cohesion selects the same role-aware combat leader on every member and uses names only as a deterministic tie-break', () => {
+  const mixedRoster = ['MerchantA', 'R1', 'P1', 'W1'];
+  const mixedParty = {
+    MerchantA: partyRow('merchant', 0, 0),
+    R1: partyRow('ranger', 20, 0),
+    P1: partyRow('priest', 25, 20),
+    W1: partyRow('warrior', 10, 10)
+  };
+  for (const selfName of ['R1', 'P1', 'W1']) {
+    const { instance, snapshot } = cohesionHarness(mixedRoster, mixedParty, selfName);
+    const team = instance._team(snapshot);
+    assert.equal(team.complete, true);
+    assert.equal(team.leaderName, 'W1');
+    assert.equal(team.leader.ctype, 'warrior');
+    assert.equal(team.leaderPolicy, 'class-priority-then-name-v1');
+  }
+
+  const rangedHarness = cohesionHarness(['MerchantA', 'M1', 'R1', 'P1'], {
+    MerchantA: partyRow('merchant', 0, 0),
+    M1: partyRow('mage', 20, 0),
+    R1: partyRow('ranger', 30, 0),
+    P1: partyRow('priest', 40, 0)
+  }, 'P1');
+  const ranged = rangedHarness.instance._team(rangedHarness.snapshot);
+  assert.equal(ranged.leaderName, 'R1');
+
+  const duplicateParty = {
+    MerchantA: partyRow('merchant', 0, 0),
+    R2: partyRow('ranger', 20, 0),
+    R1: partyRow('ranger', 30, 0)
+  };
+  const duplicateHarness = cohesionHarness(['MerchantA', 'R2', 'R1'], duplicateParty, 'R2');
+  const duplicate = duplicateHarness.instance._team(duplicateHarness.snapshot);
+  assert.equal(duplicate.leaderName, 'R1');
+
+  const soloPriestHarness = cohesionHarness(['MerchantA', 'P1'], {
+    MerchantA: partyRow('merchant', 0, 0),
+    P1: partyRow('priest', 10, 10)
+  }, 'P1');
+  assert.equal(soloPriestHarness.instance._team(soloPriestHarness.snapshot).leaderName, 'P1');
 });
 
 test('cohesion remains incomplete when trusted topology expects three combat members but only two are present', () => {

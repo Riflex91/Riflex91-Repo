@@ -3,6 +3,15 @@
 const base = require('./team-combat-cohesion-hotfix-base');
 
 const SUPPORTED_COMBAT_CLASSES = new Set(['warrior', 'paladin', 'priest', 'ranger', 'rogue', 'mage']);
+const COMBAT_LEADER_POLICY = 'class-priority-then-name-v1';
+const COMBAT_LEADER_CLASS_PRIORITY = Object.freeze({
+  warrior: 600,
+  paladin: 550,
+  ranger: 500,
+  mage: 450,
+  rogue: 400,
+  priest: 300
+});
 
 function finite(value) {
   const number = Number(value);
@@ -25,6 +34,17 @@ function distance(a, b) {
 }
 
 function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+
+function combatLeaderPriority(member) {
+  return COMBAT_LEADER_CLASS_PRIORITY[lower(member && member.ctype)] || 0;
+}
+
+function selectCombatLeader(members) {
+  return (members || []).filter(Boolean).slice().sort((a, b) =>
+    combatLeaderPriority(b) - combatLeaderPriority(a)
+      || String(a.name || '').localeCompare(String(b.name || ''))
+  )[0] || null;
+}
 
 class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
   _expectedCombatNames() {
@@ -53,6 +73,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       ...status,
       requiredCombatMembers: expected ? expected.length : null,
       topologySource: 'trusted-party-bootstrap',
+      combatLeaderPolicy: COMBAT_LEADER_POLICY,
+      combatLeaderClassPriority: { ...COMBAT_LEADER_CLASS_PRIORITY },
       crossMapFormationMovesBlocked: true,
       crossMapRegroupOwner: 'alpha28-controlled-farmer-travel'
     };
@@ -86,7 +108,7 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
     const expectedNames = this._expectedCombatNames();
     const members = this._combatMembers(snapshot);
     const selfName = snapshot && snapshot.character && snapshot.character.name || null;
-    const leader = members[0] || null;
+    const leader = selectCombatLeader(members);
     const self = members.find((row) => row.name === selfName) || null;
     const topologyKnown = Array.isArray(expectedNames) && expectedNames.length >= 1 && expectedNames.length <= 3;
     const combatTypesValid = topologyKnown && members.every((row) => SUPPORTED_COMBAT_CLASSES.has(lower(row.ctype)));
@@ -121,6 +143,8 @@ class TeamCombatCohesionHotfix extends base.TeamCombatCohesionHotfix {
       leader,
       leaderName: leader && leader.name || null,
       leaderTargetId,
+      leaderPolicy: COMBAT_LEADER_POLICY,
+      leaderPriority: leader ? combatLeaderPriority(leader) : null,
       complete,
       alive,
       sameMap,
@@ -211,5 +235,8 @@ function installTeamCombatCohesionHotfix(runtime, options = {}) {
 module.exports = {
   TeamCombatCohesionHotfix,
   installTeamCombatCohesionHotfix,
-  TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE
+  TEAM_COMBAT_COHESION_MODE: base.TEAM_COMBAT_COHESION_MODE,
+  COMBAT_LEADER_POLICY,
+  COMBAT_LEADER_CLASS_PRIORITY,
+  selectCombatLeader
 };
