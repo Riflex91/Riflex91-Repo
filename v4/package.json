@@ -32,7 +32,8 @@
     "block8-produktions-bootstrap:pruefen": "node werkzeuge/block8-produktions-bootstrap-struktur-pruefen.mjs && npm run produktions-runtime:pruefen",
     "block8-live-test-gui:bauen": "node werkzeuge/block8-live-test-paket-bauen.mjs",
     "block8-live-test-gui:pruefen": "node werkzeuge/block8-live-test-gui-struktur-pruefen.mjs && node --check werkzeuge/adventure-land-test-gui.js && node --check werkzeuge/block8-produktions-live-test-gui.js && node --check werkzeuge/block8-live-test-paket.js && node werkzeuge/block8-live-test-paket-bauen.mjs --pruefen",
-    "block8-10-minuten-gruppentest:pruefen": "node werkzeuge/block8-10-minuten-gruppentest-struktur-pruefen.mjs && node --check werkzeuge/block8-10-minuten-gruppentest-gui.js"
+    "block8-10-minuten-gruppentest:pruefen": "node werkzeuge/block8-10-minuten-gruppentest-struktur-pruefen.mjs && node --check werkzeuge/block8-10-minuten-gruppentest-gui.js && node --check werkzeuge/block8-10-minuten-gruppentest-paket.js && node werkzeuge/block8-10-minuten-paket-bauen.mjs --pruefen",
+    "block8-10-minuten-gruppentest:bauen": "node werkzeuge/block8-10-minuten-paket-bauen.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
