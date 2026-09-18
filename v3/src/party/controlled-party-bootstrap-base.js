@@ -139,13 +139,14 @@ class ControlledPartyBootstrap {
 
   _partyNames() {
     const parent = this.root && (this.root.parent || this.root);
-    const names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
+    let names = Object.keys(parent && parent.party || {}).map(cleanName).filter(Boolean);
     const local = cleanName(this._character() && this._character().name);
     const listed = this._partyListNames();
-    // Adventure Land can omit the local character from parent.party, so keep
-    // the historical fallback only while party_list still confirms membership
-    // (or no observable party_list exists at all). This prevents a character
-    // that deliberately left during leader repair from being re-added locally.
+    // party_list is authoritative for local membership during leader repair.
+    // parent.party can lag briefly after leave_party(), so remove a stale local
+    // row when the observable list already confirms that the character left.
+    if (local && listed.length && !listed.includes(local)) names = names.filter((name) => name !== local);
+    // Adventure Land can otherwise omit the local character from parent.party.
     if (local && !names.includes(local) && (!listed.length || listed.includes(local))) names.push(local);
     return uniqueNames(names);
   }
