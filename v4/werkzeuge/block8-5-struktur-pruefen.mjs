@@ -20,7 +20,11 @@ const dateien = [
   'laufzeit/quelle/vertraege/recovery-checkpoint.ts',
   'laufzeit/quelle/telemetrie/recovery-checkpoint.ts',
   'laufzeit/tests/block8-5-recovery-checkpoint.test.mjs',
-  'dokumentation/BLOCK-8-5-RECOVERY-CHECKPOINT.md'
+  'dokumentation/BLOCK-8-5-RECOVERY-CHECKPOINT.md',
+  'laufzeit/quelle/vertraege/status-schnittstelle.ts',
+  'laufzeit/quelle/telemetrie/status-schnittstelle.ts',
+  'laufzeit/tests/block8-5-status-schnittstelle.test.mjs',
+  'dokumentation/BLOCK-8-5-STATUSSCHNITTSTELLE.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -288,4 +292,98 @@ for (const pflicht of [
   if (!checkpointDokument.includes(pflicht)) throw new Error(`Recovery-Checkpoint-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1/8.5.2/8.5.3/8.5.4 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, integritaetsgesicherter Recovery-Checkpoint und keine neue Spiel-/Neustartautoritaet.');
+const statusVertrag = await readFile(path.join(wurzel, dateien[17]), 'utf8');
+for (const pflicht of [
+  'StatusSchnittstelle',
+  'GemeinsameStatusSicht',
+  'nurLesen: true',
+  'spielAutoritaet: false',
+  'bedienAutoritaet: false',
+  'neustartAutoritaet: false',
+  'StatusWert',
+  'StatusCheckpointSicht'
+]) {
+  if (!statusVertrag.includes(pflicht)) throw new Error(`StatusSchnittstellen-Vertrag fehlt: ${pflicht}`);
+}
+
+const statusSchnittstelle = await readFile(path.join(wurzel, dateien[18]), 'utf8');
+for (const pflicht of [
+  'NurLeseStatusSchnittstelle',
+  'erstelleGemeinsameStatusSicht',
+  'kopiereStatusWert',
+  'baueCharakterSicht',
+  'baueRuntimeSicht',
+  'baueGruppenSicht',
+  'baueEntscheidungsSicht',
+  'baueAktionsSichten',
+  'baueCheckpointSicht',
+  'baueMeldungsSicht',
+  'nurLesen: true',
+  'spielAutoritaet: false',
+  'bedienAutoritaet: false',
+  'neustartAutoritaet: false'
+]) {
+  if (!statusSchnittstelle.includes(pflicht)) throw new Error(`StatusSchnittstellen-Implementierung fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'location.reload(',
+  'window.close(',
+  '.reicheAnfrageEin(',
+  '.verarbeiteNaechsteAktion(',
+  '.brecheAktionAb(',
+  '.schliesseAktionAb('
+]) {
+  if (statusSchnittstelle.includes(verboten)) {
+    throw new Error(`StatusSchnittstelle darf keine versteckte Laufzeit-/Aktionsautoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(statusSchnittstelle)) {
+    throw new Error(`StatusSchnittstelle darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+for (const nichtSpiegeln of [
+  'technischeDetails: eingabe.technischeDetails',
+  'details: zustand.anfrage.details'
+]) {
+  if (statusSchnittstelle.includes(nichtSpiegeln)) {
+    throw new Error(`StatusSchnittstelle darf interne Detailnutzlast nicht ungeprueft spiegeln: ${nichtSpiegeln}`);
+  }
+}
+
+const statusTests = await readFile(path.join(wurzel, dateien[19]), 'utf8');
+for (const pflicht of [
+  'gemeinsame StatusSchnittstelle fasst Kernzustand read-only zusammen',
+  'bekannt fehlend und unbekannt bleiben unterscheidbar',
+  'fehlender Gesamtcharakter wird nicht mit erfundenen Nullwerten als bekannt dargestellt',
+  'Listen werden deterministisch sortiert ohne die Quellen umzuschreiben',
+  'Aktionsdetails und technische Meldungsdetails werden nicht in Oberflaechenstatus gespiegelt',
+  'fehlende optionale Kernzustaende bleiben explizit leer',
+  'StatusSchnittstelle besitzt nur Leseverhalten und veraendert Aktionszustand nicht',
+  'ungueltige Status-Metadaten werden fail-safe abgewiesen'
+]) {
+  if (!statusTests.includes(pflicht)) throw new Error(`StatusSchnittstellen-Test fehlt: ${pflicht}`);
+}
+
+const statusDokument = await readFile(path.join(wurzel, dateien[20]), 'utf8');
+for (const pflicht of [
+  '8.5.5 implementiert',
+  'nurLesen: true',
+  'spielAutoritaet: false',
+  'bedienAutoritaet: false',
+  'neustartAutoritaet: false',
+  'bekannt',
+  'fehlend',
+  'unbekannt',
+  '8.5.6'
+]) {
+  if (!statusDokument.includes(pflicht)) throw new Error(`StatusSchnittstellen-Dokumentation fehlt: ${pflicht}`);
+}
+
+console.log('Block 8.5.1 bis 8.5.5 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, Recovery-Checkpoint und gemeinsame StatusSchnittstelle ohne neue Spiel-/Bedien-/Neustartautoritaet.');
