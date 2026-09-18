@@ -10,6 +10,7 @@ const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../src/
 const { Alpha27CombatMerchantConvergence } = require('../src/reliability/alpha27-combat-merchant-convergence');
 const { makeEngine, makeControlledMerchant, makeLedger, makeRuntime } = require('./alpha27-convergence-test-helpers');
 
+// Regression from My_Merchant alpha.20.89: compound-capable gear must enter processing before BANK.
 test('InventoryLedger recognizes Adventure Land object-valued compound metadata', () => {
   const inventory = [0, 1, 2].map((index) => ({ index, name: 'ringsj', level: 0, q: 1 }));
   const ledger = new InventoryLedger({ now: () => 1000 });
