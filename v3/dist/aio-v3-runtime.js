@@ -44963,6 +44963,7 @@ module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
+const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -44982,6 +44983,7 @@ function installMerchantProduction(runtime, options = {}) {
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
     targets: options.merchantProductionTargets
   });
+  const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
     now: runtime.now,
@@ -45020,13 +45022,17 @@ function installMerchantProduction(runtime, options = {}) {
     const atomic = merchant && merchant.atomic;
     return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
   }
+  function collectionBusy() { try { return typeof runtime._merchantCollectionSessionActive === 'function' && runtime._merchantCollectionSessionActive() === true; } catch (_) { return true; } }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
-    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy();
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy() || collectionBusy();
   }
   function input() {
+    const c = character() || {};
+    bankCatalog.observe(c);
     return {
-      character: character() || {},
+      character: c,
+      bankCatalog: bankCatalog.status(),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       contentDrift: runtime.contentDrift,
@@ -45050,29 +45056,72 @@ function installMerchantProduction(runtime, options = {}) {
     return clone(state.lastPlan);
   }
 
-  function schedule(plan) {
-    if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled) return false;
-    if (runtime.now() < state.pausedUntil) return false;
-    if (!vendorNearby(plan.nextStep)) {
-      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'VENDOR_TRAVEL_REQUIRED', vendor: clone(plan.nextStep.vendor) } };
-      return false;
-    }
+  async function travelNamed(destination) {
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const atomic = convergence && convergence.atomic;
+    if (!atomic || typeof atomic.namedServiceTravel !== 'function') return { ok: false, reason: 'NAMED_SERVICE_TRAVEL_UNAVAILABLE' };
+    return atomic.namedServiceTravel(destination);
+  }
+  async function travelVendor(step) {
+    if (!step || !step.vendor || typeof runtime.planTravel !== 'function' || typeof runtime.executeTravelPlan !== 'function') return { ok: false, reason: 'VENDOR_TRAVEL_UNAVAILABLE' };
+    const planned = runtime.planTravel({ destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y }, metadata: { source: 'MERCHANT_PRODUCTION', item: step.name } });
+    if (!planned || planned.accepted !== true || !planned.plan) return { ok: false, reason: planned && planned.reason || 'VENDOR_TRAVEL_PLAN_REJECTED' };
+    const result = await runtime.executeTravelPlan(planned.plan.id);
+    return { ok: !!(result && (result.completed === true || result.ok === true || result.result === 'COMPLETED')), result: clone(result) };
+  }
+  function ensureAutoEnabled() {
+    if (!isMerchant() || String(runtime.adapter && runtime.adapter.mode || '') !== 'active') return false;
+    if (executor.status().enabled) return true;
+    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true });
+    return !!(configured && configured.controlled && configured.controlled.enabled);
+  }
+  function ensureBankCatalog() {
+    const c = character() || {};
+    if (c.bank && typeof c.bank === 'object') { bankCatalog.observe(c); return false; }
+    if (!bankCatalog.needsRefresh() || collectionBusy() || state.executionPending || controlledBusy()) return false;
     state.executionPending = true;
-    Promise.resolve(executor.execute(plan, plan.nextStep))
-      .then((result) => {
-        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: clone(result) };
-        if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
-        if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: plan.nextStep.kind, item: plan.nextStep.name } });
-      })
-      .catch((error) => {
-        state.pausedUntil = runtime.now() + state.failureCooldownMs;
-        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
-      })
-      .finally(() => { state.executionPending = false; });
+    Promise.resolve(travelNamed('bank')).then((result) => {
+      state.lastExecution = { at: runtime.now(), planId: null, kind: 'BANK_CATALOG_REFRESH', result: clone(result) };
+      if (result && result.ok) bankCatalog.observe(character());
+    }).finally(() => { state.executionPending = false; });
     return true;
   }
-
-  function cycle() { const plan = evaluate(); schedule(plan); return plan; }
+  function schedule(plan) {
+    if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled || collectionBusy()) return false;
+    if (runtime.now() < state.pausedUntil) return false;
+    const step = plan.nextStep;
+    state.executionPending = true;
+    Promise.resolve().then(async () => {
+      const c = character() || {};
+      if ((step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE) && !c.bank) {
+        const travel = await travelNamed('bank');
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.ok ? 'BANK_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel && travel.reason || 'BANK_TRAVEL_FAILED', travel: clone(travel) } };
+        if (travel && travel.ok) bankCatalog.observe(character());
+        return;
+      }
+      if (step.kind === ProductionStepKind.BUY && !vendorNearby(step)) {
+        const travel = await travelVendor(step);
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
+        return;
+      }
+      const result = await executor.execute(plan, step);
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
+      if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
+      if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
+    }).catch((error) => {
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
+    }).finally(() => { state.executionPending = false; });
+    return true;
+  }
+  function cycle() {
+    ensureAutoEnabled();
+    if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
+    const plan = evaluate();
+    schedule(plan);
+    return plan;
+  }
   function configure(config = {}) {
     if (config.enabled === true && typeof runtime._liveEnableGate === 'function') {
       const gate = runtime._liveEnableGate();
@@ -45089,6 +45138,9 @@ function installMerchantProduction(runtime, options = {}) {
       mode: MERCHANT_PRODUCTION_CONTROLLER_MODE,
       planner: planner.status(),
       controlled: executor.status(),
+      bankCatalog: bankCatalog.status(),
+      autoLiveEnabled: true,
+      collectionSessionBlocksProduction: collectionBusy(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
@@ -45126,6 +45178,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.stop = function merchantProductionStop() { disable('RUNTIME_STOP'); return baseStop(); };
 
   runtime.merchantProductionPlanner = planner;
+  runtime.merchantBankCatalog = bankCatalog;
   runtime.controlledMerchantProduction = executor;
   runtime.configureMerchantProduction = configure;
   runtime.disableMerchantProduction = disable;
@@ -45133,12 +45186,123 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.evaluateMerchantProduction = cycle;
   runtime.merchantProductionStatus = status;
 
-  const controller = { planner, executor, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  const controller = { planner, executor, bankCatalog, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
   runtime.__merchantProductionController = controller;
   return controller;
 }
 
 module.exports = { installMerchantProduction, MERCHANT_PRODUCTION_CONTROLLER_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
+},
+"src/merchant/persistent-bank-catalog.js": function(require,module,exports){
+'use strict';
+
+const { bankRows } = require('./merchant-production-planner');
+
+const PERSISTENT_BANK_CATALOG_MODE = 'persistent-bank-catalog-v1';
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+class PersistentBankCatalog {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-bank-catalog-v1';
+    this.maxAgeMs = Math.max(60000, Number(options.maxAgeMs || 30 * 60 * 1000));
+    this.snapshot = null;
+    this.lastInvalidation = null;
+    this.stats = { observations: 0, persisted: 0, loads: 0, invalidations: 0 };
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') { ls.setItem(this.storageKey, text); return true; }
+    } catch (_) {}
+    return false;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 1 || !data.snapshot) return;
+      this.snapshot = clone(data.snapshot);
+      this.lastInvalidation = clone(data.lastInvalidation || null);
+      this.stats.loads += 1;
+    } catch (_) {}
+  }
+
+  observe(character) {
+    const c = character || this.root && (this.root.character || this.root.parent && this.root.parent.character);
+    if (!c || !c.bank || typeof c.bank !== 'object') return false;
+    const rows = bankRows(c.bank);
+    const packs = Object.keys(c.bank).filter((key) => /^items\d+$/.test(key) && Array.isArray(c.bank[key])).sort();
+    const quantities = {};
+    for (const row of rows) {
+      const key = `${row.name}|${row.level}`;
+      quantities[key] = (quantities[key] || 0) + row.quantity;
+    }
+    this.snapshot = {
+      schemaVersion: 1,
+      observedAt: this.now(),
+      character: c.name || null,
+      packs,
+      rows: clone(rows),
+      quantities,
+      source: 'LIVE_BANK'
+    };
+    this.lastInvalidation = null;
+    this.stats.observations += 1;
+    if (this._set({ schemaVersion: 1, snapshot: this.snapshot, lastInvalidation: null })) this.stats.persisted += 1;
+    return true;
+  }
+
+  invalidate(reason = 'BANK_MUTATION') {
+    this.lastInvalidation = { at: this.now(), reason: String(reason || 'BANK_MUTATION') };
+    this.stats.invalidations += 1;
+    this._set({ schemaVersion: 1, snapshot: this.snapshot, lastInvalidation: this.lastInvalidation });
+  }
+
+  usable() {
+    if (!this.snapshot || !Array.isArray(this.snapshot.rows)) return false;
+    if (this.lastInvalidation && Number(this.lastInvalidation.at || 0) >= Number(this.snapshot.observedAt || 0)) return false;
+    return this.now() - Number(this.snapshot.observedAt || 0) <= this.maxAgeMs;
+  }
+
+  needsRefresh() { return !this.usable(); }
+
+  rows() { return this.usable() ? clone(this.snapshot.rows) : []; }
+
+  status() {
+    return {
+      mode: PERSISTENT_BANK_CATALOG_MODE,
+      usable: this.usable(),
+      maxAgeMs: this.maxAgeMs,
+      snapshot: clone(this.snapshot),
+      lastInvalidation: clone(this.lastInvalidation),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { PersistentBankCatalog, PERSISTENT_BANK_CATALOG_MODE };
 
 },
 "src/production-live-services.js": function(require,module,exports){
