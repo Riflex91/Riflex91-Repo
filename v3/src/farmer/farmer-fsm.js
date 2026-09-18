@@ -496,10 +496,12 @@ class FarmerController {
         }
         this.targetId = String(selection.target.id);
         this.targetType = selection.target.mtype;
+        const rankingScore = Number(selection.ranking && selection.ranking.score);
+        const rankingTravelSeconds = Number(selection.ranking && selection.ranking.travelSeconds);
         this._event('FARMER_TARGET_SELECTED', 'info', 'PLANNER_TOP_SAFE_LIVE_TARGET', {
-          score: Number(selection.ranking.score.toFixed(5)),
-          source: selection.ranking.source,
-          travelSeconds: Number(selection.ranking.travelSeconds.toFixed(2))
+          score: Number.isFinite(rankingScore) ? Number(rankingScore.toFixed(5)) : 0,
+          source: selection.ranking && selection.ranking.source || 'safe-live-fallback',
+          travelSeconds: Number.isFinite(rankingTravelSeconds) ? Number(rankingTravelSeconds.toFixed(2)) : 0
         });
         const d = distance(c, selection.target);
         this._transition(d <= this._engagementRange(snapshot) ? FarmerState.ENGAGE : FarmerState.TRAVEL, d <= this._engagementRange(snapshot) ? 'TARGET_IN_RANGE' : 'TARGET_OUT_OF_RANGE');
