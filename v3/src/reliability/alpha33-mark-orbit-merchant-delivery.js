@@ -766,6 +766,11 @@ class Alpha33MarkOrbitMerchantDelivery {
     });
   }
 
+  _collectionReserveSlots() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    return Math.max(1, Math.floor(finite(logistics && logistics.config && logistics.config.merchantReserveSlots, 1)));
+  }
+
   _merchantCapacitySnapshot() {
     const c = characterOf(this.runtime) || {};
     const items = Array.isArray(c.items) ? c.items : [];
@@ -806,7 +811,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       identities.push({ name, level, quantity, stackMax, existingHeadroom: headroom, newSlotsNeeded: slots });
     }
 
-    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded);
+    const reserveSlots = this._collectionReserveSlots();
+    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded + reserveSlots);
     const slotsToFree = Math.max(0, targetFreeSlots - snapshot.freeSlots);
     const plan = {
       at: this.now(),
@@ -816,6 +822,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       pickupQuantity: candidate && candidate.pickupQuantity || 0,
       incomingSlotsNeeded,
       targetFreeSlots,
+      reserveSlots,
       currentFreeSlots: snapshot.freeSlots,
       slotsToFree,
       constrainedByCapacity: incomingSlotsNeeded > snapshot.capacity,
@@ -994,7 +1001,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     const suspended = this.suspendedCollectionRoute;
     if (!suspended) return false;
     const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) {
+    if (pressure.freeSlots <= this._collectionReserveSlots()) {
       this.suspendedCollectionRoute = null;
       return false;
     }
@@ -1074,11 +1081,14 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
 
     const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) {
-      return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', {
+    const reserveSlots = this._collectionReserveSlots();
+    if (pressure.freeSlots <= reserveSlots) {
+      return this._finishCollectionRoute('MERCHANT_PICKUP_RESERVE_REACHED', {
         pickupQuantityRemaining: candidate && candidate.pickupQuantity || 0,
         occupied: pressure.occupied,
-        capacity: pressure.capacity
+        capacity: pressure.capacity,
+        freeSlots: pressure.freeSlots,
+        reserveSlots
       });
     }
 
@@ -1245,7 +1255,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       // back into town with free inventory slots.
       if (!this.collectionRoute && this.suspendedCollectionRoute) {
         const pressure = this._merchantCapacitySnapshot();
-        if (pressure.freeSlots > 0 && !this._resumeSuspendedCollectionRoute()) {
+        if (pressure.freeSlots > this._collectionReserveSlots() && !this._resumeSuspendedCollectionRoute()) {
           merchant.lastMerchantPlan = {
             at: this.now(),
             action: 'HOLD',
@@ -1255,7 +1265,7 @@ class Alpha33MarkOrbitMerchantDelivery {
           };
           return true;
         }
-        if (pressure.freeSlots <= 0) this.suspendedCollectionRoute = null;
+        if (pressure.freeSlots <= this._collectionReserveSlots()) this.suspendedCollectionRoute = null;
       }
 
       // Fresh collection work still preempts ordinary progression/production.
@@ -1311,6 +1321,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: true,
         collectionDeferredItemsBankedBeforeDeparture: true,
         operationalPotionsAndActiveFarmerGearGoalsStayLocal: true,
+        merchantPickupReserveSlots: 1,
+        merchantStopsCollectionWithOnePhysicalSlotFree: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
