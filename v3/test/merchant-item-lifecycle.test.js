@@ -348,7 +348,8 @@ test('processed gear SELL is fail-closed when no explicit future Farmer evaluati
     level: 1,
     q: 1,
     disposition: 'SELL',
-    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT'],
+    actionAuthority: false
   };
   const ledger = {
     status: () => ({ stale: false }),
@@ -491,7 +492,8 @@ test('ControlledMerchant final preflight blocks a stale processed SELL when futu
     level: 1,
     q: 1,
     disposition: 'SELL',
-    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT'],
+    actionAuthority: false
   };
   const ledger = {
     status: () => ({ stale: false }),
