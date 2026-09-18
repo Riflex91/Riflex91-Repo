@@ -63,12 +63,14 @@ Die Logik:
 ist eine browserfaehige Fassung der zentralen Steuerungslogik und ist per Git-Blob-SHA an folgende Produktionsquellen gebunden:
 
 - `kern/aktions-steuerung.ts`
+- `kern/laufzeit-steuerung.ts`
+- `vertraege/laufzeit-steuerung.ts`
 - `kern/aktions-auswahl.ts`
 - `kern/ressourcen-vergabe.ts`
 - `kern/schatten-ausfuehrung.ts`
 - `vertraege/ressourcen-sperre.ts`
 
-CI vergleicht das Verhalten gegen die echte Produktionsklasse fuer Start, Ablauf, Ressourcenblockierung und Unterbrechung durch wichtigere Anfragen.
+CI vergleicht das Verhalten gegen die echte Produktionsklasse fuer Start, Ablauf, Ressourcenblockierung, Unterbrechung durch wichtigere Anfragen sowie die zentrale Laufzeit-Pause. Der Browserkern spiegelt dabei nur Schattenzustand; auch waehrend der Pause werden keine echten Adventure-Land-Aktionen eingefuehrt.
 
 ## Gruppen-Integrationskern im Browser
 
