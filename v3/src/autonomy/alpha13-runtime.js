@@ -13,10 +13,8 @@ function contentDriftStorageKey(root, explicitKey = null) {
   return name ? `aio-v3-content-drift-v1:${name}` : undefined;
 }
 
-class Alpha13Runtime extends Alpha12Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA13_VERSION;
+function composeAlpha13Runtime(options = {}) {
+this.log.version = ALPHA13_VERSION;
     this.contentDriftScanMs = Math.max(1000, Math.min(60000, Number(options.contentDriftScanMs) || 5000));
     this.supervisorIntervalMs = Math.max(500, Math.min(30000, Number(options.globalSupervisorIntervalMs) || 1000));
     this.lastContentDriftScanAt = -Infinity;
@@ -50,6 +48,12 @@ class Alpha13Runtime extends Alpha12Runtime {
       recoveryWindowMs: options.globalSupervisorRecoveryWindowMs,
       maxRecoveriesPerWindow: options.globalSupervisorMaxRecoveriesPerWindow
     });
+}
+
+class Alpha13Runtime extends Alpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha13Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -128,4 +132,4 @@ class Alpha13Runtime extends Alpha12Runtime {
   }
 }
 
-module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey };
+module.exports = { Alpha13Runtime, ALPHA13_VERSION, contentDriftStorageKey, composeAlpha13Runtime };
