@@ -10,6 +10,95 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   constructor(runtime, atomic, shared) {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+    this.collectionSession = null;
+    this.lastCollectionSession = null;
+    this.runtime._merchantCollectionSessionActive = () => !!(this.collectionStatus().active);
+  }
+
+  _collectionSettleMs() {
+    return Math.max(3000, Math.min(30000, finite(this.options && this.options.merchantCollectionSettleMs, 8000)));
+  }
+
+  _collectionSnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const items = inventoryOf(this.root);
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    const logistics = this.runtime.controlledPartyLogistics;
+    const maxDistance = Math.max(100, finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380));
+    const registry = this.runtime.characterRegistry && typeof this.runtime.characterRegistry.status === 'function' ? this.runtime.characterRegistry.status() : { characters: [] };
+    const farmers = [];
+    let transferable = 0;
+    for (const row of Array.isArray(registry && registry.characters) ? registry.characters : []) {
+      if (!row || row.name === c.name || String(row.ctype || '').toLowerCase() === 'merchant' || row.rip === true) continue;
+      if (c.map && row.map && String(c.map) !== String(row.map)) continue;
+      const x = finite(row.real_x != null ? row.real_x : row.x);
+      const y = finite(row.real_y != null ? row.real_y : row.y);
+      const cx = finite(c.real_x != null ? c.real_x : c.x);
+      const cy = finite(c.real_y != null ? c.real_y : c.y);
+      const distance = x == null || y == null || cx == null || cy == null ? Infinity : Math.hypot(x - cx, y - cy);
+      if (!Number.isFinite(distance) || distance > maxDistance) continue;
+      let rowTransferable = 0;
+      for (const item of Array.isArray(row.inventory) ? row.inventory : []) {
+        if (!item) continue;
+        try {
+          const safe = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null;
+          if (safe && safe.ok) rowTransferable += 1;
+        } catch (_) {}
+      }
+      transferable += rowTransferable;
+      farmers.push({ name: row.name, distance, transferable: rowTransferable });
+    }
+    const activeGrants = logistics && logistics.activeLootGrants instanceof Map ? logistics.activeLootGrants.size : 0;
+    return { capacity, occupied, freeSlots: Math.max(0, capacity - occupied), transferable, activeGrants, farmers };
+  }
+
+  collectionStatus() {
+    const snap = this._collectionSnapshot();
+    return {
+      active: !!this.collectionSession,
+      session: clone(this.collectionSession),
+      lastSession: clone(this.lastCollectionSession),
+      settleMs: this._collectionSettleMs(),
+      snapshot: snap
+    };
+  }
+
+  _updateCollectionSession() {
+    const now = this.now();
+    const snap = this._collectionSnapshot();
+    const nearFarmers = snap.farmers.length > 0;
+    if (!this.collectionSession && nearFarmers && snap.freeSlots > 0 && (snap.transferable > 0 || snap.activeGrants > 0)) {
+      this.collectionSession = { startedAt: now, lastProgressAt: now, lastOccupied: snap.occupied, reason: 'FARMER_LOOT_COLLECTION', farmers: snap.farmers.map((row) => row.name) };
+      this._event('ALPHA27_COLLECTION_SESSION_STARTED', 'info', 'FARMER_LOOT_COLLECTION', { snapshot: snap });
+    }
+    const session = this.collectionSession;
+    if (!session) return { active: false, snapshot: snap };
+
+    if (snap.occupied > finite(session.lastOccupied, 0)) {
+      session.lastOccupied = snap.occupied;
+      session.lastProgressAt = now;
+    }
+    if (snap.freeSlots <= 0) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'MERCHANT_INVENTORY_FULL' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'MERCHANT_INVENTORY_FULL', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'MERCHANT_INVENTORY_FULL' };
+    }
+    if (snap.transferable <= 0 && snap.activeGrants <= 0 && now - finite(session.lastProgressAt, now) >= this._collectionSettleMs()) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'FARMERS_DRAINED' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'FARMERS_DRAINED', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'FARMERS_DRAINED' };
+    }
+    return { active: true, snapshot: snap, session };
+  }
+
+  holdForCollectionSession(state) {
+    if (!state || state.active !== true) return false;
+    this.stats.autonomousMerchantHolds += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'FARMER_LOOT_COLLECTION_ACTIVE', collection: clone(state) };
+    return true;
   }
 
   _partySupplyPlanFreshMs() {
@@ -297,6 +386,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
+    const collection = this._updateCollectionSession();
+    if (collection.active) {
+      this.holdForCollectionSession(collection);
+      return false;
+    }
+
     // Progression is processed before disposal. This restores the intended
     // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
     // Family-scoped circuits still allow unrelated later stages to continue.
@@ -363,6 +458,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
+      collectionSession: this.collectionStatus(),
+      collectionSessionPreemptsEconomy: true,
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
