@@ -2,6 +2,8 @@
 
 const GEAR_PROGRESSION_SCHEMA_VERSION = 1;
 const GEAR_PROGRESSION_MODE = 'shadow-planning-only';
+const FARMER_UPGRADE_MAX_LEVEL = 5;
+const ECONOMIC_UPGRADE_FALLBACK_LEVEL = 3;
 
 const CLASS_WEIGHTS = Object.freeze({
   warrior: { attack: 1.0, armor: 1.25, resistance: 0.85, hp: 0.04, str: 0.8, dex: 0.2, int: 0.1, crit: 0.3, evasion: 0.2, speed: 0.15 },
@@ -180,9 +182,10 @@ class GearProgressionEvaluator {
     return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype) };
   }
 
-  _firstMeaningful(meta, observedLevel, currentScore, ctype) {
+  _firstMeaningful(meta, observedLevel, currentScore, ctype, probeMaxLevel = this.maxProbeLevel) {
     const start = Math.max(0, observedLevel);
-    const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
+    const boundedProbeMax = Math.max(start, Math.min(this.maxProbeLevel, Math.max(0, Math.floor(finite(probeMaxLevel, this.maxProbeLevel)))));
+    const max = meta && (meta.upgrade || meta.compound) ? boundedProbeMax : start;
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
       const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
@@ -283,14 +286,27 @@ class GearProgressionEvaluator {
         let best = null;
         for (const slot of candidate.slots) {
           const current = this._currentItem(character, slot, gameData);
-          const meaningful = this._firstMeaningful(candidate.meta, levelOf(candidate.item), current.score, character.ctype);
+          const observedLevel = levelOf(candidate.item);
+          const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+          // Upgradeable feeder gear is only considered "future Farmer gear" if
+          // it becomes meaningful by +5. That gives the executor a bounded,
+          // explicit risk horizon instead of protecting arbitrary +6..+12 hopes.
+          const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
+            ? FARMER_UPGRADE_MAX_LEVEL
+            : this.maxProbeLevel;
+          const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
           if (!meaningful) continue;
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
-          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement };
-          if (String(character.ctype || '').toLowerCase() !== 'merchant'
-            && meaningful.level > levelOf(candidate.item)
+          const projectedFarmerUpgrade = isFarmerTarget
+            && !!candidate.meta.upgrade
+            && meaningful.level > observedLevel
+            && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
+          const progressionTargetLevel = projectedFarmerUpgrade ? FARMER_UPGRADE_MAX_LEVEL : meaningful.level;
+          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement, progressionTargetLevel };
+          if (isFarmerTarget
+            && meaningful.level > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
             const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
             const existingProtection = this.futureFarmerProtection.get(protectionKey);
@@ -298,12 +314,14 @@ class GearProgressionEvaluator {
               sourceCharacter: candidate.sourceCharacter,
               sourceIndex: Number(candidate.item.index),
               item: candidate.item.name,
-              observedLevel: levelOf(candidate.item),
-              targetLevel: meaningful.level,
+              observedLevel,
+              targetLevel: progressionTargetLevel,
+              firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
               improvement,
               survivalImprovement,
+              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
               reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
             };
             if (!existingProtection
@@ -323,7 +341,7 @@ class GearProgressionEvaluator {
           if (better) best = row;
         }
         if (!best) continue;
-        const targetLevel = best.meaningful.level;
+        const targetLevel = best.progressionTargetLevel;
         const id = this._goalId(character.name, best.slot, candidate.item.name, targetLevel);
         seenGoalIds.add(id);
         const existing = this.goals.get(id);
@@ -507,7 +525,9 @@ class GearProgressionEvaluator {
       goals: this.goals.size,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
-      futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      futureProtectionMode: 'UPGRADE_TO_PLUS5_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      farmerUpgradePotentialMaxLevel: FARMER_UPGRADE_MAX_LEVEL,
+      economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       merchantPrimaryGearStat: 'speed',
       merchantSpeedPriority: 'LEXICOGRAPHIC_FIRST',
