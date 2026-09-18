@@ -81,9 +81,11 @@ Der Workflow besitzt:
 
 Der Workflow baut oder veroeffentlicht **kein V3**, fuehrt **kein `wrangler deploy`** aus und veraendert weder D1 noch R2-Lifecycle-Regeln.
 
-Der breite historische `.github/workflows/deploy-cloudflare.yml` bleibt unveraendert bestehen, ist aber fuer diesen Block-8.5-Runtime-Nachweis nicht mehr der vorgesehene Release-Pfad.
+Der breite historische `.github/workflows/deploy-cloudflare.yml` ist fuer diesen Block-8.5-Runtime-Nachweis nicht mehr der vorgesehene Release-Pfad und wird auf V3/Dashboard-only getrennt: kein `v4/**`-Push-Trigger und keine V4-Build-/Publish-/HTTPS-Schritte mehr.
 
 Der Candidate selbst loest den V4-only Workflow **nicht** aus.
+
+Ein bereits existierender Nebenrelease unter `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` stammt aus dem alten automatisch gekoppelten Workflow und wird fuer 8.5.9 ausdruecklich **nicht** anerkannt. Der gueltige Candidate bleibt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Daher bleiben `deploymentPerformed: false` und `publicHttpsVerified: false` fuer den Candidate korrekt.
 
 ## Noch ausdrücklich offen
 

@@ -186,34 +186,82 @@ for (const pflicht of [
   if (!bundler.includes(pflicht)) throw new Error(`V4-Produktionsruntime-Bundler ist unvollstaendig: ${pflicht}`);
 }
 
-const releaseWorkflow = await readFile(path.join(repoWurzel, '.github/workflows/deploy-cloudflare.yml'), 'utf8');
+const allgemeinerDeployWorkflow = await readFile(
+  path.join(repoWurzel, '.github/workflows/deploy-cloudflare.yml'),
+  'utf8'
+);
 for (const pflicht of [
+  '"cloudflare-dashboard/**"',
+  '"v3/**"',
+  'Build V3 bootstrap and runtime artifacts',
+  'Deploy Worker and dashboard',
+  'Publish V3 release artifacts to R2',
+  'Verify V3 release artifacts in R2'
+]) {
+  if (!allgemeinerDeployWorkflow.includes(pflicht)) {
+    throw new Error(`Allgemeiner V3/Dashboard-Deploy-Workflow ist unvollstaendig: ${pflicht}`);
+  }
+}
+for (const verboten of [
   '"v4/**"',
+  'Install V4 build dependencies',
   'Build and verify V4 production runtime artifacts',
-  'expected_sha="$(tr -d \'[:space:]\' < dist/aio-v4-runtime.sha256)"',
-  'actual_sha="$(sha256sum dist/aio-v4-runtime.js | awk \'{print $1}\')"',
-  'Local V4 runtime SHA-256 mismatch.',
   'Publish immutable V4 runtime release to R2',
+  'releases/v4/',
+  'Verify immutable V4 runtime release in R2',
+  'Verify immutable V4 runtime release over public HTTPS',
+  'aio-v4-runtime.js',
+  'aio-v4-runtime.sha256'
+]) {
+  if (allgemeinerDeployWorkflow.includes(verboten)) {
+    throw new Error(`Allgemeiner V3/Dashboard-Deploy-Workflow darf keinen V4-Release-Pfad mehr besitzen: ${verboten}`);
+  }
+}
+const allgemeineCleanupTreffer =
+  allgemeinerDeployWorkflow.match(/- name: Remove temporary deploy config/g) ?? [];
+if (allgemeineCleanupTreffer.length !== 1) {
+  throw new Error(
+    `Allgemeiner V3/Dashboard-Deploy-Workflow muss genau einen Cleanup-Schritt enthalten; gefunden: ${allgemeineCleanupTreffer.length}.`
+  );
+}
+
+const v4ReleaseWorkflow = await readFile(
+  path.join(repoWurzel, '.github/workflows/release-v4-runtime.yml'),
+  'utf8'
+);
+for (const pflicht of [
+  'name: release-v4-runtime-immutable',
+  'workflow_dispatch:',
+  'release_sha:',
+  'confirmation:',
+  'PUBLISH-V4-IMMUTABLE:$RELEASE_SHA',
+  'BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  'npm run produktions-runtime:bauen',
+  '--experimental-auto-create=false',
+  '--experimental-provision=false',
   'releases/v4/$RELEASE_SHA/aio-v4-runtime.js',
   'releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256',
-  'Verify immutable V4 runtime release in R2',
-  'R2 V4 runtime SHA-256 mismatch.',
-  'Verify immutable V4 runtime release over public HTTPS',
-  'Public HTTPS V4 runtime SHA-256 mismatch.',
-  'https://aio-bot-dashboard.hansijuergenlul.workers.dev',
+  'Verify immutable V4 objects from R2',
+  'Verify immutable V4 release over existing public HTTPS worker',
   'x-aio-v4-release-sha',
   'access-control-allow-origin',
   'cache-control:.*no-store'
 ]) {
-  if (!releaseWorkflow.includes(pflicht)) throw new Error(`V4-Release-Workflow ist unvollstaendig: ${pflicht}`);
+  if (!v4ReleaseWorkflow.includes(pflicht)) {
+    throw new Error(`Isolierter V4-Release-Workflow ist unvollstaendig: ${pflicht}`);
+  }
 }
-const cleanupTreffer = releaseWorkflow.match(/- name: Remove temporary deploy config/g) ?? [];
-if (cleanupTreffer.length !== 1) {
-  throw new Error(`V4-Release-Workflow muss genau einen Cleanup-Schritt enthalten; gefunden: ${cleanupTreffer.length}.`);
-}
-for (const zeile of releaseWorkflow.split('\n')) {
-  if (zeile.includes("grep -Eiq '^access-control-allow-origin") && zeile.includes('- name:')) {
-    throw new Error('V4-Release-Workflow enthaelt einen in eine grep-Zeile eingespleissten YAML-Schritt.');
+for (const verboten of [
+  'push:',
+  'pull_request:',
+  'wrangler deploy',
+  'wrangler d1',
+  'bucket lifecycle',
+  'releases/v3/',
+  'working-directory: v3'
+]) {
+  if (v4ReleaseWorkflow.includes(verboten)) {
+    throw new Error(`Isolierter V4-Release-Workflow darf keinen automatischen oder V3/Worker/D1/Lifecycle-Pfad besitzen: ${verboten}`);
   }
 }
 
@@ -250,4 +298,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8/8.5 Produktions-Bootstrap geprueft: gemeinsame Laufzeit-/AktionsSteuerung, sichere Basisbedienung ueber BedienSicherung, Browser-performance_trick-Preflight, autonomer 2s-Produktionsheartbeat getrennt von Bot-Pause, bestaetigte send_cm-Empfaengerliste, read-only Gruppendiagnose, 8s Live-TTL, Zwei-Teilnehmer-Gate, one-shot Vorbereitung, HTTPS+SHA-256-Loader und geschuetzter Deployment-Workflow.');
+console.log('Block 8/8.5 Produktions-Bootstrap geprueft: gemeinsame Laufzeit-/AktionsSteuerung, sichere Basisbedienung ueber BedienSicherung, Browser-performance_trick-Preflight, autonomer 2s-Produktionsheartbeat getrennt von Bot-Pause, bestaetigte send_cm-Empfaengerliste, read-only Gruppendiagnose, 8s Live-TTL, Zwei-Teilnehmer-Gate, one-shot Vorbereitung, HTTPS+SHA-256-Loader sowie getrennte V3/Dashboard- und manuelle immutable V4-Release-Workflows.');
