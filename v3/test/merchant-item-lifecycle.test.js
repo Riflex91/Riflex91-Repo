@@ -334,6 +334,408 @@ test('economic +3 upgrade lifecycle continues from +2 and still requires scroll0
   assert.equal(check.upgradeLifecycle, 'ECONOMIC_TO_PLUS3');
 });
 
+
+test('gear delivery selects the exact sourceIndex when duplicate ready identities exist', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: {
+      name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42,
+      items: [
+        { name: 'quiver', level: 1 },
+        null, null, null, null,
+        { name: 'quiver', level: 1 }
+      ]
+    },
+    parent: { entities: {} }
+  };
+  const goal = {
+    id: 'Ranger1:offhand:quiver:1',
+    sourceCharacter: 'Merchant',
+    sourceIndex: 5,
+    character: 'Ranger1',
+    slot: 'offhand',
+    item: 'quiver',
+    observedLevel: 1,
+    targetLevel: 1,
+    projectedUpgradeRequired: false,
+    survivalImprovement: 5,
+    improvement: 8
+  };
+  const runtime = makeRuntime({
+    root,
+    ledger: makeLedger([]),
+    engine,
+    controlledMerchant,
+    gameData: { items: { quiver: { type: 'quiver', g: 1000, upgrade: { dex: 1 }, grades: [] } }, monsters: {}, maps: {} },
+    gearGoals: [goal]
+  });
+  runtime.partyBootstrap = { trustedRosterNames: () => ['Ranger1'] };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+
+  const candidate = convergence.merchant.gearDeliveryCandidate();
+  assert.ok(candidate);
+  assert.equal(candidate.item.index, 5);
+  assert.equal(candidate.goal.id, goal.id);
+});
+
+test('currently meaningful Farmer upgrade gear below +5 stays projected instead of becoming delivery-ready', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const gameData = {
+    items: {
+      quiver: { type: 'quiver', dex: 10, g: 1000, upgrade: { dex: 2 }, grades: [] }
+    }
+  };
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [
+        {
+          name: 'Merchant',
+          ctype: 'merchant',
+          level: 80,
+          inventory: [{ index: 0, name: 'quiver', level: 4, q: 1 }],
+          gear: {}
+        },
+        {
+          name: 'Ranger1',
+          ctype: 'ranger',
+          level: 80,
+          inventory: [],
+          gear: { offhand: { name: 'quiver', level: 3 } }
+        }
+      ]
+    },
+    gameData,
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const goal = result.currentGoals.find((row) => row.character === 'Ranger1' && row.item === 'quiver');
+  assert.ok(goal);
+  assert.equal(goal.observedLevel, 4);
+  assert.equal(goal.targetLevel, 5);
+  assert.equal(goal.projectedUpgradeRequired, true);
+  assert.equal(goal.feasibility, 'MATERIALS_AND_RISK_UNMODELED');
+  assert.equal(result.currentGoals.some((row) => row.character === 'Ranger1' && row.item === 'quiver' && row.targetLevel === 4 && row.projectedUpgradeRequired === false), false);
+
+  const protection = evaluator.futureProtectionFor('Merchant', 0, 'quiver', 4);
+  assert.ok(protection);
+  assert.equal(protection.targetLevel, 5);
+  assert.equal(protection.firstMeaningfulLevel, 4);
+  assert.equal(protection.targetCharacter, 'Ranger1');
+});
+
+test('ready Farmer upgrade is finalized to +5 before any lower-tier delivery', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: {
+      name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42,
+      items: [{ name: 'quiver', level: 1 }]
+    },
+    parent: { entities: {} }
+  };
+  const ledger = makeLedger([{
+    character: 'Merchant',
+    index: 0,
+    name: 'quiver',
+    level: 1,
+    disposition: 'RESERVE_UPGRADE',
+    reasons: ['FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION']
+  }]);
+  const readyGoal = {
+    id: 'Ranger1:offhand:quiver:1',
+    sourceCharacter: 'Merchant',
+    sourceIndex: 0,
+    character: 'Ranger1',
+    slot: 'offhand',
+    item: 'quiver',
+    observedLevel: 1,
+    targetLevel: 1,
+    projectedUpgradeRequired: false,
+    survivalImprovement: 2,
+    improvement: 3
+  };
+  const projectedGoal = {
+    id: 'Ranger1:offhand:quiver:5',
+    sourceCharacter: 'Merchant',
+    sourceIndex: 0,
+    character: 'Ranger1',
+    slot: 'offhand',
+    item: 'quiver',
+    observedLevel: 1,
+    targetLevel: 5,
+    projectedUpgradeRequired: true,
+    survivalImprovement: 5,
+    improvement: 8
+  };
+  const gameData = {
+    items: {
+      quiver: { type: 'quiver', g: 1000, upgrade: { dex: 1 }, grades: [] },
+      scroll0: { type: 'scroll', g: 100 },
+      scroll1: { type: 'scroll', g: 1000 }
+    },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = {
+    list: () => [readyGoal, projectedGoal].map((row) => ({ ...row })),
+    futureProtectionFor: (character, index, name, level) => (
+      character === 'Merchant' && index === 0 && name === 'quiver' && level === 1
+        ? { targetLevel: 5, targetCharacter: 'Ranger1', targetSlot: 'offhand' }
+        : null
+    )
+  };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = { goal: readyGoal, item: { index: 0, name: 'quiver', level: 1 } };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'MUTATE');
+  assert.equal(finalization.reason, 'TARGETED_UPGRADE_BEFORE_DELIVERY');
+  assert.equal(finalization.targetLevel, 5);
+  assert.equal(finalization.request.type, 'UPGRADE');
+  assert.equal(finalization.request.index, 0);
+  assert.equal(finalization.request.metadata.targetLevel, 5);
+  assert.equal(finalization.request.metadata.targetedGearFinalization, true);
+  assert.equal(finalization.request.metadata.upgradeLifecycle, 'FARMER_POTENTIAL_TO_PLUS5');
+  assert.equal(convergence.merchant.gearDeliveryFinalizationStats.lowerTierDeliveriesPrevented, 1);
+});
+
+test('exactly three identical +0 rings are compounded to +1 before Farmer delivery', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const items = [0, 1, 2].map(() => ({ name: 'ringsj', level: 0 }));
+  const root = {
+    character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42, items },
+    parent: { entities: {} }
+  };
+  const gearGoalId = 'Ranger1:ring1:ringsj:0';
+  const ledger = makeLedger([
+    {
+      character: 'Merchant',
+      index: 0,
+      name: 'ringsj',
+      level: 0,
+      disposition: 'RESERVE_PROGRESSION',
+      reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+      reservation: { goalIds: [gearGoalId] }
+    },
+    ...[1, 2].map((index) => ({
+      character: 'Merchant', index, name: 'ringsj', level: 0, disposition: 'RESERVE_COMPOUND',
+      reasons: ['AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+    }))
+  ]);
+  const gameData = {
+    items: {
+      ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] },
+      cscroll0: { type: 'cscroll', g: 100 }
+    },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = {
+    goal: {
+      id: gearGoalId,
+      sourceCharacter: 'Merchant',
+      sourceIndex: 0,
+      character: 'Ranger1',
+      slot: 'ring1',
+      item: 'ringsj',
+      observedLevel: 0,
+      targetLevel: 0,
+      projectedUpgradeRequired: false
+    },
+    item: { index: 0, name: 'ringsj', level: 0 }
+  };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'MUTATE');
+  assert.equal(finalization.reason, 'TARGETED_COMPOUND_BEFORE_DELIVERY');
+  assert.equal(finalization.targetLevel, 1);
+  assert.equal(finalization.request.type, 'COMPOUND');
+  assert.deepEqual(finalization.request.indices, [0, 1, 2]);
+  assert.equal(finalization.request.metadata.deliveryTargetLevel, 1);
+  assert.equal(finalization.request.metadata.progressionInputIndex, 0);
+
+  const planned = engine.planAtomic(finalization.request, { ledger });
+  assert.equal(planned.accepted, true, planned.reason);
+  assert.equal(planned.transaction.inputs[0].disposition, 'RESERVE_PROGRESSION');
+  assert.deepEqual(planned.transaction.inputs.slice(1).map((row) => row.disposition), ['RESERVE_COMPOUND', 'RESERVE_COMPOUND']);
+
+  controlledMerchant.configure({ enabled: true, ack: 'CONTROLLED_CANARY', sell: true, bank: true, upgrade: true, compound: true });
+  const preflight = convergence.atomic.atomicPreflight(engine.get(planned.transaction.id));
+  assert.equal(preflight.ok, true, preflight.reason);
+  assert.equal(preflight.inputs.length, 3);
+});
+
+test('nine identical +0 rings expose +2 as the highest currently producible delivery tier', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const items = Array.from({ length: 9 }, () => ({ name: 'ringsj', level: 0 }));
+  const root = {
+    character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42, items },
+    parent: { entities: {} }
+  };
+  const gearGoalId = 'Ranger1:ring1:ringsj:0-nine';
+  const ledger = makeLedger(Array.from({ length: 9 }, (_, index) => index === 0
+    ? {
+        character: 'Merchant',
+        index,
+        name: 'ringsj',
+        level: 0,
+        disposition: 'RESERVE_PROGRESSION',
+        reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+        reservation: { goalIds: [gearGoalId] }
+      }
+    : {
+        character: 'Merchant',
+        index,
+        name: 'ringsj',
+        level: 0,
+        disposition: 'RESERVE_COMPOUND',
+        reasons: ['AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+      }));
+  const gameData = {
+    items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] } },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = {
+    goal: { id: gearGoalId, character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
+    item: { index: 0, name: 'ringsj', level: 0 }
+  };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'MUTATE');
+  assert.equal(finalization.targetLevel, 2);
+  assert.equal(finalization.request.type, 'COMPOUND');
+  assert.equal(finalization.request.metadata.deliveryTargetLevel, 2);
+  assert.equal(finalization.request.metadata.compoundIdentity, 'ringsj:0');
+});
+
+test('three rings reserved for separate Farmer goals are delivered separately instead of sacrificed to one compound', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      gold: 2000000,
+      target: null,
+      isize: 42,
+      items: [{ name: 'ringsj', level: 0 }, { name: 'ringsj', level: 0 }, { name: 'ringsj', level: 0 }]
+    },
+    parent: { entities: {} }
+  };
+  const goalIds = ['Ranger1:ring1:ringsj:0', 'Ranger2:ring1:ringsj:0', 'Ranger3:ring1:ringsj:0'];
+  const ledger = makeLedger(goalIds.map((goalId, index) => ({
+    character: 'Merchant',
+    index,
+    name: 'ringsj',
+    level: 0,
+    disposition: 'RESERVE_PROGRESSION',
+    reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+    reservation: { goalIds: [goalId] }
+  })));
+  const gameData = {
+    items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] } },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = {
+    goal: { id: goalIds[0], character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
+    item: { index: 0, name: 'ringsj', level: 0 }
+  };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'READY');
+  assert.equal(finalization.targetLevel, 0);
+
+  const forged = engine.planAtomic({
+    type: 'COMPOUND',
+    character: 'Merchant',
+    index: 0,
+    indices: [0, 1, 2],
+    metadata: {
+      source: 'ALPHA27_GEAR_DELIVERY_FINALIZATION',
+      lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
+      goalId: goalIds[0],
+      deliveryItem: 'ringsj',
+      deliveryTargetLevel: 1,
+      targetedGearFinalization: true,
+      progressionInputIndex: 0
+    }
+  }, { ledger });
+  assert.equal(forged.accepted, false);
+  assert.equal(forged.reason, 'LEDGER_DISPOSITION_NOT_AUTHORIZED');
+});
+
+test('two identical +0 rings do not postpone a ready Farmer delivery waiting for future drops', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: {
+      name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42,
+      items: [{ name: 'ringsj', level: 0 }, { name: 'ringsj', level: 0 }]
+    },
+    parent: { entities: {} }
+  };
+  const ledger = makeLedger([0, 1].map((index) => ({
+    character: 'Merchant', index, name: 'ringsj', level: 0, disposition: 'KEEP'
+  })));
+  const gameData = {
+    items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] } },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = {
+    goal: { character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
+    item: { index: 0, name: 'ringsj', level: 0 }
+  };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'READY');
+  assert.equal(finalization.reason, 'HIGHEST_CURRENT_SAFE_LEVEL_REACHED');
+  assert.equal(finalization.targetLevel, 0);
+});
+
+test('targeted finalization mutation consumes the Merchant turn and blocks lower-tier send_item', async () => {
+  const runtime = makeRuntime({
+    ledger: makeLedger([]),
+    engine: makeEngine(),
+    controlledMerchant: makeControlledMerchant(),
+    gameData: { items: {}, monsters: {}, maps: {} }
+  });
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  let mutations = 0;
+  let deliveries = 0;
+  convergence.merchant.planGearDeliveryFinalization = () => ({
+    state: 'MUTATE',
+    targetLevel: 5,
+    request: { type: 'UPGRADE', character: 'Merchant', index: 0, indices: [0], metadata: { targetedGearFinalization: true } }
+  });
+  convergence.merchant.transactionFamilyOpen = () => false;
+  convergence.merchant.executeEconomyRequest = async () => { mutations += 1; return true; };
+  convergence.merchant.deliverGearGoal = async () => { deliveries += 1; return true; };
+
+  const acted = await convergence.merchant.progressOrDeliverFarmerGear();
+  assert.equal(acted, true);
+  assert.equal(mutations, 1);
+  assert.equal(deliveries, 0);
+});
+
 test('processed gear SELL waits for a fresh party gear evaluation and an empty Farmer claim set', () => {
   const ledger = makeLedger([{
     character: 'Merchant',

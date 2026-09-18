@@ -5,6 +5,32 @@ const { CONTROLLED_ACK, SUPERVISOR_ALLOWED, EXPECTED_DISPOSITIONS } = require('.
 const { Alpha27AtomicLedger } = require('./alpha27-atomic-ledger');
 
 class Alpha27AtomicTransactionEngine extends Alpha27AtomicLedger {
+  targetedGearCompoundInputAllowed(entry, metadata = {}, index = null) {
+    if (!entry || metadata.targetedGearFinalization !== true || metadata.lifecycle !== 'FARMER_GEAR_DELIVERY_FINALIZATION') return false;
+    if (String(entry.name || '') !== String(metadata.deliveryItem || '')) return false;
+    const disposition = String(entry.disposition || '');
+    if (disposition === 'RESERVE_COMPOUND') return true;
+
+    const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+    if (disposition === 'RESERVE_PROGRESSION') {
+      if (Number(index) !== Number(metadata.progressionInputIndex)) return false;
+      const goalId = metadata.goalId == null ? null : String(metadata.goalId);
+      const reservedGoalIds = entry.reservation && Array.isArray(entry.reservation.goalIds)
+        ? entry.reservation.goalIds.map(String)
+        : [];
+      return !!goalId && reservedGoalIds.includes(goalId);
+    }
+    if (disposition === 'KEEP') {
+      return reasons.includes('AUTONOMOUS_COMPOUND_ACCUMULATION')
+        && !reasons.includes('FUTURE_FARMER_GEAR_PROGRESSION');
+    }
+    if (disposition === 'SELL') {
+      return reasons.includes('AUTONOMOUS_COMPOUND_RESULT')
+        && reasons.includes('FUTURE_FARMER_GEAR_EVALUATED_SAFE');
+    }
+    return false;
+  }
+
   patchTransactionEngine() {
     const engine = this.runtime.transactionEngine;
     if (!engine || engine.__alpha27AtomicPatched) return false;
@@ -41,7 +67,10 @@ class Alpha27AtomicTransactionEngine extends Alpha27AtomicLedger {
         let entry = null;
         try { entry = ledger.get(character, index); } catch (_) {}
         if (!entry) return engine._reject('LEDGER_ITEM_NOT_FOUND', { type, character, index });
-        if (!selfGear && !EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || ''))) return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        const targetedGearCompound = type === 'COMPOUND' && this.targetedGearCompoundInputAllowed(entry, request.metadata || {}, index);
+        if (!selfGear && !EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || '')) && !targetedGearCompound) {
+          return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        }
         if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return engine._reject('SELF_GEAR_RESERVATION_IDENTITY_MISMATCH', { type, character, index });
         const key = String(entry.key || `${character}:${index}`);
         const existing = engine.reservations && engine.reservations.get(key);

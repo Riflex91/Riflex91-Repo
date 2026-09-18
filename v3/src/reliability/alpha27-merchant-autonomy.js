@@ -429,6 +429,71 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  async progressOrDeliverFarmerGear() {
+    const finalization = typeof this.planGearDeliveryFinalization === 'function'
+      ? this.planGearDeliveryFinalization()
+      : { state: 'NONE', reason: 'FINALIZATION_PLANNER_UNAVAILABLE' };
+    // Preserve the pre-existing delivery contract when there is nothing to
+    // finalize. In production deliverGearGoal() simply returns false without a
+    // candidate; tests/patch layers may also provide their own delivery source.
+    if (!finalization || finalization.state === 'NONE') return this.deliverGearGoal();
+
+    if (finalization.state === 'HOLD') {
+      this.stats.autonomousMerchantHolds += 1;
+      this.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: finalization.reason || 'GEAR_DELIVERY_FINALIZATION_HOLD',
+        finalization: clone({
+          state: finalization.state,
+          reason: finalization.reason,
+          targetLevel: finalization.targetLevel,
+          retryAt: finalization.retryAt,
+          targetName: finalization.candidate && finalization.candidate.goal && finalization.candidate.goal.character,
+          slot: finalization.candidate && finalization.candidate.goal && finalization.candidate.goal.slot,
+          item: finalization.candidate && finalization.candidate.item && finalization.candidate.item.name,
+          level: finalization.candidate && finalization.candidate.item ? levelOf(finalization.candidate.item) : null,
+          sourceIndex: finalization.candidate && finalization.candidate.item && finalization.candidate.item.index
+        })
+      };
+      return true;
+    }
+
+    if (finalization.state === 'MUTATE' && finalization.request) {
+      const family = String(finalization.request.type || '').toUpperCase();
+      if (this.transactionFamilyOpen(family)) {
+        this.stats.autonomousMerchantHolds += 1;
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'GEAR_FINALIZATION_TRANSACTION_CIRCUIT_OPEN',
+          type: family,
+          targetLevel: finalization.targetLevel,
+          request: clone(finalization.request)
+        };
+        return true;
+      }
+      const acted = await this.executeEconomyRequest(finalization.request);
+      if (!acted) {
+        // Never fall through to delivery after a targeted finalization request
+        // was rejected. A later tick may re-evaluate the exact live identity.
+        this.stats.autonomousMerchantHolds += 1;
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'HOLD',
+          reason: 'GEAR_FINALIZATION_TRANSACTION_NOT_EXECUTED',
+          type: family,
+          targetLevel: finalization.targetLevel,
+          request: clone(finalization.request)
+        };
+      }
+      return true;
+    }
+
+    if (finalization.state === 'READY') return this.deliverGearGoal();
+    return false;
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -500,10 +565,11 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
-      // Farmer gear is first-class work. Ready Farmer upgrades are delivered
-      // before general mutation backlog, and Merchant self-gear is deliberately
-      // last so it cannot consume time/items needed by the party.
-      if (await this.deliverGearGoal()) return true;
+      // Farmer gear is first-class work, but a ready lower tier is never
+      // delivered while that exact gear path can still be safely improved.
+      // Targeted finalization runs before delivery; unrelated mutation backlog
+      // remains behind Farmer delivery so it cannot starve the party upgrade.
+      if (await this.progressOrDeliverFarmerGear()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
       if (request) return this.executeEconomyRequest(request);
@@ -527,7 +593,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
       const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
-        if (await this.deliverGearGoal()) return true;
+        if (await this.progressOrDeliverFarmerGear()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
         if (request) return this.executeEconomyRequest(request);
@@ -595,7 +661,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
+      targetedGearFinalizationBeforeDelivery: true,
+      targetedGearFinalizationPolicy: 'HIGHEST_CURRENT_SAFE_REACHABLE_LEVEL',
+      targetedGearFinalization: {
+        last: clone(this.lastGearDeliveryFinalization),
+        stats: clone(this.gearDeliveryFinalizationStats)
+      },
       economyBeforeNonCriticalGearDelivery: false,
+      gearDeliveryLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY'],
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
