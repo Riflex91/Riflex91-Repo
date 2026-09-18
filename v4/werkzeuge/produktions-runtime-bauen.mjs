@@ -1,7 +1,7 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import ts from 'typescript';
+import * as ts from 'typescript';
 
 const wurzel = process.cwd();
 const quelleWurzel = path.join(wurzel, 'laufzeit', 'quelle');
