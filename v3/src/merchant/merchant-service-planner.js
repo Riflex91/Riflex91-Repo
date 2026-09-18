@@ -156,7 +156,14 @@ class MerchantServicePlanner {
       candidates.push({ report, need });
     }
 
-    candidates.sort((a, b) => b.need.priority - a.need.priority || Number(a.report.at) - Number(b.report.at) || String(a.report.name).localeCompare(String(b.report.name)));
+    // For equal-priority supply emergencies, serve the most depleted Farmer
+    // first. This makes an empty potion stack outrank a merely low one.
+    candidates.sort((a, b) =>
+      b.need.priority - a.need.priority
+      || Math.max(0, finite(a.need.count, Infinity)) - Math.max(0, finite(b.need.count, Infinity))
+      || Number(a.report.at) - Number(b.report.at)
+      || String(a.report.name).localeCompare(String(b.report.name))
+    );
     const selected = candidates[0] || null;
     const standOpen = input.standOpen === true;
 
