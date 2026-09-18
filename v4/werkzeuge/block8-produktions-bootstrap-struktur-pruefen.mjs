@@ -91,15 +91,16 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
 
 const bundler = await readFile(path.join(wurzel, 'werkzeuge/produktions-runtime-bauen.mjs'), 'utf8');
 for (const pflicht of [
-  "import * as tsPaket from 'typescript'",
-  'tsPaket.default ?? tsPaket',
-  'ts.transpileModule',
-  'ts.ModuleKind.CommonJS',
+  "import { execFile } from 'node:child_process'",
+  "node_modules', 'typescript', 'bin', 'tsc'",
+  "'--module', 'commonjs'",
+  "'--moduleResolution', 'node'",
   'Externer Runtime-Import ist nicht erlaubt',
+  'require\\(([' + "'" + '"])(.+?)',
   'Adventure Land AiO Bot V4 | generated | production runtime',
   'entry.installiereAdventureLandProduktionsLaufzeit',
   '--pruefen'
-]) {
+] {
   if (!bundler.includes(pflicht)) throw new Error(`V4-Produktionsruntime-Bundler ist unvollstaendig: ${pflicht}`);
 }
 
