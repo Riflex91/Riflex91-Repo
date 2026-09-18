@@ -6,8 +6,8 @@ const { PartyOrchestrator } = require('../src/party/orchestrator');
 const { ControlledPartyBootstrap } = require('../src/party/controlled-party-bootstrap');
 const { PartyTransitionController } = require('../src/party/transition-controller');
 const { ControlledPartyLifecycleCoordinator, CONTROLLED_PARTY_LIFECYCLE_ACK, PartyLifecycleOperationState } = require('../src/party/controlled-lifecycle-coordinator');
-const { TeamCombatCohesionHotfix } = require('../src/reliability/team-combat-cohesion-hotfix');
-const { PartyBootstrapMerchantDiscoveryHotfix } = require('../src/reliability/party-bootstrap-merchant-discovery-hotfix');
+const { TeamCombatCohesionHotfix } = require('../src/party/team-combat-cohesion-hotfix');
+const { PartyBootstrapMerchantDiscoveryHotfix } = require('../src/party/party-bootstrap-merchant-discovery-hotfix');
 const { PartyLifecycleState } = require('../src/party/lifecycle-store');
 
 function registryCharacters(rows) {
