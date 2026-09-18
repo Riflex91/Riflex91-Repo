@@ -27388,7 +27388,15 @@ function patchLogisticsPrototype() {
 
   proto.install = function installAlpha2015Logistics() {
     // Alpha20.15 contract: request only when critically low, then refill deeply.
-    this.config.merchantReserveSlots = 0;
+    // Keep one physical inventory slot unused during Farmer pickup. This is
+    // intentionally independent from active-grant reservations and gives the
+    // Merchant one settlement / operational buffer slot at all times.
+    this.config.merchantReserveSlots = 1;
+    // Closed-loop transfer verification now protects capacity, so the old
+    // 1.4s cadence is unnecessary. Keep one outbound mutation per Farmer at a
+    // time, but allow the next item almost immediately after local verification.
+    this.config.transferIntervalMs = Math.min(Number(this.config.transferIntervalMs) || 1400, 300);
+    this.config.verifyDelayMs = Math.min(Number(this.config.verifyDelayMs) || 700, 250);
     this.config.farmerPotionLow = 200;
     this.config.farmerPotionTarget = 5000;
     this.config.maxSupplyBatch = 5000;
@@ -27609,7 +27617,11 @@ function patchLogisticsPrototype() {
         ...(base.authority || {}),
         farmerLootPolicy: 'all-transferable-inventory-except-hp-mp-potions',
         farmerGoldTransfer: 'all-gold-when-nearby-even-if-merchant-inventory-full',
-        merchantStopsItemsOnlyWhenInventoryFull: true,
+        merchantStopsItemsOnlyWhenInventoryFull: false,
+        merchantKeepsOnePickupReserveSlot: true,
+        acceleratedClosedLoopItemTransfers: true,
+        itemTransferIntervalMs: this.config.transferIntervalMs,
+        itemTransferVerifyDelayMs: this.config.verifyDelayMs,
         lockedItemsRemainLocal: true
       },
       alpha20_15: {
@@ -27778,7 +27790,7 @@ class ControlledPartyLogistics {
       merchantPotionReserve: Math.max(100, Math.min(2000, Math.floor(finite(options.merchantPotionReserve, 300)))),
       maxSupplyBatch: Math.max(50, Math.min(1000, Math.floor(finite(options.maxSupplyBatch, 500)))),
       supplyRequestIntervalMs: Math.max(3000, finite(options.supplyRequestIntervalMs, 6000)),
-      transferIntervalMs: Math.max(700, finite(options.transferIntervalMs, 1400)),
+      transferIntervalMs: Math.max(250, finite(options.transferIntervalMs, 1400)),
       verifyDelayMs: Math.max(250, finite(options.verifyDelayMs, 700)),
       verifyTimeoutMs: Math.max(1500, finite(options.verifyTimeoutMs, 3500)),
       failureBackoffMs: Math.max(3000, finite(options.failureBackoffMs, 7000)),
@@ -52475,6 +52487,11 @@ class Alpha33MarkOrbitMerchantDelivery {
     });
   }
 
+  _collectionReserveSlots() {
+    const logistics = this.runtime.controlledPartyLogistics;
+    return Math.max(1, Math.floor(finite(logistics && logistics.config && logistics.config.merchantReserveSlots, 1)));
+  }
+
   _merchantCapacitySnapshot() {
     const c = characterOf(this.runtime) || {};
     const items = Array.isArray(c.items) ? c.items : [];
@@ -52515,7 +52532,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       identities.push({ name, level, quantity, stackMax, existingHeadroom: headroom, newSlotsNeeded: slots });
     }
 
-    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded);
+    const reserveSlots = this._collectionReserveSlots();
+    const targetFreeSlots = Math.min(snapshot.capacity, incomingSlotsNeeded + reserveSlots);
     const slotsToFree = Math.max(0, targetFreeSlots - snapshot.freeSlots);
     const plan = {
       at: this.now(),
@@ -52525,6 +52543,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       pickupQuantity: candidate && candidate.pickupQuantity || 0,
       incomingSlotsNeeded,
       targetFreeSlots,
+      reserveSlots,
       currentFreeSlots: snapshot.freeSlots,
       slotsToFree,
       constrainedByCapacity: incomingSlotsNeeded > snapshot.capacity,
@@ -52703,7 +52722,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     const suspended = this.suspendedCollectionRoute;
     if (!suspended) return false;
     const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) {
+    if (pressure.freeSlots <= this._collectionReserveSlots()) {
       this.suspendedCollectionRoute = null;
       return false;
     }
@@ -52783,11 +52802,14 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (coordinator && typeof coordinator.heartbeat === 'function') coordinator.heartbeat('RENDEZVOUS', 'rendezvous:farmer-collection', { stage: route.stage });
 
     const pressure = this._merchantCapacitySnapshot();
-    if (pressure.freeSlots <= 0) {
-      return this._finishCollectionRoute('MERCHANT_INVENTORY_FULL', {
+    const reserveSlots = this._collectionReserveSlots();
+    if (route.stage !== 'PREPARE_CAPACITY' && pressure.freeSlots <= reserveSlots) {
+      return this._finishCollectionRoute('MERCHANT_PICKUP_RESERVE_REACHED', {
         pickupQuantityRemaining: candidate && candidate.pickupQuantity || 0,
         occupied: pressure.occupied,
-        capacity: pressure.capacity
+        capacity: pressure.capacity,
+        freeSlots: pressure.freeSlots,
+        reserveSlots
       });
     }
 
@@ -52954,7 +52976,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       // back into town with free inventory slots.
       if (!this.collectionRoute && this.suspendedCollectionRoute) {
         const pressure = this._merchantCapacitySnapshot();
-        if (pressure.freeSlots > 0 && !this._resumeSuspendedCollectionRoute()) {
+        if (pressure.freeSlots > this._collectionReserveSlots() && !this._resumeSuspendedCollectionRoute()) {
           merchant.lastMerchantPlan = {
             at: this.now(),
             action: 'HOLD',
@@ -52964,7 +52986,7 @@ class Alpha33MarkOrbitMerchantDelivery {
           };
           return true;
         }
-        if (pressure.freeSlots <= 0) this.suspendedCollectionRoute = null;
+        if (pressure.freeSlots <= this._collectionReserveSlots()) this.suspendedCollectionRoute = null;
       }
 
       // Fresh collection work still preempts ordinary progression/production.
@@ -53020,6 +53042,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: true,
         collectionDeferredItemsBankedBeforeDeparture: true,
         operationalPotionsAndActiveFarmerGearGoalsStayLocal: true,
+        merchantPickupReserveSlots: 1,
+        merchantStopsCollectionWithOnePhysicalSlotFree: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
       config: {
