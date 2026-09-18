@@ -59,6 +59,7 @@ class FarmerTerrainNavigationHotfix {
       kiteOrbitalWaypoints: 0,
       kiteRadialWaypoints: 0,
       kiteNoReachableWaypoint: 0,
+      kiteDelegatedAggroFallbacks: 0,
       kiteDirectionSwitches: 0,
       retreatEvaluations: 0,
       retreatAlternateWaypoints: 0,
@@ -277,7 +278,18 @@ class FarmerTerrainNavigationHotfix {
           at: this.now(), reason: 'KITE_TERRAIN_BLOCKED', targetId: target && target.id || null,
           targetType: target && target.mtype || null, distance: decision.distance, desiredDistance: decision.desiredDistance
         };
-        this._event('FARMER_KITE_TERRAIN_BLOCKED', 'warn', 'NO_REACHABLE_KITE_WAYPOINT', { ...this.lastKiteDecision });
+        const delegatedAggroFallback = kiting.__alpha31SafeOrbitInstalled === true
+          && target && character && target.target != null
+          && String(target.target) === String(character.name || '');
+        if (delegatedAggroFallback) {
+          // Alpha31 is the final self-aggro movement owner and may deliberately
+          // leave attack range if every in-range terrain waypoint is blocked.
+          // Do not emit a premature warning from this lower layer; Alpha31 will
+          // either produce an emergency escape or report the final failure.
+          this.stats.kiteDelegatedAggroFallbacks += 1;
+        } else {
+          this._event('FARMER_KITE_TERRAIN_BLOCKED', 'warn', 'NO_REACHABLE_KITE_WAYPOINT', { ...this.lastKiteDecision });
+        }
         return { ...decision, shouldMove: false, reason: 'KITE_TERRAIN_BLOCKED', terrainBlocked: true };
       }
       if (waypoint.offsetDeg === 0) this.stats.kiteRadialWaypoints += 1;
