@@ -280,6 +280,70 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
   assert.ok(hotfix.stats.staleFarmerPositionsRejected >= 1);
 });
 
+test('Alpha33 capacity prep banks deferred items even when current Farmer pickup already fits', async () => {
+  const banked = [];
+  const merchant = {
+    planSellOrBank: () => null,
+    executeEconomyRequest: async (request) => { banked.push(request); return true; },
+    planCompound: () => null
+  };
+  const root = {
+    character: {
+      name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: 0, isize: 6,
+      items: [
+        { name: 'hpot0', q: 5000 },
+        { name: 'futuremat', q: 5 },
+        { name: 'goalgear', level: 0, q: 1 },
+        null,
+        null,
+        null
+      ],
+      bank: { items0: Array(42).fill(null) }
+    },
+    parent: { entities: {} }
+  };
+  const rows = [
+    { character: 'My_Merchant', index: 0, name: 'hpot0', level: 0, q: 5000, disposition: 'KEEP' },
+    { character: 'My_Merchant', index: 1, name: 'futuremat', level: 0, q: 5, disposition: 'KEEP' },
+    { character: 'My_Merchant', index: 2, name: 'goalgear', level: 0, q: 1, disposition: 'RESERVE_PROGRESSION' }
+  ];
+  const runtime = {
+    now: () => 1000,
+    log: quietLog(),
+    root,
+    inventoryLedger: { list: () => rows },
+    gearProgression: {
+      list: () => [{
+        sourceCharacter: 'My_Merchant', sourceIndex: 2, item: 'goalgear',
+        observedLevel: 0, character: 'My_Ranger1', targetLevel: 5
+      }]
+    },
+    controlledPartyLogistics: { _trustedNames: () => [], _send: async () => ({ sent: true }) },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  const candidate = {
+    count: 1,
+    names: ['My_Ranger1'],
+    pickupEntryCount: 1,
+    pickupQuantity: 1,
+    rows: [{ pickupItems: [{ name: 'seashell', level: 0, quantity: 1 }] }]
+  };
+
+  const prepared = await hotfix._prepareCollectionCapacity(merchant, candidate);
+
+  assert.equal(prepared.ready, false, 'pickup already fits, but safe deferred bank work must still run');
+  assert.equal(banked.length, 1);
+  assert.equal(banked[0].type, 'BANK');
+  assert.equal(banked[0].index, 1);
+  assert.equal(banked[0].metadata.collectionCapacityPrep, true);
+  assert.equal(banked[0].metadata.originalDisposition, 'KEEP');
+  assert.equal(hotfix.stats.collectionCapacityDeferredBanks, 1);
+  assert.equal(hotfix._collectionDeferredBankRequest().index, 1, 'test fixture is unchanged until execution commits');
+  assert.equal(banked.some((row) => row.index === 0), false, 'operational potion stack must stay local');
+  assert.equal(banked.some((row) => row.index === 2), false, 'active Farmer gear goal must stay local for delivery');
+});
+
 test('Alpha33 collection capacity plan uses total Farmer pickup demand and stack headroom', () => {
   const merchant = {
     atomic: { merchantBusy: false, serviceTravelBusy: false, namedServiceTravel: async () => ({ ok: true }) },
