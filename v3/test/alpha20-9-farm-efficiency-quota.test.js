@@ -7,7 +7,7 @@ const {
   DEFAULT_MAX_EVASION,
   DEFAULT_MAX_AVOIDANCE
 } = require('../src/farmer/target-efficiency');
-const { installFarmerTargetEfficiencyHotfix } = require('../src/reliability/farmer-target-efficiency-hotfix');
+const { installFarmerTargetEfficiencyHotfix } = require('../src/farmer/farmer-target-efficiency-hotfix');
 const { ResilientWorldPersistence } = require('../src/world/resilient-persistence');
 
 function createLocalStorage(entries = {}) {
