@@ -140,6 +140,175 @@ test('party bootstrap is a zero-action no-op for an already correct Merchant plu
   assert.equal(status.stats.invitesSent, 0);
 });
 
+test('party bootstrap repairs a full trusted party by making the wrong current leader leave before Merchant rebuilds', async () => {
+  const root = {
+    character: { name: 'R1', ctype: 'ranger' },
+    party: Object.fromEntries(['R1', 'Merch', 'R2', 'R3'].map((name) => [name, { name }])),
+    party_list: ['R1', 'Merch', 'R2', 'R3'],
+    get_active_characters: () => ({ Merch: 'code', R1: 'self', R2: 'code', R3: 'code' }),
+    leave_party() {
+      delete this.party.R1;
+      this.party_list = this.party_list.filter((name) => name !== 'R1');
+      return { success: true };
+    }
+  };
+  root.parent = root;
+  const lease = {
+    merchantName: 'Merch',
+    setTrustedNames() {},
+    setMerchantName(name) { this.merchantName = name; }
+  };
+  const runtime = { root, now: () => Date.now(), adapter: { mode: 'active' }, characterRegistry: { status: () => ({ characters: [] }) } };
+  const bootstrap = new ControlledPartyBootstrap({
+    runtime,
+    root,
+    controlLease: lease,
+    desiredRoster: ['Merch', 'R1', 'R2', 'R3'],
+    merchantName: 'Merch',
+    pollMs: 10,
+    verifyTimeoutMs: 250
+  });
+  bootstrap.resume();
+
+  const first = bootstrap.tick();
+  assert.equal(first.ready, false);
+  assert.equal(first.state, 'REPAIRING');
+  assert.equal(first.leaderRepairAuthority, true);
+  assert.equal(first.inFlight, true);
+  assert.deepEqual(bootstrap.farmingGate('R1'), {
+    allowed: false,
+    reason: 'NON_MERCHANT_PARTY_LEADER_REPAIR_REQUIRED',
+    full: true
+  });
+
+  assert.equal(await bootstrap.waitForIdle(1000), true);
+  assert.deepEqual(root.party_list, ['Merch', 'R2', 'R3']);
+  assert.equal(bootstrap.status().stats.leaderRepairLeaves, 1);
+  assert.equal(bootstrap.status().stats.leaderRepairVerified, 1);
+  assert.equal(bootstrap.status().lastResult.action, 'LEAVE_FOR_MERCHANT_LEADERSHIP');
+
+  const after = bootstrap.tick();
+  assert.equal(after.ready, false);
+  assert.equal(after.reason, 'WAITING_FOR_MERCHANT_BOOTSTRAP');
+  assert.equal(after.observed.partyNames.includes('R1'), false);
+  assert.equal(bootstrap.farmingGate('R1').allowed, false);
+  bootstrap.cancel();
+});
+
+test('party bootstrap lets only the observed wrong leader perform the leave repair', () => {
+  let leaves = 0;
+  const root = {
+    character: { name: 'R2', ctype: 'ranger' },
+    party: Object.fromEntries(['R1', 'Merch', 'R2', 'R3'].map((name) => [name, { name }])),
+    party_list: ['R1', 'Merch', 'R2', 'R3'],
+    get_active_characters: () => ({ Merch: 'code', R1: 'code', R2: 'self', R3: 'code' }),
+    leave_party() { leaves += 1; return { success: true }; }
+  };
+  root.parent = root;
+  const lease = { merchantName: 'Merch', setTrustedNames() {}, setMerchantName() {} };
+  const runtime = { root, now: () => Date.now(), adapter: { mode: 'active' }, characterRegistry: { status: () => ({ characters: [] }) } };
+  const bootstrap = new ControlledPartyBootstrap({
+    runtime,
+    root,
+    controlLease: lease,
+    desiredRoster: ['Merch', 'R1', 'R2', 'R3'],
+    merchantName: 'Merch'
+  });
+  bootstrap.resume();
+
+  const status = bootstrap.tick();
+  assert.equal(status.ready, false);
+  assert.equal(status.state, 'REPAIRING');
+  assert.equal(status.reason, 'WAITING_FOR_CURRENT_PARTY_LEADER_R1');
+  assert.equal(status.leaderRepairAuthority, false);
+  assert.equal(status.inFlight, false);
+  assert.equal(leaves, 0);
+  assert.equal(bootstrap.farmingGate('R2').reason, 'NON_MERCHANT_PARTY_LEADER_REPAIR_REQUIRED');
+  bootstrap.cancel();
+});
+
+test('party leader repair advances deterministically through non-Merchant leaders until Merchant is first', async () => {
+  const shared = {
+    party: Object.fromEntries(['R1', 'R2', 'Merch', 'R3'].map((name) => [name, { name }])),
+    party_list: ['R1', 'R2', 'Merch', 'R3']
+  };
+  const makeBootstrap = (localName) => {
+    const root = {
+      character: { name: localName, ctype: 'ranger' },
+      parent: shared,
+      get_active_characters: () => ({
+        Merch: localName === 'Merch' ? 'self' : 'code',
+        R1: localName === 'R1' ? 'self' : 'code',
+        R2: localName === 'R2' ? 'self' : 'code',
+        R3: localName === 'R3' ? 'self' : 'code'
+      }),
+      leave_party() {
+        delete shared.party[localName];
+        shared.party_list = shared.party_list.filter((name) => name !== localName);
+        return { success: true };
+      }
+    };
+    const lease = { merchantName: 'Merch', setTrustedNames() {}, setMerchantName() {} };
+    const runtime = { root, now: () => Date.now(), adapter: { mode: 'active' }, characterRegistry: { status: () => ({ characters: [] }) } };
+    const bootstrap = new ControlledPartyBootstrap({
+      runtime,
+      root,
+      controlLease: lease,
+      desiredRoster: ['Merch', 'R1', 'R2', 'R3'],
+      merchantName: 'Merch',
+      pollMs: 10,
+      verifyTimeoutMs: 250
+    });
+    bootstrap.resume();
+    return bootstrap;
+  };
+
+  const r1 = makeBootstrap('R1');
+  r1.tick();
+  assert.equal(await r1.waitForIdle(1000), true);
+  assert.deepEqual(shared.party_list, ['R2', 'Merch', 'R3']);
+  r1.cancel();
+
+  const r2 = makeBootstrap('R2');
+  r2.tick();
+  assert.equal(await r2.waitForIdle(1000), true);
+  assert.deepEqual(shared.party_list, ['Merch', 'R3']);
+  assert.equal(shared.party_list[0], 'Merch');
+  r2.cancel();
+});
+
+test('party leader repair fails closed when leave_party is unavailable', async () => {
+  const root = {
+    character: { name: 'R1', ctype: 'ranger' },
+    party: Object.fromEntries(['R1', 'Merch', 'R2', 'R3'].map((name) => [name, { name }])),
+    party_list: ['R1', 'Merch', 'R2', 'R3'],
+    get_active_characters: () => ({ Merch: 'code', R1: 'self', R2: 'code', R3: 'code' })
+  };
+  root.parent = root;
+  const lease = { merchantName: 'Merch', setTrustedNames() {}, setMerchantName() {} };
+  const runtime = { root, now: () => Date.now(), adapter: { mode: 'active' }, characterRegistry: { status: () => ({ characters: [] }) } };
+  const bootstrap = new ControlledPartyBootstrap({
+    runtime,
+    root,
+    controlLease: lease,
+    desiredRoster: ['Merch', 'R1', 'R2', 'R3'],
+    merchantName: 'Merch',
+    retryBaseMs: 1000
+  });
+  bootstrap.resume();
+  const first = bootstrap.tick();
+  assert.equal(first.ready, false);
+  assert.equal(first.inFlight, true);
+  assert.equal(await bootstrap.waitForIdle(1000), true);
+  const failed = bootstrap.status();
+  assert.equal(failed.ready, false);
+  assert.equal(failed.state, 'BACKOFF');
+  assert.equal(failed.reason, 'RETRY_PARTY_LEADER_REPAIR_R1');
+  assert.equal(failed.stats.leaderRepairFailures, 1);
+  assert.deepEqual(root.party_list, ['R1', 'Merch', 'R2', 'R3']);
+  bootstrap.cancel();
+});
+
 test('party bootstrap verifies and invites only missing active owned characters, one at a time', async () => {
   const root = bootstrapRoot(activeFour(), ['Merch']);
   const invited = [];
