@@ -1,6 +1,7 @@
 import type { BedienAnfrage, BedienEntscheidung } from '../vertraege/bedien-anfrage.js';
 import type {
   BasisBedienAktion,
+  BasisBedienAnfrage,
   BasisBedienAnfrageDaten,
   BasisBedienErgebnis,
   LaufzeitSteuerungsStatus
@@ -29,23 +30,35 @@ function pruefeZeitpunkt(zeitpunkt: number): void {
 
 export function erstelleBasisBedienAnfrage(
   daten: BasisBedienAnfrageDaten
-): Readonly<BedienAnfrage> {
+): Readonly<BasisBedienAnfrage> {
   pruefeText('vorgangsKennung', daten.vorgangsKennung);
   pruefeZeitpunkt(daten.angefordertAm);
 
   const status = daten.laufzeitStatus;
   if (status.schemaVersion !== 1) throw new Error('Laufzeitstatus besitzt eine unbekannte schemaVersion.');
+  const erwarteteLaufzeitGeneration = daten.erwarteteLaufzeitGeneration ?? status.generation;
+  if (!Number.isSafeInteger(erwarteteLaufzeitGeneration) || erwarteteLaufzeitGeneration < 0) {
+    throw new Error('erwarteteLaufzeitGeneration muss eine nichtnegative ganze Zahl sein.');
+  }
+  const generationsVoraussetzung = Object.freeze({
+    kennung: 'laufzeit-generation-aktuell',
+    beschreibung: 'Die Laufzeit muss noch derselben beobachteten Generation entsprechen.',
+    erfuellt: status.generation === erwarteteLaufzeitGeneration,
+    hilfeWennNichtErfuellt: 'Der Laufzeitzustand hat sich inzwischen geaendert. Status aktualisieren und die Bedienaktion neu anfordern.'
+  });
 
   if (daten.aktion === 'diagnose_aktualisieren') {
     return Object.freeze({
       kennung: daten.vorgangsKennung,
       aktion: AKTIONS_NAME[daten.aktion],
+      basisAktion: daten.aktion,
+      erwarteteLaufzeitGeneration,
       titel: 'Diagnose aktualisieren',
       erklaerung: 'Liest den aktuellen V4-Zustand erneut, ohne die Bot-Laufzeit zu veraendern.',
       auswirkung: 'Es werden nur neue Diagnosedaten gelesen.',
       risiko: 'unkritisch',
       angefordertAm: daten.angefordertAm,
-      voraussetzungen: Object.freeze([])
+      voraussetzungen: Object.freeze([generationsVoraussetzung])
     });
   }
 
@@ -53,12 +66,14 @@ export function erstelleBasisBedienAnfrage(
     return Object.freeze({
       kennung: daten.vorgangsKennung,
       aktion: AKTIONS_NAME[daten.aktion],
+      basisAktion: daten.aktion,
+      erwarteteLaufzeitGeneration,
       titel: 'Laufzeit pausieren',
       erklaerung: 'Stoppt normale und Hintergrundarbeit zentral; Notfall- und Sicherheitsarbeit bleibt zugelassen.',
       auswirkung: 'Laufende normale Arbeit wird fail-safe abgebrochen und nicht automatisch wieder aufgenommen.',
       risiko: 'unkritisch',
       angefordertAm: daten.angefordertAm,
-      voraussetzungen: Object.freeze([Object.freeze({
+      voraussetzungen: Object.freeze([generationsVoraussetzung, Object.freeze({
         kennung: 'laufzeit-laeuft',
         beschreibung: 'Die Laufzeit muss aktuell fuer normale Arbeit freigegeben sein.',
         erfuellt: status.zustand === 'laeuft',
@@ -71,12 +86,14 @@ export function erstelleBasisBedienAnfrage(
     return Object.freeze({
       kennung: daten.vorgangsKennung,
       aktion: AKTIONS_NAME[daten.aktion],
+      basisAktion: daten.aktion,
+      erwarteteLaufzeitGeneration,
       titel: 'Laufzeit fortsetzen',
       erklaerung: 'Gibt neue normale und Hintergrundarbeit nach einer Pause wieder frei.',
       auswirkung: 'Alte abgebrochene Arbeit wird nicht wiederbelebt; nur neue AktionsAnfragen duerfen wieder normal verarbeitet werden.',
       risiko: 'vorsicht',
       angefordertAm: daten.angefordertAm,
-      voraussetzungen: Object.freeze([Object.freeze({
+      voraussetzungen: Object.freeze([generationsVoraussetzung, Object.freeze({
         kennung: 'laufzeit-pausiert',
         beschreibung: 'Die Laufzeit muss aktuell pausiert sein.',
         erfuellt: status.zustand === 'pausiert',
@@ -90,11 +107,12 @@ export function erstelleBasisBedienAnfrage(
   throw new Error(`Unbekannte BasisBedienAktion: ${String(niemals)}.`);
 }
 
-function basisAktionAusBedienAnfrage(anfrage: BedienAnfrage): BasisBedienAktion {
-  const gefunden = (Object.entries(AKTIONS_NAME) as readonly [BasisBedienAktion, string][])
-    .find(([, name]) => name === anfrage.aktion);
-  if (!gefunden) throw new Error(`Unbekannte Basis-Bedienaktion: ${anfrage.aktion}.`);
-  return gefunden[0];
+function basisAktionAusBedienAnfrage(anfrage: BasisBedienAnfrage): BasisBedienAktion {
+  const erwarteterName = AKTIONS_NAME[anfrage.basisAktion];
+  if (erwarteterName === undefined || anfrage.aktion !== erwarteterName) {
+    throw new Error('BasisBedienAnfrage besitzt eine widerspruechliche oder unbekannte Aktion.');
+  }
+  return anfrage.basisAktion;
 }
 
 export interface SichereBasisBedienungOptionen<TDiagnose> {
@@ -132,14 +150,14 @@ export class SichereBasisBedienung<TDiagnose = unknown> {
     }
   }
 
-  erstelleAnfrage(daten: Omit<BasisBedienAnfrageDaten, 'laufzeitStatus'>): Readonly<BedienAnfrage> {
+  erstelleAnfrage(daten: Omit<BasisBedienAnfrageDaten, 'laufzeitStatus'>): Readonly<BasisBedienAnfrage> {
     return erstelleBasisBedienAnfrage({
       ...daten,
       laufzeitStatus: this.laufzeitSteuerung.status()
     });
   }
 
-  fuehreAus(anfrage: BedienAnfrage): Readonly<BasisBedienErgebnis<TDiagnose>> {
+  fuehreAus(anfrage: BasisBedienAnfrage): Readonly<BasisBedienErgebnis<TDiagnose>> {
     pruefeText('BedienAnfrage.kennung', anfrage.kennung);
     const wiederholt = this.ergebnisse.get(anfrage.kennung);
     if (wiederholt !== undefined) {
@@ -151,7 +169,15 @@ export class SichereBasisBedienung<TDiagnose = unknown> {
     }
 
     const aktion = basisAktionAusBedienAnfrage(anfrage);
-    const bedienEntscheidung = this.bedienSicherung.pruefe(anfrage);
+    const kanonischeAnfrage = erstelleBasisBedienAnfrage({
+      vorgangsKennung: anfrage.kennung,
+      aktion,
+      angefordertAm: anfrage.angefordertAm,
+      laufzeitStatus: this.laufzeitSteuerung.status(),
+      erwarteteLaufzeitGeneration: anfrage.erwarteteLaufzeitGeneration,
+      ausdruecklichBestaetigt: anfrage.ausdruecklichBestaetigt === true
+    });
+    const bedienEntscheidung = this.bedienSicherung.pruefe(kanonischeAnfrage);
     if (!bedienEntscheidung.erlaubt) {
       return this.merkeErgebnis(Object.freeze({
         schemaVersion: 1,
@@ -183,11 +209,11 @@ export class SichereBasisBedienung<TDiagnose = unknown> {
 
     if (aktion === 'laufzeit_pausieren') {
       const laufzeitStatus = this.laufzeitSteuerung.pausiere(
-        anfrage.angefordertAm,
+        kanonischeAnfrage.angefordertAm,
         'Vom Nutzer ueber die sichere Basisbedienung pausiert.'
       );
       const abgebrochen = this.aktionsSteuerung.brecheNormaleArbeitFuerPauseAb(
-        anfrage.angefordertAm,
+        kanonischeAnfrage.angefordertAm,
         'Laufzeit wurde durch eine gepruefte BedienAnfrage pausiert.'
       );
       return this.merkeErgebnis(Object.freeze({
@@ -204,7 +230,7 @@ export class SichereBasisBedienung<TDiagnose = unknown> {
     }
 
     const laufzeitStatus = this.laufzeitSteuerung.setzeFort(
-      anfrage.angefordertAm,
+      kanonischeAnfrage.angefordertAm,
       'Vom Nutzer ueber die sichere Basisbedienung ausdruecklich fortgesetzt.'
     );
     return this.merkeErgebnis(Object.freeze({
