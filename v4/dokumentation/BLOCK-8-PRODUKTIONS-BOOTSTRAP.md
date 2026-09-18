@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; immutable Runtime-Release `${releaseSha}` erfolgreich ueber Cloudflare/R2 veroeffentlicht und oeffentlich verifiziert.**
+Status: **Produktions-Bootstrap, passive Laufzeit-Fassade, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; immutable Runtime-Release `bd3cfc0bcd9e69a72a2c2913639e651c4930c182` erfolgreich ueber Cloudflare/R2 veroeffentlicht und oeffentlich verifiziert.**
 
 ## Zweck
 
@@ -152,7 +152,7 @@ Fremde globale Runtime- oder Smoke-Objekte werden nicht ueberschrieben.
 
 ## Noch offen vor dem echten Live-Smoke
 
-Die Runtime-Veroeffentlichung ist fuer `47288ddfdef03ded63142670cdaca5d7ed251a75` abgeschlossen und in `BLOCK-8-RUNTIME-RELEASE-NACHWEIS.md` festgehalten.
+Die Runtime-Veroeffentlichung ist fuer `bd3cfc0bcd9e69a72a2c2913639e651c4930c182` abgeschlossen und in `BLOCK-8-RUNTIME-RELEASE-NACHWEIS.md` festgehalten.
 
 Offen sind jetzt:
 

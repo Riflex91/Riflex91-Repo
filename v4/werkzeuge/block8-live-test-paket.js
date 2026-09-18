@@ -16,8 +16,8 @@ globalThis.AIO_V4_RUNTIME_CONFIG = Object.freeze({
 });
 
 globalThis.AIO_V4_BOOTSTRAP_CONFIG = Object.freeze({
-  runtimeUrl: 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/47288ddfdef03ded63142670cdaca5d7ed251a75/aio-v4-runtime.js',
-  runtimeSha256: '8e50143a671a8ce30d14150cb14971c20c89daa5dbb651064dfb1ea4f13cdcfa'
+  runtimeUrl: 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.js',
+  runtimeSha256: '9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632'
 });
 
 globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
