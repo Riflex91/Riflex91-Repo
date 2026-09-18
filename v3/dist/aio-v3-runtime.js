@@ -27333,12 +27333,27 @@ class ControlledPartyLogistics {
     if (!item || !item.name) return { ok: false, reason: 'ITEM_UNKNOWN' };
     const name = String(item.name);
     if (/^hpot/i.test(name) || /^mpot/i.test(name)) return { ok: false, reason: 'GROUP_POTION_RESERVED' };
-    if (item.locked === true || item.special === true) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
-    if (Number(item.level || 0) !== 0) return { ok: false, reason: 'LEVELLED_ITEM_PROTECTED' };
+    if (item.locked === true || item.l === true || item.special === true || item.p) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
     const meta = this._metadata(name);
+    if (!meta || typeof meta !== 'object') return { ok: false, reason: 'ITEM_METADATA_UNKNOWN' };
+
+    // Farmer -> Merchant is a central-processing transfer, not a SELL decision.
+    // Progression/equipment signals therefore must not block the handoff. Only
+    // genuinely character-bound/special-purpose metadata stays on the Farmer.
+    const hardSignals = ['quest', 'exchange', 'event', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
+    if (hardBlockers.length) return { ok: false, reason: 'FARMER_ITEM_HARD_PROTECTED', blockers: hardBlockers };
+
+    const level = Math.max(0, Math.floor(finite(item.level, 0)));
+    const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
+    const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
+    if (processableGear) {
+      return { ok: true, name, level, quantity: 1, metadataType: meta.type || null, merchantLifecycle: 'GEAR_OR_PROGRESSION' };
+    }
+
     const blockers = sellProtectionReasons(meta);
     if (blockers.length) return { ok: false, reason: blockers[0], blockers };
-    return { ok: true, name, level: 0, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta && meta.type || null };
+    return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'LOW_RISK_MATERIAL' };
   }
 
   _safeLootCandidate(snapshot) {
@@ -27838,7 +27853,8 @@ class ControlledPartyLogistics {
       authority: {
         genericSendItem: false,
         merchantSupplyAllowlist: ['hpot0', 'mpot0'],
-        farmerLootPolicy: 'plain-stackable-material-only',
+        farmerLootPolicy: 'merchant-central-processing-nonbound-items',
+        farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
@@ -32197,6 +32213,95 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   constructor(runtime, atomic, shared) {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+    this.collectionSession = null;
+    this.lastCollectionSession = null;
+    this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
+  }
+
+  _collectionSettleMs() {
+    return Math.max(3000, Math.min(30000, finite(this.options && this.options.merchantCollectionSettleMs, 8000)));
+  }
+
+  _collectionSnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const items = inventoryOf(this.root);
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    const logistics = this.runtime.controlledPartyLogistics;
+    const maxDistance = Math.max(100, finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380));
+    const registry = this.runtime.characterRegistry && typeof this.runtime.characterRegistry.status === 'function' ? this.runtime.characterRegistry.status() : { characters: [] };
+    const farmers = [];
+    let transferable = 0;
+    for (const row of Array.isArray(registry && registry.characters) ? registry.characters : []) {
+      if (!row || row.name === c.name || String(row.ctype || '').toLowerCase() === 'merchant' || row.rip === true) continue;
+      if (c.map && row.map && String(c.map) !== String(row.map)) continue;
+      const x = finite(row.real_x != null ? row.real_x : row.x);
+      const y = finite(row.real_y != null ? row.real_y : row.y);
+      const cx = finite(c.real_x != null ? c.real_x : c.x);
+      const cy = finite(c.real_y != null ? c.real_y : c.y);
+      const distance = x == null || y == null || cx == null || cy == null ? Infinity : Math.hypot(x - cx, y - cy);
+      if (!Number.isFinite(distance) || distance > maxDistance) continue;
+      let rowTransferable = 0;
+      for (const item of Array.isArray(row.inventory) ? row.inventory : []) {
+        if (!item) continue;
+        try {
+          const safe = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null;
+          if (safe && safe.ok) rowTransferable += 1;
+        } catch (_) {}
+      }
+      transferable += rowTransferable;
+      farmers.push({ name: row.name, distance, transferable: rowTransferable });
+    }
+    const activeGrants = logistics && logistics.activeLootGrants instanceof Map ? logistics.activeLootGrants.size : 0;
+    return { capacity, occupied, freeSlots: Math.max(0, capacity - occupied), transferable, activeGrants, farmers };
+  }
+
+  collectionStatus() {
+    const snap = this._collectionSnapshot();
+    return {
+      active: !!this.collectionSession,
+      session: clone(this.collectionSession),
+      lastSession: clone(this.lastCollectionSession),
+      settleMs: this._collectionSettleMs(),
+      snapshot: snap
+    };
+  }
+
+  _updateCollectionSession() {
+    const now = this.now();
+    const snap = this._collectionSnapshot();
+    const nearFarmers = snap.farmers.length > 0;
+    if (!this.collectionSession && nearFarmers && snap.freeSlots > 0 && (snap.transferable > 0 || snap.activeGrants > 0)) {
+      this.collectionSession = { startedAt: now, lastProgressAt: now, lastOccupied: snap.occupied, reason: 'FARMER_LOOT_COLLECTION', farmers: snap.farmers.map((row) => row.name) };
+      this._event('ALPHA27_COLLECTION_SESSION_STARTED', 'info', 'FARMER_LOOT_COLLECTION', { snapshot: snap });
+    }
+    const session = this.collectionSession;
+    if (!session) return { active: false, snapshot: snap };
+
+    if (snap.occupied > finite(session.lastOccupied, 0)) {
+      session.lastOccupied = snap.occupied;
+      session.lastProgressAt = now;
+    }
+    if (snap.freeSlots <= 0) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'MERCHANT_INVENTORY_FULL' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'MERCHANT_INVENTORY_FULL', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'MERCHANT_INVENTORY_FULL' };
+    }
+    if (snap.transferable <= 0 && snap.activeGrants <= 0 && now - finite(session.lastProgressAt, now) >= this._collectionSettleMs()) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'FARMERS_DRAINED' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'FARMERS_DRAINED', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'FARMERS_DRAINED' };
+    }
+    return { active: true, snapshot: snap, session };
+  }
+
+  holdForCollectionSession(state) {
+    if (!state || state.active !== true) return false;
+    this.stats.autonomousMerchantHolds += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'FARMER_LOOT_COLLECTION_ACTIVE', collection: clone(state) };
+    return true;
   }
 
   _partySupplyPlanFreshMs() {
@@ -32426,6 +32531,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     this.stats.autonomousMerchantPlans += 1;
     this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
     const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    if (request.type === 'BANK' && result && result.committed === true && this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') {
+      this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
+    }
     this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
     return true;
   }
@@ -32481,6 +32589,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     supplyPlan = this.criticalPartySupplyPlan();
     if (supplyPlan) {
       this.holdForCriticalPartySupply(supplyPlan);
+      return false;
+    }
+
+    const collection = this._updateCollectionSession();
+    if (collection.active) {
+      this.holdForCollectionSession(collection);
       return false;
     }
 
@@ -32550,6 +32664,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
+      collectionSession: this.collectionStatus(),
+      collectionSessionPreemptsEconomy: true,
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
@@ -33305,6 +33421,7 @@ class Alpha27BankRecovery {
   _recoverableRows() {
     const c = characterOf(this.runtime);
     if (!c || !c.bank || typeof c.bank !== 'object') return [];
+    if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(c);
     const gd = gameDataOf(this.runtime);
     const local = inventoryOf(this.root);
     const bank = bankRows(c.bank);
@@ -33523,6 +33640,7 @@ class Alpha27BankRecovery {
       if (result && result.committed === true) {
         this.stats.retrievesCommitted += 1;
         this.nextProbeAt = this.now();
+        if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
       } else if (result && result.executed === true) {
         this.stats.retrievesFailedSafe += 1;
         this.nextProbeAt = this.now() + this.failureRetryMs;
@@ -33807,7 +33925,6 @@ class MerchantProductionPlanner {
     const bank = bankRows(character.bank);
     const vendors = vendorIndex(gameData);
     const localPool = new Map();
-    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
     const reservations = {};
     const steps = [];
     const blockers = [];
@@ -33818,6 +33935,7 @@ class MerchantProductionPlanner {
     if (!bank.length && catalogRows.length) {
       for (const row of catalogRows) bank.push({ ...clone(row) });
     }
+    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
 
     const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
       const need = Math.max(1, Math.floor(finite(quantity, 1)));
@@ -33993,7 +34111,9 @@ class MerchantProductionPlanner {
         reservations: built.reservations,
         blockers: [],
         totalGold: built.totalGold,
-        goldReserve: built.goldReserve
+        goldReserve: built.goldReserve,
+        bankSource: built.bankSource,
+        costStrategy: built.costStrategy
       };
       this.lastPlan = plan;
       this.stats.plans += 1;
