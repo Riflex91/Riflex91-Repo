@@ -12,6 +12,7 @@ const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH 
 const { CdpAdventureLandSessionDriver, CDP_SESSION_SCHEMA_VERSION, DEFAULT_CDP_ENDPOINT, DEFAULT_ADVENTURE_LAND_ORIGIN } = require('./cdp-adventure-land-session');
 const { ProductionHostHarness } = require('./production-host-harness');
 const { PersistentWindowsStartBudget, WindowsHostServiceSupervisor, WINDOWS_HOST_SERVICE_STATE_SCHEMA_VERSION } = require('./windows-host-service-supervisor');
+const { WINDOWS_ALERT_SECRET_SCHEMA_VERSION, ALERT_SECRET_ENV, parseWindowsAlertSecrets, createWindowsCriticalAlertTransports, canaryWindowsCriticalAlertRoutes, criticalAlertTransportStatus } = require('./windows-alerting');
 const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
 const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
 
@@ -42,6 +43,12 @@ module.exports = {
   PersistentWindowsStartBudget,
   WindowsHostServiceSupervisor,
   WINDOWS_HOST_SERVICE_STATE_SCHEMA_VERSION,
+  WINDOWS_ALERT_SECRET_SCHEMA_VERSION,
+  ALERT_SECRET_ENV,
+  parseWindowsAlertSecrets,
+  createWindowsCriticalAlertTransports,
+  canaryWindowsCriticalAlertRoutes,
+  criticalAlertTransportStatus,
   FtpsDiagnosticsUploader,
   ProblemDiagnosticsArchive
 };
