@@ -71,6 +71,46 @@ test('planner selects a deterministic crafted gear improvement and reserves held
   assert.equal(plan.reservations['wood|0'], 2);
 });
 
+test('production planner prefers Merchant speed gain over massive secondary stats', () => {
+  const gameData = {
+    items: {
+      currentboots: { type: 'shoes', armor: 1000, speed: 5, class: ['merchant'], g: 1000 },
+      tankboots: { type: 'shoes', armor: 100000, speed: 4, class: ['merchant'], g: 1000 },
+      swiftboots: { type: 'shoes', armor: 0, speed: 6, class: ['merchant'], g: 1000 },
+      wood: { type: 'material', g: 10 }
+    },
+    craft: {
+      tankboots: { cost: 10, items: [[1, 'wood', 0]] },
+      swiftboots: { cost: 10, items: [[1, 'wood', 0]] }
+    },
+    maps: {},
+    npcs: {}
+  };
+  const planner = new MerchantProductionPlanner({ now: () => 1500, goldReserve: 0, minImprovementRatio: 0.01 });
+  const plan = planner.plan({
+    character: { name: 'Merchant', ctype: 'merchant', gold: 10000, items: [{ name: 'wood', q: 2 }], bank: {} },
+    registry: {
+      characters: [{
+        name: 'Merchant',
+        ctype: 'merchant',
+        level: 80,
+        gear: { shoes: { name: 'currentboots', level: 0 } },
+        inventory: []
+      }]
+    },
+    gameData,
+    inCombat: false,
+    economyEmergency: false,
+    controlledBusy: false
+  });
+
+  assert.equal(plan.state, 'READY');
+  assert.equal(plan.target.output, 'swiftboots');
+  assert.equal(plan.target.recipient, 'Merchant');
+  assert.equal(plan.target.speedImprovement, 1);
+  assert.equal(plan.target.improvementReason, 'MERCHANT_SPEED_GAIN');
+});
+
 test('planner uses bank materials before declaring farming required', () => {
   const gameData = baseGameData();
   const planner = new MerchantProductionPlanner({ now: () => 2000, goldReserve: 1000 });
