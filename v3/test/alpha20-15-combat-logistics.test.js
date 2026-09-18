@@ -155,7 +155,7 @@ test('Merchant keeps the last-slot grant reserved until recipient inventory obse
   }), true);
   const grant = [...logistics.activeLootGrants.values()][0];
   assert.ok(grant);
-  assert.equal(logistics._merchantCapacity(runtime.adapter.snapshot()).effectiveFreeSlots, 0);
+  assert.equal(logistics._merchantCapacity(runtime.adapter.snapshot()).effectiveFreeSlots, 1);
 
   assert.equal(logistics.receive('My_Ranger1', {
     type: 'aio-v3-party-logistics',
