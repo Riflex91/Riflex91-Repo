@@ -6,7 +6,7 @@ Stand: 2026-09-18
 
 Block 8 ist **noch nicht formal abgeschlossen**.
 
-Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Offen sind noch die kontrollierte aktive Freigabekampagne mit one-shot Live-Smoke und danach der im Fahrplan geforderte 72-Stunden-Gruppentest.
+Die deterministische Gruppenkoordination, Mehrcharakter-Wiederholung, gezielte Ausfall-/Reconnect-Pfade und die zentrale Gruppen-AktionsSteuerung sind inzwischen weitgehend nachgewiesen. Die kontrollierte aktive Freigabekampagne inklusive echtem one-shot Live-Smoke ist bestanden. Offen ist noch der im Fahrplan geforderte 72-Stunden-Gruppentest.
 
 Es wird **kein weiterer Zwischenblock zwischen Block 8 und Block 8.5** eingefuehrt. Die noch fehlende aktive Freigabekampagne ist Abschlussarbeit innerhalb von Block 8. Erst nach ihrem erfolgreichen Abschluss beginnt Block 8.5.
 
@@ -59,9 +59,9 @@ Die zentrale Verarbeitung endet weiterhin in `SchattenAusfuehrung`.
 
 ## Noch nicht freigegeben
 
-Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ist inzwischen **implementiert, aber standardmaessig gesperrt und noch nicht live freigegeben**.
+Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ist implementiert, standardmaessig gesperrt und sein begrenzter one-shot Live-Smoke ist **erfolgreich bestanden**.
 
-Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Die feste delegierte `V4Block8GruppenZielAusfuehrungsBruecke` und ihre one-shot Live-Bindung an eine vorhandene zentrale `AktionsSteuerung` plus frische Produktions-Safety sind inzwischen unter `ausfuehrung/` implementiert und offline abgesichert. Der echte one-shot Live-Smoke wurde noch nicht ausgefuehrt. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
+Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Die feste delegierte `V4Block8GruppenZielAusfuehrungsBruecke` und ihre one-shot Live-Bindung an eine vorhandene zentrale `AktionsSteuerung` plus frische Produktions-Safety sind inzwischen unter `ausfuehrung/` implementiert und offline abgesichert. Der echte one-shot Live-Smoke wurde am 2026-09-18 erfolgreich ausgefuehrt. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
 
 ## Verbleibende Block-8-Schritte
 
@@ -94,11 +94,11 @@ Vor einer echten Aktion sind mindestens erforderlich:
 
 Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
-### 3. Begrenzter one-shot Live-Smoke — **Produktions-Smoke-Huelle, Runner und Runtime-Bootstrap vorbereitet; Veroeffentlichung und echter Smoke noch offen**
+### 3. Begrenzter one-shot Live-Smoke — **BESTANDEN**
 
 Das Browserwerkzeug startet gesperrt, verlangt eine frische read-only Vorschau, bindet die Freigabe an genau eine AktionsAnfrage und sperrt vor der Delegation wieder. Es besitzt selbst keinen Adventure-Land-Aktionsaufruf.
 
-Die feste `V4Block8GruppenZielAusfuehrungsBruecke`, die one-shot Live-Bindung und eine kontrollierte Produktions-Smoke-Huelle sind unter der `ausfuehrung/`-Grenze implementiert. Die Smoke-Huelle bindet Charakter/Server/Karte/Instanz/Ziel exakt, arbeitet auf der realen zentralen `AktionsSteuerung`, prueft frische Produktions-Safety und zaehlt den erlaubten `attack`-Aufruf an der Produktionsgrenze. Der Browser-Runner selbst besitzt keinen Adventure-Land-Aktionsaufruf. Der allgemeine Produktions-Bootstrap und ein URL-neutraler Adventure-Land-Loader sind implementiert. Der Bootstrap verlangt fuer den aktiven Gruppenziel-Smoke mindestens zwei aktive, frische Teilnehmer, verwirft replayte/aeltere Heartbeats, blockiert doppelte Teilnehmerkennungen und verbraucht die Gruppenziel-Vorbereitung one-shot. Der Loader verlangt eine explizite HTTPS-URL plus den deterministisch gebauten SHA-256 des Runtime-Bundles. Die Cloudflare-Verteilung hat fuer den immutable Main-Release `6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec` den kompletten Deployment-Nachweis bestanden: Build, Hash, Worker-Deploy, R2-Upload/-Ruecklesen und oeffentlicher HTTPS-Download wurden erfolgreich verifiziert. Dieser Release enthaelt zusaetzlich die im echten Smoke gefundene Korrektur der Produktions-Safety-Zeitordnung. Offen sind jetzt das read-only Laden genau dieses Releases im echten Adventure-Land-Kontext und danach der echte one-shot Smoke.
+Die feste `V4Block8GruppenZielAusfuehrungsBruecke`, die one-shot Live-Bindung und eine kontrollierte Produktions-Smoke-Huelle sind unter der `ausfuehrung/`-Grenze implementiert. Die Smoke-Huelle bindet Charakter/Server/Karte/Instanz/Ziel exakt, arbeitet auf der realen zentralen `AktionsSteuerung`, prueft frische Produktions-Safety und zaehlt den erlaubten `attack`-Aufruf an der Produktionsgrenze. Der Browser-Runner selbst besitzt keinen Adventure-Land-Aktionsaufruf. Der allgemeine Produktions-Bootstrap und ein URL-neutraler Adventure-Land-Loader sind implementiert. Der Bootstrap verlangt fuer den aktiven Gruppenziel-Smoke mindestens zwei aktive, frische Teilnehmer, verwirft replayte/aeltere Heartbeats, blockiert doppelte Teilnehmerkennungen und verbraucht die Gruppenziel-Vorbereitung one-shot. Der Loader verlangt eine explizite HTTPS-URL plus den deterministisch gebauten SHA-256 des Runtime-Bundles. Die Cloudflare-Verteilung hat fuer den immutable Main-Release `6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec` den kompletten Deployment-Nachweis bestanden: Build, Hash, Worker-Deploy, R2-Upload/-Ruecklesen und oeffentlicher HTTPS-Download wurden erfolgreich verifiziert. Dieser Release enthaelt zusaetzlich die im echten Smoke gefundene Korrektur der Produktions-Safety-Zeitordnung. Genau dieser Release wurde im echten Adventure-Land-Kontext geladen und der one-shot Live-Smoke wurde erfolgreich bestanden. Details: `BLOCK-8-LIVE-SMOKE-NACHWEIS.md`.
 
 Erst nach gruenem Offline-/Replay-/Schattennachweis:
 

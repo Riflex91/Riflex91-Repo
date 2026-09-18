@@ -1,6 +1,6 @@
 # Block 8 – Nachweis der immutable V4-Runtime-Veroeffentlichung
 
-Status: **Aktueller Release mit korrigierter Safety-Zeitordnung und realer Adventure-Land-Code-/Parent-Kontexttrennung erfolgreich veroeffentlicht und ueber den oeffentlichen HTTPS-Endpunkt verifiziert. Dieser konkrete Release wurde noch nicht erneut im Adventure-Land-Live-Smoke ausgefuehrt.**
+Status: **Aktueller Release erfolgreich veroeffentlicht, ueber den oeffentlichen HTTPS-Endpunkt verifiziert und im echten Adventure-Land-one-shot Live-Smoke erfolgreich ausgefuehrt.**
 
 Stand: 2026-09-18
 
@@ -65,20 +65,13 @@ Der Main-Deployment-Lauf hat nacheinander erfolgreich bestanden:
 
 Damit ist die **Veroeffentlichungsschicht** fuer diesen exakten Release bestanden.
 
-## Noch nicht ausgefuehrt
+## Nachgelagerter echter Live-Nachweis
 
-Nicht Bestandteil dieses Nachweises waren:
+Nach der erfolgreichen Veroeffentlichungsverifikation wurde genau dieser immutable Release im echten Adventure-Land-Codekontext geladen und durch die kontrollierte Block-8-Live-Smoke-GUI ausgefuehrt.
 
-- Laden der Runtime im echten Adventure-Land-Codekontext,
-- Aktivierung des Produktions-Bootstraps,
-- Senden eines Produktions-Lebensnachweises,
-- Vorbereitung einer echten Gruppenzielanfrage,
-- Installation der Live-Smoke-Fassade im Spiel,
-- echter `attack(...)`-Aufruf.
+Dabei wurden Produktions-Bootstrap, Lebensnachweis, echte Gruppenzielanfrage, Live-Smoke-Fassade und genau ein erlaubter `attack(...)` erfolgreich nachgewiesen. Der detaillierte Ausfuehrungsnachweis steht in `BLOCK-8-LIVE-SMOKE-NACHWEIS.md`.
 
-Es wurde durch diesen Release-Nachweis keine Adventure-Land-Spielaktion ausgeloest.
-
-## Naechster sicherer Schritt: read-only Laden
+## Bereits erfolgreich durchgefuehrter read-only und aktiver Nachweis
 
 Vor jeder aktiven Freigabe muss genau dieser Release zuerst passiv geladen werden.
 
