@@ -242,6 +242,8 @@ class CdpAdventureLandSessionDriver {
     this.connectAttempts = Math.max(1, Math.min(6, Math.floor(finite(options.connectAttempts, 3))));
     this.reconnectBaseMs = Math.max(0, Math.min(5000, finite(options.reconnectBaseMs, 250)));
     this.reconnectMaxMs = Math.max(this.reconnectBaseMs, Math.min(15000, finite(options.reconnectMaxMs, 2000)));
+    this.startupWaitMs = Math.max(0, Math.min(10 * 60 * 1000, finite(options.startupWaitMs, 0)));
+    this.startupPollMs = Math.max(100, Math.min(15000, finite(options.startupPollMs, 1000)));
     this.sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.connection = null;
     this.contextId = null;
@@ -251,8 +253,17 @@ class CdpAdventureLandSessionDriver {
     this.lastError = null;
     this.lastDiscoveryAt = null;
     this.generation = 0;
+    this.startup = {
+      state: 'IDLE',
+      startedAt: null,
+      deadlineAt: null,
+      attempts: 0,
+      lastReason: null
+    };
     this.stats = {
       starts: 0,
+      startupPolls: 0,
+      startupTimeouts: 0,
       stops: 0,
       discoveries: 0,
       discoveryFailures: 0,
@@ -421,15 +432,50 @@ class CdpAdventureLandSessionDriver {
 
   async start() {
     if (this.started && this.connection && !this.connection.closed) return { started: false, duplicate: true, status: this.status() };
-    await this._ensureSession(true);
-    this.started = true;
-    this.stats.starts += 1;
-    return { started: true, status: this.status() };
+    const startedAt = this.now();
+    const deadlineAt = this.startupWaitMs > 0 ? startedAt + this.startupWaitMs : startedAt;
+    this.startup = {
+      state: 'WAITING',
+      startedAt,
+      deadlineAt,
+      attempts: 0,
+      lastReason: null
+    };
+
+    let lastError = null;
+    while (true) {
+      this.startup.attempts += 1;
+      this.stats.startupPolls += 1;
+      try {
+        await this._ensureSession(true);
+        this.started = true;
+        this.stats.starts += 1;
+        this.startup.state = 'READY';
+        this.startup.lastReason = null;
+        return { started: true, startupAttempts: this.startup.attempts, status: this.status() };
+      } catch (error) {
+        lastError = error;
+        this.startup.lastReason = bounded(error && error.message || error || 'CDP_SESSION_UNAVAILABLE', 220);
+      }
+
+      const now = this.now();
+      if (this.startupWaitMs <= 0 || now >= deadlineAt) {
+        this.stats.startupTimeouts += 1;
+        this.startup.state = 'TIMEOUT';
+        throw this._recordError(new Error('CDP_SESSION_STARTUP_TIMEOUT:' + bounded(this.startup.lastReason || (lastError && lastError.message) || 'CDP_SESSION_UNAVAILABLE', 160)));
+      }
+
+      const remaining = Math.max(0, deadlineAt - now);
+      const wait = Math.min(this.startupPollMs, remaining);
+      if (wait > 0) await this.sleep(wait);
+    }
   }
 
   async stop(reason = 'CDP_SESSION_STOP') {
     this._resetConnection(reason);
     this.started = false;
+    this.startup.state = 'STOPPED';
+    this.startup.lastReason = bounded(reason, 160);
     this.stats.stops += 1;
     return { stopped: true, reason, status: this.status() };
   }
@@ -478,6 +524,11 @@ class CdpAdventureLandSessionDriver {
         baseMs: this.reconnectBaseMs,
         maxMs: this.reconnectMaxMs
       },
+      startupPolicy: {
+        waitMs: this.startupWaitMs,
+        pollMs: this.startupPollMs
+      },
+      startup: { ...this.startup },
       loopbackOnly: true,
       gameplayActionAuthority: false,
       rawGameplayActionAuthority: false,

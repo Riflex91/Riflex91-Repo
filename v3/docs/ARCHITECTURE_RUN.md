@@ -216,6 +216,25 @@ Required behavior:
 
 This step does not add cold-boot Adventure Land credential automation, public CDP access, arbitrary browser evaluation, remote shell access, systemd/Linux deployment or gameplay policy to the host.
 
+## Step 11 — Windows Adventure Land session bootstrap and profile readiness
+
+**Branch:** `architecture/11-windows-session-bootstrap`
+
+Make Windows reboot/logon recovery tolerant of normal Chromium + Adventure Land + AIO runtime startup time without burning the Step-10 service restart budget.
+
+Required behavior:
+
+- add a bounded CDP startup window that waits for the actual same-origin `AIO_V3.operations` runtime before declaring service startup failed;
+- poll inside the existing Step-9 session driver instead of restarting the whole host for every not-yet-ready page;
+- expose startup state, attempts, deadline and timeout reason for diagnostics;
+- require the Windows production configuration to use a dedicated persistent `--user-data-dir` and a remote-debugging port matching the configured loopback CDP endpoint;
+- keep the browser profile persistent across Windows reboots so normal Adventure Land cookies/session data can survive;
+- fail closed after the bounded startup window if the profile is logged out, the runtime never appears or CDP configuration is invalid;
+- never store or inject Adventure Land username/password credentials;
+- add delayed-runtime, timeout, profile-validation and restart-budget regression tests.
+
+This step does not bypass Adventure Land login, automate passwords/2FA, expose CDP remotely or add gameplay authority.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.

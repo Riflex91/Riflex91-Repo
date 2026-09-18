@@ -36,8 +36,8 @@ The v3 host adds a second independent persistent start budget: by default no mor
 2. `run.ps1` decrypts the API token into the child process environment only.
 3. `windows-host-service.js` validates `host.json` and persistent supervisor state.
 4. `ProductionHostHarness` starts the dedicated browser with `shell:false`.
-5. Step 9 discovers the Adventure Land runtime through loopback CDP.
-6. Host heartbeat, reconciliation, durable alerts and the read-only loopback API start.
+5. Step 11 gives the dedicated profile/browser up to five minutes to expose the real same-origin `AIO_V3.operations` runtime, polling every two seconds without restarting the whole service.
+6. Once ready, host heartbeat, reconciliation, durable alerts and the read-only loopback API start.
 7. SIGINT/SIGTERM shuts the harness and browser down through the bounded stop path.
 
 ## Safety boundaries
@@ -56,4 +56,4 @@ Add `-DeleteState` only when the persistent host state, alert spool and encrypte
 
 ## Current limitation
 
-The dedicated browser profile must already contain a valid Adventure Land login/session. Step 10 does not automate credentials or bypass login. After a full Windows reboot the task resumes automatically **after that Windows user logs in**.
+The dedicated browser profile persists across Windows reboots. Step 11 waits through normal browser/page/runtime startup, but it never stores or enters Adventure Land username/password credentials. If the persisted session is no longer valid, the runtime-readiness window expires fail-closed and Step 10's bounded service circuit applies. After a full Windows reboot the task resumes automatically **after that Windows user logs in**.

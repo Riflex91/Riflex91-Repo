@@ -57,7 +57,7 @@ The browser execution context is kept private to the bridge. The in-page dispatc
 
 Only one page evaluation may be in flight. If an evaluation reaches its timeout, the bridge reports the timeout but continues treating the underlying evaluation as in flight until it actually settles; this prevents a stalled browser context from accumulating parallel requests.
 
-This bridge is a **contract adapter**. The production host can now pair it with `CdpAdventureLandSessionDriver`, which attaches only to an explicitly configured loopback CDP endpoint, filters page targets to the configured Adventure Land origin, discovers an execution context that actually exposes the narrow `AIO_V3.operations` contract, and reconnects after bounded context/page loss. Login credentials and cold-boot authentication remain outside the driver. That driver must not expose generic browser evaluation as a remote-control API.
+This bridge is a **contract adapter**. The production host pairs it with `CdpAdventureLandSessionDriver`, which attaches only to an explicitly configured loopback CDP endpoint, filters page targets to the configured Adventure Land origin, discovers an execution context that actually exposes the narrow `AIO_V3.operations` contract, and reconnects after bounded context/page loss. Step 11 adds a bounded startup-readiness window so normal Windows/browser/runtime boot time is absorbed inside one host-service start rather than consuming repeated Step-10 restart admissions. Login credentials remain outside the driver. The driver exposes no generic browser evaluation as a remote-control API.
 
 ## Dead-man / process watchdog
 
@@ -110,7 +110,7 @@ Alpha.20.5 now includes a concrete **production host harness foundation** under 
 - `BrowserBotClient` for the four-method, origin-locked browser contract bridge;
 - `ProductionHostHarness` for wiring those pieces together without adding gameplay authority.
 
-`ProductionHostHarness` may receive a prebuilt `botClient`, an injected validated Page/Frame-like context, or the Step-9 loopback CDP session driver. Step 10 adds a Windows per-user Task Scheduler supervisor around this harness, including persisted crash-loop budgeting and graceful host shutdown. It remains intentionally **not yet a credential/bootstrap system**: Adventure Land login automation, production secret-manager integration, provider accounts and non-Windows service orchestration remain separate.
+`ProductionHostHarness` may receive a prebuilt `botClient`, an injected validated Page/Frame-like context, or the Step-9 loopback CDP session driver. Step 10 adds a Windows per-user Task Scheduler supervisor around this harness, including persisted crash-loop budgeting and graceful host shutdown. Step 11 adds dedicated-profile and bounded runtime-readiness bootstrap for that Windows path. It remains intentionally **not a credential automation system**: username/password/2FA entry, production secret-manager integration, provider accounts and non-Windows service orchestration remain separate.
 
 The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
 

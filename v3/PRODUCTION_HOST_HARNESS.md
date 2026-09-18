@@ -122,13 +122,24 @@ Inside Node, `PersistentWindowsStartBudget` adds an independent persisted crash-
 
 After a Windows reboot, recovery occurs when the owning Windows user logs in. Cold-boot Adventure Land credential automation remains intentionally outside this step; the dedicated browser profile must already have a valid session.
 
+
+## Windows session bootstrap readiness
+
+Step 11 separates **normal browser/runtime boot time** from a real host-service failure. The Windows configuration enables a five-minute startup window in `CdpAdventureLandSessionDriver`, polling every two seconds for the real same-origin `AIO_V3.operations` context. These polls happen inside one host-service start admission, so normal Chromium/Adventure Land/AIO startup does not consume the Step-10 persistent service restart budget.
+
+Production Windows configuration is fail-closed unless browser arguments contain exactly one remote-debugging port matching the configured loopback CDP endpoint, exactly one dedicated persistent `--user-data-dir`, and an Adventure Land same-origin launch URL. An explicitly configured remote-debugging address must be loopback. The dedicated profile persists cookies/session state across Windows reboots.
+
+The readiness state is observable as `IDLE`, `WAITING`, `READY`, `TIMEOUT` or `STOPPED`, with bounded attempt/deadline metadata. If no AIO runtime appears before the startup deadline, host startup fails and the already-bounded Step-10 task/service circuit decides whether another whole-service start is allowed.
+
+No Adventure Land username, password or 2FA value is stored or injected. If the persistent profile is logged out, the startup window eventually fails closed instead of attempting credential automation.
+
 ## Safe deployment sequence
 
 A production canary should follow this order:
 
 1. Provision a dedicated service account, durable host-state directory and secret source.
 2. Install/pin the intended browser executable and construct the argument array without shell evaluation.
-3. Configure the production browser/session driver and bind its validated Adventure Land Page/Frame to `BrowserBotClient`; verify no generic evaluation surface is exported.
+3. Configure the dedicated Windows browser profile + loopback CDP bootstrap and verify the bounded startup window reaches a real `AIO_V3.operations` context without consuming repeated service starts.
 4. Verify all four narrow calls against the real page while restart authority remains disabled.
 5. Configure the loopback API with a strong host-only bearer token.
 6. Configure alert transports from host secrets; keep restart authority disabled.
@@ -149,7 +160,7 @@ Pending durable alerts are not discarded merely because the browser process stop
 
 The following remain separate work and must not be inferred from the existence of the harness or `BrowserBotClient`:
 
-- Adventure Land login/session bootstrap and credential handling for a cold machine boot; the CDP driver deliberately attaches only to an already authenticated browser profile/session;
+- automatic Adventure Land credential entry, password/2FA handling or login bypass when the persistent Windows browser profile is no longer authenticated;
 - non-Windows service definitions such as systemd/container orchestration;
 - production secret-manager integration;
 - provider-specific email/WhatsApp/push account setup and fallback routing;

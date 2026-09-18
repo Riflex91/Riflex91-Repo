@@ -64,6 +64,7 @@ $config = [ordered]@{
   browserCommand = $browser
   browserArgs = @(
     '--remote-debugging-port=9222',
+    '--remote-debugging-address=127.0.0.1',
     "--user-data-dir=$profile",
     'https://adventure.land/'
   )
@@ -74,6 +75,8 @@ $config = [ordered]@{
   apiPort = 8791
   apiTokenEnvironmentVariable = 'AIO_V3_HOST_API_TOKEN'
   tickIntervalMs = 5000
+  browserSessionStartupWaitMs = 300000
+  browserSessionStartupPollMs = 2000
   stableAfterMs = 120000
   startWindowMs = 600000
   maxStartsPerWindow = 4

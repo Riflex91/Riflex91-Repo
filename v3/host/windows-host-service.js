@@ -14,6 +14,42 @@ function finite(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
+function validateWindowsBrowserBootstrap(args, cdpEndpoint, allowedOrigin) {
+  const values = Array.isArray(args) ? args.map((value) => String(value)) : [];
+  const cdp = new URL(String(cdpEndpoint));
+  const expectedPort = Number(cdp.port || 80);
+  const portArgs = values.filter((value) => value.startsWith('--remote-debugging-port='));
+  if (portArgs.length !== 1) throw new Error('WINDOWS_HOST_REMOTE_DEBUGGING_PORT_REQUIRED');
+  const actualPort = Number(portArgs[0].slice('--remote-debugging-port='.length));
+  if (!Number.isInteger(actualPort) || actualPort !== expectedPort) throw new Error('WINDOWS_HOST_REMOTE_DEBUGGING_PORT_MISMATCH');
+
+  const addressArgs = values.filter((value) => value.startsWith('--remote-debugging-address='));
+  if (addressArgs.length > 1) throw new Error('WINDOWS_HOST_REMOTE_DEBUGGING_ADDRESS_INVALID');
+  if (addressArgs.length === 1) {
+    const host = addressArgs[0].slice('--remote-debugging-address='.length).toLowerCase();
+    if (!['127.0.0.1','localhost','::1','[::1]'].includes(host)) throw new Error('WINDOWS_HOST_REMOTE_DEBUGGING_ADDRESS_NOT_LOOPBACK');
+  }
+
+  const profileArgs = values.filter((value) => value.startsWith('--user-data-dir='));
+  if (profileArgs.length !== 1) throw new Error('WINDOWS_HOST_DEDICATED_PROFILE_REQUIRED');
+  const profilePath = profileArgs[0].slice('--user-data-dir='.length).trim();
+  if (!profilePath || !(path.isAbsolute(profilePath) || path.win32.isAbsolute(profilePath))) throw new Error('WINDOWS_HOST_PROFILE_PATH_INVALID');
+
+  const origin = new URL(String(allowedOrigin || 'https://adventure.land')).origin;
+  const launchUrls = [];
+  for (const value of values) {
+    let parsed;
+    try { parsed = new URL(value); } catch (_) { continue; }
+    if (!['http:','https:'].includes(parsed.protocol)) continue;
+    if (parsed.username || parsed.password) throw new Error('WINDOWS_HOST_BROWSER_URL_CREDENTIALS_FORBIDDEN');
+    launchUrls.push(parsed);
+  }
+  if (!launchUrls.some((url) => url.origin === origin)) throw new Error('WINDOWS_HOST_ADVENTURE_LAND_START_URL_REQUIRED');
+
+  const normalizedProfilePath = path.win32.isAbsolute(profilePath) ? path.win32.normalize(profilePath) : path.resolve(profilePath);
+  return { profilePath: normalizedProfilePath, remoteDebuggingPort: actualPort, allowedOrigin: origin };
+}
+
 function configPathFromArgs(argv = process.argv.slice(2)) {
   const index = argv.indexOf('--config');
   if (index < 0 || !argv[index + 1]) throw new Error('WINDOWS_HOST_CONFIG_PATH_REQUIRED');
@@ -29,6 +65,11 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     throw new Error('WINDOWS_HOST_CDP_LOOPBACK_REQUIRED');
   }
   if (!raw.serviceStatePath || !raw.alertStatePath) throw new Error('WINDOWS_HOST_STATE_PATHS_REQUIRED');
+  const allowedOrigin = String(raw.allowedOrigin || 'https://adventure.land');
+  let originUrl;
+  try { originUrl = new URL(allowedOrigin); } catch (_) { throw new Error('WINDOWS_HOST_ALLOWED_ORIGIN_INVALID'); }
+  if (originUrl.protocol !== 'https:' || originUrl.username || originUrl.password) throw new Error('WINDOWS_HOST_ALLOWED_ORIGIN_INVALID');
+  const browserBootstrap = validateWindowsBrowserBootstrap(raw.browserArgs, raw.cdpEndpoint, originUrl.origin);
   const tokenEnv = String(raw.apiTokenEnvironmentVariable || 'AIO_V3_HOST_API_TOKEN');
   if (!/^[A-Z][A-Z0-9_]{2,80}$/.test(tokenEnv)) throw new Error('WINDOWS_HOST_API_TOKEN_ENV_INVALID');
   const apiToken = String(env[tokenEnv] || '');
@@ -40,7 +81,10 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     browserArgs: raw.browserArgs.slice(0, 128).map((value) => bounded(value)),
     browserCwd: raw.browserCwd ? bounded(raw.browserCwd) : undefined,
     cdpEndpoint: String(raw.cdpEndpoint),
-    allowedOrigin: String(raw.allowedOrigin || 'https://adventure.land'),
+    allowedOrigin: originUrl.origin,
+    browserProfilePath: browserBootstrap.profilePath,
+    browserSessionStartupWaitMs: Math.max(0, Math.min(10 * 60 * 1000, finite(raw.browserSessionStartupWaitMs, 5 * 60 * 1000))),
+    browserSessionStartupPollMs: Math.max(100, Math.min(15000, finite(raw.browserSessionStartupPollMs, 2000))),
     serviceStatePath: path.resolve(String(raw.serviceStatePath)),
     alertStatePath: path.resolve(String(raw.alertStatePath)),
     apiHost: '127.0.0.1',
@@ -65,6 +109,8 @@ function createWindowsHostService(config, options = {}) {
     env: config.env,
     browserCdpEndpoint: config.cdpEndpoint,
     browserAllowedOrigin: config.allowedOrigin,
+    browserCdpStartupWaitMs: config.browserSessionStartupWaitMs,
+    browserCdpStartupPollMs: config.browserSessionStartupPollMs,
     alertStatePath: config.alertStatePath,
     apiHost: config.apiHost,
     apiPort: config.apiPort,
@@ -136,6 +182,7 @@ if (require.main === module) {
 
 module.exports = {
   configPathFromArgs,
+  validateWindowsBrowserBootstrap,
   loadWindowsHostConfig,
   createWindowsHostService,
   installGracefulShutdown,

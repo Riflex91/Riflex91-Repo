@@ -158,7 +158,12 @@ test('Windows host config keeps API secret in environment and requires loopback 
   fs.writeFileSync(configPath, JSON.stringify({
     schemaVersion: 1,
     browserCommand: 'C:\\Browser\\browser.exe',
-    browserArgs: ['--remote-debugging-port=9222', 'https://adventure.land/'],
+    browserArgs: [
+      '--remote-debugging-port=9222',
+      '--remote-debugging-address=127.0.0.1',
+      '--user-data-dir=C:\\Users\\Tester\\AppData\\Local\\AioBot\\browser-profile',
+      'https://adventure.land/'
+    ],
     cdpEndpoint: 'http://127.0.0.1:9222',
     allowedOrigin: 'https://adventure.land',
     serviceStatePath: path.join(dir, 'state.json'),
