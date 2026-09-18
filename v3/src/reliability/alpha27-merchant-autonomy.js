@@ -176,9 +176,25 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (!normalized) return null;
     const now = this.now();
     const targetName = normalized.target && String(normalized.target.name || '') || null;
+    const serviceChainId = normalized.metadata && normalized.metadata.p0PotionServiceChainId || null;
+    const batch = normalized.metadata && normalized.metadata.p0PotionBatch === true;
     const existing = this.partySupplyChain;
     const sameTarget = !!(existing && String(existing.targetName || '') === String(targetName || ''));
-    if (existing && !sameTarget) return clone(existing.plan);
+    const sameBatch = !!(
+      existing
+      && batch
+      && serviceChainId
+      && String(existing.serviceChainId || '') === String(serviceChainId)
+    );
+    if (existing && !sameTarget && !sameBatch) return clone(existing.plan);
+    if (existing && !sameTarget && sameBatch) {
+      this.stats.partySupplyChainRefreshes = (this.stats.partySupplyChainRefreshes || 0) + 1;
+      this._event('ALPHA27_PARTY_SUPPLY_BATCH_TARGET_SWITCH', 'info', 'SAME_BATCH_NEXT_FARMER', {
+        from: existing.targetName || null,
+        to: targetName,
+        serviceChainId
+      });
+    }
 
     if (!existing) {
       this.stats.partySupplyChainLatches = (this.stats.partySupplyChainLatches || 0) + 1;
@@ -187,7 +203,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         kind: normalized.kind,
         planId: normalized.id || null
       });
-    } else {
+    } else if (sameTarget) {
       this.stats.partySupplyChainRefreshes = (this.stats.partySupplyChainRefreshes || 0) + 1;
     }
 
@@ -195,6 +211,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       startedAt: existing ? existing.startedAt : now,
       refreshedAt: now,
       targetName,
+      serviceChainId,
+      batch,
       plan: clone(normalized)
     };
     return clone(normalized);
@@ -205,13 +223,36 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return ['FARMER_POTION_TARGET_SATISFIED', 'NO_SERVICE_NEED', 'STAND_IDLE'].includes(String(plan.reason || ''));
   }
 
+  _p0BatchContinuation() {
+    const policy = this.runtime && this.runtime.p0PotionPolicy4500;
+    const chain = policy && policy.serviceChain;
+    if (!chain || chain.batch !== true) return null;
+    const pending = Array.isArray(chain.targets) ? chain.targets.filter((row) => row && row.status === 'PENDING') : [];
+    if (!pending.length) return null;
+    return {
+      kind: 'HOLD',
+      reason: 'POTION_BATCH_ADVANCING_TO_NEXT_FARMER',
+      target: chain.target || pending[0].target || null,
+      deliveries: chain.deliveries || pending[0].deliveries || [],
+      metadata: {
+        p0PotionPolicy4500: true,
+        p0PotionBatch: true,
+        p0PotionServiceChainId: chain.id,
+        p0PotionBatchPendingCount: pending.length
+      }
+    };
+  }
+
   criticalPartySupplyPlan() {
     const now = this.now();
     const current = this.runtime.lastMerchantServicePlan;
     const latched = this.partySupplyChain;
 
     if (latched && this._partySupplyDeliveryCommitted(latched)) {
-      return this._clearPartySupplyChain('PARTY_SUPPLY_DELIVERY_COMMITTED');
+      this._clearPartySupplyChain('PARTY_SUPPLY_DELIVERY_COMMITTED');
+      const continuation = this._p0BatchContinuation();
+      if (continuation) return continuation;
+      return null;
     }
 
     const adaptive = this._adaptivePartySupplyPlan(current);
@@ -224,7 +265,11 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       }
     }
 
-    if (!this.partySupplyChain) return null;
+    if (!this.partySupplyChain) {
+      const continuation = this._p0BatchContinuation();
+      if (continuation) return continuation;
+      return null;
+    }
     const chain = this.partySupplyChain;
     const ageMs = Math.max(0, now - finite(chain.startedAt, now));
     if (ageMs > this._partySupplyChainTimeoutMs()) return this._clearPartySupplyChain('PARTY_SUPPLY_CHAIN_TIMEOUT');
@@ -530,9 +575,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       selfGearLifecycle: ['UNEQUIP', 'ATOMIC_UPGRADE_OR_COMPOUND', 'REEQUIP_OR_FALLBACK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
+      criticalPartySupplyBatchAtomicAcrossFarmers: true,
       partySupplyChainLatched: !!chain,
       partySupplyChain: chain ? {
         targetName: chain.targetName || null,
+        serviceChainId: chain.serviceChainId || null,
+        batch: chain.batch === true,
         planKind: chain.plan && chain.plan.kind || null,
         planId: chain.plan && chain.plan.id || null,
         startedAt: chain.startedAt,
