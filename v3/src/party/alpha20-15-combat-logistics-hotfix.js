@@ -83,6 +83,7 @@ function patchLogisticsPrototype() {
     // automatically merely to satisfy logistics.
     if (item.locked === true) return { ok: false, reason: 'SERVER_LOCKED_NONTRANSFERABLE' };
     const meta = this._metadata ? this._metadata(name) : null;
+    if (meta && meta.type === 'elixir') return { ok: false, reason: 'FARMER_ELIXIR_RESERVED' };
     return {
       ok: true,
       name,
@@ -234,6 +235,7 @@ function patchLogisticsPrototype() {
   proto._farmerTick = function alpha2015FarmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    if (typeof this._maybeUseElixir === 'function') this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
 
     // Existing grants must complete even if the combat state changed after the
@@ -315,6 +317,7 @@ class Alpha2015CombatLogisticsHotfix {
         potionTarget: 5000,
         farmerGoldReserve: 0,
         allTransferableInventoryExceptHpMpPotions: true,
+        farmerElixirsRemainLocalUntilConsumed: true,
         merchantFullDoesNotBlockGold: true
       }
     };
