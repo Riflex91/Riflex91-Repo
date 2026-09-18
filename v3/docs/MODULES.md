@@ -255,7 +255,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**48 Dateien · 12274 Zeilen**
+**48 Dateien · 12515 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -303,7 +303,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/live-farmer-merchant-recovery.js` | 284 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
-| `src/reliability/p0-potion-policy-4500.js` | 452 |
+| `src/reliability/p0-potion-policy-4500.js` | 693 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
