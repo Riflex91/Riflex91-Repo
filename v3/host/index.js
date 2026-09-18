@@ -11,6 +11,7 @@ const { RestartReconciliationObserver } = require('./restart-reconciliation-obse
 const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH } = require('./browser-bot-client');
 const { CdpAdventureLandSessionDriver, CDP_SESSION_SCHEMA_VERSION, DEFAULT_CDP_ENDPOINT, DEFAULT_ADVENTURE_LAND_ORIGIN } = require('./cdp-adventure-land-session');
 const { ProductionHostHarness } = require('./production-host-harness');
+const { PersistentWindowsStartBudget, WindowsHostServiceSupervisor, WINDOWS_HOST_SERVICE_STATE_SCHEMA_VERSION } = require('./windows-host-service-supervisor');
 const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
 const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
 
@@ -38,6 +39,9 @@ module.exports = {
   DEFAULT_CDP_ENDPOINT,
   DEFAULT_ADVENTURE_LAND_ORIGIN,
   ProductionHostHarness,
+  PersistentWindowsStartBudget,
+  WindowsHostServiceSupervisor,
+  WINDOWS_HOST_SERVICE_STATE_SCHEMA_VERSION,
   FtpsDiagnosticsUploader,
   ProblemDiagnosticsArchive
 };
