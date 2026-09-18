@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -9,6 +10,7 @@ const execFileAsync = promisify(execFile);
 const wurzel = process.cwd();
 const versionPfad = path.join(wurzel, 'version.json');
 const ausgabe = path.join(wurzel, 'dist', 'aio-v4-runtime.js');
+const sha256Ausgabe = path.join(wurzel, 'dist', 'aio-v4-runtime.sha256');
 const tscPfad = path.join(wurzel, 'node_modules', 'typescript', 'bin', 'tsc');
 
 function posix(wert) {
@@ -98,15 +100,20 @@ export async function baueProduktionsRuntime({ schreiben = true } = {}) {
     if (!bundle.includes('V4ProduktionsLaufzeit')) throw new Error('Runtime enthaelt die Produktionslaufzeit nicht.');
     const bytes = Buffer.byteLength(bundle, 'utf8');
     if (bytes < 10_000 || bytes > 8 * 1024 * 1024) throw new Error(`V4-Produktionsruntime hat unplausible Groesse: ${bytes} Bytes.`);
+    const sha256 = createHash('sha256').update(bundle, 'utf8').digest('hex');
+    if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error('V4-Produktionsruntime konnte keinen gueltigen SHA-256 erzeugen.');
     if (schreiben) {
       await mkdir(path.dirname(ausgabe), { recursive: true });
       await writeFile(ausgabe, bundle, 'utf8');
+      await writeFile(sha256Ausgabe, `${sha256}\n`, 'utf8');
     }
     return Object.freeze({
       version,
       module: module.size,
       bytes,
+      sha256,
       ausgabe: posix(path.relative(wurzel, ausgabe)),
+      sha256Ausgabe: posix(path.relative(wurzel, sha256Ausgabe)),
       bundle
     });
   } finally {
