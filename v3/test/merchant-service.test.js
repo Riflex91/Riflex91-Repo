@@ -40,6 +40,32 @@ test('merchant service planner gives critical potion supply priority and binds d
   assert.equal(plan.actionAuthority, false);
 });
 
+test('equal-priority critical supply services the most depleted Farmer first', () => {
+  const now = 150000;
+  const planner = new MerchantServicePlanner({ now: () => now, merchantPotionReserve: 0, maxDeliveryQuantity: 4500 });
+  const r20 = report(now - 1000, {
+    name: 'FarmerWith20',
+    supplies: { inventorySize: 42, inventoryUsed: 20, freeSlots: 22, hpPotions: 4500, mpPotions: 20, preferredHpPotion: 'hpot0', preferredMpPotion: 'mpot0' }
+  });
+  const r0 = report(now, {
+    name: 'FarmerWith0',
+    supplies: { inventorySize: 42, inventoryUsed: 20, freeSlots: 22, hpPotions: 4500, mpPotions: 0, preferredHpPotion: 'hpot0', preferredMpPotion: 'mpot0' }
+  });
+  const plan = planner.plan({
+    merchant: merchant([{ index: 0, name: 'mpot0', q: 5000 }]),
+    reports: [r20, r0],
+    standOpen: false,
+    inCombat: false,
+    economyEmergency: false,
+    controlledBusy: false,
+    deliveryDistance: 400
+  });
+  assert.equal(plan.target.name, 'FarmerWith0');
+  assert.equal(plan.need.family, 'mp');
+  assert.equal(plan.need.count, 0);
+  assert.equal(plan.need.priority, 100);
+});
+
 test('farmer service need preempts an open stand before any delivery or travel action', () => {
   const now = 200000;
   const planner = new MerchantServicePlanner({ now: () => now });
@@ -244,6 +270,67 @@ test('town route is selected only when materially faster than direct travel', ()
   result = estimator.choose({ directEtaMs: 80000, townEtaMs: 60000, townAvailable: true });
   assert.equal(result.route, 'DIRECT');
   assert.equal(result.actionAuthority, false);
+});
+
+test('critical p0 supply falls back to controlled direct travel when TOWN is recommendation-only', async () => {
+  const events = [];
+  let plannedRequest = null;
+  let plannedContext = null;
+  const runtime = Object.create(index.Alpha20_5MerchantRuntime.prototype);
+  runtime.merchantServiceAllowTravel = true;
+  runtime.controlledTravel = { status: () => ({ enabled: true }) };
+  runtime.lastMerchantRouteDecision = {
+    route: 'TOWN',
+    reason: 'TOWN_MATERIALLY_FASTER',
+    directEtaMs: 33000,
+    townEtaMs: 0
+  };
+  runtime.merchantServicePlanner = { reportTtlMs: 25000 };
+  runtime.log = { emit: (event) => events.push(event) };
+  runtime.planTravel = (request, context) => {
+    plannedRequest = request;
+    plannedContext = context;
+    return { accepted: true, plan: { id: 'critical-direct-1' } };
+  };
+  runtime.executeTravelPlan = async (id) => ({ completed: true, id });
+
+  const plan = {
+    id: 'service-critical',
+    kind: MerchantServicePlanKind.SERVICE_TRAVEL,
+    sourceReportAt: 99900,
+    target: { name: 'FarmerA', map: 'main', x: 1200, y: 600 },
+    need: { family: 'mp', priority: 100, count: 0 },
+    metadata: { p0PotionPolicy4500: true }
+  };
+  const result = await runtime._executeMerchantTravel(plan);
+
+  assert.equal(result.completed, true);
+  assert.equal(plannedRequest.destination.map, 'main');
+  assert.equal(plannedRequest.destination.x, 1200);
+  assert.equal(plannedContext.destinationMapAttestation.observedAt, 99900);
+  assert.equal(plannedContext.destinationMapAttestation.source, 'trusted-owned-farmer-service');
+  assert.ok(events.some((event) => event.event === 'MERCHANT_SERVICE_TOWN_RECOMMENDATION_FALLBACK'));
+});
+
+test('noncritical TOWN recommendation remains fail-closed when live town authority is unavailable', async () => {
+  const runtime = Object.create(index.Alpha20_5MerchantRuntime.prototype);
+  runtime.merchantServiceAllowTravel = true;
+  runtime.controlledTravel = { status: () => ({ enabled: true }) };
+  runtime.lastMerchantRouteDecision = { route: 'TOWN', reason: 'TOWN_MATERIALLY_FASTER' };
+  runtime.merchantServicePlanner = { reportTtlMs: 25000 };
+  runtime.planTravel = () => { throw new Error('noncritical town recommendation must not broaden authority'); };
+
+  const result = await runtime._executeMerchantTravel({
+    id: 'service-normal',
+    kind: MerchantServicePlanKind.SERVICE_TRAVEL,
+    sourceReportAt: 99900,
+    target: { name: 'FarmerA', map: 'main', x: 1200, y: 600 },
+    need: { family: 'inventory', priority: 70, count: 4 },
+    metadata: {}
+  });
+
+  assert.equal(result.executed, false);
+  assert.equal(result.reason, 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED');
 });
 
 test('3000-cycle merchant planner soak stays bounded, deterministic and action-authority free', () => {
