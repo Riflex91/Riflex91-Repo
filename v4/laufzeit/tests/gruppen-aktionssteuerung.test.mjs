@@ -130,3 +130,92 @@ test('Block 8 Gruppen-AktionsSteuerung: blockierte Uebersetzung darf nichts einr
   assert.equal(ergebnis.status, 'blockiert');
   assert.equal(steuerung.listeAktionsZustaende().length, 0);
 });
+
+
+test('Block 8 Gruppen-AktionsSteuerung: blockierte neue Planung bricht bestehende Gruppenarbeit fail-safe ab', () => {
+  const steuerung = new AktionsSteuerung();
+  const cfg = erstelleGruppenAktionsSteuerungKonfiguration({
+    aktiviert: true,
+    freigegebeneAktionen: [GRUPPEN_AKTIONS_NAMEN.gruppeUnterstuetzen],
+    verarbeiten: true
+  });
+  const laufend = anfrage();
+  uebergibGruppenAktionsAnfragenAnSteuerung(uebersetzung([laufend]), steuerung, 10_000, cfg);
+  assert.equal(steuerung.holeAktionsZustand(laufend.kennung)?.phase, 'laeuft');
+  assert.equal(steuerung.listeRessourcenSperren().some((sperre) => sperre.ressource === 'gruppe'), true);
+
+  const blockiert = uebergibGruppenAktionsAnfragenAnSteuerung(
+    uebersetzung([], { status: 'blockiert', planStatus: 'blockiert', grund: 'Sicherheitslage unbekannt.' }),
+    steuerung,
+    10_100,
+    cfg
+  );
+
+  assert.equal(blockiert.status, 'blockiert');
+  assert.equal(steuerung.holeAktionsZustand(laufend.kennung)?.phase, 'abgebrochen');
+  assert.equal(steuerung.listeRessourcenSperren().some((sperre) => sperre.ressource === 'gruppe'), false);
+  assert.equal(steuerung.listeSchattenProtokoll()[0]?.phase, 'abgebrochen');
+  assert.match(steuerung.holeAktionsZustand(laufend.kennung)?.zustandsGrund ?? '', /darf nicht fortgesetzt/);
+});
+
+test('Block 8 Gruppen-AktionsSteuerung: leerer lokaler Plan entfernt wartende alte Gruppenarbeit ohne fremde Arbeit anzutasten', () => {
+  const steuerung = new AktionsSteuerung();
+  const cfgWartend = erstelleGruppenAktionsSteuerungKonfiguration({
+    aktiviert: true,
+    freigegebeneAktionen: [GRUPPEN_AKTIONS_NAMEN.gruppeUnterstuetzen],
+    verarbeiten: false
+  });
+  const alt = anfrage();
+  uebergibGruppenAktionsAnfragenAnSteuerung(uebersetzung([alt]), steuerung, 10_000, cfgWartend);
+  steuerung.reicheAnfrageEin(Object.freeze({
+    kennung: 'fremde-arbeit',
+    angefordertVon: 'anderes-modul',
+    aktion: 'ANDERE_AKTION',
+    wichtigkeit: 'normal',
+    prioritaet: 1,
+    angefordertAm: 10_000,
+    gueltigBis: 12_000,
+    benoetigteRessourcen: Object.freeze(['inventar']),
+    grund: 'Darf durch Gruppen-Reconciliation nicht veraendert werden.',
+    details: Object.freeze({})
+  }));
+
+  const leer = uebergibGruppenAktionsAnfragenAnSteuerung(
+    uebersetzung([], {
+      status: 'leer',
+      planStatus: 'leer',
+      grund: 'Im aktuellen Gruppenplan existiert kein lokaler Schritt.',
+      eigeneSchrittKennungen: Object.freeze([])
+    }),
+    steuerung,
+    10_100,
+    cfgWartend
+  );
+
+  assert.equal(leer.status, 'leer');
+  assert.equal(steuerung.holeAktionsZustand(alt.kennung)?.phase, 'abgebrochen');
+  assert.equal(steuerung.holeAktionsZustand('fremde-arbeit')?.phase, 'wartend');
+  assert.equal(steuerung.listeSchattenProtokoll().length, 0);
+});
+
+test('Block 8 Gruppen-AktionsSteuerung: reine Freigabesperre ist kein Safety-Signal und bricht laufende Gruppenarbeit nicht ab', () => {
+  const steuerung = new AktionsSteuerung();
+  const cfg = erstelleGruppenAktionsSteuerungKonfiguration({
+    aktiviert: true,
+    freigegebeneAktionen: [GRUPPEN_AKTIONS_NAMEN.gruppeUnterstuetzen],
+    verarbeiten: true
+  });
+  const laufend = anfrage();
+  uebergibGruppenAktionsAnfragenAnSteuerung(uebersetzung([laufend]), steuerung, 10_000, cfg);
+
+  const gesperrt = uebergibGruppenAktionsAnfragenAnSteuerung(
+    uebersetzung([], { status: 'gesperrt', grund: 'Uebersetzung explizit nicht freigegeben.' }),
+    steuerung,
+    10_100,
+    cfg
+  );
+
+  assert.equal(gesperrt.status, 'leer');
+  assert.equal(steuerung.holeAktionsZustand(laufend.kennung)?.phase, 'laeuft');
+  assert.equal(steuerung.listeRessourcenSperren().find((sperre) => sperre.ressource === 'gruppe')?.besitzer, laufend.kennung);
+});
