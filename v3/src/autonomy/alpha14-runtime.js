@@ -6,10 +6,8 @@ const { GearProgressionEvaluator } = require('../economy/gear-progression');
 
 const ALPHA14_VERSION = '3.0.0-alpha.14.0';
 
-class Alpha14Runtime extends Alpha13Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA14_VERSION;
+function composeAlpha14Runtime(options = {}) {
+this.log.version = ALPHA14_VERSION;
     this.inventoryPlanningIntervalMs = Math.max(1000, Math.min(60000, Number(options.inventoryPlanningIntervalMs) || 3000));
     this.lastInventoryPlanningAt = -Infinity;
     this.lastInventoryPlanningResult = null;
@@ -37,6 +35,12 @@ class Alpha14Runtime extends Alpha13Runtime {
       bankAllowlist: options.inventoryBankAllowlist,
       exchangeAllowlist: options.inventoryExchangeAllowlist
     });
+}
+
+class Alpha14Runtime extends Alpha13Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha14Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -109,4 +113,4 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 }
 
-module.exports = { Alpha14Runtime, ALPHA14_VERSION };
+module.exports = { Alpha14Runtime, ALPHA14_VERSION, composeAlpha14Runtime };
