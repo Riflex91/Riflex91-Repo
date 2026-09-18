@@ -5,6 +5,7 @@ const { HeadlessHostController } = require('./headless-host-controller');
 const { HostApiServer } = require('./host-api-server');
 const { JsonFileStateStore } = require('./json-file-state-store');
 const { BrowserBotClient } = require('./browser-bot-client');
+const { CdpAdventureLandSessionDriver } = require('./cdp-adventure-land-session');
 const { DebugTelemetryExporter } = require('./debug-telemetry-exporter');
 const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
 const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
@@ -37,13 +38,30 @@ class ProductionHostHarness {
       stopGraceMs: options.stopGraceMs,
       outputCapacity: options.outputCapacity
     });
-    const browserContext = options.browserPage || options.browserFrame || options.browserContext || null;
+    this.sessionDriver = options.sessionDriver || (options.browserCdpEndpoint || options.cdpEndpoint ? new CdpAdventureLandSessionDriver({
+      now: this.now,
+      fetch: options.browserCdpFetch,
+      webSocketFactory: options.browserCdpWebSocketFactory,
+      endpoint: options.browserCdpEndpoint || options.cdpEndpoint,
+      allowedOrigin: options.browserAllowedOrigin,
+      allowInsecureLoopbackForTests: options.browserAllowInsecureLoopbackForTests === true,
+      connectTimeoutMs: options.browserCdpConnectTimeoutMs,
+      commandTimeoutMs: options.browserCdpCommandTimeoutMs,
+      discoveryTimeoutMs: options.browserCdpDiscoveryTimeoutMs,
+      contextSettleMs: options.browserCdpContextSettleMs,
+      connectAttempts: options.browserCdpConnectAttempts,
+      reconnectBaseMs: options.browserCdpReconnectBaseMs,
+      reconnectMaxMs: options.browserCdpReconnectMaxMs,
+      sleep: options.browserCdpSleep
+    }) : null);
+    const browserContext = options.browserPage || options.browserFrame || options.browserContext
+      || (this.sessionDriver && typeof this.sessionDriver.executionContext === 'function' ? this.sessionDriver.executionContext() : null);
     this.botClient = options.botClient || (browserContext ? new BrowserBotClient({
       page: browserContext,
       now: this.now,
       timeoutMs: options.browserBridgeTimeoutMs,
       maxResultBytes: options.browserBridgeMaxResultBytes,
-      allowedOrigins: options.browserAllowedOrigins,
+      allowedOrigins: options.browserAllowedOrigins || (this.sessionDriver ? [this.sessionDriver.allowedOrigin] : undefined),
       allowInsecureLoopbackForTests: options.browserAllowInsecureLoopbackForTests === true
     }) : null);
     this.alertStore = options.alertStore || (options.alertStatePath ? new JsonFileStateStore({
@@ -60,7 +78,13 @@ class ProductionHostHarness {
       alertMaxAttempts: options.alertMaxAttempts,
       alertBaseBackoffMs: options.alertBaseBackoffMs,
       alertMaxBackoffMs: options.alertMaxBackoffMs,
-      restartProcess: (context) => this.launcher.restart(context),
+      restartProcess: async (context) => {
+        const result = await this.launcher.restart(context);
+        if (result && result.ok && this.sessionDriver && typeof this.sessionDriver.invalidate === 'function') {
+          this.sessionDriver.invalidate('PROCESS_RESTART');
+        }
+        return result;
+      },
       startupGraceMs: options.startupGraceMs,
       restartDelayMs: options.restartDelayMs,
       restartCooldownMs: options.restartCooldownMs,
@@ -208,10 +232,30 @@ class ProductionHostHarness {
       return { started: false, reason: 'PROCESS_START_FAILED', process: processResult, status: this.status() };
     }
 
+    let sessionResult = null;
+    if (this.sessionDriver && options.startBrowserSession !== false) {
+      try {
+        sessionResult = await this.sessionDriver.start();
+      } catch (error) {
+        if (options.startProcess !== false) await this.launcher.stop('BROWSER_SESSION_START_FAILED');
+        return {
+          started: false,
+          reason: 'BROWSER_SESSION_START_FAILED',
+          error: String(error && error.message || error).slice(0, 256),
+          process: processResult,
+          browserSession: this.sessionDriver.status(),
+          status: this.status()
+        };
+      }
+    }
+
     const apiResult = await this.api.start();
     if (!apiResult.started && apiResult.reason !== 'API_ALREADY_RUNNING') {
+      if (this.sessionDriver && typeof this.sessionDriver.stop === 'function') {
+        try { await this.sessionDriver.stop('API_START_FAILED'); } catch (_) {}
+      }
       if (options.startProcess !== false) await this.launcher.stop('API_START_FAILED');
-      return { started: false, reason: 'API_START_FAILED', api: apiResult, process: processResult, status: this.status() };
+      return { started: false, reason: 'API_START_FAILED', api: apiResult, process: processResult, browserSession: sessionResult, status: this.status() };
     }
 
     this.startedAt = this.now();
@@ -219,7 +263,7 @@ class ProductionHostHarness {
     this.timer = setInterval(() => { this.tick().catch(() => {}); }, this.tickIntervalMs);
     if (this.timer && typeof this.timer.unref === 'function') this.timer.unref();
     const firstTick = options.skipInitialTick === true ? null : await this.tick();
-    return { started: true, process: processResult, api: apiResult, firstTick, status: this.status() };
+    return { started: true, process: processResult, browserSession: sessionResult, api: apiResult, firstTick, status: this.status() };
   }
 
   async stop(reason = 'HOST_HARNESS_STOP') {
@@ -229,9 +273,14 @@ class ProductionHostHarness {
       try { await this.diagnosticsArchive.flush(); } catch (_) {}
     }
     const api = await this.api.stop();
+    let browserSession = null;
+    if (this.sessionDriver && typeof this.sessionDriver.stop === 'function') {
+      try { browserSession = await this.sessionDriver.stop(reason); }
+      catch (error) { browserSession = { stopped: false, error: String(error && error.message || error).slice(0, 256) }; }
+    }
     const processResult = await this.launcher.stop(reason);
     this.stats.stops += 1;
-    return { stopped: true, api, process: processResult, status: this.status() };
+    return { stopped: true, api, browserSession, process: processResult, status: this.status() };
   }
 
   status() {
@@ -246,6 +295,8 @@ class ProductionHostHarness {
       rawGameplayActionAuthority: false,
       dashboardDecisionAuthority: false,
       browserProtocolOwnedByInjectedBotClient: !!this.botClient,
+      browserSessionManaged: !!this.sessionDriver,
+      browserSession: this.sessionDriver && typeof this.sessionDriver.status === 'function' ? this.sessionDriver.status() : null,
       narrowBrowserBridge: !!(botClientStatus && botClientStatus.mode === 'narrow-browser-bot-client'),
       botClient: botClientStatus,
       launcher: this.launcher.status(),
