@@ -135,12 +135,21 @@ function patchLogisticsPrototype() {
       const now = this.now();
       if (pending.asyncRejected || now - pending.at >= this.config.verifyTimeoutMs) {
         const signature = pending.signature || `${Number(pending.index)}:${pending.name}:${pending.level}`;
-        if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + 120000);
+        // A rejected send_item near Merchant capacity is a transient transport /
+        // recipient-settlement condition, not evidence that this exact item is
+        // unsafe for two minutes. The base verifier already applies a global
+        // failure backoff; keep only a short per-item retry guard for explicit
+        // promise rejection. True verify timeouts stay conservative.
+        const blockMs = pending.asyncRejected
+          ? Math.max(3000, Math.min(15000, Number(this.config.failureBackoffMs) || 7000))
+          : 120000;
+        const reason = pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED_TRANSIENT' : 'OUTBOUND_VERIFY_TIMEOUT';
+        if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + blockMs);
         if (typeof this._blockRejectedLoot === 'function') {
           this._blockRejectedLoot(
             { index: pending.index, name: pending.name, level: pending.level },
-            pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED' : 'OUTBOUND_VERIFY_TIMEOUT',
-            120000
+            reason,
+            blockMs
           );
         }
       }
