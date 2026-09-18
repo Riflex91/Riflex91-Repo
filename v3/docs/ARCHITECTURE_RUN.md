@@ -194,25 +194,27 @@ Required behavior:
 
 This step does not add login credentials, public CDP exposure, arbitrary remote evaluation, gameplay action authority, or OS service installation.
 
-## Step 10 — Production host service and machine-reboot recovery
+## Step 10 — Windows host autostart and machine-reboot recovery
 
 **Branch:** `architecture/10-production-host-service`
 
-Make the existing production host harness a bounded operating-system service that can recover after host-process or machine restart without creating a restart loop.
+Make the existing production host harness recover automatically on the user's Windows gaming machine without turning the browser host into a Windows Session-0 service.
 
 Required behavior:
 
-- add an OS-neutral service supervisor around `ProductionHostHarness`;
-- persist service start attempts/circuit state outside the browser process so crash loops remain bounded across service and machine restarts;
-- start the browser process first, then let the Step-9 CDP session discover the Adventure Land runtime through the existing bounded retry policy;
-- provide graceful SIGTERM/SIGINT shutdown that closes the harness, browser session/API and managed browser process through existing bounded stop paths;
-- add a concrete systemd unit/install baseline with boot autostart, outer restart delay/start limit, hardened filesystem/network permissions and persistent state directories;
-- keep secrets in host environment files only and never serialize them into service status/state;
-- fail closed on corrupt service state or invalid production configuration;
-- add reboot/crash-loop/start-budget/clean-shutdown tests and a long service-supervisor soak;
+- add a bounded Windows host supervisor around `ProductionHostHarness`;
+- persist service start attempts/circuit state outside the browser process so crash loops remain bounded across host-process and machine restarts;
+- run through Windows Task Scheduler in the interactive user session, because the Adventure Land browser/profile must remain in that user's desktop/profile context;
+- launch the browser through the existing managed launcher, then let the Step-9 loopback-CDP session discover the Adventure Land runtime;
+- provide graceful Ctrl+C/SIGINT/SIGTERM shutdown through the existing bounded harness stop path;
+- install a per-user scheduled task with logon autostart, bounded restart attempts/interval, single-instance behavior and no generic shell/remote-control surface;
+- keep persistent state under a dedicated per-user Windows data directory;
+- keep secrets outside repository/config/status payloads;
+- fail closed on corrupt persistent supervisor state or invalid production configuration;
+- add crash-loop/start-budget/clean-shutdown/restart tests and a long supervisor soak;
 - preserve `gameplayActionAuthority:false` and `rawGameplayActionAuthority:false`.
 
-This step does not add cold-boot Adventure Land credential automation, public CDP access, arbitrary browser evaluation, remote shell access or gameplay policy to the host.
+This step does not add cold-boot Adventure Land credential automation, public CDP access, arbitrary browser evaluation, remote shell access, systemd/Linux deployment or gameplay policy to the host.
 
 ## Status and checkpoints
 
