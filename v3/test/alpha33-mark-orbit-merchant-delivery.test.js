@@ -383,9 +383,15 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   await Promise.resolve();
   assert.equal(hotfix.stats.gearDeliveryIntentAcksSent, 1);
 
-  // The same-identity row that existed before the intent remains generic loot,
-  // but the newly delivered physical row must be protected immediately.
-  assert.equal(logistics._safeLootDescriptor({ index: 2, name: 'ringsj', level: 3 }).ok, true);
+  // Live alpha.20.107 proved that allowing the pre-existing same-identity row
+  // to remain generic loot leaves a same-index reuse race: it can be sent out
+  // after ACK and the incoming upgrade can land in that just-freed index.
+  // Freeze the whole targeted name+level identity until equip resolves.
+  const preExisting = logistics._safeLootDescriptor({ index: 2, name: 'ringsj', level: 3 });
+  assert.equal(preExisting.ok, false);
+  assert.equal(preExisting.reason, 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED');
+  assert.equal(hotfix.stats.farmerGearIntentIdentityHolds, 1);
+
   root.character.items[5] = { name: 'ringsj', level: 3 };
   snapshot.character.inventory = [
     { index: 2, name: 'ringsj', level: 3 },
@@ -407,6 +413,7 @@ test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with
   assert.equal(hotfix.stats.farmerGearEquipCommitted, 1);
   assert.equal(hotfix.incomingGearIntents.size, 0);
   assert.equal(hotfix.pendingFarmerGearEquip, null);
+  assert.equal(hotfix.status().policies.targetedGearIdentityHeldOutOfGenericLootUntilEquip, true);
   assert.equal(hotfix.status().policies.farmerReceivedReadyGearAutoEquippedAndVerified, true);
   assert.equal(hotfix.status().policies.localProgressionReservationRequiresExactActivePhysicalAssignment, true);
   assert.equal(baseTicks, 0);
