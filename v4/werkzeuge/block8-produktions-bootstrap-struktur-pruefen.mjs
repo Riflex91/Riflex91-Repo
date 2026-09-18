@@ -93,8 +93,10 @@ const bundler = await readFile(path.join(wurzel, 'werkzeuge/produktions-runtime-
 for (const pflicht of [
   "import { execFile } from 'node:child_process'",
   "node_modules', 'typescript', 'bin', 'tsc'",
-  "'--module', 'commonjs'",
-  "'--moduleResolution', 'node'",
+  "type: 'commonjs'",
+  "module: 'NodeNext'",
+  "moduleResolution: 'NodeNext'",
+  'Temporärer CommonJS-tsc-Build fehlgeschlagen'
   'Externer Runtime-Import ist nicht erlaubt',
   'require\\(([' + "'" + '"])(.+?)',
   'Adventure Land AiO Bot V4 | generated | production runtime',
