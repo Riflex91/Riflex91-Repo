@@ -161,7 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2486 Zeilen**
+**9 Dateien · 2498 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -169,7 +169,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 282 |
-| `src/merchant/merchant-production-controller.js` | 339 |
+| `src/merchant/merchant-production-controller.js` | 351 |
 | `src/merchant/merchant-production-planner.js` | 594 |
 | `src/merchant/merchant-service-planner.js` | 225 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
@@ -210,15 +210,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7589 Zeilen**
+**33 Dateien · 7685 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/party/account-character-transport.js` | 280 |
-| `src/party/alpha20-15-combat-logistics-hotfix.js` | 339 |
+| `src/party/alpha20-15-combat-logistics-hotfix.js` | 347 |
 | `src/party/alpha20-15-logistics-fairness-hotfix.js` | 40 |
 | `src/party/alpha20-19-account-transport-hotfix.js` | 191 |
-| `src/party/alpha20-19-logistics-stabilization.js` | 133 |
+| `src/party/alpha20-19-logistics-stabilization.js` | 137 |
 | `src/party/capabilities.js` | 37 |
 | `src/party/character-registry.js` | 500 |
 | `src/party/control-lease.js` | 329 |
@@ -227,7 +227,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 591 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1060 |
+| `src/party/controlled-party-logistics.js` | 1144 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14413 Zeilen**
+**50 Dateien · 14440 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -299,7 +299,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 663 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
-| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1095 |
+| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1122 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
