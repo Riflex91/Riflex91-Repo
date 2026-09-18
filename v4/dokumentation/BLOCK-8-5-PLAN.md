@@ -10,9 +10,9 @@ Die fachliche Grundlage bleibt unveraendert. Block 8.5 fuehrt keine neue Kampf-,
 
 ## Reihenfolge
 
-### Schritt 8.5.1 – EntscheidungsDatensatz v1
+### Schritt 8.5.1 – EntscheidungsDatensatz v1 — **IMPLEMENTIERT**
 
-Fuer wichtige Gruppenentscheidungen wird ein versionierter Datensatz eingefuehrt mit:
+Fuer wichtige Gruppenentscheidungen ist ein versionierter Datensatz eingefuehrt mit:
 
 - stabiler Entscheidungskennung,
 - fachlicher Eingabe bzw. Fingerabdruck,
@@ -25,6 +25,8 @@ Fuer wichtige Gruppenentscheidungen wird ein versionierter Datensatz eingefuehrt
 - spaeterem tatsaechlichen Ergebnis.
 
 Zeitstempel und reine Laufzeitkennungen duerfen den fachlichen Wiederholungsvergleich nicht verfaelschen.
+
+Umgesetzt sind der allgemeine `EntscheidungsDatensatz`-Vertrag, die read-only Gruppen-Erzeugung, getrennte Eingabe-/Entscheidungs-Fingerabdruecke sowie Regressionstests fuer Zeitverschiebung, Eingabereihenfolge, Freshness und Safety. Aktions-/Ergebnis-Korrelation bleibt bewusst Schritt 8.5.2.
 
 ### Schritt 8.5.2 – Entscheidung -> Aktion -> Ergebnis
 
