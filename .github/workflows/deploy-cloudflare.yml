@@ -53,9 +53,13 @@ jobs:
         run: |
           set -euo pipefail
           npm run produktions-runtime:bauen
-          sha256sum -c dist/aio-v4-runtime.sha256
           test -s dist/aio-v4-runtime.js
           test -s dist/aio-v4-runtime.sha256
+          expected_sha="$(tr -d '[:space:]' < dist/aio-v4-runtime.sha256)"
+          actual_sha="$(sha256sum dist/aio-v4-runtime.js | awk '{print $1}')"
+          [ "${#expected_sha}" -eq 64 ] || { echo "V4 runtime SHA-256 file must contain exactly 64 hex characters." >&2; exit 1; }
+          case "$expected_sha" in *[!0-9a-f]*) echo "V4 runtime SHA-256 file contains invalid characters." >&2; exit 1 ;; esac
+          [ "$actual_sha" = "$expected_sha" ] || { echo "Local V4 runtime SHA-256 mismatch." >&2; exit 1; }
       - name: Validate Worker source and R2 log policy tests
         working-directory: cloudflare-dashboard
         run: npm run check
@@ -196,7 +200,9 @@ jobs:
             --file=/tmp/aio-v4-runtime.sha256 --remote --config wrangler.deploy.jsonc
           cmp ../v4/dist/aio-v4-runtime.js /tmp/aio-v4-runtime.js
           cmp ../v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-runtime.sha256
-          (cd /tmp && sha256sum -c aio-v4-runtime.sha256)
+          expected_sha="$(tr -d '[:space:]' < /tmp/aio-v4-runtime.sha256)"
+          actual_sha="$(sha256sum /tmp/aio-v4-runtime.js | awk '{print $1}')"
+          [ "$actual_sha" = "$expected_sha" ] || { echo "R2 V4 runtime SHA-256 mismatch." >&2; exit 1; }
       - name: Verify immutable V4 runtime release over public HTTPS
         if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
         working-directory: cloudflare-dashboard
@@ -229,7 +235,9 @@ jobs:
           grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-sha.headers
           grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-sha.headers
           grep -Eiq '^content-type:[[:space:]]*text/plain' /tmp/aio-v4-sha.headers
-          (cd /tmp && cp aio-v4-public.js aio-v4-runtime.js && cp aio-v4-public.sha256 aio-v4-runtime.sha256 && sha256sum -c aio-v4-runtime.sha256)
+          expected_sha="$(tr -d '[:space:]' < /tmp/aio-v4-public.sha256)"
+          actual_sha="$(sha256sum /tmp/aio-v4-public.js | awk '{print $1}')"
+          [ "$actual_sha" = "$expected_sha" ] || { echo "Public HTTPS V4 runtime SHA-256 mismatch." >&2; exit 1; }
       - name: Remove temporary deploy config
         if: always()
         working-directory: cloudflare-dashboard
