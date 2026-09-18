@@ -40,6 +40,7 @@ import {
 export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.0.0';
 export const PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT = 'BLOCK8-PRODUKTIONS-GRUPPENZIEL-VORBEREITEN';
 export const PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT = 'BLOCK8-PRODUKTIONS-LIVE-SMOKE-INSTALLIEREN';
+const MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2;
 
 export interface AdventureLandProduktionsBootstrapOptionen {
   readonly aktivFreigegeben?: boolean;
@@ -98,6 +99,7 @@ export class AdventureLandProduktionsBootstrap {
   private readonly teilnehmerNachName = new Map<string, GruppenTeilnehmerMeldung>();
   private readonly kampfKonfiguration = erstelleKampfSicherheitsKonfiguration();
   private laufendeNummer = 0;
+  private letzterSicherheitsZeitpunkt: number | null = null;
   private gruppenZielVorbereitungVerbraucht = false;
   private gestoppt = false;
   private kampfAblauf: Readonly<KampfSicherheitsAblaufZustand> | null = null;
@@ -193,6 +195,11 @@ export class AdventureLandProduktionsBootstrap {
 
     const meldungen = this.liesEindeutigeTeilnehmerMeldungen();
     const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
+    if (koordination.aktiveTeilnehmerKennungen.length < MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER) {
+      throw new Error(
+        `Produktions-Gruppenziel benoetigt mindestens ${MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER} aktive frische Teilnehmer; gefunden: ${koordination.aktiveTeilnehmerKennungen.length}.`
+      );
+    }
     const plan = planeGruppenAktionen(meldungen, koordination, erstelleGruppenAktionsPlanKonfiguration());
     const uebersetzung = uebersetzeEigeneGruppenPlanSchritte(
       plan,
@@ -352,6 +359,10 @@ export class AdventureLandProduktionsBootstrap {
     spielzustand: ReturnType<typeof beobachteSpielzustand>;
     entscheidung: Readonly<KampfSicherheitsEntscheidung>;
   }> {
+    if (this.letzterSicherheitsZeitpunkt !== null && jetzt < this.letzterSicherheitsZeitpunkt) {
+      throw new Error('Produktions-Sicherheitszeit darf nicht rueckwaerts laufen.');
+    }
+    this.letzterSicherheitsZeitpunkt = jetzt;
     this.laufendeNummer += 1;
     const spielzustand = beobachteSpielzustand(this.leser, {
       laufendeNummer: this.laufendeNummer,
