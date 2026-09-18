@@ -33,7 +33,7 @@ The v3 host adds a second independent persistent start budget: by default no mor
 ## Runtime order
 
 1. Windows Task Scheduler starts `run.ps1` in the interactive user session.
-2. `run.ps1` decrypts the API token into the child process environment only.
+2. `run.ps1` decrypts the host API token and, when enabled, the DPAPI alert bundle only for the Node host process.
 3. `windows-host-service.js` validates `host.json` and persistent supervisor state.
 4. `ProductionHostHarness` starts the dedicated browser with `shell:false`.
 5. Step 11 gives the dedicated profile/browser up to five minutes to expose the real same-origin `AIO_V3.operations` runtime, polling every two seconds without restarting the whole service.
@@ -42,9 +42,33 @@ The v3 host adds a second independent persistent start budget: by default no mor
 
 ## Safety boundaries
 
-The Windows host has no gameplay policy and reports both `gameplayActionAuthority:false` and `rawGameplayActionAuthority:false`. CDP remains loopback-only. The scheduled task exposes no remote shell and no generic browser-evaluation API. The DPAPI token is not written to `host.json`, logs, GitHub or runtime status.
+The Windows host has no gameplay policy and reports both `gameplayActionAuthority:false` and `rawGameplayActionAuthority:false`. CDP remains loopback-only. The scheduled task exposes no remote shell and no generic browser-evaluation API. DPAPI-protected host/API/alert secrets are not written to `host.json`, logs, GitHub or runtime status and are not inherited by Chromium.
 
 Automatic browser-process restart inside the host watchdog remains disabled by default. The Task Scheduler restart policy and persistent host start circuit are service-lifecycle controls only.
+
+## Production CRITICAL alerting
+
+Step 12 keeps alert provider secrets outside `host.json` and outside the browser process.
+
+Configure two independently hosted HTTPS routes:
+
+```powershell
+.\ops\windows-host\configure-alerts.ps1
+```
+
+The script prompts without echo for the primary/fallback webhook URLs and optional `Authorization` header values, verifies that the route hostnames differ, and stores the complete secret bundle at `%LOCALAPPDATA%\AioBot\host-service\alert-secrets.dpapi` encrypted with DPAPI **CurrentUser**. It then enables `criticalAlertingEnabled` in the non-secret host configuration.
+
+Run the explicit route canary before unattended operation:
+
+```powershell
+.\ops\windows-host\test-alerts.ps1 -RepoPath C:\path\to\repo
+```
+
+The canary sends an operator-initiated `HOST_ALERT_ROUTE_CANARY` independently to both configured routes. It does not acknowledge any bot/operator incident and has no gameplay authority.
+
+For real CRITICAL alerts, both routes are required. The existing durable `AlertRelay` persists before claiming from the bot and keeps a record pending until both routes have accepted it. A partial provider outage therefore remains visible and is retried with bounded backoff instead of silently completing.
+
+Host-only API/alert/diagnostics credentials are not inherited by Chromium. The Windows host launches the browser with a small allowlisted Windows environment instead of the Node host environment.
 
 ## Uninstall
 
