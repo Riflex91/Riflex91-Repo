@@ -104,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 4212 Zeilen**
+**12 Dateien · 4254 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -112,18 +112,18 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/bank-expansion-transactions.js` | 289 |
 | `src/economy/controlled-bank-consolidation-executor.js` | 285 |
 | `src/economy/controlled-bank-expansion-executor.js` | 184 |
-| `src/economy/controlled-merchant-executor.js` | 567 |
+| `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
 | `src/economy/gear-progression.js` | 551 |
 | `src/economy/inventory-ledger.js` | 394 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
-| `src/economy/transaction-engine.js` | 414 |
+| `src/economy/transaction-engine.js` | 424 |
 
 ## farmer
 
-**21 Dateien · 4481 Zeilen**
+**21 Dateien · 4496 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -133,7 +133,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 222 |
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
-| `src/farmer/farmer-fsm.js` | 603 |
+| `src/farmer/farmer-fsm.js` | 618 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
 | `src/farmer/farmer-resource-topoff-hotfix.js` | 324 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
@@ -210,12 +210,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7685 Zeilen**
+**33 Dateien · 7809 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/party/account-character-transport.js` | 280 |
-| `src/party/alpha20-15-combat-logistics-hotfix.js` | 347 |
+| `src/party/alpha20-15-combat-logistics-hotfix.js` | 368 |
 | `src/party/alpha20-15-logistics-fairness-hotfix.js` | 40 |
 | `src/party/alpha20-19-account-transport-hotfix.js` | 191 |
 | `src/party/alpha20-19-logistics-stabilization.js` | 137 |
@@ -227,7 +227,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 591 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1144 |
+| `src/party/controlled-party-logistics.js` | 1247 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 14966 Zeilen**
+**50 Dateien · 15041 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -299,7 +299,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 663 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
-| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1291 |
+| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1366 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
