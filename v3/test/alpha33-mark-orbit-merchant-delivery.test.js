@@ -469,6 +469,7 @@ test('Alpha33 bounded capacity preparation departs instead of deadlocking on rej
   assert.equal(hotfix.stats.collectionCapacityConstrainedDepartures, 1);
 });
 
+// Live alpha.20.104 regression: temporary zero pickup demand must not release a half-empty Merchant.
 test('Alpha33 drained Farmer snapshot keeps collection at Farmers until Merchant inventory is full', async () => {
   let now = 145000;
   let travelCalls = 0;
