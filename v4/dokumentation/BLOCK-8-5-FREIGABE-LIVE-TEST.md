@@ -54,6 +54,8 @@ globalThis.AIO_V4_BLOCK85_FREIGABE_CONFIG = Object.freeze({
 
 Fuer den vorbereiteten Runtime-1.1.5-Candidate ist diese Kennung fest `git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Der Candidate besitzt den erwarteten Runtime-SHA-256 `95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f`; ein realer Lauf darf trotzdem erst nach erfolgreichem immutablem Deployment und oeffentlicher HTTPS-Verifikation erfolgen.
 
+Dieses Deployment muss ueber den isolierten manuellen `.github/workflows/release-v4-runtime.yml`-Pfad erfolgen; der breite V3/V4-Cloudflare-Deployment-Workflow ist fuer diesen Nachweis nicht vorgesehen.
+
 `laufKennung` trennt die Vorgangskennungen dieses konkreten Adventure-Land-Laufs.
 
 Der Soak dauert mindestens:
