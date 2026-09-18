@@ -9492,16 +9492,19 @@ class PartyControlLease {
   install() {
     if (this.installed || !this.root) return false;
     const self = this;
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
-    this.root.on_cm = function onPartyControlMessage(name, data) {
-      if (self._isControlMessage(data)) {
-        self.receive(name, data);
+    const namedControlReceiverInstalled = this.__aioAccountTransportControlReceiverInstalled === true;
+    if (!namedControlReceiverInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      this.root.on_cm = function onPartyControlMessage(name, data) {
+        if (self._isControlMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
+      };
+    }
+    this.previousOnPartyInvite = typeof this.root.on_party_invite === 'function' ? this.root.on_party_invite : null;
     this.root.on_party_invite = function onPartyControlInvite(name) {
       if (self._handleInvite(name)) return undefined;
       if (self.previousOnPartyInvite) return self.previousOnPartyInvite.apply(this, arguments);
@@ -22778,19 +22781,27 @@ class ControlledPartyBootstrap {
 
     this.previousDirectReceiver = this.root[PARTY_BOOTSTRAP_RECEIVER];
     this.directReceiver = (sender, payload) => this.receive(sender, payload);
-    this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver);
+    const directInstalled = !!(this.transport
+      && typeof this.transport.installDirectReceiver === 'function'
+      && this.transport.installDirectReceiver(PARTY_BOOTSTRAP_RECEIVER, this.directReceiver));
 
-    this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
-    const self = this;
-    this.cmWrapper = function onPartyBootstrapMessage(name, data) {
-      if (self._isBootstrapMessage(data)) {
-        self.receive(name, data);
+    // The AccountCharacterTransport named-receiver router owns root.on_cm.
+    // Installing another wrapper here displaces that router and breaks all
+    // addressed receivers (telemetry, logistics, cross-map objectives, ...).
+    // Keep raw bootstrap handling only for transports without named receivers.
+    if (!directInstalled) {
+      this.previousOnCm = typeof this.root.on_cm === 'function' ? this.root.on_cm : null;
+      const self = this;
+      this.cmWrapper = function onPartyBootstrapMessage(name, data) {
+        if (self._isBootstrapMessage(data)) {
+          self.receive(name, data);
+          return undefined;
+        }
+        if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
         return undefined;
-      }
-      if (self.previousOnCm) return self.previousOnCm.apply(this, arguments);
-      return undefined;
-    };
-    this.root.on_cm = this.cmWrapper;
+      };
+      this.root.on_cm = this.cmWrapper;
+    }
     this.installed = true;
     this.stats.installs += 1;
     return true;
@@ -43057,6 +43068,10 @@ class PartyAccountCommunicationReliability {
       this.stats.controlDirectReceiverCalls += 1;
       return lease.receive(sender, payload);
     });
+    // PartyControlLease may be stopped/resumed independently of the account
+    // transport. Mark the named receiver as authoritative so a later lease
+    // reinstall does not overwrite the shared on_cm router.
+    lease.__aioAccountTransportControlReceiverInstalled = true;
     if (!this.originalControlSend) this.originalControlSend = typeof lease._send === 'function' ? lease._send.bind(lease) : null;
     lease._send = async (target, payload) => this.transport.send(target, payload, {
       receiver: CONTROL_RECEIVER,
