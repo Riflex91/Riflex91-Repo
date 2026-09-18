@@ -104,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 4254 Zeilen**
+**12 Dateien · 4264 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -115,7 +115,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 551 |
+| `src/economy/gear-progression.js` | 561 |
 | `src/economy/inventory-ledger.js` | 394 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 15360 Zeilen**
+**50 Dateien · 15524 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -299,7 +299,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 663 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
-| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1685 |
+| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 1849 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
