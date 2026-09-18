@@ -61,7 +61,7 @@ Die zentrale Verarbeitung endet weiterhin in `SchattenAusfuehrung`.
 
 Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ist inzwischen **implementiert, aber standardmaessig gesperrt und noch nicht live freigegeben**.
 
-Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt inzwischen ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Die feste delegierte Ausfuehrungsbruecke unter `ausfuehrung/` fehlt noch; daher ist weiterhin keine echte Live-Gruppenaktion freigegeben. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
+Er liegt ausschliesslich unter `ausfuehrung/`, ist zusaetzlich durch eine an die AktionsAnfrage gebundene Einmal-Freigabe gehaertet und besitzt ein getrenntes read-only/one-shot Browserwerkzeug mit automatischer Wiedersperrung. Auch die feste delegierte `V4Block8GruppenZielAusfuehrungsBruecke` ist inzwischen unter `ausfuehrung/` implementiert und offline abgesichert. Es fehlt weiterhin die eng begrenzte Live-Bindung dieser Bruecke an die reale zentrale Steuerung und eine frische Produktions-Sicherheitsquelle; daher ist noch keine echte Live-Gruppenaktion freigegeben. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
 
 ## Verbleibende Block-8-Schritte
 
@@ -94,11 +94,11 @@ Vor einer echten Aktion sind mindestens erforderlich:
 
 Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
-### 3. Begrenzter one-shot Live-Smoke — **Freigabe-/Testwerkzeug vorbereitet, echte Bruecke und Smoke noch offen**
+### 3. Begrenzter one-shot Live-Smoke — **Freigabe-/Testwerkzeug und feste Bruecke vorbereitet, Live-Bindung und Smoke noch offen**
 
 Das Browserwerkzeug startet gesperrt, verlangt eine frische read-only Vorschau, bindet die Freigabe an genau eine AktionsAnfrage und sperrt vor der Delegation wieder. Es besitzt selbst keinen Adventure-Land-Aktionsaufruf.
 
-Vor dem echten Smoke fehlt noch eine feste `V4Block8GruppenZielAusfuehrungsBruecke`, deren Implementierung innerhalb der `ausfuehrung/`-Grenze bleibt und die Produktions-Einmal-Freigabe nutzt.
+Die feste `V4Block8GruppenZielAusfuehrungsBruecke` ist unter der `ausfuehrung/`-Grenze implementiert. Vor dem echten Smoke fehlt noch ihre Live-Bindung: genau eine explizit aktivierte Brueckeninstanz muss an die reale zentrale `AktionsSteuerung` und eine frisch berechnete Produktions-`KampfSicherheitsEntscheidung` gebunden werden. Browser-Vorpruefungen duerfen diese Produktions-Safety nicht ersetzen.
 
 Erst nach gruenem Offline-/Replay-/Schattennachweis:
 
