@@ -24,6 +24,7 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
   leiterName: 'My_Ranger1'
 });
 
+
 /* ===== BEGIN werkzeuge/adventure-land-v4-bootstrap.js ===== */
 (() => {
   'use strict';
@@ -144,6 +145,7 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
   });
 })();
 /* ===== END werkzeuge/adventure-land-v4-bootstrap.js ===== */
+
 
 /* ===== BEGIN werkzeuge/adventure-land-test-gui.js ===== */
 (() => {
@@ -539,6 +541,7 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
 })();
 /* ===== END werkzeuge/adventure-land-test-gui.js ===== */
 
+
 /* ===== BEGIN werkzeuge/block8-gruppenziel-live-smoke.js ===== */
 (() => {
   'use strict';
@@ -712,6 +715,7 @@ globalThis.AIO_V4_LIVE_TEST_GUI_CONFIG = Object.freeze({
   }, 'Block-8-Gruppenziel-Live-Smoke-Runner bereit');
 })();
 /* ===== END werkzeuge/block8-gruppenziel-live-smoke.js ===== */
+
 
 /* ===== BEGIN werkzeuge/block8-produktions-live-test-gui.js ===== */
 (() => {
