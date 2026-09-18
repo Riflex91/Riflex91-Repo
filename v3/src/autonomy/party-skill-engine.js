@@ -31,7 +31,7 @@ class PartySkillEngine {
     };
     this.lastDecision = null;
     this.lastUse = null;
-    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
+    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
     this.installed = false;
     this.install();
   }
@@ -53,8 +53,17 @@ class PartySkillEngine {
     return !classes || !classes.length || classes.includes(character.ctype);
   }
 
+  _policySettings(id, character) {
+    const policy = this.runtime && this.runtime.skillPolicy;
+    if (!policy || typeof policy.settings !== 'function') return null;
+    try { return policy.settings(id, character); } catch (_) { return null; }
+  }
+
   _canUse(context, id, targetId = null) {
     const adapter = context && context.adapter;
+    const character = context && context.snapshot && context.snapshot.character;
+    const policy = this.runtime && this.runtime.skillPolicy;
+    if (policy && typeof policy.peek === 'function' && !policy.peek(id, character)) { this.stats.policySkips += 1; return false; }
     if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(id)) { this.stats.cooldownSkips += 1; return false; }
     if (targetId != null && adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(targetId, id)) { this.stats.rangeSkips += 1; return false; }
     return true;
@@ -66,17 +75,40 @@ class PartySkillEngine {
     const lowest = members.slice().sort((a, b) => ratio(a.hp, a.max_hp) - ratio(b.hp, b.max_hp))[0] || null;
     const lowestRatio = lowest ? ratio(lowest.hp, lowest.max_hp) : 1;
 
-    if (ctype === 'priest' && lowest && lowestRatio < this.config.supportHpRatio) {
+    if (ctype === 'priest' && lowest) {
+      const partyHealSettings = this._policySettings('partyheal', c);
+      const healSettings = this._policySettings('heal', c);
+      const partyHealThreshold = partyHealSettings && Number.isFinite(Number(partyHealSettings.parameters && partyHealSettings.parameters.hpThreshold))
+        ? Number(partyHealSettings.parameters.hpThreshold) : this.config.supportHpRatio;
+      const healThreshold = healSettings && Number.isFinite(Number(healSettings.parameters && healSettings.parameters.hpThreshold))
+        ? Number(healSettings.parameters.hpThreshold) : this.config.supportHpRatio;
+      const minInjured = Math.max(1, Math.floor(finite(
+        partyHealSettings && partyHealSettings.parameters && partyHealSettings.parameters.minInjuredMembers,
+        2
+      )));
+      const injuredCount = members.filter((row) => ratio(row.hp, row.max_hp) <= partyHealThreshold).length;
+
       const partyHeal = this._skillMeta(game, 'partyheal');
-      if (partyHeal && this._classAllowed(partyHeal, c) && finite(c.mp) >= finite(partyHeal.mp) && this._canUse(context, 'partyheal')) return { id: 'partyheal', args: ['partyheal'], kind: 'support', reason: 'PARTY_HP_LOW', utility: 200 };
+      if (lowestRatio <= partyHealThreshold && injuredCount >= minInjured
+        && partyHeal && this._classAllowed(partyHeal, c) && finite(c.mp) >= finite(partyHeal.mp)
+        && this._canUse(context, 'partyheal')) {
+        return { id: 'partyheal', args: ['partyheal'], kind: 'support', reason: 'PARTY_HEAL_THRESHOLD_MET', utility: 200, injuredCount, threshold: partyHealThreshold };
+      }
       const heal = this._skillMeta(game, 'heal');
-      if (heal && this._classAllowed(heal, c) && finite(c.mp) >= finite(heal.mp) && this._canUse(context, 'heal', lowest.name)) return { id: 'heal', args: ['heal', lowest.name], kind: 'support', reason: 'LOWEST_PARTY_MEMBER_HP', utility: 190 };
+      if (lowestRatio <= healThreshold
+        && heal && this._classAllowed(heal, c) && finite(c.mp) >= finite(heal.mp)
+        && this._canUse(context, 'heal', lowest.name)) {
+        return { id: 'heal', args: ['heal', lowest.name], kind: 'support', reason: 'HEAL_THRESHOLD_MET', utility: 190, threshold: healThreshold };
+      }
     }
 
     if (ctype === 'warrior') {
       const selfRatio = ratio(c.hp, c.max_hp);
+      const shellSettings = this._policySettings('hardshell', c);
+      const shellThreshold = shellSettings && Number.isFinite(Number(shellSettings.parameters && shellSettings.parameters.hpThreshold))
+        ? Number(shellSettings.parameters.hpThreshold) : this.config.emergencyHpRatio;
       const shell = this._skillMeta(game, 'hardshell');
-      if (selfRatio < this.config.emergencyHpRatio && shell && this._classAllowed(shell, c) && finite(c.mp) >= finite(shell.mp) && this._canUse(context, 'hardshell')) return { id: 'hardshell', args: ['hardshell'], kind: 'defensive', reason: 'WARRIOR_HP_EMERGENCY', utility: 180 };
+      if (selfRatio <= shellThreshold && shell && this._classAllowed(shell, c) && finite(c.mp) >= finite(shell.mp) && this._canUse(context, 'hardshell')) return { id: 'hardshell', args: ['hardshell'], kind: 'defensive', reason: 'HARDSHELL_HP_THRESHOLD_MET', utility: 180, threshold: shellThreshold };
       const taunt = this._skillMeta(game, 'taunt');
       if (target && target.target && target.target !== c.name && members.some((row) => row.name === target.target) && taunt && this._classAllowed(taunt, c) && finite(c.mp) >= finite(taunt.mp) && this._canUse(context, 'taunt', target.id)) return { id: 'taunt', args: ['taunt', String(target.id)], kind: 'support', reason: 'PROTECT_PARTY_TARGET', utility: 160 };
     }

@@ -44,6 +44,7 @@ class GameAdapter {
     this.log = options.log || null;
     this.now = options.now || (() => Date.now());
     this.mode = options.mode === 'active' ? 'active' : 'shadow';
+    this.skillPolicy = options.skillPolicy || null;
     this.lastSnapshot = null;
   }
 
@@ -54,6 +55,21 @@ class GameAdapter {
     if (id == null) return null;
     const wanted = String(id);
     return Object.values(this._entities() || {}).find((entity) => entity && String(entity.id) === wanted) || null;
+  }
+
+  _entityByIdOrName(id) {
+    if (id == null) return null;
+    const wanted = String(id);
+    const character = this._character();
+    if (character && (String(character.id || '') === wanted || String(character.name || '') === wanted)) return character;
+    return Object.values(this._entities() || {}).find((entity) => entity && (
+      String(entity.id || '') === wanted || String(entity.name || '') === wanted
+    )) || null;
+  }
+
+  setSkillPolicy(policy) {
+    this.skillPolicy = policy || null;
+    return this.skillPolicy;
   }
 
   _objects() {
@@ -174,34 +190,146 @@ class GameAdapter {
     try { return fn.call(this.root, target) !== false; } catch (_) { return false; }
   }
 
-  canUseSkill(skillName) {
+  skillAvailability(skillName, targetId = null) {
+    const id = String(skillName == null ? '' : skillName).trim();
     const G = this._G();
-    const skill = G.skills && G.skills[skillName];
+    const skill = G.skills && G.skills[id];
     const c = this._character();
-    if (!skill || !c) return false;
-    if (Array.isArray(skill.class) && !skill.class.includes(c.ctype)) return false;
-    if (Number(skill.level) > 0 && Number(c.level) < Number(skill.level)) return false;
-    if (Number(skill.mp) > 0 && Number(c.mp) < Number(skill.mp)) return false;
+    const result = {
+      skill: id || null,
+      ready: false,
+      reason: null,
+      reasons: [],
+      classAllowed: null,
+      levelAllowed: null,
+      mpAllowed: null,
+      equipmentAllowed: null,
+      materialAllowed: null,
+      cooldownReady: null,
+      rangeReady: null
+    };
+    const reject = (reason) => {
+      result.reasons.push(reason);
+      if (!result.reason) result.reason = reason;
+    };
 
-    if (Array.isArray(skill.wtype) && skill.wtype.length) {
-      const slots = c.slots || {};
-      const equippedTypes = ['mainhand', 'offhand']
-        .map((slot) => slots[slot] && slots[slot].name)
-        .filter(Boolean)
-        .map((name) => G.items && G.items[name] && G.items[name].wtype)
-        .filter(Boolean);
-      if (equippedTypes.length && !equippedTypes.some((wtype) => skill.wtype.includes(wtype))) return false;
+    if (!id || !skill) {
+      reject('UNKNOWN_SKILL');
+      return result;
+    }
+    if (!c) {
+      reject('CHARACTER_UNAVAILABLE');
+      return result;
+    }
+
+    const classes = Array.isArray(skill.class) ? skill.class.map(String) : skill.class ? [String(skill.class)] : [];
+    result.classAllowed = !classes.length || classes.includes(String(c.ctype || ''));
+    if (!result.classAllowed) reject('CLASS_MISMATCH');
+
+    const requiredLevel = Math.max(0, finite(skill.level) || 0);
+    result.levelAllowed = Number(c.level) >= requiredLevel;
+    if (!result.levelAllowed) reject('LEVEL_LOCKED');
+
+    const mpCost = Math.max(0, finite(skill.mp) || 0);
+    result.mpAllowed = Number(c.mp) >= mpCost;
+    if (!result.mpAllowed) reject('LOW_MP');
+
+    const slots = c.slots || {};
+    const itemMeta = G.items || {};
+    const equipped = Object.entries(slots)
+      .filter(([, item]) => item && item.name)
+      .map(([slot, item]) => ({
+        slot,
+        name: String(item.name),
+        wtype: itemMeta[item.name] && itemMeta[item.name].wtype || null,
+        type: itemMeta[item.name] && itemMeta[item.name].type || null
+      }));
+
+    const requiredWtypes = Array.isArray(skill.wtype) ? skill.wtype.map(String) : skill.wtype ? [String(skill.wtype)] : [];
+    let equipmentAllowed = true;
+    if (requiredWtypes.length && !equipped.some((row) => row.wtype && requiredWtypes.includes(String(row.wtype)))) {
+      equipmentAllowed = false;
+      reject('WEAPON_TYPE_REQUIRED');
+    }
+    if (skill.offhand_type) {
+      const offhand = equipped.find((row) => row.slot === 'offhand');
+      if (!offhand || (String(offhand.wtype || '') !== String(skill.offhand_type) && String(offhand.type || '') !== String(skill.offhand_type))) {
+        equipmentAllowed = false;
+        reject('OFFHAND_TYPE_REQUIRED');
+      }
+    }
+    if (Array.isArray(skill.slot) && skill.slot.length) {
+      const slotMatch = skill.slot.some((row) => Array.isArray(row) && row.length >= 2 && slots[row[0]] && String(slots[row[0]].name || '') === String(row[1]));
+      if (!slotMatch) {
+        equipmentAllowed = false;
+        reject('EQUIPMENT_SLOT_REQUIRED');
+      }
+    }
+    result.equipmentAllowed = equipmentAllowed;
+
+    if (skill.consume) {
+      const items = Array.isArray(c.items) ? c.items : [];
+      result.materialAllowed = items.some((item) => item && String(item.name || '') === String(skill.consume));
+      if (!result.materialAllowed) reject('MATERIAL_REQUIRED');
+    } else result.materialAllowed = true;
+
+    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
+    if (typeof onCooldown === 'function') {
+      try {
+        result.cooldownReady = onCooldown.call(this.root, id) !== true;
+        if (!result.cooldownReady) reject('COOLDOWN');
+      } catch (_) {
+        result.cooldownReady = false;
+        reject('COOLDOWN_CHECK_FAILED');
+      }
+    }
+
+    if (targetId != null) {
+      const target = this._entityByIdOrName(targetId);
+      if (target) {
+        const fn = this.root.is_in_range || this.parent.is_in_range;
+        if (typeof fn === 'function') {
+          try {
+            result.rangeReady = fn.call(this.root, target, id) !== false;
+            if (!result.rangeReady) reject('OUT_OF_RANGE');
+          } catch (_) {
+            result.rangeReady = false;
+            reject('RANGE_CHECK_FAILED');
+          }
+        } else {
+          const cx = finite(c.real_x != null ? c.real_x : c.x);
+          const cy = finite(c.real_y != null ? c.real_y : c.y);
+          const tx = finite(target.real_x != null ? target.real_x : target.x);
+          const ty = finite(target.real_y != null ? target.real_y : target.y);
+          let range = finite(skill.range);
+          if (range == null) {
+            const baseRange = finite(c.range);
+            if (baseRange != null) range = baseRange * (finite(skill.range_multiplier) || 1) + (finite(skill.range_bonus) || 0);
+          }
+          if (cx != null && cy != null && tx != null && ty != null && range != null) {
+            result.rangeReady = Math.hypot(cx - tx, cy - ty) <= range;
+            if (!result.rangeReady) reject('OUT_OF_RANGE');
+          }
+        }
+      }
     }
 
     const canUse = this.root.can_use || this.parent.can_use;
-    if (typeof canUse === 'function') {
-      try { return canUse.call(this.root, skillName) !== false; } catch (_) { return false; }
+    if (!result.reasons.length && typeof canUse === 'function') {
+      try {
+        if (canUse.call(this.root, id) === false) reject('GAME_REQUIREMENT');
+      } catch (_) {
+        reject('GAME_CAN_USE_FAILED');
+      }
     }
-    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
-    if (typeof onCooldown === 'function') {
-      try { return onCooldown.call(this.root, skillName) !== true; } catch (_) { return false; }
-    }
-    return true;
+
+    result.ready = result.reasons.length === 0;
+    result.reason = result.ready ? 'READY' : result.reason;
+    return result;
+  }
+
+  canUseSkill(skillName) {
+    return this.skillAvailability(skillName).ready === true;
   }
 
   isSkillInRange(targetId, skillName) {
@@ -238,7 +366,7 @@ class GameAdapter {
       if (target) out[0] = target;
     }
     if (action === 'use_skill' && typeof out[1] === 'string') {
-      const target = this._entityById(out[1]);
+      const target = this._entityByIdOrName(out[1]);
       if (target) out[1] = target;
     }
     return out;
@@ -262,6 +390,21 @@ class GameAdapter {
     if (!definition) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'ACTION_NOT_ALLOWED_IN_ALPHA', data: { action } });
       return { executed: false, reason: 'ACTION_NOT_ALLOWED_IN_ALPHA' };
+    }
+    if (action === 'use_skill' && this.skillPolicy && typeof this.skillPolicy.evaluateCommand === 'function') {
+      let policy;
+      try { policy = this.skillPolicy.evaluateCommand(args, { character: this._character() }); }
+      catch (error) {
+        policy = { allowed: false, reason: 'SKILL_POLICY_ERROR', error: String(error && error.message || error) };
+      }
+      if (!policy || policy.allowed !== true) {
+        const reason = policy && policy.reason || 'SKILL_POLICY_REJECTED';
+        if (this.log) this.log.emit({
+          component: 'adapter', event: 'COMMAND_REJECTED', severity: 'info', reason,
+          data: { action, skill: Array.isArray(args) ? args[0] || null : null }
+        });
+        return { executed: false, shadow: false, blocked: true, reason, action, policy: policy || null };
+      }
     }
     if (this.mode !== 'active') {
       if (this.log) this.log.emit({ component: 'adapter', event: 'SHADOW_COMMAND', data: { action, args: args.map((x) => typeof x === 'object' && x ? (x.id || x.name || '[object]') : x) } });

@@ -222,6 +222,10 @@ class MerchantMluckService {
     const decision = this.policy.decide({ now, merchant, targets });
     if (!decision || decision.action !== 'CAST') return this._recordDecision(decision || { action: 'HOLD', reason: 'NO_MLUCK_DECISION' }, targets);
 
+    const skillPolicy = this.adapter && this.adapter.skillPolicy;
+    if (skillPolicy && typeof skillPolicy.peek === 'function' && !skillPolicy.peek('mluck', merchant)) {
+      return this._hold('MLUCK_SKILL_POLICY_DISABLED', { target: decision.target }, targets);
+    }
     if (!this.adapter || typeof this.adapter.canUseSkill !== 'function') return this._hold('MLUCK_SKILL_CHECK_UNAVAILABLE', { target: decision.target }, targets);
     let canUse = false;
     try { canUse = this.adapter.canUseSkill('mluck') === true; } catch (_) { canUse = false; }

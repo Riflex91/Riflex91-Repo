@@ -29,6 +29,9 @@ class DebugMonitorUI {
     this.logBox = null;
     this.copyButton = null;
     this.runButton = null;
+    this.skillsButton = null;
+    this.skillsPanel = null;
+    this.skillsPanelOpen = false;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this.timer = null;
@@ -245,6 +248,7 @@ class DebugMonitorUI {
       };
       this.minimized = true;
       if (this.body) this.body.style.display = 'none';
+      if (this.skillsPanel) this.skillsPanel.style.display = 'none';
       if (this.logBox) this.logBox.style.display = 'none';
       if (this.resizeHandle) this.resizeHandle.style.display = 'none';
       if (this.fallbackArea) this.fallbackArea.style.display = 'none';
@@ -270,6 +274,7 @@ class DebugMonitorUI {
     });
     this.header.style.marginBottom = layout.headerMarginBottom || '9px';
     if (this.body) this.body.style.display = 'block';
+    if (this.skillsPanel) this.skillsPanel.style.display = this.skillsPanelOpen ? 'block' : 'none';
     if (this.logBox) this.logBox.style.display = 'block';
     if (this.resizeHandle) this.resizeHandle.style.display = 'block';
     if (this.fallbackArea) this.fallbackArea.style.display = 'none';
@@ -355,6 +360,261 @@ class DebugMonitorUI {
     return result;
   }
 
+  _skillRuntime() {
+    return this.monitor && this.monitor.runtime || null;
+  }
+
+  _skillCharacter() {
+    const runtime = this._skillRuntime();
+    const snapshot = runtime && runtime.lastSnapshot;
+    if (snapshot && snapshot.character) return snapshot.character;
+    try {
+      return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _primeSkills() {
+    const runtime = this._skillRuntime();
+    if (!runtime || !runtime.skillCatalog) return false;
+    try {
+      runtime.skillCatalog.audit('GUI_SKILLS_OPEN', { force: true });
+      const snapshot = runtime.lastSnapshot || (runtime.adapter && typeof runtime.adapter.snapshot === 'function' ? runtime.adapter.snapshot() : null);
+      if (snapshot && snapshot.character) {
+        runtime.lastSnapshot = runtime.lastSnapshot || snapshot;
+        if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities(snapshot, runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {});
+      }
+      return true;
+    } catch (error) {
+      if (this.log && typeof this.log.emit === 'function') {
+        try { this.log.emit({ component: 'debug-monitor-ui', event: 'SKILLS_PANEL_PRIME_FAILED', severity: 'warn', reason: String(error && error.message || error) }); } catch (_) {}
+      }
+      return false;
+    }
+  }
+
+  _skillPanelState() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !runtime.skillCatalog || !runtime.characterCombatProfiles || !character) {
+      return { available: false, reason: 'SKILL_CONFIGURATION_UNAVAILABLE', character: null, catalogState: null, rows: [], enabled: 0 };
+    }
+    const ctype = String(character.ctype || character.type || '').toLowerCase();
+    const level = Math.max(0, Number(character.level) || 0);
+    const catalog = runtime.skillCatalog.status();
+    const rows = runtime.skillCatalog.list({ ctype })
+      .filter((skill) => Number(skill.requiredLevel || 0) <= level)
+      .map((skill) => {
+        const settings = runtime.characterCombatProfiles.skillSettings(character.name, skill) || { enabled: false, parameters: {}, configured: false };
+        let availability = null;
+        if (runtime.adapter && typeof runtime.adapter.skillAvailability === 'function') {
+          try { availability = runtime.adapter.skillAvailability(skill.id); } catch (_) { availability = null; }
+        }
+        return {
+          skill,
+          enabled: settings.enabled === true,
+          configured: settings.configured === true,
+          parameters: settings.parameters || {},
+          availability
+        };
+      });
+    return {
+      available: true,
+      character: { name: character.name || 'unknown', ctype, level },
+      catalogState: catalog.state,
+      catalogReady: catalog.state === 'READY',
+      generation: catalog.generation,
+      rows,
+      enabled: rows.filter((row) => row.enabled).length
+    };
+  }
+
+  _skillControlLabel(key) {
+    const labels = {
+      hpThreshold: 'HP ≤',
+      recipientMpThreshold: 'MP ≤',
+      minInjuredMembers: 'Verletzte ≥',
+      minTargets: 'Ziele ≥',
+      maxDesiredTargets: 'Ziele max'
+    };
+    return labels[String(key || '')] || String(key || '');
+  }
+
+  _skillStatusText(row, state) {
+    if (!state.catalogReady) return state.catalogState || 'CATALOG';
+    if (!row.skill.automationValidated) return 'NEU · nicht validiert';
+    if (!row.enabled) return 'DEAKTIVIERT';
+    const availability = row.availability;
+    if (!availability) return 'AKTIV';
+    return availability.ready ? 'READY' : String(availability.reason || 'NICHT BEREIT');
+  }
+
+  _refreshCapabilitiesAfterSkillChange() {
+    const runtime = this._skillRuntime();
+    if (!runtime) return;
+    try {
+      if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
+    } catch (_) {}
+  }
+
+  _setSkillEnabled(skillId, enabled) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.skillCatalog || !runtime.characterCombatProfiles) return false;
+    const record = runtime.skillCatalog.get(skillId);
+    if (!record || record.automationValidated !== true) return false;
+    runtime.characterCombatProfiles.setEnabled(character.name, record, enabled === true);
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _setSkillParameter(skillId, key, value) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.skillCatalog || !runtime.characterCombatProfiles) return false;
+    const record = runtime.skillCatalog.get(skillId);
+    if (!record) return false;
+    const result = runtime.characterCombatProfiles.setParameter(character.name, record, key, value);
+    this._refreshCapabilitiesAfterSkillChange();
+    return !!(result && result.ok);
+  }
+
+  _enableAllSkills() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    const state = this._skillPanelState();
+    if (!runtime || !character || !state.available) return false;
+    for (const row of state.rows) {
+      if (row.skill.automationValidated !== true) continue;
+      runtime.characterCombatProfiles.setEnabled(character.name, row.skill, true);
+    }
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _resetSkillProfile() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.characterCombatProfiles) return false;
+    runtime.characterCombatProfiles.resetProfile(character.name);
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _updateSkillsButton(state = this._skillPanelState()) {
+    if (!this.skillsButton) return;
+    if (!state.available) {
+      this.skillsButton.textContent = 'Skills —';
+      this.skillsButton.title = 'Skill-Konfiguration noch nicht verfügbar';
+      return;
+    }
+    this.skillsButton.textContent = `Skills ${state.enabled}/${state.rows.length}`;
+    this.skillsButton.title = `${state.character.name} · ${state.catalogState || 'UNKNOWN'} · Skill-Freigaben und taktische Schwellen`;
+  }
+
+  _renderSkillsPanel() {
+    if (!this.skillsPanel) return false;
+    const doc = this._doc();
+    if (!doc) return false;
+    const state = this._skillPanelState();
+    this._updateSkillsButton(state);
+    while (this.skillsPanel.firstChild) this.skillsPanel.removeChild(this.skillsPanel.firstChild);
+    this.skillsPanel.style.display = this.skillsPanelOpen && !this.minimized ? 'block' : 'none';
+    if (!this.skillsPanelOpen || this.minimized) return true;
+
+    const heading = doc.createElement('div');
+    heading.textContent = state.available
+      ? `${state.character.name} · ${state.character.ctype} L${state.character.level} · Catalog ${state.catalogState}`
+      : 'Skill-Konfiguration nicht verfügbar';
+    this._setStyle(heading, { color: '#d1d5db', marginBottom: '8px', fontWeight: 'bold' });
+    this.skillsPanel.appendChild(heading);
+    if (!state.available) return true;
+
+    const actions = doc.createElement('div');
+    this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });
+    const enableAll = this._button(doc, 'Alle aktivieren', () => this._enableAllSkills());
+    enableAll.style.marginLeft = '0px';
+    const reset = this._button(doc, 'Standard', () => this._resetSkillProfile());
+    reset.style.marginLeft = '0px';
+    actions.appendChild(enableAll);
+    actions.appendChild(reset);
+    this.skillsPanel.appendChild(actions);
+
+    for (const row of state.rows) {
+      const skillBox = doc.createElement('div');
+      this._setStyle(skillBox, {
+        padding: '7px 0', borderTop: '1px solid #303641'
+      });
+
+      const top = doc.createElement('div');
+      this._setStyle(top, { display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' });
+      const left = doc.createElement('label');
+      this._setStyle(left, { display: 'flex', alignItems: 'center', gap: '7px', minWidth: '0', cursor: row.skill.automationValidated ? 'pointer' : 'default' });
+      const check = doc.createElement('input');
+      check.type = 'checkbox';
+      check.checked = row.enabled;
+      check.disabled = !state.catalogReady || row.skill.automationValidated !== true;
+      check.onchange = () => this._setSkillEnabled(row.skill.id, check.checked === true);
+      const name = doc.createElement('span');
+      name.textContent = `${row.skill.name || row.skill.id} · L${row.skill.requiredLevel || 0}`;
+      this._setStyle(name, { color: '#f3f4f6', overflowWrap: 'anywhere' });
+      left.appendChild(check);
+      left.appendChild(name);
+      const status = doc.createElement('span');
+      status.textContent = this._skillStatusText(row, state);
+      this._setStyle(status, { color: '#9ca3af', fontSize: '10px', textAlign: 'right' });
+      top.appendChild(left);
+      top.appendChild(status);
+      skillBox.appendChild(top);
+
+      for (const control of row.skill.controls || []) {
+        if (!control || !control.key) continue;
+        const wrap = doc.createElement('div');
+        this._setStyle(wrap, { display: 'grid', gridTemplateColumns: '82px 1fr 42px', alignItems: 'center', gap: '7px', marginTop: '6px' });
+        const label = doc.createElement('span');
+        label.textContent = this._skillControlLabel(control.key);
+        this._setStyle(label, { color: '#9ca3af', fontSize: '10px' });
+        const input = doc.createElement('input');
+        input.type = 'range';
+        const percent = control.type === 'percent';
+        const dynamicMax = control.maxSource === 'targetCapacity' && Number.isFinite(Number(row.skill.targetCapacity))
+          ? Number(row.skill.targetCapacity) : Number(control.max);
+        input.min = String(percent ? Math.round(Number(control.min || 0) * 100) : Number(control.min || 0));
+        input.max = String(percent ? Math.round(Number(dynamicMax || 1) * 100) : Number(dynamicMax || control.max || 1));
+        input.step = String(percent ? Math.max(1, Math.round(Number(control.step || 0.01) * 100)) : Number(control.step || 1));
+        const current = Number(row.parameters[control.key]);
+        input.value = String(percent ? Math.round((Number.isFinite(current) ? current : Number(control.default || 0)) * 100) : (Number.isFinite(current) ? current : Number(control.default || 0)));
+        input.disabled = !state.catalogReady || !row.enabled || row.skill.automationValidated !== true;
+        const value = doc.createElement('span');
+        value.textContent = percent ? `${input.value}%` : input.value;
+        this._setStyle(value, { color: '#d1d5db', fontSize: '10px', textAlign: 'right' });
+        input.oninput = () => { value.textContent = percent ? `${input.value}%` : input.value; };
+        input.onchange = () => {
+          const raw = Number(input.value);
+          this._setSkillParameter(row.skill.id, control.key, percent ? raw / 100 : raw);
+          this.refresh();
+        };
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        wrap.appendChild(value);
+        skillBox.appendChild(wrap);
+      }
+      this.skillsPanel.appendChild(skillBox);
+    }
+    return true;
+  }
+
+  _toggleSkillsPanel() {
+    this.skillsPanelOpen = !this.skillsPanelOpen;
+    if (this.skillsPanelOpen) this._primeSkills();
+    this._renderSkillsPanel();
+    return this.skillsPanelOpen;
+  }
+
   _formatDuration(ms) {
     const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
     const hours = Math.floor(total / 3600);
@@ -423,6 +683,8 @@ class DebugMonitorUI {
     for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
     if (this.logBox) this.logBox.textContent = this._eventsText();
     this._updateRunButton(runStatus);
+    this._updateSkillsButton();
+    if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
   }
 
@@ -465,6 +727,7 @@ class DebugMonitorUI {
     };
     this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
     if (this.runControl) this.runButton = this._button(doc, 'Start/Stop', () => { this._toggleRun(); });
+    this.skillsButton = this._button(doc, 'Skills —', () => { this._toggleSkillsPanel(); });
     const minimize = this._button(doc, '–', () => {
       this._setMinimized(!this.minimized);
       minimize.textContent = this.minimized ? '+' : '–';
@@ -472,11 +735,16 @@ class DebugMonitorUI {
     const close = this._button(doc, '×', () => this.hide());
     buttons.appendChild(this.copyButton);
     if (this.runButton) buttons.appendChild(this.runButton);
+    buttons.appendChild(this.skillsButton);
     buttons.appendChild(minimize);
     buttons.appendChild(close);
     header.appendChild(title);
     header.appendChild(buttons);
     box.appendChild(header);
+
+    this.skillsPanel = doc.createElement('div');
+    this._setStyle(this.skillsPanel, { display: 'none', marginBottom: '10px', padding: '8px', background: '#11151b', border: '1px solid #374151', borderRadius: '5px' });
+    box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
     box.appendChild(this.body);
@@ -535,6 +803,9 @@ class DebugMonitorUI {
     this.logBox = null;
     this.copyButton = null;
     this.runButton = null;
+    this.skillsButton = null;
+    this.skillsPanel = null;
+    this.skillsPanelOpen = false;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this._expandedLayout = null;
@@ -551,6 +822,8 @@ class DebugMonitorUI {
       directGameplayActionAccess: false,
       runtimeControlAuthority: !!this.runControl,
       safeStartStop: !!this.runControl,
+      skillConfigurationAuthority: !!(this._skillRuntime() && this._skillRuntime().characterCombatProfiles),
+      skillPanelOpen: this.skillsPanelOpen,
       runControl: runStatus,
       lastRunControlError: this.lastRunControlError,
       domAvailable: !!this._doc(),

@@ -69,8 +69,14 @@ class Alpha13Runtime extends Alpha12Runtime {
     const result = this.contentDrift.scan(this.lastSnapshot, gameData);
     this.lastContentDriftResult = result;
     for (const change of result && result.changes || []) {
-      if (change.category !== 'monsters') continue;
       if (change.kind !== 'DRIFT' && change.kind !== 'NOVELTY') continue;
+      if (change.category === 'skills') {
+        if (this.skillCatalog && typeof this.skillCatalog.noteIndependentDrift === 'function') {
+          this.skillCatalog.noteIndependentDrift(change.id, change.kind, change.fingerprint);
+        }
+        continue;
+      }
+      if (change.category !== 'monsters') continue;
       try {
         this.combatRisk.quarantineMonsterType(this.world, change.id);
         this.log.emit({

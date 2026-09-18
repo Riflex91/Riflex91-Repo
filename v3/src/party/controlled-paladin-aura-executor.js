@@ -60,6 +60,8 @@ class ControlledPaladinAuraExecutor {
     if (recommendation && recommendation.canSwitch === false) reasons.push('AURA_HYSTERESIS_HOLD');
     if (this.auraPolicy && this.auraPolicy.lastAura === aura) reasons.push('AURA_ALREADY_ACTIVE');
     if (!this.adapter || typeof this.adapter.command !== 'function') reasons.push('ADAPTER_UNAVAILABLE');
+    const skillPolicy = this.adapter && this.adapter.skillPolicy;
+    if (skillPolicy && typeof skillPolicy.peek === 'function' && !skillPolicy.peek('paladin_aura', character)) reasons.push('SKILL_POLICY_DISABLED');
     if (reasons.length) {
       this.stats.rejected += 1;
       this.lastResult = { at: this.now(), executed: false, aura: aura || null, reason: reasons[0], reasons };
