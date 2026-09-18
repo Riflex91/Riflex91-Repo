@@ -1,6 +1,7 @@
 'use strict';
 
 const { sellProtectionReasons } = require('../economy/sell-safety');
+const { preferredAcquisitionElixir, bestOwnedElixir, activeElixir, planElixirAcquisition } = require('./elixir-policy');
 
 const PARTY_LOGISTICS_TYPE = 'aio-v3-party-logistics';
 const PARTY_LOGISTICS_PROTOCOL = 1;
@@ -18,7 +19,8 @@ const Action = Object.freeze({
   GOLD_GRANT: 'GOLD_GRANT',
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
   STOP_FULL: 'STOP_FULL',
-  RENDEZVOUS: 'RENDEZVOUS'
+  RENDEZVOUS: 'RENDEZVOUS',
+  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE'
 });
 
 function finite(value, fallback = null) {
@@ -104,13 +106,20 @@ class ControlledPartyLogistics {
       rendezvousRequestTtlMs: Math.max(5000, finite(options.rendezvousRequestTtlMs, 15000)),
       farmerGoldReserve: Math.max(0, Math.floor(finite(options.farmerGoldReserve, 250000))),
       maxGoldBatch: Math.max(10000, Math.floor(finite(options.maxGoldBatch, 1000000))),
-      maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999)))
+      maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999))),
+      elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
+      elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
+      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
     };
 
     this.sequence = 0;
     this.capacitySequence = 0;
     this.lastStatusBroadcastAt = -Infinity;
     this.lastSupplyRequestAt = -Infinity;
+    this.lastElixirRequestAt = -Infinity;
+    this.lastElixirEquipAt = -Infinity;
+    this.pendingElixirEquip = null;
+    this.lastElixirFarmObjective = null;
     this.lastStatusRequestAt = -Infinity;
     this.lastTransferAt = -Infinity;
     this.lastRendezvousMoveAt = -Infinity;
@@ -149,7 +158,12 @@ class ControlledPartyLogistics {
       merchantFullStops: 0,
       rendezvousMoves: 0,
       rendezvousCrossMap: 0,
-      verificationFailures: 0
+      verificationFailures: 0,
+      elixirRequests: 0,
+      elixirTransfers: 0,
+      elixirEquips: 0,
+      elixirEquipVerified: 0,
+      elixirFarmObjectives: 0
     };
     this.install();
   }
@@ -445,6 +459,27 @@ class ControlledPartyLogistics {
       return true;
     }
 
+    if (action === Action.ELIXIR_FARM_OBJECTIVE) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      if (!farmer) return false;
+      farmer.materialObjective = {
+        kind: 'ELIXIR_MATERIAL',
+        monster: cleanName(data.monster),
+        material: cleanName(data.material),
+        elixirName: cleanName(data.elixirName),
+        map: cleanName(data.map),
+        x: finite(data.x),
+        y: finite(data.y),
+        spawnIndex: finite(data.spawnIndex),
+        expectedHours: finite(data.expectedHours),
+        expiresAt
+      };
+      return true;
+    }
+
     if (action === Action.SUPPLY_RESULT) {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       this.lastSupplyResult = { ...clone(data), receivedAt: this.now() };
@@ -470,6 +505,7 @@ class ControlledPartyLogistics {
     }
     if (action === Action.SUPPLY_REQUEST) {
       this.supplyRequests.set(from, { ...clone(data), sender: from, receivedAt: this.now() });
+      if (data && data.elixirName) this._maybePublishElixirFarmObjective({ ...data, sender: from });
       return true;
     }
     if (action === Action.LOOT_OFFER) return this._handleLootOffer(from, data);
@@ -558,10 +594,20 @@ class ControlledPartyLogistics {
       const merchantPos = snapshot.character;
       const farmerPos = { map: request.map, x: finite(request.x), y: finite(request.y) };
       if (!this._withinTransferRange(merchantPos, farmerPos)) continue;
-      const choices = ['mpot0', 'hpot0'].map((itemName) => ({ itemName, deficit: this._supplyDeficit(request, itemName), available: countItem(snapshot, itemName) }));
-      const choice = choices.find((row) => row.deficit > 0 && row.available > this.config.merchantPotionReserve);
-      if (!choice) { this.supplyRequests.delete(request.sender); continue; }
-      const quantity = Math.min(choice.deficit, choice.available - this.config.merchantPotionReserve, this.config.maxSupplyBatch);
+      let choice = null;
+      if (request.elixirName) {
+        const inventory = snapshot.character.inventory || [];
+        const exact = inventory.find((item) => item && item.name === request.elixirName);
+        const gameData = this.root && this.root.G || this.parent && this.parent.G || {};
+        const best = exact ? { name: exact.name, index: exact.index } : bestOwnedElixir(inventory, gameData, request.ctype);
+        if (best) choice = { itemName: best.name, deficit: 1, available: countItem(snapshot, best.name), elixir: true, slotIndex: best.index };
+      }
+      if (!choice) {
+        const choices = ['mpot0', 'hpot0'].map((itemName) => ({ itemName, deficit: this._supplyDeficit(request, itemName), available: countItem(snapshot, itemName), elixir: false }));
+        choice = choices.find((row) => row.deficit > 0 && row.available > this.config.merchantPotionReserve) || null;
+      }
+      if (!choice) { if (request.elixirName) this._maybePublishElixirFarmObjective(request); else this.supplyRequests.delete(request.sender); continue; }
+      const quantity = choice.elixir ? 1 : Math.min(choice.deficit, choice.available - this.config.merchantPotionReserve, this.config.maxSupplyBatch);
       if (quantity <= 0) continue;
       const inventory = snapshot.character.inventory || [];
       const slot = inventory.find((item) => item && item.name === choice.itemName && Math.max(1, finite(item.q, 1)) >= quantity);
@@ -587,6 +633,7 @@ class ControlledPartyLogistics {
         }
         const result = command.value;
         this.stats.supplyTransfers += 1;
+        if (choice.elixir) this.stats.elixirTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingSupply && this.pendingSupply.transactionId === transactionId) this.pendingSupply.asyncRejected = true; });
         this._event('PARTY_SUPPLY_SENT', 'info', 'BOUNDED_POTION_RESUPPLY', { transactionId, target: request.sender, itemName: choice.itemName, quantity });
       } catch (error) {
@@ -638,15 +685,121 @@ class ControlledPartyLogistics {
   _requestSupply(snapshot) {
     const hpPotions = countItem(snapshot, 'hpot0');
     const mpPotions = countItem(snapshot, 'mpot0');
-    if (hpPotions >= this.config.farmerPotionLow && mpPotions >= this.config.farmerPotionLow) return false;
+    const elixir = this._elixirRequest(snapshot);
+    const potionNeed = hpPotions < this.config.farmerPotionLow || mpPotions < this.config.farmerPotionLow;
+    if (!potionNeed && !elixir) return false;
     const now = this.now();
-    if (now - this.lastSupplyRequestAt < this.config.supplyRequestIntervalMs) return false;
+    const interval = elixir && !potionNeed ? this.config.elixirRequestIntervalMs : this.config.supplyRequestIntervalMs;
+    if (now - this.lastSupplyRequestAt < interval) return false;
     const merchant = this._merchantName();
     if (!merchant) return false;
     this.lastSupplyRequestAt = now;
+    if (elixir) { this.lastElixirRequestAt = now; this.stats.elixirRequests += 1; }
     this.stats.supplyRequests += 1;
-    this._send(merchant, Action.SUPPLY_REQUEST, { hpPotions, mpPotions, target: this.config.farmerPotionTarget, ...this._farmerPosition(snapshot) });
-    this.lastDecision = { at: now, action: 'SUPPLY_REQUEST', reason: hpPotions <= 0 || mpPotions <= 0 ? 'POTION_SUPPLY_MISSING' : 'POTION_SUPPLY_LOW', hpPotions, mpPotions };
+    this._send(merchant, Action.SUPPLY_REQUEST, { hpPotions, mpPotions, target: this.config.farmerPotionTarget, ...elixir, ...this._farmerPosition(snapshot) });
+    this.lastDecision = { at: now, action: 'SUPPLY_REQUEST', reason: elixir && !potionNeed ? 'ELIXIR_RENEWAL_DUE' : hpPotions <= 0 || mpPotions <= 0 ? 'POTION_SUPPLY_MISSING' : 'POTION_SUPPLY_LOW', hpPotions, mpPotions, elixir: clone(elixir) };
+    return true;
+  }
+
+  _elixirState(snapshot) {
+    const c = this._character() || {};
+    const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
+    const gameData = this.root && this.root.G || this.parent && this.parent.G || {};
+    const desired = preferredAcquisitionElixir(gameData, c.ctype);
+    const owned = bestOwnedElixir(inventory, gameData, c.ctype);
+    const active = activeElixir(c, this.now());
+    return {
+      desired,
+      owned,
+      active,
+      renewalDue: !active.active || active.remainingMs <= this.config.elixirRenewLeadMs,
+      useDue: !active.active
+    };
+  }
+
+  _verifyPendingElixirEquip() {
+    const pending = this.pendingElixirEquip;
+    if (!pending) return false;
+    const active = activeElixir(this._character(), this.now());
+    if (active.active && active.name === pending.name) {
+      this.stats.elixirEquipVerified += 1;
+      this.pendingElixirEquip = null;
+      return false;
+    }
+    if (this.now() - pending.at > this.config.verifyTimeoutMs) {
+      this.pendingElixirEquip = null;
+      this.backoffUntil = this.now() + this.config.failureBackoffMs;
+      return false;
+    }
+    return true;
+  }
+
+  _maybeUseElixir(snapshot) {
+    this._verifyPendingElixirEquip();
+    if (this.pendingElixirEquip || this.now() < this.backoffUntil) return false;
+    const state = this._elixirState(snapshot);
+    if (!state.useDue || !state.owned) return false;
+    if (!this.adapter || typeof this.adapter.command !== 'function') return false;
+    const command = this.adapter.command('equip', [state.owned.index, 'elixir']);
+    if (!command || command.executed !== true) return false;
+    this.pendingElixirEquip = { at: this.now(), name: state.owned.name, index: state.owned.index };
+    this.lastElixirEquipAt = this.now();
+    this.stats.elixirEquips += 1;
+    Promise.resolve(command.value).catch(() => {
+      if (this.pendingElixirEquip && this.pendingElixirEquip.name === state.owned.name) this.pendingElixirEquip = null;
+    });
+    this._event('FARMER_ELIXIR_EQUIP_REQUESTED', 'info', 'ACTIVE_ELIXIR_EXPIRED_OR_MISSING', { name: state.owned.name });
+    return true;
+  }
+
+  _elixirRequest(snapshot) {
+    if (this._isMerchant(snapshot)) return null;
+    const state = this._elixirState(snapshot);
+    if (!state.desired || !state.renewalDue || state.owned) return null;
+    return {
+      elixirName: state.desired.name,
+      elixirStat: state.desired.stat,
+      ctype: snapshot && snapshot.character && snapshot.character.ctype || this._character() && this._character().ctype || null,
+      activeElixir: state.active.name,
+      activeElixirRemainingMs: Number.isFinite(state.active.remainingMs) ? state.active.remainingMs : null
+    };
+  }
+
+  _maybePublishElixirFarmObjective(request) {
+    if (!request || !request.elixirName) return false;
+    if (this.lastElixirFarmObjective && this.lastElixirFarmObjective.expiresAt > this.now() && this.lastElixirFarmObjective.elixirName === request.elixirName) return false;
+    const plan = planElixirAcquisition(this.runtime, request.ctype, {});
+    if (!plan || !plan.worthwhile || !plan.farm) return false;
+    const farm = plan.farm;
+    const objective = {
+      elixirName: request.elixirName,
+      material: farm.material,
+      monster: farm.monster,
+      map: farm.map,
+      spawnIndex: farm.spawnIndex,
+      x: farm.x,
+      y: farm.y,
+      expectedHours: farm.expectedHours,
+      unitsPerHour: farm.unitsPerHour,
+      createdAt: this.now(),
+      expiresAt: this.now() + this.config.elixirFarmObjectiveTtlMs,
+      reason: plan.reason
+    };
+    this.lastElixirFarmObjective = clone(objective);
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      this._send(name, Action.ELIXIR_FARM_OBJECTIVE, objective);
+    }
+    if (this.runtime) {
+      this.runtime.merchantExchangeDemands = [{
+        item: farm.kind === 'EXCHANGE_MATERIAL_DROP' ? farm.material : null,
+        target: request.elixirName,
+        reason: 'ELIXIR_SUPPLY',
+        expiresAt: objective.expiresAt
+      }].filter((row) => row.item);
+    }
+    this.stats.elixirFarmObjectives += 1;
+    this._event('ELIXIR_FARM_OBJECTIVE_PUBLISHED', 'info', plan.reason, objective);
     return true;
   }
 
@@ -813,6 +966,7 @@ class ControlledPartyLogistics {
   _farmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
     if (this._safeForOutbound(snapshot)) {
       if (!this._executeGrant(snapshot)) this._offerOutbound(snapshot);
@@ -843,7 +997,9 @@ class ControlledPartyLogistics {
       config: { ...this.config },
       authority: {
         genericSendItem: false,
-        merchantSupplyAllowlist: ['hpot0', 'mpot0'],
+        merchantSupplyAllowlist: ['hpot0', 'mpot0', 'class-appropriate-elixir'],
+        farmerElixirAutoUseAfterExpiry: true,
+        elixirFarmObjectiveAutomatic: true,
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
@@ -854,6 +1010,8 @@ class ControlledPartyLogistics {
       lastMerchantStatus: clone(this.lastMerchantStatus),
       lastSupplyResult: clone(this.lastSupplyResult),
       pendingSupply: clone(this.pendingSupply),
+      pendingElixirEquip: clone(this.pendingElixirEquip),
+      lastElixirFarmObjective: clone(this.lastElixirFarmObjective),
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
