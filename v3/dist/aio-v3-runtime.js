@@ -46167,7 +46167,9 @@ function installPlannerPolicy(runtime) {
   planner.targetPotionCount = POTION_TARGET_COUNT;
   planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
 
-  if (planner.__p0PotionPolicy4500PlannerInstalled || typeof planner.plan !== 'function') return true;
+  if (planner.__p0PotionPolicy4500PlannerVersion === 4 || typeof planner.plan !== 'function') return true;
+  // Versioned wrapping is intentional: a live runtime may already carry the v3 wrapper.
+  // Wrapping that existing planner once lets the fix take effect without requiring a page restart.
   const basePlan = planner.plan.bind(planner);
 
   const targetReportFor = (input, targetName) => {
@@ -46392,6 +46394,7 @@ function installPlannerPolicy(runtime) {
     return clone(next);
   };
   planner.__p0PotionPolicy4500PlannerInstalled = true;
+  planner.__p0PotionPolicy4500PlannerVersion = 4;
   return true;
 }
 
@@ -46472,8 +46475,9 @@ function installRestockPolicy(runtime) {
 function installDeliveryPolicy(runtime) {
   const service = runtime && runtime.controlledMerchantService;
   if (!service || typeof service._executeDelivery !== 'function') return false;
-  if (service.__p0PotionPolicy4500DeliveryInstalled) return true;
+  if (service.__p0PotionPolicy4500DeliveryVersion === 4) return true;
 
+  // Keep hot reload safe for runtimes that already have the v3 delivery wrapper installed.
   const baseDelivery = service._executeDelivery.bind(service);
   service._executeDelivery = async (plan) => {
     const deliveries = Array.isArray(plan && plan.deliveries) ? plan.deliveries : null;
@@ -46559,6 +46563,7 @@ function installDeliveryPolicy(runtime) {
   };
 
   service.__p0PotionPolicy4500DeliveryInstalled = true;
+  service.__p0PotionPolicy4500DeliveryVersion = 4;
   return true;
 }
 
