@@ -105,6 +105,7 @@ class GearProgressionEvaluator {
     this.maxProbeLevel = Math.max(1, Math.min(20, Math.floor(finite(options.maxProbeLevel, 12))));
     this.minImprovementRatio = Math.max(0.01, Math.min(1, finite(options.minImprovementRatio, 0.05)));
     this.goals = new Map();
+    this.futureFarmerProtection = new Map();
     this.loaded = false;
     this.lastEvaluatedAt = null;
     this.lastEvaluation = null;
@@ -145,13 +146,22 @@ class GearProgressionEvaluator {
 
   _firstMeaningful(meta, observedLevel, currentScore, ctype) {
     const start = Math.max(0, observedLevel);
-    const max = meta && meta.upgrade ? Math.max(start, this.maxProbeLevel) : start;
+    const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
     const threshold = currentScore.total <= 0 ? 0.001 : currentScore.total * (1 + this.minImprovementRatio);
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
       if (score.total > threshold) return { level, score };
     }
     return null;
+  }
+
+  futureProtectionFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const row = this.futureFarmerProtection.get(exactKey);
+    if (!row) return null;
+    if (String(row.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(row.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    return clone(row);
   }
 
   _goalId(character, slot, item, targetLevel) {
@@ -184,6 +194,7 @@ class GearProgressionEvaluator {
     }
     this.stats.candidates += candidates.length;
     const seenGoalIds = new Set();
+    this.futureFarmerProtection.clear();
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
@@ -198,6 +209,29 @@ class GearProgressionEvaluator {
           const improvement = meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.score.survival - current.score.survival;
           const row = { slot, current, meaningful, improvement, survivalImprovement };
+          if (String(character.ctype || '').toLowerCase() !== 'merchant'
+            && meaningful.level > levelOf(candidate.item)
+            && Number.isInteger(Number(candidate.item.index))) {
+            const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+            const existingProtection = this.futureFarmerProtection.get(protectionKey);
+            const protection = {
+              sourceCharacter: candidate.sourceCharacter,
+              sourceIndex: Number(candidate.item.index),
+              item: candidate.item.name,
+              observedLevel: levelOf(candidate.item),
+              targetLevel: meaningful.level,
+              targetCharacter: character.name,
+              targetSlot: slot,
+              improvement,
+              survivalImprovement,
+              reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
+            };
+            if (!existingProtection
+              || protection.targetLevel < existingProtection.targetLevel
+              || protection.improvement > existingProtection.improvement) {
+              this.futureFarmerProtection.set(protectionKey, protection);
+            }
+          }
           if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
         }
         if (!best) continue;
@@ -306,6 +340,7 @@ class GearProgressionEvaluator {
       farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
       farmerTargetShare: 0.8,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
@@ -374,6 +409,8 @@ class GearProgressionEvaluator {
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
       goals: this.goals.size,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
