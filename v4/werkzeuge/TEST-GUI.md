@@ -81,18 +81,31 @@ Auf beiden Charakteren:
 
 Nur auf dem konfigurierten Testleiter:
 
-4. **Gruppenziel + Vorschau**
+4. **Passive Vorpruefung**
 5. **ONE-SHOT AUSFUEHREN**
 
-Der Schritt `Gruppenziel + Vorschau` bleibt deaktiviert, bis der Leiter:
+Der Schritt `Passive Vorpruefung` bleibt deaktiviert, bis der Leiter:
 
 - den Empfang gestartet hat,
 - einen erfolgreichen Heartbeat gesendet hat,
 - mindestens zwei bekannte Teilnehmer sieht.
 
-Der one-shot bleibt deaktiviert, bis die Produktions-Smoke-Vorschau bestanden ist.
+Die passive Vorpruefung sendet einen frischen Lebensnachweis, bestaetigt mindestens zwei bekannte Teilnehmer sowie das aktuell sichtbare/lokale Ziel und erzeugt dabei **keine** zentrale Gruppenanfrage, **keine** Ressourcensperre und **keine** Smoke-Fassade.
+
+Der one-shot bleibt deaktiviert, bis diese passive Vorpruefung bestanden ist.
 
 Vor dem one-shot muss zusaetzlich exakt der vom bestehenden Smoke-Runner gelieferte Starttext in das GUI-Bestaetigungsfeld eingegeben werden.
+
+Erst der bestaetigte finale Klick erzeugt die zentrale Gruppenanfrage. Weil deren Produktions-Gueltigkeit bewusst nur **1.500 ms** betraegt, fuehrt die GUI anschliessend in derselben Aktion ohne menschliche Zwischenpause aus:
+
+1. frischen lokalen Lebensnachweis senden,
+2. zentrale Gruppenzielanfrage erzeugen,
+3. Smoke-Fassade installieren,
+4. finale Produktionsvorschau lesen,
+5. Vorschau exakt gegen die zuvor bestaetigte Ziel-/Monster-Erwartung pruefen,
+6. one-shot starten.
+
+Wenn zwischen Vorbereitung und Ausfuehrung eine Voraussetzung kippt, ruft die GUI fail-safe `V4ProduktionsLaufzeit.stoppe()` auf und laesst keine zentrale Ressourcensperre absichtlich stehen.
 
 Die GUI startet den Angriff nicht selbst. Sie delegiert ausschliesslich an:
 
@@ -133,6 +146,9 @@ prueft:
 - Syntax der GUI- und Controller-Dateien,
 - den GUI-Vertrag fuer kopierbare Berichte,
 - das Zwei-Teilnehmer-Gate,
+- die ressourcenfreie passive Vorpruefung,
+- die atomare finale 1,5-s-Abfolge,
+- das Fail-safe Cleanup nach finalem Fehler,
 - die explizite one-shot-Bestaetigung,
 - das Fehlen direkter Adventure-Land-Aktionsaufrufe im GUI-Controller,
 - die Offline-Controller-Tests,

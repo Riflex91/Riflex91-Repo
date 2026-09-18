@@ -103,10 +103,10 @@ Es ist auf beiden Rangern identisch und stellt einen gefuehrten Ablauf bereit:
 1. Runtime laden,
 2. Empfang starten,
 3. Heartbeat senden,
-4. auf dem Testleiter Gruppenziel + Produktions-Smoke-Vorschau,
-5. nach separatem exaktem Bestaetigungstext den one-shot,
+4. auf dem Testleiter eine passive, ressourcenfreie Ziel-Vorpruefung,
+5. nach separatem exaktem Bestaetigungstext den atomaren one-shot,
 6. Stop/Aufraeumen.
 
 Jeder Schritt schreibt ein strukturiertes Ergebnis in ein kopierbares Textfeld. **Ergebnis kopieren** kopiert den letzten strukturierten Zustand; **Gesamtbericht kopieren** kopiert Ergebnis und komplettes Testprotokoll.
 
-Der one-shot-Button wird erst nach einer bestandenen Smoke-Vorschau aktiv. Der Gruppenziel-Button wird erst nach erfolgreichem Heartbeat und mindestens zwei bekannten Teilnehmern aktiv. Die GUI besitzt keinen direkten Adventure-Land-Aktionsaufruf.
+Der one-shot-Button wird erst nach einer bestandenen passiven Vorpruefung aktiv. Diese Vorpruefung erzeugt keine zentrale Anfrage, keine Ressourcenbelegung und keine Smoke-Fassade. Der finale bestaetigte Klick erzeugt die 1.500-ms-Gruppenanfrage und fuehrt Vorbereitung, Smoke-Installation, finale Produktionsvorschau und one-shot ohne menschliche Zwischenpause aus. Bei einem Fehler nach Verbrauch der Vorbereitung wird fail-safe zentral gestoppt. Die GUI besitzt keinen direkten Adventure-Land-Aktionsaufruf.
