@@ -33,10 +33,16 @@ for (const pflicht of [
   'AIO_V4_LIVE_TEST_GUI_CONFIG',
   'mindestensZweiTeilnehmer',
   'runtimeApi().sendeLebensnachweis()',
+  "schritt: 'gruppenziel_passive_vorpruefung'",
+  'gruppenZielVorbereitungVerbraucht === false',
+  'laufendeGruppenAnfragen.length === 0',
+  'ressourcenSperren.length === 0',
   'runtime.bereiteGruppenZielVor',
   'runtime.installiereGruppenZielLiveSmoke',
   'runner.vorschau()',
+  'Finale Produktionsvorschau unmittelbar vor one-shot',
   'runner.starte(runner.startText())',
+  'Fail-safe Cleanup nach one-shot Fehler',
   "titel: '5 · ONE-SHOT AUSFUEHREN'",
   'bestaetigungsText: runnerApi().startText()',
   'echteSpielaktionen?.attack === 1',
@@ -68,13 +74,13 @@ for (const pflicht of [
 
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-produktions-live-test-gui.test.mjs'), 'utf8');
 for (const pflicht of [
-  'fuehrt Leiterablauf nur ueber Produktions-APIs bis zum bestandenen one-shot',
-  'deaktiviert aktive Ziel-/Smoke-Schritte auf Nicht-Leiter',
-  'findet Ziel auch ueber entity.id statt nur ueber Objekt-Key',
-  'stoppt zentral und meldet freigegebene Ressourcen',
+  'fuehrt passive Vorpruefung ohne zentrale Anfrage und finalen one-shot atomar aus',
+  'deaktiviert Vorpruefung und one-shot auf Nicht-Leiter',
+  'findet passives Vorpruefungsziel auch ueber entity.id statt nur ueber Objekt-Key',
+  'stoppt nach passiver Vorpruefung ohne zentrale Ressourcen',
   'besitzt selbst keinen direkten Adventure-Land-Aktionsaufruf'
 ]) {
   if (!tests.includes(pflicht)) throw new Error(`Block-8 Live-Test-GUI-Test fehlt: ${pflicht}`);
 }
 
-console.log('V4 Live-Test-GUI geprueft: kopierbarer Bericht, Zwei-Teilnehmer-Gate, bestaetigter one-shot, kein direkter Adventure-Land-Aktionsaufruf und source-locked Komplettpaket.');
+console.log('V4 Live-Test-GUI geprueft: kopierbarer Bericht, passive ressourcenfreie Vorpruefung, atomarer 1,5s one-shot, Fail-safe Cleanup, kein direkter Adventure-Land-Aktionsaufruf und source-locked Komplettpaket.');
