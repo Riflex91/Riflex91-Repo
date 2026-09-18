@@ -45,10 +45,34 @@ export interface GruppenEntscheidungsErwartung {
   readonly aufgaben: GruppenAufgabenZuordnung;
 }
 
+export const GRUPPEN_ENTSCHEIDUNGS_ERGEBNIS_STATUS = [
+  'keine_aktion',
+  'offen',
+  'erfolgreich',
+  'fehlgeschlagen',
+  'gemischt'
+] as const;
+export type GruppenEntscheidungsErgebnisStatus =
+  (typeof GRUPPEN_ENTSCHEIDUNGS_ERGEBNIS_STATUS)[number];
+
+export interface GruppenEntscheidungsAktionsRueckmeldung {
+  readonly aktionsAnfrageKennung: string;
+  readonly phase: string;
+  readonly erfolgreich: boolean | null;
+  readonly grund: string;
+}
+
+export interface GruppenEntscheidungsTatsaechlichesErgebnis {
+  readonly schemaVersion: 1;
+  readonly ausgewertetAm: number;
+  readonly status: GruppenEntscheidungsErgebnisStatus;
+  readonly rueckmeldungen: readonly GruppenEntscheidungsAktionsRueckmeldung[];
+}
+
 export type GruppenEntscheidungsDatensatz = EntscheidungsDatensatz<
   GruppenEntscheidungsSituation,
   GruppenEntscheidungsErwartung,
-  unknown
+  GruppenEntscheidungsTatsaechlichesErgebnis
 >;
 
 function pruefeText(name: string, wert: string): void {
