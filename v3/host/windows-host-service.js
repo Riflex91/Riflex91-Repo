@@ -100,7 +100,7 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     alertTransports = createWindowsCriticalAlertTransports(secretJson);
   }
 
-  return {
+  const config = {
     schemaVersion: 1,
     browserCommand: bounded(raw.browserCommand),
     browserArgs: raw.browserArgs.slice(0, 128).map((value) => bounded(value)),
@@ -114,11 +114,8 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     alertStatePath: path.resolve(String(raw.alertStatePath)),
     apiHost: '127.0.0.1',
     apiPort: Math.max(0, Math.min(65535, Math.floor(finite(raw.apiPort, 8791)))),
-    apiToken,
     criticalAlertingEnabled,
     alertSecretsEnvironmentVariable: alertSecretsEnv,
-    alertTransports,
-    hostEnv: { ...env },
     browserEnv: sanitizeWindowsBrowserEnvironment(env),
     tickIntervalMs: Math.max(1000, Math.min(60000, finite(raw.tickIntervalMs, 5000))),
     stableAfterMs: Math.max(10000, finite(raw.stableAfterMs, 120000)),
@@ -127,6 +124,12 @@ function loadWindowsHostConfig(filePath, env = process.env) {
     startCircuitCooldownMs: Math.max(60000, finite(raw.startCircuitCooldownMs, 15 * 60 * 1000)),
     browserRestartEnabled: raw.browserRestartEnabled === true
   };
+  Object.defineProperties(config, {
+    apiToken: { value: apiToken, enumerable: false },
+    alertTransports: { value: alertTransports, enumerable: false },
+    hostEnv: { value: { ...env }, enumerable: false }
+  });
+  return config;
 }
 
 function createWindowsHostService(config, options = {}) {
