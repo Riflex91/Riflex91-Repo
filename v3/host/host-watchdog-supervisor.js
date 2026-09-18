@@ -233,6 +233,41 @@ class HostWatchdogSupervisor {
       lastSeq: this.lastSeq,
       lastBeaconAt: this.lastBeacon && this.lastBeacon.at || null,
       lastDeadlineAt: this.lastBeacon && this.lastBeacon.deadlineAt || null,
+      lastBeaconSummary: this.lastBeacon ? {
+        runId: this.lastBeacon.runId == null ? null : String(this.lastBeacon.runId),
+        seq: finite(this.lastBeacon.seq),
+        at: finite(this.lastBeacon.at),
+        deadlineAt: finite(this.lastBeacon.deadlineAt),
+        release: this.lastBeacon.release == null ? null : String(this.lastBeacon.release).slice(0, 80),
+        character: this.lastBeacon.character ? {
+          name: this.lastBeacon.character.name == null ? null : String(this.lastBeacon.character.name).slice(0, 80),
+          ctype: this.lastBeacon.character.ctype == null ? null : String(this.lastBeacon.character.ctype).slice(0, 40),
+          map: this.lastBeacon.character.map == null ? null : String(this.lastBeacon.character.map).slice(0, 80),
+          rip: this.lastBeacon.character.rip === true
+        } : null,
+        runtime: this.lastBeacon.runtime ? {
+          mode: this.lastBeacon.runtime.mode == null ? null : String(this.lastBeacon.runtime.mode).slice(0, 40),
+          heartbeatAt: finite(this.lastBeacon.runtime.heartbeatAt),
+          snapshotAt: finite(this.lastBeacon.runtime.snapshotAt)
+        } : null,
+        health: this.lastBeacon.health ? {
+          state: this.lastBeacon.health.state == null ? null : String(this.lastBeacon.health.state).slice(0, 40),
+          watchdogState: this.lastBeacon.health.watchdogState == null ? null : String(this.lastBeacon.health.watchdogState).slice(0, 40),
+          watchdogReason: this.lastBeacon.health.watchdogReason == null ? null : String(this.lastBeacon.health.watchdogReason).slice(0, 120),
+          groupState: this.lastBeacon.health.groupState == null ? null : String(this.lastBeacon.health.groupState).slice(0, 40),
+          fourCharacterReady: this.lastBeacon.health.fourCharacterReady === true
+        } : null,
+        alerts: this.lastBeacon.alerts ? {
+          pending: Math.max(0, Math.floor(finite(this.lastBeacon.alerts.pending, 0))),
+          pendingCritical: Math.max(0, Math.floor(finite(this.lastBeacon.alerts.pendingCritical, 0)))
+        } : null,
+        contract: this.lastBeacon.contract ? {
+          externalDeadManRequired: this.lastBeacon.contract.externalDeadManRequired === true,
+          hostOwnsRestart: this.lastBeacon.contract.hostOwnsRestart === true,
+          authenticationOwnedByHost: this.lastBeacon.contract.authenticationOwnedByHost === true,
+          actionAuthority: this.lastBeacon.contract.actionAuthority === true
+        } : null
+      } : null,
       deadman,
       deadSince: this.deadSince,
       restartBudget: {

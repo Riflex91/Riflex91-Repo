@@ -262,6 +262,7 @@ test('HeadlessHostController observes restart -> fresh run -> blocked -> clean r
     async pendingAlerts() { return []; },
     async claimAlerts() { return []; },
     async reconciliationStatus() {
+      if (phase === 'alive-a') return { actionAuthority: false, rawGameplayActionAuthority: false, observedClean: true, blockers: [] };
       reconcileCalls += 1;
       if (reconcileCalls === 1) return { actionAuthority: false, rawGameplayActionAuthority: false, observedClean: false, blockers: ['TRAVEL_RECOVERING'] };
       return { actionAuthority: false, rawGameplayActionAuthority: false, observedClean: true, blockers: [] };

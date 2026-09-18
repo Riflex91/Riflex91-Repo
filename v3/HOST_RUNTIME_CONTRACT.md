@@ -118,6 +118,16 @@ Alpha.20.5 now includes a concrete **production host harness foundation** under 
 
 The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
 
+## Unattended certification evidence boundary
+
+Step 13 adds a read-only certification consumer of the existing loopback host API. It does not add a fifth `BrowserBotClient` operation.
+
+The host API may include the current `ProductionHostHarness.status()` result and an allowlisted last-beacon summary for certification. Those surfaces must remain observability-only and must not expose provider credentials, arbitrary browser evaluation or gameplay commands.
+
+Certification evidence is append-only and SHA-256 chained. A later gate requires a hash-valid passed `FINAL` record from its immediate predecessor. Time elapsed without continuous healthy samples is insufficient.
+
+The production sequence is `canary → 1h → 24h → 72h → 7d`. The canary requires independently successful dual-route CRITICAL delivery and a controlled process-recovery drill that proves a fresh run and observation-only reconciliation. 24h+ additionally requires an explicit SHA-256-linked operator review artifact for expected-vs-unexpected runtime actions, because the narrow host boundary intentionally does not gain arbitrary gameplay introspection.
+
 ## Remaining unattended-deployment requirements
 
 Before the unattended overnight gate, the deployed stack must prove all of the following with real production evidence:
@@ -134,4 +144,4 @@ Before the unattended overnight gate, the deployed stack must prove all of the f
 - no blind transaction, travel or party resume occurs after restart;
 - no unexpected raw gameplay action occurs during the reliability soak.
 
-The existence of the host classes, narrow browser bridge or a green synthetic soak alone does **not** make the bot overnight-ready. Restart authority remains default-off until the deployment canary explicitly enables `ALPHA20_5_HOST_RESTART`.
+The existence of the host classes, narrow browser bridge, Step-13 certification engine or a green synthetic soak alone does **not** make the bot overnight-ready. Restart authority remains default-off until the deployment canary explicitly enables `ALPHA20_5_HOST_RESTART`.
