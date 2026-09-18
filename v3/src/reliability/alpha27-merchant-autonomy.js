@@ -553,6 +553,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     }
 
     let task = this._taskCurrent();
+    let progressionAttemptedThisCycle = false;
 
     // A collection session owns the Merchant until the inventory is actually
     // full or every nearby Farmer has been drained for the settle window.
@@ -570,6 +571,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
+      progressionAttemptedThisCycle = true;
       // Farmer gear is first-class work, but a ready lower tier is never
       // delivered while that exact gear path can still be safely improved.
       // Targeted finalization runs before delivery; unrelated mutation backlog
@@ -605,7 +607,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         }
       }
 
-      const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
+      const progression = progressionAttemptedThisCycle
+        ? { acquired: false, reason: 'PROGRESSION_ALREADY_ATTEMPTED_THIS_CYCLE' }
+        : this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
         if (await this.progressOrDeliverFarmerGear()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
