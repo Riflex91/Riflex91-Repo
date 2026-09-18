@@ -1144,6 +1144,8 @@ for (const pflicht of [
   'noch nicht deployed',
   '88185523c81687dc16f9647ca5e7568c5e2c228c',
   'Runtime-API-Version: **1.1.5**',
+  'laufzeitPfadKennung: block8.5-basisbedienung-runtime',
+  'aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c',
   'Module: **31**',
   'Groesse: **228607 Bytes**',
   '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
