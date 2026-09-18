@@ -80,6 +80,12 @@ for (const pflicht of [
   'setzeLebensnachweisAutomatikFort',
   'lebensnachweisSendeErfolge',
   'lebensnachweisSendeFehler',
+  'performanceTrickErforderlich',
+  'performanceTrickVerfuegbar',
+  'performanceTrickAufgerufen',
+  'performanceTrickLetzterFehler',
+  "Reflect.get(codeKontext, 'performance_trick')",
+  'aktivierePerformanceTrick();',
   'bootstrap.pruefeGruppenZustand()',
   'bootstrap.bereiteGruppenZielVor',
   'bootstrap.installiereGruppenZielLiveSmoke',
@@ -107,6 +113,8 @@ for (const pflicht of [
 const einstiegTests = await readFile(path.join(wurzel, dateien[4]), 'utf8');
 for (const pflicht of [
   'besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen und Transportmetriken',
+  'blockiert aktive Browserlaufzeit fail-safe ohne performance_trick',
+  'verlangt performance_trick nicht in Adventure Lands Desktoplaufzeit',
   'zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler'
 ]) {
   if (!einstiegTests.includes(pflicht)) throw new Error(`Produktions-Laufzeiteinstieg-Test fehlt: ${pflicht}`);
@@ -224,4 +232,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, autonomer 2s-Produktionsheartbeat mit Pause/Fortsetzen und bestaetigter send_cm-Empfaengerliste, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, Browser-performance_trick-Preflight an der Adventure-Land-Ausfuehrungsgrenze, autonomer 2s-Produktionsheartbeat mit Pause/Fortsetzen und bestaetigter send_cm-Empfaengerliste, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');

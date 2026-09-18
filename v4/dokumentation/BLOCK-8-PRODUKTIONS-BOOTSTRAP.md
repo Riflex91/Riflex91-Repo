@@ -1,6 +1,6 @@
 # Block 8 – V4 Produktions-Bootstrap
 
-Status: **Produktions-Bootstrap, autonome Lebensnachweis-Laufzeit, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; Runtime 1.1.3 macht den 2-Sekunden-Gruppenheartbeat zum Produktionsdienst und verlangt die von Adventure Land bestaetigte `send_cm`-Empfaengerliste. Ein neuer immutable Release wird nach Merge automatisch gebaut und verifiziert.**
+Status: **Produktions-Bootstrap, autonome Lebensnachweis-Laufzeit, HTTPS+SHA-256-Adventure-Land-Loader und reproduzierbarer Runtime-Build implementiert; Runtime 1.1.4 aktiviert im Browser vor dem Produktionsheartbeat Adventure Lands `performance_trick()`, um Hintergrund-Timer-Drosselung zu vermeiden, und behaelt die bestaetigte `send_cm`-Empfaengerliste bei. Der immutable Release `024c121246a3ad1b579e2dc8d32771b284b3f6e1` ist unter SHA-256 `a5d70d798eb66725ceac6b6ffc80fe4e95751ce9b86e547a427183ee8b24a5a6` veroeffentlicht.**
 
 ## Zweck
 
@@ -73,9 +73,11 @@ Wesentliche Methoden:
 - `V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)`
 - `V4ProduktionsLaufzeit.stoppe()`
 
-`starte()` installiert den Lebensnachweis-Empfang und startet bei aktiv freigegebener Runtime den **autonomen Produktionsheartbeat**. Der Standardtakt ist **2000 ms** und kann nur innerhalb von 500 bis 10000 ms konfiguriert werden. Der Heartbeat fuehrt keine Kampf- oder Gruppenaktion aus.
+`starte()` aktiviert bei einer aktiv freigegebenen **Browserlaufzeit zuerst Adventure Lands `performance_trick()`**, installiert danach den Lebensnachweis-Empfang und startet erst dann den **autonomen Produktionsheartbeat**. Adventure Lands eigene Runner-Quelle beschreibt `performance_trick()` als Browser-Workaround gegen JavaScript-Drosselung in nicht fokussierten Tabs. Bei `is_tauri=true` oder `is_electron=true` ist dieser Preflight nicht erforderlich. Fehlt die Funktion im Browser oder wirft sie beim Aufruf einen Fehler, startet die aktive Runtime fail-safe weder Empfang noch Heartbeat.
 
-Der Runtime-Status weist `lebensnachweisAutomatikAktiv`, `lebensnachweisAutomatikPausiert`, Intervall, Sendeversuche, bestaetigte Erfolge, Fehler, offene Sends, Maximalzahl offener Sends sowie letzten Erfolg/Fehler aus. Pause/Fortsetzen dient kontrolliertem Recovery-/Stoerungstest; `stoppe()` entfernt Timer und Empfang fail-safe.
+Der Standardtakt ist **2000 ms** und kann nur innerhalb von 500 bis 10000 ms konfiguriert werden. Der Heartbeat fuehrt keine Kampf- oder Gruppenaktion aus.
+
+Der Runtime-Status weist zusaetzlich `performanceTrickErforderlich`, `performanceTrickVerfuegbar`, `performanceTrickAufgerufen`, `performanceTrickAufrufe` und `performanceTrickLetzterFehler` aus. Diese Felder belegen den kontrollierten Funktionsaufruf, nicht die browserinterne Audio-Wirkung. Wegen Browser-Autoplay-Regeln kann weiterhin ein einmaliger manueller Fokus nach einem Refresh erforderlich sein. Daneben bleiben `lebensnachweisAutomatikAktiv`, `lebensnachweisAutomatikPausiert`, Intervall, Sendeversuche, bestaetigte Erfolge, Fehler, offene Sends, Maximalzahl offener Sends sowie letzter Erfolg/Fehler sichtbar. Pause/Fortsetzen dient kontrolliertem Recovery-/Stoerungstest; `stoppe()` entfernt Timer und Empfang fail-safe.
 
 Ein Sendeversuch gilt nur dann als erfolgreich, wenn Adventure Lands `send_cm(...)` den Zielnamen in `receivers` oder `locals` bestaetigt. Ein aufgeloestes Promise ohne bestaetigten Zielcharakter wird als Fehler gewertet.
 

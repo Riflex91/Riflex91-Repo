@@ -8,7 +8,7 @@ import {
 } from './adventure-land-produktions-bootstrap.js';
 
 export const PRODUKTIONS_LAUFZEIT_GLOBALER_NAME = 'V4ProduktionsLaufzeit';
-export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.3';
+export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.4';
 export const PRODUKTIONS_LEBENSNACHWEIS_INTERVALL_MILLIS = 2_000;
 
 export interface AdventureLandProduktionsLaufzeitKonfiguration {
@@ -31,6 +31,11 @@ export type AdventureLandProduktionsLaufzeitStatus = Readonly<
     readonly lebensnachweisSendeMaxOffen: number;
     readonly lebensnachweisLetzterErfolgAm: number | null;
     readonly lebensnachweisLetzterFehler: string | null;
+    readonly performanceTrickErforderlich: boolean;
+    readonly performanceTrickVerfuegbar: boolean;
+    readonly performanceTrickAufgerufen: boolean;
+    readonly performanceTrickAufrufe: number;
+    readonly performanceTrickLetzterFehler: string | null;
   }
 >;
 
@@ -131,6 +136,14 @@ export function installiereAdventureLandProduktionsLaufzeit(
     cfg
   );
 
+  const performanceTrickErforderlich =
+    Reflect.get(spielFenster, 'is_tauri') !== true &&
+    Reflect.get(spielFenster, 'is_electron') !== true;
+  const performanceTrickVerfuegbar = typeof Reflect.get(codeKontext, 'performance_trick') === 'function';
+
+  let performanceTrickAufgerufen = false;
+  let performanceTrickAufrufe = 0;
+  let performanceTrickLetzterFehler: string | null = null;
   let lebensnachweisTimer: unknown = null;
   let lebensnachweisAutomatikPausiert = false;
   let lebensnachweisSendeVersuche = 0;
@@ -153,8 +166,34 @@ export function installiereAdventureLandProduktionsLaufzeit(
       lebensnachweisSendeOffen,
       lebensnachweisSendeMaxOffen,
       lebensnachweisLetzterErfolgAm,
-      lebensnachweisLetzterFehler
+      lebensnachweisLetzterFehler,
+      performanceTrickErforderlich,
+      performanceTrickVerfuegbar,
+      performanceTrickAufgerufen,
+      performanceTrickAufrufe,
+      performanceTrickLetzterFehler
     });
+  }
+
+  function aktivierePerformanceTrick(): void {
+    if (!cfg.aktivFreigegeben || !performanceTrickErforderlich || performanceTrickAufgerufen) return;
+    if (!performanceTrickVerfuegbar) {
+      performanceTrickLetzterFehler = 'Adventure-Land-Codekontext stellt performance_trick nicht bereit.';
+      throw new Error(
+        'Aktive V4-Produktionslaufzeit im Browser benoetigt Adventure Lands performance_trick(), damit Hintergrund-Tabs nicht gedrosselt werden.'
+      );
+    }
+
+    const funktion = Reflect.get(codeKontext, 'performance_trick');
+    try {
+      performanceTrickAufrufe += 1;
+      Reflect.apply(funktion as (...argumente: unknown[]) => unknown, codeKontext, []);
+      performanceTrickAufgerufen = true;
+      performanceTrickLetzterFehler = null;
+    } catch (fehler) {
+      performanceTrickLetzterFehler = fehler instanceof Error ? fehler.message : String(fehler);
+      throw new Error(`Adventure Lands performance_trick() konnte nicht aktiviert werden: ${performanceTrickLetzterFehler}`);
+    }
   }
 
   function timerFunktion(name: 'setInterval' | 'clearInterval'): (...argumente: unknown[]) => unknown {
@@ -213,6 +252,7 @@ export function installiereAdventureLandProduktionsLaufzeit(
     bootstrapVersion: PRODUKTIONS_BOOTSTRAP_VERSION,
     status: () => runtimeStatus(),
     starte: () => {
+      aktivierePerformanceTrick();
       bootstrap.installiereLebensnachweisEmpfang();
       starteLebensnachweisTimer();
       return runtimeStatus();
