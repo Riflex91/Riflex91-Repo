@@ -5,6 +5,7 @@ const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-h
 const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
 const FARMER_STATE_ACTION = 'FARMER_STATE';
 const GEAR_DELIVERY_INTENT_ACTION = 'GEAR_DELIVERY_INTENT';
+const GEAR_DELIVERY_INTENT_ACK_ACTION = 'GEAR_DELIVERY_INTENT_ACK';
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -141,6 +142,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
     this.farmerGearGoalFreshMs = Math.max(5000, Math.min(120000, finite(options.farmerGearGoalFreshMs, 30000)));
     this.gearDeliveryIntentTtlMs = Math.max(5000, Math.min(120000, finite(options.gearDeliveryIntentTtlMs, 30000)));
+    this.gearDeliveryIntentAckTimeoutMs = Math.max(100, Math.min(5000, finite(options.gearDeliveryIntentAckTimeoutMs, 1200)));
     this.farmerGearEquipVerifyMs = Math.max(500, Math.min(10000, finite(options.farmerGearEquipVerifyMs, 2500)));
     this.farmerGearEquipRetryMs = Math.max(500, Math.min(30000, finite(options.farmerGearEquipRetryMs, 3000)));
     this.collectionSettleMs = Math.max(5000, Math.min(30000, finite(options.collectionSettleMs, 12000)));
@@ -156,6 +158,8 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.farmerStateRefreshAt = new Map();
     this.farmerStates = new Map();
     this.incomingGearIntents = new Map();
+    this.pendingGearDeliveryIntentAcks = new Map();
+    this.gearDeliveryIntentSequence = 0;
     this.pendingFarmerGearEquip = null;
     this.farmerGearEquipRetryAt = new Map();
     this.stats = {
@@ -171,6 +175,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       gearDeliveryStaleGoalHolds: 0,
       gearDeliveryIntentsSent: 0,
       gearDeliveryIntentSendFailures: 0,
+      gearDeliveryIntentAcksSent: 0,
+      gearDeliveryIntentAckSendFailures: 0,
+      gearDeliveryIntentAcksReceived: 0,
+      gearDeliveryIntentAckTimeouts: 0,
       gearDeliveryIntentsReceived: 0,
       farmerGearLootReservations: 0,
       farmerGearExactReservations: 0,
@@ -502,6 +510,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         const goal = candidate.goal;
         const targetName = cleanName(goal.character);
         const intent = {
+          intentToken: `gear-intent-${this.now()}-${++this.gearDeliveryIntentSequence}`,
           goalId: String(goal.id || ''),
           targetName,
           itemName: String(goal.item || candidate.item.name || ''),
@@ -512,14 +521,39 @@ class Alpha33MarkOrbitMerchantDelivery {
           expiresAt: this.now() + this.gearDeliveryIntentTtlMs
         };
         if (!targetName || !intent.goalId || !intent.itemName || !intent.slot) return baseDeliver();
+
+        // The physical item MUST NOT leave the Merchant until the Farmer has
+        // processed the intent and captured its pre-delivery identity indexes.
+        // send_cm delivery success only means the message was dispatched; it is
+        // not an end-to-end acknowledgement from the target runtime.
+        const ackWait = this._prepareGearDeliveryIntentAck(intent);
         const sent = await Promise.resolve(logistics._send(targetName, GEAR_DELIVERY_INTENT_ACTION, intent)).catch(() => null);
         if (!sent || sent.delivered !== true) {
+          ackWait.cancel();
           this.stats.gearDeliveryIntentSendFailures += 1;
           this._event('GEAR_DELIVERY_INTENT_SEND_FAILED', 'warn', sent && sent.reason || 'INTENT_TRANSPORT_FAILED', intent);
           return false;
         }
         this.stats.gearDeliveryIntentsSent += 1;
         this._event('GEAR_DELIVERY_INTENT_SENT', 'info', 'TARGETED_FARMER_EQUIP_INTENT', intent);
+
+        const ack = await ackWait.promise;
+        if (!ack) return false;
+
+        // The goal can change while the acknowledgement crosses character
+        // runtimes. Fail closed instead of delivering an item for a stale slot.
+        const stateAfterAck = this._gearGoalTargetState(goal);
+        const freshCandidate = merchant.gearDeliveryCandidate();
+        if (!stateAfterAck.safe
+          || !freshCandidate
+          || !freshCandidate.goal
+          || String(freshCandidate.goal.id || '') !== intent.goalId
+          || !freshCandidate.item
+          || String(freshCandidate.item.name || '') !== intent.itemName
+          || levelOf(freshCandidate.item) !== intent.itemLevel) {
+          this._noteGearHold(stateAfterAck.safe ? 'GEAR_GOAL_CHANGED_AFTER_INTENT_ACK' : stateAfterAck.reason, goal);
+          return false;
+        }
         return baseDeliver();
       };
     }
@@ -550,6 +584,92 @@ class Alpha33MarkOrbitMerchantDelivery {
     for (const [key, until] of this.farmerGearEquipRetryAt) {
       if (finite(until, 0) <= now) this.farmerGearEquipRetryAt.delete(key);
     }
+  }
+
+  _prepareGearDeliveryIntentAck(intent) {
+    const token = String(intent && intent.intentToken || '');
+    let resolvePromise = null;
+    const promise = new Promise((resolve) => { resolvePromise = resolve; });
+    if (!token) return { promise: Promise.resolve(null), cancel() {} };
+
+    const setTimer = this.root && typeof this.root.setTimeout === 'function'
+      ? this.root.setTimeout.bind(this.root)
+      : typeof setTimeout === 'function' ? setTimeout : null;
+    const clearTimer = this.root && typeof this.root.clearTimeout === 'function'
+      ? this.root.clearTimeout.bind(this.root)
+      : typeof clearTimeout === 'function' ? clearTimeout : null;
+
+    const row = {
+      token,
+      goalId: String(intent.goalId || ''),
+      targetName: cleanName(intent.targetName),
+      itemName: String(intent.itemName || ''),
+      itemLevel: Math.max(0, Math.floor(finite(intent.itemLevel, 0))),
+      slot: String(intent.slot || ''),
+      createdAt: this.now(),
+      timer: null,
+      settled: false,
+      settle: null
+    };
+    const settle = (ack) => {
+      if (row.settled) return false;
+      row.settled = true;
+      if (row.timer != null && clearTimer) {
+        try { clearTimer(row.timer); } catch (_) {}
+      }
+      if (this.pendingGearDeliveryIntentAcks.get(token) === row) this.pendingGearDeliveryIntentAcks.delete(token);
+      resolvePromise(ack || null);
+      return true;
+    };
+    row.settle = settle;
+    this.pendingGearDeliveryIntentAcks.set(token, row);
+    if (setTimer) {
+      row.timer = setTimer(() => {
+        if (this.pendingGearDeliveryIntentAcks.get(token) !== row || row.settled) return;
+        this.stats.gearDeliveryIntentAckTimeouts += 1;
+        this._event('GEAR_DELIVERY_INTENT_ACK_TIMEOUT', 'warn', 'FARMER_PREDELIVERY_SNAPSHOT_ACK_NOT_RECEIVED', {
+          intentToken: token,
+          goalId: row.goalId,
+          targetName: row.targetName,
+          itemName: row.itemName,
+          itemLevel: row.itemLevel,
+          slot: row.slot
+        });
+        settle(null);
+      }, this.gearDeliveryIntentAckTimeoutMs);
+    }
+    return { promise, cancel: () => settle(null) };
+  }
+
+  _acceptGearDeliveryIntentAck(sender, data) {
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || '').toLowerCase() !== 'merchant') return false;
+    const token = String(data && data.intentToken || '').slice(0, 220);
+    const pending = token ? this.pendingGearDeliveryIntentAcks.get(token) : null;
+    const from = cleanName(sender || data && data.sender);
+    if (!pending
+      || !from
+      || from !== pending.targetName
+      || String(data && data.goalId || '') !== pending.goalId
+      || String(data && data.itemName || '') !== pending.itemName
+      || Math.max(0, Math.floor(finite(data && data.itemLevel, 0))) !== pending.itemLevel
+      || String(data && data.slot || '') !== pending.slot) return false;
+    this.stats.gearDeliveryIntentAcksReceived += 1;
+    this._event('GEAR_DELIVERY_INTENT_ACK_RECEIVED', 'info', 'FARMER_PREDELIVERY_SNAPSHOT_CONFIRMED', {
+      intentToken: token,
+      goalId: pending.goalId,
+      targetName: from,
+      itemName: pending.itemName,
+      itemLevel: pending.itemLevel,
+      slot: pending.slot,
+      beforeIndices: Array.isArray(data && data.beforeIndices) ? data.beforeIndices.slice(0, 32) : []
+    });
+    return pending.settle({
+      intentToken: token,
+      goalId: pending.goalId,
+      targetName: from,
+      receivedAt: this.now()
+    });
   }
 
   _matchingGearIntentForItem(item) {
@@ -603,11 +723,12 @@ class Alpha33MarkOrbitMerchantDelivery {
     const c = characterOf(this.runtime);
     if (!c || String(c.ctype || '').toLowerCase() === 'merchant') return false;
     const targetName = cleanName(data && data.targetName);
+    const intentToken = String(data && data.intentToken || '').slice(0, 220);
     const goalId = String(data && data.goalId || '').slice(0, 200);
     const itemName = String(data && data.itemName || '').slice(0, 120);
     const itemLevel = Math.max(0, Math.floor(finite(data && data.itemLevel, 0)));
     const slot = String(data && data.slot || '').slice(0, 40);
-    if (!targetName || targetName !== cleanName(c.name) || !goalId || !itemName || !slot) return false;
+    if (!targetName || targetName !== cleanName(c.name) || !intentToken || !goalId || !itemName || !slot) return false;
     const inventory = Array.isArray(c.items) ? c.items : [];
     const beforeIndices = [];
     for (let index = 0; index < inventory.length; index += 1) {
@@ -616,6 +737,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     }
     const intent = {
       id: goalId,
+      intentToken,
       goalId,
       sender: cleanName(sender),
       targetName,
@@ -635,8 +757,35 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.incomingGearIntents.set(goalId, intent);
     this.stats.gearDeliveryIntentsReceived += 1;
     this._event('GEAR_DELIVERY_INTENT_RECEIVED', 'info', 'MERCHANT_TARGETED_GEAR_DELIVERY', {
-      goalId, sender: intent.sender, targetName, itemName, itemLevel, slot
+      intentToken, goalId, sender: intent.sender, targetName, itemName, itemLevel, slot, beforeIndices: beforeIndices.slice()
     });
+
+    // Acknowledge only after the pre-delivery inventory snapshot is stored.
+    // The Merchant waits for this exact token before issuing send_item.
+    const logistics = this.runtime.controlledPartyLogistics;
+    if (intent.sender && logistics && typeof logistics._send === 'function') {
+      const ack = {
+        intentToken,
+        goalId,
+        targetName,
+        itemName,
+        itemLevel,
+        slot,
+        beforeIndices: beforeIndices.slice()
+      };
+      Promise.resolve(logistics._send(intent.sender, GEAR_DELIVERY_INTENT_ACK_ACTION, ack)).then((result) => {
+        if (result && result.delivered === true) {
+          this.stats.gearDeliveryIntentAcksSent += 1;
+          this._event('GEAR_DELIVERY_INTENT_ACK_SENT', 'info', 'FARMER_PREDELIVERY_SNAPSHOT_CAPTURED', ack);
+        } else {
+          this.stats.gearDeliveryIntentAckSendFailures += 1;
+          this._event('GEAR_DELIVERY_INTENT_ACK_SEND_FAILED', 'warn', result && result.reason || 'INTENT_ACK_TRANSPORT_FAILED', ack);
+        }
+      }).catch(() => {
+        this.stats.gearDeliveryIntentAckSendFailures += 1;
+        this._event('GEAR_DELIVERY_INTENT_ACK_SEND_FAILED', 'warn', 'INTENT_ACK_TRANSPORT_FAILED', ack);
+      });
+    }
     return true;
   }
 
@@ -923,6 +1072,17 @@ class Alpha33MarkOrbitMerchantDelivery {
         }
         if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
         return this._acceptFarmerState(from, data);
+      }
+      const merchantReceiver = typeof logistics._isMerchant === 'function' && logistics._isMerchant();
+      if (action === GEAR_DELIVERY_INTENT_ACK_ACTION && merchantReceiver) {
+        const from = cleanName(sender || data && data.sender);
+        const valid = typeof logistics._validEnvelope === 'function' && logistics._validEnvelope(from, data);
+        if (!valid || !this._acceptGearDeliveryIntentAck(from, data)) {
+          if (data && data.type && logistics.stats) logistics.stats.messagesRejected = (logistics.stats.messagesRejected || 0) + 1;
+          return false;
+        }
+        if (logistics.stats) logistics.stats.messagesReceived = (logistics.stats.messagesReceived || 0) + 1;
+        return true;
       }
       const farmerReceiver = typeof logistics._isMerchant === 'function' && !logistics._isMerchant();
       if (action === GEAR_DELIVERY_INTENT_ACTION && farmerReceiver) {
@@ -1617,6 +1777,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         staleGearGoalsReleasedOnFreshTargetState: true,
         staleGearGoalsFailClosed: true,
         targetedGearDeliveryIntentBeforeSend: true,
+        gearDeliveryIntentRequiresFarmerPredeliverySnapshotAck: true,
         farmerReceivedReadyGearAutoEquippedAndVerified: true,
         localProgressionReservationRequiresExactActivePhysicalAssignment: true,
         localProgressionGearIsNotReturnedAsLoot: true,
@@ -1645,6 +1806,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         farmerPositionFreshMs: this.farmerPositionFreshMs,
         farmerGearGoalFreshMs: this.farmerGearGoalFreshMs,
         gearDeliveryIntentTtlMs: this.gearDeliveryIntentTtlMs,
+        gearDeliveryIntentAckTimeoutMs: this.gearDeliveryIntentAckTimeoutMs,
         farmerGearEquipVerifyMs: this.farmerGearEquipVerifyMs,
         farmerGearEquipRetryMs: this.farmerGearEquipRetryMs,
         collectionSettleMs: this.collectionSettleMs,
@@ -1654,6 +1816,7 @@ class Alpha33MarkOrbitMerchantDelivery {
       lastGearHold: this.lastGearHold ? { ...this.lastGearHold } : null,
       pendingFarmerGearEquip: this.pendingFarmerGearEquip ? { ...this.pendingFarmerGearEquip } : null,
       incomingGearIntents: [...this.incomingGearIntents.values()].map((row) => ({ ...row, beforeIndices: [...(row.beforeIndices || [])] })),
+      pendingGearDeliveryIntentAckCount: this.pendingGearDeliveryIntentAcks.size,
       lastMerchantRendezvous: this.lastMerchantRendezvous ? { ...this.lastMerchantRendezvous } : null,
       collectionRoute: this.collectionRoute ? { ...this.collectionRoute } : null,
       suspendedCollectionRoute: this.suspendedCollectionRoute ? { ...this.suspendedCollectionRoute } : null,
@@ -1678,6 +1841,7 @@ module.exports = {
   ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE,
   FARMER_STATE_ACTION,
   GEAR_DELIVERY_INTENT_ACTION,
+  GEAR_DELIVERY_INTENT_ACK_ACTION,
   effectActiveOn,
   equipmentView,
   Alpha33MarkOrbitMerchantDelivery,
