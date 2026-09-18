@@ -1,6 +1,6 @@
 # Block 8 – minimaler Gruppenziel-Ausfuehrungspfad
 
-Status: **Adapter, gebundene Einmal-Freigabe, feste Ausfuehrungsbruecke, one-shot Live-Bindung und kontrollierte Live-Smoke-Huelle implementiert und offline getestet; echter Live-Smoke noch nicht ausgefuehrt**.
+Status: **Adapter, gebundene Einmal-Freigabe, feste Ausfuehrungsbruecke, one-shot Live-Bindung und kontrollierte Live-Smoke-Huelle implementiert, offline abgesichert und im echten one-shot Live-Smoke erfolgreich bestanden**.
 
 ## Entscheidung fuer die erste Aktion
 
@@ -91,7 +91,7 @@ Die Bindung:
 
 ## Aktueller Freigabestand
 
-Adapter, Produktionsbruecke und Live-Bindung sind implementiert und offline abgesichert. Der **kontrollierte one-shot Live-Smoke wurde weiterhin nicht ausgefuehrt**. Fuer eine echte Abnahme muss die Bindung im Adventure-Land-Kontext bewusst mit der realen zentralen Steuerung und einer frisch berechneten Produktions-`KampfSicherheitsEntscheidung` instanziiert werden. Bis zu dieser expliziten Aktivierung bleibt keine globale Ausfuehrungsbruecke installiert.
+Adapter, Produktionsbruecke und Live-Bindung sind implementiert, offline abgesichert und wurden im echten Adventure-Land-Kontext ueber den kontrollierten one-shot Live-Smoke erfolgreich abgenommen. Die Bindung wurde dabei mit der realen zentralen Steuerung und frischer Produktions-`KampfSicherheitsEntscheidung` ausgefuehrt. Nach dem Versuch blieb keine aktive Ausfuehrungsbruecke zurueck.
 
 Automatisiert werden unter anderem geprueft:
 
@@ -108,7 +108,7 @@ Automatisiert werden unter anderem geprueft:
 - das Browser-One-shot delegiert hoechstens einmal und bleibt ohne explizit installierte Live-Bindung gesperrt,
 - alle anderen `GRUPPE_*`-Aktionsnamen besitzen keinen aktiven Pfad.
 
-Der naechste Schritt nach gruenem Merge ist die **kontrollierte Vorbereitung und Durchfuehrung des one-shot Live-Smokes** mit exakt definiertem Charakter, Server, Karte und Ziel. Vor der echten Aktion muss die Produktions-Safety frisch berechnet werden; nach dem Versuch muessen globale Fassade, zentrale Aktionsphase und Ressourcensperren ausgewertet werden.
+Der kontrollierte one-shot Live-Smoke ist bestanden. Charakter, Server, Karte, Ziel, Produktions-Safety, globale Fassade, zentrale Aktionsphase und Ressourcensperren wurden im Abschlussbericht ausgewertet. Details stehen in `BLOCK-8-LIVE-SMOKE-NACHWEIS.md`.
 
 
 ## Kontrollierter Live-Smoke
@@ -121,4 +121,4 @@ Der Browser-Runner `V4Block8GruppenZielLiveSmokeRunner` zeigt zuerst diese reale
 
 Details und PASS/FAIL-Kriterien: `BLOCK-8-GRUPPENZIEL-LIVE-SMOKE.md`.
 
-Der echte Smoke bleibt offen, weil V4 aktuell noch keinen Produktions-Bootstrap besitzt, der die TypeScript-Laufzeit im Adventure-Land-Kontext instanziiert und die Smoke-Fassade installiert.
+Der echte Smoke ist bestanden. Der Produktions-Bootstrap instanziiert die TypeScript-Laufzeit im Adventure-Land-Kontext und installiert die kontrollierte Smoke-Fassade fuer den explizit freigegebenen one-shot.
