@@ -230,6 +230,40 @@ test('Block-8 Gruppenziel Live-Smoke fuehrt exakt einen attack aus, entfernt Bru
   await assert.rejects(() => smoke.starte(), /bereits verbraucht/);
 });
 
+test('Block-8 Gruppenziel Live-Smoke akzeptiert frisch berechnete Safety bei gemeinsam millisekundenweise fortschreitender Uhr', async () => {
+  const u = umgebung();
+  const req = anfrage();
+  const steuerung = starte(req);
+  let jetzt = 10_050;
+  const zeitQuelle = () => {
+    const wert = jetzt;
+    jetzt += 1;
+    return wert;
+  };
+  const smoke = new AdventureLandGruppenZielLiveSmoke(
+    u.zielKontext,
+    u.spielFenster,
+    steuerung,
+    () => sicherheit(zeitQuelle()),
+    zeitQuelle,
+    erwartung,
+    { aktivFreigegeben: true }
+  );
+
+  const vorschau = smoke.vorschau();
+  assert.ok(vorschau.sicherheitsZeitpunkt <= vorschau.erstelltAm);
+
+  smoke.freigeben(GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT);
+  const bericht = await smoke.starte();
+
+  assert.equal(bericht.status, 'bestanden');
+  assert.equal(bericht.echteSpielaktionen.attack, 1);
+  assert.equal(bericht.echteSpielaktionen.sonstige, 0);
+  assert.deepEqual(u.aufrufe, [['attack', u.ziel]]);
+  assert.equal(bericht.zentralePhase, 'abgeschlossen');
+  assert.deepEqual(bericht.verbleibendeRessourcen, []);
+});
+
 test('Block-8 Gruppenziel Live-Smoke protokolliert attack-Versuch auch wenn Adventure Land attack fehlschlaegt', async () => {
   const u = umgebung({ attackFehler: true });
   const req = anfrage();
