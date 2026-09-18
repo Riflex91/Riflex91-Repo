@@ -9,6 +9,7 @@ const { HostApiServer, isLoopback, safeEqual } = require('./host-api-server');
 const { createWebhookAlertTransport, validateWebhookUrl } = require('./alert-transports');
 const { RestartReconciliationObserver } = require('./restart-reconciliation-observer');
 const { BrowserBotClient, DEFAULT_ALLOWED_ORIGINS, MAX_CLAIM_IDS, MAX_ID_LENGTH } = require('./browser-bot-client');
+const { CdpAdventureLandSessionDriver, CDP_SESSION_SCHEMA_VERSION, DEFAULT_CDP_ENDPOINT, DEFAULT_ADVENTURE_LAND_ORIGIN } = require('./cdp-adventure-land-session');
 const { ProductionHostHarness } = require('./production-host-harness');
 const { FtpsDiagnosticsUploader } = require('./ftps-diagnostics-uploader');
 const { ProblemDiagnosticsArchive } = require('./problem-diagnostics-archive');
