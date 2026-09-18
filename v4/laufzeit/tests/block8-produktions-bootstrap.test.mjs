@@ -165,6 +165,35 @@ test('Block-8 Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und A
   assert.equal(b.status().gruppenZielVorbereitungVerbraucht, false);
 });
 
+test('Block-8 Produktions-Gruppendiagnose misst Remote-Freshness ab lokalem Empfang statt Senderuhr', () => {
+  const u = spiel();
+  let jetzt = 20_000;
+  const b = bootstrap(u, {
+    jetzt: () => jetzt,
+    profil: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 })
+  });
+  b.installiereLebensnachweisEmpfang();
+
+  // Senderuhr liegt absichtlich 10 Sekunden hinter der lokalen Empfangsuhr.
+  liefereRemote(u, 10_000, {
+    laufendeNummer: 7,
+    faehigkeiten: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 1 })
+  });
+
+  const direktNachEmpfang = b.pruefeGruppenZustand();
+  const remoteDirekt = direktNachEmpfang.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2');
+  assert.equal(remoteDirekt?.status, 'aktiv');
+  assert.equal(remoteDirekt?.alterMillisekunden, 0);
+  assert.equal(direktNachEmpfang.koordination.aufgaben.unterstuetzung, 'ranger-2');
+
+  jetzt = 25_001;
+  const nachTtl = b.pruefeGruppenZustand();
+  const remoteStale = nachTtl.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2');
+  assert.equal(remoteStale?.status, 'veraltet');
+  assert.equal(remoteStale?.alterMillisekunden, 5_001);
+  assert.equal(nachTtl.koordination.aufgaben.unterstuetzung, 'ranger-1');
+});
+
 test('Block-8 Produktions-Bootstrap verwirft replayte und zeitlich aeltere Remote-Meldungen', () => {
   const u = spiel();
   let jetzt = 10_001;
@@ -217,12 +246,13 @@ test('Block-8 Produktions-Bootstrap blockiert Solo-Zielauftrag ohne zweiten fris
   assert.equal(b.status().gruppenZielVorbereitungVerbraucht, true);
 });
 
-test('Block-8 Produktions-Bootstrap blockiert Gruppenziel wenn der zweite Teilnehmer veraltet ist', () => {
+test('Block-8 Produktions-Bootstrap blockiert Gruppenziel wenn der zweite Teilnehmer seit lokalem Empfang veraltet ist', () => {
   const u = spiel();
-  let jetzt = 20_000;
+  let jetzt = 10_000;
   const b = bootstrap(u, { jetzt: () => jetzt });
   assert.equal(b.installiereLebensnachweisEmpfang(), true);
   liefereRemote(u, 10_000);
+  jetzt = 20_000;
   assert.throws(
     () => b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT),
     /mindestens 2 aktive frische Teilnehmer/
