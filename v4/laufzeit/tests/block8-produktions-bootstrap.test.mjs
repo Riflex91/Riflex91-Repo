@@ -322,3 +322,20 @@ test('Block-8 Produktions-Bootstrap stoppt Empfang, Smoke und laufende Gruppenar
     /bereits gestoppt/
   );
 });
+
+
+test('Block 8.5.7 Produktions-Bootstrap teilt exakt eine LaufzeitSteuerung mit der zentralen AktionsSteuerung', () => {
+  const u = spiel();
+  const b = bootstrap(u);
+  const laufzeit = b.holeLaufzeitSteuerung();
+  const steuerung = b.holeZentraleAktionsSteuerung();
+
+  assert.equal(steuerung.istMitLaufzeitSteuerungVerbunden(laufzeit), true);
+  assert.equal(b.status().laufzeitSteuerung.zustand, 'laeuft');
+  assert.equal(b.status().laufzeitSteuerung.generation, 0);
+  assert.equal(b.status().laufzeitSteuerung.automatischeFortsetzung, false);
+
+  laufzeit.pausiere(10_100, 'Produktions-Bootstrap-Testpause.');
+  assert.equal(b.status().laufzeitSteuerung.zustand, 'pausiert');
+  assert.equal(steuerung.laufzeitStatus().zustand, 'pausiert');
+});
