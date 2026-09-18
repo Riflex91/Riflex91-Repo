@@ -28,13 +28,13 @@ test('V4 Produktionsruntime-Bundle installiert im Browserkontext nur eine standa
     target: null, rip: false, stand: false, items: [], slots: {}
   };
   const parent = {
-    character, entities: {}, party: {}, G: {}, server_region: 'EU', server_identifier: 'I'
+    character: charakter, entities: {}, party: {}, G: {}, server_region: 'EU', server_identifier: 'I'
   };
   const kontext = vm.createContext({
     console,
     globalThis: null,
     parent,
-    character,
+    character: charakter,
     Date,
     Object,
     Reflect,
