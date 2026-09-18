@@ -345,6 +345,19 @@ class FarmerController {
         material: objective.material || null,
         elixirName: objective.elixirName || null
       };
+      const fallbackVisible = this._safeLiveMonsters(snapshot, context.party)
+        .some((entity) => entity && entity.mtype !== objective.monster);
+      if (fallbackVisible) {
+        this._event('FARMER_MATERIAL_OBJECTIVE_IDLE_FALLBACK', 'info', 'OBJECTIVE_SPAWN_EMPTY_USE_SAFE_LOCAL_TARGET', {
+          monster: objective.monster,
+          material: objective.material || null,
+          distance: Math.round(d)
+        });
+        // Keep the material objective latched, but let normal target selection
+        // use a safe visible monster until the requested spawn appears. This
+        // prevents a leader from pinning every follower in direction HOLD.
+        return false;
+      }
       this._transition(FarmerState.SELECT_TARGET, 'MATERIAL_OBJECTIVE_SPAWN_WAIT', { monster: objective.monster, distance: Math.round(d) });
       return true;
     }
