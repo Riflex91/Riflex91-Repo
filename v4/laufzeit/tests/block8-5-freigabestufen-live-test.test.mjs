@@ -3,10 +3,53 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
+const AENDERUNG = 'git:88185523c81687dc16f9647ca5e7568c5e2c228c';
+const RUNTIME_SHA256 = '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f';
+const RUNTIME_URL =
+  'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js';
+
+function gueltigeSchattenUebergabe() {
+  return Object.freeze({
+    schemaVersion: 1,
+    laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+    aenderungsKennung: AENDERUNG,
+    laufKennung: 'lauf-1',
+    runtimeVersion: '1.1.5',
+    runtimeSha256: RUNTIME_SHA256,
+    runtimeUrl: RUNTIME_URL,
+    betriebsart: 'gesperrt_nicht_gestartet',
+    generation: 0,
+    heartbeatVersuche: 0,
+    heartbeatErfolge: 0,
+    heartbeatFehler: 0,
+    nachweis: Object.freeze({
+      schemaVersion: 1,
+      laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+      aenderungsKennung: AENDERUNG,
+      stufe: 'schatten',
+      nachweisKennung: 'lauf-1:schatten',
+      ergebnis: 'bestanden',
+      durchgefuehrtAm: 900_000,
+      deterministisch: false,
+      spielAktionAusgefuehrt: false,
+      begrenzt: false,
+      telemetrieNachweis: false,
+      recoveryNachweis: false,
+      gesamtauswertungBestanden: false
+    })
+  });
+}
+
 async function lade({
   runtimeVersion = '1.1.5',
+  modus = 'schatten',
   fortsetzenFehler = false,
-  soakDauerMillisekunden = 600_000
+  soakDauerMillisekunden = 600_000,
+  mitSchattenUebergabe = true,
+  schattenUebergabe = undefined,
+  runtimeStatusOverrides = {},
+  bootstrapSha256 = RUNTIME_SHA256,
+  bootstrapUrl = RUNTIME_URL
 } = {}) {
   const code = await readFile(
     new URL('../../werkzeuge/block8-5-freigabestufen-live-test.js', import.meta.url),
@@ -18,7 +61,8 @@ async function lade({
   let guiStatus = { status: 'bereit' };
   let zustand = 'laeuft';
   let generation = 0;
-  let heartbeatErfolge = 10;
+  let heartbeatVersuche = modus === 'live' ? 10 : 0;
+  let heartbeatErfolge = modus === 'live' ? 10 : 0;
   let heartbeatFehler = 0;
   let jetzt = 1_000_000;
   let timerId = 0;
@@ -51,15 +95,24 @@ async function lade({
   const runtime = {
     version: runtimeVersion,
     status() {
+      const live = modus === 'live';
       return Object.freeze({
-        aktivFreigegeben: true,
+        aktivFreigegeben: live,
         gestoppt: false,
-        lebensnachweisAutomatikAktiv: true,
+        empfangInstalliert: live,
+        lebensnachweisAutomatikAktiv: live,
         lebensnachweisAutomatikPausiert: false,
+        lebensnachweisSendeVersuche: heartbeatVersuche,
         lebensnachweisSendeErfolge: heartbeatErfolge,
         lebensnachweisSendeFehler: heartbeatFehler,
+        lebensnachweisSendeOffen: 0,
+        lebensnachweisSendeMaxOffen: live ? 1 : 0,
         performanceTrickErforderlich: true,
-        performanceTrickAufgerufen: true
+        performanceTrickAufgerufen: live,
+        performanceTrickAufrufe: live ? 1 : 0,
+        liveSmokeInstalliert: false,
+        gruppenZielVorbereitungVerbraucht: false,
+        ...runtimeStatusOverrides
       });
     },
     basisBedienStatus() {
@@ -122,6 +175,16 @@ async function lade({
     }
   }
 
+  const konfig = {
+    aenderungsKennung: AENDERUNG,
+    laufKennung: 'lauf-1',
+    modus,
+    soakDauerMillisekunden
+  };
+  if (modus === 'live' && mitSchattenUebergabe) {
+    konfig.schattenUebergabe = schattenUebergabe ?? gueltigeSchattenUebergabe();
+  }
+
   const kontext = vm.createContext({
     console,
     Date: FakeDate,
@@ -138,12 +201,17 @@ async function lade({
         return guiTest;
       }
     },
+    V4Bootstrap: {
+      status() {
+        return Object.freeze({
+          bereit: true,
+          geladenVon: bootstrapUrl,
+          geladenerSha256: bootstrapSha256
+        });
+      }
+    },
     V4ProduktionsLaufzeit: runtime,
-    AIO_V4_BLOCK85_FREIGABE_CONFIG: Object.freeze({
-      aenderungsKennung: 'git:teststand',
-      laufKennung: 'lauf-1',
-      soakDauerMillisekunden
-    })
+    AIO_V4_BLOCK85_FREIGABE_CONFIG: Object.freeze(konfig)
   });
   kontext.globalThis = kontext;
   kontext.parent = kontext;
@@ -155,7 +223,13 @@ async function lade({
     aktionen,
     protokoll,
     runtime,
-    status: () => ({ zustand, generation, heartbeatErfolge, heartbeatFehler }),
+    status: () => ({
+      zustand,
+      generation,
+      heartbeatVersuche,
+      heartbeatErfolge,
+      heartbeatFehler
+    }),
     setzeGeneration(wert) {
       generation = wert;
     },
@@ -164,7 +238,10 @@ async function lade({
     },
     async tick(millisekunden = 5_000) {
       jetzt += millisekunden;
-      heartbeatErfolge += 1;
+      if (modus === 'live') {
+        heartbeatVersuche += 1;
+        heartbeatErfolge += 1;
+      }
       for (const fn of [...timer.values()]) fn();
       await Promise.resolve();
     }
@@ -180,8 +257,8 @@ test('Block 8.5.9 Live-Runner akzeptiert nur Runtime 1.1.5', async () => {
   );
 });
 
-test('Block 8.5.9 Live-Runner erzeugt Schattennachweis nur ueber read-only Diagnose', async () => {
-  const u = await lade();
+test('Block 8.5.9 Schattennachweis verlangt gesperrte nicht gestartete Runtime mit null Heartbeat-Versuchen', async () => {
+  const u = await lade({ modus: 'schatten' });
 
   const bericht = u.aktionen.get('schatten').ausfuehren();
 
@@ -191,22 +268,85 @@ test('Block 8.5.9 Live-Runner erzeugt Schattennachweis nur ueber read-only Diagn
   assert.equal(bericht.nachweis.spielAktionAusgefuehrt, false);
   assert.equal(bericht.generationVorher, 0);
   assert.equal(bericht.generationNachher, 0);
-  assert.equal(u.status().zustand, 'laeuft');
-  assert.equal(u.status().generation, 0);
-  assert.equal(u.aktionen.get('kontrolliert-live').aktiv, true);
+  assert.equal(bericht.runtimeVorher.aktivFreigegeben, false);
+  assert.equal(bericht.runtimeVorher.empfangInstalliert, false);
+  assert.equal(bericht.runtimeVorher.lebensnachweisAutomatikAktiv, false);
+  assert.equal(bericht.runtimeVorher.lebensnachweisSendeVersuche, 0);
+  assert.equal(bericht.runtimeNachher.lebensnachweisSendeVersuche, 0);
+  assert.equal(bericht.schattenUebergabe.betriebsart, 'gesperrt_nicht_gestartet');
+  assert.equal(bericht.schattenUebergabe.runtimeSha256, RUNTIME_SHA256);
+  assert.equal(bericht.schattenUebergabe.runtimeUrl, RUNTIME_URL);
+  assert.equal(u.aktionen.get('kontrolliert-live').aktiv, false);
+});
+
+test('Block 8.5.9 Schattennachweis verweigert aktive oder bereits gestartete Runtime', async () => {
+  const u = await lade({
+    modus: 'schatten',
+    runtimeStatusOverrides: {
+      aktivFreigegeben: true,
+      empfangInstalliert: true,
+      lebensnachweisAutomatikAktiv: true,
+      lebensnachweisSendeVersuche: 1,
+      performanceTrickAufgerufen: true,
+      performanceTrickAufrufe: 1
+    }
+  });
+
+  assert.throws(
+    () => u.aktionen.get('schatten').ausfuehren(),
+    /aktivFreigegeben=false/
+  );
+});
+
+test('Block 8.5.9 Schattennachweis verweigert jeden vorherigen Heartbeat-Sendeversuch', async () => {
+  const u = await lade({
+    modus: 'schatten',
+    runtimeStatusOverrides: { lebensnachweisSendeVersuche: 1 }
+  });
+
+  assert.throws(
+    () => u.aktionen.get('schatten').ausfuehren(),
+    /lebensnachweisSendeVersuche=0/
+  );
+});
+
+test('Block 8.5.9 Schattennachweis ist an exakte immutable Runtime-URL und SHA-256 gebunden', async () => {
+  const u = await lade({ bootstrapSha256: '0'.repeat(64) });
+
+  assert.throws(
+    () => u.aktionen.get('schatten').ausfuehren(),
+    /exakt erwartete immutable Runtime 1\.1\.5/
+  );
+});
+
+test('Block 8.5.9 Live-Modus verlangt eine gueltige Schattenuebergabe aus separater Sitzung', async () => {
+  await assert.rejects(
+    () => lade({ modus: 'live', mitSchattenUebergabe: false }),
+    /Live-Modus braucht eine schattenUebergabe/
+  );
+
+  const manipuliert = {
+    ...gueltigeSchattenUebergabe(),
+    heartbeatVersuche: 1
+  };
+  await assert.rejects(
+    () => lade({ modus: 'live', schattenUebergabe: manipuliert }),
+    /heartbeatVersuche/
+  );
 });
 
 test('Block 8.5.9 kontrollierter Live-Nachweis fuehrt genau Pause und bestaetigtes Fortsetzen aus', async () => {
-  const u = await lade();
+  const u = await lade({ modus: 'live' });
 
-  u.aktionen.get('schatten').ausfuehren();
+  assert.equal(u.aktionen.get('schatten').aktiv, false);
+  assert.equal(u.aktionen.get('kontrolliert-live').aktiv, true);
   const bericht = u.aktionen.get('kontrolliert-live').ausfuehren();
 
   assert.equal(bericht.pass, true);
   assert.equal(bericht.nachweis.stufe, 'kontrolliert_live');
   assert.equal(bericht.nachweis.ergebnis, 'bestanden');
   assert.equal(bericht.nachweis.begrenzt, true);
-  assert.equal(bericht.nachweis.spielAktionAusgefuehrt, false);
+  assert.equal(bericht.nachweis.spielAktionAusgefuehrt, true);
   assert.equal(bericht.generationVorher, 0);
   assert.equal(bericht.generationNachPause, 1);
   assert.equal(bericht.generationNachFortsetzen, 2);
@@ -215,20 +355,8 @@ test('Block 8.5.9 kontrollierter Live-Nachweis fuehrt genau Pause und bestaetigt
   assert.equal(u.aktionen.get('soak').aktiv, true);
 });
 
-test('Block 8.5.9 kontrollierter Live-Nachweis ist ohne Schattenstufe blockiert', async () => {
-  const u = await lade();
-
-  assert.throws(
-    () => u.aktionen.get('kontrolliert-live').ausfuehren(),
-    /verlangt zuerst einen bestandenen Schattennachweis/
-  );
-  assert.equal(u.status().generation, 0);
-});
-
 test('Block 8.5.9 Live-Fehler nach Pause setzt die Runtime nicht automatisch fort', async () => {
-  const u = await lade({ fortsetzenFehler: true });
-
-  u.aktionen.get('schatten').ausfuehren();
+  const u = await lade({ modus: 'live', fortsetzenFehler: true });
 
   assert.throws(
     () => u.aktionen.get('kontrolliert-live').ausfuehren(),
@@ -239,9 +367,8 @@ test('Block 8.5.9 Live-Fehler nach Pause setzt die Runtime nicht automatisch for
 });
 
 test('Block 8.5.9 Soak erzeugt Telemetrie- und Recovery-Nachweis erst nach Mindestdauer', async () => {
-  const u = await lade();
+  const u = await lade({ modus: 'live' });
 
-  u.aktionen.get('schatten').ausfuehren();
   u.aktionen.get('kontrolliert-live').ausfuehren();
 
   const soakPromise = u.aktionen.get('soak').ausfuehren();
@@ -254,6 +381,7 @@ test('Block 8.5.9 Soak erzeugt Telemetrie- und Recovery-Nachweis erst nach Minde
   assert.equal(bericht.samples, 120);
   assert.equal(bericht.nachweis.stufe, 'soak');
   assert.equal(bericht.nachweis.ergebnis, 'bestanden');
+  assert.equal(bericht.nachweis.spielAktionAusgefuehrt, true);
   assert.equal(bericht.nachweis.telemetrieNachweis, true);
   assert.equal(bericht.nachweis.recoveryNachweis, true);
   assert.equal(bericht.nachweis.gesamtauswertungBestanden, true);
@@ -262,9 +390,8 @@ test('Block 8.5.9 Soak erzeugt Telemetrie- und Recovery-Nachweis erst nach Minde
 });
 
 test('Block 8.5.9 Soak schlaegt bei unerwarteter Laufzeit-Generation fehl', async () => {
-  const u = await lade();
+  const u = await lade({ modus: 'live' });
 
-  u.aktionen.get('schatten').ausfuehren();
   u.aktionen.get('kontrolliert-live').ausfuehren();
 
   const soakPromise = u.aktionen.get('soak').ausfuehren();
@@ -276,6 +403,7 @@ test('Block 8.5.9 Soak schlaegt bei unerwarteter Laufzeit-Generation fehl', asyn
 
   assert.equal(bericht.pass, false);
   assert.equal(bericht.nachweis.ergebnis, 'fehlgeschlagen');
+  assert.equal(bericht.nachweis.spielAktionAusgefuehrt, true);
   assert.equal(bericht.nachweis.telemetrieNachweis, false);
   assert.equal(bericht.nachweis.recoveryNachweis, false);
   assert.equal(bericht.nachweis.gesamtauswertungBestanden, false);
