@@ -99,6 +99,7 @@ function patchLogisticsPrototype() {
     const now = this.now();
     for (const item of inventory) {
       if (!item) continue;
+      if (typeof this._lootBlocked === 'function' && this._lootBlocked(item)) continue;
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) {
         this.stats.protectedLootSkipped += 1;
@@ -135,6 +136,13 @@ function patchLogisticsPrototype() {
       if (pending.asyncRejected || now - pending.at >= this.config.verifyTimeoutMs) {
         const signature = pending.signature || `${Number(pending.index)}:${pending.name}:${pending.level}`;
         if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + 120000);
+        if (typeof this._blockRejectedLoot === 'function') {
+          this._blockRejectedLoot(
+            { index: pending.index, name: pending.name, level: pending.level },
+            pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED' : 'OUTBOUND_VERIFY_TIMEOUT',
+            120000
+          );
+        }
       }
     }
     return baseVerifyPendingOutbound.call(this, snapshot);
