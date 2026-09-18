@@ -152,13 +152,15 @@ test('party potion restock preserves configured gold reserve and verifies purcha
   assert.equal(convergence.stats.potionRestocks, 1);
 });
 
-test('mutation risk budget prevents rapid repeated upgrade attempts for the same item level', async () => {
+test('10x mutation risk budget blocks only after 30 rapid upgrade attempts for the same item level', async () => {
   const { convergence, engine, ledger } = mutationFixture('UPGRADE');
-  for (let i = 0; i < 3; i += 1) engine.transactions.set(`history-${i}`, { id: `history-${i}`, type: 'UPGRADE', state: 'COMMITTED', character: 'Merchant', index: 0, item: 'sword', level: 0, attemptedAt: 900 + i });
+  for (let i = 0; i < 30; i += 1) engine.transactions.set(`history-${i}`, { id: `history-${i}`, type: 'UPGRADE', state: 'COMMITTED', character: 'Merchant', index: 0, item: 'sword', level: 0, attemptedAt: 900 + i });
   const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
   const result = await convergence._executeAtomic(planned.transaction.id);
   assert.equal(result.executed, false);
   assert.equal(result.reason, 'MUTATION_RISK_BUDGET_EXHAUSTED');
+  assert.equal(result.released, true);
+  assert.ok(result.retryAt > 1000);
 });
 
 test('ambiguous no-retry mutation blocks autonomous replanning of the same inventory slot', () => {
