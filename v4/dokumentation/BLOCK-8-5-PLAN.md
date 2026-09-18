@@ -152,6 +152,8 @@ Der Runtime-1.1.5-Build ist inzwischen als reproduzierbarer Release-Candidate an
 
 Ein isolierter manueller V4-only Release-Workflow ist vorbereitet, damit die Candidate-Veroeffentlichung kein V3, keinen Worker, kein D1 und keine Lifecycle-Regel veraendert. Auch dieser Workflow ist noch nicht ausgefuehrt.
 
+Der zuvor breite automatische Cloudflare-Workflow wird auf V3/Dashboard-only getrennt. Ein beim Merge von PR #358 automatisch erzeugter V4-Nebenrelease unter `14d503fc8a121d8c6422f68b0f1d74ac26a34df3` gilt nicht als Candidate-Nachweis, weil das Freigabe-Gate unveraendert an `git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden bleibt.
+
 ## Nicht Teil von Block 8.5
 
 - neue Merchant-/Bank-Fachlogik
