@@ -1,4 +1,4 @@
-/* Adventure Land AiO Bot 3.0.0-alpha.20.93 | generated | remote runtime | shadow mode by default */
+/* Adventure Land AiO Bot 3.0.0-alpha.20.94 | generated | remote runtime | shadow mode by default */
 (function(root){
 'use strict';
 var modules={
@@ -955,7 +955,7 @@ module.exports = { Runtime, VERSION };
 "src/release-version.js": function(require,module,exports){
 'use strict';
 
-const RELEASE_VERSION = '3.0.0-alpha.20.93';
+const RELEASE_VERSION = '3.0.0-alpha.20.94';
 
 module.exports = { RELEASE_VERSION };
 
@@ -27333,12 +27333,27 @@ class ControlledPartyLogistics {
     if (!item || !item.name) return { ok: false, reason: 'ITEM_UNKNOWN' };
     const name = String(item.name);
     if (/^hpot/i.test(name) || /^mpot/i.test(name)) return { ok: false, reason: 'GROUP_POTION_RESERVED' };
-    if (item.locked === true || item.special === true) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
-    if (Number(item.level || 0) !== 0) return { ok: false, reason: 'LEVELLED_ITEM_PROTECTED' };
+    if (item.locked === true || item.l === true || item.special === true || item.p) return { ok: false, reason: 'LOCKED_OR_SPECIAL' };
     const meta = this._metadata(name);
+    if (!meta || typeof meta !== 'object') return { ok: false, reason: 'ITEM_METADATA_UNKNOWN' };
+
+    // Farmer -> Merchant is a central-processing transfer, not a SELL decision.
+    // Progression/equipment signals therefore must not block the handoff. Only
+    // genuinely character-bound/special-purpose metadata stays on the Farmer.
+    const hardSignals = ['quest', 'exchange', 'event', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
+    if (hardBlockers.length) return { ok: false, reason: 'FARMER_ITEM_HARD_PROTECTED', blockers: hardBlockers };
+
+    const level = Math.max(0, Math.floor(finite(item.level, 0)));
+    const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
+    const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
+    if (processableGear) {
+      return { ok: true, name, level, quantity: 1, metadataType: meta.type || null, merchantLifecycle: 'GEAR_OR_PROGRESSION' };
+    }
+
     const blockers = sellProtectionReasons(meta);
     if (blockers.length) return { ok: false, reason: blockers[0], blockers };
-    return { ok: true, name, level: 0, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta && meta.type || null };
+    return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'LOW_RISK_MATERIAL' };
   }
 
   _safeLootCandidate(snapshot) {
@@ -27838,7 +27853,8 @@ class ControlledPartyLogistics {
       authority: {
         genericSendItem: false,
         merchantSupplyAllowlist: ['hpot0', 'mpot0'],
-        farmerLootPolicy: 'plain-stackable-material-only',
+        farmerLootPolicy: 'merchant-central-processing-nonbound-items',
+        farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
@@ -32197,6 +32213,95 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   constructor(runtime, atomic, shared) {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+    this.collectionSession = null;
+    this.lastCollectionSession = null;
+    this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
+  }
+
+  _collectionSettleMs() {
+    return Math.max(3000, Math.min(30000, finite(this.options && this.options.merchantCollectionSettleMs, 8000)));
+  }
+
+  _collectionSnapshot() {
+    const c = characterOf(this.runtime) || {};
+    const items = inventoryOf(this.root);
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    const logistics = this.runtime.controlledPartyLogistics;
+    const maxDistance = Math.max(100, finite(logistics && logistics.config && logistics.config.maxTransferDistance, 380));
+    const registry = this.runtime.characterRegistry && typeof this.runtime.characterRegistry.status === 'function' ? this.runtime.characterRegistry.status() : { characters: [] };
+    const farmers = [];
+    let transferable = 0;
+    for (const row of Array.isArray(registry && registry.characters) ? registry.characters : []) {
+      if (!row || row.name === c.name || String(row.ctype || '').toLowerCase() === 'merchant' || row.rip === true) continue;
+      if (c.map && row.map && String(c.map) !== String(row.map)) continue;
+      const x = finite(row.real_x != null ? row.real_x : row.x);
+      const y = finite(row.real_y != null ? row.real_y : row.y);
+      const cx = finite(c.real_x != null ? c.real_x : c.x);
+      const cy = finite(c.real_y != null ? c.real_y : c.y);
+      const distance = x == null || y == null || cx == null || cy == null ? Infinity : Math.hypot(x - cx, y - cy);
+      if (!Number.isFinite(distance) || distance > maxDistance) continue;
+      let rowTransferable = 0;
+      for (const item of Array.isArray(row.inventory) ? row.inventory : []) {
+        if (!item) continue;
+        try {
+          const safe = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null;
+          if (safe && safe.ok) rowTransferable += 1;
+        } catch (_) {}
+      }
+      transferable += rowTransferable;
+      farmers.push({ name: row.name, distance, transferable: rowTransferable });
+    }
+    const activeGrants = logistics && logistics.activeLootGrants instanceof Map ? logistics.activeLootGrants.size : 0;
+    return { capacity, occupied, freeSlots: Math.max(0, capacity - occupied), transferable, activeGrants, farmers };
+  }
+
+  collectionStatus() {
+    const snap = this._collectionSnapshot();
+    return {
+      active: !!this.collectionSession,
+      session: clone(this.collectionSession),
+      lastSession: clone(this.lastCollectionSession),
+      settleMs: this._collectionSettleMs(),
+      snapshot: snap
+    };
+  }
+
+  _updateCollectionSession() {
+    const now = this.now();
+    const snap = this._collectionSnapshot();
+    const nearFarmers = snap.farmers.length > 0;
+    if (!this.collectionSession && nearFarmers && snap.freeSlots > 0 && (snap.transferable > 0 || snap.activeGrants > 0)) {
+      this.collectionSession = { startedAt: now, lastProgressAt: now, lastOccupied: snap.occupied, reason: 'FARMER_LOOT_COLLECTION', farmers: snap.farmers.map((row) => row.name) };
+      this._event('ALPHA27_COLLECTION_SESSION_STARTED', 'info', 'FARMER_LOOT_COLLECTION', { snapshot: snap });
+    }
+    const session = this.collectionSession;
+    if (!session) return { active: false, snapshot: snap };
+
+    if (snap.occupied > finite(session.lastOccupied, 0)) {
+      session.lastOccupied = snap.occupied;
+      session.lastProgressAt = now;
+    }
+    if (snap.freeSlots <= 0) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'MERCHANT_INVENTORY_FULL' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'MERCHANT_INVENTORY_FULL', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'MERCHANT_INVENTORY_FULL' };
+    }
+    if (snap.transferable <= 0 && snap.activeGrants <= 0 && now - finite(session.lastProgressAt, now) >= this._collectionSettleMs()) {
+      this.lastCollectionSession = { ...clone(session), endedAt: now, endReason: 'FARMERS_DRAINED' };
+      this.collectionSession = null;
+      this._event('ALPHA27_COLLECTION_SESSION_RELEASED', 'info', 'FARMERS_DRAINED', this.lastCollectionSession);
+      return { active: false, snapshot: snap, released: true, reason: 'FARMERS_DRAINED' };
+    }
+    return { active: true, snapshot: snap, session };
+  }
+
+  holdForCollectionSession(state) {
+    if (!state || state.active !== true) return false;
+    this.stats.autonomousMerchantHolds += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'FARMER_LOOT_COLLECTION_ACTIVE', collection: clone(state) };
+    return true;
   }
 
   _partySupplyPlanFreshMs() {
@@ -32426,6 +32531,9 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     this.stats.autonomousMerchantPlans += 1;
     this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
     const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    if (request.type === 'BANK' && result && result.committed === true && this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') {
+      this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
+    }
     this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
     return true;
   }
@@ -32481,6 +32589,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     supplyPlan = this.criticalPartySupplyPlan();
     if (supplyPlan) {
       this.holdForCriticalPartySupply(supplyPlan);
+      return false;
+    }
+
+    const collection = this._updateCollectionSession();
+    if (collection.active) {
+      this.holdForCollectionSession(collection);
       return false;
     }
 
@@ -32550,6 +32664,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
+      collectionSession: this.collectionStatus(),
+      collectionSessionPreemptsEconomy: true,
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
@@ -33305,6 +33421,7 @@ class Alpha27BankRecovery {
   _recoverableRows() {
     const c = characterOf(this.runtime);
     if (!c || !c.bank || typeof c.bank !== 'object') return [];
+    if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(c);
     const gd = gameDataOf(this.runtime);
     const local = inventoryOf(this.root);
     const bank = bankRows(c.bank);
@@ -33523,6 +33640,7 @@ class Alpha27BankRecovery {
       if (result && result.committed === true) {
         this.stats.retrievesCommitted += 1;
         this.nextProbeAt = this.now();
+        if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
       } else if (result && result.executed === true) {
         this.stats.retrievesFailedSafe += 1;
         this.nextProbeAt = this.now() + this.failureRetryMs;
@@ -33807,11 +33925,45 @@ class MerchantProductionPlanner {
     const bank = bankRows(character.bank);
     const vendors = vendorIndex(gameData);
     const localPool = new Map();
-    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
     const reservations = {};
     const steps = [];
     const blockers = [];
     let totalGold = 0;
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    if (!bank.length && catalogRows.length) {
+      for (const row of catalogRows) bank.push({ ...clone(row) });
+    }
+    const bankPool = bank.map((row) => ({ ...row, remaining: row.quantity }));
+
+    const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
+      const need = Math.max(1, Math.floor(finite(quantity, 1)));
+      const key = itemKey(name, level);
+      if (depth > this.maxDepth || path.has(key) || level !== 0) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+      const itemMeta = gameData.items && gameData.items[name] || {};
+      const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
+      const vendor = (vendors.get(name) || [])[0] || null;
+      const vendorCost = vendor && unitCost > 0 && need <= this.maxBuyQuantity ? unitCost * need : Infinity;
+      const recipe = recipeFor(gameData, name);
+      let craftCost = Infinity;
+      if (recipe) {
+        const nextPath = new Set(path); nextPath.add(key);
+        const operations = Math.max(1, Math.ceil(need / recipe.outputQuantity));
+        let materialsCost = 0;
+        let possible = true;
+        for (const req of recipe.items) {
+          const quote = estimateSource(req.name, req.level, req.quantity * operations, depth + 1, nextPath);
+          if (!Number.isFinite(quote.cost)) { possible = false; break; }
+          materialsCost += quote.cost;
+        }
+        if (possible) craftCost = materialsCost + recipe.cost * operations;
+      }
+      if (craftCost < vendorCost) return { cost: craftCost, strategy: 'CRAFT', recipe };
+      if (Number.isFinite(vendorCost)) return { cost: vendorCost, strategy: 'BUY', vendor, unitCost };
+      if (Number.isFinite(craftCost)) return { cost: craftCost, strategy: 'CRAFT', recipe };
+      return { cost: Infinity, strategy: 'UNAVAILABLE' };
+    };
 
     for (const item of inventory) {
       if (!item || !item.name) continue;
@@ -33871,25 +34023,23 @@ class MerchantProductionPlanner {
       if (need <= 0) return true;
 
       if (level === 0) {
-        const itemMeta = gameData.items && gameData.items[name] || {};
-        const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
-        const vendor = (vendors.get(name) || [])[0] || null;
-        if (vendor && unitCost > 0 && need <= this.maxBuyQuantity) {
-          steps.push({ kind: ProductionStepKind.BUY, name, level: 0, quantity: need, unitCost, vendor, reason: 'VENDOR_SOURCE' });
-          totalGold += unitCost * need;
+        const quote = estimateSource(name, level, need, depth, path);
+        if (quote.strategy === 'BUY') {
+          steps.push({ kind: ProductionStepKind.BUY, name, level: 0, quantity: need, unitCost: quote.unitCost, vendor: quote.vendor, estimatedPathCost: quote.cost, reason: 'LEAST_GOLD_VENDOR_SOURCE' });
+          totalGold += quote.unitCost * need;
           reservations[key] = (reservations[key] || 0) + need;
           return true;
         }
 
-        const recipe = recipeFor(gameData, name);
-        if (recipe) {
+        if (quote.strategy === 'CRAFT' && quote.recipe) {
+          const recipe = quote.recipe;
           const nextPath = new Set(path); nextPath.add(key);
           const operations = Math.max(1, Math.ceil(need / recipe.outputQuantity));
           for (const req of recipe.items) {
             if (!acquire(req.name, req.level, req.quantity * operations, depth + 1, nextPath)) return false;
           }
           for (let i = 0; i < operations; i += 1) {
-            steps.push({ kind: ProductionStepKind.CRAFT, name, level: 0, quantity: recipe.outputQuantity, cost: recipe.cost, recipe: clone(recipe), reason: 'RECIPE_DEPENDENCY' });
+            steps.push({ kind: ProductionStepKind.CRAFT, name, level: 0, quantity: recipe.outputQuantity, cost: recipe.cost, recipe: clone(recipe), estimatedPathCost: quote.cost, reason: 'LEAST_GOLD_RECIPE_SOURCE' });
             totalGold += recipe.cost;
           }
           reservations[key] = (reservations[key] || 0) + need;
@@ -33920,7 +34070,9 @@ class MerchantProductionPlanner {
       blockers,
       totalGold,
       availableGold,
-      goldReserve: this.goldReserve
+      goldReserve: this.goldReserve,
+      bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1'
     };
   }
 
@@ -33959,7 +34111,9 @@ class MerchantProductionPlanner {
         reservations: built.reservations,
         blockers: [],
         totalGold: built.totalGold,
-        goldReserve: built.goldReserve
+        goldReserve: built.goldReserve,
+        bankSource: built.bankSource,
+        costStrategy: built.costStrategy
       };
       this.lastPlan = plan;
       this.stats.plans += 1;
@@ -34002,6 +34156,8 @@ class MerchantProductionPlanner {
       goldReserve: this.goldReserve,
       maxBuyQuantity: this.maxBuyQuantity,
       explicitTargets: this.explicitTargets.slice(),
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
       lastPlan: clone(this.lastPlan),
       stats: clone(this.stats)
     };
@@ -44927,6 +45083,7 @@ module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
+const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -44946,6 +45103,7 @@ function installMerchantProduction(runtime, options = {}) {
     maxBuyQuantity: options.merchantProductionMaxBuyQuantity,
     targets: options.merchantProductionTargets
   });
+  const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
     now: runtime.now,
@@ -44984,13 +45142,17 @@ function installMerchantProduction(runtime, options = {}) {
     const atomic = merchant && merchant.atomic;
     return !!(atomic && (atomic.merchantBusy || atomic.serviceTravelBusy));
   }
+  function collectionBusy() { try { return typeof runtime._merchantCollectionSessionActive === 'function' && runtime._merchantCollectionSessionActive() === true; } catch (_) { return true; } }
   function controlledBusy() {
     const systems = [runtime.controlledMerchantService, runtime.controlledTravel, runtime.controlledMerchant, runtime.controlledMerchantSpaceRecovery, runtime.controlledPartyLifecycle];
-    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy();
+    return systems.some((system) => { try { return !!(system && system.status && system.status().busy); } catch (_) { return true; } }) || executor.status().busy || alpha27Busy() || collectionBusy();
   }
   function input() {
+    const c = character() || {};
+    bankCatalog.observe(c);
     return {
-      character: character() || {},
+      character: c,
+      bankCatalog: bankCatalog.status(),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       contentDrift: runtime.contentDrift,
@@ -45014,29 +45176,72 @@ function installMerchantProduction(runtime, options = {}) {
     return clone(state.lastPlan);
   }
 
-  function schedule(plan) {
-    if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled) return false;
-    if (runtime.now() < state.pausedUntil) return false;
-    if (!vendorNearby(plan.nextStep)) {
-      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'VENDOR_TRAVEL_REQUIRED', vendor: clone(plan.nextStep.vendor) } };
-      return false;
-    }
+  async function travelNamed(destination) {
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const atomic = convergence && convergence.atomic;
+    if (!atomic || typeof atomic.namedServiceTravel !== 'function') return { ok: false, reason: 'NAMED_SERVICE_TRAVEL_UNAVAILABLE' };
+    return atomic.namedServiceTravel(destination);
+  }
+  async function travelVendor(step) {
+    if (!step || !step.vendor || typeof runtime.planTravel !== 'function' || typeof runtime.executeTravelPlan !== 'function') return { ok: false, reason: 'VENDOR_TRAVEL_UNAVAILABLE' };
+    const planned = runtime.planTravel({ destination: { map: step.vendor.map, x: step.vendor.x, y: step.vendor.y }, metadata: { source: 'MERCHANT_PRODUCTION', item: step.name } });
+    if (!planned || planned.accepted !== true || !planned.plan) return { ok: false, reason: planned && planned.reason || 'VENDOR_TRAVEL_PLAN_REJECTED' };
+    const result = await runtime.executeTravelPlan(planned.plan.id);
+    return { ok: !!(result && (result.completed === true || result.ok === true || result.result === 'COMPLETED')), result: clone(result) };
+  }
+  function ensureAutoEnabled() {
+    if (!isMerchant() || String(runtime.adapter && runtime.adapter.mode || '') !== 'active') return false;
+    if (executor.status().enabled) return true;
+    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true });
+    return !!(configured && configured.controlled && configured.controlled.enabled);
+  }
+  function ensureBankCatalog() {
+    const c = character() || {};
+    if (c.bank && typeof c.bank === 'object') { bankCatalog.observe(c); return false; }
+    if (!bankCatalog.needsRefresh() || collectionBusy() || state.executionPending || controlledBusy()) return false;
     state.executionPending = true;
-    Promise.resolve(executor.execute(plan, plan.nextStep))
-      .then((result) => {
-        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: clone(result) };
-        if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
-        if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: plan.nextStep.kind, item: plan.nextStep.name } });
-      })
-      .catch((error) => {
-        state.pausedUntil = runtime.now() + state.failureCooldownMs;
-        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: plan.nextStep.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
-      })
-      .finally(() => { state.executionPending = false; });
+    Promise.resolve(travelNamed('bank')).then((result) => {
+      state.lastExecution = { at: runtime.now(), planId: null, kind: 'BANK_CATALOG_REFRESH', result: clone(result) };
+      if (result && result.ok) bankCatalog.observe(character());
+    }).finally(() => { state.executionPending = false; });
     return true;
   }
-
-  function cycle() { const plan = evaluate(); schedule(plan); return plan; }
+  function schedule(plan) {
+    if (!plan || plan.state !== 'READY' || !plan.nextStep || state.executionPending || !executor.status().enabled || collectionBusy()) return false;
+    if (runtime.now() < state.pausedUntil) return false;
+    const step = plan.nextStep;
+    state.executionPending = true;
+    Promise.resolve().then(async () => {
+      const c = character() || {};
+      if ((step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE) && !c.bank) {
+        const travel = await travelNamed('bank');
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.ok ? 'BANK_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel && travel.reason || 'BANK_TRAVEL_FAILED', travel: clone(travel) } };
+        if (travel && travel.ok) bankCatalog.observe(character());
+        return;
+      }
+      if (step.kind === ProductionStepKind.BUY && !vendorNearby(step)) {
+        const travel = await travelVendor(step);
+        state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
+        return;
+      }
+      const result = await executor.execute(plan, step);
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
+      if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
+      if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
+    }).catch((error) => {
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: 'UNHANDLED_PRODUCTION_ERROR', error: String(error && error.message || error) } };
+    }).finally(() => { state.executionPending = false; });
+    return true;
+  }
+  function cycle() {
+    ensureAutoEnabled();
+    if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
+    const plan = evaluate();
+    schedule(plan);
+    return plan;
+  }
   function configure(config = {}) {
     if (config.enabled === true && typeof runtime._liveEnableGate === 'function') {
       const gate = runtime._liveEnableGate();
@@ -45053,6 +45258,9 @@ function installMerchantProduction(runtime, options = {}) {
       mode: MERCHANT_PRODUCTION_CONTROLLER_MODE,
       planner: planner.status(),
       controlled: executor.status(),
+      bankCatalog: bankCatalog.status(),
+      autoLiveEnabled: true,
+      collectionSessionBlocksProduction: collectionBusy(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
       lastExecution: clone(state.lastExecution),
@@ -45090,6 +45298,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.stop = function merchantProductionStop() { disable('RUNTIME_STOP'); return baseStop(); };
 
   runtime.merchantProductionPlanner = planner;
+  runtime.merchantBankCatalog = bankCatalog;
   runtime.controlledMerchantProduction = executor;
   runtime.configureMerchantProduction = configure;
   runtime.disableMerchantProduction = disable;
@@ -45097,12 +45306,123 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.evaluateMerchantProduction = cycle;
   runtime.merchantProductionStatus = status;
 
-  const controller = { planner, executor, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  const controller = { planner, executor, bankCatalog, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
   runtime.__merchantProductionController = controller;
   return controller;
 }
 
 module.exports = { installMerchantProduction, MERCHANT_PRODUCTION_CONTROLLER_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
+},
+"src/merchant/persistent-bank-catalog.js": function(require,module,exports){
+'use strict';
+
+const { bankRows } = require('./merchant-production-planner');
+
+const PERSISTENT_BANK_CATALOG_MODE = 'persistent-bank-catalog-v1';
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+class PersistentBankCatalog {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-bank-catalog-v1';
+    this.maxAgeMs = Math.max(60000, Number(options.maxAgeMs || 30 * 60 * 1000));
+    this.snapshot = null;
+    this.lastInvalidation = null;
+    this.stats = { observations: 0, persisted: 0, loads: 0, invalidations: 0 };
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') { ls.setItem(this.storageKey, text); return true; }
+    } catch (_) {}
+    return false;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 1 || !data.snapshot) return;
+      this.snapshot = clone(data.snapshot);
+      this.lastInvalidation = clone(data.lastInvalidation || null);
+      this.stats.loads += 1;
+    } catch (_) {}
+  }
+
+  observe(character) {
+    const c = character || this.root && (this.root.character || this.root.parent && this.root.parent.character);
+    if (!c || !c.bank || typeof c.bank !== 'object') return false;
+    const rows = bankRows(c.bank);
+    const packs = Object.keys(c.bank).filter((key) => /^items\d+$/.test(key) && Array.isArray(c.bank[key])).sort();
+    const quantities = {};
+    for (const row of rows) {
+      const key = `${row.name}|${row.level}`;
+      quantities[key] = (quantities[key] || 0) + row.quantity;
+    }
+    this.snapshot = {
+      schemaVersion: 1,
+      observedAt: this.now(),
+      character: c.name || null,
+      packs,
+      rows: clone(rows),
+      quantities,
+      source: 'LIVE_BANK'
+    };
+    this.lastInvalidation = null;
+    this.stats.observations += 1;
+    if (this._set({ schemaVersion: 1, snapshot: this.snapshot, lastInvalidation: null })) this.stats.persisted += 1;
+    return true;
+  }
+
+  invalidate(reason = 'BANK_MUTATION') {
+    this.lastInvalidation = { at: this.now(), reason: String(reason || 'BANK_MUTATION') };
+    this.stats.invalidations += 1;
+    this._set({ schemaVersion: 1, snapshot: this.snapshot, lastInvalidation: this.lastInvalidation });
+  }
+
+  usable() {
+    if (!this.snapshot || !Array.isArray(this.snapshot.rows)) return false;
+    if (this.lastInvalidation && Number(this.lastInvalidation.at || 0) >= Number(this.snapshot.observedAt || 0)) return false;
+    return this.now() - Number(this.snapshot.observedAt || 0) <= this.maxAgeMs;
+  }
+
+  needsRefresh() { return !this.usable(); }
+
+  rows() { return this.usable() ? clone(this.snapshot.rows) : []; }
+
+  status() {
+    return {
+      mode: PERSISTENT_BANK_CATALOG_MODE,
+      usable: this.usable(),
+      maxAgeMs: this.maxAgeMs,
+      snapshot: clone(this.snapshot),
+      lastInvalidation: clone(this.lastInvalidation),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { PersistentBankCatalog, PERSISTENT_BANK_CATALOG_MODE };
 
 },
 "src/production-live-services.js": function(require,module,exports){

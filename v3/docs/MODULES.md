@@ -161,7 +161,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**7 Dateien · 1916 Zeilen**
+**8 Dateien · 2115 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -169,9 +169,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 282 |
-| `src/merchant/merchant-production-controller.js` | 180 |
-| `src/merchant/merchant-production-planner.js` | 440 |
+| `src/merchant/merchant-production-controller.js` | 233 |
+| `src/merchant/merchant-production-planner.js` | 478 |
 | `src/merchant/merchant-service-planner.js` | 225 |
+| `src/merchant/persistent-bank-catalog.js` | 108 |
 
 ## ops
 
@@ -208,7 +209,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**32 Dateien · 7153 Zeilen**
+**32 Dateien · 7169 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -225,7 +226,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 583 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 868 |
+| `src/party/controlled-party-logistics.js` | 884 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
 | `src/party/orchestrator-base.js` | 56 |
@@ -255,7 +256,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**49 Dateien · 13127 Zeilen**
+**49 Dateien · 13229 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -278,10 +279,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-service.js` | 220 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
 | `src/reliability/alpha27-atomic-transactions.js` | 101 |
-| `src/reliability/alpha27-bank-recovery.js` | 388 |
+| `src/reliability/alpha27-bank-recovery.js` | 390 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 413 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 513 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
