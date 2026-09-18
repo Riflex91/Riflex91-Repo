@@ -4157,8 +4157,15 @@ class BasicKitingPolicy {
       return { shouldMove: false, reason: 'RANGE_CAPABILITY_TOO_LOW', range };
     }
 
-    if (target.target && target.target !== character.name) {
-      return { shouldMove: false, reason: 'TARGET_FOCUSED_ELSEWHERE', range, targetOwner: target.target };
+    const targetOwner = target.target == null ? null : String(target.target);
+    const selfName = character.name == null ? null : String(character.name);
+    if (!targetOwner || !selfName || targetOwner !== selfName) {
+      return {
+        shouldMove: false,
+        reason: targetOwner ? 'TARGET_FOCUSED_ELSEWHERE' : 'NO_ACTIVE_SELF_AGGRO',
+        range,
+        targetOwner
+      };
     }
 
     const cx = finite(character.x);
@@ -34479,7 +34486,10 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           sourceIndex: finalization.candidate && finalization.candidate.item && finalization.candidate.item.index
         })
       };
-      return true;
+      // A safe HOLD is not progress. Returning false lets the caller drain any
+      // other executable progression work and, if none exists, release the
+      // PROGRESSION_BATCH lease so Production/Collection cannot be starved.
+      return false;
     }
 
     if (finalization.state === 'MUTATE' && finalization.request) {
@@ -34494,12 +34504,13 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           targetLevel: finalization.targetLevel,
           request: clone(finalization.request)
         };
-        return true;
+        return false;
       }
       const acted = await this.executeEconomyRequest(finalization.request);
       if (!acted) {
         // Never fall through to delivery after a targeted finalization request
-        // was rejected. A later tick may re-evaluate the exact live identity.
+        // was rejected. A later tick may re-evaluate the exact live identity,
+        // but this tick must not keep the global progression task leased.
         this.stats.autonomousMerchantHolds += 1;
         this.lastMerchantPlan = {
           at: this.now(),
@@ -34509,6 +34520,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           targetLevel: finalization.targetLevel,
           request: clone(finalization.request)
         };
+        return false;
       }
       return true;
     }
@@ -34595,13 +34607,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       if (await this.progressOrDeliverFarmerGear()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
-      if (request) return this.executeEconomyRequest(request);
-      if (this.selfGear && await this.selfGear.cycle()) {
+      if (request) {
+        const acted = await this.executeEconomyRequest(request);
+        if (acted) return true;
+        this.stats.progressionTaskNoProgressReleases = (this.stats.progressionTaskNoProgressReleases || 0) + 1;
+        this._taskRelease(task.key, 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null, request: clone(request) });
+        this._event('ALPHA27_PROGRESSION_TASK_RELEASED_NO_PROGRESS', 'warn', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null });
+        task = null;
+      }
+      if (task && this.selfGear && await this.selfGear.cycle()) {
         this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
         return true;
       }
-      this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
-      task = null;
+      if (task) {
+        this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
+        task = null;
+      }
     }
 
     if (!task) {
@@ -34619,12 +34640,19 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         if (await this.progressOrDeliverFarmerGear()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
-        if (request) return this.executeEconomyRequest(request);
-        if (this.selfGear && await this.selfGear.cycle()) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
-          return true;
+        if (request) {
+          const acted = await this.executeEconomyRequest(request);
+          if (acted) return true;
+          this.stats.progressionTaskNoProgressReleases = (this.stats.progressionTaskNoProgressReleases || 0) + 1;
+          this._taskRelease('alpha27:progression-batch', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null, request: clone(request) });
+          this._event('ALPHA27_PROGRESSION_TASK_RELEASED_NO_PROGRESS', 'warn', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null });
+        } else {
+          if (this.selfGear && await this.selfGear.cycle()) {
+            this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+            return true;
+          }
+          this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
         }
-        this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
       }
     }
 
@@ -34725,6 +34753,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainLatches: this.stats.partySupplyChainLatches || 0,
       partySupplyChainRefreshes: this.stats.partySupplyChainRefreshes || 0,
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
+      progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
