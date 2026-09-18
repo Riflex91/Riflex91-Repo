@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import vm from 'node:vm';
 import { baueProduktionsRuntime } from '../../werkzeuge/produktions-runtime-bauen.mjs';
 
@@ -7,6 +8,10 @@ test('V4 Produktionsruntime-Bundle wird reproduzierbar aus dem TypeScript-Einsti
   const a = await baueProduktionsRuntime({ schreiben: false });
   const b = await baueProduktionsRuntime({ schreiben: false });
   assert.equal(a.bundle, b.bundle);
+  assert.equal(a.sha256, b.sha256);
+  assert.equal(a.sha256, createHash('sha256').update(a.bundle, 'utf8').digest('hex'));
+  assert.match(a.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(a.sha256Ausgabe, 'dist/aio-v4-runtime.sha256');
   assert.ok(a.module >= 10);
   assert.ok(a.bytes >= 10_000);
   assert.match(a.bundle, /Adventure Land AiO Bot V4 \| generated \| production runtime/);
