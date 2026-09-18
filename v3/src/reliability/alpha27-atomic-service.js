@@ -126,6 +126,23 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       return { ok: false, reason, resolved };
     }
     const gd = gameDataOf(this.runtime);
+    // Re-locate a known NPC immediately before travel. This protects callers
+    // that resolved earlier through an id fallback and guarantees that the
+    // buffered interaction-range check can still prevent unnecessary movement.
+    if (resolved.npcId && (!resolved.destination || typeof resolved.destination !== 'object')) {
+      const finder = rawFunction(this.root, 'find_npc');
+      if (finder) {
+        try {
+          const current = characterOf(this.runtime);
+          const found = finder.fn.call(finder.owner, resolved.npcId);
+          const location = usableNpcLocation(found, current && current.map);
+          if (location) {
+            resolved.destination = location;
+            resolved.source = 'FIND_NPC_TRAVEL_REFRESH';
+          }
+        } catch (_) {}
+      }
+    }
     const target = resolved.destination;
     const controlledTarget = target && typeof target === 'object' && target.map && Number.isFinite(Number(target.x)) && Number.isFinite(Number(target.y));
     const controlledMap = typeof target === 'string' && gd.maps && Object.prototype.hasOwnProperty.call(gd.maps, target);
