@@ -193,7 +193,7 @@
       "title": "Windows Adventure Land session bootstrap and profile readiness",
       "branch": "architecture/11-windows-session-bootstrap",
       "status": "in_progress",
-      "pr": null,
+      "pr": 272,
       "merge_commit": null,
       "required_outcomes": [
         "bounded browser/runtime startup grace before service restart",
