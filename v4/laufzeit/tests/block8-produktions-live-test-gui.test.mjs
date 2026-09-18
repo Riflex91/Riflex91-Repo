@@ -242,6 +242,6 @@ test('Block-8 Live-Test-GUI besitzt selbst keinen direkten Adventure-Land-Aktion
   for (const name of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
     assert.doesNotMatch(u.code, new RegExp(`\\b${name}\\s*\\(`));
   }
-  assert.match(u.code, /runtimeApi\\(\\)\\.sendeLebensnachweis\\(\\)/);
-  assert.match(u.code, /runner\\.starte\\(runner\\.startText\\(\\)\\)/);
+  assert.match(u.code, /runtimeApi\(\)\.sendeLebensnachweis\(\)/);
+  assert.match(u.code, /runner\.starte\(runner\.startText\(\)\)/);
 });
