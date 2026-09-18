@@ -123,11 +123,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4496 Zeilen**
+**21 Dateien · 4503 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/farmer/basic-kiting.js` | 96 |
+| `src/farmer/basic-kiting.js` | 103 |
 | `src/farmer/combat-emergency.js` | 64 |
 | `src/farmer/combat-risk.js` | 146 |
 | `src/farmer/content-safety.js` | 165 |
@@ -210,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7979 Zeilen**
+**33 Dateien · 8052 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -242,7 +242,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/party-persistence-quota-hotfix.js` | 382 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
-| `src/party/team-combat-cohesion-hotfix-base.js` | 526 |
+| `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
 | `src/party/telemetry-bridge.js` | 55 |
 | `src/party/transition-controller-base.js` | 390 |
@@ -258,7 +258,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 15941 Zeilen**
+**50 Dateien · 15937 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -267,11 +267,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha20-21-cloud-persistence-recovery.js` | 219 |
 | `src/reliability/alpha20-22-live-smoke-recovery.js` | 167 |
 | `src/reliability/alpha20-23-idle-deadlock-recovery.js` | 216 |
-| `src/reliability/alpha20-33-combat-logistics-regression-hotfix.js` | 387 |
+| `src/reliability/alpha20-33-combat-logistics-regression-hotfix.js` | 385 |
 | `src/reliability/alpha21-liveness-guards.js` | 345 |
 | `src/reliability/alpha21-progression-intelligence.js` | 430 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
-| `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 548 |
+| `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
 | `src/reliability/alpha25-control-center-brain.js` | 345 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
@@ -284,7 +284,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-bank-recovery.js` | 390 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 732 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 758 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
