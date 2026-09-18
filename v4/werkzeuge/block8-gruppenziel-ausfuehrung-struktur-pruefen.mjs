@@ -5,7 +5,9 @@ import process from 'node:process';
 const wurzel = process.cwd();
 const pflichtDateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrung.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.ts',
   'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs',
+  'laufzeit/tests/block8-gruppenziel-ausfuehrungs-bruecke.test.mjs',
   'laufzeit/tests/block8-gruppenziel-one-shot.test.mjs',
   'werkzeuge/block8-gruppenziel-one-shot.js',
   'dokumentation/BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md'
@@ -35,6 +37,44 @@ for (const unerlaubt of ['move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 
   if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(ausfuehrung)) {
     throw new Error(`Der erste Gruppenadapter darf ${unerlaubt} nicht aufrufen.`);
   }
+}
+
+const bruecke = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.ts'), 'utf8');
+for (const pflichtText of [
+  'AdventureLandGruppenZielAusfuehrungsBruecke',
+  "GRUPPEN_ZIEL_AUSFUEHRUNGS_BRUECKEN_NAME = 'V4Block8GruppenZielAusfuehrungsBruecke'",
+  "quelleBereich = 'ausfuehrung'",
+  'aktivFreigegeben',
+  'versuchVerbraucht',
+  'this.versuchVerbraucht = true',
+  'this.steuerung.holeAktionsZustand',
+  "zustand.anfrage.angefordertVon !== 'gruppen-aktionsplanung'",
+  'zustand.anfrage.gueltigBis',
+  'sicherheit.zeitpunkt < auftrag.freigegebenAm',
+  'AdventureLandGruppenZielEinmalFreigabe',
+  'AdventureLandGruppenZielAusfuehrung',
+  'fuehreFreigegebeneGruppenZielAktionAus',
+  'this.steuerung.brecheAktionAb'
+]) {
+  if (!bruecke.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Ausfuehrungsbruecke fehlt: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(bruecke)) {
+    throw new Error(`Die feste Gruppenziel-Bruecke darf Adventure Land nicht direkt aufrufen, sondern nur an den Produktionsadapter delegieren: ${unerlaubt}.`);
+  }
+}
+
+const brueckenTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-ausfuehrungs-bruecke.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'ist standardmaessig gesperrt und besitzt den festen ausfuehrung-Vertrag',
+  'delegiert genau einen passenden Auftrag an den Produktionsadapter',
+  'erlaubt pro Instanz auch nach Erfolg keinen zweiten Versuch',
+  'ignoriert Browser-Vorpruefungen als Autoritaet und blockiert mit aktueller Produktions-Safety',
+  'verlangt Safety nach der expliziten One-shot-Freigabe',
+  'blockiert falsche Anfrage, falsches Ziel, alten Auftrag und falschen Freigabetext',
+  'blockiert abgelaufene zentrale Anfrage vor attack'
+]) {
+  if (!brueckenTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Ausfuehrungsbrueckentest fehlt: ${pflichtText}`);
 }
 
 const tests = await readFile(path.join(wurzel, pflichtDateien[1]), 'utf8');
@@ -100,4 +140,4 @@ for (const datei of await readdir(spiellogikWurzel)) {
   }
 }
 
-console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, automatische Wiedersperrung, zentrale Autoritaet, Ressourcenbesitz, frische Safety, Bereitschaft, Ziel/Reichweite und delegierendes Browser-One-shot ohne eigenen Spielaufruf.');
+console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, feste one-shot Ausfuehrungsbruecke, automatische Wiedersperrung, zentrale Autoritaet, frische Produktions-Safety, Ressourcenbesitz, Bereitschaft, Ziel/Reichweite und Browser-One-shot ohne eigenen Spielaufruf.');
