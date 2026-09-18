@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { InventoryLedger } = require('../src/economy/inventory-ledger');
-const { scoreItem } = require('../src/economy/gear-progression');
+const { GearProgressionEvaluator, scoreItem } = require('../src/economy/gear-progression');
 const { EconomyTransactionEngine } = require('../src/economy/transaction-engine');
 const { ControlledMerchantExecutor, CONTROLLED_MERCHANT_ACK } = require('../src/economy/controlled-merchant-executor');
 const { Alpha27CombatMerchantConvergence } = require('../src/reliability/alpha27-combat-merchant-convergence');
@@ -40,6 +40,27 @@ test('InventoryLedger recognizes Adventure Land object-valued compound metadata'
   );
 });
 
+test('compound counts are character-local and never combine copies spread across the party', () => {
+  const ledger = new InventoryLedger({ now: () => 1000 });
+  ledger.observe({
+    registry: {
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', stateConfidence: 1, inventory: [{ index: 0, name: 'ringsj', level: 0, q: 1 }] },
+        { name: 'Ranger1', ctype: 'ranger', stateConfidence: 1, inventory: [{ index: 0, name: 'ringsj', level: 0, q: 1 }] },
+        { name: 'Ranger2', ctype: 'ranger', stateConfidence: 1, inventory: [{ index: 0, name: 'ringsj', level: 0, q: 1 }] }
+      ]
+    },
+    gameData: {
+      items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 } } }
+    },
+    liveCharacter: { name: 'Merchant', isize: 42, items: [{ name: 'ringsj', level: 0, q: 1 }] }
+  });
+
+  assert.notEqual(ledger.get('Merchant', 0).disposition, 'RESERVE_COMPOUND');
+  assert.notEqual(ledger.get('Ranger1', 0).disposition, 'RESERVE_COMPOUND');
+  assert.notEqual(ledger.get('Ranger2', 0).disposition, 'RESERVE_COMPOUND');
+});
+
 test('compound levels contribute their real stat gains to party gear scoring', () => {
   const meta = {
     type: 'ring',
@@ -53,6 +74,36 @@ test('compound levels contribute their real stat gains to party gear scoring', (
   const plusOne = scoreItem(meta, 1, 'ranger');
   assert.ok(plusOne.total > base.total);
   assert.ok(plusOne.survival > base.survival);
+});
+
+test('stale persisted gear goals do not reserve new live inventory', () => {
+  let now = 1000;
+  const evaluator = new GearProgressionEvaluator({ now: () => now });
+  evaluator.goals.set('stale', {
+    id: 'stale',
+    character: 'Ranger1',
+    ctype: 'ranger',
+    slot: 'ring1',
+    sourceCharacter: 'Merchant',
+    item: 'ringsj',
+    observedLevel: 1,
+    targetLevel: 1,
+    improvement: 10,
+    survivalImprovement: 2,
+    lastSeenAt: 900
+  });
+
+  const result = evaluator.evaluate({
+    registry: { characters: [{ name: 'Merchant', ctype: 'merchant', inventory: [], gear: {} }] },
+    gameData: { items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 } } } },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  assert.equal(result.goals.some((goal) => goal.id === 'stale'), true);
+  assert.equal(result.currentGoals.some((goal) => goal.id === 'stale'), false);
+  assert.equal(result.reservations.some((row) => row.goalIds.includes('stale')), false);
+  assert.equal(result.status.lastEvaluation.activeGoals, 0);
+  assert.equal(result.status.lastEvaluation.persistedGoals, 1);
 });
 
 test('Alpha27 lifecycle classifies progression before BANK and disposes only processed low-value results', () => {
