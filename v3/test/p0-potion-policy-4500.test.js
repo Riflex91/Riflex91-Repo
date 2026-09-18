@@ -354,6 +354,22 @@ test('successful adaptive delivery verifies the planned decrement and retains pr
   assert.equal(service.stats.rawActions, 4);
   assert.equal(policy.serviceChain, null);
   assert.equal(policy.lastServiceChainRelease.reason, 'BATCH_DELIVERY_COMMITTED');
+
+  const staleReplay = planner.plan({
+    merchant: { ...root.character, inventory: root.character.items },
+    reports: [report(150, 190)],
+    deliveryDistance: 400
+  });
+  assert.equal(staleReplay.kind, MerchantServicePlanKind.HOLD);
+  assert.equal(staleReplay.reason, 'POTION_BATCH_WAITING_FOR_FRESH_POST_DELIVERY_TELEMETRY');
+
+  const freshAgain = planner.plan({
+    merchant: { ...root.character, inventory: root.character.items },
+    reports: [{ ...report(150, 190), at: 100000 }],
+    deliveryDistance: 400
+  });
+  assert.notEqual(freshAgain.reason, 'POTION_BATCH_WAITING_FOR_FRESH_POST_DELIVERY_TELEMETRY');
+  assert.ok(policy.serviceChain);
 });
 
 test('stock falling below the planned delivery after planning forces a replan', async () => {
