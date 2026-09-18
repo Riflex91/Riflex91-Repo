@@ -9,6 +9,7 @@ const ProductionStepKind = Object.freeze({
   BANK_STORE: 'BANK_STORE',
   BUY: 'BUY',
   CRAFT: 'CRAFT',
+  EXCHANGE: 'EXCHANGE',
   FARM_REQUIRED: 'FARM_REQUIRED'
 });
 
@@ -376,6 +377,87 @@ class MerchantProductionPlanner {
       bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
       costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1'
     };
+  }
+
+  planExchange(input = {}, protectedReservations = {}) {
+    const character = input.character || {};
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return null;
+    const gameData = input.gameData || {};
+    const inventory = Array.isArray(character.items) ? character.items : [];
+    const bank = bankRows(character.bank);
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    const bankPool = bank.length ? bank : catalogRows;
+    const candidates = [];
+
+    for (let index = 0; index < inventory.length; index += 1) {
+      const item = inventory[index];
+      if (!item || !item.name || item.locked || item.l || item.special || item.p || levelOf(item) !== 0) continue;
+      const meta = gameData.items && gameData.items[item.name];
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!meta || required <= 0) continue;
+      if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
+        try { if (input.contentDrift.requiresRevalidation('items', item.name)) continue; } catch (_) { continue; }
+      }
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(item.name, 0)], 0)));
+      const local = Math.max(1, Math.floor(finite(item.q, 1)));
+      const usable = Math.max(0, local - reserved);
+      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      if (usable >= required) {
+        candidates.push({
+          name: String(item.name), index, required, available: usable,
+          operations: Math.floor(usable / required), destination,
+          step: { kind: ProductionStepKind.EXCHANGE, name: String(item.name), level: 0, inventoryIndex: index, quantity: required, destination, reason: 'EXCHANGE_REQUIREMENT_SATISFIED' }
+        });
+        continue;
+      }
+      const bankRow = bankPool.find((row) => row && row.name === item.name && row.level === 0 && Number(row.quantity) + usable >= required);
+      if (bankRow) {
+        candidates.push({
+          name: String(item.name), index, required, available: usable, operations: 1, destination,
+          step: { kind: ProductionStepKind.BANK_RETRIEVE, name: String(item.name), level: 0, quantity: bankRow.quantity, pack: bankRow.pack, bankIndex: bankRow.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+        });
+      }
+    }
+
+    // Also recover an exchange stack that exists only in the bank.
+    for (const row of bankPool) {
+      if (!row || row.level !== 0) continue;
+      const meta = gameData.items && gameData.items[row.name];
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!meta || required <= 0 || row.quantity < required) continue;
+      const local = itemQuantity(inventory, row.name, 0);
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
+      if (Math.max(0, local - reserved) >= required) continue;
+      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      candidates.push({
+        name: row.name, required, available: Math.max(0, local - reserved), operations: Math.floor(row.quantity / required), destination,
+        step: { kind: ProductionStepKind.BANK_RETRIEVE, name: row.name, level: 0, quantity: row.quantity, pack: row.pack, bankIndex: row.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+      });
+    }
+
+    candidates.sort((a, b) => b.operations - a.operations || a.required - b.required || a.name.localeCompare(b.name));
+    const chosen = candidates[0];
+    if (!chosen) return null;
+    const plan = {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      state: 'READY',
+      reason: 'NPC_EXCHANGE_READY',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      target: { item: chosen.name, operations: chosen.operations, required: chosen.required, destination: chosen.destination },
+      steps: [chosen.step],
+      nextStep: chosen.step,
+      reservations: {},
+      blockers: [],
+      totalGold: 0,
+      goldReserve: this.goldReserve,
+      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V1'
+    };
+    return clone(plan);
   }
 
   plan(input = {}) {
