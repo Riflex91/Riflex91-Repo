@@ -23,6 +23,7 @@ function fixture(mode = 'active') {
     stop_character(name) { calls.push(['stop_character', name]); return { success: true }; },
     send_party_invite(name) { calls.push(['send_party_invite', name]); return { success: true }; },
     accept_party_invite(name) { calls.push(['accept_party_invite', name]); return { success: true }; },
+    leave_party() { calls.push(['leave_party']); return { success: true }; },
     send_cm(name, payload) { calls.push(['send_cm', name, payload]); return { success: true }; },
     command_character(name, code) { calls.push(['command_character', name, code]); return { success: true }; }
   };
@@ -35,7 +36,7 @@ test('structured command catalog exposes all migrated step-3 command families', 
     assert.deepEqual(COMMAND_CATALOG[action], { family: 'merchant', mutation: true, outcome: 'domain' });
   }
   assert.deepEqual(COMMAND_CATALOG.loot, { family: 'loot', mutation: true, outcome: 'domain' });
-  for (const action of ['start_character', 'stop_character', 'send_party_invite', 'accept_party_invite']) {
+  for (const action of ['start_character', 'stop_character', 'send_party_invite', 'accept_party_invite', 'leave_party']) {
     assert.deepEqual(COMMAND_CATALOG[action], { family: 'party-control', mutation: true, outcome: 'domain' });
   }
   for (const action of ['send_cm', 'command_character']) {
@@ -75,6 +76,7 @@ test('active GameAdapter executes the remaining migrated production mutations', 
     ['stop_character', ['RangerA']],
     ['send_party_invite', ['RangerA']],
     ['accept_party_invite', ['MerchantA']],
+    ['leave_party', []],
     ['send_cm', ['RangerA', { type: 'ping' }]],
     ['command_character', ['RangerA', 'globalThis.__PING=true;']]
   ];
@@ -102,6 +104,7 @@ test('shadow GameAdapter records intent without executing migrated writes', () =
     ['stop_character', ['RangerA']],
     ['send_party_invite', ['RangerA']],
     ['accept_party_invite', ['MerchantA']],
+    ['leave_party', []],
     ['send_cm', ['RangerA', { type: 'ping' }]],
     ['command_character', ['RangerA', 'noop']]
   ];
