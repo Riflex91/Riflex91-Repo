@@ -38,10 +38,16 @@ function levelOf(item) {
 
 function compatible(meta, character) {
   if (!meta || !character) return false;
+  const ctype = String(character.ctype || '').toLowerCase();
   const classes = Array.isArray(meta.class) ? meta.class : meta.class ? [meta.class] : [];
-  if (classes.length && !classes.map((x) => String(x).toLowerCase()).includes(String(character.ctype || '').toLowerCase())) return false;
+  if (classes.length && !classes.map((x) => String(x).toLowerCase()).includes(ctype)) return false;
   const required = finite(meta.level, 0);
   if (required > finite(character.level, 0)) return false;
+
+  // Live alpha.20.107 proved that a raw shield can score above a Ranger's
+  // quiver while Adventure Land rejects the actual equip command. Do not turn
+  // a stat-only offhand comparison into an impossible Ranger gear goal.
+  if (ctype === 'ranger' && String(meta.type || '').toLowerCase() === 'shield') return false;
   return true;
 }
 
@@ -268,20 +274,24 @@ class GearProgressionEvaluator {
 
     for (const character of characters) {
       for (const candidate of candidates) {
-        if (!compatible(candidate.meta, character)) continue;
         const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
           ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
           : null;
         const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+
+        // Incompatibility is itself a completed Farmer-value check. Counting it
+        // prevents impossible gear (for example Ranger + shield) from becoming
+        // permanently "unknown future Farmer value" in the later sell lifecycle.
+        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        }
+        if (!compatible(candidate.meta, character)) continue;
         if (this._unsafe(context.contentDrift, candidate.item.name)) {
           blockedUnknownContent += 1;
           if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
             this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
           }
           continue;
-        }
-        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
-          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
         }
         let best = null;
         for (const slot of candidate.slots) {
