@@ -11101,6 +11101,42 @@ function compatible(meta, character) {
   return true;
 }
 
+function equipmentTypeKey(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  return String(meta.wtype || meta.type || '').toLowerCase() || null;
+}
+
+function classSlotCompatible(meta, character, slot, gameData = {}) {
+  if (!meta || !character || !slot) return false;
+  const ctype = String(character.ctype || '').toLowerCase();
+  const classDef = gameData && gameData.classes && gameData.classes[ctype];
+  // Older fixtures and defensive fallback contexts may not expose G.classes.
+  // In live Adventure Land it is authoritative, so only enforce when present.
+  if (!classDef || typeof classDef !== 'object') return true;
+
+  const key = equipmentTypeKey(meta);
+  if (!key) return true;
+
+  if (slot === 'mainhand') {
+    const mainhand = classDef.mainhand && classDef.mainhand[key];
+    const doublehand = classDef.doublehand && classDef.doublehand[key];
+    if (!mainhand && !doublehand) return false;
+    if (doublehand && character.gear && character.gear.offhand && character.gear.offhand.name) return false;
+    return true;
+  }
+
+  if (slot === 'offhand') {
+    if (!classDef.offhand || !classDef.offhand[key]) return false;
+    const currentMain = character.gear && character.gear.mainhand;
+    const currentMainMeta = currentMain && currentMain.name && gameData.items && gameData.items[currentMain.name];
+    const currentMainKey = equipmentTypeKey(currentMainMeta);
+    if (currentMainKey && classDef.doublehand && classDef.doublehand[currentMainKey]) return false;
+    return true;
+  }
+
+  return true;
+}
+
 function candidateSlots(meta) {
   if (!meta || typeof meta !== 'object') return [];
   const type = String(meta.type || '').toLowerCase();
@@ -11341,6 +11377,7 @@ class GearProgressionEvaluator {
         }
         let best = null;
         for (const slot of candidate.slots) {
+          if (!classSlotCompatible(candidate.meta, character, slot, gameData)) continue;
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
@@ -11603,7 +11640,8 @@ module.exports = {
   effectiveStats,
   scoreItem,
   scoreImprovement,
-  candidateSlots
+  candidateSlots,
+  classSlotCompatible
 };
 
 },
@@ -51755,6 +51793,7 @@ module.exports = {
 'use strict';
 
 const { hasIncomingAggro } = require('./alpha20-33-combat-logistics-regression-hotfix');
+const { classSlotCompatible } = require('../economy/gear-progression');
 
 const ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE = 'alpha33-mark-orbit-merchant-delivery-v2';
 const FARMER_STATE_ACTION = 'FARMER_STATE';
@@ -51923,10 +51962,12 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantCombatOwnersPatched: 0,
       gearDeliveryUnknownTargetGearHolds: 0,
       gearDeliveryStaleGoalHolds: 0,
+      gearDeliveryIncompatibleGoalHolds: 0,
       gearDeliveryIntentsSent: 0,
       gearDeliveryIntentSendFailures: 0,
       gearDeliveryIntentsReceived: 0,
       farmerGearLootReservations: 0,
+      farmerGearIntentLootHolds: 0,
       farmerGearExactReservations: 0,
       farmerGearEquipAttempts: 0,
       farmerGearEquipCommitted: 0,
@@ -52238,7 +52279,18 @@ class Alpha33MarkOrbitMerchantDelivery {
     merchant.gearDeliveryCandidate = () => {
       const candidate = baseCandidate();
       if (!candidate || !candidate.goal) return candidate;
-      const state = this._gearGoalTargetState(candidate.goal);
+      const goal = candidate.goal;
+      const targetRow = this._registryCharacter(goal.character);
+      const gameData = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+        ? this.runtime.adapter.getGameData()
+        : this.root && this.root.G || {};
+      const meta = gameData && gameData.items && gameData.items[goal.item];
+      if (meta && targetRow && !classSlotCompatible(meta, targetRow, goal.slot, gameData)) {
+        this.stats.gearDeliveryIncompatibleGoalHolds += 1;
+        this._noteGearHold('TARGET_ITEM_SLOT_INCOMPATIBLE', goal);
+        return null;
+      }
+      const state = this._gearGoalTargetState(goal);
       if (state.safe) return candidate;
       if (state.reason === 'TARGET_GEAR_UNOBSERVED') this.stats.gearDeliveryUnknownTargetGearHolds += 1;
       else this.stats.gearDeliveryStaleGoalHolds += 1;
@@ -52314,7 +52366,16 @@ class Alpha33MarkOrbitMerchantDelivery {
     for (const intent of this.incomingGearIntents.values()) {
       if (!intent || String(intent.targetName || '') !== String(c.name || '')) continue;
       if (String(intent.itemName || '') !== String(item.name || '') || Math.max(0, finite(intent.itemLevel, 0)) !== levelOf(item)) continue;
-      if (Array.isArray(intent.beforeIndices) && intent.beforeIndices.includes(Number(item.index))) continue;
+      if (!this._goalTargetStillMatches({
+        slot: intent.slot,
+        currentItem: intent.currentItem,
+        currentLevel: intent.currentLevel
+      })) continue;
+      // Hold the whole identity while a targeted delivery is live. A previously
+      // existing identical item can be sent out just before delivery and the
+      // new item can reuse that exact inventory index. Excluding beforeIndices
+      // therefore creates a ping-pong race where the delivered upgrade becomes
+      // indistinguishable from the old outbound item and is sent back.
       return intent;
     }
     return null;
@@ -52347,7 +52408,10 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _localGearGoalMatches(item) {
     const intent = this._matchingGearIntentForItem(item);
-    if (intent) return true;
+    if (intent) {
+      this.stats.farmerGearIntentLootHolds += 1;
+      return true;
+    }
     const goal = this._activeLocalGearGoalForItem(item);
     if (goal) this.stats.farmerGearExactReservations += 1;
     return !!goal;
@@ -52420,11 +52484,20 @@ class Alpha33MarkOrbitMerchantDelivery {
       }
       const retryKey = String(intent.goalId || '');
       if (finite(this.farmerGearEquipRetryAt.get(retryKey), 0) > this.now()) continue;
-      const item = inventory.find((row) => row
+      const matching = inventory.filter((row) => row
         && Number.isInteger(Number(row.index))
-        && !intent.beforeIndices.includes(Number(row.index))
+        && row.locked !== true && row.l !== true && row.special !== true && !row.p
         && String(row.name || '') === intent.itemName
         && levelOf(row) === intent.itemLevel);
+      matching.sort((a, b) => {
+        const aWasPresent = intent.beforeIndices.includes(Number(a.index)) ? 1 : 0;
+        const bWasPresent = intent.beforeIndices.includes(Number(b.index)) ? 1 : 0;
+        return aWasPresent - bWasPresent || Number(a.index) - Number(b.index);
+      });
+      const item = matching[0] || null;
+      // Prefer a newly observed physical row, but allow an equivalent existing
+      // row to satisfy the targeted upgrade. This is essential when an earlier
+      // outbound send frees an index and the Merchant delivery reuses it.
       if (item) return { kind: 'MERCHANT_INTENT', goalId: intent.goalId, intent, item, slot: intent.slot };
     }
 
@@ -53371,6 +53444,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         staleGearGoalsReleasedOnFreshTargetState: true,
         staleGearGoalsFailClosed: true,
         targetedGearDeliveryIntentBeforeSend: true,
+        targetedGearIdentityHeldOutOfFarmerLootUntilEquip: true,
+        existingEquivalentGearMaySatisfyTargetedIntent: true,
         farmerReceivedReadyGearAutoEquippedAndVerified: true,
         localProgressionReservationRequiresExactActivePhysicalAssignment: true,
         localProgressionGearIsNotReturnedAsLoot: true,
