@@ -106,6 +106,7 @@ class GearProgressionEvaluator {
     this.minImprovementRatio = Math.max(0.01, Math.min(1, finite(options.minImprovementRatio, 0.05)));
     this.goals = new Map();
     this.futureFarmerProtection = new Map();
+    this.futureFarmerEvaluation = new Map();
     this.loaded = false;
     this.lastEvaluatedAt = null;
     this.lastEvaluation = null;
@@ -164,6 +165,21 @@ class GearProgressionEvaluator {
     return clone(row);
   }
 
+  futureSellSafetyFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const evaluation = this.futureFarmerEvaluation.get(exactKey);
+    if (!evaluation) return null;
+    if (String(evaluation.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(evaluation.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    const protection = this.futureProtectionFor(character, index, name, level);
+    return {
+      ...clone(evaluation),
+      checked: evaluation.checkedFarmerCount > 0 && evaluation.blockedByUnknownContent !== true,
+      protected: !!protection,
+      protection
+    };
+  }
+
   _goalId(character, slot, item, targetLevel) {
     return `${character}:${slot}:${item}:${targetLevel}`;
   }
@@ -195,12 +211,40 @@ class GearProgressionEvaluator {
     this.stats.candidates += candidates.length;
     const seenGoalIds = new Set();
     this.futureFarmerProtection.clear();
+    this.futureFarmerEvaluation.clear();
+    for (const candidate of candidates) {
+      if (!Number.isInteger(Number(candidate.item && candidate.item.index))) continue;
+      const key = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+      this.futureFarmerEvaluation.set(key, {
+        sourceCharacter: candidate.sourceCharacter,
+        sourceIndex: Number(candidate.item.index),
+        item: candidate.item.name,
+        observedLevel: levelOf(candidate.item),
+        evaluatedAt: now,
+        maxProbeLevel: this.maxProbeLevel,
+        checkedFarmerCount: 0,
+        blockedByUnknownContent: false
+      });
+    }
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
       for (const candidate of candidates) {
         if (!compatible(candidate.meta, character)) continue;
-        if (this._unsafe(context.contentDrift, candidate.item.name)) { blockedUnknownContent += 1; continue; }
+        const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
+          ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
+          : null;
+        const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
+        if (this._unsafe(context.contentDrift, candidate.item.name)) {
+          blockedUnknownContent += 1;
+          if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+            this.futureFarmerEvaluation.get(evaluationKey).blockedByUnknownContent = true;
+          }
+          continue;
+        }
+        if (isFarmerTarget && evaluationKey && this.futureFarmerEvaluation.has(evaluationKey)) {
+          this.futureFarmerEvaluation.get(evaluationKey).checkedFarmerCount += 1;
+        }
         let best = null;
         for (const slot of candidate.slots) {
           const current = this._currentItem(character, slot, gameData);
@@ -341,6 +385,7 @@ class GearProgressionEvaluator {
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
       farmerTargetShare: 0.8,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
@@ -410,7 +455,9 @@ class GearProgressionEvaluator {
       minImprovementRatio: this.minImprovementRatio,
       goals: this.goals.size,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
+      processedGearSellRequiresExplicitFutureSafety: true,
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
