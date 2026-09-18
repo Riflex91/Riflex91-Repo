@@ -11365,14 +11365,18 @@ class GearProgressionEvaluator {
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
+          // Farmer upgrade gear is a bounded progression path, not an
+          // incremental delivery path. Once an upgradeable item is meaningful
+          // now OR becomes meaningful by +5, finish that exact physical item to
+          // the established Farmer +5 cap before it may become delivery-ready.
           const projectedFarmerUpgrade = isFarmerTarget
             && !!candidate.meta.upgrade
-            && meaningful.level > observedLevel
+            && observedLevel < FARMER_UPGRADE_MAX_LEVEL
             && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
           const progressionTargetLevel = projectedFarmerUpgrade ? FARMER_UPGRADE_MAX_LEVEL : meaningful.level;
           const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement, progressionTargetLevel };
           if (isFarmerTarget
-            && meaningful.level > observedLevel
+            && progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
             const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
             const existingProtection = this.futureFarmerProtection.get(protectionKey);
