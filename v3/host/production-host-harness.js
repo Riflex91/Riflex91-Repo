@@ -34,7 +34,8 @@ class ProductionHostHarness {
       command: options.command,
       args: options.args,
       cwd: options.cwd,
-      env: options.env,
+      env: options.browserEnv || options.env,
+      inheritEnv: options.inheritProcessEnv !== false,
       stopGraceMs: options.stopGraceMs,
       outputCapacity: options.outputCapacity
     });
@@ -103,7 +104,7 @@ class ProductionHostHarness {
       serverFactory: options.serverFactory
     });
 
-    const env = options.env || (typeof process !== 'undefined' && process.env) || {};
+    const env = options.hostEnv || options.env || (typeof process !== 'undefined' && process.env) || {};
     this.telemetryExporter = options.telemetryExporter || new DebugTelemetryExporter({
       now: this.now,
       fetch: options.telemetryFetch,
