@@ -19,18 +19,20 @@ export interface AdventureLandProduktionsLaufzeitKonfiguration {
   readonly lebensnachweisIntervallMillisekunden?: number;
 }
 
-export interface AdventureLandProduktionsLaufzeitStatus extends ReturnType<AdventureLandProduktionsBootstrap['status']> {
-  readonly lebensnachweisAutomatikAktiv: boolean;
-  readonly lebensnachweisAutomatikPausiert: boolean;
-  readonly lebensnachweisIntervallMillisekunden: number;
-  readonly lebensnachweisSendeVersuche: number;
-  readonly lebensnachweisSendeErfolge: number;
-  readonly lebensnachweisSendeFehler: number;
-  readonly lebensnachweisSendeOffen: number;
-  readonly lebensnachweisSendeMaxOffen: number;
-  readonly lebensnachweisLetzterErfolgAm: number | null;
-  readonly lebensnachweisLetzterFehler: string | null;
-}
+export type AdventureLandProduktionsLaufzeitStatus = Readonly<
+  ReturnType<AdventureLandProduktionsBootstrap['status']> & {
+    readonly lebensnachweisAutomatikAktiv: boolean;
+    readonly lebensnachweisAutomatikPausiert: boolean;
+    readonly lebensnachweisIntervallMillisekunden: number;
+    readonly lebensnachweisSendeVersuche: number;
+    readonly lebensnachweisSendeErfolge: number;
+    readonly lebensnachweisSendeFehler: number;
+    readonly lebensnachweisSendeOffen: number;
+    readonly lebensnachweisSendeMaxOffen: number;
+    readonly lebensnachweisLetzterErfolgAm: number | null;
+    readonly lebensnachweisLetzterFehler: string | null;
+  }
+>;
 
 export interface AdventureLandProduktionsLaufzeitApi {
   readonly version: typeof PRODUKTIONS_LAUFZEIT_VERSION;
