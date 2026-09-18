@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 10,
+  "next_step": 11,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -173,9 +173,9 @@
       "name": "windows-host-service",
       "title": "Windows host autostart and machine-reboot recovery",
       "branch": "architecture/10-production-host-service",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 271,
-      "merge_commit": null,
+      "merge_commit": "7def5d3813eb508cec565516471c2ca23458adce",
       "required_outcomes": [
         "Windows Task Scheduler autostart in the interactive user session",
         "persistent service start budget across process and machine restarts",
@@ -184,6 +184,25 @@
         "dedicated persistent Windows host-state directories",
         "bounded scheduled-task restart policy",
         "crash-loop and reboot recovery tests",
+        "no gameplay authority added"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "windows-session-bootstrap",
+      "title": "Windows Adventure Land session bootstrap and profile readiness",
+      "branch": "architecture/11-windows-session-bootstrap",
+      "status": "in_progress",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "bounded browser/runtime startup grace before service restart",
+        "persistent dedicated Windows browser profile validation",
+        "loopback CDP/profile configuration validation",
+        "explicit startup readiness and timeout observability",
+        "no plaintext Adventure Land credentials",
+        "no restart-budget burn while runtime is still booting",
+        "bootstrap timeout and delayed-readiness tests",
         "no gameplay authority added"
       ]
     }
