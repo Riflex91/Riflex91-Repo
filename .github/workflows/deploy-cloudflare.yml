@@ -6,6 +6,7 @@ on:
     paths:
       - "cloudflare-dashboard/**"
       - "v3/**"
+      - "v4/**"
       - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
     inputs:
@@ -43,6 +44,18 @@ jobs:
       - name: Build V3 bootstrap and runtime artifacts
         working-directory: v3
         run: node scripts/build.js
+      - name: Install V4 build dependencies
+        working-directory: v4
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Build and verify V4 production runtime artifacts
+        working-directory: v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run produktions-runtime:bauen
+          sha256sum -c dist/aio-v4-runtime.sha256
+          test -s dist/aio-v4-runtime.js
+          test -s dist/aio-v4-runtime.sha256
       - name: Validate Worker source and R2 log policy tests
         working-directory: cloudflare-dashboard
         run: npm run check
@@ -144,6 +157,87 @@ jobs:
           cmp ../v3/src/release-version.js /tmp/aio-v3-release-version.js
           cmp ../v3/dist/aio-v3.js /tmp/aio-v3.js
           cmp ../v3/dist/aio-v3-runtime.js /tmp/aio-v3-runtime.js
+      - name: Publish immutable V4 runtime release to R2
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_SHA" in
+            *[!0-9a-f]*|'') echo "Invalid lowercase Git release SHA: $RELEASE_SHA" >&2; exit 1 ;;
+          esac
+          [ "${#RELEASE_SHA}" -eq 40 ] || { echo "Release SHA must contain exactly 40 hex characters." >&2; exit 1; }
+          npx wrangler r2 object put "aio-v3-logs/releases/v4/$RELEASE_SHA/aio-v4-runtime.js" \
+            --file=../v4/dist/aio-v4-runtime.js \
+            --content-type='application/javascript; charset=utf-8' \
+            --cache-control='no-store' \
+            --remote \
+            --config wrangler.deploy.jsonc
+          npx wrangler r2 object put "aio-v3-logs/releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256" \
+            --file=../v4/dist/aio-v4-runtime.sha256 \
+            --content-type='text/plain; charset=utf-8' \
+            --cache-control='no-store' \
+            --remote \
+            --config wrangler.deploy.jsonc
+      - name: Verify immutable V4 runtime release in R2
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          rm -f /tmp/aio-v4-runtime.js /tmp/aio-v4-runtime.sha256
+          npx wrangler r2 object get "aio-v3-logs/releases/v4/$RELEASE_SHA/aio-v4-runtime.js" \
+            --file=/tmp/aio-v4-runtime.js --remote --config wrangler.deploy.jsonc
+          npx wrangler r2 object get "aio-v3-logs/releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256" \
+            --file=/tmp/aio-v4-runtime.sha256 --remote --config wrangler.deploy.jsonc
+          cmp ../v4/dist/aio-v4-runtime.js /tmp/aio-v4-runtime.js
+          cmp ../v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-runtime.sha256
+          (cd /tmp && sha256sum -c aio-v4-runtime.sha256)
+      - name: Verify immutable V4 runtime release over public HTTPS
+        if: steps.credentials.outputs.ready == 'true' && steps.r2.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha || github.sha }}
+          V4_RELEASE_BASE_URL: https://aio-bot-dashboard.hansijuergenlul.workers.dev
+        run: |
+          set -euo pipefail
+          runtime_url="$V4_RELEASE_BASE_URL/v4/releases/$RELEASE_SHA/aio-v4-runtime.js"
+          sha_url="$V4_RELEASE_BASE_URL/v4/releases/$RELEASE_SHA/aio-v4-runtime.sha256"
+          rm -f /tmp/aio-v4-public.js /tmp/aio-v4-public.sha256 /tmp/aio-v4-runtime.headers /tmp/aio-v4-sha.headers
+          curl --fail --silent --show-error --location \
+            --header 'Origin: https://adventure.land' \
+            --dump-header /tmp/aio-v4-runtime.headers \
+            --output /tmp/aio-v4-public.js \
+            "$runtime_url"
+          curl --fail --silent --show-error --location \
+            --header 'Origin: https://adventure.land' \
+            --dump-header /tmp/aio-v4-sha.headers \
+            --output /tmp/aio-v4-public.sha256 \
+            "$sha_url"
+          cmp ../v4/dist/aio-v4-runtime.js /tmp/aio-v4-public.js
+          cmp ../v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-public.sha256
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*      - name: Remove temporary deploy config
+        if: always()
+        working-directory: cloudflare-dashboard
+        run: rm -f wrangler.deploy.jsonc d1-list.json
+ /tmp/aio-v4-runtime.headers
+          grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-runtime.headers
+          grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-runtime.headers
+          grep -Eiq '^content-type:[[:space:]]*application/javascript' /tmp/aio-v4-runtime.headers
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*      - name: Remove temporary deploy config
+        if: always()
+        working-directory: cloudflare-dashboard
+        run: rm -f wrangler.deploy.jsonc d1-list.json
+ /tmp/aio-v4-sha.headers
+          grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-sha.headers
+          grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-sha.headers
+          grep -Eiq '^content-type:[[:space:]]*text/plain' /tmp/aio-v4-sha.headers
+          (cd /tmp && cp aio-v4-public.js aio-v4-runtime.js && cp aio-v4-public.sha256 aio-v4-runtime.sha256 && sha256sum -c aio-v4-runtime.sha256)
       - name: Remove temporary deploy config
         if: always()
         working-directory: cloudflare-dashboard

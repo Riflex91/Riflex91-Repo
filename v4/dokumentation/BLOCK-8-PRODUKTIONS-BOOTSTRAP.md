@@ -161,3 +161,45 @@ Fremde globale Runtime- oder Smoke-Objekte werden nicht ueberschrieben.
 9. Erst dann den bereits dokumentierten one-shot Gruppenziel-Live-Smoke ausfuehren.
 
 Der echte Live-Smoke bleibt bis zu dieser Veroeffentlichung offen.
+
+
+## Immutable Cloudflare-Veroeffentlichung
+
+Die V4-Produktionsruntime wird nicht unter einem beweglichen `latest`-Pfad veroeffentlicht.
+
+Der Release-Vertrag ist an den exakten 40-stelligen Git-Commit-SHA gebunden:
+
+`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/<release-sha>/aio-v4-runtime.js`
+
+Hashdatei:
+
+`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/<release-sha>/aio-v4-runtime.sha256`
+
+Die zugehoerigen R2-Objekte liegen unter:
+
+`releases/v4/<release-sha>/aio-v4-runtime.js`
+
+`releases/v4/<release-sha>/aio-v4-runtime.sha256`
+
+Der Cloudflare-Worker akzeptiert nur lowercase Git-SHAs mit exakt 40 Hex-Zeichen und nur diese beiden Dateinamen.
+
+Der Deploy-Workflow:
+
+1. checkt exakt den vorgesehenen Release-Commit aus,
+2. baut die V4-Produktionsruntime mit dem strikten TypeScript-Build,
+3. prueft lokal `sha256sum -c`,
+4. deployt zuerst den Worker mit der V4-Release-Route,
+5. schreibt Runtime und Hashdatei unter den immutable R2-Schluessel,
+6. liest beide Artefakte aus R2 zurueck und vergleicht sie bytegenau,
+7. laedt beide Artefakte ueber den oeffentlichen HTTPS-Worker,
+8. vergleicht auch diese Antworten bytegenau mit den lokal gebauten Dateien,
+9. prueft CORS, `no-store`, Content-Type und `x-aio-v4-release-sha`,
+10. prueft den oeffentlich geladenen SHA-256 erneut gegen die oeffentlich geladene Runtime.
+
+Erst ein Deployment, das diese komplette Kette besteht, gilt als veroeffentlicht.
+
+Fuer Adventure Land werden danach exakt diese Werte verwendet:
+
+`AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl = "<immutable-runtime-url>"`
+
+`AIO_V4_BOOTSTRAP_CONFIG.runtimeSha256 = "<64-stelliger-sha256-aus-der-veroeffentlichten-hashdatei>"`
