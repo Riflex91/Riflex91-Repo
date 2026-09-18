@@ -490,20 +490,30 @@ export class AdventureLandGruppenZielLiveSmoke {
   }
 
   private erzeugeAuditSpielFenster(audit: { attack: number; sonstige: number; sonstigeNamen: string[] }): object {
-    const original = this.spielFenster;
-    return new Proxy(original, {
+    const leseKontext = this.spielFenster;
+    const aktionsKontext = this.zielKontext;
+
+    return new Proxy(leseKontext, {
       get: (ziel, eigenschaft, empfaenger) => {
         if (typeof eigenschaft !== 'string' || !AKTIONS_FUNKTIONEN.includes(eigenschaft as AktionsFunktionsName)) {
           return Reflect.get(ziel, eigenschaft, empfaenger);
         }
-        const originalFunktion = Reflect.get(ziel, eigenschaft, ziel);
-        if (typeof originalFunktion !== 'function') return originalFunktion;
+
+        let originalFunktion: unknown;
+        try {
+          originalFunktion = Reflect.get(aktionsKontext, eigenschaft, aktionsKontext);
+        } catch {
+          return undefined;
+        }
+        if (typeof originalFunktion !== 'function') return undefined;
+
         if (eigenschaft === 'attack') {
           return (...argumente: unknown[]) => {
             audit.attack += 1;
-            return Reflect.apply(originalFunktion, ziel, argumente);
+            return Reflect.apply(originalFunktion as (...werte: unknown[]) => unknown, aktionsKontext, argumente);
           };
         }
+
         return (..._argumente: unknown[]) => {
           audit.sonstige += 1;
           audit.sonstigeNamen.push(eigenschaft);
