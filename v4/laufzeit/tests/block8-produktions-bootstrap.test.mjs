@@ -152,6 +152,8 @@ test('Block-8 Produktions-Bootstrap blockiert doppelte Teilnehmerkennungen statt
 test('Block-8 Produktions-Bootstrap verbraucht die Gruppenziel-Vorbereitung nach genau einem korrekten Versuch', () => {
   const u = spiel();
   const b = bootstrap(u);
+  b.installiereLebensnachweisEmpfang();
+  liefereRemote(u);
   const erster = b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT);
   assert.ok(erster.gestarteteAktionsKennung);
   assert.throws(
@@ -160,25 +162,31 @@ test('Block-8 Produktions-Bootstrap verbraucht die Gruppenziel-Vorbereitung nach
   );
 });
 
-test('Block-8 Produktions-Bootstrap erfindet ohne aktuelle Gruppenmeldungen keinen aktiven Zielauftrag', () => {
+test('Block-8 Produktions-Bootstrap blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer', () => {
   const u = spiel();
   const b = bootstrap(u);
-  const ergebnis = b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT);
-  assert.equal(ergebnis.koordinationsBetriebsArt, 'normal');
-  assert.equal(ergebnis.gemeinsamesZielKennung, 'goo-1');
-  assert.equal(ergebnis.gestarteterAktionsName, 'GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN');
+  assert.throws(
+    () => b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT),
+    /mindestens 2 aktive frische Teilnehmer/
+  );
+  assert.equal(b.holeZentraleAktionsSteuerung().listeAktionsZustaende().length, 0);
+  assert.equal(b.holeZentraleAktionsSteuerung().listeRessourcenSperren().length, 0);
+  assert.equal(b.status().gruppenZielVorbereitungVerbraucht, true);
 });
 
-test('Block-8 Produktions-Bootstrap verwirft veraltete Remote-Meldung durch produktive Koordination', () => {
+test('Block-8 Produktions-Bootstrap blockiert Gruppenziel wenn der zweite Teilnehmer veraltet ist', () => {
   const u = spiel();
   let jetzt = 20_000;
   const b = bootstrap(u, { jetzt: () => jetzt });
   assert.equal(b.installiereLebensnachweisEmpfang(), true);
   liefereRemote(u, 10_000);
-  const ergebnis = b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT);
-  assert.equal(ergebnis.gestarteterAktionsName, 'GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN');
+  assert.throws(
+    () => b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT),
+    /mindestens 2 aktive frische Teilnehmer/
+  );
   const status = b.status();
   assert.ok(status.bekannteTeilnehmer.includes('ranger-2'));
+  assert.equal(b.holeZentraleAktionsSteuerung().listeRessourcenSperren().length, 0);
 });
 
 test('Block-8 Produktions-Bootstrap installiert Live-Smoke nur fuer den exakt vorbereiteten zentralen Zielauftrag', () => {
@@ -197,6 +205,8 @@ test('Block-8 Produktions-Bootstrap installiert Live-Smoke nur fuer den exakt vo
     () => b.installiereGruppenZielLiveSmoke(erwartung, PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT),
     /genau eine laufende zentrale Gruppenzielanfrage/
   );
+  b.installiereLebensnachweisEmpfang();
+  liefereRemote(u);
   const vorbereiten = b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT);
   assert.ok(vorbereiten.gestarteteAktionsKennung);
 
@@ -211,6 +221,7 @@ test('Block-8 Produktions-Bootstrap stoppt Empfang, Smoke und laufende Gruppenar
   const u = spiel();
   const b = bootstrap(u);
   b.installiereLebensnachweisEmpfang();
+  liefereRemote(u);
   const vorbereitet = b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT);
   const erwartung = Object.freeze({
     charakterName: 'My_Ranger1', serverRegion: 'EU', serverKennung: 'I',
