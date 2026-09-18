@@ -59,15 +59,15 @@ Die zentrale Verarbeitung endet weiterhin in `SchattenAusfuehrung`.
 
 ## Noch nicht freigegeben
 
-Auf aktuellem `main` existiert weiterhin **kein Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_*`**.
+Der erste minimale Adventure-Land-Ausfuehrungsadapter fuer `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ist inzwischen **implementiert, aber standardmaessig gesperrt und noch nicht live freigegeben**.
 
-Das ist beabsichtigt. Die bisherige Block-8-Kette darf planen, Anfragen erzeugen, Ressourcen sperren, priorisieren, abbrechen und Schattenzustaende erzeugen, aber keine echte Gruppen-Spielaktion ausfuehren.
+Er liegt ausschliesslich unter `ausfuehrung/` und besitzt noch keinen one-shot Browser-Live-Runner. Die uebrigen `GRUPPE_*`-Aktionen haben weiterhin keinen aktiven Adventure-Land-Pfad.
 
 ## Verbleibende Block-8-Schritte
 
-### 1. Genau einen minimalen Gruppen-Ausfuehrungspfad vorbereiten
+### 1. Genau einen minimalen Gruppen-Ausfuehrungspfad vorbereiten — **implementiert, Offline-Gates laufen**
 
-Nicht mehrere Gruppenaktionen gleichzeitig aktivieren.
+Es wurde ausschliesslich `GRUPPE_GEMEINSAMES_ZIEL_BEARBEITEN` ausgewaehlt. Andere Gruppenaktionen bleiben ohne aktiven Pfad.
 
 Der erste Adapter muss:
 
@@ -92,7 +92,7 @@ Vor einer echten Aktion sind mindestens erforderlich:
 - Wiederholung bzw. deterministische Simulation des Entscheidungs- und Freigabepfads,
 - Schattenbetrieb mit derselben Anfrage- und Ressourcenfolge.
 
-Der Adapter darf dafuer implementiert werden, bleibt aber standardmaessig gesperrt und gilt noch nicht als live freigegeben.
+Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
 ### 3. Begrenzter one-shot Live-Smoke
 
