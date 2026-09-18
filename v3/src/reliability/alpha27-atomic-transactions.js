@@ -72,6 +72,17 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
   atomicPreflight(tx) {
     const executor = this.runtime.controlledMerchant;
     if (!tx) return { ok: false, reason: 'TRANSACTION_NOT_FOUND' };
+    const reservation = this.runtime && this.runtime.merchantSelfGearReservation;
+    const selfGear = !!(tx.metadata && tx.metadata.selfGear === true
+      && reservation
+      && reservation.sessionId === tx.metadata.selfGearSessionId
+      && reservation.type === tx.type
+      && reservation.character === tx.character
+      && reservation.item === tx.item
+      && levelOf({ level: reservation.level }) === levelOf(tx)
+      && Array.isArray(reservation.indices)
+      && reservation.indices.length === transactionInputs(tx).length
+      && reservation.indices.every((value) => transactionInputs(tx).some((row) => Number(row.index) === Number(value))));
     if (!executor || !executor.enabled) return { ok: false, reason: 'CONTROLLED_MERCHANT_DISABLED' };
     if (!['UPGRADE', 'COMPOUND'].includes(tx.type)) return { ok: false, reason: 'ATOMIC_FAMILY_NOT_SUPPORTED' };
     if (tx.type === 'UPGRADE' && !executor.upgradeEnabled) return { ok: false, reason: 'UPGRADE_LIVE_DISABLED' };
@@ -101,7 +112,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       seen.add(input.index);
       const entry = this._ledgerEntry(input);
       if (!entry) return { ok: false, reason: 'LEDGER_ITEM_NOT_FOUND', index: input.index };
-      if (!EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || ''))) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      if (!selfGear && !EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || ''))) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return { ok: false, reason: 'SELF_GEAR_LEDGER_IDENTITY_CHANGED', index: input.index };
       if (String(entry.name || '') !== String(input.item || '') || levelOf(entry) !== levelOf(input)) return { ok: false, reason: 'LEDGER_ITEM_IDENTITY_CHANGED', index: input.index };
       if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', input.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION', item: input.item };
       const item = live[input.index];
@@ -121,8 +133,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
-      if (!goal && !economicLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
-      if (!goal && economicLifecycle) {
+      if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && economicLifecycle && !selfGear) {
         const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
         if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
@@ -131,7 +143,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
         }
       }
-      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, value, grade, scroll: `scroll${grade}` };
+      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, selfGear, value, grade, scroll: `scroll${grade}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
@@ -139,7 +151,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     if (grade >= 4) return { ok: false, reason: 'COMPOUND_ITEM_EXALTED' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
-    return { ok: true, inputs, meta, value, grade, scroll: `cscroll${grade}` };
+    return { ok: true, inputs, meta, selfGear, value, grade, scroll: `cscroll${grade}` };
   }
 }
 
