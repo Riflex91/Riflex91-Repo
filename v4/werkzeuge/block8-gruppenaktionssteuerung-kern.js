@@ -3,7 +3,7 @@
 
   const API_NAME = 'V4Block8GruppenAktionsSteuerungKern';
   const VERSION = '1.0.0';
-  const QUELL_BLOB_SHA = 'b4972a1ee0b200477061fd732040f3acb61c451a';
+  const QUELL_BLOB_SHA = '87e200e26e2f10ac8c1ea7c2d3fa5403d780a761';
   const GRUPPEN_AKTIONS_NAMEN = Object.freeze({
     mitgliedHeilen: 'GRUPPE_MITGLIED_HEILEN',
     zielAggroBinden: 'GRUPPE_ZIEL_AGGRO_BINDEN',
@@ -15,6 +15,17 @@
   const ALLE_GRUPPEN_AKTIONS_NAMEN_MENGE = new Set(ALLE_GRUPPEN_AKTIONS_NAMEN);
 
   function friereStrings(werte) { return Object.freeze([...werte]); }
+
+  function brecheVeralteteGruppenArbeitAb(steuerung, jetzt, grund) {
+    const abgebrochen = [];
+    for (const zustand of steuerung.listeAktionsZustaende()) {
+      if (!['wartend', 'blockiert', 'laeuft'].includes(zustand.phase)) continue;
+      if (zustand.anfrage.angefordertVon !== 'gruppen-aktionsplanung') continue;
+      if (!ALLE_GRUPPEN_AKTIONS_NAMEN_MENGE.has(zustand.anfrage.aktion)) continue;
+      if (steuerung.brecheAktionAb(zustand.anfrage.kennung, jetzt, grund)) abgebrochen.push(zustand.anfrage.kennung);
+    }
+    return friereStrings(abgebrochen.sort());
+  }
 
   function erstelleGruppenAktionsSteuerungKonfiguration(aenderungen = {}) {
     const aktiviert = aenderungen.aktiviert ?? false;
@@ -47,7 +58,18 @@
       schattenEintraege: Object.freeze([...steuerung.listeSchattenProtokoll()])
     });
 
-    if (uebersetzung.status === 'blockiert') return leer('blockiert', `Die Gruppenaktionsanfrage-Uebersetzung ist blockiert: ${uebersetzung.grund}`);
+    if (uebersetzung.status === 'blockiert') {
+      const grund = `Aktuelle Gruppenplanung ist blockiert; bestehende Gruppenarbeit darf nicht fortgesetzt werden: ${uebersetzung.grund}`;
+      const abgebrochen = brecheVeralteteGruppenArbeitAb(steuerung, jetzt, grund);
+      const suffix = abgebrochen.length > 0 ? ` Abgebrochen: ${abgebrochen.join(', ')}.` : '';
+      return leer('blockiert', `Die Gruppenaktionsanfrage-Uebersetzung ist blockiert: ${uebersetzung.grund}.${suffix}`);
+    }
+    if (uebersetzung.status === 'leer') {
+      const grund = `Aktuelle Gruppenplanung enthaelt keinen lokalen Gruppenauftrag; bestehende Gruppenarbeit darf nicht fortgesetzt werden: ${uebersetzung.grund}`;
+      const abgebrochen = brecheVeralteteGruppenArbeitAb(steuerung, jetzt, grund);
+      const suffix = abgebrochen.length > 0 ? ` Abgebrochen: ${abgebrochen.join(', ')}.` : '';
+      return leer('leer', `Die Gruppenaktionsanfrage-Uebersetzung enthaelt keine einreichbare Anfrage.${suffix}`);
+    }
     if (kandidaten.length === 0) return leer('leer', 'Die Gruppenaktionsanfrage-Uebersetzung enthaelt keine einreichbare Anfrage.');
     if (!cfg.aktiviert) {
       return Object.freeze({
