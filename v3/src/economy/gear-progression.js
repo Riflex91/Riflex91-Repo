@@ -65,8 +65,15 @@ function effectiveStats(meta, level) {
     const n = finite(value);
     if (n != null) out[key] = n;
   }
-  const upgrade = meta.upgrade && typeof meta.upgrade === 'object' ? meta.upgrade : {};
-  for (const [key, value] of Object.entries(upgrade)) {
+  // Adventure Land uses the same item level field for both upgradeable and
+  // compoundable equipment. Their per-level stat deltas live in different
+  // metadata objects, so score the mechanic that actually applies to the item.
+  const progression = meta.upgrade && typeof meta.upgrade === 'object'
+    ? meta.upgrade
+    : meta.compound && typeof meta.compound === 'object'
+      ? meta.compound
+      : {};
+  for (const [key, value] of Object.entries(progression)) {
     const n = finite(value);
     if (n == null) continue;
     out[key] = finite(out[key], 0) + n * Math.max(0, level);
