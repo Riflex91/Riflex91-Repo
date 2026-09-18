@@ -6,8 +6,8 @@ const { TargetSafety } = require('../src/farmer/target-safety');
 const { ContentSafetyGate } = require('../src/farmer/content-safety');
 const { AccountCharacterTransport } = require('../src/party/account-character-transport');
 const { ControlledPartyBootstrap, PartyBootstrapAction } = require('../src/party/controlled-party-bootstrap');
-const { installFarmerTravelSafetyHotfix } = require('../src/reliability/farmer-travel-safety-hotfix');
-const { installContentDriftStorageHotfix } = require('../src/reliability/content-drift-storage-hotfix');
+const { installFarmerTravelSafetyHotfix } = require('../src/farmer/farmer-travel-safety-hotfix');
+const { installContentDriftStorageHotfix } = require('../src/content/content-drift-storage-hotfix');
 
 function policyWorld(initial = {}) {
   const facts = new Map(Object.entries(initial));
