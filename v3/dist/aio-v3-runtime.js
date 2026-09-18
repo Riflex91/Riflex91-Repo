@@ -4157,8 +4157,15 @@ class BasicKitingPolicy {
       return { shouldMove: false, reason: 'RANGE_CAPABILITY_TOO_LOW', range };
     }
 
-    if (target.target && target.target !== character.name) {
-      return { shouldMove: false, reason: 'TARGET_FOCUSED_ELSEWHERE', range, targetOwner: target.target };
+    const targetOwner = target.target == null ? null : String(target.target);
+    const selfName = character.name == null ? null : String(character.name);
+    if (!targetOwner || !selfName || targetOwner !== selfName) {
+      return {
+        shouldMove: false,
+        reason: targetOwner ? 'TARGET_FOCUSED_ELSEWHERE' : 'NO_ACTIVE_SELF_AGGRO',
+        range,
+        targetOwner
+      };
     }
 
     const cx = finite(character.x);
@@ -26481,7 +26488,7 @@ class TeamCombatCohesionHotfix {
     this.requiredCombatMembers = Math.max(2, Math.min(3, Number(options.requiredCombatMembers) || 3));
     this.cohesionRadius = Math.max(90, Math.min(220, Number(options.cohesionRadius) || 150));
     this.followRadius = Math.max(45, Math.min(this.cohesionRadius - 15, Number(options.followRadius) || 85));
-    this.kiteFormationRadius = Math.max(this.followRadius, Math.min(this.cohesionRadius, Number(options.kiteFormationRadius) || 125));
+    this.kiteFormationRadius = Math.max(this.followRadius, Math.min(this.cohesionRadius, Number(options.kiteFormationRadius) || 100));
     this.followStep = Math.max(25, Math.min(100, Number(options.followStep) || 70));
     this.followCooldownMs = Math.max(500, Number(options.followCooldownMs) || 850);
     this.minNewFightHpRatio = Math.max(0.65, Math.min(0.99, Number(options.minNewFightHpRatio) || 0.90));
@@ -26506,7 +26513,10 @@ class TeamCombatCohesionHotfix {
       leaderHolds: 0,
       kiteCohesionBlocks: 0,
       localFarmFollowerSuppressed: 0,
-      localFarmLeaderWaits: 0
+      localFarmLeaderWaits: 0,
+      combatFormationHolds: 0,
+      hardKiteTetherBlocks: 0,
+      hardKiteTetherRecoveryMoves: 0
     };
     this.installed = false;
     this._tuneKiting();
@@ -26784,8 +26794,52 @@ class TeamCombatCohesionHotfix {
     return null;
   }
 
+  _activeTeamCombat(context, team) {
+    const snapshot = context && context.snapshot || this.runtime.lastSnapshot;
+    if (!snapshot || !team) return null;
+    const names = new Set(Array.isArray(team.names) ? team.names.map(String) : []);
+    const targetIds = new Set((Array.isArray(team.members) ? team.members : [])
+      .map((member) => member && member.target != null ? String(member.target) : null)
+      .filter(Boolean));
+    return (snapshot.entities || []).find((entity) => entity
+      && entity.mtype
+      && !entity.dead
+      && !entity.rip
+      && (entity.hp == null || Number(entity.hp) > 0)
+      && (
+        (entity.target != null && names.has(String(entity.target)))
+        || (entity.id != null && targetIds.has(String(entity.id)))
+      )) || null;
+  }
+
+  _isActiveTeamCombatTarget(context, team, target) {
+    if (!target || target.dead || target.rip || (target.hp != null && Number(target.hp) <= 0)) return false;
+    const names = new Set(Array.isArray(team && team.names) ? team.names.map(String) : []);
+    if (target.target != null && names.has(String(target.target))) return this._candidateAllowed(context, target);
+    const id = target.id == null ? null : String(target.id);
+    if (!id) return false;
+    const targetedByParty = (Array.isArray(team && team.members) ? team.members : [])
+      .some((member) => member && member.target != null && String(member.target) === id);
+    return targetedByParty && this._candidateAllowed(context, target);
+  }
+
   _followLeader(context, team, reason) {
     if (!team || !team.self || !team.leader || team.selfName === team.leaderName) return false;
+    const activeCombat = this._activeTeamCombat(context, team);
+    if (activeCombat) {
+      this.stats.combatFormationHolds += 1;
+      this.lastDecision = {
+        at: this.now(),
+        action: 'FORMATION_HOLD',
+        reason: 'ACTIVE_COMBAT_POSITION_OWNED_BY_COMBAT',
+        requestedReason: reason || null,
+        leaderName: team.leaderName,
+        targetId: activeCombat.id == null ? null : String(activeCombat.id),
+        aggroOwner: activeCombat.target == null ? null : String(activeCombat.target),
+        distance: distance(team.self, team.leader)
+      };
+      return true;
+    }
     if (this.now() - this.lastFormationMoveAt < this.followCooldownMs) return true;
     const waypoint = this._followWaypoint(team.self, team.leader);
     if (!waypoint) {
@@ -26810,13 +26864,19 @@ class TeamCombatCohesionHotfix {
     const supply = this._localSupply(snapshot);
     if (!supply.ready) return { allowed: false, team, reason: 'LOCAL_POTION_SUPPLY_INCOMPLETE' };
     if (!team.complete || !team.alive || !team.sameMap || !team.positionsKnown) return { allowed: false, team, reason: 'TEAM_NOT_READY' };
-    if (!team.cohesive) return { allowed: false, team, reason: 'TEAM_NOT_COHESIVE' };
+    const activeTeamCombatTarget = this._isActiveTeamCombatTarget(context, team, target);
+    if (!team.cohesive && !activeTeamCombatTarget) return { allowed: false, team, reason: 'TEAM_NOT_COHESIVE' };
     if (team.selfName !== team.leaderName) {
       const matchesLeader = !!(team.leaderTargetId && target && String(target.id) === String(team.leaderTargetId));
       const sharedAggro = this._isSharedAggroTarget(context, team, target);
-      if (!matchesLeader && !sharedAggro) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
+      if (!matchesLeader && !sharedAggro && !activeTeamCombatTarget) return { allowed: false, team, reason: 'FOLLOWER_TARGET_DIFFERS_FROM_LEADER' };
     }
-    return { allowed: true, team, reason: null, phase };
+    return {
+      allowed: true,
+      team,
+      reason: activeTeamCombatTarget && !team.cohesive ? 'ACTIVE_TEAM_COMBAT_CONTINUES_OUTSIDE_COHESION' : null,
+      phase
+    };
   }
 
   _installCombatMovementGates() {
@@ -26912,13 +26972,30 @@ class TeamCombatCohesionHotfix {
       const team = snapshot && snapshot.character ? this._team(snapshot) : null;
       if (!team || !team.complete || !team.positionsKnown || !team.self) return decision;
       const proposed = { x: decision.x, y: decision.y };
-      const tooFar = team.members.some((member) => member.name !== team.selfName && distance(proposed, member) > this.kiteFormationRadius);
-      if (tooFar) {
+      const peers = team.members.filter((member) => member.name !== team.selfName);
+      const currentMax = peers.reduce((max, member) => Math.max(max, distance(team.self, member)), 0);
+      const proposedMax = peers.reduce((max, member) => Math.max(max, distance(proposed, member)), 0);
+      const outsideHardTether = proposedMax > this.kiteFormationRadius;
+      const recoveryMove = outsideHardTether
+        && Number.isFinite(currentMax)
+        && proposedMax + 0.5 < currentMax;
+      if (outsideHardTether && !recoveryMove) {
         this.stats.kiteCohesionBlocks += 1;
-        this.lastDecision = { at: this.now(), action: 'KITE_HOLD', reason: 'TEAM_COHESION_KITE_LIMIT', targetId: target && target.id || null, leaderName: team.leaderName };
-        return { ...decision, shouldMove: false, reason: 'TEAM_COHESION_KITE_LIMIT', teamCohesionBlocked: true };
+        this.stats.hardKiteTetherBlocks += 1;
+        this.lastDecision = {
+          at: this.now(),
+          action: 'KITE_HOLD',
+          reason: 'TEAM_COHESION_KITE_LIMIT',
+          targetId: target && target.id || null,
+          leaderName: team.leaderName,
+          currentMaxDistance: Number.isFinite(currentMax) ? currentMax : null,
+          proposedMaxDistance: Number.isFinite(proposedMax) ? proposedMax : null,
+          kiteFormationRadius: this.kiteFormationRadius
+        };
+        return { ...decision, shouldMove: false, reason: 'TEAM_COHESION_KITE_LIMIT', teamCohesionBlocked: true, hardTeamTether: true };
       }
-      return decision;
+      if (recoveryMove) this.stats.hardKiteTetherRecoveryMoves += 1;
+      return { ...decision, hardTeamTether: true, hardTeamTetherRecoveryMove: recoveryMove };
     };
     kiting.__teamCohesionGuardInstalled = true;
   }
@@ -26937,7 +27014,10 @@ class TeamCombatCohesionHotfix {
         sharedAggroBecomesTeamTarget: true,
         existingSafetyStillRequired: true,
         emergencyRetreatStillHasPriority: true,
-        merchantExcluded: true
+        merchantExcluded: true,
+        hardKiteTeamTether: true,
+        formationMovementSuppressedDuringActiveSharedCombat: true,
+        sharedAggroCombatMayContinueOutsideCohesionRadius: true
       },
       team: team ? {
         names: team.names,
@@ -34479,7 +34559,10 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           sourceIndex: finalization.candidate && finalization.candidate.item && finalization.candidate.item.index
         })
       };
-      return true;
+      // A safe HOLD is not progress. Returning false lets the caller drain any
+      // other executable progression work and, if none exists, release the
+      // PROGRESSION_BATCH lease so Production/Collection cannot be starved.
+      return false;
     }
 
     if (finalization.state === 'MUTATE' && finalization.request) {
@@ -34494,12 +34577,13 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           targetLevel: finalization.targetLevel,
           request: clone(finalization.request)
         };
-        return true;
+        return false;
       }
       const acted = await this.executeEconomyRequest(finalization.request);
       if (!acted) {
         // Never fall through to delivery after a targeted finalization request
-        // was rejected. A later tick may re-evaluate the exact live identity.
+        // was rejected. A later tick may re-evaluate the exact live identity,
+        // but this tick must not keep the global progression task leased.
         this.stats.autonomousMerchantHolds += 1;
         this.lastMerchantPlan = {
           at: this.now(),
@@ -34509,6 +34593,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
           targetLevel: finalization.targetLevel,
           request: clone(finalization.request)
         };
+        return false;
       }
       return true;
     }
@@ -34571,6 +34656,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     }
 
     let task = this._taskCurrent();
+    let progressionAttemptedThisCycle = false;
 
     // A collection session owns the Merchant until the inventory is actually
     // full or every nearby Farmer has been drained for the settle window.
@@ -34588,6 +34674,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
     if (task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
+      progressionAttemptedThisCycle = true;
       // Farmer gear is first-class work, but a ready lower tier is never
       // delivered while that exact gear path can still be safely improved.
       // Targeted finalization runs before delivery; unrelated mutation backlog
@@ -34595,13 +34682,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       if (await this.progressOrDeliverFarmerGear()) return true;
       let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
       if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
-      if (request) return this.executeEconomyRequest(request);
-      if (this.selfGear && await this.selfGear.cycle()) {
+      if (request) {
+        const acted = await this.executeEconomyRequest(request);
+        if (acted) return true;
+        this.stats.progressionTaskNoProgressReleases = (this.stats.progressionTaskNoProgressReleases || 0) + 1;
+        this._taskRelease(task.key, 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null, request: clone(request) });
+        this._event('ALPHA27_PROGRESSION_TASK_RELEASED_NO_PROGRESS', 'warn', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null });
+        task = null;
+      }
+      if (task && this.selfGear && await this.selfGear.cycle()) {
         this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
         return true;
       }
-      this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
-      task = null;
+      if (task) {
+        this._taskRelease(task.key, 'PROGRESSION_BATCH_DRAINED');
+        task = null;
+      }
     }
 
     if (!task) {
@@ -34614,17 +34710,26 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         }
       }
 
-      const progression = this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
+      const progression = progressionAttemptedThisCycle
+        ? { acquired: false, reason: 'PROGRESSION_ALREADY_ATTEMPTED_THIS_CYCLE' }
+        : this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
       if (progression.acquired) {
         if (await this.progressOrDeliverFarmerGear()) return true;
         let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
         if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
-        if (request) return this.executeEconomyRequest(request);
-        if (this.selfGear && await this.selfGear.cycle()) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
-          return true;
+        if (request) {
+          const acted = await this.executeEconomyRequest(request);
+          if (acted) return true;
+          this.stats.progressionTaskNoProgressReleases = (this.stats.progressionTaskNoProgressReleases || 0) + 1;
+          this._taskRelease('alpha27:progression-batch', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null, request: clone(request) });
+          this._event('ALPHA27_PROGRESSION_TASK_RELEASED_NO_PROGRESS', 'warn', 'PROGRESSION_REQUEST_NOT_EXECUTED', { type: request.type || null });
+        } else {
+          if (this.selfGear && await this.selfGear.cycle()) {
+            this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION_AFTER_FARMER_WORK', selfGear: this.selfGear.status() };
+            return true;
+          }
+          this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
         }
-        this._taskRelease('alpha27:progression-batch', 'NO_PROGRESSION_WORK');
       }
     }
 
@@ -34725,6 +34830,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       partySupplyChainLatches: this.stats.partySupplyChainLatches || 0,
       partySupplyChainRefreshes: this.stats.partySupplyChainRefreshes || 0,
       partySupplyChainReleases: this.stats.partySupplyChainReleases || 0,
+      progressionTaskNoProgressReleases: this.stats.progressionTaskNoProgressReleases || 0,
       lastPartySupplyChainRelease: clone(this.lastPartySupplyChainRelease || null),
       atomicTransactions: true,
       realUpgrade: true,
@@ -38761,21 +38867,17 @@ function installActiveAggroKiteCohesionBypass(runtime, stats) {
     if (!decision || decision.shouldMove !== false || String(decision.reason || '') !== 'TEAM_COHESION_KITE_LIMIT') return decision;
     const self = nameOf(character && character.name) || nameOf(runtimeCharacter(runtime) && runtimeCharacter(runtime).name);
     if (!self || !liveMonster(target) || String(target.target || '') !== self) return decision;
-    stats.kitingCohesionBypasses += 1;
-    emit(runtime, 'alpha20-33-combat-logistics', 'ACTIVE_AGGRO_KITE_COHESION_BYPASS', 'info', 'ACTIVE_AGGRO_OUTRANKS_SOFT_FORMATION_LIMIT', {
+    stats.activeAggroKiteTetherHolds = (stats.activeAggroKiteTetherHolds || 0) + 1;
+    emit(runtime, 'alpha20-33-combat-logistics', 'ACTIVE_AGGRO_KITE_TETHER_HOLD', 'info', 'ACTIVE_AGGRO_RESPECTS_HARD_FORMATION_TETHER', {
       targetId: target.id == null ? null : String(target.id),
       targetType: target.mtype || null,
       previousReason: decision.reason || null,
       x: finite(decision.x),
       y: finite(decision.y)
     });
-    return {
-      ...decision,
-      shouldMove: true,
-      reason: 'ACTIVE_AGGRO_KITE_COHESION_BYPASS',
-      teamCohesionBlocked: false,
-      aggroAuthorized: true
-    };
+    // Active aggro no longer outranks party cohesion. The proposed kite move is
+    // rejected exactly as the team-cohesion guard requested.
+    return decision;
   };
   kiting.__alpha20_33AggroKiteCohesionBypassInstalled = true;
   return true;
@@ -39002,6 +39104,7 @@ class Alpha2033CombatLogisticsRegressionHotfix {
     this.installedAt = this.now();
     this.stats = {
       kitingCohesionBypasses: 0,
+      activeAggroKiteTetherHolds: 0,
       nonAggroOutwardMovesBlocked: 0,
       merchantTargetOnlyCombatHoldsPrevented: 0,
       goldLootObservations: 0,
@@ -39035,7 +39138,8 @@ class Alpha2033CombatLogisticsRegressionHotfix {
         goldTransferWindowMs: gold ? gold.windowMs : null
       },
       policies: {
-        activeAggroMayBypassSoftKiteCohesionLimit: true,
+        activeAggroMayBypassSoftKiteCohesionLimit: false,
+        activeAggroRespectsHardFormationTether: true,
         supportCharactersDoNotRetreatWithoutSelfAggro: true,
         merchantCombatRequiresIncomingMonsterAggro: true,
         merchantOwnTargetDoesNotCountAsIncomingAggro: true,
@@ -40520,43 +40624,13 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
     kiting.desiredFactor = Math.max(finite(kiting.desiredFactor, 0), desiredFactor);
   }
 
+  // Non-aggro ranged characters do not drift outward to an artificial fire
+  // band. The normal Farmer engagement pipeline remains authoritative: it may
+  // close distance when the target leaves attack/skill range, but otherwise the
+  // support Ranger holds position and keeps firing from where it already stands.
   if (typeof farmer._engage === 'function') {
     const baseEngage = farmer._engage.bind(farmer);
-    let lastFirePositionAt = -Infinity;
-    farmer._engage = (context, target) => {
-      const snapshot = context && context.snapshot;
-      const c = snapshot && snapshot.character;
-      if (c && liveMonster(target) && classifyCombatStyle(c) === 'ranged' && target.target && String(target.target) !== String(c.name || '')) {
-        const range = finite(c.range);
-        const d = distance(c, target);
-        const now = runtime.now ? runtime.now() : Date.now();
-        if (range != null && range >= 60 && Number.isFinite(d) && d < range * firePositionTrigger && now - lastFirePositionAt >= firePositionCooldownMs) {
-          let unsafe = false;
-          try { unsafe = !!(typeof farmer._needsRecovery === 'function' && farmer._needsRecovery(snapshot).hpUnsafe); } catch (_) {}
-          if (!unsafe) {
-            const desired = range * desiredFactor;
-            const maxStep = Math.min(range * 0.42, Math.max(20, (finite(c.speed, 40) || 40) * 1.15));
-            const waypoint = radialWaypoint(runtime, c, target, desired, maxStep);
-            if (waypoint && context.adapter && typeof context.adapter.command === 'function') {
-              const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
-              if (result && (result.executed || result.shadow || result.coalesced)) {
-                lastFirePositionAt = now;
-                stats.rangedFirePositionMoves += 1;
-                if (typeof farmer._event === 'function') farmer._event('FARMER_RANGE_POSITION_REQUESTED', 'info', 'MAXIMIZE_RANGED_FIRE_POSITION', {
-                  distance: Number(d.toFixed(2)),
-                  range,
-                  desiredDistance: Number(desired.toFixed(2)),
-                  tank: tankProfile(runtime, target, snapshot)
-                });
-              }
-            }
-          }
-        }
-      }
-      // Repositioning changes movement only. Keep the normal engagement pipeline
-      // live so ranged followers can fire in the same cycle while moving outward.
-      return baseEngage(context, target);
-    };
+    farmer._engage = (context, target) => baseEngage(context, target);
   }
 
   farmer.__alpha24AdaptiveRangeInstalled = true;
@@ -40724,7 +40798,9 @@ class Alpha24AdaptiveRangeRiskLogisticsHotfix {
         logisticsRendezvousIsSoftDuringHomeService: true,
         rangerAndOtherRangedClassesUseNearMaximumRange: true,
         onlyAggroHolderUsesKitingController: true,
-        nonAggroRangedCharactersMayRepositionToFireBand: true,
+        nonAggroRangedCharactersMayRepositionToFireBand: false,
+        nonAggroRangedCharactersHoldPositionWhileTargetInRange: true,
+        supportMovementOnlyClosesOutOfRangeGap: true,
         kiteCapabilityMitigatesButDoesNotEraseRisk: true,
         dangerousContentStillAbsolute: true,
         expectedKillTimeHardBounded: true,
@@ -51231,11 +51307,11 @@ class Alpha31PartyRoleLivenessHotfix {
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
 
-    this.orbitDesiredFactor = clamp(options.orbitDesiredFactor == null ? 0.80 : options.orbitDesiredFactor, 0.68, 0.90);
-    this.orbitMaxRangeFactor = clamp(options.orbitMaxRangeFactor == null ? 0.92 : options.orbitMaxRangeFactor, this.orbitDesiredFactor, 0.96);
+    this.orbitDesiredFactor = clamp(options.orbitDesiredFactor == null ? 0.72 : options.orbitDesiredFactor, 0.64, 0.84);
+    this.orbitMaxRangeFactor = clamp(options.orbitMaxRangeFactor == null ? 0.82 : options.orbitMaxRangeFactor, this.orbitDesiredFactor, 0.90);
     this.orbitMonsterBuffer = Math.max(12, Math.min(60, finite(options.orbitMonsterBuffer, 20)));
     this.orbitSpeedBufferSeconds = clamp(options.orbitSpeedBufferSeconds == null ? 0.50 : options.orbitSpeedBufferSeconds, 0.20, 1.20);
-    this.orbitStepSeconds = clamp(options.orbitStepSeconds == null ? 0.80 : options.orbitStepSeconds, 0.35, 1.30);
+    this.orbitStepSeconds = clamp(options.orbitStepSeconds == null ? 0.65 : options.orbitStepSeconds, 0.30, 1.00);
 
     this.regroupTriggerDistance = Math.max(90, finite(options.regroupTriggerDistance, 120));
     this.regroupStopDistance = Math.max(35, Math.min(this.regroupTriggerDistance - 10, finite(options.regroupStopDistance, 60)));
