@@ -10,8 +10,53 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     const now = this.now();
     const max = tx && tx.type === 'COMPOUND' ? this.options.maxCompoundAttemptsPerWindow : this.options.maxUpgradeAttemptsPerWindow;
     const rows = engine && typeof engine.list === 'function' ? engine.list(500) : [];
-    const used = rows.filter((row) => row && row.type === tx.type && row.character === tx.character && row.item === tx.item && levelOf(row) === levelOf(tx) && row.attemptedAt != null && now - finite(row.attemptedAt, 0) <= this.options.mutationAttemptWindowMs).length;
-    return { allowed: used < max, used, max, windowMs: this.options.mutationAttemptWindowMs };
+    const attempts = rows
+      .filter((row) => row && row.type === tx.type && row.character === tx.character && row.item === tx.item && levelOf(row) === levelOf(tx) && row.attemptedAt != null && now - finite(row.attemptedAt, 0) <= this.options.mutationAttemptWindowMs)
+      .map((row) => finite(row.attemptedAt, 0))
+      .filter((at) => at > 0)
+      .sort((a, b) => a - b);
+    const used = attempts.length;
+    const allowed = used < max;
+    const retryIndex = Math.max(0, used - max);
+    const retryAt = allowed || !attempts.length ? null : attempts[Math.min(retryIndex, attempts.length - 1)] + this.options.mutationAttemptWindowMs + 1;
+    return { allowed, used, max, remaining: Math.max(0, max - used), retryAt, windowMs: this.options.mutationAttemptWindowMs };
+  }
+
+  plannedScrollDemand(scrollName, tx = null) {
+    const ledger = this.runtime.inventoryLedger;
+    const c = characterOf(this.runtime);
+    const gd = gameDataOf(this.runtime);
+    if (!ledger || !c || !scrollName) return { scrollName, quantity: 1, groups: [] };
+    const groups = new Map();
+    for (const row of ledger.list(2000)) {
+      if (!row || row.character !== c.name) continue;
+      let type = null;
+      if (row.disposition === 'RESERVE_COMPOUND') type = 'COMPOUND';
+      else if (row.disposition === 'RESERVE_UPGRADE') type = 'UPGRADE';
+      else continue;
+      const meta = gd.items && gd.items[row.name];
+      if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
+      const grade = gradeForLevel(meta, levelOf(row));
+      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      if (wantedScroll !== scrollName || grade >= 4) continue;
+      const key = `${type}|${row.name}|${levelOf(row)}`;
+      const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
+      group.count += 1;
+      groups.set(key, group);
+    }
+    let quantity = 0;
+    const details = [];
+    for (const group of groups.values()) {
+      const operations = group.type === 'COMPOUND' ? Math.floor(group.count / 3) : group.count;
+      if (operations <= 0) continue;
+      const budget = this.mutationAttemptBudget({ type: group.type, character: c.name, item: group.item, level: group.level });
+      const actionable = Math.min(operations, Math.max(0, budget.remaining));
+      if (actionable <= 0) continue;
+      quantity += actionable;
+      details.push({ ...group, operations, actionable, mutationBudget: budget });
+    }
+    const cap = Math.max(1, Math.min(100, Math.floor(finite(this.options.merchantScrollBatchMax, 40))));
+    return { scrollName, quantity: Math.max(1, Math.min(cap, quantity || 1)), cap, groups: details };
   }
 
   mutationRetryBlocked(entry, type) {
