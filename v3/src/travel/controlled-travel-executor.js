@@ -243,11 +243,26 @@ class ControlledTravelExecutor {
       // arrival evidence. Only SafeTravel's observed position/map transition
       // may complete the plan; the raw command promise is used only to surface
       // an explicit route failure.
-      const routeFailurePromise = Promise.resolve(command.value).then((response) => {
-        routeResponse = response;
-        if (response && response.failed === true) throw new Error(reasonText(response.reason, 'SMART_MOVE_FAILED'));
-        return new Promise(() => {});
-      });
+      const ignoreSuccessfulRouteSettlement = () => new Promise(() => {});
+      const routeFailure = (reason, response = null) => {
+        // stop('smart') intentionally interrupts Adventure Land's smart_move
+        // promise after a buffered arrival. Re-observe before classifying that
+        // settlement: once SafeTravel has verified arrival, "interrupted" is
+        // expected cleanup rather than a route failure.
+        this.controller.observe(this._snapshot());
+        const current = this.controller.get(plan.id);
+        if (current && current.state === 'COMPLETED') return ignoreSuccessfulRouteSettlement();
+        if (response != null) routeResponse = response;
+        throw new Error(reasonText(reason, 'SMART_MOVE_FAILED'));
+      };
+      const routeFailurePromise = Promise.resolve(command.value).then(
+        (response) => {
+          routeResponse = response;
+          if (response && response.failed === true) return routeFailure(response.reason, response);
+          return ignoreSuccessfulRouteSettlement();
+        },
+        (error) => routeFailure(error && (error.reason || error.code || error.message) || error)
+      );
       routeFailurePromise.catch(() => {});
       const observedArrivalPromise = this._waitForObservedArrival(plan);
       const arrival = await this._timeout(Promise.race([routeFailurePromise, observedArrivalPromise]));
