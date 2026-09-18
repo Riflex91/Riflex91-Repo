@@ -100,7 +100,7 @@ for (const pflicht of [
   'Adventure Land AiO Bot V4 | generated | production runtime',
   'entry.installiereAdventureLandProduktionsLaufzeit',
   '--pruefen'
-] {
+]) {
   if (!bundler.includes(pflicht)) throw new Error(`V4-Produktionsruntime-Bundler ist unvollstaendig: ${pflicht}`);
 }
 
