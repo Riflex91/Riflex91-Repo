@@ -8,7 +8,7 @@ import {
 } from './adventure-land-produktions-bootstrap.js';
 
 export const PRODUKTIONS_LAUFZEIT_GLOBALER_NAME = 'V4ProduktionsLaufzeit';
-export const PRODUKTIONS_LAUFZEIT_VERSION = '1.0.0';
+export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.0';
 
 export interface AdventureLandProduktionsLaufzeitKonfiguration {
   readonly aktivFreigegeben?: boolean;
@@ -23,6 +23,7 @@ export interface AdventureLandProduktionsLaufzeitApi {
   readonly status: () => ReturnType<AdventureLandProduktionsBootstrap['status']>;
   readonly starte: () => ReturnType<AdventureLandProduktionsBootstrap['status']>;
   readonly sendeLebensnachweis: () => ReturnType<AdventureLandProduktionsBootstrap['sendeLokalenLebensnachweis']>;
+  readonly pruefeGruppenZustand: () => ReturnType<AdventureLandProduktionsBootstrap['pruefeGruppenZustand']>;
   readonly bereiteGruppenZielVor: (freigabeText: string) => ReturnType<AdventureLandProduktionsBootstrap['bereiteGruppenZielVor']>;
   readonly installiereGruppenZielLiveSmoke: (
     erwartung: Readonly<AdventureLandGruppenZielLiveSmokeErwartung>,
@@ -104,6 +105,7 @@ export function installiereAdventureLandProduktionsLaufzeit(
       return bootstrap.status();
     },
     sendeLebensnachweis: () => bootstrap.sendeLokalenLebensnachweis(),
+    pruefeGruppenZustand: () => bootstrap.pruefeGruppenZustand(),
     bereiteGruppenZielVor: (freigabeText: string) => bootstrap.bereiteGruppenZielVor(freigabeText),
     installiereGruppenZielLiveSmoke: (
       erwartung: Readonly<AdventureLandGruppenZielLiveSmokeErwartung>,
