@@ -81,8 +81,8 @@ Jede Abweichung ist FAIL.
 
 ## Produktions-Runtime-Anbindung
 
-Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt eine zentrale `AktionsSteuerung`, berechnet Produktions-Safety aus realem Spielzustand, verwendet den vorhandenen Lebensnachweis-Austausch und startet Gruppenarbeit ausschliesslich ueber die produktive Block-8-Planungskette.
+Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt eine zentrale `AktionsSteuerung`, berechnet Produktions-Safety aus realem Spielzustand, verwendet den vorhandenen Lebensnachweis-Austausch und startet Gruppenarbeit ausschliesslich ueber die produktive Block-8-Planungskette. Fuer den aktiven Gruppenziel-Smoke verlangt er mindestens zwei aktive, frische Teilnehmer; Solo- oder stale-Peer-Zustaende blockieren.
 
 `V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)` installiert die Smoke-Fassade auf genau dieser zentralen Steuerung.
 
-Noch offen ist die **Veroeffentlichung** des reproduzierbar gebauten `dist/aio-v4-runtime.js` an einem kontrollierten HTTPS-Endpunkt und die explizite Konfiguration von `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl`. Der Loader besitzt bewusst keine fest verdrahtete URL.
+Noch offen ist die **Veroeffentlichung** des reproduzierbar gebauten `dist/aio-v4-runtime.js` an einem kontrollierten HTTPS-Endpunkt. Der Loader besitzt bewusst keine fest verdrahtete URL und verlangt sowohl `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl` als auch den beim Build erzeugten `AIO_V4_BOOTSTRAP_CONFIG.runtimeSha256`. Erst nach erfolgreicher HTTPS-, Groessen-, Marker- und SHA-256-Pruefung wird die Runtime evaluiert.
