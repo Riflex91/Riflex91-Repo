@@ -281,7 +281,7 @@
           setzeStatus('fail', meldung);
           protokolliere(`FEHLER ${datensatz.titel || aktionsKennung}`, meldung);
           setzeErgebnis({ status: 'fehlgeschlagen', fehler: meldung }, 'fail', meldung);
-          throw fehler;
+          return undefined;
         } finally {
           if (datensatz.einmalig !== true) knopf.disabled = false;
         }
