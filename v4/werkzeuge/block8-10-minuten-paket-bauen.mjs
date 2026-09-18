@@ -10,8 +10,8 @@ const quellen = [
   'werkzeuge/block8-10-minuten-gruppentest-gui.js'
 ];
 
-const RELEASE_SHA = 'e23ac456de590ebc1518719df2a5482bf5ce1932';
-const RUNTIME_SHA256 = 'fce4a3a8a685ac4d54f673e293170c15b340ba4678ce40920bb139871fb976e7';
+const RELEASE_SHA = '64b3022c2413ecb9c443068a6cb6d88674df912f';
+const RUNTIME_SHA256 = '350495fbf260a352821c74a60ee460c9fe42eb3a27fb10e9fe8aa6fff147d6e6';
 
 function kopf() {
   return [
