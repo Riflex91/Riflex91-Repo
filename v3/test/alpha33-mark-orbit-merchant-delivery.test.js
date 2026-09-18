@@ -521,15 +521,20 @@ test('Alpha33 bounded capacity preparation departs instead of deadlocking on rej
   assert.equal(hotfix._startCollectionRoute(candidate), true);
   hotfix.collectionRoute.startedAt = now - hotfix.collectionPrepareMaxMs - 1;
 
-  const handled = await hotfix._driveMerchantRendezvous(merchant);
+  const first = await hotfix._driveMerchantRendezvous(merchant);
 
-  assert.equal(handled, true);
+  assert.equal(first, true);
   assert.equal(disposalAttempts, 1);
-  assert.ok(travelled, 'collection should travel after the bounded prepare window expires');
+  assert.equal(travelled, null, 'blocked capacity item is skipped before departure, not treated as successful prep');
+  assert.equal(hotfix.collectionRoute.stage, 'PREPARE_CAPACITY');
+  assert.equal(hotfix.stats.collectionCapacityBlockedActions, 1);
+
+  const second = await hotfix._driveMerchantRendezvous(merchant);
+  assert.equal(second, true);
+  assert.ok(travelled, 'collection may depart only after no additional safe relief candidate remains');
   assert.equal(travelled.map, 'main');
   assert.equal(hotfix.collectionRoute.stage, 'TRAVEL_TO_FARMERS');
-  assert.equal(hotfix.stats.collectionCapacityBlockedActions, 1);
-  assert.equal(hotfix.stats.collectionCapacityPrepareTimeouts, 1);
+  assert.equal(hotfix.stats.collectionCapacityPrepareTimeouts, 0);
   assert.equal(hotfix.stats.collectionCapacityConstrainedDepartures, 1);
 });
 
