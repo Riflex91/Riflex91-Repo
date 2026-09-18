@@ -8,7 +8,7 @@ import {
 } from './adventure-land-produktions-bootstrap.js';
 
 export const PRODUKTIONS_LAUFZEIT_GLOBALER_NAME = 'V4ProduktionsLaufzeit';
-export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.1';
+export const PRODUKTIONS_LAUFZEIT_VERSION = '1.1.2';
 
 export interface AdventureLandProduktionsLaufzeitKonfiguration {
   readonly aktivFreigegeben?: boolean;

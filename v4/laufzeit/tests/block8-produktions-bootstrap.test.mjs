@@ -78,6 +78,7 @@ test('Block-8 Produktions-Bootstrap startet standardmaessig gesperrt und erzeugt
   const u = spiel();
   const b = bootstrap(u, { aktivFreigegeben: false });
   assert.equal(b.status().aktivFreigegeben, false);
+  assert.equal(b.status().gruppenLebensnachweisMaximalAlterMillisekunden, 8_000);
   assert.equal(b.status().gruppenZielVorbereitungVerbraucht, false);
   assert.equal(b.status().gestoppt, false);
   assert.throws(() => b.bereiteGruppenZielVor(PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT), /standardmaessig gesperrt/);
@@ -144,7 +145,7 @@ test('Block-8 Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und A
   assert.equal(aktiv.liveSmokeInstalliert, false);
   assert.equal(aktiv.gruppenZielVorbereitungVerbraucht, false);
 
-  jetzt = 16_001;
+  jetzt = 18_001;
   const stale = b.pruefeGruppenZustand();
   assert.equal(stale.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2')?.status, 'veraltet');
   assert.equal(stale.koordination.aktiveTeilnehmerKennungen.includes('ranger-2'), false);
@@ -152,7 +153,7 @@ test('Block-8 Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und A
   assert.deepEqual(stale.laufendeGruppenAnfragen, []);
   assert.deepEqual(stale.ressourcenSperren, []);
 
-  liefereRemote(u, 16_001, {
+  liefereRemote(u, 18_001, {
     laufendeNummer: 2,
     faehigkeiten: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 1 })
   });
@@ -186,11 +187,17 @@ test('Block-8 Produktions-Gruppendiagnose misst Remote-Freshness ab lokalem Empf
   assert.equal(remoteDirekt?.alterMillisekunden, 0);
   assert.equal(direktNachEmpfang.koordination.aufgaben.unterstuetzung, 'ranger-2');
 
-  jetzt = 25_001;
+  jetzt = 27_999;
+  const nochFrisch = b.pruefeGruppenZustand();
+  const remoteNochFrisch = nochFrisch.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2');
+  assert.equal(remoteNochFrisch?.status, 'aktiv');
+  assert.equal(remoteNochFrisch?.alterMillisekunden, 7_999);
+
+  jetzt = 28_001;
   const nachTtl = b.pruefeGruppenZustand();
   const remoteStale = nachTtl.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2');
   assert.equal(remoteStale?.status, 'veraltet');
-  assert.equal(remoteStale?.alterMillisekunden, 5_001);
+  assert.equal(remoteStale?.alterMillisekunden, 8_001);
   assert.equal(nachTtl.koordination.aufgaben.unterstuetzung, 'ranger-1');
 });
 
