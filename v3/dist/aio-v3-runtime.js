@@ -102,6 +102,11 @@ const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_ME
 const { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE } = require('./autonomy/alpha20-5-farm-readiness-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
+const { SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES } = require('./autonomy/skill-catalog-service');
+const { CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY } = require('./autonomy/character-combat-profile');
+const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
+const { SkillControlType, Capability, SKILL_SEMANTICS } = require('./autonomy/skill-semantics');
+const { SkillPolicy, SKILL_POLICY_MODE } = require('./autonomy/skill-policy');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -210,6 +215,16 @@ function install(root = globalThis, options = {}) {
     base.context.debugUI = debugUI.status();
     return JSON.stringify(base, null, 2);
   }
+  function resolvedCharacterName(name = null) {
+    const explicit = String(name == null ? '' : name).trim();
+    if (explicit) return explicit;
+    const snapshotName = runtime.lastSnapshot && runtime.lastSnapshot.character && runtime.lastSnapshot.character.name;
+    const live = root && (root.character || root.parent && root.parent.character);
+    return String(snapshotName || live && live.name || '').trim() || null;
+  }
+  function refreshCapabilities() {
+    if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
+  }
 
   const api = {
     version: VERSION,
@@ -267,6 +282,60 @@ function install(root = globalThis, options = {}) {
       requiresRevalidation: (category, id) => runtime.contentDrift.requiresRevalidation(category, id),
       markRevalidated: (category, id) => runtime.markContentRevalidated(category, id),
       save: () => runtime.contentDrift.save({ force: true })
+    },
+    skills: {
+      catalog: {
+        status: () => runtime.skillCatalog.status(),
+        list: (ctype = null) => runtime.skillCatalog.list(ctype ? { ctype } : {}),
+        get: (skillId) => runtime.skillCatalog.get(skillId),
+        audit: (reason = 'API_MANUAL') => {
+          const result = runtime.skillCatalog.audit(reason, { force: true });
+          refreshCapabilities();
+          return result;
+        }
+      },
+      capabilities: {
+        character: (name = null) => runtime.characterCapabilityResolver.get(resolvedCharacterName(name)),
+        party: () => runtime.partyCapabilityResolver.status(),
+        refresh: () => runtime._refreshSkillCapabilities()
+      },
+      policy: { status: () => runtime.skillPolicy.status() },
+      profile: {
+        get: (name = null) => runtime.characterCombatProfiles.get(resolvedCharacterName(name)),
+        setEnabled: (skillId, enabled, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          if (!record) return { ok: false, reason: 'UNKNOWN_SKILL', skill: String(skillId || '') };
+          const settings = runtime.characterCombatProfiles.setEnabled(character, record, enabled === true);
+          refreshCapabilities();
+          return { ok: true, character, skill: record.id, settings };
+        },
+        setParameter: (skillId, key, value, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          if (!record) return { ok: false, reason: 'UNKNOWN_SKILL', skill: String(skillId || '') };
+          const result = runtime.characterCombatProfiles.setParameter(character, record, key, value);
+          refreshCapabilities();
+          return result;
+        },
+        resetSkill: (skillId, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character || !record) return false;
+          const result = runtime.characterCombatProfiles.resetSkill(character, record);
+          refreshCapabilities();
+          return result;
+        },
+        reset: (name = null) => {
+          const character = resolvedCharacterName(name);
+          if (!character) return false;
+          const result = runtime.characterCombatProfiles.resetProfile(character);
+          refreshCapabilities();
+          return result;
+        }
+      }
     },
     inventory: {
       status: () => runtime.inventoryLedger.status(),
@@ -441,7 +510,10 @@ module.exports = {
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
+  FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES,
+  CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY,
+  CharacterCapabilityResolver, PartyCapabilityResolver, SkillControlType, Capability, SKILL_SEMANTICS, SkillPolicy, SKILL_POLICY_MODE,
+  FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
@@ -486,6 +558,10 @@ const { RetreatFarmerController } = require('./farmer/retreat-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
+const { SkillCatalogService } = require('./autonomy/skill-catalog-service');
+const { CharacterCombatProfileStore } = require('./autonomy/character-combat-profile');
+const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
+const { SkillPolicy } = require('./autonomy/skill-policy');
 
 const VERSION = RELEASE_VERSION;
 
@@ -495,6 +571,42 @@ class Runtime {
     this.root = options.root || globalThis;
     this.log = options.log || new EventLog({ version: VERSION, now: this.now, capacity: options.logCapacity || 4000 });
     this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: options.parent, log: this.log, mode: options.mode || 'shadow', now: this.now });
+    this.characterCombatProfiles = options.characterCombatProfiles || new CharacterCombatProfileStore({
+      root: this.root,
+      storage: options.characterCombatProfileStorage || options.storage,
+      key: options.characterCombatProfileKey,
+      now: this.now,
+      log: this.log
+    });
+    this.skillCatalog = options.skillCatalog || new SkillCatalogService({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      getGameData: () => this.adapter.getGameData() || {},
+      auditIntervalMs: options.skillCatalogAuditIntervalMs,
+      connectionGapMs: options.skillCatalogConnectionGapMs
+    });
+    this.characterCapabilityResolver = options.characterCapabilityResolver || new CharacterCapabilityResolver({
+      catalog: this.skillCatalog,
+      profiles: this.characterCombatProfiles,
+      now: this.now,
+      log: this.log
+    });
+    this.partyCapabilityResolver = options.partyCapabilityResolver || new PartyCapabilityResolver({
+      characterResolver: this.characterCapabilityResolver,
+      now: this.now,
+      log: this.log
+    });
+    this.skillPolicy = options.skillPolicy || new SkillPolicy({
+      root: this.root,
+      catalog: this.skillCatalog,
+      profiles: this.characterCombatProfiles,
+      now: this.now,
+      log: this.log
+    });
+    if (this.adapter && typeof this.adapter.setSkillPolicy === 'function') this.adapter.setSkillPolicy(this.skillPolicy);
+    this.lastCharacterCapabilities = null;
+    this.lastPartyCapabilities = null;
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
@@ -513,6 +625,7 @@ class Runtime {
       kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
       kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
+      skillPolicy: this.skillPolicy,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
       skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
@@ -662,6 +775,7 @@ class Runtime {
   start() {
     if (this.timer) return false;
     this._restoreWorldOnce();
+    this.skillCatalog.audit('RUNTIME_START', { force: true });
     this.startedAt = this.startedAt || this.now();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
     const modeNote = this.adapter.mode === 'shadow' ? 'observing only' : 'active commands enabled';
@@ -674,12 +788,14 @@ class Runtime {
   stop() {
     if (!this.timer) {
       this.persistence.maybeSave(this.world, { force: true });
+      this.characterCombatProfiles.save();
       return false;
     }
     clearInterval(this.timer);
     this.timer = null;
     this.performance.flush({ world: this.world }, 'RUNTIME_STOPPED');
     this.persistence.maybeSave(this.world, { force: true });
+    this.characterCombatProfiles.save();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STOPPED' });
     return true;
   }
@@ -861,10 +977,31 @@ class Runtime {
     return distance / Math.max(1, speed);
   }
 
+  _refreshSkillCapabilities(snapshot = this.lastSnapshot, gameData = null) {
+    if (!snapshot || !snapshot.character) return null;
+    const resolvedGameData = gameData || this.adapter.getGameData() || {};
+    const liveCharacter = this.adapter && typeof this.adapter._character === 'function' ? this.adapter._character() : null;
+    const registryStatus = this.characterRegistry && typeof this.characterRegistry.status === 'function'
+      ? this.characterRegistry.status()
+      : null;
+    this.lastCharacterCapabilities = this.characterCapabilityResolver.resolve({
+      ...snapshot.character,
+      gear: liveCharacter && liveCharacter.slots || snapshot.character.gear || snapshot.character.equipment
+    }, { gameData: resolvedGameData, liveCharacter });
+    this.lastPartyCapabilities = this.partyCapabilityResolver.resolve({
+      snapshot,
+      gameData: resolvedGameData,
+      liveCharacter,
+      registryStatus
+    });
+    return this.lastPartyCapabilities;
+  }
+
   tick() {
     this._restoreWorldOnce();
     const snapshot = this.adapter.snapshot();
     if (!snapshot) {
+      this.skillCatalog.noteSnapshotUnavailable();
       if (this.now() - this.lastHeartbeat > 5000) {
         this.lastHeartbeat = this.now();
         this.log.emit({ component: 'runtime', event: 'SNAPSHOT_UNAVAILABLE', severity: 'warn', reason: 'CHARACTER_NOT_READY' });
@@ -875,6 +1012,9 @@ class Runtime {
     this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
+    const liveCharacter = this.adapter && typeof this.adapter._character === 'function' ? this.adapter._character() : null;
+    this.skillCatalog.observeRuntime({ snapshot, liveCharacter });
+    this._refreshSkillCapabilities(snapshot, gameData);
     const farmSnapshot = this._farmSnapshot(snapshot, gameData, profile);
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
@@ -930,6 +1070,11 @@ class Runtime {
       discovery: this.discovery.status(),
       research: this.research.summary(),
       persistence: this.persistence.status(),
+      skillCatalog: this.skillCatalog.status(),
+      characterCombatProfiles: this.characterCombatProfiles.status(),
+      skillPolicy: this.skillPolicy.status(),
+      characterCapabilities: this.lastCharacterCapabilities,
+      partyCapabilities: this.partyCapabilityResolver.status(),
       eventSummary: this.log.summary()
     };
   }
@@ -945,7 +1090,12 @@ class Runtime {
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
-      discovery: this.lastDiscovery
+      discovery: this.lastDiscovery,
+      skillCatalog: this.skillCatalog.status(),
+      characterCombatProfiles: this.characterCombatProfiles.status(),
+      skillPolicy: this.skillPolicy.status(),
+      characterCapabilities: this.lastCharacterCapabilities,
+      partyCapabilities: this.partyCapabilityResolver.status()
     });
   }
 }
@@ -1418,6 +1568,7 @@ class GameAdapter {
     this.log = options.log || null;
     this.now = options.now || (() => Date.now());
     this.mode = options.mode === 'active' ? 'active' : 'shadow';
+    this.skillPolicy = options.skillPolicy || null;
     this.lastSnapshot = null;
   }
 
@@ -1428,6 +1579,21 @@ class GameAdapter {
     if (id == null) return null;
     const wanted = String(id);
     return Object.values(this._entities() || {}).find((entity) => entity && String(entity.id) === wanted) || null;
+  }
+
+  _entityByIdOrName(id) {
+    if (id == null) return null;
+    const wanted = String(id);
+    const character = this._character();
+    if (character && (String(character.id || '') === wanted || String(character.name || '') === wanted)) return character;
+    return Object.values(this._entities() || {}).find((entity) => entity && (
+      String(entity.id || '') === wanted || String(entity.name || '') === wanted
+    )) || null;
+  }
+
+  setSkillPolicy(policy) {
+    this.skillPolicy = policy || null;
+    return this.skillPolicy;
   }
 
   _objects() {
@@ -1548,34 +1714,146 @@ class GameAdapter {
     try { return fn.call(this.root, target) !== false; } catch (_) { return false; }
   }
 
-  canUseSkill(skillName) {
+  skillAvailability(skillName, targetId = null) {
+    const id = String(skillName == null ? '' : skillName).trim();
     const G = this._G();
-    const skill = G.skills && G.skills[skillName];
+    const skill = G.skills && G.skills[id];
     const c = this._character();
-    if (!skill || !c) return false;
-    if (Array.isArray(skill.class) && !skill.class.includes(c.ctype)) return false;
-    if (Number(skill.level) > 0 && Number(c.level) < Number(skill.level)) return false;
-    if (Number(skill.mp) > 0 && Number(c.mp) < Number(skill.mp)) return false;
+    const result = {
+      skill: id || null,
+      ready: false,
+      reason: null,
+      reasons: [],
+      classAllowed: null,
+      levelAllowed: null,
+      mpAllowed: null,
+      equipmentAllowed: null,
+      materialAllowed: null,
+      cooldownReady: null,
+      rangeReady: null
+    };
+    const reject = (reason) => {
+      result.reasons.push(reason);
+      if (!result.reason) result.reason = reason;
+    };
 
-    if (Array.isArray(skill.wtype) && skill.wtype.length) {
-      const slots = c.slots || {};
-      const equippedTypes = ['mainhand', 'offhand']
-        .map((slot) => slots[slot] && slots[slot].name)
-        .filter(Boolean)
-        .map((name) => G.items && G.items[name] && G.items[name].wtype)
-        .filter(Boolean);
-      if (equippedTypes.length && !equippedTypes.some((wtype) => skill.wtype.includes(wtype))) return false;
+    if (!id || !skill) {
+      reject('UNKNOWN_SKILL');
+      return result;
+    }
+    if (!c) {
+      reject('CHARACTER_UNAVAILABLE');
+      return result;
+    }
+
+    const classes = Array.isArray(skill.class) ? skill.class.map(String) : skill.class ? [String(skill.class)] : [];
+    result.classAllowed = !classes.length || classes.includes(String(c.ctype || ''));
+    if (!result.classAllowed) reject('CLASS_MISMATCH');
+
+    const requiredLevel = Math.max(0, finite(skill.level) || 0);
+    result.levelAllowed = Number(c.level) >= requiredLevel;
+    if (!result.levelAllowed) reject('LEVEL_LOCKED');
+
+    const mpCost = Math.max(0, finite(skill.mp) || 0);
+    result.mpAllowed = Number(c.mp) >= mpCost;
+    if (!result.mpAllowed) reject('LOW_MP');
+
+    const slots = c.slots || {};
+    const itemMeta = G.items || {};
+    const equipped = Object.entries(slots)
+      .filter(([, item]) => item && item.name)
+      .map(([slot, item]) => ({
+        slot,
+        name: String(item.name),
+        wtype: itemMeta[item.name] && itemMeta[item.name].wtype || null,
+        type: itemMeta[item.name] && itemMeta[item.name].type || null
+      }));
+
+    const requiredWtypes = Array.isArray(skill.wtype) ? skill.wtype.map(String) : skill.wtype ? [String(skill.wtype)] : [];
+    let equipmentAllowed = true;
+    if (requiredWtypes.length && !equipped.some((row) => row.wtype && requiredWtypes.includes(String(row.wtype)))) {
+      equipmentAllowed = false;
+      reject('WEAPON_TYPE_REQUIRED');
+    }
+    if (skill.offhand_type) {
+      const offhand = equipped.find((row) => row.slot === 'offhand');
+      if (!offhand || (String(offhand.wtype || '') !== String(skill.offhand_type) && String(offhand.type || '') !== String(skill.offhand_type))) {
+        equipmentAllowed = false;
+        reject('OFFHAND_TYPE_REQUIRED');
+      }
+    }
+    if (Array.isArray(skill.slot) && skill.slot.length) {
+      const slotMatch = skill.slot.some((row) => Array.isArray(row) && row.length >= 2 && slots[row[0]] && String(slots[row[0]].name || '') === String(row[1]));
+      if (!slotMatch) {
+        equipmentAllowed = false;
+        reject('EQUIPMENT_SLOT_REQUIRED');
+      }
+    }
+    result.equipmentAllowed = equipmentAllowed;
+
+    if (skill.consume) {
+      const items = Array.isArray(c.items) ? c.items : [];
+      result.materialAllowed = items.some((item) => item && String(item.name || '') === String(skill.consume));
+      if (!result.materialAllowed) reject('MATERIAL_REQUIRED');
+    } else result.materialAllowed = true;
+
+    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
+    if (typeof onCooldown === 'function') {
+      try {
+        result.cooldownReady = onCooldown.call(this.root, id) !== true;
+        if (!result.cooldownReady) reject('COOLDOWN');
+      } catch (_) {
+        result.cooldownReady = false;
+        reject('COOLDOWN_CHECK_FAILED');
+      }
+    }
+
+    if (targetId != null) {
+      const target = this._entityByIdOrName(targetId);
+      if (target) {
+        const fn = this.root.is_in_range || this.parent.is_in_range;
+        if (typeof fn === 'function') {
+          try {
+            result.rangeReady = fn.call(this.root, target, id) !== false;
+            if (!result.rangeReady) reject('OUT_OF_RANGE');
+          } catch (_) {
+            result.rangeReady = false;
+            reject('RANGE_CHECK_FAILED');
+          }
+        } else {
+          const cx = finite(c.real_x != null ? c.real_x : c.x);
+          const cy = finite(c.real_y != null ? c.real_y : c.y);
+          const tx = finite(target.real_x != null ? target.real_x : target.x);
+          const ty = finite(target.real_y != null ? target.real_y : target.y);
+          let range = finite(skill.range);
+          if (range == null) {
+            const baseRange = finite(c.range);
+            if (baseRange != null) range = baseRange * (finite(skill.range_multiplier) || 1) + (finite(skill.range_bonus) || 0);
+          }
+          if (cx != null && cy != null && tx != null && ty != null && range != null) {
+            result.rangeReady = Math.hypot(cx - tx, cy - ty) <= range;
+            if (!result.rangeReady) reject('OUT_OF_RANGE');
+          }
+        }
+      }
     }
 
     const canUse = this.root.can_use || this.parent.can_use;
-    if (typeof canUse === 'function') {
-      try { return canUse.call(this.root, skillName) !== false; } catch (_) { return false; }
+    if (!result.reasons.length && typeof canUse === 'function') {
+      try {
+        if (canUse.call(this.root, id) === false) reject('GAME_REQUIREMENT');
+      } catch (_) {
+        reject('GAME_CAN_USE_FAILED');
+      }
     }
-    const onCooldown = this.root.is_on_cooldown || this.parent.is_on_cooldown;
-    if (typeof onCooldown === 'function') {
-      try { return onCooldown.call(this.root, skillName) !== true; } catch (_) { return false; }
-    }
-    return true;
+
+    result.ready = result.reasons.length === 0;
+    result.reason = result.ready ? 'READY' : result.reason;
+    return result;
+  }
+
+  canUseSkill(skillName) {
+    return this.skillAvailability(skillName).ready === true;
   }
 
   isSkillInRange(targetId, skillName) {
@@ -1612,7 +1890,7 @@ class GameAdapter {
       if (target) out[0] = target;
     }
     if (action === 'use_skill' && typeof out[1] === 'string') {
-      const target = this._entityById(out[1]);
+      const target = this._entityByIdOrName(out[1]);
       if (target) out[1] = target;
     }
     return out;
@@ -1636,6 +1914,21 @@ class GameAdapter {
     if (!definition) {
       if (this.log) this.log.emit({ component: 'adapter', event: 'COMMAND_REJECTED', severity: 'warn', reason: 'ACTION_NOT_ALLOWED_IN_ALPHA', data: { action } });
       return { executed: false, reason: 'ACTION_NOT_ALLOWED_IN_ALPHA' };
+    }
+    if (action === 'use_skill' && this.skillPolicy && typeof this.skillPolicy.evaluateCommand === 'function') {
+      let policy;
+      try { policy = this.skillPolicy.evaluateCommand(args, { character: this._character() }); }
+      catch (error) {
+        policy = { allowed: false, reason: 'SKILL_POLICY_ERROR', error: String(error && error.message || error) };
+      }
+      if (!policy || policy.allowed !== true) {
+        const reason = policy && policy.reason || 'SKILL_POLICY_REJECTED';
+        if (this.log) this.log.emit({
+          component: 'adapter', event: 'COMMAND_REJECTED', severity: 'info', reason,
+          data: { action, skill: Array.isArray(args) ? args[0] || null : null }
+        });
+        return { executed: false, shadow: false, blocked: true, reason, action, policy: policy || null };
+      }
     }
     if (this.mode !== 'active') {
       if (this.log) this.log.emit({ component: 'adapter', event: 'SHADOW_COMMAND', data: { action, args: args.map((x) => typeof x === 'object' && x ? (x.id || x.name || '[object]') : x) } });
@@ -2950,6 +3243,7 @@ class SkillFarmerController extends KitingFarmerController {
     super(options);
     this.skillUsage = options.skillUsage || new SkillUsagePolicy({
       enabled: options.skillUsageEnabled !== false,
+      skillPolicy: options.skillPolicy,
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs,
       maxCommandAttempts: options.skillUsageMaxCommandAttempts,
@@ -4261,6 +4555,7 @@ function isDirectDamageSkill(skill, character) {
 class SkillUsagePolicy {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
+    this.skillPolicy = options.skillPolicy || null;
     this.mpReserveRatio = clamp01(options.mpReserveRatio == null ? 0.30 : options.mpReserveRatio);
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
     this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
@@ -4278,7 +4573,7 @@ class SkillUsagePolicy {
     if (!this.enabled || !character) return [];
     const skills = gameData.skills || {};
     return Object.entries(skills)
-      .filter(([, skill]) => isDirectDamageSkill(skill, character))
+      .filter(([id, skill]) => isDirectDamageSkill(skill, character) && (!this.skillPolicy || typeof this.skillPolicy.peek !== 'function' || this.skillPolicy.peek(id, character)))
       .map(([id, skill]) => ({
         id,
         name: skill.name || id,
@@ -4402,6 +4697,7 @@ class SkillUsagePolicy {
       failureBackoffMaxMs: this.failureBackoffMaxMs,
       failureStreakResetMs: this.failureStreakResetMs,
       backoffReason: 'SKILL_COMMAND_BACKOFF',
+      skillPolicyBound: !!this.skillPolicy,
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }
@@ -5168,6 +5464,1982 @@ class CombatEmergencyGate {
 }
 
 module.exports = { CombatEmergencyGate };
+
+},
+"src/autonomy/skill-catalog-service.js": function(require,module,exports){
+'use strict';
+
+const { fingerprint } = require('../world/content-drift');
+const { semanticFor } = require('./skill-semantics');
+
+const SkillCatalogState = Object.freeze({
+  WAITING: 'WAITING',
+  READY: 'READY',
+  STALE: 'STALE',
+  DRIFT_DETECTED: 'DRIFT_DETECTED',
+  INVALID: 'INVALID'
+});
+
+const SUPPORTED_CLASSES = Object.freeze(['warrior', 'paladin', 'rogue', 'ranger', 'mage', 'priest', 'merchant']);
+
+function finite(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+function normalizeStringArray(value) {
+  if (Array.isArray(value)) return [...new Set(value.map(String).filter(Boolean))].sort();
+  if (value == null || value === false) return [];
+  return [String(value)];
+}
+
+function normalizeSlotRequirements(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const row of value) {
+    if (!Array.isArray(row) || row.length < 2) continue;
+    const slot = String(row[0] || '').trim();
+    const item = String(row[1] || '').trim();
+    if (slot && item) out.push([slot, item]);
+  }
+  return out;
+}
+
+function normalizeLiveSkill(id, skill) {
+  const raw = skill && typeof skill === 'object' ? skill : {};
+  const rawFingerprint = fingerprint(raw);
+  const classes = normalizeStringArray(raw.class).map((value) => value.toLowerCase());
+  const semantic = semanticFor(id, raw);
+  const record = {
+    id: String(id),
+    name: raw.name == null ? String(id) : String(raw.name),
+    type: raw.type == null ? null : String(raw.type),
+    classes,
+    classSupported: classes.some((ctype) => SUPPORTED_CLASSES.includes(ctype)),
+    requiredLevel: Math.max(0, finite(raw.level) == null ? 0 : finite(raw.level)),
+    mp: finite(raw.mp),
+    cooldown: finite(raw.cooldown),
+    reuseCooldown: finite(raw.reuse_cooldown),
+    range: finite(raw.range),
+    rangeMultiplier: finite(raw.range_multiplier),
+    rangeBonus: finite(raw.range_bonus),
+    damage: finite(raw.damage),
+    damageMultiplier: finite(raw.damage_multiplier),
+    cooldownMultiplier: finite(raw.cooldown_multiplier),
+    maxTargets: finite(raw.max_targets),
+    multi: raw.multi === true,
+    list: raw.list === true,
+    party: raw.party === true,
+    aura: raw.aura === true,
+    heal: raw.heal === true,
+    hostile: raw.hostile === true,
+    target: raw.target == null ? null : raw.target,
+    monsters: raw.monsters == null ? null : raw.monsters,
+    wtype: normalizeStringArray(raw.wtype),
+    offhandType: raw.offhand_type == null ? null : String(raw.offhand_type),
+    slot: normalizeSlotRequirements(raw.slot),
+    share: raw.share == null ? null : String(raw.share),
+    consume: raw.consume == null ? null : String(raw.consume),
+    condition: raw.condition == null ? null : String(raw.condition),
+    procs: raw.procs == null ? null : raw.procs === true,
+    piercesImmunity: raw.pierces_immunity == null ? null : raw.pierces_immunity === true,
+    targetCapacity: semantic.targetCapacity,
+    automationValidated: semantic.automationValidated,
+    defaultEnabled: semantic.defaultEnabled === true,
+    capabilities: semantic.capabilities.slice(),
+    controls: semantic.controls.map((control) => ({ ...control })),
+    rawFingerprint: rawFingerprint.hash,
+    rawBytes: rawFingerprint.bytes
+  };
+  return Object.freeze(record);
+}
+
+function catalogFingerprint(records) {
+  const rows = [...records.values()]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((row) => [row.id, row.rawFingerprint]);
+  return fingerprint(rows);
+}
+
+function diffCatalog(previous, next) {
+  const before = previous || new Map();
+  const after = next || new Map();
+  const newSkills = [];
+  const removedSkills = [];
+  const changedSkills = [];
+  for (const [id, row] of after.entries()) {
+    const old = before.get(id);
+    if (!old) newSkills.push(id);
+    else if (old.rawFingerprint !== row.rawFingerprint) changedSkills.push(id);
+  }
+  for (const id of before.keys()) if (!after.has(id)) removedSkills.push(id);
+  return {
+    newSkills: newSkills.sort(),
+    removedSkills: removedSkills.sort(),
+    changedSkills: changedSkills.sort()
+  };
+}
+
+function serverIdentity(root) {
+  const parent = root && root.parent || root || {};
+  const region = root && root.server_region != null ? root.server_region : parent && parent.server_region;
+  const identifier = root && root.server_identifier != null ? root.server_identifier : parent && parent.server_identifier;
+  return `${region == null ? 'unknown' : String(region)}:${identifier == null ? 'unknown' : String(identifier)}`;
+}
+
+function characterIdentity(snapshot) {
+  const c = snapshot && snapshot.character;
+  if (!c) return null;
+  return `${String(c.name || 'unknown')}|${String(c.ctype || 'unknown').toLowerCase()}`;
+}
+
+function equipmentFingerprint(liveCharacter) {
+  const slots = liveCharacter && liveCharacter.slots;
+  if (!slots || typeof slots !== 'object') return null;
+  const compact = {};
+  for (const slot of Object.keys(slots).sort()) {
+    const item = slots[slot];
+    if (!item || typeof item !== 'object') continue;
+    compact[slot] = { name: item.name || null, level: finite(item.level) || 0 };
+  }
+  return fingerprint(compact).hash;
+}
+
+function partyIdentity(snapshot) {
+  const rows = [];
+  const c = snapshot && snapshot.character;
+  if (c) rows.push([String(c.name || ''), String(c.ctype || ''), finite(c.level) || 0]);
+  for (const member of snapshot && snapshot.party || []) {
+    if (!member || !member.name) continue;
+    rows.push([String(member.name), String(member.ctype || member.type || ''), finite(member.level) || 0]);
+  }
+  rows.sort((a, b) => a[0].localeCompare(b[0]));
+  return fingerprint(rows).hash;
+}
+
+class SkillCatalogService {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.getGameData = typeof options.getGameData === 'function'
+      ? options.getGameData
+      : () => this.root && (this.root.G || this.root.parent && this.root.parent.G) || {};
+    this.auditIntervalMs = Math.max(1000, Math.min(60000, Number(options.auditIntervalMs) || 5000));
+    this.connectionGapMs = Math.max(1000, Math.min(60000, Number(options.connectionGapMs) || 5000));
+    this.state = SkillCatalogState.WAITING;
+    this.records = new Map();
+    this.generation = 0;
+    this.fingerprint = null;
+    this.builtAt = null;
+    this.lastCheckedAt = null;
+    this.lastGoodAt = null;
+    this.lastReason = null;
+    this.lastError = null;
+    this.lastChange = null;
+    this.pendingVerificationFingerprint = null;
+    this.unavailableSince = null;
+    this.context = {
+      server: null,
+      character: null,
+      level: null,
+      equipment: null,
+      party: null
+    };
+    this.stats = {
+      audits: 0,
+      rebuilds: 0,
+      unchanged: 0,
+      driftEvents: 0,
+      invalidAudits: 0,
+      staleEvents: 0,
+      recoveries: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try {
+      this.log.emit({ component: 'skill-catalog', event, severity, reason, data });
+    } catch (_) {}
+  }
+
+  _liveSkills() {
+    const gameData = this.getGameData() || {};
+    const skills = gameData.skills;
+    if (!skills || typeof skills !== 'object' || Array.isArray(skills)) return null;
+    return skills;
+  }
+
+  _build(skills) {
+    const records = new Map();
+    for (const id of Object.keys(skills).sort()) {
+      const skill = skills[id];
+      if (!skill || typeof skill !== 'object' || Array.isArray(skill)) continue;
+      records.set(String(id), normalizeLiveSkill(id, skill));
+    }
+    return records;
+  }
+
+  _invalid(reason, message = null) {
+    this.stats.invalidAudits += 1;
+    this.lastError = message || reason;
+    this.lastReason = reason;
+    this.state = this.records.size ? SkillCatalogState.STALE : SkillCatalogState.INVALID;
+    this._event('SKILL_CATALOG_INVALID', 'warn', reason, { message: this.lastError, retainedRecords: this.records.size });
+    return { ok: false, changed: false, state: this.state, reason };
+  }
+
+  audit(reason = 'MANUAL', options = {}) {
+    const now = this.now();
+    if (options.force !== true && this.lastCheckedAt != null && now - this.lastCheckedAt < this.auditIntervalMs) {
+      return { ok: this.state === SkillCatalogState.READY, changed: false, skipped: true, state: this.state, reason: 'AUDIT_INTERVAL' };
+    }
+    this.lastCheckedAt = now;
+    this.lastReason = String(reason || 'MANUAL');
+    this.stats.audits += 1;
+
+    let skills;
+    try { skills = this._liveSkills(); } catch (error) {
+      return this._invalid('GAME_DATA_READ_FAILED', String(error && error.message || error));
+    }
+    if (!skills) return this._invalid('SKILL_DATA_UNAVAILABLE');
+    const next = this._build(skills);
+    if (!next.size) return this._invalid('SKILL_DATA_EMPTY');
+
+    const nextFingerprint = catalogFingerprint(next);
+    if (!this.fingerprint) {
+      this.records = next;
+      this.fingerprint = nextFingerprint.hash;
+      this.generation = 1;
+      this.builtAt = now;
+      this.lastGoodAt = now;
+      this.lastError = null;
+      this.state = SkillCatalogState.READY;
+      this.stats.rebuilds += 1;
+      this._event('SKILL_CATALOG_READY', 'info', this.lastReason, {
+        generation: this.generation,
+        fingerprint: this.fingerprint,
+        skills: this.records.size
+      });
+      return { ok: true, changed: true, initial: true, state: this.state, generation: this.generation };
+    }
+
+    if (this.fingerprint === nextFingerprint.hash) {
+      this.records = next;
+      this.lastGoodAt = now;
+      this.lastError = null;
+      if (this.state === SkillCatalogState.DRIFT_DETECTED && this.pendingVerificationFingerprint === nextFingerprint.hash) {
+        this.state = SkillCatalogState.READY;
+        this.pendingVerificationFingerprint = null;
+        this._event('SKILL_CATALOG_DRIFT_VERIFIED', 'info', 'SECOND_IDENTICAL_AUDIT', {
+          generation: this.generation,
+          fingerprint: this.fingerprint
+        });
+      } else if (this.state === SkillCatalogState.STALE || this.state === SkillCatalogState.INVALID || this.state === SkillCatalogState.WAITING) {
+        this.state = SkillCatalogState.READY;
+        this.stats.recoveries += 1;
+        this._event('SKILL_CATALOG_RECOVERED', 'info', this.lastReason, { generation: this.generation, fingerprint: this.fingerprint });
+      }
+      this.stats.unchanged += 1;
+      return { ok: this.state === SkillCatalogState.READY, changed: false, state: this.state, generation: this.generation };
+    }
+
+    const changes = diffCatalog(this.records, next);
+    const previousFingerprint = this.fingerprint;
+    this.records = next;
+    this.fingerprint = nextFingerprint.hash;
+    this.generation += 1;
+    this.builtAt = now;
+    this.lastGoodAt = now;
+    this.lastError = null;
+    this.state = SkillCatalogState.DRIFT_DETECTED;
+    this.pendingVerificationFingerprint = nextFingerprint.hash;
+    this.lastChange = {
+      at: now,
+      reason: this.lastReason,
+      previousFingerprint,
+      fingerprint: this.fingerprint,
+      generation: this.generation,
+      ...changes
+    };
+    this.stats.rebuilds += 1;
+    this.stats.driftEvents += 1;
+    this._event('SKILL_CATALOG_DRIFT_DETECTED', 'warn', 'LIVE_SKILL_DEFINITION_CHANGED', clone(this.lastChange, {}));
+    return { ok: false, changed: true, drift: true, state: this.state, generation: this.generation, changes };
+  }
+
+  markStale(reason = 'STALE') {
+    if (this.state === SkillCatalogState.STALE) return false;
+    if (this.state === SkillCatalogState.INVALID && !this.records.size) return false;
+    this.state = SkillCatalogState.STALE;
+    this.lastReason = String(reason);
+    this.stats.staleEvents += 1;
+    this._event('SKILL_CATALOG_STALE', 'warn', this.lastReason, { generation: this.generation, fingerprint: this.fingerprint });
+    return true;
+  }
+
+  noteSnapshotUnavailable() {
+    const now = this.now();
+    if (this.unavailableSince == null) this.unavailableSince = now;
+    if (now - this.unavailableSince >= this.connectionGapMs) this.markStale('CONNECTION_GAP');
+    return this.status();
+  }
+
+  observeRuntime(context = {}) {
+    const snapshot = context.snapshot;
+    if (!snapshot || !snapshot.character) {
+      this.noteSnapshotUnavailable();
+      return {
+        catalogChanged: false,
+        characterContextChanged: false,
+        partyContextChanged: false,
+        reasons: ['SNAPSHOT_UNAVAILABLE']
+      };
+    }
+
+    const now = this.now();
+    const reasons = [];
+    let forceAudit = false;
+    let characterContextChanged = false;
+    let partyContextChanged = false;
+
+    if (this.unavailableSince != null) {
+      const gapMs = Math.max(0, now - this.unavailableSince);
+      this.unavailableSince = null;
+      if (gapMs >= this.connectionGapMs) {
+        reasons.push('CONNECTION_RECOVERED');
+        forceAudit = true;
+      }
+    }
+
+    const next = {
+      server: serverIdentity(this.root),
+      character: characterIdentity(snapshot),
+      level: finite(snapshot.character.level) || 0,
+      equipment: equipmentFingerprint(context.liveCharacter),
+      party: partyIdentity(snapshot)
+    };
+
+    if (this.context.server != null && this.context.server !== next.server) {
+      reasons.push('SERVER_CHANGED');
+      forceAudit = true;
+      partyContextChanged = true;
+    }
+    if (this.context.character != null && this.context.character !== next.character) {
+      reasons.push('CHARACTER_CHANGED');
+      forceAudit = true;
+      characterContextChanged = true;
+      partyContextChanged = true;
+    }
+    if (this.context.level != null && this.context.level !== next.level) {
+      reasons.push('LEVEL_CHANGED');
+      forceAudit = true;
+      characterContextChanged = true;
+      partyContextChanged = true;
+    }
+    if (this.context.equipment != null && this.context.equipment !== next.equipment) {
+      reasons.push('EQUIPMENT_CHANGED');
+      characterContextChanged = true;
+      partyContextChanged = true;
+    }
+    if (this.context.party != null && this.context.party !== next.party) {
+      reasons.push('PARTY_CHANGED');
+      partyContextChanged = true;
+    }
+
+    const firstSnapshot = this.context.character == null;
+    if (firstSnapshot) {
+      reasons.push('FIRST_SNAPSHOT');
+      forceAudit = true;
+      characterContextChanged = true;
+      partyContextChanged = true;
+    }
+    this.context = next;
+
+    let auditResult = null;
+    if (forceAudit || this.lastCheckedAt == null || now - this.lastCheckedAt >= this.auditIntervalMs) {
+      auditResult = this.audit(reasons[0] || 'PERIODIC', { force: forceAudit });
+    }
+    return {
+      catalogChanged: !!(auditResult && auditResult.changed),
+      characterContextChanged,
+      partyContextChanged,
+      reasons,
+      audit: auditResult
+    };
+  }
+
+  noteIndependentDrift(skillId, kind = 'DRIFT', observedFingerprint = null) {
+    if (!this.records.size || !this.fingerprint) return false;
+    const now = this.now();
+    this.state = SkillCatalogState.DRIFT_DETECTED;
+    this.pendingVerificationFingerprint = this.fingerprint;
+    this.lastReason = `CONTENT_DRIFT_${String(kind || 'DRIFT')}`;
+    this.lastChange = {
+      at: now,
+      reason: this.lastReason,
+      fingerprint: this.fingerprint,
+      generation: this.generation,
+      independentMonitor: true,
+      skill: skillId == null ? null : String(skillId),
+      observedFingerprint: observedFingerprint == null ? null : String(observedFingerprint)
+    };
+    this.stats.driftEvents += 1;
+    this._event('SKILL_CATALOG_INDEPENDENT_DRIFT_SIGNAL', 'warn', this.lastReason, clone(this.lastChange, {}));
+    return true;
+  }
+
+  get(skillId) {
+    const row = this.records.get(String(skillId || ''));
+    return row ? clone(row, null) : null;
+  }
+
+  list(options = {}) {
+    const ctype = options.ctype == null ? null : String(options.ctype).toLowerCase();
+    const rows = [...this.records.values()]
+      .filter((row) => !ctype || row.classes.includes(ctype))
+      .sort((a, b) => a.requiredLevel - b.requiredLevel || a.id.localeCompare(b.id));
+    return rows.map((row) => clone(row, {}));
+  }
+
+  combatReady() {
+    return this.state === SkillCatalogState.READY;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'live-g-skills-validated-catalog-v1',
+      state: this.state,
+      combatReady: this.combatReady(),
+      generation: this.generation,
+      fingerprint: this.fingerprint,
+      skills: this.records.size,
+      supportedClassSkills: [...this.records.values()].filter((row) => row.classSupported).length,
+      automationValidatedSkills: [...this.records.values()].filter((row) => row.automationValidated).length,
+      builtAt: this.builtAt,
+      lastCheckedAt: this.lastCheckedAt,
+      lastGoodAt: this.lastGoodAt,
+      lastReason: this.lastReason,
+      lastError: this.lastError,
+      lastChange: clone(this.lastChange, null),
+      pendingVerification: this.pendingVerificationFingerprint != null,
+      auditIntervalMs: this.auditIntervalMs,
+      connectionGapMs: this.connectionGapMs,
+      context: { ...this.context },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  SkillCatalogService,
+  SkillCatalogState,
+  SUPPORTED_CLASSES,
+  normalizeLiveSkill,
+  diffCatalog
+};
+
+},
+"src/world/content-drift.js": function(require,module,exports){
+'use strict';
+
+const CONTENT_DRIFT_SCHEMA_VERSION = 1;
+const ContentLifecycle = Object.freeze({
+  BASELINE: 'BASELINE',
+  OBSERVED: 'OBSERVED',
+  QUARANTINED: 'QUARANTINED'
+});
+
+const DEFAULT_CATEGORIES = Object.freeze(['monsters', 'maps', 'npcs', 'items', 'skills', 'events']);
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalize(value, depth = 0) {
+  if (depth > 6) return '[depth-limit]';
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > 512 ? value.slice(0, 512) : value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'function' || typeof value === 'undefined' || typeof value === 'symbol') return undefined;
+  if (Array.isArray(value)) return value.slice(0, 128).map((item) => normalize(item, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    const keys = Object.keys(value).sort().slice(0, 256);
+    for (const key of keys) {
+      const normalized = normalize(value[key], depth + 1);
+      if (normalized !== undefined) out[key] = normalized;
+    }
+    return out;
+  }
+  return String(value);
+}
+
+function stableStringify(value) {
+  return JSON.stringify(normalize(value));
+}
+
+function hashString(input) {
+  let hash = 0x811c9dc5;
+  const text = String(input || '');
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function fingerprint(value) {
+  const canonical = stableStringify(value);
+  return { hash: hashString(canonical), bytes: canonical.length };
+}
+
+function recordKey(category, id) {
+  return `${category}:${String(id)}`;
+}
+
+class ContentDriftMonitor {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.key = options.key || 'aio-v3-content-drift-v1';
+    this.capacity = Math.max(64, Math.min(10000, Math.floor(finite(options.capacity, 2048))));
+    this.scanBudget = Math.max(6, Math.min(512, Math.floor(finite(options.scanBudget, 96))));
+    this.minObservedSamples = Math.max(2, Math.min(20, Math.floor(finite(options.minObservedSamples, 2))));
+    this.minSaveMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.minSaveMs, 30000)));
+    this.categories = Array.isArray(options.categories) && options.categories.length ? [...new Set(options.categories.map(String))] : DEFAULT_CATEGORIES.slice();
+    this.records = new Map();
+    this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
+    this.loaded = false;
+    this.lastSavedAt = 0;
+    this.lastScanAt = null;
+    this.lastScan = null;
+    this.stats = { scans: 0, observed: 0, baselineRecords: 0, novelty: 0, drift: 0, revalidated: 0, pruned: 0, loadErrors: 0, saveErrors: 0 };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    this.log.emit({ component: 'content-drift', event, severity, reason, data });
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    const ls = this.root && this.root.localStorage;
+    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
+      return { get: (key) => ls.getItem(key), set: (key, value) => ls.setItem(key, value) };
+    }
+    return null;
+  }
+
+  _catalogState(category) {
+    if (!this.catalog.has(category)) this.catalog.set(category, { cursor: 0, baselineComplete: false, cycles: 0 });
+    return this.catalog.get(category);
+  }
+
+  _prune() {
+    if (this.records.size <= this.capacity) return 0;
+    const rows = [...this.records.entries()].sort((a, b) => {
+      const aq = a[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
+      const bq = b[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
+      if (aq !== bq) return aq - bq;
+      return finite(a[1].lastSeenAt) - finite(b[1].lastSeenAt);
+    });
+    const count = this.records.size - this.capacity;
+    for (let i = 0; i < count; i += 1) this.records.delete(rows[i][0]);
+    this.stats.pruned += count;
+    if (count > 0) this._event('CONTENT_DRIFT_RECORDS_PRUNED', 'warn', 'CAPACITY_LIMIT', { count, capacity: this.capacity });
+    return count;
+  }
+
+  _observe(category, id, value, options = {}) {
+    if (!category || id == null) return null;
+    const now = this.now();
+    const key = recordKey(category, id);
+    const fp = fingerprint(value);
+    const current = this.records.get(key);
+    const baselineAllowed = options.baselineAllowed === true;
+    this.stats.observed += 1;
+
+    if (!current) {
+      const lifecycle = baselineAllowed ? ContentLifecycle.BASELINE : ContentLifecycle.QUARANTINED;
+      const record = {
+        schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+        key,
+        category: String(category),
+        id: String(id),
+        lifecycle,
+        fingerprint: fp.hash,
+        baselineFingerprint: fp.hash,
+        previousFingerprint: null,
+        bytes: fp.bytes,
+        samples: 1,
+        changeCount: 0,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        lastChangedAt: null,
+        source: options.source || 'catalog'
+      };
+      this.records.set(key, record);
+      if (baselineAllowed) this.stats.baselineRecords += 1;
+      else {
+        this.stats.novelty += 1;
+        this._event('CONTENT_NOVELTY_DETECTED', 'warn', 'NEW_CONTENT_AFTER_BASELINE', { category, id: String(id), fingerprint: fp.hash, source: record.source });
+      }
+      this._prune();
+      return { kind: baselineAllowed ? 'BASELINE' : 'NOVELTY', record: clone(record) };
+    }
+
+    current.samples += 1;
+    current.lastSeenAt = now;
+    current.source = options.source || current.source;
+    current.bytes = fp.bytes;
+    if (current.fingerprint !== fp.hash) {
+      current.previousFingerprint = current.fingerprint;
+      current.fingerprint = fp.hash;
+      current.changeCount += 1;
+      current.lastChangedAt = now;
+      current.lifecycle = ContentLifecycle.QUARANTINED;
+      this.stats.drift += 1;
+      this._event('CONTENT_DRIFT_DETECTED', 'warn', 'FINGERPRINT_CHANGED', {
+        category,
+        id: String(id),
+        previousFingerprint: current.previousFingerprint,
+        fingerprint: current.fingerprint,
+        changeCount: current.changeCount,
+        source: current.source
+      });
+      return { kind: 'DRIFT', record: clone(current) };
+    }
+
+    if (current.lifecycle === ContentLifecycle.BASELINE && current.samples >= this.minObservedSamples) current.lifecycle = ContentLifecycle.OBSERVED;
+    return { kind: 'UNCHANGED', record: clone(current) };
+  }
+
+  _entries(gameData, category) {
+    const source = gameData && gameData[category];
+    if (!source) return [];
+    if (Array.isArray(source)) return source.map((value, index) => [String(index), value]);
+    if (typeof source !== 'object') return [];
+    return Object.keys(source).sort().map((key) => [key, source[key]]);
+  }
+
+  _priority(snapshot, gameData, changes) {
+    if (!snapshot || !snapshot.character) return;
+    const map = snapshot.character.map;
+    if (map && gameData && gameData.maps && gameData.maps[map]) {
+      const state = this._catalogState('maps');
+      const row = this._observe('maps', map, gameData.maps[map], { baselineAllowed: !state.baselineComplete, source: 'current-map' });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+    }
+    const monsters = new Set();
+    for (const entity of snapshot.entities || []) if (entity && entity.mtype) monsters.add(entity.mtype);
+    for (const mtype of [...monsters].sort().slice(0, 32)) {
+      const value = gameData && gameData.monsters && gameData.monsters[mtype];
+      if (!value) continue;
+      const state = this._catalogState('monsters');
+      const row = this._observe('monsters', mtype, value, { baselineAllowed: !state.baselineComplete, source: 'visible-monster' });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+    }
+  }
+
+  _scanCategory(gameData, category, budget, changes) {
+    const entries = this._entries(gameData, category);
+    const state = this._catalogState(category);
+    if (!entries.length) {
+      state.cursor = 0;
+      state.baselineComplete = true;
+      state.cycles = Math.max(1, state.cycles);
+      return 0;
+    }
+    if (state.cursor >= entries.length) state.cursor = 0;
+    let used = 0;
+    while (used < budget && entries.length) {
+      const [id, value] = entries[state.cursor];
+      const row = this._observe(category, id, value, { baselineAllowed: !state.baselineComplete, source: `catalog:${category}` });
+      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
+      used += 1;
+      state.cursor += 1;
+      if (state.cursor >= entries.length) {
+        state.cursor = 0;
+        state.baselineComplete = true;
+        state.cycles += 1;
+        break;
+      }
+    }
+    return used;
+  }
+
+  scan(snapshot, gameData = {}) {
+    const now = this.now();
+    const changes = [];
+    this._priority(snapshot, gameData, changes);
+    let remaining = this.scanBudget;
+    for (const category of this.categories) {
+      if (remaining <= 0) break;
+      const categoriesLeft = Math.max(1, this.categories.length - this.categories.indexOf(category));
+      const budget = Math.max(1, Math.floor(remaining / categoriesLeft));
+      remaining -= this._scanCategory(gameData, category, budget, changes);
+    }
+    this.stats.scans += 1;
+    this.lastScanAt = now;
+    this.lastScan = {
+      at: now,
+      map: snapshot && snapshot.character && snapshot.character.map || null,
+      changes: changes.map((row) => ({ kind: row.kind, category: row.record.category, id: row.record.id, lifecycle: row.record.lifecycle, fingerprint: row.record.fingerprint })),
+      baselineComplete: Object.fromEntries(this.categories.map((category) => [category, this._catalogState(category).baselineComplete]))
+    };
+    if (changes.length) this._event('CONTENT_SCAN_COMPLETED', 'warn', 'CONTENT_CHANGE_DETECTED', { changes: this.lastScan.changes });
+    this.save({ force: changes.length > 0 });
+    return clone(this.lastScan);
+  }
+
+  markRevalidated(category, id) {
+    const record = this.records.get(recordKey(category, id));
+    if (!record) return false;
+    record.lifecycle = ContentLifecycle.OBSERVED;
+    record.baselineFingerprint = record.fingerprint;
+    record.previousFingerprint = null;
+    record.lastSeenAt = this.now();
+    this.stats.revalidated += 1;
+    this._event('CONTENT_REVALIDATED', 'info', null, { category: record.category, id: record.id, fingerprint: record.fingerprint });
+    this.save({ force: true });
+    return true;
+  }
+
+  requiresRevalidation(category, id) {
+    const record = this.records.get(recordKey(category, id));
+    return !!record && record.lifecycle === ContentLifecycle.QUARANTINED;
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.key);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== CONTENT_DRIFT_SCHEMA_VERSION || !Array.isArray(data.records)) throw new Error('unsupported content drift schema');
+      this.records = new Map(data.records.filter((row) => Array.isArray(row) && row.length === 2));
+      if (data.catalog && typeof data.catalog === 'object') {
+        for (const [category, state] of Object.entries(data.catalog)) {
+          if (!this.categories.includes(category)) continue;
+          this.catalog.set(category, {
+            cursor: Math.max(0, Math.floor(finite(state.cursor, 0))),
+            baselineComplete: state.baselineComplete === true,
+            cycles: Math.max(0, Math.floor(finite(state.cycles, 0)))
+          });
+        }
+      }
+      this._prune();
+      this._event('CONTENT_DRIFT_RESTORED', 'info', null, { records: this.records.size });
+      return true;
+    } catch (error) {
+      this.records.clear();
+      this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
+      this.stats.loadErrors += 1;
+      this._event('CONTENT_DRIFT_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  serialize() {
+    return JSON.stringify({
+      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+      savedAt: this.now(),
+      records: [...this.records.entries()],
+      catalog: Object.fromEntries(this.catalog.entries())
+    });
+  }
+
+  save(options = {}) {
+    const backend = this._backend();
+    if (!backend) return false;
+    const now = this.now();
+    if (options.force !== true && now - this.lastSavedAt < this.minSaveMs) return false;
+    try {
+      backend.set(this.key, this.serialize());
+      this.lastSavedAt = now;
+      return true;
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('CONTENT_DRIFT_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  list(limit = 100) {
+    const n = Math.max(0, Math.min(this.capacity, Math.floor(finite(limit, 100))));
+    return [...this.records.values()]
+      .sort((a, b) => finite(b.lastChangedAt || b.lastSeenAt) - finite(a.lastChangedAt || a.lastSeenAt))
+      .slice(0, n)
+      .map(clone);
+  }
+
+  status() {
+    const counts = { BASELINE: 0, OBSERVED: 0, QUARANTINED: 0 };
+    for (const record of this.records.values()) counts[record.lifecycle] = (counts[record.lifecycle] || 0) + 1;
+    return {
+      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
+      mode: 'observation-first',
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      records: this.records.size,
+      capacity: this.capacity,
+      scanBudget: this.scanBudget,
+      counts,
+      baseline: Object.fromEntries(this.categories.map((category) => {
+        const state = this._catalogState(category);
+        return [category, { baselineComplete: state.baselineComplete, cursor: state.cursor, cycles: state.cycles }];
+      })),
+      lastScanAt: this.lastScanAt,
+      lastScan: clone(this.lastScan),
+      persistence: { available: !!this._backend(), lastSavedAt: this.lastSavedAt || null, key: this.key },
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  ContentDriftMonitor,
+  ContentLifecycle,
+  CONTENT_DRIFT_SCHEMA_VERSION,
+  stableStringify,
+  fingerprint
+};
+
+},
+"src/autonomy/skill-semantics.js": function(require,module,exports){
+'use strict';
+
+const SkillControlType = Object.freeze({
+  PERCENT: 'percent',
+  INTEGER: 'integer'
+});
+
+const Capability = Object.freeze({
+  SINGLE_TARGET_OFFENSE: 'single_target_offense',
+  SINGLE_TARGET_BURST: 'single_target_burst',
+  SINGLE_TARGET_HEAL: 'single_target_heal',
+  SINGLE_TARGET_CONTROL: 'single_target_control',
+  SINGLE_TARGET_DEBUFF: 'single_target_debuff',
+  MULTI_TARGET_DAMAGE: 'multi_target_damage',
+  RANGED_MULTI_TARGET_DAMAGE: 'ranged_multi_target_damage',
+  VARIABLE_MULTI_TARGET_DAMAGE: 'variable_multi_target_damage',
+  AOE_DAMAGE: 'aoe_damage',
+  AOE_CONTROL: 'aoe_control',
+  AOE_AGGRO_CONTROL: 'aoe_aggro_control',
+  AGGRO_CONTROL: 'aggro_control',
+  PULL_CONTROL: 'pull_control',
+  PARTY_HEAL: 'party_heal',
+  GROUP_SUSTAIN: 'group_sustain',
+  PARTY_SUPPORT: 'party_support',
+  PARTY_DAMAGE_SUPPORT: 'party_damage_support',
+  RESOURCE_SUPPORT: 'resource_support',
+  PERSONAL_DEFENSE: 'personal_defense',
+  MOBILITY: 'mobility',
+  REVIVE_SUPPORT: 'revive_support',
+  NONCOMBAT_SUPPORT: 'noncombat_support'
+});
+
+function percentControl(key, defaultValue, options = {}) {
+  return Object.freeze({
+    key,
+    type: SkillControlType.PERCENT,
+    min: 0,
+    max: 1,
+    step: options.step == null ? 0.01 : Number(options.step),
+    default: Math.max(0, Math.min(1, Number(defaultValue))),
+    label: options.label || key,
+    emergencyOverride: options.emergencyOverride === true
+  });
+}
+
+function integerControl(key, defaultValue, min, max, options = {}) {
+  const control = {
+    key,
+    type: SkillControlType.INTEGER,
+    min: Math.max(0, Math.floor(Number(min))),
+    max: Math.max(Math.floor(Number(min)), Math.floor(Number(max))),
+    step: Math.max(1, Math.floor(Number(options.step) || 1)),
+    default: Math.floor(Number(defaultValue)),
+    label: options.label || key,
+    emergencyOverride: options.emergencyOverride === true
+  };
+  if (options.maxSource) control.maxSource = String(options.maxSource);
+  return Object.freeze(control);
+}
+
+const LEGACY_DEFAULT_ENABLED_SKILLS = Object.freeze(new Set([
+  'heal', 'partyheal', 'hardshell', 'taunt', 'cleave', 'stomp',
+  'supershot', 'huntersmark', 'burst', 'cburst',
+  'mentalburst', 'quickpunch', 'quickstab',
+  'darkblessing', 'invis', 'paladin_aura', 'mluck'
+]));
+
+const SKILL_SEMANTICS = Object.freeze({
+  heal: Object.freeze({
+    capabilities: [Capability.SINGLE_TARGET_HEAL],
+    controls: [percentControl('hpThreshold', 0.65, { label: 'Heal HP threshold', emergencyOverride: true })]
+  }),
+  partyheal: Object.freeze({
+    capabilities: [Capability.PARTY_HEAL, Capability.GROUP_SUSTAIN],
+    controls: [
+      percentControl('hpThreshold', 0.72, { label: 'Party Heal HP threshold', emergencyOverride: true }),
+      integerControl('minInjuredMembers', 2, 1, 4, { label: 'Minimum injured party members' })
+    ]
+  }),
+  selfheal: Object.freeze({
+    capabilities: [Capability.SINGLE_TARGET_HEAL, Capability.PERSONAL_DEFENSE],
+    controls: [percentControl('hpThreshold', 0.55, { label: 'Self Heal HP threshold', emergencyOverride: true })]
+  }),
+  hardshell: Object.freeze({
+    capabilities: [Capability.PERSONAL_DEFENSE],
+    controls: [percentControl('hpThreshold', 0.45, { label: 'Hard Shell HP threshold', emergencyOverride: true })]
+  }),
+  cleave: Object.freeze({
+    capabilities: [Capability.AOE_DAMAGE, Capability.MULTI_TARGET_DAMAGE],
+    controls: [integerControl('minTargets', 3, 1, 8, { label: 'Minimum targets' })]
+  }),
+  stomp: Object.freeze({
+    capabilities: [Capability.AOE_CONTROL],
+    controls: [integerControl('minTargets', 3, 1, 8, { label: 'Minimum targets' })]
+  }),
+  agitate: Object.freeze({
+    capabilities: [Capability.AOE_AGGRO_CONTROL, Capability.PULL_CONTROL],
+    controls: [integerControl('maxDesiredTargets', 4, 1, 8, { label: 'Maximum desired nearby targets' })]
+  }),
+  taunt: Object.freeze({ capabilities: [Capability.AGGRO_CONTROL], controls: [] }),
+  warcry: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT], controls: [] }),
+  charge: Object.freeze({ capabilities: [Capability.MOBILITY], controls: [] }),
+  dash: Object.freeze({ capabilities: [Capability.MOBILITY], controls: [] }),
+
+  '3shot': Object.freeze({
+    capabilities: [Capability.MULTI_TARGET_DAMAGE, Capability.RANGED_MULTI_TARGET_DAMAGE],
+    controls: [integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets', maxSource: 'targetCapacity' })]
+  }),
+  '5shot': Object.freeze({
+    capabilities: [Capability.MULTI_TARGET_DAMAGE, Capability.RANGED_MULTI_TARGET_DAMAGE],
+    controls: [integerControl('minTargets', 4, 1, 8, { label: 'Minimum targets', maxSource: 'targetCapacity' })]
+  }),
+  supershot: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_BURST], controls: [] }),
+  poisonarrow: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  piercingshot: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  huntersmark: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_DEBUFF], controls: [] }),
+
+  fanofknives: Object.freeze({
+    capabilities: [Capability.MULTI_TARGET_DAMAGE],
+    controls: [integerControl('minTargets', 3, 1, 8, { label: 'Minimum targets', maxSource: 'targetCapacity' })]
+  }),
+  mentalburst: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  quickpunch: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  quickstab: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  shadowstrike: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  invis: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] }),
+  rspeed: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT], controls: [] }),
+
+  cburst: Object.freeze({
+    capabilities: [Capability.MULTI_TARGET_DAMAGE, Capability.VARIABLE_MULTI_TARGET_DAMAGE],
+    controls: [integerControl('minTargets', 2, 1, 8, { label: 'Minimum targets' })]
+  }),
+  burst: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_BURST], controls: [] }),
+  arcane_needle: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  entangle: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_CONTROL], controls: [] }),
+  reflection: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT], controls: [] }),
+  energize: Object.freeze({
+    capabilities: [Capability.RESOURCE_SUPPORT, Capability.PARTY_SUPPORT],
+    controls: [percentControl('recipientMpThreshold', 0.50, { label: 'Recipient MP threshold' })]
+  }),
+  blink: Object.freeze({ capabilities: [Capability.MOBILITY], controls: [] }),
+  magiport: Object.freeze({ capabilities: [Capability.MOBILITY, Capability.PARTY_SUPPORT], controls: [] }),
+
+  curse: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_DEBUFF], controls: [] }),
+  darkblessing: Object.freeze({ capabilities: [Capability.PARTY_DAMAGE_SUPPORT], controls: [] }),
+  absorb: Object.freeze({ capabilities: [Capability.AGGRO_CONTROL, Capability.PARTY_SUPPORT], controls: [] }),
+  phaseout: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] }),
+  revive: Object.freeze({ capabilities: [Capability.REVIVE_SUPPORT], controls: [] }),
+
+  mshield: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] }),
+  aether_shield: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] }),
+  cleansing_light: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT], controls: [] }),
+  guardians_oath: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT, Capability.GROUP_SUSTAIN], controls: [] }),
+  beacon_of_resolve: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT, Capability.GROUP_SUSTAIN], controls: [] }),
+  paladin_aura: Object.freeze({ capabilities: [Capability.PARTY_SUPPORT, Capability.GROUP_SUSTAIN], controls: [] }),
+  purify: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  shield_slam: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+  smash: Object.freeze({ capabilities: [Capability.SINGLE_TARGET_OFFENSE], controls: [] }),
+
+  mluck: Object.freeze({ capabilities: [Capability.NONCOMBAT_SUPPORT], controls: [] }),
+  mcourage: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] }),
+  mfrenzy: Object.freeze({ capabilities: [Capability.PERSONAL_DEFENSE], controls: [] })
+});
+
+function dedupe(values) {
+  return [...new Set((values || []).filter(Boolean).map(String))].sort();
+}
+
+function inferCapabilities(skill = {}) {
+  const out = [];
+  if (skill.heal === true && (skill.party === true || skill.multi === true)) {
+    out.push(Capability.PARTY_HEAL, Capability.GROUP_SUSTAIN);
+  } else if (skill.heal === true) {
+    out.push(Capability.SINGLE_TARGET_HEAL);
+  }
+  if (skill.hostile === true && (skill.multi === true || skill.list === true)) {
+    out.push(Capability.MULTI_TARGET_DAMAGE);
+  } else if (skill.hostile === true && skill.target === true) {
+    out.push(Capability.SINGLE_TARGET_OFFENSE);
+  }
+  if (skill.party === true || skill.aura === true) out.push(Capability.PARTY_SUPPORT);
+  return dedupe(out);
+}
+
+function resolveTargetCapacity(skillId, skill = {}) {
+  const explicit = Number(skill.max_targets);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.floor(explicit);
+  if (skill.multi === true) {
+    const match = String(skillId || '').match(/^(\d+)shot$/i);
+    if (match) return Math.max(1, Math.floor(Number(match[1])));
+  }
+  return null;
+}
+
+function semanticFor(skillId, skill = {}) {
+  const known = SKILL_SEMANTICS[String(skillId || '')] || null;
+  return {
+    automationValidated: !!known,
+    defaultEnabled: !!known && LEGACY_DEFAULT_ENABLED_SKILLS.has(String(skillId || '')),
+    capabilities: dedupe([...(known && known.capabilities || []), ...inferCapabilities(skill)]),
+    controls: (known && known.controls || []).map((control) => ({ ...control })),
+    targetCapacity: resolveTargetCapacity(skillId, skill)
+  };
+}
+
+function controlBounds(control, skillRecord = {}) {
+  const min = Number.isFinite(Number(control && control.min)) ? Number(control.min) : 0;
+  let max = Number.isFinite(Number(control && control.max)) ? Number(control.max) : min;
+  if (control && control.maxSource === 'targetCapacity') {
+    const dynamic = Number(skillRecord && skillRecord.targetCapacity);
+    if (Number.isFinite(dynamic) && dynamic >= min) max = dynamic;
+  }
+  return { min, max: Math.max(min, max) };
+}
+
+function normalizeControlValue(control, value, skillRecord = {}) {
+  const bounds = controlBounds(control, skillRecord);
+  const numeric = Number(value);
+  const fallback = Number(control && control.default);
+  const chosen = Number.isFinite(numeric) ? numeric : (Number.isFinite(fallback) ? fallback : bounds.min);
+  if (control && control.type === SkillControlType.INTEGER) {
+    return Math.max(bounds.min, Math.min(bounds.max, Math.round(chosen)));
+  }
+  return Math.max(bounds.min, Math.min(bounds.max, chosen));
+}
+
+function defaultParameters(skillId, skillRecord = {}) {
+  const semantic = semanticFor(skillId, skillRecord.live || skillRecord);
+  return Object.fromEntries(semantic.controls.map((control) => [
+    control.key,
+    normalizeControlValue(control, control.default, skillRecord)
+  ]));
+}
+
+module.exports = {
+  SkillControlType,
+  Capability,
+  SKILL_SEMANTICS,
+  LEGACY_DEFAULT_ENABLED_SKILLS,
+  semanticFor,
+  inferCapabilities,
+  resolveTargetCapacity,
+  controlBounds,
+  normalizeControlValue,
+  defaultParameters
+};
+
+},
+"src/autonomy/character-combat-profile.js": function(require,module,exports){
+'use strict';
+
+const { normalizeControlValue, defaultParameters } = require('./skill-semantics');
+
+const CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION = 1;
+const CHARACTER_COMBAT_PROFILE_KEY = 'AIO_V3_CHARACTER_COMBAT_PROFILES_V1';
+
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+function cleanName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
+function cleanSkillId(value) {
+  const id = String(value == null ? '' : value).trim();
+  return id || null;
+}
+
+class CharacterCombatProfileStore {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.key = options.key || CHARACTER_COMBAT_PROFILE_KEY;
+    this.profiles = new Map();
+    this.loaded = false;
+    this.lastSavedAt = null;
+    this.stats = { loads: 0, saves: 0, loadErrors: 0, saveErrors: 0, updates: 0 };
+    this.load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'character-combat-profile', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    const root = this.root;
+    if (root && typeof root.get === 'function' && typeof root.set === 'function') {
+      return { get: (key) => root.get(key), set: (key, value) => root.set(key, value) };
+    }
+    const ls = root && root.localStorage;
+    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
+      return { get: (key) => ls.getItem(key), set: (key, value) => ls.setItem(key, value) };
+    }
+    return null;
+  }
+
+  _empty(name) {
+    return {
+      schemaVersion: CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
+      character: name,
+      updatedAt: this.now(),
+      skills: {}
+    };
+  }
+
+  _normalizeProfile(value) {
+    if (!value || typeof value !== 'object') return null;
+    const name = cleanName(value.character);
+    if (!name) return null;
+    const profile = this._empty(name);
+    profile.updatedAt = Number.isFinite(Number(value.updatedAt)) ? Number(value.updatedAt) : this.now();
+    if (value.skills && typeof value.skills === 'object' && !Array.isArray(value.skills)) {
+      for (const [skillId, raw] of Object.entries(value.skills)) {
+        const id = cleanSkillId(skillId);
+        if (!id || !raw || typeof raw !== 'object') continue;
+        const parameters = raw.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
+          ? Object.fromEntries(Object.entries(raw.parameters)
+            .filter(([, v]) => Number.isFinite(Number(v)))
+            .map(([k, v]) => [String(k), Number(v)]))
+          : {};
+        profile.skills[id] = {
+          enabled: raw.enabled === true,
+          parameters
+        };
+      }
+    }
+    return profile;
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.key);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION || !Array.isArray(data.profiles)) {
+        throw new Error('unsupported character combat profile schema');
+      }
+      for (const row of data.profiles) {
+        const profile = this._normalizeProfile(row);
+        if (profile) this.profiles.set(profile.character, profile);
+      }
+      this.stats.loads += 1;
+      this._event('CHARACTER_COMBAT_PROFILES_RESTORED', 'info', null, { profiles: this.profiles.size });
+      return true;
+    } catch (error) {
+      this.profiles.clear();
+      this.stats.loadErrors += 1;
+      this._event('CHARACTER_COMBAT_PROFILES_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', {
+        message: String(error && error.message || error)
+      });
+      return false;
+    }
+  }
+
+  serialize() {
+    return JSON.stringify({
+      schemaVersion: CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
+      savedAt: this.now(),
+      profiles: [...this.profiles.values()].sort((a, b) => a.character.localeCompare(b.character))
+    });
+  }
+
+  save() {
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      backend.set(this.key, this.serialize());
+      this.lastSavedAt = this.now();
+      this.stats.saves += 1;
+      return true;
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('CHARACTER_COMBAT_PROFILES_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
+        message: String(error && error.message || error)
+      });
+      return false;
+    }
+  }
+
+  _ensure(name) {
+    const character = cleanName(name);
+    if (!character) return null;
+    if (!this.profiles.has(character)) this.profiles.set(character, this._empty(character));
+    return this.profiles.get(character);
+  }
+
+  _touch(profile, event, data = {}) {
+    if (!profile) return false;
+    profile.updatedAt = this.now();
+    this.stats.updates += 1;
+    this.save();
+    this._event(event, 'info', null, { character: profile.character, ...data });
+    return true;
+  }
+
+  _record(skillRecord) {
+    if (!skillRecord || typeof skillRecord !== 'object') return null;
+    const id = cleanSkillId(skillRecord.id);
+    return id ? { ...skillRecord, id } : null;
+  }
+
+  skillSettings(name, skillRecord) {
+    const profile = this._ensure(name);
+    const record = this._record(skillRecord);
+    if (!profile || !record) return null;
+    const configured = Object.prototype.hasOwnProperty.call(profile.skills, record.id);
+    const saved = configured ? profile.skills[record.id] : { enabled: record.defaultEnabled === true, parameters: {} };
+    const defaults = defaultParameters(record.id, record);
+    const controls = Array.isArray(record.controls) ? record.controls : [];
+    const parameters = { ...defaults };
+    for (const control of controls) {
+      if (!control || !control.key) continue;
+      const savedValue = saved.parameters && saved.parameters[control.key];
+      parameters[control.key] = normalizeControlValue(control, savedValue, record);
+    }
+    return {
+      enabled: saved.enabled === true,
+      parameters,
+      configured
+    };
+  }
+
+  setEnabled(name, skillRecord, enabled) {
+    const profile = this._ensure(name);
+    const record = this._record(skillRecord);
+    if (!profile || !record) return null;
+    const current = this.skillSettings(name, record);
+    profile.skills[record.id] = {
+      enabled: enabled === true,
+      parameters: { ...(current && current.parameters || {}) }
+    };
+    this._touch(profile, 'CHARACTER_SKILL_PERMISSION_CHANGED', { skill: record.id, enabled: enabled === true });
+    return this.skillSettings(name, record);
+  }
+
+  setParameter(name, skillRecord, key, value) {
+    const profile = this._ensure(name);
+    const record = this._record(skillRecord);
+    const parameter = String(key == null ? '' : key).trim();
+    if (!profile || !record || !parameter) return null;
+    const control = (record.controls || []).find((row) => row && row.key === parameter);
+    if (!control) return { ok: false, reason: 'UNKNOWN_SKILL_CONTROL', skill: record.id, parameter };
+    const current = this.skillSettings(name, record);
+    const normalized = normalizeControlValue(control, value, record);
+    profile.skills[record.id] = {
+      enabled: !!(current && current.enabled),
+      parameters: { ...(current && current.parameters || {}), [parameter]: normalized }
+    };
+    this._touch(profile, 'CHARACTER_SKILL_CONTROL_CHANGED', { skill: record.id, parameter, value: normalized });
+    return { ok: true, settings: this.skillSettings(name, record) };
+  }
+
+  resetSkill(name, skillRecord) {
+    const profile = this._ensure(name);
+    const record = this._record(skillRecord);
+    if (!profile || !record) return false;
+    if (!Object.prototype.hasOwnProperty.call(profile.skills, record.id)) return false;
+    delete profile.skills[record.id];
+    this._touch(profile, 'CHARACTER_SKILL_SETTINGS_RESET', { skill: record.id });
+    return true;
+  }
+
+  resetProfile(name) {
+    const character = cleanName(name);
+    if (!character || !this.profiles.has(character)) return false;
+    this.profiles.set(character, this._empty(character));
+    this._touch(this.profiles.get(character), 'CHARACTER_COMBAT_PROFILE_RESET');
+    return true;
+  }
+
+  get(name) {
+    const character = cleanName(name);
+    if (!character) return null;
+    const profile = this._ensure(character);
+    return clone(profile, null);
+  }
+
+  status() {
+    return {
+      schemaVersion: CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
+      mode: 'per-character-skill-permission-and-controls-v1',
+      profiles: this.profiles.size,
+      characters: [...this.profiles.keys()].sort(),
+      lastSavedAt: this.lastSavedAt,
+      persistenceAvailable: !!this._backend(),
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = {
+  CharacterCombatProfileStore,
+  CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION,
+  CHARACTER_COMBAT_PROFILE_KEY
+};
+
+},
+"src/autonomy/capability-resolver.js": function(require,module,exports){
+'use strict';
+
+const { fingerprint } = require('../world/content-drift');
+const { Capability } = require('./skill-semantics');
+
+function finite(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+function normalizedGear(descriptor, liveCharacter) {
+  const source = liveCharacter && liveCharacter.slots && typeof liveCharacter.slots === 'object'
+    ? liveCharacter.slots
+    : descriptor && descriptor.gear && typeof descriptor.gear === 'object'
+      ? descriptor.gear
+      : descriptor && descriptor.equipment && typeof descriptor.equipment === 'object'
+        ? descriptor.equipment
+        : null;
+  if (!source) return null;
+  const out = {};
+  for (const slot of Object.keys(source).sort()) {
+    const item = source[slot];
+    if (!item || typeof item !== 'object') continue;
+    out[slot] = {
+      name: item.name == null ? null : String(item.name),
+      level: Math.max(0, finite(item.level) || 0)
+    };
+  }
+  return out;
+}
+
+function normalizedInventory(descriptor, liveCharacter) {
+  const source = liveCharacter && Array.isArray(liveCharacter.items)
+    ? liveCharacter.items
+    : descriptor && Array.isArray(descriptor.inventory)
+      ? descriptor.inventory
+      : null;
+  if (!source) return null;
+  const names = new Set();
+  for (const item of source) if (item && item.name) names.add(String(item.name));
+  return names;
+}
+
+function equippedTypes(gear, gameData) {
+  if (!gear) return null;
+  const items = gameData && gameData.items || {};
+  const result = [];
+  for (const [slot, item] of Object.entries(gear)) {
+    if (!item || !item.name) continue;
+    const meta = items[item.name] || {};
+    result.push({
+      slot,
+      name: item.name,
+      wtype: meta.wtype == null ? null : String(meta.wtype),
+      type: meta.type == null ? null : String(meta.type)
+    });
+  }
+  return result;
+}
+
+function equipmentReadiness(skill, gear, gameData) {
+  const needsWtype = Array.isArray(skill.wtype) && skill.wtype.length > 0;
+  const needsOffhand = !!skill.offhandType;
+  const needsSlot = Array.isArray(skill.slot) && skill.slot.length > 0;
+  if (!needsWtype && !needsOffhand && !needsSlot) return { ready: true, reasons: [] };
+  if (!gear) return { ready: null, reasons: ['EQUIPMENT_UNKNOWN'] };
+
+  const types = equippedTypes(gear, gameData) || [];
+  const reasons = [];
+
+  if (needsWtype) {
+    const allowed = new Set(skill.wtype.map(String));
+    if (!types.some((row) => row.wtype && allowed.has(row.wtype))) reasons.push('WEAPON_TYPE_REQUIRED');
+  }
+  if (needsOffhand) {
+    const offhand = types.find((row) => row.slot === 'offhand');
+    const wanted = String(skill.offhandType);
+    if (!offhand || (offhand.wtype !== wanted && offhand.type !== wanted)) reasons.push('OFFHAND_TYPE_REQUIRED');
+  }
+  if (needsSlot) {
+    const matches = skill.slot.some(([slot, itemName]) => gear[slot] && gear[slot].name === itemName);
+    if (!matches) reasons.push('EQUIPMENT_SLOT_REQUIREMENT');
+  }
+  return { ready: reasons.length === 0, reasons };
+}
+
+function materialReadiness(skill, inventory) {
+  if (!skill.consume) return { ready: true, reason: null };
+  if (!inventory) return { ready: null, reason: 'MATERIAL_UNKNOWN' };
+  return inventory.has(String(skill.consume))
+    ? { ready: true, reason: null }
+    : { ready: false, reason: 'MATERIAL_REQUIRED' };
+}
+
+function addCounts(target, values) {
+  for (const value of values || []) target[value] = (target[value] || 0) + 1;
+}
+
+class CharacterCapabilityResolver {
+  constructor(options = {}) {
+    if (!options.catalog) throw new Error('skill catalog required');
+    if (!options.profiles) throw new Error('character combat profiles required');
+    this.catalog = options.catalog;
+    this.profiles = options.profiles;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.lastByCharacter = new Map();
+    this.fingerprints = new Map();
+    this.generations = new Map();
+  }
+
+  _event(event, data = {}, severity = 'info', reason = null) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'character-capabilities', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _generation(name, value) {
+    const fp = fingerprint(value).hash;
+    const previous = this.fingerprints.get(name);
+    if (previous !== fp) {
+      this.fingerprints.set(name, fp);
+      this.generations.set(name, (this.generations.get(name) || 0) + 1);
+    }
+    return { generation: this.generations.get(name) || 1, fingerprint: fp, changed: previous != null && previous !== fp };
+  }
+
+  resolve(descriptor = {}, context = {}) {
+    const name = String(descriptor.name || context.name || 'unknown');
+    const ctype = String(descriptor.ctype || descriptor.type || '').toLowerCase();
+    const level = Math.max(0, finite(descriptor.level) || 0);
+    const gear = normalizedGear(descriptor, context.liveCharacter);
+    const inventory = normalizedInventory(descriptor, context.liveCharacter);
+    const gameData = context.gameData || {};
+    const catalogStatus = this.catalog.status();
+    const detectedCapabilities = {};
+    const structuralCapabilities = {};
+    const enabledCapabilities = {};
+    const skills = [];
+
+    for (const skill of this.catalog.list({ ctype })) {
+      if (!skill.classes.includes(ctype)) continue;
+      const unlocked = level >= skill.requiredLevel;
+      if (!unlocked) continue;
+
+      const settings = this.profiles.skillSettings(name, skill) || { enabled: false, parameters: {}, configured: false };
+      const equipment = equipmentReadiness(skill, gear, gameData);
+      const material = materialReadiness(skill, inventory);
+      const validated = skill.automationValidated === true;
+      const configuredReady = validated
+        && settings.enabled === true
+        && equipment.ready !== false
+        && material.ready !== false
+        && catalogStatus.state === 'READY';
+
+      addCounts(detectedCapabilities, skill.capabilities);
+      if (validated) addCounts(structuralCapabilities, skill.capabilities);
+      if (configuredReady) addCounts(enabledCapabilities, skill.capabilities);
+
+      skills.push({
+        id: skill.id,
+        name: skill.name,
+        requiredLevel: skill.requiredLevel,
+        unlocked,
+        automationValidated: validated,
+        enabled: settings.enabled === true,
+        configured: settings.configured === true,
+        parameters: clone(settings.parameters, {}),
+        controls: clone(skill.controls, []),
+        capabilities: skill.capabilities.slice(),
+        targetCapacity: skill.targetCapacity,
+        equipmentReady: equipment.ready,
+        equipmentReasons: equipment.reasons,
+        materialReady: material.ready,
+        materialReason: material.reason,
+        configuredReady,
+        technical: {
+          mp: skill.mp,
+          cooldown: skill.cooldown,
+          range: skill.range,
+          rangeMultiplier: skill.rangeMultiplier,
+          wtype: skill.wtype.slice(),
+          offhandType: skill.offhandType,
+          slot: clone(skill.slot, []),
+          consume: skill.consume,
+          multi: skill.multi,
+          list: skill.list,
+          party: skill.party,
+          heal: skill.heal,
+          hostile: skill.hostile,
+          share: skill.share
+        },
+        rawFingerprint: skill.rawFingerprint
+      });
+    }
+
+    skills.sort((a, b) => a.requiredLevel - b.requiredLevel || a.id.localeCompare(b.id));
+    const generationBasis = {
+      catalogGeneration: catalogStatus.generation,
+      catalogState: catalogStatus.state,
+      ctype,
+      level,
+      gear,
+      skills: skills.map((row) => ({
+        id: row.id,
+        enabled: row.enabled,
+        parameters: row.parameters,
+        equipmentReady: row.equipmentReady,
+        materialReady: row.materialReady,
+        rawFingerprint: row.rawFingerprint
+      }))
+    };
+    const gen = this._generation(name, generationBasis);
+    const result = {
+      schemaVersion: 1,
+      mode: 'live-character-capability-resolver-v1',
+      name,
+      ctype,
+      level,
+      observedAt: this.now(),
+      generation: gen.generation,
+      fingerprint: gen.fingerprint,
+      catalogGeneration: catalogStatus.generation,
+      catalogState: catalogStatus.state,
+      catalogReady: catalogStatus.state === 'READY',
+      detectedCapabilities,
+      structuralCapabilities,
+      enabledCapabilities,
+      skills
+    };
+    this.lastByCharacter.set(name, result);
+    if (gen.changed) this._event('CHARACTER_CAPABILITIES_CHANGED', {
+      character: name,
+      generation: gen.generation,
+      catalogGeneration: catalogStatus.generation,
+      ctype,
+      level
+    });
+    return clone(result, null);
+  }
+
+  get(name) {
+    const row = this.lastByCharacter.get(String(name || ''));
+    return row ? clone(row, null) : null;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: 'live-character-capability-resolver-v1',
+      characters: [...this.lastByCharacter.keys()].sort(),
+      latest: Object.fromEntries([...this.lastByCharacter.entries()].map(([name, row]) => [
+        name,
+        {
+          ctype: row.ctype,
+          level: row.level,
+          generation: row.generation,
+          catalogGeneration: row.catalogGeneration,
+          catalogReady: row.catalogReady,
+          skills: row.skills.length
+        }
+      ]))
+    };
+  }
+}
+
+class PartyCapabilityResolver {
+  constructor(options = {}) {
+    if (!options.characterResolver) throw new Error('character capability resolver required');
+    this.characterResolver = options.characterResolver;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.last = null;
+    this.lastFingerprint = null;
+    this.generation = 0;
+  }
+
+  _memberDescriptors(snapshot, registryStatus, liveCharacter) {
+    const byName = new Map();
+    for (const row of registryStatus && registryStatus.characters || []) if (row && row.name) byName.set(String(row.name), row);
+    const members = [];
+    const seen = new Set();
+    const self = snapshot && snapshot.character;
+    if (self && self.name) {
+      const registry = byName.get(String(self.name)) || {};
+      members.push({
+        descriptor: { ...registry, ...self, gear: liveCharacter && liveCharacter.slots || registry.gear },
+        liveCharacter
+      });
+      seen.add(String(self.name));
+    }
+    for (const member of snapshot && snapshot.party || []) {
+      if (!member || !member.name || seen.has(String(member.name))) continue;
+      const registry = byName.get(String(member.name)) || {};
+      members.push({
+        descriptor: {
+          ...registry,
+          ...member,
+          ctype: member.ctype || member.type || registry.ctype,
+          level: member.level != null ? member.level : registry.level,
+          gear: registry.gear
+        },
+        liveCharacter: null
+      });
+      seen.add(String(member.name));
+    }
+    return members;
+  }
+
+  resolve(context = {}) {
+    const snapshot = context.snapshot;
+    if (!snapshot || !snapshot.character) return null;
+    const members = this._memberDescriptors(snapshot, context.registryStatus, context.liveCharacter)
+      .map(({ descriptor, liveCharacter }) => this.characterResolver.resolve(descriptor, {
+        gameData: context.gameData || {},
+        liveCharacter
+      }));
+
+    const detectedCapabilities = {};
+    const structuralCapabilities = {};
+    const enabledCapabilities = {};
+    for (const member of members) {
+      addCounts(detectedCapabilities, Object.keys(member.detectedCapabilities).flatMap((key) => Array(member.detectedCapabilities[key]).fill(key)));
+      addCounts(structuralCapabilities, Object.keys(member.structuralCapabilities).flatMap((key) => Array(member.structuralCapabilities[key]).fill(key)));
+      addCounts(enabledCapabilities, Object.keys(member.enabledCapabilities).flatMap((key) => Array(member.enabledCapabilities[key]).fill(key)));
+    }
+
+    const offensiveAoe = [
+      Capability.MULTI_TARGET_DAMAGE,
+      Capability.RANGED_MULTI_TARGET_DAMAGE,
+      Capability.VARIABLE_MULTI_TARGET_DAMAGE,
+      Capability.AOE_DAMAGE
+    ];
+    const aoePotential = offensiveAoe.some((key) => Number(structuralCapabilities[key]) > 0);
+    const aoeConfigured = members.every((row) => row.catalogReady)
+      && offensiveAoe.some((key) => Number(enabledCapabilities[key]) > 0);
+    const support = {
+      partyHeal: Number(structuralCapabilities[Capability.PARTY_HEAL]) > 0,
+      groupSustain: Number(structuralCapabilities[Capability.GROUP_SUSTAIN]) > 0,
+      aoeControl: Number(structuralCapabilities[Capability.AOE_CONTROL]) > 0,
+      aoeAggroControl: Number(structuralCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
+    };
+
+    const basis = {
+      members: members.map((row) => [row.name, row.generation, row.fingerprint]),
+      catalog: members.map((row) => row.catalogGeneration)
+    };
+    const fp = fingerprint(basis).hash;
+    if (fp !== this.lastFingerprint) {
+      this.lastFingerprint = fp;
+      this.generation += 1;
+      if (this.log && typeof this.log.emit === 'function') {
+        try {
+          this.log.emit({
+            component: 'party-capabilities',
+            event: 'PARTY_CAPABILITIES_CHANGED',
+            data: { generation: this.generation, members: members.map((row) => row.name), aoePotential, aoeConfigured }
+          });
+        } catch (_) {}
+      }
+    }
+
+    this.last = {
+      schemaVersion: 1,
+      mode: 'live-party-capability-resolver-v1',
+      observedAt: this.now(),
+      generation: this.generation,
+      fingerprint: fp,
+      catalogReady: members.length > 0 && members.every((row) => row.catalogReady),
+      members,
+      detectedCapabilities,
+      structuralCapabilities,
+      enabledCapabilities,
+      combat: {
+        aoePotential,
+        aoeConfigured,
+        support
+      }
+    };
+    return clone(this.last, null);
+  }
+
+  status() {
+    if (!this.last) return {
+      schemaVersion: 1,
+      mode: 'live-party-capability-resolver-v1',
+      generation: this.generation,
+      catalogReady: false,
+      members: [],
+      combat: { aoePotential: false, aoeConfigured: false, support: {} }
+    };
+    return clone(this.last, null);
+  }
+}
+
+module.exports = {
+  CharacterCapabilityResolver,
+  PartyCapabilityResolver,
+  equipmentReadiness,
+  materialReadiness
+};
+
+},
+"src/autonomy/skill-policy.js": function(require,module,exports){
+'use strict';
+
+const SKILL_POLICY_MODE = 'central-user-skill-policy-v1';
+
+function finite(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function clean(value) {
+  const text = String(value == null ? '' : value).trim();
+  return text || null;
+}
+
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+class SkillPolicy {
+  constructor(options = {}) {
+    if (!options.catalog) throw new Error('skill catalog required');
+    if (!options.profiles) throw new Error('character combat profiles required');
+    this.root = options.root || globalThis;
+    this.catalog = options.catalog;
+    this.profiles = options.profiles;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.lastDecision = null;
+    this.stats = {
+      evaluations: 0,
+      allowed: 0,
+      blocked: 0,
+      blockedCatalog: 0,
+      blockedUnknown: 0,
+      blockedUnvalidated: 0,
+      blockedClass: 0,
+      blockedLevel: 0,
+      blockedUser: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'skill-policy', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _character(explicit = null) {
+    if (explicit && typeof explicit === 'object') return explicit;
+    return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+  }
+
+  _finish(decision) {
+    this.stats.evaluations += 1;
+    if (decision.allowed) this.stats.allowed += 1;
+    else {
+      this.stats.blocked += 1;
+      if (decision.reason === 'SKILL_CATALOG_NOT_READY') this.stats.blockedCatalog += 1;
+      else if (decision.reason === 'UNKNOWN_SKILL') this.stats.blockedUnknown += 1;
+      else if (decision.reason === 'SKILL_AUTOMATION_NOT_VALIDATED') this.stats.blockedUnvalidated += 1;
+      else if (decision.reason === 'SKILL_CLASS_MISMATCH') this.stats.blockedClass += 1;
+      else if (decision.reason === 'SKILL_LEVEL_LOCKED') this.stats.blockedLevel += 1;
+      else if (decision.reason === 'SKILL_POLICY_DISABLED') this.stats.blockedUser += 1;
+    }
+    this.lastDecision = { at: this.now(), ...decision };
+    if (!decision.allowed) {
+      this._event('SKILL_POLICY_BLOCKED', 'info', decision.reason, {
+        skill: decision.skill || null,
+        character: decision.character || null,
+        ctype: decision.ctype || null,
+        level: decision.level == null ? null : decision.level,
+        catalogState: decision.catalogState || null
+      });
+    }
+    return decision;
+  }
+
+  evaluate(skillId, options = {}) {
+    const id = clean(skillId);
+    const character = this._character(options.character);
+    const catalogStatus = this.catalog.status();
+
+    if (!id) return this._finish({ allowed: false, reason: 'SKILL_ID_REQUIRED', skill: null });
+    if (!character) return this._finish({
+      allowed: false, reason: 'SKILL_CHARACTER_UNAVAILABLE', skill: id,
+      catalogState: catalogStatus.state
+    });
+    const name = clean(character.name);
+    const ctype = String(character.ctype || character.type || '').toLowerCase();
+    const level = Math.max(0, finite(character.level) || 0);
+
+    if (catalogStatus.state !== 'READY') return this._finish({
+      allowed: false, reason: 'SKILL_CATALOG_NOT_READY', skill: id,
+      character: name, ctype, level, catalogState: catalogStatus.state
+    });
+
+    const record = this.catalog.get(id);
+    if (!record) return this._finish({
+      allowed: false, reason: 'UNKNOWN_SKILL', skill: id,
+      character: name, ctype, level, catalogState: catalogStatus.state
+    });
+    if (record.automationValidated !== true) return this._finish({
+      allowed: false, reason: 'SKILL_AUTOMATION_NOT_VALIDATED', skill: id,
+      character: name, ctype, level, catalogState: catalogStatus.state
+    });
+    if (record.classes.length && !record.classes.includes(ctype)) return this._finish({
+      allowed: false, reason: 'SKILL_CLASS_MISMATCH', skill: id,
+      character: name, ctype, level, requiredClasses: record.classes.slice(),
+      catalogState: catalogStatus.state
+    });
+    if (level < Number(record.requiredLevel || 0)) return this._finish({
+      allowed: false, reason: 'SKILL_LEVEL_LOCKED', skill: id,
+      character: name, ctype, level, requiredLevel: Number(record.requiredLevel || 0),
+      catalogState: catalogStatus.state
+    });
+
+    const settings = this.profiles.skillSettings(name, record);
+    if (!settings || settings.enabled !== true) return this._finish({
+      allowed: false, reason: 'SKILL_POLICY_DISABLED', skill: id,
+      character: name, ctype, level, configured: !!(settings && settings.configured),
+      catalogState: catalogStatus.state
+    });
+
+    return this._finish({
+      allowed: true,
+      reason: settings.configured ? 'SKILL_POLICY_ENABLED' : 'SKILL_POLICY_DEFAULT_ENABLED',
+      skill: id,
+      character: name,
+      ctype,
+      level,
+      configured: settings.configured === true,
+      parameters: clone(settings.parameters, {}),
+      catalogGeneration: catalogStatus.generation,
+      catalogState: catalogStatus.state
+    });
+  }
+
+  peek(skillId, character = null) {
+    const id = clean(skillId);
+    const c = this._character(character);
+    const catalogStatus = this.catalog.status();
+    if (!id || !c || catalogStatus.state !== 'READY') return false;
+    const record = this.catalog.get(id);
+    if (!record || record.automationValidated !== true) return false;
+    const ctype = String(c.ctype || c.type || '').toLowerCase();
+    const level = Math.max(0, finite(c.level) || 0);
+    if (record.classes.length && !record.classes.includes(ctype)) return false;
+    if (level < Number(record.requiredLevel || 0)) return false;
+    const settings = this.profiles.skillSettings(clean(c.name), record);
+    return !!(settings && settings.enabled === true);
+  }
+
+  settings(skillId, character = null) {
+    const id = clean(skillId);
+    const c = this._character(character);
+    if (!id || !c) return null;
+    const record = this.catalog.get(id);
+    if (!record) return null;
+    const settings = this.profiles.skillSettings(clean(c.name), record);
+    return settings ? {
+      ...clone(settings, {}),
+      skill: id,
+      automationValidated: record.automationValidated === true,
+      defaultEnabled: record.defaultEnabled === true
+    } : null;
+  }
+
+  evaluateCommand(args = [], options = {}) {
+    const list = Array.isArray(args) ? args : [];
+    return this.evaluate(list[0], options);
+  }
+
+  isEnabled(skillId, character = null) {
+    return this.peek(skillId, character);
+  }
+
+  parameters(skillId, character = null) {
+    const decision = this.evaluate(skillId, { character });
+    return decision.allowed ? clone(decision.parameters, {}) : null;
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: SKILL_POLICY_MODE,
+      centralCommandEnforcement: true,
+      unknownSkillsFailClosed: true,
+      catalogMustBeReady: true,
+      userDisableIsHardBlock: true,
+      lastDecision: clone(this.lastDecision, null),
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { SkillPolicy, SKILL_POLICY_MODE };
 
 },
 "src/stability/stability-runtime.js": function(require,module,exports){
@@ -9644,8 +11916,14 @@ class Alpha13Runtime extends Alpha12Runtime {
     const result = this.contentDrift.scan(this.lastSnapshot, gameData);
     this.lastContentDriftResult = result;
     for (const change of result && result.changes || []) {
-      if (change.category !== 'monsters') continue;
       if (change.kind !== 'DRIFT' && change.kind !== 'NOVELTY') continue;
+      if (change.category === 'skills') {
+        if (this.skillCatalog && typeof this.skillCatalog.noteIndependentDrift === 'function') {
+          this.skillCatalog.noteIndependentDrift(change.id, change.kind, change.fingerprint);
+        }
+        continue;
+      }
+      if (change.category !== 'monsters') continue;
       try {
         this.combatRisk.quarantineMonsterType(this.world, change.id);
         this.log.emit({
@@ -10027,385 +12305,6 @@ class GlobalSupervisor {
 }
 
 module.exports = { GlobalSupervisor, HealthState };
-
-},
-"src/world/content-drift.js": function(require,module,exports){
-'use strict';
-
-const CONTENT_DRIFT_SCHEMA_VERSION = 1;
-const ContentLifecycle = Object.freeze({
-  BASELINE: 'BASELINE',
-  OBSERVED: 'OBSERVED',
-  QUARANTINED: 'QUARANTINED'
-});
-
-const DEFAULT_CATEGORIES = Object.freeze(['monsters', 'maps', 'npcs', 'items', 'skills', 'events']);
-
-function finite(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function clone(value) {
-  if (value == null) return value;
-  return JSON.parse(JSON.stringify(value));
-}
-
-function normalize(value, depth = 0) {
-  if (depth > 6) return '[depth-limit]';
-  if (value == null) return value;
-  if (typeof value === 'string') return value.length > 512 ? value.slice(0, 512) : value;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'function' || typeof value === 'undefined' || typeof value === 'symbol') return undefined;
-  if (Array.isArray(value)) return value.slice(0, 128).map((item) => normalize(item, depth + 1));
-  if (typeof value === 'object') {
-    const out = {};
-    const keys = Object.keys(value).sort().slice(0, 256);
-    for (const key of keys) {
-      const normalized = normalize(value[key], depth + 1);
-      if (normalized !== undefined) out[key] = normalized;
-    }
-    return out;
-  }
-  return String(value);
-}
-
-function stableStringify(value) {
-  return JSON.stringify(normalize(value));
-}
-
-function hashString(input) {
-  let hash = 0x811c9dc5;
-  const text = String(input || '');
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-function fingerprint(value) {
-  const canonical = stableStringify(value);
-  return { hash: hashString(canonical), bytes: canonical.length };
-}
-
-function recordKey(category, id) {
-  return `${category}:${String(id)}`;
-}
-
-class ContentDriftMonitor {
-  constructor(options = {}) {
-    this.root = options.root || globalThis;
-    this.storage = options.storage || null;
-    this.now = options.now || (() => Date.now());
-    this.log = options.log || null;
-    this.key = options.key || 'aio-v3-content-drift-v1';
-    this.capacity = Math.max(64, Math.min(10000, Math.floor(finite(options.capacity, 2048))));
-    this.scanBudget = Math.max(6, Math.min(512, Math.floor(finite(options.scanBudget, 96))));
-    this.minObservedSamples = Math.max(2, Math.min(20, Math.floor(finite(options.minObservedSamples, 2))));
-    this.minSaveMs = Math.max(1000, Math.min(10 * 60 * 1000, finite(options.minSaveMs, 30000)));
-    this.categories = Array.isArray(options.categories) && options.categories.length ? [...new Set(options.categories.map(String))] : DEFAULT_CATEGORIES.slice();
-    this.records = new Map();
-    this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
-    this.loaded = false;
-    this.lastSavedAt = 0;
-    this.lastScanAt = null;
-    this.lastScan = null;
-    this.stats = { scans: 0, observed: 0, baselineRecords: 0, novelty: 0, drift: 0, revalidated: 0, pruned: 0, loadErrors: 0, saveErrors: 0 };
-  }
-
-  _event(event, severity = 'info', reason = null, data = {}) {
-    if (!this.log || typeof this.log.emit !== 'function') return;
-    this.log.emit({ component: 'content-drift', event, severity, reason, data });
-  }
-
-  _backend() {
-    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
-    const ls = this.root && this.root.localStorage;
-    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
-      return { get: (key) => ls.getItem(key), set: (key, value) => ls.setItem(key, value) };
-    }
-    return null;
-  }
-
-  _catalogState(category) {
-    if (!this.catalog.has(category)) this.catalog.set(category, { cursor: 0, baselineComplete: false, cycles: 0 });
-    return this.catalog.get(category);
-  }
-
-  _prune() {
-    if (this.records.size <= this.capacity) return 0;
-    const rows = [...this.records.entries()].sort((a, b) => {
-      const aq = a[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
-      const bq = b[1].lifecycle === ContentLifecycle.QUARANTINED ? 1 : 0;
-      if (aq !== bq) return aq - bq;
-      return finite(a[1].lastSeenAt) - finite(b[1].lastSeenAt);
-    });
-    const count = this.records.size - this.capacity;
-    for (let i = 0; i < count; i += 1) this.records.delete(rows[i][0]);
-    this.stats.pruned += count;
-    if (count > 0) this._event('CONTENT_DRIFT_RECORDS_PRUNED', 'warn', 'CAPACITY_LIMIT', { count, capacity: this.capacity });
-    return count;
-  }
-
-  _observe(category, id, value, options = {}) {
-    if (!category || id == null) return null;
-    const now = this.now();
-    const key = recordKey(category, id);
-    const fp = fingerprint(value);
-    const current = this.records.get(key);
-    const baselineAllowed = options.baselineAllowed === true;
-    this.stats.observed += 1;
-
-    if (!current) {
-      const lifecycle = baselineAllowed ? ContentLifecycle.BASELINE : ContentLifecycle.QUARANTINED;
-      const record = {
-        schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
-        key,
-        category: String(category),
-        id: String(id),
-        lifecycle,
-        fingerprint: fp.hash,
-        baselineFingerprint: fp.hash,
-        previousFingerprint: null,
-        bytes: fp.bytes,
-        samples: 1,
-        changeCount: 0,
-        firstSeenAt: now,
-        lastSeenAt: now,
-        lastChangedAt: null,
-        source: options.source || 'catalog'
-      };
-      this.records.set(key, record);
-      if (baselineAllowed) this.stats.baselineRecords += 1;
-      else {
-        this.stats.novelty += 1;
-        this._event('CONTENT_NOVELTY_DETECTED', 'warn', 'NEW_CONTENT_AFTER_BASELINE', { category, id: String(id), fingerprint: fp.hash, source: record.source });
-      }
-      this._prune();
-      return { kind: baselineAllowed ? 'BASELINE' : 'NOVELTY', record: clone(record) };
-    }
-
-    current.samples += 1;
-    current.lastSeenAt = now;
-    current.source = options.source || current.source;
-    current.bytes = fp.bytes;
-    if (current.fingerprint !== fp.hash) {
-      current.previousFingerprint = current.fingerprint;
-      current.fingerprint = fp.hash;
-      current.changeCount += 1;
-      current.lastChangedAt = now;
-      current.lifecycle = ContentLifecycle.QUARANTINED;
-      this.stats.drift += 1;
-      this._event('CONTENT_DRIFT_DETECTED', 'warn', 'FINGERPRINT_CHANGED', {
-        category,
-        id: String(id),
-        previousFingerprint: current.previousFingerprint,
-        fingerprint: current.fingerprint,
-        changeCount: current.changeCount,
-        source: current.source
-      });
-      return { kind: 'DRIFT', record: clone(current) };
-    }
-
-    if (current.lifecycle === ContentLifecycle.BASELINE && current.samples >= this.minObservedSamples) current.lifecycle = ContentLifecycle.OBSERVED;
-    return { kind: 'UNCHANGED', record: clone(current) };
-  }
-
-  _entries(gameData, category) {
-    const source = gameData && gameData[category];
-    if (!source) return [];
-    if (Array.isArray(source)) return source.map((value, index) => [String(index), value]);
-    if (typeof source !== 'object') return [];
-    return Object.keys(source).sort().map((key) => [key, source[key]]);
-  }
-
-  _priority(snapshot, gameData, changes) {
-    if (!snapshot || !snapshot.character) return;
-    const map = snapshot.character.map;
-    if (map && gameData && gameData.maps && gameData.maps[map]) {
-      const state = this._catalogState('maps');
-      const row = this._observe('maps', map, gameData.maps[map], { baselineAllowed: !state.baselineComplete, source: 'current-map' });
-      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
-    }
-    const monsters = new Set();
-    for (const entity of snapshot.entities || []) if (entity && entity.mtype) monsters.add(entity.mtype);
-    for (const mtype of [...monsters].sort().slice(0, 32)) {
-      const value = gameData && gameData.monsters && gameData.monsters[mtype];
-      if (!value) continue;
-      const state = this._catalogState('monsters');
-      const row = this._observe('monsters', mtype, value, { baselineAllowed: !state.baselineComplete, source: 'visible-monster' });
-      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
-    }
-  }
-
-  _scanCategory(gameData, category, budget, changes) {
-    const entries = this._entries(gameData, category);
-    const state = this._catalogState(category);
-    if (!entries.length) {
-      state.cursor = 0;
-      state.baselineComplete = true;
-      state.cycles = Math.max(1, state.cycles);
-      return 0;
-    }
-    if (state.cursor >= entries.length) state.cursor = 0;
-    let used = 0;
-    while (used < budget && entries.length) {
-      const [id, value] = entries[state.cursor];
-      const row = this._observe(category, id, value, { baselineAllowed: !state.baselineComplete, source: `catalog:${category}` });
-      if (row && (row.kind === 'DRIFT' || row.kind === 'NOVELTY')) changes.push(row);
-      used += 1;
-      state.cursor += 1;
-      if (state.cursor >= entries.length) {
-        state.cursor = 0;
-        state.baselineComplete = true;
-        state.cycles += 1;
-        break;
-      }
-    }
-    return used;
-  }
-
-  scan(snapshot, gameData = {}) {
-    const now = this.now();
-    const changes = [];
-    this._priority(snapshot, gameData, changes);
-    let remaining = this.scanBudget;
-    for (const category of this.categories) {
-      if (remaining <= 0) break;
-      const categoriesLeft = Math.max(1, this.categories.length - this.categories.indexOf(category));
-      const budget = Math.max(1, Math.floor(remaining / categoriesLeft));
-      remaining -= this._scanCategory(gameData, category, budget, changes);
-    }
-    this.stats.scans += 1;
-    this.lastScanAt = now;
-    this.lastScan = {
-      at: now,
-      map: snapshot && snapshot.character && snapshot.character.map || null,
-      changes: changes.map((row) => ({ kind: row.kind, category: row.record.category, id: row.record.id, lifecycle: row.record.lifecycle, fingerprint: row.record.fingerprint })),
-      baselineComplete: Object.fromEntries(this.categories.map((category) => [category, this._catalogState(category).baselineComplete]))
-    };
-    if (changes.length) this._event('CONTENT_SCAN_COMPLETED', 'warn', 'CONTENT_CHANGE_DETECTED', { changes: this.lastScan.changes });
-    this.save({ force: changes.length > 0 });
-    return clone(this.lastScan);
-  }
-
-  markRevalidated(category, id) {
-    const record = this.records.get(recordKey(category, id));
-    if (!record) return false;
-    record.lifecycle = ContentLifecycle.OBSERVED;
-    record.baselineFingerprint = record.fingerprint;
-    record.previousFingerprint = null;
-    record.lastSeenAt = this.now();
-    this.stats.revalidated += 1;
-    this._event('CONTENT_REVALIDATED', 'info', null, { category: record.category, id: record.id, fingerprint: record.fingerprint });
-    this.save({ force: true });
-    return true;
-  }
-
-  requiresRevalidation(category, id) {
-    const record = this.records.get(recordKey(category, id));
-    return !!record && record.lifecycle === ContentLifecycle.QUARANTINED;
-  }
-
-  load() {
-    if (this.loaded) return false;
-    this.loaded = true;
-    const backend = this._backend();
-    if (!backend) return false;
-    try {
-      const raw = backend.get(this.key);
-      if (!raw) return false;
-      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (!data || data.schemaVersion !== CONTENT_DRIFT_SCHEMA_VERSION || !Array.isArray(data.records)) throw new Error('unsupported content drift schema');
-      this.records = new Map(data.records.filter((row) => Array.isArray(row) && row.length === 2));
-      if (data.catalog && typeof data.catalog === 'object') {
-        for (const [category, state] of Object.entries(data.catalog)) {
-          if (!this.categories.includes(category)) continue;
-          this.catalog.set(category, {
-            cursor: Math.max(0, Math.floor(finite(state.cursor, 0))),
-            baselineComplete: state.baselineComplete === true,
-            cycles: Math.max(0, Math.floor(finite(state.cycles, 0)))
-          });
-        }
-      }
-      this._prune();
-      this._event('CONTENT_DRIFT_RESTORED', 'info', null, { records: this.records.size });
-      return true;
-    } catch (error) {
-      this.records.clear();
-      this.catalog = new Map(this.categories.map((category) => [category, { cursor: 0, baselineComplete: false, cycles: 0 }]));
-      this.stats.loadErrors += 1;
-      this._event('CONTENT_DRIFT_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
-      return false;
-    }
-  }
-
-  serialize() {
-    return JSON.stringify({
-      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
-      savedAt: this.now(),
-      records: [...this.records.entries()],
-      catalog: Object.fromEntries(this.catalog.entries())
-    });
-  }
-
-  save(options = {}) {
-    const backend = this._backend();
-    if (!backend) return false;
-    const now = this.now();
-    if (options.force !== true && now - this.lastSavedAt < this.minSaveMs) return false;
-    try {
-      backend.set(this.key, this.serialize());
-      this.lastSavedAt = now;
-      return true;
-    } catch (error) {
-      this.stats.saveErrors += 1;
-      this._event('CONTENT_DRIFT_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', { message: String(error && error.message || error) });
-      return false;
-    }
-  }
-
-  list(limit = 100) {
-    const n = Math.max(0, Math.min(this.capacity, Math.floor(finite(limit, 100))));
-    return [...this.records.values()]
-      .sort((a, b) => finite(b.lastChangedAt || b.lastSeenAt) - finite(a.lastChangedAt || a.lastSeenAt))
-      .slice(0, n)
-      .map(clone);
-  }
-
-  status() {
-    const counts = { BASELINE: 0, OBSERVED: 0, QUARANTINED: 0 };
-    for (const record of this.records.values()) counts[record.lifecycle] = (counts[record.lifecycle] || 0) + 1;
-    return {
-      schemaVersion: CONTENT_DRIFT_SCHEMA_VERSION,
-      mode: 'observation-first',
-      actionAuthority: false,
-      directGameplayActionAccess: false,
-      records: this.records.size,
-      capacity: this.capacity,
-      scanBudget: this.scanBudget,
-      counts,
-      baseline: Object.fromEntries(this.categories.map((category) => {
-        const state = this._catalogState(category);
-        return [category, { baselineComplete: state.baselineComplete, cursor: state.cursor, cycles: state.cycles }];
-      })),
-      lastScanAt: this.lastScanAt,
-      lastScan: clone(this.lastScan),
-      persistence: { available: !!this._backend(), lastSavedAt: this.lastSavedAt || null, key: this.key },
-      stats: { ...this.stats }
-    };
-  }
-}
-
-module.exports = {
-  ContentDriftMonitor,
-  ContentLifecycle,
-  CONTENT_DRIFT_SCHEMA_VERSION,
-  stableStringify,
-  fingerprint
-};
 
 },
 "src/autonomy/alpha14-runtime.js": function(require,module,exports){
@@ -19073,6 +20972,8 @@ class ControlledPaladinAuraExecutor {
     if (recommendation && recommendation.canSwitch === false) reasons.push('AURA_HYSTERESIS_HOLD');
     if (this.auraPolicy && this.auraPolicy.lastAura === aura) reasons.push('AURA_ALREADY_ACTIVE');
     if (!this.adapter || typeof this.adapter.command !== 'function') reasons.push('ADAPTER_UNAVAILABLE');
+    const skillPolicy = this.adapter && this.adapter.skillPolicy;
+    if (skillPolicy && typeof skillPolicy.peek === 'function' && !skillPolicy.peek('paladin_aura', character)) reasons.push('SKILL_POLICY_DISABLED');
     if (reasons.length) {
       this.stats.rejected += 1;
       this.lastResult = { at: this.now(), executed: false, aura: aura || null, reason: reasons[0], reasons };
@@ -21508,6 +23409,10 @@ class MerchantMluckService {
     const decision = this.policy.decide({ now, merchant, targets });
     if (!decision || decision.action !== 'CAST') return this._recordDecision(decision || { action: 'HOLD', reason: 'NO_MLUCK_DECISION' }, targets);
 
+    const skillPolicy = this.adapter && this.adapter.skillPolicy;
+    if (skillPolicy && typeof skillPolicy.peek === 'function' && !skillPolicy.peek('mluck', merchant)) {
+      return this._hold('MLUCK_SKILL_POLICY_DISABLED', { target: decision.target }, targets);
+    }
     if (!this.adapter || typeof this.adapter.canUseSkill !== 'function') return this._hold('MLUCK_SKILL_CHECK_UNAVAILABLE', { target: decision.target }, targets);
     let canUse = false;
     try { canUse = this.adapter.canUseSkill('mluck') === true; } catch (_) { canUse = false; }
@@ -30934,7 +32839,7 @@ class PartySkillEngine {
     };
     this.lastDecision = null;
     this.lastUse = null;
-    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
+    this.stats = { decisions: 0, directSkills: 0, supportSkills: 0, defensiveSkills: 0, supershots: 0, overkillSkips: 0, cooldownSkips: 0, rangeSkips: 0, mpSkips: 0, policySkips: 0, teamGateBlocks: 0, parallelSkillMovesEnabled: 0 };
     this.installed = false;
     this.install();
   }
@@ -30956,8 +32861,17 @@ class PartySkillEngine {
     return !classes || !classes.length || classes.includes(character.ctype);
   }
 
+  _policySettings(id, character) {
+    const policy = this.runtime && this.runtime.skillPolicy;
+    if (!policy || typeof policy.settings !== 'function') return null;
+    try { return policy.settings(id, character); } catch (_) { return null; }
+  }
+
   _canUse(context, id, targetId = null) {
     const adapter = context && context.adapter;
+    const character = context && context.snapshot && context.snapshot.character;
+    const policy = this.runtime && this.runtime.skillPolicy;
+    if (policy && typeof policy.peek === 'function' && !policy.peek(id, character)) { this.stats.policySkips += 1; return false; }
     if (adapter && typeof adapter.canUseSkill === 'function' && !adapter.canUseSkill(id)) { this.stats.cooldownSkips += 1; return false; }
     if (targetId != null && adapter && typeof adapter.isSkillInRange === 'function' && !adapter.isSkillInRange(targetId, id)) { this.stats.rangeSkips += 1; return false; }
     return true;
@@ -30969,17 +32883,40 @@ class PartySkillEngine {
     const lowest = members.slice().sort((a, b) => ratio(a.hp, a.max_hp) - ratio(b.hp, b.max_hp))[0] || null;
     const lowestRatio = lowest ? ratio(lowest.hp, lowest.max_hp) : 1;
 
-    if (ctype === 'priest' && lowest && lowestRatio < this.config.supportHpRatio) {
+    if (ctype === 'priest' && lowest) {
+      const partyHealSettings = this._policySettings('partyheal', c);
+      const healSettings = this._policySettings('heal', c);
+      const partyHealThreshold = partyHealSettings && Number.isFinite(Number(partyHealSettings.parameters && partyHealSettings.parameters.hpThreshold))
+        ? Number(partyHealSettings.parameters.hpThreshold) : this.config.supportHpRatio;
+      const healThreshold = healSettings && Number.isFinite(Number(healSettings.parameters && healSettings.parameters.hpThreshold))
+        ? Number(healSettings.parameters.hpThreshold) : this.config.supportHpRatio;
+      const minInjured = Math.max(1, Math.floor(finite(
+        partyHealSettings && partyHealSettings.parameters && partyHealSettings.parameters.minInjuredMembers,
+        2
+      )));
+      const injuredCount = members.filter((row) => ratio(row.hp, row.max_hp) <= partyHealThreshold).length;
+
       const partyHeal = this._skillMeta(game, 'partyheal');
-      if (partyHeal && this._classAllowed(partyHeal, c) && finite(c.mp) >= finite(partyHeal.mp) && this._canUse(context, 'partyheal')) return { id: 'partyheal', args: ['partyheal'], kind: 'support', reason: 'PARTY_HP_LOW', utility: 200 };
+      if (lowestRatio <= partyHealThreshold && injuredCount >= minInjured
+        && partyHeal && this._classAllowed(partyHeal, c) && finite(c.mp) >= finite(partyHeal.mp)
+        && this._canUse(context, 'partyheal')) {
+        return { id: 'partyheal', args: ['partyheal'], kind: 'support', reason: 'PARTY_HEAL_THRESHOLD_MET', utility: 200, injuredCount, threshold: partyHealThreshold };
+      }
       const heal = this._skillMeta(game, 'heal');
-      if (heal && this._classAllowed(heal, c) && finite(c.mp) >= finite(heal.mp) && this._canUse(context, 'heal', lowest.name)) return { id: 'heal', args: ['heal', lowest.name], kind: 'support', reason: 'LOWEST_PARTY_MEMBER_HP', utility: 190 };
+      if (lowestRatio <= healThreshold
+        && heal && this._classAllowed(heal, c) && finite(c.mp) >= finite(heal.mp)
+        && this._canUse(context, 'heal', lowest.name)) {
+        return { id: 'heal', args: ['heal', lowest.name], kind: 'support', reason: 'HEAL_THRESHOLD_MET', utility: 190, threshold: healThreshold };
+      }
     }
 
     if (ctype === 'warrior') {
       const selfRatio = ratio(c.hp, c.max_hp);
+      const shellSettings = this._policySettings('hardshell', c);
+      const shellThreshold = shellSettings && Number.isFinite(Number(shellSettings.parameters && shellSettings.parameters.hpThreshold))
+        ? Number(shellSettings.parameters.hpThreshold) : this.config.emergencyHpRatio;
       const shell = this._skillMeta(game, 'hardshell');
-      if (selfRatio < this.config.emergencyHpRatio && shell && this._classAllowed(shell, c) && finite(c.mp) >= finite(shell.mp) && this._canUse(context, 'hardshell')) return { id: 'hardshell', args: ['hardshell'], kind: 'defensive', reason: 'WARRIOR_HP_EMERGENCY', utility: 180 };
+      if (selfRatio <= shellThreshold && shell && this._classAllowed(shell, c) && finite(c.mp) >= finite(shell.mp) && this._canUse(context, 'hardshell')) return { id: 'hardshell', args: ['hardshell'], kind: 'defensive', reason: 'HARDSHELL_HP_THRESHOLD_MET', utility: 180, threshold: shellThreshold };
       const taunt = this._skillMeta(game, 'taunt');
       if (target && target.target && target.target !== c.name && members.some((row) => row.name === target.target) && taunt && this._classAllowed(taunt, c) && finite(c.mp) >= finite(taunt.mp) && this._canUse(context, 'taunt', target.id)) return { id: 'taunt', args: ['taunt', String(target.id)], kind: 'support', reason: 'PROTECT_PARTY_TARGET', utility: 160 };
     }
@@ -47284,6 +49221,9 @@ class DebugMonitorUI {
     this.logBox = null;
     this.copyButton = null;
     this.runButton = null;
+    this.skillsButton = null;
+    this.skillsPanel = null;
+    this.skillsPanelOpen = false;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this.timer = null;
@@ -47500,6 +49440,7 @@ class DebugMonitorUI {
       };
       this.minimized = true;
       if (this.body) this.body.style.display = 'none';
+      if (this.skillsPanel) this.skillsPanel.style.display = 'none';
       if (this.logBox) this.logBox.style.display = 'none';
       if (this.resizeHandle) this.resizeHandle.style.display = 'none';
       if (this.fallbackArea) this.fallbackArea.style.display = 'none';
@@ -47525,6 +49466,7 @@ class DebugMonitorUI {
     });
     this.header.style.marginBottom = layout.headerMarginBottom || '9px';
     if (this.body) this.body.style.display = 'block';
+    if (this.skillsPanel) this.skillsPanel.style.display = this.skillsPanelOpen ? 'block' : 'none';
     if (this.logBox) this.logBox.style.display = 'block';
     if (this.resizeHandle) this.resizeHandle.style.display = 'block';
     if (this.fallbackArea) this.fallbackArea.style.display = 'none';
@@ -47610,6 +49552,261 @@ class DebugMonitorUI {
     return result;
   }
 
+  _skillRuntime() {
+    return this.monitor && this.monitor.runtime || null;
+  }
+
+  _skillCharacter() {
+    const runtime = this._skillRuntime();
+    const snapshot = runtime && runtime.lastSnapshot;
+    if (snapshot && snapshot.character) return snapshot.character;
+    try {
+      return this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  _primeSkills() {
+    const runtime = this._skillRuntime();
+    if (!runtime || !runtime.skillCatalog) return false;
+    try {
+      runtime.skillCatalog.audit('GUI_SKILLS_OPEN', { force: true });
+      const snapshot = runtime.lastSnapshot || (runtime.adapter && typeof runtime.adapter.snapshot === 'function' ? runtime.adapter.snapshot() : null);
+      if (snapshot && snapshot.character) {
+        runtime.lastSnapshot = runtime.lastSnapshot || snapshot;
+        if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities(snapshot, runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {});
+      }
+      return true;
+    } catch (error) {
+      if (this.log && typeof this.log.emit === 'function') {
+        try { this.log.emit({ component: 'debug-monitor-ui', event: 'SKILLS_PANEL_PRIME_FAILED', severity: 'warn', reason: String(error && error.message || error) }); } catch (_) {}
+      }
+      return false;
+    }
+  }
+
+  _skillPanelState() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !runtime.skillCatalog || !runtime.characterCombatProfiles || !character) {
+      return { available: false, reason: 'SKILL_CONFIGURATION_UNAVAILABLE', character: null, catalogState: null, rows: [], enabled: 0 };
+    }
+    const ctype = String(character.ctype || character.type || '').toLowerCase();
+    const level = Math.max(0, Number(character.level) || 0);
+    const catalog = runtime.skillCatalog.status();
+    const rows = runtime.skillCatalog.list({ ctype })
+      .filter((skill) => Number(skill.requiredLevel || 0) <= level)
+      .map((skill) => {
+        const settings = runtime.characterCombatProfiles.skillSettings(character.name, skill) || { enabled: false, parameters: {}, configured: false };
+        let availability = null;
+        if (runtime.adapter && typeof runtime.adapter.skillAvailability === 'function') {
+          try { availability = runtime.adapter.skillAvailability(skill.id); } catch (_) { availability = null; }
+        }
+        return {
+          skill,
+          enabled: settings.enabled === true,
+          configured: settings.configured === true,
+          parameters: settings.parameters || {},
+          availability
+        };
+      });
+    return {
+      available: true,
+      character: { name: character.name || 'unknown', ctype, level },
+      catalogState: catalog.state,
+      catalogReady: catalog.state === 'READY',
+      generation: catalog.generation,
+      rows,
+      enabled: rows.filter((row) => row.enabled).length
+    };
+  }
+
+  _skillControlLabel(key) {
+    const labels = {
+      hpThreshold: 'HP ≤',
+      recipientMpThreshold: 'MP ≤',
+      minInjuredMembers: 'Verletzte ≥',
+      minTargets: 'Ziele ≥',
+      maxDesiredTargets: 'Ziele max'
+    };
+    return labels[String(key || '')] || String(key || '');
+  }
+
+  _skillStatusText(row, state) {
+    if (!state.catalogReady) return state.catalogState || 'CATALOG';
+    if (!row.skill.automationValidated) return 'NEU · nicht validiert';
+    if (!row.enabled) return 'DEAKTIVIERT';
+    const availability = row.availability;
+    if (!availability) return 'AKTIV';
+    return availability.ready ? 'READY' : String(availability.reason || 'NICHT BEREIT');
+  }
+
+  _refreshCapabilitiesAfterSkillChange() {
+    const runtime = this._skillRuntime();
+    if (!runtime) return;
+    try {
+      if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
+    } catch (_) {}
+  }
+
+  _setSkillEnabled(skillId, enabled) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.skillCatalog || !runtime.characterCombatProfiles) return false;
+    const record = runtime.skillCatalog.get(skillId);
+    if (!record || record.automationValidated !== true) return false;
+    runtime.characterCombatProfiles.setEnabled(character.name, record, enabled === true);
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _setSkillParameter(skillId, key, value) {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.skillCatalog || !runtime.characterCombatProfiles) return false;
+    const record = runtime.skillCatalog.get(skillId);
+    if (!record) return false;
+    const result = runtime.characterCombatProfiles.setParameter(character.name, record, key, value);
+    this._refreshCapabilitiesAfterSkillChange();
+    return !!(result && result.ok);
+  }
+
+  _enableAllSkills() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    const state = this._skillPanelState();
+    if (!runtime || !character || !state.available) return false;
+    for (const row of state.rows) {
+      if (row.skill.automationValidated !== true) continue;
+      runtime.characterCombatProfiles.setEnabled(character.name, row.skill, true);
+    }
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _resetSkillProfile() {
+    const runtime = this._skillRuntime();
+    const character = this._skillCharacter();
+    if (!runtime || !character || !runtime.characterCombatProfiles) return false;
+    runtime.characterCombatProfiles.resetProfile(character.name);
+    this._refreshCapabilitiesAfterSkillChange();
+    this.refresh();
+    return true;
+  }
+
+  _updateSkillsButton(state = this._skillPanelState()) {
+    if (!this.skillsButton) return;
+    if (!state.available) {
+      this.skillsButton.textContent = 'Skills —';
+      this.skillsButton.title = 'Skill-Konfiguration noch nicht verfügbar';
+      return;
+    }
+    this.skillsButton.textContent = `Skills ${state.enabled}/${state.rows.length}`;
+    this.skillsButton.title = `${state.character.name} · ${state.catalogState || 'UNKNOWN'} · Skill-Freigaben und taktische Schwellen`;
+  }
+
+  _renderSkillsPanel() {
+    if (!this.skillsPanel) return false;
+    const doc = this._doc();
+    if (!doc) return false;
+    const state = this._skillPanelState();
+    this._updateSkillsButton(state);
+    while (this.skillsPanel.firstChild) this.skillsPanel.removeChild(this.skillsPanel.firstChild);
+    this.skillsPanel.style.display = this.skillsPanelOpen && !this.minimized ? 'block' : 'none';
+    if (!this.skillsPanelOpen || this.minimized) return true;
+
+    const heading = doc.createElement('div');
+    heading.textContent = state.available
+      ? `${state.character.name} · ${state.character.ctype} L${state.character.level} · Catalog ${state.catalogState}`
+      : 'Skill-Konfiguration nicht verfügbar';
+    this._setStyle(heading, { color: '#d1d5db', marginBottom: '8px', fontWeight: 'bold' });
+    this.skillsPanel.appendChild(heading);
+    if (!state.available) return true;
+
+    const actions = doc.createElement('div');
+    this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });
+    const enableAll = this._button(doc, 'Alle aktivieren', () => this._enableAllSkills());
+    enableAll.style.marginLeft = '0px';
+    const reset = this._button(doc, 'Standard', () => this._resetSkillProfile());
+    reset.style.marginLeft = '0px';
+    actions.appendChild(enableAll);
+    actions.appendChild(reset);
+    this.skillsPanel.appendChild(actions);
+
+    for (const row of state.rows) {
+      const skillBox = doc.createElement('div');
+      this._setStyle(skillBox, {
+        padding: '7px 0', borderTop: '1px solid #303641'
+      });
+
+      const top = doc.createElement('div');
+      this._setStyle(top, { display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' });
+      const left = doc.createElement('label');
+      this._setStyle(left, { display: 'flex', alignItems: 'center', gap: '7px', minWidth: '0', cursor: row.skill.automationValidated ? 'pointer' : 'default' });
+      const check = doc.createElement('input');
+      check.type = 'checkbox';
+      check.checked = row.enabled;
+      check.disabled = !state.catalogReady || row.skill.automationValidated !== true;
+      check.onchange = () => this._setSkillEnabled(row.skill.id, check.checked === true);
+      const name = doc.createElement('span');
+      name.textContent = `${row.skill.name || row.skill.id} · L${row.skill.requiredLevel || 0}`;
+      this._setStyle(name, { color: '#f3f4f6', overflowWrap: 'anywhere' });
+      left.appendChild(check);
+      left.appendChild(name);
+      const status = doc.createElement('span');
+      status.textContent = this._skillStatusText(row, state);
+      this._setStyle(status, { color: '#9ca3af', fontSize: '10px', textAlign: 'right' });
+      top.appendChild(left);
+      top.appendChild(status);
+      skillBox.appendChild(top);
+
+      for (const control of row.skill.controls || []) {
+        if (!control || !control.key) continue;
+        const wrap = doc.createElement('div');
+        this._setStyle(wrap, { display: 'grid', gridTemplateColumns: '82px 1fr 42px', alignItems: 'center', gap: '7px', marginTop: '6px' });
+        const label = doc.createElement('span');
+        label.textContent = this._skillControlLabel(control.key);
+        this._setStyle(label, { color: '#9ca3af', fontSize: '10px' });
+        const input = doc.createElement('input');
+        input.type = 'range';
+        const percent = control.type === 'percent';
+        const dynamicMax = control.maxSource === 'targetCapacity' && Number.isFinite(Number(row.skill.targetCapacity))
+          ? Number(row.skill.targetCapacity) : Number(control.max);
+        input.min = String(percent ? Math.round(Number(control.min || 0) * 100) : Number(control.min || 0));
+        input.max = String(percent ? Math.round(Number(dynamicMax || 1) * 100) : Number(dynamicMax || control.max || 1));
+        input.step = String(percent ? Math.max(1, Math.round(Number(control.step || 0.01) * 100)) : Number(control.step || 1));
+        const current = Number(row.parameters[control.key]);
+        input.value = String(percent ? Math.round((Number.isFinite(current) ? current : Number(control.default || 0)) * 100) : (Number.isFinite(current) ? current : Number(control.default || 0)));
+        input.disabled = !state.catalogReady || !row.enabled || row.skill.automationValidated !== true;
+        const value = doc.createElement('span');
+        value.textContent = percent ? `${input.value}%` : input.value;
+        this._setStyle(value, { color: '#d1d5db', fontSize: '10px', textAlign: 'right' });
+        input.oninput = () => { value.textContent = percent ? `${input.value}%` : input.value; };
+        input.onchange = () => {
+          const raw = Number(input.value);
+          this._setSkillParameter(row.skill.id, control.key, percent ? raw / 100 : raw);
+          this.refresh();
+        };
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        wrap.appendChild(value);
+        skillBox.appendChild(wrap);
+      }
+      this.skillsPanel.appendChild(skillBox);
+    }
+    return true;
+  }
+
+  _toggleSkillsPanel() {
+    this.skillsPanelOpen = !this.skillsPanelOpen;
+    if (this.skillsPanelOpen) this._primeSkills();
+    this._renderSkillsPanel();
+    return this.skillsPanelOpen;
+  }
+
   _formatDuration(ms) {
     const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
     const hours = Math.floor(total / 3600);
@@ -47678,6 +49875,8 @@ class DebugMonitorUI {
     for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
     if (this.logBox) this.logBox.textContent = this._eventsText();
     this._updateRunButton(runStatus);
+    this._updateSkillsButton();
+    if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
   }
 
@@ -47720,6 +49919,7 @@ class DebugMonitorUI {
     };
     this.copyButton = this._button(doc, 'Log kopieren', () => { this._copy(); });
     if (this.runControl) this.runButton = this._button(doc, 'Start/Stop', () => { this._toggleRun(); });
+    this.skillsButton = this._button(doc, 'Skills —', () => { this._toggleSkillsPanel(); });
     const minimize = this._button(doc, '–', () => {
       this._setMinimized(!this.minimized);
       minimize.textContent = this.minimized ? '+' : '–';
@@ -47727,11 +49927,16 @@ class DebugMonitorUI {
     const close = this._button(doc, '×', () => this.hide());
     buttons.appendChild(this.copyButton);
     if (this.runButton) buttons.appendChild(this.runButton);
+    buttons.appendChild(this.skillsButton);
     buttons.appendChild(minimize);
     buttons.appendChild(close);
     header.appendChild(title);
     header.appendChild(buttons);
     box.appendChild(header);
+
+    this.skillsPanel = doc.createElement('div');
+    this._setStyle(this.skillsPanel, { display: 'none', marginBottom: '10px', padding: '8px', background: '#11151b', border: '1px solid #374151', borderRadius: '5px' });
+    box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
     box.appendChild(this.body);
@@ -47790,6 +49995,9 @@ class DebugMonitorUI {
     this.logBox = null;
     this.copyButton = null;
     this.runButton = null;
+    this.skillsButton = null;
+    this.skillsPanel = null;
+    this.skillsPanelOpen = false;
     this.fallbackArea = null;
     this.resizeHandle = null;
     this._expandedLayout = null;
@@ -47806,6 +50014,8 @@ class DebugMonitorUI {
       directGameplayActionAccess: false,
       runtimeControlAuthority: !!this.runControl,
       safeStartStop: !!this.runControl,
+      skillConfigurationAuthority: !!(this._skillRuntime() && this._skillRuntime().characterCombatProfiles),
+      skillPanelOpen: this.skillsPanelOpen,
       runControl: runStatus,
       lastRunControlError: this.lastRunControlError,
       domAvailable: !!this._doc(),
@@ -48140,7 +50350,7 @@ function buildServiceGroups(runtime) {
   return Object.freeze({
     gameStability: serviceGroup(runtime, [
       'adapter', 'scheduler', 'world', 'persistence', 'knowledgeAging',
-      'stability', 'globalSupervisor', 'contentDrift'
+      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy'
     ]),
     merchantEconomyTravel: serviceGroup(runtime, [
       'inventoryLedger', 'gearProgression', 'transactionEngine', 'controlledMerchant',
@@ -48152,6 +50362,7 @@ function buildServiceGroups(runtime) {
     ]),
     farmerPartyReliability: serviceGroup(runtime, [
       'farmer', 'localFarmPlanner', 'localFarming', 'brain', 'characterRegistry',
+      'characterCombatProfiles', 'characterCapabilityResolver', 'partyCapabilityResolver',
       'partyPerformance', 'partyOrchestrator', 'auraPolicy', 'partyTelemetry',
       'partyTransitions', 'partyControlLease', 'partyLifecycle',
       'controlledPartyLifecycle', 'controlledPaladinAura', 'controlledFarmerLoot',

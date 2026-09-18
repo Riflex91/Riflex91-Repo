@@ -19,6 +19,11 @@ const { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_ME
 const { Alpha20_5FarmReadinessRuntime, ALPHA20_5_FARM_READINESS_MODE } = require('./autonomy/alpha20-5-farm-readiness-runtime');
 const { LocalFarmPlanner } = require('./autonomy/local-farm-planner');
 const { LocalFarmOrchestrator } = require('./autonomy/local-farm-orchestrator');
+const { SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES } = require('./autonomy/skill-catalog-service');
+const { CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY } = require('./autonomy/character-combat-profile');
+const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
+const { SkillControlType, Capability, SKILL_SEMANTICS } = require('./autonomy/skill-semantics');
+const { SkillPolicy, SKILL_POLICY_MODE } = require('./autonomy/skill-policy');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -127,6 +132,16 @@ function install(root = globalThis, options = {}) {
     base.context.debugUI = debugUI.status();
     return JSON.stringify(base, null, 2);
   }
+  function resolvedCharacterName(name = null) {
+    const explicit = String(name == null ? '' : name).trim();
+    if (explicit) return explicit;
+    const snapshotName = runtime.lastSnapshot && runtime.lastSnapshot.character && runtime.lastSnapshot.character.name;
+    const live = root && (root.character || root.parent && root.parent.character);
+    return String(snapshotName || live && live.name || '').trim() || null;
+  }
+  function refreshCapabilities() {
+    if (typeof runtime._refreshSkillCapabilities === 'function') runtime._refreshSkillCapabilities();
+  }
 
   const api = {
     version: VERSION,
@@ -184,6 +199,60 @@ function install(root = globalThis, options = {}) {
       requiresRevalidation: (category, id) => runtime.contentDrift.requiresRevalidation(category, id),
       markRevalidated: (category, id) => runtime.markContentRevalidated(category, id),
       save: () => runtime.contentDrift.save({ force: true })
+    },
+    skills: {
+      catalog: {
+        status: () => runtime.skillCatalog.status(),
+        list: (ctype = null) => runtime.skillCatalog.list(ctype ? { ctype } : {}),
+        get: (skillId) => runtime.skillCatalog.get(skillId),
+        audit: (reason = 'API_MANUAL') => {
+          const result = runtime.skillCatalog.audit(reason, { force: true });
+          refreshCapabilities();
+          return result;
+        }
+      },
+      capabilities: {
+        character: (name = null) => runtime.characterCapabilityResolver.get(resolvedCharacterName(name)),
+        party: () => runtime.partyCapabilityResolver.status(),
+        refresh: () => runtime._refreshSkillCapabilities()
+      },
+      policy: { status: () => runtime.skillPolicy.status() },
+      profile: {
+        get: (name = null) => runtime.characterCombatProfiles.get(resolvedCharacterName(name)),
+        setEnabled: (skillId, enabled, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          if (!record) return { ok: false, reason: 'UNKNOWN_SKILL', skill: String(skillId || '') };
+          const settings = runtime.characterCombatProfiles.setEnabled(character, record, enabled === true);
+          refreshCapabilities();
+          return { ok: true, character, skill: record.id, settings };
+        },
+        setParameter: (skillId, key, value, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character) return { ok: false, reason: 'CHARACTER_UNAVAILABLE' };
+          if (!record) return { ok: false, reason: 'UNKNOWN_SKILL', skill: String(skillId || '') };
+          const result = runtime.characterCombatProfiles.setParameter(character, record, key, value);
+          refreshCapabilities();
+          return result;
+        },
+        resetSkill: (skillId, name = null) => {
+          const record = runtime.skillCatalog.get(skillId);
+          const character = resolvedCharacterName(name);
+          if (!character || !record) return false;
+          const result = runtime.characterCombatProfiles.resetSkill(character, record);
+          refreshCapabilities();
+          return result;
+        },
+        reset: (name = null) => {
+          const character = resolvedCharacterName(name);
+          if (!character) return false;
+          const result = runtime.characterCombatProfiles.resetProfile(character);
+          refreshCapabilities();
+          return result;
+        }
+      }
     },
     inventory: {
       status: () => runtime.inventoryLedger.status(),
@@ -358,7 +427,10 @@ module.exports = {
   WorldModel, KnowledgeState, EvidenceKind, WorldPersistence, ResilientWorldPersistence, KnowledgeAgingPolicy, DiscoveryService,
   ContentDriftMonitor, ContentLifecycle, CONTENT_DRIFT_SCHEMA_VERSION, stableStringify, fingerprint,
   PerformanceTracker, ResearchJournal, ExperimentState,
-  FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
+  FarmPlanner, LocalFarmPlanner, LocalFarmOrchestrator, SkillCatalogService, SkillCatalogState, SUPPORTED_CLASSES,
+  CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY,
+  CharacterCapabilityResolver, PartyCapabilityResolver, SkillControlType, Capability, SKILL_SEMANTICS, SkillPolicy, SKILL_POLICY_MODE,
+  FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,

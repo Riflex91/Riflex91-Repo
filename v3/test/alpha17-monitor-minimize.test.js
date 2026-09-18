@@ -99,7 +99,8 @@ test('minimize collapses monitor to title bar only and restores the prior size',
   ui.container.getBoundingClientRect = () => ({ left: 200, top: 120, width: 520, height: 420, right: 720, bottom: 540 });
 
   const buttons = ui.header.children[1];
-  const minimize = buttons.children[1];
+  const minimize = buttons.children.find((button) => button && button.textContent === '–');
+  assert.ok(minimize);
   assert.equal(minimize.textContent, '–');
 
   minimize.onclick();

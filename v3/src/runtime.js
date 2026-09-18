@@ -15,6 +15,10 @@ const { RetreatFarmerController } = require('./farmer/retreat-farmer');
 const { TargetSafety } = require('./farmer/target-safety');
 const { CombatRiskGate } = require('./farmer/combat-risk');
 const { CombatEmergencyGate } = require('./farmer/combat-emergency');
+const { SkillCatalogService } = require('./autonomy/skill-catalog-service');
+const { CharacterCombatProfileStore } = require('./autonomy/character-combat-profile');
+const { CharacterCapabilityResolver, PartyCapabilityResolver } = require('./autonomy/capability-resolver');
+const { SkillPolicy } = require('./autonomy/skill-policy');
 
 const VERSION = RELEASE_VERSION;
 
@@ -24,6 +28,42 @@ class Runtime {
     this.root = options.root || globalThis;
     this.log = options.log || new EventLog({ version: VERSION, now: this.now, capacity: options.logCapacity || 4000 });
     this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: options.parent, log: this.log, mode: options.mode || 'shadow', now: this.now });
+    this.characterCombatProfiles = options.characterCombatProfiles || new CharacterCombatProfileStore({
+      root: this.root,
+      storage: options.characterCombatProfileStorage || options.storage,
+      key: options.characterCombatProfileKey,
+      now: this.now,
+      log: this.log
+    });
+    this.skillCatalog = options.skillCatalog || new SkillCatalogService({
+      root: this.root,
+      now: this.now,
+      log: this.log,
+      getGameData: () => this.adapter.getGameData() || {},
+      auditIntervalMs: options.skillCatalogAuditIntervalMs,
+      connectionGapMs: options.skillCatalogConnectionGapMs
+    });
+    this.characterCapabilityResolver = options.characterCapabilityResolver || new CharacterCapabilityResolver({
+      catalog: this.skillCatalog,
+      profiles: this.characterCombatProfiles,
+      now: this.now,
+      log: this.log
+    });
+    this.partyCapabilityResolver = options.partyCapabilityResolver || new PartyCapabilityResolver({
+      characterResolver: this.characterCapabilityResolver,
+      now: this.now,
+      log: this.log
+    });
+    this.skillPolicy = options.skillPolicy || new SkillPolicy({
+      root: this.root,
+      catalog: this.skillCatalog,
+      profiles: this.characterCombatProfiles,
+      now: this.now,
+      log: this.log
+    });
+    if (this.adapter && typeof this.adapter.setSkillPolicy === 'function') this.adapter.setSkillPolicy(this.skillPolicy);
+    this.lastCharacterCapabilities = null;
+    this.lastPartyCapabilities = null;
     this.world = options.world || new WorldModel({ now: this.now, log: this.log });
     this.scheduler = options.scheduler || new Scheduler({ now: this.now, log: this.log });
     this.planner = options.planner || new FarmPlanner({ log: this.log });
@@ -42,6 +82,7 @@ class Runtime {
       kitingSpeedStepSeconds: options.farmerKitingSpeedStepSeconds,
       kitingMoveCooldownMs: options.farmerKitingMoveCooldownMs,
       skillUsageEnabled: options.farmerSkillUsageEnabled !== false,
+      skillPolicy: this.skillPolicy,
       skillUsageMpReserveRatio: options.farmerSkillUsageMpReserveRatio,
       skillUsageMinIntervalMs: options.farmerSkillUsageMinIntervalMs,
       skillUsageMaxCommandAttempts: options.farmerSkillUsageMaxCommandAttempts,
@@ -191,6 +232,7 @@ class Runtime {
   start() {
     if (this.timer) return false;
     this._restoreWorldOnce();
+    this.skillCatalog.audit('RUNTIME_START', { force: true });
     this.startedAt = this.startedAt || this.now();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STARTED', data: { version: VERSION, mode: this.adapter.mode, tickMs: this.tickMs } });
     const modeNote = this.adapter.mode === 'shadow' ? 'observing only' : 'active commands enabled';
@@ -203,12 +245,14 @@ class Runtime {
   stop() {
     if (!this.timer) {
       this.persistence.maybeSave(this.world, { force: true });
+      this.characterCombatProfiles.save();
       return false;
     }
     clearInterval(this.timer);
     this.timer = null;
     this.performance.flush({ world: this.world }, 'RUNTIME_STOPPED');
     this.persistence.maybeSave(this.world, { force: true });
+    this.characterCombatProfiles.save();
     this.log.emit({ component: 'runtime', event: 'RUNTIME_STOPPED' });
     return true;
   }
@@ -390,10 +434,31 @@ class Runtime {
     return distance / Math.max(1, speed);
   }
 
+  _refreshSkillCapabilities(snapshot = this.lastSnapshot, gameData = null) {
+    if (!snapshot || !snapshot.character) return null;
+    const resolvedGameData = gameData || this.adapter.getGameData() || {};
+    const liveCharacter = this.adapter && typeof this.adapter._character === 'function' ? this.adapter._character() : null;
+    const registryStatus = this.characterRegistry && typeof this.characterRegistry.status === 'function'
+      ? this.characterRegistry.status()
+      : null;
+    this.lastCharacterCapabilities = this.characterCapabilityResolver.resolve({
+      ...snapshot.character,
+      gear: liveCharacter && liveCharacter.slots || snapshot.character.gear || snapshot.character.equipment
+    }, { gameData: resolvedGameData, liveCharacter });
+    this.lastPartyCapabilities = this.partyCapabilityResolver.resolve({
+      snapshot,
+      gameData: resolvedGameData,
+      liveCharacter,
+      registryStatus
+    });
+    return this.lastPartyCapabilities;
+  }
+
   tick() {
     this._restoreWorldOnce();
     const snapshot = this.adapter.snapshot();
     if (!snapshot) {
+      this.skillCatalog.noteSnapshotUnavailable();
       if (this.now() - this.lastHeartbeat > 5000) {
         this.lastHeartbeat = this.now();
         this.log.emit({ component: 'runtime', event: 'SNAPSHOT_UNAVAILABLE', severity: 'warn', reason: 'CHARACTER_NOT_READY' });
@@ -404,6 +469,9 @@ class Runtime {
     this._observeCharacter(snapshot);
     const profile = this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
+    const liveCharacter = this.adapter && typeof this.adapter._character === 'function' ? this.adapter._character() : null;
+    this.skillCatalog.observeRuntime({ snapshot, liveCharacter });
+    this._refreshSkillCapabilities(snapshot, gameData);
     const farmSnapshot = this._farmSnapshot(snapshot, gameData, profile);
     this.lastDiscovery = this.discovery.scan(snapshot, gameData);
     this._announceReady(snapshot);
@@ -459,6 +527,11 @@ class Runtime {
       discovery: this.discovery.status(),
       research: this.research.summary(),
       persistence: this.persistence.status(),
+      skillCatalog: this.skillCatalog.status(),
+      characterCombatProfiles: this.characterCombatProfiles.status(),
+      skillPolicy: this.skillPolicy.status(),
+      characterCapabilities: this.lastCharacterCapabilities,
+      partyCapabilities: this.partyCapabilityResolver.status(),
       eventSummary: this.log.summary()
     };
   }
@@ -474,7 +547,12 @@ class Runtime {
       world: this.world.diagnosticsSnapshot(200),
       performance: this.performance.status(),
       research: { summary: this.research.summary(), experiments: this.research.listExperiments() },
-      discovery: this.lastDiscovery
+      discovery: this.lastDiscovery,
+      skillCatalog: this.skillCatalog.status(),
+      characterCombatProfiles: this.characterCombatProfiles.status(),
+      skillPolicy: this.skillPolicy.status(),
+      characterCapabilities: this.lastCharacterCapabilities,
+      partyCapabilities: this.partyCapabilityResolver.status()
     });
   }
 }

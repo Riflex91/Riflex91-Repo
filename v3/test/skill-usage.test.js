@@ -32,8 +32,14 @@ function skills() {
       name: "Hunter's Mark", mp: 40, level: 20, cooldown: 1000
     },
     '3shot': {
-      type: 'skill', class: ['ranger'], hostile: true, target: true,
-      name: '3-Shot', mp: 200, level: 60, cooldown: 900, damage_multiplier: 0.6
+      type: 'skill', class: ['ranger'], hostile: true, multi: true,
+      name: '3-Shot', mp: 200, level: 60, cooldown_multiplier: 1,
+      damage_multiplier: 0.7, wtype: ['bow', 'crossbow'], share: 'attack'
+    },
+    '5shot': {
+      type: 'skill', class: ['ranger'], hostile: true, multi: true,
+      name: '5-Shot', mp: 320, level: 75, cooldown_multiplier: 1,
+      damage_multiplier: 0.5, wtype: ['bow', 'crossbow'], share: 'attack'
     },
     supershot: {
       type: 'skill', class: ['ranger'], hostile: true, target: true,

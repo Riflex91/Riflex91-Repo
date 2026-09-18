@@ -9,6 +9,7 @@ class SkillFarmerController extends KitingFarmerController {
     super(options);
     this.skillUsage = options.skillUsage || new SkillUsagePolicy({
       enabled: options.skillUsageEnabled !== false,
+      skillPolicy: options.skillPolicy,
       mpReserveRatio: options.skillUsageMpReserveRatio,
       minIntervalMs: options.skillUsageMinIntervalMs,
       maxCommandAttempts: options.skillUsageMaxCommandAttempts,

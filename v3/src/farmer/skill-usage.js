@@ -26,6 +26,7 @@ function isDirectDamageSkill(skill, character) {
 class SkillUsagePolicy {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
+    this.skillPolicy = options.skillPolicy || null;
     this.mpReserveRatio = clamp01(options.mpReserveRatio == null ? 0.30 : options.mpReserveRatio);
     this.minIntervalMs = Math.max(250, finite(options.minIntervalMs, 750));
     this.maxCommandAttempts = Math.max(1, Math.min(3, Math.floor(finite(options.maxCommandAttempts, 2))));
@@ -43,7 +44,7 @@ class SkillUsagePolicy {
     if (!this.enabled || !character) return [];
     const skills = gameData.skills || {};
     return Object.entries(skills)
-      .filter(([, skill]) => isDirectDamageSkill(skill, character))
+      .filter(([id, skill]) => isDirectDamageSkill(skill, character) && (!this.skillPolicy || typeof this.skillPolicy.peek !== 'function' || this.skillPolicy.peek(id, character)))
       .map(([id, skill]) => ({
         id,
         name: skill.name || id,
@@ -167,6 +168,7 @@ class SkillUsagePolicy {
       failureBackoffMaxMs: this.failureBackoffMaxMs,
       failureStreakResetMs: this.failureStreakResetMs,
       backoffReason: 'SKILL_COMMAND_BACKOFF',
+      skillPolicyBound: !!this.skillPolicy,
       selection: 'ranked single-target hostile damage_multiplier>1 with live safe fallback'
     };
   }

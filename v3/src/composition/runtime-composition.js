@@ -86,7 +86,7 @@ function buildServiceGroups(runtime) {
   return Object.freeze({
     gameStability: serviceGroup(runtime, [
       'adapter', 'scheduler', 'world', 'persistence', 'knowledgeAging',
-      'stability', 'globalSupervisor', 'contentDrift'
+      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy'
     ]),
     merchantEconomyTravel: serviceGroup(runtime, [
       'inventoryLedger', 'gearProgression', 'transactionEngine', 'controlledMerchant',
@@ -98,6 +98,7 @@ function buildServiceGroups(runtime) {
     ]),
     farmerPartyReliability: serviceGroup(runtime, [
       'farmer', 'localFarmPlanner', 'localFarming', 'brain', 'characterRegistry',
+      'characterCombatProfiles', 'characterCapabilityResolver', 'partyCapabilityResolver',
       'partyPerformance', 'partyOrchestrator', 'auraPolicy', 'partyTelemetry',
       'partyTransitions', 'partyControlLease', 'partyLifecycle',
       'controlledPartyLifecycle', 'controlledPaladinAura', 'controlledFarmerLoot',
