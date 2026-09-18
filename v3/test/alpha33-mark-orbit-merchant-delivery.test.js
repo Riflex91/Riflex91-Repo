@@ -491,7 +491,11 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
     controlledPartyLogistics: logistics,
     alpha27CombatMerchantConvergence: { merchant }
   };
-  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { farmerPositionFreshMs: 5000, collectionSettleMs: 7000 });
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 5000,
+    collectionSettleMs: 7000,
+    collectionMinPickupEntries: 2
+  });
 
   hotfix._acceptFarmerState('My_Ranger1', {
     at: now - 12000, runtimeActive: true, ctype: 'ranger', map: 'main', x: 9000, y: 9000,
@@ -522,6 +526,170 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
 // Live alpha.20.114 regression: one advertised pickup item with 30 free slots
 // must not trigger a broad BANK sweep before Farmer rendezvous. This assertion
 // also guards the final generated-bundle head used by pull-request CI.
+// Live alpha.20.114 follow-up: a one-item pickup must not immediately pull the
+// Merchant away from useful economy work when Farmers have plenty of space.
+test('Alpha33 defers tiny Farmer pickup batches and lets ordinary Merchant work continue', async () => {
+  let now = 110000;
+  let baseCycles = 0;
+  let travelCalls = 0;
+  const merchant = {
+    lastMerchantPlan: null,
+    atomic: {
+      namedServiceTravel: async () => {
+        travelCalls += 1;
+        return { ok: true };
+      }
+    },
+    cycle: async () => {
+      baseCycles += 1;
+      return true;
+    }
+  };
+  const logistics = {
+    config: { rendezvousDistance: 260, maxTransferDistance: 380 },
+    _trustedNames: () => ['My_Ranger1'],
+    _send: async () => ({ delivered: true })
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: -37, items: [], isize: 42 },
+      parent: { entities: {} }
+    },
+    controlledPartyLogistics: logistics,
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { farmerPositionFreshMs: 5000 });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1200,
+    y: 1040,
+    pickupItems: [{ name: 'ringsj', level: 0, quantity: 1 }],
+    inventoryCapacity: 42,
+    inventoryOccupied: 6,
+    inventoryFreeSlots: 36,
+    inventoryPressure: 6 / 42
+  });
+
+  const acted = await merchant.cycle();
+
+  assert.equal(acted, true, 'ordinary Merchant cycle remains allowed while pickup batch is tiny');
+  assert.equal(baseCycles, 1);
+  assert.equal(travelCalls, 0);
+  assert.equal(hotfix.collectionRoute, null);
+  assert.ok(hotfix.lastCollectionBatchDecision);
+  assert.equal(hotfix.lastCollectionBatchDecision.ready, false);
+  assert.equal(hotfix.lastCollectionBatchDecision.reason, 'WAIT_FOR_EFFICIENT_BATCH');
+  assert.equal(hotfix.lastCollectionBatchDecision.pickupEntryCount, 1);
+  assert.equal(hotfix.status().config.collectionMinPickupEntries, 4);
+  assert.equal(hotfix.status().config.collectionMinPickupQuantity, 20);
+  assert.equal(hotfix.status().config.collectionFarmerPressureThreshold, 0.75);
+  assert.equal(hotfix.status().config.collectionMaxBatchWaitMs, 120000);
+  assert.equal(hotfix.status().policies.smallPickupDoesNotPreemptMerchantEconomy, true);
+});
+
+// A nearly full Farmer must be serviced even for a single pickup entry.
+test('Alpha33 Farmer inventory pressure overrides the small pickup batch threshold', async () => {
+  let now = 120000;
+  let travelled = null;
+  const merchant = {
+    lastMerchantPlan: null,
+    atomic: {
+      namedServiceTravel: async (destination) => {
+        travelled = destination;
+        return { ok: true };
+      }
+    },
+    cycle: async () => false
+  };
+  const logistics = {
+    config: { rendezvousDistance: 260, maxTransferDistance: 380 },
+    _trustedNames: () => ['My_Ranger1'],
+    _send: async () => ({ delivered: true })
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: -37, items: [], isize: 42 },
+      parent: { entities: {} },
+      G: { items: { ringsj: { type: 'ring', s: 1 } } }
+    },
+    adapter: { getGameData: () => runtime.root.G },
+    controlledPartyLogistics: logistics,
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, { farmerPositionFreshMs: 5000 });
+  hotfix._acceptFarmerState('My_Ranger1', {
+    at: now,
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1200,
+    y: 1040,
+    pickupItems: [{ name: 'ringsj', level: 0, quantity: 1 }],
+    inventoryCapacity: 42,
+    inventoryOccupied: 36,
+    inventoryFreeSlots: 6,
+    inventoryPressure: 36 / 42
+  });
+
+  const acted = await merchant.cycle();
+
+  assert.equal(acted, true);
+  assert.ok(hotfix.collectionRoute);
+  assert.equal(hotfix.collectionRoute.batchReason, 'FARMER_INVENTORY_PRESSURE');
+  assert.ok(travelled);
+  assert.equal(hotfix.stats.collectionBatchStartsByPressure, 1);
+});
+
+// Tiny loot is eventually collected even when the Farmer never reaches pressure.
+test('Alpha33 maximum batch wait eventually releases a persistent one-item pickup', () => {
+  let now = 130000;
+  const merchant = { cycle: async () => false };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'bank', x: 0, y: 0, items: [], isize: 42 },
+      parent: { entities: {} }
+    },
+    controlledPartyLogistics: { _trustedNames: () => [], _send: async () => ({ sent: true }) },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime, {
+    farmerPositionFreshMs: 12000,
+    collectionMaxBatchWaitMs: 10000
+  });
+  const state = {
+    runtimeActive: true,
+    ctype: 'ranger',
+    map: 'main',
+    x: -1200,
+    y: 1040,
+    pickupItems: [{ name: 'ringsj', level: 0, quantity: 1 }],
+    inventoryCapacity: 42,
+    inventoryOccupied: 5,
+    inventoryFreeSlots: 37,
+    inventoryPressure: 5 / 42
+  };
+  hotfix._acceptFarmerState('My_Ranger1', { ...state, at: now });
+  const first = hotfix._collectionStartDecision(hotfix._merchantRendezvousCandidate());
+  assert.equal(first.ready, false);
+
+  now += 10001;
+  hotfix._acceptFarmerState('My_Ranger1', { ...state, at: now });
+  const aged = hotfix._collectionStartDecision(hotfix._merchantRendezvousCandidate());
+
+  assert.equal(aged.ready, true);
+  assert.equal(aged.reason, 'MAX_BATCH_WAIT');
+  assert.ok(aged.waitAgeMs >= 10000);
+});
+
 test('Alpha33 capacity prep performs no disposal when current Farmer pickup already fits', async () => {
   const disposed = [];
   let plannerCalls = 0;
@@ -1020,6 +1188,10 @@ test('Alpha33 Farmer pickup telemetry excludes temporarily rejected loot', () =>
   assert.equal(payload.pickupEntryCount, 1);
   assert.equal(payload.pickupQuantity, 2);
   assert.deepEqual(payload.pickupItems.map((row) => row.name), ['seashell']);
+  assert.equal(payload.inventoryCapacity, 42);
+  assert.equal(payload.inventoryOccupied, 2);
+  assert.equal(payload.inventoryFreeSlots, 40);
+  assert.ok(payload.inventoryPressure > 0 && payload.inventoryPressure < 0.1);
 });
 
 test('production live services wires Alpha33 before same-version early return', () => {
