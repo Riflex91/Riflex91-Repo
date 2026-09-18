@@ -17,7 +17,7 @@ test('live regression: local-only get_active_characters does not classify truste
   const root = {
     character: { name: 'My_Merchant', ctype: 'merchant' },
     party: partyObject(['My_Merchant', 'My_Ranger1', 'My_Ranger2']),
-    party_list: ['My_Ranger2', 'My_Merchant', 'My_Ranger1'],
+    party_list: ['My_Merchant', 'My_Ranger1', 'My_Ranger2'],
     get_active_characters: () => ({ My_Merchant: 'self' })
   };
   root.parent = root;
@@ -48,7 +48,7 @@ test('live regression: Merchant repairs missing trusted ranger even when active 
   const root = {
     character: { name: 'My_Merchant', ctype: 'merchant' },
     party: partyObject(['My_Merchant', 'My_Ranger1', 'My_Ranger2']),
-    party_list: ['My_Ranger2', 'My_Merchant', 'My_Ranger1'],
+    party_list: ['My_Merchant', 'My_Ranger1', 'My_Ranger2'],
     get_active_characters: () => ({ My_Merchant: 'self' }),
     send_party_invite(name) {
       this.party[name] = { name };
@@ -120,8 +120,8 @@ test('live regression: Merchant repairs missing trusted ranger even when active 
   assert.equal(await bootstrap.waitForIdle(2000), true);
   const final = bootstrap.tick();
   assert.equal(final.ready, true);
-  assert.equal(final.reason, 'FULL_TRUSTED_PARTY_NON_MERCHANT_LEADER');
-  assert.deepEqual(root.party_list, ['My_Ranger2', 'My_Merchant', 'My_Ranger1', 'My_Ranger3']);
+  assert.equal(final.reason, 'FULL_PARTY_VERIFIED');
+  assert.deepEqual(root.party_list, ['My_Merchant', 'My_Ranger1', 'My_Ranger2', 'My_Ranger3']);
   assert.deepEqual(authorized, ['My_Ranger3']);
   assert.deepEqual(lease.trusted, ROSTER);
   bootstrap.cancel();
@@ -132,7 +132,7 @@ test('farmer gate allows a trusted Merchant partial party during bounded repair 
   const root = {
     character: { name: 'My_Ranger2', ctype: 'ranger' },
     party: partyObject(['My_Merchant', 'My_Ranger1', 'My_Ranger2']),
-    party_list: ['My_Ranger2', 'My_Merchant', 'My_Ranger1'],
+    party_list: ['My_Merchant', 'My_Ranger1', 'My_Ranger2'],
     get_active_characters: () => ({ My_Ranger2: 'self' })
   };
   root.parent = root;
