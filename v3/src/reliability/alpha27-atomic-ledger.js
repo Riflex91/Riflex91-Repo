@@ -9,9 +9,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     const ledger = this.runtime.inventoryLedger;
     if (!ledger || ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
     const baseDisposition = ledger._baseDisposition.bind(ledger);
-    ledger._baseDisposition = (row, gameData, contentDrift, counts) => {
+    ledger._baseDisposition = (row, gameData, contentDrift, counts, reservationRemaining) => {
       const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
-      const base = baseDisposition(row, gameData, contentDrift, safeCounts);
+      const base = baseDisposition(row, gameData, contentDrift, safeCounts, reservationRemaining);
       if (!base || base.disposition !== 'UNDECIDED') return base;
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
@@ -29,6 +29,44 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const same = safeCounts.get(`${name}:${level}`) || 0;
       const grade = gradeForLevel(meta, level);
       const underKeepValue = value != null && value < this.options.keepValue;
+
+      const gearProgression = this.runtime.gearProgression;
+      let futureFarmerProtection = null;
+      try {
+        futureFarmerProtection = gearProgression && typeof gearProgression.futureProtectionFor === 'function'
+          ? gearProgression.futureProtectionFor(row.character, row.index, name, level)
+          : null;
+      } catch (_) {
+        futureFarmerProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+      }
+
+      if (futureFarmerProtection) {
+        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+          return same >= 3
+            ? {
+                disposition: 'RESERVE_COMPOUND',
+                reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_COMPOUND_SET_AVAILABLE'],
+                futureFarmerProtection: clone(futureFarmerProtection)
+              }
+            : {
+                disposition: 'KEEP',
+                reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_COMPOUND_ACCUMULATION'],
+                futureFarmerProtection: clone(futureFarmerProtection)
+              };
+        }
+        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
+            futureFarmerProtection: clone(futureFarmerProtection)
+          };
+        }
+        return {
+          disposition: 'KEEP',
+          reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'FUTURE_GEAR_SELL_BLOCKED'],
+          futureFarmerProtection: clone(futureFarmerProtection)
+        };
+      }
 
       // Progression lifecycle comes before generic BANK fallback. Adventure Land
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
@@ -110,6 +148,8 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         progressionLifecycleBeforeBank: true,
         compoundMetadataObjectsSupported: true,
         processedGearSaleRequiresLifecycleAuthorization: true,
+        futureFarmerGearValuePreemptsProcessedSale: true,
+        futureGearProbeIncludesCompoundAndUpgrade: true,
         keepValue: this.options.keepValue
       });
     }
