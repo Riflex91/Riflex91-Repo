@@ -1,6 +1,6 @@
 # Block 8 – Gruppenkoordination
 
-Status: **in Arbeit**.
+Status: **abgeschlossen als Bestandteil des formal beendeten Block 8 am 18. September 2026**.
 
 Live-Stand vom 2026-09-17: Ranger-zu-Ranger-Lebensnachweis, read-only Gruppenkoordination mit Aktiv/Stale/Reconnect-Aufgabenentzug und Wiederzuordnung sowie die automatische Block-7-Sicherheitskopplung inklusive fehlender-Quellen-Fail-safe sind erfolgreich live bestaetigt.
 
@@ -111,16 +111,10 @@ Live bestaetigt sind inzwischen:
 - automatische Uebernahme einer echten Block-7-`sicher`-Bewertung in beide Ranger-Lebensnachweise,
 - fehlende Block-7-Live-Sicherheitsquelle blockiert vor `send_cm`.
 
-## Naechste Block-8-Schritte
+## Abschluss
 
-Die zuvor geplanten Stufen fuer Gruppenaktionsplanung, Gruppenaktionsanfragen, zentrale Schattensteuerung, Mehrcharakter-Wiederholung sowie gezielte Stale-/Reconnect-Pfade sind inzwischen umgesetzt und automatisiert abgesichert.
+Gruppenaktionsplanung, Gruppenaktionsanfragen, zentrale Schattensteuerung, Mehrcharakter-Wiederholung, gezielte Stale-/Reconnect-Pfade, der begrenzte one-shot Live-Smoke und der abschliessende 10-Minuten-Gruppentest sind bestanden.
 
-Die verbleibende Block-8-Arbeit ist die aktive Abschlusskampagne:
+Der formale Abschluss steht in `BLOCK-8-ABSCHLUSS.md` und `BLOCK-8-ABSCHLUSSSTATUS.md`.
 
-1. genau einen minimalen `GRUPPE_*`-Ausfuehrungspfad unter `ausfuehrung/` vorbereiten, weiterhin standardmaessig gesperrt,
-2. diesen Pfad deterministisch, per Replay/Simulation und im Schatten pruefen,
-3. einen begrenzten one-shot Live-Smoke mit automatischer Wiedersperrung bestehen,
-4. danach den 10-Minuten-Gruppentest durchlaufen,
-5. erst dann Block 8 formal abschliessen und Block 8.5 beginnen.
-
-Der verbindliche aktuelle Stand und die Stop-Kriterien stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`.
+Als naechstes beginnt **Block 8.5**.

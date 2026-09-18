@@ -199,8 +199,8 @@ echteSpielaktionenAusgefuehrt: false
 
 Auch bei Nachweis C wird nur der zentrale Schattenzustand veraendert. Die Browserkerne und der Live-Schatten enthalten keine Aufrufe an `attack`, `move`, `smart_move`, `use_skill`, `use_hp`, `use_mp`, `loot`, `command_character` oder `send_party_invite`.
 
-## Naechster Schritt
+## Abschluss
 
-Die zentrale Schattenstufe sowie die Abschluss-Haertung fuer Ressourcenblockierung, Preemption, Expiry, Plan-Invalidierung und fail-safe Neustart sind bestanden. Die aktive one-shot Freigabekampagne ist bestanden. Der formale Block-8-Abschluss bleibt nur noch wegen des 10-Minuten-Gruppentests offen.
+Die zentrale Schattenstufe sowie die Abschluss-Haertung fuer Ressourcenblockierung, Preemption, Expiry, Plan-Invalidierung und fail-safe Neustart sind bestanden. Die aktive one-shot Freigabekampagne und der anschliessende 10-Minuten-Gruppentest sind ebenfalls bestanden.
 
-Der genaue Gate-Ablauf steht in `BLOCK-8-ABSCHLUSSSTATUS.md`. Bis ein dort beschriebener minimaler Adapter seine Offline-, Replay-/Simulations-, Schatten- und one-shot-Live-Gates bestanden hat, endet Block 8 strikt in `SchattenAusfuehrung`.
+Der formale Block-8-Abschluss steht in `BLOCK-8-ABSCHLUSS.md`. Weitere Laufzeitfaehigkeiten folgen erst nach den fuer Block 8.5 definierten Freigabestufen.
