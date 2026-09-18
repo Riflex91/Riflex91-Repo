@@ -74,10 +74,17 @@ export class AdventureLandGruppenZielLiveBindung {
     optionen: AdventureLandGruppenZielLiveBindungOptionen = {}
   ) {
     this.aktivFreigegeben = optionen.aktivFreigegeben === true;
-    this.brueckenOptionen = Object.freeze({
-      auftragMaximalAlterMillisekunden: optionen.auftragMaximalAlterMillisekunden,
-      sicherheitsMaximalAlterMillisekunden: optionen.sicherheitsMaximalAlterMillisekunden
-    });
+    const brueckenOptionen: {
+      auftragMaximalAlterMillisekunden?: number;
+      sicherheitsMaximalAlterMillisekunden?: number;
+    } = {};
+    if (optionen.auftragMaximalAlterMillisekunden !== undefined) {
+      brueckenOptionen.auftragMaximalAlterMillisekunden = optionen.auftragMaximalAlterMillisekunden;
+    }
+    if (optionen.sicherheitsMaximalAlterMillisekunden !== undefined) {
+      brueckenOptionen.sicherheitsMaximalAlterMillisekunden = optionen.sicherheitsMaximalAlterMillisekunden;
+    }
+    this.brueckenOptionen = Object.freeze(brueckenOptionen);
   }
 
   public status(): Readonly<AdventureLandGruppenZielLiveBindungStatus> {
