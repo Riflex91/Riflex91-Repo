@@ -31,6 +31,14 @@ for (const pflicht of [
   'uebergibGruppenAktionsAnfragenAnSteuerung',
   'GRUPPEN_AKTIONS_NAMEN.gemeinsamesZielBearbeiten',
   'installiereAdventureLandGruppenZielLiveSmoke',
+  'MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2',
+  'gruppenZielVorbereitungVerbraucht',
+  'neu.gesendetAm < vorher.gesendetAm',
+  'neu.laufendeNummer <= vorher.laufendeNummer',
+  'Doppelte Gruppen-Teilnehmerkennung',
+  'genau eine laufende zentrale Gruppenzielanfrage',
+  'this.gestoppt = true',
+  'Produktions-Sicherheitszeit darf nicht rueckwaerts laufen.',
   'Produktions-Bootstrap wurde gestoppt; Gruppenarbeit wird fail-safe beendet.'
 ]) {
   if (!bootstrap.includes(pflicht)) throw new Error(`Produktions-Bootstrap verletzt Pflichtkette: ${pflicht}`);
@@ -75,6 +83,11 @@ for (const pflicht of [
   'AIO_V4_BOOTSTRAP_CONFIG',
   'runtimeUrl',
   'runtimeUrl fehlt',
+  'runtimeSha256',
+  'runtimeSha256 fehlt',
+  'HTTPS-URL',
+  'berechneSha256',
+  "subtle.digest('SHA-256'",
   'Adventure Land AiO Bot V4 | generated | production runtime',
   'V4ProduktionsLaufzeit',
   "cache: 'no-store'",
@@ -91,16 +104,15 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
 
 const bundler = await readFile(path.join(wurzel, 'werkzeuge/produktions-runtime-bauen.mjs'), 'utf8');
 for (const pflicht of [
-  "import { execFile } from 'node:child_process'",
-  "node_modules', 'typescript', 'bin', 'tsc'",
-  "type: 'commonjs'",
-  "module: 'NodeNext'",
-  "moduleResolution: 'NodeNext'",
-  'Temporärer CommonJS-tsc-Build fehlgeschlagen'
+  "import ts from 'typescript'",
+  "import { createHash } from 'node:crypto'",
+  'ts.transpileModule',
+  'ts.ModuleKind.CommonJS',
   'Externer Runtime-Import ist nicht erlaubt',
-  'require\\(([' + "'" + '"])(.+?)',
   'Adventure Land AiO Bot V4 | generated | production runtime',
   'entry.installiereAdventureLandProduktionsLaufzeit',
+  "createHash('sha256')",
+  'aio-v4-runtime.sha256',
   '--pruefen'
 ]) {
   if (!bundler.includes(pflicht)) throw new Error(`V4-Produktionsruntime-Bundler ist unvollstaendig: ${pflicht}`);
@@ -111,10 +123,14 @@ for (const pflicht of [
   'startet standardmaessig gesperrt',
   'berechnet lokalen Lebensnachweis aus echter Produktions-Safety',
   'nutzt vorhandenen vertrauensgebundenen Empfang fuer reale Gruppenplanung',
-  'installiert Live-Smoke auf derselben zentralen Steuerung',
+  'verwirft replayte und zeitlich aeltere Remote-Meldungen',
+  'blockiert doppelte Teilnehmerkennungen',
+  'blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer',
+  'blockiert Gruppenziel wenn der zweite Teilnehmer veraltet ist',
+  'installiert Live-Smoke nur fuer den exakt vorbereiteten zentralen Zielauftrag',
   'stoppt Empfang, Smoke und laufende Gruppenarbeit fail-safe'
 ]) {
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: eine zentrale AktionsSteuerung, echte Safety, vorhandener Lebensnachweis-Austausch, produktive Gruppenplanung, passiver Laufzeiteinstieg, URL-neutraler Loader und reproduzierbares Bundle.');
+console.log('Block 8 Produktions-Bootstrap geprueft: eine zentrale AktionsSteuerung, mindestens zwei frische Teilnehmer, monotone Lebensnachweise, one-shot Vorbereitung, echte Safety, passiver Laufzeiteinstieg, HTTPS+SHA-256-Loader und reproduzierbares Bundle.');
