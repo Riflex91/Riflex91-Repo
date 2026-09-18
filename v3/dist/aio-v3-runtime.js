@@ -27310,6 +27310,7 @@ function patchLogisticsPrototype() {
     const now = this.now();
     for (const item of inventory) {
       if (!item) continue;
+      if (typeof this._lootBlocked === 'function' && this._lootBlocked(item)) continue;
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) {
         this.stats.protectedLootSkipped += 1;
@@ -27346,6 +27347,13 @@ function patchLogisticsPrototype() {
       if (pending.asyncRejected || now - pending.at >= this.config.verifyTimeoutMs) {
         const signature = pending.signature || `${Number(pending.index)}:${pending.name}:${pending.level}`;
         if (this.__alpha2015BlockedLoot) this.__alpha2015BlockedLoot.set(signature, now + 120000);
+        if (typeof this._blockRejectedLoot === 'function') {
+          this._blockRejectedLoot(
+            { index: pending.index, name: pending.name, level: pending.level },
+            pending.asyncRejected ? 'OUTBOUND_SEND_REJECTED' : 'OUTBOUND_VERIFY_TIMEOUT',
+            120000
+          );
+        }
       }
     }
     return baseVerifyPendingOutbound.call(this, snapshot);
@@ -27568,6 +27576,7 @@ const Action = Object.freeze({
   SUPPLY_RESULT: 'SUPPLY_RESULT',
   LOOT_OFFER: 'LOOT_OFFER',
   LOOT_GRANT: 'LOOT_GRANT',
+  LOOT_REJECT: 'LOOT_REJECT',
   GOLD_OFFER: 'GOLD_OFFER',
   GOLD_GRANT: 'GOLD_GRANT',
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
@@ -27660,6 +27669,7 @@ class ControlledPartyLogistics {
       farmerGoldReserve: Math.max(0, Math.floor(finite(options.farmerGoldReserve, 250000))),
       maxGoldBatch: Math.max(10000, Math.floor(finite(options.maxGoldBatch, 1000000))),
       maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999))),
+      rejectedLootBackoffMs: Math.max(5000, Math.min(10 * 60 * 1000, finite(options.rejectedLootBackoffMs, 120000))),
       elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
       elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
       elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
@@ -27684,6 +27694,7 @@ class ControlledPartyLogistics {
     this.supplyRequests = new Map();
     this.rendezvousRequests = new Map();
     this.activeLootGrants = new Map();
+    this.rejectedLoot = new Map();
     this.pendingOffer = null;
     this.pendingGrant = null;
     this.pendingOutbound = null;
@@ -27701,6 +27712,9 @@ class ControlledPartyLogistics {
       supplyFailed: 0,
       lootOffers: 0,
       lootGrants: 0,
+      lootRejectsSent: 0,
+      lootRejectsReceived: 0,
+      rejectedLootBlocks: 0,
       lootTransfers: 0,
       lootVerified: 0,
       goldOffers: 0,
@@ -27840,10 +27854,49 @@ class ControlledPartyLogistics {
     });
   }
 
+  _lootSignature(item) {
+    if (!item || !item.name) return null;
+    const index = finite(item.index);
+    return `${index == null ? 'na' : Math.floor(index)}:${String(item.name)}:${Math.max(0, Math.floor(finite(item.level, 0)))}`;
+  }
+
+  _blockRejectedLoot(item, reason = 'LOOT_REJECTED', durationMs = null) {
+    const signature = this._lootSignature(item);
+    if (!signature) return false;
+    const requestedDuration = durationMs == null
+      ? this.config.rejectedLootBackoffMs
+      : finite(durationMs, this.config.rejectedLootBackoffMs);
+    const duration = Math.max(1000, Math.min(10 * 60 * 1000, requestedDuration));
+    this.rejectedLoot.set(signature, {
+      signature,
+      name: String(item.name),
+      level: Math.max(0, Math.floor(finite(item.level, 0))),
+      index: finite(item.index),
+      reason: String(reason || 'LOOT_REJECTED'),
+      blockedAt: this.now(),
+      blockedUntil: this.now() + duration
+    });
+    this.stats.rejectedLootBlocks += 1;
+    return true;
+  }
+
+  _lootBlocked(item) {
+    const signature = this._lootSignature(item);
+    if (!signature) return false;
+    const row = this.rejectedLoot.get(signature);
+    if (!row) return false;
+    if (finite(row.blockedUntil, 0) <= this.now()) {
+      this.rejectedLoot.delete(signature);
+      return false;
+    }
+    return true;
+  }
+
   _prune() {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
     for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
   }
@@ -27927,6 +27980,7 @@ class ControlledPartyLogistics {
     const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
     for (const item of inventory) {
       if (!item) continue;
+      if (this._lootBlocked(item)) continue;
       const safe = this._safeLootDescriptor(item);
       if (!safe.ok) { this.stats.protectedLootSkipped += 1; continue; }
       return { ...safe, index: item.index, quantity: Math.min(safe.quantity, this.config.maxLootStackTransfer) };
@@ -27945,6 +27999,15 @@ class ControlledPartyLogistics {
     const safe = this._safeLootDescriptor(offered);
     if (!safe.ok) {
       this.stats.messagesRejected += 1;
+      const offerId = String(data && data.offerId || '');
+      if (offerId && offerId.length <= 160) {
+        this.stats.lootRejectsSent += 1;
+        this._send(sender, Action.LOOT_REJECT, {
+          offerId,
+          reason: safe.reason || 'LOOT_REJECTED_BY_MERCHANT',
+          retryAfterMs: this.config.rejectedLootBackoffMs
+        });
+      }
       return true;
     }
     const snapshot = this.adapter && this.adapter.snapshot ? this.adapter.snapshot() : null;
@@ -28054,6 +28117,29 @@ class ControlledPartyLogistics {
       const expiresAt = finite(data.expiresAt);
       if (expiresAt == null || expiresAt <= this.now() || expiresAt - this.now() > this.config.grantTtlMs + 1000) return false;
       this.pendingGrant = { ...clone(data), receivedAt: this.now() };
+      return true;
+    }
+
+    if (action === Action.LOOT_REJECT) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const offer = this.pendingOffer;
+      if (!offer || offer.kind !== 'item' || String(data.offerId || '') !== String(offer.offerId || '')) return false;
+      this._blockRejectedLoot(offer.item, data.reason || 'LOOT_REJECTED_BY_MERCHANT', finite(data.retryAfterMs, this.config.rejectedLootBackoffMs));
+      this.pendingOffer = null;
+      this.pendingGrant = null;
+      this.backoffUntil = Math.max(this.backoffUntil, this.now() + Math.min(3000, this.config.failureBackoffMs));
+      this.stats.lootRejectsReceived += 1;
+      this.lastDecision = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'LOOT_OFFER_REJECTED',
+        rejectReason: data.reason || null,
+        offerId: data.offerId || null
+      };
+      this._event('PARTY_LOGISTICS_LOOT_REJECTED', 'info', data.reason || 'LOOT_REJECTED_BY_MERCHANT', {
+        offerId: data.offerId || null,
+        retryAfterMs: finite(data.retryAfterMs, this.config.rejectedLootBackoffMs)
+      });
       return true;
     }
 
@@ -28575,6 +28661,8 @@ class ControlledPartyLogistics {
         requiresTrustedActiveOwnCharacter: true,
         requiresShortLivedGrantForFarmerOutbound: true,
         closedLoopLocalDeltaVerification: true,
+        explicitLootRejectProtocol: true,
+        rejectedLootBackoffPreventsOfferLoop: true,
         engageStateDoesNotBlockTransfer: true,
         activeAggroBlocksNewOfferOnly: true
       },
@@ -28586,6 +28674,7 @@ class ControlledPartyLogistics {
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
+      rejectedLoot: [...this.rejectedLoot.values()].map(clone),
       pendingOffer: clone(this.pendingOffer),
       pendingGrant: clone(this.pendingGrant),
       pendingOutbound: clone(this.pendingOutbound),
@@ -29251,6 +29340,9 @@ function patchAlpha2019LogisticsStabilization() {
     if (offer && !this.pendingGrant && now - Number(offer.at || 0) >= (this.__alpha2019OfferTtlMs || OFFER_TTL_MS)) {
       ensureStats(this);
       const stale = { kind: offer.kind || null, offerId: offer.offerId || null, ageMs: now - Number(offer.at || 0) };
+      if (offer.kind === 'item' && offer.item && typeof this._blockRejectedLoot === 'function') {
+        this._blockRejectedLoot(offer.item, 'OFFER_GRANT_TIMEOUT', this.config.rejectedLootBackoffMs);
+      }
       this.pendingOffer = null;
       this.stats.staleOffersCleared += 1;
       this.backoffUntil = Math.max(Number(this.backoffUntil) || 0, now + Math.min(3000, Number(this.config.failureBackoffMs) || 3000));
@@ -29279,6 +29371,7 @@ function patchAlpha2019LogisticsStabilization() {
       alpha20_19: {
         offerTtlMs: this.__alpha2019OfferTtlMs || OFFER_TTL_MS,
         staleOfferProtection: true,
+        staleRejectedItemTemporarilyExcluded: true,
         failedOfferReleasesChannel: true,
         transportFalseIsFailure: true,
         merchantPotionReservePerType: this.config.merchantPotionReserve,
@@ -47313,6 +47406,13 @@ function installMerchantProduction(runtime, options = {}) {
     return true;
   }
   function cycle() {
+    // Merchant production is installed in the shared runtime on every owned
+    // character, but only the Merchant may acquire production tasks or travel
+    // for bank/vendor work. Gate before any side effect, including auto-enable
+    // and BANK_CATALOG task acquisition.
+    if (!isMerchant()) {
+      return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
+    }
     ensureAutoEnabled();
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
@@ -47371,7 +47471,9 @@ function installMerchantProduction(runtime, options = {}) {
         npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
       },
       bankCatalog: bankCatalog.status(),
-      autoLiveEnabled: true,
+      roleEligible: isMerchant(),
+      autoLiveEnabled: isMerchant(),
+      nonMerchantSideEffectsBlocked: true,
       collectionSessionBlocksProduction: collectionBusy(),
       intervalMs: state.intervalMs,
       lastPlan: clone(state.lastPlan),
@@ -47390,7 +47492,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.tick = function merchantProductionTick() {
     const result = baseTick();
     const now = runtime.now();
-    if (now - state.lastCycleAt >= state.intervalMs) { state.lastCycleAt = now; cycle(); }
+    if (isMerchant() && now - state.lastCycleAt >= state.intervalMs) { state.lastCycleAt = now; cycle(); }
     return result;
   };
 
@@ -51177,6 +51279,9 @@ function pickupItemsView(logistics, inventory, maxItems = 64) {
   const out = [];
   for (const item of Array.isArray(inventory) ? inventory : []) {
     if (!item || !item.name || out.length >= maxItems) continue;
+    try {
+      if (logistics && typeof logistics._lootBlocked === 'function' && logistics._lootBlocked(item)) continue;
+    } catch (_) {}
     let descriptor = null;
     try { descriptor = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null; } catch (_) {}
     if (!descriptor || descriptor.ok !== true) continue;
@@ -51256,7 +51361,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionCapacityBlockedActions: 0,
       collectionCapacityPrepareTimeouts: 0,
       collectionCapacityConstrainedDepartures: 0,
-      collectionFollowMoves: 0
+      collectionFollowMoves: 0,
+      collectionRoutesPreemptedForCriticalSupply: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -52090,9 +52196,30 @@ class Alpha33MarkOrbitMerchantDelivery {
     if (!merchant || typeof merchant.cycle !== 'function' || merchant.__alpha33MerchantRendezvousV3Installed) return false;
     const baseCycle = merchant.cycle.bind(merchant);
     merchant.cycle = async () => {
-      // Fresh collection work preempts ordinary progression/production. Once
-      // started, the collection route owns the global Merchant task lock until
-      // all transferable Farmer inventory is drained or Merchant inventory fills.
+      // Critical Farmer potion service must outrank collection. The live failure
+      // mode was a circular wait: collection held the global Merchant task lock,
+      // while the Rangers refused combat until that same Merchant delivered MP.
+      // Ask Alpha27's already-latched supply-chain owner first; if it has real
+      // RESTOCK/TRAVEL/DELIVERY work, release any collection lock and delegate.
+      let criticalSupplyPlan = null;
+      if (typeof merchant.criticalPartySupplyPlan === 'function') {
+        try { criticalSupplyPlan = merchant.criticalPartySupplyPlan(); } catch (_) { criticalSupplyPlan = null; }
+      }
+      const criticalSupplyKind = String(criticalSupplyPlan && criticalSupplyPlan.kind || '');
+      if (['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(criticalSupplyKind)) {
+        if (this.collectionRoute) {
+          this.stats.collectionRoutesPreemptedForCriticalSupply += 1;
+          this._finishCollectionRoute('CRITICAL_PARTY_SUPPLY_PREEMPT', {
+            serviceKind: criticalSupplyKind,
+            target: criticalSupplyPlan && criticalSupplyPlan.target && criticalSupplyPlan.target.name || null,
+            deliveries: criticalSupplyPlan && criticalSupplyPlan.deliveries || []
+          });
+        }
+        return baseCycle();
+      }
+
+      // Fresh collection work still preempts ordinary progression/production.
+      // It no longer preempts the critical party-supply service chain above.
       const candidate = this._merchantRendezvousCandidate();
       if (this.collectionRoute || candidate && candidate.pickupEntryCount > 0) {
         const handled = await this._driveMerchantRendezvous(merchant);
@@ -52135,6 +52262,8 @@ class Alpha33MarkOrbitMerchantDelivery {
         merchantRendezvousRequiresPendingTransferWork: true,
         farmerPositionMustBeFresh: true,
         collectionRouteTaskLockedUntilTerminal: true,
+        criticalPartySupplyPreemptsCollectionRoute: true,
+        rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         futureFarmerGearPreemptsMerchantSelfGear: true
       },
