@@ -80,14 +80,18 @@ function starte(req = anfrage()) {
 
 function umgebung({ attackFehler = false, charakterName = 'My_Ranger1', serverRegion = 'EU', serverKennung = 'I', karte = 'main', instanz = 'main', monsterArt = 'goo' } = {}) {
   const aufrufe = [];
-  const zielKontext = {};
   const ziel = { id: 'goo-1', type: 'monster', mtype: monsterArt, hp: 100, dead: false, real_x: 50, real_y: 0, map: karte };
   const spielFenster = {
     character: { id: 'char-1', name: charakterName, hp: 500, max_hp: 500, mp: 300, max_mp: 300, rip: false, real_x: 0, real_y: 0, range: 100, map: karte, in: instanz },
     entities: { 'goo-1': ziel },
     server_region: serverRegion,
     server_identifier: serverKennung,
-    is_on_cooldown: () => false,
+    is_on_cooldown: () => false
+  };
+  spielFenster.parent = spielFenster;
+
+  const zielKontext = {
+    parent: spielFenster,
     attack(wert) {
       aufrufe.push(['attack', wert]);
       if (attackFehler) throw new Error('attack-testfehler');
@@ -95,7 +99,7 @@ function umgebung({ attackFehler = false, charakterName = 'My_Ranger1', serverRe
     },
     move() { aufrufe.push(['move']); }
   };
-  spielFenster.parent = spielFenster;
+
   return { aufrufe, zielKontext, ziel, spielFenster };
 }
 
@@ -196,6 +200,34 @@ test('Block-8 Gruppenziel Live-Smoke verlangt frische Vorschau und exakten Freig
   assert.throws(() => smoke.freigeben('JA'), /Falscher Live-Smoke-Freigabetext/);
   jetzt = 15_051;
   assert.throws(() => smoke.freigeben(GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT), /Produktionsvorschau .* zu alt/);
+});
+
+test('Block-8 Gruppenziel Live-Smoke bezieht attack aus lokalem Codekontext waehrend Spielzustand im Parent liegt', async () => {
+  const u = umgebung();
+  assert.equal(typeof u.spielFenster.attack, 'undefined');
+  assert.equal(typeof u.zielKontext.attack, 'function');
+
+  const req = anfrage();
+  const steuerung = starte(req);
+  let sicherheitsZeit = 10_050;
+  const smoke = new AdventureLandGruppenZielLiveSmoke(
+    u.zielKontext,
+    u.spielFenster,
+    steuerung,
+    () => sicherheit(sicherheitsZeit),
+    zeiten(10_050, 10_051, 10_052, 10_053, 10_054, 10_055, 10_056),
+    erwartung,
+    { aktivFreigegeben: true }
+  );
+
+  smoke.vorschau();
+  smoke.freigeben(GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT);
+  sicherheitsZeit = 10_052;
+  const bericht = await smoke.starte();
+
+  assert.equal(bericht.status, 'bestanden');
+  assert.equal(bericht.echteSpielaktionen.attack, 1);
+  assert.deepEqual(u.aufrufe, [['attack', u.ziel]]);
 });
 
 test('Block-8 Gruppenziel Live-Smoke fuehrt exakt einen attack aus, entfernt Bruecke und gibt Ressourcen frei', async () => {

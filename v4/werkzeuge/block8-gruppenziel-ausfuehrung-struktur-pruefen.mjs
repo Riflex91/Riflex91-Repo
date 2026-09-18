@@ -141,6 +141,8 @@ for (const pflichtText of [
   'Produktions-Safety',
   'new AdventureLandGruppenZielLiveBindung',
   'this.versuchVerbraucht = true',
+  "const aktionsKontext = this.zielKontext",
+  "Reflect.get(aktionsKontext, eigenschaft, aktionsKontext)",
   "eigenschaft === 'attack'",
   'audit.attack += 1',
   'Unerwartete Adventure-Land-Aktion im Gruppenziel-Live-Smoke blockiert',
@@ -164,6 +166,7 @@ for (const pflichtText of [
   'verlangt genau eine laufende reale Gruppenanfrage und zentralen Ressourcenbesitz',
   'blockiert unsichere oder alte Produktions-Safety und unbekannte Angriffsbereitschaft',
   'verlangt frische Vorschau und exakten Freigabetext',
+  'bezieht attack aus lokalem Codekontext waehrend Spielzustand im Parent liegt',
   'fuehrt exakt einen attack aus, entfernt Bruecke und gibt Ressourcen frei',
   'protokolliert attack-Versuch auch wenn Adventure Land attack fehlschlaegt',
   'Live-Smoke-Fassade ist eingefroren und ueberschreibt keine bestehende Smoke-Autoritaet'
