@@ -154,6 +154,7 @@ test('bank recovery travels to bank only when the bounded probe is due', async (
   assert.equal(recovery.plan(), null);
 });
 
+// Live regression: ringsj had the largest ready backlog but was starved by lexical group selection.
 test('compound planner drains largest backlog first so rings cannot starve behind belts', () => {
   const entries = [];
   let index = 0;
