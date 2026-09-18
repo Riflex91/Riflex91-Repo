@@ -97,6 +97,10 @@ class PartyAccountCommunicationReliability {
       this.stats.controlDirectReceiverCalls += 1;
       return lease.receive(sender, payload);
     });
+    // PartyControlLease may be stopped/resumed independently of the account
+    // transport. Mark the named receiver as authoritative so a later lease
+    // reinstall does not overwrite the shared on_cm router.
+    lease.__aioAccountTransportControlReceiverInstalled = true;
     if (!this.originalControlSend) this.originalControlSend = typeof lease._send === 'function' ? lease._send.bind(lease) : null;
     lease._send = async (target, payload) => this.transport.send(target, payload, {
       receiver: CONTROL_RECEIVER,
