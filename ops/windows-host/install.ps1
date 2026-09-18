@@ -19,6 +19,13 @@ $tokenPath = Join-Path $root 'host-api-token.dpapi'
 $alertSecretsPath = Join-Path $root 'alert-secrets.dpapi'
 $alertPath = Join-Path $root 'alerts.json'
 $statePath = Join-Path $root 'service-state.json'
+$existingCriticalAlertingEnabled = $false
+if (Test-Path $configPath) {
+  try {
+    $existingConfig = Get-Content -Raw $configPath | ConvertFrom-Json
+    $existingCriticalAlertingEnabled = $existingConfig.criticalAlertingEnabled -eq $true
+  } catch { }
+}
 New-Item -ItemType Directory -Force -Path $root,$profile | Out-Null
 
 function Find-Browser([string]$preferred) {
@@ -75,7 +82,7 @@ $config = [ordered]@{
   alertStatePath = $alertPath
   apiPort = 8791
   apiTokenEnvironmentVariable = 'AIO_V3_HOST_API_TOKEN'
-  criticalAlertingEnabled = $false
+  criticalAlertingEnabled = $existingCriticalAlertingEnabled
   alertSecretsEnvironmentVariable = 'AIO_V3_ALERT_SECRETS_JSON'
   tickIntervalMs = 5000
   browserSessionStartupWaitMs = 300000
