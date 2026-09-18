@@ -128,6 +128,32 @@ test('GearProgression assigns one physical candidate to at most one target slot'
   assert.equal(result.reservations[0].sourceIndex, 0);
 });
 
+test('GearProgression keeps better gear allocation Farmer-first at approximately 80/20', () => {
+  const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
+  const inventory = [];
+  for (let i = 0; i < 10; i += 1) inventory.push({ index: i, name: `ring${i}`, level: 0, q: 1 });
+  const items = { weakring: { type: 'ring', dex: 1, g: 10 } };
+  for (let i = 0; i < 10; i += 1) items[`ring${i}`] = { type: 'ring', dex: 20 + i, luck: 20 + i, g: 1000, compound: { dex: 1, luck: 1 }, grades: [] };
+
+  const result = evaluator.evaluate({
+    registry: {
+      characters: [
+        { name: 'Merchant', ctype: 'merchant', level: 80, inventory, gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R1', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R2', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } },
+        { name: 'R3', ctype: 'ranger', level: 80, inventory: [], gear: { ring1: { name: 'weakring', level: 0 }, ring2: { name: 'weakring', level: 0 } } }
+      ]
+    },
+    gameData: { items },
+    contentDrift: { requiresRevalidation: () => false }
+  });
+
+  const farmers = result.currentGoals.filter((goal) => goal.ctype !== 'merchant').length;
+  const merchant = result.currentGoals.filter((goal) => goal.ctype === 'merchant').length;
+  assert.ok(farmers >= merchant * 4 || merchant === 0, `expected Farmer-first allocation, got ${farmers} Farmer vs ${merchant} Merchant`);
+  assert.equal(result.status.lastEvaluation.farmerTargetShare, 0.8);
+});
+
 test('normal ENGAGE state does not by itself block Farmer outbound logistics', () => {
   const logistics = Object.create(ControlledPartyLogistics.prototype);
   logistics.runtime = { farmer: { state: 'ENGAGE' } };
