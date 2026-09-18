@@ -260,11 +260,16 @@ Der finale Nachweisstand steht in `BLOCK-8-ABSCHLUSSSTATUS.md` und `BLOCK-8-ABSC
 
 ## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
 
-Status: **gestartet nach formal abgeschlossenem Block 8**.
+Status: **gestartet nach formal abgeschlossenem Block 8; formaler V3->V4-Wissenstransfer und Implementierungsreihenfolge dokumentiert**.
 
 Ziel: Die bereits vorhandenen V4-Faehigkeiten werden vor Haendler-, Bank- und Wirtschaftslogik einheitlich beobachtbar, erklaerbar, sicher bedienbar und wiederanlauffaehig gemacht.
 
 Dieser Block baut keine neue fachliche Spielstrategie. Er schliesst die Instrumentierungs- und Bedienluecke zwischen Gruppenkoordination und den zustandsreichen Vorgaengen aus Block 9 und 10.
+
+Verbindliche Arbeitsgrundlagen:
+
+- `BLOCK-8-5-WISSENSTRANSFER-V3-V4.md` – welche V3-Erkenntnisse uebernommen, neu modelliert oder bewusst spaeter behandelt werden,
+- `BLOCK-8-5-PLAN.md` – Reihenfolge der Block-8.5-Implementierung.
 
 Gemeinsam umgesetzt werden:
 
