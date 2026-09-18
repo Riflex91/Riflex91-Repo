@@ -259,6 +259,7 @@ test('Buffered arrival ignores smart_move interruption caused by the intentional
   assert.equal(result.reason, 'ARRIVAL_VERIFIED');
   assert.equal(controller.get(planned.plan.id).state, 'COMPLETED');
   assert.equal(executor.status().stats.failedSafe, 0);
+  assert.equal(executor.status().stats.completed, 1);
   assert.equal(executor.status().stats.bufferedEarlyStops, 1);
   assert.equal(stopCalls, 1);
 });
