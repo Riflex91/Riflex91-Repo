@@ -165,7 +165,8 @@ test('P0 diagnostics report the active demand-driven 4500 policy instead of lega
   const policy = runtime.p0RegroupSupplyRecovery.status().potionPolicy;
   assert.deepEqual(policy.deliveryPerFarmer, { hpot0: FARMER_POTION_TARGET, mpot0: FARMER_POTION_TARGET });
   assert.equal(policy.farmerTarget, 4500);
-  assert.equal(policy.lowWatermark, 4499);
+  assert.equal(policy.potionRequestBelow, 200);
+  assert.equal(policy.lowWatermark, 199);
   assert.equal(policy.merchantReserve, 0);
   assert.equal(policy.bothFamiliesRequiredBeforeTravel, false);
   assert.equal(policy.exactDelivery, false);
