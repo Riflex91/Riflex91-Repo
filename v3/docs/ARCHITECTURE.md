@@ -20,9 +20,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | 3 | 724 |
 | merchant | 7 | 1916 |
 | ops | 26 | 7278 |
-| party | 32 | 7150 |
+| party | 32 | 7153 |
 | planner | 1 | 66 |
-| reliability | 49 | 13112 |
+| reliability | 49 | 13127 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
