@@ -223,6 +223,10 @@ export class AktionsSteuerung {
     return this.laufzeitSteuerung.status();
   }
 
+  istMitLaufzeitSteuerungVerbunden(laufzeitSteuerung: LaufzeitSteuerung): boolean {
+    return this.laufzeitSteuerung === laufzeitSteuerung;
+  }
+
   holeAktionsZustand(aktionsAnfrageKennung: string): AktionsLaufZustand | null {
     return this.zustaende.get(aktionsAnfrageKennung) ?? null;
   }
