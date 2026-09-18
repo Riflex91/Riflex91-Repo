@@ -128,8 +128,8 @@ test('latched potion chain prevents the observed 10 then 5 micro-restock loop', 
   assert.ok(first.metadata.p0PotionServiceChainId);
 
   // Reproduce the live race: the Merchant bought the missing 10 while the farmer
-  // consumed another 5 mpot0. The old planner grew the delivery from 2128 to
-  // 2133 and sent the Merchant back to the vendor for a second micro-purchase.
+  // consumed another 5 mpot0. The old planner would grow the active order from
+  // 4310 to 4315 and send the Merchant back for another micro-purchase.
   const afterConsumption = { ...report(4500, 185), x: 1000, y: 0 };
   const second = planner.plan({
     merchant: { ...root.character, inventory: [{ name: 'mpot0', q: 4310 }] },
@@ -137,7 +137,7 @@ test('latched potion chain prevents the observed 10 then 5 micro-restock loop', 
   });
 
   assert.equal(second.kind, MerchantServicePlanKind.SERVICE_TRAVEL);
-  assert.deepEqual(second.deliveries.map((row) => [row.itemName, row.quantity]), [['mpot0', 2128]]);
+  assert.deepEqual(second.deliveries.map((row) => [row.itemName, row.quantity]), [['mpot0', 4310]]);
   assert.equal(second.missingStock, undefined);
   assert.equal(second.metadata.p0PotionServiceChainId, first.metadata.p0PotionServiceChainId);
   assert.equal(second.metadata.deliveryQuantityMayIncreaseWhileActive, false);
@@ -145,10 +145,10 @@ test('latched potion chain prevents the observed 10 then 5 micro-restock loop', 
 
   // Safety remains monotonic in the other direction: if the farmer receives
   // potions elsewhere, the active order may shrink so the 4500 hard cap cannot
-  // be exceeded, but it still cannot grow above the original 2128.
+  // be exceeded, but it still cannot grow above the original 4310.
   const externallySupplied = { ...report(4500, 1000), x: 1000, y: 0 };
   const third = planner.plan({
-    merchant: { ...root.character, inventory: [{ name: 'mpot0', q: 2128 }] },
+    merchant: { ...root.character, inventory: [{ name: 'mpot0', q: 4310 }] },
     reports: [externallySupplied], deliveryDistance: 400
   });
 
@@ -180,7 +180,7 @@ test('restock buys exactly the current delivery deficit', async () => {
   runtime.lastMerchantServicePlan = planner.plan({ merchant: { ...root.character, inventory: root.character.items }, reports: [report(150, 190)], deliveryDistance: 400 });
   assert.equal(await merchant.restockPartyPotions(), true);
   assert.equal(total(root, 'hpot0'), 4350);
-  assert.equal(total(root, 'mpot0'), 690);
+  assert.equal(total(root, 'mpot0'), 20);
 
   runtime.lastMerchantServicePlan = planner.plan({ merchant: { ...root.character, inventory: root.character.items }, reports: [report(150, 190)], deliveryDistance: 400 });
   assert.equal(await merchant.restockPartyPotions(), true);
@@ -230,7 +230,7 @@ test('successful adaptive delivery verifies the planned decrement and retains pr
   assert.equal(result.committed, true);
   assert.equal(result.reason, 'ADAPTIVE_POTION_DELIVERY_DEMAND_VERIFIED');
   assert.equal(total(root, 'hpot0'), 650);
-  assert.equal(total(root, 'mpot0'), 20);
+  assert.equal(total(root, 'mpot0'), 690);
   assert.equal(service.stats.rawActions, 4);
   assert.equal(policy.serviceChain, null);
   assert.equal(policy.lastServiceChainRelease.reason, 'DELIVERY_COMMITTED');
