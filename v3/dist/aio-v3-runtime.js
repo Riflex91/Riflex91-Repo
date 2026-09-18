@@ -10641,8 +10641,15 @@ class InventoryLedger {
       }
     }
     raw.sort((a, b) => a.character.localeCompare(b.character) || a.index - b.index || a.name.localeCompare(b.name));
-    const counts = new Map();
-    for (const row of raw) counts.set(stackKey(row.name, row.level), (counts.get(stackKey(row.name, row.level)) || 0) + row.q);
+    // Compound availability is character-local. Three identical copies spread
+    // across Merchant/Farmers are not a valid combine set for any one character.
+    const countsByCharacter = new Map();
+    for (const row of raw) {
+      const counts = countsByCharacter.get(row.character) || new Map();
+      const key = stackKey(row.name, row.level);
+      counts.set(key, (counts.get(key) || 0) + row.q);
+      countsByCharacter.set(row.character, counts);
+    }
 
     this.entries.clear();
     let hpReserved = 0;
@@ -10651,7 +10658,7 @@ class InventoryLedger {
     let sellProtected = 0;
     for (const row of raw) {
       if (this.entries.size >= this.capacity) { truncated += 1; continue; }
-      const classified = this._baseDisposition(row, gameData, contentDrift, counts);
+      const classified = this._baseDisposition(row, gameData, contentDrift, countsByCharacter.get(row.character) || new Map());
       let disposition = classified.disposition;
       const reasons = classified.reasons.slice();
       if (classified.sellProtected === true) sellProtected += 1;
@@ -10986,8 +10993,15 @@ function effectiveStats(meta, level) {
     const n = finite(value);
     if (n != null) out[key] = n;
   }
-  const upgrade = meta.upgrade && typeof meta.upgrade === 'object' ? meta.upgrade : {};
-  for (const [key, value] of Object.entries(upgrade)) {
+  // Adventure Land uses the same item level field for both upgradeable and
+  // compoundable equipment. Their per-level stat deltas live in different
+  // metadata objects, so score the mechanic that actually applies to the item.
+  const progression = meta.upgrade && typeof meta.upgrade === 'object'
+    ? meta.upgrade
+    : meta.compound && typeof meta.compound === 'object'
+      ? meta.compound
+      : {};
+  for (const [key, value] of Object.entries(progression)) {
     const n = finite(value);
     if (n == null) continue;
     out[key] = finite(out[key], 0) + n * Math.max(0, level);
@@ -11156,17 +11170,28 @@ class GearProgressionEvaluator {
     this.lastEvaluatedAt = now;
 
     const goals = this.list(this.capacity);
+    const currentGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
     const reservations = new Map();
-    for (const goal of goals) {
+    // Persisted goals remain useful history, but only goals confirmed in this
+    // exact evaluation may reserve live inventory. This prevents an already
+    // delivered/stale goal from trapping the next copy in RESERVE_PROGRESSION.
+    for (const goal of currentGoals) {
       const key = `${goal.item}:${goal.observedLevel}`;
       const current = reservations.get(key) || { name: goal.item, level: goal.observedLevel, quantity: 0, goalIds: [] };
       current.quantity += 1;
       current.goalIds.push(goal.id);
       reservations.set(key, current);
     }
-    this.lastEvaluation = { at: now, characters: characters.length, candidates: candidates.length, activeGoals: goals.length, blockedUnknownContent };
+    this.lastEvaluation = {
+      at: now,
+      characters: characters.length,
+      candidates: candidates.length,
+      activeGoals: currentGoals.length,
+      persistedGoals: goals.length,
+      blockedUnknownContent
+    };
     this.save();
-    return { status: this.status(), goals, reservations: [...reservations.values()].map(clone) };
+    return { status: this.status(), goals, currentGoals: currentGoals.map(clone), reservations: [...reservations.values()].map(clone) };
   }
 
   load() {
@@ -12695,14 +12720,36 @@ class ControlledMerchantExecutor {
 
     if (tx.type === 'SELL') {
       const consensus = sellMetadataConsensus(this.root, tx.item);
-      const blockers = [...new Set([...rawSellProtectionReasons(rawLiveItem), ...consensus.blockers])];
+      const rawBlockers = rawSellProtectionReasons(rawLiveItem);
+      const lifecycleReasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      const lifecycleProcessedSale = !!(tx.metadata && tx.metadata.lifecycleProcessedSale === true)
+        && lifecycleReasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+
+      // Ordinary SELL remains plain-stackable-material-only. The only exception
+      // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then
+      // hard protection (quest/event/cash/exchange/soulbound/special/conflict,
+      // locked or special live item) remains fail-closed.
+      const ignorableProcessedReasons = (reason) => (
+        reason === 'SELL_TYPE_NOT_LOW_RISK'
+        || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
+        || reason === 'SELL_COMPOUND_ITEM_PROTECTED'
+        || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
+        || /^SELL_GEAR_SIGNAL_/.test(reason)
+      );
+      const blockers = lifecycleProcessedSale
+        ? [...new Set([
+            ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
+            ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
+          ])]
+        : [...new Set([...rawBlockers, ...consensus.blockers])];
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
         return {
           ok: false,
           reason: 'SELL_ITEM_NOT_LOW_RISK',
           sellProtectionReasons: blockers,
-          sellMetadataSources: consensus.sources
+          sellMetadataSources: consensus.sources,
+          lifecycleProcessedSale
         };
       }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
@@ -12966,7 +13013,11 @@ class ControlledMerchantExecutor {
         fallbackSource: 'items.length',
         validRange: '0..isize-1'
       },
-      sellSafety: sellSafetyStatus(),
+      sellSafety: {
+        ...sellSafetyStatus(),
+        processedGearLifecycleException: 'LEDGER_AUTHORIZED_AFTER_UPGRADE_OR_COMPOUND_ONLY',
+        processedGearHardProtectionRetained: true
+      },
       verification: {
         attempts: this.verifyAttempts,
         delayMs: this.verifyDelayMs,
@@ -31786,8 +31837,18 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       if (value > this.options.upgradeValueCap) return { ok: false, reason: 'UPGRADE_VALUE_RISK_CAP' };
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
-      if (!goal) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
-      return { ok: true, inputs, meta, goal, value, grade, scroll: `scroll${grade}` };
+      const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
+      if (!goal && !economicLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && economicLifecycle) {
+        const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
+        if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
+        const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
+        const reasons = entry && Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+        if (!entry || entry.disposition !== 'RESERVE_UPGRADE' || !reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE')) {
+          return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
+        }
+      }
+      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, value, grade, scroll: `scroll${grade}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
@@ -31968,25 +32029,79 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (meta.quest || meta.q || meta.event || meta.cash || meta.cash_item || meta.soulbound || meta.soul_bound || meta.exchange || meta.e) {
         return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_PROTECTED_METADATA'] };
       }
+      const baseReasons = Array.isArray(base.reasons) ? base.reasons : [];
+      if (baseReasons.includes('CONTENT_REVALIDATION_REQUIRED')) return base;
+
+      const level = levelOf(row);
+      const rawValue = meta.g != null ? Number(meta.g) : Number(meta.gold);
+      const value = Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : null;
+      const same = safeCounts.get(`${name}:${level}`) || 0;
+      const grade = gradeForLevel(meta, level);
+      const underKeepValue = value != null && value < this.options.keepValue;
+
+      // Progression lifecycle comes before generic BANK fallback. Adventure Land
+      // exposes compound/upgrade metadata as objects, not necessarily boolean true.
+      // A complete compound set is actionable now; an incomplete level-0 set is
+      // retained until a third copy arrives instead of being hidden in the bank.
+      if (meta.compound) {
+        if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+          return {
+            disposition: 'RESERVE_COMPOUND',
+            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+          };
+        }
+        if (level === 0 && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
+          return {
+            disposition: 'KEEP',
+            reasons: [...baseReasons, 'AUTONOMOUS_COMPOUND_ACCUMULATION']
+          };
+        }
+        if (level > 0 && grade < 4 && underKeepValue) {
+          this.stats.autoLedgerSellClassifications += 1;
+          return {
+            disposition: 'SELL',
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+          };
+        }
+      }
+
+      // Generic low-risk upgradeable gear gets exactly one economy lifecycle
+      // upgrade unless an active GearProgression reservation has already claimed
+      // it for a higher party target. Higher levels are then either delivered by
+      // the gear-goal path or sold through the tightly scoped processed-gear gate.
+      if (meta.upgrade) {
+        if (level === 0 && this.options.maxUpgradeLevel > 0 && grade < 4 && (value != null && value <= this.options.upgradeValueCap)) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [...baseReasons, 'AUTONOMOUS_ECONOMIC_UPGRADE']
+          };
+        }
+        if (level > 0 && grade < 4 && underKeepValue) {
+          this.stats.autoLedgerSellClassifications += 1;
+          return {
+            disposition: 'SELL',
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT']
+          };
+        }
+      }
+
       let blockers = [];
       try {
         blockers = typeof ledger._resolveSellBlockers === 'function'
           ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
-      const rawValue = meta.g != null ? Number(meta.g) : Number(meta.gold);
-      const value = Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : null;
-      const bank = levelOf(row) > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
+      const bank = level > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
       if (bank) {
         this.stats.autoLedgerBankClassifications += 1;
         return {
           disposition: 'BANK',
-          reasons: [...(base.reasons || []), blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : levelOf(row) > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
+          reasons: [...baseReasons, blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : level > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
         };
       }
-      if (levelOf(row) === 0 && blockers.length === 0) {
+      if (level === 0 && blockers.length === 0) {
         this.stats.autoLedgerSellClassifications += 1;
-        return { disposition: 'SELL', reasons: [...(base.reasons || []), 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
+        return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
       }
       return base;
     };
@@ -32000,7 +32115,10 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         protectedItemsNeverAutoSold: true,
         progressionReservationsPreemptDisposition: true,
         lowRiskKnownSurplusAutoSell: true,
-        valuableOrProgressionItemsAutoBank: true,
+        valuableOrProgressionItemsAutoBank: false,
+        progressionLifecycleBeforeBank: true,
+        compoundMetadataObjectsSupported: true,
+        processedGearSaleRequiresLifecycleAuthorization: true,
         keepValue: this.options.keepValue
       });
     }
@@ -32253,6 +32371,56 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return true;
   }
 
+  async executeEconomyRequest(request) {
+    if (!request) return false;
+    if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+
+    if (request.type === 'BANK') {
+      const c = characterOf(this.runtime);
+      if (!c.bank || typeof c.bank !== 'object') {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
+        await this.atomic.namedServiceTravel('bank');
+        return true;
+      }
+    }
+    if (request.type === 'SELL') {
+      const canSell = rawFunction(this.root, 'can_sell');
+      let near = false;
+      if (canSell) {
+        try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+      }
+      if (!near) {
+        this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
+        const travelled = await this.atomic.namedServiceTravel('scroll0');
+        const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
+        if (!travelSucceeded) {
+          this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
+          return true;
+        }
+        if (canSell) {
+          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
+          if (!near) {
+            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
+            return true;
+          }
+        }
+      }
+    }
+
+    const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
+      ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
+      : this.runtime.planEconomyTransaction(request);
+    if (!planned || planned.accepted !== true || !planned.transaction) {
+      this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
+      return false;
+    }
+    this.stats.autonomousMerchantPlans += 1;
+    this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
+    const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+    this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
+    return true;
+  }
+
   async cycle() {
     this.stats.autonomousMerchantCycles += 1;
     if (!this.atomic.merchantActive() || !this.atomic.supervisorAllowed() || this.atomic.merchantInCombat()) { this.stats.autonomousMerchantHolds += 1; return false; }
@@ -32307,73 +32475,21 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
-    // A scoped mutation circuit must not starve independent economy work.
-    // Skip the blocked family and continue with the next ledger-authorized
-    // action instead of reserving the same doomed item every cycle.
-    let request = this.transactionFamilyOpen('UPGRADE') ? null : this.planUpgrade();
-    if (!request && !this.transactionFamilyOpen('COMPOUND')) request = this.planCompound();
-    if (!request) {
-      const lowRiskRequest = this.planSellOrBank();
-      if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) request = lowRiskRequest;
-    }
-    if (request) {
-      if (!await this.ensureStandClosed('ECONOMY_TRANSACTION_PREEMPT')) return true;
+    // Progression is processed before disposal. This restores the intended
+    // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
+    // Family-scoped circuits still allow unrelated later stages to continue.
+    let request = this.transactionFamilyOpen('COMPOUND') ? null : this.planCompound();
+    if (!request && !this.transactionFamilyOpen('UPGRADE')) request = this.planUpgrade();
+    if (request) return this.executeEconomyRequest(request);
 
-      if (request.type === 'BANK') {
-        const c = characterOf(this.runtime);
-        if (!c.bank || typeof c.bank !== 'object') {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: 'BANK_REQUIRED', destination: 'bank' };
-          await this.atomic.namedServiceTravel('bank');
-          return true;
-        }
-      }
-      if (request.type === 'SELL') {
-        const canSell = rawFunction(this.root, 'can_sell');
-        let near = false;
-        if (canSell) {
-          try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
-        }
-        // Adventure Land does not guarantee a public can_sell() helper. The old
-        // code treated a missing probe as proof that the merchant was already in
-        // range, which produced repeated sell()->distance failures. Unknown
-        // proximity is now fail-closed: travel to a known vendor first, then
-        // execute the already-authorized transaction in the same cycle.
-        if (!near) {
-          this.lastMerchantPlan = { at: this.now(), action: 'SERVICE_TRAVEL', reason: canSell ? 'SELL_VENDOR_REQUIRED' : 'SELL_VENDOR_PROXIMITY_UNKNOWN', destination: 'scroll0' };
-          const travelled = await this.atomic.namedServiceTravel('scroll0');
-          const travelSucceeded = travelled === true || !!(travelled && travelled.ok === true);
-          if (!travelSucceeded) {
-            this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: travelled && travelled.reason || 'SELL_VENDOR_TRAVEL_FAILED', destination: 'scroll0', request: clone(request) };
-            return true;
-          }
-          if (canSell) {
-            try { near = canSell.fn.call(canSell.owner) === true; } catch (_) { near = false; }
-            if (!near) {
-              this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: 'SELL_VENDOR_NOT_REACHED', destination: 'scroll0', request: clone(request) };
-              return true;
-            }
-          }
-        }
-      }
-
-      const planned = ['UPGRADE', 'COMPOUND'].includes(request.type)
-        ? this.runtime.transactionEngine.planAtomic(request, { ledger: this.runtime.inventoryLedger, snapshot: this.runtime.lastSnapshot })
-        : this.runtime.planEconomyTransaction(request);
-      if (!planned || planned.accepted !== true || !planned.transaction) {
-        this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: planned && planned.reason || 'TRANSACTION_PLAN_REJECTED', request: clone(request) };
-        return false;
-      }
-      this.stats.autonomousMerchantPlans += 1;
-      this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'LEDGER_AUTHORIZED_TRANSACTION', transactionId: planned.transaction.id, type: request.type, request: clone(request) };
-      const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
-      this.lastMerchantAction = { at: this.now(), transactionId: planned.transaction.id, type: request.type, result: clone(result) };
-      return true;
-    }
-
-    // Non-critical gear goals use otherwise-idle merchant turns. A rejected
-    // service execution now returns false from deliverGearGoal(), so a full raw
-    // action budget does not masquerade as useful work.
+    // Re-evaluate useful gear before any disposal action. A current GearProgression
+    // reservation therefore always gets the chance to reach its Farmer first.
     if (await this.deliverGearGoal()) return true;
+
+    const lowRiskRequest = this.planSellOrBank();
+    if (lowRiskRequest && !this.transactionFamilyOpen(lowRiskRequest.type)) {
+      return this.executeEconomyRequest(lowRiskRequest);
+    }
 
     this.lastMerchantPlan = { at: this.now(), action: 'IDLE', reason: 'NO_LEDGER_AUTHORIZED_ACTION' };
     return false;
@@ -32399,7 +32515,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       autonomousLowRiskDisposition: true,
       autonomousPotionRestock: true,
       autonomousGearGoalDelivery: true,
-      economyBeforeNonCriticalGearDelivery: true,
+      economyBeforeNonCriticalGearDelivery: false,
+      itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
@@ -32585,9 +32702,36 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
-      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character } };
+      return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
     }
-    return null;
+
+    // If no party goal claims an upgradeable level-0 item, perform one bounded
+    // economy lifecycle upgrade. The result is re-evaluated against the party
+    // before it can become an authorized processed-gear SELL candidate.
+    const fallback = ledger.list(1000)
+      .filter((row) => row && row.character === c.name && row.disposition === 'RESERVE_UPGRADE' && !this.atomic.mutationRetryBlocked(row, 'UPGRADE'))
+      .sort((a, b) => levelOf(a) - levelOf(b) || String(a.name || '').localeCompare(String(b.name || '')) || Number(a.index) - Number(b.index))
+      .find((entry) => {
+        const meta = gd.items && gd.items[entry.name];
+        if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
+        if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
+        const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+        return value <= this.options.upgradeValueCap;
+      });
+    if (!fallback) return null;
+    return {
+      type: 'UPGRADE',
+      character: c.name,
+      index: fallback.index,
+      indices: [fallback.index],
+      metadata: {
+        source: 'ALPHA27_AUTONOMOUS_PLANNER',
+        lifecycle: 'ECONOMIC_PROCESSING',
+        economicLifecycle: true,
+        targetLevel: 1,
+        targetCharacter: null
+      }
+    };
   }
 
   planCompound() {
@@ -32616,8 +32760,56 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const ledger = this.runtime.inventoryLedger;
     if (!c || !ledger) return null;
     const rows = ledger.list(1000).filter((row) => row && row.character === c.name);
-    const sell = rows.find((row) => row.disposition === 'SELL');
-    if (sell) return { type: 'SELL', character: c.name, index: sell.index, quantity: Math.max(1, finite(sell.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
+    const gear = this.runtime.gearProgression;
+    let gearStatus = null;
+    let gearGoals = [];
+    try {
+      gearStatus = gear && typeof gear.status === 'function' ? gear.status() : null;
+      gearGoals = gear && typeof gear.list === 'function' ? gear.list(256) : [];
+    } catch (_) {
+      gearStatus = null;
+      gearGoals = [];
+    }
+
+    const sell = rows.find((row) => {
+      if (row.disposition !== 'SELL') return false;
+      const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
+      if (!reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL')) return true;
+
+      // Never race a freshly mutated item against stale GearProgression state.
+      // At least one gear evaluation must have observed this ledger generation,
+      // and any still-active Farmer goal blocks disposal.
+      const observedAt = finite(row.observedAt, 0);
+      const evaluatedAt = finite(gearStatus && gearStatus.lastEvaluatedAt, 0);
+      if (!gearStatus || evaluatedAt < observedAt) return false;
+      const activeFarmerGoal = gearGoals.find((goal) => (
+        goal
+        && goal.sourceCharacter === c.name
+        && goal.character
+        && goal.character !== c.name
+        && goal.item === row.name
+        && levelOf({ level: goal.observedLevel }) === levelOf(row)
+        && !(goal.id != null && this.completedGearGoalClaims.has(String(goal.id)))
+      ));
+      return !activeFarmerGoal;
+    });
+
+    if (sell) {
+      const reasons = Array.isArray(sell.reasons) ? sell.reasons.map(String) : [];
+      const processed = reasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+      return {
+        type: 'SELL',
+        character: c.name,
+        index: sell.index,
+        quantity: Math.max(1, finite(sell.q, 1)),
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          lifecycleProcessedSale: processed,
+          lifecycleReasons: processed ? reasons.filter((reason) => /^AUTONOMOUS_(PROCESSED_GEAR_SELL|COMPOUND_RESULT|UPGRADE_RESULT)$/.test(reason)) : [],
+          gearEvaluationAt: processed ? finite(gearStatus && gearStatus.lastEvaluatedAt, null) : null
+        }
+      };
+    }
     const bank = rows.find((row) => row.disposition === 'BANK');
     if (bank) return { type: 'BANK', character: c.name, index: bank.index, quantity: Math.max(1, finite(bank.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
     return null;
