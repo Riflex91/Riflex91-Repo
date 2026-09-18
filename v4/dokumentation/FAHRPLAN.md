@@ -31,6 +31,31 @@ Nach jedem Entwicklungsblock gilt:
 
 Fehlerbehebungen duerfen den Umfang eines Blocks nicht nebenbei auf einen neuen Funktionsbereich erweitern. Wird ein groesseres neues Problem entdeckt, erhaelt es einen eigenen spaeteren Block.
 
+## Durchgehende Freigabestufen fuer Laufzeitfaehigkeiten
+
+Ab Block 8.5 wird jede neue oder wesentlich geaenderte Laufzeitfaehigkeit stufenweise freigegeben:
+
+1. Wiederholung, Simulation oder deterministischer Offline-Test
+2. Schattenbetrieb ohne echte Spielaktion
+3. begrenzter kontrollierter Live-Test
+4. laengerer Soak-Test mit Telemetrie, Recovery-Nachweis und anschliessender Gesamtauswertung
+
+Eine Stufe darf nur beginnen, wenn die vorherige gruen ist. Sicherheitsrelevante Aenderungen duerfen keine Stufe ueberspringen. Die bereits vorgesehenen 24-Stunden-, 72-Stunden- und 7-Tage-Kampagnen bleiben als uebergeordnete Systemfreigaben bestehen und werden durch diese Zwischenstufen nicht ersetzt.
+
+## Recovery als Querschnittsregel
+
+Jede neue Laufzeitfaehigkeit muss neben ihrem normalen Ablauf auch ihren Wiederanlauf beschreiben und pruefen. Mindestens betrachtet werden:
+
+- Verbindungsabbruch und Wiederverbindung
+- Neustart waehrend laufender Arbeit
+- veraltete oder widerspruechliche Daten
+- blockierte oder abgebrochene Bewegung
+- ausgefallene Gruppenmitglieder
+- unterbrochene mehrstufige Vorgaenge
+- sichere Rueckkehr in einen eindeutigen Zustand
+
+Recovery darf keine Sicherheitspruefung umgehen und keine halbfertige Aktion stillschweigend als erfolgreich behandeln.
+
 # Entwicklungsbloecke
 
 ## Block 1 – Grundlage und gemeinsame Regeln
@@ -110,6 +135,8 @@ Gemeinsam umgesetzt werden:
 
 - strukturierte BotEreignisse
 - fortlaufende Entscheidungs- und Aktionsspuren
+- versionierte EntscheidungsDatensaetze mit Situation, erkannten Ereignissen, betrachteten oder zulaessigen Aktionen, gewaehlter Aktion, Begruendung, erwartetem Ergebnis und tatsaechlichem Ergebnis
+- eindeutige Verknuepfung einer Entscheidung mit den daraus entstandenen AktionsAnfragen und Ergebnissen
 - Ringpuffer fuer die letzten Minuten
 - dauerhafte, zeitgestempelte Leistungsdaten fuer Erfahrung, Gold, Laufzeit, Tode, Rueckzuege, Verbindungsabbrueche und Neustarts
 - Daten so speichern, dass Neustarts den spaeteren 24-Stunden-Bericht nicht unterbrechen
@@ -207,7 +234,7 @@ Hinweis: Dieser Blockabschluss ersetzt nicht die spaeteren allgemeinen 24-Stunde
 
 ## Block 8 – Gruppenkoordination
 
-Status: **naechster Entwicklungsblock**.
+Status: **in Arbeit; vor Block 9 folgt verbindlich Block 8.5**.
 
 Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 
@@ -228,6 +255,37 @@ Abschlusspruefung:
 - gezielte Ausfalltests einzelner Gruppenmitglieder
 - Wiederaufbau nach Verbindungsabbruch
 - anschliessender 72-Stunden-Gruppentest
+
+## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
+
+Ziel: Die bereits vorhandenen V4-Faehigkeiten werden vor Haendler-, Bank- und Wirtschaftslogik einheitlich beobachtbar, erklaerbar, sicher bedienbar und wiederanlauffaehig gemacht.
+
+Dieser Block baut keine neue fachliche Spielstrategie. Er schliesst die Instrumentierungs- und Bedienluecke zwischen Gruppenkoordination und den zustandsreichen Vorgaengen aus Block 9 und 10.
+
+Gemeinsam umgesetzt werden:
+
+- verbindliche EntscheidungsDatensaetze fuer wichtige Gruppenentscheidungen gemaess dem in Block 4 definierten Format
+- vorhandene Block-1-bis-8-Daten werden nur dort nachtraeglich in das neue Format ueberfuehrt, wo dies eindeutig und ohne erfundene Informationen moeglich ist
+- gemeinsame Status- und SteuerSchnittstelle zwischen V4-Kern und Oberflaechen
+- strikte Trennung: Ingame-HUD und spaetere Web-Oberflaeche enthalten keine Bot-Fachlogik
+- schlankes Ingame-HUD fuer Charakter- und Gruppenstatus, aktuellen Auftrag, aktuelle Entscheidung, Sicherheitslage, Warnungen und Diagnose
+- sichere Basisbedienung wie Pausieren, Fortsetzen und Diagnose ausschliesslich ueber die bestehenden Bedien- und Aktionssicherungen
+- einheitliche Recovery- und Fehlerzustaende fuer die bereits vorhandenen Laufzeitmodule
+- nachvollziehbarer Umgang mit Reconnect, veralteten Daten, unterbrochener Arbeit und Wiederaufnahme
+- das Ingame-HUD bleibt austauschbar; Ausfall oder Schliessen der Anzeige darf die Bot-Laufzeit nicht beeinflussen
+- das vollstaendige Web-Command-Center bleibt Bestandteil von Block 12
+
+Abschlusspruefung:
+
+- wichtige Gruppenentscheidungen erzeugen einen versionierten, nachvollziehbaren EntscheidungsDatensatz
+- Entscheidung, daraus entstandene AktionsAnfrage und tatsaechliches Ergebnis lassen sich eindeutig zusammenfuehren
+- Wiederholung derselben fachlichen Eingaben erzeugt dieselbe fachliche Entscheidung; Zeitstempel oder reine Laufzeitkennungen duerfen den Vergleich nicht verfaelschen
+- das Ingame-HUD kann den V4-Kern beobachten, ohne Fachlogik zu duplizieren
+- jede veraendernde HUD-Aktion durchlaeuft BedienSicherung und die zentrale Aktionssteuerung
+- Schliessen oder Fehler des HUD veraendert die laufende Bot-Logik nicht
+- Reconnect, Neustart, veraltete Daten und unterbrochene Arbeit besitzen einen getesteten sicheren Recovery-Pfad
+- alle bestehenden Block-1-bis-8-Pruefungen bleiben gruen
+- vor Beginn von Block 9 werden die durchgehenden Freigabestufen fuer die neuen Block-8.5-Pfade vollstaendig durchlaufen
 
 ## Block 9 – Haendlerdienste und Bank
 
@@ -271,15 +329,19 @@ Abschlusspruefung:
 - keine unbeabsichtigte Gegenstandsvernichtung
 - frisch beschaffte Arbeitsgegenstaende werden nicht versehentlich wieder eingelagert
 
-## Block 11 – Lernen und kontrollierte Versuche
+## Block 11 – Lernen, Schattenentscheidungen und kontrollierte Versuche
 
-Ziel: V4 darf aus Erfahrungen besser werden, ohne Sicherheitsgrenzen selbst zu veraendern.
+Ziel: V4 darf aus Erfahrungen besser werden, ohne Sicherheitsgrenzen oder Produktionslogik unkontrolliert selbst zu veraendern.
 
 Gemeinsam umgesetzt werden:
 
+- die EntscheidungsDatensaetze aus Block 4 und 8.5 bilden die primaere nachvollziehbare Lernquelle
 - Situation -> Moeglichkeiten -> Entscheidung -> erwartetes Ergebnis -> tatsaechliches Ergebnis
 - Erfahrungsablage
 - versionierte Lerndatensaetze als reproduzierbare Ableitung aus Rohdaten
+- neue Strategien werden zuerst offline bewertet und danach als Schattenentscheidung parallel zur produktiven Entscheidung berechnet
+- eine Schattenentscheidung darf keine Adventure-Land-Aktion ausloesen
+- erst nach bestandener Offline- und Schattenbewertung sind begrenzte kontrollierte Versuche zulaessig
 - kontrollierte Versuche
 - Vergleich bestehender und neuer Strategie
 - Mindestmenge an Belegen vor einer Aenderung
@@ -299,11 +361,13 @@ Abschlusspruefung:
 - bei Notfallauslastung wird Datenerfassung reduziert, solange der Lern- und Sicherungsnachweis nicht vollstaendig ist
 - nach vollstaendig bestaetigtem Lernzyklus werden ausschliesslich bereits verarbeitete loeschbare Rohdaten bis zum sicheren Zielstand freigegeben
 
-## Block 12 – Web-Oberflaeche, Tagesbericht, Schnittstelle und Archiv
+## Block 12 – Web-Command-Center, Tagesbericht, Schnittstelle und Archiv
 
-Ziel: Laufzeit, historische Daten, Tagesberichte und Entwicklung werden an einer Stelle sichtbar und fehlbedienungssicher bedienbar.
+Ziel: Laufzeit, historische Daten, Tagesberichte und Entwicklung werden an einer Stelle sichtbar und fehlbedienungssicher bedienbar. Das Web-Command-Center ist die umfangreiche Verwaltungs- und Analyseoberflaeche; das fruehe Ingame-HUD aus Block 8.5 bleibt bewusst schlank.
 
 Gemeinsam umgesetzt werden:
+
+- gemeinsame Status- und SteuerSchnittstelle aus Block 8.5 wiederverwenden; keine Bot-Fachlogik im Web-Command-Center
 
 - eindeutiger Gesamtzustand `GRUEN`, `GELB` oder `ROT` immer zusammen mit normalem deutschen Text
 - gefuehrte Ersteinrichtung mit automatischer Pruefung jedes Schrittes
