@@ -109,6 +109,19 @@ The narrow browser contract adapter now exists, but the host still needs a concr
 
 A Playwright, Puppeteer, CDP or equivalent implementation is an implementation choice of that driver, not part of the gameplay bundle and not a source of gameplay authority.
 
+
+## Windows logon autostart and reboot recovery
+
+Step 10 adds a production baseline for the user's Windows machine under `ops/windows-host/**`.
+
+The host is deliberately installed as a **per-user Task Scheduler task at logon**, not as a classic Windows Service. Chromium and the Adventure Land profile must remain in the same interactive Windows-user context; Session-0 service isolation is therefore avoided.
+
+The scheduled task starts `v3/host/windows-host-service.js` through a small PowerShell runner. The installer creates a dedicated browser profile and host-state directory under `%LOCALAPPDATA%\\AioBot`, stores the loopback host-API token with DPAPI `CurrentUser`, configures one task instance, three outer restart attempts at two-minute intervals, and then starts the task.
+
+Inside Node, `PersistentWindowsStartBudget` adds an independent persisted crash-loop circuit across process and machine restarts. Corrupt/unreadable supervisor state fails closed. `WindowsHostServiceSupervisor` starts and stops only the existing `ProductionHostHarness`; it adds no gameplay authority. SIGINT/SIGTERM uses the bounded harness shutdown path.
+
+After a Windows reboot, recovery occurs when the owning Windows user logs in. Cold-boot Adventure Land credential automation remains intentionally outside this step; the dedicated browser profile must already have a valid session.
+
 ## Safe deployment sequence
 
 A production canary should follow this order:
@@ -137,7 +150,7 @@ Pending durable alerts are not discarded merely because the browser process stop
 The following remain separate work and must not be inferred from the existence of the harness or `BrowserBotClient`:
 
 - Adventure Land login/session bootstrap and credential handling for a cold machine boot; the CDP driver deliberately attaches only to an already authenticated browser profile/session;
-- OS service definitions such as systemd/Windows Service/container orchestration and machine reboot recovery;
+- non-Windows service definitions such as systemd/container orchestration;
 - production secret-manager integration;
 - provider-specific email/WhatsApp/push account setup and fallback routing;
 - remote dashboard exposure/authentication;

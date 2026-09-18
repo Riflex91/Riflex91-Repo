@@ -194,6 +194,28 @@ Required behavior:
 
 This step does not add login credentials, public CDP exposure, arbitrary remote evaluation, gameplay action authority, or OS service installation.
 
+## Step 10 — Windows host autostart and machine-reboot recovery
+
+**Branch:** `architecture/10-production-host-service`
+
+Make the existing production host harness recover automatically on the user's Windows gaming machine without turning the browser host into a Windows Session-0 service.
+
+Required behavior:
+
+- add a bounded Windows host supervisor around `ProductionHostHarness`;
+- persist service start attempts/circuit state outside the browser process so crash loops remain bounded across host-process and machine restarts;
+- run through Windows Task Scheduler in the interactive user session, because the Adventure Land browser/profile must remain in that user's desktop/profile context;
+- launch the browser through the existing managed launcher, then let the Step-9 loopback-CDP session discover the Adventure Land runtime;
+- provide graceful Ctrl+C/SIGINT/SIGTERM shutdown through the existing bounded harness stop path;
+- install a per-user scheduled task with logon autostart, bounded restart attempts/interval, single-instance behavior and no generic shell/remote-control surface;
+- keep persistent state under a dedicated per-user Windows data directory;
+- keep secrets outside repository/config/status payloads;
+- fail closed on corrupt persistent supervisor state or invalid production configuration;
+- add crash-loop/start-budget/clean-shutdown/restart tests and a long supervisor soak;
+- preserve `gameplayActionAuthority:false` and `rawGameplayActionAuthority:false`.
+
+This step does not add cold-boot Adventure Land credential automation, public CDP access, arbitrary browser evaluation, remote shell access, systemd/Linux deployment or gameplay policy to the host.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.
@@ -209,4 +231,4 @@ The `next_step` field should be the lowest numbered step that is not `completed`
 
 ## Completion condition
 
-The architecture run is finished when all eight steps are `completed`, the full repository check is green, no obsolete architecture-run hotfix/patch layer remains, and new features can be implemented without extending the old alpha inheritance chain.
+The architecture run is finished when all defined steps are `completed`, the full repository check is green, no obsolete architecture-run hotfix/patch layer remains, and new features can be implemented without extending the old alpha inheritance chain.

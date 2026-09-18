@@ -110,7 +110,7 @@ Alpha.20.5 now includes a concrete **production host harness foundation** under 
 - `BrowserBotClient` for the four-method, origin-locked browser contract bridge;
 - `ProductionHostHarness` for wiring those pieces together without adding gameplay authority.
 
-`ProductionHostHarness` may still receive a prebuilt `botClient`, or it can construct `BrowserBotClient` from an injected validated browser Page/Frame-like context. This remains intentionally **not yet a turnkey unattended deployment package**: it does not yet own browser/session discovery and login bootstrapping, operating-system service supervision, production secrets, provider accounts, durable-directory lifecycle/backups or machine-specific browser installation.
+`ProductionHostHarness` may receive a prebuilt `botClient`, an injected validated Page/Frame-like context, or the Step-9 loopback CDP session driver. Step 10 adds a Windows per-user Task Scheduler supervisor around this harness, including persisted crash-loop budgeting and graceful host shutdown. It remains intentionally **not yet a credential/bootstrap system**: Adventure Land login automation, production secret-manager integration, provider accounts and non-Windows service orchestration remain separate.
 
 The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
 
@@ -121,7 +121,7 @@ Before the unattended overnight gate, the deployed stack must prove all of the f
 - the loopback CDP production session driver can supply the correct Adventure Land execution context to `BrowserBotClient` without exposing generic page-evaluation or gameplay authority;
 - all four narrow bridge calls work against a real Adventure Land session, including bot-owned `reconciliationStatus()`;
 - live beacon/dead-man detection continues outside the browser process;
-- bounded real browser/process restart and restart-circuit behavior work under the target operating system/service manager;
+- bounded real browser/process restart and restart-circuit behavior work under the Windows Task Scheduler + persistent host start circuit;
 - after restart, a fresh run is observed and deterministic bot reconciliation completes before the host considers recovery clean;
 - durable alert handoff survives host/browser restarts and corrupt/unavailable persistence fails closed;
 - at least one real critical alert delivery route is demonstrated, with the required fallback route configured independently;
