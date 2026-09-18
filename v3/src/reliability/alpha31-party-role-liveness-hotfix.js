@@ -70,6 +70,7 @@ class Alpha31PartyRoleLivenessHotfix {
       aggroOrbitMoves: 0,
       aggroOrbitEscapeMoves: 0,
       aggroOrbitNoWaypoint: 0,
+      aggroEmergencyTerrainEscapes: 0,
       visiblePartyPositionRefreshes: 0,
       followerSmartRegroups: 0,
       followerSmartRetargets: 0,
@@ -242,7 +243,49 @@ class Alpha31PartyRoleLivenessHotfix {
       this.stats.aggroOrbitEvaluations += 1;
       const waypoint = this._orbitWaypoint(character, target);
       if (!waypoint) {
+        let emergency = null;
+        try {
+          emergency = farmer.safeRetreat && typeof farmer.safeRetreat.evaluate === 'function'
+            ? farmer.safeRetreat.evaluate(character, [target])
+            : null;
+        } catch (_) { emergency = null; }
+        const beforeDistance = distance(character, target);
+        const afterDistance = emergency && emergency.x != null && emergency.y != null
+          ? distance({ x: emergency.x, y: emergency.y }, target)
+          : -Infinity;
+        if (emergency && emergency.shouldMove === true
+          && Number.isFinite(afterDistance)
+          && afterDistance > beforeDistance + 1) {
+          this.stats.aggroEmergencyTerrainEscapes += 1;
+          this._event('ALPHA31_AGGRO_EMERGENCY_TERRAIN_ESCAPE', 'warn', 'NO_SAFE_IN_RANGE_KITE_WAYPOINT', {
+            targetId: target.id != null ? String(target.id) : null,
+            targetType: target.mtype || null,
+            beforeDistance: Number(beforeDistance.toFixed(2)),
+            afterDistance: Number(afterDistance.toFixed(2)),
+            retreatReason: emergency.reason || null
+          });
+          return {
+            ...decision,
+            shouldMove: true,
+            reason: 'AGGRO_EMERGENCY_TERRAIN_ESCAPE',
+            x: emergency.x,
+            y: emergency.y,
+            step: emergency.step,
+            distance: Number(beforeDistance.toFixed(2)),
+            range: Number(character.range),
+            desiredDistance: emergency.desiredDistance == null ? null : Number(emergency.desiredDistance),
+            safeEnemyDistance: afterDistance,
+            terrainAware: emergency.terrainAware !== false,
+            alpha31SafeOrbit: true,
+            alpha31EmergencyTerrainEscape: true
+          };
+        }
         this.stats.aggroOrbitNoWaypoint += 1;
+        this._event('ALPHA31_AGGRO_TERRAIN_ESCAPE_UNAVAILABLE', 'warn', 'NO_REACHABLE_AGGRO_ESCAPE_WAYPOINT', {
+          targetId: target.id != null ? String(target.id) : null,
+          targetType: target.mtype || null,
+          distance: Number.isFinite(beforeDistance) ? Number(beforeDistance.toFixed(2)) : null
+        });
         return decision;
       }
       if (waypoint.direction) this._setOrbitDirection(character, waypoint.direction);
