@@ -32,12 +32,17 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
 
       const gearProgression = this.runtime.gearProgression;
       let futureFarmerProtection = null;
+      let futureSellSafety = null;
       try {
         futureFarmerProtection = gearProgression && typeof gearProgression.futureProtectionFor === 'function'
           ? gearProgression.futureProtectionFor(row.character, row.index, name, level)
           : null;
+        futureSellSafety = gearProgression && typeof gearProgression.futureSellSafetyFor === 'function'
+          ? gearProgression.futureSellSafetyFor(row.character, row.index, name, level)
+          : null;
       } catch (_) {
         futureFarmerProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        futureSellSafety = null;
       }
 
       if (futureFarmerProtection) {
@@ -86,10 +91,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level > 0 && grade < 4 && underKeepValue) {
+          if (!futureSellSafety || futureSellSafety.checked !== true) {
+            return {
+              disposition: 'KEEP',
+              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            };
+          }
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_COMPOUND_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
           };
         }
       }
@@ -106,10 +117,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level > 0 && grade < 4 && underKeepValue) {
+          if (!futureSellSafety || futureSellSafety.checked !== true) {
+            return {
+              disposition: 'KEEP',
+              reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
+            };
+          }
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
-            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT']
+            reasons: [...baseReasons, 'AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_UPGRADE_RESULT', 'FUTURE_FARMER_GEAR_EVALUATED_SAFE']
           };
         }
       }
@@ -150,6 +167,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         processedGearSaleRequiresLifecycleAuthorization: true,
         futureFarmerGearValuePreemptsProcessedSale: true,
         futureGearProbeIncludesCompoundAndUpgrade: true,
+        processedGearSellFailClosedWithoutFutureEvaluation: true,
         keepValue: this.options.keepValue
       });
     }
