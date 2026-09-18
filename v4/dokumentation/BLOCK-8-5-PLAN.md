@@ -98,7 +98,7 @@ HUD-Ausfall oder Schliessen darf die Bot-Laufzeit nicht beeinflussen.
 
 Umgesetzt ist `V4IngameHud` als rein beobachtender Browser-Adapter auf der gemeinsamen `StatusSchnittstelle`. Das HUD akzeptiert nur Status mit `nurLesen: true` und explizit fehlender Spiel-, Bedien- und Neustartautoritaet. Es besitzt in 8.5.6 nur lokale Anzeigeaktionen zum Minimieren und Schliessen; sein eigener Aktualisierungstimer ist vom Bot-/Produktionsheartbeat getrennt.
 
-### Schritt 8.5.7 – sichere Basisbedienung — **IN ARBEIT · KERN IMPLEMENTIERT**
+### Schritt 8.5.7 – sichere Basisbedienung — **IMPLEMENTIERT**
 
 Erste veraendernde HUD-Funktionen bleiben bewusst klein:
 
@@ -114,7 +114,7 @@ Kein direkter Adventure-Land-Aufruf im HUD.
 
 Der zentrale Kern ist implementiert: `LaufzeitSteuerung` sperrt bei Pause normale/Hintergrundarbeit, laesst Notfall/Safety zu und ist mit `AktionsSteuerung` gekoppelt. `SichereBasisBedienung` erzwingt kanonische BedienAnfragen, Generationsschutz gegen stale Ansichten, Doppelklick-/Wiederholungsschutz und ausdrueckliche Bestaetigung fuer Fortsetzen.
 
-Die Produktionsruntime-Grenze ist ebenfalls implementiert: Bootstrap und AktionsSteuerung teilen dieselbe LaufzeitSteuerung; Runtime/Bootstrap werden fuer die neue Schnittstelle auf 1.1.5 angehoben. Nach aussen existieren nur `basisBedienStatus()`, `erstelleBasisBedienAnfrage(...)` und `fuehreBasisBedienAnfrage(...)`. Bot-Pause und Produktionsheartbeat bleiben getrennt. Die sichtbare HUD-Anbindung folgt als letzter separater PR; erst danach ist 8.5.7 vollstaendig.
+Die Produktionsruntime-Grenze ist ebenfalls implementiert: Bootstrap und AktionsSteuerung teilen dieselbe LaufzeitSteuerung; Runtime/Bootstrap wurden fuer die neue Schnittstelle auf 1.1.5 angehoben. Nach aussen existieren nur `basisBedienStatus()`, `erstelleBasisBedienAnfrage(...)` und `fuehreBasisBedienAnfrage(...)`. Bot-Pause und Produktionsheartbeat bleiben getrennt. Der getrennte `V4IngameHudBedienung`-Adapter bietet Diagnose, Pause und zweistufig bestaetigtes Fortsetzen ausschliesslich ueber diesen sicheren Kanal und verwendet die zuletzt beobachtete Laufzeit-Generation als Stale-Schutz.
 
 ### Schritt 8.5.8 – Recovery-Abnahme
 

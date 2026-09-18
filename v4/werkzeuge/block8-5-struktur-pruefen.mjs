@@ -38,7 +38,10 @@ const dateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-produktions-einstieg.ts',
   'laufzeit/tests/block8-produktions-bootstrap.test.mjs',
   'laufzeit/tests/block8-produktions-einstieg.test.mjs',
-  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-RUNTIME.md'
+  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-RUNTIME.md',
+  'werkzeuge/block8-5-ingame-hud-bedienung.js',
+  'laufzeit/tests/block8-5-ingame-hud-bedienung.test.mjs',
+  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-HUD.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -580,12 +583,12 @@ for (const pflicht of [
 
 const basisDokument = await readFile(path.join(wurzel, dateien[28]), 'utf8');
 for (const pflicht of [
-  '8.5.7 in Arbeit',
+  'vollstaendige Schritt 8.5.7 ist inzwischen inklusive Produktionsruntime-Grenze und HUD-Bedienadapter abgeschlossen',
   'BedienAnfrage -> BedienSicherung -> LaufzeitSteuerung / AktionsSteuerung',
   'automatischeFortsetzung: false',
   'erwarteteLaufzeitGeneration',
   'Doppelklick- und Wiederholungsschutz',
-  'Noch offen in 8.5.7'
+  '8.5.8 Recovery-Abnahme'
 ]) {
   if (!basisDokument.includes(pflicht)) throw new Error(`Basisbedienungs-Kerndokumentation fehlt: ${pflicht}`);
 }
@@ -682,11 +685,94 @@ for (const pflicht of [
   'erstelleBasisBedienAnfrage',
   'fuehreBasisBedienAnfrage',
   'Bot-Pause ist keine Heartbeat-Pause',
-  'Noch offen in 8.5.7'
+  'sichtbare HUD-Bedienadapter ist inzwischen ebenfalls vorhanden',
+  'Schritt 8.5.7 ist vollstaendig implementiert',
+  '8.5.8 Recovery-Abnahme'
 ]) {
   if (!runtimeBedienDokument.includes(pflicht)) {
     throw new Error(`Produktions-Basisbedienungsdokumentation fehlt: ${pflicht}`);
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.7 Runtime-Grenze geprueft: zentraler Bedienkern und Produktionsruntime nutzen dieselbe Laufzeit-/AktionsSteuerung; mutierende Bedienung bleibt hinter BedienSicherung und Produktionsfreigabe, Bot-Pause bleibt vom Heartbeat getrennt.');
+const hudBedienung = await readFile(path.join(wurzel, dateien[35]), 'utf8');
+for (const pflicht of [
+  'V4IngameHudBedienung',
+  'basisBedienStatus',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  'pauseAnfordern',
+  'fortsetzenAnfordern',
+  'fortsetzenBestaetigen',
+  'erwarteteLaufzeitGeneration',
+  'ausdruecklichBestaetigt',
+  'v4-ingame-hud',
+  'v4hud-inhalt',
+  '  let vorgangsNummer = 0;',
+  'vorgangsNummer += 1'
+]) {
+  if (!hudBedienung.includes(pflicht)) throw new Error(`HUD-Bedienadapter fehlt: ${pflicht}`);
+}
+if (hudBedienung.includes('    let vorgangsNummer = 0;')) {
+  throw new Error('HUD-Bedienadapter darf die Vorgangsnummer nicht pro Controller zuruecksetzen.');
+}
+for (const verboten of [
+  '.pausiereLebensnachweisAutomatik(',
+  '.setzeLebensnachweisAutomatikFort(',
+  '.reicheAnfrageEin(',
+  '.verarbeiteNaechsteAktion(',
+  '.brecheAktionAb(',
+  '.schliesseAktionAb(',
+  '.stoppe(',
+  'Date.now(',
+  'Math.random(',
+  'location.reload(',
+  'window.close('
+]) {
+  if (hudBedienung.includes(verboten)) {
+    throw new Error(`HUD-Bedienadapter darf keinen direkten Heartbeat-/Aktions-/Neustartpfad verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(hudBedienung)) {
+    throw new Error(`HUD-Bedienadapter darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+
+const hudBedienTests = await readFile(path.join(wurzel, dateien[36]), 'utf8');
+for (const pflicht of [
+  'exportiert nur sichere Controller- und Montagehelfer',
+  'akzeptiert nur Runtime mit den drei sicheren Basisbedienungs-Methoden',
+  'Diagnose nutzt ausschliesslich sicheren Anfragepfad',
+  'Pause verwendet die zuletzt beobachtete Generation',
+  'stale HUD-Generation bleibt sichtbar blockiert',
+  'Fortsetzen benoetigt erst lokale Folgenanzeige',
+  'Fortsetzen ohne vorherige Bestaetigungsphase ruft Runtime nicht auf',
+  'wiederholter Pause-Klick wird lokal blockiert',
+  'Vorgangskennungen sind lokal monoton',
+  'Remount erzeugt ueber neue Controller hinweg keine identische Vorgangskennung',
+  'besitzt keinen direkten Spiel-, Heartbeat-, Aktions- oder Neustartpfad'
+]) {
+  if (!hudBedienTests.includes(pflicht)) throw new Error(`HUD-Bedienadapter-Test fehlt: ${pflicht}`);
+}
+
+const hudBedienDokument = await readFile(path.join(wurzel, dateien[37]), 'utf8');
+for (const pflicht of [
+  '8.5.7 implementiert',
+  'V4IngameHudBedienung',
+  'basisBedienStatus()',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  'Fortsetzen ist absichtlich zweistufig',
+  'Stale-Schutz',
+  'Modulebene',
+  'Remounts',
+  '8.5.8 – Recovery-Abnahme'
+]) {
+  if (!hudBedienDokument.includes(pflicht)) throw new Error(`HUD-Bedienadapter-Dokumentation fehlt: ${pflicht}`);
+}
+
+console.log('Block 8.5.1 bis 8.5.7 vollstaendig geprueft: sicherer Bedienkern, Produktionsruntime-Grenze und HUD-Bedienadapter nutzen den gesicherten Anfragepfad; Remounts behalten monotone Vorgangskennungen, Bot-Pause bleibt vom Heartbeat getrennt.');

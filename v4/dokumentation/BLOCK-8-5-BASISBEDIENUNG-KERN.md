@@ -1,6 +1,6 @@
 # Block 8.5 – sichere Basisbedienung · Kern
 
-Status: **8.5.7 in Arbeit – zentraler Bedien-/Pause-Kern implementiert; HUD-Bedienadapter folgt getrennt.**
+Status: **8.5.7-Kern implementiert; der vollstaendige Schritt 8.5.7 ist inzwischen inklusive Produktionsruntime-Grenze und HUD-Bedienadapter abgeschlossen.**
 
 ## Ziel
 
@@ -201,14 +201,6 @@ Die einzige veraendernde Wirkung ist die zentrale Freigabe bzw. Sperre normaler 
 - manipuliertes Risiko umgeht `BedienSicherung` nicht,
 - rueckwaertige Zustandszeitpunkte werden abgewiesen.
 
-## Noch offen in 8.5.7
+## Abschluss
 
-Als naechster kleiner PR folgt der **HUD-Bedienadapter**:
-
-- Diagnose aktualisieren,
-- Pause anfordern,
-- Fortsetzen mit ausdruecklicher Bestaetigung.
-
-Der Adapter darf keine Laufzeitmethode direkt aufrufen. Er darf nur kanonische Anfragen an `SichereBasisBedienung` uebergeben und das strukturierte Ergebnis anzeigen.
-
-Erst nach dieser Anbindung wird Schritt 8.5.7 als vollstaendig implementiert markiert.
+Der Kern wird inzwischen durch die getrennte Produktionsruntime-Grenze und den sicheren HUD-Bedienadapter verwendet. Die sichtbare Bedienung ruft keine Laufzeitmethode direkt auf, sondern nutzt ausschliesslich den gesicherten Basisbedienungs-Anfragepfad. Der vollstaendige Schritt 8.5.7 ist damit abgeschlossen; als naechstes folgt 8.5.8 Recovery-Abnahme.
