@@ -509,9 +509,22 @@ test('exactly three identical +0 rings are compounded to +1 before Farmer delive
     character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42, items },
     parent: { entities: {} }
   };
-  const ledger = makeLedger([0, 1, 2].map((index) => ({
-    character: 'Merchant', index, name: 'ringsj', level: 0, disposition: 'RESERVE_COMPOUND'
-  })));
+  const gearGoalId = 'Ranger1:ring1:ringsj:0';
+  const ledger = makeLedger([
+    {
+      character: 'Merchant',
+      index: 0,
+      name: 'ringsj',
+      level: 0,
+      disposition: 'RESERVE_PROGRESSION',
+      reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+      reservation: { goalIds: [gearGoalId] }
+    },
+    ...[1, 2].map((index) => ({
+      character: 'Merchant', index, name: 'ringsj', level: 0, disposition: 'RESERVE_COMPOUND',
+      reasons: ['AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+    }))
+  ]);
   const gameData = {
     items: {
       ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] },
@@ -525,7 +538,7 @@ test('exactly three identical +0 rings are compounded to +1 before Farmer delive
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
   const candidate = {
     goal: {
-      id: 'Ranger1:ring1:ringsj:0',
+      id: gearGoalId,
       sourceCharacter: 'Merchant',
       sourceIndex: 0,
       character: 'Ranger1',
@@ -545,6 +558,12 @@ test('exactly three identical +0 rings are compounded to +1 before Farmer delive
   assert.equal(finalization.request.type, 'COMPOUND');
   assert.deepEqual(finalization.request.indices, [0, 1, 2]);
   assert.equal(finalization.request.metadata.deliveryTargetLevel, 1);
+  assert.equal(finalization.request.metadata.progressionInputIndex, 0);
+
+  const planned = engine.planAtomic(finalization.request, { ledger });
+  assert.equal(planned.accepted, true, planned.reason);
+  assert.equal(planned.transaction.inputs[0].disposition, 'RESERVE_PROGRESSION');
+  assert.deepEqual(planned.transaction.inputs.slice(1).map((row) => row.disposition), ['RESERVE_COMPOUND', 'RESERVE_COMPOUND']);
 });
 
 test('nine identical +0 rings expose +2 as the highest currently producible delivery tier', () => {
@@ -555,8 +574,69 @@ test('nine identical +0 rings expose +2 as the highest currently producible deli
     character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, isize: 42, items },
     parent: { entities: {} }
   };
-  const ledger = makeLedger(Array.from({ length: 9 }, (_, index) => ({
-    character: 'Merchant', index, name: 'ringsj', level: 0, disposition: 'RESERVE_COMPOUND'
+  const gearGoalId = 'Ranger1:ring1:ringsj:0-nine';
+  const ledger = makeLedger(Array.from({ length: 9 }, (_, index) => index === 0
+    ? {
+        character: 'Merchant',
+        index,
+        name: 'ringsj',
+        level: 0,
+        disposition: 'RESERVE_PROGRESSION',
+        reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+        reservation: { goalIds: [gearGoalId] }
+      }
+    : {
+        character: 'Merchant',
+        index,
+        name: 'ringsj',
+        level: 0,
+        disposition: 'RESERVE_COMPOUND',
+        reasons: ['AUTONOMOUS_COMPOUND_SET_AVAILABLE']
+      }));
+  const gameData = {
+    items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] } },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant, gameData, gearGoals: [] });
+  runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const candidate = {
+    goal: { id: gearGoalId, character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
+    item: { index: 0, name: 'ringsj', level: 0 }
+  };
+
+  const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
+  assert.equal(finalization.state, 'MUTATE');
+  assert.equal(finalization.targetLevel, 2);
+  assert.equal(finalization.request.type, 'COMPOUND');
+  assert.equal(finalization.request.metadata.deliveryTargetLevel, 2);
+  assert.equal(finalization.request.metadata.compoundIdentity, 'ringsj:0');
+});
+
+test('three rings reserved for separate Farmer goals are delivered separately instead of sacrificed to one compound', () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      gold: 2000000,
+      target: null,
+      isize: 42,
+      items: [{ name: 'ringsj', level: 0 }, { name: 'ringsj', level: 0 }, { name: 'ringsj', level: 0 }]
+    },
+    parent: { entities: {} }
+  };
+  const goalIds = ['Ranger1:ring1:ringsj:0', 'Ranger2:ring1:ringsj:0', 'Ranger3:ring1:ringsj:0'];
+  const ledger = makeLedger(goalIds.map((goalId, index) => ({
+    character: 'Merchant',
+    index,
+    name: 'ringsj',
+    level: 0,
+    disposition: 'RESERVE_PROGRESSION',
+    reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'],
+    reservation: { goalIds: [goalId] }
   })));
   const gameData = {
     items: { ringsj: { type: 'ring', g: 24000, compound: { dex: 1 }, grades: [] } },
@@ -567,16 +647,31 @@ test('nine identical +0 rings expose +2 as the highest currently producible deli
   runtime.gearProgression = { list: () => [], futureProtectionFor: () => null };
   const convergence = new Alpha27CombatMerchantConvergence(runtime);
   const candidate = {
-    goal: { character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
+    goal: { id: goalIds[0], character: 'Ranger1', slot: 'ring1', item: 'ringsj' },
     item: { index: 0, name: 'ringsj', level: 0 }
   };
 
   const finalization = convergence.merchant.planGearDeliveryFinalization(candidate);
-  assert.equal(finalization.state, 'MUTATE');
-  assert.equal(finalization.targetLevel, 2);
-  assert.equal(finalization.request.type, 'COMPOUND');
-  assert.equal(finalization.request.metadata.deliveryTargetLevel, 2);
-  assert.equal(finalization.request.metadata.compoundIdentity, 'ringsj:0');
+  assert.equal(finalization.state, 'READY');
+  assert.equal(finalization.targetLevel, 0);
+
+  const forged = engine.planAtomic({
+    type: 'COMPOUND',
+    character: 'Merchant',
+    index: 0,
+    indices: [0, 1, 2],
+    metadata: {
+      source: 'ALPHA27_GEAR_DELIVERY_FINALIZATION',
+      lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
+      goalId: goalIds[0],
+      deliveryItem: 'ringsj',
+      deliveryTargetLevel: 1,
+      targetedGearFinalization: true,
+      progressionInputIndex: 0
+    }
+  }, { ledger });
+  assert.equal(forged.accepted, false);
+  assert.equal(forged.reason, 'LEDGER_DISPOSITION_NOT_AUTHORIZED');
 });
 
 test('two identical +0 rings do not postpone a ready Farmer delivery waiting for future drops', () => {
