@@ -87,6 +87,7 @@ test('ControlledPartyBootstrap keeps the AccountCharacterTransport CM router aut
   assert.equal(root.on_cm, transport._cmRouter);
   assert.equal(bootstrap.cmWrapper, null);
   assert.equal(typeof root.__AIO_V3_PARTY_BOOTSTRAP_RECEIVE, 'function');
+  assert.equal(transport._directReceiverNames.has('__AIO_V3_PARTY_BOOTSTRAP_RECEIVE'), true);
 });
 
 test('PartyControlLease resume cannot displace the account transport CM router', () => {
