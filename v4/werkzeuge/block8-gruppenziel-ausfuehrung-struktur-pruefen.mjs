@@ -77,7 +77,7 @@ for (const pflichtText of [
   if (!brueckenTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Ausfuehrungsbrueckentest fehlt: ${pflichtText}`);
 }
 
-const tests = await readFile(path.join(wurzel, pflichtDateien[1]), 'utf8');
+const tests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs'), 'utf8');
 for (const pflichtText of [
   'aktive Ausfuehrung ist standardmaessig gesperrt und bleibt Schatten',
   'aktiver Adapter ohne Einmal-Freigabe bricht zentral ab',
