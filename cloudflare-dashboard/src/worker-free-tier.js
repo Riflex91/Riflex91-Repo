@@ -18,6 +18,10 @@ import {
   handleRuntimeReleaseArtifact,
   isRuntimeReleaseRead
 } from './runtime-release-artifact.js';
+import {
+  handleV4RuntimeReleaseArtifact,
+  isV4RuntimeReleaseRead
+} from './v4-runtime-release-artifact.js';
 
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
@@ -51,7 +55,7 @@ function archiveScope(key) {
 function isPublicReleaseRead(request) {
   if (!request || request.method !== 'GET') return false;
   try {
-    return PUBLIC_RELEASE_PATHS.has(new URL(request.url).pathname);
+    return PUBLIC_RELEASE_PATHS.has(new URL(request.url).pathname) || isV4RuntimeReleaseRead(request);
   } catch (_) {
     return false;
   }
@@ -186,7 +190,9 @@ export default {
     recordWorkerRequest(now);
     const releaseRead = isPublicReleaseRead(request);
     let response;
-    if (isRuntimeReleaseRead(request)) {
+    if (isV4RuntimeReleaseRead(request)) {
+      response = await handleV4RuntimeReleaseArtifact(request, env);
+    } else if (isRuntimeReleaseRead(request)) {
       response = await handleRuntimeReleaseArtifact(request, env);
     } else {
       response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
