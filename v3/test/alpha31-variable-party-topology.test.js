@@ -157,7 +157,7 @@ test('cohesion handles two and three combat members pairwise and never counts me
   assert.equal(trio.leaderPolicy, 'class-priority-then-name-v1');
 });
 
-test('cohesion selects the same role-aware combat leader on every member and uses names only as a deterministic tie-break', () => {
+// Leader choice must stay identical on every character; names only break ties inside one class.\ntest('cohesion selects the same role-aware combat leader on every member and uses names only as a deterministic tie-break', () => {
   const mixedRoster = ['MerchantA', 'R1', 'P1', 'W1'];
   const mixedParty = {
     MerchantA: partyRow('merchant', 0, 0),
