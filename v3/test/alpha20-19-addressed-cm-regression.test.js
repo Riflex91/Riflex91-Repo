@@ -4,6 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountCharacterTransport, NAMED_RECEIVER_CM_PROTOCOL } = require('../src/party/account-character-transport');
 const { ControlledPartyBootstrap } = require('../src/party/controlled-party-bootstrap-base');
+const { PartyControlLease } = require('../src/party/control-lease');
+const { PartyAccountCommunicationReliability } = require('../src/party/party-account-communication');
 const { installAlpha2019AccountTransportHotfix } = require('../src/party/alpha20-19-account-transport-hotfix');
 const { Alpha27CombatOwnership } = require('../src/reliability/alpha27-combat-ownership');
 
@@ -85,6 +87,52 @@ test('ControlledPartyBootstrap keeps the AccountCharacterTransport CM router aut
   assert.equal(root.on_cm, transport._cmRouter);
   assert.equal(bootstrap.cmWrapper, null);
   assert.equal(typeof root.__AIO_V3_PARTY_BOOTSTRAP_RECEIVE, 'function');
+});
+
+test('PartyControlLease resume cannot displace the account transport CM router', () => {
+  const root = {
+    character: { name: 'My_Ranger1', ctype: 'ranger' },
+    parent: {},
+    get_active_characters: () => ({ My_Ranger1: 'self', My_Merchant: 'active' }),
+    send_cm: () => true,
+    accept_party_invite: () => true
+  };
+  root.parent = root;
+  const runtime = {
+    root,
+    now: () => 2000,
+    log: { emit() {} },
+    adapter: {
+      mode: 'active',
+      command(action) {
+        if (action === 'send_cm' || action === 'accept_party_invite') return { executed: true, value: true };
+        return { executed: false, reason: 'UNAVAILABLE' };
+      },
+      canCommand: () => true
+    },
+    partyTelemetry: null
+  };
+  const lease = new PartyControlLease({
+    root,
+    now: runtime.now,
+    log: runtime.log,
+    adapter: runtime.adapter,
+    merchantName: 'My_Merchant',
+    trustedNames: ['My_Merchant', 'My_Ranger1']
+  });
+  runtime.partyControlLease = lease;
+  assert.equal(lease.install(), true);
+
+  const communication = new PartyAccountCommunicationReliability(runtime);
+  runtime.partyAccountCommunication = communication;
+  const router = communication.transport._cmRouter;
+  assert.equal(root.on_cm, router);
+  assert.equal(lease.__aioAccountTransportControlReceiverInstalled, true);
+
+  assert.equal(lease.uninstall(), true);
+  assert.equal(lease.install(), true);
+  assert.equal(root.on_cm, router);
+  assert.equal(communication.transport._cmRouterInstalled, true);
 });
 
 test('Alpha27 leader target reaches a follower through the CM fallback', () => {
