@@ -46,21 +46,22 @@ test('Block 8.5.9 Live-Paket startet exakt einmal und entsperrt Live erst nach b
   assert.equal((source.match(/runtime\.starte\(\)/g) ?? []).length, 1);
 
   const sperren = source.indexOf("testApi.test.setzeAktionAktiv('kontrolliert-live', false)");
+  const helper = source.indexOf('async function warteAufBestaetigtenHeartbeat(runtime)');
+  const erfolg = source.indexOf('status.lebensnachweisSendeErfolge >= 1', helper);
+  const keineFehler = source.indexOf('status.lebensnachweisSendeFehler > 0', helper);
   const laden = source.indexOf('bootstrap.lade()');
-  const starten = source.indexOf('runtime.starte()');
-  const warten = source.indexOf('warteAufBestaetigtenHeartbeat(runtime)');
-  const erfolg = source.indexOf('status.lebensnachweisSendeErfolge >= 1');
-  const keineFehler = source.indexOf('status.lebensnachweisSendeFehler > 0');
-  const freigeben = source.indexOf("testApi.test.setzeAktionAktiv('kontrolliert-live', true)");
+  const starten = source.indexOf('runtime.starte()', laden);
+  const warten = source.indexOf('await warteAufBestaetigtenHeartbeat(runtime)', starten);
+  const freigeben = source.indexOf("testApi.test.setzeAktionAktiv('kontrolliert-live', true)", warten);
 
   assert.ok(sperren >= 0);
+  assert.ok(helper >= 0);
+  assert.ok(erfolg > helper);
+  assert.ok(keineFehler > helper);
   assert.ok(laden > sperren);
   assert.ok(starten > laden);
-  assert.ok(warten > laden);
-  assert.ok(erfolg > laden);
-  assert.ok(keineFehler > laden);
-  assert.ok(freigeben > starten);
-  assert.ok(freigeben > erfolg);
+  assert.ok(warten > starten);
+  assert.ok(freigeben > warten);
   assert.ok(source.includes('Innerhalb von 10 Sekunden wurde kein bestaetigter Produktionsheartbeat erreicht'));
   assert.ok(source.includes('heartbeatFehler: status.lebensnachweisSendeFehler'));
   assert.ok(source.includes('generation: basis.laufzeit.generation'));
