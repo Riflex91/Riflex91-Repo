@@ -528,6 +528,7 @@ test('Alpha33 collection route travels only to fresh Farmer pickup positions and
 // also guards the final generated-bundle head used by pull-request CI.
 // Live alpha.20.114 follow-up: a one-item pickup must not immediately pull the
 // Merchant away from useful economy work when Farmers have plenty of space.
+// Keep this assertion on the final user-authored PR head after bundle generation.
 test('Alpha33 defers tiny Farmer pickup batches and lets ordinary Merchant work continue', async () => {
   let now = 110000;
   let baseCycles = 0;
