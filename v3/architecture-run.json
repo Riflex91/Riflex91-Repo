@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 13,
+  "next_step": 14,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -230,9 +230,9 @@
       "name": "windows-production-certification",
       "title": "Windows production canary and unattended certification",
       "branch": "architecture/13-windows-production-certification",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 274,
-      "merge_commit": null,
+      "merge_commit": "216a564bbf034c6f23a701c53ecb3aacedf31410",
       "required_outcomes": [
         "machine-readable staged certification gates",
         "hash-chained durable local evidence",
@@ -242,6 +242,25 @@
         "operator-recorded controlled fault and dual-route alert canary evidence",
         "1h 24h 72h and 7d promotion gates",
         "no gameplay authority added"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "windows-production-field-certification",
+      "title": "Real Windows 24/7 production field certification",
+      "branch": "architecture/14-windows-production-field-certification",
+      "status": "pending",
+      "pr": null,
+      "merge_commit": null,
+      "required_outcomes": [
+        "real deployed Windows certification environment",
+        "real canary gate with controlled restart and reconciliation evidence",
+        "real 1h 24h 72h and 7d wall-clock certification evidence",
+        "hash-chain and sample continuity verified for every gate",
+        "runtime action audit clean for 24h and longer gates",
+        "no unresolved CRITICAL alerts or open critical recovery circuits",
+        "no synthetic duration substituted for production uptime",
+        "final evidence review and explicit production promotion decision"
       ]
     }
   ]

@@ -278,6 +278,27 @@ Required behavior:
 
 Real wall-clock 1h/24h/72h/7d observations must be collected on the deployed Windows machine; CI validates the certification engine and safety invariants, not production uptime itself.
 
+## Step 14 — Real Windows 24/7 production field certification
+
+**Branch:** `architecture/14-windows-production-field-certification`
+
+Run the Step-13 certification system on the real deployed Windows host and collect the wall-clock evidence required to decide whether the bot is ready for sustained 24/7 production operation.
+
+Required behavior:
+
+- execute the gates strictly in order: canary → 1h → 24h → 72h → 7d;
+- use the real Windows host, real browser/session driver and real Adventure Land runtime rather than simulated elapsed time;
+- require the controlled restart/reconciliation drill and independent dual-route CRITICAL alert canary before unattended promotion;
+- preserve and verify the append-only hash chain, sample continuity, clock integrity and host-start identity for every gate;
+- require fresh clean reconciliation evidence and no unresolved critical recovery circuits at accepted samples;
+- for 24h and longer gates, require the reviewed runtime-action audit to remain clean with zero unexpected raw gameplay actions;
+- stop promotion on unhealthy intervals, evidence gaps, tamper/corruption, clock regression, unresolved CRITICAL alerts or open critical circuits;
+- record every failed gate, root cause, remediation and repeat run instead of discarding failed evidence;
+- treat CI and deterministic accelerated tests only as validation of the certification engine, never as substitutes for real wall-clock uptime;
+- after the 7d gate passes, perform an explicit final evidence review before declaring the Windows production stack certified for 24/7 operation.
+
+This step is an operational production certification. It must not be marked completed from CI, simulated time or synthetic evidence alone.
+
 ## Status and checkpoints
 
 `v3/architecture-run.json` is the machine-readable checkpoint. Every architecture-run PR must update it only for facts that are true in that PR/branch.
