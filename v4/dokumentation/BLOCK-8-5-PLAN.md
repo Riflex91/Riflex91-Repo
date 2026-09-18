@@ -98,7 +98,7 @@ HUD-Ausfall oder Schliessen darf die Bot-Laufzeit nicht beeinflussen.
 
 Umgesetzt ist `V4IngameHud` als rein beobachtender Browser-Adapter auf der gemeinsamen `StatusSchnittstelle`. Das HUD akzeptiert nur Status mit `nurLesen: true` und explizit fehlender Spiel-, Bedien- und Neustartautoritaet. Es besitzt in 8.5.6 nur lokale Anzeigeaktionen zum Minimieren und Schliessen; sein eigener Aktualisierungstimer ist vom Bot-/Produktionsheartbeat getrennt.
 
-### Schritt 8.5.7 – sichere Basisbedienung
+### Schritt 8.5.7 – sichere Basisbedienung — **IN ARBEIT · KERN IMPLEMENTIERT**
 
 Erste veraendernde HUD-Funktionen bleiben bewusst klein:
 
@@ -111,6 +111,8 @@ Jede veraendernde Aktion:
 `HUD -> BedienAnfrage -> BedienSicherung -> zentrale Aktions-/Laufzeitsteuerung`
 
 Kein direkter Adventure-Land-Aufruf im HUD.
+
+Der zentrale Kern ist implementiert: `LaufzeitSteuerung` sperrt bei Pause normale/Hintergrundarbeit, laesst Notfall/Safety zu und ist mit `AktionsSteuerung` gekoppelt. `SichereBasisBedienung` erzwingt kanonische BedienAnfragen, Generationsschutz gegen stale Ansichten, Doppelklick-/Wiederholungsschutz und ausdrueckliche Bestaetigung fuer Fortsetzen. Die sichtbare HUD-Anbindung folgt als separater kleiner PR; erst danach ist 8.5.7 vollstaendig.
 
 ### Schritt 8.5.8 – Recovery-Abnahme
 
