@@ -24,6 +24,7 @@ const COMMAND_CATALOG = Object.freeze({
   stop_character: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
   send_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
   accept_party_invite: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
+  leave_party: Object.freeze({ family: 'party-control', mutation: true, outcome: 'domain' }),
   send_cm: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' }),
   command_character: Object.freeze({ family: 'account-communication', mutation: true, outcome: 'domain' })
 });
