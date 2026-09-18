@@ -90,6 +90,23 @@ function effectActiveOn(entity, effectName, now = Date.now()) {
   return false;
 }
 
+function pickupItemsView(logistics, inventory, maxItems = 64) {
+  const out = [];
+  for (const item of Array.isArray(inventory) ? inventory : []) {
+    if (!item || !item.name || out.length >= maxItems) continue;
+    let descriptor = null;
+    try { descriptor = logistics && typeof logistics._safeLootDescriptor === 'function' ? logistics._safeLootDescriptor(item) : null; } catch (_) {}
+    if (!descriptor || descriptor.ok !== true) continue;
+    out.push({
+      name: String(item.name),
+      level: levelOf(item),
+      quantity: Math.max(1, Math.floor(finite(item.q, descriptor.quantity || 1))),
+      metadataType: descriptor.metadataType || null
+    });
+  }
+  return out;
+}
+
 function equipmentView(raw, maxSlots = 32) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   const out = {};
@@ -117,10 +134,15 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMin = Math.max(120, Math.min(360, finite(options.trainingRadiusMin, 180)));
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
+    this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.collectionSettleMs = Math.max(3000, Math.min(20000, finite(options.collectionSettleMs, 7000)));
+    this.collectionPrepareMaxMs = Math.max(10000, Math.min(120000, finite(options.collectionPrepareMaxMs, 45000)));
     this.merchantRendezvousCooldownMs = Math.max(2500, Math.min(30000, finite(options.merchantRendezvousCooldownMs, 6000)));
     this.lastFarmerStateSentAt = -Infinity;
     this.lastMerchantRendezvousAt = -Infinity;
     this.merchantRendezvousBusy = false;
+    this.collectionRoute = null;
+    this.lastCollectionCapacityPlan = null;
     this.farmerStates = new Map();
     this.stats = {
       huntersMarkExistingDebuffSkips: 0,
@@ -141,7 +163,14 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantRendezvousAttempts: 0,
       merchantRendezvousCompleted: 0,
       merchantRendezvousFailed: 0,
-      merchantRendezvousAlreadyNear: 0
+      merchantRendezvousAlreadyNear: 0,
+      staleFarmerPositionsRejected: 0,
+      farmerStateRefreshRequests: 0,
+      collectionRoutesStarted: 0,
+      collectionRoutesCompleted: 0,
+      collectionCapacityDisposals: 0,
+      collectionCapacityConstrainedDepartures: 0,
+      collectionFollowMoves: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
