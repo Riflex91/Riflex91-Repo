@@ -6,8 +6,10 @@ const wurzel = process.cwd();
 const pflichtDateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrung.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-ausfuehrungs-bruecke.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-bindung.ts',
   'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs',
   'laufzeit/tests/block8-gruppenziel-ausfuehrungs-bruecke.test.mjs',
+  'laufzeit/tests/block8-gruppenziel-live-bindung.test.mjs',
   'laufzeit/tests/block8-gruppenziel-one-shot.test.mjs',
   'werkzeuge/block8-gruppenziel-one-shot.js',
   'dokumentation/BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md'
@@ -77,6 +79,47 @@ for (const pflichtText of [
   if (!brueckenTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Ausfuehrungsbrueckentest fehlt: ${pflichtText}`);
 }
 
+const liveBindung = await readFile(path.join(wurzel, 'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-ziel-live-bindung.ts'), 'utf8');
+for (const pflichtText of [
+  'AdventureLandGruppenZielLiveBindung',
+  "GRUPPEN_ZIEL_LIVE_BINDUNG_FREIGABE_TEXT = 'BLOCK8-GRUPPENZIEL-LIVE-BINDUNG-EINMAL'",
+  'aktivFreigegeben',
+  'bestehende Laufzeitautoritaet wird nicht ueberschrieben',
+  'Reflect.defineProperty',
+  'Object.freeze',
+  'this.versuchVerbraucht = true',
+  'this.entferneEigeneFassade(true)',
+  'this.liesAktuelleSicherheit()',
+  'AdventureLandGruppenZielAusfuehrungsBruecke',
+  'this.steuerung.brecheAktionAb'
+]) {
+  if (!liveBindung.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Bindung fehlt: ${pflichtText}`);
+}
+for (const unerlaubt of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp', 'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite']) {
+  if (new RegExp(`\\b${unerlaubt}\\s*\\(`).test(liveBindung)) {
+    throw new Error(`Die Gruppenziel-Live-Bindung darf Adventure Land nicht direkt aufrufen: ${unerlaubt}.`);
+  }
+}
+for (const unerlaubteBrowserAutoritaet of ['V4Block7KampfsicherheitsQuelle', 'V4Block8GruppenAktionsSteuerung', 'V4AktionsSteuerungSchattenKern']) {
+  if (liveBindung.includes(unerlaubteBrowserAutoritaet)) {
+    throw new Error(`Die Produktions-Live-Bindung darf keine Browser-/Schattenautoritaet direkt verwenden: ${unerlaubteBrowserAutoritaet}.`);
+  }
+}
+
+const liveBindungsTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-live-bindung.test.mjs'), 'utf8');
+for (const pflichtText of [
+  'ist standardmaessig gesperrt und exponiert nichts',
+  'verlangt exakten eigenen Freigabetext und ueberschreibt keine bestehende Autoritaet',
+  'exponiert nur die feste eingefrorene ausfuehrung-Fassade und liest Safety noch nicht',
+  'entfernt die globale Fassade vor Delegation und nutzt frische Produktions-Safety',
+  'bleibt nach fehlgeschlagener Produktions-Safety entfernt und bricht zentral ab',
+  'kann ueber eine behaltene Fassade niemals zweimal delegieren',
+  'blockiert bei ersetzter globaler Fassade vor Adventure-Land-Aktion und gibt zentrale Ressourcen frei',
+  'kann vor einem Versuch manuell wieder gesperrt werden'
+]) {
+  if (!liveBindungsTests.includes(pflichtText)) throw new Error(`Block-8-Gruppenziel-Live-Bindungstest fehlt: ${pflichtText}`);
+}
+
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-gruppenziel-ausfuehrung.test.mjs'), 'utf8');
 for (const pflichtText of [
   'aktive Ausfuehrung ist standardmaessig gesperrt und bleibt Schatten',
@@ -140,4 +183,4 @@ for (const datei of await readdir(spiellogikWurzel)) {
   }
 }
 
-console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, feste one-shot Ausfuehrungsbruecke, automatische Wiedersperrung, zentrale Autoritaet, frische Produktions-Safety, Ressourcenbesitz, Bereitschaft, Ziel/Reichweite und Browser-One-shot ohne eigenen Spielaufruf.');
+console.log('Block 8 Gruppenziel-Ausfuehrung geprueft: Default-Lock, gebundene Einmal-Freigabe, feste one-shot Ausfuehrungsbruecke, one-shot Live-Bindung mit Entfernung vor Delegation, zentrale Autoritaet, frische Produktions-Safety, Ressourcenbesitz, Bereitschaft, Ziel/Reichweite und Browser-One-shot ohne eigenen Spielaufruf.');
