@@ -156,7 +156,15 @@ class MerchantServicePlanner {
       candidates.push({ report, need });
     }
 
-    candidates.sort((a, b) => b.need.priority - a.need.priority || Number(a.report.at) - Number(b.report.at) || String(a.report.name).localeCompare(String(b.report.name)));
+    // At the same service priority, the lower remaining count is the more
+    // depleted target. This matters for critical potion supply: a Farmer at
+    // zero must be serviced before another Farmer that still has some runway.
+    candidates.sort((a, b) =>
+      b.need.priority - a.need.priority
+      || Math.max(0, finite(a.need.count, Infinity)) - Math.max(0, finite(b.need.count, Infinity))
+      || Number(a.report.at) - Number(b.report.at)
+      || String(a.report.name).localeCompare(String(b.report.name))
+    );
     const selected = candidates[0] || null;
     const standOpen = input.standOpen === true;
 
