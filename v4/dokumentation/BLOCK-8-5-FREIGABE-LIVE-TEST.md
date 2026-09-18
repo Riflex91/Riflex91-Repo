@@ -38,6 +38,8 @@ Der Runner laedt oder veroeffentlicht selbst keine Runtime.
 
 Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt inzwischen vor; der reale Schattenlauf darf daher gegen den immutable Candidate vorbereitet werden.
 
+Auch die Freigabestufe `offline` ist fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` bereits kanonisch bestanden. Damit ist `schatten` die naechste zulaessige Stufe; kontrolliert live und Soak bleiben bis zu einem bestandenen Schattennachweis blockiert.
+
 ## Konfiguration
 
 Vor dem Laden des Runners muss gesetzt sein:
