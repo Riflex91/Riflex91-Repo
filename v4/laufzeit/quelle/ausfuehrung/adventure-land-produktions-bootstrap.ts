@@ -57,6 +57,8 @@ export interface AdventureLandProduktionsBootstrapStatus {
   readonly laufendeGruppenAnfragen: readonly string[];
   readonly ressourcenSperren: readonly Readonly<{ ressource: string; besitzer: string }>[];
   readonly liveSmokeInstalliert: boolean;
+  readonly gruppenZielVorbereitungVerbraucht: boolean;
+  readonly gestoppt: boolean;
 }
 
 export interface AdventureLandGruppenZielVorbereitung {
@@ -93,9 +95,11 @@ export class AdventureLandProduktionsBootstrap {
   private readonly leser: AdventureLandLesezugriff;
   private readonly steuerung = new AktionsSteuerung();
   private readonly austausch: AdventureLandGruppenLebensnachweisAustausch;
-  private readonly teilnehmer = new Map<string, GruppenTeilnehmerMeldung>();
+  private readonly teilnehmerNachName = new Map<string, GruppenTeilnehmerMeldung>();
   private readonly kampfKonfiguration = erstelleKampfSicherheitsKonfiguration();
   private laufendeNummer = 0;
+  private gruppenZielVorbereitungVerbraucht = false;
+  private gestoppt = false;
   private kampfAblauf: Readonly<KampfSicherheitsAblaufZustand> | null = null;
   private empfangInstalliert = false;
   private smokeFassade: Readonly<AdventureLandGruppenZielLiveSmokeFassade> | null = null;
@@ -122,7 +126,9 @@ export class AdventureLandProduktionsBootstrap {
       version: PRODUKTIONS_BOOTSTRAP_VERSION,
       aktivFreigegeben: this.aktivFreigegeben,
       empfangInstalliert: this.empfangInstalliert,
-      bekannteTeilnehmer: Object.freeze([...this.teilnehmer.keys()].sort()),
+      bekannteTeilnehmer: Object.freeze(
+        [...this.teilnehmerNachName.values()].map((meldung) => meldung.charakterKennung).sort()
+      ),
       laufendeGruppenAnfragen: Object.freeze(
         this.steuerung.listeAktionsZustaende()
           .filter((zustand) => zustand.phase === 'laeuft' && zustand.anfrage.angefordertVon === 'gruppen-aktionsplanung')
@@ -133,11 +139,14 @@ export class AdventureLandProduktionsBootstrap {
         this.steuerung.listeRessourcenSperren()
           .map((sperre) => Object.freeze({ ressource: sperre.ressource, besitzer: sperre.besitzer }))
       ),
-      liveSmokeInstalliert: this.smokeFassade !== null
+      liveSmokeInstalliert: this.smokeFassade !== null,
+      gruppenZielVorbereitungVerbraucht: this.gruppenZielVorbereitungVerbraucht,
+      gestoppt: this.gestoppt
     });
   }
 
   public installiereLebensnachweisEmpfang(): boolean {
+    if (this.gestoppt) throw new Error('Produktions-Bootstrap wurde bereits gestoppt; Lebensnachweis-Empfang bleibt deaktiviert.');
     if (this.empfangInstalliert) return false;
     const installiert = this.austausch.installiereEmpfang((empfang) => this.uebernehmeEmpfang(empfang));
     this.empfangInstalliert = installiert;
@@ -157,7 +166,7 @@ export class AdventureLandProduktionsBootstrap {
   }>> {
     this.pruefeAktiv('Lebensnachweis senden');
     const { meldung } = this.erzeugeLokalenLebensnachweis();
-    this.teilnehmer.set(meldung.charakterKennung, meldung);
+    this.teilnehmerNachName.set(meldung.charakterName, meldung);
 
     const ziele = [...new Set(this.optionen.vertrauensNamen.map((name) => name.trim()).filter((name) => name.length > 0 && name !== meldung.charakterName))].sort();
     const ergebnisse = [];
@@ -173,11 +182,16 @@ export class AdventureLandProduktionsBootstrap {
       throw new Error(`Falscher Produktions-Gruppenziel-Freigabetext. Erwartet wird exakt: ${PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT}`);
     }
 
+    if (this.gruppenZielVorbereitungVerbraucht) {
+      throw new Error('Die one-shot Produktions-Gruppenziel-Vorbereitung wurde bereits verbraucht.');
+    }
+    this.gruppenZielVorbereitungVerbraucht = true;
+
     const jetzt = this.liesZeitpunkt('Der Produktions-Gruppenplanzeitpunkt');
     const { meldung } = this.erzeugeLokalenLebensnachweis(jetzt);
-    this.teilnehmer.set(meldung.charakterKennung, meldung);
+    this.teilnehmerNachName.set(meldung.charakterName, meldung);
 
-    const meldungen = Object.freeze([...this.teilnehmer.values()]);
+    const meldungen = this.liesEindeutigeTeilnehmerMeldungen();
     const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
     const plan = planeGruppenAktionen(meldungen, koordination, erstelleGruppenAktionsPlanKonfiguration());
     const uebersetzung = uebersetzeEigeneGruppenPlanSchritte(
@@ -257,6 +271,7 @@ export class AdventureLandProduktionsBootstrap {
         'Produktions-Bootstrap wurde gestoppt; Gruppenarbeit wird fail-safe beendet.'
       );
     }
+    this.gestoppt = true;
     return this.status();
   }
 
@@ -265,7 +280,34 @@ export class AdventureLandProduktionsBootstrap {
   }
 
   private uebernehmeEmpfang(empfang: Readonly<GruppenLebensnachweisEmpfang>): void {
-    this.teilnehmer.set(empfang.meldung.charakterKennung, empfang.meldung);
+    if (this.gestoppt) return;
+    const neu = empfang.meldung;
+    const vorher = this.teilnehmerNachName.get(neu.charakterName);
+    if (
+      vorher !== undefined &&
+      (
+        neu.gesendetAm < vorher.gesendetAm ||
+        (neu.gesendetAm === vorher.gesendetAm && neu.laufendeNummer <= vorher.laufendeNummer)
+      )
+    ) {
+      return;
+    }
+    this.teilnehmerNachName.set(neu.charakterName, neu);
+  }
+
+  private liesEindeutigeTeilnehmerMeldungen(): readonly GruppenTeilnehmerMeldung[] {
+    const meldungen = [...this.teilnehmerNachName.values()];
+    const nameNachKennung = new Map<string, string>();
+    for (const meldung of meldungen) {
+      const vorherigerName = nameNachKennung.get(meldung.charakterKennung);
+      if (vorherigerName !== undefined && vorherigerName !== meldung.charakterName) {
+        throw new Error(
+          `Doppelte Gruppen-Teilnehmerkennung ${meldung.charakterKennung} fuer ${vorherigerName} und ${meldung.charakterName}; Gruppenplanung bleibt blockiert.`
+        );
+      }
+      nameNachKennung.set(meldung.charakterKennung, meldung.charakterName);
+    }
+    return Object.freeze(meldungen);
   }
 
   private erzeugeLokalenLebensnachweis(jetzt = this.liesZeitpunkt('Der lokale Lebensnachweiszeitpunkt')): Readonly<{
@@ -305,6 +347,9 @@ export class AdventureLandProduktionsBootstrap {
   }
 
   private pruefeAktiv(aktion: string): void {
+    if (this.gestoppt) {
+      throw new Error(`Produktions-Bootstrap wurde bereits gestoppt; ${aktion} bleibt gesperrt.`);
+    }
     if (!this.aktivFreigegeben) {
       throw new Error(`Produktions-Bootstrap ist standardmaessig gesperrt; ${aktion} ist nicht freigegeben.`);
     }
