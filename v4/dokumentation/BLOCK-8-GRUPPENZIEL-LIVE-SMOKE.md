@@ -30,7 +30,14 @@ Eine abweichende oder unbekannte Voraussetzung blockiert.
 
 ## Aktionsaudit
 
-Die Smoke-Huelle uebergibt dem Produktionsadapter einen lokalen Proxy des Adventure-Land-Fensters.
+Die Smoke-Huelle uebergibt dem Produktionsadapter einen lokalen Audit-Proxy.
+
+Dabei bleibt die Adventure-Land-Kontexttrennung explizit erhalten:
+
+- read-only Spielzustand wie `character`, `entities`, Serverdaten und Cooldowns wird aus dem `parent`-/Spielfenster gelesen,
+- Aktionsfunktionen wie `attack` werden aus dem lokalen Adventure-Land-Codekontext bezogen.
+
+Diese Trennung entspricht der echten Adventure-Land-Codeausfuehrung. Der Audit-Proxy kopiert oder monkeypatcht keine globale Aktionsfunktion.
 
 Nur `attack` darf diese Grenze passieren. Der Aufruf wird gezaehlt.
 
@@ -110,3 +117,12 @@ Es ist auf beiden Rangern identisch und stellt einen gefuehrten Ablauf bereit:
 Jeder Schritt schreibt ein strukturiertes Ergebnis in ein kopierbares Textfeld. **Ergebnis kopieren** kopiert den letzten strukturierten Zustand; **Gesamtbericht kopieren** kopiert Ergebnis und komplettes Testprotokoll.
 
 Der one-shot-Button wird erst nach einer bestandenen passiven Vorpruefung aktiv. Diese Vorpruefung erzeugt keine zentrale Anfrage, keine Ressourcenbelegung und keine Smoke-Fassade. Der finale bestaetigte Klick erzeugt die 1.500-ms-Gruppenanfrage und fuehrt Vorbereitung, Smoke-Installation, finale Produktionsvorschau und one-shot ohne menschliche Zwischenpause aus. Bei einem Fehler nach Verbrauch der Vorbereitung wird fail-safe zentral gestoppt. Die GUI besitzt keinen direkten Adventure-Land-Aktionsaufruf.
+
+
+## Im echten Live-Smoke gefundene Kontexttrennung
+
+Der echte one-shot vom 2026-09-18 erreichte alle Safety-, Ziel-, Ressourcen- und Produktionsvorschau-Gates, brach aber unmittelbar vor der Spielaktion mit `Adventure-Land-Funktion attack ist nicht verfuegbar.` ab.
+
+Die Ursache war kein fehlendes Adventure-Land-API, sondern eine falsche Testannahme: Offline lag `attack` bisher im simulierten Spielfenster, waehrend Adventure Land die Aktionsfunktion im lokalen Codekontext bereitstellt und den read-only Spielzustand im `parent`-Fenster.
+
+Der Regressionstest bildet diese reale Trennung nun ausdruecklich ab: `spielFenster.attack === undefined`, `zielKontext.attack === function`. Der Produktions-Smoke muss damit exakt einen auditierten Angriff ueber den lokalen Codekontext ausfuehren.
