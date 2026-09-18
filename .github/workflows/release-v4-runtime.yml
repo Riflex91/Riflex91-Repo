@@ -1,0 +1,296 @@
+name: release-v4-runtime-immutable
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: "Exact immutable V4 release commit"
+        required: true
+        type: string
+      confirmation:
+        description: "Type PUBLISH-V4-IMMUTABLE:<release_sha>"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-v4-runtime-${{ inputs.release_sha }}
+  cancel-in-progress: false
+
+jobs:
+  release-v4-runtime:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      V4_RELEASE_BASE_URL: https://aio-bot-dashboard.hansijuergenlul.workers.dev
+      R2_BUCKET: aio-v3-logs
+    steps:
+      - name: Require main dispatch exact SHA and explicit confirmation
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "$GITHUB_REF" = "refs/heads/main" ] || {
+            echo "V4 runtime release workflow must be dispatched from main." >&2
+            exit 1
+          }
+          case "$RELEASE_SHA" in
+            *[!0-9a-f]*|'')
+              echo "release_sha must be lowercase hexadecimal." >&2
+              exit 1
+              ;;
+          esac
+          [ "$(printf '%s' "$RELEASE_SHA" | wc -c)" -eq 40 ] || {
+            echo "release_sha must contain exactly 40 hex characters." >&2
+            exit 1
+          }
+          [ "$CONFIRMATION" = "PUBLISH-V4-IMMUTABLE:$RELEASE_SHA" ] || {
+            echo "Explicit V4 immutable publish confirmation does not match release_sha." >&2
+            exit 1
+          }
+
+      - name: Checkout release-control state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          fetch-depth: 1
+
+      - name: Validate release candidate manifest
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(
+            fs.readFileSync(
+              'control/v4/dokumentation/BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+              'utf8'
+            )
+          );
+          const releaseSha = process.env.RELEASE_SHA;
+          if (manifest.schemaVersion !== 1) throw new Error('Unknown candidate schemaVersion.');
+          if (manifest.status !== 'release_candidate') throw new Error('Manifest is not a release candidate.');
+          if (manifest.releaseSha !== releaseSha) throw new Error('release_sha does not match candidate manifest.');
+          if (manifest.runtimeVersion !== '1.1.5') throw new Error('Candidate is not runtime 1.1.5.');
+          if (manifest.laufzeitPfadKennung !== 'block8.5-basisbedienung-runtime') {
+            throw new Error('Unexpected release candidate runtime path.');
+          }
+          if (manifest.aenderungsKennung !== 'git:' + releaseSha) {
+            throw new Error('Candidate aenderungsKennung is not bound to release_sha.');
+          }
+          if (!Number.isSafeInteger(manifest.bytes) || manifest.bytes <= 0) {
+            throw new Error('Candidate bytes are invalid.');
+          }
+          if (!/^[a-f0-9]{64}$/.test(manifest.sha256)) {
+            throw new Error('Candidate SHA-256 is invalid.');
+          }
+          if (manifest.block9Freigegeben !== false) {
+            throw new Error('Block 9 must remain locked before operational evidence.');
+          }
+          fs.appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            [
+              'runtime_version=' + manifest.runtimeVersion,
+              'expected_bytes=' + manifest.bytes,
+              'expected_sha256=' + manifest.sha256,
+              'aenderungs_kennung=' + manifest.aenderungsKennung
+            ].join('\n') + '\n'
+          );
+          NODE
+
+      - name: Checkout exact runtime candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          path: release
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install exact candidate V4 dependencies
+        working-directory: release/v4
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+
+      - name: Build and verify exact candidate runtime
+        working-directory: release/v4
+        shell: bash
+        env:
+          EXPECTED_BYTES: ${{ steps.candidate.outputs.expected_bytes }}
+          EXPECTED_SHA256: ${{ steps.candidate.outputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          npm run produktions-runtime:bauen
+          test -s dist/aio-v4-runtime.js
+          test -s dist/aio-v4-runtime.sha256
+          file_sha="$(tr -d '[:space:]' < dist/aio-v4-runtime.sha256)"
+          actual_sha="$(sha256sum dist/aio-v4-runtime.js | awk '{print $1}')"
+          actual_bytes="$(wc -c < dist/aio-v4-runtime.js | tr -d '[:space:]')"
+          [ "$file_sha" = "$EXPECTED_SHA256" ] || {
+            echo "Candidate SHA file differs from manifest." >&2
+            exit 1
+          }
+          [ "$actual_sha" = "$EXPECTED_SHA256" ] || {
+            echo "Built candidate SHA-256 differs from manifest." >&2
+            exit 1
+          }
+          [ "$actual_bytes" = "$EXPECTED_BYTES" ] || {
+            echo "Built candidate byte size differs from manifest." >&2
+            exit 1
+          }
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || {
+            echo "CLOUDFLARE_API_TOKEN is required for explicit V4 runtime release." >&2
+            exit 1
+          }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || {
+            echo "CLOUDFLARE_ACCOUNT_ID is required for explicit V4 runtime release." >&2
+            exit 1
+          }
+
+      - name: Install Cloudflare tooling only
+        working-directory: control/cloudflare-dashboard
+        run: npm install --ignore-scripts
+
+      - name: Prepare isolated R2-only Wrangler config
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/wrangler-v4-runtime-release.jsonc <<'JSON'
+          {
+            "name": "aio-v4-runtime-release-only",
+            "compatibility_date": "2026-09-15"
+          }
+          JSON
+          cd control/cloudflare-dashboard
+          npx wrangler r2 bucket info "$R2_BUCKET"             --remote --experimental-auto-create=false --experimental-provision=false --config /tmp/wrangler-v4-runtime-release.jsonc >/dev/null
+
+      - name: Publish immutable V4 runtime objects without overwrite
+        working-directory: control/cloudflare-dashboard
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.candidate.outputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          runtime_file="../../release/v4/dist/aio-v4-runtime.js"
+          sha_file="../../release/v4/dist/aio-v4-runtime.sha256"
+          config="/tmp/wrangler-v4-runtime-release.jsonc"
+
+          ensure_immutable_object() {
+            key="$1"
+            file="$2"
+            content_type="$3"
+            temp="$4"
+            api_url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET/objects/$key"
+
+            http_status="$(
+              curl --silent --show-error                 --output "$temp"                 --write-out '%{http_code}'                 --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN"                 "$api_url"
+            )"
+
+            if [ "$http_status" = "200" ]; then
+              cmp "$file" "$temp" || {
+                echo "Immutable R2 object already exists with different bytes: $key" >&2
+                exit 1
+              }
+              echo "Immutable R2 object already exists with identical bytes: $key"
+              return
+            fi
+
+            if [ "$http_status" != "404" ]; then
+              echo "Could not safely determine R2 object state for $key (HTTP $http_status)." >&2
+              cat "$temp" >&2 || true
+              exit 1
+            fi
+
+            npx wrangler r2 object put "$R2_BUCKET/$key"               --file="$file"               --content-type="$content_type"               --cache-control='no-store'               --remote --experimental-auto-create=false --experimental-provision=false --config "$config"
+          }
+
+          runtime_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.js"
+          sha_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256"
+
+          ensure_immutable_object             "$runtime_key"             "$runtime_file"             'application/javascript; charset=utf-8'             /tmp/aio-v4-existing-runtime
+          ensure_immutable_object             "$sha_key"             "$sha_file"             'text/plain; charset=utf-8'             /tmp/aio-v4-existing-sha
+
+      - name: Verify immutable V4 objects from R2
+        working-directory: control/cloudflare-dashboard
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.candidate.outputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          config="/tmp/wrangler-v4-runtime-release.jsonc"
+          runtime_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.js"
+          sha_key="releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256"
+
+          rm -f /tmp/aio-v4-r2-runtime.js /tmp/aio-v4-r2-runtime.sha256
+          npx wrangler r2 object get "$R2_BUCKET/$runtime_key"             --file=/tmp/aio-v4-r2-runtime.js             --remote --experimental-auto-create=false --experimental-provision=false --config "$config"
+          npx wrangler r2 object get "$R2_BUCKET/$sha_key"             --file=/tmp/aio-v4-r2-runtime.sha256             --remote --experimental-auto-create=false --experimental-provision=false --config "$config"
+
+          cmp ../../release/v4/dist/aio-v4-runtime.js /tmp/aio-v4-r2-runtime.js
+          cmp ../../release/v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-r2-runtime.sha256
+          actual_sha="$(sha256sum /tmp/aio-v4-r2-runtime.js | awk '{print $1}')"
+          [ "$actual_sha" = "$EXPECTED_SHA256" ] || {
+            echo "R2 runtime SHA-256 differs from candidate manifest." >&2
+            exit 1
+          }
+
+      - name: Verify immutable V4 release over existing public HTTPS worker
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.candidate.outputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          runtime_url="$V4_RELEASE_BASE_URL/v4/releases/$RELEASE_SHA/aio-v4-runtime.js"
+          sha_url="$V4_RELEASE_BASE_URL/v4/releases/$RELEASE_SHA/aio-v4-runtime.sha256"
+
+          rm -f /tmp/aio-v4-public.js /tmp/aio-v4-public.sha256
+          rm -f /tmp/aio-v4-public.headers /tmp/aio-v4-public-sha.headers
+
+          curl --fail --silent --show-error --location             --header 'Origin: https://adventure.land'             --dump-header /tmp/aio-v4-public.headers             --output /tmp/aio-v4-public.js             "$runtime_url"
+          curl --fail --silent --show-error --location             --header 'Origin: https://adventure.land'             --dump-header /tmp/aio-v4-public-sha.headers             --output /tmp/aio-v4-public.sha256             "$sha_url"
+
+          cmp release/v4/dist/aio-v4-runtime.js /tmp/aio-v4-public.js
+          cmp release/v4/dist/aio-v4-runtime.sha256 /tmp/aio-v4-public.sha256
+
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' /tmp/aio-v4-public.headers
+          grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-public.headers
+          grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-public.headers
+          grep -Eiq '^content-type:[[:space:]]*application/javascript' /tmp/aio-v4-public.headers
+
+          grep -Eiq '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' /tmp/aio-v4-public-sha.headers
+          grep -Eiq '^cache-control:.*no-store' /tmp/aio-v4-public-sha.headers
+          grep -Eiq "^x-aio-v4-release-sha:[[:space:]]*$RELEASE_SHA[[:space:]]*$" /tmp/aio-v4-public-sha.headers
+          grep -Eiq '^content-type:[[:space:]]*text/plain' /tmp/aio-v4-public-sha.headers
+
+          actual_sha="$(sha256sum /tmp/aio-v4-public.js | awk '{print $1}')"
+          public_sha="$(tr -d '[:space:]' < /tmp/aio-v4-public.sha256)"
+          [ "$actual_sha" = "$EXPECTED_SHA256" ] || {
+            echo "Public runtime SHA-256 differs from candidate manifest." >&2
+            exit 1
+          }
+          [ "$public_sha" = "$EXPECTED_SHA256" ] || {
+            echo "Public SHA artifact differs from candidate manifest." >&2
+            exit 1
+          }
+
+      - name: Cleanup isolated temporary files
+        if: always()
+        shell: bash
+        run: |
+          rm -f /tmp/wrangler-v4-runtime-release.jsonc
+          rm -f /tmp/aio-v4-existing-runtime /tmp/aio-v4-existing-sha
+          rm -f /tmp/aio-v4-r2-runtime.js /tmp/aio-v4-r2-runtime.sha256
+          rm -f /tmp/aio-v4-public.js /tmp/aio-v4-public.sha256
+          rm -f /tmp/aio-v4-public.headers /tmp/aio-v4-public-sha.headers

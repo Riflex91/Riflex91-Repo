@@ -199,6 +199,8 @@ Er akzeptiert ausschliesslich Runtime 1.1.5 und laedt oder veroeffentlicht selbs
 
 Der vorbereitete Release-Candidate ist exakt `88185523c81687dc16f9647ca5e7568c5e2c228c` mit `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Seine reproduzierbare Build-Pruefung ersetzt noch kein Deployment und keinen oeffentlichen HTTPS-Nachweis.
 
+Fuer dessen externe Veroeffentlichung ist nun ein separater manueller `release-v4-runtime.yml`-Workflow vorbereitet. Er darf ausschliesslich die zwei immutable V4-Artefakte veroeffentlichen und weder V3 noch Worker, D1 oder Lifecycle-Regeln veraendern. Der Workflow wurde noch nicht ausgefuehrt.
+
 Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 
 1. finalen Aenderungsstand eindeutig festlegen,

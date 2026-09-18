@@ -21,7 +21,7 @@ const workflowPfad = path.join(
   '..',
   '.github',
   'workflows',
-  'deploy-cloudflare.yml'
+  'release-v4-runtime.yml'
 );
 
 const manifest = JSON.parse(await readFile(manifestPfad, 'utf8'));
@@ -71,14 +71,19 @@ if (!einstieg.includes("PRODUKTIONS_LAUFZEIT_VERSION = '1.1.5'")) {
 }
 
 for (const pflicht of [
+  'name: release-v4-runtime-immutable',
   'workflow_dispatch:',
   'release_sha:',
-  'ref: ${{ inputs.release_sha || github.sha }}',
-  'Build and verify V4 production runtime artifacts',
-  'Publish immutable V4 runtime release to R2',
+  'confirmation:',
+  'PUBLISH-V4-IMMUTABLE:$RELEASE_SHA',
+  'ref: ${{ inputs.release_sha }}',
+  'BLOCK-8-5-RUNTIME-1-1-5-RELEASE-CANDIDATE.json',
+  'npm run produktions-runtime:bauen',
+  '--experimental-auto-create=false',
+  '--experimental-provision=false',
   'releases/v4/$RELEASE_SHA/aio-v4-runtime.js',
-  'Verify immutable V4 runtime release in R2',
-  'Verify immutable V4 runtime release over public HTTPS',
+  'Verify immutable V4 objects from R2',
+  'Verify immutable V4 release over existing public HTTPS worker',
   'x-aio-v4-release-sha'
 ]) {
   if (!workflow.includes(pflicht)) {

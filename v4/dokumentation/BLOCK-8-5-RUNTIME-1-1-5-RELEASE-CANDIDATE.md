@@ -51,30 +51,39 @@ Die Pruefung:
 
 1. validiert das Candidate-Manifest,
 2. verlangt Runtime-Version 1.1.5 in der Produktionsquelle,
-3. prueft die vorhandene immutable Deployment-Pipeline auf expliziten `release_sha`,
+3. prueft den isolierten V4-only Runtime-Release-Workflow auf expliziten `release_sha`, manuelle Bestaetigung und fehlende V3-/Worker-Autoritaet,
 4. baut die Produktionsruntime erneut aus den TypeScript-Quellen,
 5. vergleicht Module, Bytegroesse und SHA-256 exakt mit dem Manifest,
 6. verweigert jede vorzeitige Behauptung von Deployment oder realer Adventure-Land-Freigabe.
 
 Damit wird ein Quellcode-Drift nach dem Candidate sichtbar, bevor der Candidate als derselbe Runtime-Build verwendet werden kann.
 
-## Deployment-Pipeline
+## Isolierter V4-only Release-Pfad
 
-Die vorhandene `.github/workflows/deploy-cloudflare.yml` besitzt bereits die erforderlichen Sicherheitsgrenzen:
+Fuer diesen Candidate ist jetzt ausschliesslich vorgesehen:
 
-- expliziter `release_sha`,
-- Checkout genau dieses Commits,
-- lokaler Runtime-Build,
-- lokaler SHA-256-Vergleich,
+`.github/workflows/release-v4-runtime.yml`
+
+Der Workflow besitzt:
+
+- nur manuellen `workflow_dispatch`,
+- expliziten `release_sha`,
+- exakte Bestaetigung `PUBLISH-V4-IMMUTABLE:<release_sha>`,
+- getrennten Kontroll- und Candidate-Checkout,
+- lokalen Runtime-Build und SHA-/Bytevergleich,
+- deaktivierte automatische Cloudflare-Ressourcenprovisionierung,
 - immutable R2-Pfade unter `releases/v4/<release-sha>/...`,
-- Bytevergleich nach R2-Download,
-- erneute SHA-256-Pruefung,
-- oeffentlicher HTTPS-Download,
-- erneuter Byte- und SHA-Vergleich,
+- Schutz vor Ueberschreiben eines abweichenden vorhandenen Objekts,
+- Byte-/SHA-Rueckverifikation aus R2,
+- oeffentliche HTTPS-Rueckverifikation ueber den bereits vorhandenen Worker,
 - CORS-/Cache-/Content-Type-Pruefung,
 - Header `x-aio-v4-release-sha`.
 
-Der Candidate selbst loest diesen Workflow **nicht** aus.
+Der Workflow baut oder veroeffentlicht **kein V3**, fuehrt **kein `wrangler deploy`** aus und veraendert weder D1 noch R2-Lifecycle-Regeln.
+
+Der breite historische `.github/workflows/deploy-cloudflare.yml` bleibt unveraendert bestehen, ist aber fuer diesen Block-8.5-Runtime-Nachweis nicht mehr der vorgesehene Release-Pfad.
+
+Der Candidate selbst loest den V4-only Workflow **nicht** aus.
 
 ## Noch ausdrücklich offen
 

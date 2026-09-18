@@ -150,6 +150,8 @@ Dafuer ist nun zusaetzlich ein Adventure-Land-Nachweisrunner vorbereitet, der au
 
 Der Runtime-1.1.5-Build ist inzwischen als reproduzierbarer Release-Candidate an `88185523c81687dc16f9647ca5e7568c5e2c228c` und `aenderungsKennung: git:88185523c81687dc16f9647ca5e7568c5e2c228c` gebunden. Deployment, oeffentliche HTTPS-Verifikation und die realen Adventure-Land-Nachweise bleiben weiterhin offen.
 
+Ein isolierter manueller V4-only Release-Workflow ist vorbereitet, damit die Candidate-Veroeffentlichung kein V3, keinen Worker, kein D1 und keine Lifecycle-Regel veraendert. Auch dieser Workflow ist noch nicht ausgefuehrt.
+
 ## Nicht Teil von Block 8.5
 
 - neue Merchant-/Bank-Fachlogik
