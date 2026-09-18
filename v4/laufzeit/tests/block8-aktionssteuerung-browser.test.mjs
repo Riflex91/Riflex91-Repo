@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { AktionsSteuerung as ProduktionsSteuerung } from '../../erzeugt/kern/aktions-steuerung.js';
+import { LaufzeitSteuerung as ProduktionsLaufzeitSteuerung } from '../../erzeugt/kern/laufzeit-steuerung.js';
 
 function normal(wert) { return JSON.parse(JSON.stringify(wert)); }
 function anfrage(kennung, aenderungen = {}) {
@@ -20,12 +21,15 @@ function anfrage(kennung, aenderungen = {}) {
     ...aenderungen
   });
 }
-async function browserKlasse() {
+async function browserApi() {
   const text = await readFile(new URL('../../werkzeuge/aktions-steuerung-schatten-kern.js', import.meta.url), 'utf8');
   const kontext = vm.createContext({ console });
   kontext.globalThis = kontext;
   vm.runInContext(text, kontext);
-  return kontext.V4AktionsSteuerungSchattenKern.AktionsSteuerung;
+  return kontext.V4AktionsSteuerungSchattenKern;
+}
+async function browserKlasse() {
+  return (await browserApi()).AktionsSteuerung;
 }
 function snapshot(steuerung) {
   return normal({
@@ -76,4 +80,61 @@ test('Block 8 Browser-AktionsSteuerung: wichtigere Anfrage unterbricht identisch
   for (const s of [produktiv, browser]) { s.reicheAnfrageEin(normalAnfrage); s.verarbeiteNaechsteAktion(1_000); s.reicheAnfrageEin(sicherheit); }
   assert.deepEqual(normal(browser.verarbeiteNaechsteAktion(1_010)), normal(produktiv.verarbeiteNaechsteAktion(1_010)));
   assert.deepEqual(snapshot(browser), snapshot(produktiv));
+});
+
+
+test('Block 8 Browser-AktionsSteuerung: Laufzeit-Pause bleibt semantisch identisch zur Produktion', async () => {
+  const BrowserApi = await browserApi();
+  const produktivLaufzeit = new ProduktionsLaufzeitSteuerung();
+  const browserLaufzeit = new BrowserApi.LaufzeitSteuerung();
+  const produktiv = new ProduktionsSteuerung({ laufzeitSteuerung: produktivLaufzeit });
+  const browser = new BrowserApi.AktionsSteuerung({ laufzeitSteuerung: browserLaufzeit });
+
+  const normalAnfrage = anfrage('pause-normal', { prioritaet: 500 });
+  for (const steuerung of [produktiv, browser]) {
+    steuerung.reicheAnfrageEin(normalAnfrage);
+    steuerung.verarbeiteNaechsteAktion(1_000);
+  }
+
+  produktivLaufzeit.pausiere(1_100, 'Paritaets-Pause.');
+  browserLaufzeit.pausiere(1_100, 'Paritaets-Pause.');
+
+  assert.deepEqual(
+    normal(browser.brecheNormaleArbeitFuerPauseAb(1_100)),
+    normal(produktiv.brecheNormaleArbeitFuerPauseAb(1_100))
+  );
+  assert.deepEqual(normal(browser.laufzeitStatus()), normal(produktiv.laufzeitStatus()));
+  assert.deepEqual(snapshot(browser), snapshot(produktiv));
+
+  const waehrendPause = anfrage('pause-neu', {
+    angefordertAm: 1_200,
+    gueltigBis: 2_700
+  });
+  assert.deepEqual(
+    normal(browser.reicheAnfrageEin(waehrendPause)),
+    normal(produktiv.reicheAnfrageEin(waehrendPause))
+  );
+
+  const safety = anfrage('pause-safety', {
+    wichtigkeit: 'sicherheit',
+    prioritaet: 900,
+    angefordertAm: 1_210,
+    gueltigBis: 2_710,
+    benoetigteRessourcen: Object.freeze(['bewegung'])
+  });
+  assert.deepEqual(
+    normal(browser.reicheAnfrageEin(safety)),
+    normal(produktiv.reicheAnfrageEin(safety))
+  );
+  assert.deepEqual(
+    normal(browser.verarbeiteNaechsteAktion(1_210)),
+    normal(produktiv.verarbeiteNaechsteAktion(1_210))
+  );
+  assert.deepEqual(snapshot(browser), snapshot(produktiv));
+
+  produktivLaufzeit.setzeFort(1_300, 'Paritaets-Fortsetzung.');
+  browserLaufzeit.setzeFort(1_300, 'Paritaets-Fortsetzung.');
+  assert.deepEqual(normal(browser.laufzeitStatus()), normal(produktiv.laufzeitStatus()));
+  assert.equal(browser.holeAktionsZustand('pause-neu')?.phase, 'abgebrochen');
+  assert.equal(produktiv.holeAktionsZustand('pause-neu')?.phase, 'abgebrochen');
 });
