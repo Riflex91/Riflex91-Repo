@@ -234,7 +234,7 @@ Hinweis: Dieser Blockabschluss ersetzt nicht die spaeteren allgemeinen 24-Stunde
 
 ## Block 8 – Gruppenkoordination
 
-Status: **in Arbeit; vor Block 9 folgt verbindlich Block 8.5**.
+Status: **in Arbeit; technische/offline Abschlusshaertung weit fortgeschritten, aktiver 72-Stunden-Gruppentest noch offen; vor Block 9 folgt verbindlich Block 8.5**.
 
 Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 
@@ -251,10 +251,12 @@ Gemeinsam umgesetzt werden:
 
 Abschlusspruefung:
 
-- Mehrcharakter-Wiederholungen
-- gezielte Ausfalltests einzelner Gruppenmitglieder
-- Wiederaufbau nach Verbindungsabbruch
-- anschliessender 72-Stunden-Gruppentest
+- Mehrcharakter-Wiederholungen — **erfuellt**
+- gezielte Ausfalltests einzelner Gruppenmitglieder — **automatisiert und read-only live erfuellt**
+- Wiederaufbau nach Verbindungsabbruch — **read-only live erfuellt; aktiver Pfad bleibt Teil der Abschlusskampagne**
+- anschliessender 72-Stunden-Gruppentest — **offen**
+
+Der aktuelle Nachweisstand und die verbleibende aktive Freigabekampagne stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`. Block 8 bleibt bis zum bestandenen 72-Stunden-Gruppentest formal offen.
 
 ## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
 
