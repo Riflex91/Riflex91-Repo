@@ -74,21 +74,17 @@ function installActiveAggroKiteCohesionBypass(runtime, stats) {
     if (!decision || decision.shouldMove !== false || String(decision.reason || '') !== 'TEAM_COHESION_KITE_LIMIT') return decision;
     const self = nameOf(character && character.name) || nameOf(runtimeCharacter(runtime) && runtimeCharacter(runtime).name);
     if (!self || !liveMonster(target) || String(target.target || '') !== self) return decision;
-    stats.kitingCohesionBypasses += 1;
-    emit(runtime, 'alpha20-33-combat-logistics', 'ACTIVE_AGGRO_KITE_COHESION_BYPASS', 'info', 'ACTIVE_AGGRO_OUTRANKS_SOFT_FORMATION_LIMIT', {
+    stats.activeAggroKiteTetherHolds = (stats.activeAggroKiteTetherHolds || 0) + 1;
+    emit(runtime, 'alpha20-33-combat-logistics', 'ACTIVE_AGGRO_KITE_TETHER_HOLD', 'info', 'ACTIVE_AGGRO_RESPECTS_HARD_FORMATION_TETHER', {
       targetId: target.id == null ? null : String(target.id),
       targetType: target.mtype || null,
       previousReason: decision.reason || null,
       x: finite(decision.x),
       y: finite(decision.y)
     });
-    return {
-      ...decision,
-      shouldMove: true,
-      reason: 'ACTIVE_AGGRO_KITE_COHESION_BYPASS',
-      teamCohesionBlocked: false,
-      aggroAuthorized: true
-    };
+    // Active aggro no longer outranks party cohesion. The proposed kite move is
+    // rejected exactly as the team-cohesion guard requested.
+    return decision;
   };
   kiting.__alpha20_33AggroKiteCohesionBypassInstalled = true;
   return true;
@@ -315,6 +311,7 @@ class Alpha2033CombatLogisticsRegressionHotfix {
     this.installedAt = this.now();
     this.stats = {
       kitingCohesionBypasses: 0,
+      activeAggroKiteTetherHolds: 0,
       nonAggroOutwardMovesBlocked: 0,
       merchantTargetOnlyCombatHoldsPrevented: 0,
       goldLootObservations: 0,
@@ -348,7 +345,8 @@ class Alpha2033CombatLogisticsRegressionHotfix {
         goldTransferWindowMs: gold ? gold.windowMs : null
       },
       policies: {
-        activeAggroMayBypassSoftKiteCohesionLimit: true,
+        activeAggroMayBypassSoftKiteCohesionLimit: false,
+        activeAggroRespectsHardFormationTether: true,
         supportCharactersDoNotRetreatWithoutSelfAggro: true,
         merchantCombatRequiresIncomingMonsterAggro: true,
         merchantOwnTargetDoesNotCountAsIncomingAggro: true,

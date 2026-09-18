@@ -311,43 +311,13 @@ function installAdaptiveRangePositioning(runtime, stats, options = {}) {
     kiting.desiredFactor = Math.max(finite(kiting.desiredFactor, 0), desiredFactor);
   }
 
+  // Non-aggro ranged characters do not drift outward to an artificial fire
+  // band. The normal Farmer engagement pipeline remains authoritative: it may
+  // close distance when the target leaves attack/skill range, but otherwise the
+  // support Ranger holds position and keeps firing from where it already stands.
   if (typeof farmer._engage === 'function') {
     const baseEngage = farmer._engage.bind(farmer);
-    let lastFirePositionAt = -Infinity;
-    farmer._engage = (context, target) => {
-      const snapshot = context && context.snapshot;
-      const c = snapshot && snapshot.character;
-      if (c && liveMonster(target) && classifyCombatStyle(c) === 'ranged' && target.target && String(target.target) !== String(c.name || '')) {
-        const range = finite(c.range);
-        const d = distance(c, target);
-        const now = runtime.now ? runtime.now() : Date.now();
-        if (range != null && range >= 60 && Number.isFinite(d) && d < range * firePositionTrigger && now - lastFirePositionAt >= firePositionCooldownMs) {
-          let unsafe = false;
-          try { unsafe = !!(typeof farmer._needsRecovery === 'function' && farmer._needsRecovery(snapshot).hpUnsafe); } catch (_) {}
-          if (!unsafe) {
-            const desired = range * desiredFactor;
-            const maxStep = Math.min(range * 0.42, Math.max(20, (finite(c.speed, 40) || 40) * 1.15));
-            const waypoint = radialWaypoint(runtime, c, target, desired, maxStep);
-            if (waypoint && context.adapter && typeof context.adapter.command === 'function') {
-              const result = context.adapter.command('move', [waypoint.x, waypoint.y]);
-              if (result && (result.executed || result.shadow || result.coalesced)) {
-                lastFirePositionAt = now;
-                stats.rangedFirePositionMoves += 1;
-                if (typeof farmer._event === 'function') farmer._event('FARMER_RANGE_POSITION_REQUESTED', 'info', 'MAXIMIZE_RANGED_FIRE_POSITION', {
-                  distance: Number(d.toFixed(2)),
-                  range,
-                  desiredDistance: Number(desired.toFixed(2)),
-                  tank: tankProfile(runtime, target, snapshot)
-                });
-              }
-            }
-          }
-        }
-      }
-      // Repositioning changes movement only. Keep the normal engagement pipeline
-      // live so ranged followers can fire in the same cycle while moving outward.
-      return baseEngage(context, target);
-    };
+    farmer._engage = (context, target) => baseEngage(context, target);
   }
 
   farmer.__alpha24AdaptiveRangeInstalled = true;
@@ -515,7 +485,9 @@ class Alpha24AdaptiveRangeRiskLogisticsHotfix {
         logisticsRendezvousIsSoftDuringHomeService: true,
         rangerAndOtherRangedClassesUseNearMaximumRange: true,
         onlyAggroHolderUsesKitingController: true,
-        nonAggroRangedCharactersMayRepositionToFireBand: true,
+        nonAggroRangedCharactersMayRepositionToFireBand: false,
+        nonAggroRangedCharactersHoldPositionWhileTargetInRange: true,
+        supportMovementOnlyClosesOutOfRangeGap: true,
         kiteCapabilityMitigatesButDoesNotEraseRisk: true,
         dangerousContentStillAbsolute: true,
         expectedKillTimeHardBounded: true,

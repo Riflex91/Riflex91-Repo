@@ -48,11 +48,11 @@ class Alpha31PartyRoleLivenessHotfix {
     this.now = runtime.now || (() => Date.now());
     this.log = runtime.log || null;
 
-    this.orbitDesiredFactor = clamp(options.orbitDesiredFactor == null ? 0.80 : options.orbitDesiredFactor, 0.68, 0.90);
-    this.orbitMaxRangeFactor = clamp(options.orbitMaxRangeFactor == null ? 0.92 : options.orbitMaxRangeFactor, this.orbitDesiredFactor, 0.96);
+    this.orbitDesiredFactor = clamp(options.orbitDesiredFactor == null ? 0.72 : options.orbitDesiredFactor, 0.64, 0.84);
+    this.orbitMaxRangeFactor = clamp(options.orbitMaxRangeFactor == null ? 0.82 : options.orbitMaxRangeFactor, this.orbitDesiredFactor, 0.90);
     this.orbitMonsterBuffer = Math.max(12, Math.min(60, finite(options.orbitMonsterBuffer, 20)));
     this.orbitSpeedBufferSeconds = clamp(options.orbitSpeedBufferSeconds == null ? 0.50 : options.orbitSpeedBufferSeconds, 0.20, 1.20);
-    this.orbitStepSeconds = clamp(options.orbitStepSeconds == null ? 0.80 : options.orbitStepSeconds, 0.35, 1.30);
+    this.orbitStepSeconds = clamp(options.orbitStepSeconds == null ? 0.65 : options.orbitStepSeconds, 0.30, 1.00);
 
     this.regroupTriggerDistance = Math.max(90, finite(options.regroupTriggerDistance, 120));
     this.regroupStopDistance = Math.max(35, Math.min(this.regroupTriggerDistance - 10, finite(options.regroupStopDistance, 60)));

@@ -28,8 +28,15 @@ class BasicKitingPolicy {
       return { shouldMove: false, reason: 'RANGE_CAPABILITY_TOO_LOW', range };
     }
 
-    if (target.target && target.target !== character.name) {
-      return { shouldMove: false, reason: 'TARGET_FOCUSED_ELSEWHERE', range, targetOwner: target.target };
+    const targetOwner = target.target == null ? null : String(target.target);
+    const selfName = character.name == null ? null : String(character.name);
+    if (!targetOwner || !selfName || targetOwner !== selfName) {
+      return {
+        shouldMove: false,
+        reason: targetOwner ? 'TARGET_FOCUSED_ELSEWHERE' : 'NO_ACTIVE_SELF_AGGRO',
+        range,
+        targetOwner
+      };
     }
 
     const cx = finite(character.x);

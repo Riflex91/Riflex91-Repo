@@ -426,6 +426,34 @@ test('followers do not own independent farm direction and regroup toward the lea
   assert.ok(commands.some((row) => row.action === 'move'));
 });
 
+test('active shared combat suppresses follower regroup movement while support fire continues outside cohesion', () => {
+  const target = monster('fight-1', { x: 0, y: 0, target: 'My_Ranger2' });
+  const { runtime, hotfix, snap, commands } = makeTeamRuntime({
+    localName: 'My_Ranger2',
+    localOverrides: { x: 240, y: 0, target: 'fight-1' },
+    partyOverrides: {
+      My_Ranger1: { ...rawParty().My_Ranger1, x: 0, y: 0, target: 'fight-1' },
+      My_Ranger2: { ...rawParty().My_Ranger2, x: 240, y: 0, target: 'fight-1' },
+      My_Ranger3: { ...rawParty().My_Ranger3, x: 20, y: 0, target: 'fight-1' }
+    },
+    entities: [target]
+  });
+  snap.character.target = 'fight-1';
+  runtime.lastSnapshot = snap;
+  const ctx = context(runtime, snap, commands);
+  const team = hotfix._team(snap);
+
+  assert.equal(team.cohesive, false);
+  const gate = hotfix._combatGate(ctx, target, 'ENGAGE');
+  assert.equal(gate.allowed, true);
+  assert.equal(gate.reason, 'ACTIVE_TEAM_COMBAT_CONTINUES_OUTSIDE_COHESION');
+
+  assert.equal(hotfix._followLeader(ctx, team, 'REGROUP_WITH_TEAM_LEADER'), true);
+  assert.equal(commands.some((row) => row.action === 'move'), false);
+  assert.equal(hotfix.lastDecision.reason, 'ACTIVE_COMBAT_POSITION_OWNED_BY_COMBAT');
+  assert.equal(hotfix.stats.combatFormationHolds, 1);
+});
+
 test('leader waits for followers instead of departing alone to another spawn', () => {
   const { runtime, hotfix, commands } = makeTeamRuntime({
     localName: 'My_Ranger1',
@@ -452,6 +480,8 @@ test('team kiting radius is smaller and a kite move cannot break formation', () 
   assert.equal(runtime.farmer.kiting.tooCloseFactor, 0.52);
   assert.equal(runtime.farmer.kiting.desiredFactor, 0.70);
   assert.equal(runtime.farmer.kiting.maxStepFactor, 0.32);
+  assert.equal(hotfix.status().config.kiteFormationRadius, 100);
+  assert.equal(hotfix.status().strategy.hardKiteTeamTether, true);
 
   runtime.lastSnapshot = snapshot('My_Ranger1', { c: { x: 0, y: 0, range: 130 }, entities: [] });
   const result = runtime.farmer.kiting.evaluate(runtime.lastSnapshot.character, monster('m1', { x: 20, y: 0, target: 'My_Ranger1' }));
