@@ -4,6 +4,7 @@ const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-
 
 const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v4';
 const POTION_TARGET_COUNT = 4500;
+// A latched service order is bounded so stale party telemetry cannot pin a target forever.
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
 const POTION_LOW_WATERMARK = POTION_TARGET_COUNT - 1;
 // Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
