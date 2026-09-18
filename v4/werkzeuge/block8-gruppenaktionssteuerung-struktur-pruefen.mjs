@@ -32,6 +32,8 @@ if (!integrationBrowser.includes(`QUELL_BLOB_SHA = '${integrationSha}'`)) {
 const zentralBrowser = await readFile(path.join(wurzel, 'werkzeuge/aktions-steuerung-schatten-kern.js'), 'utf8');
 const zentraleQuellen = {
   aktionsSteuerung: 'laufzeit/quelle/kern/aktions-steuerung.ts',
+  laufzeitSteuerung: 'laufzeit/quelle/kern/laufzeit-steuerung.ts',
+  laufzeitVertrag: 'laufzeit/quelle/vertraege/laufzeit-steuerung.ts',
   aktionsAuswahl: 'laufzeit/quelle/kern/aktions-auswahl.ts',
   ressourcenVergabe: 'laufzeit/quelle/kern/ressourcen-vergabe.ts',
   schattenAusfuehrung: 'laufzeit/quelle/kern/schatten-ausfuehrung.ts',
@@ -86,6 +88,11 @@ for (const text of [zentralBrowser, integrationBrowser, schatten]) {
       throw new Error(`Block-8-Steuerungsschatten darf Adventure Land nicht direkt aufrufen: ${unerlaubt}.`);
     }
   }
+}
+
+const browserTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-aktionssteuerung-browser.test.mjs'), 'utf8');
+if (!browserTests.includes('Laufzeit-Pause bleibt semantisch identisch zur Produktion')) {
+  throw new Error('Browser-AktionsSteuerung-Test fuer die zentrale Laufzeit-Pause fehlt.');
 }
 
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/gruppen-aktionssteuerung.test.mjs'), 'utf8');

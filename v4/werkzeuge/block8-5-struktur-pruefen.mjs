@@ -27,7 +27,13 @@ const dateien = [
   'dokumentation/BLOCK-8-5-STATUSSCHNITTSTELLE.md',
   'werkzeuge/block8-5-ingame-hud.js',
   'laufzeit/tests/block8-5-ingame-hud.test.mjs',
-  'dokumentation/BLOCK-8-5-INGAME-HUD.md'
+  'dokumentation/BLOCK-8-5-INGAME-HUD.md',
+  'laufzeit/quelle/vertraege/laufzeit-steuerung.ts',
+  'laufzeit/quelle/kern/laufzeit-steuerung.ts',
+  'laufzeit/quelle/kern/sichere-basis-bedienung.ts',
+  'laufzeit/tests/block8-5-basisbedienung-kern.test.mjs',
+  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-KERN.md',
+  'laufzeit/quelle/kern/aktions-steuerung.ts'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -464,4 +470,131 @@ for (const pflicht of [
   if (!hudDokument.includes(pflicht)) throw new Error(`Ingame-HUD-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1 bis 8.5.6 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, Recovery-Checkpoint, StatusSchnittstelle und Ingame-HUD ohne neue Spiel-/Bedien-/Neustartautoritaet.');
+const laufzeitVertrag = await readFile(path.join(wurzel, dateien[24]), 'utf8');
+for (const pflicht of [
+  'LAUFZEIT_BETRIEBS_ZUSTAENDE',
+  "'laeuft'",
+  "'pausiert'",
+  'automatischeFortsetzung: false',
+  'BASIS_BEDIEN_AKTIONEN',
+  "'diagnose_aktualisieren'",
+  "'laufzeit_pausieren'",
+  "'laufzeit_fortsetzen'",
+  'erwarteteLaufzeitGeneration',
+  'BasisBedienAnfrage'
+]) {
+  if (!laufzeitVertrag.includes(pflicht)) throw new Error(`Laufzeitsteuerungs-Vertrag fehlt: ${pflicht}`);
+}
+
+const laufzeitSteuerung = await readFile(path.join(wurzel, dateien[25]), 'utf8');
+for (const pflicht of [
+  'class LaufzeitSteuerung',
+  'pausiere(',
+  'setzeFort(',
+  'pruefeAktionsAnfrage(',
+  'istPauseGeschuetzteWichtigkeit',
+  'automatischeFortsetzung: false',
+  'vor der letzten Zustandsaenderung'
+]) {
+  if (!laufzeitSteuerung.includes(pflicht)) throw new Error(`LaufzeitSteuerung fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'setInterval(',
+  'setTimeout(',
+  'location.reload(',
+  'window.close(',
+  'pausiereLebensnachweisAutomatik(',
+  'setzeLebensnachweisAutomatikFort('
+]) {
+  if (laufzeitSteuerung.includes(verboten)) {
+    throw new Error(`LaufzeitSteuerung darf keine versteckte Timer-/Heartbeat-/Neustartautoritaet verwenden: ${verboten}`);
+  }
+}
+
+const basisBedienung = await readFile(path.join(wurzel, dateien[26]), 'utf8');
+for (const pflicht of [
+  'class SichereBasisBedienung',
+  'BedienSicherung',
+  'erstelleBasisBedienAnfrage',
+  'laufzeit-generation-aktuell',
+  'ausdruecklichBestaetigt',
+  'brecheNormaleArbeitFuerPauseAb',
+  "status: 'wiederholt'",
+  'maxBehandelteVorgaenge',
+  'dieselbe LaufzeitSteuerung'
+]) {
+  if (!basisBedienung.includes(pflicht)) throw new Error(`Sichere Basisbedienung fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'setInterval(',
+  'setTimeout(',
+  'location.reload(',
+  'window.close(',
+  'pausiereLebensnachweisAutomatik(',
+  'setzeLebensnachweisAutomatikFort(',
+  'sendeLebensnachweis('
+]) {
+  if (basisBedienung.includes(verboten)) {
+    throw new Error(`Basisbedienung darf keine versteckte Timer-/Heartbeat-/Neustartautoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(basisBedienung) ||
+      new RegExp(`\\b${aktionsName}\\s*\\(`).test(laufzeitSteuerung)) {
+    throw new Error(`Basisbedienungs-Kern darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+
+const basisTests = await readFile(path.join(wurzel, dateien[27]), 'utf8');
+for (const pflicht of [
+  'LaufzeitSteuerung startet freigegeben und setzt keine automatische Fortsetzung',
+  'Pause sperrt normale und Hintergrundarbeit aber nicht Notfall oder Sicherheit',
+  'AktionsSteuerung verwirft neue normale Arbeit waehrend Pause statt sie fuer spaeter zu sammeln',
+  'sichere Pause laeuft durch BedienSicherung und beendet bestehende normale Arbeit',
+  'Pause laesst laufende Sicherheitsarbeit unberuehrt',
+  'Fortsetzen ist vorsichtig und ohne ausdrueckliche Bestaetigung blockiert',
+  'Fortsetzen belebt vor der Pause abgebrochene Arbeit nicht wieder',
+  'Diagnose aktualisieren bleibt read-only',
+  'gleiche Vorgangskennung wird nicht doppelt ausgefuehrt',
+  'behandelte Vorgangskennungen bleiben hart begrenzt',
+  'Bedienung und AktionsSteuerung muessen dieselbe LaufzeitSteuerung teilen',
+  'veraltete Laufzeit-Generation blockiert eine spaeter ausgefuehrte Bedienanfrage',
+  'manipuliertes Risiko umgeht die kanonische BedienSicherung nicht',
+  'rueckwaertiger Zustandszeitpunkt wird fail-safe abgewiesen'
+]) {
+  if (!basisTests.includes(pflicht)) throw new Error(`Basisbedienungs-Kerntest fehlt: ${pflicht}`);
+}
+
+const basisDokument = await readFile(path.join(wurzel, dateien[28]), 'utf8');
+for (const pflicht of [
+  '8.5.7 in Arbeit',
+  'BedienAnfrage -> BedienSicherung -> LaufzeitSteuerung / AktionsSteuerung',
+  'automatischeFortsetzung: false',
+  'erwarteteLaufzeitGeneration',
+  'Doppelklick- und Wiederholungsschutz',
+  'Noch offen in 8.5.7'
+]) {
+  if (!basisDokument.includes(pflicht)) throw new Error(`Basisbedienungs-Kerndokumentation fehlt: ${pflicht}`);
+}
+
+const aktionsSteuerungMitPause = await readFile(path.join(wurzel, dateien[29]), 'utf8');
+for (const pflicht of [
+  'laufzeitSteuerung?: LaufzeitSteuerung',
+  'pruefeAktionsAnfrage',
+  'brecheNormaleArbeitFuerPauseAb',
+  'istMitLaufzeitSteuerungVerbunden'
+]) {
+  if (!aktionsSteuerungMitPause.includes(pflicht)) {
+    throw new Error(`AktionsSteuerung-Laufzeitkopplung fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.7-Kern geprueft: inklusive zentraler Laufzeit-Pause, BedienSicherung, Stale-/Replay-Schutz und Sicherheits-/Notfallfreigabe ohne direkte Adventure-Land-/Heartbeat-/Neustartautoritaet.');
