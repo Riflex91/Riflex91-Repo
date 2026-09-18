@@ -133,16 +133,18 @@ Abgenommen sind:
 
 Die neue Recovery-Abnahmesuite verbindet die bereits vorhandenen Sicherheitsgrenzen, ohne eine neue Recovery-Engine einzufuehren. Checkpoints bleiben nach Runtime-Neustart reine Abgleichsdaten mit `wiederaufnahmeErlaubt: false`, `abgleichErforderlich: true` und `aktionsAutoritaet: false`. Unterbrochene normale Arbeit wird nach Fortsetzen nicht wiederbelebt, doppelte Bedienanfragen bleiben idempotent, stale/ungueltige Zustaende werden blockiert und RuntimeGesundheit behaelt `automatischerNeustart: false`. Historische Block-8-Reconnect- und Browser-Hintergrundnachweise bleiben unveraendert und werden als bestehende Regressionen weiter mitgeprueft.
 
-### Schritt 8.5.9 – Freigabestufen
+### Schritt 8.5.9 – Freigabestufen — **GATE IMPLEMENTIERT, OPERATIVE FREIGABE OFFEN**
 
-Fuer neue oder wesentlich geaenderte Laufzeitpfade:
+Fuer neue oder wesentlich geaenderte Laufzeitpfade gilt weiterhin verbindlich:
 
 1. deterministischer Offline-Test/Wiederholung,
-2. Schattenbetrieb,
+2. Schattenbetrieb ohne echte Spielaktion,
 3. begrenzter kontrollierter Live-Test,
-4. Soak-Test mit Telemetrie und Recovery-Nachweis.
+4. Soak-Test mit Telemetrie, Recovery-Nachweis und bestandener Gesamtauswertung.
 
-Erst danach darf Block 9 beginnen.
+Implementiert ist jetzt ein read-only Freigabe-Gate mit `FreigabeNachweis` und `werteFreigabestufenAus(...)`. Alle Stufen muessen zum selben Laufzeitpfad und exakt demselben `aenderungsKennung`-Stand gehoeren. Fehlende oder fehlgeschlagene Vorstufen blockieren spaetere Nachweise; historische Nachweise eines anderen Aenderungsstands duerfen nicht wiederverwendet werden. Das Ergebnis besitzt keine Spiel- oder Neustartautoritaet und setzt `block9Freigegeben: true` ausschliesslich nach vier bestandenen sequenziellen Stufen.
+
+Die Freigabemechanik ist damit implementiert. Die operativen Schatten-, kontrollierten Live- und Soak-Nachweise fuer den finalen Block-8.5-Laufzeitstand sind noch real durchzufuehren. Bis dahin bleibt Block 9 gesperrt.
 
 ## Nicht Teil von Block 8.5
 
