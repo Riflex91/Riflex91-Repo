@@ -2,7 +2,13 @@
   'use strict';
 
   const API_NAME = 'V4Block85FreigabeLiveTest';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
+  const LAUFZEIT_PFAD = 'block8.5-basisbedienung-runtime';
+  const ERWARTETE_AENDERUNGS_KENNUNG = 'git:88185523c81687dc16f9647ca5e7568c5e2c228c';
+  const ERWARTETE_RUNTIME_SHA256 = '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f';
+  const ERWARTETE_RUNTIME_URL =
+    'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js';
+  const MODI = Object.freeze(['schatten', 'live']);
   const GUI_API_NAME = 'V4TestGui';
   const RUNTIME_API_NAME = 'V4ProduktionsLaufzeit';
   const ERWARTETE_RUNTIME_VERSION = '1.1.5';
@@ -50,7 +56,16 @@
       throw new Error(`${CONFIG_NAME} fehlt.`);
     }
     const aenderungsKennung = pruefeNichtLeer('aenderungsKennung', roh.aenderungsKennung);
+    if (aenderungsKennung !== ERWARTETE_AENDERUNGS_KENNUNG) {
+      throw new Error(
+        `aenderungsKennung muss exakt ${ERWARTETE_AENDERUNGS_KENNUNG} entsprechen.`
+      );
+    }
     const laufKennung = pruefeNichtLeer('laufKennung', roh.laufKennung);
+    const modus = pruefeNichtLeer('modus', roh.modus);
+    if (!MODI.includes(modus)) {
+      throw new Error('modus muss schatten oder live sein.');
+    }
     const soakDauerMillisekunden = Number(roh.soakDauerMillisekunden ?? SOAK_MIN_MILLIS);
     if (
       !Number.isFinite(soakDauerMillisekunden) ||
@@ -61,10 +76,15 @@
         `soakDauerMillisekunden muss zwischen ${SOAK_MIN_MILLIS} und ${SOAK_MAX_MILLIS} liegen.`
       );
     }
+    const schattenUebergabe = modus === 'live'
+      ? pruefeSchattenUebergabe(roh.schattenUebergabe, laufKennung, aenderungsKennung)
+      : null;
     return Object.freeze({
       aenderungsKennung,
       laufKennung,
-      soakDauerMillisekunden
+      modus,
+      soakDauerMillisekunden,
+      schattenUebergabe
     });
   }
 
@@ -99,6 +119,62 @@
     return api;
   }
 
+  function pruefeSchattenUebergabe(wert, laufKennung, aenderungsKennung) {
+    if (!wert || typeof wert !== 'object') {
+      throw new Error('Live-Modus braucht eine schattenUebergabe aus einem bestandenen strikten Schattenlauf.');
+    }
+    const nachweis = wert.nachweis;
+    if (!nachweis || typeof nachweis !== 'object') {
+      throw new Error('schattenUebergabe.nachweis fehlt.');
+    }
+
+    for (const [name, erwartetWert] of Object.entries({
+      schemaVersion: 1,
+      laufzeitPfadKennung: LAUFZEIT_PFAD,
+      aenderungsKennung,
+      laufKennung,
+      runtimeVersion: ERWARTETE_RUNTIME_VERSION,
+      runtimeSha256: ERWARTETE_RUNTIME_SHA256,
+      runtimeUrl: ERWARTETE_RUNTIME_URL,
+      betriebsart: 'gesperrt_nicht_gestartet',
+      generation: 0,
+      heartbeatVersuche: 0,
+      heartbeatErfolge: 0,
+      heartbeatFehler: 0
+    })) {
+      if (wert[name] !== erwartetWert) {
+        throw new Error(`schattenUebergabe besitzt unerwarteten Wert fuer ${name}.`);
+      }
+    }
+
+    for (const [name, erwartetWert] of Object.entries({
+      schemaVersion: 1,
+      laufzeitPfadKennung: LAUFZEIT_PFAD,
+      aenderungsKennung,
+      stufe: 'schatten',
+      nachweisKennung: `${laufKennung}:schatten`,
+      ergebnis: 'bestanden',
+      deterministisch: false,
+      spielAktionAusgefuehrt: false,
+      begrenzt: false,
+      telemetrieNachweis: false,
+      recoveryNachweis: false,
+      gesamtauswertungBestanden: false
+    })) {
+      if (nachweis[name] !== erwartetWert) {
+        throw new Error(`schattenUebergabe.nachweis besitzt unerwarteten Wert fuer ${name}.`);
+      }
+    }
+    if (!Number.isFinite(nachweis.durchgefuehrtAm) || nachweis.durchgefuehrtAm < 0) {
+      throw new Error('schattenUebergabe.nachweis.durchgefuehrtAm ist ungueltig.');
+    }
+
+    return Object.freeze({
+      ...wert,
+      nachweis: Object.freeze({ ...nachweis })
+    });
+  }
+
   function neueVorgangsKennung(aktion) {
     vorgangsNummer += 1;
     return `${cfg.laufKennung}:${aktion}:${vorgangsNummer}`;
@@ -125,19 +201,78 @@
     return status;
   }
 
-  function pruefeRuntimeStatus(status) {
+  function pruefeBootstrapBindung() {
+    const bootstrap = holeGlobal('V4Bootstrap');
+    if (!bootstrap || typeof bootstrap.status !== 'function') {
+      throw new Error('V4Bootstrap fehlt; exakte immutable Runtime-Bindung kann nicht bestaetigt werden.');
+    }
+    const status = bootstrap.status();
+    if (
+      status?.bereit !== true ||
+      status?.geladenVon !== ERWARTETE_RUNTIME_URL ||
+      status?.geladenerSha256 !== ERWARTETE_RUNTIME_SHA256
+    ) {
+      throw new Error('V4Bootstrap bestaetigt nicht die exakt erwartete immutable Runtime 1.1.5.');
+    }
+    return status;
+  }
+
+  function pruefeSchattenRuntimeStatus(status) {
+    if (!status || typeof status !== 'object') throw new Error('Runtime-Status fehlt.');
+    if (status.aktivFreigegeben !== false) {
+      throw new Error('Schattenbetrieb verlangt eine gesperrte Runtime mit aktivFreigegeben=false.');
+    }
+    if (status.gestoppt === true) {
+      throw new Error('Schattenbetrieb akzeptiert keine bereits gestoppte Runtime.');
+    }
+    if (status.empfangInstalliert !== false) {
+      throw new Error('Schattenbetrieb verlangt eine nicht gestartete Runtime ohne installierten CM-Empfang.');
+    }
+    if (status.lebensnachweisAutomatikAktiv !== false) {
+      throw new Error('Schattenbetrieb verlangt einen nicht gestarteten Produktionsheartbeat.');
+    }
+    if (status.lebensnachweisAutomatikPausiert !== false) {
+      throw new Error('Schattenbetrieb akzeptiert keinen zuvor gestarteten/pausierten Produktionsheartbeat.');
+    }
+    for (const feld of [
+      'lebensnachweisSendeVersuche',
+      'lebensnachweisSendeErfolge',
+      'lebensnachweisSendeFehler',
+      'lebensnachweisSendeOffen',
+      'lebensnachweisSendeMaxOffen'
+    ]) {
+      if (status[feld] !== 0) {
+        throw new Error(`Schattenbetrieb verlangt ${feld}=0.`);
+      }
+    }
+    if (status.performanceTrickAufgerufen !== false || status.performanceTrickAufrufe !== 0) {
+      throw new Error('Schattenbetrieb verlangt eine noch nicht gestartete Runtime ohne performance_trick-Aufruf.');
+    }
+    if (status.liveSmokeInstalliert === true || status.gruppenZielVorbereitungVerbraucht === true) {
+      throw new Error('Schattenbetrieb akzeptiert keine vorbereitete oder installierte Live-Autoritaet.');
+    }
+    return status;
+  }
+
+  function pruefeLiveRuntimeStatus(status) {
     if (!status || typeof status !== 'object') throw new Error('Runtime-Status fehlt.');
     if (status.aktivFreigegeben !== true) {
-      throw new Error('Produktionsruntime ist fuer den Freigabetest nicht aktiv freigegeben.');
+      throw new Error('Live-Modus verlangt eine aktiv freigegebene Produktionsruntime.');
     }
     if (status.gestoppt === true) {
       throw new Error('Produktionsruntime ist bereits gestoppt.');
+    }
+    if (status.empfangInstalliert !== true) {
+      throw new Error('Live-Modus verlangt eine gestartete Runtime mit installiertem CM-Empfang.');
     }
     if (status.lebensnachweisAutomatikAktiv !== true) {
       throw new Error('Produktionsheartbeat ist nicht aktiv.');
     }
     if (status.lebensnachweisAutomatikPausiert === true) {
       throw new Error('Produktionsheartbeat ist pausiert.');
+    }
+    if (!Number.isSafeInteger(status.lebensnachweisSendeVersuche) || status.lebensnachweisSendeVersuche < 1) {
+      throw new Error('Live-Modus verlangt mindestens einen echten Produktionsheartbeat-Sendeversuch.');
     }
     if (
       status.performanceTrickErforderlich === true &&
@@ -148,24 +283,42 @@
     return status;
   }
 
-  function preflight() {
+  function schattenPreflight() {
+    if (cfg.modus !== 'schatten') {
+      throw new Error('Schattennachweis ist nur im Modus schatten erlaubt.');
+    }
     const runtime = runtimeApi();
-    const runtimeStatus = pruefeRuntimeStatus(runtime.status());
+    const bootstrapStatus = pruefeBootstrapBindung();
+    const runtimeStatus = pruefeSchattenRuntimeStatus(runtime.status());
     const basisStatus = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
-    return Object.freeze({ runtime, runtimeStatus, basisStatus });
+    if (basisStatus.laufzeit.generation !== 0) {
+      throw new Error('Schattenbetrieb verlangt Laufzeit-Generation 0.');
+    }
+    return Object.freeze({ runtime, bootstrapStatus, runtimeStatus, basisStatus });
+  }
+
+  function livePreflight() {
+    if (cfg.modus !== 'live') {
+      throw new Error('Kontrollierter Live-Test und Soak sind nur im Modus live erlaubt.');
+    }
+    const runtime = runtimeApi();
+    const bootstrapStatus = pruefeBootstrapBindung();
+    const runtimeStatus = pruefeLiveRuntimeStatus(runtime.status());
+    const basisStatus = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
+    return Object.freeze({ runtime, bootstrapStatus, runtimeStatus, basisStatus });
   }
 
   function erstelleNachweis(stufe, ergebnis, durchgefuehrtAm, optionen = {}) {
     return Object.freeze({
       schemaVersion: 1,
-      laufzeitPfadKennung: 'block8.5-basisbedienung-runtime',
+      laufzeitPfadKennung: LAUFZEIT_PFAD,
       aenderungsKennung: cfg.aenderungsKennung,
       stufe,
       nachweisKennung: `${cfg.laufKennung}:${stufe}`,
       ergebnis,
       durchgefuehrtAm,
       deterministisch: optionen.deterministisch === true,
-      spielAktionAusgefuehrt: false,
+      spielAktionAusgefuehrt: optionen.spielAktionAusgefuehrt === true,
       begrenzt: optionen.begrenzt === true,
       telemetrieNachweis: optionen.telemetrieNachweis === true,
       recoveryNachweis: optionen.recoveryNachweis === true,
@@ -178,16 +331,17 @@
     kennung: `block8-5-freigabe-${cfg.laufKennung}`,
     titel: 'V4 Block 8.5.9 · Freigabestufen',
     beschreibung:
-      'Schatten -> kontrolliert live -> Soak fuer Runtime 1.1.5. Keine Adventure-Land-Spielaktion wird von diesem Runner direkt aufgerufen.'
+      'Modusgebundene Freigabe fuer Runtime 1.1.5: Schatten strikt gesperrt/nicht gestartet; Live/Soak erst in separater aktiver Sitzung mit importierter Schattenuebergabe.'
   });
 
-  let schattenNachweis = null;
+  let schattenNachweis = cfg.schattenUebergabe?.nachweis ?? null;
+  let schattenUebergabe = cfg.schattenUebergabe;
   let liveNachweis = null;
   let soakNachweis = null;
 
   function schatten() {
     const gestartetAm = Date.now();
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, bootstrapStatus, runtimeStatus, basisStatus } = schattenPreflight();
     const generationVorher = basisStatus.laufzeit.generation;
 
     const anfrage = runtime.erstelleBasisBedienAnfrage(Object.freeze({
@@ -197,19 +351,39 @@
     }));
     const ergebnis = runtime.fuehreBasisBedienAnfrage(anfrage);
     const basisNachher = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeSchattenRuntimeStatus(runtime.status());
 
     const pass =
       ergebnis?.status === 'ausgefuehrt' &&
       ergebnis?.aktion === 'diagnose_aktualisieren' &&
-      basisNachher.laufzeit.generation === generationVorher &&
-      runtimeNachher.lebensnachweisSendeErfolge >= runtimeStatus.lebensnachweisSendeErfolge;
+      generationVorher === 0 &&
+      basisNachher.laufzeit.generation === 0 &&
+      runtimeNachher.lebensnachweisSendeVersuche === 0 &&
+      runtimeNachher.lebensnachweisSendeErfolge === 0 &&
+      runtimeNachher.lebensnachweisSendeFehler === 0;
 
     schattenNachweis = erstelleNachweis(
       'schatten',
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now()
     );
+    schattenUebergabe = pass
+      ? Object.freeze({
+          schemaVersion: 1,
+          laufzeitPfadKennung: LAUFZEIT_PFAD,
+          aenderungsKennung: cfg.aenderungsKennung,
+          laufKennung: cfg.laufKennung,
+          runtimeVersion: ERWARTETE_RUNTIME_VERSION,
+          runtimeSha256: ERWARTETE_RUNTIME_SHA256,
+          runtimeUrl: ERWARTETE_RUNTIME_URL,
+          betriebsart: 'gesperrt_nicht_gestartet',
+          generation: 0,
+          heartbeatVersuche: 0,
+          heartbeatErfolge: 0,
+          heartbeatFehler: 0,
+          nachweis: schattenNachweis
+        })
+      : null;
 
     const bericht = Object.freeze({
       stufe: 'schatten',
@@ -219,18 +393,19 @@
       generationVorher,
       generationNachher: basisNachher.laufzeit.generation,
       diagnoseStatus: ergebnis?.status ?? null,
+      bootstrap: bootstrapStatus,
       runtimeVorher: runtimeStatus,
-      runtimeNachher
+      runtimeNachher,
+      schattenUebergabe
     });
     test.setzeErgebnis(
       bericht,
       pass ? 'pass' : 'fail',
       pass
-        ? 'Schattennachweis bestanden: Diagnose lief ueber den sicheren Kanal ohne Laufzeitmutation.'
+        ? 'Schattennachweis bestanden: Runtime blieb gesperrt, nicht gestartet und bei 0 Heartbeat-/CM-Versuchen. Fuer Live eine neue aktive Sitzung mit der ausgegebenen schattenUebergabe verwenden.'
         : 'Schattennachweis fehlgeschlagen.'
     );
     test.protokolliere('Schattennachweis', bericht);
-    test.setzeAktionAktiv('kontrolliert-live', pass);
     return bericht;
   }
 
@@ -240,7 +415,7 @@
     }
 
     const gestartetAm = Date.now();
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, runtimeStatus, basisStatus } = livePreflight();
     const generationVorher = basisStatus.laufzeit.generation;
 
     const pauseAnfrage = runtime.erstelleBasisBedienAnfrage(Object.freeze({
@@ -250,14 +425,15 @@
     }));
     const pause = runtime.fuehreBasisBedienAnfrage(pauseAnfrage);
     const nachPause = pruefeBasisStatus(runtime.basisBedienStatus(), 'pausiert');
-    const runtimeNachPause = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachPause = pruefeLiveRuntimeStatus(runtime.status());
 
     if (
       pause?.status !== 'ausgefuehrt' ||
       nachPause.laufzeit.generation !== generationVorher + 1
     ) {
       liveNachweis = erstelleNachweis('kontrolliert_live', 'fehlgeschlagen', Date.now(), {
-        begrenzt: true
+        begrenzt: true,
+        spielAktionAusgefuehrt: true
       });
       throw new Error(
         'Kontrollierter Live-Test konnte die sichere Pause nicht eindeutig bestaetigen; Runtime bleibt fail-safe im beobachteten Zustand.'
@@ -272,7 +448,7 @@
     }));
     const fortsetzen = runtime.fuehreBasisBedienAnfrage(fortsetzenAnfrage);
     const nachFortsetzen = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeLiveRuntimeStatus(runtime.status());
 
     const pass =
       fortsetzen?.status === 'ausgefuehrt' &&
@@ -285,7 +461,7 @@
       'kontrolliert_live',
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now(),
-      { begrenzt: true }
+      { begrenzt: true, spielAktionAusgefuehrt: true }
     );
 
     const bericht = Object.freeze({
@@ -320,7 +496,7 @@
       throw new Error('Soak-Test verlangt zuerst einen bestandenen kontrollierten Live-Test.');
     }
 
-    const { runtime, runtimeStatus, basisStatus } = preflight();
+    const { runtime, runtimeStatus, basisStatus } = livePreflight();
     const generation = basisStatus.laufzeit.generation;
     const gestartetAm = Date.now();
     const fehler = [];
@@ -338,7 +514,7 @@
       const timer = setInterval(() => {
         samples += 1;
         try {
-          const status = pruefeRuntimeStatus(runtime.status());
+          const status = pruefeLiveRuntimeStatus(runtime.status());
           const basis = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
           if (basis.laufzeit.generation !== generation) {
             fehler.push(
@@ -361,7 +537,7 @@
       }, SOAK_SAMPLE_MILLIS);
     });
 
-    const runtimeNachher = pruefeRuntimeStatus(runtime.status());
+    const runtimeNachher = pruefeLiveRuntimeStatus(runtime.status());
     const basisNachher = pruefeBasisStatus(runtime.basisBedienStatus(), 'laeuft');
     const erwarteteSamples = Math.max(
       1,
@@ -386,6 +562,7 @@
       pass ? 'bestanden' : 'fehlgeschlagen',
       Date.now(),
       {
+        spielAktionAusgefuehrt: true,
         telemetrieNachweis: pass,
         recoveryNachweis: pass && liveNachweis?.ergebnis === 'bestanden',
         gesamtauswertungBestanden: pass
@@ -429,6 +606,7 @@
     kennung: 'schatten',
     titel: '1 · Schattennachweis',
     art: 'primaer',
+    aktiviert: cfg.modus === 'schatten',
     einmalig: true,
     ausfuehren: schatten
   });
@@ -436,7 +614,7 @@
     kennung: 'kontrolliert-live',
     titel: '2 · Kontrolliert live',
     art: 'gefahr',
-    aktiviert: false,
+    aktiviert: cfg.modus === 'live' && schattenNachweis?.ergebnis === 'bestanden',
     einmalig: true,
     bestaetigungsText: LIVE_TEXT,
     ausfuehren: kontrolliertLive
@@ -456,6 +634,9 @@
     erwarteteRuntimeVersion: ERWARTETE_RUNTIME_VERSION,
     aenderungsKennung: cfg.aenderungsKennung,
     laufKennung: cfg.laufKennung,
+    modus: cfg.modus,
+    erwarteteRuntimeSha256: ERWARTETE_RUNTIME_SHA256,
+    erwarteteRuntimeUrl: ERWARTETE_RUNTIME_URL,
     liveBestaetigungsText: () => LIVE_TEXT,
     soakBestaetigungsText: () => SOAK_TEXT,
     test,
@@ -465,8 +646,10 @@
         erwarteteRuntimeVersion: ERWARTETE_RUNTIME_VERSION,
         aenderungsKennung: cfg.aenderungsKennung,
         laufKennung: cfg.laufKennung,
+        modus: cfg.modus,
         soakDauerMillisekunden: cfg.soakDauerMillisekunden,
         schattenNachweis,
+        schattenUebergabe,
         liveNachweis,
         soakNachweis,
         gui: test.status()

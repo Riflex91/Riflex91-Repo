@@ -20,9 +20,9 @@ Globale API:
 
 Version:
 
-`1.0.0`
+`1.1.0`
 
-Der Runner besitzt selbst keinen Adventure-Land-Spielaktionsaufruf.
+Der Runner besitzt selbst keinen direkten Adventure-Land-Spielaktionsaufruf. Die Semantik unterscheidet jetzt jedoch streng zwischen einem wirklich nicht sendenden Schattenmodus und einem aktiven Live-/Soak-Modus, dessen Produktionsheartbeat ueber die Runtime `send_cm(...)` verwendet.
 
 ## Harte Runtime-Bindung
 
@@ -30,7 +30,12 @@ Der Runner akzeptiert ausschliesslich:
 
 `V4ProduktionsLaufzeit.version === "1.1.5"`
 
-Eine historische Runtime 1.1.4 wird abgewiesen.
+und verlangt zusaetzlich ueber `V4Bootstrap.status()` exakt:
+
+- die immutable Candidate-URL `https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js`,
+- SHA-256 `95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f`.
+
+Eine historische Runtime 1.1.4 oder eine andere Runtime-URL/SHA wird abgewiesen.
 
 Damit kann der bestandene immutable Block-8-Release nicht versehentlich als Live-Nachweis fuer die neuen Block-8.5-Bedienpfade verwendet werden.
 
@@ -42,17 +47,30 @@ Auch die Freigabestufe `offline` ist fuer `git:88185523c81687dc16f9647ca5e7568c5
 
 ## Konfiguration
 
-Vor dem Laden des Runners muss gesetzt sein:
+Vor dem Laden des Runners muss fuer den Schattenlauf gesetzt sein:
 
 ```js
 globalThis.AIO_V4_BLOCK85_FREIGABE_CONFIG = Object.freeze({
   aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c',
   laufKennung: 'eindeutiger-lauf',
+  modus: 'schatten',
   soakDauerMillisekunden: 600000
 });
 ```
 
-`aenderungsKennung` muss spaeter exakt dieselbe Kennung sein, die auch dem Offline-Nachweis und der Freigabeauswertung zugeordnet wird.
+Der Live-/Soak-Modus wird bewusst in einer **separaten aktiven Sitzung** geladen und braucht zusaetzlich die vom bestandenen Schattenlauf ausgegebene `schattenUebergabe`:
+
+```js
+globalThis.AIO_V4_BLOCK85_FREIGABE_CONFIG = Object.freeze({
+  aenderungsKennung: 'git:88185523c81687dc16f9647ca5e7568c5e2c228c',
+  laufKennung: 'eindeutiger-lauf',
+  modus: 'live',
+  soakDauerMillisekunden: 600000,
+  schattenUebergabe: /* exakt aus dem Schattenbericht */
+});
+```
+
+`aenderungsKennung` ist auf den Candidate fest gepinnt. `laufKennung` und die importierte Schattenuebergabe muessen ebenfalls exakt zusammenpassen.
 
 Fuer den Runtime-1.1.5-Candidate ist diese Kennung fest `git:88185523c81687dc16f9647ca5e7568c5e2c228c`. Der Candidate besitzt den verifizierten Runtime-SHA-256 `95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f`. Deployment und oeffentliche HTTPS-Verifikation sind durch Run `35402650432` fuer exakt diesen Candidate bestaetigt. Fuer zukuenftige V4-Releases ist ausschliesslich der isolierte manuelle `.github/workflows/release-v4-runtime.yml`-Pfad vorgesehen.
 
@@ -70,12 +88,33 @@ Dieser 10-Minuten-Zwischennachweis ersetzt nicht die spaeteren uebergeordneten 2
 
 Vor dem Runner muessen im Adventure-Land-Codekontext vorhanden sein:
 
-- die exakt zu pruefende `V4ProduktionsLaufzeit` 1.1.5,
-- `V4TestGui` aus `adventure-land-test-gui.js`,
-- eine aktive Produktionsruntime mit laufendem Produktionsheartbeat,
-- bei Browserbetrieb ein bestaetigt aktiviertes `performance_trick()`.
+- die exakt ueber `V4Bootstrap` geladene immutable `V4ProduktionsLaufzeit` 1.1.5,
+- `V4TestGui` aus `adventure-land-test-gui.js`.
 
-Der Runner blockiert fail-safe, wenn diese Voraussetzungen nicht eindeutig bestaetigt sind.
+Die Betriebsart ist absichtlich unterschiedlich:
+
+### Schatten-Sitzung
+
+- `AIO_V4_RUNTIME_CONFIG.aktivFreigegeben: false`,
+- Runtime nur laden, **nicht** `V4ProduktionsLaufzeit.starte()` aufrufen,
+- kein installierter CM-Empfang,
+- Produktionsheartbeat nicht aktiv und nicht pausiert,
+- `lebensnachweisSendeVersuche = 0`,
+- `lebensnachweisSendeErfolge = 0`,
+- `lebensnachweisSendeFehler = 0`,
+- kein `performance_trick()`-Aufruf,
+- Laufzeit-Generation 0.
+
+### Live-/Soak-Sitzung
+
+- separate Sitzung,
+- aktive Produktionsruntime,
+- `V4ProduktionsLaufzeit.starte()` bereits erfolgt,
+- CM-Empfang und Produktionsheartbeat aktiv,
+- bei Browserbetrieb `performance_trick()` bestaetigt,
+- gueltige `schattenUebergabe` aus dem vorherigen strikten Schattenlauf importiert.
+
+Der Runner blockiert fail-safe, wenn die jeweilige Betriebsart nicht eindeutig bestaetigt ist.
 
 ## Stufe 2 – Schattennachweis
 
@@ -97,13 +136,21 @@ an.
 
 PASS verlangt:
 
-- Runtime 1.1.5,
-- Runtime aktiv und nicht gestoppt,
-- Produktionsheartbeat aktiv und nicht pausiert,
+- exakt gebundene immutable Runtime 1.1.5,
+- Runtime **nicht aktiv freigegeben**,
+- Runtime nicht gestartet und nicht gestoppt,
+- kein installierter CM-Empfang,
+- Produktionsheartbeat nicht aktiv,
+- alle Heartbeat-Sendezaehler exakt 0,
+- kein `performance_trick()`-Aufruf,
+- keine Gruppen-Ziel-/Live-Smoke-Autoritaet,
 - Laufzeit `laeuft`,
+- Laufzeit-Generation exakt 0,
 - `automatischeFortsetzung: false`,
 - Diagnose `status: ausgefuehrt`,
-- unveraenderte Laufzeit-Generation.
+- Generation bleibt 0.
+
+Bei PASS erzeugt der Runner eine `schattenUebergabe`. Erst diese darf in einer neuen aktiven Sitzung den Live-Modus freischalten.
 
 Der erzeugte Nachweis setzt:
 
@@ -115,7 +162,7 @@ Die Aktion:
 
 **2 · Kontrolliert live**
 
-ist erst nach bestandenem Schattennachweis aktiv.
+ist nur im Modus `live` aktiv und verlangt die validierte `schattenUebergabe` aus einer vorherigen separaten Schatten-Sitzung.
 
 Sie verlangt den exakten Bestaetigungstext:
 
@@ -131,11 +178,10 @@ Der Runner fuehrt genau aus:
 
 Der Nachweis setzt:
 
-`begrenzt: true`
+- `begrenzt: true`
+- `spielAktionAusgefuehrt: true`
 
-und weiterhin:
-
-`spielAktionAusgefuehrt: false`
+Das `true` ist absichtlich konservativ und ehrlich: Der Runner ruft zwar selbst kein `send_cm()` auf, aber die aktive Produktionsruntime betreibt waehrend Live den Produktionsheartbeat ueber Adventure Lands `send_cm(...)`.
 
 ### Fail-safe bei Fehler nach Pause
 
@@ -175,9 +221,12 @@ Am Ende muss zusaetzlich:
 
 Nur dann setzt der Nachweis gleichzeitig:
 
+- `spielAktionAusgefuehrt: true`
 - `telemetrieNachweis: true`
 - `recoveryNachweis: true`
 - `gesamtauswertungBestanden: true`
+
+Auch hier ist `spielAktionAusgefuehrt: true` wegen des laufenden Produktionsheartbeats korrekt.
 
 Der Recovery-Nachweis ist dabei an den unmittelbar vorher bestandenen kontrollierten Pause-/Fortsetzen-Pfad und die waehrend des Soaks unveraenderten Recovery-Grenzen gebunden.
 
@@ -211,14 +260,17 @@ Die einzige veraendernde Stufe verwendet den in 8.5.7 bereits abgesicherten Basi
 prueft unter anderem:
 
 - Runtime 1.1.4 wird abgewiesen,
-- Schatten bleibt read-only und veraendert die Generation nicht,
+- Schatten verlangt gesperrte, nicht gestartete Runtime mit exakt 0 Heartbeat-Sendeversuchen,
+- Schatten lehnt aktive/gestartete Runtime fail-safe ab,
+- Schatten ist an exakte immutable Candidate-URL und SHA-256 gebunden,
+- Live verlangt eine gueltige Schattenuebergabe aus separater Sitzung,
 - kontrolliert live erzeugt genau Pause und bestaetigtes Fortsetzen,
-- Live ist ohne Schatten blockiert,
+- Live-/Soak-Nachweise markieren `spielAktionAusgefuehrt: true`,
 - ein Fortsetzen-Fehler fuehrt nicht zu automatischer Wiederaufnahme,
 - Soak erzeugt Nachweise erst nach Mindestdauer,
 - unerwartete Generation macht den Soak rot,
 - weniger als zehn Minuten werden abgewiesen,
-- kein direkter Adventure-Land-Spielaktionsaufruf ist vorhanden.
+- kein direkter Adventure-Land-Spielaktionsaufruf ist im Runner vorhanden.
 
 ## Aktueller operativer Stand
 
