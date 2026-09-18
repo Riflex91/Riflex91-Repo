@@ -42,7 +42,8 @@ function potionServiceChainState(runtime) {
         batchTargetsDelivered: 0,
         batchTargetsSatisfiedExternally: 0,
         batchTargetSwitches: 0,
-        freshReportRebinds: 0
+        freshReportRebinds: 0,
+        postBatchStaleSuppressions: 0
       }
     };
   }
@@ -105,13 +106,20 @@ function releasePotionServiceChain(runtime, reason, plan = null) {
   state.active = null;
   state.stats.releases += 1;
   if (reason === 'SERVICE_CHAIN_TIMEOUT') state.stats.timeouts += 1;
+  const maxSourceReportAt = Math.max(
+    0,
+    ...((Array.isArray(active.targets) ? active.targets : [])
+      .map((row) => finite(row && row.sourceReportAt, 0))),
+    finite(active.sourceReportAt, 0)
+  );
   state.lastRelease = {
     at: now,
     reason,
     id: active.id,
     targetName: active.targetName,
     startedAt: active.startedAt,
-    ageMs: Math.max(0, now - finite(active.startedAt, now))
+    ageMs: Math.max(0, now - finite(active.startedAt, now)),
+    maxSourceReportAt
   };
   publishPotionServiceChain(runtime);
   return active;
@@ -413,18 +421,24 @@ function installPlannerPolicy(runtime) {
       const tx = finite(report.x);
       const ty = finite(report.y);
       const distance = mx != null && my != null && tx != null && ty != null ? Math.hypot(mx - tx, my - ty) : Infinity;
+      const minPotionCount = Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp'));
       candidates.push({
         row,
-        minPotionCount: Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp')),
+        minPotionCount,
+        criticalRank: minPotionCount < POTION_REQUEST_BELOW ? 0 : 1,
         distance,
         basePreferred: base && base.target && String(base.target.name || '') === row.name ? 0 : 1
       });
     }
-    candidates.sort((a, b) =>
-      a.minPotionCount - b.minPotionCount
-      || a.basePreferred - b.basePreferred
-      || a.distance - b.distance
-      || a.row.name.localeCompare(b.row.name)
+    candidates.sort((a, b) => chain.deliveredCount > 0
+      ? a.criticalRank - b.criticalRank
+        || a.distance - b.distance
+        || a.minPotionCount - b.minPotionCount
+        || a.row.name.localeCompare(b.row.name)
+      : a.minPotionCount - b.minPotionCount
+        || a.basePreferred - b.basePreferred
+        || a.distance - b.distance
+        || a.row.name.localeCompare(b.row.name)
     );
     const selected = candidates[0] && candidates[0].row || null;
     if (selected) {
@@ -560,6 +574,27 @@ function installPlannerPolicy(runtime) {
     }
 
     if (!base || !(base.metadata && base.metadata.p0PotionBundle)) return base;
+    const lastRelease = state.lastRelease;
+    if (
+      lastRelease
+      && lastRelease.reason === 'BATCH_DELIVERY_COMMITTED'
+      && finite(base.sourceReportAt, 0) <= finite(lastRelease.maxSourceReportAt, 0)
+    ) {
+      state.stats.postBatchStaleSuppressions += 1;
+      const hold = {
+        ...clone(base),
+        kind: MerchantServicePlanKind.HOLD,
+        reason: 'POTION_BATCH_WAITING_FOR_FRESH_POST_DELIVERY_TELEMETRY',
+        deliveries: [],
+        delivery: null,
+        distance: null
+      };
+      delete hold.afterRestock;
+      delete hold.afterTravel;
+      delete hold.missingStock;
+      planner.lastPlan = clone(hold);
+      return hold;
+    }
     const triggerName = base.target && String(base.target.name || '') || null;
     const built = buildBatchTargets(input, planner, triggerName);
     if (!built.targets.length) return base;
