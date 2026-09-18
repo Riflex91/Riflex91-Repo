@@ -7,8 +7,10 @@ const repoWurzel = path.resolve(wurzel, '..');
 const dateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-produktions-bootstrap.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-produktions-einstieg.ts',
+  'laufzeit/quelle/ausfuehrung/adventure-land-gruppen-lebensnachweis-austausch.ts',
   'laufzeit/tests/block8-produktions-bootstrap.test.mjs',
   'laufzeit/tests/block8-produktions-einstieg.test.mjs',
+  'laufzeit/tests/block8-lebensnachweis-austausch.test.mjs',
   'laufzeit/tests/block8-produktions-loader.test.mjs',
   'laufzeit/tests/block8-produktions-runtime-bundle.test.mjs',
   'werkzeuge/adventure-land-v4-bootstrap.js',
@@ -72,6 +74,12 @@ for (const pflicht of [
   'aktivFreigegeben === true',
   'explizites Gruppenfaehigkeitsprofil',
   'bootstrap.installiereLebensnachweisEmpfang()',
+  "PRODUKTIONS_LEBENSNACHWEIS_INTERVALL_MILLIS = 2_000",
+  'starteLebensnachweisTimer',
+  'pausiereLebensnachweisAutomatik',
+  'setzeLebensnachweisAutomatikFort',
+  'lebensnachweisSendeErfolge',
+  'lebensnachweisSendeFehler',
   'bootstrap.pruefeGruppenZustand()',
   'bootstrap.bereiteGruppenZielVor',
   'bootstrap.installiereGruppenZielLiveSmoke',
@@ -84,6 +92,29 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
   if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(einstieg)) {
     throw new Error(`Produktions-Laufzeiteinstieg darf Adventure Land nicht direkt aufrufen: ${aktionsName}.`);
   }
+}
+
+const austausch = await readFile(path.join(wurzel, dateien[2]), 'utf8');
+for (const pflicht of [
+  "['receivers', 'locals']",
+  'bestaetigteCmEmpfaenger',
+  'send_cm hat den Zielcharakter nicht als Empfaenger bestaetigt',
+  'send_cm hat den vertrauten Zielcharakter als Empfaenger bestaetigt'
+]) {
+  if (!austausch.includes(pflicht)) throw new Error(`Lebensnachweis-Austausch fehlt Zustellbestaetigung: ${pflicht}`);
+}
+
+const einstiegTests = await readFile(path.join(wurzel, dateien[4]), 'utf8');
+for (const pflicht of [
+  'besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen und Transportmetriken',
+  'zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler'
+]) {
+  if (!einstiegTests.includes(pflicht)) throw new Error(`Produktions-Laufzeiteinstieg-Test fehlt: ${pflicht}`);
+}
+
+const austauschTests = await readFile(path.join(wurzel, dateien[5]), 'utf8');
+if (!austauschTests.includes('fehlende send_cm-Empfaengerbestaetigung gilt als Sendefehler')) {
+  throw new Error('Lebensnachweis-Austausch-Test fuer fehlende Empfaengerbestaetigung fehlt.');
 }
 
 const loader = await readFile(path.join(wurzel, 'werkzeuge/adventure-land-v4-bootstrap.js'), 'utf8');
@@ -193,4 +224,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, autonomer 2s-Produktionsheartbeat mit Pause/Fortsetzen und bestaetigter send_cm-Empfaengerliste, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
