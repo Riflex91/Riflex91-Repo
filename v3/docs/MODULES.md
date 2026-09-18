@@ -104,7 +104,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 3891 Zeilen**
+**12 Dateien · 3942 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -112,11 +112,11 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/bank-expansion-transactions.js` | 289 |
 | `src/economy/controlled-bank-consolidation-executor.js` | 285 |
 | `src/economy/controlled-bank-expansion-executor.js` | 184 |
-| `src/economy/controlled-merchant-executor.js` | 508 |
+| `src/economy/controlled-merchant-executor.js` | 534 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 327 |
-| `src/economy/inventory-ledger.js` | 356 |
+| `src/economy/gear-progression.js` | 345 |
+| `src/economy/inventory-ledger.js` | 363 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
 | `src/economy/transaction-engine.js` | 414 |
@@ -255,7 +255,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**48 Dateien · 12515 Zeilen**
+**48 Dateien · 12656 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -274,17 +274,17 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 48 |
 | `src/reliability/alpha27-atomic-economy.js` | 274 |
-| `src/reliability/alpha27-atomic-ledger.js` | 64 |
+| `src/reliability/alpha27-atomic-ledger.js` | 121 |
 | `src/reliability/alpha27-atomic-service.js` | 220 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 140 |
-| `src/reliability/alpha27-atomic-transactions.js` | 91 |
+| `src/reliability/alpha27-atomic-transactions.js` | 101 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 384 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 383 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 165 |
+| `src/reliability/alpha27-merchant-planning.js` | 240 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 402 |
 | `src/reliability/alpha27-utils.js` | 149 |
