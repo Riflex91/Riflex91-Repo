@@ -9,24 +9,24 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
 | (root) | 6 | 1173 |
-| autonomy | 21 | 4082 |
+| autonomy | 21 | 4083 |
 | brain | 4 | 874 |
 | composition | 2 | 192 |
 | content | 3 | 447 |
 | control | 5 | 1047 |
 | core | 8 | 704 |
-| economy | 12 | 3994 |
+| economy | 12 | 4192 |
 | farmer | 21 | 4356 |
 | game | 3 | 726 |
-| merchant | 9 | 2446 |
+| merchant | 9 | 2486 |
 | ops | 26 | 7278 |
-| party | 33 | 7557 |
+| party | 33 | 7566 |
 | planner | 1 | 66 |
-| reliability | 50 | 13761 |
+| reliability | 50 | 14309 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
-| travel | 3 | 650 |
+| travel | 3 | 678 |
 | world | 6 | 1273 |
 
 ## Root-Entrypoints unter src/
@@ -87,6 +87,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | core | 2 |
 | merchant | economy | 1 |
 | merchant | game | 1 |
+| merchant | reliability | 1 |
 | ops | (root) | 3 |
 | ops | control | 1 |
 | ops | core | 1 |
