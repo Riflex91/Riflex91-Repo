@@ -94,11 +94,11 @@ Vor einer echten Aktion sind mindestens erforderlich:
 
 Der Adapter ist dafuer implementiert und bleibt standardmaessig gesperrt. Er gilt weiterhin nicht als live freigegeben. Details stehen in `BLOCK-8-GRUPPENZIEL-AUSFUEHRUNG.md`.
 
-### 3. Begrenzter one-shot Live-Smoke — **Produktions-Smoke-Huelle und Runner vorbereitet; echter Smoke und Runtime-Bootstrap noch offen**
+### 3. Begrenzter one-shot Live-Smoke — **Produktions-Smoke-Huelle, Runner und Runtime-Bootstrap vorbereitet; Veroeffentlichung und echter Smoke noch offen**
 
 Das Browserwerkzeug startet gesperrt, verlangt eine frische read-only Vorschau, bindet die Freigabe an genau eine AktionsAnfrage und sperrt vor der Delegation wieder. Es besitzt selbst keinen Adventure-Land-Aktionsaufruf.
 
-Die feste `V4Block8GruppenZielAusfuehrungsBruecke`, die one-shot Live-Bindung und eine kontrollierte Produktions-Smoke-Huelle sind unter der `ausfuehrung/`-Grenze implementiert. Die Smoke-Huelle bindet Charakter/Server/Karte/Instanz/Ziel exakt, arbeitet auf der realen zentralen `AktionsSteuerung`, prueft frische Produktions-Safety und zaehlt den erlaubten `attack`-Aufruf an der Produktionsgrenze. Der Browser-Runner selbst besitzt keinen Adventure-Land-Aktionsaufruf. Offen ist der allgemeine Produktions-Bootstrap, der diese TypeScript-Laufzeit im Adventure-Land-Kontext installiert; deshalb wurde der echte Smoke noch nicht ausgefuehrt.
+Die feste `V4Block8GruppenZielAusfuehrungsBruecke`, die one-shot Live-Bindung und eine kontrollierte Produktions-Smoke-Huelle sind unter der `ausfuehrung/`-Grenze implementiert. Die Smoke-Huelle bindet Charakter/Server/Karte/Instanz/Ziel exakt, arbeitet auf der realen zentralen `AktionsSteuerung`, prueft frische Produktions-Safety und zaehlt den erlaubten `attack`-Aufruf an der Produktionsgrenze. Der Browser-Runner selbst besitzt keinen Adventure-Land-Aktionsaufruf. Der allgemeine Produktions-Bootstrap und ein URL-neutraler Adventure-Land-Loader sind implementiert. Der Bootstrap verlangt fuer den aktiven Gruppenziel-Smoke mindestens zwei aktive, frische Teilnehmer, verwirft replayte/aeltere Heartbeats, blockiert doppelte Teilnehmerkennungen und verbraucht die Gruppenziel-Vorbereitung one-shot. Der Loader verlangt eine explizite HTTPS-URL plus den deterministisch gebauten SHA-256 des Runtime-Bundles. Offen ist weiterhin die versionierte HTTPS-Veroeffentlichung dieses exakten Bundles; deshalb wurde der echte Smoke noch nicht ausgefuehrt.
 
 Erst nach gruenem Offline-/Replay-/Schattennachweis:
 
