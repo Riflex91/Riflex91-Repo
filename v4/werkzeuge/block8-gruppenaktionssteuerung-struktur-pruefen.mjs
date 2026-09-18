@@ -51,7 +51,9 @@ for (const pflichtText of [
   'const verarbeiten = aenderungen.verarbeiten ?? false',
   'anfrage.gueltigBis <= jetzt',
   'steuerung.reicheAnfrageEin(anfrage)',
-  'steuerung.verarbeiteNaechsteAktion(jetzt)'
+  'steuerung.verarbeiteNaechsteAktion(jetzt)',
+  'brecheVeralteteGruppenArbeitAb',
+  'steuerung.brecheAktionAb(zustand.anfrage.kennung, jetzt, grund)'
 ]) {
   if (!produktiv.includes(pflichtText)) throw new Error(`Produktive Gruppen-AktionsSteuerung verletzt Sicherheitsgrenze: ${pflichtText}`);
 }
