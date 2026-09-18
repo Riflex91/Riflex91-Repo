@@ -302,9 +302,11 @@ class ControlledPartyLogistics {
   _blockRejectedLoot(item, reason = 'LOOT_REJECTED', durationMs = null) {
     const signature = this._lootSignature(item);
     if (!signature) return false;
+    if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
+    const configuredBackoff = finite(this.config && this.config.rejectedLootBackoffMs, 120000);
     const requestedDuration = durationMs == null
-      ? this.config.rejectedLootBackoffMs
-      : finite(durationMs, this.config.rejectedLootBackoffMs);
+      ? configuredBackoff
+      : finite(durationMs, configuredBackoff);
     const duration = Math.max(1000, Math.min(10 * 60 * 1000, requestedDuration));
     this.rejectedLoot.set(signature, {
       signature,
@@ -315,13 +317,13 @@ class ControlledPartyLogistics {
       blockedAt: this.now(),
       blockedUntil: this.now() + duration
     });
-    this.stats.rejectedLootBlocks += 1;
+    if (this.stats) this.stats.rejectedLootBlocks = (Number(this.stats.rejectedLootBlocks) || 0) + 1;
     return true;
   }
 
   _lootBlocked(item) {
     const signature = this._lootSignature(item);
-    if (!signature) return false;
+    if (!signature || !(this.rejectedLoot instanceof Map)) return false;
     const row = this.rejectedLoot.get(signature);
     if (!row) return false;
     if (finite(row.blockedUntil, 0) <= this.now()) {
@@ -335,6 +337,7 @@ class ControlledPartyLogistics {
     const now = this.now();
     for (const [name, row] of this.rendezvousRequests) if (now - row.at > this.config.rendezvousRequestTtlMs) this.rendezvousRequests.delete(name);
     for (const [id, grant] of this.activeLootGrants) if (grant.expiresAt <= now) this.activeLootGrants.delete(id);
+    if (!(this.rejectedLoot instanceof Map)) this.rejectedLoot = new Map();
     for (const [signature, row] of this.rejectedLoot) if (!row || finite(row.blockedUntil, 0) <= now) this.rejectedLoot.delete(signature);
     if (this.pendingGrant && this.pendingGrant.expiresAt <= now) this.pendingGrant = null;
     if (this.lastMerchantStatus && now - this.lastMerchantStatus.receivedAt > this.config.statusFreshMs * 2) this.lastMerchantStatus = null;
