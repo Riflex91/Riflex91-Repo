@@ -232,6 +232,40 @@ class MerchantProductionPlanner {
     const steps = [];
     const blockers = [];
     let totalGold = 0;
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    if (!bank.length && catalogRows.length) {
+      for (const row of catalogRows) bank.push({ ...clone(row) });
+    }
+
+    const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
+      const need = Math.max(1, Math.floor(finite(quantity, 1)));
+      const key = itemKey(name, level);
+      if (depth > this.maxDepth || path.has(key) || level !== 0) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+      const itemMeta = gameData.items && gameData.items[name] || {};
+      const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
+      const vendor = (vendors.get(name) || [])[0] || null;
+      const vendorCost = vendor && unitCost > 0 && need <= this.maxBuyQuantity ? unitCost * need : Infinity;
+      const recipe = recipeFor(gameData, name);
+      let craftCost = Infinity;
+      if (recipe) {
+        const nextPath = new Set(path); nextPath.add(key);
+        const operations = Math.max(1, Math.ceil(need / recipe.outputQuantity));
+        let materialsCost = 0;
+        let possible = true;
+        for (const req of recipe.items) {
+          const quote = estimateSource(req.name, req.level, req.quantity * operations, depth + 1, nextPath);
+          if (!Number.isFinite(quote.cost)) { possible = false; break; }
+          materialsCost += quote.cost;
+        }
+        if (possible) craftCost = materialsCost + recipe.cost * operations;
+      }
+      if (craftCost < vendorCost) return { cost: craftCost, strategy: 'CRAFT', recipe };
+      if (Number.isFinite(vendorCost)) return { cost: vendorCost, strategy: 'BUY', vendor, unitCost };
+      if (Number.isFinite(craftCost)) return { cost: craftCost, strategy: 'CRAFT', recipe };
+      return { cost: Infinity, strategy: 'UNAVAILABLE' };
+    };
 
     for (const item of inventory) {
       if (!item || !item.name) continue;
@@ -291,25 +325,23 @@ class MerchantProductionPlanner {
       if (need <= 0) return true;
 
       if (level === 0) {
-        const itemMeta = gameData.items && gameData.items[name] || {};
-        const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
-        const vendor = (vendors.get(name) || [])[0] || null;
-        if (vendor && unitCost > 0 && need <= this.maxBuyQuantity) {
-          steps.push({ kind: ProductionStepKind.BUY, name, level: 0, quantity: need, unitCost, vendor, reason: 'VENDOR_SOURCE' });
-          totalGold += unitCost * need;
+        const quote = estimateSource(name, level, need, depth, path);
+        if (quote.strategy === 'BUY') {
+          steps.push({ kind: ProductionStepKind.BUY, name, level: 0, quantity: need, unitCost: quote.unitCost, vendor: quote.vendor, estimatedPathCost: quote.cost, reason: 'LEAST_GOLD_VENDOR_SOURCE' });
+          totalGold += quote.unitCost * need;
           reservations[key] = (reservations[key] || 0) + need;
           return true;
         }
 
-        const recipe = recipeFor(gameData, name);
-        if (recipe) {
+        if (quote.strategy === 'CRAFT' && quote.recipe) {
+          const recipe = quote.recipe;
           const nextPath = new Set(path); nextPath.add(key);
           const operations = Math.max(1, Math.ceil(need / recipe.outputQuantity));
           for (const req of recipe.items) {
             if (!acquire(req.name, req.level, req.quantity * operations, depth + 1, nextPath)) return false;
           }
           for (let i = 0; i < operations; i += 1) {
-            steps.push({ kind: ProductionStepKind.CRAFT, name, level: 0, quantity: recipe.outputQuantity, cost: recipe.cost, recipe: clone(recipe), reason: 'RECIPE_DEPENDENCY' });
+            steps.push({ kind: ProductionStepKind.CRAFT, name, level: 0, quantity: recipe.outputQuantity, cost: recipe.cost, recipe: clone(recipe), estimatedPathCost: quote.cost, reason: 'LEAST_GOLD_RECIPE_SOURCE' });
             totalGold += recipe.cost;
           }
           reservations[key] = (reservations[key] || 0) + need;
@@ -340,7 +372,9 @@ class MerchantProductionPlanner {
       blockers,
       totalGold,
       availableGold,
-      goldReserve: this.goldReserve
+      goldReserve: this.goldReserve,
+      bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1'
     };
   }
 
@@ -422,6 +456,8 @@ class MerchantProductionPlanner {
       goldReserve: this.goldReserve,
       maxBuyQuantity: this.maxBuyQuantity,
       explicitTargets: this.explicitTargets.slice(),
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
       lastPlan: clone(this.lastPlan),
       stats: clone(this.stats)
     };
