@@ -13568,10 +13568,22 @@ class ControlledTravelExecutor {
         }
         return { success: true, observedArrival: true, bufferedArrival: buffered };
       }
-      if (current && ['FAILED_SAFE', 'ABORTED'].includes(String(current.state || ''))) {
+      if (current && current.state === 'ABORTED') {
+        return { success: false, aborted: true, reason: current.reason || 'TRAVEL_ABORTED' };
+      }
+      if (current && current.state === 'FAILED_SAFE') {
+        await this._stopSmart(current.reason || 'TRAVEL_FAILED_SAFE');
         throw new Error(current.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
       }
       await new Promise((resolve) => setTimer(resolve, pollMs));
+    }
+    const terminal = this.controller.get(plan.id);
+    if (terminal && terminal.state === 'ABORTED') {
+      return { success: false, aborted: true, reason: terminal.reason || 'TRAVEL_ABORTED' };
+    }
+    if (terminal && terminal.state === 'FAILED_SAFE') {
+      await this._stopSmart(terminal.reason || 'TRAVEL_FAILED_SAFE');
+      throw new Error(terminal.reason || 'TRAVEL_TERMINATED_BEFORE_ARRIVAL');
     }
     return null;
   }
@@ -13618,6 +13630,10 @@ class ControlledTravelExecutor {
       const arrival = await this._timeout(Promise.race([routeFailurePromise, observedArrivalPromise]));
       const response = routeResponse == null ? arrival : routeResponse;
       const finalPlan = this.controller.get(plan.id);
+      if (arrival && arrival.aborted === true || finalPlan && finalPlan.state === 'ABORTED') {
+        const reason = finalPlan && finalPlan.reason || arrival && arrival.reason || 'TRAVEL_ABORTED';
+        return { executed: true, completed: false, aborted: true, reason, response: clone(response) };
+      }
       if (!finalPlan || finalPlan.state !== 'COMPLETED') throw new Error('ARRIVAL_VERIFICATION_FAILED');
       this.stats.completed += 1;
       this.lastAction = { at: this.now(), planId: plan.id, result: 'COMPLETED', destination: clone(destination) };
