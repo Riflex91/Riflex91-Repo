@@ -309,6 +309,7 @@ test('ControlledMerchant permits only explicitly lifecycle-authorized processed 
     root,
     engine,
     ledger,
+    now: () => 1000,
     getMode: () => 'active',
     getSupervisorStatus: () => ({ state: 'HEALTHY' }),
     verifyDelayMs: 0
