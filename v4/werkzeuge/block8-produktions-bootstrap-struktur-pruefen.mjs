@@ -91,7 +91,8 @@ for (const aktionsName of ['attack', 'move', 'smart_move', 'use_skill', 'use_hp'
 
 const bundler = await readFile(path.join(wurzel, 'werkzeuge/produktions-runtime-bauen.mjs'), 'utf8');
 for (const pflicht of [
-  "import * as ts from 'typescript'",
+  "import * as tsPaket from 'typescript'",
+  'tsPaket.default ?? tsPaket',
   'ts.transpileModule',
   'ts.ModuleKind.CommonJS',
   'Externer Runtime-Import ist nicht erlaubt',
