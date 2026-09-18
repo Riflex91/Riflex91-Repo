@@ -210,7 +210,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**33 Dateien · 7809 Zeilen**
+**33 Dateien · 7836 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -243,7 +243,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 526 |
-| `src/party/team-combat-cohesion-hotfix.js` | 215 |
+| `src/party/team-combat-cohesion-hotfix.js` | 242 |
 | `src/party/telemetry-bridge.js` | 55 |
 | `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
