@@ -61,7 +61,11 @@ const dateien = [
   'dokumentation/BLOCK-8-5-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
   'dokumentation/BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json',
   'laufzeit/tests/block8-5-offline-freigabe-nachweis.test.mjs',
-  'dokumentation/BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.md'
+  'dokumentation/BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.md',
+  'werkzeuge/block8-5-schatten-paket-bauen.mjs',
+  'werkzeuge/block8-5-schatten-paket.js',
+  'laufzeit/tests/block8-5-schatten-paket.test.mjs',
+  'dokumentation/BLOCK-8-5-SCHATTEN-PAKET.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -1429,4 +1433,105 @@ if (!block85PlanFreigabe.includes('Die Freigabestufe **Offline** ist jetzt ebenf
   throw new Error('Block-8.5-Plan markiert Offline noch nicht als bestanden.');
 }
 
-console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabestufe sind fuer git:88185523 eindeutig bestanden; der naechste Schattenlauf ist strikt gesperrt/nicht gestartet und muss 0 Heartbeat-/CM-Sendeversuche beweisen; Live/Soak bleiben getrennt und Block 9 gesperrt.');
+const schattenPaketBuilder = await readFile(path.join(wurzel, dateien[58]), 'utf8');
+for (const pflicht of [
+  'baueBlock85SchattenPaket',
+  'block8-5-schatten-paket.js',
+  'adventure-land-v4-bootstrap.js',
+  'adventure-land-test-gui.js',
+  'block8-5-freigabestufen-live-test.js',
+  'aktivFreigegeben: false',
+  "modus: 'schatten'",
+  'runtimeSha256',
+  'Runtime wird immutable per HTTPS+SHA geladen, aber NICHT gestartet',
+  'bootstrap.lade()',
+  "setzeAktionAktiv('schatten', false)",
+  "setzeAktionAktiv('schatten', true)",
+  'status.lebensnachweisSendeVersuche !== 0',
+  'status.empfangInstalliert !== false'
+]) {
+  if (!schattenPaketBuilder.includes(pflicht)) {
+    throw new Error(`Schattenpaket-Builder fehlt: ${pflicht}`);
+  }
+}
+
+const schattenPaket = await readFile(path.join(wurzel, dateien[59]), 'utf8');
+for (const pflicht of [
+  'GENERATED: V4 Block 8.5.9 striktes Schatten-Komplettpaket',
+  '88185523c81687dc16f9647ca5e7568c5e2c228c',
+  '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f',
+  'aktivFreigegeben: false',
+  "modus: 'schatten'",
+  'Runtime wird immutable per HTTPS+SHA geladen, aber NICHT gestartet',
+  "testApi.test.setzeAktionAktiv('schatten', false)",
+  'bootstrap.lade()',
+  'status.lebensnachweisSendeVersuche !== 0',
+  "testApi.test.setzeAktionAktiv('schatten', true)",
+  '0 Heartbeat-/CM-Versuche'
+]) {
+  if (!schattenPaket.includes(pflicht)) {
+    throw new Error(`Schattenpaket fehlt: ${pflicht}`);
+  }
+}
+for (const verboten of [
+  '.starte(',
+  '.sendeLebensnachweis(',
+  '.pausiereLebensnachweisAutomatik(',
+  '.setzeLebensnachweisAutomatikFort(',
+  '.bereiteGruppenZielVor(',
+  '.installiereGruppenZielLiveSmoke(',
+  '.stoppe(',
+  'location.reload(',
+  'window.close('
+]) {
+  if (schattenPaket.includes(verboten)) {
+    throw new Error(`Schattenpaket darf keine Start-/Heartbeat-/Live-/Stop-/Browser-Autoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(schattenPaket)) {
+    throw new Error(`Schattenpaket darf keine Adventure-Land-Spielaktion direkt aufrufen: ${aktionsName}.`);
+  }
+}
+
+const schattenPaketTests = await readFile(path.join(wurzel, dateien[60]), 'utf8');
+for (const pflicht of [
+  'Schattenpaket ist source-locked zum Builder',
+  'Schattenpaket pinnt exakten Candidate und gesperrten Schattenmodus',
+  'Schattenpaket startet Runtime und Heartbeat nicht',
+  'Schattenpaket sperrt GUI bis strikter Null-Heartbeat-Preflight bestanden ist',
+  'baueBlock85SchattenPaket',
+  "source.includes('aktivFreigegeben: false')",
+  "source.includes(\"modus: 'schatten'\")",
+  "source.indexOf('bootstrap.lade()')"
+]) {
+  if (!schattenPaketTests.includes(pflicht)) {
+    throw new Error(`Schattenpaket-Test fehlt: ${pflicht}`);
+  }
+}
+
+const schattenPaketDokument = await readFile(path.join(wurzel, dateien[61]), 'utf8');
+for (const pflicht of [
+  'source-locked Schatten-Launcher vorbereitet',
+  'block8-5-schatten-paket.js',
+  'aktivFreigegeben: false',
+  "modus: 'schatten'",
+  'V4ProduktionsLaufzeit.starte()',
+  'lebensnachweisSendeVersuche: 0',
+  'Strikter Schatten-Preflight bestanden',
+  'schattenUebergabe',
+  'block8-5-schatten-paket-bauen.mjs',
+  'block8-5-schatten-paket:pruefen',
+  'Schatten: **offen**',
+  'Block 9: **gesperrt**'
+]) {
+  if (!schattenPaketDokument.includes(pflicht)) {
+    throw new Error(`Schattenpaket-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabe sind bestanden; der source-locked Schatten-Launcher laedt Runtime 1.1.5 strikt gesperrt/nicht gestartet mit 0 Heartbeat-/CM-Versuchen; realer Schattennachweis, Live, Soak und Block 9 bleiben offen/gesperrt.');
