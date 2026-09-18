@@ -257,14 +257,20 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         && !(goal.id != null && this.completedGearGoalClaims.has(String(goal.id)))
       ));
       let futureProtection = null;
+      let futureSellSafety = null;
       try {
         futureProtection = gear && typeof gear.futureProtectionFor === 'function'
           ? gear.futureProtectionFor(c.name, row.index, row.name, levelOf(row))
           : null;
+        futureSellSafety = gear && typeof gear.futureSellSafetyFor === 'function'
+          ? gear.futureSellSafetyFor(c.name, row.index, row.name, levelOf(row))
+          : null;
       } catch (_) {
         futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        futureSellSafety = null;
       }
-      return !activeFarmerGoal && !futureProtection;
+      if (!futureSellSafety || futureSellSafety.checked !== true) return false;
+      return !activeFarmerGoal && !futureProtection && futureSellSafety.protected !== true;
     });
 
     if (sell) {
