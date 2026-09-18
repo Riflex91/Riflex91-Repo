@@ -65,9 +65,9 @@ Das Paket setzt fuer die aktuelle Abnahme:
 - `My_Ranger1` als Testleiter,
 - das explizite Schadensprofil der beiden Ranger,
 - den bereits verifizierten immutable Runtime-Release
-  `47288ddfdef03ded63142670cdaca5d7ed251a75`,
+  `bd3cfc0bcd9e69a72a2c2913639e651c4930c182`,
 - dessen SHA-256
-  `8e50143a671a8ce30d14150cb14971c20c89daa5dbb651064dfb1ea4f13cdcfa`.
+  `9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632`.
 
 Dasselbe Paket wird unveraendert auf beiden Rangern verwendet.
 
