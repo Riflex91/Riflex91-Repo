@@ -90,6 +90,11 @@ for (const text of [zentralBrowser, integrationBrowser, schatten]) {
   }
 }
 
+const browserTests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-aktionssteuerung-browser.test.mjs'), 'utf8');
+if (!browserTests.includes('Laufzeit-Pause bleibt semantisch identisch zur Produktion')) {
+  throw new Error('Browser-AktionsSteuerung-Test fuer die zentrale Laufzeit-Pause fehlt.');
+}
+
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/gruppen-aktionssteuerung.test.mjs'), 'utf8');
 for (const pflichtText of [
   'Uebergabe ist standardmaessig gesperrt',
