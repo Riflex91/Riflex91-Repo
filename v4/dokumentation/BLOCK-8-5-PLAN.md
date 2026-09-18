@@ -80,7 +80,7 @@ Sie enthaelt keine Bot-Fachlogik und keine generische Spiel-/Host-Autoritaet.
 
 Umgesetzt ist eine unveraenderliche gemeinsame Sicht fuer Charakter, RuntimeGesundheit, Gruppe, Entscheidung, Aktionsphasen, Recovery-Checkpoint und letzte BotMeldung. Die Schnittstelle setzt fest `nurLesen: true`, `spielAutoritaet: false`, `bedienAutoritaet: false` und `neustartAutoritaet: false`; bekannt/fehlend/unbekannt bleibt erhalten.
 
-### Schritt 8.5.6 – schlankes Ingame-HUD
+### Schritt 8.5.6 – schlankes Ingame-HUD — **IMPLEMENTIERT**
 
 Anzeigen:
 
@@ -95,6 +95,8 @@ Anzeigen:
 - letzte relevante BotMeldung.
 
 HUD-Ausfall oder Schliessen darf die Bot-Laufzeit nicht beeinflussen.
+
+Umgesetzt ist `V4IngameHud` als rein beobachtender Browser-Adapter auf der gemeinsamen `StatusSchnittstelle`. Das HUD akzeptiert nur Status mit `nurLesen: true` und explizit fehlender Spiel-, Bedien- und Neustartautoritaet. Es besitzt in 8.5.6 nur lokale Anzeigeaktionen zum Minimieren und Schliessen; sein eigener Aktualisierungstimer ist vom Bot-/Produktionsheartbeat getrennt.
 
 ### Schritt 8.5.7 – sichere Basisbedienung
 
