@@ -302,6 +302,101 @@ test('Merchant self-gear upgrades speed-gaining equipment before non-speed equip
   assert.equal(manager.status().speedPriority, 'NEXT_LEVEL_SPEED_GAIN_FIRST');
 });
 
+test('Merchant self-gear WAIT_LEDGER reports no progress while live inputs or ledger state are not executable', async () => {
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      isize: 5,
+      items: [{ index: 0, name: 'ringsj', level: 0 }, { index: 1, name: 'ringsj', level: 0 }, null, null, null],
+      slots: { ring1: { name: 'ringsj', level: 0 } }
+    },
+    G: { items: { ringsj: { type: 'ring', g: 1000, compound: { dex: 1 }, grades: [] } } },
+    localStorage: { getItem() { return null; }, setItem() {} }
+  };
+  const runtime = {
+    root,
+    adapter: { getGameData: () => root.G },
+    inventoryLedger: { status: () => ({ stale: false }), get: () => null }
+  };
+  const manager = new MerchantSelfGear(runtime, {
+    mutationAttemptBudget: () => ({ allowed: true, remaining: 20 }),
+    verifyEventually: async () => true
+  }, {
+    now: () => 1000,
+    log: { emit() {} },
+    options: { maxUpgradeLevel: 7, maxCompoundLevel: 10, upgradeValueCap: 2000000, compoundValueCap: 500000 }
+  });
+
+  manager.session = {
+    schemaVersion: 1,
+    id: 'selfgear-waiting',
+    startedAt: 900,
+    updatedAt: 900,
+    stage: 'WAIT_LEDGER',
+    character: 'Merchant',
+    slot: 'ring1',
+    type: 'COMPOUND',
+    name: 'ringsj',
+    level: 0,
+    usesSpare: false
+  };
+
+  assert.equal(await manager.cycle(), false);
+  assert.equal(manager.session.stage, 'WAIT_LEDGER');
+  assert.equal(runtime.merchantSelfGearReservation, undefined);
+});
+
+test('Merchant self-gear rejected atomic plan reports no progress instead of pinning progression', async () => {
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      isize: 4,
+      items: [{ index: 0, name: 'sword', level: 0 }, null, null, null],
+      slots: { mainhand: { name: 'sword', level: 0 } }
+    },
+    G: { items: { sword: { type: 'weapon', g: 1000, upgrade: { attack: 1 }, grades: [] } } },
+    localStorage: { getItem() { return null; }, setItem() {} }
+  };
+  const runtime = {
+    root,
+    adapter: { getGameData: () => root.G },
+    inventoryLedger: {
+      status: () => ({ stale: false }),
+      get: () => ({ character: 'Merchant', index: 0, name: 'sword', level: 0, disposition: 'KEEP' })
+    },
+    transactionEngine: { planAtomic: () => ({ accepted: false, reason: 'LEDGER_DISPOSITION_NOT_AUTHORIZED' }) },
+    lastSnapshot: {}
+  };
+  const manager = new MerchantSelfGear(runtime, {
+    mutationAttemptBudget: () => ({ allowed: true, remaining: 30 }),
+    verifyEventually: async () => true
+  }, {
+    now: () => 1000,
+    log: { emit() {} },
+    options: { maxUpgradeLevel: 7, maxCompoundLevel: 10, upgradeValueCap: 2000000, compoundValueCap: 500000 }
+  });
+
+  manager.session = {
+    schemaVersion: 1,
+    id: 'selfgear-rejected',
+    startedAt: 900,
+    updatedAt: 900,
+    stage: 'WAIT_LEDGER',
+    character: 'Merchant',
+    slot: 'mainhand',
+    type: 'UPGRADE',
+    name: 'sword',
+    level: 0,
+    usesSpare: true
+  };
+
+  assert.equal(await manager.cycle(), false);
+  assert.equal(manager.session.stage, 'WAIT_LEDGER');
+  assert.equal(runtime.merchantSelfGearReservation, null);
+});
+
 test('exact self-gear reservation can authorize a non-progression ledger disposition but nothing broader', () => {
   const ledger = makeLedger([{
     key: 'Merchant:0',
