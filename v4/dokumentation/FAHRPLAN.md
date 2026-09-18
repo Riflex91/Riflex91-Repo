@@ -234,7 +234,7 @@ Hinweis: Der fuer Block 8 auf 10 Minuten reduzierte Gruppentest ersetzt nicht di
 
 ## Block 8 – Gruppenkoordination
 
-Status: **in Arbeit; technische/offline Abschlusshaertung und one-shot Live-Smoke bestanden, aktiver 10-Minuten-Gruppentest noch offen; vor Block 9 folgt verbindlich Block 8.5**.
+Status: **abgeschlossen am 18. September 2026**. Der detaillierte Abschlussnachweis steht in `BLOCK-8-ABSCHLUSS.md`. Vor Block 9 folgt verbindlich Block 8.5.
 
 Ziel: Mehrere eigene Charaktere arbeiten als Gruppe zusammen.
 
@@ -253,12 +253,14 @@ Abschlusspruefung:
 
 - Mehrcharakter-Wiederholungen — **erfuellt**
 - gezielte Ausfalltests einzelner Gruppenmitglieder — **automatisiert und read-only live erfuellt**
-- Wiederaufbau nach Verbindungsabbruch — **read-only live erfuellt; aktiver Pfad bleibt Teil der Abschlusskampagne**
-- anschliessender 10-Minuten-Gruppentest — **offen**
+- Wiederaufbau nach Verbindungsabbruch — **erfuellt**
+- anschliessender 10-Minuten-Gruppentest — **erfuellt; beide Ranger PASS auf Runtime 1.1.4**
 
-Der aktuelle Nachweisstand und die verbleibende aktive Freigabekampagne stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`. Block 8 bleibt bis zum bestandenen 72-Stunden-Gruppentest formal offen.
+Der finale Nachweisstand steht in `BLOCK-8-ABSCHLUSSSTATUS.md` und `BLOCK-8-ABSCHLUSS.md`. Der fuer Block 8 bewusst auf 10 Minuten reduzierte Gruppentest ist bestanden; die spaeteren allgemeinen 24-Stunden-, 72-Stunden- und 7-Tage-Systemtests bleiben unveraendert bestehen.
 
 ## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
+
+Status: **gestartet nach formal abgeschlossenem Block 8**.
 
 Ziel: Die bereits vorhandenen V4-Faehigkeiten werden vor Haendler-, Bank- und Wirtschaftslogik einheitlich beobachtbar, erklaerbar, sicher bedienbar und wiederanlauffaehig gemacht.
 
