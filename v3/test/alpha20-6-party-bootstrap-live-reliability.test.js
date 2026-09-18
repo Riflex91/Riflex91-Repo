@@ -140,6 +140,7 @@ test('party bootstrap is a zero-action no-op for an already correct Merchant plu
   assert.equal(status.stats.invitesSent, 0);
 });
 
+// Final-head regression: leadership normalization must remain fail-closed until Merchant leads.
 test('party bootstrap repairs a full trusted party by making the wrong current leader leave before Merchant rebuilds', async () => {
   const root = {
     character: { name: 'R1', ctype: 'ranger' },
