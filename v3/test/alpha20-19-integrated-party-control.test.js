@@ -164,7 +164,7 @@ test('Alpha20.19 stale offer expires and Merchant status exposes explicit loot s
   const payload = logistics._statusPayload(runtime.adapter.snapshot());
   assert.equal(payload.lootSignal, 'ACCEPTING_LOOT');
   assert.equal(payload.merchantPotionReservePerType, 300);
-  assert.equal(logistics.config.farmerPotionLow, 50);
+  assert.equal(logistics.config.farmerPotionLow, 200);
   assert.equal(logistics.config.farmerPotionTarget, 5000);
 });
 
