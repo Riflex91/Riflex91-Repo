@@ -163,8 +163,14 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
   }
 
   async ensureScroll(tx, scrollName) {
+    const batch = typeof this.plannedScrollDemand === 'function'
+      ? this.plannedScrollDemand(scrollName, tx)
+      : { scrollName, quantity: 1, groups: [] };
+    const desired = Math.max(1, Math.floor(finite(batch && batch.quantity, 1)));
+    let have = identityQuantity(inventoryOf(this.root), scrollName, 0);
     let scroll = findItem(this.root, scrollName);
-    if (!scroll) {
+
+    if (have < desired) {
       const canBuy = rawFunction(this.root, 'can_buy');
       let near = false;
       if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
@@ -178,6 +184,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
           return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
         }
       }
+
       const buy = rawFunction(this.root, 'buy');
       if (!buy) {
         this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
@@ -187,34 +194,48 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       const gd = gameDataOf(this.runtime);
       const scrollMeta = gd.items && gd.items[scrollName];
       const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
+      const quantity = Math.max(1, desired - have);
       const c = characterOf(this.runtime);
-      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
+      if (!c || finite(c.gold, 0) - price * quantity < this.options.goldReserve) {
         this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
         this.stats.failedSafe += 1;
-        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
+        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED', desired, have, quantity, unitPrice: price };
       }
-      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
+
+      const before = have;
       try {
-        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
+        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, quantity), 'BUY_SCROLL_BATCH', 15000);
         if (response && response.failed === true) throw response;
-        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
+        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) >= before + quantity);
+        if (!verified) throw new Error('SCROLL_BATCH_PURCHASE_DELTA_NOT_OBSERVED');
         this.stats.scrollPurchases += 1;
+        this.stats.scrollsPurchased = (this.stats.scrollsPurchased || 0) + quantity;
+        have = identityQuantity(inventoryOf(this.root), scrollName, 0);
         scroll = findItem(this.root, scrollName);
+        this._event('ALPHA27_SCROLL_BATCH_PURCHASED', 'info', 'PLANNED_MUTATION_BACKLOG', {
+          transactionId: tx && tx.id || null,
+          scrollName,
+          before,
+          desired,
+          purchased: quantity,
+          after: have,
+          batch
+        });
         if (!scroll) return { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
       } catch (error) {
         const details = errorDetails(error);
-        const reason = details.reason || 'BUY_SCROLL_FAILED';
+        const reason = details.reason || 'BUY_SCROLL_BATCH_FAILED';
         this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
         this.stats.failedSafe += 1;
         return { ok: false, reason, error: details };
       }
     }
 
+    if (!scroll) scroll = findItem(this.root, scrollName);
+    if (!scroll) return { ok: false, reason: 'SCROLL_NOT_AVAILABLE_AFTER_BATCH_PLAN', desired, have };
     const service = await this.ensureMutationService(tx);
     if (!service.ok) return service;
-    return { ok: true, scroll, service };
-  }
-}
+    return { ok: true, scroll, service, batch: clone(batch), desiredScrollQuantity: desired };
+  }}
 
 module.exports = { Alpha27AtomicService, serviceNpcId, usableNpcLocation };
