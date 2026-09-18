@@ -92,7 +92,7 @@ Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt
 
 `V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)` installiert die Smoke-Fassade auf genau dieser zentralen Steuerung.
 
-Nach dem im echten Smoke entdeckten Millisekunden-Zeitordnungsfehler wurde die Produktions-Safety-Reihenfolge korrigiert. Die kontrollierte Veroeffentlichung ist fuer den korrigierten immutable Main-Release `bd3cfc0bcd9e69a72a2c2913639e651c4930c182` bestanden. Runtime und SHA-256 wurden aus R2 und ueber den oeffentlichen HTTPS-Worker bytegenau verifiziert. Der veroeffentlichte SHA-256 ist `9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632`.
+Nach dem im echten Smoke entdeckten Millisekunden-Zeitordnungsfehler und der danach sichtbar gewordenen Adventure-Land-Code-/Parent-Kontexttrennung wurden beide Produktionspfade korrigiert. Die kontrollierte Veroeffentlichung ist fuer den aktuellen korrigierten immutable Main-Release `6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec` bestanden. Runtime und SHA-256 wurden aus R2 und ueber den oeffentlichen HTTPS-Worker bytegenau verifiziert. Der veroeffentlichte SHA-256 ist `d0c2893784891b971caf2cbaca495b62643ffa098009c49bd508781c2e014aa6`.
 
 Der echte Smoke bleibt offen, bis genau diese URL/Hash-Kombination read-only im echten Adventure-Land-Kontext geladen wurde und die gesperrte Produktionsruntime ohne Gruppenanfrage, Ressourcensperre oder Spielaktion bestaetigt ist.
 
