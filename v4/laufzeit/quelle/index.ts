@@ -110,6 +110,7 @@ export { SpeicherLernZyklus, STANDARD_SPEICHER_LERN_SCHWELLEN } from './lernen/s
 export * from './vertraege/telemetrie.js';
 export * from './vertraege/entscheidungs-datensatz.js';
 export * from './vertraege/runtime-gesundheit.js';
+export * from './vertraege/recovery-checkpoint.js';
 export * from './telemetrie/begrenzter-ringpuffer.js';
 export * from './telemetrie/sha256.js';
 export * from './telemetrie/flugschreiber.js';
@@ -118,6 +119,7 @@ export * from './telemetrie/entscheidungs-aktions-spur.js';
 export * from './telemetrie/gruppen-entscheidungs-datensatz.js';
 export * from './telemetrie/entscheidungs-aktions-korrelation.js';
 export * from './telemetrie/runtime-gesundheit.js';
+export * from './telemetrie/recovery-checkpoint.js';
 export * from './telemetrie/dienst-verbrauchs-telemetrie.js';
 export * from './telemetrie/telemetrie-speicher.js';
 export * from './telemetrie/vorfall-erkennung.js';
