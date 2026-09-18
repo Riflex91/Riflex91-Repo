@@ -268,6 +268,9 @@ function installMerchantProduction(runtime, options = {}) {
     return plan;
   }
   function configure(config = {}) {
+    if (config.enabled === true && !isMerchant()) {
+      return { ...status(), enableRejected: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
+    }
     if (config.enabled === true && typeof runtime._liveEnableGate === 'function') {
       const gate = runtime._liveEnableGate();
       if (!gate || gate.allowed !== true) return { ...status(), enableRejected: gate && gate.reason || 'LIVE_GATE_REJECTED' };
