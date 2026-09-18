@@ -56,6 +56,16 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/brain/shadow-brain.js` | 202 |
 | `src/brain/strategic-brain-v2.js` | 533 |
 
+## content
+
+**3 Dateien · 447 Zeilen**
+
+| Datei | Zeilen |
+| --- | ---: |
+| `src/content/content-drift-semantic-recovery.js` | 219 |
+| `src/content/content-drift-storage-hotfix.js` | 88 |
+| `src/content/dangerous-content-hotfix.js` | 140 |
+
 ## control
 
 **5 Dateien · 1047 Zeilen**
@@ -104,7 +114,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**14 Dateien · 2583 Zeilen**
+**21 Dateien · 4279 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -113,8 +123,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/combat-risk.js` | 146 |
 | `src/farmer/content-safety.js` | 165 |
 | `src/farmer/controlled-farmer-loot.js` | 222 |
+| `src/farmer/farm-area-pressure-hotfix.js` | 304 |
 | `src/farmer/farmer-fsm.js` | 526 |
+| `src/farmer/farmer-local-plan-priority.js` | 104 |
+| `src/farmer/farmer-resource-topoff-hotfix.js` | 211 |
+| `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
+| `src/farmer/farmer-terrain-navigation-hotfix.js` | 496 |
+| `src/farmer/farmer-travel-safety-hotfix.js` | 138 |
 | `src/farmer/kiting-farmer.js` | 85 |
+| `src/farmer/live-navigation-hotfix.js` | 222 |
 | `src/farmer/retreat-farmer.js` | 166 |
 | `src/farmer/safe-retreat.js` | 89 |
 | `src/farmer/skill-farmer.js` | 477 |
@@ -182,11 +199,15 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**19 Dateien · 3863 Zeilen**
+**32 Dateien · 7150 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/party/account-character-transport.js` | 280 |
+| `src/party/alpha20-15-combat-logistics-hotfix.js` | 333 |
+| `src/party/alpha20-15-logistics-fairness-hotfix.js` | 39 |
+| `src/party/alpha20-19-account-transport-hotfix.js` | 191 |
+| `src/party/alpha20-19-logistics-stabilization.js` | 133 |
 | `src/party/capabilities.js` | 37 |
 | `src/party/character-registry.js` | 500 |
 | `src/party/control-lease.js` | 326 |
@@ -195,13 +216,22 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 95 |
 | `src/party/controlled-party-bootstrap-base.js` | 583 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
+| `src/party/controlled-party-logistics.js` | 868 |
 | `src/party/fingerprints.js` | 72 |
 | `src/party/lifecycle-store.js` | 289 |
 | `src/party/orchestrator-base.js` | 56 |
 | `src/party/orchestrator.js` | 59 |
 | `src/party/paladin-aura-policy.js` | 20 |
+| `src/party/party-account-communication.js` | 220 |
+| `src/party/party-bootstrap-farmer-gate.js` | 111 |
+| `src/party/party-bootstrap-merchant-discovery-hotfix-base.js` | 29 |
+| `src/party/party-bootstrap-merchant-discovery-hotfix.js` | 23 |
+| `src/party/party-focus-fire-hotfix.js` | 217 |
+| `src/party/party-persistence-quota-hotfix.js` | 382 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
+| `src/party/team-combat-cohesion-hotfix-base.js` | 526 |
+| `src/party/team-combat-cohesion-hotfix.js` | 215 |
 | `src/party/telemetry-bridge.js` | 55 |
 | `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
@@ -216,14 +246,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**71 Dateien · 17484 Zeilen**
+**71 Dateien · 12343 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/reliability/alpha20-15-combat-logistics-hotfix.js` | 333 |
-| `src/reliability/alpha20-15-logistics-fairness-hotfix.js` | 39 |
-| `src/reliability/alpha20-19-account-transport-hotfix.js` | 191 |
-| `src/reliability/alpha20-19-logistics-stabilization.js` | 133 |
+| `src/reliability/alpha20-15-combat-logistics-hotfix.js` | 3 |
+| `src/reliability/alpha20-15-logistics-fairness-hotfix.js` | 3 |
+| `src/reliability/alpha20-19-account-transport-hotfix.js` | 3 |
+| `src/reliability/alpha20-19-logistics-stabilization.js` | 3 |
 | `src/reliability/alpha20-20-alpha22-autonomy.js` | 240 |
 | `src/reliability/alpha20-20-live-regression-hotfix.js` | 188 |
 | `src/reliability/alpha20-21-cloud-persistence-recovery.js` | 219 |
@@ -245,7 +275,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-transactions.js` | 91 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 304 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 161 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 384 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
@@ -261,36 +291,36 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 620 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
 | `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 729 |
-| `src/reliability/content-drift-semantic-recovery.js` | 219 |
-| `src/reliability/content-drift-storage-hotfix.js` | 88 |
-| `src/reliability/controlled-party-logistics.js` | 868 |
-| `src/reliability/dangerous-content-hotfix.js` | 143 |
+| `src/reliability/content-drift-semantic-recovery.js` | 3 |
+| `src/reliability/content-drift-storage-hotfix.js` | 3 |
+| `src/reliability/controlled-party-logistics.js` | 3 |
+| `src/reliability/dangerous-content-hotfix.js` | 3 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
-| `src/reliability/farm-area-pressure-hotfix.js` | 304 |
-| `src/reliability/farmer-local-plan-priority.js` | 104 |
-| `src/reliability/farmer-resource-topoff-hotfix.js` | 211 |
-| `src/reliability/farmer-target-efficiency-hotfix.js` | 221 |
-| `src/reliability/farmer-terrain-navigation-hotfix.js` | 496 |
-| `src/reliability/farmer-travel-safety-hotfix.js` | 138 |
+| `src/reliability/farm-area-pressure-hotfix.js` | 3 |
+| `src/reliability/farmer-local-plan-priority.js` | 3 |
+| `src/reliability/farmer-resource-topoff-hotfix.js` | 3 |
+| `src/reliability/farmer-target-efficiency-hotfix.js` | 3 |
+| `src/reliability/farmer-terrain-navigation-hotfix.js` | 3 |
+| `src/reliability/farmer-travel-safety-hotfix.js` | 3 |
 | `src/reliability/integrated-party-control.js` | 90 |
 | `src/reliability/live-farmer-merchant-recovery.js` | 284 |
-| `src/reliability/live-navigation-hotfix.js` | 222 |
+| `src/reliability/live-navigation-hotfix.js` | 3 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 452 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
-| `src/reliability/party-account-communication.js` | 220 |
-| `src/reliability/party-bootstrap-farmer-gate.js` | 111 |
-| `src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js` | 29 |
-| `src/reliability/party-bootstrap-merchant-discovery-hotfix.js` | 23 |
-| `src/reliability/party-focus-fire-hotfix.js` | 217 |
-| `src/reliability/party-persistence-quota-hotfix.js` | 382 |
+| `src/reliability/party-account-communication.js` | 3 |
+| `src/reliability/party-bootstrap-farmer-gate.js` | 3 |
+| `src/reliability/party-bootstrap-merchant-discovery-hotfix-base.js` | 3 |
+| `src/reliability/party-bootstrap-merchant-discovery-hotfix.js` | 3 |
+| `src/reliability/party-focus-fire-hotfix.js` | 3 |
+| `src/reliability/party-persistence-quota-hotfix.js` | 3 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
-| `src/reliability/team-combat-cohesion-hotfix-base.js` | 526 |
-| `src/reliability/team-combat-cohesion-hotfix.js` | 215 |
+| `src/reliability/team-combat-cohesion-hotfix-base.js` | 3 |
+| `src/reliability/team-combat-cohesion-hotfix.js` | 3 |
 
 ## research
 

@@ -1,6 +1,6 @@
 # Block 8 – Gruppenplan zu AktionsAnfrage
 
-Status: **standardmaessig gesperrter, read-only Uebersetzungs- und Schattenpfad**.
+Status: **LIVE ABGENOMMENER, standardmaessig gesperrter read-only Uebersetzungs- und Schattenpfad**.
 
 ## Ziel
 
@@ -91,7 +91,7 @@ Der Browserkern traegt den Git-Blob-SHA der Produktionsdatei. Der Strukturguard 
 
 ## Browser-Ladefolge
 
-Fuer den spaeteren Zwei-Ranger-Nachweis auf jedem Charakter aus aktuellem `main` laden:
+Fuer den Zwei-Ranger-Nachweis auf jedem Charakter aus aktuellem `main` laden:
 
 1. `v4/werkzeuge/block7-kampfsicherheits-quelle.js`
 2. `v4/werkzeuge/block8-lebensnachweis-schatten.js`
@@ -110,20 +110,29 @@ Bei laufendem Lebensnachweis:
 await V4Block8GruppenAktionsAnfragen.pruefe()
 ```
 
-Hat der lokale Charakter einen eigenen Gruppenplan-Schritt, wird erwartet:
+Der Zwei-Ranger-Live-Test wurde bestanden:
+
+- `My_Ranger1` sah denselben Support-Gruppenplan, hatte aber keinen eigenen Schritt; `uebersetzung.status` war korrekt `leer`.
+- `My_Ranger2` hatte den eigenen Support-Schritt; `uebersetzung.status` war korrekt `gesperrt`.
+- auf beiden Charakteren waren `aktionsAnfragen` leer,
+- `bereitFuerAktionsSteuerung` war `false`,
+- `anAktionsSteuerungEingereicht` war `false`,
+- `aktionsSteuerungVerarbeitet` war `false`,
+- `echteSpielaktionenAusgefuehrt` war `false`.
+
+Der gemeinsame Plan war dabei:
 
 ```text
-uebersetzung.status: "gesperrt"
-uebersetzung.aktionsAnfragen: []
-bereitFuerAktionsSteuerung: false
-anAktionsSteuerungEingereicht: false
-aktionsSteuerungVerarbeitet: false
-echteSpielaktionenAusgefuehrt: false
+gruppe_unterstuetzen|My_Ranger2|gruppe|-|normal|500
 ```
+
+### Diagnosehinweis
+
+Im gesperrten Ranger2-Fall zeigte die Adventure-Land-Testausgabe `nichtFreigegebeneSchrittKennungen` als `"[Zirkulaere Referenz]"`. Ursache ist die Wiederverwendung desselben eingefrorenen Array-Objekts fuer `eigeneSchrittKennungen` und `nichtFreigegebeneSchrittKennungen`; fachlich liegt keine zirkulaere Datenstruktur vor. Das Verhalten beeinflusst weder Uebersetzung noch Safety, soll aber in einer spaeteren Telemetrie-/Serialisierungsbereinigung durch getrennte Array-Instanzen beseitigt werden.
 
 ## Live-Nachweis B – expliziter Support-Kandidat
 
-Fuer das bisherige Zwei-Ranger-Testprofil besitzt `My_Ranger2` die Support-Aufgabe. Nur auf `My_Ranger2` darf fuer die Diagnose explizit ausgefuehrt werden:
+Nur auf `My_Ranger2` wurde fuer die Diagnose explizit ausgefuehrt:
 
 ```js
 await V4Block8GruppenAktionsAnfragen.pruefe({
@@ -132,9 +141,10 @@ await V4Block8GruppenAktionsAnfragen.pruefe({
 })
 ```
 
-Erwartet wird genau ein Kandidat mit:
+Der Live-Test wurde bestanden. Es entstand genau eine Anfrage mit:
 
 ```text
+uebersetzung.status: "erzeugt"
 aktion: "GRUPPE_UNTERSTUETZEN"
 angefordertVon: "gruppen-aktionsplanung"
 wichtigkeit: "normal"
@@ -142,7 +152,16 @@ prioritaet: 500
 benoetigteRessourcen: ["gruppe"]
 ```
 
-und weiterhin:
+Die beobachteten Zeitwerte waren:
+
+```text
+angefordertAm: 1789680722341
+gueltigBis:    1789680723841
+```
+
+Damit ist die konfigurierte Standardgueltigkeit von exakt `1500 ms` live bestaetigt.
+
+Weiterhin galt:
 
 ```text
 bereitFuerAktionsSteuerung: true
@@ -151,7 +170,7 @@ aktionsSteuerungVerarbeitet: false
 echteSpielaktionenAusgefuehrt: false
 ```
 
-Auf `My_Ranger1` erzeugt dieselbe Support-Whitelist keinen Kandidaten, weil der Support-Schritt nicht ihm gehoert.
+Damit ist live nachgewiesen, dass ein eigener, explizit freigegebener Gruppenplan-Schritt verlustarm in einen formal bereitstehenden `AktionsAnfrage`-Kandidaten uebersetzt wird, ohne die zentrale Steuerung oder Adventure Land zu aktivieren.
 
 ## Automatisierte Abnahme
 
@@ -170,4 +189,4 @@ Die Tests pruefen unter anderem:
 
 ## Naechster Schritt
 
-Erst nach erfolgreichem Zwei-Ranger-Live-Nachweis dieser Stufe wird eine getrennte Integrationsstufe entworfen, die **ausgewaehlte** Anfragen tatsaechlich an die zentrale `AktionsSteuerung` einreichen darf. Auch diese Stufe bleibt zunaechst im Schattenbetrieb und erhaelt keine Adventure-Land-Ausfuehrungsadapter, bis die Ressourcen- und Safety-Abnahme abgeschlossen ist.
+Nach der erfolgreichen Zwei-Ranger-Live-Abnahme dieser Stufe folgt eine getrennte Integrationsstufe, die **ausgewaehlte** Anfragen tatsaechlich an die zentrale `AktionsSteuerung` einreichen darf. Auch diese Stufe bleibt zunaechst ausschliesslich im Schattenbetrieb und erhaelt keine Adventure-Land-Ausfuehrungsadapter, bis Ressourcen-, Safety- und Lebenszyklus-Abnahme abgeschlossen sind.
