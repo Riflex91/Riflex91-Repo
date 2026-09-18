@@ -242,17 +242,28 @@ class GearProgressionEvaluator {
     this.lastEvaluatedAt = now;
 
     const goals = this.list(this.capacity);
+    const currentGoals = goals.filter((goal) => goal && seenGoalIds.has(goal.id));
     const reservations = new Map();
-    for (const goal of goals) {
+    // Persisted goals remain useful history, but only goals confirmed in this
+    // exact evaluation may reserve live inventory. This prevents an already
+    // delivered/stale goal from trapping the next copy in RESERVE_PROGRESSION.
+    for (const goal of currentGoals) {
       const key = `${goal.item}:${goal.observedLevel}`;
       const current = reservations.get(key) || { name: goal.item, level: goal.observedLevel, quantity: 0, goalIds: [] };
       current.quantity += 1;
       current.goalIds.push(goal.id);
       reservations.set(key, current);
     }
-    this.lastEvaluation = { at: now, characters: characters.length, candidates: candidates.length, activeGoals: goals.length, blockedUnknownContent };
+    this.lastEvaluation = {
+      at: now,
+      characters: characters.length,
+      candidates: candidates.length,
+      activeGoals: currentGoals.length,
+      persistedGoals: goals.length,
+      blockedUnknownContent
+    };
     this.save();
-    return { status: this.status(), goals, reservations: [...reservations.values()].map(clone) };
+    return { status: this.status(), goals, currentGoals: currentGoals.map(clone), reservations: [...reservations.values()].map(clone) };
   }
 
   load() {
