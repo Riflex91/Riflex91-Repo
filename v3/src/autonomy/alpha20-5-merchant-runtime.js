@@ -15,10 +15,8 @@ function finite(value, fallback = null) {
 }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
-class Alpha20_5MerchantRuntime extends Alpha20Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
+function composeAlpha20_5MerchantRuntime(options = {}) {
+this.merchantServicePlanner = options.merchantServicePlanner || new MerchantServicePlanner({
       now: this.now,
       reportTtlMs: options.merchantServiceReportTtlMs,
       criticalPotionCount: options.merchantServiceCriticalPotionCount,
@@ -78,6 +76,12 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     this.merchantTownEtaMs = finite(options.merchantTownEtaMs);
     this.merchantServiceExecutionPending = false;
     this.merchantServiceNoticeKey = null;
+}
+
+class Alpha20_5MerchantRuntime extends Alpha20Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha20_5MerchantRuntime.call(this, options);
   }
 
   _localMerchant() {
@@ -362,4 +366,4 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
   }
 }
 
-module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK };
+module.exports = { Alpha20_5MerchantRuntime, ALPHA20_5_MERCHANT_RUNTIME_MODE, CONTROLLED_MERCHANT_SERVICE_ACK, composeAlpha20_5MerchantRuntime };

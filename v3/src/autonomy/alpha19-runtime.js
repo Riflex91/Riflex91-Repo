@@ -9,10 +9,8 @@ const { Alpha19CombinedLiveGate, ALPHA19_LIVE_GATE_ACK } = require('../ops/alpha
 const ALPHA19_VERSION = '3.0.0-alpha.19.0';
 const SUPERVISOR_ALLOWED = new Set(['HEALTHY', 'WATCH']);
 
-class Alpha19Runtime extends Alpha18Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA19_VERSION;
+function composeAlpha19Runtime(options = {}) {
+this.log.version = ALPHA19_VERSION;
     this.merchantSpaceRecoveryJournal = options.merchantSpaceRecoveryJournal || new MerchantSpaceRecoveryJournal({
       now: this.now,
       log: this.log,
@@ -64,6 +62,12 @@ class Alpha19Runtime extends Alpha18Runtime {
       sampleMs: options.alpha19LiveGateSampleMs,
       sleep: options.alpha19LiveGateSleep
     });
+}
+
+class Alpha19Runtime extends Alpha18Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha19Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -171,4 +175,4 @@ class Alpha19Runtime extends Alpha18Runtime {
   }
 }
 
-module.exports = { Alpha19Runtime, ALPHA19_VERSION };
+module.exports = { Alpha19Runtime, ALPHA19_VERSION, composeAlpha19Runtime };

@@ -3,10 +3,8 @@
 const { Alpha10Runtime } = require('./alpha10-runtime');
 const { CharacterRegistry } = require('../party/character-registry');
 
-class Alpha11Runtime extends Alpha10Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.characterRegistry = options.characterRegistry || new CharacterRegistry({
+function composeAlpha11Runtime(options = {}) {
+this.characterRegistry = options.characterRegistry || new CharacterRegistry({
       now: this.now,
       log: this.log,
       capacity: options.characterRegistryCapacity,
@@ -16,6 +14,12 @@ class Alpha11Runtime extends Alpha10Runtime {
     });
     this.partyObservationMs = Math.max(500, Math.min(60000, Number(options.partyObservationMs) || 1000));
     this.lastPartyObservation = -Infinity;
+}
+
+class Alpha11Runtime extends Alpha10Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha11Runtime.call(this, options);
   }
 
   _partyObservation() {
@@ -59,4 +63,4 @@ class Alpha11Runtime extends Alpha10Runtime {
   }
 }
 
-module.exports = { Alpha11Runtime };
+module.exports = { Alpha11Runtime, composeAlpha11Runtime };

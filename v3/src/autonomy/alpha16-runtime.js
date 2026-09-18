@@ -5,10 +5,8 @@ const { SafeTravelController } = require('../travel/safe-travel');
 
 const ALPHA16_VERSION = '3.0.0-alpha.16.0';
 
-class Alpha16Runtime extends Alpha15Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA16_VERSION;
+function composeAlpha16Runtime(options = {}) {
+this.log.version = ALPHA16_VERSION;
     this.travelMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.travelMaintenanceIntervalMs) || 1000));
     this.lastTravelMaintenanceAt = -Infinity;
     this.safeTravel = options.safeTravel || new SafeTravelController({
@@ -23,6 +21,12 @@ class Alpha16Runtime extends Alpha15Runtime {
       failureWindowMs: options.travelFailureWindowMs,
       circuitCooldownMs: options.travelCircuitCooldownMs
     });
+}
+
+class Alpha16Runtime extends Alpha15Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha16Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -70,4 +74,4 @@ class Alpha16Runtime extends Alpha15Runtime {
   }
 }
 
-module.exports = { Alpha16Runtime, ALPHA16_VERSION };
+module.exports = { Alpha16Runtime, ALPHA16_VERSION, composeAlpha16Runtime };

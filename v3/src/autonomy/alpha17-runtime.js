@@ -18,10 +18,8 @@ function registryName(value) {
   return name || null;
 }
 
-class Alpha17Runtime extends Alpha16Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA17_VERSION;
+function composeAlpha17Runtime(options = {}) {
+this.log.version = ALPHA17_VERSION;
     if (this.inventoryLedger && typeof this.inventoryLedger.setSellSafetyResolver === 'function') {
       this.inventoryLedger.setSellSafetyResolver(({ row }) => {
         const blockers = sellMetadataConsensus(this.root, row && row.name).blockers.slice();
@@ -62,6 +60,12 @@ class Alpha17Runtime extends Alpha16Runtime {
     });
     this.lastControlledGuardReason = null;
     this.registryVisibility = { foreignVisibleIgnored: 0, lastObservedAt: null };
+}
+
+class Alpha17Runtime extends Alpha16Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha17Runtime.call(this, options);
   }
 
   _partyObservation() {
@@ -300,4 +304,4 @@ class Alpha17Runtime extends Alpha16Runtime {
   }
 }
 
-module.exports = { Alpha17Runtime, ALPHA17_VERSION };
+module.exports = { Alpha17Runtime, ALPHA17_VERSION, composeAlpha17Runtime };

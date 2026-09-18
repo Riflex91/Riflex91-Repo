@@ -11,15 +11,20 @@ const { PartyTransitionController } = require('../party/transition-controller');
 const { BackgroundExecutionGuard } = require('../ops/background-execution-guard');
 function finite(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function clamp01(value) { return Math.max(0, Math.min(1, finite(value))); }
-class Alpha12Runtime extends Alpha11Runtime {
-  constructor(options = {}) {
-    super(options); this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.min(60000, Number(options.partyDecisionMs) || 5000)); this.lastPartyDecisionAt = -Infinity; this.lastPerformanceSampleAt = null; this.currentPartyFingerprint = null; this.currentEncounterFingerprint = null; this.lastPartyDecision = null; this.lastAuraRecommendation = null; this.lastAuraExecution = null; this.auraAutomationEnabled = options.partyAuraAutomationEnabled === true;
+function composeAlpha12Runtime(options = {}) {
+this.log.version = RELEASE_VERSION; this.partyDecisionMs = Math.max(2000, Math.min(60000, Number(options.partyDecisionMs) || 5000)); this.lastPartyDecisionAt = -Infinity; this.lastPerformanceSampleAt = null; this.currentPartyFingerprint = null; this.currentEncounterFingerprint = null; this.lastPartyDecision = null; this.lastAuraRecommendation = null; this.lastAuraExecution = null; this.auraAutomationEnabled = options.partyAuraAutomationEnabled === true;
     this.partyPerformance = options.partyPerformance || new PartyPerformanceStore({ root: this.root, storage: options.partyPerformanceStorage || options.storage, log: this.log, now: this.now, capacity: options.partyPerformanceCapacity, halfLifeMs: options.partyPerformanceHalfLifeMs, minSaveMs: options.partyPerformanceSaveMs }); this.partyPerformance.load();
     this.partyOrchestrator = options.partyOrchestrator || new PartyOrchestrator({ now: this.now, log: this.log, weights: options.partyScoreWeights, minScoreGain: options.partyMinScoreGain, minSwitchIntervalMs: options.partyMinSwitchIntervalMs, minRecommendedConfidence: options.partyMinRecommendedConfidence, maxCandidates: options.partyMaxCandidates, explorationEnabled: options.partyExplorationEnabled === true }); this.auraPolicy = options.auraPolicy || new PaladinAuraPolicy({ now: this.now, minHoldMs: options.partyAuraMinHoldMs });
     const roster = this.characterRegistry.status().characters || []; const configuredMerchant = options.partyMerchantName || roster.find((row) => row.ctype === 'merchant')?.name || null;
     this.partyTelemetry = options.partyTelemetry || new PartyTelemetryBridge({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, merchantName: configuredMerchant, trustedNames: roster.map((row) => row.name), sendIntervalMs: options.partyTelemetrySendMs, reportTtlMs: options.partyTelemetryTtlMs, capacity: options.partyTelemetryCapacity }); this.partyTelemetry.installReceiver();
     this.partyTransitions = options.partyTransitions || new PartyTransitionController({ root: this.root, adapter: this.adapter, now: this.now, log: this.log, liveEnabled: options.partyTransitionsEnabled === true, merchantName: configuredMerchant, codeSlots: options.partyCodeSlots, stepTimeoutMs: options.partyTransitionStepTimeoutMs, transitionLeaseMs: options.partyTransitionLeaseMs, pollMs: options.partyTransitionPollMs });
     this.backgroundExecution = options.backgroundExecution || new BackgroundExecutionGuard({ root: this.root, now: this.now, log: this.log, expectedTickMs: this.tickMs, driftThresholdMs: options.backgroundDriftThresholdMs, rearmCooldownMs: options.backgroundRearmCooldownMs, enabled: options.backgroundExecutionGuardEnabled !== false });
+}
+
+class Alpha12Runtime extends Alpha11Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha12Runtime.call(this, options);
   }
   start() { const started = super.start(); this.backgroundExecution.start(); return started; }
   stop() { this.partyPerformance.save({ force: true }); return super.stop(); }
@@ -64,4 +69,4 @@ class Alpha12Runtime extends Alpha11Runtime {
   }
   exportDiagnostics() { const base = JSON.parse(super.exportDiagnostics()); base.context = base.context || {}; base.context.backgroundExecution = this.backgroundExecution.status(); base.context.party = this.status().party; return JSON.stringify(base, null, 2); }
 }
-module.exports = { Alpha12Runtime };
+module.exports = { Alpha12Runtime, composeAlpha12Runtime };

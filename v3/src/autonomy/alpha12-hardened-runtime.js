@@ -25,10 +25,8 @@ function activeOwnedNames(root) {
   }
 }
 
-class Alpha12Runtime extends BaseAlpha12Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA12_VERSION;
+function composeHardenedAlpha12Runtime(options = {}) {
+this.log.version = ALPHA12_VERSION;
     const roster = this.characterRegistry.status().characters || [];
     const owned = activeOwnedNames(this.root);
     const ownedSet = new Set(owned);
@@ -52,6 +50,12 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
     this.partyControlLease.install();
     this.partyTransitions.setControlLease(this.partyControlLease);
     this.syncPartyControlConfig();
+}
+
+class Alpha12Runtime extends BaseAlpha12Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeHardenedAlpha12Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -153,4 +157,4 @@ class Alpha12Runtime extends BaseAlpha12Runtime {
   }
 }
 
-module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames };
+module.exports = { Alpha12Runtime, ALPHA12_VERSION, activeOwnedNames, composeHardenedAlpha12Runtime };

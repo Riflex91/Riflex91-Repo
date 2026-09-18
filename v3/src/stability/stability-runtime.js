@@ -9,10 +9,8 @@ const { ResilientWorldPersistence } = require('../world/resilient-persistence');
 const { KnowledgeAgingPolicy, installKnowledgeAging, installStaleRiskGuard } = require('../world/knowledge-aging');
 const { CombatStabilitySupervisor } = require('./combat-stability-supervisor');
 
-class StabilityRuntime extends Runtime {
-  constructor(options = {}) {
-    super(options);
-    // Runtime alpha.8.13 remains the historical base implementation. The
+function composeStabilityRuntime(options = {}) {
+// Runtime alpha.8.13 remains the historical base implementation. The
     // stability runtime owns the phase-freeze version without rewriting that
     // large proven file, and all emitted events use the phase version.
     this.log.version = VERSION;
@@ -78,6 +76,12 @@ class StabilityRuntime extends Runtime {
 
     this._installFarmerStableWaitContract();
     this._installKitingCircuitGuard();
+}
+
+class StabilityRuntime extends Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeStabilityRuntime.call(this, options);
   }
 
   _installFarmerStableWaitContract() {
@@ -185,4 +189,4 @@ class StabilityRuntime extends Runtime {
   }
 }
 
-module.exports = { StabilityRuntime };
+module.exports = { StabilityRuntime, composeStabilityRuntime };

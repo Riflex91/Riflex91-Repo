@@ -3,10 +3,8 @@
 const { Alpha9Runtime } = require('./alpha9-runtime');
 const { ShadowStrategicBrain } = require('../brain/shadow-brain');
 
-class Alpha10Runtime extends Alpha9Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.brain = options.brain || new ShadowStrategicBrain({
+function composeAlpha10Runtime(options = {}) {
+this.brain = options.brain || new ShadowStrategicBrain({
       now: this.now,
       log: this.log,
       replayCapacity: options.brainReplayCapacity,
@@ -21,6 +19,12 @@ class Alpha10Runtime extends Alpha9Runtime {
     });
     this.brainAuditMs = Math.max(1000, Math.min(60000, Number(options.brainAuditMs) || 5000));
     this.lastBrainAudit = -Infinity;
+}
+
+class Alpha10Runtime extends Alpha9Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha10Runtime.call(this, options);
   }
 
   _brainAudit() {
@@ -73,4 +77,4 @@ class Alpha10Runtime extends Alpha9Runtime {
   }
 }
 
-module.exports = { Alpha10Runtime };
+module.exports = { Alpha10Runtime, composeAlpha10Runtime };

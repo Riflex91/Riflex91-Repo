@@ -5,10 +5,8 @@ const { EconomyTransactionEngine } = require('../economy/transaction-engine');
 
 const ALPHA15_VERSION = '3.0.0-alpha.15.0';
 
-class Alpha15Runtime extends Alpha14Runtime {
-  constructor(options = {}) {
-    super(options);
-    this.log.version = ALPHA15_VERSION;
+function composeAlpha15Runtime(options = {}) {
+this.log.version = ALPHA15_VERSION;
     this.transactionMaintenanceIntervalMs = Math.max(250, Math.min(30000, Number(options.transactionMaintenanceIntervalMs) || 1000));
     this.lastTransactionMaintenanceAt = -Infinity;
     this.transactionEngine = options.transactionEngine || new EconomyTransactionEngine({
@@ -22,6 +20,12 @@ class Alpha15Runtime extends Alpha14Runtime {
       circuitCooldownMs: options.transactionCircuitCooldownMs
     });
     this.transactionEngine.load();
+}
+
+class Alpha15Runtime extends Alpha14Runtime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha15Runtime.call(this, options);
   }
 
   _announce(message, event) {
@@ -98,4 +102,4 @@ class Alpha15Runtime extends Alpha14Runtime {
   }
 }
 
-module.exports = { Alpha15Runtime, ALPHA15_VERSION };
+module.exports = { Alpha15Runtime, ALPHA15_VERSION, composeAlpha15Runtime };

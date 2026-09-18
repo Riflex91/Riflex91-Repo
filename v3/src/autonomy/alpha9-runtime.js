@@ -4,10 +4,8 @@ const { StabilityRuntime } = require('../stability/stability-runtime');
 const { LocalFarmPlanner } = require('./local-farm-planner');
 const { LocalFarmOrchestrator } = require('./local-farm-orchestrator');
 
-class Alpha9Runtime extends StabilityRuntime {
-  constructor(options = {}) {
-    super(options);
-    this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
+function composeAlpha9Runtime(options = {}) {
+this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
       log: this.log,
       minExpectedImprovement: options.localFarmMinExpectedImprovement,
       maxCandidates: options.localFarmMaxCandidates
@@ -29,6 +27,12 @@ class Alpha9Runtime extends StabilityRuntime {
       maxPlanFailures: options.localFarmMaxPlanFailures,
       engageHpRatio: options.localFarmEngageHpRatio
     });
+}
+
+class Alpha9Runtime extends StabilityRuntime {
+  constructor(options = {}) {
+    super(options);
+    composeAlpha9Runtime.call(this, options);
   }
 
   tick() {
@@ -61,4 +65,4 @@ class Alpha9Runtime extends StabilityRuntime {
   }
 }
 
-module.exports = { Alpha9Runtime };
+module.exports = { Alpha9Runtime, composeAlpha9Runtime };
