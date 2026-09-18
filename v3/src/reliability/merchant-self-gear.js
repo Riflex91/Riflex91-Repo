@@ -278,10 +278,13 @@ class MerchantSelfGear {
     if (session.stage === 'WAIT_LEDGER') {
       const indices = this._findMutationIndices(session);
       const needed = session.type === 'COMPOUND' ? 3 : 1;
-      if (indices.length < needed) return true;
+      // Waiting for the live inventory/ledger to converge is not executable
+      // Merchant work. Report no progress so Alpha27 can release the global
+      // PROGRESSION_BATCH lease instead of starving Production/Collection.
+      if (indices.length < needed) return false;
       const ledger = this.runtime.inventoryLedger;
       const status = ledger && typeof ledger.status === 'function' ? ledger.status() : null;
-      if (!status || status.stale === true || indices.some((index) => !ledger.get(session.character, index))) return true;
+      if (!status || status.stale === true || indices.some((index) => !ledger.get(session.character, index))) return false;
 
       this.runtime.merchantSelfGearReservation = this._reservationMatches(session, indices);
       this._save();
@@ -301,7 +304,10 @@ class MerchantSelfGear {
       if (!planned || planned.accepted !== true || !planned.transaction) {
         this.runtime.merchantSelfGearReservation = null;
         this._save();
-        return true;
+        // A rejected plan did not mutate anything. Returning true here used to
+        // pin the shared progression lease indefinitely while the same rejected
+        // self-gear session retried on every Merchant tick.
+        return false;
       }
       session.stage = 'MUTATING';
       session.transactionId = planned.transaction.id;
