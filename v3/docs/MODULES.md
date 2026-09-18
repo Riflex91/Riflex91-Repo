@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**21 Dateien · 4083 Zeilen**
+**21 Dateien · 4084 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -36,7 +36,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha17-runtime.js` | 308 |
 | `src/autonomy/alpha18-runtime.js` | 216 |
 | `src/autonomy/alpha19-runtime.js` | 178 |
-| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 344 |
+| `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 345 |
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 369 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 68 |
@@ -123,7 +123,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## farmer
 
-**21 Dateien · 4368 Zeilen**
+**21 Dateien · 4481 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -135,7 +135,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/farmer/farm-area-pressure-hotfix.js` | 304 |
 | `src/farmer/farmer-fsm.js` | 603 |
 | `src/farmer/farmer-local-plan-priority.js` | 104 |
-| `src/farmer/farmer-resource-topoff-hotfix.js` | 211 |
+| `src/farmer/farmer-resource-topoff-hotfix.js` | 324 |
 | `src/farmer/farmer-target-efficiency-hotfix.js` | 221 |
 | `src/farmer/farmer-terrain-navigation-hotfix.js` | 508 |
 | `src/farmer/farmer-travel-safety-hotfix.js` | 138 |
