@@ -45,6 +45,42 @@ function compatible(meta, character) {
   return true;
 }
 
+function equipmentTypeKey(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  return String(meta.wtype || meta.type || '').toLowerCase() || null;
+}
+
+function classSlotCompatible(meta, character, slot, gameData = {}) {
+  if (!meta || !character || !slot) return false;
+  const ctype = String(character.ctype || '').toLowerCase();
+  const classDef = gameData && gameData.classes && gameData.classes[ctype];
+  // Older fixtures and defensive fallback contexts may not expose G.classes.
+  // In live Adventure Land it is authoritative, so only enforce when present.
+  if (!classDef || typeof classDef !== 'object') return true;
+
+  const key = equipmentTypeKey(meta);
+  if (!key) return true;
+
+  if (slot === 'mainhand') {
+    const mainhand = classDef.mainhand && classDef.mainhand[key];
+    const doublehand = classDef.doublehand && classDef.doublehand[key];
+    if (!mainhand && !doublehand) return false;
+    if (doublehand && character.gear && character.gear.offhand && character.gear.offhand.name) return false;
+    return true;
+  }
+
+  if (slot === 'offhand') {
+    if (!classDef.offhand || !classDef.offhand[key]) return false;
+    const currentMain = character.gear && character.gear.mainhand;
+    const currentMainMeta = currentMain && currentMain.name && gameData.items && gameData.items[currentMain.name];
+    const currentMainKey = equipmentTypeKey(currentMainMeta);
+    if (currentMainKey && classDef.doublehand && classDef.doublehand[currentMainKey]) return false;
+    return true;
+  }
+
+  return true;
+}
+
 function candidateSlots(meta) {
   if (!meta || typeof meta !== 'object') return [];
   const type = String(meta.type || '').toLowerCase();
@@ -285,6 +321,7 @@ class GearProgressionEvaluator {
         }
         let best = null;
         for (const slot of candidate.slots) {
+          if (!classSlotCompatible(candidate.meta, character, slot, gameData)) continue;
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
@@ -547,5 +584,6 @@ module.exports = {
   effectiveStats,
   scoreItem,
   scoreImprovement,
-  candidateSlots
+  candidateSlots,
+  classSlotCompatible
 };
