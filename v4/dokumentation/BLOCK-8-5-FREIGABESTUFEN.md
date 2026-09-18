@@ -189,11 +189,20 @@ Bis fuer den finalen Block-8.5-Aenderungsstand explizite Nachweise fuer Offline,
 
 ## Naechster operativer Schritt
 
-Nach Merge und gruenem CI des Freigabe-Gates muss fuer den finalen Block-8.5-Laufzeitstand die operative Reihenfolge ausgefuehrt werden:
+Fuer Schatten, kontrolliert live und Soak ist inzwischen der getrennte Runner
+
+`BLOCK-8-5-FREIGABE-LIVE-TEST.md`
+
+vorbereitet.
+
+Er akzeptiert ausschliesslich Runtime 1.1.5 und laedt oder veroeffentlicht selbst keinen Runtime-Build.
+
+Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 
 1. finalen Aenderungsstand eindeutig festlegen,
-2. Offline-Nachweis daran binden,
-3. Schattenlauf im Adventure-Land-Kontext ohne echte Spielaktion,
-4. begrenzter kontrollierter Live-Test,
-5. Soak-Lauf mit Telemetrie und Recovery-Auswertung,
-6. erst danach Block 9 freigeben.
+2. exakt diesen Runtime-1.1.5-Build reproduzierbar bauen und verifizieren,
+3. Offline-Nachweis an denselben Aenderungsstand binden,
+4. Schattenlauf im Adventure-Land-Kontext ohne echte Spielaktion ueber den Nachweisrunner,
+5. begrenzter kontrollierter Live-Test ueber genau eine sichere Pause/Fortsetzung,
+6. mindestens zehnminuetiger Soak-Lauf mit Telemetrie und Recovery-Auswertung,
+7. erst danach Block 9 freigeben.

@@ -48,7 +48,10 @@ const dateien = [
   'laufzeit/quelle/telemetrie/freigabestufen.ts',
   'laufzeit/tests/block8-5-freigabestufen.test.mjs',
   'dokumentation/BLOCK-8-5-FREIGABESTUFEN.md',
-  'dokumentation/FAHRPLAN.md'
+  'dokumentation/FAHRPLAN.md',
+  'werkzeuge/block8-5-freigabestufen-live-test.js',
+  'laufzeit/tests/block8-5-freigabestufen-live-test.test.mjs',
+  'dokumentation/BLOCK-8-5-FREIGABE-LIVE-TEST.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -984,4 +987,98 @@ for (const pflicht of [
   }
 }
 
-console.log('Block 8.5.1 bis 8.5.9 Freigabe-Gate geprueft: vier sequenzielle Nachweisstufen sind an denselben Laufzeitpfad und Aenderungsstand gebunden; Block 9 bleibt ohne Offline-, Schatten-, begrenzten Live- und Soak-Nachweis gesperrt, die Auswertung besitzt keine Spiel- oder Neustartautoritaet.');
+const freigabeLiveRunner = await readFile(path.join(wurzel, dateien[45]), 'utf8');
+for (const pflicht of [
+  'V4Block85FreigabeLiveTest',
+  "ERWARTETE_RUNTIME_VERSION = '1.1.5'",
+  'AIO_V4_BLOCK85_FREIGABE_CONFIG',
+  'basisBedienStatus',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  "'diagnose_aktualisieren'",
+  "'laufzeit_pausieren'",
+  "'laufzeit_fortsetzen'",
+  'ausdruecklichBestaetigt: true',
+  'SOAK_MIN_MILLIS = 10 * 60 * 1000',
+  'SOAK_SAMPLE_MILLIS = 5_000',
+  'spielAktionAusgefuehrt: false',
+  'telemetrieNachweis',
+  'recoveryNachweis',
+  'gesamtauswertungBestanden',
+  'Kontrollierter Live-Test verlangt zuerst einen bestandenen Schattennachweis',
+  'Soak-Test verlangt zuerst einen bestandenen kontrollierten Live-Test'
+]) {
+  if (!freigabeLiveRunner.includes(pflicht)) {
+    throw new Error(`Freigabe-Live-Runner fehlt: ${pflicht}`);
+  }
+}
+for (const verboten of [
+  '.pausiereLebensnachweisAutomatik(',
+  '.setzeLebensnachweisAutomatikFort(',
+  '.bereiteGruppenZielVor(',
+  '.installiereGruppenZielLiveSmoke(',
+  '.stoppe(',
+  'location.reload(',
+  'window.close('
+]) {
+  if (freigabeLiveRunner.includes(verboten)) {
+    throw new Error(`Freigabe-Live-Runner darf den sicheren 8.5.9-Pfad nicht umgehen: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(freigabeLiveRunner)) {
+    throw new Error(`Freigabe-Live-Runner darf keine Adventure-Land-Spielaktion direkt aufrufen: ${aktionsName}.`);
+  }
+}
+
+const freigabeLiveTests = await readFile(path.join(wurzel, dateien[46]), 'utf8');
+for (const pflicht of [
+  'Live-Runner akzeptiert nur Runtime 1.1.5',
+  'Live-Runner erzeugt Schattennachweis nur ueber read-only Diagnose',
+  'kontrollierter Live-Nachweis fuehrt genau Pause und bestaetigtes Fortsetzen aus',
+  'kontrollierter Live-Nachweis ist ohne Schattenstufe blockiert',
+  'Live-Fehler nach Pause setzt die Runtime nicht automatisch fort',
+  'Soak erzeugt Telemetrie- und Recovery-Nachweis erst nach Mindestdauer',
+  'Soak schlaegt bei unerwarteter Laufzeit-Generation fehl',
+  'Live-Runner erzwingt mindestens zehn Minuten Soak',
+  'Live-Runner besitzt keinen direkten Adventure-Land-Spielaktionsaufruf'
+]) {
+  if (!freigabeLiveTests.includes(pflicht)) {
+    throw new Error(`Freigabe-Live-Runner-Test fehlt: ${pflicht}`);
+  }
+}
+
+const freigabeLiveDokument = await readFile(path.join(wurzel, dateien[47]), 'utf8');
+for (const pflicht of [
+  'Runner implementiert und offline testbar',
+  'Runtime 1.1.5',
+  'AIO_V4_BLOCK85_FREIGABE_CONFIG',
+  'Schattennachweis',
+  'Kontrolliert live',
+  'Fail-safe bei Fehler nach Pause',
+  'Soak',
+  '600000 ms = 10 Minuten',
+  'spielAktionAusgefuehrt: false',
+  'telemetrieNachweis: true',
+  'recoveryNachweis: true',
+  'gesamtauswertungBestanden: true',
+  'keinen Adventure-Land-Spielaktionsaufruf',
+  'Block 9 bleibt'
+]) {
+  if (!freigabeLiveDokument.includes(pflicht)) {
+    throw new Error(`Freigabe-Live-Test-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+if (!freigabeDokument.includes('BLOCK-8-5-FREIGABE-LIVE-TEST.md')) {
+  throw new Error('Freigabestufen-Dokumentation verweist noch nicht auf den sicheren Live-Nachweisrunner.');
+}
+if (!block85PlanFreigabe.includes('Adventure-Land-Nachweisrunner vorbereitet')) {
+  throw new Error('Block-8.5-Plan dokumentiert den vorbereiteten Live-Nachweisrunner noch nicht.');
+}
+
+console.log('Block 8.5.1 bis 8.5.9 inklusive Nachweisrunner geprueft: das sequenzielle Gate bleibt an denselben Aenderungsstand gebunden; der Adventure-Land-Runner akzeptiert nur Runtime 1.1.5, besitzt keinen direkten Spielaktionspfad und prueft Schatten, genau eine sichere Pause/Fortsetzung sowie einen mindestens zehnminuetigen read-only Soak.');
