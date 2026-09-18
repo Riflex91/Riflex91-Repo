@@ -16,7 +16,11 @@ const dateien = [
   'dokumentation/BLOCK-8-5-ENTSCHEIDUNG-AKTION-ERGEBNIS.md',
   'dokumentation/BLOCK-8-5-RUNTIMEGESUNDHEIT.md',
   'dokumentation/BLOCK-8-5-WISSENSTRANSFER-V3-V4.md',
-  'dokumentation/BLOCK-8-5-PLAN.md'
+  'dokumentation/BLOCK-8-5-PLAN.md',
+  'laufzeit/quelle/vertraege/recovery-checkpoint.ts',
+  'laufzeit/quelle/telemetrie/recovery-checkpoint.ts',
+  'laufzeit/tests/block8-5-recovery-checkpoint.test.mjs',
+  'dokumentation/BLOCK-8-5-RECOVERY-CHECKPOINT.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -197,4 +201,91 @@ for (const pflicht of [
   if (!gesundheitsDokument.includes(pflicht)) throw new Error(`RuntimeGesundheits-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1/8.5.2/8.5.3 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, deterministische RuntimeGesundheit und keine neue Spiel-/Neustartautoritaet.');
+const checkpointVertrag = await readFile(path.join(wurzel, dateien[13]), 'utf8');
+for (const pflicht of [
+  'RECOVERY_CHECKPOINT_SCHEMA_VERSION',
+  'RecoveryCheckpointInhalt',
+  'wiederaufnahmeErlaubt: false',
+  'abgleichErforderlich: true',
+  'aktionsAutoritaet: false',
+  'offeneAktionsAnfrageKennungen'
+]) {
+  if (!checkpointVertrag.includes(pflicht)) throw new Error(`Recovery-Checkpoint-Vertrag fehlt: ${pflicht}`);
+}
+
+const checkpoint = await readFile(path.join(wurzel, dateien[14]), 'utf8');
+for (const pflicht of [
+  'RecoveryCheckpointSpeicher',
+  'berechneSha256',
+  'kanonisiereJson',
+  'RECOVERY_CHECKPOINT_SLOTS',
+  "'zu_gross'",
+  "'speicher_fehler'",
+  "'beschaedigt'",
+  'wiederaufnahmeErlaubt: false',
+  'abgleichErforderlich: true',
+  'aktionsAutoritaet: false'
+]) {
+  if (!checkpoint.includes(pflicht)) throw new Error(`Recovery-Checkpoint-Implementierung fehlt: ${pflicht}`);
+}
+for (const verboten of [
+  'Date.now(',
+  'Math.random(',
+  'location.reload(',
+  'window.close(',
+  '.reicheAnfrageEin(',
+  '.verarbeiteNaechsteAktion('
+]) {
+  if (checkpoint.includes(verboten)) {
+    throw new Error(`Recovery-Checkpoint darf keine versteckte Laufzeit-/Aktionsautoritaet verwenden: ${verboten}`);
+  }
+}
+for (const aktionsName of [
+  'attack', 'move', 'smart_move', 'use_skill', 'use_hp', 'use_mp',
+  'use_hp_or_mp', 'loot', 'send_cm', 'command_character', 'send_party_invite',
+  'buy', 'sell', 'send_item', 'upgrade', 'compound'
+]) {
+  if (new RegExp(`\\b${aktionsName}\\s*\\(`).test(checkpoint)) {
+    throw new Error(`Recovery-Checkpoint darf keine Adventure-Land-Aktion aufrufen: ${aktionsName}.`);
+  }
+}
+for (const unerlaubtesFeld of [
+  'benoetigteRessourcen',
+  'gueltigBis',
+  'angefordertVon'
+]) {
+  if (checkpointVertrag.includes(unerlaubtesFeld)) {
+    throw new Error(`RecoveryCheckpointInhalt darf keine fluechtige Aktionsautoritaet speichern: ${unerlaubtesFeld}.`);
+  }
+}
+
+const checkpointTests = await readFile(path.join(wurzel, dateien[15]), 'utf8');
+for (const pflicht of [
+  'Checkpoint wird versioniert mit SHA-256 gespeichert und bleibt ohne Aktionsautoritaet',
+  'A/B-Slots wechseln und Sequenz steigt monoton',
+  'beschaedigter aktueller Slot faellt auf letzten gueltigen Checkpoint zurueck',
+  'zwei beschaedigte Slots werden blockierend als beschaedigt gemeldet',
+  'manipulierte Nutzlast besteht die SHA-256-Pruefung nicht',
+  'unvollstaendige Nutzlast mit neu berechnetem Fremd-Hash wird trotzdem abgewiesen',
+  'zu grosser Checkpoint wird vor dem Schreiben abgewiesen und alter Checkpoint bleibt erhalten',
+  'Zeiger-Schreibfehler meldet Speicherfehler und alter bestaetigter Checkpoint bleibt aktiv',
+  'offene Arbeit wird nur als Kennung gespeichert und nie automatisch fortgesetzt',
+  'ohne gespeicherte Daten wird nicht_vorhanden statt erfundener Zustand gemeldet'
+]) {
+  if (!checkpointTests.includes(pflicht)) throw new Error(`Recovery-Checkpoint-Test fehlt: ${pflicht}`);
+}
+
+const checkpointDokument = await readFile(path.join(wurzel, dateien[16]), 'utf8');
+for (const pflicht of [
+  '8.5.4 implementiert',
+  'wiederaufnahmeErlaubt: false',
+  'abgleichErforderlich: true',
+  'aktionsAutoritaet: false',
+  'A/B-Slots',
+  'SHA-256',
+  '8.5.5'
+]) {
+  if (!checkpointDokument.includes(pflicht)) throw new Error(`Recovery-Checkpoint-Dokumentation fehlt: ${pflicht}`);
+}
+
+console.log('Block 8.5.1/8.5.2/8.5.3/8.5.4 geprueft: EntscheidungsDatensatz, read-only Aktionskorrelation, RuntimeGesundheit, integritaetsgesicherter Recovery-Checkpoint und keine neue Spiel-/Neustartautoritaet.');
