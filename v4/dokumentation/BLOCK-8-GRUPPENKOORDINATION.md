@@ -120,7 +120,7 @@ Die verbleibende Block-8-Arbeit ist die aktive Abschlusskampagne:
 1. genau einen minimalen `GRUPPE_*`-Ausfuehrungspfad unter `ausfuehrung/` vorbereiten, weiterhin standardmaessig gesperrt,
 2. diesen Pfad deterministisch, per Replay/Simulation und im Schatten pruefen,
 3. einen begrenzten one-shot Live-Smoke mit automatischer Wiedersperrung bestehen,
-4. danach den 72-Stunden-Gruppentest durchlaufen,
+4. danach den 10-Minuten-Gruppentest durchlaufen,
 5. erst dann Block 8 formal abschliessen und Block 8.5 beginnen.
 
 Der verbindliche aktuelle Stand und die Stop-Kriterien stehen in `BLOCK-8-ABSCHLUSSSTATUS.md`.
