@@ -275,7 +275,16 @@ class ControlledPartyLogistics {
     const x = finite(data && data.x);
     const y = finite(data && data.y);
     if (!sender || !map || x == null || y == null) return;
-    this.rendezvousRequests.set(sender, { name: sender, map, x, y, at: this.now() });
+    this.rendezvousRequests.set(sender, {
+      name: sender,
+      map,
+      x,
+      y,
+      at: this.now(),
+      sourceAt: finite(data && data.at, this.now()),
+      action: String(data && data.action || Action.RENDEZVOUS),
+      workReason: data && data.reason || null
+    });
   }
 
   _prune() {
