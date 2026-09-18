@@ -182,6 +182,78 @@ test('Merchant keeps the last-slot grant reserved until recipient inventory obse
   assert.equal(capacity.acceptingLoot, false);
 });
 
+test('Merchant serializes concurrent grants for the same item identity until recipient settlement', () => {
+  const { runtime, root, clock } = makeRuntime('My_Merchant', 'merchant');
+  root.G = { items: { hpbelt: { type: 'belt', upgrade: { armor: 1 } }, mpot0: { type: 'pot' } } };
+  root.character.isize = 4;
+  root.character.items = [{ index: 0, name: 'mpot0', q: 5000 }, null, null, null];
+  runtime.adapter.snapshot = () => ({
+    character: { ...root.character, inventory: root.character.items },
+    entities: []
+  });
+  const logistics = new ControlledPartyLogistics(runtime, {
+    recipientSettleTimeoutMs: 6000,
+    transferIntervalMs: 300
+  });
+  const sent = [];
+  logistics._send = (target, action, data) => {
+    sent.push({ target, action, data });
+    return Promise.resolve({ delivered: true });
+  };
+
+  assert.equal(logistics._handleLootOffer('My_Ranger1', {
+    offerId: 'offer-identical-a',
+    quantity: 1,
+    item: { name: 'hpbelt', level: 0, q: 1, index: 7 },
+    map: 'main',
+    x: 20,
+    y: 0
+  }), true);
+  assert.equal(logistics.activeLootGrants.size, 1);
+
+  assert.equal(logistics._handleLootOffer('My_Ranger2', {
+    offerId: 'offer-identical-b',
+    quantity: 1,
+    item: { name: 'hpbelt', level: 0, q: 1, index: 8 },
+    map: 'main',
+    x: 25,
+    y: 0
+  }), true);
+  assert.equal(logistics.activeLootGrants.size, 1, 'second identical identity must not get a concurrent recipient baseline');
+
+  const rejected = sent.find((row) => row.target === 'My_Ranger2' && row.action === Action.LOOT_REJECT);
+  assert.ok(rejected);
+  assert.equal(rejected.data.reason, 'IDENTITY_TRANSFER_IN_FLIGHT');
+  assert.ok(rejected.data.retryAfterMs <= 750);
+
+  const grant = [...logistics.activeLootGrants.values()][0];
+  assert.equal(logistics.receive('My_Ranger1', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: Action.TRANSFER_COMMIT,
+    sender: 'My_Ranger1',
+    at: clock.now,
+    grantId: grant.grantId,
+    offerId: grant.offerId,
+    kind: 'item',
+    committed: true
+  }), true);
+  root.character.items[1] = { index: 1, name: 'hpbelt', level: 0, q: 1 };
+  clock.now += 100;
+  logistics._merchantCapacity(runtime.adapter.snapshot());
+  assert.equal(logistics.activeLootGrants.size, 0);
+
+  assert.equal(logistics._handleLootOffer('My_Ranger2', {
+    offerId: 'offer-identical-c',
+    quantity: 1,
+    item: { name: 'hpbelt', level: 0, q: 1, index: 8 },
+    map: 'main',
+    x: 25,
+    y: 0
+  }), true);
+  assert.equal(logistics.activeLootGrants.size, 1, 'same identity may proceed immediately after prior recipient settlement');
+});
+
 test('transient send_item rejection uses short retry guard instead of two-minute item lockout', () => {
   const { runtime, clock } = makeRuntime('My_Ranger1', 'ranger');
   const logistics = new ControlledPartyLogistics(runtime, { failureBackoffMs: 7000, verifyTimeoutMs: 3500 });
