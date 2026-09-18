@@ -14,15 +14,15 @@ function patchAlpha2015LogisticsFairness() {
     this._verifyPendingOutbound(snapshot);
     this._requestSupply(snapshot);
 
-    if (this.pendingGrant && this.pendingOffer) {
-      if (this.pendingOffer.kind === 'gold' || this._safeForOutbound(snapshot)) this._executeGrant(snapshot);
+    if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
+      this._executeGrant(snapshot);
     }
     if (this.pendingOffer || this.pendingGrant || this.pendingOutbound) return this.lastDecision;
 
-    // In a calm window, inventory drain gets the first transfer slot. This is
-    // required because combat continuously creates small gold deltas; always
-    // sending gold first could otherwise starve item delivery indefinitely.
-    if (this._safeForOutbound(snapshot) && this._offerInventoryItem(snapshot)) return this.lastDecision;
+    // Inventory drain keeps first priority even during normal farming combat.
+    // Offers are serialized and the exact inventory identity is revalidated
+    // again when the Merchant grant is executed.
+    if (snapshot && snapshot.character && snapshot.character.rip !== true && this._offerInventoryItem(snapshot)) return this.lastDecision;
 
     // Gold has no inventory-slot cost and remains allowed whenever Merchant is
     // nearby, including during combat or after Merchant has stopped item intake.
