@@ -137,6 +137,20 @@ The readiness state is observable as `IDLE`, `WAITING`, `READY`, `TIMEOUT` or `S
 
 No Adventure Land username, password or 2FA value is stored or injected. If the persistent profile is logged out, the startup window eventually fails closed instead of attempting credential automation.
 
+## Windows unattended certification
+
+Step 13 adds `HashChainedCertificationEvidence` and a Windows certification collector around the existing authenticated loopback host API. It does not add a browser operation or gameplay authority.
+
+The host API status payload now includes the existing harness/session status through a read-only status provider. `HostWatchdogSupervisor` exposes a strict allowlisted summary of the last accepted beacon, including run identity and `fourCharacterReady`, without echoing arbitrary beacon fields.
+
+Certification is staged as `canary → 1h → 24h → 72h → 7d`. Every accepted sample requires a connected Step-9 loopback CDP session, narrow browser bridge, healthy dead-man/watchdog, four-character readiness, durable alert spool, both Step-12 CRITICAL routes, zero pending CRITICAL alerts, clean/idle reconciliation and zero host/browser gameplay authority.
+
+The canary also requires real pre-soak evidence of both CRITICAL routes plus a controlled managed-browser termination followed by a bounded host restart, fresh run ID and `OBSERVED_CLEAN` reconciliation. Only after those drills are recorded does the stable canary timer begin.
+
+Evidence is append-only JSONL with a SHA-256 chain and is reverified before every append. Collector restart may resume the same evidence chain; a sample gap beyond the gate limit still fails the attempt and therefore cannot conceal downtime.
+
+For 24h/72h/7d, the host API cannot and should not gain arbitrary gameplay introspection. Those gates therefore also require an explicit reviewed runtime-action evidence artifact whose filename and SHA-256 are recorded in the chain.
+
 ## Safe deployment sequence
 
 A production canary should follow this order:
@@ -152,7 +166,7 @@ A production canary should follow this order:
 9. Verify bot-owned `reconciliationStatus()` stays observation-only and that no blind resume occurs.
 10. Exercise a controlled browser/process failure while restart authority is still operator-controlled; verify bounded detection and diagnostics.
 11. Only after the canary is clean, explicitly enable `ALPHA20_5_HOST_RESTART` and exercise one bounded restart→fresh-run→reconcile cycle.
-12. Confirm restart budget/circuit behavior and critical-alert delivery before any unattended overnight gate.
+12. Run the Step-13 `canary` and `1h` certification gates before any overnight gate; promote only through hash-valid predecessor evidence.
 
 ## Shutdown
 
@@ -170,7 +184,7 @@ The following remain separate work and must not be inferred from the existence o
 - provider-specific email/WhatsApp/push account provisioning beyond the generic dual-HTTPS alert routes;
 - remote dashboard exposure/authentication;
 - automatic updater/install/rollback;
-- real unattended production certification.
+- the actual wall-clock Windows certification runs themselves; Step 13 provides the evidence engine, but CI cannot substitute for real 1h/24h/72h/7d uptime.
 
 ## Overnight gate prerequisites
 

@@ -19,7 +19,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | farmer | 21 | 4279 |
 | game | 3 | 724 |
 | merchant | 7 | 1916 |
-| ops | 26 | 7224 |
+| ops | 26 | 7278 |
 | party | 32 | 7150 |
 | planner | 1 | 66 |
 | reliability | 48 | 12656 |
