@@ -4,11 +4,15 @@ on:
   push:
     paths:
       - 'v4/**'
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/deploy-cloudflare.yml'
       - '.github/workflows/v4-pruefung.yml'
   pull_request:
     branches: ['main']
     paths:
       - 'v4/**'
+      - 'cloudflare-dashboard/**'
+      - '.github/workflows/deploy-cloudflare.yml'
       - '.github/workflows/v4-pruefung.yml'
 
 permissions:
@@ -28,3 +32,6 @@ jobs:
       - name: Typen, Tests, Namen und Struktur pruefen
         working-directory: v4
         run: npm run pruefen
+      - name: Cloudflare Runtime-Release und Worker pruefen
+        working-directory: cloudflare-dashboard
+        run: npm run check

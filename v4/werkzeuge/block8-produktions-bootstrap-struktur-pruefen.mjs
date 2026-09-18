@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 const wurzel = process.cwd();
+const repoWurzel = path.resolve(wurzel, '..');
 const dateien = [
   'laufzeit/quelle/ausfuehrung/adventure-land-produktions-bootstrap.ts',
   'laufzeit/quelle/ausfuehrung/adventure-land-produktions-einstieg.ts',
@@ -122,6 +123,47 @@ for (const pflicht of [
   if (!bundler.includes(pflicht)) throw new Error(`V4-Produktionsruntime-Bundler ist unvollstaendig: ${pflicht}`);
 }
 
+const releaseWorkflow = await readFile(path.join(repoWurzel, '.github/workflows/deploy-cloudflare.yml'), 'utf8');
+for (const pflicht of [
+  '"v4/**"',
+  'Build and verify V4 production runtime artifacts',
+  'sha256sum -c dist/aio-v4-runtime.sha256',
+  'Publish immutable V4 runtime release to R2',
+  'releases/v4/$RELEASE_SHA/aio-v4-runtime.js',
+  'releases/v4/$RELEASE_SHA/aio-v4-runtime.sha256',
+  'Verify immutable V4 runtime release in R2',
+  'Verify immutable V4 runtime release over public HTTPS',
+  'https://aio-bot-dashboard.hansijuergenlul.workers.dev',
+  'x-aio-v4-release-sha',
+  'access-control-allow-origin',
+  'cache-control:.*no-store'
+]) {
+  if (!releaseWorkflow.includes(pflicht)) throw new Error(`V4-Release-Workflow ist unvollstaendig: ${pflicht}`);
+}
+const cleanupTreffer = releaseWorkflow.match(/- name: Remove temporary deploy config/g) ?? [];
+if (cleanupTreffer.length !== 1) {
+  throw new Error(`V4-Release-Workflow muss genau einen Cleanup-Schritt enthalten; gefunden: ${cleanupTreffer.length}.`);
+}
+for (const zeile of releaseWorkflow.split('\n')) {
+  if (zeile.includes("grep -Eiq '^access-control-allow-origin") && zeile.includes('- name:')) {
+    throw new Error('V4-Release-Workflow enthaelt einen in eine grep-Zeile eingespleissten YAML-Schritt.');
+  }
+}
+
+const releaseHandler = await readFile(path.join(repoWurzel, 'cloudflare-dashboard/src/v4-runtime-release-artifact.js'), 'utf8');
+for (const pflicht of [
+  '/v4/releases/',
+  '[0-9a-f]{40}',
+  'aio-v4-runtime.js',
+  'aio-v4-runtime.sha256',
+  'releases/v4/',
+  'access-control-allow-origin',
+  'no-store, max-age=0',
+  'x-aio-v4-release-sha'
+]) {
+  if (!releaseHandler.includes(pflicht)) throw new Error(`V4-Cloudflare-Release-Handler ist unvollstaendig: ${pflicht}`);
+}
+
 const tests = await readFile(path.join(wurzel, 'laufzeit/tests/block8-produktions-bootstrap.test.mjs'), 'utf8');
 for (const pflicht of [
   'startet standardmaessig gesperrt',
@@ -137,4 +179,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: eine zentrale AktionsSteuerung, mindestens zwei frische Teilnehmer, monotone Lebensnachweise, one-shot Vorbereitung, echte Safety, passiver Laufzeiteinstieg, HTTPS+SHA-256-Loader und reproduzierbares Bundle.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
