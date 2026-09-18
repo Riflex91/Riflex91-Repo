@@ -98,6 +98,7 @@ test('adaptive policy plans only the farmer shortfall and buys only the missing 
   assert.equal(plan.metadata.noPurchasedReserve, true);
 });
 
+// Regression from the live My_Merchant session: a 10-item catch-up must not become a second 5-item vendor trip.
 test('latched potion chain prevents the observed 10 then 5 micro-restock loop', () => {
   const root = rootForMerchant();
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
