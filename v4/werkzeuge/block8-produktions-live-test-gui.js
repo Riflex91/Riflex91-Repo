@@ -2,7 +2,7 @@
   'use strict';
 
   const API_NAME = 'V4Block8ProduktionsLiveTestGui';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const GUI_API_NAME = 'V4TestGui';
   const RUNTIME_API_NAME = 'V4ProduktionsLaufzeit';
   const BOOTSTRAP_API_NAME = 'V4Bootstrap';
@@ -159,11 +159,11 @@
     kennung: `block8-live-${identitaetBeimStart.name}`,
     titel: `V4 Block 8 Live-Test · ${identitaetBeimStart.name}`,
     beschreibung: istLeiter
-      ? 'Testleiter: Runtime, Heartbeat, Gruppenziel, Smoke-Vorschau und bestaetigter one-shot. Jeder Schritt erzeugt einen kopierbaren Bericht.'
+      ? 'Testleiter: Runtime, Heartbeat, passive Gruppenziel-Vorpruefung und bestaetigter atomarer one-shot. Jeder Schritt erzeugt einen kopierbaren Bericht.'
       : 'Teilnehmer: Runtime/Empfang und Heartbeat. Aktive Gruppenziel-/Smoke-Schritte sind nur auf dem konfigurierten Testleiter verfuegbar.'
   });
 
-  let letzterVorbereitungsBericht = null;
+  let letzteVorpruefung = null;
 
   function protokolliereStatus(prefix = 'Runtime') {
     const status = runtimeApi().status();
@@ -235,88 +235,169 @@
     const mindestensZweiTeilnehmer = Array.isArray(status.bekannteTeilnehmer) && status.bekannteTeilnehmer.length >= 2;
     const vorbereitungBereit = pass && mindestensZweiTeilnehmer;
     test.setzeErgebnis(ergebnis, vorbereitungBereit ? 'pass' : pass ? 'warn' : 'fail', vorbereitungBereit
-      ? 'Heartbeat gesendet und mindestens zwei Teilnehmer sind bekannt. Gruppenziel-Vorschau ist freigegeben.'
+      ? 'Heartbeat gesendet und mindestens zwei Teilnehmer sind bekannt. Passive Vorpruefung ist freigegeben.'
       : pass
         ? 'Heartbeat gesendet, aber noch nicht mindestens zwei Teilnehmer bekannt.'
         : 'Mindestens ein Lebensnachweis wurde nicht gesendet.');
     test.protokolliere('Heartbeat', ergebnis);
-    if (istLeiter) test.setzeAktionAktiv('gruppenziel-vorschau', vorbereitungBereit);
+    if (istLeiter) test.setzeAktionAktiv('gruppenziel-vorpruefung', vorbereitungBereit);
     return ergebnis;
   }
 
-  function gruppenzielUndVorschau() {
-    if (!istLeiter) throw new Error(`Nur Testleiter ${cfg.leiterName} darf Gruppenziel/Smoke vorbereiten.`);
+  async function gruppenzielVorpruefung() {
+    if (!istLeiter) throw new Error(`Nur Testleiter ${cfg.leiterName} darf die Gruppenziel-Vorpruefung ausfuehren.`);
+
     const runtime = runtimeApi();
-    const vorbereitung = runtime.bereiteGruppenZielVor(runtime.gruppenzielFreigabeText());
-    if (vorbereitung.gestarteterAktionsName !== AKTION_GRUPPENZIEL || !vorbereitung.gestarteteAktionsKennung) {
-      throw new Error(`Gruppenziel-Vorbereitung startete keine erlaubte Zielaktion: ${String(vorbereitung.gestarteterAktionsName)}.`);
+    const vorStatus = runtime.status();
+    if (
+      vorStatus.gruppenZielVorbereitungVerbraucht === true ||
+      vorStatus.liveSmokeInstalliert === true ||
+      vorStatus.laufendeGruppenAnfragen.length !== 0 ||
+      vorStatus.ressourcenSperren.length !== 0
+    ) {
+      throw new Error('Die passive Vorpruefung verlangt eine frische Runtime ohne vorbereitete Gruppenanfrage oder Ressourcensperre.');
     }
-    if (!vorbereitung.gemeinsamesZielKennung) throw new Error('Gruppenplanung lieferte kein gemeinsames Ziel.');
 
-    const ziel = findeZiel(vorbereitung.gemeinsamesZielKennung);
-    const erwartung = baueErwartung(vorbereitung.gemeinsamesZielKennung, ziel);
-    runtime.installiereGruppenZielLiveSmoke(erwartung, runtime.liveSmokeInstallationsText());
+    const heartbeat = await runtime.sendeLebensnachweis();
+    const senden = Array.isArray(heartbeat.ergebnisse) ? heartbeat.ergebnisse : [];
+    if (senden.length === 0 || senden.some((eintrag) => eintrag?.gesendet !== true)) {
+      throw new Error('Die passive Vorpruefung konnte nicht alle konfigurierten Heartbeats senden.');
+    }
 
-    const runnerStatus = runnerApi().vorschau();
-    const vorschau = pruefeSmokeVorschau(runnerStatus);
+    const zielKennung = heartbeat?.meldung?.zielKennung;
+    if (typeof zielKennung !== 'string' || zielKennung.length === 0) {
+      throw new Error('Die passive Vorpruefung hat kein lokales Ziel im frischen Lebensnachweis.');
+    }
+
+    const ziel = findeZiel(zielKennung);
+    const erwartung = baueErwartung(zielKennung, ziel);
     const runtimeStatus = runtime.status();
-    const pass = runtimeStatus.laufendeGruppenAnfragen.length === 1 &&
-      runtimeStatus.ressourcenSperren.length === 2 &&
-      runtimeStatus.liveSmokeInstalliert === true &&
-      runtimeStatus.gruppenZielVorbereitungVerbraucht === true;
+    const mindestensZweiTeilnehmer =
+      Array.isArray(runtimeStatus.bekannteTeilnehmer) &&
+      runtimeStatus.bekannteTeilnehmer.length >= 2;
+
+    const pass = mindestensZweiTeilnehmer &&
+      runtimeStatus.laufendeGruppenAnfragen.length === 0 &&
+      runtimeStatus.ressourcenSperren.length === 0 &&
+      runtimeStatus.liveSmokeInstalliert === false &&
+      runtimeStatus.gruppenZielVorbereitungVerbraucht === false;
 
     const ergebnis = Object.freeze({
-      schritt: 'gruppenziel_smoke_vorschau',
+      schritt: 'gruppenziel_passive_vorpruefung',
       pass,
       charakter: lokaleIdentitaet(),
-      vorbereitung,
+      heartbeat,
       erwartung,
-      vorschau,
       runtime: runtimeStatus,
-      hinweis: 'Noch keine Adventure-Land-Kampfaktion ausgefuehrt.'
+      hinweis: 'Passive Vorpruefung: Noch keine zentrale Gruppenzielanfrage, keine Ressourcensperre, keine Smoke-Fassade und keine Kampfaktion.'
     });
-    letzterVorbereitungsBericht = ergebnis;
+
+    letzteVorpruefung = ergebnis;
     test.setzeErgebnis(ergebnis, pass ? 'pass' : 'fail', pass
-      ? 'Smoke-Vorschau bestanden. one-shot bleibt gesperrt bis zur expliziten Bestaetigung.'
-      : 'Smoke-Vorschau hat die PASS-Kriterien nicht erfuellt.');
-    test.protokolliere('Gruppenziel + Smoke-Vorschau', ergebnis);
+      ? 'Passive Vorpruefung bestanden. Fuer den finalen Klick den Bestaetigungstext eingeben; die zentrale 1,5-s-Anfrage wird erst dann erzeugt.'
+      : 'Passive Vorpruefung hat die Voraussetzungen nicht erfuellt.');
+    test.protokolliere('Passive Gruppenziel-Vorpruefung', ergebnis);
     test.setzeAktionAktiv('one-shot', pass);
     return ergebnis;
   }
 
   async function oneShot() {
     if (!istLeiter) throw new Error(`Nur Testleiter ${cfg.leiterName} darf den one-shot starten.`);
-    if (!letzterVorbereitungsBericht?.pass) throw new Error('Vor dem one-shot ist eine bestandene Gruppenziel-/Smoke-Vorschau erforderlich.');
+    if (!letzteVorpruefung?.pass) {
+      throw new Error('Vor dem one-shot ist eine bestandene passive Gruppenziel-Vorpruefung erforderlich.');
+    }
 
-    const runner = runnerApi();
-    const frisch = runner.vorschau();
-    const frischeVorschau = pruefeSmokeVorschau(frisch);
-    test.protokolliere('Frische Vorschau unmittelbar vor one-shot', frischeVorschau);
+    const runtime = runtimeApi();
+    let zentraleVorbereitungGestartet = false;
 
-    const bericht = await runner.starte(runner.startText());
-    const pass = bericht?.status === 'bestanden' &&
-      bericht?.echteSpielaktionen?.attack === 1 &&
-      bericht?.echteSpielaktionen?.sonstige === 0 &&
-      bericht?.ausfuehrungsBrueckeEntfernt === true &&
-      bericht?.zentralePhase === 'abgeschlossen' &&
-      Array.isArray(bericht?.verbleibendeRessourcen) &&
-      bericht.verbleibendeRessourcen.length === 0 &&
-      bericht?.automatischWiederGesperrt === true;
+    try {
+      const heartbeat = await runtime.sendeLebensnachweis();
+      const senden = Array.isArray(heartbeat.ergebnisse) ? heartbeat.ergebnisse : [];
+      if (senden.length === 0 || senden.some((eintrag) => eintrag?.gesendet !== true)) {
+        throw new Error('Der finale one-shot konnte den lokalen Lebensnachweis nicht an alle Gegenstellen senden.');
+      }
 
-    const runtimeStatus = runtimeApi().status();
-    const ergebnis = Object.freeze({
-      schritt: 'one_shot_live_smoke',
-      pass,
-      charakter: lokaleIdentitaet(),
-      bericht,
-      runtimeNachher: runtimeStatus
-    });
-    test.setzeErgebnis(ergebnis, pass ? 'pass' : 'fail', pass
-      ? 'ONE-SHOT BESTANDEN: exakt ein attack, keine sonstige Aktion, Ressourcen frei.'
-      : 'ONE-SHOT FEHLGESCHLAGEN: Bericht entspricht nicht allen PASS-Kriterien.');
-    test.protokolliere('One-shot Abschlussbericht', ergebnis);
-    test.setzeAktionAktiv('one-shot', false);
-    return ergebnis;
+      const vorbereitung = runtime.bereiteGruppenZielVor(runtime.gruppenzielFreigabeText());
+      zentraleVorbereitungGestartet = true;
+
+      if (vorbereitung.gestarteterAktionsName !== AKTION_GRUPPENZIEL || !vorbereitung.gestarteteAktionsKennung) {
+        throw new Error(`Gruppenziel-Vorbereitung startete keine erlaubte Zielaktion: ${String(vorbereitung.gestarteterAktionsName)}.`);
+      }
+      if (!vorbereitung.gemeinsamesZielKennung) {
+        throw new Error('Gruppenplanung lieferte kein gemeinsames Ziel.');
+      }
+      if (String(vorbereitung.gemeinsamesZielKennung) !== String(letzteVorpruefung.erwartung.zielKennung)) {
+        throw new Error(
+          `Das finale Gruppenziel ${String(vorbereitung.gemeinsamesZielKennung)} weicht von der bestaetigten Vorpruefung ${String(letzteVorpruefung.erwartung.zielKennung)} ab.`
+        );
+      }
+
+      const ziel = findeZiel(vorbereitung.gemeinsamesZielKennung);
+      const erwartung = baueErwartung(vorbereitung.gemeinsamesZielKennung, ziel);
+      if (erwartung.monsterArt !== letzteVorpruefung.erwartung.monsterArt) {
+        throw new Error(
+          `Die finale Monsterart ${erwartung.monsterArt} weicht von der bestaetigten Vorpruefung ${letzteVorpruefung.erwartung.monsterArt} ab.`
+        );
+      }
+
+      runtime.installiereGruppenZielLiveSmoke(erwartung, runtime.liveSmokeInstallationsText());
+
+      const runner = runnerApi();
+      const runnerStatus = runner.vorschau();
+      const finaleProduktionsVorschau = pruefeSmokeVorschau(runnerStatus);
+
+      if (
+        finaleProduktionsVorschau.zielKennung !== erwartung.zielKennung ||
+        finaleProduktionsVorschau.charakterName !== erwartung.charakterName ||
+        finaleProduktionsVorschau.monsterArt !== erwartung.monsterArt
+      ) {
+        throw new Error('Die finale Produktionsvorschau stimmt nicht exakt mit der bestaetigten one-shot Erwartung ueberein.');
+      }
+
+      test.protokolliere('Finale Produktionsvorschau unmittelbar vor one-shot', finaleProduktionsVorschau);
+
+      const bericht = await runner.starte(runner.startText());
+      const pass = bericht?.status === 'bestanden' &&
+        bericht?.echteSpielaktionen?.attack === 1 &&
+        bericht?.echteSpielaktionen?.sonstige === 0 &&
+        bericht?.ausfuehrungsBrueckeEntfernt === true &&
+        bericht?.zentralePhase === 'abgeschlossen' &&
+        Array.isArray(bericht?.verbleibendeRessourcen) &&
+        bericht.verbleibendeRessourcen.length === 0 &&
+        bericht?.automatischWiederGesperrt === true;
+
+      const runtimeStatus = runtime.status();
+      const ergebnis = Object.freeze({
+        schritt: 'one_shot_live_smoke',
+        pass,
+        charakter: lokaleIdentitaet(),
+        bestaetigteVorpruefung: letzteVorpruefung,
+        finalerHeartbeat: heartbeat,
+        vorbereitung,
+        erwartung,
+        finaleProduktionsVorschau,
+        bericht,
+        runtimeNachher: runtimeStatus
+      });
+
+      test.setzeErgebnis(ergebnis, pass ? 'pass' : 'fail', pass
+        ? 'ONE-SHOT BESTANDEN: zentrale Anfrage, Produktionsvorschau und exakt ein attack wurden atomar innerhalb des kurzen Gueltigkeitsfensters ausgefuehrt.'
+        : 'ONE-SHOT FEHLGESCHLAGEN: Bericht entspricht nicht allen PASS-Kriterien.');
+      test.protokolliere('One-shot Abschlussbericht', ergebnis);
+      test.setzeAktionAktiv('one-shot', false);
+      return ergebnis;
+    } catch (fehler) {
+      if (zentraleVorbereitungGestartet || runtime.status().gruppenZielVorbereitungVerbraucht === true) {
+        try {
+          const cleanup = runtime.stoppe();
+          test.protokolliere('Fail-safe Cleanup nach one-shot Fehler', cleanup);
+        } catch (cleanupFehler) {
+          test.protokolliere('Fail-safe Cleanup selbst fehlgeschlagen', cleanupFehler instanceof Error ? cleanupFehler.message : String(cleanupFehler));
+        }
+      }
+      test.setzeAktionAktiv('one-shot', false);
+      throw fehler;
+    }
   }
 
   function stoppen() {
@@ -335,7 +416,7 @@
       ? 'Runtime sauber gestoppt; keine Gruppenanfrage oder Ressourcensperre verbleibt.'
       : 'Runtime gestoppt, aber Abschlussstatus benoetigt Pruefung.');
     test.protokolliere('Stop', ergebnis);
-    for (const kennung of ['empfang-starten', 'heartbeat-senden', 'gruppenziel-vorschau', 'one-shot']) {
+    for (const kennung of ['empfang-starten', 'heartbeat-senden', 'gruppenziel-vorpruefung', 'one-shot']) {
       test.setzeAktionAktiv(kennung, false);
     }
     return ergebnis;
@@ -362,12 +443,12 @@
     ausfuehren: heartbeatSenden
   });
   test.registriereAktion({
-    kennung: 'gruppenziel-vorschau',
-    titel: '4 · Gruppenziel + Vorschau',
+    kennung: 'gruppenziel-vorpruefung',
+    titel: '4 · Passive Vorpruefung',
     art: 'primaer',
     aktiviert: false,
     einmalig: true,
-    ausfuehren: gruppenzielUndVorschau
+    ausfuehren: gruppenzielVorpruefung
   });
   test.registriereAktion({
     kennung: 'one-shot',
@@ -386,7 +467,7 @@
   });
 
   if (!istLeiter) {
-    test.setzeAktionAktiv('gruppenziel-vorschau', false);
+    test.setzeAktionAktiv('gruppenziel-vorpruefung', false);
     test.setzeAktionAktiv('one-shot', false);
   }
 
