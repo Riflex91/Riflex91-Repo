@@ -7,7 +7,8 @@ const path = require('node:path');
 const {
   Alpha33MarkOrbitMerchantDelivery,
   effectActiveOn,
-  FARMER_STATE_ACTION
+  FARMER_STATE_ACTION,
+  GEAR_DELIVERY_INTENT_ACTION
 } = require('../src/reliability/alpha33-mark-orbit-merchant-delivery');
 
 function quietLog() { return { emit() {} }; }
@@ -156,28 +157,204 @@ test('Alpha33 holds Merchant gear delivery until target gear is observed and sti
   assert.equal(hotfix.stats.gearDeliveryStaleGoalHolds, 1);
 });
 
-test('Alpha33 prevents locally useful progression gear from immediately returning as generic Farmer loot', () => {
+test('Alpha33 reserves only the exact active self gear assignment and leaves cross-Farmer duplicates transferable', () => {
+  let activeGoalIds = ['My_Ranger2:amulet:hpamulet:2'];
+  const selfGoal = {
+    id: 'My_Ranger1:amulet:hpamulet:2',
+    character: 'My_Ranger1',
+    sourceCharacter: 'My_Ranger1',
+    sourceIndex: 3,
+    slot: 'amulet',
+    item: 'hpamulet',
+    observedLevel: 2,
+    currentItem: 'hpamulet',
+    currentLevel: 1,
+    projectedUpgradeRequired: false,
+    lastSeenAt: 50000
+  };
+  const crossGoal = {
+    ...selfGoal,
+    id: 'My_Ranger2:amulet:hpamulet:2',
+    character: 'My_Ranger2'
+  };
   const logistics = {
     _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: 1 })
   };
   const runtime = {
     now: () => 50000,
     log: quietLog(),
-    root: { character: { name: 'My_Ranger1', ctype: 'ranger' } },
+    root: {
+      character: {
+        name: 'My_Ranger1',
+        ctype: 'ranger',
+        slots: { amulet: { name: 'hpamulet', level: 1 } }
+      }
+    },
     controlledPartyLogistics: logistics,
-    gearProgression: {
-      list: () => [{
-        id: 'My_Ranger1:amulet:hpamulet:2', character: 'My_Ranger1', item: 'hpamulet',
-        observedLevel: 2, projectedUpgradeRequired: false
-      }]
-    }
+    inventoryLedger: {
+      get: (_name, index) => index === 3
+        ? { reservation: { goalIds: activeGoalIds } }
+        : null
+    },
+    gearProgression: { list: () => [selfGoal, crossGoal] }
   };
   const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
-  const descriptor = logistics._safeLootDescriptor({ name: 'hpamulet', level: 2 });
-  assert.equal(descriptor.ok, false);
-  assert.equal(descriptor.reason, 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED');
+
+  const crossAssigned = logistics._safeLootDescriptor({ index: 3, name: 'hpamulet', level: 2 });
+  assert.equal(crossAssigned.ok, true, 'an item actively assigned to another Farmer must still reach the Merchant');
+
+  activeGoalIds = [selfGoal.id];
+  const exactSelf = logistics._safeLootDescriptor({ index: 3, name: 'hpamulet', level: 2 });
+  assert.equal(exactSelf.ok, false);
+  assert.equal(exactSelf.reason, 'ACTIVE_LOCAL_GEAR_GOAL_RESERVED');
   assert.equal(hotfix.stats.farmerGearLootReservations, 1);
-  assert.equal(logistics._safeLootDescriptor({ name: 'ringsj', level: 0 }).ok, true);
+
+  const duplicate = logistics._safeLootDescriptor({ index: 4, name: 'hpamulet', level: 2 });
+  assert.equal(duplicate.ok, true, 'same-name/level duplicates without the exact reservation must not inherit the hold');
+});
+
+test('Alpha33 sends a targeted Farmer equip intent before Merchant gear delivery', async () => {
+  const calls = [];
+  const goal = {
+    id: 'My_Ranger1:ring1:ringsj:3',
+    character: 'My_Ranger1',
+    slot: 'ring1',
+    item: 'ringsj',
+    observedLevel: 3,
+    currentItem: 'ringsj',
+    currentLevel: 1,
+    projectedUpgradeRequired: false
+  };
+  const candidate = { goal, item: { index: 6, name: 'ringsj', level: 3 } };
+  const merchant = {
+    gearDeliveryCandidate: () => candidate,
+    deliverGearGoal: async () => {
+      calls.push({ kind: 'delivery' });
+      return true;
+    }
+  };
+  const runtime = {
+    now: () => 51000,
+    log: quietLog(),
+    root: { character: { name: 'My_Merchant', ctype: 'merchant' } },
+    characterRegistry: {
+      status: () => ({
+        characters: [{
+          name: 'My_Ranger1',
+          gear: { ring1: { name: 'ringsj', level: 1 } }
+        }]
+      })
+    },
+    controlledPartyLogistics: {
+      _send: async (targetName, action, payload) => {
+        calls.push({ kind: 'intent', targetName, action, payload });
+        return { delivered: true };
+      }
+    },
+    alpha27CombatMerchantConvergence: { merchant }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+
+  const acted = await merchant.deliverGearGoal();
+
+  assert.equal(acted, true);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].kind, 'intent');
+  assert.equal(calls[0].targetName, 'My_Ranger1');
+  assert.equal(calls[0].action, GEAR_DELIVERY_INTENT_ACTION);
+  assert.equal(calls[0].payload.goalId, goal.id);
+  assert.equal(calls[0].payload.slot, 'ring1');
+  assert.equal(calls[0].payload.currentItem, 'ringsj');
+  assert.equal(calls[0].payload.currentLevel, 1);
+  assert.equal(calls[1].kind, 'delivery');
+  assert.equal(hotfix.stats.gearDeliveryIntentsSent, 1);
+});
+
+test('Alpha33 Farmer recognizes Merchant-delivered ready gear and equips it with closed-loop slot verification', async () => {
+  let now = 52000;
+  let baseTicks = 0;
+  const root = {
+    character: {
+      name: 'My_Ranger1',
+      ctype: 'ranger',
+      items: [null, null, null, null, null, null],
+      slots: { ring1: { name: 'ringsj', level: 1 } }
+    }
+  };
+  const snapshot = {
+    character: {
+      name: 'My_Ranger1',
+      ctype: 'ranger',
+      inventory: []
+    }
+  };
+  const logistics = {
+    stats: { messagesReceived: 0, messagesRejected: 0 },
+    receive: () => false,
+    _isMerchant: () => false,
+    _merchantName: () => 'My_Merchant',
+    _validEnvelope: () => true,
+    _safeLootDescriptor: (item) => ({ ok: true, name: item.name, level: item.level || 0, quantity: 1 }),
+    _farmerTick: () => {
+      baseTicks += 1;
+      return { action: 'BASE' };
+    },
+    adapter: {
+      snapshot: () => snapshot,
+      command: (name, args) => {
+        assert.equal(name, 'equip');
+        assert.deepEqual(args, [5, 'ring1']);
+        const [index, slot] = args;
+        const replacement = root.character.items[index];
+        const previous = root.character.slots[slot];
+        root.character.slots[slot] = replacement;
+        root.character.items[index] = previous;
+        return { executed: true, value: Promise.resolve({ success: true }) };
+      }
+    }
+  };
+  const runtime = {
+    now: () => now,
+    log: quietLog(),
+    root,
+    controlledPartyLogistics: logistics
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+
+  const accepted = logistics.receive('My_Merchant', {
+    type: 'aio-v3-party-logistics',
+    protocol: 1,
+    action: GEAR_DELIVERY_INTENT_ACTION,
+    sender: 'My_Merchant',
+    at: now,
+    goalId: 'My_Ranger1:ring1:ringsj:3',
+    targetName: 'My_Ranger1',
+    itemName: 'ringsj',
+    itemLevel: 3,
+    slot: 'ring1',
+    currentItem: 'ringsj',
+    currentLevel: 1,
+    expiresAt: now + 30000
+  });
+  assert.equal(accepted, true);
+  assert.equal(hotfix.stats.gearDeliveryIntentsReceived, 1);
+
+  root.character.items[5] = { name: 'ringsj', level: 3 };
+  snapshot.character.inventory = [{ index: 5, name: 'ringsj', level: 3 }];
+
+  const first = logistics._farmerTick(snapshot);
+  assert.equal(first.reason, 'LOCAL_GEAR_UPGRADE_READY');
+  assert.equal(root.character.slots.ring1.level, 3);
+  assert.equal(hotfix.stats.farmerGearEquipAttempts, 1);
+  assert.equal(baseTicks, 0);
+
+  now += 100;
+  const second = logistics._farmerTick(snapshot);
+  assert.equal(second.reason, 'LOCAL_EQUIP_VERIFIED');
+  assert.equal(hotfix.stats.farmerGearEquipCommitted, 1);
+  assert.equal(hotfix.incomingGearIntents.size, 0);
+  assert.equal(hotfix.pendingFarmerGearEquip, null);
+  assert.equal(baseTicks, 0);
 });
 
 test('Alpha33 trusted Farmer state makes remote gear observable and releases stale Merchant gear goals', () => {
