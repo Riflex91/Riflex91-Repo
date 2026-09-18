@@ -389,14 +389,19 @@ class MerchantProductionPlanner {
       ? input.bankCatalog.snapshot.rows
       : [];
     const bankPool = bank.length ? bank : catalogRows;
+    const demands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    if (!demands.length) return null;
+    const demandByItem = new Map(demands.map((row) => [String(row.item), row]));
     const candidates = [];
 
     for (let index = 0; index < inventory.length; index += 1) {
       const item = inventory[index];
       if (!item || !item.name || item.locked || item.l || item.special || item.p || levelOf(item) !== 0) continue;
       const meta = gameData.items && gameData.items[item.name];
+      const demand = demandByItem.get(String(item.name));
       const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
-      if (!meta || required <= 0) continue;
+      if (!demand || !meta || required <= 0) continue;
       if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
         try { if (input.contentDrift.requiresRevalidation('items', item.name)) continue; } catch (_) { continue; }
       }
@@ -425,8 +430,9 @@ class MerchantProductionPlanner {
     for (const row of bankPool) {
       if (!row || row.level !== 0) continue;
       const meta = gameData.items && gameData.items[row.name];
+      const demand = demandByItem.get(String(row.name));
       const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
-      if (!meta || required <= 0 || row.quantity < required) continue;
+      if (!demand || !meta || required <= 0 || row.quantity < required) continue;
       const local = itemQuantity(inventory, row.name, 0);
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
       if (Math.max(0, local - reserved) >= required) continue;
@@ -455,7 +461,8 @@ class MerchantProductionPlanner {
       blockers: [],
       totalGold: 0,
       goldReserve: this.goldReserve,
-      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V1'
+      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN',
+      exchangeDemand: clone(demandByItem.get(chosen.name) || null)
     };
     return clone(plan);
   }
