@@ -33,6 +33,18 @@ test('V4 Produktionslaufzeit installiert standardmaessig nur eine gesperrte eing
   assert.throws(() => api.bereiteGruppenZielVor(api.gruppenzielFreigabeText()), /standardmaessig gesperrt/);
 });
 
+test('V4 Produktionslaufzeit exportiert read-only Gruppendiagnose ohne Gruppenaktion', () => {
+  const u = spiel();
+  const api = installiereAdventureLandProduktionsLaufzeit(u.code);
+  const diagnose = api.pruefeGruppenZustand();
+  assert.equal(typeof api.pruefeGruppenZustand, 'function');
+  assert.equal(diagnose.koordination.eigenerTeilnehmerKennung, 'ranger-1');
+  assert.deepEqual(diagnose.laufendeGruppenAnfragen, []);
+  assert.deepEqual(diagnose.ressourcenSperren, []);
+  assert.equal(diagnose.liveSmokeInstalliert, false);
+  assert.equal(diagnose.gruppenZielVorbereitungVerbraucht, false);
+});
+
 test('V4 Produktionslaufzeit verlangt bei aktiver Freigabe ein explizites Faehigkeitsprofil', () => {
   const u = spiel();
   assert.throws(
