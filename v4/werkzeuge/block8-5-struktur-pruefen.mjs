@@ -1066,7 +1066,7 @@ for (const pflicht of [
   'telemetrieNachweis: true',
   'recoveryNachweis: true',
   'gesamtauswertungBestanden: true',
-  'kein Adventure-Land-Spielaktionsaufruf',
+  'keinen Adventure-Land-Spielaktionsaufruf',
   'Block 9 bleibt'
 ]) {
   if (!freigabeLiveDokument.includes(pflicht)) {
