@@ -79,10 +79,10 @@ Der Smoke ist nur bestanden, wenn gleichzeitig gilt:
 
 Jede Abweichung ist FAIL.
 
-## Noch fehlende Runtime-Anbindung
+## Produktions-Runtime-Anbindung
 
-Der aktuelle V4-Stand besitzt noch keinen allgemeinen Produktions-Bootstrap, der die TypeScript-Laufzeit in Adventure Land instanziiert und `V4Block8GruppenZielLiveSmoke` installiert.
+Der allgemeine V4-Produktions-Bootstrap ist inzwischen implementiert. Er besitzt eine zentrale `AktionsSteuerung`, berechnet Produktions-Safety aus realem Spielzustand, verwendet den vorhandenen Lebensnachweis-Austausch und startet Gruppenarbeit ausschliesslich ueber die produktive Block-8-Planungskette.
 
-Deshalb ist der Smoke-Harness code- und testseitig vorbereitet, aber noch nicht direkt im laufenden Spiel startbar.
+`V4ProduktionsLaufzeit.installiereGruppenZielLiveSmoke(...)` installiert die Smoke-Fassade auf genau dieser zentralen Steuerung.
 
-Diese Runtime-Anbindung darf die Produktionslogik nicht im Browser nachbauen. Sie muss die vorhandene `AktionsSteuerung`, die Produktions-Safety und `installiereAdventureLandGruppenZielLiveSmoke(...)` verwenden.
+Noch offen ist die **Veroeffentlichung** des reproduzierbar gebauten `dist/aio-v4-runtime.js` an einem kontrollierten HTTPS-Endpunkt und die explizite Konfiguration von `AIO_V4_BOOTSTRAP_CONFIG.runtimeUrl`. Der Loader besitzt bewusst keine fest verdrahtete URL.
