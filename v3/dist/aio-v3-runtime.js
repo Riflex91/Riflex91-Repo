@@ -21720,6 +21720,7 @@ function composeAlpha20_5FarmReadinessRuntime(options = {}) {
     this.farmerResourceTopoffHotfix = installFarmerResourceTopoffHotfix(this, {
       targetRatio: options.farmerResourceTopoffRatio,
       criticalHpRatio: options.farmerResourceCriticalHpRatio,
+      minPotionUtilization: options.farmerResourcePotionMinUtilization,
       cooldownMs: options.farmerResourcePotionCooldownMs
     });
     this.partyFocusFireHotfix = installPartyFocusFireHotfix(this, {
@@ -25379,7 +25380,7 @@ module.exports = { FarmerTerrainNavigationHotfix, installFarmerTerrainNavigation
 "src/farmer/farmer-resource-topoff-hotfix.js": function(require,module,exports){
 'use strict';
 
-const FARMER_RESOURCE_TOPOFF_MODE = 'aggressive-precise-resource-topoff-v1';
+const FARMER_RESOURCE_TOPOFF_MODE = 'efficient-precise-resource-topoff-v2';
 
 function finite(value) {
   const number = Number(value);
@@ -25399,6 +25400,24 @@ function potionCount(inventory, prefix) {
   }, 0);
 }
 
+function restoreAmountFromMetadata(meta, resource) {
+  const gives = meta && meta.gives;
+  if (Array.isArray(gives)) {
+    let amount = null;
+    for (const row of gives) {
+      if (!Array.isArray(row) || String(row[0] || '').toLowerCase() !== resource) continue;
+      const value = finite(row[1]);
+      if (value != null && value > 0) amount = amount == null ? value : Math.max(amount, value);
+    }
+    return amount;
+  }
+  if (gives && typeof gives === 'object') {
+    const value = finite(gives[resource]);
+    return value != null && value > 0 ? value : null;
+  }
+  return null;
+}
+
 class FarmerResourceTopoffHotfix {
   constructor(runtime, options = {}) {
     if (!runtime || !runtime.farmer || !runtime.adapter) throw new Error('runtime farmer and adapter required');
@@ -25411,6 +25430,7 @@ class FarmerResourceTopoffHotfix {
     this.log = runtime.log || null;
     this.targetRatio = Math.max(0.90, Math.min(1, options.targetRatio == null ? 1 : Number(options.targetRatio)));
     this.criticalHpRatio = Math.max(0.40, Math.min(0.90, Number(options.criticalHpRatio) || 0.72));
+    this.minPotionUtilization = Math.max(0.25, Math.min(1, Number(options.minPotionUtilization) || 0.50));
     this.cooldownMs = Math.max(600, Math.min(3000, Number(options.cooldownMs) || 650));
     this.lastAttemptAt = -Infinity;
     this.lastUse = null;
@@ -25422,6 +25442,8 @@ class FarmerResourceTopoffHotfix {
       cooldownWaits: 0,
       alreadyToppedOff: 0,
       potionUnavailable: 0,
+      overhealAvoided: 0,
+      cooldownProbeSkips: 0,
       preciseAdapterUses: 0,
       commandFailures: 0
     };
@@ -25432,6 +25454,7 @@ class FarmerResourceTopoffHotfix {
     this._event('FARMER_RESOURCE_TOPOFF_INSTALLED', 'info', null, {
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
+      minPotionUtilization: this.minPotionUtilization,
       cooldownMs: this.cooldownMs
     });
   }
@@ -25450,6 +25473,29 @@ class FarmerResourceTopoffHotfix {
     const fn = this.root && this.root.can_use || this.parent && this.parent.can_use;
     if (typeof fn !== 'function') return true;
     try { return fn.call(this.root, token) !== false; } catch (_) { return false; }
+  }
+
+  _gameData() {
+    try {
+      if (this.adapter && typeof this.adapter.getGameData === 'function') return this.adapter.getGameData() || {};
+    } catch (_) {}
+    return this.root && this.root.G || this.parent && this.parent.G || {};
+  }
+
+  _potionRestoreAmount(snapshot, action) {
+    const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
+    const resource = action === 'use_hp' ? 'hp' : action === 'use_mp' ? 'mp' : null;
+    if (!resource) return null;
+    const prefix = resource === 'hp' ? 'hpot' : 'mpot';
+    const items = this._gameData().items || {};
+    let amount = null;
+    for (const item of inventory) {
+      if (!item || !String(item.name || '').startsWith(prefix)) continue;
+      const restore = restoreAmountFromMetadata(items[item.name], resource);
+      if (restore == null) continue;
+      amount = amount == null ? restore : Math.max(amount, restore);
+    }
+    return amount;
   }
 
   _installPrecisePotionAdapter() {
@@ -25531,12 +25577,45 @@ class FarmerResourceTopoffHotfix {
       return false;
     }
 
+    const resource = action === 'use_hp' ? 'hp' : 'mp';
+    const current = Math.max(0, finite(character[resource]) || 0);
+    const maximum = Math.max(current, finite(character[`max_${resource}`]) || current);
+    const deficit = Math.max(0, maximum - current);
+    const restoreAmount = this._potionRestoreAmount(snapshot, action);
+    const utilization = restoreAmount != null && restoreAmount > 0
+      ? Math.min(1, deficit / restoreAmount)
+      : null;
+    const criticalHp = action === 'use_hp' && hpRatio <= this.criticalHpRatio;
+
+    if (!criticalHp && utilization != null && utilization < this.minPotionUtilization) {
+      this.stats.overhealAvoided += 1;
+      this.lastUse = {
+        at: now, action, executed: false, shadow: false, reason: 'POTION_OVERHEAL_AVOIDED',
+        hpRatio, mpRatio, supply, resource, deficit, restoreAmount, utilization,
+        minPotionUtilization: this.minPotionUtilization
+      };
+      return false;
+    }
+
+    if (this.adapter && this.adapter.mode === 'active' && !this._canUse(action)) {
+      this.lastAttemptAt = now;
+      this.stats.cooldownWaits += 1;
+      this.stats.cooldownProbeSkips += 1;
+      this.lastUse = {
+        at: now, action, executed: false, shadow: false, reason: 'POTION_COOLDOWN',
+        hpRatio, mpRatio, supply, resource, deficit, restoreAmount, utilization,
+        minPotionUtilization: this.minPotionUtilization
+      };
+      return false;
+    }
+
     this.lastAttemptAt = now;
     const result = adapter && typeof adapter.command === 'function'
       ? adapter.command(action, [])
       : { executed: false, reason: 'ADAPTER_UNAVAILABLE' };
     if (action === 'use_hp') this.stats.hpRequests += 1;
     else this.stats.mpRequests += 1;
+    if (result.reason === 'POTION_COOLDOWN') this.stats.cooldownWaits += 1;
     if (!result.executed && !result.shadow && result.reason !== 'POTION_COOLDOWN') this.stats.commandFailures += 1;
     if (result.executed || result.shadow) this.farmer.lastPotionAt = now;
     this.lastUse = {
@@ -25547,9 +25626,15 @@ class FarmerResourceTopoffHotfix {
       reason: result.reason || null,
       hpRatio,
       mpRatio,
-      supply
+      supply,
+      resource,
+      deficit,
+      restoreAmount,
+      utilization,
+      minPotionUtilization: this.minPotionUtilization
     };
-    this._event('FARMER_RESOURCE_TOPOFF_REQUESTED', result.executed || result.shadow ? 'info' : 'warn', result.reason || null, { ...this.lastUse });
+    const severity = result.executed || result.shadow || result.reason === 'POTION_COOLDOWN' ? 'info' : 'warn';
+    this._event('FARMER_RESOURCE_TOPOFF_REQUESTED', severity, result.reason || null, { ...this.lastUse });
     return !!(result.executed || result.shadow);
   }
 
@@ -25564,13 +25649,16 @@ class FarmerResourceTopoffHotfix {
 
   status() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: FARMER_RESOURCE_TOPOFF_MODE,
       installed: this.installed,
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
+      minPotionUtilization: this.minPotionUtilization,
       cooldownMs: this.cooldownMs,
       precisePotionSelection: true,
+      metadataAwareOverhealProtection: true,
+      criticalHpBypassesUtilizationFloor: true,
       requiresHpAndMpSupplyForTeamCombat: true,
       lastUse: this.lastUse ? { ...this.lastUse } : null,
       lastSupply: this.lastSupply ? { ...this.lastSupply } : null,
