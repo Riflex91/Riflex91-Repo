@@ -347,18 +347,18 @@ class GearProgressionEvaluator {
       return accepted;
     };
 
-    // Better gear is Farmer-first. The target allocation is approximately
-    // 80/20: four Farmer assignments for each Merchant assignment whenever
-    // both sides have useful, non-conflicting upgrades. If only Farmers or
-    // only the Merchant have valid goals, do not leave useful gear idle.
-    while (farmers.length || merchants.length) {
-      const before = currentGoals.length;
-      if (farmers.length) take(farmers, 4);
-      if (merchants.length && (!farmers.length || currentGoals.length - before >= 4)) take(merchants, 1);
-      if (currentGoals.length === before) {
-        if (farmers.length) take(farmers, 1);
-        else if (merchants.length) take(merchants, 1);
-      }
+    // Better gear is Farmer-first. Allocate all non-conflicting Farmer goals
+    // first, then permit at most one Merchant assignment per four Farmer
+    // assignments (80/20). If there are no useful Farmer goals at all, Merchant
+    // upgrades may use otherwise-idle gear.
+    const farmerGoalCount = farmers.length;
+    take(farmers, Number.MAX_SAFE_INTEGER);
+    const farmerAssignments = currentGoals.length;
+    if (farmerGoalCount === 0) {
+      take(merchants, Number.MAX_SAFE_INTEGER);
+    } else {
+      const merchantBudget = Math.floor(farmerAssignments / 4);
+      if (merchantBudget > 0) take(merchants, merchantBudget);
     }
     const reservations = [];
     // Reserve exact physical inventory rows whenever possible. One physical
