@@ -1000,8 +1000,16 @@ for (const pflicht of [
 const freigabeLiveRunner = await readFile(path.join(wurzel, dateien[45]), 'utf8');
 for (const pflicht of [
   'V4Block85FreigabeLiveTest',
+  "VERSION = '1.1.0'",
   "ERWARTETE_RUNTIME_VERSION = '1.1.5'",
+  "ERWARTETE_AENDERUNGS_KENNUNG = 'git:88185523c81687dc16f9647ca5e7568c5e2c228c'",
+  "ERWARTETE_RUNTIME_SHA256 = '95fa67957873cc229e4dc5c0fea93d84affa1be4b0bc66c87034751b49635a0f'",
+  'releases/88185523c81687dc16f9647ca5e7568c5e2c228c/aio-v4-runtime.js',
   'AIO_V4_BLOCK85_FREIGABE_CONFIG',
+  "MODI = Object.freeze(['schatten', 'live'])",
+  'schattenUebergabe',
+  "betriebsart: 'gesperrt_nicht_gestartet'",
+  'V4Bootstrap',
   'basisBedienStatus',
   'erstelleBasisBedienAnfrage',
   'fuehreBasisBedienAnfrage',
@@ -1011,7 +1019,10 @@ for (const pflicht of [
   'ausdruecklichBestaetigt: true',
   'SOAK_MIN_MILLIS = 10 * 60 * 1000',
   'SOAK_SAMPLE_MILLIS = 5_000',
+  'Schattenbetrieb verlangt eine gesperrte Runtime mit aktivFreigegeben=false',
+  'Schattenbetrieb verlangt lebensnachweisSendeVersuche=0',
   'spielAktionAusgefuehrt: false',
+  'spielAktionAusgefuehrt: true',
   'telemetrieNachweis',
   'recoveryNachweis',
   'gesamtauswertungBestanden',
@@ -1048,9 +1059,12 @@ for (const aktionsName of [
 const freigabeLiveTests = await readFile(path.join(wurzel, dateien[46]), 'utf8');
 for (const pflicht of [
   'Live-Runner akzeptiert nur Runtime 1.1.5',
-  'Live-Runner erzeugt Schattennachweis nur ueber read-only Diagnose',
+  'Schattennachweis verlangt gesperrte nicht gestartete Runtime mit null Heartbeat-Versuchen',
+  'Schattennachweis verweigert aktive oder bereits gestartete Runtime',
+  'Schattennachweis verweigert jeden vorherigen Heartbeat-Sendeversuch',
+  'Schattennachweis ist an exakte immutable Runtime-URL und SHA-256 gebunden',
+  'Live-Modus verlangt eine gueltige Schattenuebergabe aus separater Sitzung',
   'kontrollierter Live-Nachweis fuehrt genau Pause und bestaetigtes Fortsetzen aus',
-  'kontrollierter Live-Nachweis ist ohne Schattenstufe blockiert',
   'Live-Fehler nach Pause setzt die Runtime nicht automatisch fort',
   'Soak erzeugt Telemetrie- und Recovery-Nachweis erst nach Mindestdauer',
   'Soak schlaegt bei unerwarteter Laufzeit-Generation fehl',
@@ -1066,17 +1080,25 @@ const freigabeLiveDokument = await readFile(path.join(wurzel, dateien[47]), 'utf
 for (const pflicht of [
   'Runner implementiert und offline testbar',
   'Runtime 1.1.5',
+  '1.1.0',
   'AIO_V4_BLOCK85_FREIGABE_CONFIG',
+  "modus: 'schatten'",
+  "modus: 'live'",
+  'schattenUebergabe',
+  'gesperrte Runtime mit aktivFreigegeben=false',
+  'lebensnachweisSendeVersuche = 0',
+  'separaten aktiven Sitzung',
   'Schattennachweis',
   'Kontrolliert live',
   'Fail-safe bei Fehler nach Pause',
   'Soak',
   '600000 ms = 10 Minuten',
   'spielAktionAusgefuehrt: false',
+  'spielAktionAusgefuehrt: true',
   'telemetrieNachweis: true',
   'recoveryNachweis: true',
   'gesamtauswertungBestanden: true',
-  'keinen Adventure-Land-Spielaktionsaufruf',
+  'keinen direkten Adventure-Land-Spielaktionsaufruf',
   'Block 9 bleibt'
 ]) {
   if (!freigabeLiveDokument.includes(pflicht)) {
@@ -1407,4 +1429,4 @@ if (!block85PlanFreigabe.includes('Die Freigabestufe **Offline** ist jetzt ebenf
   throw new Error('Block-8.5-Plan markiert Offline noch nicht als bestanden.');
 }
 
-console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabestufe sind fuer git:88185523 eindeutig bestanden; die reale Auswertung fordert als naechstes Schattenbetrieb, kontrolliert live und Soak bleiben blockiert und Block 9 bleibt gesperrt.');
+console.log('Block 8.5.1 bis 8.5.9 geprueft: Candidate-Deployment/HTTPS und Offline-Freigabestufe sind fuer git:88185523 eindeutig bestanden; der naechste Schattenlauf ist strikt gesperrt/nicht gestartet und muss 0 Heartbeat-/CM-Sendeversuche beweisen; Live/Soak bleiben getrennt und Block 9 gesperrt.');
