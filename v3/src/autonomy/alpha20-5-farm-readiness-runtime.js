@@ -89,6 +89,7 @@ function composeAlpha20_5FarmReadinessRuntime(options = {}) {
     this.farmerResourceTopoffHotfix = installFarmerResourceTopoffHotfix(this, {
       targetRatio: options.farmerResourceTopoffRatio,
       criticalHpRatio: options.farmerResourceCriticalHpRatio,
+      minPotionUtilization: options.farmerResourcePotionMinUtilization,
       cooldownMs: options.farmerResourcePotionCooldownMs
     });
     this.partyFocusFireHotfix = installPartyFocusFireHotfix(this, {
