@@ -114,7 +114,7 @@ Ein unerwarteter Adventure-Land-Aufruf oder eine fehlende Wiedersperrung macht d
 
 ### 4. 10-Minuten-Gruppentest
 
-Der 10-Minuten-Test beginnt erst nach bestandenem kontrollierten Live-Smoke.
+Der 10-Minuten-Test beginnt erst nach bestandenem kontrollierten Live-Smoke. Die GUI, die read-only Produktionsdiagnose und das source-locked Copy/Paste-Paket sind implementiert; der echte Lauf steht noch aus. Details stehen in `BLOCK-8-10-MINUTEN-GRUPPENTEST.md`.
 
 Mindestens zu beobachten sind:
 
