@@ -11143,6 +11143,7 @@ class GearProgressionEvaluator {
     this.maxProbeLevel = Math.max(1, Math.min(20, Math.floor(finite(options.maxProbeLevel, 12))));
     this.minImprovementRatio = Math.max(0.01, Math.min(1, finite(options.minImprovementRatio, 0.05)));
     this.goals = new Map();
+    this.futureFarmerProtection = new Map();
     this.loaded = false;
     this.lastEvaluatedAt = null;
     this.lastEvaluation = null;
@@ -11183,13 +11184,22 @@ class GearProgressionEvaluator {
 
   _firstMeaningful(meta, observedLevel, currentScore, ctype) {
     const start = Math.max(0, observedLevel);
-    const max = meta && meta.upgrade ? Math.max(start, this.maxProbeLevel) : start;
+    const max = meta && (meta.upgrade || meta.compound) ? Math.max(start, this.maxProbeLevel) : start;
     const threshold = currentScore.total <= 0 ? 0.001 : currentScore.total * (1 + this.minImprovementRatio);
     for (let level = start; level <= max; level += 1) {
       const score = scoreItem(meta, level, ctype);
       if (score.total > threshold) return { level, score };
     }
     return null;
+  }
+
+  futureProtectionFor(character, index, name, level) {
+    const exactKey = `${String(character || '')}:${Number(index)}`;
+    const row = this.futureFarmerProtection.get(exactKey);
+    if (!row) return null;
+    if (String(row.item || '') !== String(name || '')) return null;
+    if (Math.max(0, Math.floor(finite(row.observedLevel, 0))) !== Math.max(0, Math.floor(finite(level, 0)))) return null;
+    return clone(row);
   }
 
   _goalId(character, slot, item, targetLevel) {
@@ -11222,6 +11232,7 @@ class GearProgressionEvaluator {
     }
     this.stats.candidates += candidates.length;
     const seenGoalIds = new Set();
+    this.futureFarmerProtection.clear();
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
@@ -11236,6 +11247,29 @@ class GearProgressionEvaluator {
           const improvement = meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.score.survival - current.score.survival;
           const row = { slot, current, meaningful, improvement, survivalImprovement };
+          if (String(character.ctype || '').toLowerCase() !== 'merchant'
+            && meaningful.level > levelOf(candidate.item)
+            && Number.isInteger(Number(candidate.item.index))) {
+            const protectionKey = `${candidate.sourceCharacter}:${Number(candidate.item.index)}`;
+            const existingProtection = this.futureFarmerProtection.get(protectionKey);
+            const protection = {
+              sourceCharacter: candidate.sourceCharacter,
+              sourceIndex: Number(candidate.item.index),
+              item: candidate.item.name,
+              observedLevel: levelOf(candidate.item),
+              targetLevel: meaningful.level,
+              targetCharacter: character.name,
+              targetSlot: slot,
+              improvement,
+              survivalImprovement,
+              reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
+            };
+            if (!existingProtection
+              || protection.targetLevel < existingProtection.targetLevel
+              || protection.improvement > existingProtection.improvement) {
+              this.futureFarmerProtection.set(protectionKey, protection);
+            }
+          }
           if (!best || row.improvement > best.improvement || (row.improvement === best.improvement && row.survivalImprovement > best.survivalImprovement)) best = row;
         }
         if (!best) continue;
@@ -11344,6 +11378,7 @@ class GearProgressionEvaluator {
       farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
       farmerTargetShare: 0.8,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
       persistedGoals: goals.length,
       blockedUnknownContent
     };
@@ -11412,6 +11447,8 @@ class GearProgressionEvaluator {
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
       goals: this.goals.size,
+      futureFarmerProtectedItems: this.futureFarmerProtection.size,
+      futureProtectionMode: 'UPGRADE_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
       lastEvaluatedAt: this.lastEvaluatedAt,
       lastEvaluation: clone(this.lastEvaluation),
       stats: clone(this.stats)
@@ -12881,6 +12918,25 @@ class ControlledMerchantExecutor {
       const lifecycleReasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
       const lifecycleProcessedSale = !!(tx.metadata && tx.metadata.lifecycleProcessedSale === true)
         && lifecycleReasons.includes('AUTONOMOUS_PROCESSED_GEAR_SELL');
+      if (lifecycleProcessedSale) {
+        const gear = this.runtime && this.runtime.gearProgression;
+        let futureProtection = null;
+        try {
+          futureProtection = gear && typeof gear.futureProtectionFor === 'function'
+            ? gear.futureProtectionFor(character.name, txIndex, tx.item, tx.level)
+            : null;
+        } catch (_) {
+          futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+        }
+        if (futureProtection) {
+          this.stats.sellSafetyRejected += 1;
+          return {
+            ok: false,
+            reason: 'FUTURE_FARMER_GEAR_PROGRESSION_PROTECTED',
+            futureFarmerProtection: futureProtection
+          };
+        }
+      }
 
       // Ordinary SELL remains plain-stackable-material-only. The only exception
       // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then
@@ -32711,9 +32767,9 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     const ledger = this.runtime.inventoryLedger;
     if (!ledger || ledger.__alpha27AutonomousPlannerPatched || typeof ledger._baseDisposition !== 'function') return false;
     const baseDisposition = ledger._baseDisposition.bind(ledger);
-    ledger._baseDisposition = (row, gameData, contentDrift, counts) => {
+    ledger._baseDisposition = (row, gameData, contentDrift, counts, reservationRemaining) => {
       const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
-      const base = baseDisposition(row, gameData, contentDrift, safeCounts);
+      const base = baseDisposition(row, gameData, contentDrift, safeCounts, reservationRemaining);
       if (!base || base.disposition !== 'UNDECIDED') return base;
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
@@ -32731,6 +32787,44 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const same = safeCounts.get(`${name}:${level}`) || 0;
       const grade = gradeForLevel(meta, level);
       const underKeepValue = value != null && value < this.options.keepValue;
+
+      const gearProgression = this.runtime.gearProgression;
+      let futureFarmerProtection = null;
+      try {
+        futureFarmerProtection = gearProgression && typeof gearProgression.futureProtectionFor === 'function'
+          ? gearProgression.futureProtectionFor(row.character, row.index, name, level)
+          : null;
+      } catch (_) {
+        futureFarmerProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+      }
+
+      if (futureFarmerProtection) {
+        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+          return same >= 3
+            ? {
+                disposition: 'RESERVE_COMPOUND',
+                reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_COMPOUND_SET_AVAILABLE'],
+                futureFarmerProtection: clone(futureFarmerProtection)
+              }
+            : {
+                disposition: 'KEEP',
+                reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_COMPOUND_ACCUMULATION'],
+                futureFarmerProtection: clone(futureFarmerProtection)
+              };
+        }
+        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
+            futureFarmerProtection: clone(futureFarmerProtection)
+          };
+        }
+        return {
+          disposition: 'KEEP',
+          reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'FUTURE_GEAR_SELL_BLOCKED'],
+          futureFarmerProtection: clone(futureFarmerProtection)
+        };
+      }
 
       // Progression lifecycle comes before generic BANK fallback. Adventure Land
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
@@ -32812,6 +32906,8 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         progressionLifecycleBeforeBank: true,
         compoundMetadataObjectsSupported: true,
         processedGearSaleRequiresLifecycleAuthorization: true,
+        futureFarmerGearValuePreemptsProcessedSale: true,
+        futureGearProbeIncludesCompoundAndUpgrade: true,
         keepValue: this.options.keepValue
       });
     }
@@ -33719,7 +33815,15 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         && levelOf({ level: goal.observedLevel }) === levelOf(row)
         && !(goal.id != null && this.completedGearGoalClaims.has(String(goal.id)))
       ));
-      return !activeFarmerGoal;
+      let futureProtection = null;
+      try {
+        futureProtection = gear && typeof gear.futureProtectionFor === 'function'
+          ? gear.futureProtectionFor(c.name, row.index, row.name, levelOf(row))
+          : null;
+      } catch (_) {
+        futureProtection = { reason: 'FUTURE_GEAR_PROTECTION_LOOKUP_FAILED' };
+      }
+      return !activeFarmerGoal && !futureProtection;
     });
 
     if (sell) {
