@@ -133,9 +133,16 @@ Danach zuerst die Block-7-Sicherheitsquelle und anschliessend die neue Lebensnac
 
 ## Reconnect-/Stale-Verhalten
 
-Wird ein beteiligter Charakter oder dessen Werkzeug gestoppt, steigt das Alter des letzten empfangenen Lebensnachweises. Die Gruppenkoordination stuft Meldungen oberhalb von `lebensnachweisMaximalAlterMillisekunden` als `veraltet` ein und verteilt Aufgaben auf verbleibende aktive Teilnehmer neu.
+Ab Produktionsruntime **1.1.1** trennt der Adapter zwei Zeitbegriffe bewusst:
 
-Nach Neustart liefert der Charakter wieder Meldungen mit neuerem `gesendetAm` und hoeherer `laufendeNummer`; die Koordination kann ihn dadurch wieder aufnehmen.
+- `gesendetAm` plus `laufendeNummer` bleiben die unveraenderte Senderreihenfolge und werden fuer Replay-/Rueckwaertspruefung verwendet.
+- Die produktive Freshness eines **Remote**-Teilnehmers wird ab dem lokal vertrauenswuerdig erfassten `empfangenAm` bewertet.
+
+Damit werden Server-/Netzwerklatenz und unterschiedliche CODE-Kontext-Uhren nicht mehr faelschlich von der 5-Sekunden-Gruppen-TTL abgezogen. Der reine deterministische Koordinationskern bleibt unveraendert; der Produktionsadapter uebergibt ihm fuer die Freshness eine lokale Empfangsreferenz.
+
+Wird ein beteiligter Charakter oder dessen Werkzeug gestoppt, steigt das Alter seit dem letzten lokalen Empfang. Die Gruppenkoordination stuft den Teilnehmer oberhalb von `lebensnachweisMaximalAlterMillisekunden` als `veraltet` ein und verteilt Aufgaben auf verbleibende aktive Teilnehmer neu.
+
+Nach Neustart liefert der Charakter wieder eine neuere, replay-sichere Meldung; der lokale Empfang macht ihn wieder frisch und die Koordination kann ihn erneut aufnehmen.
 
 ## Sicherheitsgrenze
 
