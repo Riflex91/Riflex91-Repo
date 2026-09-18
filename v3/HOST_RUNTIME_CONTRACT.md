@@ -95,6 +95,10 @@ No credentials belong in the gameplay bundle or persisted alert payload. Email, 
 
 `AlertRelay` is provider-agnostic. Transports are injected functions with explicit severity routing. Delivery uses bounded exponential backoff and a bounded attempt count. The relay retains failed/uncompleted records and is capacity-bounded; it may prune completed records to make room, but it must not discard an undelivered record merely to claim a new bot alert.
 
+Step 12's Windows production configuration injects exactly two required CRITICAL HTTPS transports whose hostnames must differ. A CRITICAL spool record is complete only after both required transports have accepted it; partial delivery remains durable and retryable. The explicit route canary exercises both routes independently but has neither operator acknowledgement nor gameplay authority.
+
+Windows transport URL/header secrets are DPAPI-protected for `CurrentUser`, decrypted only into the Node host process and omitted from enumerable configuration/status surfaces. Chromium runs with an allowlisted Windows environment and does not inherit host-only API/alert/provider credentials.
+
 Provider success means only that the host transport accepted the alert. It does not change bot state and does not acknowledge the incident on behalf of the operator.
 
 ## Production host harness boundary
@@ -110,7 +114,7 @@ Alpha.20.5 now includes a concrete **production host harness foundation** under 
 - `BrowserBotClient` for the four-method, origin-locked browser contract bridge;
 - `ProductionHostHarness` for wiring those pieces together without adding gameplay authority.
 
-`ProductionHostHarness` may receive a prebuilt `botClient`, an injected validated Page/Frame-like context, or the Step-9 loopback CDP session driver. Step 10 adds a Windows per-user Task Scheduler supervisor around this harness, including persisted crash-loop budgeting and graceful host shutdown. Step 11 adds dedicated-profile and bounded runtime-readiness bootstrap for that Windows path. It remains intentionally **not a credential automation system**: username/password/2FA entry, production secret-manager integration, provider accounts and non-Windows service orchestration remain separate.
+`ProductionHostHarness` may receive a prebuilt `botClient`, an injected validated Page/Frame-like context, or the Step-9 loopback CDP session driver. Step 10 adds a Windows per-user Task Scheduler supervisor around this harness, including persisted crash-loop budgeting and graceful host shutdown. Step 11 adds dedicated-profile and bounded runtime-readiness bootstrap. Step 12 adds DPAPI-protected dual-route CRITICAL delivery and host/browser environment isolation. It remains intentionally **not a gameplay/login credential automation system**: username/password/2FA entry, production secret-manager integration, provider accounts and non-Windows service orchestration remain separate.
 
 The concrete deployment and operating procedure is documented in `PRODUCTION_HOST_HARNESS.md`.
 
@@ -124,7 +128,7 @@ Before the unattended overnight gate, the deployed stack must prove all of the f
 - bounded real browser/process restart and restart-circuit behavior work under the Windows Task Scheduler + persistent host start circuit;
 - after restart, a fresh run is observed and deterministic bot reconciliation completes before the host considers recovery clean;
 - durable alert handoff survives host/browser restarts and corrupt/unavailable persistence fails closed;
-- at least one real critical alert delivery route is demonstrated, with the required fallback route configured independently;
+- both independently hosted CRITICAL alert routes are canary-tested and a real durable alert is observed on both routes;
 - credentials are host-side only and are absent from the browser bundle, alert payloads and read-only API surfaces;
 - stable Merchant + three-combat-character liveness is maintained through the reliability observation;
 - no blind transaction, travel or party resume occurs after restart;

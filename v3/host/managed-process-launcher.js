@@ -21,7 +21,9 @@ class ManagedProcessLauncher {
     this.command = bounded(options.command || '', 4096);
     this.args = Array.isArray(options.args) ? options.args.slice(0, 256).map((value) => bounded(value, 4096)) : [];
     this.cwd = options.cwd ? bounded(options.cwd, 4096) : undefined;
-    this.env = options.env && typeof options.env === 'object' ? { ...process.env, ...options.env } : { ...process.env };
+    this.inheritEnv = options.inheritEnv !== false;
+    const inheritedEnv = this.inheritEnv ? process.env : {};
+    this.env = options.env && typeof options.env === 'object' ? { ...inheritedEnv, ...options.env } : { ...inheritedEnv };
     this.stopGraceMs = Math.max(1000, Math.min(60000, finite(options.stopGraceMs, 10000)));
     this.outputCapacity = Math.max(10, Math.min(1000, Math.floor(finite(options.outputCapacity, 100))));
     this.child = null;
@@ -152,6 +154,8 @@ class ManagedProcessLauncher {
       lastError: clone(this.lastError),
       restartInFlight: !!this.restartInFlight,
       shell: false,
+      inheritsProcessEnv: this.inheritEnv,
+      environmentKeys: Object.keys(this.env).length,
       gameplayActionAuthority: false,
       rawGameplayActionAuthority: false,
       stats: { ...this.stats }

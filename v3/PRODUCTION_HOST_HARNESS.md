@@ -79,11 +79,15 @@ If existing durable state is corrupt, unreadable or oversized, ingestion fails c
 
 ## Alert transports
 
-`createWebhookAlertTransport` provides the first transport adapter foundation. Production destinations must use HTTPS. Provider tokens, email credentials, push keys and similar secrets belong only in the external host environment or secret manager.
+`createWebhookAlertTransport` remains the provider-agnostic HTTPS transport foundation. Step 12 adds the Windows production binding: two required CRITICAL routes with different hostnames, loaded from a DPAPI `CurrentUser` secret bundle rather than `host.json`.
 
-Transport acceptance does not acknowledge an incident on behalf of the operator. Alert acknowledgement remains a separate explicit bot/operator action.
+Both routes must accept a CRITICAL record before `AlertRelay` marks that durable spool record complete. If only one route succeeds, the record remains pending and the failed route follows the existing bounded retry/backoff policy.
 
-At least one real CRITICAL delivery route must be canary-tested before the unattended overnight gate. If the reliability policy requires a fallback channel, the fallback must be independently configured and tested rather than sharing the same single point of failure.
+The Windows secret schema allows only bounded HTTP header names/values and rejects transport-control headers such as `Host`, `Cookie`, `Content-Length`, `Connection` and `Transfer-Encoding`. URLs must be HTTPS and may not contain URL userinfo.
+
+`ops/windows-host/test-alerts.ps1` is the explicit production canary. It decrypts the DPAPI bundle for one Node process, sends `HOST_ALERT_ROUTE_CANARY` to each route independently, prints only route names/results, and clears the parent environment value afterward. Canary delivery does not acknowledge any incident and adds no gameplay authority.
+
+Host-only environment values are separated from Chromium: the managed browser receives a small allowlisted Windows environment and does not inherit the Node host's API token, alert secret bundle, diagnostics password or unrelated provider secrets.
 
 ## Restart authority
 
@@ -142,7 +146,7 @@ A production canary should follow this order:
 3. Configure the dedicated Windows browser profile + loopback CDP bootstrap and verify the bounded startup window reaches a real `AIO_V3.operations` context without consuming repeated service starts.
 4. Verify all four narrow calls against the real page while restart authority remains disabled.
 5. Configure the loopback API with a strong host-only bearer token.
-6. Configure alert transports from host secrets; keep restart authority disabled.
+6. Configure both DPAPI-protected CRITICAL routes, run the independent route canary successfully, and keep restart authority disabled.
 7. Start `ProductionHostHarness` and verify a fresh valid heartbeat plus stable polling.
 8. Verify persist-before-claim alert handoff with a non-destructive test alert and restart the browser to prove spool survival.
 9. Verify bot-owned `reconciliationStatus()` stays observation-only and that no blind resume occurs.
@@ -163,7 +167,7 @@ The following remain separate work and must not be inferred from the existence o
 - automatic Adventure Land credential entry, password/2FA handling or login bypass when the persistent Windows browser profile is no longer authenticated;
 - non-Windows service definitions such as systemd/container orchestration;
 - production secret-manager integration;
-- provider-specific email/WhatsApp/push account setup and fallback routing;
+- provider-specific email/WhatsApp/push account provisioning beyond the generic dual-HTTPS alert routes;
 - remote dashboard exposure/authentication;
 - automatic updater/install/rollback;
 - real unattended production certification.
@@ -179,7 +183,7 @@ Do not call the stack overnight-ready until a real deployment has demonstrated:
 - exactly bounded process restarts, with restart circuit behavior verified;
 - fresh-run reconciliation after restart and zero blind resume;
 - durable alert survival through browser/host interruption;
-- a real critical alert reaches the intended operator route;
+- a real CRITICAL alert reaches both independently hosted production routes;
 - no open critical circuits or unresolved transactions/recoveries at gate start;
 - no unexpected raw gameplay action during the reliability observation.
 

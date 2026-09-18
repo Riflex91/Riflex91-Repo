@@ -16,8 +16,16 @@ $root = Join-Path $env:LOCALAPPDATA 'AioBot\host-service'
 $profile = Join-Path $env:LOCALAPPDATA 'AioBot\browser-profile'
 $configPath = Join-Path $root 'host.json'
 $tokenPath = Join-Path $root 'host-api-token.dpapi'
+$alertSecretsPath = Join-Path $root 'alert-secrets.dpapi'
 $alertPath = Join-Path $root 'alerts.json'
 $statePath = Join-Path $root 'service-state.json'
+$existingCriticalAlertingEnabled = $false
+if (Test-Path $configPath) {
+  try {
+    $existingConfig = Get-Content -Raw $configPath | ConvertFrom-Json
+    $existingCriticalAlertingEnabled = $existingConfig.criticalAlertingEnabled -eq $true
+  } catch { }
+}
 New-Item -ItemType Directory -Force -Path $root,$profile | Out-Null
 
 function Find-Browser([string]$preferred) {
@@ -74,6 +82,8 @@ $config = [ordered]@{
   alertStatePath = $alertPath
   apiPort = 8791
   apiTokenEnvironmentVariable = 'AIO_V3_HOST_API_TOKEN'
+  criticalAlertingEnabled = $existingCriticalAlertingEnabled
+  alertSecretsEnvironmentVariable = 'AIO_V3_ALERT_SECRETS_JSON'
   tickIntervalMs = 5000
   browserSessionStartupWaitMs = 300000
   browserSessionStartupPollMs = 2000
@@ -86,7 +96,7 @@ $config = [ordered]@{
 $config | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 $configPath
 
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runner`" -RepoPath `"$repo`" -ConfigPath `"$configPath`" -TokenPath `"$tokenPath`""
+$arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runner`" -RepoPath `"$repo`" -ConfigPath `"$configPath`" -TokenPath `"$tokenPath`" -AlertSecretsPath `"$alertSecretsPath`""
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited

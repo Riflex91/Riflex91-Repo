@@ -3,7 +3,7 @@
   "keyword": "architektur-run",
   "playbook": "v3/docs/ARCHITECTURE_RUN.md",
   "state_source": "main",
-  "next_step": 11,
+  "next_step": 12,
   "global_rules": {
     "strict_step_order": true,
     "resume_open_step_pr_first": true,
@@ -192,9 +192,9 @@
       "name": "windows-session-bootstrap",
       "title": "Windows Adventure Land session bootstrap and profile readiness",
       "branch": "architecture/11-windows-session-bootstrap",
-      "status": "in_progress",
+      "status": "completed",
       "pr": 272,
-      "merge_commit": null,
+      "merge_commit": "db1dd2c71f9b4329eb352ddfa0ab9bf91e4b2083",
       "required_outcomes": [
         "bounded browser/runtime startup grace before service restart",
         "persistent dedicated Windows browser profile validation",
@@ -204,6 +204,25 @@
         "no restart-budget burn while runtime is still booting",
         "bootstrap timeout and delayed-readiness tests",
         "no gameplay authority added"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "production-alerting-windows-secrets",
+      "title": "Production CRITICAL alerting and Windows host secrets",
+      "branch": "architecture/12-production-alerting-windows-secrets",
+      "status": "in_progress",
+      "pr": 273,
+      "merge_commit": null,
+      "required_outcomes": [
+        "two independently configured CRITICAL delivery routes",
+        "Windows DPAPI-protected alert transport secrets",
+        "no alert credentials in host.json, logs, API status or bot bundle",
+        "fail-closed validation for missing or non-independent production routes",
+        "durable alert spool survives browser and host restarts",
+        "explicit independent route canary",
+        "bounded retry/backoff remains durable",
+        "no gameplay or operator-ack authority added"
       ]
     }
   ]
