@@ -14,8 +14,8 @@ const {
 // The success event must originate from the newly loaded runtime so the telemetry exporter cannot miss it during the handoff.
 function updaterFixture(overrides = {}) {
   return {
-    localVersion: '3.0.0-alpha.20.88',
-    pendingVersion: '3.0.0-alpha.20.88',
+    localVersion: '3.0.0-alpha.20.89',
+    pendingVersion: '3.0.0-alpha.20.89',
     lastApply: null,
     async _reloadSavedCode() { return true; },
     _event() {},
@@ -30,8 +30,8 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
   const firstUpdater = updaterFixture({
     lastApply: {
       at: 1_000_000,
-      from: '3.0.0-alpha.20.88',
-      to: '3.0.0-alpha.20.88',
+      from: '3.0.0-alpha.20.89',
+      to: '3.0.0-alpha.20.89',
       slot: 7,
       bytes: 1_234_567,
       saved: true,
@@ -48,15 +48,15 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
 
   assert.equal(firstUpdater.lastApply.restartReason, PLANNED_AUTO_UPDATE_REASON);
   assert.equal(markerSeenDuringReload.restartReason, PLANNED_AUTO_UPDATE_REASON);
-  assert.equal(markerSeenDuringReload.from, '3.0.0-alpha.20.88');
-  assert.equal(markerSeenDuringReload.to, '3.0.0-alpha.20.88');
+  assert.equal(markerSeenDuringReload.from, '3.0.0-alpha.20.89');
+  assert.equal(markerSeenDuringReload.to, '3.0.0-alpha.20.89');
   assert.equal(markerSeenDuringReload.slot, 7);
   assert.equal(root[PLANNED_AUTO_UPDATE_MARKER].restartReason, PLANNED_AUTO_UPDATE_REASON);
 
   const events = [];
   const secondRuntime = { root, now: () => 1_002_000, log: { emit() {} } };
   const secondUpdater = updaterFixture({
-    localVersion: '3.0.0-alpha.20.88',
+    localVersion: '3.0.0-alpha.20.89',
     pendingVersion: null,
     _event(event, severity, reason, data) { events.push({ event, severity, reason, data }); }
   });
@@ -65,8 +65,8 @@ test('planned auto-update reload is handed off and emitted by the newly loaded r
   assert.equal(root[PLANNED_AUTO_UPDATE_MARKER], undefined);
   assert.equal(secondUpdater.lastApply.reloaded, true);
   assert.equal(secondUpdater.lastApply.restartReason, PLANNED_AUTO_UPDATE_REASON);
-  assert.equal(secondUpdater.lastApply.from, '3.0.0-alpha.20.88');
-  assert.equal(secondUpdater.lastApply.to, '3.0.0-alpha.20.88');
+  assert.equal(secondUpdater.lastApply.from, '3.0.0-alpha.20.89');
+  assert.equal(secondUpdater.lastApply.to, '3.0.0-alpha.20.89');
   assert.equal(secondUpdater.lastApply.slot, 7);
   assert.equal(events.length, 1);
   assert.equal(events[0].event, 'AUTO_UPDATE_APPLIED');
@@ -82,8 +82,8 @@ test('failed reload clears the planned restart handoff so it cannot masquerade a
   const updater = updaterFixture({
     lastApply: {
       at: 2_000_000,
-      from: '3.0.0-alpha.20.88',
-      to: '3.0.0-alpha.20.88',
+      from: '3.0.0-alpha.20.89',
+      to: '3.0.0-alpha.20.89',
       slot: 3,
       bytes: 500_000,
       saved: true,
@@ -104,13 +104,13 @@ test('stale planned restart markers are discarded without emitting AUTO_UPDATE_A
   writePlannedAutoUpdateMarker(runtime, {
     at: now - PLANNED_AUTO_UPDATE_TTL_MS - 1,
     from: '3.0.0-alpha.20.22',
-    to: '3.0.0-alpha.20.88',
+    to: '3.0.0-alpha.20.89',
     slot: 4,
     restartReason: PLANNED_AUTO_UPDATE_REASON
   });
   const events = [];
   const updater = updaterFixture({
-    localVersion: '3.0.0-alpha.20.88',
+    localVersion: '3.0.0-alpha.20.89',
     _event(event, severity, reason, data) { events.push({ event, severity, reason, data }); }
   });
 
