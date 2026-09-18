@@ -46,7 +46,7 @@ function install(runtime) {
 }
 
 test('merchant surplus never blocks the current farmer demand', () => {
-  const items = [{ name: 'hpot0', q: 5415 }, { name: 'mpot0', q: 100 }];
+  const items = [{ name: 'hpot0', q: 5415 }, { name: 'mpot0', q: 1500 }];
   const root = rootForMerchant(items);
   const planner = new MerchantServicePlanner({ now: () => 100000, merchantPotionReserve: 80 });
   const runtime = runtimeFor(root, planner);
@@ -59,7 +59,7 @@ test('merchant surplus never blocks the current farmer demand', () => {
   });
 
   assert.equal(plan.kind, MerchantServicePlanKind.SERVICE_DELIVERY);
-  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 4301]]);
+  assert.deepEqual(plan.deliveries.map((row) => [row.itemName, row.quantity]), [['hpot0', 4301], ['mpot0', 1500]]);
   assert.equal(plan.missingStock, undefined);
   assert.equal(plan.metadata.merchantExcessBlocksDelivery, false);
   assert.equal(plan.metadata.overdeliveryAllowed, false);

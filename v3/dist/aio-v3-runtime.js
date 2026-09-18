@@ -20183,12 +20183,40 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
     };
   }
 
+  _criticalSupplyDirectFallbackAllowed(plan) {
+    const metadata = plan && plan.metadata || {};
+    const need = plan && plan.need || {};
+    return !!(
+      metadata.p0PotionPolicy4500 === true
+      && plan && plan.target && plan.target.name
+      && (
+        metadata.p0PotionBatch === true
+        || (['hp', 'mp'].includes(String(need.family || '')) && Number(need.priority || 0) >= 95)
+      )
+    );
+  }
+
   async _executeMerchantTravel(plan) {
     if (!this.merchantServiceAllowTravel) return { executed: false, reason: 'MERCHANT_SERVICE_TRAVEL_AUTHORITY_DISABLED' };
     if (!this.controlledTravel || !this.controlledTravel.status().enabled) return { executed: false, reason: 'CONTROLLED_TRAVEL_NOT_ENABLED' };
     if (!plan.target || !plan.target.map || finite(plan.target.x) == null || finite(plan.target.y) == null) return { executed: false, reason: 'SERVICE_TARGET_POSITION_UNAVAILABLE' };
     if (this.lastMerchantRouteDecision && this.lastMerchantRouteDecision.route === 'TOWN') {
-      return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
+      if (!this._criticalSupplyDirectFallbackAllowed(plan)) {
+        return { executed: false, reason: 'TOWN_ROUTE_RECOMMENDED_BUT_LIVE_TOWN_AUTHORITY_NOT_IMPLEMENTED', route: clone(this.lastMerchantRouteDecision) };
+      }
+      if (this.log && typeof this.log.emit === 'function') {
+        this.log.emit({
+          component: 'merchant-service',
+          event: 'MERCHANT_SERVICE_TOWN_RECOMMENDATION_FALLBACK',
+          severity: 'warn',
+          reason: 'CRITICAL_PARTY_SUPPLY_DIRECT_FALLBACK',
+          data: {
+            planId: plan.id || null,
+            targetName: plan.target && plan.target.name || null,
+            route: clone(this.lastMerchantRouteDecision)
+          }
+        });
+      }
     }
     const sourceReportAt = finite(plan.sourceReportAt);
     const destinationMapAttestation = sourceReportAt == null ? null : {
@@ -20301,6 +20329,7 @@ class Alpha20_5MerchantRuntime extends Alpha20Runtime {
       controlled: this.controlledMerchantService.status(),
       allowTravel: this.merchantServiceAllowTravel,
       liveTownAuthority: false,
+      criticalSupplyTownRecommendationFallsBackToControlledDirect: true,
       liveBuyAuthority: false,
       liveCollectionAuthority: false,
       routeEstimator: this.merchantRouteEstimator.status(),
@@ -20542,7 +20571,14 @@ class MerchantServicePlanner {
       candidates.push({ report, need });
     }
 
-    candidates.sort((a, b) => b.need.priority - a.need.priority || Number(a.report.at) - Number(b.report.at) || String(a.report.name).localeCompare(String(b.report.name)));
+    // For equal-priority supply emergencies, serve the most depleted Farmer
+    // first. This makes an empty potion stack outrank a merely low one.
+    candidates.sort((a, b) =>
+      b.need.priority - a.need.priority
+      || Math.max(0, finite(a.need.count, Infinity)) - Math.max(0, finite(b.need.count, Infinity))
+      || Number(a.report.at) - Number(b.report.at)
+      || String(a.report.name).localeCompare(String(b.report.name))
+    );
     const selected = candidates[0] || null;
     const standOpen = input.standOpen === true;
 
@@ -33690,9 +33726,25 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     if (!normalized) return null;
     const now = this.now();
     const targetName = normalized.target && String(normalized.target.name || '') || null;
+    const serviceChainId = normalized.metadata && normalized.metadata.p0PotionServiceChainId || null;
+    const batch = normalized.metadata && normalized.metadata.p0PotionBatch === true;
     const existing = this.partySupplyChain;
     const sameTarget = !!(existing && String(existing.targetName || '') === String(targetName || ''));
-    if (existing && !sameTarget) return clone(existing.plan);
+    const sameBatch = !!(
+      existing
+      && batch
+      && serviceChainId
+      && String(existing.serviceChainId || '') === String(serviceChainId)
+    );
+    if (existing && !sameTarget && !sameBatch) return clone(existing.plan);
+    if (existing && !sameTarget && sameBatch) {
+      this.stats.partySupplyChainRefreshes = (this.stats.partySupplyChainRefreshes || 0) + 1;
+      this._event('ALPHA27_PARTY_SUPPLY_BATCH_TARGET_SWITCH', 'info', 'SAME_BATCH_NEXT_FARMER', {
+        from: existing.targetName || null,
+        to: targetName,
+        serviceChainId
+      });
+    }
 
     if (!existing) {
       this.stats.partySupplyChainLatches = (this.stats.partySupplyChainLatches || 0) + 1;
@@ -33701,7 +33753,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         kind: normalized.kind,
         planId: normalized.id || null
       });
-    } else {
+    } else if (sameTarget) {
       this.stats.partySupplyChainRefreshes = (this.stats.partySupplyChainRefreshes || 0) + 1;
     }
 
@@ -33709,6 +33761,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       startedAt: existing ? existing.startedAt : now,
       refreshedAt: now,
       targetName,
+      serviceChainId,
+      batch,
       plan: clone(normalized)
     };
     return clone(normalized);
@@ -33719,26 +33773,60 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
     return ['FARMER_POTION_TARGET_SATISFIED', 'NO_SERVICE_NEED', 'STAND_IDLE'].includes(String(plan.reason || ''));
   }
 
+  _p0BatchContinuation() {
+    const policy = this.runtime && this.runtime.p0PotionPolicy4500;
+    const chain = policy && policy.serviceChain;
+    if (!chain || chain.batch !== true) return null;
+    const pending = Array.isArray(chain.targets) ? chain.targets.filter((row) => row && row.status === 'PENDING') : [];
+    if (!pending.length) return null;
+    return {
+      kind: 'HOLD',
+      reason: 'POTION_BATCH_ADVANCING_TO_NEXT_FARMER',
+      target: chain.target || pending[0].target || null,
+      deliveries: chain.deliveries || pending[0].deliveries || [],
+      metadata: {
+        p0PotionPolicy4500: true,
+        p0PotionBatch: true,
+        p0PotionServiceChainId: chain.id,
+        p0PotionBatchPendingCount: pending.length
+      }
+    };
+  }
+
   criticalPartySupplyPlan() {
     const now = this.now();
     const current = this.runtime.lastMerchantServicePlan;
     const latched = this.partySupplyChain;
 
     if (latched && this._partySupplyDeliveryCommitted(latched)) {
-      return this._clearPartySupplyChain('PARTY_SUPPLY_DELIVERY_COMMITTED');
+      this._clearPartySupplyChain('PARTY_SUPPLY_DELIVERY_COMMITTED');
+      const continuation = this._p0BatchContinuation();
+      if (continuation) return continuation;
+      return null;
     }
 
     const adaptive = this._adaptivePartySupplyPlan(current);
     if (adaptive) {
       const at = finite(adaptive.at, 0);
       if (at > 0 && now - at <= this._partySupplyPlanFreshMs()) {
-        if (!latched || String(latched.targetName || '') === String(adaptive.target && adaptive.target.name || '')) {
+        const adaptiveChainId = adaptive.metadata && adaptive.metadata.p0PotionServiceChainId || null;
+        const sameBatch = !!(
+          latched
+          && adaptive.metadata && adaptive.metadata.p0PotionBatch === true
+          && adaptiveChainId
+          && String(latched.serviceChainId || '') === String(adaptiveChainId)
+        );
+        if (!latched || String(latched.targetName || '') === String(adaptive.target && adaptive.target.name || '') || sameBatch) {
           return this._latchPartySupplyPlan(adaptive);
         }
       }
     }
 
-    if (!this.partySupplyChain) return null;
+    if (!this.partySupplyChain) {
+      const continuation = this._p0BatchContinuation();
+      if (continuation) return continuation;
+      return null;
+    }
     const chain = this.partySupplyChain;
     const ageMs = Math.max(0, now - finite(chain.startedAt, now));
     if (ageMs > this._partySupplyChainTimeoutMs()) return this._clearPartySupplyChain('PARTY_SUPPLY_CHAIN_TIMEOUT');
@@ -34044,9 +34132,12 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       selfGearLifecycle: ['UNEQUIP', 'ATOMIC_UPGRADE_OR_COMPOUND', 'REEQUIP_OR_FALLBACK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
+      criticalPartySupplyBatchAtomicAcrossFarmers: true,
       partySupplyChainLatched: !!chain,
       partySupplyChain: chain ? {
         targetName: chain.targetName || null,
+        serviceChainId: chain.serviceChainId || null,
+        batch: chain.batch === true,
         planKind: chain.plan && chain.plan.kind || null,
         planId: chain.plan && chain.plan.id || null,
         startedAt: chain.startedAt,
@@ -49188,7 +49279,7 @@ module.exports = {
 
 const { MerchantServicePlanKind, itemQuantity } = require('../merchant/merchant-service-planner');
 
-const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-v4';
+const P0_POTION_POLICY_4500_MODE = 'p0-potion-policy-demand-4500-batch-v6';
 const POTION_TARGET_COUNT = 4500;
 // A latched service order is bounded so stale party telemetry cannot pin a target forever.
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
@@ -49199,6 +49290,8 @@ const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
 // Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
 const MERCHANT_POTION_RESERVE = 0;
 const MAX_DYNAMIC_DELIVERY = POTION_TARGET_COUNT;
+const MAX_BATCH_FARMERS = 3;
+const MAX_BATCH_ITEM_STOCK = POTION_TARGET_COUNT * MAX_BATCH_FARMERS;
 
 function finite(value, fallback = null) {
   const n = Number(value);
@@ -49215,7 +49308,20 @@ function potionServiceChainState(runtime) {
       sequence: 0,
       active: null,
       lastRelease: null,
-      stats: { starts: 0, refreshes: 0, releases: 0, timeouts: 0, downwardClamps: 0 }
+      stats: {
+        starts: 0,
+        refreshes: 0,
+        releases: 0,
+        timeouts: 0,
+        downwardClamps: 0,
+        batchStarts: 0,
+        batchTargetsPlanned: 0,
+        batchTargetsDelivered: 0,
+        batchTargetsSatisfiedExternally: 0,
+        batchTargetSwitches: 0,
+        freshReportRebinds: 0,
+        postBatchStaleSuppressions: 0
+      }
     };
   }
   return runtime.__p0PotionPolicy4500ServiceChainState;
@@ -49230,21 +49336,39 @@ function publishPotionServiceChain(runtime) {
   policy.lastServiceChainRelease = clone(state.lastRelease);
 }
 
-function startPotionServiceChain(runtime, planner, plan, deliveries, metadata) {
+function startPotionServiceBatch(runtime, planner, plan, targets, metadata, observedFarmerCount) {
   const state = potionServiceChainState(runtime);
   const now = planner.now();
   state.sequence += 1;
+  const rows = (Array.isArray(targets) ? targets : []).slice(0, MAX_BATCH_FARMERS).map((row) => ({
+    name: String(row.name || ''),
+    sourceReportAt: finite(row.sourceReportAt),
+    target: clone(row.target || null),
+    deliveries: clone(row.deliveries || []),
+    status: 'PENDING',
+    completedAt: null,
+    completionReason: null
+  })).filter((row) => row.name && row.deliveries.length);
+  if (!rows.length) return null;
   state.active = {
-    id: `p0-potion-chain-${now.toString(36)}-${state.sequence.toString(36)}`,
+    id: `p0-potion-batch-${now.toString(36)}-${state.sequence.toString(36)}`,
+    batch: true,
     startedAt: now,
     refreshedAt: now,
-    targetName: plan && plan.target && String(plan.target.name || '') || null,
-    sourceReportAt: finite(plan && plan.sourceReportAt),
-    target: clone(plan && plan.target || null),
-    deliveries: clone(deliveries || []),
+    triggerTargetName: plan && plan.target && String(plan.target.name || '') || null,
+    observedFarmerCount: Math.max(0, Math.floor(finite(observedFarmerCount, rows.length))),
+    targetName: null,
+    sourceReportAt: null,
+    target: null,
+    deliveries: [],
+    currentTargetName: null,
+    targets: rows,
+    deliveredCount: 0,
     metadata: clone(metadata || {})
   };
   state.stats.starts += 1;
+  state.stats.batchStarts += 1;
+  state.stats.batchTargetsPlanned += rows.length;
   publishPotionServiceChain(runtime);
   return state.active;
 }
@@ -49259,13 +49383,20 @@ function releasePotionServiceChain(runtime, reason, plan = null) {
   state.active = null;
   state.stats.releases += 1;
   if (reason === 'SERVICE_CHAIN_TIMEOUT') state.stats.timeouts += 1;
+  const maxSourceReportAt = Math.max(
+    0,
+    ...((Array.isArray(active.targets) ? active.targets : [])
+      .map((row) => finite(row && row.sourceReportAt, 0))),
+    finite(active.sourceReportAt, 0)
+  );
   state.lastRelease = {
     at: now,
     reason,
     id: active.id,
     targetName: active.targetName,
     startedAt: active.startedAt,
-    ageMs: Math.max(0, now - finite(active.startedAt, now))
+    ageMs: Math.max(0, now - finite(active.startedAt, now)),
+    maxSourceReportAt
   };
   publishPotionServiceChain(runtime);
   return active;
@@ -49300,6 +49431,107 @@ function targetReport(input, plan) {
 function farmerCount(report, family) {
   const supplies = report && report.supplies || {};
   return Math.max(0, Math.floor(finite(family === 'hp' ? supplies.hpPotions : supplies.mpPotions, 0)));
+}
+
+function freshSafeFarmerReports(input, planner) {
+  const now = planner.now();
+  return (Array.isArray(input && input.reports) ? input.reports : []).filter((row) => {
+    if (!row || !row.name || String(row.ctype || '').toLowerCase() === 'merchant') return false;
+    const at = finite(row.at);
+    if (at == null || now - at > planner.reportTtlMs) return false;
+    if (row.rip === true || row.active === false) return false;
+    if (row.safety && (row.safety.emergency === true || row.safety.retreat === true)) return false;
+    return true;
+  });
+}
+
+function reportTarget(row) {
+  return {
+    name: String(row && row.name || ''),
+    map: row && row.map || null,
+    x: finite(row && row.x),
+    y: finite(row && row.y)
+  };
+}
+
+function batchDeliveriesForReport(report) {
+  return [
+    { family: 'hp', itemName: 'hpot0', quantity: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'hp')) },
+    { family: 'mp', itemName: 'mpot0', quantity: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'mp')) }
+  ].filter((row) => row.quantity > 0 && row.quantity <= MAX_DYNAMIC_DELIVERY);
+}
+
+function buildBatchTargets(input, planner, triggerName = null) {
+  const reports = freshSafeFarmerReports(input, planner);
+  const merchant = input && input.merchant || {};
+  const mx = finite(merchant.x != null ? merchant.x : merchant.real_x);
+  const my = finite(merchant.y != null ? merchant.y : merchant.real_y);
+  const targets = reports.map((row) => {
+    const deliveries = batchDeliveriesForReport(row);
+    const minPotionCount = Math.min(farmerCount(row, 'hp'), farmerCount(row, 'mp'));
+    const tx = finite(row.x);
+    const ty = finite(row.y);
+    const distance = mx != null && my != null && tx != null && ty != null ? Math.hypot(mx - tx, my - ty) : Infinity;
+    return {
+      name: String(row.name),
+      sourceReportAt: finite(row.at),
+      target: reportTarget(row),
+      deliveries,
+      minPotionCount,
+      distance
+    };
+  }).filter((row) => row.deliveries.length);
+
+  targets.sort((a, b) =>
+    (String(a.name) === String(triggerName || '') ? -1 : 0) - (String(b.name) === String(triggerName || '') ? -1 : 0)
+    || a.minPotionCount - b.minPotionCount
+    || a.distance - b.distance
+    || a.name.localeCompare(b.name)
+  );
+  return { reports, targets: targets.slice(0, MAX_BATCH_FARMERS) };
+}
+
+function aggregateBatchRequirements(chain) {
+  const totals = new Map([['hpot0', 0], ['mpot0', 0]]);
+  for (const row of Array.isArray(chain && chain.targets) ? chain.targets : []) {
+    if (!row || row.status !== 'PENDING') continue;
+    for (const delivery of Array.isArray(row.deliveries) ? row.deliveries : []) {
+      totals.set(delivery.itemName, (totals.get(delivery.itemName) || 0) + Math.max(0, Math.floor(finite(delivery.quantity, 0))));
+    }
+  }
+  return [...totals.entries()]
+    .filter(([, requiredStock]) => requiredStock > 0)
+    .map(([itemName, requiredStock]) => ({ itemName, requiredStock, merchantReserve: MERCHANT_POTION_RESERVE }));
+}
+
+function completeBatchTarget(runtime, plan, reason = 'DELIVERED') {
+  const state = potionServiceChainState(runtime);
+  const chain = state.active;
+  if (!chain || chain.batch !== true) return releasePotionServiceChain(runtime, reason === 'DELIVERED' ? 'DELIVERY_COMMITTED' : reason, plan);
+  const planChainId = plan && plan.metadata && plan.metadata.p0PotionServiceChainId;
+  if (planChainId && String(planChainId) !== String(chain.id)) return null;
+  const name = plan && plan.target && String(plan.target.name || '');
+  const row = chain.targets.find((target) => target && target.status === 'PENDING' && String(target.name || '') === name);
+  if (!row) return null;
+  const now = runtime && typeof runtime.now === 'function' ? runtime.now() : Date.now();
+  row.status = reason === 'DELIVERED' ? 'DELIVERED' : reason;
+  row.completedAt = now;
+  row.completionReason = reason;
+  chain.currentTargetName = null;
+  chain.targetName = null;
+  chain.sourceReportAt = null;
+  chain.target = null;
+  chain.deliveries = [];
+  if (reason === 'DELIVERED') {
+    chain.deliveredCount += 1;
+    state.stats.batchTargetsDelivered += 1;
+  } else if (reason === 'SATISFIED_EXTERNALLY') {
+    state.stats.batchTargetsSatisfiedExternally += 1;
+  }
+  const pending = chain.targets.filter((target) => target && target.status === 'PENDING');
+  if (!pending.length) return releasePotionServiceChain(runtime, 'BATCH_DELIVERY_COMMITTED', plan);
+  publishPotionServiceChain(runtime);
+  return chain;
 }
 
 function dynamicBundle(input, plan) {
@@ -49413,30 +49645,113 @@ function installPlannerPolicy(runtime) {
   planner.targetPotionCount = POTION_TARGET_COUNT;
   planner.maxDeliveryQuantity = POTION_TARGET_COUNT;
 
-  if (planner.__p0PotionPolicy4500PlannerVersion === 4 || typeof planner.plan !== 'function') return true;
-  // Versioned wrapping is intentional: a live runtime may already carry the v3 wrapper.
-  // Wrapping that existing planner once lets the fix take effect without requiring a page restart.
+  if (planner.__p0PotionPolicy4500PlannerVersion === 6 || typeof planner.plan !== 'function') return true;
+  const stateAtInstall = potionServiceChainState(runtime);
+  if (stateAtInstall.active && stateAtInstall.active.batch !== true) releasePotionServiceChain(runtime, 'POLICY_BATCH_UPGRADE');
+
   const basePlan = planner.plan.bind(planner);
 
-  const targetReportFor = (input, targetName) => {
-    const now = planner.now();
-    return (Array.isArray(input && input.reports) ? input.reports : []).find((row) => {
-      if (!row || String(row.name || '') !== String(targetName || '')) return false;
-      const at = finite(row.at);
-      return at != null && now - at <= planner.reportTtlMs;
-    }) || null;
+  const reportFor = (input, name) => (Array.isArray(input && input.reports) ? input.reports : []).find((row) => row && String(row.name || '') === String(name || '')) || null;
+  const freshSafeReportFor = (input, name) => freshSafeFarmerReports(input, planner).find((row) => String(row.name || '') === String(name || '')) || null;
+
+  const updateTargetFromFreshReport = (chain, row, report) => {
+    if (!row || !report) return false;
+    const previousReportAt = row.sourceReportAt;
+    row.sourceReportAt = finite(report.at, row.sourceReportAt);
+    row.target = reportTarget(report);
+    row.deliveries = (Array.isArray(row.deliveries) ? row.deliveries : []).map((delivery) => {
+      const shortfall = Math.max(0, POTION_TARGET_COUNT - farmerCount(report, delivery.family));
+      const quantity = Math.min(Math.max(0, Math.floor(finite(delivery.quantity, 0))), shortfall);
+      if (quantity < Number(delivery.quantity || 0)) potionServiceChainState(runtime).stats.downwardClamps += 1;
+      return { ...delivery, quantity };
+    }).filter((delivery) => delivery.quantity > 0);
+    if (previousReportAt !== row.sourceReportAt) potionServiceChainState(runtime).stats.freshReportRebinds += 1;
+    if (!row.deliveries.length) {
+      completeBatchTarget(runtime, { metadata: { p0PotionServiceChainId: chain.id }, target: { name: row.name } }, 'SATISFIED_EXTERNALLY');
+      return false;
+    }
+    return true;
   };
 
-  const buildChainPlan = (input, base, chain) => {
+  const chooseCurrentTarget = (input, base, chain) => {
+    const current = chain.currentTargetName && chain.targets.find((row) => row && row.status === 'PENDING' && row.name === chain.currentTargetName);
+    if (current) {
+      const report = freshSafeReportFor(input, current.name);
+      if (report && updateTargetFromFreshReport(chain, current, report)) return current;
+      chain.currentTargetName = null;
+    }
+
+    const merchant = input && input.merchant || {};
+    const mx = finite(merchant.x != null ? merchant.x : merchant.real_x);
+    const my = finite(merchant.y != null ? merchant.y : merchant.real_y);
+    const candidates = [];
+    for (const row of chain.targets.filter((target) => target && target.status === 'PENDING')) {
+      const rawReport = reportFor(input, row.name);
+      if (rawReport && (rawReport.rip === true || rawReport.active === false)) {
+        row.status = 'INACTIVE';
+        row.completedAt = planner.now();
+        row.completionReason = 'TARGET_INACTIVE';
+        continue;
+      }
+      const report = freshSafeReportFor(input, row.name);
+      if (!report || !updateTargetFromFreshReport(chain, row, report)) continue;
+      const tx = finite(report.x);
+      const ty = finite(report.y);
+      const distance = mx != null && my != null && tx != null && ty != null ? Math.hypot(mx - tx, my - ty) : Infinity;
+      const minPotionCount = Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp'));
+      candidates.push({
+        row,
+        minPotionCount,
+        criticalRank: minPotionCount < POTION_REQUEST_BELOW ? 0 : 1,
+        distance,
+        basePreferred: base && base.target && String(base.target.name || '') === row.name ? 0 : 1
+      });
+    }
+    candidates.sort((a, b) => chain.deliveredCount > 0
+      ? a.criticalRank - b.criticalRank
+        || a.distance - b.distance
+        || a.minPotionCount - b.minPotionCount
+        || a.row.name.localeCompare(b.row.name)
+      : a.minPotionCount - b.minPotionCount
+        || a.basePreferred - b.basePreferred
+        || a.distance - b.distance
+        || a.row.name.localeCompare(b.row.name)
+    );
+    const selected = candidates[0] && candidates[0].row || null;
+    if (selected) {
+      if (chain.targetName && chain.targetName !== selected.name) potionServiceChainState(runtime).stats.batchTargetSwitches += 1;
+      chain.currentTargetName = selected.name;
+    }
+    return selected;
+  };
+
+  const metadataFor = (chain, stockRequirements) => ({
+    ...clone(chain.metadata || {}),
+    p0PotionBundle: true,
+    p0PotionPolicy4500: true,
+    adaptivePotionDelivery: true,
+    p0PotionBatch: true,
+    p0PotionBatchId: chain.id,
+    p0PotionServiceChainId: chain.id,
+    p0PotionServiceChainLatched: true,
+    p0PotionBatchObservedFarmers: chain.observedFarmerCount,
+    p0PotionBatchTargetCount: chain.targets.length,
+    p0PotionBatchPendingCount: chain.targets.filter((row) => row.status === 'PENDING').length,
+    p0PotionBatchDeliveredCount: chain.deliveredCount,
+    batchPolicy: 'ONE_CRITICAL_TRIGGER_TOPS_ALL_FRESH_FARMERS_TO_4500',
+    batchStockRequirements: clone(stockRequirements),
+    stockRequirements: clone(stockRequirements),
+    farmerTarget: POTION_TARGET_COUNT,
+    potionRequestBelow: POTION_REQUEST_BELOW,
+    merchantReserve: MERCHANT_POTION_RESERVE,
+    noPurchasedReserve: true,
+    deliveryQuantityMayIncreaseWhileActive: false
+  });
+
+  const buildBatchPlan = (input, base, chain) => {
     const now = planner.now();
     if (now - finite(chain.startedAt, now) > POTION_SERVICE_CHAIN_TIMEOUT_MS) {
       releasePotionServiceChain(runtime, 'SERVICE_CHAIN_TIMEOUT');
-      return null;
-    }
-
-    const report = targetReportFor(input, chain.targetName);
-    if (report && (report.rip === true || report.active === false)) {
-      releasePotionServiceChain(runtime, 'TARGET_INACTIVE');
       return null;
     }
 
@@ -49444,117 +49759,83 @@ function installPlannerPolicy(runtime) {
       return clone(base);
     }
 
-    if (!report) {
-      const hold = {
-        ...clone(base),
-        kind: MerchantServicePlanKind.HOLD,
-        reason: 'POTION_SERVICE_CHAIN_WAITING_FOR_FRESH_TARGET_REPORT',
-        target: clone(chain.target),
-        sourceReportAt: chain.sourceReportAt,
-        deliveries: clone(chain.deliveries),
-        delivery: chain.deliveries.length ? clone(chain.deliveries[0]) : null,
-        distance: null,
-        metadata: {
-          ...clone(chain.metadata || {}),
-          p0PotionServiceChainId: chain.id,
-          p0PotionServiceChainLatched: true,
-          deliveryQuantityMayIncreaseWhileActive: false
-        }
-      };
-      delete hold.afterRestock;
-      delete hold.afterTravel;
-      delete hold.missingStock;
-      planner.lastPlan = clone(hold);
-      return hold;
-    }
-
-    if (report.safety && (report.safety.emergency === true || report.safety.retreat === true)) {
-      const hold = {
-        ...clone(base),
-        kind: MerchantServicePlanKind.HOLD,
-        reason: 'POTION_SERVICE_CHAIN_TARGET_UNSAFE',
-        target: clone(chain.target),
-        sourceReportAt: chain.sourceReportAt,
-        deliveries: clone(chain.deliveries),
-        delivery: chain.deliveries.length ? clone(chain.deliveries[0]) : null,
-        distance: null,
-        metadata: {
-          ...clone(chain.metadata || {}),
-          p0PotionServiceChainId: chain.id,
-          p0PotionServiceChainLatched: true,
-          deliveryQuantityMayIncreaseWhileActive: false
-        }
-      };
-      delete hold.afterRestock;
-      delete hold.afterTravel;
-      delete hold.missingStock;
-      planner.lastPlan = clone(hold);
-      return hold;
-    }
-
-    const target = {
-      ...clone(chain.target || {}),
-      name: chain.targetName,
-      map: report.map || chain.target && chain.target.map || null,
-      x: finite(report.x, finite(chain.target && chain.target.x)),
-      y: finite(report.y, finite(chain.target && chain.target.y))
-    };
-    const deliveries = [];
-    for (const row of chain.deliveries || []) {
-      const currentShortfall = Math.max(0, POTION_TARGET_COUNT - farmerCount(report, row.family));
-      const quantity = Math.min(Math.max(0, Math.floor(finite(row.quantity, 0))), currentShortfall);
-      if (quantity < Number(row.quantity || 0)) potionServiceChainState(runtime).stats.downwardClamps += 1;
-      if (quantity > 0) deliveries.push({ family: row.family, itemName: row.itemName, quantity });
-    }
-
-    if (!deliveries.length) {
-      releasePotionServiceChain(runtime, 'TARGET_ALREADY_SATISFIED');
+    const current = chooseCurrentTarget(input, base, chain);
+    const pending = chain.targets.filter((row) => row && row.status === 'PENDING');
+    if (!pending.length) {
+      releasePotionServiceChain(runtime, 'BATCH_TARGETS_COMPLETE');
       return null;
     }
 
+    const stockRequirements = aggregateBatchRequirements(chain);
     const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
-    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(inventory, row.itemName)]));
-    const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
-    const readyKind = serviceKind(input, { target });
-    const metadata = {
-      ...clone(chain.metadata || {}),
-      p0PotionServiceChainId: chain.id,
-      p0PotionServiceChainLatched: true,
-      deliveryQuantityMayIncreaseWhileActive: false,
-      originalDeliveries: clone(chain.deliveries)
-    };
+    const missing = stockRequirements.filter((row) => itemQuantity(inventory, row.itemName) < row.requiredStock);
+
+    if (!current) {
+      const fallback = pending[0];
+      const hold = {
+        ...clone(base),
+        kind: MerchantServicePlanKind.HOLD,
+        reason: 'POTION_BATCH_WAITING_FOR_FRESH_SAFE_FARMER_REPORT',
+        target: clone(fallback && fallback.target || null),
+        sourceReportAt: finite(fallback && fallback.sourceReportAt),
+        deliveries: clone(fallback && fallback.deliveries || []),
+        delivery: fallback && fallback.deliveries && fallback.deliveries.length ? clone(fallback.deliveries[0]) : null,
+        distance: null,
+        metadata: metadataFor(chain, stockRequirements)
+      };
+      delete hold.afterRestock;
+      delete hold.afterTravel;
+      delete hold.missingStock;
+      planner.lastPlan = clone(hold);
+      publishPotionServiceChain(runtime);
+      return hold;
+    }
+
+    chain.targetName = current.name;
+    chain.sourceReportAt = current.sourceReportAt;
+    chain.target = clone(current.target);
+    chain.deliveries = clone(current.deliveries);
+    chain.refreshedAt = now;
+
+    const readyKind = serviceKind(input, { target: current.target });
+    const primaryDelivery = current.deliveries[0] || null;
     const next = {
       ...clone(base),
-      target,
-      sourceReportAt: chain.sourceReportAt,
-      deliveries: clone(deliveries),
-      delivery: clone(deliveries[0]),
-      metadata
+      target: clone(current.target),
+      sourceReportAt: finite(current.sourceReportAt),
+      need: {
+        family: primaryDelivery && primaryDelivery.family || 'mp',
+        priority: 100,
+        count: primaryDelivery ? farmerCount(freshSafeReportFor(input, current.name), primaryDelivery.family) : 0,
+        reason: 'CRITICAL_SUPPLY_BATCH_TOP_UP'
+      },
+      deliveries: clone(current.deliveries),
+      delivery: clone(primaryDelivery),
+      metadata: metadataFor(chain, stockRequirements)
     };
 
     if (missing.length) {
       next.kind = MerchantServicePlanKind.RESTOCK_REQUIRED;
       next.afterRestock = readyKind;
-      next.reason = 'MERCHANT_ADAPTIVE_POTION_RESTOCK_REQUIRED';
+      next.reason = 'MERCHANT_BATCH_POTION_RESTOCK_REQUIRED';
       next.missingStock = missing.map((row) => ({
         itemName: row.itemName,
-        have: stock[row.itemName],
-        required: row.quantity,
-        buyQuantity: Math.max(0, row.quantity - stock[row.itemName])
+        have: itemQuantity(inventory, row.itemName),
+        required: row.requiredStock,
+        buyQuantity: Math.max(0, row.requiredStock - itemQuantity(inventory, row.itemName))
       }));
       next.distance = null;
     } else {
       next.kind = readyKind;
       next.reason = readyKind === MerchantServicePlanKind.SERVICE_DELIVERY
-        ? 'MERCHANT_ADAPTIVE_POTION_DELIVERY_READY'
+        ? 'MERCHANT_BATCH_POTION_DELIVERY_READY'
         : readyKind === MerchantServicePlanKind.SERVICE_TRAVEL
-          ? 'MERCHANT_ADAPTIVE_POTION_TRAVEL_READY'
+          ? 'MERCHANT_BATCH_POTION_TRAVEL_READY'
           : base.reason;
       delete next.missingStock;
+      if (readyKind === MerchantServicePlanKind.SERVICE_TRAVEL) next.afterTravel = MerchantServicePlanKind.SERVICE_DELIVERY;
     }
 
-    chain.refreshedAt = now;
-    chain.target = clone(target);
     potionServiceChainState(runtime).stats.refreshes += 1;
     publishPotionServiceChain(runtime);
     planner.lastPlan = clone(next);
@@ -49562,85 +49843,53 @@ function installPlannerPolicy(runtime) {
   };
 
   planner.plan = (input = {}) => {
-    const plan = basePlan(input);
+    const base = basePlan(input);
     const state = potionServiceChainState(runtime);
-    if (state.active) {
-      const chained = buildChainPlan(input, plan, state.active);
+    if (state.active && state.active.batch === true) {
+      const chained = buildBatchPlan(input, base, state.active);
       if (chained) return chained;
     }
 
-    if (!plan || !(plan.metadata && plan.metadata.p0PotionBundle)) return plan;
-
-    const rows = dynamicBundle(input, plan);
-    if (!rows) return plan;
-    const deliveries = rows.filter((row) => row.quantity > 0);
-    const metadata = policyMetadata(plan, rows);
-
-    if (!deliveries.length) {
+    if (!base || !(base.metadata && base.metadata.p0PotionBundle)) return base;
+    const lastRelease = state.lastRelease;
+    if (
+      lastRelease
+      && lastRelease.reason === 'BATCH_DELIVERY_COMMITTED'
+      && finite(base.sourceReportAt, 0) <= finite(lastRelease.maxSourceReportAt, 0)
+    ) {
+      state.stats.postBatchStaleSuppressions += 1;
       const hold = {
-        ...clone(plan),
+        ...clone(base),
         kind: MerchantServicePlanKind.HOLD,
-        reason: 'FARMER_POTION_TARGET_SATISFIED',
+        reason: 'POTION_BATCH_WAITING_FOR_FRESH_POST_DELIVERY_TELEMETRY',
         deliveries: [],
         delivery: null,
-        distance: null,
-        metadata
+        distance: null
       };
       delete hold.afterRestock;
       delete hold.afterTravel;
       delete hold.missingStock;
       planner.lastPlan = clone(hold);
-      return clone(hold);
+      return hold;
     }
+    const triggerName = base.target && String(base.target.name || '') || null;
+    const built = buildBatchTargets(input, planner, triggerName);
+    if (!built.targets.length) return base;
 
-    const inventory = input && input.merchant && Array.isArray(input.merchant.inventory) ? input.merchant.inventory : [];
-    const stock = Object.fromEntries(deliveries.map((row) => [row.itemName, itemQuantity(inventory, row.itemName)]));
-    const missing = deliveries.filter((row) => stock[row.itemName] < row.quantity);
-    const readyKind = serviceKind(input, plan);
-    const next = {
-      ...clone(plan),
-      deliveries: deliveries.map((row) => ({ family: row.family, itemName: row.itemName, quantity: row.quantity })),
-      delivery: { family: deliveries[0].family, itemName: deliveries[0].itemName, quantity: deliveries[0].quantity },
-      metadata
+    const metadata = {
+      ...(base.metadata || {}),
+      p0PotionBundle: true,
+      p0PotionPolicy4500: true,
+      adaptivePotionDelivery: true,
+      batchPolicy: 'ONE_CRITICAL_TRIGGER_TOPS_ALL_FRESH_FARMERS_TO_4500'
     };
-
-    if (missing.length) {
-      next.kind = MerchantServicePlanKind.RESTOCK_REQUIRED;
-      next.afterRestock = readyKind;
-      next.reason = 'MERCHANT_ADAPTIVE_POTION_RESTOCK_REQUIRED';
-      next.missingStock = missing.map((row) => ({
-        itemName: row.itemName,
-        have: stock[row.itemName],
-        required: row.quantity,
-        buyQuantity: Math.max(0, row.quantity - stock[row.itemName])
-      }));
-      next.distance = null;
-    } else {
-      next.kind = readyKind;
-      next.reason = readyKind === MerchantServicePlanKind.SERVICE_DELIVERY
-        ? 'MERCHANT_ADAPTIVE_POTION_DELIVERY_READY'
-        : readyKind === MerchantServicePlanKind.SERVICE_TRAVEL
-          ? 'MERCHANT_ADAPTIVE_POTION_TRAVEL_READY'
-          : plan.reason;
-      delete next.missingStock;
-    }
-
-    if ([MerchantServicePlanKind.RESTOCK_REQUIRED, MerchantServicePlanKind.SERVICE_TRAVEL, MerchantServicePlanKind.SERVICE_DELIVERY].includes(next.kind)) {
-      const chain = startPotionServiceChain(runtime, planner, next, next.deliveries, metadata);
-      next.metadata = {
-        ...metadata,
-        p0PotionServiceChainId: chain.id,
-        p0PotionServiceChainLatched: true,
-        deliveryQuantityMayIncreaseWhileActive: false,
-        originalDeliveries: clone(chain.deliveries)
-      };
-    }
-
-    planner.lastPlan = clone(next);
-    return clone(next);
+    const chain = startPotionServiceBatch(runtime, planner, base, built.targets, metadata, built.reports.length);
+    if (!chain) return base;
+    return buildBatchPlan(input, base, chain) || base;
   };
+
   planner.__p0PotionPolicy4500PlannerInstalled = true;
-  planner.__p0PotionPolicy4500PlannerVersion = 4;
+  planner.__p0PotionPolicy4500PlannerVersion = 6;
   return true;
 }
 
@@ -49652,9 +49901,9 @@ function installRestockPolicy(runtime) {
   merchant.options = merchant.options || {};
   merchant.options.merchantPotionLow = POTION_LOW_WATERMARK;
   merchant.options.merchantPotionTarget = POTION_TARGET_COUNT;
-  merchant.options.merchantMaxPotionBuy = Math.max(POTION_TARGET_COUNT, finite(merchant.options.merchantMaxPotionBuy, 0));
+  merchant.options.merchantMaxPotionBuy = Math.max(MAX_BATCH_ITEM_STOCK, finite(merchant.options.merchantMaxPotionBuy, 0));
 
-  if (merchant.__p0PotionPolicy4500RestockInstalled) return true;
+  if (merchant.__p0PotionPolicy4500RestockVersion === 6) return true;
   const base = merchant.restockPartyPotions.bind(merchant);
   merchant.restockPartyPotions = async () => {
     const plan = runtime.lastMerchantServicePlan;
@@ -49662,7 +49911,10 @@ function installRestockPolicy(runtime) {
     if (!plan || !(plan.metadata && plan.metadata.p0PotionPolicy4500) || plan.kind !== MerchantServicePlanKind.RESTOCK_REQUIRED || !deliveries.length) return base();
     if (!await merchant.ensureStandClosed('PARTY_SUPPLY_ADAPTIVE_RESTOCK')) return true;
 
-    const needed = deliveries.find((row) => itemTotal(runtime, row.itemName) < Number(row.quantity));
+    const requirements = plan.metadata && plan.metadata.p0PotionBatch === true && Array.isArray(plan.metadata.batchStockRequirements)
+      ? plan.metadata.batchStockRequirements
+      : deliveries.map((row) => ({ itemName: row.itemName, requiredStock: Number(row.quantity) }));
+    const needed = requirements.find((row) => itemTotal(runtime, row.itemName) < Number(row.requiredStock));
     if (!needed) return false;
 
     const canBuy = rawFunction(merchant.root, 'can_buy');
@@ -49687,7 +49939,7 @@ function installRestockPolicy(runtime) {
     const meta = gd.items && gd.items[needed.itemName];
     const price = Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
     const before = itemTotal(runtime, needed.itemName);
-    const required = Math.max(0, Math.floor(finite(needed.quantity, 0)));
+    const required = Math.max(0, Math.floor(finite(needed.requiredStock != null ? needed.requiredStock : needed.quantity, 0)));
     const deficit = Math.max(0, required - before);
     const reserveGold = Math.max(0, finite(merchant.options.goldReserve, 0));
     const affordable = price > 0 ? Math.max(0, Math.floor((finite(c && c.gold, 0) - reserveGold) / price)) : deficit;
@@ -49715,13 +49967,14 @@ function installRestockPolicy(runtime) {
     }
   };
   merchant.__p0PotionPolicy4500RestockInstalled = true;
+  merchant.__p0PotionPolicy4500RestockVersion = 6;
   return true;
 }
 
 function installDeliveryPolicy(runtime) {
   const service = runtime && runtime.controlledMerchantService;
   if (!service || typeof service._executeDelivery !== 'function') return false;
-  if (service.__p0PotionPolicy4500DeliveryVersion === 4) return true;
+  if (service.__p0PotionPolicy4500DeliveryVersion === 6) return true;
 
   // Keep hot reload safe for runtimes that already have the v3 delivery wrapper installed.
   const baseDelivery = service._executeDelivery.bind(service);
@@ -49798,7 +50051,7 @@ function installDeliveryPolicy(runtime) {
         merchantPotionReserve: MERCHANT_POTION_RESERVE,
         expectedAfterTotals
       });
-      releasePotionServiceChain(runtime, 'DELIVERY_COMMITTED', plan);
+      completeBatchTarget(runtime, plan, 'DELIVERED');
       return result;
     } catch (error) {
       try { service._markServedReport(targetName, sourceReportAt); } catch (_) {}
@@ -49809,7 +50062,7 @@ function installDeliveryPolicy(runtime) {
   };
 
   service.__p0PotionPolicy4500DeliveryInstalled = true;
-  service.__p0PotionPolicy4500DeliveryVersion = 4;
+  service.__p0PotionPolicy4500DeliveryVersion = 6;
   return true;
 }
 
@@ -49826,9 +50079,13 @@ function installStatusPolicy(runtime) {
           farmerTarget: POTION_TARGET_COUNT,
           potionRequestBelow: POTION_REQUEST_BELOW,
           lowWatermark: POTION_LOW_WATERMARK,
-          deliveryMode: 'adaptive-demand-top-up',
+          deliveryMode: 'critical-trigger-batched-all-farmers-top-up',
+          batchOnAnyFarmerRequest: true,
+          topUpAllFreshFarmersTo: POTION_TARGET_COUNT,
+          maxBatchFarmers: MAX_BATCH_FARMERS,
           merchantReserve: MERCHANT_POTION_RESERVE,
-          buyOnlyCurrentDeliveryDeficit: true,
+          buyOnlyCurrentDeliveryDeficit: false,
+          buyAggregateBatchDemandBeforeDeliveryRound: true,
           noPurchasedReserve: true,
           existingStockMayRemainForNextFarmer: true,
           successfulDeliveryVerifiesExpectedRemainder: true,
@@ -49864,7 +50121,11 @@ function installP0PotionPolicy4500(runtime) {
     lowWatermark: POTION_LOW_WATERMARK,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
     adaptiveDelivery: true,
-    buyOnlyCurrentDeliveryDeficit: true,
+    batchOnAnyFarmerRequest: true,
+    topUpAllFreshFarmersTo: POTION_TARGET_COUNT,
+    maxBatchFarmers: MAX_BATCH_FARMERS,
+    aggregatePurchaseBeforeDeliveryRound: true,
+    buyOnlyCurrentDeliveryDeficit: false,
     noPurchasedReserve: true,
     existingStockMayRemainForNextFarmer: true,
     serviceChainTimeoutMs: POTION_SERVICE_CHAIN_TIMEOUT_MS,

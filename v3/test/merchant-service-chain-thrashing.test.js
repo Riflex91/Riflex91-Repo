@@ -142,6 +142,64 @@ test('transient CONTROLLED_SUBSYSTEM_BUSY planner overwrite cannot break a latch
   assert.ok(status.partySupplyChain.ageMs >= 15000);
 });
 
+test('same p0 batch may switch Alpha27 from one Farmer to the next without losing the latch', () => {
+  const first = adaptivePlan('SERVICE_TRAVEL');
+  first.metadata = { ...first.metadata, p0PotionBatch: true, p0PotionServiceChainId: 'batch-1' };
+  const f = fixture({ plan: first });
+
+  assert.equal(f.autonomy.criticalPartySupplyPlan().target.name, 'Ranger1');
+  f.setNow(10100);
+  const second = {
+    ...adaptivePlan('SERVICE_TRAVEL', 10100),
+    target: { name: 'Ranger2', map: 'main', x: -900, y: 800 },
+    metadata: { p0PotionPolicy4500: true, adaptivePotionDelivery: true, p0PotionBatch: true, p0PotionServiceChainId: 'batch-1' }
+  };
+  f.runtime.lastMerchantServicePlan = second;
+
+  const advanced = f.autonomy.criticalPartySupplyPlan();
+  assert.equal(advanced.target.name, 'Ranger2');
+  const status = f.autonomy.status();
+  assert.equal(status.partySupplyChainLatched, true);
+  assert.equal(status.partySupplyChain.targetName, 'Ranger2');
+  assert.equal(status.partySupplyChain.serviceChainId, 'batch-1');
+  assert.equal(status.partySupplyChain.batch, true);
+});
+
+test('confirmed delivery keeps economy blocked while the p0 batch still has Farmers pending', async () => {
+  const plan = adaptivePlan('SERVICE_DELIVERY');
+  plan.metadata = { ...plan.metadata, p0PotionBatch: true, p0PotionServiceChainId: 'batch-atomic' };
+  const f = fixture({ plan });
+  assert.equal(f.autonomy.criticalPartySupplyPlan().kind, 'SERVICE_DELIVERY');
+
+  f.setNow(11000);
+  f.runtime.p0PotionPolicy4500 = {
+    serviceChain: {
+      id: 'batch-atomic',
+      batch: true,
+      target: null,
+      deliveries: [],
+      targets: [
+        { name: 'Ranger1', status: 'DELIVERED' },
+        { name: 'Ranger2', status: 'PENDING', target: { name: 'Ranger2', map: 'main', x: -900, y: 800 }, deliveries: [{ family: 'mp', itemName: 'mpot0', quantity: 1000 }] }
+      ]
+    }
+  };
+  f.runtime.lastMerchantServicePlan = { at: 11000, kind: 'HOLD', reason: 'CONTROLLED_SUBSYSTEM_BUSY' };
+  f.runtime.lastMerchantServiceExecution = {
+    at: 10950,
+    planId: plan.id,
+    kind: 'SERVICE_DELIVERY',
+    result: { executed: true, committed: true, targetName: 'Ranger1' }
+  };
+
+  assert.equal(await f.autonomy.cycle(), false);
+  assert.equal(f.lowRiskPlans, 0);
+  assert.equal(f.executed, 0);
+  assert.equal(f.autonomy.lastMerchantPlan.reason, 'PARTY_SUPPLY_SERVICE_CHAIN_ACTIVE');
+  assert.equal(f.autonomy.lastMerchantPlan.serviceKind, 'HOLD');
+  assert.equal(f.autonomy.status().criticalPartySupplyBatchAtomicAcrossFarmers, true);
+});
+
 test('confirmed potion delivery releases the latched chain and economy can resume', async () => {
   const plan = adaptivePlan('SERVICE_DELIVERY');
   const f = fixture({ plan });
