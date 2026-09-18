@@ -34,7 +34,7 @@
     "block8-live-test-gui:pruefen": "node werkzeuge/block8-live-test-gui-struktur-pruefen.mjs && node --check werkzeuge/adventure-land-test-gui.js && node --check werkzeuge/block8-produktions-live-test-gui.js && node --check werkzeuge/block8-live-test-paket.js && node werkzeuge/block8-live-test-paket-bauen.mjs --pruefen",
     "block8-10-minuten-gruppentest:pruefen": "node werkzeuge/block8-10-minuten-gruppentest-struktur-pruefen.mjs && node --check werkzeuge/block8-10-minuten-gruppentest-gui.js && node --check werkzeuge/block8-10-minuten-gruppentest-paket.js && node werkzeuge/block8-10-minuten-paket-bauen.mjs --pruefen",
     "block8-10-minuten-gruppentest:bauen": "node werkzeuge/block8-10-minuten-paket-bauen.mjs",
-    "block8-5-struktur:pruefen": "node werkzeuge/block8-5-struktur-pruefen.mjs"
+    "block8-5-struktur:pruefen": "node werkzeuge/block8-5-struktur-pruefen.mjs && node --check werkzeuge/block8-5-ingame-hud.js"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
