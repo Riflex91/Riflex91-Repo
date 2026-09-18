@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen
 
-Status: **8.5.9 Freigabe-Gate implementiert; operative Freigabe der neuen Block-8.5-Laufzeitpfade bleibt bis zu allen vier realen Nachweisen gesperrt.**
+Status: **8.5.9 Freigabe-Gate implementiert; Offline-Stufe fuer den exakten Candidate bestanden, Schattenbetrieb ist die naechste offene Stufe. Block 9 bleibt gesperrt.**
 
 ## Ziel
 
@@ -183,9 +183,18 @@ Das bedeutet noch nicht, dass die neuen Block-8.5-Laufzeitpfade bereits alle vie
 
 Insbesondere duerfen historische Block-8-Nachweise nicht automatisch fuer den neuen Block-8.5-Aenderungsstand wiederverwendet werden.
 
-Bis fuer den finalen Block-8.5-Aenderungsstand explizite Nachweise fuer Offline, Schatten, kontrolliert live und Soak vorliegen, bleibt:
+Fuer den finalen Block-8.5-Aenderungsstand liegt inzwischen ein kanonischer Offline-Nachweis vor:
 
-`block9Freigegeben: false`
+`BLOCK-8-5-OFFLINE-FREIGABE-NACHWEIS.json`
+
+Die reale Freigabeauswertung ergibt:
+
+- `offline: bestanden`
+- `naechsteStufe: schatten`
+- `freigabeVollstaendig: false`
+- `block9Freigegeben: false`
+
+Schatten, kontrolliert live und Soak bleiben offen.
 
 ## Naechster operativer Schritt
 
@@ -203,7 +212,7 @@ Damit lautet die operative Reihenfolge fuer den finalen Block-8.5-Laufzeitstand:
 
 1. finalen Aenderungsstand eindeutig festlegen,
 2. Runtime-1.1.5-Build und immutable Deployment/HTTPS-Nachweis fuer diesen Stand bestaetigen — **ERFUELLT**,
-3. Offline-Nachweis an denselben Aenderungsstand binden,
+3. Offline-Nachweis an denselben Aenderungsstand binden — **ERFUELLT**,
 4. Schattenlauf im Adventure-Land-Kontext ohne echte Spielaktion ueber den Nachweisrunner,
 5. begrenzter kontrollierter Live-Test ueber genau eine sichere Pause/Fortsetzung,
 6. mindestens zehnminuetiger Soak-Lauf mit Telemetrie und Recovery-Auswertung,
