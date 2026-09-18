@@ -21,7 +21,8 @@ for (const relativ of dateien) await access(path.join(wurzel, relativ));
 
 const bootstrap = await readFile(path.join(wurzel, dateien[0]), 'utf8');
 for (const pflicht of [
-  'new AktionsSteuerung()',
+  'new LaufzeitSteuerung()',
+  'new AktionsSteuerung({ laufzeitSteuerung: this.laufzeitSteuerung })',
   'new AdventureLandLesezugriff',
   'beobachteSpielzustand',
   'planeKampfSicherheitsSchritt',
@@ -30,6 +31,8 @@ for (const pflicht of [
   'koordiniereGruppe',
   'PRODUKTIONS_GRUPPEN_LEBENSNACHWEIS_MAXIMAL_ALTER_MILLIS = 8_000',
   'gruppenLebensnachweisMaximalAlterMillisekunden',
+  'laufzeitSteuerung: this.laufzeitSteuerung.status()',
+  'holeLaufzeitSteuerung()',
   'planeGruppenAktionen',
   'uebersetzeEigeneGruppenPlanSchritte',
   "freigegebeneArten: ['gemeinsames_ziel_bearbeiten']",
@@ -87,6 +90,16 @@ for (const pflicht of [
   "Reflect.get(codeKontext, 'performance_trick')",
   'aktivierePerformanceTrick();',
   'bootstrap.pruefeGruppenZustand()',
+  "PRODUKTIONS_LAUFZEIT_VERSION = '1.1.5'",
+  'new SichereBasisBedienung',
+  'bootstrap.holeLaufzeitSteuerung()',
+  'bootstrap.holeZentraleAktionsSteuerung()',
+  'basisBedienStatus',
+  'erstelleBasisBedienAnfrage',
+  'fuehreBasisBedienAnfrage',
+  'pruefeBasisBedienMutation',
+  'erwarteteLaufzeitGeneration',
+  'ausdruecklichBestaetigt',
   'bootstrap.bereiteGruppenZielVor',
   'bootstrap.installiereGruppenZielLiveSmoke',
   'bootstrap.stoppe()',
@@ -115,7 +128,11 @@ for (const pflicht of [
   'besitzt autonomen 2s-Heartbeat mit Pause Fortsetzen und Transportmetriken',
   'blockiert aktive Browserlaufzeit fail-safe ohne performance_trick',
   'verlangt performance_trick nicht in Adventure Lands Desktoplaufzeit',
-  'zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler'
+  'zaehlt fehlende send_cm-Empfaengerbestaetigung als Heartbeat-Fehler',
+  'bietet nur den gesicherten Basisbedienungs-Kanal',
+  'Bot-Pause laeuft durch BedienSicherung und laesst Produktionsheartbeat aktiv',
+  'blockiert stale Basisbedienung an der aktuellen Generation',
+  'gesperrte oder gestoppte Produktionsruntime erlaubt nur read-only Diagnose'
 ]) {
   if (!einstiegTests.includes(pflicht)) throw new Error(`Produktions-Laufzeiteinstieg-Test fehlt: ${pflicht}`);
 }
@@ -227,9 +244,10 @@ for (const pflicht of [
   'blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer',
   'blockiert Gruppenziel wenn der zweite Teilnehmer seit lokalem Empfang veraltet ist',
   'installiert Live-Smoke nur fuer den exakt vorbereiteten zentralen Zielauftrag',
-  'stoppt Empfang, Smoke und laufende Gruppenarbeit fail-safe'
+  'stoppt Empfang, Smoke und laufende Gruppenarbeit fail-safe',
+  'teilt exakt eine LaufzeitSteuerung mit der zentralen AktionsSteuerung'
 ]) {
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, Browser-performance_trick-Preflight an der Adventure-Land-Ausfuehrungsgrenze, autonomer 2s-Produktionsheartbeat mit Pause/Fortsetzen und bestaetigter send_cm-Empfaengerliste, read-only Gruppendiagnose, lokale Empfangszeit-Freshness mit expliziter 8s Live-TTL bei unveraendertem Replay-Schutz, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8/8.5 Produktions-Bootstrap geprueft: gemeinsame Laufzeit-/AktionsSteuerung, sichere Basisbedienung ueber BedienSicherung, Browser-performance_trick-Preflight, autonomer 2s-Produktionsheartbeat getrennt von Bot-Pause, bestaetigte send_cm-Empfaengerliste, read-only Gruppendiagnose, 8s Live-TTL, Zwei-Teilnehmer-Gate, one-shot Vorbereitung, HTTPS+SHA-256-Loader und geschuetzter Deployment-Workflow.');
