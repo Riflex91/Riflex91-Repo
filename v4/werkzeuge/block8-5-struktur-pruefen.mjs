@@ -41,7 +41,9 @@ const dateien = [
   'dokumentation/BLOCK-8-5-BASISBEDIENUNG-RUNTIME.md',
   'werkzeuge/block8-5-ingame-hud-bedienung.js',
   'laufzeit/tests/block8-5-ingame-hud-bedienung.test.mjs',
-  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-HUD.md'
+  'dokumentation/BLOCK-8-5-BASISBEDIENUNG-HUD.md',
+  'laufzeit/tests/block8-5-recovery-abnahme.test.mjs',
+  'dokumentation/BLOCK-8-5-RECOVERY-ABNAHME.md'
 ];
 
 for (const relativ of dateien) await access(path.join(wurzel, relativ));
@@ -775,4 +777,74 @@ for (const pflicht of [
   if (!hudBedienDokument.includes(pflicht)) throw new Error(`HUD-Bedienadapter-Dokumentation fehlt: ${pflicht}`);
 }
 
-console.log('Block 8.5.1 bis 8.5.7 vollstaendig geprueft: sicherer Bedienkern, Produktionsruntime-Grenze und HUD-Bedienadapter nutzen den gesicherten Anfragepfad; Remounts behalten monotone Vorgangskennungen, Bot-Pause bleibt vom Heartbeat getrennt.');
+const recoveryAbnahmeTests = await readFile(path.join(wurzel, dateien[38]), 'utf8');
+for (const pflicht of [
+  'Reconnect bleibt durch reale Stale-Recovery-Regressionen ohne neue Spielaktion abgesichert',
+  'stale Daten eskalieren fail-safe ohne automatische Host-Neustartautoritaet',
+  'Browser-Hintergrundbetrieb bleibt an performance_trick und Produktionsheartbeat gebunden',
+  'Runtime-Neustart laedt Checkpoint nur zum Abgleich und nie als Fortsetzungsautoritaet',
+  'HUD-Schliessen oder HUD-Fehler besitzt keinen Runtime-Aktionspfad',
+  'unterbrochene normale Aktion wird nach Fortsetzen nicht wiederbelebt',
+  'offener Checkpoint transportiert nur Kennungen und keine Aktionsautoritaet',
+  'doppelte Bedienanfrage wird nicht erneut ausgefuehrt',
+  'ungueltiger oder veralteter Status wird fail-safe blockiert',
+  'Telemetrie- oder Speicherfehler behaelt letzten bestaetigten Zustand und blockiert kritisch'
+]) {
+  if (!recoveryAbnahmeTests.includes(pflicht)) {
+    throw new Error(`Recovery-Abnahmetest fehlt: ${pflicht}`);
+  }
+}
+for (const pflicht of [
+  "wiederaufnahmeErlaubt, false",
+  "abgleichErforderlich, true",
+  "aktionsAutoritaet, false",
+  "automatischerNeustart, false",
+  "status, 'wiederholt'",
+  "kennung === 'laufzeit-generation-aktuell'"
+]) {
+  if (!recoveryAbnahmeTests.includes(pflicht)) {
+    throw new Error(`Recovery-Abnahmesicherung fehlt: ${pflicht}`);
+  }
+}
+
+const recoveryAbnahmeDokument = await readFile(path.join(wurzel, dateien[39]), 'utf8');
+for (const pflicht of [
+  '8.5.8 implementiert',
+  'keine automatische Host-Neustartautoritaet',
+  'keine alte Arbeit automatisch wiederbeleben',
+  'kein direkter Spielaktionspfad aus Recovery, GUI oder Telemetrie',
+  'Reconnect',
+  'Stale Daten',
+  'Browser-Hintergrundbetrieb',
+  'Runtime-Neustart',
+  'HUD-Schliessen oder HUD-Fehler',
+  'Unterbrochene Aktion',
+  'Offener Checkpoint',
+  'Doppelte Bedienanfrage',
+  'Ungueltiger oder veralteter Status',
+  'Telemetrie-/Speicherfehler',
+  'wiederaufnahmeErlaubt: false',
+  'abgleichErforderlich: true',
+  'aktionsAutoritaet: false',
+  'automatischerNeustart: false',
+  '8.5.9 – Freigabestufen'
+]) {
+  if (!recoveryAbnahmeDokument.includes(pflicht)) {
+    throw new Error(`Recovery-Abnahme-Dokumentation fehlt: ${pflicht}`);
+  }
+}
+
+const block85Plan = await readFile(path.join(wurzel, dateien[12]), 'utf8');
+for (const pflicht of [
+  '8.5.8 – Recovery-Abnahme — **IMPLEMENTIERT**',
+  'Checkpoints bleiben nach Runtime-Neustart reine Abgleichsdaten',
+  'Unterbrochene normale Arbeit wird nach Fortsetzen nicht wiederbelebt',
+  'automatischerNeustart: false',
+  '8.5.9 – Freigabestufen'
+]) {
+  if (!block85Plan.includes(pflicht)) {
+    throw new Error(`Block-8.5-Plan fehlt auf Recovery-Abschlussstand: ${pflicht}`);
+  }
+}
+
+console.log('Block 8.5.1 bis 8.5.8 vollstaendig geprueft: Recovery-Abnahme deckt Reconnect, stale Daten, Browser-Hintergrundbetrieb, Runtime-Neustart, HUD-Ausfall, unterbrochene Arbeit, Checkpoints, Idempotenz, Statusfehler und Speicherfehler fail-safe ohne automatische Wiederaufnahme- oder Host-Neustartautoritaet ab.');

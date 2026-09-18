@@ -116,9 +116,9 @@ Der zentrale Kern ist implementiert: `LaufzeitSteuerung` sperrt bei Pause normal
 
 Die Produktionsruntime-Grenze ist ebenfalls implementiert: Bootstrap und AktionsSteuerung teilen dieselbe LaufzeitSteuerung; Runtime/Bootstrap wurden fuer die neue Schnittstelle auf 1.1.5 angehoben. Nach aussen existieren nur `basisBedienStatus()`, `erstelleBasisBedienAnfrage(...)` und `fuehreBasisBedienAnfrage(...)`. Bot-Pause und Produktionsheartbeat bleiben getrennt. Der getrennte `V4IngameHudBedienung`-Adapter bietet Diagnose, Pause und zweistufig bestaetigtes Fortsetzen ausschliesslich ueber diesen sicheren Kanal und verwendet die zuletzt beobachtete Laufzeit-Generation als Stale-Schutz.
 
-### Schritt 8.5.8 – Recovery-Abnahme
+### Schritt 8.5.8 – Recovery-Abnahme — **IMPLEMENTIERT**
 
-Mindestens:
+Abgenommen sind:
 
 - Reconnect,
 - stale Daten,
@@ -130,6 +130,8 @@ Mindestens:
 - doppelte Bedienanfrage,
 - ungueltiger/veralteter Status,
 - Telemetrie-/Speicherfehler.
+
+Die neue Recovery-Abnahmesuite verbindet die bereits vorhandenen Sicherheitsgrenzen, ohne eine neue Recovery-Engine einzufuehren. Checkpoints bleiben nach Runtime-Neustart reine Abgleichsdaten mit `wiederaufnahmeErlaubt: false`, `abgleichErforderlich: true` und `aktionsAutoritaet: false`. Unterbrochene normale Arbeit wird nach Fortsetzen nicht wiederbelebt, doppelte Bedienanfragen bleiben idempotent, stale/ungueltige Zustaende werden blockiert und RuntimeGesundheit behaelt `automatischerNeustart: false`. Historische Block-8-Reconnect- und Browser-Hintergrundnachweise bleiben unveraendert und werden als bestehende Regressionen weiter mitgeprueft.
 
 ### Schritt 8.5.9 – Freigabestufen
 
