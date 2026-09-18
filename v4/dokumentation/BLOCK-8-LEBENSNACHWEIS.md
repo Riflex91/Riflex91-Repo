@@ -16,7 +16,7 @@ Verbindliche Identitaets- und Weltwerte werden nicht geraten. Fehlen Charakterke
 
 HP-/MP-Anteile duerfen dagegen `null` bleiben, wenn Adventure Land diese Werte nicht sicher liefert. Zeit und Sequenz stammen deterministisch aus `spielzustand.aufgenommenAm` und `spielzustand.laufendeNummer`.
 
-`AdventureLandGruppenLebensnachweisAustausch` liegt an der Ausfuehrungsgrenze. Senden ist standardmaessig gesperrt und muss explizit freigegeben werden. Ziele ausserhalb der Vertrauensliste werden vor `send_cm` blockiert.
+`AdventureLandGruppenLebensnachweisAustausch` liegt an der Ausfuehrungsgrenze. Senden ist standardmaessig gesperrt und muss explizit freigegeben werden. Ziele ausserhalb der Vertrauensliste werden vor `send_cm` blockiert. Ab Produktionsruntime **1.1.3** reicht ein aufgeloestes `send_cm`-Promise nicht mehr als Erfolg: Der Zielcharakter muss in Adventure Lands Rueckgabe `receivers` oder `locals` enthalten sein, sonst bleibt `gesendet=false`.
 
 ## Adventure-Land-Kontext
 
@@ -130,6 +130,19 @@ V4Block8Lebensnachweis.stoppe()
 ```
 
 Danach zuerst die Block-7-Sicherheitsquelle und anschliessend die neue Lebensnachweisdatei laden, erneut konfigurieren und starten. So werden alter Timer und alter `on_cm`-Empfaenger sauber entfernt.
+
+## Autonomer Produktionsheartbeat ab Runtime 1.1.3
+
+Die produktive `V4ProduktionsLaufzeit` besitzt den Gruppenheartbeat nun selbst. `starte()` installiert den Empfang und startet bei aktiver Freigabe standardmaessig einen **2000-ms**-Heartbeat-Timer. Der Block-8-GUI-Test darf diesen Dienst beobachten und fuer die geplante Stoerung pausieren/fortsetzen, taktet ihn aber nicht mehr selbst.
+
+Im Runtime-Status sind Sendeversuche, bestaetigte Erfolge, Fehler, offene Sends und letzter Fehler sichtbar. Damit kann ein kuenftiger Live-Fail unterscheiden zwischen:
+
+- lokalem Timer-/Codekontext-Stall,
+- `send_cm` ohne bestaetigten Ziel-Empfaenger,
+- echtem Remote-Empfangsausfall,
+- sauberem Senden mit spaeterem Stale auf der Gegenseite.
+
+`stoppe()` entfernt den Timer und den `on_cm`-Empfang fail-safe.
 
 ## Reconnect-/Stale-Verhalten
 
