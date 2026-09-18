@@ -15,7 +15,12 @@ function recoveryFixture({
   now = 1000
 } = {}) {
   let clock = now;
+  const persisted = new Map();
   const root = {
+    localStorage: {
+      getItem(key) { return persisted.has(key) ? persisted.get(key) : null; },
+      setItem(key, value) { persisted.set(key, String(value)); }
+    },
     character: {
       name: 'Merchant',
       ctype: 'merchant',
