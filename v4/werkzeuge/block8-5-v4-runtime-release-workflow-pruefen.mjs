@@ -12,7 +12,7 @@ for (const pflicht of [
   'release_sha:',
   'confirmation:',
   'PUBLISH-V4-IMMUTABLE:$RELEASE_SHA',
-  'github.ref',
+  '$GITHUB_REF',
   'refs/heads/main',
   'ref: ${{ github.sha }}',
   'path: control',
