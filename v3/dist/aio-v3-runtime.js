@@ -1388,6 +1388,8 @@ const COMMAND_CATALOG = Object.freeze({
   open_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   close_stand: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   send_item: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
+  equip: Object.freeze({ family: 'equipment', mutation: true, outcome: 'domain' }),
+  unequip: Object.freeze({ family: 'equipment', mutation: true, outcome: 'domain' }),
   send_gold: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   sell: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
   bank_retrieve: Object.freeze({ family: 'merchant', mutation: true, outcome: 'domain' }),
@@ -3719,6 +3721,32 @@ class FarmerController {
   _selectTarget(context) {
     const { rows, monsters } = this._candidateRows(context);
     if (!rows.length || !monsters.length) return null;
+
+    const objective = this.materialObjective;
+    if (objective && Number(objective.expiresAt || 0) > this.now() && objective.monster) {
+      const objectiveTargets = monsters
+        .filter((entity) => entity.mtype === objective.monster)
+        .sort((a, b) => distance(context.snapshot.character, a) - distance(context.snapshot.character, b));
+      if (objectiveTargets.length) {
+        const row = rows.find((candidate) => (candidate.monster || candidate.id) === objective.monster) || {};
+        return {
+          target: objectiveTargets[0],
+          ranking: {
+            ...row,
+            monster: objective.monster,
+            score: Number.MAX_SAFE_INTEGER,
+            source: 'elixir-material-objective',
+            objectiveKind: objective.kind || 'MATERIAL',
+            material: objective.material || null,
+            elixirName: objective.elixirName || null,
+            objectiveExpiresAt: objective.expiresAt
+          }
+        };
+      }
+    } else if (objective) {
+      this.materialObjective = null;
+    }
+
     const ranked = this.planner && this.planner.rank ? this.planner.rank(rows, {
       character: context.snapshot.character.name,
       partyFingerprint: context.party && context.party.fingerprint || null
@@ -26753,6 +26781,7 @@ function patchLogisticsPrototype() {
     // automatically merely to satisfy logistics.
     if (item.locked === true) return { ok: false, reason: 'SERVER_LOCKED_NONTRANSFERABLE' };
     const meta = this._metadata ? this._metadata(name) : null;
+    if (meta && meta.type === 'elixir') return { ok: false, reason: 'FARMER_ELIXIR_RESERVED' };
     return {
       ok: true,
       name,
@@ -26904,6 +26933,7 @@ function patchLogisticsPrototype() {
   proto._farmerTick = function alpha2015FarmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    if (typeof this._maybeUseElixir === 'function') this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
 
     // Existing grants must complete even if the combat state changed after the
@@ -26985,6 +27015,7 @@ class Alpha2015CombatLogisticsHotfix {
         potionTarget: 5000,
         farmerGoldReserve: 0,
         allTransferableInventoryExceptHpMpPotions: true,
+        farmerElixirsRemainLocalUntilConsumed: true,
         merchantFullDoesNotBlockGold: true
       }
     };
@@ -27010,6 +27041,7 @@ module.exports = {
 'use strict';
 
 const { sellProtectionReasons } = require('../economy/sell-safety');
+const { preferredAcquisitionElixir, bestOwnedElixir, activeElixir, planElixirAcquisition } = require('./elixir-policy');
 
 const PARTY_LOGISTICS_TYPE = 'aio-v3-party-logistics';
 const PARTY_LOGISTICS_PROTOCOL = 1;
@@ -27027,7 +27059,8 @@ const Action = Object.freeze({
   GOLD_GRANT: 'GOLD_GRANT',
   TRANSFER_COMMIT: 'TRANSFER_COMMIT',
   STOP_FULL: 'STOP_FULL',
-  RENDEZVOUS: 'RENDEZVOUS'
+  RENDEZVOUS: 'RENDEZVOUS',
+  ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE'
 });
 
 function finite(value, fallback = null) {
@@ -27113,13 +27146,20 @@ class ControlledPartyLogistics {
       rendezvousRequestTtlMs: Math.max(5000, finite(options.rendezvousRequestTtlMs, 15000)),
       farmerGoldReserve: Math.max(0, Math.floor(finite(options.farmerGoldReserve, 250000))),
       maxGoldBatch: Math.max(10000, Math.floor(finite(options.maxGoldBatch, 1000000))),
-      maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999)))
+      maxLootStackTransfer: Math.max(1, Math.floor(finite(options.maxLootStackTransfer, 9999))),
+      elixirRenewLeadMs: Math.max(60000, finite(options.elixirRenewLeadMs, 10 * 60 * 1000)),
+      elixirRequestIntervalMs: Math.max(30000, finite(options.elixirRequestIntervalMs, 5 * 60 * 1000)),
+      elixirFarmObjectiveTtlMs: Math.max(60000, finite(options.elixirFarmObjectiveTtlMs, 15 * 60 * 1000))
     };
 
     this.sequence = 0;
     this.capacitySequence = 0;
     this.lastStatusBroadcastAt = -Infinity;
     this.lastSupplyRequestAt = -Infinity;
+    this.lastElixirRequestAt = -Infinity;
+    this.lastElixirEquipAt = -Infinity;
+    this.pendingElixirEquip = null;
+    this.lastElixirFarmObjective = null;
     this.lastStatusRequestAt = -Infinity;
     this.lastTransferAt = -Infinity;
     this.lastRendezvousMoveAt = -Infinity;
@@ -27158,7 +27198,12 @@ class ControlledPartyLogistics {
       merchantFullStops: 0,
       rendezvousMoves: 0,
       rendezvousCrossMap: 0,
-      verificationFailures: 0
+      verificationFailures: 0,
+      elixirRequests: 0,
+      elixirTransfers: 0,
+      elixirEquips: 0,
+      elixirEquipVerified: 0,
+      elixirFarmObjectives: 0
     };
     this.install();
   }
@@ -27454,6 +27499,27 @@ class ControlledPartyLogistics {
       return true;
     }
 
+    if (action === Action.ELIXIR_FARM_OBJECTIVE) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      if (!farmer) return false;
+      farmer.materialObjective = {
+        kind: 'ELIXIR_MATERIAL',
+        monster: cleanName(data.monster),
+        material: cleanName(data.material),
+        elixirName: cleanName(data.elixirName),
+        map: cleanName(data.map),
+        x: finite(data.x),
+        y: finite(data.y),
+        spawnIndex: finite(data.spawnIndex),
+        expectedHours: finite(data.expectedHours),
+        expiresAt
+      };
+      return true;
+    }
+
     if (action === Action.SUPPLY_RESULT) {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       this.lastSupplyResult = { ...clone(data), receivedAt: this.now() };
@@ -27479,6 +27545,7 @@ class ControlledPartyLogistics {
     }
     if (action === Action.SUPPLY_REQUEST) {
       this.supplyRequests.set(from, { ...clone(data), sender: from, receivedAt: this.now() });
+      if (data && data.elixirName) this._maybePublishElixirFarmObjective({ ...data, sender: from });
       return true;
     }
     if (action === Action.LOOT_OFFER) return this._handleLootOffer(from, data);
@@ -27567,10 +27634,20 @@ class ControlledPartyLogistics {
       const merchantPos = snapshot.character;
       const farmerPos = { map: request.map, x: finite(request.x), y: finite(request.y) };
       if (!this._withinTransferRange(merchantPos, farmerPos)) continue;
-      const choices = ['mpot0', 'hpot0'].map((itemName) => ({ itemName, deficit: this._supplyDeficit(request, itemName), available: countItem(snapshot, itemName) }));
-      const choice = choices.find((row) => row.deficit > 0 && row.available > this.config.merchantPotionReserve);
-      if (!choice) { this.supplyRequests.delete(request.sender); continue; }
-      const quantity = Math.min(choice.deficit, choice.available - this.config.merchantPotionReserve, this.config.maxSupplyBatch);
+      let choice = null;
+      if (request.elixirName) {
+        const inventory = snapshot.character.inventory || [];
+        const exact = inventory.find((item) => item && item.name === request.elixirName);
+        const gameData = this.root && this.root.G || this.parent && this.parent.G || {};
+        const best = exact ? { name: exact.name, index: exact.index } : bestOwnedElixir(inventory, gameData, request.ctype);
+        if (best) choice = { itemName: best.name, deficit: 1, available: countItem(snapshot, best.name), elixir: true, slotIndex: best.index };
+      }
+      if (!choice) {
+        const choices = ['mpot0', 'hpot0'].map((itemName) => ({ itemName, deficit: this._supplyDeficit(request, itemName), available: countItem(snapshot, itemName), elixir: false }));
+        choice = choices.find((row) => row.deficit > 0 && row.available > this.config.merchantPotionReserve) || null;
+      }
+      if (!choice) { if (request.elixirName) this._maybePublishElixirFarmObjective(request); else this.supplyRequests.delete(request.sender); continue; }
+      const quantity = choice.elixir ? 1 : Math.min(choice.deficit, choice.available - this.config.merchantPotionReserve, this.config.maxSupplyBatch);
       if (quantity <= 0) continue;
       const inventory = snapshot.character.inventory || [];
       const slot = inventory.find((item) => item && item.name === choice.itemName && Math.max(1, finite(item.q, 1)) >= quantity);
@@ -27596,6 +27673,7 @@ class ControlledPartyLogistics {
         }
         const result = command.value;
         this.stats.supplyTransfers += 1;
+        if (choice.elixir) this.stats.elixirTransfers += 1;
         Promise.resolve(result).catch(() => { if (this.pendingSupply && this.pendingSupply.transactionId === transactionId) this.pendingSupply.asyncRejected = true; });
         this._event('PARTY_SUPPLY_SENT', 'info', 'BOUNDED_POTION_RESUPPLY', { transactionId, target: request.sender, itemName: choice.itemName, quantity });
       } catch (error) {
@@ -27647,15 +27725,121 @@ class ControlledPartyLogistics {
   _requestSupply(snapshot) {
     const hpPotions = countItem(snapshot, 'hpot0');
     const mpPotions = countItem(snapshot, 'mpot0');
-    if (hpPotions >= this.config.farmerPotionLow && mpPotions >= this.config.farmerPotionLow) return false;
+    const elixir = this._elixirRequest(snapshot);
+    const potionNeed = hpPotions < this.config.farmerPotionLow || mpPotions < this.config.farmerPotionLow;
+    if (!potionNeed && !elixir) return false;
     const now = this.now();
-    if (now - this.lastSupplyRequestAt < this.config.supplyRequestIntervalMs) return false;
+    const interval = elixir && !potionNeed ? this.config.elixirRequestIntervalMs : this.config.supplyRequestIntervalMs;
+    if (now - this.lastSupplyRequestAt < interval) return false;
     const merchant = this._merchantName();
     if (!merchant) return false;
     this.lastSupplyRequestAt = now;
+    if (elixir) { this.lastElixirRequestAt = now; this.stats.elixirRequests += 1; }
     this.stats.supplyRequests += 1;
-    this._send(merchant, Action.SUPPLY_REQUEST, { hpPotions, mpPotions, target: this.config.farmerPotionTarget, ...this._farmerPosition(snapshot) });
-    this.lastDecision = { at: now, action: 'SUPPLY_REQUEST', reason: hpPotions <= 0 || mpPotions <= 0 ? 'POTION_SUPPLY_MISSING' : 'POTION_SUPPLY_LOW', hpPotions, mpPotions };
+    this._send(merchant, Action.SUPPLY_REQUEST, { hpPotions, mpPotions, target: this.config.farmerPotionTarget, ...elixir, ...this._farmerPosition(snapshot) });
+    this.lastDecision = { at: now, action: 'SUPPLY_REQUEST', reason: elixir && !potionNeed ? 'ELIXIR_RENEWAL_DUE' : hpPotions <= 0 || mpPotions <= 0 ? 'POTION_SUPPLY_MISSING' : 'POTION_SUPPLY_LOW', hpPotions, mpPotions, elixir: clone(elixir) };
+    return true;
+  }
+
+  _elixirState(snapshot) {
+    const c = this._character() || {};
+    const inventory = snapshot && snapshot.character && snapshot.character.inventory || [];
+    const gameData = this.root && this.root.G || this.parent && this.parent.G || {};
+    const desired = preferredAcquisitionElixir(gameData, c.ctype);
+    const owned = bestOwnedElixir(inventory, gameData, c.ctype);
+    const active = activeElixir(c, this.now());
+    return {
+      desired,
+      owned,
+      active,
+      renewalDue: !active.active || active.remainingMs <= this.config.elixirRenewLeadMs,
+      useDue: !active.active
+    };
+  }
+
+  _verifyPendingElixirEquip() {
+    const pending = this.pendingElixirEquip;
+    if (!pending) return false;
+    const active = activeElixir(this._character(), this.now());
+    if (active.active && active.name === pending.name) {
+      this.stats.elixirEquipVerified += 1;
+      this.pendingElixirEquip = null;
+      return false;
+    }
+    if (this.now() - pending.at > this.config.verifyTimeoutMs) {
+      this.pendingElixirEquip = null;
+      this.backoffUntil = this.now() + this.config.failureBackoffMs;
+      return false;
+    }
+    return true;
+  }
+
+  _maybeUseElixir(snapshot) {
+    this._verifyPendingElixirEquip();
+    if (this.pendingElixirEquip || this.now() < this.backoffUntil) return false;
+    const state = this._elixirState(snapshot);
+    if (!state.useDue || !state.owned) return false;
+    if (!this.adapter || typeof this.adapter.command !== 'function') return false;
+    const command = this.adapter.command('equip', [state.owned.index, 'elixir']);
+    if (!command || command.executed !== true) return false;
+    this.pendingElixirEquip = { at: this.now(), name: state.owned.name, index: state.owned.index };
+    this.lastElixirEquipAt = this.now();
+    this.stats.elixirEquips += 1;
+    Promise.resolve(command.value).catch(() => {
+      if (this.pendingElixirEquip && this.pendingElixirEquip.name === state.owned.name) this.pendingElixirEquip = null;
+    });
+    this._event('FARMER_ELIXIR_EQUIP_REQUESTED', 'info', 'ACTIVE_ELIXIR_EXPIRED_OR_MISSING', { name: state.owned.name });
+    return true;
+  }
+
+  _elixirRequest(snapshot) {
+    if (this._isMerchant(snapshot)) return null;
+    const state = this._elixirState(snapshot);
+    if (!state.desired || !state.renewalDue || state.owned) return null;
+    return {
+      elixirName: state.desired.name,
+      elixirStat: state.desired.stat,
+      ctype: snapshot && snapshot.character && snapshot.character.ctype || this._character() && this._character().ctype || null,
+      activeElixir: state.active.name,
+      activeElixirRemainingMs: Number.isFinite(state.active.remainingMs) ? state.active.remainingMs : null
+    };
+  }
+
+  _maybePublishElixirFarmObjective(request) {
+    if (!request || !request.elixirName) return false;
+    if (this.lastElixirFarmObjective && this.lastElixirFarmObjective.expiresAt > this.now() && this.lastElixirFarmObjective.elixirName === request.elixirName) return false;
+    const plan = planElixirAcquisition(this.runtime, request.ctype, {});
+    if (!plan || !plan.worthwhile || !plan.farm) return false;
+    const farm = plan.farm;
+    const objective = {
+      elixirName: request.elixirName,
+      material: farm.material,
+      monster: farm.monster,
+      map: farm.map,
+      spawnIndex: farm.spawnIndex,
+      x: farm.x,
+      y: farm.y,
+      expectedHours: farm.expectedHours,
+      unitsPerHour: farm.unitsPerHour,
+      createdAt: this.now(),
+      expiresAt: this.now() + this.config.elixirFarmObjectiveTtlMs,
+      reason: plan.reason
+    };
+    this.lastElixirFarmObjective = clone(objective);
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      this._send(name, Action.ELIXIR_FARM_OBJECTIVE, objective);
+    }
+    if (this.runtime) {
+      this.runtime.merchantExchangeDemands = [{
+        item: farm.kind === 'EXCHANGE_MATERIAL_DROP' ? farm.material : null,
+        target: request.elixirName,
+        reason: 'ELIXIR_SUPPLY',
+        expiresAt: objective.expiresAt
+      }].filter((row) => row.item);
+    }
+    this.stats.elixirFarmObjectives += 1;
+    this._event('ELIXIR_FARM_OBJECTIVE_PUBLISHED', 'info', plan.reason, objective);
     return true;
   }
 
@@ -27822,6 +28006,7 @@ class ControlledPartyLogistics {
   _farmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
     if (this._safeForOutbound(snapshot)) {
       if (!this._executeGrant(snapshot)) this._offerOutbound(snapshot);
@@ -27852,7 +28037,9 @@ class ControlledPartyLogistics {
       config: { ...this.config },
       authority: {
         genericSendItem: false,
-        merchantSupplyAllowlist: ['hpot0', 'mpot0'],
+        merchantSupplyAllowlist: ['hpot0', 'mpot0', 'class-appropriate-elixir'],
+        farmerElixirAutoUseAfterExpiry: true,
+        elixirFarmObjectiveAutomatic: true,
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
         farmerGoldTransfer: true,
@@ -27863,6 +28050,8 @@ class ControlledPartyLogistics {
       lastMerchantStatus: clone(this.lastMerchantStatus),
       lastSupplyResult: clone(this.lastSupplyResult),
       pendingSupply: clone(this.pendingSupply),
+      pendingElixirEquip: clone(this.pendingElixirEquip),
+      lastElixirFarmObjective: clone(this.lastElixirFarmObjective),
       supplyRequests: [...this.supplyRequests.values()].map(clone),
       rendezvousRequests: [...this.rendezvousRequests.values()].map(clone),
       activeLootGrants: [...this.activeLootGrants.values()].map(clone),
@@ -27893,6 +28082,234 @@ module.exports = {
 };
 
 },
+"src/party/elixir-policy.js": function(require,module,exports){
+'use strict';
+
+const PRIMARY_STAT = Object.freeze({
+  ranger: 'dex',
+  rogue: 'dex',
+  warrior: 'str',
+  paladin: 'str',
+  mage: 'int',
+  priest: 'int',
+  merchant: 'luck'
+});
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function primaryStatFor(ctype) {
+  return PRIMARY_STAT[String(ctype || '').toLowerCase()] || null;
+}
+
+function elixirCandidates(gameData, ctype) {
+  const items = gameData && gameData.items || {};
+  const stat = primaryStatFor(ctype);
+  if (!stat) return [];
+  return Object.entries(items)
+    .filter(([, meta]) => meta && meta.type === 'elixir' && finite(meta[stat], 0) > 0 && finite(meta.duration, 0) > 0)
+    .map(([name, meta]) => {
+      const statValue = finite(meta[stat], 0);
+      const durationHours = finite(meta.duration, 0);
+      const nominalValue = Math.max(1, finite(meta.g != null ? meta.g : meta.gold, 1));
+      return {
+        name,
+        stat,
+        statValue,
+        durationHours,
+        nominalValue,
+        totalUtility: statValue * durationHours,
+        efficiency: (statValue * durationHours) / nominalValue,
+        meta: clone(meta)
+      };
+    })
+    .sort((a, b) => b.efficiency - a.efficiency || b.totalUtility - a.totalUtility || a.nominalValue - b.nominalValue || a.name.localeCompare(b.name));
+}
+
+function preferredAcquisitionElixir(gameData, ctype) {
+  return elixirCandidates(gameData, ctype)[0] || null;
+}
+
+function bestOwnedElixir(inventory, gameData, ctype) {
+  const byName = new Map(elixirCandidates(gameData, ctype).map((row) => [row.name, row]));
+  const rows = [];
+  for (const item of Array.isArray(inventory) ? inventory : []) {
+    if (!item || !byName.has(item.name)) continue;
+    const candidate = byName.get(item.name);
+    rows.push({ ...candidate, index: item.index, quantity: Math.max(1, Math.floor(finite(item.q, 1))) });
+  }
+  rows.sort((a, b) => b.totalUtility - a.totalUtility || b.durationHours - a.durationHours || a.name.localeCompare(b.name));
+  return rows[0] || null;
+}
+
+function activeElixir(character, now = Date.now()) {
+  const slot = character && character.slots && character.slots.elixir || null;
+  if (!slot || !slot.name) return { active: false, name: null, remainingMs: 0, expiresAt: null };
+  const raw = slot.expires;
+  const expiresAt = raw instanceof Date ? raw.getTime() : Date.parse(raw || '');
+  if (!Number.isFinite(expiresAt)) return { active: true, name: slot.name, remainingMs: Infinity, expiresAt: null };
+  const remainingMs = Math.max(0, expiresAt - now);
+  return { active: remainingMs > 0, name: slot.name, remainingMs, expiresAt };
+}
+
+function flattenDropTable(gameData, table, multiplier = 1, seen = new Set()) {
+  const drops = gameData && gameData.drops || {};
+  const rows = Array.isArray(table) ? table : [];
+  const out = [];
+  for (const row of rows) {
+    if (!Array.isArray(row) || row.length < 2) continue;
+    const weight = Math.max(0, finite(row[0], 0));
+    if (!weight) continue;
+    if (row[1] === 'open' && row[2] && Array.isArray(drops[row[2]])) {
+      const key = String(row[2]);
+      if (seen.has(key)) continue;
+      const total = drops[key].reduce((sum, child) => sum + Math.max(0, finite(child && child[0], 0)), 0) || 1;
+      const nextSeen = new Set(seen); nextSeen.add(key);
+      out.push(...flattenDropTable(gameData, drops[key], multiplier * weight / total, nextSeen));
+      continue;
+    }
+    if (typeof row[1] !== 'string') continue;
+    out.push({ chance: multiplier * weight, name: row[1], quantity: Math.max(1, Math.floor(finite(row[2], 1))) });
+  }
+  return out;
+}
+
+function rewardChanceForExchange(gameData, exchangeItemName, desiredName) {
+  const drops = gameData && gameData.drops || {};
+  const table = drops[exchangeItemName];
+  if (!Array.isArray(table)) return 0;
+  return flattenDropTable(gameData, table).filter((row) => row.name === desiredName)
+    .reduce((sum, row) => sum + row.chance * row.quantity, 0);
+}
+
+function directDropChance(gameData, monster, itemName) {
+  const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+  const table = monsters[monster];
+  if (!Array.isArray(table)) return 0;
+  return flattenDropTable(gameData, table).filter((row) => row.name === itemName)
+    .reduce((sum, row) => sum + row.chance * row.quantity, 0);
+}
+
+function monsterSpawn(gameData, mtype) {
+  const maps = gameData && gameData.maps || {};
+  for (const [mapName, map] of Object.entries(maps)) {
+    const packs = Array.isArray(map && map.monsters) ? map.monsters : [];
+    for (let i = 0; i < packs.length; i += 1) {
+      const pack = packs[i];
+      if (!pack || String(pack.type || pack.mtype || '') !== String(mtype)) continue;
+      const boundary = Array.isArray(pack.boundary) ? pack.boundary : Array.isArray(pack.boundaries) && pack.boundaries[0];
+      let x = finite(pack.x, null), y = finite(pack.y, null);
+      if ((x == null || y == null) && Array.isArray(boundary) && boundary.length >= 4) {
+        x = (finite(boundary[0], 0) + finite(boundary[2], 0)) / 2;
+        y = (finite(boundary[1], 0) + finite(boundary[3], 0)) / 2;
+      }
+      return { map: mapName, spawnIndex: i, x, y };
+    }
+  }
+  return null;
+}
+
+function bestMeasuredKillsPerHour(runtime, monster) {
+  const world = runtime && runtime.world;
+  if (!world || !(world.performance instanceof Map)) return null;
+  const rows = [...world.performance.values()]
+    .filter((row) => row && row.monster === monster && finite(row.seconds, 0) >= 60)
+    .map((row) => {
+      const hours = finite(row.seconds, 0) / 3600;
+      return { kph: hours > 0 ? finite(row.kills, 0) / hours : 0, seconds: finite(row.seconds, 0) };
+    })
+    .filter((row) => row.kph > 0)
+    .sort((a, b) => b.seconds - a.seconds);
+  return rows.length ? rows[0].kph : null;
+}
+
+function bestFarmSource(runtime, desiredElixirName, options = {}) {
+  const gameData = runtime && runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {};
+  const items = gameData.items || {};
+  const monsters = gameData.drops && gameData.drops.monsters || {};
+  const fallbackKillsPerHour = Math.max(10, finite(options.fallbackKillsPerHour, 60));
+  const candidates = [];
+
+  for (const monster of Object.keys(monsters)) {
+    const direct = directDropChance(gameData, monster, desiredElixirName);
+    if (direct > 0) {
+      const killsPerHour = bestMeasuredKillsPerHour(runtime, monster) || fallbackKillsPerHour;
+      const unitsPerHour = direct * killsPerHour;
+      const spawn = monsterSpawn(gameData, monster);
+      if (unitsPerHour > 0 && spawn) candidates.push({
+        kind: 'DIRECT_ELIXIR_DROP', monster, material: desiredElixirName, yieldPerKill: direct,
+        killsPerHour, unitsPerHour, expectedHours: 1 / unitsPerHour, ...spawn
+      });
+    }
+  }
+
+  for (const [material, meta] of Object.entries(items)) {
+    const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+    if (required <= 0) continue;
+    const rewardChance = rewardChanceForExchange(gameData, material, desiredElixirName);
+    if (rewardChance <= 0) continue;
+    for (const monster of Object.keys(monsters)) {
+      const materialChance = directDropChance(gameData, monster, material);
+      if (materialChance <= 0) continue;
+      const killsPerHour = bestMeasuredKillsPerHour(runtime, monster) || fallbackKillsPerHour;
+      const desiredPerKill = (materialChance / required) * rewardChance;
+      const unitsPerHour = desiredPerKill * killsPerHour;
+      const spawn = monsterSpawn(gameData, monster);
+      if (unitsPerHour > 0 && spawn) candidates.push({
+        kind: 'EXCHANGE_MATERIAL_DROP', monster, material, requiredPerExchange: required,
+        exchangeRewardChance: rewardChance, yieldPerKill: desiredPerKill, materialChance,
+        killsPerHour, unitsPerHour, expectedHours: 1 / unitsPerHour, ...spawn
+      });
+    }
+  }
+
+  candidates.sort((a, b) => a.expectedHours - b.expectedHours || b.unitsPerHour - a.unitsPerHour || a.monster.localeCompare(b.monster));
+  return candidates[0] || null;
+}
+
+function planElixirAcquisition(runtime, ctype, options = {}) {
+  const gameData = runtime && runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {};
+  const desired = preferredAcquisitionElixir(gameData, ctype);
+  if (!desired) return null;
+  const source = bestFarmSource(runtime, desired.name, options);
+  if (!source) return { desired, farm: null, worthwhile: false, reason: 'NO_KNOWN_FARM_SOURCE' };
+  const maxFarmHours = Math.max(0.25, finite(options.maxFarmHours, desired.durationHours));
+  const utilityPerFarmHour = desired.totalUtility / Math.max(0.01, source.expectedHours);
+  const minUtilityPerFarmHour = Math.max(0.1, finite(options.minUtilityPerFarmHour, 4));
+  const worthwhile = source.expectedHours <= maxFarmHours && utilityPerFarmHour >= minUtilityPerFarmHour;
+  return {
+    desired,
+    farm: source,
+    worthwhile,
+    reason: worthwhile ? 'EXPECTED_BUFF_UTILITY_JUSTIFIES_FARM_TIME' : 'FARM_TIME_EXCEEDS_ELIXIR_UTILITY',
+    maxFarmHours,
+    utilityPerFarmHour,
+    minUtilityPerFarmHour
+  };
+}
+
+module.exports = {
+  PRIMARY_STAT,
+  primaryStatFor,
+  elixirCandidates,
+  preferredAcquisitionElixir,
+  bestOwnedElixir,
+  activeElixir,
+  flattenDropTable,
+  rewardChanceForExchange,
+  directDropChance,
+  monsterSpawn,
+  bestFarmSource,
+  planElixirAcquisition
+};
+
+},
 "src/party/alpha20-15-logistics-fairness-hotfix.js": function(require,module,exports){
 'use strict';
 
@@ -27908,6 +28325,7 @@ function patchAlpha2015LogisticsFairness() {
   proto._farmerTick = function alpha2015FairFarmerTick(snapshot) {
     this._prune();
     this._verifyPendingOutbound(snapshot);
+    if (typeof this._maybeUseElixir === 'function') this._maybeUseElixir(snapshot);
     this._requestSupply(snapshot);
 
     if (this.pendingGrant && this.pendingOffer && snapshot && snapshot.character && snapshot.character.rip !== true) {
@@ -30534,8 +30952,11 @@ function boundedOptions(options = {}) {
     merchantPotionTarget: Math.max(80, finite(options.merchantPotionTarget, 500)),
     merchantMaxPotionBuy: Math.max(1, Math.min(2000, Math.floor(finite(options.merchantMaxPotionBuy, 500)))),
     mutationAttemptWindowMs: Math.max(60000, finite(options.mutationAttemptWindowMs, 60 * 60 * 1000)),
-    maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 3)))),
-    maxCompoundAttemptsPerWindow: Math.max(1, Math.min(20, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 2)))),
+    // Temporary live-observation experiment: 10x the former defaults while
+    // keeping the same one-hour window and all per-attempt atomic safeguards.
+    // Upgrade: 3 -> 30, Compound: 2 -> 20.
+    maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 30)))),
+    maxCompoundAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 20)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
     maxCompoundLevel: Math.max(0, Math.min(10, Math.floor(finite(options.maxCompoundLevel, 10)))),
@@ -31316,6 +31737,23 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       return { executed: false, committed: false, aborted: true, reason };
     }
 
+    if (tx && reason === 'MUTATION_RISK_BUDGET_EXHAUSTED') {
+      const retryAt = finite(check && check.mutationBudget && check.mutationBudget.retryAt, null);
+      if (engine && typeof engine.cancel === 'function') engine.cancel(tx.id, 'PREFLIGHT_RELEASED:MUTATION_RISK_BUDGET_EXHAUSTED');
+      this.lastMerchantAction = {
+        at: now,
+        transactionId: tx.id,
+        type: tx.type,
+        result: 'RELEASED',
+        reason,
+        retryAt,
+        mutationBudget: clone(check && check.mutationBudget || null)
+      };
+      if (executor) executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_PREFLIGHT_RELEASED', 'info', reason, this.lastMerchantAction);
+      return { executed: false, committed: false, released: true, reason, retryAt, mutationBudget: clone(check && check.mutationBudget || null) };
+    }
+
     if (tx && TRANSIENT_ATOMIC_PREFLIGHT_REASONS.has(reason)) {
       const liveTx = engine && engine.transactions && engine.transactions.get(String(tx.id));
       if (liveTx && liveTx.state === 'RESERVED') {
@@ -31571,8 +32009,9 @@ function serviceNpcId(destination, gameData = {}) {
   const npcs = gameData && gameData.npcs && typeof gameData.npcs === 'object' ? gameData.npcs : {};
   if (Object.prototype.hasOwnProperty.call(npcs, key)) return key;
   for (const [id, npc] of Object.entries(npcs)) {
-    if (!npc || !Array.isArray(npc.items)) continue;
-    if (npc.items.some((item) => item != null && String(item) === key)) return id;
+    if (!npc) continue;
+    if (String(npc.quest || '') === key || String(npc.role || '') === key) return id;
+    if (Array.isArray(npc.items) && npc.items.some((item) => item != null && String(item) === key)) return id;
   }
   return null;
 }
@@ -31722,21 +32161,26 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
   }
 
   async ensureScroll(tx, scrollName) {
+    const batch = typeof this.plannedScrollDemand === 'function'
+      ? this.plannedScrollDemand(scrollName, tx)
+      : { scrollName, quantity: 1, groups: [] };
+    const desired = Math.max(1, Math.floor(finite(batch && batch.quantity, 1)));
+    let have = identityQuantity(inventoryOf(this.root), scrollName, 0);
     let scroll = findItem(this.root, scrollName);
-    if (!scroll) {
+
+    if (have < desired) {
       const canBuy = rawFunction(this.root, 'can_buy');
       let near = false;
       if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
       if (!near) {
         const travelled = await this.namedServiceTravel(scrollName, tx);
         if (!travelled.ok) return travelled;
-        if (canBuy) { try { near = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) { near = false; } }
-        if (!near) {
-          this.runtime.transactionEngine.markFailedSafe(tx.id, 'SCROLL_VENDOR_NOT_REACHED');
-          this.stats.failedSafe += 1;
-          return { ok: false, reason: 'SCROLL_VENDOR_NOT_REACHED' };
-        }
+        // Adventure Land's can_buy() probe can remain false even after a
+        // verified arrival at the correct vendor. Trust controlled travel here
+        // and let the actual buy + inventory-delta verification be authoritative.
+        near = true;
       }
+
       const buy = rawFunction(this.root, 'buy');
       if (!buy) {
         this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
@@ -31746,33 +32190,48 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       const gd = gameDataOf(this.runtime);
       const scrollMeta = gd.items && gd.items[scrollName];
       const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
+      const quantity = Math.max(1, desired - have);
       const c = characterOf(this.runtime);
-      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
+      if (!c || finite(c.gold, 0) - price * quantity < this.options.goldReserve) {
         this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
         this.stats.failedSafe += 1;
-        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
+        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED', desired, have, quantity, unitPrice: price };
       }
-      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
+
+      const before = have;
       try {
-        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
+        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, quantity), 'BUY_SCROLL_BATCH', 15000);
         if (response && response.failed === true) throw response;
-        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
+        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) >= before + quantity);
+        if (!verified) throw new Error('SCROLL_BATCH_PURCHASE_DELTA_NOT_OBSERVED');
         this.stats.scrollPurchases += 1;
+        this.stats.scrollsPurchased = (this.stats.scrollsPurchased || 0) + quantity;
+        have = identityQuantity(inventoryOf(this.root), scrollName, 0);
         scroll = findItem(this.root, scrollName);
+        this._event('ALPHA27_SCROLL_BATCH_PURCHASED', 'info', 'PLANNED_MUTATION_BACKLOG', {
+          transactionId: tx && tx.id || null,
+          scrollName,
+          before,
+          desired,
+          purchased: quantity,
+          after: have,
+          batch
+        });
         if (!scroll) return { ok: false, reason: 'SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE' };
       } catch (error) {
         const details = errorDetails(error);
-        const reason = details.reason || 'BUY_SCROLL_FAILED';
+        const reason = details.reason || 'BUY_SCROLL_BATCH_FAILED';
         this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
         this.stats.failedSafe += 1;
         return { ok: false, reason, error: details };
       }
     }
 
+    if (!scroll) scroll = findItem(this.root, scrollName);
+    if (!scroll) return { ok: false, reason: 'SCROLL_NOT_AVAILABLE_AFTER_BATCH_PLAN', desired, have };
     const service = await this.ensureMutationService(tx);
     if (!service.ok) return service;
-    return { ok: true, scroll, service };
+    return { ok: true, scroll, service, batch: clone(batch), desiredScrollQuantity: desired };
   }
 }
 
@@ -31791,8 +32250,53 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     const now = this.now();
     const max = tx && tx.type === 'COMPOUND' ? this.options.maxCompoundAttemptsPerWindow : this.options.maxUpgradeAttemptsPerWindow;
     const rows = engine && typeof engine.list === 'function' ? engine.list(500) : [];
-    const used = rows.filter((row) => row && row.type === tx.type && row.character === tx.character && row.item === tx.item && levelOf(row) === levelOf(tx) && row.attemptedAt != null && now - finite(row.attemptedAt, 0) <= this.options.mutationAttemptWindowMs).length;
-    return { allowed: used < max, used, max, windowMs: this.options.mutationAttemptWindowMs };
+    const attempts = rows
+      .filter((row) => row && row.type === tx.type && row.character === tx.character && row.item === tx.item && levelOf(row) === levelOf(tx) && row.attemptedAt != null && now - finite(row.attemptedAt, 0) <= this.options.mutationAttemptWindowMs)
+      .map((row) => finite(row.attemptedAt, 0))
+      .filter((at) => at > 0)
+      .sort((a, b) => a - b);
+    const used = attempts.length;
+    const allowed = used < max;
+    const retryIndex = Math.max(0, used - max);
+    const retryAt = allowed || !attempts.length ? null : attempts[Math.min(retryIndex, attempts.length - 1)] + this.options.mutationAttemptWindowMs + 1;
+    return { allowed, used, max, remaining: Math.max(0, max - used), retryAt, windowMs: this.options.mutationAttemptWindowMs };
+  }
+
+  plannedScrollDemand(scrollName, tx = null) {
+    const ledger = this.runtime.inventoryLedger;
+    const c = characterOf(this.runtime);
+    const gd = gameDataOf(this.runtime);
+    if (!ledger || !c || !scrollName) return { scrollName, quantity: 1, groups: [] };
+    const groups = new Map();
+    for (const row of ledger.list(2000)) {
+      if (!row || row.character !== c.name) continue;
+      let type = null;
+      if (row.disposition === 'RESERVE_COMPOUND') type = 'COMPOUND';
+      else if (row.disposition === 'RESERVE_UPGRADE') type = 'UPGRADE';
+      else continue;
+      const meta = gd.items && gd.items[row.name];
+      if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
+      const grade = gradeForLevel(meta, levelOf(row));
+      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+      if (wantedScroll !== scrollName || grade >= 4) continue;
+      const key = `${type}|${row.name}|${levelOf(row)}`;
+      const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
+      group.count += 1;
+      groups.set(key, group);
+    }
+    let quantity = 0;
+    const details = [];
+    for (const group of groups.values()) {
+      const operations = group.type === 'COMPOUND' ? Math.floor(group.count / 3) : group.count;
+      if (operations <= 0) continue;
+      const budget = this.mutationAttemptBudget({ type: group.type, character: c.name, item: group.item, level: group.level });
+      const actionable = Math.min(operations, Math.max(0, budget.remaining));
+      if (actionable <= 0) continue;
+      quantity += actionable;
+      details.push({ ...group, operations, actionable, mutationBudget: budget });
+    }
+    const cap = Math.max(1, Math.min(100, Math.floor(finite(this.options.merchantScrollBatchMax, 40))));
+    return { scrollName, quantity: Math.max(1, Math.min(cap, quantity || 1)), cap, groups: details };
   }
 
   mutationRetryBlocked(entry, type) {
@@ -31808,6 +32312,17 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
   atomicPreflight(tx) {
     const executor = this.runtime.controlledMerchant;
     if (!tx) return { ok: false, reason: 'TRANSACTION_NOT_FOUND' };
+    const reservation = this.runtime && this.runtime.merchantSelfGearReservation;
+    const selfGear = !!(tx.metadata && tx.metadata.selfGear === true
+      && reservation
+      && reservation.sessionId === tx.metadata.selfGearSessionId
+      && reservation.type === tx.type
+      && reservation.character === tx.character
+      && reservation.item === tx.item
+      && levelOf({ level: reservation.level }) === levelOf(tx)
+      && Array.isArray(reservation.indices)
+      && reservation.indices.length === transactionInputs(tx).length
+      && reservation.indices.every((value) => transactionInputs(tx).some((row) => Number(row.index) === Number(value))));
     if (!executor || !executor.enabled) return { ok: false, reason: 'CONTROLLED_MERCHANT_DISABLED' };
     if (!['UPGRADE', 'COMPOUND'].includes(tx.type)) return { ok: false, reason: 'ATOMIC_FAMILY_NOT_SUPPORTED' };
     if (tx.type === 'UPGRADE' && !executor.upgradeEnabled) return { ok: false, reason: 'UPGRADE_LIVE_DISABLED' };
@@ -31837,7 +32352,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       seen.add(input.index);
       const entry = this._ledgerEntry(input);
       if (!entry) return { ok: false, reason: 'LEDGER_ITEM_NOT_FOUND', index: input.index };
-      if (!EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || ''))) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      if (!selfGear && !EXPECTED_DISPOSITIONS[tx.type].has(String(entry.disposition || ''))) return { ok: false, reason: 'LEDGER_DISPOSITION_CHANGED', index: input.index, disposition: entry.disposition };
+      if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return { ok: false, reason: 'SELF_GEAR_LEDGER_IDENTITY_CHANGED', index: input.index };
       if (String(entry.name || '') !== String(input.item || '') || levelOf(entry) !== levelOf(input)) return { ok: false, reason: 'LEDGER_ITEM_IDENTITY_CHANGED', index: input.index };
       if (this.runtime.contentDrift && typeof this.runtime.contentDrift.requiresRevalidation === 'function' && this.runtime.contentDrift.requiresRevalidation('items', input.item)) return { ok: false, reason: 'ITEM_REQUIRES_REVALIDATION', item: input.item };
       const item = live[input.index];
@@ -31857,8 +32373,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const goals = this.runtime.gearProgression && typeof this.runtime.gearProgression.list === 'function' ? this.runtime.gearProgression.list(200) : [];
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
-      if (!goal && !economicLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
-      if (!goal && economicLifecycle) {
+      if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && economicLifecycle && !selfGear) {
         const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
         if (levelOf(tx) !== 0 || requestedTarget !== 1) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
         const entry = inputs.length ? this._ledgerEntry(inputs[0]) : null;
@@ -31867,7 +32383,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
           return { ok: false, reason: 'ECONOMIC_UPGRADE_LEDGER_AUTHORIZATION_REQUIRED' };
         }
       }
-      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, value, grade, scroll: `scroll${grade}` };
+      return { ok: true, inputs, meta, goal: goal || null, economicLifecycle, selfGear, value, grade, scroll: `scroll${grade}` };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
     if (levelOf(tx) >= this.options.maxCompoundLevel) return { ok: false, reason: 'COMPOUND_LEVEL_RISK_CAP' };
@@ -31875,7 +32391,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     if (grade >= 4) return { ok: false, reason: 'COMPOUND_ITEM_EXALTED' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
-    return { ok: true, inputs, meta, value, grade, scroll: `cscroll${grade}` };
+    return { ok: true, inputs, meta, selfGear, value, grade, scroll: `cscroll${grade}` };
   }
 }
 
@@ -31912,12 +32428,22 @@ class Alpha27AtomicTransactionEngine extends Alpha27AtomicLedger {
       const ledger = context.ledger || this.runtime.inventoryLedger;
       const ledgerStatus = ledger && typeof ledger.status === 'function' ? ledger.status() : null;
       if (!ledgerStatus || ledgerStatus.stale === true) return engine._reject('LEDGER_UNAVAILABLE_OR_STALE', { type, character, indices });
+      const reservation = this.runtime && this.runtime.merchantSelfGearReservation;
+      const selfGear = !!(request.metadata && request.metadata.selfGear === true
+        && reservation
+        && reservation.sessionId === request.metadata.selfGearSessionId
+        && reservation.type === type
+        && reservation.character === character
+        && Array.isArray(reservation.indices)
+        && reservation.indices.length === indices.length
+        && reservation.indices.every((value) => indices.includes(Number(value))));
       const inputs = [];
       for (const index of indices) {
         let entry = null;
         try { entry = ledger.get(character, index); } catch (_) {}
         if (!entry) return engine._reject('LEDGER_ITEM_NOT_FOUND', { type, character, index });
-        if (!EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || ''))) return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        if (!selfGear && !EXPECTED_DISPOSITIONS[type].has(String(entry.disposition || ''))) return engine._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
+        if (selfGear && (String(entry.name || '') !== String(reservation.item || '') || levelOf(entry) !== levelOf({ level: reservation.level }))) return engine._reject('SELF_GEAR_RESERVATION_IDENTITY_MISMATCH', { type, character, index });
         const key = String(entry.key || `${character}:${index}`);
         const existing = engine.reservations && engine.reservations.get(key);
         if (existing) return engine._reject('ITEM_ALREADY_RESERVED', { type, reservationKey: key, transactionId: existing });
@@ -32208,11 +32734,13 @@ const { CONTROLLED_ACK, EXPECTED_DISPOSITIONS } = require('./alpha27-atomic-cons
 const { MERCHANT_SERVICE_ACK, TERMINAL_TX } = require('./alpha27-merchant-constants');
 const { Alpha27MerchantPlanning } = require('./alpha27-merchant-planning');
 const { Alpha27BankRecovery } = require('./alpha27-bank-recovery');
+const { MerchantSelfGear } = require('./merchant-self-gear');
 
 class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
   constructor(runtime, atomic, shared) {
     super(runtime, atomic, shared);
     this.bankRecovery = new Alpha27BankRecovery(runtime, atomic, shared);
+    this.selfGear = new MerchantSelfGear(runtime, atomic, shared);
     this.collectionSession = null;
     this.lastCollectionSession = null;
     this.runtime._merchantCollectionSessionActive = () => !!(this._updateCollectionSession().active);
@@ -32598,6 +33126,14 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       return false;
     }
 
+    // Improve Merchant's own equipped gear before ordinary inventory economy.
+    // The self-gear controller preserves a verified fallback and owns the
+    // unequip -> atomic mutation -> re-equip lifecycle.
+    if (this.selfGear && await this.selfGear.cycle()) {
+      this.lastMerchantPlan = { at: this.now(), action: 'SELF_GEAR', reason: 'MERCHANT_EQUIPMENT_PROGRESSION', selfGear: this.selfGear.status() };
+      return true;
+    }
+
     // Progression is processed before disposal. This restores the intended
     // Merchant lifecycle: COMPOUND/UPGRADE -> party gear delivery -> SELL -> BANK.
     // Family-scoped circuits still allow unrelated later stages to continue.
@@ -32666,6 +33202,8 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       collectionSession: this.collectionStatus(),
       collectionSessionPreemptsEconomy: true,
+      selfGear: this.selfGear ? this.selfGear.status() : null,
+      selfGearLifecycle: ['UNEQUIP', 'ATOMIC_UPGRADE_OR_COMPOUND', 'REEQUIP_OR_FALLBACK'],
       criticalPartySupplyPreemptsReservedLowRiskEconomy: true,
       criticalPartySupplyChainAtomicAcrossRestockTravelDelivery: true,
       partySupplyChainLatched: !!chain,
@@ -32853,6 +33391,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
       const meta = gd.items && gd.items[entry.name];
       if (!meta || !meta.upgrade || levelOf(entry) >= this.options.maxUpgradeLevel || gradeForLevel(meta, levelOf(entry)) >= 4) continue;
+      const budget = this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) });
+      if (!budget.allowed) continue;
       return { type: 'UPGRADE', character: c.name, index: entry.index, indices: [entry.index], metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER', goalId: goal.id, targetLevel: goal.targetLevel, targetCharacter: goal.character, lifecycle: 'PARTY_GEAR_GOAL' } };
     }
 
@@ -32867,7 +33407,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         if (!meta || !meta.upgrade || levelOf(entry) !== 0 || this.options.maxUpgradeLevel < 1) return false;
         if (gradeForLevel(meta, levelOf(entry)) >= 4) return false;
         const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
-        return value <= this.options.upgradeValueCap;
+        if (value > this.options.upgradeValueCap) return false;
+        return this.atomic.mutationAttemptBudget({ type: 'UPGRADE', character: c.name, item: entry.name, level: levelOf(entry) }).allowed;
       });
     if (!fallback) return null;
     return {
@@ -32905,14 +33446,17 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       .filter((rows) => rows.length >= 3)
       .map((rows) => {
         const identity = `${rows[0].name}:${levelOf(rows[0])}`;
+        const budget = this.atomic.mutationAttemptBudget({ type: 'COMPOUND', character: c.name, item: rows[0].name, level: levelOf(rows[0]) });
         return {
           rows,
           identity,
           completeSets: Math.floor(rows.length / 3),
+          mutationBudget: budget,
           previousSelections: this.compoundSelectionCounts.get(identity) || 0,
           repeated: identity === this.lastCompoundIdentity
         };
       })
+      .filter((candidate) => candidate.mutationBudget && candidate.mutationBudget.allowed)
       .sort((a, b) => (
         // Drain the largest actionable backlog first, but never repeatedly starve
         // another identity merely because its item name sorts later (ringsj was
@@ -33707,6 +34251,7 @@ const ProductionStepKind = Object.freeze({
   BANK_STORE: 'BANK_STORE',
   BUY: 'BUY',
   CRAFT: 'CRAFT',
+  EXCHANGE: 'EXCHANGE',
   FARM_REQUIRED: 'FARM_REQUIRED'
 });
 
@@ -34076,6 +34621,94 @@ class MerchantProductionPlanner {
     };
   }
 
+  planExchange(input = {}, protectedReservations = {}) {
+    const character = input.character || {};
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return null;
+    const gameData = input.gameData || {};
+    const inventory = Array.isArray(character.items) ? character.items : [];
+    const bank = bankRows(character.bank);
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    const bankPool = bank.length ? bank : catalogRows;
+    const demands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    if (!demands.length) return null;
+    const demandByItem = new Map(demands.map((row) => [String(row.item), row]));
+    const candidates = [];
+
+    for (let index = 0; index < inventory.length; index += 1) {
+      const item = inventory[index];
+      if (!item || !item.name || item.locked || item.l || item.special || item.p || levelOf(item) !== 0) continue;
+      const meta = gameData.items && gameData.items[item.name];
+      const demand = demandByItem.get(String(item.name));
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!demand || !meta || required <= 0) continue;
+      if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
+        try { if (input.contentDrift.requiresRevalidation('items', item.name)) continue; } catch (_) { continue; }
+      }
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(item.name, 0)], 0)));
+      const local = Math.max(1, Math.floor(finite(item.q, 1)));
+      const usable = Math.max(0, local - reserved);
+      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      if (usable >= required) {
+        candidates.push({
+          name: String(item.name), index, required, available: usable,
+          operations: Math.floor(usable / required), destination,
+          step: { kind: ProductionStepKind.EXCHANGE, name: String(item.name), level: 0, inventoryIndex: index, quantity: required, destination, reason: 'EXCHANGE_REQUIREMENT_SATISFIED' }
+        });
+        continue;
+      }
+      const bankRow = bankPool.find((row) => row && row.name === item.name && row.level === 0 && Number(row.quantity) + usable >= required);
+      if (bankRow) {
+        candidates.push({
+          name: String(item.name), index, required, available: usable, operations: 1, destination,
+          step: { kind: ProductionStepKind.BANK_RETRIEVE, name: String(item.name), level: 0, quantity: bankRow.quantity, pack: bankRow.pack, bankIndex: bankRow.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+        });
+      }
+    }
+
+    // Also recover an exchange stack that exists only in the bank.
+    for (const row of bankPool) {
+      if (!row || row.level !== 0) continue;
+      const meta = gameData.items && gameData.items[row.name];
+      const demand = demandByItem.get(String(row.name));
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!demand || !meta || required <= 0 || row.quantity < required) continue;
+      const local = itemQuantity(inventory, row.name, 0);
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
+      if (Math.max(0, local - reserved) >= required) continue;
+      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      candidates.push({
+        name: row.name, required, available: Math.max(0, local - reserved), operations: Math.floor(row.quantity / required), destination,
+        step: { kind: ProductionStepKind.BANK_RETRIEVE, name: row.name, level: 0, quantity: row.quantity, pack: row.pack, bankIndex: row.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+      });
+    }
+
+    candidates.sort((a, b) => b.operations - a.operations || a.required - b.required || a.name.localeCompare(b.name));
+    const chosen = candidates[0];
+    if (!chosen) return null;
+    const plan = {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      state: 'READY',
+      reason: 'NPC_EXCHANGE_READY',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      target: { item: chosen.name, operations: chosen.operations, required: chosen.required, destination: chosen.destination },
+      steps: [chosen.step],
+      nextStep: chosen.step,
+      reservations: {},
+      blockers: [],
+      totalGold: 0,
+      goldReserve: this.goldReserve,
+      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN',
+      exchangeDemand: clone(demandByItem.get(chosen.name) || null)
+    };
+    return clone(plan);
+  }
+
   plan(input = {}) {
     const character = input.character || {};
     if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return this._hold('MERCHANT_REQUIRED');
@@ -34208,9 +34841,9 @@ class ControlledMerchantProductionExecutor {
     this.maxActionsPerWindow = Math.max(1, Math.min(30, Math.floor(n(options.maxActionsPerWindow, 10))));
     this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(n(options.maxBuyQuantity, 1000))));
     this.goldReserve = Math.max(0, Math.floor(n(options.goldReserve, 1000000)));
-    this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.busy = false;
+    this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this.busy = false;
     this.activeOperation = null; this.lastAction = null; this.history = []; this.actionTimes = [];
-    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, verificationRetries: 0 };
+    this.stats = { attempts: 0, committed: 0, rejected: 0, failedSafe: 0, recovered: 0, buys: 0, bankRetrieves: 0, bankStores: 0, crafts: 0, exchanges: 0, verificationRetries: 0 };
     this._load();
   }
 
@@ -34233,10 +34866,11 @@ class ControlledMerchantProductionExecutor {
     this.allowBuy = this.enabled && config.allowBuy === true;
     this.allowBank = this.enabled && config.allowBank === true;
     this.allowCraft = this.enabled && config.allowCraft === true;
-    this._event('MERCHANT_PRODUCTION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft });
+    this.allowExchange = this.enabled && config.allowExchange === true;
+    this._event('MERCHANT_PRODUCTION_CONFIG_CHANGED', 'warn', this.enabled ? 'EXPLICIT_CONTROLLED_ENABLE' : 'DISABLED', { enabled: this.enabled, allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange });
     return this.status();
   }
-  disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
+  disable(reason = 'OPERATOR_DISABLED') { this.enabled = false; this.allowBuy = false; this.allowBank = false; this.allowCraft = false; this.allowExchange = false; this._event('MERCHANT_PRODUCTION_DISABLED', 'warn', reason); return this.status(); }
   _budgetOk() { const now = this.now(); this.actionTimes = this.actionTimes.filter((at) => now - at <= this.actionWindowMs); return this.actionTimes.length < this.maxActionsPerWindow; }
   _sleep(ms) { const setTimer = this.root && this.root.setTimeout || setTimeout; return new Promise((resolve) => setTimer(resolve, ms)); }
   async _verify(fn) { for (let i = 0; i < this.verifyAttempts; i += 1) { if (fn()) return true; if (i + 1 < this.verifyAttempts) { this.stats.verificationRetries += 1; await this._sleep(this.verifyDelayMs); } } return false; }
@@ -34283,6 +34917,20 @@ class ControlledMerchantProductionExecutor {
       if (n(c.gold, 0) - recipe.cost < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
       return { ok: true, api, name, level: 0, recipe };
     }
+    if (kind === ProductionStepKind.EXCHANGE) {
+      if (!this.allowExchange) return { ok: false, reason: 'EXCHANGE_AUTHORITY_DISABLED' };
+      const api = this._api('exchange');
+      const index = Number(step.inventoryIndex);
+      const item = Number.isInteger(index) && Array.isArray(c.items) ? c.items[index] : null;
+      const meta = this._gameData() && this._gameData().items && this._gameData().items[name] || {};
+      const required = Math.max(1, Math.floor(n(step.quantity, n(meta.e, 0))));
+      if (!api) return { ok: false, reason: 'EXCHANGE_API_UNAVAILABLE' };
+      if (!item || String(item.name || '') !== name || levelOf(item) !== level) return { ok: false, reason: 'EXCHANGE_ITEM_IDENTITY_CHANGED' };
+      if (item.locked || item.l || item.special || item.p) return { ok: false, reason: 'EXCHANGE_ITEM_PROTECTED' };
+      if (Math.max(1, Math.floor(n(item.q, 1))) < required) return { ok: false, reason: 'EXCHANGE_REQUIREMENT_NOT_MET' };
+      if (Math.max(0, Math.floor(n(meta.e, 0))) !== required) return { ok: false, reason: 'EXCHANGE_REQUIREMENT_CHANGED' };
+      return { ok: true, api, name, level, index, quantity: required };
+    }
     return { ok: false, reason: 'PRODUCTION_STEP_KIND_NOT_EXECUTABLE' };
   }
 
@@ -34304,6 +34952,16 @@ class ControlledMerchantProductionExecutor {
       if (step.kind === ProductionStepKind.BANK_STORE) {
         if (!this._start(plan, step, { action: 'bank_store', expectedInventory: beforeInv - check.quantity, expectedBank: beforeBank + check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'BANK_STORE_STARTING'); this.stats.bankStores += 1; await this._timeout(check.api[0].call(check.api[1], check.index), 'BANK_STORE'); this._transition('VERIFYING', 'BANK_STORE_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity && this._bankQty(check.name, check.level) >= beforeBank + check.quantity); return this._finish(step, ok, ok ? 'BANK_STORE_DELTA_VERIFIED' : 'BANK_STORE_DELTA_VERIFICATION_FAILED', { quantity: check.quantity });
       }
+      if (step.kind === ProductionStepKind.EXCHANGE) {
+        if (!this._start(plan, step, { action: 'exchange', inventoryIndex: check.index, consumedQuantity: check.quantity, expectedInventoryMax: beforeInv - check.quantity })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+        this._transition('EXECUTING', 'EXCHANGE_STARTING');
+        this.stats.exchanges += 1;
+        const response = await this._timeout(check.api[0].call(check.api[1], check.index), 'EXCHANGE');
+        if (response && response.success === false) throw new Error(`EXCHANGE_REJECTED:${response.reason || 'unknown'}`);
+        this._transition('VERIFYING', 'EXCHANGE_RETURNED');
+        const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity);
+        return this._finish(step, ok, ok ? 'EXCHANGE_INPUT_DELTA_VERIFIED' : 'EXCHANGE_INPUT_DELTA_VERIFICATION_FAILED', { consumedQuantity: check.quantity, reward: response && response.reward || null });
+      }
       const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1))); if (!this._start(plan, step, { action: 'auto_craft', expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'AUTO_CRAFT_STARTING'); this.stats.crafts += 1; await this._timeout(check.api[0].call(check.api[1], check.name), 'AUTO_CRAFT'); this._transition('VERIFYING', 'AUTO_CRAFT_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out); return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_VERIFICATION_FAILED', { outputQuantity: out });
     } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
     finally { this.busy = false; }
@@ -34312,14 +34970,362 @@ class ControlledMerchantProductionExecutor {
   reconcile() {
     const op = this.activeOperation; if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_PRODUCTION_OPERATION' }; if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'PRODUCTION_OPERATION_NOT_RECOVERING' };
     const inv = itemQuantity(this._inventory(), op.item, op.level), bank = this._bankQty(op.item, op.level); let ok = false;
-    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
+    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
     this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
   }
 
-  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
+  status() { this._budgetOk(); return { schemaVersion: 1, mode: CONTROLLED_MERCHANT_PRODUCTION_MODE, enabled: this.enabled, actionAuthority: this.enabled && (this.allowBuy || this.allowBank || this.allowCraft || this.allowExchange), allowBuy: this.allowBuy, allowBank: this.allowBank, allowCraft: this.allowCraft, allowExchange: this.allowExchange, buyAllowed: this.enabled && this.allowBuy, bankAllowed: this.enabled && this.allowBank, craftAllowed: this.enabled && this.allowCraft, exchangeAllowed: this.enabled && this.allowExchange, rawActionFamilies: ['BUY', 'BANK_RETRIEVE', 'BANK_STORE', 'AUTO_CRAFT', 'EXCHANGE'], busy: this.busy, goldReserve: this.goldReserve, maxBuyQuantity: this.maxBuyQuantity, actionBudget: { used: this.actionTimes.length, max: this.maxActionsPerWindow, windowMs: this.actionWindowMs, allowed: this.actionTimes.length < this.maxActionsPerWindow }, activeOperation: clone(this.activeOperation), lastAction: clone(this.lastAction), history: this.history.slice(-16).map(clone), stats: clone(this.stats), explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK }; }
 }
 
 module.exports = { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+
+},
+"src/reliability/merchant-self-gear.js": function(require,module,exports){
+'use strict';
+
+const { finite, clone, levelOf, inventoryOf, characterOf, gameDataOf, gradeForLevel } = require('./alpha27-utils');
+const { candidateSlots } = require('../economy/gear-progression');
+
+const SELF_GEAR_MODE = 'alpha27-merchant-self-gear-v1';
+const TERMINAL_STAGES = new Set(['DONE', 'FAILED_SAFE']);
+
+function itemValue(meta) {
+  return Math.max(0, finite(meta && (meta.g != null ? meta.g : meta.gold), 0));
+}
+
+function compatible(meta, ctype) {
+  if (!meta) return false;
+  const classes = Array.isArray(meta.class) ? meta.class : meta.class ? [meta.class] : [];
+  return !classes.length || classes.map((row) => String(row).toLowerCase()).includes(String(ctype || '').toLowerCase());
+}
+
+class MerchantSelfGear {
+  constructor(runtime, atomic, shared) {
+    this.runtime = runtime;
+    this.atomic = atomic;
+    this.root = runtime.root || globalThis;
+    this.now = shared.now;
+    this.log = shared.log;
+    this.options = shared.options;
+    this.storageKey = 'aio-v3-alpha27-self-gear-v1';
+    this.session = null;
+    this.lastSession = null;
+    this.stats = {
+      sessionsStarted: 0,
+      unequips: 0,
+      mutations: 0,
+      mutationSuccesses: 0,
+      mutationFailures: 0,
+      reequips: 0,
+      fallbackEquips: 0,
+      skippedNoFallback: 0,
+      skippedNoWorkspace: 0,
+      failedSafe: 0
+    };
+    this._load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'alpha27-self-gear', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _storage() {
+    const ls = this.root && this.root.localStorage;
+    return ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function' ? ls : null;
+  }
+
+  _load() {
+    const storage = this._storage();
+    if (!storage) return;
+    try {
+      const raw = storage.getItem(this.storageKey);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || data.schemaVersion !== 1 || !data.session || TERMINAL_STAGES.has(data.session.stage)) return;
+      this.session = data.session;
+      this.runtime.merchantSelfGearReservation = clone(data.reservation || null);
+    } catch (_) {}
+  }
+
+  _save() {
+    const storage = this._storage();
+    if (!storage) return false;
+    try {
+      storage.setItem(this.storageKey, JSON.stringify({
+        schemaVersion: 1,
+        savedAt: this.now(),
+        session: this.session,
+        reservation: this.runtime.merchantSelfGearReservation || null
+      }));
+      return true;
+    } catch (_) { return false; }
+  }
+
+  _capacity() {
+    const c = characterOf(this.runtime) || {};
+    const items = inventoryOf(this.root);
+    const capacity = Math.max(items.length, Math.floor(finite(c.isize, items.length)));
+    const occupied = items.slice(0, capacity).filter(Boolean).length;
+    return { capacity, occupied, free: Math.max(0, capacity - occupied) };
+  }
+
+  _fallback(slot, excluded = new Set()) {
+    const c = characterOf(this.runtime) || {};
+    const gd = gameDataOf(this.runtime);
+    const rows = [];
+    for (const item of inventoryOf(this.root)) {
+      if (!item || excluded.has(Number(item.index)) || item.locked || item.l || item.special || item.p) continue;
+      const meta = gd.items && gd.items[item.name];
+      if (!meta || !compatible(meta, c.ctype) || !candidateSlots(meta).includes(slot)) continue;
+      rows.push({ index: item.index, name: item.name, level: levelOf(item) });
+    }
+    rows.sort((a, b) => b.level - a.level || a.name.localeCompare(b.name) || a.index - b.index);
+    return rows[0] || null;
+  }
+
+  _candidate() {
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant' || !c.slots) return null;
+    const gd = gameDataOf(this.runtime);
+    const pressure = this._capacity();
+    if (pressure.free < 1) {
+      this.stats.skippedNoWorkspace += 1;
+      return null;
+    }
+    const slotOrder = ['mainhand', 'offhand', 'helmet', 'chest', 'pants', 'shoes', 'gloves', 'cape', 'amulet', 'belt', 'orb', 'ring1', 'ring2', 'earring1', 'earring2'];
+    const rows = [];
+    for (const slot of slotOrder) {
+      const equipped = c.slots[slot];
+      if (!equipped || !equipped.name || equipped.l || equipped.locked || equipped.p || equipped.special) continue;
+      const meta = gd.items && gd.items[equipped.name];
+      if (!meta || !compatible(meta, c.ctype)) continue;
+      const level = levelOf(equipped);
+      const type = meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null;
+      if (!type) continue;
+      if (type === 'UPGRADE' && (level >= this.options.maxUpgradeLevel || itemValue(meta) > this.options.upgradeValueCap)) continue;
+      if (type === 'COMPOUND' && (level >= this.options.maxCompoundLevel || itemValue(meta) > this.options.compoundValueCap)) continue;
+      if (gradeForLevel(meta, level) >= 4) continue;
+      const budget = this.atomic.mutationAttemptBudget({ type, character: c.name, item: equipped.name, level });
+      if (!budget.allowed) continue;
+
+      const matches = inventoryOf(this.root)
+        .filter((item) => item && item.name === equipped.name && levelOf(item) === level && !item.locked && !item.l && !item.special && !item.p)
+        .map((item) => ({ index: item.index, name: item.name, level }));
+      if (type === 'COMPOUND' && matches.length < 2) continue;
+
+      const excluded = new Set(type === 'COMPOUND' ? matches.slice(0, 2).map((row) => Number(row.index)) : []);
+      const fallback = this._fallback(slot, excluded);
+      // Mutation can destroy the equipped item. Never voluntarily leave the
+      // Merchant without a valid replacement for that slot.
+      if (!fallback) {
+        this.stats.skippedNoFallback += 1;
+        continue;
+      }
+      rows.push({ slot, type, name: equipped.name, level, fallback, budget, inventoryMatches: matches.slice(0, 2) });
+    }
+    rows.sort((a, b) => a.level - b.level || (a.type === 'COMPOUND' ? -1 : 1) || a.slot.localeCompare(b.slot));
+    return rows[0] || null;
+  }
+
+  _reservationMatches(session, indices) {
+    return {
+      sessionId: session.id,
+      type: session.type,
+      slot: session.slot,
+      character: session.character,
+      item: session.name,
+      level: session.level,
+      indices: indices.map(Number).sort((a, b) => a - b)
+    };
+  }
+
+  _findMutationIndices(session) {
+    const matches = inventoryOf(this.root)
+      .filter((item) => item && item.name === session.name && levelOf(item) === session.level && !item.locked && !item.l && !item.special && !item.p)
+      .map((item) => Number(item.index))
+      .sort((a, b) => a - b);
+    if (session.type === 'UPGRADE') return matches.length ? [matches[0]] : [];
+    return matches.length >= 3 ? matches.slice(0, 3) : [];
+  }
+
+  _findEquipCandidate(session, outcome) {
+    const wantedLevel = outcome === 'SUCCESS' ? session.level + 1 : session.level;
+    const rows = inventoryOf(this.root)
+      .filter((item) => item && item.name === session.name && levelOf(item) === wantedLevel)
+      .map((item) => ({ index: Number(item.index), name: item.name, level: levelOf(item) }));
+    if (rows.length) return { ...rows[0], fallback: false };
+    const fallback = this._fallback(session.slot, new Set());
+    return fallback ? { ...fallback, fallback: true } : null;
+  }
+
+  async _equip(session, candidate) {
+    if (!candidate || !this.runtime.adapter || typeof this.runtime.adapter.command !== 'function') return false;
+    const command = this.runtime.adapter.command('equip', [candidate.index, session.slot]);
+    if (!command || command.executed !== true) return false;
+    try { await Promise.resolve(command.value); } catch (_) {}
+    const verified = await this.atomic.verifyEventually(() => {
+      const c = characterOf(this.runtime);
+      const item = c && c.slots && c.slots[session.slot];
+      return !!(item && item.name === candidate.name && levelOf(item) === candidate.level);
+    });
+    if (!verified) return false;
+    this.stats.reequips += 1;
+    if (candidate.fallback) this.stats.fallbackEquips += 1;
+    return true;
+  }
+
+  _finish(reason, details = {}) {
+    const session = this.session;
+    this.lastSession = { ...clone(session), endedAt: this.now(), endReason: reason, ...clone(details) };
+    this.session = null;
+    this.runtime.merchantSelfGearReservation = null;
+    this._save();
+    this._event('ALPHA27_SELF_GEAR_SESSION_FINISHED', reason === 'SUCCESS' ? 'info' : 'warn', reason, this.lastSession);
+  }
+
+  async cycle() {
+    const c = characterOf(this.runtime);
+    if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return false;
+
+    if (!this.session) {
+      const candidate = this._candidate();
+      if (!candidate) return false;
+      this.session = {
+        schemaVersion: 1,
+        id: `selfgear-${this.now().toString(36)}-${candidate.slot}`,
+        startedAt: this.now(),
+        updatedAt: this.now(),
+        stage: 'UNEQUIP',
+        character: c.name,
+        ...clone(candidate)
+      };
+      this.stats.sessionsStarted += 1;
+      this._save();
+    }
+
+    const session = this.session;
+    if (session.stage === 'UNEQUIP') {
+      const current = c.slots && c.slots[session.slot];
+      if (!current || current.name !== session.name || levelOf(current) !== session.level) {
+        this._finish('SELF_GEAR_SLOT_CHANGED_BEFORE_UNEQUIP');
+        return true;
+      }
+      const command = this.runtime.adapter && this.runtime.adapter.command
+        ? this.runtime.adapter.command('unequip', [session.slot])
+        : null;
+      if (!command || command.executed !== true) {
+        this._finish('SELF_GEAR_UNEQUIP_COMMAND_REJECTED');
+        return true;
+      }
+      try { await Promise.resolve(command.value); } catch (_) {}
+      const verified = await this.atomic.verifyEventually(() => {
+        const live = characterOf(this.runtime);
+        return !(live && live.slots && live.slots[session.slot]);
+      });
+      if (!verified) {
+        this.stats.failedSafe += 1;
+        this._finish('SELF_GEAR_UNEQUIP_NOT_VERIFIED');
+        return true;
+      }
+      this.stats.unequips += 1;
+      session.stage = 'WAIT_LEDGER';
+      session.updatedAt = this.now();
+      this._save();
+      return true;
+    }
+
+    if (session.stage === 'WAIT_LEDGER') {
+      const indices = this._findMutationIndices(session);
+      const needed = session.type === 'COMPOUND' ? 3 : 1;
+      if (indices.length < needed) return true;
+      const ledger = this.runtime.inventoryLedger;
+      const status = ledger && typeof ledger.status === 'function' ? ledger.status() : null;
+      if (!status || status.stale === true || indices.some((index) => !ledger.get(session.character, index))) return true;
+
+      this.runtime.merchantSelfGearReservation = this._reservationMatches(session, indices);
+      this._save();
+      const request = {
+        type: session.type,
+        character: session.character,
+        index: indices[0],
+        indices,
+        metadata: {
+          source: 'ALPHA27_SELF_GEAR',
+          selfGear: true,
+          selfGearSessionId: session.id,
+          selfGearSlot: session.slot
+        }
+      };
+      const planned = this.runtime.transactionEngine.planAtomic(request, { ledger, snapshot: this.runtime.lastSnapshot });
+      if (!planned || planned.accepted !== true || !planned.transaction) {
+        this.runtime.merchantSelfGearReservation = null;
+        this._save();
+        return true;
+      }
+      session.stage = 'MUTATING';
+      session.transactionId = planned.transaction.id;
+      session.indices = indices;
+      session.updatedAt = this.now();
+      this._save();
+      this.stats.mutations += 1;
+      const result = await this.runtime.controlledMerchant.execute(planned.transaction.id);
+      session.mutationResult = clone(result);
+      session.outcome = result && result.outcome || null;
+      session.stage = 'REEQUIP';
+      session.updatedAt = this.now();
+      if (result && result.outcome === 'SUCCESS') this.stats.mutationSuccesses += 1;
+      else this.stats.mutationFailures += 1;
+      this.runtime.merchantSelfGearReservation = null;
+      this._save();
+      return true;
+    }
+
+    if (session.stage === 'MUTATING') {
+      const tx = this.runtime.transactionEngine && this.runtime.transactionEngine.get(session.transactionId);
+      if (tx && tx.state === 'RECOVERING' && typeof this.runtime.transactionEngine.reconcileAtomic === 'function') {
+        this.runtime.transactionEngine.reconcileAtomic(tx.id);
+      }
+      session.stage = 'REEQUIP';
+      session.updatedAt = this.now();
+      this._save();
+      return true;
+    }
+
+    if (session.stage === 'REEQUIP') {
+      const outcome = session.outcome || session.mutationResult && session.mutationResult.outcome || null;
+      const candidate = this._findEquipCandidate(session, outcome);
+      if (!candidate) {
+        this.stats.failedSafe += 1;
+        this._finish('SELF_GEAR_NO_REEQUIP_CANDIDATE', { outcome });
+        return true;
+      }
+      const ok = await this._equip(session, candidate);
+      if (!ok) {
+        this.stats.failedSafe += 1;
+        this._finish('SELF_GEAR_REEQUIP_NOT_VERIFIED', { outcome, candidate });
+        return true;
+      }
+      this._finish(candidate.fallback ? 'MUTATION_FAILED_FALLBACK_EQUIPPED' : 'SUCCESS', { outcome, equipped: candidate });
+      return true;
+    }
+
+    return false;
+  }
+
+  status() {
+    return {
+      mode: SELF_GEAR_MODE,
+      enabled: true,
+      requiresFallbackBeforeRisk: true,
+      session: clone(this.session),
+      lastSession: clone(this.lastSession),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = { MerchantSelfGear, SELF_GEAR_MODE };
 
 },
 "src/reliability/alpha28-live-authority-liveness.js": function(require,module,exports){
@@ -35106,6 +36112,36 @@ class Alpha28CrossMapFarmerProgression {
   }
 
   _makeLeaderObjective(snapshot, team) {
+    const farmer = this.runtime.farmer;
+    const material = farmer && farmer.materialObjective;
+    if (material && material.expiresAt > this.now() && material.map && material.monster && material.map !== snapshot.character.map) {
+      const existing = this.parent && this.parent[SHARED_OBJECTIVE];
+      if (existing && this._objectiveKind(existing) === 'ELIXIR_MATERIAL' && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+      const objective = {
+        id: `alpha28-elixir-material-${this.now()}-${material.monster}`,
+        kind: 'ELIXIR_MATERIAL',
+        leaderName: team.leaderName,
+        partyFingerprint: null,
+        map: material.map,
+        monster: material.monster,
+        spawnIndex: material.spawnIndex,
+        x: material.x,
+        y: material.y,
+        material: material.material || null,
+        elixirName: material.elixirName || null,
+        createdAt: this.now(),
+        expiresAt: material.expiresAt,
+        readiness: null,
+        crossMapAuthorizedBy: 'alpha28-controlled-farmer-travel'
+      };
+      if (!this._objectiveValid(objective, team)) return null;
+      if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
+      this._publishCrossMap(team, objective);
+      this.stats.crossMapObjectivesPublished += 1;
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'ELIXIR_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+      return objective;
+    }
+
     const progression = this._progression();
     const decision = progression && progression.lastDecision;
     const selected = decision && decision.action === 'RECOMMEND' && decision.reason === 'CROSS_MAP_PROGRESSION_REQUIRES_AUTHORIZED_FARMER_TRAVEL' ? decision.target : null;
@@ -35221,7 +36257,7 @@ class Alpha28CrossMapFarmerProgression {
       this.stats.crossMapTravelCompleted += 1;
       if (regroup) this.stats.crossMapRegroupTravelCompleted = (this.stats.crossMapRegroupTravelCompleted || 0) + 1;
       this.lastAction = { at: this.now(), result: 'COMPLETED', planId: plan.id, objectiveId: objective.id, objectiveKind: this._objectiveKind(objective), map: objective.map, monster: objective.monster || null };
-      if (!regroup) {
+      if (!regroup && this._objectiveKind(objective) === PROGRESSION_KIND) {
         const progression = this._progression();
         if (progression) { progression.objective = clone(objective); progression.lastSwitchAt = this.now(); progression.stats.promotions += 1; }
       }
@@ -45153,6 +46189,7 @@ function installMerchantProduction(runtime, options = {}) {
     return {
       character: c,
       bankCatalog: bankCatalog.status(),
+      exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       contentDrift: runtime.contentDrift,
@@ -45192,7 +46229,7 @@ function installMerchantProduction(runtime, options = {}) {
   function ensureAutoEnabled() {
     if (!isMerchant() || String(runtime.adapter && runtime.adapter.mode || '') !== 'active') return false;
     if (executor.status().enabled) return true;
-    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true });
+    const configured = configure({ enabled: true, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK, allowBuy: true, allowBank: true, allowCraft: true, allowExchange: true });
     return !!(configured && configured.controlled && configured.controlled.enabled);
   }
   function ensureBankCatalog() {
@@ -45224,6 +46261,13 @@ function installMerchantProduction(runtime, options = {}) {
         state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
         return;
       }
+      if (step.kind === ProductionStepKind.EXCHANGE) {
+        const travel = await travelNamed(step.destination || 'exchange');
+        if (!travel || travel.ok !== true) {
+          state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.reason || 'EXCHANGE_NPC_TRAVEL_FAILED', travel: clone(travel) } };
+          return;
+        }
+      }
       const result = await executor.execute(plan, step);
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
@@ -45239,7 +46283,15 @@ function installMerchantProduction(runtime, options = {}) {
     ensureAutoEnabled();
     if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
     const plan = evaluate();
-    schedule(plan);
+    if (schedule(plan)) return plan;
+    if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
+      const exchangePlan = planner.planExchange(input(), plan.reservations || {});
+      if (exchangePlan) {
+        state.lastPlan = clone(exchangePlan);
+        schedule(exchangePlan);
+        return clone(exchangePlan);
+      }
+    }
     return plan;
   }
   function configure(config = {}) {
@@ -45247,7 +46299,7 @@ function installMerchantProduction(runtime, options = {}) {
       const gate = runtime._liveEnableGate();
       if (!gate || gate.allowed !== true) return { ...status(), enableRejected: gate && gate.reason || 'LIVE_GATE_REJECTED' };
     }
-    executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true });
+    executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true, allowExchange: config.allowExchange === true });
     return status();
   }
   function disable(reason = 'OPERATOR_DISABLED') { executor.disable(reason); return status(); }
@@ -45801,8 +46853,9 @@ function serviceNpcCandidates(destination, gameData = {}) {
   if (Object.prototype.hasOwnProperty.call(npcs, key)) return [key];
   const candidates = [];
   for (const [id, npc] of Object.entries(npcs)) {
-    if (!npc || !Array.isArray(npc.items)) continue;
-    if (npc.items.some((item) => item != null && String(item) === key)) candidates.push(id);
+    if (!npc) continue;
+    if (String(npc.quest || '') === key || String(npc.role || '') === key) candidates.push(id);
+    if (Array.isArray(npc.items) && npc.items.some((item) => item != null && String(item) === key)) candidates.push(id);
   }
   return uniq(candidates);
 }
@@ -45933,6 +46986,7 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
 
   const baseResolve = atomic.resolveServiceDestination.bind(atomic);
   const baseTravel = atomic.namedServiceTravel.bind(atomic);
+  const baseEnsureScroll = atomic.ensureScroll.bind(atomic);
 
   atomic.resolveServiceDestination = function resolveServiceDestinationIntelligent(destination) {
     if (destination && typeof destination === 'object') return baseResolve(destination);
@@ -46051,52 +47105,10 @@ function installAlpha27MerchantTravelIntelligence(runtime, alpha27 = null) {
   };
 
   atomic.ensureScroll = async function ensureScrollAfterVerifiedTravel(tx, scrollName) {
-    let scroll = findItem(this.root, scrollName);
-    if (!scroll) {
-      const canBuy = rawFunction(this.root, 'can_buy');
-      let definitelyNear = false;
-      if (canBuy) { try { definitelyNear = canBuy.fn.call(canBuy.owner, scrollName) === true; } catch (_) {} }
-      if (!definitelyNear) {
-        const travelled = await this.namedServiceTravel(scrollName, tx);
-        if (!travelled || travelled.ok !== true) return travelled || { ok: false, reason: 'SCROLL_VENDOR_TRAVEL_FAILED' };
-      }
-
-      const buy = rawFunction(this.root, 'buy');
-      if (!buy) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'BUY_API_UNAVAILABLE');
-        this.stats.failedSafe += 1;
-        return { ok: false, reason: 'BUY_API_UNAVAILABLE' };
-      }
-      const gd = gameDataOf(this.runtime);
-      const scrollMeta = gd.items && gd.items[scrollName];
-      const price = Math.max(0, finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0));
-      const c = characterOf(this.runtime);
-      if (!c || finite(c.gold, 0) - price < this.options.goldReserve) {
-        this.runtime.transactionEngine.markFailedSafe(tx.id, 'GOLD_RESERVE_PROTECTED');
-        this.stats.failedSafe += 1;
-        return { ok: false, reason: 'GOLD_RESERVE_PROTECTED' };
-      }
-      const before = identityQuantity(inventoryOf(this.root), scrollName, 0);
-      try {
-        const response = await this._timeout(buy.fn.call(buy.owner, scrollName, 1), 'BUY_SCROLL', 15000);
-        if (response && response.failed === true) throw response;
-        const verified = await this.verifyEventually(() => identityQuantity(inventoryOf(this.root), scrollName, 0) > before);
-        if (!verified) throw new Error('SCROLL_PURCHASE_DELTA_NOT_OBSERVED');
-        this.stats.scrollPurchases += 1;
-        scroll = findItem(this.root, scrollName);
-        if (!scroll) throw new Error('SCROLL_NOT_FOUND_AFTER_VERIFIED_PURCHASE');
-      } catch (error) {
-        const details = errorDetails(error);
-        const reason = details.reason || 'BUY_SCROLL_FAILED';
-        this.runtime.transactionEngine.markFailedSafe(tx.id, reason);
-        this.stats.failedSafe += 1;
-        return { ok: false, reason, error: details };
-      }
-    }
-
-    const service = await this.ensureMutationService(tx);
-    if (!service.ok) return service;
-    return { ok: true, scroll, service };
+    // The base service now owns batch sizing and verification. It calls the
+    // intelligent namedServiceTravel wrapper installed above, so duplicating
+    // purchase logic here would reintroduce one-scroll-at-a-time behavior.
+    return baseEnsureScroll(tx, scrollName);
   };
 
   merchant.restockPartyPotions = async function restockPartyPotionsAfterVerifiedTravel() {
