@@ -71,6 +71,7 @@ test('rejected progression work releases the Merchant batch lease instead of pin
   assert.equal(production.acquired, true);
 });
 
+// Live alpha.20.113: a passive self-gear wait must not own the global Merchant lease.
 test('self-gear wait releases the Merchant progression lease so Production can continue', async () => {
   const coordinator = new MerchantTaskCoordinator({ now: () => 1000, defaultLeaseMs: 600000 });
   assert.equal(coordinator.acquire('ALPHA27', 'PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' }).acquired, true);
