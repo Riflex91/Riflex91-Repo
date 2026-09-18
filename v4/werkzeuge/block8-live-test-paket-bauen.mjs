@@ -11,8 +11,8 @@ const quellen = [
   'werkzeuge/block8-produktions-live-test-gui.js'
 ];
 
-const RELEASE_SHA = 'bd3cfc0bcd9e69a72a2c2913639e651c4930c182';
-const RUNTIME_SHA256 = '9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632';
+const RELEASE_SHA = '6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec';
+const RUNTIME_SHA256 = 'd0c2893784891b971caf2cbaca495b62643ffa098009c49bd508781c2e014aa6';
 
 function kopf() {
   return [

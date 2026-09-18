@@ -1,6 +1,6 @@
 # Block 8 – Nachweis der immutable V4-Runtime-Veroeffentlichung
 
-Status: **Korrigierter Safety-Zeitordnungs-Release erfolgreich veroeffentlicht und ueber den oeffentlichen HTTPS-Endpunkt verifiziert. Dieser konkrete Release wurde noch nicht erneut im Adventure-Land-Live-Smoke ausgefuehrt.**
+Status: **Aktueller Release mit korrigierter Safety-Zeitordnung und realer Adventure-Land-Code-/Parent-Kontexttrennung erfolgreich veroeffentlicht und ueber den oeffentlichen HTTPS-Endpunkt verifiziert. Dieser konkrete Release wurde noch nicht erneut im Adventure-Land-Live-Smoke ausgefuehrt.**
 
 Stand: 2026-09-18
 
@@ -8,34 +8,34 @@ Stand: 2026-09-18
 
 Git-Commit:
 
-`bd3cfc0bcd9e69a72a2c2913639e651c4930c182`
+`6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec`
 
 Cloudflare-Deployment-Workflow:
 
-- Run-ID: `35365854106`
-- Job-ID: `105668032207`
+- Run-ID: `35368554374`
+- Job-ID: `105676781988`
 - Ergebnis: **success**
 
 Gebautes Runtime-Artefakt:
 
 - Module: **27**
-- Groesse: **196882 Bytes**
-- SHA-256: `9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632`
+- Groesse: **197116 Bytes**
+- SHA-256: `d0c2893784891b971caf2cbaca495b62643ffa098009c49bd508781c2e014aa6`
 
 ## Immutable URLs
 
 Runtime:
 
-`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.js`
+`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec/aio-v4-runtime.js`
 
 SHA-256:
 
-`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.sha256`
+`https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec/aio-v4-runtime.sha256`
 
 R2-Objekte:
 
-- `releases/v4/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.js`
-- `releases/v4/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.sha256`
+- `releases/v4/6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec/aio-v4-runtime.js`
+- `releases/v4/6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec/aio-v4-runtime.sha256`
 
 Es gibt fuer diesen V4-Pfad keinen beweglichen `latest`-Alias.
 
@@ -90,8 +90,8 @@ globalThis.AIO_V4_RUNTIME_CONFIG = Object.freeze({
 });
 
 globalThis.AIO_V4_BOOTSTRAP_CONFIG = Object.freeze({
-  runtimeUrl: 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/bd3cfc0bcd9e69a72a2c2913639e651c4930c182/aio-v4-runtime.js',
-  runtimeSha256: '9d3161c2a4c89b972300daab9ca55791af902006cb93f60f2ab879c2d5cb8632'
+  runtimeUrl: 'https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/6e63d2f8b12fd27bba3b9db50d91c4100bedc9ec/aio-v4-runtime.js',
+  runtimeSha256: 'd0c2893784891b971caf2cbaca495b62643ffa098009c49bd508781c2e014aa6'
 });
 ```
 
