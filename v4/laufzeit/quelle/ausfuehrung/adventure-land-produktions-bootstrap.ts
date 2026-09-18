@@ -22,7 +22,7 @@ import {
   erstelleGruppenAktionsSteuerungKonfiguration,
   uebergibGruppenAktionsAnfragenAnSteuerung
 } from '../spiellogik/gruppen-aktionssteuerung.js';
-import type { GruppenFaehigkeitsProfil, GruppenTeilnehmerMeldung } from '../vertraege/gruppen-koordination.js';
+import type { GruppenFaehigkeitsProfil, GruppenKoordinationsEntscheidung, GruppenTeilnehmerMeldung } from '../vertraege/gruppen-koordination.js';
 import type { KampfSicherheitsAblaufZustand, KampfSicherheitsEntscheidung } from '../vertraege/kampfsicherheit.js';
 import { GRUPPEN_AKTIONS_NAMEN } from '../vertraege/gruppen-aktionsanfrage.js';
 import type { GruppenLebensnachweisEmpfang } from '../vertraege/gruppen-lebensnachweis.js';
@@ -37,7 +37,7 @@ import {
   type AdventureLandGruppenZielLiveSmokeFassade
 } from './adventure-land-gruppen-ziel-live-smoke.js';
 
-export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.0.0';
+export const PRODUKTIONS_BOOTSTRAP_VERSION = '1.1.0';
 export const PRODUKTIONS_GRUPPENZIEL_VORBEREITEN_TEXT = 'BLOCK8-PRODUKTIONS-GRUPPENZIEL-VORBEREITEN';
 export const PRODUKTIONS_LIVE_SMOKE_INSTALLIEREN_TEXT = 'BLOCK8-PRODUKTIONS-LIVE-SMOKE-INSTALLIEREN';
 const MINDESTENS_AKTIVE_GRUPPEN_TEILNEHMER = 2;
@@ -60,6 +60,17 @@ export interface AdventureLandProduktionsBootstrapStatus {
   readonly liveSmokeInstalliert: boolean;
   readonly gruppenZielVorbereitungVerbraucht: boolean;
   readonly gestoppt: boolean;
+}
+
+export interface AdventureLandProduktionsGruppenDiagnose {
+  readonly schemaVersion: 1;
+  readonly zeitpunkt: number;
+  readonly lokalerLebensnachweis: GruppenTeilnehmerMeldung;
+  readonly koordination: GruppenKoordinationsEntscheidung;
+  readonly laufendeGruppenAnfragen: readonly string[];
+  readonly ressourcenSperren: readonly Readonly<{ ressource: string; besitzer: string }>[];
+  readonly liveSmokeInstalliert: boolean;
+  readonly gruppenZielVorbereitungVerbraucht: boolean;
 }
 
 export interface AdventureLandGruppenZielVorbereitung {
@@ -176,6 +187,32 @@ export class AdventureLandProduktionsBootstrap {
       ergebnisse.push(await this.austausch.sendeLebensnachweis(zielName, meldung));
     }
     return Object.freeze({ meldung, ergebnisse: Object.freeze(ergebnisse) });
+  }
+
+  public pruefeGruppenZustand(): Readonly<AdventureLandProduktionsGruppenDiagnose> {
+    if (this.gestoppt) {
+      throw new Error('Produktions-Bootstrap wurde bereits gestoppt; Gruppen-Diagnose ist nicht mehr verfuegbar.');
+    }
+
+    const jetzt = this.liesZeitpunkt('Der Produktions-Gruppendiagnosezeitpunkt');
+    const { meldung } = this.erzeugeLokalenLebensnachweis(jetzt);
+
+    const gespeicherteMeldungen = this.liesEindeutigeTeilnehmerMeldungen()
+      .filter((eintrag) => eintrag.charakterName !== meldung.charakterName);
+    const meldungen = Object.freeze([...gespeicherteMeldungen, meldung]);
+    const koordination = koordiniereGruppe(meldungen, meldung.charakterKennung, jetzt);
+    const status = this.status();
+
+    return Object.freeze({
+      schemaVersion: 1,
+      zeitpunkt: jetzt,
+      lokalerLebensnachweis: meldung,
+      koordination,
+      laufendeGruppenAnfragen: status.laufendeGruppenAnfragen,
+      ressourcenSperren: status.ressourcenSperren,
+      liveSmokeInstalliert: status.liveSmokeInstalliert,
+      gruppenZielVorbereitungVerbraucht: status.gruppenZielVorbereitungVerbraucht
+    });
   }
 
   public bereiteGruppenZielVor(freigabeText: string): Readonly<AdventureLandGruppenZielVorbereitung> {

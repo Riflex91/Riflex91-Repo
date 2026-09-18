@@ -55,12 +55,12 @@ function remoteMeldung(zeit = 10_000, aenderungen = {}) {
   });
 }
 
-function bootstrap(u, { aktivFreigegeben = true, jetzt = () => 10_000 } = {}) {
+function bootstrap(u, { aktivFreigegeben = true, jetzt = () => 10_000, profil = faehigkeiten } = {}) {
   return new AdventureLandProduktionsBootstrap(u.code, u.parent, jetzt, {
     aktivFreigegeben,
     ablaufKennung: 'block8-produktions-bootstrap-test',
     vertrauensNamen: ['My_Ranger1', 'My_Ranger2'],
-    faehigkeiten
+    faehigkeiten: profil
   });
 }
 
@@ -120,6 +120,49 @@ test('Block-8 Produktions-Bootstrap nutzt vorhandenen vertrauensgebundenen Empfa
   assert.equal(zustand.phase, 'laeuft');
   assert.equal(b.status().ressourcenSperren.find((x) => x.ressource === 'gruppe')?.besitzer, ergebnis.gestarteteAktionsKennung);
   assert.equal(b.status().ressourcenSperren.find((x) => x.ressource === 'kampfziel')?.besitzer, ergebnis.gestarteteAktionsKennung);
+});
+
+test('Block-8 Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und Aufgabenwechsel ohne zentrale Aktion', () => {
+  const u = spiel();
+  let jetzt = 10_000;
+  const b = bootstrap(u, {
+    jetzt: () => jetzt,
+    profil: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 0.5 })
+  });
+  b.installiereLebensnachweisEmpfang();
+
+  liefereRemote(u, 10_000, {
+    laufendeNummer: 1,
+    faehigkeiten: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 1 })
+  });
+
+  const aktiv = b.pruefeGruppenZustand();
+  assert.equal(aktiv.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2')?.status, 'aktiv');
+  assert.equal(aktiv.koordination.aufgaben.unterstuetzung, 'ranger-2');
+  assert.deepEqual(aktiv.laufendeGruppenAnfragen, []);
+  assert.deepEqual(aktiv.ressourcenSperren, []);
+  assert.equal(aktiv.liveSmokeInstalliert, false);
+  assert.equal(aktiv.gruppenZielVorbereitungVerbraucht, false);
+
+  jetzt = 16_001;
+  const stale = b.pruefeGruppenZustand();
+  assert.equal(stale.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2')?.status, 'veraltet');
+  assert.equal(stale.koordination.aktiveTeilnehmerKennungen.includes('ranger-2'), false);
+  assert.equal(stale.koordination.aufgaben.unterstuetzung, 'ranger-1');
+  assert.deepEqual(stale.laufendeGruppenAnfragen, []);
+  assert.deepEqual(stale.ressourcenSperren, []);
+
+  liefereRemote(u, 16_001, {
+    laufendeNummer: 2,
+    faehigkeiten: Object.freeze({ heilen: 0, schaden: 1, aggro: 0, schutz: 0, unterstuetzung: 1 })
+  });
+  const reconnect = b.pruefeGruppenZustand();
+  assert.equal(reconnect.koordination.teilnehmerBewertungen.find((x) => x.charakterKennung === 'ranger-2')?.status, 'aktiv');
+  assert.equal(reconnect.koordination.aktiveTeilnehmerKennungen.includes('ranger-2'), true);
+  assert.equal(reconnect.koordination.aufgaben.unterstuetzung, 'ranger-2');
+  assert.deepEqual(reconnect.laufendeGruppenAnfragen, []);
+  assert.deepEqual(reconnect.ressourcenSperren, []);
+  assert.equal(b.status().gruppenZielVorbereitungVerbraucht, false);
 });
 
 test('Block-8 Produktions-Bootstrap verwirft replayte und zeitlich aeltere Remote-Meldungen', () => {

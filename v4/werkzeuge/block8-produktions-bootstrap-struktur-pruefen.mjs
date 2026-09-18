@@ -37,6 +37,10 @@ for (const pflicht of [
   'neu.gesendetAm < vorher.gesendetAm',
   'neu.laufendeNummer <= vorher.laufendeNummer',
   'Doppelte Gruppen-Teilnehmerkennung',
+  'pruefeGruppenZustand',
+  'Produktions-Gruppendiagnosezeitpunkt',
+  'lokalerLebensnachweis',
+  'koordination',
   'genau eine laufende zentrale Gruppenzielanfrage',
   'this.gestoppt = true',
   'Produktions-Sicherheitszeit darf nicht rueckwaerts laufen.',
@@ -66,6 +70,7 @@ for (const pflicht of [
   'aktivFreigegeben === true',
   'explizites Gruppenfaehigkeitsprofil',
   'bootstrap.installiereLebensnachweisEmpfang()',
+  'bootstrap.pruefeGruppenZustand()',
   'bootstrap.bereiteGruppenZielVor',
   'bootstrap.installiereGruppenZielLiveSmoke',
   'bootstrap.stoppe()',
@@ -173,6 +178,7 @@ for (const pflicht of [
   'startet standardmaessig gesperrt',
   'berechnet lokalen Lebensnachweis aus echter Produktions-Safety',
   'nutzt vorhandenen vertrauensgebundenen Empfang fuer reale Gruppenplanung',
+  'Produktions-Gruppendiagnose beobachtet aktiv stale reconnect und Aufgabenwechsel ohne zentrale Aktion',
   'verwirft replayte und zeitlich aeltere Remote-Meldungen',
   'blockiert doppelte Teilnehmerkennungen',
   'blockiert Solo-Zielauftrag ohne zweiten frischen Gruppenteilnehmer',
@@ -183,4 +189,4 @@ for (const pflicht of [
   if (!tests.includes(pflicht)) throw new Error(`Produktions-Bootstrap-Test fehlt: ${pflicht}`);
 }
 
-console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
+console.log('Block 8 Produktions-Bootstrap geprueft: zentrale Steuerung, read-only Gruppendiagnose, Zwei-Teilnehmer-Gate, monotone Lebensnachweise, one-shot Vorbereitung, HTTPS+SHA-256-Loader, immutable Cloudflare-Releasepfad und geschuetzter Deployment-Workflow.');
