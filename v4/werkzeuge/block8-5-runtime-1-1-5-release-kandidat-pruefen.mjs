@@ -34,6 +34,12 @@ if (!/^[a-f0-9]{40}$/.test(manifest.releaseSha)) {
   throw new Error('Release-Candidate releaseSha muss ein exakter lowercase Git-SHA sein.');
 }
 if (manifest.runtimeVersion !== '1.1.5') throw new Error('Release-Candidate muss Runtime 1.1.5 binden.');
+if (manifest.laufzeitPfadKennung !== 'block8.5-basisbedienung-runtime') {
+  throw new Error('Release-Candidate ist nicht an den erwarteten Block-8.5-Laufzeitpfad gebunden.');
+}
+if (manifest.aenderungsKennung !== `git:${manifest.releaseSha}`) {
+  throw new Error('Release-Candidate aenderungsKennung muss exakt git:<releaseSha> entsprechen.');
+}
 if (manifest.bundleVersion !== '4.0.0-alpha.0') {
   throw new Error('Release-Candidate besitzt eine unerwartete Bundle-Version.');
 }
