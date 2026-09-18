@@ -368,6 +368,9 @@ class MerchantSelfGear {
       enabled: true,
       requiresFallbackBeforeRisk: true,
       spareFirst: true,
+      primaryStat: 'speed',
+      speedPriority: 'NEXT_LEVEL_SPEED_GAIN_FIRST',
+      fallbackSpeedFirst: true,
       session: clone(this.session),
       lastSession: clone(this.lastSession),
       stats: clone(this.stats)
