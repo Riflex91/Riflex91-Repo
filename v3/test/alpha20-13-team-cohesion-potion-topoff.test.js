@@ -188,6 +188,125 @@ test('resource topoff uses the precise MP potion action whenever mana is not ful
   assert.equal(hotfix.status().lastUse.action, 'use_mp');
 });
 
+test('resource topoff avoids wasting a known MP potion on a tiny mana deficit', () => {
+  let used = null;
+  const root = {
+    character: { name: 'R', ctype: 'ranger' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = { config: {}, lastPotionAt: 0, _maybePotion() {} };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, minPotionUtilization: 0.5 }
+  );
+  const snap = { character: character('R', { hp: 3000, max_hp: 3000, mp: 800, max_mp: 835, inventory: inventory() }) };
+
+  assert.equal(hotfix.topOff(snap), false);
+  assert.equal(used, null);
+  assert.equal(hotfix.status().lastUse.reason, 'POTION_OVERHEAL_AVOIDED');
+  assert.equal(hotfix.status().lastUse.restoreAmount, 300);
+  assert.ok(hotfix.status().lastUse.utilization < 0.5);
+  assert.equal(hotfix.status().stats.overhealAvoided, 1);
+});
+
+test('resource topoff tries viable HP when preferred MP would be wasteful', () => {
+  let used = null;
+  const root = {
+    character: { name: 'R', ctype: 'ranger' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = { config: {}, lastPotionAt: 0, _maybePotion() {} };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, criticalHpRatio: 0.72, minPotionUtilization: 0.5 }
+  );
+  const snap = { character: character('R', { hp: 2670, max_hp: 3000, mp: 704, max_mp: 800, inventory: inventory() }) };
+
+  assert.equal(hotfix.topOff(snap), true);
+  assert.equal(used, 'use_hp');
+  assert.equal(hotfix.status().lastUse.action, 'use_hp');
+  assert.ok(hotfix.status().lastUse.utilization >= 0.5);
+  assert.equal(hotfix.status().stats.overhealAvoided, 1);
+  assert.equal(hotfix.status().stats.hpRequests, 1);
+  assert.equal(hotfix.status().stats.mpRequests, 0);
+});
+
+test('resource topoff uses a known MP potion once at least half its restore is useful', () => {
+  let used = null;
+  const root = {
+    character: { name: 'R', ctype: 'ranger' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = { config: {}, lastPotionAt: 0, _maybePotion() {} };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, minPotionUtilization: 0.5 }
+  );
+  const snap = { character: character('R', { hp: 3000, max_hp: 3000, mp: 650, max_mp: 835, inventory: inventory() }) };
+
+  assert.equal(hotfix.topOff(snap), true);
+  assert.equal(used, 'use_mp');
+  assert.ok(hotfix.status().lastUse.utilization >= 0.5);
+});
+
+test('critical HP bypasses potion utilization floor', () => {
+  let used = null;
+  const root = {
+    character: { name: 'R', ctype: 'ranger' },
+    parent: {},
+    G: { items: { hpot0: { type: 'pot', gives: [['hp', 1000]] }, mpot0: { type: 'pot', gives: [['mp', 300]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = { config: {}, lastPotionAt: 0, _maybePotion() {} };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, criticalHpRatio: 0.9, minPotionUtilization: 0.5 }
+  );
+  const snap = { character: character('R', { hp: 2700, max_hp: 3000, mp: 800, max_mp: 800, inventory: inventory() }) };
+
+  assert.equal(hotfix.topOff(snap), true);
+  assert.equal(used, 'use_hp');
+  assert.ok(hotfix.status().lastUse.utilization < 0.5);
+});
+
+test('resource topoff suppresses cooldown command spam before reaching the adapter', () => {
+  let uses = 0;
+  const root = {
+    character: { name: 'R', ctype: 'ranger' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => false,
+    use: () => { uses += 1; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = { config: {}, lastPotionAt: 0, _maybePotion() {} };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, minPotionUtilization: 0.5 }
+  );
+  const snap = { character: character('R', { hp: 3000, max_hp: 3000, mp: 650, max_mp: 835, inventory: inventory() }) };
+
+  assert.equal(hotfix.topOff(snap), false);
+  assert.equal(uses, 0);
+  assert.equal(hotfix.status().lastUse.reason, 'POTION_COOLDOWN');
+  assert.equal(hotfix.status().stats.cooldownProbeSkips, 1);
+  assert.equal(hotfix.status().stats.mpRequests, 0);
+});
+
 test('resource topoff does nothing when HP and MP are full', () => {
   let uses = 0;
   const root = { character: { name: 'R', ctype: 'ranger' }, parent: {}, can_use: () => true, use: () => { uses += 1; } };
