@@ -27,6 +27,13 @@ const EXPECTED_DISPOSITIONS = Object.freeze({
   [TransactionType.COMPOUND]: ['RESERVE_COMPOUND'],
   [TransactionType.UPGRADE]: ['RESERVE_UPGRADE', 'RESERVE_PROGRESSION']
 });
+const COLLECTION_CAPACITY_BANK_DISPOSITIONS = new Set([
+  'KEEP',
+  'RESERVE_GROUP',
+  'RESERVE_PROGRESSION',
+  'RESERVE_COMPOUND',
+  'RESERVE_UPGRADE'
+]);
 
 function finite(value, fallback = 0) {
   const n = Number(value);
@@ -165,7 +172,10 @@ class EconomyTransactionEngine {
     const entry = this._ledgerEntry(context.ledger, character, index);
     if (!entry) return this._reject('LEDGER_ITEM_NOT_FOUND', { type, character, index });
     if (entry.actionAuthority !== false) return this._reject('LEDGER_AUTHORITY_CONTRACT_INVALID', { type, character, index });
-    if (!EXPECTED_DISPOSITIONS[type].includes(entry.disposition)) {
+    const collectionCapacityBank = type === TransactionType.BANK
+      && request.metadata && request.metadata.collectionCapacityPrep === true
+      && COLLECTION_CAPACITY_BANK_DISPOSITIONS.has(String(entry.disposition || ''));
+    if (!EXPECTED_DISPOSITIONS[type].includes(entry.disposition) && !collectionCapacityBank) {
       return this._reject('LEDGER_DISPOSITION_NOT_AUTHORIZED', { type, character, index, disposition: entry.disposition });
     }
     if (quantity > Math.max(1, finite(entry.q, 1))) return this._reject('QUANTITY_EXCEEDS_OBSERVED_STACK', { type, quantity, observed: entry.q });
@@ -194,7 +204,7 @@ class EconomyTransactionEngine {
       item: String(entry.name),
       level: Math.max(0, Math.floor(finite(entry.level, 0))),
       disposition: entry.disposition,
-      expectedDisposition: EXPECTED_DISPOSITIONS[type].slice(),
+      expectedDisposition: collectionCapacityBank ? [entry.disposition] : EXPECTED_DISPOSITIONS[type].slice(),
       reason: 'PREFLIGHT_OK_RESERVED',
       executionAllowed: false,
       actionAuthority: false,
