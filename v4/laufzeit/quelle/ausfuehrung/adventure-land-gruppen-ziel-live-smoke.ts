@@ -261,11 +261,12 @@ export class AdventureLandGruppenZielLiveSmoke {
       throw new Error(`Falscher Live-Smoke-Freigabetext. Erwartet wird exakt: ${GRUPPEN_ZIEL_LIVE_SMOKE_FREIGABE_TEXT}`);
     }
     if (!this.letzteVorschau) throw new Error('Vor der Live-Smoke-Freigabe ist eine frische Produktionsvorschau erforderlich.');
-    const basis = this.pruefeGesamtenZustand();
-    const jetzt = basis.geprueftAm;
-    if (jetzt - this.letzteVorschau.erstelltAm > this.vorschauMaximalAlterMillisekunden) {
+    const vorschauPruefungAm = this.liesZeitpunkt('Der Smoke-Freigabezeitpunkt');
+    if (vorschauPruefungAm - this.letzteVorschau.erstelltAm > this.vorschauMaximalAlterMillisekunden) {
       throw new Error('Die Produktionsvorschau fuer den Live-Smoke ist zu alt.');
     }
+    const basis = this.pruefeGesamtenZustand();
+    const jetzt = basis.geprueftAm;
     if (basis.aktionsKennung !== this.letzteVorschau.aktionsKennung) {
       throw new Error('Der zentral laufende Gruppenauftrag hat sich seit der Produktionsvorschau geaendert.');
     }
