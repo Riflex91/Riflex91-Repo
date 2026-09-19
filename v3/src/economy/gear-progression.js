@@ -2,6 +2,7 @@
 
 const GEAR_PROGRESSION_SCHEMA_VERSION = 1;
 const GEAR_PROGRESSION_MODE = 'shadow-planning-only';
+const FARMER_UPGRADE_MAX_LEVEL = 5;
 const ECONOMIC_UPGRADE_FALLBACK_LEVEL = 3;
 
 const CLASS_WEIGHTS = Object.freeze({
@@ -297,7 +298,11 @@ class GearProgressionEvaluator {
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
-          const probeMaxLevel = this.maxProbeLevel;
+          // Keep the Farmer's safe baseline goal bounded at +5. Mutation
+          // execution is still stepwise and risk-gated one level at a time.
+          const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
+            ? Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL)
+            : this.maxProbeLevel;
           const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
           if (!meaningful) continue;
 
@@ -311,15 +316,18 @@ class GearProgressionEvaluator {
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
 
-          // Farmer upgrade progression is stepwise. Never encode "+5" as a
-          // special destination: authorize one next level, re-evaluate the live
-          // item and its authoritative success chance, then decide again.
+          // The goal is the stable Farmer baseline (+5), while execution remains
+          // one mutation at a time. Keeping those concepts separate lets the
+          // risk gate re-evaluate every +level without shrinking the actual goal.
           const projectedFarmerUpgrade = isFarmerTarget
             && !!candidate.meta.upgrade
-            && observedLevel < this.maxProbeLevel
-            && meaningful.level <= this.maxProbeLevel;
+            && observedLevel < FARMER_UPGRADE_MAX_LEVEL
+            && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
           const progressionTargetLevel = projectedFarmerUpgrade
-            ? Math.min(this.maxProbeLevel, observedLevel + 1)
+            ? FARMER_UPGRADE_MAX_LEVEL
+            : meaningful.level;
+          const nextMutationLevel = projectedFarmerUpgrade
+            ? Math.min(progressionTargetLevel, observedLevel + 1)
             : meaningful.level;
           const row = {
             slot,
@@ -331,7 +339,8 @@ class GearProgressionEvaluator {
             improvement,
             survivalImprovement,
             speedImprovement,
-            progressionTargetLevel
+            progressionTargetLevel,
+            nextMutationLevel
           };
           if (isFarmerTarget
             && progressionTargetLevel > observedLevel
@@ -344,12 +353,13 @@ class GearProgressionEvaluator {
               item: candidate.item.name,
               observedLevel,
               targetLevel: progressionTargetLevel,
+              nextMutationLevel: row.nextMutationLevel,
               firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
               improvement,
               survivalImprovement,
-              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_STEPWISE_RISK_MANAGED' : null,
+              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
               observedMeaningful: row.observedMeaningful,
               observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
@@ -397,6 +407,7 @@ class GearProgressionEvaluator {
           observedSurvivalImprovement: finite(best.observedDelta && best.observedDelta.survivalImprovement, 0),
           observedSpeedImprovement: finite(best.observedDelta && best.observedDelta.speedImprovement, 0),
           firstMeaningfulLevel: best.meaningful.level,
+          nextMutationLevel: best.nextMutationLevel,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
           speedImprovement: best.speedImprovement,
