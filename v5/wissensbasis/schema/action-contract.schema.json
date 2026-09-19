@@ -131,6 +131,68 @@
     "sourceRefs": {
       "type": "array",
       "minItems": 1
+    },
+    "callBudget": {
+      "type": "object",
+      "required": [
+        "directSocketEvent",
+        "resource",
+        "scope",
+        "sharedAcrossChannels",
+        "unknownInternalReserveRequired"
+      ],
+      "properties": {
+        "directSocketEvent": {
+          "enum": [
+            true,
+            false,
+            "UNKNOWN"
+          ]
+        },
+        "resource": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "sharedAcrossChannels": {
+          "type": "boolean"
+        },
+        "incomingBaseCostMin": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "configuredCcEvidence": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "dynamicCostEvidence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unknownInternalReserveRequired": {
+          "type": "boolean"
+        },
+        "limitDcPolicy": {
+          "type": "string"
+        },
+        "delegatedTo": {
+          "type": "array"
+        },
+        "automationDisabled": {
+          "type": "boolean"
+        }
+      }
     }
   }
 }
