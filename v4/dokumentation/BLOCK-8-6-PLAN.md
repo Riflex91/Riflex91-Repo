@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 implementiert, naechster Implementierungsschritt 8.6.2.**
+Status: **Block 8.6 aktiv; 8.6.1 und 8.6.2 implementiert, naechster Implementierungsschritt 8.6.3.**
 
-Naechster Implementierungsschritt: **8.6.2 – Audit, Drift und Recovery-Revalidierung**
+Naechster Implementierungsschritt: **8.6.3 – Per-Character SkillPolicy und Slider**
 
 ## Ziel
 
@@ -50,7 +50,7 @@ Abnahme:
 - unbekannte Felder erzeugen keine erfundene Automationsfreigabe,
 - neuer unbekannter Skill bleibt sichtbar, aber nicht automatisch nutzbar.
 
-## 8.6.2 – Audit, Drift und Recovery-Revalidierung
+## 8.6.2 – Audit, Drift und Recovery-Revalidierung — **IMPLEMENTIERT**
 
 Audits werden mindestens ausgeloest bei:
 
@@ -76,6 +76,8 @@ Abnahme:
 - identischer zweiter Audit,
 - widerspruechlicher zweiter Audit,
 - Neustart mit altem persistentem Profil aber neuem Katalog.
+
+Umsetzungsnachweis: `BLOCK-8-6-2-AUDIT-REVALIDIERUNG.md`.
 
 ## 8.6.3 – Per-Character SkillPolicy und Slider
 
