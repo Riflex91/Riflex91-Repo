@@ -172,7 +172,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2830 Zeilen**
+**9 Dateien · 3195 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -180,8 +180,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 531 |
-| `src/merchant/merchant-production-planner.js` | 709 |
+| `src/merchant/merchant-production-controller.js` | 792 |
+| `src/merchant/merchant-production-planner.js` | 813 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
@@ -271,7 +271,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 16923 Zeilen**
+**50 Dateien · 17007 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -290,18 +290,18 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
 | `src/reliability/alpha27-atomic-economy.js` | 502 |
-| `src/reliability/alpha27-atomic-ledger.js` | 191 |
+| `src/reliability/alpha27-atomic-ledger.js` | 241 |
 | `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
-| `src/reliability/alpha27-atomic-transactions.js` | 231 |
+| `src/reliability/alpha27-atomic-transactions.js` | 253 |
 | `src/reliability/alpha27-bank-recovery.js` | 493 |
-| `src/reliability/alpha27-combat-merchant-convergence.js` | 328 |
+| `src/reliability/alpha27-combat-merchant-convergence.js` | 331 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
 | `src/reliability/alpha27-merchant-autonomy.js` | 790 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 675 |
+| `src/reliability/alpha27-merchant-planning.js` | 684 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
