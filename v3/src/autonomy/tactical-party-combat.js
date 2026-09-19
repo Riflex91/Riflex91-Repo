@@ -391,12 +391,14 @@ class TacticalPartyCombat {
       return null;
     }
 
-    const range = Math.max(1, finite(meta.range, 320)) + this.config.agitateRangePadding;
+    const actualRange = Math.max(1, finite(meta.range, 320));
+    const safetyRange = actualRange + this.config.agitateRangePadding;
     const existing = new Set((this.encounter && this.encounter.targetIds || []).map(String));
     const candidateMap = new Map((candidates || []).map((row) => [String(row.candidate && row.candidate.id), row]));
-    const inRadius = (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0 && distance(c, row) <= range);
+    const inSafetyEnvelope = (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0 && distance(c, row) <= safetyRange);
+    const potential = [];
     const pullable = [];
-    for (const row of inRadius) {
+    for (const row of inSafetyEnvelope) {
       const id = String(row.id);
       if (existing.has(id)) continue;
       const candidate = candidateMap.get(id);
@@ -405,16 +407,18 @@ class TacticalPartyCombat {
         this._event('SMART_AOE_AGITATE_BLOCKED', 'info', 'AGITATE_RADIUS_CONTAINS_UNSAFE_OR_UNPLANNED_TARGET', {
           targetId: id,
           targetType: row.mtype || null,
-          range,
+          actualRange,
+          safetyRange,
           maxDesiredTargets
         });
         return null;
       }
-      pullable.push(candidate);
+      potential.push(candidate);
+      if (distance(c, row) <= actualRange) pullable.push(candidate);
     }
 
     if (pullable.length < this.config.agitateMinAdditionalTargets) return null;
-    if (pullable.length > remaining || engaged + pullable.length > maxDesiredTargets) {
+    if (potential.length > remaining || engaged + potential.length > maxDesiredTargets) {
       this.stats.agitateCapacityBlocks += 1;
       return null;
     }
@@ -465,8 +469,11 @@ class TacticalPartyCombat {
       targetIds: ids.slice(),
       targetType: this.encounter && this.encounter.targetType || null,
       pullOwner: team.leaderName,
-      resultingCount: engaged + ids.length,
+      resultingCount: engaged + potential.length,
       maxDesiredTargets,
+      actualRange,
+      safetyRange,
+      safetyEnvelopeTargetIds: potential.map((row) => String(row.candidate.id)),
       shadow: result.shadow === true
     };
     this._event('SMART_AOE_AGITATE_PULL', 'info', this.lastDecision.reason, { ...this.lastDecision });
