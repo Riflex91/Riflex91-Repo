@@ -20,7 +20,7 @@ export function validiereReplaySnapshot(snapshot: ReplaySnapshot): void {
 
   let erwarteteSequenz = 1;
   let letzteZeit = Number.NEGATIVE_INFINITY;
-  const ids = new Set<string>();
+  let ids: readonly string[] = Object.freeze([]);
 
   for (const eintrag of snapshot.eintraege) {
     if (eintrag.schemaVersion !== 1) throw new Error("REPLAY_EINTRAG_SCHEMA_UNGUELTIG");
@@ -28,12 +28,12 @@ export function validiereReplaySnapshot(snapshot: ReplaySnapshot): void {
     if (!Number.isFinite(eintrag.zeitMs) || eintrag.zeitMs < letzteZeit) {
       throw new Error("REPLAY_ZEIT_NICHT_MONOTON");
     }
-    if (eintrag.eintragId.trim().length === 0 || ids.has(eintrag.eintragId)) {
+    if (eintrag.eintragId.trim().length === 0 || ids.includes(eintrag.eintragId)) {
       throw new Error("REPLAY_EINTRAG_ID_UNGUELTIG");
     }
     if (eintrag.art.trim().length === 0) throw new Error("REPLAY_ART_FEHLT");
 
-    ids.add(eintrag.eintragId);
+    ids = Object.freeze([...ids, eintrag.eintragId]);
     erwarteteSequenz += 1;
     letzteZeit = eintrag.zeitMs;
   }
