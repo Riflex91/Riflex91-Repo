@@ -39,7 +39,9 @@
       "exit": [
         "55 V4-Invarianten re-ratifiziert",
         "30 V3-Fehler abgedeckt",
-        "Layer/Ownership konfliktfrei"
+        "Layer/Ownership konfliktfrei",
+        "Deutsche V5-Domaenensprache verbindlich und bestehende eigene Runtime-Schemata migrationsbereit",
+        "Mehrfach-Verriegelung fuer hohe Risiken als Invariante festgeschrieben"
       ]
     },
     {
@@ -52,7 +54,10 @@
       "blocksRuntime": true,
       "exit": [
         "Static Guards + Negativtests",
-        "Headless no-write runtime"
+        "Headless no-write runtime",
+        "Namensraum-Guard fuer deutsche V5-Runtime-Bezeichner soweit statisch pruefbar",
+        "Mutierende Capabilities default-off und nur mit typisierter Ausfuehrungsfreigabe",
+        "Bypass-Negativtests der Mehrfach-Verriegelung gruen"
       ]
     },
     {

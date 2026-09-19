@@ -72,3 +72,17 @@ Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aen
 - [ ] Keine unbeabsichtigten V3/V4-Aenderungen.
 
 **Nicht alle Checkboxen = nicht fertig.**
+
+
+## H. Sprache und Narrensicherheit
+
+- [ ] Alle von uns kontrollierten Funktions-, Typ-, Variablen-, Zustands-, Ereignis-, Fehler-, Capability-, Workflow- und Transaktionsnamen sind deutsch.
+- [ ] Eigene Schema-/Persistenz-/Protokollfelder sind deutsch, sofern kein externer Standard ihre Schreibweise erzwingt.
+- [ ] Adventure-Land-Rohnamen bleiben auf Adapter-/Normalisierungsgrenzen beschraenkt.
+- [ ] Sicherheitskritische Funktionen verwenden keine gefaehrlichen stillen Standardwerte.
+- [ ] Fehlende/unklare/veraltete Evidence fuehrt zu Sperre oder Quarantaene, nicht zu Best-Effort-Ausfuehrung.
+- [ ] Riskante Mutation besitzt mehrere unabhaengige Verriegelungen.
+- [ ] Ausfuehrung akzeptiert eine typisierte Freigabe statt eines einfachen Boolean.
+- [ ] Negative Tests beweisen, dass Mutation ohne/mit abgelaufener/falscher Freigabe nicht moeglich ist.
+- [ ] Operator, Host, Dashboard und Learning koennen harte Safety-Invarianten nicht umgehen.
+- [ ] Kritische Zustandsmodelle sind geschlossen/exhaustiv und haben keinen ausfuehrenden Default-Zweig.
