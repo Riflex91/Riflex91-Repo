@@ -1,6 +1,6 @@
 # Block 8.6.9 – gebundener Release-Candidate
 
-Status: **finaler Block-8.6-Candidate technisch gebunden, immutable veröffentlicht, öffentlich per HTTPS verifiziert und realer Schatten bestanden; kontrolliert live und Soak sind noch offen. Block 9 bleibt gesperrt.**
+Status: **finaler Block-8.6-Candidate technisch gebunden, immutable veröffentlicht, öffentlich per HTTPS verifiziert, realer Schatten und kontrolliert live bestanden; nur Soak ist noch offen. Block 9 bleibt gesperrt.**
 
 ## Exakter Candidate
 
@@ -60,7 +60,7 @@ Aktueller Gate-Stand:
 - `deploymentPerformed=true`
 - `publicHttpsVerified=true`
 - `adventureLandShadowVerified=true`
-- `adventureLandControlledLiveVerified=false`
+- `adventureLandControlledLiveVerified=true`
 - `adventureLandSoakVerified=false`
 - `block86Completed=false`
 - `block9Freigegeben=false`
@@ -215,17 +215,50 @@ Die im Bericht sichtbaren `SKILL_NICHT_VALIDIERT`-Diagnosen sind erwartete fail-
 
 Damit ist `adventureLandShadowVerified=true` technisch belegt. Kontrolliert live und Soak bleiben sequenziell gesperrt.
 
+## Realer kontrollierter Adventure-Land-Live-Nachweis
+
+Der kontrollierte Live-Lauf wurde fuer denselben immutable Candidate und dieselbe Schatten-Laufkennung auf **beiden Rangern** bestanden.
+
+Kanonische Evidenz:
+
+`BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json`
+
+Gebundene Reports:
+
+- `Eingefügter Text(20260919-131819).txt` — 682661 Bytes — SHA-256 `fba08a78942b6d2de9da482bf44df6aac6f8c91349fa13484423554195a886a7` — `My_Ranger1 -> My_Ranger2`
+- `Eingefügter Text (2)(20260919-131823).txt` — 681997 Bytes — SHA-256 `becc261eef26a674fe460befcd77dbeca8e9d3ed0fe1901ee026b216e979d4e2` — `My_Ranger2 -> My_Ranger1`
+
+Beide Reports bestaetigen:
+
+- Candidate `ca0dfee7685563c8b6003469300c8fd08777b053`, 396471 Bytes, SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`
+- Runner-Stufe `kontrolliert_live` mit `pass=true`
+- `begrenzt=true`
+- genau **1 Capability-Sendeversuch / 1 Erfolg / 0 Fehler** je Richtung
+- Produktionsruntime 1.1.5 aktiv mit bestaetigten Heartbeats und **0 Heartbeat-Sendefehlern**
+- Capability-Laufzeit 1.0.0 aktiv
+- Remote-Beobachtung und Capability-Empfang installiert
+- Katalog-Fingerprint `2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268`
+- Laufkennung `block8-6-schatten-1789822653521`
+
+Damit sind beide Richtungen explizit belegt:
+
+- `My_Ranger1 -> My_Ranger2`
+- `My_Ranger2 -> My_Ranger1`
+
+Die unmittelbar beim Reportabschluss gemessenen Zaehler `beobachteteLebensnachweise=0` und `empfangeneCapabilitySnapshots=0` werden **nicht** als Langzeit-Empfangsnachweis umgedeutet. Der aktuelle Controlled-Live-Vertrag verlangt den bestaetigten begrenzten One-Shot bei aktivem Empfangspfad; die laenger laufende Stabilitaet/Freshness bleibt Aufgabe des Soaks.
+
+Damit ist `adventureLandControlledLiveVerified=true` technisch belegt. Der Soak bleibt als letzte reale Block-8.6-Stufe offen.
+
 ## Was dieser Schritt bewusst nicht behauptet
 
 Dieser Stand bedeutet noch nicht:
 
-- kontrolliert live bestanden,
 - Soak bestanden,
 - Block 8.6 abgeschlossen,
 - Block 9 freigegeben.
 
 ## Nächster Schritt
 
-Deployment, öffentlicher HTTPS-Preflight und realer Adventure-Land-Schatten sind für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` bestanden. Als nächste sequenzielle reale Freigabestufe folgt **kontrolliert live** mit derselben Schattenuebergabe.
+Deployment, öffentlicher HTTPS-Preflight, realer Adventure-Land-Schatten und kontrolliert live sind für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` bestanden. Als letzte reale Block-8.6-Freigabestufe folgt der **Soak über mindestens 600000 ms**.
 
-Der Soak bleibt bis zum bestandenen kontrollierten Live-Nachweis gesperrt.
+Block 8.6 und Block 9 bleiben bis zum bestandenen Soak gesperrt.

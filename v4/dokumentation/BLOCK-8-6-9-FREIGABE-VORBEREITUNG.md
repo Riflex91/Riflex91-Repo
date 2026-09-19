@@ -372,7 +372,7 @@ Es bindet exakt:
 
 Der Live-Knopf bleibt bis zu einem bestaetigten fehlerfreien Produktionsheartbeat und sendefreier Capability-Basis gesperrt. Danach ist genau ein Capability-One-Shot an den anderen Ranger moeglich. Soak wird in diesem Paket nicht freigegeben.
 
-Der reale kontrollierte Live-Nachweis bleibt bis zu einem tatsaechlichen Adventure-Land-PASS-Bericht offen.
+Der reale kontrollierte Live-Nachweis ist inzwischen bidirektional bestanden und in `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json` kanonisch gebunden. Als naechste Stufe folgt ausschliesslich der Soak.
 
 ## Naechster operativer Schritt
 

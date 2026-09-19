@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Release-Candidate exakt gebunden, immutable deployed, öffentlich per HTTPS verifiziert und realer Schatten bestanden; kontrolliert live und Soak noch offen.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Release-Candidate exakt gebunden, immutable deployed, öffentlich per HTTPS verifiziert, realer Schatten und kontrolliert live bestanden; Soak noch offen.**
 
-Naechster operativer Schritt: **8.6.9 – kontrollierten Live-Lauf mit der bestandenen Schattenuebergabe ausfuehren; danach Soak**
+Naechster operativer Schritt: **8.6.9 – Soak mit der bestandenen Live-Uebergabe ueber mindestens 600000 ms ausfuehren**
 
 ## Ziel
 
@@ -211,7 +211,7 @@ Pflichtfaelle:
 
 Umsetzungsnachweis: `BLOCK-8-6-8-REPLAY-REGRESSION.md`.
 
-## 8.6.9 – Freigabe — **RELEASE-CANDIDATE DEPLOYED/HTTPS + SCHATTEN VERIFIZIERT; LIVE/SOAK OFFEN**
+## 8.6.9 – Freigabe — **RELEASE-CANDIDATE DEPLOYED/HTTPS + SCHATTEN + LIVE VERIFIZIERT; SOAK OFFEN**
 
 Block 8.6 folgt denselben Laufzeit-Gates wie Block 8.5:
 
@@ -239,7 +239,9 @@ Deployment-/HTTPS-Nachweis: `BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md`. Work
 
 Realer Schattennachweis: `BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json`. Der Lauf `block8-6-schatten-1789822653521` hat fuer exakt denselben Candidate PASS, 0 Heartbeat-Sendeversuche und 0 Capability-Sendeversuche bestaetigt.
 
-Noch nicht als bestanden markiert werden duerfen kontrollierter Live-Lauf oder Soak.
+Realer kontrollierter Live-Nachweis: `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json`. Beide Ranger-Richtungen haben jeweils genau 1 Capability-One-Shot mit 1 Erfolg / 0 Fehlern sowie fehlerfreie Produktionsheartbeats bestaetigt.
+
+Noch nicht als bestanden markiert werden darf der Soak.
 
 ## Folgeabhaengigkeiten
 
