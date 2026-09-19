@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-call-budget.schema.json",
+  "title": "V5 Adventure Land Call Cost and Rate Limit Contract",
+  "type": "object",
+  "required": [
+    "schemaVersion","researchId","status","sourceSnapshot",
+    "gameSocket","deferredQueues","clientSafeties","externalApi","mainframeCpu","v5Policy","invariants"
+  ],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "researchId":{"const":"V5-P0-07"},
+    "status":{"const":"DONE"},
+    "sourceSnapshot":{"type":"object"},
+    "gameSocket":{"type":"object"},
+    "deferredQueues":{"type":"object"},
+    "clientSafeties":{"type":"object"},
+    "externalApi":{"type":"object"},
+    "mainframeCpu":{"type":"object"},
+    "v5Policy":{"type":"object"},
+    "invariants":{"type":"array","minItems":12,"items":{"type":"string"}}
+  }
+}
