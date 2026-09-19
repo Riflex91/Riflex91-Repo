@@ -288,11 +288,36 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     const alreadyOnFarmers = partyHeldQuantity(runtime, step.name, step.level);
     const remainingToFarm = Math.max(0, step.quantity - alreadyOnFarmers);
     if (remainingToFarm <= 0) {
-      materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm: 0,
+        source: null,
+        awaitingTransfer: true,
+        handoffMaterial: step.name,
+        handoffLevel: step.level,
+        handoffQuantity: step.quantity,
+        heldByFarmers: alreadyOnFarmers
+      });
       continue;
     }
     const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
     if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
+      const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm,
+        source,
+        awaitingTransfer: true,
+        handoffMaterial: source.material,
+        handoffLevel: 0,
+        handoffQuantity,
+        heldByFarmers: finite(source.alreadyOnFarmers, 0)
+      });
+      continue;
+    }
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
@@ -348,8 +373,11 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     evaluated: evaluated.map((row) => ({
       output: row.candidate && row.candidate.candidate && row.candidate.candidate.output || null,
       recipient: row.candidate && row.candidate.candidate && row.candidate.candidate.recipient || null,
+      slot: row.candidate && row.candidate.candidate && row.candidate.candidate.slot || null,
+      target: clone(row.candidate && row.candidate.candidate || null),
       eligible: row.estimate && row.estimate.eligible === true,
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
+      materials: clone(row.estimate && row.estimate.materials || []),
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
       longPath: row.estimate && row.estimate.longPath === true,
