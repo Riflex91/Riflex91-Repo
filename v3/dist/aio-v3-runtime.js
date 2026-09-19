@@ -31939,6 +31939,14 @@ class ControlledPartyLogistics {
     const material = cleanName(objective.material || previous.material);
     const expiresAt = finite(objective.expiresAt, finite(previous.expiresAt, now + 15 * 60 * 1000));
     if (!objectiveId || !material || expiresAt <= now) return false;
+    const sameHandoff = previous
+      && previous.phase === 'HANDOFF_READY'
+      && previous.objectiveId === objectiveId
+      && previous.material === material
+      && Math.max(0, Math.floor(finite(previous.level, 0))) === Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0))))
+      && Math.max(1, Math.floor(finite(previous.requiredQuantity, 1))) === Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1))))
+      && finite(previous.expiresAt, 0) > now;
+    if (sameHandoff && now - this.lastProductionMaterialPublishAt < this.config.productionMaterialPublishCooldownMs) return true;
     const normalized = {
       ...clone(previous),
       objectiveId,
@@ -31956,6 +31964,7 @@ class ControlledPartyLogistics {
       expiresAt
     };
     this.lastProductionMaterialObjective = clone(normalized);
+    this.lastProductionMaterialPublishAt = now;
     for (const name of this._trustedNames()) {
       if (name === this._localName()) continue;
       Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_HANDOFF_READY, normalized)).catch(() => {});
@@ -56210,9 +56219,9 @@ class PersistentProductionIntent {
       this.active.planId = clean(details.plan.id);
       this.active.planState = clean(details.plan.state);
     }
-    if (Object.prototype.hasOwnProperty.call(details, 'progress')) this.active.progress = clone(details.progress);
-    if (Object.prototype.hasOwnProperty.call(details, 'material')) this.active.material = clone(details.material);
-    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution')) this.active.lastExecution = clone(details.lastExecution);
+    if (Object.prototype.hasOwnProperty.call(details, 'progress') && details.progress !== undefined) this.active.progress = clone(details.progress);
+    if (Object.prototype.hasOwnProperty.call(details, 'material') && details.material !== undefined) this.active.material = clone(details.material);
+    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution') && details.lastExecution !== undefined) this.active.lastExecution = clone(details.lastExecution);
     if (details.recoveryPending != null) this.active.recoveryPending = details.recoveryPending === true;
     this.stats.updated += 1;
     return this._persist();
