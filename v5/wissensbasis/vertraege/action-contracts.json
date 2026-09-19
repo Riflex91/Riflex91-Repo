@@ -1664,19 +1664,33 @@
         "inventory_item_identity",
         "inventory_capacity",
         "gold",
-        "dismantle_definition"
+        "dismantle_definition",
+        "dismantle_path",
+        "exact_input_identity",
+        "possible_output_set",
+        "server_equivalent_outputspace"
       ],
       "dangerFlags": [
         "DESTRUCTIVE",
         "RANDOM_OUTPUT_POSSIBLE",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "LEVELED_COMPOUND_THREE_OUTPUT_SPECIAL",
+        "SERVER_SPECIAL_PATH_BYPASSES_NORMAL_LOCK_BLOCK_CHECK",
+        "PROBABILISTIC_OUTPUTSPACE",
+        "PROPERTY_LOSS_ON_COMPOUND_SPLIT"
       ],
       "postconditions": [
-        "input removed",
-        "gold cost applied",
-        "outputs reconciled"
+        "exact pinned input consumed exactly once",
+        "gold cost applied exactly once",
+        "leveled compound path: exactly three level-1 copies exist with floor(original grace/3) and expected property loss semantics",
+        "normal definition path: every actually rolled output is reconciled and no unplanned overflow is accepted",
+        "inventory capacity remains within V5 planned bounds"
       ],
-      "notes": [],
+      "notes": [
+        "Leveled compound non-booster items use a special path: require two pre-free slots, consume one item, create three level-1 copies and charge min(50m,itemValue*10).",
+        "That special path occurs before normal server lock/block checks; V5 remains stricter and denies locked/blocked/value-protected inputs.",
+        "Normal dismantle preflights all possible outputs conservatively, including probabilistic entries, before consuming input."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {
@@ -2152,19 +2166,33 @@
         "physical_inputs",
         "gold",
         "inventory_capacity",
-        "service_or_quest_reachability"
+        "service_or_quest_reachability",
+        "server_recipe_key",
+        "exact_physical_input_stacks",
+        "recipe_duplicate_name_assumption",
+        "server_equivalent_outputspace"
       ],
       "dangerFlags": [
         "MULTI_INPUT_DESTRUCTIVE",
         "SHARED_FIFO_CHANNEL",
-        "RECIPE_DRIFT"
+        "RECIPE_DRIFT",
+        "OUTPUTSPACE_PRECHECK",
+        "OUTPUT_PROPERTY_INHERITANCE",
+        "CRAFTMAP_PROTOCOL",
+        "ANNIVERSARY_SPECIAL_ROUTE"
       ],
       "postconditions": [
-        "all required inputs reduced",
-        "gold cost applied",
-        "output present"
+        "recipe gold cost applied exactly once",
+        "all exact planned physical input quantities consumed exactly once",
+        "one terminal configured output exists with allowed property/data behavior",
+        "inventory capacity remains within V5 planned bounds"
       ],
-      "notes": [],
+      "notes": [
+        "Normal server craft derives recipe from sorted names/levels of provided inventory indices, then checks quantities and outputspace before mutation.",
+        "Current recipe set has zero duplicate ingredient names; if that changes, normal quantity/place maps keyed by item name require revalidation.",
+        "If any selected ingredient stack is fully consumed, server counts the freed slot as outputspace; otherwise output must be addable before mutation.",
+        "Anniversary-baker recipes delegate to a trusted server planner that can consume a requirement across multiple stacks and may use recipe.output name/data."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
@@ -2214,19 +2242,35 @@
         "physical_inputs",
         "gold",
         "inventory_capacity",
-        "service_or_quest_reachability"
+        "service_or_quest_reachability",
+        "server_recipe_key",
+        "exact_physical_input_stacks",
+        "recipe_duplicate_name_assumption",
+        "server_equivalent_outputspace"
       ],
       "dangerFlags": [
         "MULTI_INPUT_DESTRUCTIVE",
         "SHARED_FIFO_CHANNEL",
-        "RECIPE_DRIFT"
+        "RECIPE_DRIFT",
+        "OUTPUTSPACE_PRECHECK",
+        "OUTPUT_PROPERTY_INHERITANCE",
+        "CRAFTMAP_PROTOCOL",
+        "ANNIVERSARY_SPECIAL_ROUTE",
+        "FIRST_MATCHING_SINGLE_STACK_SELECTION"
       ],
       "postconditions": [
-        "all required inputs reduced",
-        "gold cost applied",
-        "output present"
+        "recipe gold cost applied exactly once",
+        "all exact planned physical input quantities consumed exactly once",
+        "one terminal configured output exists with allowed property/data behavior",
+        "inventory capacity remains within V5 planned bounds"
       ],
-      "notes": [],
+      "notes": [
+        "Normal server craft derives recipe from sorted names/levels of provided inventory indices, then checks quantities and outputspace before mutation.",
+        "Current recipe set has zero duplicate ingredient names; if that changes, normal quantity/place maps keyed by item name require revalidation.",
+        "If any selected ingredient stack is fully consumed, server counts the freed slot as outputspace; otherwise output must be addable before mutation.",
+        "Anniversary-baker recipes delegate to a trusted server planner that can consume a requirement across multiple stacks and may use recipe.output name/data.",
+        "Current auto_craft chooses the first matching single stack with enough quantity for each normal recipe ingredient; physical selection is re-simulated immediately before send."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
@@ -2249,8 +2293,13 @@
       "effectDomains": [
         "inventory_input",
         "placeholder",
-        "random_reward",
-        "character_q"
+        "inventory_reward",
+        "gold",
+        "shells",
+        "account_cosmetics",
+        "empty_reward",
+        "character_q",
+        "massexchange_condition"
       ],
       "client": {
         "transportEvent": "exchange",
@@ -2277,19 +2326,35 @@
         "exchange_definition",
         "inventory_capacity",
         "service_or_quest_reachability",
-        "character_q"
+        "character_q",
+        "drop_table_graph",
+        "all_reward_domains",
+        "massexchange_conditions",
+        "conservative_outputspace"
       ],
       "dangerFlags": [
         "PLACEHOLDER_Q",
         "INPUT_CONSUMED_BEFORE_FINAL_REWARD",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "PROMISE_REWARD_NOT_COMPLETE_LEDGER",
+        "RECURSIVE_DROP_TABLE",
+        "MULTI_DOMAIN_REWARD",
+        "SERVER_ADD_ITEM_OVERFLOW_POSSIBLE",
+        "OUTPUT_SLOT_NOT_REWARD_IDENTITY"
       ],
       "postconditions": [
-        "q.exchange cleared",
-        "placeholder resolved to reward/terminal state",
-        "input delta reconciled"
+        "q.exchange cleared and attributable placeholder gone",
+        "exact exchange input quantity consumed exactly once",
+        "all terminal reward domains allowed by pinned drop table reconciled: inventory/gold/shells/account cosmetics/empty/recursive output",
+        "massexchange/mass exchange plus condition delta reconciled when present",
+        "Promise reward/num is treated only as supporting evidence"
       ],
-      "notes": [],
+      "notes": [
+        "Server consumes exchange input and inserts placeholder before q completion.",
+        "At completion placeholder is cleared before reward resolution. Item rewards use generic add_item and may stack into another slot.",
+        "Reward may be gold, shells, cosmetics, empty, recursive drop or item; special drop logic may produce multiple items.",
+        "Generic add_item can append beyond nominal inventory capacity. V5 therefore requires conservative bounded outputspace and never plans around overflow."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
@@ -2336,16 +2401,28 @@
         "token_quantity",
         "token_table",
         "inventory_capacity",
-        "npc_reachability"
+        "npc_reachability",
+        "exact_token_stack_identity",
+        "entire_token_stack_q",
+        "reward_item_data",
+        "server_equivalent_outputspace"
       ],
       "dangerFlags": [
         "TOKEN_TABLE_DRIFT",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "FULL_STACK_Q_SAFETY_CHECK",
+        "TOKEN_STACK_SELECTION",
+        "OUTPUTSPACE_DEPENDS_ON_FULL_CONSUME"
       ],
       "postconditions": [
-        "token delta and output item delta reconciled"
+        "exact pinned token stack decreased by configured cost or disappeared on full consume",
+        "exact configured reward item/data/quantity is present",
+        "no unrelated token stack was consumed"
       ],
-      "notes": [],
+      "notes": [
+        "Public wrapper selects a token slot and sends the entire observed stack q; server requires current item.q == data.q (safety_check).",
+        "If token stack is not fully consumed, outputspace is checked before mutation; full consumption can free the output slot."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
