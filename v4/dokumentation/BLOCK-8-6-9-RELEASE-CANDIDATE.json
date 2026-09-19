@@ -47,12 +47,28 @@
     "namingCheck": "passed",
     "replayCoverage": "BLOCK-8-6-8-REPLAY-REGRESSION.md"
   },
-  "deploymentPerformed": false,
-  "publicHttpsVerified": false,
+  "deploymentPerformed": true,
+  "publicHttpsVerified": true,
   "adventureLandShadowVerified": false,
   "adventureLandControlledLiveVerified": false,
   "adventureLandSoakVerified": false,
   "block86Completed": false,
   "block9Freigegeben": false,
-  "nextOperationalStep": "immutable_deployment"
+  "nextOperationalStep": "adventure_land_shadow",
+  "deploymentEvidence": {
+    "workflow": "release-v4-block8-6-candidate-immutable",
+    "runId": 35441831873,
+    "runNumber": 4,
+    "jobId": 105893861206,
+    "controlHeadSha": "07e2af0f721219b50586b4c5e08cece717048610",
+    "releaseSha": "ca0dfee7685563c8b6003469300c8fd08777b053",
+    "sha256": "b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5",
+    "r2Bucket": "aio-v3-logs",
+    "r2RuntimeKey": "releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js",
+    "r2Sha256Key": "releases/v4/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256",
+    "publicRuntimeUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js",
+    "publicSha256Url": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256",
+    "conclusion": "success",
+    "completedAt": "2026-09-19T12:05:07Z"
+  }
 }

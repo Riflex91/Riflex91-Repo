@@ -46,6 +46,7 @@ const dateien = [
   'werkzeuge/block8-6-release-bindung-pruefen.mjs',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.json',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.md',
+  'dokumentation/BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
   'dokumentation/BLOCK-8-6-1-SKILL-KATALOG.md',
   'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md',
   'dokumentation/BLOCK-8-6-8-REPLAY-REGRESSION.md',
@@ -1052,8 +1053,8 @@ for (const pflicht of [
   '8.6.6 – Capability-basierte Leader- und Aufgabenwahl — **IMPLEMENTIERT**',
   '8.6.7 – Status, HUD und Diagnose — **IMPLEMENTIERT**',
   '8.6.8 – Replay und Regression — **IMPLEMENTIERT**',
-  '8.6.9 – Freigabe — **RELEASE-CANDIDATE GEBUNDEN; DEPLOYMENT UND REALE STUFEN OFFEN**',
-  'Naechster operativer Schritt: **8.6.9 – gebundenen Candidate immutable veroeffentlichen, HTTPS nachweisen und danach Schatten → kontrolliert live → Soak ausfuehren**'
+  '8.6.9 – Freigabe — **RELEASE-CANDIDATE DEPLOYED/HTTPS VERIFIZIERT; REALE STUFEN OFFEN**',
+  'Naechster operativer Schritt: **8.6.9 – realen Schattenlauf mit dem immutable Candidate ausfuehren; danach kontrolliert live → Soak**'
 ]) {
   if (!plan.includes(pflicht)) throw new Error(`Block-8.6-Plan ist nicht auf aktuellem 8.6.9-Vorbereitungsstand: ${pflicht}`);
 }
@@ -1109,4 +1110,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay sowie exakt gebundener Release-Candidate; Deployment/HTTPS und operative Schatten-/Live-/Soak-Nachweise bleiben offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay sowie exakt gebundener und deployed/HTTPS-verifizierter Release-Candidate; operative Schatten-/Live-/Soak-Nachweise bleiben offen.');
