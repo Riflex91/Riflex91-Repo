@@ -21,3 +21,13 @@
 {"kennung":"COMM-ALCLIENT","titel":"earthiverse/ALClient","adresse":"https://github.com/earthiverse/ALClient","vertrauen":"COMMUNITY","vorherigerInhaltSha256":null,"neuerInhaltSha256":"defc82fd2e6187f0b705c76e9bd4a499405a655e835726a1dae54f8aeedd84f6","erkanntAm":"2026-09-19T18:42:40.6948256+00:00","art":"NEU_ERFASST"}
 {"kennung":"AL-OFFICIAL-DOCS-HUB","titel":"Adventure Land — Website / Docs Hub","adresse":"https://adventure.land/","vertrauen":"OFFICIAL","vorherigerInhaltSha256":"53050c0668ad44b9de597374c448d6da987d8c00da256256542574f2af435494","neuerInhaltSha256":"641df3a6cf5df059b4d2b89a3a1f5c271de8d9c83d9d003c7bda6adeacbd33f3","erkanntAm":"2026-09-19T18:42:59.8065086+00:00","art":"INHALT_GEAENDERT"}
 {"kennung":"AL-OFFICIAL-DOCS-HUB","titel":"Adventure Land — Website / Docs Hub","adresse":"https://adventure.land/","vertrauen":"OFFICIAL","vorherigerInhaltSha256":"641df3a6cf5df059b4d2b89a3a1f5c271de8d9c83d9d003c7bda6adeacbd33f3","neuerInhaltSha256":"de134d7e239bfd6df75d293c9af7bd4942f0939f8745e36db684511466718fda","erkanntAm":"2026-09-19T19:02:51.4244436+00:00","art":"INHALT_GEAENDERT"}
+{
+  "kennung": "AL-OFFICIAL-DOCS-HUB",
+  "titel": "Adventure Land \u2014 Website / Docs Hub",
+  "adresse": "https://adventure.land/",
+  "vertrauen": "OFFICIAL",
+  "vorherigerInhaltSha256": "de134d7e239bfd6df75d293c9af7bd4942f0939f8745e36db684511466718fda",
+  "neuerInhaltSha256": "6cd982e717035aa3fc8e3550c32abfea3f20254faacde557d36c93af3135df0c",
+  "erkanntAm": "2026-09-19T19:09:18.9871928+00:00",
+  "art": "INHALT_GEAENDERT"
+}
