@@ -545,7 +545,15 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       continue;
     }
     const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
-    if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    if (!source) {
+      const deferredSource = diagnoseUnavailableMaterialSource(runtime, step.name);
+      return {
+        eligible: false,
+        reason: deferredSource && deferredSource.reason || 'NO_SAFE_DIRECT_FARM_SOURCE',
+        material: { ...clone(step), alreadyOnFarmers, remainingToFarm },
+        deferredSource: clone(deferredSource)
+      };
+    }
     if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
       const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
       materials.push({
@@ -569,9 +577,15 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
   }
 
   const totalExpectedHours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.expectedHours, Infinity) : 0), 0);
-  if (!Number.isFinite(totalExpectedHours)) return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
+  const totalP50Hours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.p50Hours, Infinity) : 0), 0);
+  const totalP90Hours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.p90Hours, Infinity) : 0), 0);
+  if (![totalExpectedHours, totalP50Hours, totalP90Hours].every(Number.isFinite)) {
+    return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
+  }
   const maxTeamFarmHours = Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS));
-  const longPath = totalExpectedHours > maxTeamFarmHours;
+  // 12h remains a prioritization boundary, never a permanent eligibility gate.
+  // P90 is used here so rare-drop variance cannot make a path look deceptively cheap.
+  const longPath = totalP90Hours > maxTeamFarmHours;
 
   const target = blockedCandidate.candidate;
   const benefit = Math.max(
@@ -580,11 +594,17 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       + Math.max(0, finite(target.survivalImprovement, 0))
       + Math.max(0, finite(target.speedImprovement, 0)) * 10
   );
-  const utilityPerFarmHour = benefit / Math.max(0.01, totalExpectedHours);
+  const utilityPerFarmHour = benefit / Math.max(0.01, totalP90Hours);
   const nextMaterial = materials.filter((row) => row.source).sort((a, b) =>
-    finite(b.source && b.source.expectedHours, 0) - finite(a.source && a.source.expectedHours, 0)
+    finite(b.source && b.source.p90Hours, 0) - finite(a.source && a.source.p90Hours, 0)
+    || finite(b.source && b.source.p50Hours, 0) - finite(a.source && a.source.p50Hours, 0)
     || a.name.localeCompare(b.name)
   )[0];
+
+  const confidenceRows = materials.filter((row) => row.source && Number.isFinite(Number(row.source.probabilityConfidence)));
+  const probabilityConfidence = confidenceRows.length
+    ? Math.min(...confidenceRows.map((row) => finite(row.source.probabilityConfidence, 0)))
+    : 1;
 
   return {
     eligible: true,
@@ -593,6 +613,11 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     materials,
     nextMaterial,
     totalExpectedHours,
+    totalP50Hours,
+    totalP90Hours,
+    probabilityConfidence,
+    farmTimeModel: PROBABILISTIC_FARM_TIME_MODEL,
+    decisionQuantile: 'P90',
     maxTeamFarmHours,
     longPath,
     priorityTier: longPath ? 1 : 0,
@@ -608,6 +633,8 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     .filter((row) => row.estimate && row.estimate.eligible)
     .sort((a, b) => finite(a.estimate.priorityTier, 0) - finite(b.estimate.priorityTier, 0)
       || b.estimate.utilityPerFarmHour - a.estimate.utilityPerFarmHour
+      || a.estimate.totalP90Hours - b.estimate.totalP90Hours
+      || a.estimate.totalP50Hours - b.estimate.totalP50Hours
       || a.estimate.totalExpectedHours - b.estimate.totalExpectedHours
       || finite(b.estimate.benefit, 0) - finite(a.estimate.benefit, 0)
       || String(a.estimate.target && a.estimate.target.output || '').localeCompare(String(b.estimate.target && b.estimate.target.output || '')));
@@ -621,7 +648,13 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
       eligible: row.estimate && row.estimate.eligible === true,
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
       materials: clone(row.estimate && row.estimate.materials || []),
+      deferredSource: clone(row.estimate && row.estimate.deferredSource || null),
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
+      totalP50Hours: row.estimate && Number.isFinite(row.estimate.totalP50Hours) ? row.estimate.totalP50Hours : null,
+      totalP90Hours: row.estimate && Number.isFinite(row.estimate.totalP90Hours) ? row.estimate.totalP90Hours : null,
+      probabilityConfidence: row.estimate && Number.isFinite(row.estimate.probabilityConfidence) ? row.estimate.probabilityConfidence : null,
+      farmTimeModel: row.estimate && row.estimate.farmTimeModel || null,
+      decisionQuantile: row.estimate && row.estimate.decisionQuantile || null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
       longPath: row.estimate && row.estimate.longPath === true,
       priorityTier: row.estimate && Number.isFinite(row.estimate.priorityTier) ? row.estimate.priorityTier : null,
