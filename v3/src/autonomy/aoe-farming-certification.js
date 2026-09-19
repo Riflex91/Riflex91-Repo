@@ -66,7 +66,10 @@ class AoeFarmingCertification {
   }
 
   _soak() {
-    const rows = this.rows.filter((row) => this._isAoe(row) && row.learningEligible === true);
+    // Certification is a safety gate, not a learning filter. CONTENT_DRIFT and
+    // INTERRUPTED are intentionally not learning-eligible, but they must still
+    // invalidate a live soak while they remain inside the observation window.
+    const rows = this.rows.filter((row) => this._isAoe(row));
     const count = rows.length;
     const deaths = rows.reduce((sum, row) => sum + Math.max(0, finite(row.deaths, 0)), 0);
     const nearDeaths = rows.reduce((sum, row) => sum + Math.max(0, finite(row.nearDeaths, 0)), 0);
