@@ -10,7 +10,24 @@
     {
       "id": "V5-P0-01",
       "title": "Action-Contract-Matrix aller wertverandernden Public Functions",
-      "status": "OPEN"
+      "status": "IN_PROGRESS",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "totalContracts": 60,
+        "sourceVerified": 52,
+        "liveDocOnlyNeedsExactContract": 8,
+        "blockers": [
+          "bet_wheel",
+          "poker_join",
+          "poker_act",
+          "poker_leave",
+          "poker_sit_in",
+          "poker_sit_out",
+          "cave_buy",
+          "destroy_item"
+        ],
+        "note": "Current live public catalog is ahead of the checked official GitHub runner snapshot for these functions."
+      }
     },
     {
       "id": "V5-P0-02",
