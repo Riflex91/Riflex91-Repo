@@ -151,6 +151,7 @@ class MerchantProductionPlanner {
     this.minImprovementRatio = Math.max(0, Math.min(1, finite(options.minImprovementRatio, 0.04)));
     this.goldReserve = Math.max(0, Math.floor(finite(options.goldReserve, 1000000)));
     this.maxBuyQuantity = Math.max(1, Math.min(10000, Math.floor(finite(options.maxBuyQuantity, 1000))));
+    this.candidateScanLimit = Math.max(16, Math.min(128, Math.floor(finite(options.candidateScanLimit, 64))));
     this.explicitTargets = Array.isArray(options.targets) ? options.targets.filter(Boolean).map(String) : [];
     this.sequence = 0;
     this.lastPlan = null;
@@ -604,7 +605,7 @@ class MerchantProductionPlanner {
 
     let bestBlocked = null;
     const blockedCandidates = [];
-    for (const candidate of candidates.slice(0, 32)) {
+    for (const candidate of candidates.slice(0, this.candidateScanLimit)) {
       if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
         try { if (input.contentDrift.requiresRevalidation('items', candidate.output)) continue; } catch (_) { continue; }
       }
@@ -654,7 +655,7 @@ class MerchantProductionPlanner {
       blockers: bestBlocked ? bestBlocked.blockers : [{ reason: 'NO_CANDIDATE' }],
       totalGold: bestBlocked ? bestBlocked.totalGold : 0,
       goldReserve: this.goldReserve,
-      blockedCandidates: blockedCandidates.slice(0, 16).map((row) => ({
+      blockedCandidates: blockedCandidates.slice(0, this.candidateScanLimit).map((row) => ({
         candidate: clone(row.candidate),
         steps: clone(row.steps),
         blockers: clone(row.blockers),
@@ -683,6 +684,7 @@ class MerchantProductionPlanner {
       minImprovementRatio: this.minImprovementRatio,
       goldReserve: this.goldReserve,
       maxBuyQuantity: this.maxBuyQuantity,
+      candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
       costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
       sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
