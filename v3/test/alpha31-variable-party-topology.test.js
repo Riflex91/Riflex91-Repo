@@ -316,11 +316,10 @@ test('restart reconciliation is size-consistent and remains fail-closed without 
 
 
 function dynamicAccountRoot(localName, localType, accountRows, active = null) {
-  const rows = accountRows.map((row) => ({ ...row }));
   const root = {
     character: { name: localName, ctype: localType },
     parent: { party: {}, party_list: [localName] },
-    get_characters: () => rows.map((row) => ({ ...row })),
+    get_characters: () => accountRows.map((row) => ({ ...row })),
     get_active_characters: () => active || { [localName]: 'self' }
   };
   root.parent.get_characters = root.get_characters;
