@@ -22,7 +22,7 @@
     {
       "kennung": "P0_RESEARCH_BEREIT",
       "erfuellt": false,
-      "grund": "P0-01 ist noch IN_PROGRESS; P0-02 bis P0-07 sind offen.",
+      "grund": "P0-01 ist abgeschlossen: 60/60 wertrelevante Public Functions sind verifiziert oder explizit deaktiviert; cave_buy bleibt fail-closed gesperrt. P0-02 ist IN_PROGRESS; P0-03 bis P0-07 sind offen.",
       "nachweise": [
         "v5/wissensbasis/revalidierung/revalidierungsqueue.json"
       ]
