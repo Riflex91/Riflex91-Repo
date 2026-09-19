@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-19",
-  "status": "VOR_IMPLEMENTIERUNG_DEFINIERT",
+  "status": "R2_RATIFIZIERT",
   "regel": "Jede Fitness-Regel braucht spaeter einen positiven und einen negativen Nachweis; dokumentierte, aber nicht durchgesetzte Architektur gilt nicht als ausreichend.",
   "regeln": [
     {
@@ -231,6 +231,61 @@
       "titel": "GitHub-Livewissen bleibt bounded und enthaelt keine hochfrequente Rohtelemetrie",
       "phase": "R6",
       "durchsetzung": "DATEI_ANZAHL_GROESSE_UND_RETENTION_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-039",
+      "titel": "Jeder mutierende Action-Channel wird als Ressource geclaimt und teilt zusaetzlich das character-globale Socket-Budget",
+      "phase": "R8",
+      "durchsetzung": "RESOURCE_UND_BUDGET_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-040",
+      "titel": "UNKNOWN besitzt in keinem Action-/Recovery-Modell einen direkten Same-Intent-Send-Uebergang",
+      "phase": "R10",
+      "durchsetzung": "ZUSTANDSMODELL_UND_RECOVERY_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-041",
+      "titel": "Langlebige Leases verwenden Epoche/Fencing und stale Tokens koennen keine Mutation autorisieren",
+      "phase": "R8",
+      "durchsetzung": "LEASE_FENCING_PROPERTY_TEST"
+    },
+    {
+      "kennung": "V5-FIT-042",
+      "titel": "Interne langlebige Nachrichten besitzen Protokollversion, Nachrichten-ID, TTL und Dedupe-Semantik",
+      "phase": "R14",
+      "durchsetzung": "MESSAGE_ENVELOPE_SCHEMA_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-043",
+      "titel": "Definitionen, Observed Evidence und Reconciled World Truth sind getrennte Typen/Layer",
+      "phase": "R6",
+      "durchsetzung": "TYP_UND_DEPENDENCY_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-044",
+      "titel": "Jede live-faehige Capability besitzt Disable-/Rollback-Pfad und Default-Deny-Start",
+      "phase": "R7",
+      "durchsetzung": "CAPABILITY_LIFECYCLE_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-045",
+      "titel": "Nichtkritisches SSD-I/O ist aus Combat-/Movement-/Scheduler-/Execution-Hot-Paths ausgeschlossen",
+      "phase": "R5",
+      "durchsetzung": "SSD_HOT_PATH_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-046",
+      "titel": "Wertveraendernde Execution ist technisch unmoeglich bevor durable Transaction Intent bestaetigt ist",
+      "phase": "R9",
+      "durchsetzung": "PERSIST_BEFORE_ACTION_NEGATIVTEST"
+    },
+    {
+      "kennung": "V5-FIT-047",
+      "titel": "V5-Layerabhaengigkeiten sind azyklisch und Ausfuehrungsadapter enthalten keine Domain-Policy",
+      "phase": "R3",
+      "durchsetzung": "LAYERGRAPH_UND_DEPENDENCY_GUARD"
     }
-  ]
+  ],
+  "r2RatifiziertAm": "2026-09-19"
 }
