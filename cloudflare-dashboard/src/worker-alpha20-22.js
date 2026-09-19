@@ -112,6 +112,7 @@ export default {
     if (request.method === 'GET' && path === '/api/v3/overview') return overview22(request, env);
     if (request.method === 'GET' && path === '/api/v3/settings') return settingsGet22(request, env);
     if (request.method === 'POST' && path === '/api/v3/runtime') return runtime22(request, env);
+    if (request.method === 'GET' && path === '/api/v3/automation-catalog') return alpha2021Worker.fetch(request, env, ctx);
     if (d1Blocked()) {
       if (request.method === 'GET' && path === '/api/v3/brain') return degradedAuthenticatedGet(request, env, 'brain');
       if (request.method === 'GET' && path === '/api/v3/events') return degradedAuthenticatedGet(request, env, 'events');
