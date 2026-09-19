@@ -39,6 +39,9 @@ const pflichtDateien = [
   'laufzeit/quelle/kern/schatten-ausfuehrung.ts',
   'laufzeit/quelle/kern/ressourcen-vergabe.ts',
   'laufzeit/quelle/kern/kontingent-waechter.ts',
+  'laufzeit/quelle/kern/v3-kontingent-paritaet.ts',
+  'laufzeit/tests/v3-kontingent-paritaet.test.mjs',
+  'dokumentation/V3-KONTINGENT-PARITAET.md',
   'laufzeit/quelle/kern/bedien-sicherung.ts',
   'laufzeit/quelle/kern/auftrags-pruefung.ts',
   'laufzeit/quelle/kern/auftrags-vorschlaege.ts',
@@ -100,9 +103,45 @@ const dienstDokument = await readFile(path.join(wurzel, 'dokumentation/DIENSTGRE
 for (const pflichtRegel of [
   'Kein Modul darf einen externen Dienst direkt aufrufen.',
   'Kein unbekannter Verbrauch wird geraten.',
-  'Keine Warteschlange darf unbegrenzt wachsen.'
+  'Keine Warteschlange darf unbegrenzt wachsen.',
+  'Verbindliche V3-Paritaet fuer Cloudflare und Supabase',
+  'V4 darf ein gemeinsames Limit niemals als exklusiv eigenes Budget behandeln.'
 ]) {
   if (!dienstDokument.includes(pflichtRegel)) throw new Error(`Pflichtregel fuer externe Dienste fehlt: ${pflichtRegel}`);
+} 
+
+const paritaetsQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/kern/v3-kontingent-paritaet.ts'), 'utf8');
+for (const pflichtRegel of [
+  "V3_KONTINGENT_PARITAET_VERSION = '1.0.0'",
+  'freiAnfragenProTag: 100_000',
+  'botBudgetProTag: 90_000',
+  'proCharakterProTag: 22_500',
+  'geleseneZeilenProTag: 5_000_000',
+  'geschriebeneZeilenProTag: 100_000',
+  'klasseABudgetProMonat: 950_000',
+  'klasseBBudgetProMonat: 9_500_000',
+  'liveSpeicherBudgetBytes: 9_500_000_000',
+  'edgeFunktionsaufrufeProMonat: 500_000',
+  'V4_STANDARD_SICHERHEITSANTEIL = 0.05',
+  'erstelleCloudflareV3ParitaetsProfil',
+  'erstelleSupabaseV3ParitaetsProfil'
+]) {
+  if (!paritaetsQuelle.includes(pflichtRegel)) throw new Error(`V3-Kontingent-Paritaet fehlt: ${pflichtRegel}`);
+}
+
+const paritaetsDokument = await readFile(path.join(wurzel, 'dokumentation/V3-KONTINGENT-PARITAET.md'), 'utf8');
+for (const pflichtRegel of [
+  '100000 Requests/Tag',
+  '90000 Requests/Tag',
+  '22500 Requests/Tag',
+  '5000000 gelesene Zeilen/Tag',
+  '950000/Monat',
+  '9500000/Monat',
+  '500000/Monat',
+  'V4 niemals lockerer als V3',
+  'Bereits durch V3 oder Infrastruktur verbrauchtes Kontingent steht V4 nicht noch einmal zur Verfuegung.'
+]) {
+  if (!paritaetsDokument.includes(pflichtRegel)) throw new Error(`V3-Kontingent-Paritaetsdokument fehlt: ${pflichtRegel}`);
 }
 
 const speicherDokument = await readFile(path.join(wurzel, 'dokumentation/SPEICHER_UND_WEB.md'), 'utf8');
