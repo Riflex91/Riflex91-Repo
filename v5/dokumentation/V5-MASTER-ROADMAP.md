@@ -354,7 +354,7 @@ Exit Gate:
 
 ## R4 – Deterministischer Core
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 Bauen:
 - `ClockPort`;
@@ -375,7 +375,29 @@ Regel:
 Exit Gate:
 - gleiche Inputs + gleiche Clock/Seed -> identischer Plan/Eventstrom.
 
+### R4 Abschlussstand
+
+- injizierbare Ports fuer Uhr, Zufall, Kennungen und Sequenzen;
+- deterministische Referenzimplementierungen fuer simulierte Uhr, XorShift32-Zufall, IDs und monotone Sequenzen;
+- explizite Fachresultate `ERFOLG | FEHLER | UNBEKANNT`;
+- Deadline-, TTL- und Freshness-Primitiven;
+- stabile Prioritaetsklassen;
+- harte bounded Queue und bounded Replay-Aufzeichnung;
+- kanonische deterministische Serialisierung;
+- immutable Domaenenereignisse mit Ereignis-, Korrelations- und Kausalitaetskennung;
+- generischer geschlossener Zustandsautomatenkern;
+- 13/13 ratifizierte Zustandsautomaten vollstaendig erreichbar, fail-closed und ohne unbeabsichtigte Sackgassen;
+- direkte `Date.now()`-/`new Date()`-/`Math.random()`-Nutzung im Fachkern statisch gesperrt;
+- deterministischer Szenario-/Replay-Lauf mit Build-, WissensSnapshot- und Konfigurationsprovenienz;
+- 6/6 R4-MUSS-Anforderungen technisch nachgewiesen;
+- 4/4 R4-Fitnessregeln technisch erfuellt;
+- `ZUSTANDSMASCHINEN_BEREIT=true` und `TESTSTRATEGIE_BEREIT=true`;
+- R4-Abschlussmanifest: `v5/roadmap/r4-abschluss.json`;
+- Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
+
 ## R5 – Persistenz, Journal und Schema-Evolution
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - `PersistenzPort`;
