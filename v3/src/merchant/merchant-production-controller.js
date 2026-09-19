@@ -5,7 +5,15 @@ const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 const { PersistentProductionIntent } = require('./persistent-production-intent');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
-const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
+const {
+  chooseProductionTeamFarmObjective,
+  DEFAULT_MAX_TEAM_FARM_HOURS,
+  DEFAULT_FALLBACK_KILLS_PER_HOUR,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource
+} = require('../party/production-material-acquisition');
+const { PROBABILISTIC_FARM_TIME_MODEL } = require('../party/probabilistic-farm-time');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -72,6 +80,35 @@ function installMerchantProduction(runtime, options = {}) {
     lastIntentRecovery: null
   };
 
+  function productionTargetForPlan(plan) {
+    const demand = plan && plan.exchangeDemand;
+    if (demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL' && demand.output) {
+      return {
+        output: String(demand.output),
+        recipient: demand.recipient || null,
+        slot: demand.slot || null
+      };
+    }
+    return plan && plan.target || null;
+  }
+
+  function productionPhaseForStep(plan, step) {
+    const demand = plan && plan.exchangeDemand;
+    if (demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL') {
+      if (step && step.kind === ProductionStepKind.EXCHANGE) {
+        if (demand.eventKey && demand.quest) return 'EVENT_QUEST_EXECUTING';
+        if (demand.quest) return 'QUEST_EXECUTING';
+        if (demand.eventKey) return 'EVENT_EXCHANGE_EXECUTING';
+      }
+      if (step && step.kind === ProductionStepKind.BANK_RETRIEVE) {
+        if (demand.eventKey && demand.quest) return 'EVENT_QUEST_READY';
+        if (demand.quest) return 'QUEST_READY';
+        if (demand.eventKey) return 'EVENT_EXCHANGE_READY';
+      }
+    }
+    return `EXECUTING_${String(step && step.kind || 'STEP')}`;
+  }
+
   function persistIntentForTarget(plan, target, phase, details = {}) {
     if (!plan || !target || !target.output) return false;
     return productionIntent.ensureForPlan(
@@ -87,13 +124,14 @@ function installMerchantProduction(runtime, options = {}) {
   }
 
   function updateIntentAfterExecution(plan, step, result) {
-    if (!plan || !plan.target || !plan.target.output) return false;
-    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(plan.target.output || '')) {
+    const target = productionTargetForPlan(plan);
+    if (!plan || !target || !target.output) return false;
+    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(target.output || '')) {
       return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
     }
     return productionIntent.update('REPLAN_REQUIRED', {
       reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
-      plan,
+      plan: { ...clone(plan), target: clone(target) },
       lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
     });
   }
@@ -167,6 +205,7 @@ function installMerchantProduction(runtime, options = {}) {
       bankCatalog: bankCatalog.status(),
       productionTaskTarget,
       exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
+      eventState: clone(runtime.root && (runtime.root.S || runtime.root.parent && runtime.root.parent.S) || {}),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       anniversaryActive: !!(
@@ -261,8 +300,21 @@ function installMerchantProduction(runtime, options = {}) {
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
-    persistIntentForTarget(plan, plan.target, `EXECUTING_${String(step.kind || 'STEP')}`, {
-      reason: 'PRODUCTION_STEP_SCHEDULED',
+    const intentTarget = productionTargetForPlan(plan);
+    persistIntentForTarget({ ...clone(plan), target: clone(intentTarget) }, intentTarget, productionPhaseForStep(plan, step), {
+      reason: plan.exchangeDemand && plan.exchangeDemand.reason === 'PRODUCTION_MATERIAL'
+        ? 'PRODUCTION_ACQUISITION_STEP_SCHEDULED'
+        : 'PRODUCTION_STEP_SCHEDULED',
+      material: plan.exchangeDemand && plan.exchangeDemand.reason === 'PRODUCTION_MATERIAL'
+        ? {
+          material: plan.exchangeDemand.item,
+          targetMaterial: plan.exchangeDemand.target,
+          acquisitionKind: plan.exchangeDemand.sourceKind || null,
+          quest: plan.exchangeDemand.quest || null,
+          eventKey: plan.exchangeDemand.eventKey || null,
+          graphNode: clone(plan.exchangeDemand.graphNode || null)
+        }
+        : undefined,
       lastExecution: state.lastExecution
     });
     state.executionPending = true;
@@ -362,7 +414,7 @@ function installMerchantProduction(runtime, options = {}) {
       quantity: Math.max(1, Math.floor(n(step.quantity, 1))),
       inputQuantity: Math.max(1, Math.floor(n(step.inputQuantity, family === 'COMPOUND' ? 3 : 1))),
       scrollName: step.scrollName || null,
-      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
       createdAt: runtime.now(),
       expiresAt: runtime.now() + state.mutationDemandTtlMs
     };
@@ -503,7 +555,7 @@ function installMerchantProduction(runtime, options = {}) {
       index: indices[0],
       indices,
       metadata: {
-        source: 'MERCHANT_PRODUCTION_ACQUISITION_V2',
+        source: 'MERCHANT_PRODUCTION_ACQUISITION_V3',
         lifecycle: 'PRODUCTION_MATERIAL_ACQUISITION',
         productionMaterialAcquisition: true,
         output: demand.output,
@@ -909,7 +961,7 @@ function installMerchantProduction(runtime, options = {}) {
         characterLevelUsedForStrengthRanking: false,
         exchangeBackedMaterialAcquisition: true,
         leveledRecipeMaterialAcquisition: true,
-        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
         mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
         mutationDemandTtlMs: state.mutationDemandTtlMs,
         intentRecoveryGraceMs: state.intentRecoveryGraceMs,
