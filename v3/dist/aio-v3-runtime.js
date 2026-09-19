@@ -48617,7 +48617,11 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
-      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') {
+        snapshot.automationCatalog = itemAutomationCatalog(runtime);
+        snapshot.automationCatalogVersion = ADVENTURE_LAND_ITEM_SURFACE_VERSION;
+        snapshot.automationCatalogCount = snapshot.automationCatalog.length;
+      }
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -60057,7 +60061,7 @@ module.exports = {
 "src/production-live-services.js": function(require,module,exports){
 'use strict';
 
-const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog } = require('./reliability/alpha25-control-center-brain');
+const { installAlpha25ControlCenterBrain, itemSpriteCatalog, equipmentShadeCatalog, itemAutomationCatalog } = require('./reliability/alpha25-control-center-brain');
 const { installAlpha26CloudUpdateLogisticsUiHotfix } = require('./reliability/alpha26-cloud-update-logistics-ui-hotfix');
 const { installAlpha27CombatMerchantConvergence } = require('./reliability/alpha27-combat-merchant-convergence');
 const { installAlpha27MerchantLegacyOwnershipGuard } = require('./reliability/alpha27-merchant-legacy-ownership-guard');
@@ -60071,7 +60075,7 @@ const { installAlpha32NavigationMerchantRecovery, ALPHA32_NAVIGATION_MERCHANT_RE
 const { installAlpha33MarkOrbitMerchantDelivery, ALPHA33_MARK_ORBIT_MERCHANT_DELIVERY_MODE } = require('./reliability/alpha33-mark-orbit-merchant-delivery');
 
 const PRODUCTION_LIVE_SERVICES_MODE = 'production-live-services-v1';
-const SPRITE_HOT_RELOAD_HOOK_VERSION = 1;
+const SPRITE_HOT_RELOAD_HOOK_VERSION = 2;
 
 function emitFailure(runtime, service, error) {
   try {
@@ -60110,6 +60114,11 @@ function refreshAdventureLandSpriteHook(runtime, alpha25 = null) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') {
+        snapshot.automationCatalog = itemAutomationCatalog(runtime);
+        snapshot.automationCatalogVersion = 3;
+        snapshot.automationCatalogCount = snapshot.automationCatalog.length;
+      }
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
