@@ -237,6 +237,8 @@ class EncounterLifecycle {
     if (!snapshot || !snapshot.character || !tactical || !this._isLeader(team, snapshot)) return null;
     if (tactical.encounterId && tactical.encounterId !== this.current.encounterId) return null;
     const now = this.now();
+    const latestDisposition = this._contentDisposition(this.current.monster);
+    if (latestDisposition === 'UNKNOWN' || latestDisposition === 'QUARANTINED' || this.current.contentDisposition === 'UNKNOWN') this.current.contentDisposition = latestDisposition;
     this._capturePerformance(); this._capturePeerProgress(team, now);
     const ratios = this._partyRatios(snapshot, team);
     if (ratios.minHp != null) this.current.metrics.minHpRatio = this.current.metrics.minHpRatio == null ? ratios.minHp : Math.min(this.current.metrics.minHpRatio, ratios.minHp);
@@ -311,7 +313,7 @@ class EncounterLifecycle {
       deaths: rounded(this.current.metrics.deaths, 3), retreats: this.current.metrics.retreats, nearDeaths: this.current.metrics.nearDeaths,
       minHpRatio: this.current.metrics.minHpRatio == null ? null : rounded(this.current.metrics.minHpRatio),
       minMpRatio: this.current.metrics.minMpRatio == null ? null : rounded(this.current.metrics.minMpRatio),
-      hpPotions: rounded(this.current.metrics.hpPotions), mpPotions: rounded(this.current.metrics.mpPotions), potions: rounded(this.current.metrics.potions, 3),
+      hpPotions: rounded(this.current.metrics.potions, 3), mpPotions: 0, potions: rounded(this.current.metrics.potions, 3), potionAttribution: 'COMBINED_TELEMETRY',
       damageTaken: rounded(this.current.metrics.damageTaken, 3), skillExecutions: this.current.metrics.skillExecutions,
       aoeSkillExecutions: this.current.metrics.aoeSkillExecutions, skills: { ...this.current.metrics.skills },
       movementFailures: this.current.metrics.movementFailures, skillFailures: this.current.metrics.skillFailures,
