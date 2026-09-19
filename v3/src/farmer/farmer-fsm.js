@@ -476,6 +476,29 @@ class FarmerController {
     const recovery = this._needsRecovery(snapshot);
     const target = this._findTarget(snapshot);
 
+    const handoff = this.materialObjective
+      && String(this.materialObjective.kind || '') === 'PRODUCTION_MATERIAL_HANDOFF'
+      && Number(this.materialObjective.expiresAt || 0) > this.now();
+    if (handoff) {
+      if (this.targetId) this._clearTarget('PRODUCTION_MATERIAL_HANDOFF_READY');
+      if (c.rip) {
+        if (this.state !== FarmerState.BLOCKED) this._block('CHARACTER_DEAD');
+      } else {
+        this._maybePotion(context, recovery);
+        if (this.stateReason !== 'PRODUCTION_MATERIAL_HANDOFF_READY') {
+          this.state = FarmerState.REASSESS;
+          this.stateSince = this.now();
+          this.stateReason = 'PRODUCTION_MATERIAL_HANDOFF_READY';
+          this._event('FARMER_PRODUCTION_HANDOFF_HOLD', 'info', 'TARGET_QUANTITY_REACHED_WAIT_FOR_TRANSFER', {
+            objectiveId: this.materialObjective.objectiveId || null,
+            material: this.materialObjective.material || null,
+            requiredQuantity: this.materialObjective.requiredQuantity || null
+          });
+        }
+      }
+      return { state: TaskState.RUNNING, reason: 'PRODUCTION_MATERIAL_HANDOFF_READY' };
+    }
+
     if (c.rip && this.state !== FarmerState.BLOCKED) this._block('CHARACTER_DEAD');
 
     switch (this.state) {
