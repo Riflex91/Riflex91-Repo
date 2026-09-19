@@ -170,6 +170,31 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
       return { ok: true, controlled: typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function', alreadyInRange: true, resolved, bufferedRange: interactionRadius };
     }
 
+    const routeStability = this.runtime && this.runtime.merchantRouteStability;
+    const coordinator = this.runtime && this.runtime.merchantTaskCoordinator;
+    let task = null;
+    try { task = coordinator && typeof coordinator.current === 'function' ? coordinator.current() : null; } catch (_) { task = null; }
+    const convergence = this.runtime && this.runtime.alpha27CombatMerchantConvergence;
+    const merchant = convergence && convergence.merchant;
+    const routeContext = {
+      task,
+      txType: tx && tx.type || null,
+      critical: !!(merchant && merchant.partySupplyChain)
+    };
+    if (routeStability && typeof routeStability.request === 'function') {
+      const route = routeStability.request(destination, routeContext);
+      if (route && route.allowed === false) {
+        return {
+          ok: false,
+          reason: route.reason || 'MERCHANT_ROUTE_STABILITY_HOLD',
+          routeHold: true,
+          retryAt: route.leaseUntil || null,
+          route,
+          resolved
+        };
+      }
+    }
+
     if ((controlledTarget || controlledMap) && typeof this.runtime.planTravel === 'function' && typeof this.runtime.executeTravelPlan === 'function') {
       const planned = this.runtime.planTravel({
         destination: clone(target),
@@ -205,6 +230,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
           this._event('ALPHA27_SERVICE_TRAVEL_FAILED_SAFE', 'error', reason, { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source });
           return { ok: false, reason, resolved };
         }
+        if (routeStability && typeof routeStability.noteArrival === 'function') routeStability.noteArrival(destination, routeContext);
         this._event('ALPHA27_SERVICE_TRAVEL_COMPLETED', 'info', 'SERVICE_DESTINATION_REACHED', { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, controlled: true });
         return { ok: true, controlled: true, result: clone(result), resolved };
       } finally { this.serviceTravelBusy = false; }
@@ -217,6 +243,7 @@ class Alpha27AtomicService extends Alpha27AtomicTransactions {
     try {
       const response = await this._timeout(smart.fn.call(smart.owner, target), 'SERVICE_TRAVEL');
       if (response && response.failed === true) throw response;
+      if (routeStability && typeof routeStability.noteArrival === 'function') routeStability.noteArrival(destination, routeContext);
       this._event('ALPHA27_SERVICE_TRAVEL_COMPLETED', 'info', 'SERVICE_DESTINATION_REACHED', { transactionId: tx && tx.id || null, requestedDestination: resolved.requested, resolvedDestination: clone(target), npcId: resolved.npcId, resolutionSource: resolved.source, controlled: false });
       return { ok: true, controlled: false, response: clone(response), resolved };
     } catch (error) {
