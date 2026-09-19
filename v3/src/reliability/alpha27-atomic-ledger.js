@@ -45,6 +45,54 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         futureSellSafety = null;
       }
 
+      const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
+      const productionDemandActive = !!(
+        productionDemand
+        && finite(productionDemand.expiresAt, 0) > this.now()
+        && String(productionDemand.item || '') === name
+        && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === level
+        && Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1))) === level + 1
+      );
+
+      // A production mutation demand is intentionally weaker than a Farmer gear
+      // reservation. Exact/future Farmer protection keeps ownership. Otherwise
+      // the demanded recipe input may enter the same Alpha27 mutation authority
+      // used for normal autonomous progression; no second raw mutation path is
+      // introduced.
+      if (!futureFarmerProtection && productionDemandActive) {
+        const family = String(productionDemand.family || '').toUpperCase();
+        if (family === 'UPGRADE'
+          && meta.upgrade
+          && level < this.options.maxUpgradeLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_UPGRADE_INPUT'],
+            productionMutationDemand: clone(productionDemand)
+          };
+        }
+        if (family === 'COMPOUND'
+          && meta.compound
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
+          return same >= 3
+            ? {
+                disposition: 'RESERVE_COMPOUND',
+                reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_COMPOUND_INPUT'],
+                productionMutationDemand: clone(productionDemand)
+              }
+            : {
+                disposition: 'KEEP',
+                reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_COMPOUND_ACCUMULATION'],
+                productionMutationDemand: clone(productionDemand)
+              };
+        }
+      }
+
       if (futureFarmerProtection) {
         if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
@@ -169,6 +217,8 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         unknownItemsFailClosed: true,
         protectedItemsNeverAutoSold: true,
         progressionReservationsPreemptDisposition: true,
+        productionMutationDemandSupported: true,
+        productionMutationDemandCannotOverrideFarmerProtection: true,
         lowRiskKnownSurplusAutoSell: true,
         valuableOrProgressionItemsAutoBank: false,
         progressionLifecycleBeforeBank: true,
