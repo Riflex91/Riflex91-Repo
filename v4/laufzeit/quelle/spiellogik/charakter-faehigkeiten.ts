@@ -17,31 +17,35 @@ import { kanonisiereJson } from '../wiederholung/kanonisches-json.js';
 import { SkillPolicySpeicher } from './skill-policy.js';
 import { AdventureLandSkillTechnikLesezugriff } from '../adventure-land/adventure-land-skill-technik.js';
 
+function capabilityTags(...tags: SkillCapabilityTag[]): readonly SkillCapabilityTag[] {
+  return Object.freeze(tags);
+}
+
 const GRUPPEN_CAPABILITY_TAGS: Readonly<Record<GruppenFaehigkeit, readonly SkillCapabilityTag[]>> = Object.freeze({
-  heilen: Object.freeze([
+  heilen: capabilityTags(
     'einzelziel-heilung',
     'gruppen-heilung',
     'gruppen-erhaltung'
-  ]),
-  schaden: Object.freeze([
+  ),
+  schaden: capabilityTags(
     'einzelziel-schaden',
     'einzelziel-spitzenschaden',
     'mehrziel-schaden',
     'fernkampf-mehrziel-schaden',
     'variabler-mehrziel-schaden',
     'flaechen-schaden'
-  ]),
-  aggro: Object.freeze([
+  ),
+  aggro: capabilityTags(
     'aggro-kontrolle',
     'flaechen-aggro-kontrolle',
     'pull-kontrolle'
-  ]),
-  schutz: Object.freeze([
+  ),
+  schutz: capabilityTags(
     'persoenlicher-schutz',
     'einzelziel-kontrolle',
     'flaechen-kontrolle'
-  ]),
-  unterstuetzung: Object.freeze([
+  ),
+  unterstuetzung: capabilityTags(
     'einzelziel-debuff',
     'gruppen-erhaltung',
     'gruppen-unterstuetzung',
@@ -50,7 +54,7 @@ const GRUPPEN_CAPABILITY_TAGS: Readonly<Record<GruppenFaehigkeit, readonly Skill
     'mobilitaet',
     'wiederbelebung',
     'nichtkampf-unterstuetzung'
-  ])
+  )
 });
 
 function pruefeZeitpunkt(wert: number): void {
