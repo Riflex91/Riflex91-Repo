@@ -22,6 +22,20 @@ const facts = new Map();
 const validStatus = new Set(['ACTIVE','NEEDS_REVALIDATION','SUPERSEDED','CONTRADICTED','RETIRED']);
 const validVolatility = new Set(['LOW','MEDIUM','HIGH','UNKNOWN']);
 
+for (const fact of factList) {
+  if (!fact.id || facts.has(fact.id)) fail(`Ungueltige/doppelte Fact-ID: ${fact.id}`);
+  if (!validStatus.has(fact.status)) fail(`${fact.id}: ungueltiger Status ${fact.status}`);
+  if (!validVolatility.has(fact.volatility)) fail(`${fact.id}: ungueltige Volatility ${fact.volatility}`);
+  if (!(fact.confidence >= 0 && fact.confidence <= 1)) fail(`${fact.id}: Confidence ausserhalb 0..1`);
+  if (!Array.isArray(fact.sourceRefs) || fact.sourceRefs.length === 0) fail(`${fact.id}: keine SourceRefs`);
+  for (const ref of fact.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${fact.id}: unbekannte Source ${ref.sourceId}`);
+  facts.set(fact.id, fact);
+}
+
+const contractList = contractDocs.flatMap((d) => d.contracts ?? []);
+const contractIds = new Set();
+const contractFunctions = new Set();
+const validContractStatus = new Set(['VERIFIED_SOURCE_SNAPSHOT','VERIFIED_LIVE_DEPLOYED_CONTRACT','EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT','LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT','PARTIAL_RESEARCH']);
 const contractStatusZaehler = contractList.reduce((acc, contract) => {
   acc[contract.status] = (acc[contract.status] ?? 0) + 1;
   return acc;
@@ -43,20 +57,6 @@ if (manifest.counts?.liveDocOnlyActionContracts !== (contractStatusZaehler.LIVE_
   fail('Manifest liveDocOnlyActionContracts passt nicht zur Contract-Matrix.');
 }
 
-for (const fact of factList) {
-  if (!fact.id || facts.has(fact.id)) fail(`Ungueltige/doppelte Fact-ID: ${fact.id}`);
-  if (!validStatus.has(fact.status)) fail(`${fact.id}: ungueltiger Status ${fact.status}`);
-  if (!validVolatility.has(fact.volatility)) fail(`${fact.id}: ungueltige Volatility ${fact.volatility}`);
-  if (!(fact.confidence >= 0 && fact.confidence <= 1)) fail(`${fact.id}: Confidence ausserhalb 0..1`);
-  if (!Array.isArray(fact.sourceRefs) || fact.sourceRefs.length === 0) fail(`${fact.id}: keine SourceRefs`);
-  for (const ref of fact.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${fact.id}: unbekannte Source ${ref.sourceId}`);
-  facts.set(fact.id, fact);
-}
-
-const contractList = contractDocs.flatMap((d) => d.contracts ?? []);
-const contractIds = new Set();
-const contractFunctions = new Set();
-const validContractStatus = new Set(['VERIFIED_SOURCE_SNAPSHOT','VERIFIED_LIVE_DEPLOYED_CONTRACT','EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT','LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT','PARTIAL_RESEARCH']);
 for (const contract of contractList) {
   if (!contract.id || contractIds.has(contract.id)) fail(`Ungueltige/doppelte Contract-ID: ${contract.id}`);
   if (!contract.publicFunction || contractFunctions.has(contract.publicFunction)) fail(`Ungueltige/doppelte Public Function: ${contract.publicFunction}`);
