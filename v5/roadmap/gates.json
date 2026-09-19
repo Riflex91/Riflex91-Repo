@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-09-19",
-  "currentPhase": "R1",
+  "currentPhase": "R2",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -25,7 +25,7 @@
     {
       "id": "R1",
       "name": "Research Closure",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R0"
       ],
@@ -38,7 +38,7 @@
     {
       "id": "R2",
       "name": "V5-Verfassung und Migrationsmatrix",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R1"
       ],

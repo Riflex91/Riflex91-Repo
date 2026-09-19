@@ -237,3 +237,18 @@ Fuer jede betreffende Capability:
 - [ ] Normal Dismantle reserviert alle moeglichen probabilistischen Outputs.
 - [ ] Output name/level/q/p/data werden pfadspezifisch reconciliert.
 - [ ] Crash/Disconnect nach moeglichem Send folgt UNKNOWN/Reconcile ohne Blind-Retry.
+
+
+## P0-07 Budget-/Rate-Limit-Pflichten
+
+Fuer jede Capability mit direktem Game-Socket-Request gilt zusaetzlich:
+
+- [ ] `character:socket_call_budget` als gemeinsame Character-Ressource deklariert.
+- [ ] Gewichtete Kosten-Evidence dokumentiert; unbekannte interne Zusatzkosten nicht als null angenommen.
+- [ ] Admission bleibt unter dem konfigurierten V5-Planbudget und verbraucht die Safety-Reserve nicht planmaessig.
+- [ ] Mutierender FIFO-Channel hat maximal einen managed In-Flight-Request.
+- [ ] `limitdc` nach moeglichem Send fuehrt zu UNKNOWN/Reconciliation, nicht zu Blind-Retry.
+- [ ] Client-Safeties bleiben aktiv.
+- [ ] MCP/HTTP-Budget und Worker-CPU werden nicht mit dem Game-Socket-Budget vermischt.
+- [ ] Diagnose mit `ccreport` ist bounded und nicht Scheduler-Tick-Polling.
+- [ ] Drift des Cost-/Limit-Contracts blockiert die betroffene Automation bis zur Revalidierung.

@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-07",
+  "status": "DONE",
+  "sourceSnapshot": {
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "verifiedAt": "2026-09-19",
+    "note": "Production kann dem oeffentlichen Snapshot voraus sein; vor Runtime-Nutzung ist Drift-Revalidierung Pflicht."
+  },
+  "gameSocket": {
+    "resource": "character:socket_call_budget",
+    "scope": "CHARACTER_GLOBAL_ACROSS_ALL_ACTION_CHANNELS",
+    "windowMs": 4000,
+    "serverLimit": 200,
+    "accounting": "WEIGHTED_SLIDING_WINDOW",
+    "incomingEventBaseCostMin": 1,
+    "configuredCcEvidence": {
+      "auth": 2,
+      "move": 1.5,
+      "players": 12,
+      "secondhands": 16,
+      "friend": 24,
+      "send_updates": 12,
+      "cruise": 10,
+      "random_look": 10,
+      "equip": 3,
+      "unequip": 6,
+      "tracker": 50,
+      "ccreport": 3,
+      "interpretation": "Konfigurierte CC-Evidence ist nicht automatisch identisch mit den Gesamtkosten eines Requests; Basiskosten und interne Zusatzkosten bleiben separat."
+    },
+    "dynamicCostEvidence": {
+      "equip_batch": "CC.equip * (0.5 + data.length / 2) als verifizierte dynamische Zusatzkosten-Evidence; eingehende Basiskosten bleiben separat.",
+      "cm": "Dynamische Kosten haengen von Nachrichtenlaenge und Recipient-Anzahl ab; die aktuelle Source-if/else-Reihenfolge darf nicht theoretisch korrigiert werden.",
+      "target": "Wrapper-Modifier 0.5 plus reduce_call_cost() im Handler; effektive Kosten muessen aus dem Source-Pfad rekonstruiert werden.",
+      "callModifier": {
+        "open_chest": 0.1,
+        "skill": 0.05,
+        "target": 0.5,
+        "default": 1
+      }
+    },
+    "internalAdditionalCosts": {
+      "transport": 8,
+      "bankMount": 32,
+      "bankUnmount": 16,
+      "resendOrStateRecalculation": "Kann weitere add_call_cost-Aufrufe ausloesen; konservative Reserve erforderlich."
+    },
+    "limitBehavior": {
+      "pruneOlderThanMs": 4000,
+      "comparison": "get_call_cost() > climit",
+      "normalCharacterClimit": 200,
+      "reportEvent": "limitdcreport",
+      "disconnectReason": "limitdc",
+      "possibleWriteAfterSend": "UNKNOWN -> RECONNECT -> REOBSERVE -> RECONCILE; niemals Same-Intent-Blind-Retry."
+    },
+    "diagnostic": {
+      "ccreport": {
+        "returns": [
+          "socket.calls",
+          "climit",
+          "total_calls"
+        ],
+        "configuredCostEvidence": 3,
+        "schedulerPolling": false,
+        "role": "Diagnose- und Kalibrierungs-Evidence"
+      }
+    }
+  },
+  "deferredQueues": {
+    "technicalMaxEntries": 3200,
+    "overflowOutcome": "queue_overflow",
+    "managedMutatingFifoMaxInFlight": 1,
+    "queueOverflowDistinctFromLimitDc": true,
+    "policy": "3200 ist nur Client-Notfallschutz und kein erlaubtes V5-Concurrency-Ziel."
+  },
+  "clientSafeties": {
+    "enabled": true,
+    "disableForThroughput": false,
+    "examples": {
+      "use_hp_or_mp": "min(200ms, ping*3)",
+      "loot": "min(300ms, ping*3)",
+      "chest": "Weitere eingebaute Safeties bleiben aktiv."
+    },
+    "policy": "V5 Admission/Backpressure kommt zusaetzlich zu den eingebauten Client-Safeties."
+  },
+  "externalApi": {
+    "separateFromGameSocket": true,
+    "algorithm": "TOKEN_BUCKET",
+    "limits": {
+      "standard": {
+        "perMinute": 120,
+        "burst": 30
+      },
+      "bulkGameData": {
+        "perMinute": 12,
+        "burst": 4
+      },
+      "bankReads": {
+        "perMinute": 12,
+        "burst": 4,
+        "sharedWith": "bulkGameData"
+      },
+      "progression": {
+        "perMinute": 6,
+        "burst": 2
+      },
+      "writes": {
+        "perMinute": 30,
+        "burst": 10
+      }
+    },
+    "on429": {
+      "status": 429,
+      "respectRetryAfter": true,
+      "evidence": [
+        "Retry-After",
+        "retry_after_ms"
+      ],
+      "immediateAggressiveRetry": false
+    }
+  },
+  "mainframeCpu": {
+    "metric": "WORKER_CPU_PERCENT_OF_FIXED_BUDGET",
+    "separateFromGameSocket": true,
+    "separateFromShellCost": true,
+    "separateFromExternalApiRateLimit": true,
+    "recommendedMetricName": "WorkerCpuAuslastung"
+  },
+  "v5Policy": {
+    "plannedWeightedBudgetPerWindow": 100,
+    "serverLimitPerWindow": 200,
+    "windowMs": 4000,
+    "reservePerWindow": 100,
+    "globalAcrossActionChannels": true,
+    "unknownInternalReserveRequired": true,
+    "autoOptimizeToServerMax": false,
+    "configurable": true,
+    "resourceName": "character:socket_call_budget",
+    "admissionRule": "Geplante gewichtete Kosten plus konservative unbekannte/interne Reserve muessen unter dem V5-Planbudget bleiben."
+  },
+  "invariants": [
+    "Das Game-Socket-Aufrufbudget ist character-global und wird von allen Action-Channels desselben Characters geteilt.",
+    "Der verifizierte Servergrenzwert fuer normale Character-Sockets ist 200 gewichtete Punkte pro 4000 ms.",
+    "V5 plant initial hoechstens 100 gewichtete Punkte pro 4000 ms und behaelt positive Reserve.",
+    "Die Reserve ist keine frei verplanbare Kapazitaet.",
+    "Statische CC-Werte duerfen nicht blind als vollstaendige Gesamtkosten eines Requests interpretiert werden.",
+    "Unbekannte oder interne Zusatzkosten werden konservativ reserviert und nicht als null angenommen.",
+    "limitdc nach moeglichem Send einer wertveraendernden Action fuehrt zu UNKNOWN und Reconciliation, nie zu Blind-Retry.",
+    "queue_overflow und limitdc sind unterschiedliche Fehlerklassen.",
+    "Mutierende FIFO-Channels haben maximal einen von V5 verwalteten In-Flight-Request je Channel.",
+    "Client-Safeties bleiben aktiviert; V5 verwendet zusaetzlich eigene Admission und Backpressure.",
+    "MCP/HTTP-Rate-Limits sind vom Game-Socket-Aufrufbudget getrennt und Retry-After wird respektiert.",
+    "Mainframe Call cost ist Worker-CPU-Auslastung und kein Game-Socket-Aufrufbudget.",
+    "ccreport ist Diagnose-Evidence und kein Polling-Instrument pro Scheduler-Tick.",
+    "Cost-/Limit-Drift nach Spielupdate blockiert betroffene Automation bis zur Revalidierung."
+  ]
+}
