@@ -288,11 +288,36 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     const alreadyOnFarmers = partyHeldQuantity(runtime, step.name, step.level);
     const remainingToFarm = Math.max(0, step.quantity - alreadyOnFarmers);
     if (remainingToFarm <= 0) {
-      materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm: 0, source: null, awaitingTransfer: true });
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm: 0,
+        source: null,
+        awaitingTransfer: true,
+        handoffMaterial: step.name,
+        handoffLevel: step.level,
+        handoffQuantity: step.quantity,
+        heldByFarmers: alreadyOnFarmers
+      });
       continue;
     }
     const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
     if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
+    if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
+      const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
+      materials.push({
+        ...clone(step),
+        alreadyOnFarmers,
+        remainingToFarm,
+        source,
+        awaitingTransfer: true,
+        handoffMaterial: source.material,
+        handoffLevel: 0,
+        handoffQuantity,
+        heldByFarmers: finite(source.alreadyOnFarmers, 0)
+      });
+      continue;
+    }
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
