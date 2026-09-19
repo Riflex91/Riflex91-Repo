@@ -16,7 +16,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-002",
@@ -30,7 +35,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-003",
@@ -45,7 +55,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-004",
@@ -59,7 +74,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-005",
@@ -74,7 +94,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-006",
@@ -89,7 +114,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-007",
@@ -104,7 +134,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-008",
@@ -118,7 +153,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-009",
@@ -132,7 +172,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-010",
@@ -146,7 +191,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-001",
@@ -160,7 +210,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-002",
@@ -174,7 +229,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-003",
@@ -189,7 +249,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-004",
@@ -203,7 +268,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-005",
@@ -218,7 +288,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-006",
@@ -232,7 +307,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-007",
@@ -246,7 +326,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-008",
@@ -260,7 +345,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-009",
@@ -274,7 +364,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-010",
@@ -288,7 +383,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-011",
@@ -302,7 +402,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-ARCH-012",
@@ -316,7 +421,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-001",
@@ -330,7 +440,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-002",
@@ -345,7 +460,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-003",
@@ -359,7 +479,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-004",
@@ -373,7 +498,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-005",
@@ -387,7 +517,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-006",
@@ -401,7 +536,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-007",
@@ -416,7 +556,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-008",
@@ -433,7 +578,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-009",
@@ -447,7 +597,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-010",
@@ -461,7 +616,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-011",
@@ -476,7 +636,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-012",
@@ -490,7 +655,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-013",
@@ -505,7 +675,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-014",
@@ -519,7 +694,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-SICH-015",
@@ -533,7 +713,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-001",
@@ -548,7 +733,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-002",
@@ -562,7 +752,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-003",
@@ -576,7 +771,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-004",
@@ -591,7 +791,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-005",
@@ -605,7 +810,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-006",
@@ -619,7 +829,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-007",
@@ -633,7 +848,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-PERSIST-008",
@@ -647,7 +867,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-DET-001",
@@ -661,7 +886,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-DET-002",
@@ -675,7 +905,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-DET-003",
@@ -689,7 +924,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-DET-004",
@@ -703,7 +943,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-001",
@@ -717,7 +962,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-002",
@@ -731,7 +981,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-003",
@@ -745,7 +1000,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-004",
@@ -760,7 +1020,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TRANS-005",
@@ -775,7 +1040,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-001",
@@ -789,7 +1059,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-002",
@@ -803,7 +1078,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-003",
@@ -817,7 +1097,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-004",
@@ -831,7 +1116,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-005",
@@ -845,7 +1135,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-006",
@@ -859,7 +1154,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-007",
@@ -873,7 +1173,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-TEST-008",
@@ -887,7 +1192,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-001",
@@ -901,7 +1211,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-002",
@@ -915,7 +1230,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-003",
@@ -929,7 +1249,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-004",
@@ -943,7 +1268,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-005",
@@ -957,7 +1287,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-006",
@@ -971,7 +1306,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-007",
@@ -985,7 +1325,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-OPS-008",
@@ -999,7 +1344,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-001",
@@ -1013,7 +1363,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-002",
@@ -1027,7 +1382,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-003",
@@ -1041,7 +1401,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-004",
@@ -1055,7 +1420,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-005",
@@ -1069,7 +1439,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-006",
@@ -1083,7 +1458,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-007",
@@ -1097,7 +1477,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MERCHANT-008",
@@ -1112,7 +1497,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-001",
@@ -1126,7 +1516,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-002",
@@ -1140,7 +1535,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-003",
@@ -1154,7 +1554,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-004",
@@ -1168,7 +1573,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-MULTI-005",
@@ -1182,7 +1592,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-001",
@@ -1196,7 +1611,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-002",
@@ -1210,7 +1630,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-003",
@@ -1224,7 +1649,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WORLD-004",
@@ -1238,7 +1668,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-LERN-001",
@@ -1252,7 +1687,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-LERN-002",
@@ -1266,7 +1706,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-LERN-003",
@@ -1280,7 +1725,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-LERN-004",
@@ -1294,7 +1744,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-001",
@@ -1309,7 +1764,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-002",
@@ -1324,7 +1784,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-003",
@@ -1338,7 +1803,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-004",
@@ -1353,7 +1823,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-005",
@@ -1367,7 +1842,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-006",
@@ -1382,7 +1862,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-007",
@@ -1396,7 +1881,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-008",
@@ -1410,7 +1900,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-UI-009",
@@ -1425,7 +1920,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-011",
@@ -1439,7 +1939,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-012",
@@ -1453,7 +1958,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-013",
@@ -1468,7 +1978,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-014",
@@ -1482,7 +1997,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-015",
@@ -1497,7 +2017,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-016",
@@ -1511,7 +2036,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-017",
@@ -1525,7 +2055,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-018",
@@ -1539,7 +2074,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-019",
@@ -1553,7 +2093,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-020",
@@ -1569,7 +2114,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-021",
@@ -1583,7 +2133,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-022",
@@ -1597,7 +2152,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-023",
@@ -1611,7 +2171,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-024",
@@ -1625,7 +2190,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-025",
@@ -1639,7 +2209,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-026",
@@ -1654,7 +2229,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-027",
@@ -1668,7 +2248,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-028",
@@ -1682,7 +2267,12 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     },
     {
       "anforderungKennung": "V5-ANF-WISSEN-029",
@@ -1696,7 +2286,15 @@
       "implementierung": [],
       "tests": [],
       "liveNachweise": [],
-      "vollstaendig": false
+      "vollstaendig": false,
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "r2Nachweise": [
+        "v5/architektur/verfassung.json",
+        "v5/invarianten/invarianten.json"
+      ]
     }
-  ]
+  ],
+  "ratifizierungsStatus": "R2_RATIFIZIERT",
+  "ratifiziertAm": "2026-09-19",
+  "ratifizierungsRegel": "Die R2-Verknuepfung ist fachlich ratifiziert. vollstaendig bleibt false, solange Implementierung, Tests und Live-Nachweise fehlen."
 }
