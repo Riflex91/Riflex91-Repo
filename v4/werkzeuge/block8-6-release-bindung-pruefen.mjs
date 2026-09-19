@@ -11,6 +11,7 @@ const dokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-RELEASE-CAN
 const deploymentDokumentPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md');
 const schattenNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json');
 const liveNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json');
+const soakNachweisPfad = path.join(wurzel, 'dokumentation', 'BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json');
 
 const manifest = JSON.parse(await readFile(manifestPfad, 'utf8'));
 const workflow = await readFile(workflowPfad, 'utf8');
@@ -18,6 +19,7 @@ const dokument = await readFile(dokumentPfad, 'utf8');
 const deploymentDokument = await readFile(deploymentDokumentPfad, 'utf8');
 const schattenNachweis = JSON.parse(await readFile(schattenNachweisPfad, 'utf8'));
 const liveNachweis = JSON.parse(await readFile(liveNachweisPfad, 'utf8'));
+const soakNachweis = JSON.parse(await readFile(soakNachweisPfad, 'utf8'));
 
 const erwartet = Object.freeze({
   releaseSha: 'ca0dfee7685563c8b6003469300c8fd08777b053',
@@ -58,10 +60,10 @@ for (const feld of ['adventureLandShadowVerified', 'adventureLandControlledLiveV
   if (manifest[feld] !== true) throw new Error('Realer Adventure-Land-Nachweis muss kanonisch bestanden sein: ' + feld + '.');
 }
 for (const feld of ['adventureLandSoakVerified', 'block86Completed', 'block9Freigegeben']) {
-  if (manifest[feld] !== false) throw new Error('Spaetere Block-8.6-Freigabe muss bis zum separaten Nachweis false bleiben: ' + feld + '.');
+  if (manifest[feld] !== true) throw new Error('Vollstaendige Block-8.6-Freigabe muss nach kanonischem Soak fuer ' + feld + ' true sein.');
 }
-if (manifest.nextOperationalStep !== 'adventure_land_soak') {
-  throw new Error('Naechster operativer Schritt muss adventure_land_soak sein.');
+if (manifest.nextOperationalStep !== 'block_9') {
+  throw new Error('Naechster operativer Schritt muss block_9 sein.');
 }
 
 const alt = manifest.immutableRuntime115;
@@ -197,6 +199,63 @@ if (liveNachweis.schemaVersion !== 1 ||
   throw new Error('Kanonischer Block-8.6-Controlled-Live-Nachweis besitzt unerwartete Werte.');
 }
 
+const soak = manifest.soakEvidence;
+if (!soak ||
+    soak.source !== 'chat_paste_bidirectional' ||
+    soak.laufKennung !== 'block8-6-schatten-1789822653521' ||
+    soak.reports?.length !== 2 ||
+    soak.totalRemoteLivenessNeu !== 2 ||
+    soak.totalCapabilitySends !== 0 ||
+    soak.totalCapabilitySendErrors !== 0 ||
+    soak.totalHeartbeatErrors !== 0 ||
+    soak.recoveryReplayVerifiedOnBoth !== true ||
+    soak.evidenceFile !== 'BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json' ||
+    soak.reports[0]?.reportSha256 !== '30a491a27dda61decba2525d17cdac2a0d82f7c19e4cdbc4aa70a514e428f226' ||
+    soak.reports[1]?.reportSha256 !== '30f55de9dde04602560ec730569fc91e5a08217d5ed15cf4902aa5962552035f') {
+  throw new Error('Soak-Evidenz ist nicht exakt an beide realen PASS-Berichte gebunden.');
+}
+if (soakNachweis.schemaVersion !== 1 ||
+    soakNachweis.releaseSha !== manifest.releaseSha ||
+    soakNachweis.candidateSha256 !== manifest.sha256 ||
+    soakNachweis.candidateBytes !== manifest.bytes ||
+    soakNachweis.laufKennung !== 'block8-6-schatten-1789822653521' ||
+    soakNachweis.stufe !== 'soak' ||
+    soakNachweis.ergebnis !== 'bestanden' ||
+    soakNachweis.reports?.length !== 2 ||
+    soakNachweis.reports[0]?.lokalerCharakter !== 'My_Ranger1' ||
+    soakNachweis.reports[0]?.zielName !== 'My_Ranger2' ||
+    soakNachweis.reports[0]?.remoteLivenessNeu !== 1 ||
+    soakNachweis.reports[0]?.soak?.dauerMillisekunden !== 600000 ||
+    soakNachweis.reports[0]?.soak?.samples !== 120 ||
+    soakNachweis.reports[0]?.soak?.erwarteteSamples !== 118 ||
+    soakNachweis.reports[0]?.soak?.heartbeatErfolgeVorher !== 12 ||
+    soakNachweis.reports[0]?.soak?.heartbeatErfolgeNachher !== 312 ||
+    soakNachweis.reports[0]?.soak?.heartbeatFehlerNachher !== 0 ||
+    soakNachweis.reports[0]?.capability?.sendeVersuche !== 0 ||
+    soakNachweis.reports[0]?.capability?.sendeFehler !== 0 ||
+    soakNachweis.reports[1]?.lokalerCharakter !== 'My_Ranger2' ||
+    soakNachweis.reports[1]?.zielName !== 'My_Ranger1' ||
+    soakNachweis.reports[1]?.remoteLivenessNeu !== 1 ||
+    soakNachweis.reports[1]?.soak?.dauerMillisekunden !== 600000 ||
+    soakNachweis.reports[1]?.soak?.samples !== 120 ||
+    soakNachweis.reports[1]?.soak?.erwarteteSamples !== 118 ||
+    soakNachweis.reports[1]?.soak?.heartbeatErfolgeVorher !== 9 ||
+    soakNachweis.reports[1]?.soak?.heartbeatErfolgeNachher !== 309 ||
+    soakNachweis.reports[1]?.soak?.heartbeatFehlerNachher !== 0 ||
+    soakNachweis.reports[1]?.capability?.sendeVersuche !== 0 ||
+    soakNachweis.reports[1]?.capability?.sendeFehler !== 0 ||
+    soakNachweis.gesamt?.remoteLivenessNeuGesamt !== 2 ||
+    soakNachweis.gesamt?.heartbeatFehlerGesamt !== 0 ||
+    soakNachweis.gesamt?.capabilitySendeFehlerGesamt !== 0 ||
+    soakNachweis.gesamt?.recoveryReplayAufBeidenClientsVerifiziert !== true ||
+    soakNachweis.safety?.keineNeueCapabilitySendungImSoak !== true ||
+    soakNachweis.safety?.nichtValidierteSkillsBleibenFailClosed !== true ||
+    soakNachweis.auswertungErwartet?.freigabeVollstaendig !== true ||
+    soakNachweis.auswertungErwartet?.block86Completed !== true ||
+    soakNachweis.auswertungErwartet?.block9Freigegeben !== true) {
+  throw new Error('Kanonischer Block-8.6-Soaknachweis besitzt unerwartete Werte.');
+}
+
 const gebaut = await baueBlock86Candidate({ schreiben: false });
 if (gebaut.candidateVersion !== manifest.candidateVersion ||
     gebaut.module !== manifest.moduleCount ||
@@ -286,7 +345,7 @@ if (remoteObjectOps.length !== 3) {
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
-  'immutable veröffentlicht, öffentlich per HTTPS verifiziert, realer Schatten und kontrolliert live bestanden',
+  'immutable veröffentlicht, öffentlich per HTTPS verifiziert, realer Schatten, kontrolliert live und Soak bestanden',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
   '396471 Bytes',
@@ -295,8 +354,9 @@ for (const pflicht of [
   'publicHttpsVerified=true',
   'adventureLandShadowVerified=true',
   'adventureLandControlledLiveVerified=true',
-  'adventureLandSoakVerified=false',
-  'block9Freigegeben=false',
+  'adventureLandSoakVerified=true',
+  'block86Completed=true',
+  'block9Freigegeben=true',
   'PUBLISH-V4-BLOCK8-6:<release_sha>',
   'keine V3-Build-, V3-Release-, Worker-Deploy-, D1- oder Lifecycle-Autorität'
 ]) {
@@ -344,10 +404,28 @@ for (const pflicht of [
   }
 }
 
+for (const pflicht of [
+  '30a491a27dda61decba2525d17cdac2a0d82f7c19e4cdbc4aa70a514e428f226',
+  '30f55de9dde04602560ec730569fc91e5a08217d5ed15cf4902aa5962552035f',
+  '"lokalerCharakter": "My_Ranger1"',
+  '"lokalerCharakter": "My_Ranger2"',
+  '"remoteLivenessNeu": 1',
+  '"dauerMillisekunden": 600000',
+  '"samples": 120',
+  '"heartbeatFehlerGesamt": 0',
+  '"capabilitySendeFehlerGesamt": 0',
+  '"block86Completed": true',
+  '"block9Freigegeben": true'
+]) {
+  if (!JSON.stringify(soakNachweis, null, 2).includes(pflicht)) {
+    throw new Error('Block-8.6-Soaknachweis fehlt: ' + pflicht);
+  }
+}
+
 console.log(
   'Block 8.6.9 Release-Bindung geprueft: exakter gruener Candidate ' +
   manifest.releaseSha +
   ', 51 Module / 396471 Bytes / SHA-256 ' +
   manifest.sha256 +
-  '; Offline/Replay, Deployment/HTTPS, realer Schatten und kontrolliert live gebunden; nur Soak bleibt gesperrt.'
+  '; Offline/Replay, Deployment/HTTPS, realer Schatten, kontrolliert live und Soak kanonisch gebunden; Block 8.6 ist abgeschlossen und Block 9 freigegeben.'
 );
