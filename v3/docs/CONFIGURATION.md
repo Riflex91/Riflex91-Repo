@@ -42,6 +42,6 @@ Erfasst werden Source-Dateien, deren Pfad Begriffe wie `config`, `settings`, `op
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/control/control-plane-config.js` | 194 |
+| `src/control/control-plane-config.js` | 210 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |

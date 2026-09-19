@@ -88,7 +88,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## control
 
-**5 Dateien · 1047 Zeilen**
+**5 Dateien · 1063 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -96,7 +96,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/control/cloud-free-tier-budget.js` | 90 |
 | `src/control/cloud-long-term-persistence.js` | 408 |
 | `src/control/cloud-presence-decoupling.js` | 87 |
-| `src/control/control-plane-config.js` | 194 |
+| `src/control/control-plane-config.js` | 210 |
 
 ## core
 
@@ -115,7 +115,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 4303 Zeilen**
+**12 Dateien · 4357 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -127,7 +127,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
 | `src/economy/gear-progression.js` | 600 |
-| `src/economy/inventory-ledger.js` | 394 |
+| `src/economy/inventory-ledger.js` | 448 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
 | `src/economy/transaction-engine.js` | 424 |
@@ -189,7 +189,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**26 Dateien · 7614 Zeilen**
+**26 Dateien · 7611 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -202,7 +202,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/background-execution-guard.js` | 131 |
 | `src/ops/control-gateway.js` | 133 |
 | `src/ops/controlled-auto-respawn.js` | 216 |
-| `src/ops/debug-monitor-ui.js` | 911 |
+| `src/ops/debug-monitor-ui.js` | 868 |
 | `src/ops/flight-recorder.js` | 173 |
 | `src/ops/group-liveness.js` | 164 |
 | `src/ops/headless-operations.js` | 437 |
@@ -216,7 +216,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/runtime-watchdog.js` | 180 |
 | `src/ops/safe-auto-updater.js` | 678 |
 | `src/ops/safe-recovery-coordinator.js` | 236 |
-| `src/ops/session-monitor.js` | 244 |
+| `src/ops/session-monitor.js` | 284 |
 | `src/ops/state-replica.js` | 99 |
 | `src/ops/telemetry-outbox.js` | 88 |
 
@@ -272,7 +272,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17007 Zeilen**
+**50 Dateien · 17082 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -286,12 +286,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
-| `src/reliability/alpha25-control-center-brain.js` | 375 |
+| `src/reliability/alpha25-control-center-brain.js` | 443 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
 | `src/reliability/alpha27-atomic-economy.js` | 502 |
-| `src/reliability/alpha27-atomic-ledger.js` | 241 |
+| `src/reliability/alpha27-atomic-ledger.js` | 248 |
 | `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
 | `src/reliability/alpha27-atomic-transactions.js` | 253 |
