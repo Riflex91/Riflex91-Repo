@@ -3,6 +3,7 @@ import { SETTINGS_SCHEMA_VERSION, SETTINGS_SCHEMA, SETTINGS_BY_KEY, defaultSetti
 
 const DEFAULT_PUSH_ORIGINS = ['https://adventure.land', 'https://www.adventure.land'];
 const MAX_JSON_BYTES = 512 * 1024;
+const AUTOMATION_CATALOG_MAX_JSON_BYTES = 2 * 1024 * 1024;
 const BRAIN_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
 const INPUT_NEURONS_PER_TOKEN = 4625 / 1_000_000;
 const OUTPUT_NEURONS_PER_TOKEN = 30475 / 1_000_000;
@@ -22,6 +23,7 @@ async function requireRead(request, env) { return secretMatches(request.headers.
 async function requireAdmin(request, env) { return secretMatches(request.headers.get('x-aio-admin-key'), env.ADMIN_KEY); }
 async function readJson(request, max = MAX_JSON_BYTES) { const len = number(request.headers.get('content-length'), 0); if (len > max) throw Object.assign(new Error('payload too large'), { status: 413 }); const raw = await request.text(); if (raw.length > max) throw Object.assign(new Error('payload too large'), { status: 413 }); try { return JSON.parse(raw); } catch (_) { throw Object.assign(new Error('invalid JSON'), { status: 400 }); } }
 export function redactDeep(value, depth = 0, key = '') { if (depth > 8) return null; if (Array.isArray(value)) { const limit = key === 'automationCatalog' ? 5000 : 300; return value.slice(0, limit).map(x => redactDeep(x, depth + 1, '')); } if (!value || typeof value !== 'object') return value; const out = {}; for (const [k, v] of Object.entries(value)) { if (/(write.?key|read.?key|admin.?key|authorization|api.?key|secret|token)/i.test(k)) { out[k] = '[REDACTED]'; continue; } out[k] = redactDeep(v, depth + 1, k); } return out; }
+export function sanitizeAutomationCatalogPayload(body) { const raw = Array.isArray(body && body.catalog) ? body.catalog : []; const wrapped = redactDeep({ automationCatalog: raw }); const catalog = Array.isArray(wrapped && wrapped.automationCatalog) ? wrapped.automationCatalog : []; return { catalogVersion: Math.max(0, number(body && body.catalogVersion, 0)), catalogCount: catalog.length, declaredCount: Math.max(0, number(body && body.catalogCount, catalog.length)), catalog }; }
 function eventTime(e, fallback) { const raw = e && (e.at || e.ts || e.time || e.createdAt); const n = Number(raw); if (Number.isFinite(n) && n > 1e12) return n; const parsed = Date.parse(String(raw || '')); return Number.isFinite(parsed) ? parsed : fallback; }
 function eventKey(e, i, fallback) { return text(e && (e.seq != null ? e.seq : e.id) || `${fallback}-${i}-${e && e.component || 'x'}-${e && e.event || 'event'}`, 160); }
 function tokenEstimate(s) { return Math.ceil(String(s || '').length / 3.6); }
@@ -35,11 +37,13 @@ async function ensureDb(env) {
     `CREATE TABLE IF NOT EXISTS brain_decisions(id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, character TEXT NOT NULL, trigger TEXT, decision TEXT NOT NULL, neurons REAL NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS brain_learning_events(id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, character TEXT NOT NULL, event_type TEXT NOT NULL, action TEXT, target TEXT, reward REAL NOT NULL DEFAULT 0, payload TEXT, created_at INTEGER NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS v3_runtime_status(account TEXT NOT NULL, character TEXT NOT NULL, payload TEXT NOT NULL, received_at INTEGER NOT NULL, PRIMARY KEY(account,character))`,
+    `CREATE TABLE IF NOT EXISTS v3_automation_catalog(account TEXT NOT NULL, character TEXT NOT NULL, catalog_version INTEGER NOT NULL DEFAULT 0, catalog_count INTEGER NOT NULL DEFAULT 0, declared_count INTEGER NOT NULL DEFAULT 0, payload TEXT NOT NULL, received_at INTEGER NOT NULL, PRIMARY KEY(account,character))`,
     `CREATE TABLE IF NOT EXISTS v3_control_settings(account TEXT PRIMARY KEY, schema_version INTEGER NOT NULL DEFAULT 1, revision INTEGER NOT NULL DEFAULT 0, payload TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS v3_control_audit(id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, revision INTEGER NOT NULL, patch TEXT NOT NULL, rejected TEXT, actor TEXT NOT NULL DEFAULT 'dashboard', created_at INTEGER NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS v3_brain_state(account TEXT NOT NULL, character TEXT NOT NULL, samples INTEGER NOT NULL DEFAULT 0, updates INTEGER NOT NULL DEFAULT 0, payload TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(account,character))`,
     `CREATE TABLE IF NOT EXISTS v3_runtime_events(id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, character TEXT NOT NULL, event_key TEXT NOT NULL, severity TEXT, component TEXT, event TEXT, reason TEXT, payload TEXT, event_at INTEGER NOT NULL, received_at INTEGER NOT NULL, UNIQUE(account,character,event_key))`,
     `CREATE INDEX IF NOT EXISTS idx_v3_runtime_received_at ON v3_runtime_status(received_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_v3_automation_catalog_account_at ON v3_automation_catalog(account,received_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_v3_runtime_events_account_at ON v3_runtime_events(account,event_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_v3_control_audit_account_at ON v3_control_audit(account,created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_brain_decisions_created_at ON brain_decisions(created_at)`,
@@ -75,6 +79,25 @@ async function storeEvents(env, account, character, events, receivedAt) {
   const statements = rows.map((e, i) => env.DB.prepare('INSERT OR IGNORE INTO v3_runtime_events(account,character,event_key,severity,component,event,reason,payload,event_at,received_at) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(account, character, eventKey(e, i, receivedAt), text(e && e.severity || 'info', 20), text(e && e.component, 80), text(e && e.event, 120), text(e && e.reason, 300), JSON.stringify(redactDeep(e && e.data || {})).slice(0, 12000), eventTime(e, receivedAt), receivedAt));
   for (let i = 0; i < statements.length; i += 50) await env.DB.batch(statements.slice(i, i + 50));
   await env.DB.prepare('DELETE FROM v3_runtime_events WHERE account=? AND received_at<?').bind(account, receivedAt - EVENT_RETENTION_MS).run(); return rows.length;
+}
+
+async function handleAutomationCatalogPost(request, env) {
+  const cors = corsFor(request, env); if (cors === null) return json({ ok: false, error: 'origin not allowed' }, 403); await ensureDb(env); let body; try { body = await readJson(request, AUTOMATION_CATALOG_MAX_JSON_BYTES); } catch (e) { return json({ ok: false, error: e.message }, e.status || 400, cors || {}); }
+  if (!(await secretMatches(body.writeKey, env.WRITE_KEY))) return json({ ok: false, error: 'unauthorized' }, 401, cors || {});
+  const account = safeAccount(body.account), character = text(body.character, 80); if (!character) return json({ ok: false, error: 'character required' }, 400, cors || {});
+  const clean = sanitizeAutomationCatalogPayload(body); if (!clean.catalog.length) return json({ ok: false, error: 'automation catalog required' }, 400, cors || {});
+  const now = Date.now();
+  await env.DB.prepare('INSERT INTO v3_automation_catalog(account,character,catalog_version,catalog_count,declared_count,payload,received_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(account,character) DO UPDATE SET catalog_version=excluded.catalog_version,catalog_count=excluded.catalog_count,declared_count=excluded.declared_count,payload=excluded.payload,received_at=excluded.received_at').bind(account, character, clean.catalogVersion, clean.catalogCount, clean.declaredCount, JSON.stringify(clean.catalog), now).run();
+  return json({ ok: true, account, character, catalogVersion: clean.catalogVersion, catalogCount: clean.catalogCount, declaredCount: clean.declaredCount, receivedAt: now }, 200, cors || {});
+}
+
+async function handleAutomationCatalogGet(request, env) {
+  if (!(await requireRead(request, env))) return json({ ok: false, error: 'unauthorized' }, 401); await ensureDb(env);
+  const url = new URL(request.url), account = safeAccount(url.searchParams.get('account') || 'default');
+  const row = await env.DB.prepare('SELECT character,catalog_version,catalog_count,declared_count,payload,received_at FROM v3_automation_catalog WHERE account=? ORDER BY received_at DESC LIMIT 1').bind(account).first();
+  if (!row) return json({ ok: true, account, catalog: null });
+  let items = []; try { items = JSON.parse(row.payload || '[]'); } catch (_) {}
+  return json({ ok: true, account, catalog: { character: row.character, version: number(row.catalog_version), count: number(row.catalog_count), declaredCount: number(row.declared_count), receivedAt: number(row.received_at), items: Array.isArray(items) ? items : [] } });
 }
 
 async function handleRuntime(request, env) {
@@ -134,6 +157,8 @@ export default {
     if (request.method === 'GET' && url.pathname === '/api/health') return handleHealth(env);
     if (request.method === 'GET' && url.pathname === '/api/v3/overview') return handleOverview(request, env);
     if (request.method === 'GET' && url.pathname === '/api/v3/settings') return handleSettingsGet(request, env);
+    if (request.method === 'GET' && url.pathname === '/api/v3/automation-catalog') return handleAutomationCatalogGet(request, env);
+    if (request.method === 'POST' && url.pathname === '/api/v3/automation-catalog') return handleAutomationCatalogPost(request, env);
     if (request.method === 'PATCH' && url.pathname === '/api/v3/settings') return handleSettingsPatch(request, env);
     if (request.method === 'POST' && url.pathname === '/api/v3/runtime') return handleRuntime(request, env);
     if (request.method === 'POST' && url.pathname === '/api/v3/sync') return handleSync(request, env);
