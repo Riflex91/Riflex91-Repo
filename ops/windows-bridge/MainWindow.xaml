@@ -251,9 +251,27 @@
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="v5/wissensbasis/**" Margin="0,3" />
                     </Grid>
 
+                    <Separator Margin="0,16,0,14" />
+
+                    <TextBlock Text="Lokale live verifizierte Wissensdatenbank" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="Der V5-Bot schreibt spaeter live verifizierte Adventure-Land-Fakten auf deine SSD. Die Bridge liest nur den validierten BEREIT-Snapshot und spiegelt ihn nach v5/wissensbasis/live/**."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,10" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="LiveWissenspfadBox" Grid.Column="0" Height="40" Padding="10,7" VerticalContentAlignment="Center" />
+                        <Button Grid.Column="2" Content="SSD-Pfad speichern" Click="LiveWissenspfadSpeichern_Click" MinWidth="155" />
+                    </Grid>
+                    <TextBlock x:Name="LiveWissenStateText" Text="WARTET AUF INITIALISIERUNG" FontWeight="SemiBold" Margin="0,8,0,0" />
+                    <TextBlock Text="Nur Pfade auf D:\ sind zulässig. Standard: D:\AdventureLand-V5\wissensdatenbank. Temporäre Dateien, Quarantäne und andere SSD-Inhalte werden nicht hochgeladen."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+
                     <TextBlock x:Name="WissenswaechterDetailText"
-                               Text="Stündliche Prüfung · bekannte Quellen + Web-Entdeckung · Git-Historie als Versionsverlauf."
-                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                               Text="Stündliche Prüfung · bekannte Quellen + Web-Entdeckung + lokaler Live-Wissensimport · Git-Historie als Versionsverlauf."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,12,0,0" />
                     <TextBlock Text="Sicherheitsgrenze: Der lokale Git-Arbeitsbaum ist per Sparse Checkout auf v5/wissensbasis/** begrenzt. Vor jedem Commit und nach jedem Rebase wird zusätzlich geprüft, dass keine Datei außerhalb dieses Bereichs verändert wurde. Force-Push ist verboten."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
