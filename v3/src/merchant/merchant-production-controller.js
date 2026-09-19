@@ -307,41 +307,6 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const task = currentTask();
-        if (task && task.owner === 'PRODUCTION') {
-          releaseTask('PRODUCTION_RESTART_RECONCILIATION_FAILED_SAFE', {
-            operation: clone(recoveringOperation),
-            reconciliation: clone(reconciliation)
-          });
-        }
-        state.pausedUntil = runtime.now() + state.failureCooldownMs;
-      }
-      if (runtime.log && typeof runtime.log.emit === 'function') {
-        runtime.log.emit({
-          component: 'merchant-production',
-          event: 'PRODUCTION_RESTART_RECONCILED',
-          severity: reconciliation && reconciliation.committed === true ? 'info' : 'warn',
-          reason: reconciliation && reconciliation.reason || 'PRODUCTION_RECONCILIATION_COMPLETED',
-          data: { operation: clone(recoveringOperation), reconciliation: clone(reconciliation) }
-        });
-      }
-      return {
-        state: 'HOLD',
-        reason: reconciliation && reconciliation.committed === true
-          ? 'PRODUCTION_RESTART_RECONCILED_COMMITTED'
-          : 'PRODUCTION_RESTART_RECONCILED_FAILED_SAFE',
-        reconciliation: clone(reconciliation)
-      };
-    }
-
-    // Merchant production is installed in the shared runtime on every owned
-    // character, but only the Merchant may acquire production tasks or travel
-    // for bank/vendor work. Gate before any side effect, including auto-enable
-    // and BANK_CATALOG task acquisition.
-    if (!isMerchant()) {
-      return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_ROLE_MISMATCH' };
-    }
-    ensureAutoEnabled();
-    const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
     }
