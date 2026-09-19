@@ -70,3 +70,18 @@ test("Determinismusadapter darf spaeter Systemzeit kapseln", () => {
     "const jetzt = Date.now();",
   ).includes("DIREKTE_SYSTEMZEIT"));
 });
+
+test("R5 Dateiadapter darf Node fs kapseln", () => {
+  assert.ok(!pruefeQuelltext(
+    "grundlage/adapter/persistenz/node-datei.mjs",
+    'import fs from "node:fs/promises";',
+  ).includes("DIREKTER_DATEISYSTEMZUGRIFF"));
+});
+
+test("Node fs bleibt ausserhalb der Persistenzadapter-Grenze verboten", () => {
+  erwartet(
+    "grundlage/adapter/sonstiges/datei.mjs",
+    'import fs from "node:fs/promises";',
+    "DIREKTER_DATEISYSTEMZUGRIFF",
+  );
+});
