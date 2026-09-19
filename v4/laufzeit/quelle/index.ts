@@ -138,6 +138,8 @@ export * from './wiederholung/wiederholungs-maschine.js';
 export * from './wiederholung/wiederholungs-vergleich.js';
 export * from './wiederholung/goldener-wiederholungssatz.js';
 export * from './vertraege/farmen.js';
+export * from './vertraege/capability-gruppenwahl.js';
+export * from './spiellogik/capability-gruppenwahl.js';
 export * from './vertraege/capability-sync.js';
 export * from './spiellogik/capability-sync.js';
 export * from './ausfuehrung/adventure-land-capability-sync-austausch.js';

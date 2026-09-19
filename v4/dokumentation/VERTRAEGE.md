@@ -187,3 +187,23 @@ Ein Remote-Snapshot wird nur vertraut, wenn Sender-/Charakteridentitaet passt, d
 Der bounded Snapshot enthaelt nur explizit validierte, strukturell vorhandene Skills. Feste Obergrenzen gelten fuer Skillanzahl, Capability-Tags und Sliderparameter. Uebergrosse oder unbekannte Strukturen werden fail-closed verworfen.
 
 `CapabilitySync` und jede Remote-Vertrauensentscheidung besitzen immer `aktionsAutoritaet: false`. Ein vertrauter Snapshot ist Information fuer spaetere Gruppenlogik, keine Spielaktionsfreigabe.
+
+
+## CapabilityGruppenwahl
+
+`CapabilityGruppenwahl` ist die read-only Rollenentscheidung oberhalb der bestehenden Block-8-`GruppenKoordinationsEntscheidung`.
+
+Sie darf die bestehende Safety-/Liveness-Entscheidung nicht aufweichen. Nur bei `betriebsArt=normal` koennen normaler Leader und normale Aufgaben vergeben werden.
+
+Teilnehmer benoetigen gleichzeitig:
+
+- aktive bestehende Block-8-Liveness,
+- exakt dazu gebundenen lokalen oder in Block 8.6.5 vertrauten Capability-Snapshot,
+- explizite `gruppenKoordinationErlaubt=true`-Autoritaet,
+- fuer eine Aufgabe mindestens einen passenden `aktuellAutomatisierbar`en, `enabled`en und `configuredReady`en Skill.
+
+Fehlende Capability-Daten werden nicht durch Klasse, Level oder alte grobe Lebensnachweis-`faehigkeiten` ersetzt.
+
+Die Auswahl ist lexikographisch und nachvollziehbar. Safety kommt vor Capability-Eignung, Capability-Eignung vor Freshness und Charakterkennung/-name dienen nur als finale Tie-Breaker. Klasse und Level sind keine Ranking-Merkmale.
+
+Auch die positive Rollenentscheidung besitzt immer `aktionsAutoritaet: false`. Die separate Koordinationsautoritaet ist keine Adventure-Land-Spielaktionsautoritaet.
