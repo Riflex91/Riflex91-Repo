@@ -157,3 +157,5 @@ Real-soak evidence should be evaluated together:
 - the normal operational logs.
 
 The normal logs remain unchanged. Log handoffs should still be reviewed broadly for all detectable runtime faults, not only Production certification failures.
+
+Fresh-main sync note: the real-soak observer remains source-compatible with parallel V3 merchant-autonomy changes; the generated runtime bundle must always be rebuilt from the merged source state before release.
