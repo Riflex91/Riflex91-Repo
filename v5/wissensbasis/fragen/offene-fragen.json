@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "questions": [
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-001",
+      "priority": "P0",
+      "domain": "API / Runtime",
+      "question": "Welche Public Functions besitzen aktuell intern eindeutige `request_id`-Korrelation und welche nur Legacy-`place`-FIFO?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-002",
+      "priority": "P0",
+      "domain": "API / Runtime",
+      "question": "Welche Deferreds werden bei vollständigem Code-Restart/Reload verworfen?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-003",
+      "priority": "P0",
+      "domain": "API / Runtime",
+      "question": "Welche Socket-/Game Events sind für exakt-einmalartige Reconciliation besonders zuverlässig?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-004",
+      "priority": "P0",
+      "domain": "API / Runtime",
+      "question": "Wie unterscheiden sich Browser, Steam/Tauri und Mainframe bei Storage/Reload?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-005",
+      "priority": "P0",
+      "domain": "Call Costs / Limits",
+      "question": "Vollständige aktuelle `CC`-Cost-Tabelle je Socket-Action und ihre Live-Abweichungen.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-006",
+      "priority": "P0",
+      "domain": "Call Costs / Limits",
+      "question": "Exakter aktueller `limits.calls`-Threshold je Server/Mode; der Mechanismus ist bestätigt, die universelle Zahl noch nicht.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-007",
+      "priority": "P0",
+      "domain": "Call Costs / Limits",
+      "question": "Wie sollten mehrere Character in einer Mainframe-Gruppe ihren Game-Call-Budget und ihr separates CPU-Budget koordinieren?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-008",
+      "priority": "P1",
+      "domain": "Navigation",
+      "question": "Exakte aktuelle Spawn-Pack-Wahl von `smart_move({to: monster})` im Live-System.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-009",
+      "priority": "P1",
+      "domain": "Navigation",
+      "question": "Alle Failure Reasons von `smart_move`.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-010",
+      "priority": "P1",
+      "domain": "Navigation",
+      "question": "Verhalten bei Eventmap-Verschwinden während Travel.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-011",
+      "priority": "P1",
+      "domain": "Navigation",
+      "question": "Pathfinding-Unreachable Detection und optimale Anti-Stuck-Timeouts.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-012",
+      "priority": "P1",
+      "domain": "Party",
+      "question": "Exakte Aktualisierungsfrequenz von `parent.party`.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-013",
+      "priority": "P1",
+      "domain": "Party",
+      "question": "Beste serverseitige Liveness-Quelle für Partycharaktere.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-014",
+      "priority": "P1",
+      "domain": "Party",
+      "question": "Verhalten bei Leader-Disconnect über verschiedene Modes.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-015",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Live-Market-Snapshot-Zugriff und zulässige Scan-Frequenzen.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-016",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Exakte aktuelle Tax-/Transferregeln in allen Servermodi.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-017",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Player-Shop-Listing-Lebensdauer/Standverhalten bei Disconnect.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-018",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Verhalten eines Trade-Slots bei Stack-Teilverkauf.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-019",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Vollständige Semantik aller Special Properties beim Listing.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-020",
+      "priority": "P0",
+      "domain": "Merchant / Economy",
+      "question": "Event-/Home-Server-spezifische Ökonomie.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-021",
+      "priority": "P0",
+      "domain": "Bank",
+      "question": "Aktuell deployte Packanzahl/Unlockpreise im Live-`G`/Account-System.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-022",
+      "priority": "P0",
+      "domain": "Bank",
+      "question": "Welche genaue Failure-/Queue-Semantik sieht ein zweiter eigener Charakter, wenn bereits ein anderer Charakter die Bank belegt?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-023",
+      "priority": "P0",
+      "domain": "Bank",
+      "question": "Welche Bankänderungen werden wie schnell in anderen Character-Snapshots sichtbar?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-024",
+      "priority": "P0",
+      "domain": "Upgrade / Compound",
+      "question": "Exakte aktuelle Wahrscheinlichkeitsformeln aus Live-Daten.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-025",
+      "priority": "P0",
+      "domain": "Upgrade / Compound",
+      "question": "Grace-/Offering-Semantik über alle Upgradegrade.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-026",
+      "priority": "P0",
+      "domain": "Upgrade / Compound",
+      "question": "Was passiert bei vollständigem Game-Server-Prozessausfall während `q`?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-027",
+      "priority": "P0",
+      "domain": "Upgrade / Compound",
+      "question": "Persistiert `q` über jeden Restart-Typ oder nur Character Disconnect/Reconnect?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-028",
+      "priority": "P0",
+      "domain": "Upgrade / Compound",
+      "question": "Welche transienten Result-Events können nach Reconnect erneut/verspätet eintreffen?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-029",
+      "priority": "P0",
+      "domain": "Craft / Exchange",
+      "question": "Vollständige Live-Rezeptliste und alle quest-/event-gated Rezepte.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-030",
+      "priority": "P0",
+      "domain": "Craft / Exchange",
+      "question": "Alle Exchange-Tables und Input-/Output-Sonderfälle.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-031",
+      "priority": "P0",
+      "domain": "Craft / Exchange",
+      "question": "Outputspace-Verhalten für Mehrfach-/Sonderoutputs.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [
+        "V5_CORE_CONTRACTS"
+      ],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-032",
+      "priority": "P2",
+      "domain": "Quests / Events",
+      "question": "Einheitliches Quest State Model.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-033",
+      "priority": "P2",
+      "domain": "Quests / Events",
+      "question": "Resetzeiten für Daily/Nightly.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-034",
+      "priority": "P2",
+      "domain": "Quests / Events",
+      "question": "Event-State-Transitions pro Event.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-035",
+      "priority": "P2",
+      "domain": "Quests / Events",
+      "question": "Reward-Claim-Idempotenz.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-036",
+      "priority": "P2",
+      "domain": "PvP / Hardcore",
+      "question": "Action-/Range-/Aggro-Unterschiede.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-037",
+      "priority": "P2",
+      "domain": "PvP / Hardcore",
+      "question": "Item-/Death-/Loot-Risiken.",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-OPEN-038",
+      "priority": "P2",
+      "domain": "PvP / Hardcore",
+      "question": "Welche normalen Automationsstrategien müssen hart deaktiviert werden?",
+      "status": "OPEN",
+      "openedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-25-open-questions"
+        }
+      ],
+      "blocks": [],
+      "answerFactIds": []
+    }
+  ]
+}

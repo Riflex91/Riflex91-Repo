@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-wissen-source.schema.json",
+  "title": "V5 Wissensquelle",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "title",
+    "trust"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "retrievedAt": {
+      "type": "string"
+    },
+    "trust": {
+      "type": "string"
+    },
+    "snapshot": {
+      "type": "object"
+    },
+    "immutableSnapshot": {
+      "type": "boolean"
+    }
+  }
+}

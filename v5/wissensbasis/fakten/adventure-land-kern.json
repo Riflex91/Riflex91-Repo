@@ -1,0 +1,1240 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "EXT-RESEARCH-2026-09-19",
+  "facts": [
+    {
+      "schemaVersion": 1,
+      "id": "AL-API-001",
+      "topic": "api",
+      "statement": "G beschreibt Definitionen/Capabilities, nicht den sicheren aktuellen Weltzustand.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-API-002",
+      "topic": "api",
+      "statement": "Seit 24.08.2026 sollen alle öffentlichen asynchronen CODE-Funktionen auf echte Serverergebnisse settle'n.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-API-003",
+      "topic": "api",
+      "statement": "Mehrere Legacy-Actions werden clientseitig weiterhin über FIFO-Deferred-Queues pro place korreliert, nicht über eine eindeutige Request-ID.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACT-001",
+      "topic": "act",
+      "statement": "Ein empfangenes erfolgreiches Public-Promise ist starke Action-Level-Bestätigung, aber ein verlorenes Ergebnis nach Disconnect darf nicht durch blindes Retry ersetzt werden.",
+      "status": "ACTIVE",
+      "classification": "MEHRFACH_EXTERN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ACT-002",
+      "topic": "act",
+      "statement": "equip_batch ist serverseitig nicht vollständig atomar: frühere Einträge können bereits angewendet sein, wenn ein späterer Eintrag fehlschlägt.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-INV-001",
+      "topic": "inv",
+      "statement": "Inventory-Indizes sind nach Mutationen nicht stabil und müssen unmittelbar vor einer Aktion neu aufgelöst werden.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-INV-002",
+      "topic": "inv",
+      "statement": "Upgrade/Compound/Exchange verwenden serverseitig temporäre placeholder-Items und character.q/player.q-Zustände.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-TRADE-001",
+      "topic": "trade",
+      "statement": "Player-Shop-Käufe können mit rid gegen stale Listings geschützt werden; bei geänderter RID schlägt der Kauf fehl.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-SEND-001",
+      "topic": "send",
+      "statement": "send_item und send_gold sind nicht idempotent und teilen clientseitig denselben Deferred-Kanal send.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-BANK-001",
+      "topic": "bank",
+      "statement": "Bankoperationen teilen einen bank-Deferred-Kanal; Bankzugriff hängt vom aktuell gemounteten Bankzustand/der Bankmap ab.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-BANK-002",
+      "topic": "bank",
+      "statement": "Der geprüfte Client kennt 48 Bank-Packs (items0–items47) über bank, bank_b, bank_u, je 42 Slots.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-BANK-003",
+      "topic": "bank",
+      "statement": "Laut aktuellem offiziellen Banking-Tutorial kann nur ein eigener Charakter gleichzeitig in der Bank sein.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-UPG-001",
+      "topic": "upg",
+      "statement": "Upgrade ist eine mehrphasige Transaktion: Ressourcen werden verbraucht, Zielslot wird Placeholder, Ergebnis wird später abgeschlossen.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-CMP-001",
+      "topic": "cmp",
+      "statement": "Compound ist ebenfalls mehrphasig und benötigt drei aktuelle, zueinander passende Item-Referenzen sowie Scroll/ggf. Offering.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-EXCH-001",
+      "topic": "exch",
+      "statement": "Exchange ist mehrphasig und kann Input bereits konsumieren/placeholdern, bevor der Reward später entsteht.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-REC-001",
+      "topic": "rec",
+      "statement": "Beim Server-Exit werden laufende player.q-Operationen als stale markiert; Upgrade/Compound propagieren das beim späteren Abschluss.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-REC-002",
+      "topic": "rec",
+      "statement": "Nach Reconnect muss V4 zuerst q, Placeholder, Inventory, Gold und erwartete Postconditions reconciliieren; nicht einfach erneut senden.",
+      "status": "ACTIVE",
+      "classification": "ABGELEITETE_HYPOTHESE",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NAV-001",
+      "topic": "nav",
+      "statement": "Ein neuer smart_move kann den vorherigen Smart-Move unterbrechen; Travel muss daher explizit preemptionsfähig modelliert werden.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NAV-002",
+      "topic": "nav",
+      "statement": "Historisch/öffentlich dokumentiert kann smart_move auf Monsterziele zwischen mehreren Spawn-Packs wählen; ein Monstername ist keine feste Koordinate.",
+      "status": "ACTIVE",
+      "classification": "MEHRFACH_EXTERN_BESTAETIGT",
+      "confidence": 0.92,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-PARTY-001",
+      "topic": "party",
+      "statement": "get_party() ist laut aktuellem Runner „infrequently updated“ und ist allein keine zuverlässige Liveness-Wahrheit.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-CM-001",
+      "topic": "cm",
+      "statement": "CODE-Messages müssen als potenziell verspätet/stale/untrusted behandelt und Sender/Payload validiert werden.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-CM-002",
+      "topic": "cm",
+      "statement": "send_cm liefert {receivers, locals}; fehlende/offline Serverempfänger fehlen aus receivers, lokal bereits zugestellte Empfänger bleiben bei Serverfehler im Fehlerobjekt erhalten, damit Retries nicht duplizieren müssen.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-RATE-001",
+      "topic": "rate",
+      "statement": "In-Game-Socket-Call-Cost wird über ein rollendes 4-Sekunden-Fenster begrenzt; Überschreitung kann limitdc auslösen. Mainframe-„Call cost“ ist dagegen CPU-Prozent und ein anderer Begriff.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-MERCH-001",
+      "topic": "merch",
+      "statement": "Ein Merchant ist erst dann als Shop funktional zu betrachten, wenn Stand **und** tatsächliche Trade-Listings vorhanden sind.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-MERCH-002",
+      "topic": "merch",
+      "statement": "Stand-Kapazität ist aktuell abhängig von Merchant-Level/Stand: 16, 24 oder 30 Trade-Slots.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-PERSIST-001",
+      "topic": "persist",
+      "statement": "set/get speichern JSON lokal; pset/pget abstrahieren persistente String-Werte. Das ist kein Ersatz für transaktionale Workflow-Persistenz.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-EVENT-001",
+      "topic": "event",
+      "statement": "G.events beschreibt Eventdefinitionen; ob ein Event jetzt lebt, muss aus Live-State/Serverstatus kommen.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-SERVER-001",
+      "topic": "server",
+      "statement": "Seit 04.09.2026 kann schnelles Serverwechseln für Nicht-Merchants 30 Minuten Realm Fatigue auslösen.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-ARCH-001",
+      "topic": "arch",
+      "statement": "Wertbewegende Workflows brauchen Intent-Journal + Locks + Postcondition-Reconciliation + UNKNOWN-Zustand statt „Retry bis Erfolg“.",
+      "status": "ACTIVE",
+      "classification": "ABGELEITETE_HYPOTHESE",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "LOW",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-1-critical-findings"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-001",
+      "topic": "npc",
+      "statement": "NPC-ID ist die stabile CODE-Identität; Displaynamen können sich ändern.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-002",
+      "topic": "npc",
+      "statement": "NPC-Definition und NPC-Platzierung sind getrennte Datenebenen; saisonale/servererzeugte NPCs können ohne statische Map-Platzierung existieren.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-003",
+      "topic": "npc",
+      "statement": "Der geprüfte Snapshot enthält 135 NPC-Definitionen in 46 Rollen.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": false,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-004",
+      "topic": "npc",
+      "statement": "role: citizen ist keine Garantie für reine Dekoration; mehrere Citizens besitzen echte Behavior-Logik.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-005",
+      "topic": "npc",
+      "statement": "Merrit ist ein Market-Patron mit Shop-Settle-, Hourly- und Spacing-Regeln und muss vom Merchant als externer Markt-Workflow behandelt werden.",
+      "status": "ACTIVE",
+      "classification": "MEHRFACH_EXTERN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-NPC-006",
+      "topic": "npc",
+      "statement": "Bean mutiert Home-Realm-State; Favoré mutiert realmweiten Blessing-State und darf nicht wie ein harmloser Dialog behandelt werden.",
+      "status": "ACTIVE",
+      "classification": "SPIELDATEN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "MEDIUM",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-EVENT-002",
+      "topic": "event",
+      "statement": "Aktuell sind 11 Events in G.events definiert; Eventdefinition allein ist kein Beweis, dass das Event gerade live ist.",
+      "status": "ACTIVE",
+      "classification": "MEHRFACH_EXTERN_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-EVENT-003",
+      "topic": "event",
+      "statement": "server.status ist für die aktuelle Realm-Eventlage die bevorzugte Live-State-Quelle.",
+      "status": "ACTIVE",
+      "classification": "OFFIZIELL_BESTAETIGT",
+      "confidence": 0.99,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "AL-EVENT-004",
+      "topic": "event",
+      "statement": "Joinable und World/Seasonal Events benötigen unterschiedliche Eintritts-/Recovery-Strategien.",
+      "status": "ACTIVE",
+      "classification": "MEHRFACH_EXTERN_BESTAETIGT",
+      "confidence": 0.98,
+      "architectureRelevant": true,
+      "volatility": "HIGH",
+      "observedAt": "2026-09-19",
+      "sourceRefs": [
+        {
+          "sourceId": "EXT-RESEARCH-2026-09-19",
+          "locator": "section-30-npc-event-catalog"
+        }
+      ],
+      "freshnessPolicy": {
+        "mode": "SNAPSHOT_WITH_LIVE_REVALIDATION",
+        "triggers": [
+          "GAME_UPDATE",
+          "SOURCE_CHANGE",
+          "LIVE_CONTRADICTION",
+          "EVENT_SEASON_CHANGE"
+        ]
+      },
+      "supersedes": [],
+      "supersededBy": [],
+      "tags": [
+        "adventure-land",
+        "external-research",
+        "npc-event"
+      ]
+    }
+  ]
+}

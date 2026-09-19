@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-wissen-fact.schema.json",
+  "title": "V5 Wissenseintrag",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "topic",
+    "statement",
+    "status",
+    "classification",
+    "confidence",
+    "architectureRelevant",
+    "volatility",
+    "observedAt",
+    "sourceRefs",
+    "freshnessPolicy",
+    "supersedes",
+    "supersededBy",
+    "tags"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+(?:-[A-Z0-9]+)+$"
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "ACTIVE",
+        "NEEDS_REVALIDATION",
+        "SUPERSEDED",
+        "CONTRADICTED",
+        "RETIRED"
+      ]
+    },
+    "classification": {
+      "enum": [
+        "OFFIZIELL_BESTAETIGT",
+        "SPIELDATEN_BESTAETIGT",
+        "V3_REAL_BEOBACHTET",
+        "V3_TEST_ABGESICHERT",
+        "MEHRFACH_EXTERN_BESTAETIGT",
+        "COMMUNITY_HINWEIS",
+        "ABGELEITETE_HYPOTHESE",
+        "UNGEKLAERT"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "architectureRelevant": {
+      "type": "boolean"
+    },
+    "volatility": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNKNOWN"
+      ]
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1
+    },
+    "freshnessPolicy": {
+      "type": "object"
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supersededBy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
