@@ -166,3 +166,17 @@ Wichtig:
 - upgrade_fail ist pfadabhaengig und beweist keinen Itemverlust;
 - Compound-Failure verbraucht alle drei Inputs;
 - finaler Inventory-State ist die Settlement-Autoritaet.
+
+
+## P0-06 Exchange / Craft / Outputspace
+
+Der kanonische Vertrag liegt unter:
+
+v5/wissensbasis/vertraege/exchange-craft.json
+
+Wichtig:
+- generic add_item overflow ist kein geplanter V5-Kapazitaetsmechanismus;
+- Exchange-Recovery betrachtet alle Reward-Domaenen und nicht nur reward/num;
+- rekursive Drop-Graphs muessen bounded/versioniert sein;
+- Normal Craft und Anniversary Craft besitzen unterschiedliche Inputplaner;
+- Dismantle besitzt einen eigenen Leveled-Compound-Drei-Output-Pfad.
