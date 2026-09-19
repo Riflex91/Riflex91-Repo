@@ -1,17 +1,16 @@
-export const DASHBOARD_FRAGMENT_4 = `const AUTOMATION_CATALOG_CACHE_MS=60000,AUTOMATION_VIEW_STORAGE_KEY='aioV3AutomationView';
-let automationCatalogRemote=null,automationCatalogFetchedAt=0,automationView='atlas';
-try{const savedView=localStorage.getItem(AUTOMATION_VIEW_STORAGE_KEY);if(savedView==='atlas'||savedView==='details')automationView=savedView}catch(e){}
+export const DASHBOARD_FRAGMENT_4 = `const AUTOMATION_CATALOG_CACHE_MS=60000;
+let automationCatalogRemote=null,automationCatalogFetchedAt=0;
 function automationCatalogSource(){
   const remote=automationCatalogRemote&&automationCatalogRemote.catalog;
   if(remote&&Array.isArray(remote.items)&&remote.items.length){
     const declared=Number(remote.declaredCount)>0?Number(remote.declaredCount):Number(remote.count);
-    return {row:null,status:{automationCatalogVersion:Number(remote.version)||0,automationCatalogCount:declared},list:remote.items,receivedAt:Number(remote.receivedAt)||0,dedicated:true}
+    return {row:null,status:{automationCatalogVersion:Number(remote.version)||0,automationCatalogCount:declared},list:remote.items,receivedAt:Number(remote.receivedAt)||0,dedicated:true,source:String(remote.source||'merchant'),complete:remote.complete!==false}
   }
   const chars=overview&&overview.characters||[];
   const merchant=chars.find(row=>String(row.status&&row.status.character&&row.status.character.ctype||'').toLowerCase()==='merchant');
   const candidates=[merchant].concat(chars).filter(Boolean);
-  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return {row,status:row.status||{},list,receivedAt:Number(row.receivedAt)||0,dedicated:false}}
-  return {row:null,status:{},list:[],receivedAt:0,dedicated:false}
+  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return {row,status:row.status||{},list,receivedAt:Number(row.receivedAt)||0,dedicated:false,source:'runtime-legacy',complete:false}}
+  return {row:null,status:{},list:[],receivedAt:0,dedicated:false,source:'none',complete:false}
 }
 function automationCatalog(){return automationCatalogSource().list}
 function automationText(value){return String(value==null?'':value).normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase()}
@@ -19,11 +18,6 @@ function automationMatchesQuery(item,query){
   const terms=automationText(query).trim().split(' ').filter(Boolean);if(!terms.length)return true;
   const hay=automationText([item.id,item.name,item.type,item.wtype,item.description,(item.classes||[]).join(' '),(item.npc||[]).map(x=>x.npc+' '+(x.map||'')).join(' ')].join(' '));
   return terms.every(term=>hay.includes(term))
-}
-function setAutomationView(view){
-  automationView=view==='details'?'details':'atlas';
-  try{localStorage.setItem(AUTOMATION_VIEW_STORAGE_KEY,automationView)}catch(e){}
-  document.querySelectorAll('[data-automation-view]').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.automationView===automationView?'true':'false'));
 }
 function itemPermissionsValue(){
   const vals=settings&&settings.settings&&settings.settings.values||{};
@@ -45,10 +39,6 @@ function automationEconomyMeta(item){
   return parts
 }
 function automationIcon(item){return item.sprite?'<div class="automation-icon al-slot filled" title="'+esc(item.name||item.id)+'">'+alSpriteMeta(item.sprite,false)+'</div>':'<div class="automation-icon al-slot empty"><span class="al-missing">?</span></div>'}
-function automationAtlasCard(item){
-  const prot=itemProtection(item),npcText=(item.npc||[]).map(x=>x.npc).filter(Boolean).join(', '),level=item.level==null?'–':item.level,econ=automationEconomyMeta(item),progress=item.upgrade?'Upgrade':item.compound?'Compound':'–';
-  return '<article class="automation-atlas-item" data-item-name="'+esc(item.id)+'" data-item-protected="'+esc(prot.join(', '))+'"><div class="automation-atlas-visual">'+automationIcon(item)+'</div><div class="automation-atlas-copy"><div class="automation-atlas-title"><b>'+esc(item.name||item.id)+'</b><button class="automation-atlas-rule" data-open-item-perm="'+esc(item.id)+'">Regeln</button></div><code class="automation-atlas-id">'+esc(item.id)+'</code><div class="automation-atlas-meta"><strong>'+esc(item.type||'Item')+'</strong> · L'+esc(level)+' · '+esc(progress)+(npcText?' · '+esc(npcText):'')+(prot.length?' · ⚠ geschützt':'')+(econ.length?' · '+esc(econ.slice(0,2).join(' · ')):'')+'</div><div class="automation-atlas-perms">'+permissionBadges(item.id)+'</div></div></article>'
-}
 function automationDetailCard(item){
   const prot=itemProtection(item),npcText=(item.npc||[]).map(x=>x.npc+(x.map?' @ '+x.map:'')).join(', '),classText=(item.classes||[]).length?(item.classes||[]).join(', '):'alle/über Waffentyp',level=item.level==null?'–':item.level,icon=automationIcon(item),econ=automationEconomyMeta(item);
   return '<article class="automation-item" data-item-name="'+esc(item.id)+'" data-item-protected="'+esc(prot.join(', '))+'"><div class="automation-item-head"><div class="automation-item-identity">'+icon+'<div><b>'+esc(item.name||item.id)+'</b><small>'+esc(item.id)+' · '+esc(item.type||'Item')+'</small></div></div><button class="btn ghost" data-open-item-perm="'+esc(item.id)+'">Regeln</button></div>'+(item.description?'<div class="sub">'+esc(item.description)+'</div>':'')+(prot.length?'<div class="automation-warning">⚠ Geschützt/Spezial: '+esc(prot.join(', '))+'</div>':'')+'<div class="automation-meta"><span>Level '+esc(level)+'</span><span>Klasse '+esc(classText)+'</span><span>NPC '+esc(npcText||'–')+'</span><span>'+(item.upgrade?'verbesserbar':'')+(item.upgrade&&item.compound?' · ':'')+(item.compound?'kombinierbar':'')+'</span>'+econ.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div><div class="automation-perms">'+permissionBadges(item.id)+'</div></article>'
@@ -56,12 +46,11 @@ function automationDetailCard(item){
 function fillAutomationSelect(id,values,allLabel){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+esc(allLabel)+'</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=values.includes(current)?current:''}
 function renderAutomation(){
   const root=$('automationGrid');if(!root)return;
-  setAutomationView(automationView);root.dataset.view=automationView;
   const compoundLimitEl=$('automationMaxCompound'),compoundLimit=settingValue('economy.maxCompound',1),compoundSave=$('saveAutomationMaxCompound');
   if(compoundLimitEl&&document.activeElement!==compoundLimitEl)compoundLimitEl.value=String(compoundLimit);
   if(compoundSave){compoundSave.disabled=!adminKey;compoundSave.title=adminKey?'Maximales automatisches Compound-/Combine-Level speichern':'ADMIN_KEY erforderlich'}
-  const catalogSource=automationCatalogSource(),all=catalogSource.list,catalogStatus=catalogSource.status||{},catalogVersion=Number(catalogStatus.automationCatalogVersion)||0,declaredCount=Number(catalogStatus.automationCatalogCount),catalogHealth=$('automationCatalogHealth'),complete=Number.isFinite(declaredCount)&&declaredCount===all.length&&catalogVersion>=3,sourceLabel=catalogSource.dedicated?' · eigener Katalogkanal':' · Legacy-Snapshot';
-  if(catalogHealth){catalogHealth.className='notice'+(complete?'':' warn');catalogHealth.textContent=all.length?(complete?'Item-Datenbank v'+catalogVersion+' vollständig synchronisiert · '+all.length+' Items'+sourceLabel:'Item-Datenbank unvollständig/veraltet · '+all.length+(Number.isFinite(declaredCount)?' / '+declaredCount:'')+' Items'+sourceLabel+' · Merchant-Katalog wird aktualisiert'):'Item-Datenbank noch nicht vom Merchant synchronisiert.'}
+  const catalogSource=automationCatalogSource(),all=catalogSource.list,catalogStatus=catalogSource.status||{},catalogVersion=Number(catalogStatus.automationCatalogVersion)||0,declaredCount=Number(catalogStatus.automationCatalogCount),catalogHealth=$('automationCatalogHealth'),complete=catalogSource.complete!==false&&Number.isFinite(declaredCount)&&declaredCount===all.length&&catalogVersion>=3,sourceLabel=catalogSource.source==='official+merchant'?' · offizielle Spieldaten + Botdaten':catalogSource.source==='official'?' · offizielle Spieldaten':catalogSource.source==='merchant'?' · Bot-Katalog':' · unvollständiger Runtime-Snapshot';
+  if(catalogHealth){catalogHealth.className='notice'+(complete?'':' warn');catalogHealth.textContent=all.length?(complete?'Item-Datenbank v'+catalogVersion+' vollständig · '+all.length+' Items'+sourceLabel:'Item-Datenbank unvollständig/veraltet · '+all.length+(Number.isFinite(declaredCount)?' / '+declaredCount:'')+' Items'+sourceLabel):'Item-Datenbank derzeit nicht verfügbar.'}
   const types=[...new Set(all.map(x=>String(x.type||'')).filter(Boolean))].sort(),npcs=[...new Set(all.flatMap(x=>(x.npc||[]).map(n=>String(n&&n.npc||'')).filter(Boolean)))].sort();
   fillAutomationSelect('automationType',types,'Alle Typen');fillAutomationSelect('automationNpc',npcs,'Alle NPCs');
   const q=String($('automationSearch')&&$('automationSearch').value||''),type=$('automationType')&&$('automationType').value||'',ct=$('automationClass')&&$('automationClass').value||'',npc=$('automationNpc')&&$('automationNpc').value||'',cap=$('automationCapability')&&$('automationCapability').value||'',minRaw=$('automationLevelMin')&&$('automationLevelMin').value,maxRaw=$('automationLevelMax')&&$('automationLevelMax').value,min=minRaw===''?null:Number(minRaw),max=maxRaw===''?null:Number(maxRaw);
@@ -71,8 +60,8 @@ function renderAutomation(){
     if(cap==='upgrade'&&!item.upgrade)return false;if(cap==='compound'&&!item.compound)return false;if(cap==='npc'&&!(item.npc||[]).length)return false;if(cap==='protected'&&!itemProtection(item).length)return false;return true
   });
   $('automationCount').textContent=rows.length+' / '+all.length+' Items';
-  if(!all.length){root.innerHTML='<div class="empty">Der vollständige Itemkatalog ist noch nicht vom Merchant synchronisiert worden.</div>';return}
-  root.innerHTML=rows.map(automationView==='details'?automationDetailCard:automationAtlasCard).join('')||'<div class="empty">Keine Items passen zu den Filtern.</div>'
+  if(!all.length){root.innerHTML='<div class="empty">Der Itemkatalog ist derzeit nicht verfügbar.</div>';return}
+  root.innerHTML=rows.map(automationDetailCard).join('')||'<div class="empty">Keine Items passen zu den Filtern.</div>'
 }
 function openItemPermissionMenu(name,meta,x,y){
   if(!name)return;document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove());
@@ -178,8 +167,8 @@ $('reloadEvents').onclick=loadEvents;
 ['automationSearch','automationType','automationClass','automationNpc','automationLevelMin','automationLevelMax','automationCapability'].forEach(id=>{const el=$(id);if(el){el.oninput=renderAutomation;el.onchange=renderAutomation}});
 if($('saveAutomationMaxCompound'))$('saveAutomationMaxCompound').onclick=saveAutomationMaxCompound;
 if($('automationMaxCompound'))$('automationMaxCompound').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();saveAutomationMaxCompound()}};
-document.addEventListener('contextmenu',e=>{const node=e.target.closest&&e.target.closest('.automation-item[data-item-name],.automation-atlas-item[data-item-name],.al-slot.filled[data-item-name]');if(!node)return;e.preventDefault();openItemPermissionMenu(node.dataset.itemName,{locked:node.dataset.itemLocked==='true',special:node.dataset.itemSpecial==='true'},e.clientX,e.clientY)});
-document.addEventListener('click',e=>{const view=e.target.closest&&e.target.closest('[data-automation-view]');if(view){setAutomationView(view.dataset.automationView);renderAutomation();return}const open=e.target.closest&&e.target.closest('[data-open-item-perm]');if(open){const card=open.closest('.automation-item,.automation-atlas-item');openItemPermissionMenu(open.dataset.openItemPerm,{special:card&&card.dataset.itemProtected?true:false},e.clientX,e.clientY);return}const perm=e.target.closest&&e.target.closest('[data-perm-action]');if(perm){saveItemPermission(perm.dataset.permName,perm.dataset.permAction,perm.dataset.permValue);return}if(!e.target.closest||!e.target.closest('.item-permission-menu'))document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove())});
+document.addEventListener('contextmenu',e=>{const node=e.target.closest&&e.target.closest('.automation-item[data-item-name],.al-slot.filled[data-item-name]');if(!node)return;e.preventDefault();openItemPermissionMenu(node.dataset.itemName,{locked:node.dataset.itemLocked==='true',special:node.dataset.itemSpecial==='true'},e.clientX,e.clientY)});
+document.addEventListener('click',e=>{const open=e.target.closest&&e.target.closest('[data-open-item-perm]');if(open){const card=open.closest('.automation-item');openItemPermissionMenu(open.dataset.openItemPerm,{special:card&&card.dataset.itemProtected?true:false},e.clientX,e.clientY);return}const perm=e.target.closest&&e.target.closest('[data-perm-action]');if(perm){saveItemPermission(perm.dataset.permName,perm.dataset.permAction,perm.dataset.permValue);return}if(!e.target.closest||!e.target.closest('.item-permission-menu'))document.querySelectorAll('.item-permission-menu').forEach(el=>el.remove())});
 
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const page=document.querySelector('.page[data-page="settings"]');if(page&&page.classList.contains('active'))$('settingsSearch').focus()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&Object.keys(dirty).length&&adminKey){e.preventDefault();$('saveSettings').click()}});
 if(readKey)load();
