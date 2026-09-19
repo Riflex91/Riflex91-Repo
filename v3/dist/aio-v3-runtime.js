@@ -11472,7 +11472,10 @@ function cleanEncounterOutcome(raw, expectedLeader = null, now = Date.now(), max
     durationSeconds: Math.max(0, finite(raw.durationSeconds) || 0), xp: Math.max(0, finite(raw.xp) || 0), gold: finite(raw.gold) || 0,
     kills: Math.max(0, finite(raw.kills) || 0), deaths: Math.max(0, finite(raw.deaths) || 0),
     retreats: Math.max(0, Math.floor(finite(raw.retreats) || 0)), nearDeaths: Math.max(0, Math.floor(finite(raw.nearDeaths) || 0)),
-    potions: Math.max(0, finite(raw.potions) || 0), skillExecutions: Math.max(0, Math.floor(finite(raw.skillExecutions) || 0)),
+    hpPotions: Math.max(0, finite(raw.hpPotions) || 0), mpPotions: Math.max(0, finite(raw.mpPotions) || 0),
+    potions: Math.max(0, finite(raw.potions) || 0), potionAttribution: cleanText(raw.potionAttribution, 64),
+    killAttribution: cleanText(raw.killAttribution, 64), progressAttribution: cleanText(raw.progressAttribution, 64),
+    skillExecutions: Math.max(0, Math.floor(finite(raw.skillExecutions) || 0)),
     aoeSkillExecutions: Math.max(0, Math.floor(finite(raw.aoeSkillExecutions) || 0)),
     movementFailures: Math.max(0, Math.floor(finite(raw.movementFailures) || 0)), skillFailures: Math.max(0, Math.floor(finite(raw.skillFailures) || 0)),
     safetyMargin: clamp(raw.safetyMargin, 0, 1), adaptiveRecommendation: cleanText(raw.adaptiveRecommendation, 64),
@@ -11497,7 +11500,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.encounterOutcomeMaxAgeMs = Math.max(2 * 60 * 1000, Math.min(30 * 60 * 1000, Number(options.encounterOutcomeMaxAgeMs) || 10 * 60 * 1000)); this.encounterOutcomeHistoryLimit = Math.max(2, Math.min(16, Number(options.encounterOutcomeHistoryLimit) || 8)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0, encounterOutcomeHistoryReports: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -11511,18 +11514,48 @@ class PartyTelemetryBridge {
     const ctype = String(report.ctype || 'unknown').toLowerCase();
     const level = Math.max(0, finite(report.level) || 0);
     const capabilities = sanitizeCapabilitySnapshot(report.capabilities, { name, ctype, level });
-    const encounterOutcome = cleanEncounterOutcome(report.encounterOutcome, name, this.now(), Math.max(60000, this.reportTtlMs * 6));
+    const historyRaw = Array.isArray(report.encounterOutcomes) ? report.encounterOutcomes : [];
+    const encounterRows = [...historyRaw, report.encounterOutcome]
+      .map((row) => cleanEncounterOutcome(row, name, this.now(), this.encounterOutcomeMaxAgeMs))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
+    const encounterOutcomes = [];
+    const seenEncounterIds = new Set();
+    for (const row of encounterRows) {
+      if (seenEncounterIds.has(row.encounterId)) continue;
+      seenEncounterIds.add(row.encounterId);
+      encounterOutcomes.push(row);
+      if (encounterOutcomes.length >= this.encounterOutcomeHistoryLimit) break;
+    }
+    const encounterOutcome = encounterOutcomes[0] || null;
     const motion = cleanMotion(report.motion || {});
-    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, at };
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), hpPotionsPerHour: Math.max(0, finite(rates.hpPotionsPerHour) || 0), mpPotionsPerHour: Math.max(0, finite(rates.mpPotionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, encounterOutcomes, at };
   }
-  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; if (clean.encounterOutcomes && clean.encounterOutcomes.length > 1) this.stats.encounterOutcomeHistoryReports += 1; return true; }
   buildLocalReport(runtime) {
     const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
-    const encounterOutcome = cleanEncounterOutcome(runtime && (runtime.lastEncounterOutcome || runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome), c.name, this.now(), Math.max(60000, this.reportTtlMs * 6));
+    const rawEncounterHistory = [];
+    try {
+      if (runtime && runtime.encounterLifecycle && Array.isArray(runtime.encounterLifecycle.history)) rawEncounterHistory.push(...runtime.encounterLifecycle.history);
+    } catch (_) {}
+    if (runtime && runtime.lastEncounterOutcome) rawEncounterHistory.push(runtime.lastEncounterOutcome);
+    else if (runtime && runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome) rawEncounterHistory.push(runtime.encounterLifecycle.lastOutcome);
+    const encounterOutcomes = [];
+    const localSeen = new Set();
+    for (const row of rawEncounterHistory
+      .map((entry) => cleanEncounterOutcome(entry, c.name, this.now(), this.encounterOutcomeMaxAgeMs))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0))) {
+      if (localSeen.has(row.encounterId)) continue;
+      localSeen.add(row.encounterId);
+      encounterOutcomes.push(row);
+      if (encounterOutcomes.length >= this.encounterOutcomeHistoryLimit) break;
+    }
+    const encounterOutcome = encounterOutcomes[0] || null;
     const lastKite = runtime && runtime.farmer && runtime.farmer.lastKiteMove || farmer && farmer.kiting && farmer.kiting.lastMove || null;
     const kiteActive = !!(lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2));
     const motion = { mode: kiteActive ? 'KITE' : c.moving ? 'MOVING' : 'STABLE', moving: c.moving === true || kiteActive, kiteActive, declaredSpeed: Math.max(0, finite(c.speed) || 0) };
-    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), hpPotionsPerHour: Math.max(0, finite(rates.hpPotionsPerHour) || 0), mpPotionsPerHour: Math.max(0, finite(rates.mpPotionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, encounterOutcomes, at: this.now() };
   }
   tick(runtime) {
     this.prune();
@@ -11585,11 +11618,30 @@ class PartyTelemetryBridge {
       .map((report) => [report.name, { ...report.encounterOutcome, reportAt: report.at }]));
   }
 
-  aggregate(names = []) {
-    this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
-    for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
+  encounterOutcomeList(names = []) {
+    this.prune();
+    const wanted = names.length ? new Set(names.map(String)) : null;
+    const byId = new Map();
+    for (const report of this.reports.values()) {
+      if (!report || (wanted && !wanted.has(report.name))) continue;
+      const rows = Array.isArray(report.encounterOutcomes) && report.encounterOutcomes.length
+        ? report.encounterOutcomes
+        : (report.encounterOutcome ? [report.encounterOutcome] : []);
+      for (const row of rows) {
+        if (!row || !row.encounterId) continue;
+        const existing = byId.get(String(row.encounterId));
+        const candidate = { ...row, reportAt: report.at, reporter: report.name };
+        if (!existing || Number(candidate.reportAt || 0) > Number(existing.reportAt || 0)) byId.set(String(row.encounterId), candidate);
+      }
+    }
+    return [...byId.values()].sort((a, b) => Number(a.endedAt || 0) - Number(b.endedAt || 0) || String(a.encounterId).localeCompare(String(b.encounterId)));
   }
-  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
+
+  aggregate(names = []) {
+    this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, hpPotionsPerHour: 0, mpPotionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
+    for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'hpPotionsPerHour', 'mpPotionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
+  }
+  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, encounterOutcomeMaxAgeMs: this.encounterOutcomeMaxAgeMs, encounterOutcomeHistoryLimit: this.encounterOutcomeHistoryLimit, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary, cleanEncounterOutcome };
 
