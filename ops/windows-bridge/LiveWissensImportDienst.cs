@@ -95,13 +95,10 @@ public sealed class LiveWissensImportDienst
 
         VerifiziereKeinReparsePunkt(wurzel, aktuellWurzel);
 
-        var dateien = Directory
-            .EnumerateFiles(aktuellWurzel, "*.json", SearchOption.AllDirectories)
-            .OrderBy(pfad => pfad, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        if (dateien.Length > _config.LiveWissensMaxDateienProLauf)
-            throw new InvalidOperationException("LIVE_WISSEN_ZU_VIELE_DATEIEN");
+        var dateien = SammleJsonDateienSicher(
+            wurzel,
+            aktuellWurzel,
+            _config.LiveWissensMaxDateienProLauf);
 
         var validierteDateien = new List<ValidierteLiveDatei>(dateien.Length);
         long gesamtBytes = manifestBytes.LongLength + statusVorherBytes.LongLength;
@@ -335,6 +332,46 @@ public sealed class LiveWissensImportDienst
             hash.AppendData(Encoding.UTF8.GetBytes(datei.Sha256));
         }
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    private static string[] SammleJsonDateienSicher(
+        string wurzel,
+        string aktuellWurzel,
+        int maximalDateien)
+    {
+        var ergebnis = new List<string>();
+        var offen = new Stack<string>();
+        offen.Push(aktuellWurzel);
+
+        while (offen.Count > 0)
+        {
+            var ordner = offen.Pop();
+            VerifiziereKeinReparsePunkt(wurzel, ordner);
+
+            foreach (var eintrag in Directory.EnumerateFileSystemEntries(ordner))
+            {
+                var attribute = File.GetAttributes(eintrag);
+                if ((attribute & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidOperationException("LIVE_WISSEN_REPARSE_POINT_VERBOTEN");
+
+                if ((attribute & FileAttributes.Directory) != 0)
+                {
+                    offen.Push(eintrag);
+                    continue;
+                }
+
+                if (!string.Equals(Path.GetExtension(eintrag), ".json", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("LIVE_WISSEN_UNERWARTETER_DATEITYP");
+
+                ergebnis.Add(eintrag);
+                if (ergebnis.Count > maximalDateien)
+                    throw new InvalidOperationException("LIVE_WISSEN_ZU_VIELE_DATEIEN");
+            }
+        }
+
+        return ergebnis
+            .OrderBy(pfad => Path.GetRelativePath(aktuellWurzel, pfad).Replace('\\', '/'), StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static void VerifiziereKeinReparsePunkt(string wurzel, string pfad)
