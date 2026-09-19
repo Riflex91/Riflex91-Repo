@@ -172,7 +172,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**10 Dateien · 3939 Zeilen**
+**11 Dateien · 4481 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -180,12 +180,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 1212 |
+| `src/merchant/merchant-production-controller.js` | 1359 |
 | `src/merchant/merchant-production-planner.js` | 867 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
 | `src/merchant/persistent-production-intent.js` | 270 |
+| `src/merchant/production-graph-certification.js` | 395 |
 
 ## ops
 
