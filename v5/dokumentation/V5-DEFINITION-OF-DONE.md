@@ -145,3 +145,19 @@ Falls eine Capability persistente Daten erzeugt oder liest:
 - [ ] Grosse Historien werden ausserhalb des Hot Path aggregiert; Runtime nutzt kompakte RAM-Working-Sets.
 - [ ] SSD-Persistenz oder Speicherort verleiht keine Gameplay-Autoritaet.
 - [ ] GitHub-/Bridge-Sync bleibt auf explizit erlaubte bounded Artefakte begrenzt.
+
+
+## M. Recovery / UNKNOWN
+
+Fuer jede wertveraendernde Capability:
+
+- [ ] passender Action Contract ist vorhanden.
+- [ ] genau ein passender Recovery Contract ist vorhanden.
+- [ ] UNKNOWN-Trigger sind explizit modelliert.
+- [ ] Same-Intent-Retry nach moeglichem Send ist technisch ausgeschlossen.
+- [ ] NOT_APPLIED braucht positive frische Evidence.
+- [ ] PARTIAL erzeugt Remainder-Replan statt Original-Retry.
+- [ ] STILL_PENDING sendet nicht erneut.
+- [ ] UNRESOLVED fuehrt zu Quarantaene/Operator-Policy.
+- [ ] Restart setzt nicht-terminale Arbeit auf RECONCILE_REQUIRED.
+- [ ] Disabled Action Contracts bleiben Recovery-seitig disabled.
