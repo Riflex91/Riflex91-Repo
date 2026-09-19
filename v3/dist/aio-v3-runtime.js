@@ -54954,6 +54954,7 @@ module.exports = { RUNTIME_LIFECYCLE_METHODS, assertRuntimeLifecycle };
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
+const { PersistentProductionIntent } = require('./persistent-production-intent');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
 const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
 
@@ -54977,6 +54978,12 @@ function installMerchantProduction(runtime, options = {}) {
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
+  const productionIntent = options.productionIntent || new PersistentProductionIntent({
+    root: runtime.root,
+    now: runtime.now,
+    storage: options.merchantProductionStorage || options.storage,
+    storageKey: options.merchantProductionIntentStorageKey
+  });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
     now: runtime.now,
@@ -55011,8 +55018,35 @@ function installMerchantProduction(runtime, options = {}) {
     lastMaterialFarmDecision: null,
     lastMutationDemand: null,
     mutationExecutions: 0,
-    mutationHolds: 0
+    mutationHolds: 0,
+    lastIntentRecovery: null
   };
+
+  function persistIntentForTarget(plan, target, phase, details = {}) {
+    if (!plan || !target || !target.output) return false;
+    return productionIntent.ensureForPlan(
+      { ...clone(plan), target: clone(target) },
+      phase,
+      {
+        reason: details.reason || null,
+        progress: Object.prototype.hasOwnProperty.call(details, 'progress') ? details.progress : undefined,
+        material: Object.prototype.hasOwnProperty.call(details, 'material') ? details.material : undefined,
+        lastExecution: Object.prototype.hasOwnProperty.call(details, 'lastExecution') ? details.lastExecution : undefined
+      }
+    );
+  }
+
+  function updateIntentAfterExecution(plan, step, result) {
+    if (!plan || !plan.target || !plan.target.output) return false;
+    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(plan.target.output || '')) {
+      return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
+    }
+    return productionIntent.update('REPLAN_REQUIRED', {
+      reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
+      plan,
+      lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
+    });
+  }
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
   function currentTask() { const c = taskCoordinator(); return c && typeof c.current === 'function' ? c.current() : null; }
@@ -55177,6 +55211,10 @@ function installMerchantProduction(runtime, options = {}) {
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
+    persistIntentForTarget(plan, plan.target, `EXECUTING_${String(step.kind || 'STEP')}`, {
+      reason: 'PRODUCTION_STEP_SCHEDULED',
+      lastExecution: state.lastExecution
+    });
     state.executionPending = true;
     Promise.resolve().then(async () => {
       const c = character() || {};
@@ -55207,6 +55245,7 @@ function installMerchantProduction(runtime, options = {}) {
       }
       const result = await executor.execute(plan, step);
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
+      updateIntentAfterExecution(plan, step, result);
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
       if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
       if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
@@ -55350,6 +55389,16 @@ function installMerchantProduction(runtime, options = {}) {
     const selection = mutationCandidateForPlan(plan);
     if (!selection) return false;
     const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
+    persistIntentForTarget(lockPlan, selection.candidate, 'MUTATION_READY', {
+      reason: 'LEVELED_RECIPE_INPUT_MUTATION_READY',
+      material: {
+        name: selection.step.name,
+        fromLevel: selection.step.fromLevel,
+        targetLevel: selection.step.targetLevel,
+        quantity: selection.step.quantity,
+        inputQuantity: selection.step.inputQuantity
+      }
+    });
     const lock = acquireTask(lockPlan, 'PRODUCTION_CHAIN');
     if (!lock.acquired) return false;
 
@@ -55450,6 +55499,11 @@ function installMerchantProduction(runtime, options = {}) {
         }
       };
     }).finally(() => {
+      productionIntent.update('REPLAN_REQUIRED', {
+        reason: state.lastExecution && state.lastExecution.result && state.lastExecution.result.reason || 'PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN',
+        plan: lockPlan,
+        lastExecution: state.lastExecution
+      });
       clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
       state.executionPending = false;
     });
@@ -55493,8 +55547,60 @@ function installMerchantProduction(runtime, options = {}) {
     });
     state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
     if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
-      const awaitingTransfer = (decision.evaluated || []).some((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
-      if (awaitingTransfer) return true;
+      const awaitingTransfer = (decision.evaluated || []).find((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      if (awaitingTransfer) {
+        const materials = Array.isArray(awaitingTransfer.materials) ? awaitingTransfer.materials : [];
+        const previous = logistics.lastProductionMaterialObjective || null;
+        const preferred = previous && materials.find((row) => row && row.awaitingTransfer === true
+          && String(row.handoffMaterial || row.name || '') === String(previous.material || '')
+          && Math.max(0, Math.floor(n(row.handoffLevel, row.level))) === Math.max(0, Math.floor(n(previous.level, 0))));
+        const material = preferred || materials.find((row) => row && row.awaitingTransfer === true);
+        if (!material) return true;
+        const handoffMaterial = String(material.handoffMaterial || material.name || '');
+        const handoffLevel = Math.max(0, Math.floor(n(material.handoffLevel, material.level)));
+        const handoffQuantity = Math.max(1, Math.floor(n(material.handoffQuantity, material.quantity)));
+        const heldByFarmers = Math.max(handoffQuantity, Math.floor(n(material.heldByFarmers, material.alreadyOnFarmers)));
+        const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
+        const source = material.source || null;
+        setProductionExchangeDemand(source && source.kind === 'EXCHANGE_MATERIAL_DROP' ? source : null, material.name, expiresAt);
+        const handoffPlan = { ...clone(plan), target: clone(awaitingTransfer.target || {
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient,
+          slot: awaitingTransfer.slot
+        }) };
+        persistIntentForTarget(handoffPlan, handoffPlan.target, 'MATERIAL_READY_FOR_HANDOFF', {
+          reason: 'TARGET_QUANTITY_HELD_BY_FARMERS',
+          material: {
+            material: handoffMaterial,
+            targetMaterial: material.name,
+            level: handoffLevel,
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP'
+          },
+          progress: {
+            requiredQuantity: handoffQuantity,
+            heldByFarmers,
+            remainingToFarm: 0,
+            transferPending: true
+          }
+        });
+        if (typeof logistics.publishProductionMaterialHandoffReady !== 'function') return true;
+        return logistics.publishProductionMaterialHandoffReady({
+          objectiveId: previous && previous.objectiveId || `production-material:${awaitingTransfer.output || ''}:${awaitingTransfer.recipient || ''}:${handoffMaterial}`,
+          output: awaitingTransfer.output,
+          recipient: awaitingTransfer.recipient || null,
+          slot: awaitingTransfer.slot || null,
+          material: handoffMaterial,
+          targetMaterial: material.name,
+          acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP',
+          level: handoffLevel,
+          requiredQuantity: handoffQuantity,
+          heldByFarmers,
+          expiresAt
+        });
+      }
+      persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: 'NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH' });
       clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
       return false;
     }
@@ -55507,6 +55613,26 @@ function installMerchantProduction(runtime, options = {}) {
     const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
       ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
       : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    const farmPlan = { ...clone(plan), target: clone(selected.target) };
+    persistIntentForTarget(farmPlan, selected.target, 'FARMING_MATERIAL', {
+      reason: selected.reason,
+      material: {
+        material: farmMaterial,
+        targetMaterial: material.name,
+        level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+        requiredQuantity: farmQuantity,
+        acquisitionKind: source.kind,
+        monster: source.monster,
+        map: source.map
+      },
+      progress: {
+        requiredQuantity: farmQuantity,
+        heldByFarmers: Math.max(0, Math.floor(n(source.alreadyOnFarmers, material.alreadyOnFarmers))),
+        remainingToFarm: Math.max(0, Math.floor(n(source.farmQuantity, material.remainingToFarm))),
+        expectedHours: source.expectedHours,
+        totalExpectedHours: selected.totalExpectedHours
+      }
+    });
     return logistics.publishProductionMaterialObjective({
       objectiveId: `production-material:${selected.target.output}:${selected.target.recipient || ''}:${farmMaterial}`,
       output: selected.target.output,
@@ -55852,6 +55978,279 @@ class PersistentBankCatalog {
 }
 
 module.exports = { PersistentBankCatalog, PERSISTENT_BANK_CATALOG_MODE };
+
+},
+"src/merchant/persistent-production-intent.js": function(require,module,exports){
+'use strict';
+
+const PERSISTENT_PRODUCTION_INTENT_MODE = 'persistent-production-intent-v2';
+const TERMINAL_PHASES = new Set(['COMPLETED', 'ABORTED', 'FAILED_SAFE']);
+
+function clone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clean(value) {
+  const text = String(value == null ? '' : value).trim();
+  return text || null;
+}
+
+function targetIdentity(target = {}) {
+  const output = clean(target.output || target.item);
+  const recipient = clean(target.recipient);
+  const slot = clean(target.slot);
+  if (!output) return null;
+  return `${output}|${recipient || ''}|${slot || ''}`;
+}
+
+class PersistentProductionIntent {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.now = options.now || (() => Date.now());
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || 'aio-v3-production-intent-v2';
+    this.active = null;
+    this.history = [];
+    this.lastRecovery = null;
+    this.stats = {
+      loads: 0,
+      persisted: 0,
+      started: 0,
+      updated: 0,
+      completed: 0,
+      aborted: 0,
+      recovered: 0,
+      recoveryFailedSafe: 0
+    };
+    this._load();
+  }
+
+  _get() {
+    try {
+      if (this.storage && typeof this.storage.get === 'function') return this.storage.get(this.storageKey);
+      const ls = this.root && this.root.localStorage;
+      return ls && typeof ls.getItem === 'function' ? ls.getItem(this.storageKey) : null;
+    } catch (_) { return null; }
+  }
+
+  _set(value) {
+    try {
+      const text = JSON.stringify(value);
+      if (this.storage && typeof this.storage.set === 'function') return this.storage.set(this.storageKey, text) !== false;
+      const ls = this.root && this.root.localStorage;
+      if (ls && typeof ls.setItem === 'function') {
+        ls.setItem(this.storageKey, text);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  _persist() {
+    const ok = this._set({
+      schemaVersion: 2,
+      active: this.active,
+      history: this.history.slice(-32),
+      lastRecovery: this.lastRecovery
+    });
+    if (ok) this.stats.persisted += 1;
+    return ok;
+  }
+
+  _load() {
+    const raw = this._get();
+    if (!raw) return;
+    try {
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== 2) return;
+      this.active = data.active && typeof data.active === 'object' ? clone(data.active) : null;
+      this.history = Array.isArray(data.history) ? data.history.slice(-32).map(clone) : [];
+      this.lastRecovery = clone(data.lastRecovery || null);
+      this.stats.loads += 1;
+      if (this.active && !TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+        this.active.recoveryPending = true;
+        this.active.recoveryReason = 'RESTART_REPLAN_RECONCILIATION_REQUIRED';
+        this.active.updatedAt = this.now();
+        this._persist();
+      }
+    } catch (_) {
+      this.active = null;
+      this.lastRecovery = {
+        at: this.now(),
+        reconciled: false,
+        reason: 'CORRUPT_PERSISTED_PRODUCTION_INTENT'
+      };
+    }
+  }
+
+  _targetFromPlan(plan) {
+    if (!plan) return null;
+    const target = plan.target || null;
+    return target && targetIdentity(target) ? {
+      output: clean(target.output || target.item),
+      recipient: clean(target.recipient),
+      slot: clean(target.slot),
+      identity: targetIdentity(target)
+    } : null;
+  }
+
+  _candidateTargets(plan) {
+    const out = [];
+    const direct = this._targetFromPlan(plan);
+    if (direct) out.push(direct);
+    for (const row of Array.isArray(plan && plan.blockedCandidates) ? plan.blockedCandidates : []) {
+      const target = row && row.candidate;
+      const identity = targetIdentity(target);
+      if (!identity || out.some((x) => x.identity === identity)) continue;
+      out.push({
+        output: clean(target.output || target.item),
+        recipient: clean(target.recipient),
+        slot: clean(target.slot),
+        identity
+      });
+    }
+    return out;
+  }
+
+  ensureForPlan(plan, phase = 'PLANNED', details = {}) {
+    const target = this._targetFromPlan(plan);
+    if (!target) return false;
+    if (!this.active || this.active.targetIdentity !== target.identity || TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+      if (this.active && !TERMINAL_PHASES.has(String(this.active.phase || ''))) {
+        this._archive('ABORTED', 'TARGET_SUPERSEDED_BY_REPLAN');
+      }
+      const now = this.now();
+      this.active = {
+        schemaVersion: 2,
+        id: `production-intent:${target.identity}:${now.toString(36)}`,
+        targetIdentity: target.identity,
+        target: target,
+        phase: String(phase || 'PLANNED'),
+        reason: clean(details.reason) || 'PRODUCTION_PLAN_SELECTED',
+        createdAt: now,
+        updatedAt: now,
+        recoveryPending: false,
+        planId: clean(plan && plan.id),
+        planState: clean(plan && plan.state),
+        progress: clone(details.progress || null),
+        material: clone(details.material || null),
+        lastExecution: clone(details.lastExecution || null)
+      };
+      this.stats.started += 1;
+      return this._persist();
+    }
+    return this.update(phase, { ...details, plan });
+  }
+
+  update(phase, details = {}) {
+    if (!this.active) return false;
+    this.active.phase = String(phase || this.active.phase || 'PLANNED');
+    this.active.reason = clean(details.reason) || this.active.reason || null;
+    this.active.updatedAt = this.now();
+    if (details.plan) {
+      this.active.planId = clean(details.plan.id);
+      this.active.planState = clean(details.plan.state);
+    }
+    if (Object.prototype.hasOwnProperty.call(details, 'progress')) this.active.progress = clone(details.progress);
+    if (Object.prototype.hasOwnProperty.call(details, 'material')) this.active.material = clone(details.material);
+    if (Object.prototype.hasOwnProperty.call(details, 'lastExecution')) this.active.lastExecution = clone(details.lastExecution);
+    if (details.recoveryPending != null) this.active.recoveryPending = details.recoveryPending === true;
+    this.stats.updated += 1;
+    return this._persist();
+  }
+
+  reconcile(plan) {
+    if (!this.active || this.active.recoveryPending !== true) {
+      return { reconciled: false, reason: 'NO_PERSISTED_PRODUCTION_INTENT_RECOVERY' };
+    }
+    const candidates = this._candidateTargets(plan);
+    const match = candidates.find((row) => row.identity === this.active.targetIdentity) || null;
+    if (match) {
+      this.active.recoveryPending = false;
+      this.active.recoveryReason = null;
+      this.active.planId = clean(plan && plan.id);
+      this.active.planState = clean(plan && plan.state);
+      this.active.updatedAt = this.now();
+      this.lastRecovery = {
+        at: this.now(),
+        reconciled: true,
+        continued: true,
+        reason: 'PERSISTED_INTENT_MATCHED_FRESH_REPLAN',
+        targetIdentity: this.active.targetIdentity
+      };
+      this.stats.recovered += 1;
+      this._persist();
+      return clone(this.lastRecovery);
+    }
+
+    const previous = clone(this.active);
+    this._archive('FAILED_SAFE', 'PERSISTED_INTENT_NOT_PRESENT_IN_FRESH_REPLAN');
+    this.lastRecovery = {
+      at: this.now(),
+      reconciled: true,
+      continued: false,
+      reason: 'PERSISTED_INTENT_NOT_PRESENT_IN_FRESH_REPLAN',
+      targetIdentity: previous && previous.targetIdentity || null
+    };
+    this.stats.recoveryFailedSafe += 1;
+    this._persist();
+    return clone(this.lastRecovery);
+  }
+
+  _archive(phase, reason) {
+    if (!this.active) return false;
+    const row = {
+      ...clone(this.active),
+      phase: String(phase || 'ABORTED'),
+      reason: String(reason || 'PRODUCTION_INTENT_ARCHIVED'),
+      updatedAt: this.now(),
+      completedAt: this.now(),
+      recoveryPending: false
+    };
+    this.history.push(row);
+    this.history = this.history.slice(-32);
+    if (row.phase === 'COMPLETED') this.stats.completed += 1;
+    else if (row.phase === 'ABORTED') this.stats.aborted += 1;
+    this.active = null;
+    return true;
+  }
+
+  complete(reason = 'PRODUCTION_TARGET_COMPLETED') {
+    if (!this.active) return false;
+    this._archive('COMPLETED', reason);
+    return this._persist();
+  }
+
+  abort(reason = 'PRODUCTION_TARGET_ABORTED') {
+    if (!this.active) return false;
+    this._archive('ABORTED', reason);
+    return this._persist();
+  }
+
+  status() {
+    return {
+      schemaVersion: 2,
+      mode: PERSISTENT_PRODUCTION_INTENT_MODE,
+      active: clone(this.active),
+      recoveryPending: !!(this.active && this.active.recoveryPending),
+      lastRecovery: clone(this.lastRecovery),
+      history: this.history.slice(-16).map(clone),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  PersistentProductionIntent,
+  PERSISTENT_PRODUCTION_INTENT_MODE,
+  targetIdentity
+};
 
 },
 "src/party/production-material-acquisition.js": function(require,module,exports){
