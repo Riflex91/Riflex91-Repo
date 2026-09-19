@@ -1,188 +1,190 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-19",
-  "status": "RUNTIME_FREIGABEN_NOCH_OFFEN",
+  "status": "R2_BASISLINES_RATIFIZIERT",
   "regel": "Der Wissenswaechter aktualisiert diese Datei nicht. Sie ist die manuell/CI-kontrollierte Bruecke zwischen beobachteter Evidence und Entwicklungsfreigabe. Aendert sich ein relevanter aktueller Hash, muss neu bewertet werden.",
   "quellenfreigaben": [
     {
       "kennung": "AL-OFFICIAL-MCP",
-      "letzterBewerteterSha256": "46c6e3f14d3f9981c43253648e109af174008459002b221ae71fdff4cb6a9aee",
+      "letzterBewerteterSha256": "9bdfa10fbcc8b59022a6e0844232b52ceb81c31e91403d36f633e435c49e4637",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_DRIFT_GESICHTET_SOURCE_UNABHAENGIG_REVALIDIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Web-Dokument driftete. Die P0-07 Rate-Limit-Semantik wurde unabhaengig gegen den aktuellen offiziellen Repo-Stand ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4, mcp_api.js Blob 132a852e22e10a16411d7e7222656f6d0ffa7cde revalidiert: standard 120/30, bulk 12/4, bank 12/4 shared bulk, progression 6/2, writes 30/10 sowie HTTP 429 Retry-After/retry_after_ms. Die Web-Seite ist nicht alleinige Contract-Autoritaet."
     },
     {
       "kennung": "AL-OFFICIAL-CODE-FUNCTIONS",
-      "letzterBewerteterSha256": "2de0a3534fbcb64057e44cdb5eda0678d2f36948b15b172132a0d11be97b4246",
+      "letzterBewerteterSha256": "678e81d31a81cec933a912d6438628b8941ad59d611fefdf5372c5b471c66f56",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_DRIFT_GESICHTET_LIVE_DEPLOYMENT_REVALIDIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Dokumentationsseite driftete. Die sechs LIVE_DEPLOYED Action Contracts bet_wheel und poker_* wurden direkt gegen https://adventure.land/js/runner_functions.js revalidiert: randomStr(30) request_id, game_response-Korrelation, place wheel/poker sowie bet/poker Socket-Events stimmen weiterhin. Die Doku-Seite ist nicht alleinige Contract-Autoritaet."
     },
     {
       "kennung": "AL-OFFICIAL-NOTES",
-      "letzterBewerteterSha256": "d0c0ba5e8c4c9195566fa30fe5f866b90077f8560f525ac8a06f7cfe74017bad",
+      "letzterBewerteterSha256": "1dfe89b38ec1df01f4e72ec7d40f415270182acb5c9e771749fd0a5ae3a67433",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_DRIFT_GESICHTET_KEIN_CONTRACT_WIDERSPRUCH",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL_NACH_AENDERUNG",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Update Notes wurden nach Drift gesichtet. Neue 2026-Inhalte widersprechen den ratifizierten P0-Contracts nicht; contractkritische Semantik bleibt durch Source-/Live-Revalidierung abgesichert. Notes bleiben Kontext-/Drift-Evidence, nicht alleinige Execution-Autoritaet."
     },
     {
       "kennung": "AL-OFFICIAL-DOCS-HUB",
-      "letzterBewerteterSha256": "641df3a6cf5df059b4d2b89a3a1f5c271de8d9c83d9d003c7bda6adeacbd33f3",
+      "letzterBewerteterSha256": "0842abc939295f1f0a8079593a76bbac60895425ca5bd3fdc7b6b8cbbf54fced",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_SIGNAL_DRIFT_GESICHTET",
       "fuerResearch": true,
       "fuerImplementierung": false,
       "driftWirkung": "NUR_REVIEW_SIGNAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Dynamischer Website-/Docs-Hub wurde als Signalsource gesichtet. Er bleibt fuer Implementierung nicht autoritativ und darf keine Contracts allein freigeben."
     },
     {
       "kennung": "AL-OFFICIAL-REPO",
       "letzterBewerteterSha256": "13069d0a2d69f071a0fb6bd78915c987f0cb058881f8ea09a9173de920ada7e5",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL_NACH_AENDERUNG",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-RUNNER",
       "letzterBewerteterSha256": "f3899079d1d61ff8a933ffc1150bd22d28d2e2b2284b31ca030310bd117a3bfb",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-GAME",
       "letzterBewerteterSha256": "bf77e2834ea9bf094fe0932177acb63459570a594c8f413d7b290a21a656c2f6",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-FUNCTIONS",
       "letzterBewerteterSha256": "a4580007800b0782c02737c3d9e36b64bc65d54babf1e5926b71ed2ef164ee0f",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-COMMON",
       "letzterBewerteterSha256": "6e6c5376ce2043357722655a02960d62ec7dcb472ebbfc9ef259676391b6d309",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-SERVER",
       "letzterBewerteterSha256": "de67e4df0820c1dc801fd30a82354dd36fb9c1e43aee8680fbe6562abf27278d",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-SRC-SERVER-FUNCTIONS",
       "letzterBewerteterSha256": "c01a12756af1b0e29c8792255251addec64e5993ac90ecacab2c1b83c960043f",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_GLOBAL",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-CLASSES",
       "letzterBewerteterSha256": "77f3500a08eb890747780366320895a464a440b02648a5ddd466cc369eb0b16a",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-SKILLS",
       "letzterBewerteterSha256": "277e62115f1036321bc428bc15b04322e8c9d97ff4c026ff2286359c159b7e97",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-ITEMS",
       "letzterBewerteterSha256": "3b0b6aeeb2e932cfd4be7a069f50eb771c563b89659f5239d85becd6d74178ed",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-MONSTERS",
       "letzterBewerteterSha256": "608b8408c8f66b45a4326c94975021eaa34434e70364352ae39d7b7f9057fb71",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-MAPS",
       "letzterBewerteterSha256": "5158d37f9f252ae3c1a34763ba4f3ab7de546b1ff8448fc2f87fa2246ee92ac1",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-EVENTS",
       "letzterBewerteterSha256": "c56603b36964527df809ee711675ff0644c2fa21e4f4f56d57c7dd3e0ef68afe",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     },
     {
       "kennung": "AL-DATA-RECIPES",
       "letzterBewerteterSha256": "db12a2ddbe96a9f80142957164a32df2dade8f6ba36b1ad80079caf437618361",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "BASISLINE_ERFASST_R1_R2_NOCH_OFFEN",
+      "bewertungStatus": "R2_BASISLINE_RATIFIZIERT",
       "fuerResearch": true,
-      "fuerImplementierung": false,
+      "fuerImplementierung": true,
       "driftWirkung": "BLOCKIERT_BETROFFENE_DOMAENE",
-      "begruendung": "Erster automatischer Wissenswaechter-Basisstand. Runtime-Implementierung bleibt bis Abschluss von R1/R2 gesperrt."
+      "begruendung": "Aktueller Quellenstatus stimmt mit der bewerteten Baseline ueberein; R2 ratifiziert die Quelle fuer spaetere Implementierungsarbeit unter weiter geltendem Drift-/Freshness-Gate."
     }
-  ]
+  ],
+  "ratifiziertAm": "2026-09-19",
+  "ratifizierungsRegel": "fuerImplementierung=true bedeutet Entwicklungsfreigabe als Evidence-Quelle, niemals Gameplay- oder ExecutionAuthority. Jede spaetere Hash-Drift sperrt erneut gemaess Wissensgate."
 }
