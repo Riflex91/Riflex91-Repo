@@ -292,6 +292,8 @@ Exit Gate:
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 
+**Status:** DONE.
+
 Noch keine Gameplay-Autoritaet.
 
 Bauen:
@@ -331,7 +333,28 @@ Exit Gate:
 - strenger Wissensgate blockiert stale/gedriftete/unfreigegebene Wissensgrundlagen;
 - falsches/fehlendes SSD-Volume und unterschrittene kritische Speicherreserve werden erkannt;
 - asynchrone Writer koennen den Hot Path nicht unbounded rueckstauen.
+### R3 Abschlussstand
+
+- isoliertes V5-Paket mit exakt gepinntem TypeScript und Lockfile;
+- strikter Build, Typecheck, Stil-/Static-Guards und CI auf exaktem Head;
+- absichtliche Negativtests fuer Legacy-Imports, Monkey-Patches, Raw Writes, direkte FS-/Netzwerkzugriffe, Roh-Snapshots, unbounded Collections, Secrets und generische Host-Aufrufe;
+- mutierende Faehigkeiten default-off; typisierte Mehrfach-Verriegelungsfreigabe mit Einzel-Bypass-Negativtests;
+- leere Headless-Grundlage startet/stoppt mit fest 0 Gameplay-Writes;
+- deutscher Sichttextguard inklusive exakt begrenzter Monster-Originalnamen-Ausnahme;
+- enge Host-API-Allowlist ohne Gameplay-/Raw-Write-Autoritaet;
+- Wissenswaechter schreibt nicht mehr direkt auf main, sondern auf einen pfadbegrenzten Knowledge-Branch mit validiertem PR-Pfad;
+- Git-SHA-/Lock-/Schema-/Konfigurationsgebundene Build-Provenienz;
+- deterministische bounded Replay-Aufzeichnung als Testlabor-Grundgeruest;
+- Windows D:-SSD-/Volume-Pruefung und 15-Prozent-Speicherreserve fail-closed;
+- bounded asynchroner Writer fuer nichtkritische Aufzeichnungen;
+- Fachcode-Dateisystemzugriff nur ueber spaetere typisierte Persistenzadapter;
+- R3-Abschlussmanifest: `v5/roadmap/r3-abschluss.json`;
+- klassischer GitHub-main-Branch-Protection-Status konnte ueber die installierte Integration nicht gelesen werden und wird daher nicht als bewiesen behauptet;
+- Gameplay-Runtime-Gesamtgate bleibt GESPERRT.
+
 ## R4 – Deterministischer Core
+
+**Status:** IN_PROGRESS.
 
 Bauen:
 - `ClockPort`;

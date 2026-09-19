@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-20",
+  "status": "R3_VERBINDLICH",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "erlaubteBefehle": [
+    "STATUS_LESEN",
+    "PROZESS_STARTEN",
+    "PROZESS_STOPPEN",
+    "PROZESS_NEUSTART_ANFORDERN",
+    "ALERT_UEBERTRAGEN",
+    "WISSENSSTATUS_LESEN"
+  ],
+  "verboteneGenerischeBefehle": [
+    "eval",
+    "evaluate",
+    "invoke",
+    "call",
+    "execute",
+    "gameplayCommand"
+  ],
+  "regel": "Host und Bridge steuern Prozess-/Transport-Lifecycle, niemals Gameplay-Policy oder Raw Game Writes."
+}

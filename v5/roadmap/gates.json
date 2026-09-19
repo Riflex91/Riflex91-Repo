@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-19",
-  "currentPhase": "R3",
+  "updatedAt": "2026-09-20",
+  "currentPhase": "R4",
   "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
   "phases": [
     {
@@ -79,7 +79,7 @@
     {
       "id": "R3",
       "name": "Repo Build Guards Host-Grenzen",
-      "status": "IN_PROGRESS",
+      "status": "DONE",
       "requires": [
         "R2"
       ],
@@ -101,12 +101,34 @@
         "SSD/Volume-Gesundheit und falsches Volume werden erkannt",
         "Nichtkritische asynchrone Writer sind bounded und koennen Hot Path nicht unbounded blockieren",
         "Fachmodule besitzen keinen beliebigen Dateisystemzugriff ausserhalb typisierter Speicherports"
+      ],
+      "r3Nachweise": [
+        "v5/package.json",
+        "v5/package-lock.json",
+        "v5/tsconfig.json",
+        "v5/grundlage/konfiguration.json",
+        "v5/grundlage/quelle/",
+        "v5/grundlage/tests/no-write-grundlage.test.mjs",
+        "v5/werkzeuge/r3-statische-guards.mjs",
+        "v5/werkzeuge/tests/r3-guards.test.mjs",
+        "v5/werkzeuge/r3-sichttext-pruefen.mjs",
+        "v5/werkzeuge/tests/r3-sichttext.test.mjs",
+        "v5/werkzeuge/r3-speicher-gesundheit.mjs",
+        "v5/werkzeuge/tests/r3-speicher-gesundheit.test.mjs",
+        "v5/werkzeuge/r3-build-provenienz.mjs",
+        "v5/werkzeuge/r3-struktur-pruefen.mjs",
+        "v5/architektur/host-api-allowlist.json",
+        "v5/architektur/adr/ADR-001-R3-GRUNDLAGE.md",
+        "ops/windows-bridge/GitArbeitskopie.cs",
+        "ops/windows-bridge/SsdVolumeGesundheitsPruefer.cs",
+        ".github/workflows/v5-r3.yml",
+        ".github/workflows/v5-wissenswaechter-pr.yml"
       ]
     },
     {
       "id": "R4",
       "name": "Deterministischer Core",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "requires": [
         "R3"
       ],

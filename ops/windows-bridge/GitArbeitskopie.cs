@@ -3,7 +3,9 @@ namespace AioBotWindowsBridge;
 public sealed class GitArbeitskopie
 {
     public const string RepositoryUrl = "https://github.com/Riflex91/Riflex91-Repo.git";
-    public const string ZielBranch = "main";
+    public const string BasisBranch = "main";
+    public const string WissensBranch = "v5/wissenswaechter-automatisch";
+    public static string PushZielRef => "HEAD:" + WissensBranch;
     public const string WissensbasisPfad = "v5/wissensbasis";
     public const string DatenbankPfad = WissensbasisPfad + "/datenbank";
     public const string LiveWissenPfad = WissensbasisPfad + "/live";
@@ -35,7 +37,7 @@ public sealed class GitArbeitskopie
                     "--filter=blob:none",
                     "--sparse",
                     "--no-checkout",
-                    "--branch", ZielBranch,
+                    "--branch", BasisBranch,
                     "--single-branch",
                     RepositoryUrl,
                     _wurzel
@@ -61,7 +63,7 @@ public sealed class GitArbeitskopie
         }
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["fetch", "--prune", "origin", ZielBranch],
+            ["fetch", "--prune", "origin", BasisBranch],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_FETCH_FEHLGESCHLAGEN");
@@ -80,17 +82,45 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_SPARSE_CHECKOUT_SET_FEHLGESCHLAGEN");
 
+        var wissensBranchVorhanden = await RemoteBranchExistiertAsync(WissensBranch, cancellationToken);
+        if (wissensBranchVorhanden)
+        {
+            VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
+                ["fetch", "origin", $"{WissensBranch}:refs/remotes/origin/{WissensBranch}"],
+                _wurzel,
+                cancellationToken,
+                TimeSpan.FromMinutes(2)), "GIT_WISSENSBRANCH_FETCH_FEHLGESCHLAGEN");
+        }
+
+        var startpunkt = wissensBranchVorhanden
+            ? $"origin/{WissensBranch}"
+            : $"origin/{BasisBranch}";
+
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["checkout", "-B", ZielBranch, $"origin/{ZielBranch}"],
+            ["checkout", "-B", WissensBranch, startpunkt],
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_CHECKOUT_FEHLGESCHLAGEN");
 
-        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["reset", "--hard", $"origin/{ZielBranch}"],
-            _wurzel,
-            cancellationToken,
-            TimeSpan.FromSeconds(30)), "GIT_RESET_FEHLGESCHLAGEN");
+        if (wissensBranchVorhanden)
+        {
+            var basisMerge = await GitHubAnmeldung.FuehreGitAusAsync(
+                ["merge", "--no-edit", $"origin/{BasisBranch}"],
+                _wurzel,
+                cancellationToken,
+                TimeSpan.FromMinutes(2));
+            if (!basisMerge.Erfolgreich)
+            {
+                await GitHubAnmeldung.FuehreGitAusAsync(
+                    ["merge", "--abort"],
+                    _wurzel,
+                    cancellationToken,
+                    TimeSpan.FromSeconds(30));
+                throw new InvalidOperationException("GIT_WISSENSBRANCH_BASIS_KONFLIKT:" + basisMerge.Fehlerausgabe);
+            }
+        }
+
+        await VerifiziereLetztenCommitBereichNurWennVorhandenAsync(cancellationToken);
 
         await VerifiziereArbeitsbereichAsync(cancellationToken);
 
@@ -205,41 +235,92 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromMinutes(1)), "GIT_COMMIT_FEHLGESCHLAGEN");
 
-        // Der Waechter darf jederzeit innerhalb von v5/wissensbasis schreiben.
-        // Wenn main waehrend des Laufs weiterlief, werden fremde Commits zuerst integriert.
-        // Vor und nach dem Rebase wird fail-closed verifiziert, dass der eigene Commit
+        // Der Waechter darf ausschliesslich innerhalb von v5/wissensbasis schreiben.
+        // Er pusht niemals direkt auf main, sondern nur auf den dedizierten Knowledge-Branch.
+        // Wenn main waehrend des Laufs weiterlief, wird main vor dem Push per normalem Merge integriert.
+        // Vor und nach der Integration wird fail-closed verifiziert, dass der eigene Commit
         // keine Datei ausserhalb der Wissensbasis enthaelt. Force-Push ist verboten.
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["fetch", "origin", ZielBranch],
+            ["fetch", "origin", BasisBranch],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_FETCH_VOR_PUSH_FEHLGESCHLAGEN");
 
-        var rebase = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["rebase", $"origin/{ZielBranch}"],
+        var merge = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["merge", "--no-edit", $"origin/{BasisBranch}"],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2));
 
-        if (!rebase.Erfolgreich)
+        if (!merge.Erfolgreich)
         {
             await GitHubAnmeldung.FuehreGitAusAsync(
-                ["rebase", "--abort"],
+                ["merge", "--abort"],
                 _wurzel,
                 cancellationToken,
                 TimeSpan.FromSeconds(30));
-            throw new InvalidOperationException("GIT_REBASE_KONFLIKT:" + rebase.Fehlerausgabe);
+            throw new InvalidOperationException("GIT_MAIN_MERGE_KONFLIKT:" + merge.Fehlerausgabe);
         }
 
         await VerifiziereLetztenCommitAsync(cancellationToken);
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["push", "origin", $"HEAD:{ZielBranch}"],
+            ["push", "origin", PushZielRef],
             _wurzel,
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_PUSH_FEHLGESCHLAGEN");
 
         return true;
+    }
+
+    private async Task<bool> RemoteBranchExistiertAsync(
+        string branch,
+        CancellationToken cancellationToken)
+    {
+        var ergebnis = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["ls-remote", "--exit-code", "--heads", "origin", branch],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(30));
+
+        if (ergebnis.ExitCode == 0) return true;
+        if (ergebnis.ExitCode == 2) return false;
+        throw new InvalidOperationException("GIT_REMOTE_BRANCH_PRUEFUNG_FEHLGESCHLAGEN:" + ergebnis.Fehlerausgabe);
+    }
+
+    private async Task VerifiziereLetztenCommitBereichNurWennVorhandenAsync(
+        CancellationToken cancellationToken)
+    {
+        var zaehler = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["rev-list", "--count", $"origin/{BasisBranch}..HEAD"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(20));
+        VerlangeErfolg(zaehler, "GIT_WISSENSBRANCH_ZAEHLER_FEHLGESCHLAGEN");
+
+        if (!int.TryParse(zaehler.Ausgabe.Trim(), out var commits) || commits < 0)
+            throw new InvalidOperationException("GIT_WISSENSBRANCH_ZAEHLER_UNGUELTIG");
+
+        if (commits > 0)
+            await VerifiziereCommitBereichAsync($"origin/{BasisBranch}..HEAD", cancellationToken);
+    }
+
+    private async Task VerifiziereCommitBereichAsync(
+        string bereich,
+        CancellationToken cancellationToken)
+    {
+        var liste = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["diff", "--name-only", bereich],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(20));
+        VerlangeErfolg(liste, "GIT_COMMIT_BEREICH_LISTE_FEHLGESCHLAGEN");
+
+        foreach (var pfad in ZerlegePfade(liste.Ausgabe))
+        {
+            if (!IstErlaubterWissensbasisPfad(pfad))
+                throw new InvalidOperationException("GIT_COMMIT_BEREICH_AUSSERHALB_WISSENSBASIS:" + pfad);
+        }
     }
 
     private async Task VerifiziereArbeitsbereichAsync(CancellationToken cancellationToken)

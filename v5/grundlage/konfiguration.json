@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "phase": "R3",
+  "gameplayAutoritaet": false,
+  "rawWriteAutoritaet": false,
+  "mutierendeFaehigkeitenStandard": "AUS",
+  "freigegebeneMutierendeFaehigkeiten": [],
+  "headlessNoWrite": true,
+  "speicher": {
+    "zielWurzel": "D:\\\\AdventureLand-V5",
+    "mindestFreieReserveProzent": 15,
+    "erwarteterMedientyp": "SSD"
+  }
+}
