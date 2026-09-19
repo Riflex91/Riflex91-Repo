@@ -445,11 +445,17 @@ class Runtime {
       ...snapshot.character,
       gear: liveCharacter && liveCharacter.slots || snapshot.character.gear || snapshot.character.equipment
     }, { gameData: resolvedGameData, liveCharacter });
+    const partyNames = (snapshot.party || []).map((row) => row && row.name).filter(Boolean);
+    const remoteCapabilities = this.partyTelemetry && typeof this.partyTelemetry.capabilityReports === 'function'
+      ? this.partyTelemetry.capabilityReports(partyNames)
+      : undefined;
     this.lastPartyCapabilities = this.partyCapabilityResolver.resolve({
       snapshot,
       gameData: resolvedGameData,
       liveCharacter,
-      registryStatus
+      registryStatus,
+      remoteCapabilities,
+      remoteCapabilityTtlMs: this.partyTelemetry && this.partyTelemetry.reportTtlMs
     });
     return this.lastPartyCapabilities;
   }

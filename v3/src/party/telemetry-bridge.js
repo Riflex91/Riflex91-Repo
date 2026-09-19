@@ -1,6 +1,7 @@
 'use strict';
 
 const { GameAdapter } = require('../game/adapter');
+const { buildCapabilitySnapshot, sanitizeCapabilitySnapshot } = require('../autonomy/capability-sync');
 
 const TELEMETRY_PROTOCOL = 1;
 function finite(value) { const n = Number(value); return Number.isFinite(n) ? n : null; }
@@ -22,7 +23,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -33,23 +34,71 @@ class PartyTelemetryBridge {
   _cleanReport(report, sender) {
     if (!report || report.type !== 'aio-v3-party-report' || Number(report.protocol) !== TELEMETRY_PROTOCOL) return null; const name = String(sender || report.name || ''); if (!name || (this.trustedNames.size && !this.trustedNames.has(name))) return null; const at = finite(report.at); if (at == null || Math.abs(this.now() - at) > this.reportTtlMs * 2) return null; const rates = report.rates && typeof report.rates === 'object' ? report.rates : {}; const safety = report.safety && typeof report.safety === 'object' ? report.safety : {}; const supplies = report.supplies && typeof report.supplies === 'object' ? report.supplies : {};
     const cleanPotionName = (value, prefix) => { const name = value == null ? null : String(value).slice(0, 64); return name && name.toLowerCase().startsWith(prefix) ? name : null; };
-    return { protocol: TELEMETRY_PROTOCOL, name, ctype: String(report.ctype || 'unknown').toLowerCase(), level: Math.max(0, finite(report.level) || 0), map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, at };
+    const ctype = String(report.ctype || 'unknown').toLowerCase();
+    const level = Math.max(0, finite(report.level) || 0);
+    const capabilities = sanitizeCapabilitySnapshot(report.capabilities, { name, ctype, level });
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, capabilities, at };
   }
-  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; return true; }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; return true; }
   buildLocalReport(runtime) {
     const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
-    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, at: this.now() };
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, capabilities: buildCapabilitySnapshot(runtime, c), at: this.now() };
   }
   tick(runtime) {
-    this.prune(); const c = this._character(); if (!c || !this.merchantName || c.name === this.merchantName || this.now() - this.lastSentAt < this.sendIntervalMs) return false; const runtimeAdapter = runtime && runtime.adapter; const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function' ? runtimeAdapter : this.adapter; if (!adapter || typeof adapter.command !== 'function') return false; if (typeof adapter.canCommand === 'function' && !adapter.canCommand('send_cm')) return false; const report = this.buildLocalReport(runtime); if (!report) return false; this.lastSentAt = this.now();
-    try { const command = adapter.command('send_cm', [this.merchantName, report]); if (!command.executed) { if (command.shadow) return false; throw new Error(command.reason || 'SEND_CM_REJECTED'); } const pending = command.value; Promise.resolve(pending).catch((error) => { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); }); this.stats.sent += 1; return true; }
-    catch (error) { this.stats.sendFailures += 1; this._event('PARTY_TELEMETRY_SEND_FAILED', { merchant: this.merchantName, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED'); return false; }
+    this.prune();
+    const c = this._character();
+    if (!c || (this.merchantName && String(c.name) === String(this.merchantName)) || this.now() - this.lastSentAt < this.sendIntervalMs) return false;
+    const runtimeAdapter = runtime && runtime.adapter;
+    const adapter = runtimeAdapter && typeof runtimeAdapter.command === 'function' ? runtimeAdapter : this.adapter;
+    if (!adapter || typeof adapter.command !== 'function') return false;
+    if (typeof adapter.canCommand === 'function' && !adapter.canCommand('send_cm')) return false;
+    const report = this.buildLocalReport(runtime);
+    if (!report) return false;
+    const recipients = new Set();
+    if (this.merchantName && String(this.merchantName) !== String(c.name)) recipients.add(String(this.merchantName));
+    for (const member of runtime && runtime.lastSnapshot && runtime.lastSnapshot.party || []) {
+      const name = member && member.name ? String(member.name) : null;
+      if (name && name !== String(c.name) && (!this.trustedNames.size || this.trustedNames.has(name))) recipients.add(name);
+    }
+    if (!recipients.size) return false;
+    this.lastSentAt = this.now();
+    let sent = 0;
+    for (const recipient of recipients) {
+      try {
+        const command = adapter.command('send_cm', [recipient, report]);
+        if (!command.executed) {
+          if (command.shadow) continue;
+          throw new Error(command.reason || 'SEND_CM_REJECTED');
+        }
+        const pending = command.value;
+        Promise.resolve(pending).catch((error) => {
+          this.stats.sendFailures += 1;
+          this._event('PARTY_TELEMETRY_SEND_FAILED', { recipient, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED');
+        });
+        this.stats.sent += 1;
+        if (recipient === this.merchantName) this.stats.merchantSent += 1;
+        else this.stats.peerSent += 1;
+        sent += 1;
+      } catch (error) {
+        this.stats.sendFailures += 1;
+        this._event('PARTY_TELEMETRY_SEND_FAILED', { recipient, message: String(error && error.message || error) }, 'warn', 'SEND_CM_FAILED');
+      }
+    }
+    return sent > 0;
   }
   prune() { const now = this.now(); for (const [name, report] of this.reports) if (now - report.at > this.reportTtlMs) { this.reports.delete(name); this.stats.expired += 1; } }
+  capabilityReports(names = []) {
+    this.prune();
+    const wanted = names.length ? new Set(names.map(String)) : null;
+    return Object.fromEntries([...this.reports.values()]
+      .filter((report) => report && report.capabilities && (!wanted || wanted.has(report.name)))
+      .map((report) => [report.name, { ...report.capabilities, reportAt: report.at }]));
+  }
+
   aggregate(names = []) {
     this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
     for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
   }
-  status() { this.prune(); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports: [...this.reports.values()].sort((a, b) => b.at - a.at), stats: { ...this.stats } }; }
+  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), stats: { ...this.stats } }; }
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary };

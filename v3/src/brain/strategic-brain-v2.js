@@ -8,7 +8,9 @@ const BRAIN_V2_INPUT_NAMES = Object.freeze([
   'hpRatio', 'mpRatio', 'levelNorm', 'rangeNorm', 'speedNorm', 'attackNorm', 'partyPresentRatio', 'partyAliveRatio',
   'partyCohesion', 'selfAggro', 'visibleHostiles', 'targetHpRatio', 'riskHeadroom', 'deathSafety', 'xpRate', 'goldRate',
   'freeSlotsRatio', 'inventoryHealth', 'merchantIdle', 'marketLiquidity', 'gearHealth', 'travelEfficiency', 'worldConfidence', 'knowledgeFreshness',
-  'errorHealth', 'recoveryHealth', 'currentPlanAffinity', 'targetEfficiency', 'kiteConfidence', 'teacherRecency', 'outcomeHealth', 'novelty'
+  'errorHealth', 'recoveryHealth', 'currentPlanAffinity', 'targetEfficiency', 'kiteConfidence', 'teacherRecency', 'outcomeHealth', 'novelty',
+  'capabilityCoverage', 'catalogAgreement', 'aoeConfigured', 'aoeSkillDensity', 'aoeSupport', 'combatModeAggression',
+  'pullCapacity', 'desiredPullRatio', 'engagedPullRatio', 'adaptivePullConfidence', 'adaptiveSafetySignal'
 ]);
 const HIDDEN_SIZE = 24;
 const STORAGE_KEY = 'aio-v3:brain-v2:state:v2';
@@ -153,6 +155,120 @@ function targetCandidate(context) {
   return ranked[0] || candidates[0] || null;
 }
 
+function brainCapabilityContext(runtime) {
+  let partyCaps = null;
+  try { partyCaps = runtime && runtime.partyCapabilityResolver && runtime.partyCapabilityResolver.status ? runtime.partyCapabilityResolver.status() : null; } catch (_) {}
+  const tactical = runtime && runtime.tacticalPartyCombat;
+  const encounter = tactical && tactical.encounter || null;
+  let plan = encounter && encounter.aoe || null;
+  let combatSource = plan ? 'local-tactical-encounter' : null;
+  if (!plan && runtime && runtime.partyTelemetry && typeof runtime.partyTelemetry.capabilityReports === 'function') {
+    try {
+      const remoteRows = Object.values(runtime.partyTelemetry.capabilityReports() || {});
+      const authoritative = remoteRows.find((row) => row && row.combat && row.combat.authoritative === true)
+        || remoteRows.find((row) => row && row.combat && row.combat.pullOwner && row.character && String(row.combat.pullOwner) === String(row.character));
+      if (authoritative && authoritative.combat) {
+        plan = authoritative.combat;
+        combatSource = `remote-leader:${String(authoritative.character || authoritative.combat.pullOwner || 'unknown')}`;
+      }
+    } catch (_) {}
+  }
+  const adaptive = plan && plan.adaptivePull || runtime && runtime.adaptivePullLearner && runtime.adaptivePullLearner.lastRecommendation || null;
+  const remoteSync = partyCaps && partyCaps.remoteSync || {};
+  const combat = partyCaps && partyCaps.combat || {};
+  const configuredSupport = combat.configuredSupport || {};
+  const aoeCapabilities = new Set(['multi_target_damage', 'ranged_multi_target_damage', 'variable_multi_target_damage', 'aoe_damage', 'aoe_control', 'aoe_aggro_control']);
+  const members = (partyCaps && partyCaps.members || []).map((member) => {
+    const skills = (member && member.skills || []).filter((skill) => skill && skill.configuredReady === true)
+      .map((skill) => ({
+        id: String(skill.id || ''),
+        targetCapacity: skill.targetCapacity == null ? null : Math.max(1, Math.min(12, finite(skill.targetCapacity, 1))),
+        minTargets: skill.parameters && Number.isFinite(Number(skill.parameters.minTargets)) ? Number(skill.parameters.minTargets) : null,
+        capabilities: (skill.capabilities || []).filter((capability) => aoeCapabilities.has(String(capability))).slice(0, 8)
+      }))
+      .filter((skill) => skill.id)
+      .slice(0, 16);
+    return {
+      name: String(member && member.name || ''),
+      ctype: String(member && member.ctype || 'unknown'),
+      remote: member && member.remote === true,
+      remoteValid: member && member.remoteSync ? member.remoteSync.valid === true : true,
+      combatMode: member && member.combatMode || null,
+      skills
+    };
+  }).slice(0, 4);
+  const aoeSkills = members.flatMap((member) => member.skills).filter((skill) => skill.capabilities.some((capability) => aoeCapabilities.has(capability)));
+  const supportCount = ['partyHeal', 'groupSustain', 'aoeControl', 'aoeAggroControl'].filter((key) => configuredSupport[key] === true).length;
+  const hardCapacity = Math.max(1, finite(plan && plan.pullCapacity, 1));
+  const desired = Math.max(1, finite(plan && plan.desiredPullSize, 1));
+  const engaged = Math.max(0, finite(plan && plan.engagedCount, 0));
+  let combatMode = plan && plan.combatMode ? String(plan.combatMode) : 'smart_auto';
+  if (!plan || !plan.combatMode) {
+    try {
+      if (runtime && runtime.lastSnapshot && runtime.characterCombatProfiles && typeof runtime.characterCombatProfiles.getCombatMode === 'function') {
+        combatMode = String(runtime.characterCombatProfiles.getCombatMode(runtime.lastSnapshot.character && runtime.lastSnapshot.character.name) || 'smart_auto');
+      }
+    } catch (_) {}
+  }
+  const modeAggression = combatMode === 'aoe_preferred' ? 1 : combatMode === 'single_target' ? 0 : 0.5;
+  const profiles = adaptive && Array.isArray(adaptive.profiles) ? adaptive.profiles : [];
+  const recommended = Math.max(1, finite(adaptive && adaptive.recommendedSize, desired));
+  const recommendedProfile = profiles.find((row) => Number(row && row.size) === recommended) || null;
+  const adaptiveConfidence = adaptive && Number.isFinite(Number(adaptive.confidence))
+    ? clamp(Number(adaptive.confidence))
+    : clamp(finite(recommendedProfile && recommendedProfile.confidence, 0));
+  const reason = String(adaptive && adaptive.reason || 'DETERMINISTIC_BASELINE');
+  const adaptiveSafetySignal = reason === 'RISK_EVIDENCE_REDUCED_PULL'
+    ? 0
+    : reason === 'SUSTAINABLE_XP_OPTIMUM'
+      ? 1
+      : reason.startsWith('BOUNDED_EXPLORATION')
+        ? 0.65
+        : 0.5;
+  const features = {
+    capabilityCoverage: clamp(remoteSync.enabled === true ? finite(remoteSync.coverage, 0) : 0.5),
+    catalogAgreement: remoteSync.enabled === true ? (remoteSync.catalogAgreement === false ? 0 : 1) : 0.5,
+    aoeConfigured: combat.aoeConfigured === true ? 1 : 0,
+    aoeSkillDensity: clamp(aoeSkills.length / 6),
+    aoeSupport: clamp(supportCount / 4),
+    combatModeAggression: modeAggression,
+    pullCapacity: clamp(hardCapacity / 8),
+    desiredPullRatio: clamp(desired / hardCapacity),
+    engagedPullRatio: clamp(engaged / hardCapacity),
+    adaptivePullConfidence: adaptiveConfidence,
+    adaptiveSafetySignal
+  };
+  return {
+    features,
+    detail: {
+      remoteSync: {
+        enabled: remoteSync.enabled === true,
+        coverage: finite(remoteSync.coverage, remoteSync.enabled === true ? 0 : 1),
+        catalogAgreement: remoteSync.catalogAgreement !== false,
+        valid: finite(remoteSync.valid, 0),
+        expected: finite(remoteSync.expected, 0)
+      },
+      combat: {
+        source: combatSource,
+        aoeConfigured: combat.aoeConfigured === true,
+        configuredSupport: { ...configuredSupport },
+        combatMode,
+        hardCapacity,
+        desiredPullSize: desired,
+        engagedCount: engaged,
+        state: plan && plan.state || null
+      },
+      adaptive: adaptive ? {
+        applied: adaptive.applied === true,
+        reason,
+        recommendedSize: recommended,
+        confidence: adaptiveConfidence
+      } : null,
+      members
+    }
+  };
+}
+
 class TinyStrategyNetwork {
   constructor(state = null) {
     this.inputSize = BRAIN_V2_INPUT_NAMES.length;
@@ -198,7 +314,13 @@ class TinyStrategyNetwork {
     if (!state || !Array.isArray(state.w1) || state.w1.length !== this.hiddenSize || !Array.isArray(state.w2) || state.w2.length !== this.outputSize) return false;
     if (!Array.isArray(state.b1) || state.b1.length !== this.hiddenSize || !Array.isArray(state.b2) || state.b2.length !== this.outputSize) return false;
     try {
-      this.w1 = state.w1.map((row) => row.map(Number));
+      const legacyInputSize = state.w1[0] && state.w1[0].length;
+      if (!Number.isInteger(legacyInputSize) || legacyInputSize < 1 || legacyInputSize > this.inputSize) return false;
+      if (!state.w1.every((row) => Array.isArray(row) && row.length === legacyInputSize)) return false;
+      this.w1 = state.w1.map((row, hidden) => Array.from({ length: this.inputSize }, (_, input) => {
+        if (input < legacyInputSize) return Number(row[input]);
+        return seeded(hidden * this.inputSize + input);
+      }));
       this.b1 = state.b1.map(Number);
       this.w2 = state.w2.map((row) => row.map(Number));
       this.b2 = state.b2.map(Number);
@@ -238,12 +360,14 @@ class BrainStateEncoderV2 {
       const status = runtime && runtime.economyEquipmentAutonomyV2 && runtime.economyEquipmentAutonomyV2.status && runtime.economyEquipmentAutonomyV2.status();
       merchantBusy = !!(status && (status.busy || status.homeService && !['STANDBY', 'MARKET_SERVICE'].includes(status.homeService.phase)));
     } catch (_) {}
+    const capabilityContext = brainCapabilityContext(runtime);
     const values = {
       hpRatio: ratio(character.hp, character.max_hp), mpRatio: ratio(character.mp, character.max_mp), levelNorm: clamp(finite(character.level, 1) / 120), rangeNorm: clamp(finite(character.range, 0) / 250), speedNorm: clamp(finite(character.speed, 0) / 120), attackNorm: clamp(finite(character.attack, 0) / 2500),
       partyPresentRatio: clamp(party.length / 4), partyAliveRatio: party.length ? clamp(alive.length / party.length) : 0.25, partyCohesion: meta.partyCohesion == null ? (party.length >= 3 ? 0.8 : 0.4) : clamp(meta.partyCohesion), selfAggro: clamp(selfAggro / 3), visibleHostiles: clamp(hostiles.length / 12),
       targetHpRatio: liveTarget ? ratio(liveTarget.hp, liveTarget.max_hp || liveTarget.hp, 1) : 0.5, riskHeadroom: clamp((riskThreshold - riskScore + 1) / 1.5), deathSafety: clamp(1 - deaths), xpRate: clamp(Math.max(0, finite(target && target.xpPerHour, finite(rates.xpPerHour, 0))) / maxXp), goldRate: clamp(Math.max(0, finite(target && target.goldPerHour, finite(rates.goldPerHour, 0))) / maxGold),
       freeSlotsRatio: slots.ratio, inventoryHealth: clamp(0.25 + slots.ratio * 0.75), merchantIdle: merchantBusy ? 0 : 1, marketLiquidity: currentMarketLiquidity(runtime), gearHealth: clamp(1 - gearGoals / 20), travelEfficiency: clamp(1 - travelSeconds / Math.max(30, finite(meta.maxTravelSeconds, 600))), worldConfidence: worldConfidence(runtime), knowledgeFreshness: meta.knowledgeFreshness == null ? 0.7 : clamp(meta.knowledgeFreshness),
-      errorHealth: recentErrorHealth(runtime), recoveryHealth: ratio(character.hp, character.max_hp), currentPlanAffinity: targetId && planId && (targetId === planId || String(target && target.monster || '') === planId) ? 1 : 0, targetEfficiency: clamp(1 - expectedKillSeconds / 90), kiteConfidence: currentKiteConfidence(runtime), teacherRecency: clamp(1 - finite(meta.teacherAgeMs, 300000) / 600000), outcomeHealth: clamp((finite(meta.rewardEma, 0) + 1) / 2), novelty: clamp(finite(meta.novelty, 0.5))
+      errorHealth: recentErrorHealth(runtime), recoveryHealth: ratio(character.hp, character.max_hp), currentPlanAffinity: targetId && planId && (targetId === planId || String(target && target.monster || '') === planId) ? 1 : 0, targetEfficiency: clamp(1 - expectedKillSeconds / 90), kiteConfidence: currentKiteConfidence(runtime), teacherRecency: clamp(1 - finite(meta.teacherAgeMs, 300000) / 600000), outcomeHealth: clamp((finite(meta.rewardEma, 0) + 1) / 2), novelty: clamp(finite(meta.novelty, 0.5)),
+      ...capabilityContext.features
     };
     return { names: BRAIN_V2_INPUT_NAMES.slice(), values, vector: BRAIN_V2_INPUT_NAMES.map((name) => clamp(values[name])) };
   }
@@ -294,7 +418,7 @@ class StrategicBrainV2 {
     this.league = { generation: 0, champion: null, championLoss: null, promotions: 0, rollbacks: 0, rejections: 0, lastEvent: null, lastEventAt: 0, lastReason: null };
     this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
     this._restore();
-    this._diary('learn', '🧠', 'Brain v2 bereit', '32→24→5 Student, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.', 'neutral');
+    this._diary('learn', '🧠', 'Brain v2 bereit', `${BRAIN_V2_INPUT_NAMES.length}→24→5 Student, Capability/Pull-Kontext, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.`, 'neutral');
   }
 
   _cfg(key, fallback) { return this.control && typeof this.control.get === 'function' ? this.control.get(key, fallback) : fallback; }
@@ -447,7 +571,8 @@ class StrategicBrainV2 {
     const character = snapshot.character || {};
     const rates = currentRates(this.runtime);
     const slots = freeSlots(character);
-    return { at: this.now(), xpPerHour: finite(rates.xpPerHour, 0), goldPerHour: finite(rates.goldPerHour, 0), deathsPerHour: finite(rates.deathsPerHour, 0), damageTakenPerHour: finite(rates.damageTakenPerHour, 0), hpRatio: ratio(character.hp, character.max_hp), freeSlots: slots.free, freeSlotsRatio: slots.ratio, rip: !!character.rip, errorHealth: recentErrorHealth(this.runtime) };
+    const capabilityContext = brainCapabilityContext(this.runtime);
+    return { at: this.now(), xpPerHour: finite(rates.xpPerHour, 0), goldPerHour: finite(rates.goldPerHour, 0), deathsPerHour: finite(rates.deathsPerHour, 0), damageTakenPerHour: finite(rates.damageTakenPerHour, 0), hpRatio: ratio(character.hp, character.max_hp), freeSlots: slots.free, freeSlotsRatio: slots.ratio, rip: !!character.rip, errorHealth: recentErrorHealth(this.runtime), pullCapacity: capabilityContext.features.pullCapacity, engagedPullRatio: capabilityContext.features.engagedPullRatio, capabilityCoverage: capabilityContext.features.capabilityCoverage, catalogAgreement: capabilityContext.features.catalogAgreement, adaptiveSafetySignal: capabilityContext.features.adaptiveSafetySignal };
   }
 
   tickOutcome() {
@@ -496,7 +621,7 @@ class StrategicBrainV2 {
 
   teacherRequest(trigger = 'periodic') {
     if (!this.lastObservation) return null;
-    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true } };
+    return { schemaVersion: 2, trigger, brainMode: this._cfg('brain.mode', 'shadow'), quality: this.lastObservation.quality, student: this.lastObservation.student, inputs: this.lastObservation.inputs, deterministicTeacher: this.lastObservation.teacher && this.lastObservation.teacher.source === 'deterministic' ? this.lastObservation.teacher : null, party: this.runtime && this.runtime.characterRegistry && this.runtime.characterRegistry.status ? this.runtime.characterRegistry.status() : null, capabilityLearning: brainCapabilityContext(this.runtime).detail, economy: this.runtime && this.runtime.economyEquipmentAutonomyV2 && this.runtime.economyEquipmentAutonomyV2.status ? this.runtime.economyEquipmentAutonomyV2.status() : null, performance: performanceStatus(this.runtime), policies: { survivalFirst: true, directActionAuthority: false, deterministicSafetyCannotBeOverridden: true, adaptivePullCannotExceedHardCapacity: true } };
   }
 
   shouldAskTeacher() {
