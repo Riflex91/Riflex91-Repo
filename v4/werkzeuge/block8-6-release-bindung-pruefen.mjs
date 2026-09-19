@@ -245,7 +245,7 @@ if (remoteObjectOps.length !== 3) {
 }
 for (const pflicht of [
   'finaler Block-8.6-Candidate technisch gebunden',
-  'immutable veröffentlicht und öffentlich per HTTPS verifiziert',
+  'immutable veröffentlicht, öffentlich per HTTPS verifiziert und realer Schatten bestanden',
   'realer Schatten bestanden',
   '`ca0dfee7685563c8b6003469300c8fd08777b053`',
   '51 Module',
