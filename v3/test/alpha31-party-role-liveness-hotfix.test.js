@@ -99,6 +99,60 @@ test('self-aggro ranger escapes through reachable retreat geometry when every in
   assert.equal(hotfix.stats.aggroOrbitNoWaypoint, 0);
 });
 
+test('warrior paladin and rogue never enter kiting or emergency kite retreat while holding aggro', () => {
+  for (const ctype of ['warrior', 'paladin', 'rogue']) {
+    let retreats = 0;
+    const name = `My_${ctype}`;
+    const root = rootWithCharacter({ name, ctype }, {
+      can_move_to: () => true,
+      G: { monsters: { crab: { range: 25, speed: 40 } } }
+    });
+    const farmer = {
+      kiting: {
+        evaluate() {
+          return {
+            shouldMove: false,
+            reason: 'RANGE_CAPABILITY_TOO_LOW',
+            range: 25
+          };
+        }
+      },
+      safeRetreat: {
+        evaluate() {
+          retreats += 1;
+          return {
+            shouldMove: true,
+            reason: 'EMERGENCY_THREAT_RETREAT',
+            x: 120,
+            y: 0,
+            step: 90
+          };
+        }
+      }
+    };
+    const runtime = {
+      root,
+      now: () => 1000,
+      log: quietLog(),
+      farmer,
+      adapter: { mode: 'active', getGameData: () => root.G }
+    };
+    const hotfix = installAlpha31PartyRoleLivenessHotfix(runtime);
+    const character = { name, ctype, x: 20, y: 0, range: 25, speed: 55 };
+    const target = { id: 'melee-target', mtype: 'crab', x: 0, y: 0, hp: 1000, target: name, range: 25, speed: 40 };
+
+    const decision = farmer.kiting.evaluate(character, target);
+    assert.equal(decision.shouldMove, false, ctype);
+    assert.equal(decision.reason, 'MELEE_KITING_DISABLED', ctype);
+    assert.equal(decision.meleeKitingDisabled, true, ctype);
+    assert.equal(decision.alpha31SafeOrbit, false, ctype);
+    assert.equal(decision.alpha31EmergencyTerrainEscape, false, ctype);
+    assert.equal(retreats, 0, ctype);
+    assert.equal(hotfix.stats.meleeKitingBypasses, 1, ctype);
+    assert.equal(hotfix.stats.aggroEmergencyTerrainEscapes, 0, ctype);
+  }
+});
+
 test('safe orbit never takes movement authority from a non-aggro ranger or emergency retreat', () => {
   const root = rootWithCharacter({ name: 'My_Ranger2', ctype: 'ranger' }, { can_move_to: () => true });
   const farmer = { kiting: { evaluate() { return { shouldMove: false, reason: 'DISTANCE_OK' }; } } };
