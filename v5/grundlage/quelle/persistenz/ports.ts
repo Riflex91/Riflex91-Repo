@@ -137,9 +137,9 @@ export interface SpeicherGesundheitsPort {
 
 export interface DeduplizierungsSpeicherPort {
   istVerarbeitet(evidenceId: string): Promise<boolean>;
-  markiereVerarbeitetDurable(
+  claimVerarbeitetDurable(
     evidenceId: string,
-  ): Promise<DurableBestaetigung>;
+  ): Promise<{ readonly neu: boolean; readonly bestaetigung: DurableBestaetigung }>;
 }
 
 export interface KritischeZustellung {
