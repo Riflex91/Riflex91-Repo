@@ -103,6 +103,7 @@ export { AktionsSteuerung } from './kern/aktions-steuerung.js';
 export { SchattenAusfuehrung } from './kern/schatten-ausfuehrung.js';
 export { RessourcenVergabe } from './kern/ressourcen-vergabe.js';
 export { KontingentWaechter } from './kern/kontingent-waechter.js';
+export * from './kern/v3-kontingent-paritaet.js';
 export { BedienSicherung } from './kern/bedien-sicherung.js';
 export { LaufzeitSteuerung } from './kern/laufzeit-steuerung.js';
 export * from './kern/sichere-basis-bedienung.js';

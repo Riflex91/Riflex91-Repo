@@ -106,6 +106,14 @@ Eine `DienstAnfrage` muss vor dem externen Aufruf alle betroffenen Grenzen und d
 
 Der `KontingentWaechter` entscheidet zentral, ob eine externe Anfrage sicher ausgefuehrt werden darf. Er reserviert den schlechtesten angegebenen Verbrauch vor dem Aufruf und verwendet fuer seine Rechnung den hoeheren Wert aus lokaler Reservierung und vom Anbieter gemeldetem Verbrauch.
 
+## V3KontingentParitaet
+
+Die `V3KontingentParitaet` bindet die in V3 verwendeten Cloudflare- und Supabase-Grenzen als versionierte Referenz. Die Hard-Limits duerfen in V4 nicht erhoeht werden.
+
+`erstelleCloudflareV3ParitaetsProfil(...)` und `erstelleSupabaseV3ParitaetsProfil(...)` erzeugen nur gueltige `DienstProfil`-Objekte mit explizitem Pruefzeitpunkt, Gueltigkeitsende und Quelle.
+
+Bereits in V3 reduzierte Budgets bleiben mindestens ebenso streng. Fuer V3-Dimensionen ohne eigenes kleineres Budget reserviert V4 einen zusaetzlichen Sicherheitspuffer. Geteilter Anbieter-Verbrauch muss ueber `aktualisiereVerbrauch(...)` konservativ in dieselbe Kontingententscheidung einfliessen.
+
 ## Vorfall
 
 Ein Vorfall verweist auf Beweise und Wiederholungsdaten. Er ist kein freier Text ohne Zusammenhang.

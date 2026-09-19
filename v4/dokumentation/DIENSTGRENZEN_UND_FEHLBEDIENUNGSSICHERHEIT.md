@@ -166,6 +166,14 @@ Zu beobachten sind je nach eingesetzten Produkten mindestens:
 - R2 Operationen Klasse B
 - spaetere zusaetzliche Cloudflare-Produkte getrennt
 
+## Verbindliche V3-Paritaet fuer Cloudflare und Supabase
+
+V4 verwendet fuer Cloudflare und Supabase die in V3 bereits festgelegten Hard-Limits als Obergrenze. Diese Werte werden in `V3-KONTINGENT-PARITAET.md` und `laufzeit/quelle/kern/v3-kontingent-paritaet.ts` maschinenpruefbar gebunden.
+
+V4 darf diese Grenzen niemals lockern. Wo V3 bereits ein kleineres internes Budget nutzt, wird exakt dieses kleinere Budget uebernommen. Wo V3 nur das Hard-Limit verfolgt, bleibt V4 durch einen zusaetzlichen Sicherheitspuffer absichtlich strenger.
+
+Bei gemeinsamem Anbieteraccount muss bereits durch V3, Dashboard oder Infrastruktur verbrauchtes Kontingent in den gemeldeten Verbrauch einfliessen. V4 darf ein gemeinsames Limit niemals als exklusiv eigenes Budget behandeln.
+
 ## Neue Dienste
 
 Ein neuer externer Dienst gilt erst als freigegeben, wenn:
