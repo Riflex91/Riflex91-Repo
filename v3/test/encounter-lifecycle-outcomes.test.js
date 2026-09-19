@@ -36,6 +36,7 @@ function lifecycleFixture() {
   let perf = { id: 'perf-1', startedAt: 900, xp: 0, gold: 0, kills: 0, deaths: 0, potions: 0, damageTaken: 0, monsterHpLost: 0 };
   const adaptive = [];
   const brain = [];
+  const certification = [];
   const snapshot = {
     character: warrior,
     party: [priest],
@@ -58,6 +59,7 @@ function lifecycleFixture() {
     adaptivePullLearner: { recordEncounterOutcome: (row) => { adaptive.push(row); return { profile: { samples: 1 } }; } },
     partyPerformance: { save: () => true },
     strategicBrainV2: { ingestEncounterOutcome: (row) => { brain.push(row); return { accepted: true, encounterId: row.encounterId, reward: 0.5 }; } },
+    aoeFarmingCertification: { recordOutcome: (row) => { certification.push(row); return { accepted: true, smoke: { pass: true }, soak: { pass: false } }; } },
     cloudControlPlane: { pendingFeedback: [] },
     partySkillEngine: { lastUse: null }
   };
@@ -68,7 +70,7 @@ function lifecycleFixture() {
   const lifecycle = new EncounterLifecycle(runtime, { now: () => clock.value });
   runtime.encounterLifecycle = lifecycle;
   return {
-    runtime, lifecycle, tactical, team, snapshot, clock, adaptive, brain,
+    runtime, lifecycle, tactical, team, snapshot, clock, adaptive, brain, certification,
     setDisposition: (value) => { disposition = value; },
     setPerf: (value) => { perf = { ...perf, ...value }; }
   };
@@ -112,6 +114,8 @@ test('EncounterLifecycle records leader-owned planner transitions and one primar
   assert.deepEqual(outcome.plannerStateTransitions.map((row) => row.state), ['CREATED', 'BUILDING', 'ACTIVE', 'FINISHING', 'RESOLVED']);
   assert.equal(fx.adaptive.length, 1);
   assert.equal(fx.brain.length, 1);
+  assert.equal(fx.certification.length, 1);
+  assert.equal(fx.certification[0].encounterId, outcome.encounterId);
   assert.equal(fx.runtime.cloudControlPlane.pendingFeedback.length, 1);
   assert.equal(fx.lifecycle.status().current, null);
 });
