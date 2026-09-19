@@ -1042,7 +1042,7 @@ for (const pflicht of [
 
 const freigabeDokument = await readFile(path.join(wurzel, 'dokumentation/BLOCK-8-6-9-FREIGABE-VORBEREITUNG.md'), 'utf8');
 for (const pflicht of [
-  'operative Freigabestufen Offline → Schatten → kontrolliert live → Soak sind fuer denselben immutable Candidate bestanden und kanonisch gebunden',
+  'Candidate-Pfad und alle operativen Freigabestufen Offline → Schatten → kontrolliert live → Soak sind fuer denselben immutable Candidate bestanden und kanonisch gebunden',
   'Historische Runtime 1.1.5 bleibt immutable',
   '31 Module',
   '228607 Bytes',
