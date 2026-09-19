@@ -131,6 +131,36 @@ export class AdventureLandKampfBereitschaftLesezugriff {
     return this.liesAktionsBereitschaft('attack', aufgenommenAm);
   }
 
+  public liesSkillNutzbarkeit(aktionsName: string, aufgenommenAm: number): Readonly<KampfAktionsBereitschaft> {
+    const basis = this.liesAktionsBereitschaft(aktionsName, aufgenommenAm);
+    if (basis.zustand !== 'bereit') return basis;
+
+    const canUse = findeFunktion(this.spielFenster, 'can_use');
+    if (!canUse) return basis;
+
+    try {
+      const rohwert = Reflect.apply(canUse.funktion, canUse.kontext, [aktionsName]);
+      if (rohwert === true) {
+        return bereit(
+          aktionsName,
+          aufgenommenAm,
+          'Adventure Land meldet keinen aktiven Cooldown und can_use bestaetigt die aktuelle Nutzbarkeit.'
+        );
+      }
+      if (rohwert === false) {
+        return unbekannt(
+          aktionsName,
+          aufgenommenAm,
+          'Adventure Land meldet keinen aktiven Cooldown, can_use meldet den Skill aber als aktuell nicht nutzbar.'
+        );
+      }
+      return unbekannt(aktionsName, aufgenommenAm, 'can_use lieferte fuer den Skill keinen booleschen Wert.');
+    } catch (fehler) {
+      const grund = fehler instanceof Error ? fehler.message : String(fehler);
+      return unbekannt(aktionsName, aufgenommenAm, `can_use konnte fuer den Skill nicht gelesen werden: ${grund}`);
+    }
+  }
+
   public liesAktionsBereitschaft(aktionsName: string, aufgenommenAm: number): Readonly<KampfAktionsBereitschaft> {
     pruefeZeitpunkt(aufgenommenAm);
     if (aktionsName.trim().length === 0) throw new Error('Eine Aktionsbereitschaft benoetigt einen Aktionsnamen.');
