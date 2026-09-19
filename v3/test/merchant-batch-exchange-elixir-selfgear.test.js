@@ -51,10 +51,11 @@ test('scroll batching counts the currently actionable compound backlog', () => {
   const batch = convergence.atomic.plannedScrollDemand('cscroll0');
   assert.equal(batch.quantity, 3);
   assert.equal(batch.groups[0].operations, 3);
-  assert.equal(batch.groups[0].actionable, 3);
+  assert.equal(batch.groups[0].planned, 3);
+  assert.equal(batch.groups[0].immediateActionable, 3);
 });
 
-test('NPC exchange planning is demand-driven and uses exact G.items e requirement', () => {
+test('NPC exchange planning autonomously consumes exchangeable surplus using exact G.items e requirement', () => {
   const planner = new MerchantProductionPlanner({ now: () => 1000, goldReserve: 0 });
   const input = {
     character: {
@@ -72,15 +73,22 @@ test('NPC exchange planning is demand-driven and uses exact G.items e requiremen
     exchangeDemands: []
   };
 
-  assert.equal(planner.planExchange(input, {}), null);
+  const autonomous = planner.planExchange(input, {});
+  assert.ok(autonomous);
+  assert.equal(autonomous.state, 'READY');
+  assert.equal(autonomous.exchangeDemand.autonomous, true);
+  assert.equal(autonomous.exchangeDemand.reason, 'AUTONOMOUS_EXCHANGEABLE_SURPLUS');
+  assert.equal(autonomous.nextStep.kind, ProductionStepKind.EXCHANGE);
+  assert.equal(autonomous.nextStep.quantity, 20);
+  assert.equal(autonomous.nextStep.destination, 'shells');
 
   input.exchangeDemands = [{ item: 'seashell', target: 'elixirdex0', expiresAt: 2000 }];
-  const plan = planner.planExchange(input, {});
-  assert.equal(plan.state, 'READY');
-  assert.equal(plan.nextStep.kind, ProductionStepKind.EXCHANGE);
-  assert.equal(plan.nextStep.quantity, 20);
-  assert.equal(plan.nextStep.destination, 'shells');
-  assert.equal(plan.costStrategy, 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN');
+  const explicit = planner.planExchange(input, {});
+  assert.equal(explicit.state, 'READY');
+  assert.equal(explicit.nextStep.kind, ProductionStepKind.EXCHANGE);
+  assert.equal(explicit.nextStep.quantity, 20);
+  assert.equal(explicit.nextStep.destination, 'shells');
+  assert.equal(explicit.costStrategy, 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN');
 });
 
 test('controlled production executor verifies an NPC exchange input delta', async () => {
