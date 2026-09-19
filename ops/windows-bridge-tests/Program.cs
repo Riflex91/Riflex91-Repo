@@ -72,6 +72,10 @@ Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-co
 Assert(GitArbeitskopie.WissensbasisPfad == "v5/wissensbasis", "WISSENSWAECHTER_SCOPE_PATH");
 Assert(GitArbeitskopie.DatenbankPfad == "v5/wissensbasis/datenbank", "WISSENSWAECHTER_DATABASE_PATH");
 Assert(GitArbeitskopie.LiveWissenPfad == "v5/wissensbasis/live", "LIVE_WISSEN_GITHUB_PATH");
+Assert(GitArbeitskopie.BasisBranch == "main", "WISSENSWAECHTER_BASIS_BRANCH_MAIN");
+Assert(GitArbeitskopie.WissensBranch == "v5/wissenswaechter-automatisch", "WISSENSWAECHTER_DEDICATED_BRANCH");
+Assert(GitArbeitskopie.WissensBranch != GitArbeitskopie.BasisBranch, "WISSENSWAECHTER_MUST_NOT_PUSH_MAIN");
+Assert(GitArbeitskopie.PushZielRef == "HEAD:v5/wissenswaechter-automatisch", "WISSENSWAECHTER_PUSH_REF");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/quellen/quellen.json"), "KNOWLEDGE_READ_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/fakten/adventure-land-kern.json"), "KNOWLEDGE_WRITE_ALLOWED");
 Assert(GitArbeitskopie.IstErlaubterWissensbasisPfad("v5/wissensbasis/datenbank/quellenstatus.json"), "DATABASE_WITHIN_SCOPE_ALLOWED");
