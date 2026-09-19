@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**32 Dateien · 8401 Zeilen**
+**32 Dateien · 8418 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -35,7 +35,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha15-runtime.js` | 105 |
 | `src/autonomy/alpha16-runtime.js` | 77 |
 | `src/autonomy/alpha17-runtime.js` | 308 |
-| `src/autonomy/alpha18-runtime.js` | 216 |
+| `src/autonomy/alpha18-runtime.js` | 233 |
 | `src/autonomy/alpha19-runtime.js` | 178 |
 | `src/autonomy/alpha20-5-farm-readiness-runtime.js` | 346 |
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 400 |
@@ -173,7 +173,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**11 Dateien · 4948 Zeilen**
+**11 Dateien · 4950 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -185,7 +185,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/merchant-production-planner.js` | 867 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
-| `src/merchant/persistent-bank-catalog.js` | 108 |
+| `src/merchant/persistent-bank-catalog.js` | 110 |
 | `src/merchant/persistent-production-intent.js` | 270 |
 | `src/merchant/production-graph-certification.js` | 482 |
 
@@ -224,7 +224,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**39 Dateien · 10883 Zeilen**
+**39 Dateien · 11027 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -262,8 +262,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/performance-store.js` | 51 |
 | `src/party/probabilistic-farm-time.js` | 173 |
 | `src/party/production-material-acquisition.js` | 737 |
-| `src/party/team-combat-cohesion-hotfix-base.js` | 728 |
-| `src/party/team-combat-cohesion-hotfix.js` | 242 |
+| `src/party/team-combat-cohesion-hotfix-base.js` | 863 |
+| `src/party/team-combat-cohesion-hotfix.js` | 251 |
 | `src/party/telemetry-bridge.js` | 202 |
 | `src/party/transition-controller-base.js` | 390 |
 | `src/party/transition-controller.js` | 43 |
@@ -278,7 +278,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17348 Zeilen**
+**50 Dateien · 17587 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -298,17 +298,17 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-atomic-core.js` | 50 |
 | `src/reliability/alpha27-atomic-economy.js` | 502 |
 | `src/reliability/alpha27-atomic-ledger.js` | 297 |
-| `src/reliability/alpha27-atomic-service.js` | 338 |
+| `src/reliability/alpha27-atomic-service.js` | 393 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
 | `src/reliability/alpha27-atomic-transactions.js` | 263 |
 | `src/reliability/alpha27-bank-recovery.js` | 575 |
 | `src/reliability/alpha27-combat-merchant-convergence.js` | 331 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 790 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 820 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
-| `src/reliability/alpha27-merchant-core.js` | 103 |
+| `src/reliability/alpha27-merchant-core.js` | 117 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 709 |
+| `src/reliability/alpha27-merchant-planning.js` | 792 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
@@ -330,7 +330,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
 | `src/reliability/p0-potion-policy-4500.js` | 990 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
-| `src/reliability/pre-farming-reliability.js` | 501 |
+| `src/reliability/pre-farming-reliability.js` | 558 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
 
 ## research
