@@ -3,6 +3,7 @@
 const { MerchantProductionPlanner, ProductionStepKind } = require('./merchant-production-planner');
 const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK } = require('./controlled-merchant-production-executor');
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
+const { PersistentProductionIntent } = require('./persistent-production-intent');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
 const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
 
@@ -26,6 +27,12 @@ function installMerchantProduction(runtime, options = {}) {
     targets: options.merchantProductionTargets
   });
   const bankCatalog = options.bankCatalog || new PersistentBankCatalog({ root: runtime.root, now: runtime.now, storage: options.merchantProductionStorage || options.storage, storageKey: options.merchantBankCatalogStorageKey, maxAgeMs: options.merchantBankCatalogMaxAgeMs });
+  const productionIntent = options.productionIntent || new PersistentProductionIntent({
+    root: runtime.root,
+    now: runtime.now,
+    storage: options.merchantProductionStorage || options.storage,
+    storageKey: options.merchantProductionIntentStorageKey
+  });
   const executor = options.executor || new ControlledMerchantProductionExecutor({
     root: runtime.root,
     now: runtime.now,
@@ -60,8 +67,35 @@ function installMerchantProduction(runtime, options = {}) {
     lastMaterialFarmDecision: null,
     lastMutationDemand: null,
     mutationExecutions: 0,
-    mutationHolds: 0
+    mutationHolds: 0,
+    lastIntentRecovery: null
   };
+
+  function persistIntentForTarget(plan, target, phase, details = {}) {
+    if (!plan || !target || !target.output) return false;
+    return productionIntent.ensureForPlan(
+      { ...clone(plan), target: clone(target) },
+      phase,
+      {
+        reason: details.reason || null,
+        progress: Object.prototype.hasOwnProperty.call(details, 'progress') ? details.progress : undefined,
+        material: Object.prototype.hasOwnProperty.call(details, 'material') ? details.material : undefined,
+        lastExecution: Object.prototype.hasOwnProperty.call(details, 'lastExecution') ? details.lastExecution : undefined
+      }
+    );
+  }
+
+  function updateIntentAfterExecution(plan, step, result) {
+    if (!plan || !plan.target || !plan.target.output) return false;
+    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(plan.target.output || '')) {
+      return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
+    }
+    return productionIntent.update('REPLAN_REQUIRED', {
+      reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
+      plan,
+      lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
+    });
+  }
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
   function currentTask() { const c = taskCoordinator(); return c && typeof c.current === 'function' ? c.current() : null; }
@@ -226,6 +260,10 @@ function installMerchantProduction(runtime, options = {}) {
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
+    persistIntentForTarget(plan, plan.target, `EXECUTING_${String(step.kind || 'STEP')}`, {
+      reason: 'PRODUCTION_STEP_SCHEDULED',
+      lastExecution: state.lastExecution
+    });
     state.executionPending = true;
     Promise.resolve().then(async () => {
       const c = character() || {};
@@ -256,6 +294,7 @@ function installMerchantProduction(runtime, options = {}) {
       }
       const result = await executor.execute(plan, step);
       state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: clone(result) };
+      updateIntentAfterExecution(plan, step, result);
       if (result && result.committed === true && (step.kind === ProductionStepKind.BANK_RETRIEVE || step.kind === ProductionStepKind.BANK_STORE)) bankCatalog.observe(character());
       if (result && result.executed === true && result.committed !== true) state.pausedUntil = runtime.now() + state.failureCooldownMs;
       if (runtime.log && typeof runtime.log.emit === 'function') runtime.log.emit({ component: 'merchant-production', event: result && result.committed ? 'PRODUCTION_STEP_COMMITTED' : 'PRODUCTION_STEP_RESULT', severity: result && result.committed ? 'info' : 'warn', reason: result && result.reason || 'UNKNOWN', data: { planId: plan.id, kind: step.kind, item: step.name } });
@@ -399,6 +438,16 @@ function installMerchantProduction(runtime, options = {}) {
     const selection = mutationCandidateForPlan(plan);
     if (!selection) return false;
     const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
+    persistIntentForTarget(lockPlan, selection.candidate, 'MUTATION_READY', {
+      reason: 'LEVELED_RECIPE_INPUT_MUTATION_READY',
+      material: {
+        name: selection.step.name,
+        fromLevel: selection.step.fromLevel,
+        targetLevel: selection.step.targetLevel,
+        quantity: selection.step.quantity,
+        inputQuantity: selection.step.inputQuantity
+      }
+    });
     const lock = acquireTask(lockPlan, 'PRODUCTION_CHAIN');
     if (!lock.acquired) return false;
 
@@ -499,6 +548,11 @@ function installMerchantProduction(runtime, options = {}) {
         }
       };
     }).finally(() => {
+      productionIntent.update('REPLAN_REQUIRED', {
+        reason: state.lastExecution && state.lastExecution.result && state.lastExecution.result.reason || 'PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN',
+        plan: lockPlan,
+        lastExecution: state.lastExecution
+      });
       clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
       state.executionPending = false;
     });
