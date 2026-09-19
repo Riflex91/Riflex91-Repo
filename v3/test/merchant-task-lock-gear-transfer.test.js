@@ -258,7 +258,7 @@ test('GearProgression keeps better gear allocation Farmer-first at approximately
   assert.equal(result.status.lastEvaluation.farmerTargetShare, 0.8);
 });
 
-test('Merchant gear treats movement speed as the lexicographic primary stat', () => {
+test('Merchant gear keeps speed primary but rejects a weighted net regression', () => {
   const evaluator = new GearProgressionEvaluator({ now: () => 1000, minImprovementRatio: 0.01 });
   const result = evaluator.evaluate({
     registry: {
@@ -284,13 +284,9 @@ test('Merchant gear treats movement speed as the lexicographic primary stat', ()
   });
 
   const merchantGoals = result.currentGoals.filter((goal) => goal.character === 'Merchant');
-  assert.equal(merchantGoals.length, 1);
-  assert.equal(merchantGoals[0].item, 'swiftboots');
-  assert.equal(merchantGoals[0].priority, 'MERCHANT_MOBILITY');
-  assert.equal(merchantGoals[0].speedImprovement, 1);
-  assert.equal(merchantGoals.some((goal) => goal.item === 'tankboots'), false);
+  assert.equal(merchantGoals.length, 0);
   assert.equal(result.status.merchantPrimaryGearStat, 'speed');
-  assert.equal(result.status.merchantSpeedPriority, 'LEXICOGRAPHIC_FIRST');
+  assert.equal(result.status.merchantSpeedPriority, 'WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD');
 });
 
 test('leader farms a safe visible fallback while the material-objective spawn is empty', () => {
