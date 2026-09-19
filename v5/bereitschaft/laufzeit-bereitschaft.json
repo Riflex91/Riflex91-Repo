@@ -22,13 +22,15 @@
     {
       "kennung": "P0_RESEARCH_BEREIT",
       "erfuellt": false,
-      "grund": "P0-01 bis P0-03 sind abgeschlossen. Action-/Recovery-Vertraege decken alle wertrelevanten Actions ab; Bank-Concurrency ist als accountweite Single-Mount-/Coordinator-Lease-Semantik geschlossen. P0-04 ist IN_PROGRESS; P0-05 bis P0-07 sind offen.",
+      "grund": "P0-01 bis P0-04 sind abgeschlossen. Action-/Recovery-Vertraege, accountweite Bank-Concurrency sowie Player-Market Listing/RID/Partial-Fill-Semantik sind geschlossen. P0-05 ist IN_PROGRESS; P0-06 bis P0-07 sind offen.",
       "nachweise": [
         "v5/wissensbasis/revalidierung/revalidierungsqueue.json",
         "v5/dokumentation/P0-02-RECOVERY-UNKNOWN-MATRIX.md",
         "v5/wissensbasis/vertraege/recovery-contracts.json",
         "v5/dokumentation/P0-03-BANK-CONCURRENCY.md",
-        "v5/wissensbasis/vertraege/bank-concurrency.json"
+        "v5/wissensbasis/vertraege/bank-concurrency.json",
+        "v5/dokumentation/P0-04-TRADE-LISTING-RID-PARTIAL.md",
+        "v5/wissensbasis/vertraege/trade-lifecycle.json"
       ]
     },
     {

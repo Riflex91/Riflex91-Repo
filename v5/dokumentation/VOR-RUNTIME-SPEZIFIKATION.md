@@ -61,6 +61,23 @@ Pflicht:
 - Shell-Pack `in_progress` haelt Lease/Channel bis Terminalresultat und Reconciliation;
 - unmanaged/manual Bankownership fuehrt zu Quarantaene statt konkurrierendem Zugriff.
 
+## Player-Market RID und Partial Fill
+
+Der Vertrag P0-04-TRADE-LISTING-RID-PARTIAL.md und wissensbasis/vertraege/trade-lifecycle.json ist verbindlich.
+
+Pflicht:
+- raw trade_buy/trade_sell nur mit nichtleerer frisch beobachteter RID;
+- RID ist Replacement-Guard, kein Idempotency-Key und keine Quantity-Version;
+- Partial Fill veraendert q, aber nicht RID oder Preis;
+- ein Trade-Intent besitzt eine feste Menge; kein automatisches Downsizing desselben Intents;
+- jeder Folge-Fill ist ein neuer Intent aus frischer Listing Truth;
+- Remote-q-Delta allein darf UNKNOWN nicht committen;
+- ListingAnchor umfasst Target, Slot, RID, Side, Item, Level und Preis;
+- bei RID/Fingerprint-Drift wird der Plan verworfen;
+- trade_sell reproduziert direkt vor Send die serverseitige Inventory-Auswahl ab Index 0;
+- nicht-fungible Ambiguitaet bei server-eligible Items blockiert trade_sell;
+- FIFO-Channels ersetzen keine Gold-/Inventory-/Listing-Resource-Claims.
+
 ## Persistenz und Migration
 
 Pflicht:

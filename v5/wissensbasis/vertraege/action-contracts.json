@@ -891,17 +891,29 @@
       ],
       "liveRevalidation": [
         "inventory_item_identity",
-        "trade_slot"
+        "trade_slot",
+        "trade_slot_allowed_now",
+        "trade_slot_empty",
+        "listing_price",
+        "listing_quantity"
       ],
       "dangerFlags": [
         "SHARED_FIFO_CHANNEL",
         "RID_CREATED",
-        "INVENTORY_INDEX_DRIFT"
+        "INVENTORY_INDEX_DRIFT",
+        "LISTING_RID_CREATED",
+        "SELL_LISTING_SLOT_MUST_BE_EMPTY",
+        "STACK_LISTING_CAN_MOVE_PARTIAL_Q"
       ],
       "postconditions": [
-        "trade slot contains intended item/quantity/price and fresh rid"
+        "target trade slot contains intended sell listing with exact item/fingerprint, unit price and requested listed quantity",
+        "listing has a fresh rid created for this listing instance",
+        "inventory delta matches the quantity moved into the listing"
       ],
-      "notes": [],
+      "notes": [
+        "Sell listing uses equip channel. Stackable items may list only part of a stack; non-stackable item is moved into the trade slot.",
+        "Direct replacement of an occupied sell slot is rejected; remove/fill it before creating a new listing."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {
@@ -943,13 +955,26 @@
         "character:trade_slots"
       ],
       "liveRevalidation": [
-        "trade_slot"
+        "trade_slot",
+        "trade_slot_allowed_now",
+        "listing_side",
+        "listing_price",
+        "listing_quantity",
+        "listing_level"
       ],
-      "dangerFlags": [],
+      "dangerFlags": [
+        "LISTING_RID_CREATED",
+        "BUY_LISTING_REPLACEMENT_ROTATES_RID",
+        "VIRTUAL_LISTING"
+      ],
       "postconditions": [
-        "wishlist slot reflects intended item/level/quantity/price"
+        "trade slot contains intended buy listing with b=true, item name, level if relevant, unit price and requested quantity",
+        "listing has a fresh rid; replacing an existing wishlist changes the listing instance"
       ],
-      "notes": [],
+      "notes": [
+        "Wishlist is virtual and does not reserve an inventory item.",
+        "An existing b=true wishlist may be overwritten directly; the replacement receives a new rid."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {
@@ -1000,18 +1025,35 @@
         "listing_rid",
         "quantity",
         "inventory_capacity",
-        "gold"
+        "gold",
+        "listing_side",
+        "listing_item_name",
+        "listing_level",
+        "listing_price",
+        "listing_quantity",
+        "distance_and_map",
+        "fresh_buyer_gold",
+        "fresh_inventory_capacity"
       ],
       "dangerFlags": [
         "RID_GUARD",
-        "NON_IDEMPOTENT_TRANSFER"
+        "NON_IDEMPOTENT_TRANSFER",
+        "RID_NOT_QUANTITY_VERSION",
+        "PARTIAL_FILL_RID_STABLE",
+        "REMOTE_LISTING_MUTABLE_BY_OTHERS",
+        "RAW_SERVER_RID_CHECK_IS_CONDITIONAL"
       ],
       "postconditions": [
-        "buyer item delta",
-        "buyer gold delta",
-        "seller listing/quantity delta"
+        "buyer gold decreased by exactly pinned unit_price * requested_quantity",
+        "buyer inventory gained the intended item/fingerprint and exact requested quantity",
+        "remote listing is absent on full fill or has compatible remaining quantity on partial fill; remote listing delta is supporting evidence only"
       ],
-      "notes": [],
+      "notes": [
+        "Public wrapper always supplies target.slots[trade_slot].rid, but the server handler only compares RID when data.rid is supplied; V5 raw execution must therefore require a non-empty RID.",
+        "Partial fill decrements listing q without rotating rid or price. RID protects replacement, not quantity freshness.",
+        "Server never silently downsizes the requested quantity: it transfers exactly q or fails if remaining q is insufficient.",
+        "Remote listing quantity alone cannot settle UNKNOWN because another buyer can change the same listing."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {
@@ -1062,19 +1104,38 @@
         "target_entity",
         "listing_rid",
         "physical_item_match",
-        "quantity"
+        "quantity",
+        "listing_side",
+        "listing_item_name",
+        "listing_level",
+        "listing_price",
+        "listing_quantity",
+        "distance",
+        "server_selected_item_candidate"
       ],
       "dangerFlags": [
         "RID_GUARD",
         "NON_IDEMPOTENT_TRANSFER",
-        "SERVER_SELECTS_MATCHING_ITEM"
+        "SERVER_SELECTS_MATCHING_ITEM",
+        "RID_NOT_QUANTITY_VERSION",
+        "PARTIAL_FILL_RID_STABLE",
+        "REMOTE_LISTING_MUTABLE_BY_OTHERS",
+        "RAW_SERVER_RID_CHECK_IS_CONDITIONAL",
+        "SERVER_SELECTS_FIRST_MATCHING_ITEM",
+        "PHYSICAL_ITEM_VARIANT_AMBIGUITY"
       ],
       "postconditions": [
-        "seller item delta",
-        "seller gold delta",
-        "buyer inventory delta"
+        "seller gold increased by the exact net amount implied by pinned unit price, quantity and live seller tax",
+        "the exact server-selected physical inventory candidate lost/decremented the requested quantity",
+        "remote wishlist is absent on full fill or has compatible remaining quantity on partial fill; remote wishlist delta is supporting evidence only"
       ],
-      "notes": [],
+      "notes": [
+        "Public wrapper always supplies the observed wishlist rid; V5 raw execution must require a non-empty RID.",
+        "Partial fill decrements wishlist q without rotating rid or price.",
+        "The server does not receive an inventory index. It scans seller inventory from index 0 and selects the first item matching name, sufficient quantity and level that is not locked, then rejects if that selected item is blocked.",
+        "Immediately before send V5 must reproduce the server scan and prove the server-selected physical item is allowed; ambiguous non-fungible variants cause deny/replan.",
+        "Remote wishlist quantity alone cannot settle UNKNOWN because another seller can fill the same wishlist."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {
@@ -1331,18 +1392,25 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:equipment"
+        "character:equipment",
+        "character:trade_slots"
       ],
       "liveRevalidation": [
         "inventory_capacity",
-        "equipment_slot"
+        "equipment_slot",
+        "trade_slot"
       ],
-      "dangerFlags": [],
+      "dangerFlags": [
+        "TRADE_SLOT_REMOVAL_HAS_BUY_SELL_VARIANTS"
+      ],
       "postconditions": [
-        "slot empty",
-        "unequipped item present in inventory"
+        "requested slot is empty",
+        "for normal equipment or a non-b sell listing, the physical item is present in inventory after removal",
+        "for a b=true virtual wishlist, no physical inventory item is created; only the listing disappears"
       ],
-      "notes": [],
+      "notes": [
+        "When used on a trade slot, unequip removes the listing. A sell listing requires inventory space and returns its physical item; a wishlist b=true is virtual and is simply cleared."
+      ],
       "volatility": "MEDIUM",
       "sourceRefs": [
         {

@@ -38,7 +38,8 @@
     "schema/live-status.schema.json",
     "schema/live-fakt.schema.json",
     "schema/recovery-contract.schema.json",
-    "schema/bank-concurrency.schema.json"
+    "schema/bank-concurrency.schema.json",
+    "schema/trade-lifecycle.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
@@ -118,5 +119,14 @@
     "accountWideSingleMount": true,
     "v5AuthorityOwner": "ACCOUNT_COORDINATOR",
     "leaseResource": "account:bank"
+  },
+  "tradeLifecycle": "vertraege/trade-lifecycle.json",
+  "tradeResearch": {
+    "status": "P0_04_DONE",
+    "sourceSnapshot": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "liveClientVerifiedAt": "2026-09-19",
+    "ridRotatesOnPartialFill": false,
+    "rawTradeRequiresRid": true,
+    "tradeSellServerSelectsPhysicalItem": true
   }
 }

@@ -86,12 +86,26 @@
     {
       "id": "V5-P0-04",
       "title": "Trade Listing Lifecycle, RID und Partial Sale",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "sellListingCreateChannel": "equip",
+        "wishlistChannel": "trade_wishlist",
+        "tradeBuyChannel": "trade_buy",
+        "tradeSellChannel": "trade_sell",
+        "rid": "randomStr(4)",
+        "ridRotatesOnPartialFill": false,
+        "partialFill": "exact requested q or failure; remaining q decremented with same rid",
+        "rawServerRidCheck": "CONDITIONAL_ON_FIELD_PRESENT",
+        "v5RawRidPolicy": "REQUIRED",
+        "tradeSellPhysicalSelection": "SERVER_SCANS_INVENTORY_FROM_INDEX_0",
+        "note": "RID fences slot replacement, not quantity drift. Remote q changes cannot settle UNKNOWN. trade_sell must predict the exact server-selected physical item."
+      }
     },
     {
       "id": "V5-P0-05",
       "title": "Upgrade-/Compound-Formeln, Resultcodes und Disconnect-Semantik",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "V5-P0-06",
