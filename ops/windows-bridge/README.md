@@ -172,7 +172,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
+Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Config version 7 adds the optional local Bot-Livewissen import path. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
 
 ## Build
 
@@ -261,3 +261,31 @@ Webfunde werden fail-closed gefiltert:
 - Alt-Kandidaten ohne diesen Nachweis werden beim naechsten Lauf automatisch entfernt.
 
 Neue oder nicht offizielle, aber verifizierte Quellen bleiben Kandidaten und werden nicht automatisch zu bestaetigten Fakten erhoben.
+
+
+### Bot-Livewissen von SSD
+
+Die Bridge kann einen frei konfigurierbaren **lokalen absoluten Windows-Pfad** rekursiv einlesen. Dieser Pfad wird direkt in der Oberflaeche unter **GitHub & Wissenswaechter → Bot-Livewissen von SSD** eingetragen und lokal in `settings.json` gespeichert.
+
+Der absolute SSD-Pfad wird **nicht** nach GitHub geschrieben. Im Repo landet nur die relative Struktur unter:
+
+```text
+v5/wissensbasis/datenbank/live-verifiziert/aktuell/**
+```
+
+Zusaetzlich wird ein Manifest unter `v5/wissensbasis/datenbank/live-verifiziert/manifest.json` erzeugt. Es enthaelt relative Pfade, SHA-256, Groesse, lokale Aenderungszeit, Importzeit und den Status `LIVE_VERIFIZIERT_DURCH_BOT`.
+
+Sicherheitsregeln des Imports:
+
+- nur lokale, absolute Windows-Pfade; UNC-/Netzwerkpfade sind gesperrt;
+- rekursives Einlesen ohne feste Annahme ueber die spaetere Bot-Unterordnerstruktur;
+- relative Unterordnerstruktur bleibt im Repo erhalten;
+- nur Text-/Wissensformate: JSON, JSONL/NDJSON, TXT, Markdown, CSV/TSV, YAML und LOG;
+- maximal 5000 Dateien, 8 MiB pro Datei und 64 MiB pro Lauf;
+- Reparse Points/Symlinks werden ignoriert;
+- Dateien, die innerhalb der letzten zwei Sekunden geaendert wurden oder sich waehrend des Lesens veraendern, werden uebersprungen;
+- Inhalte mit typischen Passwort-/Token-/Secret-Mustern werden fail-closed nicht hochgeladen;
+- fehlt der SSD-Ordner kurzzeitig, werden vorhandene GitHub-Live-Daten nicht automatisch geloescht;
+- geloeschte Quelldateien werden bei einem erfolgreichen nicht-leeren Scan aus dem aktuellen Spiegel entfernt; die Git-Historie bleibt erhalten.
+
+Der Live-Import laeuft im selben stuendlichen Wissenswaechter-Lauf und auch bei **Jetzt aktualisieren**. Er veraendert die bestehende harte GitHub-Grenze `v5/wissensbasis/**` nicht.
