@@ -43,27 +43,32 @@ test('Alpha31 and Alpha32 live recovery stay passive during install and run only
   assert.doesNotMatch(source, /runService\(runtime, liveRecovery, 'alpha32-navigation-merchant-recovery'\)/);
 });
 
-test('same-version hot reload replaces an already-installed stale sprite snapshot hook exactly once', () => {
+test('same-version hot reload refreshes sprites and the full Merchant Automation catalog exactly once', () => {
   const runtime = {
-    lastSnapshot: { character: { name: 'R1', isize: 42 } },
+    lastSnapshot: { character: { name: 'MerchantA', ctype: 'merchant', isize: 42 } },
     adapter: {
       getGameData: () => ({
-        items: { hpot0: { skin: 'hpot_skin' } },
+        items: {
+          hpot0: { skin: 'hpot_skin', type: 'pot', g: 20 },
+          partyhat: { name: 'Party Hat', skin: 'partyhat_skin', type: 'helmet', g: 12000, upgrade: { str: 0.2 } },
+          scroll0: { type: 'uscroll', g: 1000 }
+        },
         positions: {
           hpot_skin: ['pack_20', 1, 2],
+          partyhat_skin: ['pack_20', 3, 2],
           shade_helmet: ['pack_20', 2, 1]
         },
         imagesets: { pack_20: { file: '/images/tiles/items.png', size: 20, columns: 16, rows: 8 } }
       })
     },
     characterRegistry: {
-      status: () => ({ characters: [{ name: 'R1', inventory: [{ index: 0, name: 'hpot0', q: 5 }], gear: {} }] })
+      status: () => ({ characters: [{ name: 'MerchantA', inventory: [{ index: 0, name: 'hpot0', q: 5 }], gear: {} }] })
     }
   };
   const cloud = {
     __adventureLandItemSpritesInstalled: true,
     _runtimeSnapshot() {
-      return { character: { name: 'R1' }, itemSprites: {}, equipmentShades: {} };
+      return { character: { name: 'MerchantA', ctype: 'merchant' }, itemSprites: {}, equipmentShades: {}, automationCatalog: [{ id: 'stale' }], automationCatalogVersion: 2 };
     }
   };
   runtime.cloudControlPlane = cloud;
@@ -74,6 +79,12 @@ test('same-version hot reload replaces an already-installed stale sprite snapsho
   assert.equal(snapshot.itemSprites.hpot0.file, 'https://adventure.land/images/tiles/items.png');
   assert.equal(snapshot.equipmentShades.helmet.skin, 'shade_helmet');
   assert.equal(snapshot.character.isize, 42);
+  assert.equal(snapshot.automationCatalogVersion, 3);
+  assert.equal(snapshot.automationCatalogCount, 3);
+  const partyhat = snapshot.automationCatalog.find((row) => row.id === 'partyhat');
+  assert.ok(partyhat);
+  assert.equal(partyhat.economy.baseGold, 12000);
+  assert.equal(partyhat.economy.npcSellValues[0].value, 7200);
   assert.equal(refreshAdventureLandSpriteHook(runtime, { cloud }), false);
 });
 

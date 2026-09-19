@@ -250,13 +250,13 @@ test('Automation catalog includes an observed inventory item even when the curre
 
 test('runtime snapshot wrapper adds sprites, equipment shades and exact inventory size', () => {
   const runtime = {
-    lastSnapshot: { character: { name: 'R1', isize: 49 } },
+    lastSnapshot: { character: { name: 'MerchantA', ctype: 'merchant', isize: 49 } },
     adapter: { getGameData: () => ({ items: {}, positions: {}, imagesets: {} }) },
     characterRegistry: { status: () => ({ characters: [] }) }
   };
   const cloud = {
     _runtimeSnapshot() {
-      return { character: { name: 'R1' } };
+      return { character: { name: 'MerchantA', ctype: 'merchant' } };
     }
   };
 
@@ -264,6 +264,9 @@ test('runtime snapshot wrapper adds sprites, equipment shades and exact inventor
   const snapshot = cloud._runtimeSnapshot();
   assert.deepEqual(snapshot.itemSprites, {});
   assert.deepEqual(snapshot.equipmentShades, {});
+  assert.equal(snapshot.automationCatalogVersion, 3);
+  assert.equal(snapshot.automationCatalogCount, 0);
+  assert.deepEqual(snapshot.automationCatalog, []);
   assert.equal(snapshot.character.isize, 49);
   assert.equal(installAdventureLandItemSprites(runtime, cloud), false);
 });
