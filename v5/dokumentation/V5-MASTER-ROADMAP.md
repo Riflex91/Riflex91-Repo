@@ -147,6 +147,14 @@ Exit Gate:
 6. Exchange-/Craft-Sonderfaelle und Outputspace.
 7. Request-/Call-Cost-/Rate-Limit-Modell.
 
+### R1.1 Abschlussstand
+
+- P0-01: 60/60 wertrelevante Actions sind verifiziert oder explizit disabled.
+- P0-02: 60/60 Actions besitzen genau einen Recovery Contract; Same-Intent-Retry nach moeglichem Send ist verboten.
+- P0-03: Adventure Land erzwingt einen accountweiten Single-Bank-Mount. V5 modelliert deshalb genau eine `account:bank` Lease im Account Coordinator, gehalten ueber die gesamte Banksitzung. Jeder Raw Bank Write benoetigt zusaetzlich den lokalen `bank`-Action-Channel des Lease-Owners. Disconnect/Crash gibt die Lease nicht automatisch frei; `bank_opx`/already_in_bank ist ein externes Fence; BankSnapshots sind Mount-/Lease-Epoch-gebunden.
+- P0-04: IN_PROGRESS.
+- P0-05 bis P0-07: OPEN.
+
 P0 Exit Gate:
 - jede wertveraendernde Public Function hat einen verifizierten Contract oder bleibt explizit disabled;
 - jede verifizierte Action besitzt Recovery-Klasse und Postcondition;
