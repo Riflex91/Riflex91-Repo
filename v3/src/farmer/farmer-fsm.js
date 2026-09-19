@@ -57,6 +57,9 @@ class FarmerController {
     this.stateReason = 'INITIAL';
     this.targetId = null;
     this.targetType = null;
+    this.logicalTeamTargetId = null;
+    this.logicalTeamTargetType = null;
+    this.targetSelectionHold = null;
     this.lastActionAt = 0;
     this.lastPotionAt = 0;
     this.lastShadowPlanAt = -Infinity;
@@ -115,6 +118,33 @@ class FarmerController {
     }
     this.targetId = null;
     this.targetType = null;
+  }
+
+  _setLogicalTeamTarget(targetId, targetType = null, data = {}) {
+    const id = targetId == null ? null : String(targetId);
+    const changed = id !== this.logicalTeamTargetId || (targetType || null) !== this.logicalTeamTargetType;
+    this.logicalTeamTargetId = id;
+    this.logicalTeamTargetType = targetType || null;
+    if (changed && id) {
+      this._event('FARMER_LOGICAL_TEAM_TARGET_CHANGED', 'info', 'TEAM_TARGET_AUTHORITY', {
+        logicalTargetId: id,
+        logicalTargetType: this.logicalTeamTargetType,
+        ...data
+      });
+    }
+    if (!id) this.targetSelectionHold = null;
+    return id;
+  }
+
+  _holdTargetSelection(reason, data = {}) {
+    this.targetSelectionHold = {
+      at: this.now(),
+      reason: reason || 'TEAM_TARGET_SELECTION_HELD',
+      logicalTargetId: this.logicalTeamTargetId,
+      logicalTargetType: this.logicalTeamTargetType,
+      ...data
+    };
+    return this.targetSelectionHold;
   }
 
   setEnabled(enabled) {
@@ -510,15 +540,27 @@ class FarmerController {
 
       case FarmerState.SELECT_TARGET: {
         if (this._moveToMaterialObjective(context)) break;
+        this.targetSelectionHold = null;
         const selection = this._selectTarget(context);
         this.lastSelection = selection && selection.ranking || null;
         if (!selection) {
+          if (this.targetSelectionHold && this.targetSelectionHold.logicalTargetId) {
+            this._transition(FarmerState.SELECT_TARGET, this.targetSelectionHold.reason || 'TEAM_TARGET_SELECTION_HELD', {
+              logicalTargetId: this.targetSelectionHold.logicalTargetId,
+              logicalTargetType: this.targetSelectionHold.logicalTargetType || null,
+              leaderName: this.targetSelectionHold.leaderName || null
+            });
+            break;
+          }
           this._clearTarget('NO_SAFE_LIVE_TARGET');
           this._transition(FarmerState.REASSESS, 'NO_SAFE_LIVE_TARGET');
           break;
         }
         this.targetId = String(selection.target.id);
         this.targetType = selection.target.mtype;
+        if (selection.ranking && String(selection.ranking.source || '').startsWith('team-')) {
+          this._setLogicalTeamTarget(this.targetId, this.targetType, { source: selection.ranking.source });
+        }
         const rankingScore = Number(selection.ranking && selection.ranking.score);
         const rankingTravelSeconds = Number(selection.ranking && selection.ranking.travelSeconds);
         this._event('FARMER_TARGET_SELECTED', 'info', 'PLANNER_TOP_SAFE_LIVE_TARGET', {
@@ -625,6 +667,9 @@ class FarmerController {
       taskId: this.taskId,
       targetId: this.targetId,
       targetType: this.targetType,
+      logicalTeamTargetId: this.logicalTeamTargetId,
+      logicalTeamTargetType: this.logicalTeamTargetType,
+      targetSelectionHold: this.targetSelectionHold ? { ...this.targetSelectionHold } : null,
       targetPolicy: this.targetPolicy,
       shadowPlanRevision: this.shadowPlanRevision,
       lastSelection: this.lastSelection ? {
