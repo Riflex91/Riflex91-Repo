@@ -8,8 +8,8 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1323 |
-| autonomy | 26 | 5733 |
+| (root) | 6 | 1338 |
+| autonomy | 28 | 6474 |
 | brain | 4 | 874 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
@@ -19,7 +19,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | farmer | 21 | 4506 |
 | game | 3 | 870 |
 | merchant | 9 | 2525 |
-| ops | 26 | 7551 |
+| ops | 26 | 7589 |
 | party | 33 | 8054 |
 | planner | 1 | 66 |
 | reliability | 50 | 16136 |
@@ -42,7 +42,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Von | Nach | statische Referenzen |
 | --- | --- | ---: |
-| (root) | autonomy | 25 |
+| (root) | autonomy | 27 |
 | (root) | brain | 3 |
 | (root) | composition | 1 |
 | (root) | control | 1 |
@@ -89,6 +89,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | merchant | game | 1 |
 | merchant | reliability | 1 |
 | ops | (root) | 3 |
+| ops | autonomy | 1 |
 | ops | control | 1 |
 | ops | core | 1 |
 | ops | party | 2 |

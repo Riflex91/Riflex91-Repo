@@ -6,12 +6,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1323 Zeilen**
+**6 Dateien · 1338 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
-| `src/index.js` | 458 |
+| `src/index.js` | 473 |
 | `src/production-live-services.js` | 215 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 560 |
@@ -19,7 +19,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## autonomy
 
-**26 Dateien · 5733 Zeilen**
+**28 Dateien · 6474 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -40,15 +40,17 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/autonomy/alpha20-5-merchant-runtime.js` | 398 |
 | `src/autonomy/alpha20-runtime.js` | 396 |
 | `src/autonomy/alpha9-runtime.js` | 68 |
-| `src/autonomy/capability-resolver.js` | 405 |
-| `src/autonomy/character-combat-profile.js` | 257 |
+| `src/autonomy/capability-resolver.js` | 412 |
+| `src/autonomy/character-combat-profile.js` | 275 |
+| `src/autonomy/combat-modes.js` | 20 |
 | `src/autonomy/local-farm-orchestrator.js` | 372 |
 | `src/autonomy/local-farm-planner.js` | 153 |
-| `src/autonomy/party-skill-engine.js` | 221 |
+| `src/autonomy/party-skill-engine.js` | 364 |
 | `src/autonomy/skill-catalog-service.js` | 478 |
 | `src/autonomy/skill-policy.js` | 196 |
-| `src/autonomy/skill-semantics.js` | 246 |
-| `src/autonomy/tactical-party-combat.js` | 234 |
+| `src/autonomy/skill-semantics.js` | 249 |
+| `src/autonomy/smart-aoe-planner.js` | 275 |
+| `src/autonomy/tactical-party-combat.js` | 509 |
 
 ## brain
 
@@ -182,7 +184,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## ops
 
-**26 Dateien · 7551 Zeilen**
+**26 Dateien · 7589 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -195,7 +197,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/ops/background-execution-guard.js` | 131 |
 | `src/ops/control-gateway.js` | 133 |
 | `src/ops/controlled-auto-respawn.js` | 216 |
-| `src/ops/debug-monitor-ui.js` | 848 |
+| `src/ops/debug-monitor-ui.js` | 886 |
 | `src/ops/flight-recorder.js` | 173 |
 | `src/ops/group-liveness.js` | 164 |
 | `src/ops/headless-operations.js` | 437 |
