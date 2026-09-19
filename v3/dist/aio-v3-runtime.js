@@ -34260,7 +34260,7 @@ class EncounterLifecycle {
 
   _capturePerformance() {
     if (!this.current) return;
-    const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'damageTaken', 'monsterHpLost'];
+    const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'hpPotions', 'mpPotions', 'damageTaken', 'monsterHpLost'];
     for (const row of this._performanceRows()) {
       if (!row || !row.id || finite(row.startedAt) < this.current.startedAt - 1000) continue;
       const previous = this.performanceCursors.get(String(row.id)) || {};
@@ -34301,10 +34301,13 @@ class EncounterLifecycle {
     const aggregate = this._peerAggregate(team);
     const elapsedHours = Math.max(0, Math.min(30, (now - (this.lastObservedAt || now)) / 1000)) / 3600;
     if (aggregate && elapsedHours > 0) {
-      this.current.metrics.xp += Math.max(0, finite(aggregate.xpPerHour)) * elapsedHours;
-      this.current.metrics.gold += finite(aggregate.goldPerHour) * elapsedHours;
-      this.current.metrics.kills += Math.max(0, finite(aggregate.killsPerHour)) * elapsedHours;
-      this.current.metrics.potions += Math.max(0, finite(aggregate.potionsPerHour)) * elapsedHours;
+      this.current.estimated.xp += Math.max(0, finite(aggregate.xpPerHour)) * elapsedHours;
+      this.current.estimated.gold += finite(aggregate.goldPerHour) * elapsedHours;
+      this.current.estimated.kills += Math.max(0, finite(aggregate.killsPerHour)) * elapsedHours;
+      this.current.estimated.potions += Math.max(0, finite(aggregate.potionsPerHour)) * elapsedHours;
+      this.current.estimated.hpPotions += Math.max(0, finite(aggregate.hpPotionsPerHour)) * elapsedHours;
+      this.current.estimated.mpPotions += Math.max(0, finite(aggregate.mpPotionsPerHour)) * elapsedHours;
+      this.current.observability.peerRateEstimateSeconds += elapsedHours * 3600;
       this.current.observability.maxFreshPeerReports = Math.max(this.current.observability.maxFreshPeerReports, finite(aggregate.freshReports));
     }
     for (const report of aggregate && aggregate.reports || []) {
@@ -34374,8 +34377,9 @@ class EncounterLifecycle {
       selectedReason: tactical.reason || context.reason || null, hardCapacity: 1, desiredPullSize: 1,
       maxEngaged: Math.max(1, (tactical.targetIds || []).length || 1), adaptiveRecommendation: null, adaptiveConfidence: 0,
       metrics: { xp: 0, gold: 0, kills: 0, deaths: 0, retreats: 0, nearDeaths: 0, hpPotions: 0, mpPotions: 0, potions: 0, damageTaken: 0, monsterHpLost: 0, skillExecutions: 0, aoeSkillExecutions: 0, movementFailures: 0, skillFailures: 0, minHpRatio: initial.minHp, minMpRatio: initial.minMp, skills: {} },
+      estimated: { xp: 0, gold: 0, kills: 0, hpPotions: 0, mpPotions: 0, potions: 0 },
       plannerStateTransitions: [{ at: now, state: EncounterLifecycleState.CREATED, plannerState: null, reason: 'ENCOUNTER_SELECTED' }],
-      observability: { expectedPeerReports: Math.max(0, (team.names || []).length - 1), maxFreshPeerReports: 0 }
+      observability: { expectedPeerReports: Math.max(0, (team.names || []).length - 1), maxFreshPeerReports: 0, peerRateEstimateSeconds: 0 }
     };
     tactical.encounterId = id; tactical.lifecycleState = EncounterLifecycleState.CREATED;
     this.performanceCursors.clear(); this.peerState.clear(); this.lastSkillKey = null; this.lastObservedAt = now;
@@ -34440,7 +34444,8 @@ class EncounterLifecycle {
 
   _score(outcome, seconds) {
     const safety = this.current.metrics.minHpRatio == null ? 0.5 : clamp(this.current.metrics.minHpRatio);
-    const xpPerHour = seconds > 0 ? Math.max(0, finite(this.current.metrics.xp)) / (seconds / 3600) : 0;
+    const weightedXp = Math.max(0, finite(this.current.metrics.xp)) + Math.max(0, finite(this.current.estimated && this.current.estimated.xp)) * 0.35;
+    const xpPerHour = seconds > 0 ? weightedXp / (seconds / 3600) : 0;
     const progress = clamp(Math.log1p(xpPerHour) / Math.log(6000001));
     const penalty = outcome === EncounterOutcome.DEATH ? 0.75 : outcome === EncounterOutcome.PARTY_FAILURE ? 0.45 : outcome === EncounterOutcome.SAFE_ABORT ? 0.18 : outcome === EncounterOutcome.INTERRUPTED ? 0.12 : 0;
     return clamp(safety * 0.65 + progress * 0.35 - penalty);
@@ -34455,8 +34460,36 @@ class EncounterLifecycle {
     const now = this.now(); const durationMs = Math.max(0, now - this.current.startedAt); const seconds = durationMs / 1000;
     if (outcome === EncounterOutcome.DEATH) this.current.metrics.deaths = Math.max(1, this.current.metrics.deaths);
     if (outcome === EncounterOutcome.SAFE_ABORT) this.current.metrics.retreats = Math.max(1, this.current.metrics.retreats);
-    if (outcome === EncounterOutcome.SUCCESS) this.current.metrics.kills = Math.max(this.current.metrics.kills, this.current.maxEngaged);
     this._transition(outcome === EncounterOutcome.SUCCESS ? EncounterLifecycleState.RESOLVED : EncounterLifecycleState.ABORTED, tactical && tactical.aoe && tactical.aoe.state || null, context.reason || outcome);
+    const estimated = this.current.estimated || {};
+    const evidenceWeight = 0.35;
+    const exact = {
+      xp: Math.max(0, finite(this.current.metrics.xp)),
+      gold: finite(this.current.metrics.gold),
+      kills: Math.max(0, finite(this.current.metrics.kills)),
+      hpPotions: Math.max(0, finite(this.current.metrics.hpPotions)),
+      mpPotions: Math.max(0, finite(this.current.metrics.mpPotions)),
+      potions: Math.max(0, finite(this.current.metrics.potions))
+    };
+    const peerEstimate = {
+      xp: Math.max(0, finite(estimated.xp)),
+      gold: finite(estimated.gold),
+      kills: Math.max(0, finite(estimated.kills)),
+      hpPotions: Math.max(0, finite(estimated.hpPotions)),
+      mpPotions: Math.max(0, finite(estimated.mpPotions)),
+      potions: Math.max(0, finite(estimated.potions))
+    };
+    const learningMetrics = {
+      xp: rounded(exact.xp + peerEstimate.xp * evidenceWeight, 3),
+      gold: rounded(exact.gold + peerEstimate.gold * evidenceWeight, 3),
+      kills: rounded(exact.kills + peerEstimate.kills * evidenceWeight, 3),
+      hpPotions: rounded(exact.hpPotions + peerEstimate.hpPotions * evidenceWeight, 3),
+      mpPotions: rounded(exact.mpPotions + peerEstimate.mpPotions * evidenceWeight, 3),
+      estimateWeight: evidenceWeight,
+      policy: 'LOCAL_EXACT_PLUS_DISCOUNTED_PEER_RATE_ESTIMATE'
+    };
+    const hasPeerEstimate = Object.values(peerEstimate).some((value) => Math.abs(finite(value)) > 1e-9);
+    const hasSplitPeerPotionEstimate = peerEstimate.hpPotions > 0 || peerEstimate.mpPotions > 0;
     const final = {
       schemaVersion: ENCOUNTER_OUTCOME_SCHEMA_VERSION, mode: ENCOUNTER_LIFECYCLE_MODE,
       encounterId: this.current.encounterId, lifecycleState: this.current.lifecycleState, outcome, reason: context.reason || outcome,
@@ -34464,11 +34497,19 @@ class EncounterLifecycle {
       contentDisposition: this.current.contentDisposition, monster: this.current.monster, map: this.current.map, combatMode: this.current.combatMode,
       hardCapacity: this.current.hardCapacity, desiredPullSize: this.current.desiredPullSize, maxEngaged: this.current.maxEngaged,
       startedAt: this.current.startedAt, endedAt: now, durationMs, durationSeconds: rounded(seconds, 3),
-      xp: rounded(this.current.metrics.xp, 3), gold: rounded(this.current.metrics.gold, 3), kills: rounded(this.current.metrics.kills, 3),
+      xp: rounded(exact.xp + peerEstimate.xp, 3), gold: rounded(exact.gold + peerEstimate.gold, 3), kills: rounded(exact.kills + peerEstimate.kills, 3),
       deaths: rounded(this.current.metrics.deaths, 3), retreats: this.current.metrics.retreats, nearDeaths: this.current.metrics.nearDeaths,
       minHpRatio: this.current.metrics.minHpRatio == null ? null : rounded(this.current.metrics.minHpRatio),
       minMpRatio: this.current.metrics.minMpRatio == null ? null : rounded(this.current.metrics.minMpRatio),
-      hpPotions: rounded(this.current.metrics.potions, 3), mpPotions: 0, potions: rounded(this.current.metrics.potions, 3), potionAttribution: 'COMBINED_TELEMETRY',
+      hpPotions: rounded(exact.hpPotions + peerEstimate.hpPotions, 3), mpPotions: rounded(exact.mpPotions + peerEstimate.mpPotions, 3),
+      potions: rounded(exact.potions + peerEstimate.potions, 3),
+      progressAttribution: hasPeerEstimate ? 'LOCAL_EXACT_PLUS_PEER_RATE_ESTIMATE' : 'LOCAL_EXACT_DELTAS',
+      killAttribution: peerEstimate.kills > 0 ? 'LOCAL_CONFIRMED_PLUS_PEER_RATE_ESTIMATE' : 'LOCAL_CONFIRMED_TRANSITIONS_ONLY',
+      potionAttribution: hasPeerEstimate
+        ? (hasSplitPeerPotionEstimate ? 'LOCAL_EXACT_SPLIT_PLUS_PEER_RATE_ESTIMATE_SPLIT' : 'LOCAL_EXACT_SPLIT_PLUS_PEER_COMBINED_RATE_ESTIMATE')
+        : 'LOCAL_EXACT_SPLIT',
+      learningMetrics,
+      evidence: { exact, peerRateEstimate: peerEstimate, peerEstimateDiscount: evidenceWeight },
       damageTaken: rounded(this.current.metrics.damageTaken, 3), skillExecutions: this.current.metrics.skillExecutions,
       aoeSkillExecutions: this.current.metrics.aoeSkillExecutions, skills: { ...this.current.metrics.skills },
       movementFailures: this.current.metrics.movementFailures, skillFailures: this.current.metrics.skillFailures,
@@ -46551,7 +46592,7 @@ class Alpha25ControlCenterBrain {
     installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
-    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
+    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, remoteEncounterOutcomeBatches: 0, remoteEncounterOutcomeSkips: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -46625,17 +46666,25 @@ class Alpha25ControlCenterBrain {
       && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function'
       && this.brain && typeof this.brain.ingestEncounterOutcome === 'function') {
       try {
-        const rows = Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {})
+        const sourceRows = typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function'
+          ? this.runtime.partyTelemetry.encounterOutcomeList()
+          : Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {});
+        const rows = sourceRows
           .filter((row) => row && row.encounterId)
-          .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
-        if (rows.length) {
-          const accepted = this.brain.ingestEncounterOutcome(rows[0], { remote: true });
+          .sort((a, b) => Number(a.endedAt || 0) - Number(b.endedAt || 0) || String(a.encounterId).localeCompare(String(b.encounterId)));
+        let acceptedInBatch = 0;
+        for (const row of rows) {
+          const accepted = this.brain.ingestEncounterOutcome(row, { remote: true });
           if (accepted && accepted.accepted === true) {
             encounterOutcome = accepted;
+            acceptedInBatch += 1;
             this.stats.remoteEncounterOutcomes += 1;
             if (this.cloud && Array.isArray(this.cloud.pendingFeedback)) this.cloud.pendingFeedback.push(accepted);
+          } else if (accepted && accepted.reason !== 'ENCOUNTER_OUTCOME_DUPLICATE') {
+            this.stats.remoteEncounterOutcomeSkips += 1;
           }
         }
+        if (acceptedInBatch > 0) this.stats.remoteEncounterOutcomeBatches += 1;
       } catch (_) {}
     }
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
@@ -47837,8 +47886,9 @@ class StrategicBrainV2 {
     if (this.lastEncounterOutcome) rows.push(this.lastEncounterOutcome);
     if (this.runtime && this.runtime.lastEncounterOutcome) rows.push(this.runtime.lastEncounterOutcome);
     try {
-      if (this.runtime && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') {
-        rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
+      if (this.runtime && this.runtime.partyTelemetry) {
+        if (typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function') rows.push(...this.runtime.partyTelemetry.encounterOutcomeList());
+        else if (typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
       }
     } catch (_) {}
     const clean = rows.filter((row) => row && row.encounterId && Number.isFinite(Number(row.endedAt)));
