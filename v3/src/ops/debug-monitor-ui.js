@@ -726,8 +726,8 @@ class DebugMonitorUI {
         ['FARM', 'Farmen']
       ];
       const label = (labels.find(([key]) => upper.includes(key)) || [null, raw.replace(/[_-]+/g, ' ')])[1];
-      const progress = task && task.progress != null ? safeText(task.progress) : null;
-      return progress && progress !== '[object Object]' ? `${label} · ${progress}` : label;
+      const progress = task && (typeof task.progress === 'string' || typeof task.progress === 'number') ? safeText(task.progress) : null;
+      return progress ? `${label} · ${progress}` : label;
     }
     const farmer = status && status.farmer || {};
     const state = String(farmer.state || '').toUpperCase();
@@ -763,6 +763,7 @@ class DebugMonitorUI {
     const occupied = inventory.filter(Boolean).length;
     const capacityRaw = Number(character.isize);
     const capacity = Number.isFinite(capacityRaw) && capacityRaw >= 0 ? Math.floor(capacityRaw) : inventory.length;
+    const freeSlots = Math.max(0, capacity - occupied);
     return {
       status,
       character,
@@ -771,7 +772,7 @@ class DebugMonitorUI {
         ['Level', Number.isFinite(Number(character.level)) ? Math.floor(Number(character.level)) : '—'],
         ['HP', `${Number.isFinite(Number(character.hp)) ? Math.floor(Number(character.hp)) : '—'} / ${Number.isFinite(Number(character.max_hp)) ? Math.floor(Number(character.max_hp)) : '—'}`],
         ['MP', `${Number.isFinite(Number(character.mp)) ? Math.floor(Number(character.mp)) : '—'} / ${Number.isFinite(Number(character.max_mp)) ? Math.floor(Number(character.max_mp)) : '—'}`],
-        ['Inventar', `${occupied} / ${capacity}`],
+        ['Inventarplätze', `${freeSlots} frei / ${capacity}`],
         ['Aufgabe', this._taskText(status, character)]
       ]
     };
@@ -790,6 +791,7 @@ class DebugMonitorUI {
   _updateTitle(status = this._statusSnapshot()) {
     if (!this.titleNode) return;
     this.titleNode.textContent = `AiO v3 - ${this._visibleVersion(status && status.version)}`;
+    this.titleNode.title = status && status.version ? `Interne Version: ${status.version}` : 'Interne Version unbekannt';
   }
 
   _eventsText() {
