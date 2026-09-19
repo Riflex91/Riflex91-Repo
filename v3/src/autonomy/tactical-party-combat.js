@@ -2,6 +2,7 @@
 
 const { SmartAoePlanner, SmartAoeState } = require('./smart-aoe-planner');
 const { CombatMode } = require('./combat-modes');
+const { createPartyFingerprint } = require('../party/fingerprints');
 
 const TACTICAL_PARTY_COMBAT_MODE = 'leader-owned-multi-encounter-v2';
 
@@ -196,6 +197,14 @@ class TacticalPartyCombat {
     const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
       ? this.runtime._currentMembers(snapshot)
       : (team.members || []);
+    const lifecycleContext = this.encounterLifecycle && this.encounterLifecycle.current || null;
+    const partyFingerprint = this.runtime.currentPartyFingerprint
+      || (lifecycleContext && lifecycleContext.partyFingerprint ? { key: lifecycleContext.partyFingerprint } : createPartyFingerprint(currentMembers));
+    const encounterFingerprint = this.runtime.currentEncounterFingerprint || {
+      monster: { mtype: this.encounter.targetType || targets[0] && targets[0].mtype || null },
+      contentDisposition: lifecycleContext && lifecycleContext.contentDisposition || null,
+      event: null
+    };
     const aoe = this.smartAoePlanner.evaluate({
       mode: this._combatMode(snapshot, team),
       team,
@@ -206,8 +215,8 @@ class TacticalPartyCombat {
         snapshot,
         currentMembers,
         monster: this.encounter.targetType || targets[0] && targets[0].mtype || null,
-        encounterFingerprint: this.runtime.currentEncounterFingerprint || null,
-        partyFingerprint: this.runtime.currentPartyFingerprint || null,
+        encounterFingerprint,
+        partyFingerprint,
         isLeader: team.selfName === team.leaderName
       }
     });
