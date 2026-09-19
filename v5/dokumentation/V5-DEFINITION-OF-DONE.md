@@ -178,3 +178,21 @@ Fuer jede Bank-Capability:
 - [ ] Handover ist bei UNKNOWN/PARTIAL/STILL_PENDING/UNRESOLVED verboten.
 - [ ] Shell-Pack-Backend behaelt Lease/Channel bis Terminalresultat + Postcondition.
 - [ ] unmanaged/manual Bankowner fuehrt zu Quarantaene.
+
+
+## O. Player-Market RID / Partial Fill
+
+Fuer jede Player-Market-Capability:
+
+- [ ] raw trade_buy/trade_sell erzwingt eine nichtleere frisch beobachtete RID.
+- [ ] RID wird nicht als Idempotency-Key oder Quantity-Version verwendet.
+- [ ] aktuelle Listing-Menge wird vor jedem neuen Intent separat revalidiert.
+- [ ] ein Intent besitzt eine feste Menge.
+- [ ] insufficient quantity fuehrt zu Replan statt Auto-Downsize.
+- [ ] Partial Fill erzeugt bei Fortsetzung einen neuen Intent.
+- [ ] UNKNOWN wird nicht allein aus Remote-Listing-q reconciliert.
+- [ ] ListingAnchor pinnt Target, Slot, RID, Side, Item, Level und Preis.
+- [ ] RID-/Fingerprint-Drift invalidiert den geplanten Send.
+- [ ] trade_sell reproduziert die echte serverseitige Inventarauswahl.
+- [ ] nicht-fungible server-eligible Itemambiguitaet blockiert den Verkauf.
+- [ ] Gold/Inventory/Listing Resource Claims wirken kanalübergreifend.
