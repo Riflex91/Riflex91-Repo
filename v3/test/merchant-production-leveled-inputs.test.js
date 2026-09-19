@@ -256,6 +256,8 @@ test('Alpha27 rejects a production mutation when the exact output/recipient dema
 });
 
 
+// Final integration guard: Recovery owns startup first; once clear, Production
+// may hand exactly one leveled-material mutation to Alpha27 under its lease.
 test('production controller hands an actionable leveled input to Alpha27 under one exact production lease', async () => {
   let now = 1000;
   let captured = null;
