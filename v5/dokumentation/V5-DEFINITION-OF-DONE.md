@@ -217,3 +217,23 @@ Fuer jede Upgrade-/Compound-Capability:
 - [ ] Crash/Disconnect waehrend q fuehrt zu UNKNOWN/RECONCILE ohne Retry.
 - [ ] Response allein kann keinen Commit erzeugen; frische Inventory-Postcondition ist Pflicht.
 - [ ] Upgrade- und Compound-Channel sind jeweils FIFO-serialisiert und Inventory-Claims wirken kanalübergreifend.
+
+
+## Q. Exchange / Craft / Outputspace
+
+Fuer jede betreffende Capability:
+
+- [ ] Outputspace wird vor Send konservativ bewiesen.
+- [ ] generic add_item overflow ist kein erlaubter Planpfad.
+- [ ] Exchange pinnt Input, Drop-Graph und alle moeglichen Reward-Domaenen.
+- [ ] Exchange UNKNOWN wird nicht aus reward/num allein reconciliert.
+- [ ] rekursive Drop-Graphs sind bounded/versioniert.
+- [ ] exchange_buy pinnt exakten Token-Stack plus komplette q.
+- [ ] Normal Craft pinnt exakte Inputstacks.
+- [ ] Duplicate-Ingredient-Recipe-Drift sperrt Normal Craft bis Revalidierung.
+- [ ] auto_craft repliziert die aktuelle First-Match-Auswahl.
+- [ ] Anniversary Craft ist als eigener trusted Multi-Stack-Pfad getestet.
+- [ ] Leveled-Compound-Dismantle prueft drei Outputs und V5-eigene Lock-/Value-Policy.
+- [ ] Normal Dismantle reserviert alle moeglichen probabilistischen Outputs.
+- [ ] Output name/level/q/p/data werden pfadspezifisch reconciliert.
+- [ ] Crash/Disconnect nach moeglichem Send folgt UNKNOWN/Reconcile ohne Blind-Retry.
