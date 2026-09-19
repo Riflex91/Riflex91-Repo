@@ -247,4 +247,17 @@ Der gesamte erlaubte Lese- und Schreibbereich bleibt jedoch `v5/wissensbasis/**`
 
 ### Quellenverarbeitung
 
-Pro Lauf werden die registrierten Quellen aus `v5/wissensbasis/quellen/quellen.json` geprueft. Inhalte werden per SHA-256 verglichen. Zusaetzlich sucht die Bridge nach neuen Adventure-Land-Quellen. Neue oder nicht offizielle Quellen werden als Kandidaten gespeichert und nicht automatisch zu bestaetigten Fakten erhoben.
+Pro Lauf werden die registrierten Quellen aus `v5/wissensbasis/quellen/quellen.json` geprueft. Inhalte werden per SHA-256 verglichen. Zusaetzlich sucht die Bridge nach neuen Quellen zu **Adventure Land - The Code MMORPG**.
+
+Webfunde werden fail-closed gefiltert:
+
+- der Text der Suchanfrage selbst zaehlt niemals als Relevanznachweis;
+- bekannte offizielle Adventure-Land-Adressen werden direkt zugelassen;
+- alle anderen Treffer muessen zuerst einen Adventure-Land-spezifischen Vorfilter bestehen;
+- danach wird die gefundene Seite tatsaechlich abgerufen und ihr Inhalt auf eindeutige Spielmerkmale wie `adventure.land`, Steam-App-ID `777150`, das offizielle Repository oder den kanonischen MMORPG-Namen geprueft;
+- nicht erreichbare, nicht textuelle oder nicht eindeutig zuordenbare Treffer werden verworfen;
+- private/Loopback-IP-Ziele werden bereits als Webfund blockiert;
+- gespeicherte Kandidaten enthalten einen expliziten `ADVENTURE_LAND_...`-Relevanznachweis;
+- Alt-Kandidaten ohne diesen Nachweis werden beim naechsten Lauf automatisch entfernt.
+
+Neue oder nicht offizielle, aber verifizierte Quellen bleiben Kandidaten und werden nicht automatisch zu bestaetigten Fakten erhoben.
