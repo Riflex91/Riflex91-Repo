@@ -29,7 +29,7 @@ Regressionen:
 - `v4/laufzeit/tests/adventure-land-skill-technik.test.mjs`
 - `v4/laufzeit/tests/charakter-faehigkeiten.test.mjs`
 
-Der bestehende `AdventureLandKampfBereitschaftLesezugriff` wird wiederverwendet. Seine Cooldown-/`can_use`-Logik wird nicht ein zweites Mal implementiert.
+Der bestehende `AdventureLandKampfBereitschaftLesezugriff` wird unveraendert wiederverwendet. Seine Cooldown-/`can_use`-Logik wird nicht ein zweites Mal implementiert.
 
 ## Vier getrennte Ebenen
 
@@ -86,15 +86,15 @@ Wenn der Katalog MP-Kosten nennt, muss aktuelles `character.mp` sicher lesbar un
 
 ### Cooldown und can_use
 
-8.6.4 erweitert den vorhandenen `AdventureLandKampfBereitschaftLesezugriff` um die read-only Methode `liesSkillNutzbarkeit`.
+8.6.4 veraendert den vorhandenen `AdventureLandKampfBereitschaftLesezugriff` nicht.
 
-Sie:
+Die technische Skill-Readiness ruft ausschliesslich dessen bestehende `liesAktionsBereitschaft`-API auf. Dadurch bleiben die bereits freigegebenen Regeln unveraendert:
 
-1. verwendet die bestehende Cooldown-/Shared-Cooldown-Aufloesung,
-2. prueft bei grundsaetzlich freiem Cooldown zusaetzlich `can_use`, sofern verfuegbar,
-3. behandelt `can_use=false` ohne geratene Ursache als `unbekannt`.
+1. `is_on_cooldown` und Shared-Cooldown-Aufloesung werden bevorzugt,
+2. `can_use` bleibt der vorhandene positive Fallback, wenn keine Cooldown-Schnittstelle verfuegbar ist,
+3. `can_use=false` wird ohne geratene Ursache als `unbekannt` behandelt.
 
-Damit wird kein zweiter Cooldown- oder `can_use`-Pfad eingefuehrt.
+Damit wird weder ein zweiter Cooldown-/`can_use`-Pfad noch eine Aenderung an der immutable Block-8.5-Runtime eingefuehrt.
 
 ## Unbekannte neue Skills
 
