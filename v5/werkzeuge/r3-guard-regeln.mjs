@@ -49,6 +49,27 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
     fehler.push("DIREKTER_NETZWERKZUGRIFF");
   }
 
+  const istWissensKonsument = [
+    "laufzeit/quelle/",
+    "ausfuehrung/quelle/",
+    "module/quelle/",
+    "scheduler/quelle/",
+    "lernen/quelle/",
+    "host/quelle/",
+    "merchant/quelle/",
+    "gruppe/quelle/",
+    "kampf/quelle/",
+    "bewegung/quelle/",
+    "navigation/quelle/",
+    "welt/quelle/",
+    "oberflaeche/quelle/",
+  ].some(prefix => pfad.startsWith(prefix));
+
+  if (istWissensKonsument
+      && /wissen\/(?:typen|snapshot|verifier|abgleich|drift-quarantaene)\.js/.test(quelltext)) {
+    fehler.push("WISSENSZUGRIFF_PORT_BYPASS");
+  }
+
   const istHotPath = [
     "kampf/quelle/",
     "bewegung/quelle/",

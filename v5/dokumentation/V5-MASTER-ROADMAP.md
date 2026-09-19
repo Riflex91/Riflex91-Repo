@@ -457,6 +457,8 @@ Exit Gate:
 
 ## R6 – Observation, Evidence und Reconciled World Truth
 
+**Status:** IN_PROGRESS.
+
 Bauen:
 - Definition Truth Adapter;
 - Character Observation;

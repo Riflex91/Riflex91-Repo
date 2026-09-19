@@ -11,6 +11,14 @@ const quellWurzeln = [
   "module/quelle",
   "scheduler/quelle",
   "lernen/quelle",
+  "beobachtung/quelle",
+  "merchant/quelle",
+  "gruppe/quelle",
+  "kampf/quelle",
+  "bewegung/quelle",
+  "navigation/quelle",
+  "welt/quelle",
+  "oberflaeche/quelle",
   "host/quelle",
 ].map(pfad => path.join(wurzel, pfad));
 
