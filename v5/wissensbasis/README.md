@@ -38,8 +38,9 @@ Snapshots dienen Planung, Regression, Dokumentation, Fallback/Diagnose und Chang
 4. Driftstatus setzen;
 5. gegen aktuelle offizielle/Live-Quelle revalidieren;
 6. Fact bestaetigen oder superseden;
-7. offene Fragen und Architekturfolgen aktualisieren;
-8. Validator ausfuehren;
-9. PR mit nachvollziehbarer Evidence.
+7. betroffene Action Contracts aktualisieren oder bei ungeklaerter Live-Semantik auf `LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT` sperren;
+8. offene Fragen und Architekturfolgen aktualisieren;
+9. Validator ausfuehren;
+10. PR mit nachvollziehbarer Evidence.
 
 Die Knowledge Base informiert Entscheidungen. Gameplay-Autoritaet entsteht erst durch frische Admission-/Live-State-Pruefungen im Runtime-Kern.
