@@ -543,9 +543,18 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const gd = gameDataOf(this.runtime);
     if (!c || !ledger) return null;
     const groups = new Map();
+    const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
     for (const row of ledger.list(1000)) {
       if (!row || row.character !== c.name || row.disposition !== 'RESERVE_COMPOUND' || this.atomic.mutationRetryBlocked(row, 'COMPOUND')) continue;
       const level = levelOf(row);
+      const ownedByProduction = !!(
+        productionDemand
+        && finite(productionDemand.expiresAt, 0) > this.now()
+        && String(productionDemand.family || '').toUpperCase() === 'COMPOUND'
+        && String(productionDemand.item || '') === String(row.name || '')
+        && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === level
+      );
+      if (ownedByProduction) continue;
       const meta = gd.items && gd.items[row.name];
       if (!meta || !meta.compound || level >= this.options.maxCompoundLevel || gradeForLevel(meta, level) >= 4) continue;
       const key = `${row.name}:${level}`;
