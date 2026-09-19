@@ -111,6 +111,7 @@ const { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode } = require('./auton
 const { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE } = require('./autonomy/smart-aoe-planner');
 const { AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION } = require('./autonomy/adaptive-pull-learning');
 const { EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome } = require('./autonomy/encounter-lifecycle');
+const { AoeFarmingCertification, installAoeFarmingCertification, AOE_FARMING_CERTIFICATION_MODE } = require('./autonomy/aoe-farming-certification');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -544,6 +545,7 @@ module.exports = {
   CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode, SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE,
   AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
   EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome,
+  AoeFarmingCertification, installAoeFarmingCertification, AOE_FARMING_CERTIFICATION_MODE,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
   FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, MOVING_TARGET_FRESHNESS_MODE, deriveMotion, positionFreshness, cleanMotion, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
@@ -9207,7 +9209,10 @@ function composeAlpha9Runtime(options = {}) {
 this.localFarmPlanner = options.localFarmPlanner || new LocalFarmPlanner({
       log: this.log,
       minExpectedImprovement: options.localFarmMinExpectedImprovement,
-      maxCandidates: options.localFarmMaxCandidates
+      maxCandidates: options.localFarmMaxCandidates,
+      aoeClusterRadius: options.localFarmAoeClusterRadius,
+      aoePreferredBonus: options.localFarmAoePreferredBonus,
+      aoeSmartBonus: options.localFarmAoeSmartBonus
     });
     this.localFarming = options.localFarming || new LocalFarmOrchestrator({
       now: this.now,
@@ -9234,11 +9239,33 @@ class Alpha9Runtime extends StabilityRuntime {
     composeAlpha9Runtime.call(this, options);
   }
 
+  _farmPlanningParty(snapshot) {
+    const party = this._partyProfile(snapshot);
+    let capabilities = null;
+    try {
+      capabilities = this.partyCapabilityResolver && typeof this.partyCapabilityResolver.status === 'function'
+        ? this.partyCapabilityResolver.status()
+        : null;
+    } catch (_) { capabilities = null; }
+    let combatMode = 'smart_auto';
+    try {
+      combatMode = this.characterCombatProfiles && typeof this.characterCombatProfiles.getCombatMode === 'function'
+        ? this.characterCombatProfiles.getCombatMode(snapshot && snapshot.character && snapshot.character.name)
+        : combatMode;
+    } catch (_) {}
+    let aoe = { combatMode, configured: false, hardCapacity: 1, desiredPullSize: 1, skills: [] };
+    try {
+      const smart = this.tacticalPartyCombat && this.tacticalPartyCombat.smartAoePlanner;
+      if (smart && typeof smart.planningProfile === 'function') aoe = smart.planningProfile(combatMode, capabilities);
+    } catch (_) {}
+    return { ...party, aoe };
+  }
+
   tick() {
     super.tick();
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return;
-    const party = this._partyProfile(snapshot);
+    const party = this._farmPlanningParty(snapshot);
     const gameData = this.adapter.getGameData() || {};
     this.localFarming.tick({
       runtime: this,
@@ -9323,6 +9350,24 @@ function spawnCenter(entry) {
   return null;
 }
 
+function spawnCountHint(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return 1;
+  for (const key of ['count', 'quantity', 'num', 'max_count', 'maxCount', 'population']) {
+    const value = Number(entry[key]);
+    if (Number.isFinite(value) && value > 0) return Math.max(1, Math.floor(value));
+  }
+  return 1;
+}
+
+function aoeContext(party) {
+  const raw = party && party.aoe || {};
+  const mode = String(raw.combatMode || raw.mode || 'smart_auto');
+  const configured = raw.configured === true && mode !== 'single_target';
+  const hardCapacity = Math.max(1, Math.min(12, Math.floor(Number(raw.hardCapacity) || 1)));
+  const desiredPullSize = Math.max(1, Math.min(hardCapacity, Math.floor(Number(raw.desiredPullSize) || Math.min(hardCapacity, 2))));
+  return { configured, mode, hardCapacity, desiredPullSize };
+}
+
 function contentDisposition(world, mtype) {
   if (!world || typeof world.fact !== 'function' || !mtype) return null;
   try {
@@ -9346,6 +9391,9 @@ class LocalFarmPlanner {
     this.log = options.log || null;
     this.minExpectedImprovement = Math.max(0.05, Math.min(1, Number(options.minExpectedImprovement) || 0.2));
     this.maxCandidates = Math.max(5, Math.min(100, Number(options.maxCandidates) || 40));
+    this.aoeClusterRadius = Math.max(120, Math.min(900, Number(options.aoeClusterRadius) || 420));
+    this.aoePreferredBonus = Math.max(0, Math.min(0.30, Number(options.aoePreferredBonus) || 0.14));
+    this.aoeSmartBonus = Math.max(0, Math.min(0.20, Number(options.aoeSmartBonus) || 0.08));
   }
 
   spawnCandidates(snapshot, gameData, world, party) {
@@ -9355,6 +9403,7 @@ class LocalFarmPlanner {
     const raw = mapData && mapData.monsters;
     if (!raw) return [];
     const entries = Array.isArray(raw) ? raw : Object.values(raw);
+    const descriptors = entries.map((entry, index) => ({ entry, index, mtype: spawnType(entry), center: spawnCenter(entry), count: spawnCountHint(entry) }));
     const monsterData = gameData && gameData.monsters || {};
     const fingerprint = party && party.fingerprint || null;
     const rows = [];
@@ -9370,6 +9419,17 @@ class LocalFarmPlanner {
         ? world.performanceFor(mtype, fingerprint)
         : null;
       const metadata = monsterData[mtype] || {};
+      const livePackCount = (snapshot.entities || []).filter((row) => row && row.mtype === mtype && !row.dead && Number(row.hp == null ? 1 : row.hp) > 0 && distance(row, center) <= this.aoeClusterRadius).length;
+      const clusterRows = descriptors.filter((row) => row.index !== index && row.mtype === mtype && row.center && distance(row.center, center) <= this.aoeClusterRadius);
+      const clusterSpawnCount = spawnCountHint(entry) + clusterRows.reduce((sum, row) => sum + Math.max(1, row.count), 0);
+      const packPotential = Math.max(1, livePackCount, clusterSpawnCount);
+      const aoe = aoeContext(party);
+      const fit = aoe.configured ? Math.max(0, Math.min(1, packPotential / Math.max(1, aoe.desiredPullSize))) : 0;
+      const density = aoe.configured ? Math.max(0, Math.min(1, packPotential / Math.max(1, aoe.hardCapacity))) : 0;
+      const baseAoeBonus = aoe.mode === 'aoe_preferred' ? this.aoePreferredBonus : this.aoeSmartBonus;
+      const aoeFarmBonus = aoe.configured
+        ? Math.max(-0.05, baseAoeBonus * (fit * 0.65 + density * 0.35) - (packPotential < 2 && aoe.mode === 'aoe_preferred' ? 0.04 : 0))
+        : 0;
       const travel = distance(snapshot.character, center);
       const speed = Math.max(1, Number(snapshot.character.speed) || 40);
       rows.push({
@@ -9385,7 +9445,13 @@ class LocalFarmPlanner {
         deathsPerHour: learned ? learned.deathsPerHour : 0,
         confidence: learned ? learned.confidence : 0.1,
         travelSeconds: Number.isFinite(travel) ? travel / speed : 120,
-        source: learned ? 'measured-spawn' : 'known-spawn-metadata'
+        source: learned ? 'measured-spawn' : 'known-spawn-metadata',
+        packPotential,
+        livePackCount,
+        spawnClusterCount: clusterRows.length + 1,
+        aoeFarmFit: Number(fit.toFixed(4)),
+        aoeFarmBonus: Number(aoeFarmBonus.toFixed(5)),
+        aoePlanning: aoe
       });
     }
     return rows;
@@ -9399,8 +9465,16 @@ class LocalFarmPlanner {
           character: snapshot.character && snapshot.character.name || null,
           partyFingerprint: party && party.fingerprint || null
         })
-      : candidates.slice();
-    return ranked;
+      : candidates.map((row) => ({ ...row, score: Number(row.score) || 0 }));
+    return ranked.map((row) => {
+      const bonus = Number(row.aoeFarmBonus) || 0;
+      return {
+        ...row,
+        baseScore: Number(row.score) || 0,
+        score: Math.max(0, (Number(row.score) || 0) + bonus),
+        scoring: { ...(row.scoring || {}), aoeFarmBonus: bonus, aoeFarmFit: Number(row.aoeFarmFit) || 0 }
+      };
+    }).sort((a, b) => b.score - a.score || b.packPotential - a.packPotential || b.xpPerHour - a.xpPerHour || a.travelSeconds - b.travelSeconds);
   }
 
   materiallyBetter(current, candidate) {
@@ -9417,6 +9491,8 @@ module.exports = {
   NON_FARM_MONSTER_TYPES,
   spawnType,
   spawnCenter,
+  spawnCountHint,
+  aoeContext,
   contentDisposition,
   isApprovedDisposition,
   isFarmableMonsterType
@@ -9831,7 +9907,7 @@ class Alpha10Runtime extends Alpha9Runtime {
   _brainAudit() {
     const snapshot = this.lastSnapshot;
     if (!snapshot || !snapshot.character) return null;
-    const party = this._partyProfile(snapshot);
+    const party = typeof this._farmPlanningParty === 'function' ? this._farmPlanningParty(snapshot) : this._partyProfile(snapshot);
     const gameData = this.adapter.getGameData() || {};
     const candidates = this.localFarmPlanner.spawnCandidates(snapshot, gameData, this.world, party);
     const teacherRanking = candidates.length
@@ -32163,6 +32239,7 @@ const { patchAlpha2019LogisticsStabilization } = require('../party/alpha20-19-lo
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
 const { installAdaptivePullLearner } = require('../autonomy/adaptive-pull-learning');
 const { installEncounterLifecycle } = require('../autonomy/encounter-lifecycle');
+const { installAoeFarmingCertification } = require('../autonomy/aoe-farming-certification');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
 const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
@@ -32184,6 +32261,7 @@ class IntegratedPartyControl {
     this.progressionIntelligence = components.progressionIntelligence || null;
     this.adaptivePullLearner = components.adaptivePullLearner || null;
     this.encounterLifecycle = components.encounterLifecycle || null;
+    this.aoeFarmingCertification = components.aoeFarmingCertification || null;
     this.tacticalPartyCombat = components.tacticalPartyCombat || null;
     this.advancedPartyMovement = components.advancedPartyMovement || null;
     this.partySkillEngine = components.partySkillEngine || null;
@@ -32213,6 +32291,7 @@ class IntegratedPartyControl {
       alpha20_16: farm && typeof farm.status === 'function' ? farm.status().alpha20_16 || null : { prototypePatched: this.adaptiveFarmPatched, awaitingFarmAreaInstance: true },
       alpha20_17: this.tacticalPartyCombat && this.tacticalPartyCombat.status ? this.tacticalPartyCombat.status() : null,
       adaptivePullLearning: this.adaptivePullLearner && this.adaptivePullLearner.status ? this.adaptivePullLearner.status() : null,
+      aoeFarmingCertification: this.aoeFarmingCertification && this.aoeFarmingCertification.status ? this.aoeFarmingCertification.status() : null,
       alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
       alpha20_19: {
         transportPrototypePatched: this.transportPatched,
@@ -32242,13 +32321,14 @@ function installIntegratedPartyControl(runtime, options = {}) {
   const progressionIntelligence = installAlpha21ProgressionIntelligence(runtime, options.progressionIntelligence || {});
   const adaptivePullLearner = installAdaptivePullLearner(runtime, options.adaptivePullLearning || {});
   const encounterLifecycle = installEncounterLifecycle(runtime, options.encounterLifecycle || {});
+  const aoeFarmingCertification = installAoeFarmingCertification(runtime, options.aoeFarmingCertification || {});
   const tacticalPartyCombat = installTacticalPartyCombat(runtime, { ...(options.tacticalPartyCombat || {}), adaptivePullLearner, encounterLifecycle });
   runtime.tacticalPartyCombat = tacticalPartyCombat;
   const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, adaptivePullLearner, encounterLifecycle, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, adaptivePullLearner, encounterLifecycle, aoeFarmingCertification, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }
@@ -33802,6 +33882,20 @@ class SmartAoePlanner {
     return Math.min(capacity, Math.min(...thresholds));
   }
 
+  planningProfile(mode, partyCapabilities) {
+    const resolvedMode = normalizeCombatMode(mode, CombatMode.SMART_AUTO);
+    const skills = this._aoeSkills(partyCapabilities);
+    const hardCapacity = this._hardCapacity(resolvedMode, partyCapabilities, skills);
+    const desiredPullSize = this._desiredSize(resolvedMode, hardCapacity, skills);
+    return {
+      combatMode: resolvedMode,
+      configured: hardCapacity > 1 && !!(partyCapabilities && partyCapabilities.combat && partyCapabilities.combat.aoeConfigured),
+      hardCapacity,
+      desiredPullSize,
+      skills: skills.map((row) => ({ ...row }))
+    };
+  }
+
   evaluate(input = {}) {
     this.stats.evaluations += 1;
     const mode = normalizeCombatMode(input.mode, CombatMode.SMART_AUTO);
@@ -34302,13 +34396,18 @@ class EncounterLifecycle {
     else if (outcome === EncounterOutcome.CONTENT_DRIFT) this.stats.contentDrift += 1;
     else if (outcome === EncounterOutcome.PARTY_FAILURE) this.stats.partyFailures += 1;
 
-    let adaptiveRecord = null; let brainOutcome = null;
+    let adaptiveRecord = null; let brainOutcome = null; let aoeCertification = null;
     try {
       if (this.runtime.adaptivePullLearner && typeof this.runtime.adaptivePullLearner.recordEncounterOutcome === 'function') {
         adaptiveRecord = this.runtime.adaptivePullLearner.recordEncounterOutcome(final);
         if (adaptiveRecord) this.stats.adaptiveRecords += 1;
       }
       if (this.runtime.partyPerformance && typeof this.runtime.partyPerformance.save === 'function') this.runtime.partyPerformance.save();
+    } catch (_) {}
+    try {
+      if (this.runtime.aoeFarmingCertification && typeof this.runtime.aoeFarmingCertification.recordOutcome === 'function') {
+        aoeCertification = this.runtime.aoeFarmingCertification.recordOutcome(final);
+      }
     } catch (_) {}
     try {
       const brain = this.runtime.strategicBrainV2 || this.runtime.brain;
@@ -34325,7 +34424,7 @@ class EncounterLifecycle {
       encounterId: final.encounterId, outcome: final.outcome, durationSeconds: final.durationSeconds, monster: final.monster,
       maxEngaged: final.maxEngaged, xp: final.xp, gold: final.gold, deaths: final.deaths, retreats: final.retreats,
       nearDeaths: final.nearDeaths, safetyMargin: final.safetyMargin, score: final.score,
-      adaptiveRecorded: !!adaptiveRecord, brainAccepted: !!(brainOutcome && brainOutcome.accepted)
+      adaptiveRecorded: !!adaptiveRecord, brainAccepted: !!(brainOutcome && brainOutcome.accepted), aoeCertification: aoeCertification ? { accepted: aoeCertification.accepted === true, smoke: aoeCertification.smoke || null, soak: aoeCertification.soak || null } : null
     });
     return clone(final);
   }
@@ -34344,6 +34443,191 @@ function installEncounterLifecycle(runtime, options = {}) {
 }
 
 module.exports = { EncounterLifecycle, installEncounterLifecycle, ENCOUNTER_LIFECYCLE_MODE, ENCOUNTER_OUTCOME_SCHEMA_VERSION, EncounterLifecycleState, EncounterOutcome };
+
+},
+"src/autonomy/aoe-farming-certification.js": function(require,module,exports){
+'use strict';
+
+const AOE_FARMING_CERTIFICATION_MODE = 'aoe-farming-certification-v1';
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clone(value, fallback = null) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+function clamp(value, lo = 0, hi = 1) { return Math.max(lo, Math.min(hi, finite(value, lo))); }
+
+class AoeFarmingCertification {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.now = options.now || runtime.now || (() => Date.now());
+    this.log = options.log || runtime.log || null;
+    this.config = {
+      soakWindowMs: Math.max(60 * 1000, Math.min(60 * 60 * 1000, finite(options.soakWindowMs, 10 * 60 * 1000))),
+      minSoakEncounters: Math.max(4, Math.min(200, Math.floor(finite(options.minSoakEncounters, 12)))),
+      minDistinctPullSizes: Math.max(1, Math.min(6, Math.floor(finite(options.minDistinctPullSizes, 2)))),
+      minSafetyMargin: clamp(options.minSafetyMargin == null ? 0.45 : options.minSafetyMargin),
+      maxNearDeathRate: clamp(options.maxNearDeathRate == null ? 0.10 : options.maxNearDeathRate),
+      maxRetreatRate: clamp(options.maxRetreatRate == null ? 0.15 : options.maxRetreatRate)
+    };
+    this.startedAt = this.now();
+    this.rows = [];
+    this.lastOutcome = null;
+    this.lastFailure = null;
+    this.stats = {
+      outcomesSeen: 0,
+      aoeOutcomes: 0,
+      liveSmokePasses: 0,
+      liveSmokeFailures: 0,
+      soakPasses: 0,
+      soakResets: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'aoe-farming-certification', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _isAoe(row) {
+    return !!(row && finite(row.maxEngaged, 0) >= 2 && finite(row.aoeSkillExecutions, 0) >= 1);
+  }
+
+  _liveSmoke(row) {
+    if (!this._isAoe(row)) return { eligible: false, pass: false, reason: 'AOE_EVIDENCE_REQUIRED' };
+    const active = String(this.runtime && this.runtime.adapter && this.runtime.adapter.mode || '') === 'active';
+    if (!active) return { eligible: false, pass: false, reason: 'ACTIVE_RUNTIME_REQUIRED' };
+    if (row.learningEligible !== true) return { eligible: true, pass: false, reason: 'OUTCOME_NOT_LEARNING_ELIGIBLE' };
+    if (String(row.outcome) !== 'SUCCESS') return { eligible: true, pass: false, reason: 'OUTCOME_' + String(row.outcome || 'UNKNOWN') };
+    if (finite(row.deaths, 0) > 0) return { eligible: true, pass: false, reason: 'DEATH_OBSERVED' };
+    if (finite(row.retreats, 0) > 0) return { eligible: true, pass: false, reason: 'RETREAT_OBSERVED' };
+    if (finite(row.safetyMargin, 0) < this.config.minSafetyMargin) return { eligible: true, pass: false, reason: 'SAFETY_MARGIN_BELOW_FLOOR' };
+    return { eligible: true, pass: true, reason: 'CONTROLLED_LIVE_AOE_ENCOUNTER_PASSED' };
+  }
+
+  _trim(now) {
+    const floor = now - this.config.soakWindowMs;
+    this.rows = this.rows.filter((row) => finite(row.endedAt, 0) >= floor);
+  }
+
+  _soak() {
+    const rows = this.rows.filter((row) => this._isAoe(row) && row.learningEligible === true);
+    const count = rows.length;
+    const deaths = rows.reduce((sum, row) => sum + Math.max(0, finite(row.deaths, 0)), 0);
+    const nearDeaths = rows.reduce((sum, row) => sum + Math.max(0, finite(row.nearDeaths, 0)), 0);
+    const retreats = rows.reduce((sum, row) => sum + Math.max(0, finite(row.retreats, 0)), 0);
+    const partyFailures = rows.filter((row) => String(row.outcome) === 'PARTY_FAILURE').length;
+    const contentDrift = rows.filter((row) => String(row.outcome) === 'CONTENT_DRIFT').length;
+    const interrupted = rows.filter((row) => String(row.outcome) === 'INTERRUPTED').length;
+    const safety = rows.length ? rows.reduce((sum, row) => sum + clamp(row.safetyMargin), 0) / rows.length : 0;
+    const pullSizes = [...new Set(rows.map((row) => Math.max(1, Math.floor(finite(row.maxEngaged, 1)))))].sort((a, b) => a - b);
+    const nearDeathRate = count ? nearDeaths / count : 0;
+    const retreatRate = count ? retreats / count : 0;
+    const enoughDuration = !!(rows.length && (finite(rows[rows.length - 1].endedAt, 0) - finite(rows[0].endedAt, 0) >= this.config.soakWindowMs * 0.80));
+    const pass = count >= this.config.minSoakEncounters
+      && pullSizes.length >= this.config.minDistinctPullSizes
+      && enoughDuration
+      && deaths === 0
+      && partyFailures === 0
+      && contentDrift === 0
+      && interrupted === 0
+      && safety >= this.config.minSafetyMargin
+      && nearDeathRate <= this.config.maxNearDeathRate
+      && retreatRate <= this.config.maxRetreatRate;
+    let reason = 'SOAK_INCOMPLETE';
+    if (pass) reason = 'AOE_SOAK_PASSED';
+    else if (deaths > 0) reason = 'SOAK_DEATH_OBSERVED';
+    else if (partyFailures > 0) reason = 'SOAK_PARTY_FAILURE';
+    else if (contentDrift > 0) reason = 'SOAK_CONTENT_DRIFT';
+    else if (interrupted > 0) reason = 'SOAK_INTERRUPTED';
+    else if (nearDeathRate > this.config.maxNearDeathRate) reason = 'SOAK_NEAR_DEATH_RATE_HIGH';
+    else if (retreatRate > this.config.maxRetreatRate) reason = 'SOAK_RETREAT_RATE_HIGH';
+    else if (safety < this.config.minSafetyMargin) reason = 'SOAK_SAFETY_MARGIN_LOW';
+    else if (pullSizes.length < this.config.minDistinctPullSizes) reason = 'SOAK_PULL_VARIETY_INCOMPLETE';
+    else if (count < this.config.minSoakEncounters) reason = 'SOAK_SAMPLE_COUNT_INCOMPLETE';
+    else if (!enoughDuration) reason = 'SOAK_DURATION_INCOMPLETE';
+    return {
+      pass, reason, count, deaths, nearDeaths, retreats, partyFailures, contentDrift, interrupted,
+      nearDeathRate: Number(nearDeathRate.toFixed(4)),
+      retreatRate: Number(retreatRate.toFixed(4)),
+      averageSafetyMargin: Number(safety.toFixed(4)),
+      pullSizes,
+      enoughDuration
+    };
+  }
+
+  recordOutcome(outcome) {
+    if (!outcome || !outcome.encounterId) return null;
+    const now = this.now();
+    this.stats.outcomesSeen += 1;
+    if (!this._isAoe(outcome)) return { accepted: false, reason: 'NON_AOE_ENCOUNTER' };
+    this.stats.aoeOutcomes += 1;
+    const row = clone(outcome);
+    this.lastOutcome = row;
+    this.rows.push(row);
+    this._trim(now);
+
+    const smoke = this._liveSmoke(row);
+    if (smoke.eligible) {
+      if (smoke.pass) {
+        this.stats.liveSmokePasses += 1;
+        this._event('AOE_LIVE_SMOKE_PASS', 'info', smoke.reason, {
+          encounterId: row.encounterId,
+          maxEngaged: row.maxEngaged,
+          safetyMargin: row.safetyMargin,
+          aoeSkillExecutions: row.aoeSkillExecutions
+        });
+      } else {
+        this.stats.liveSmokeFailures += 1;
+        this.lastFailure = { at: now, stage: 'LIVE_SMOKE', reason: smoke.reason, encounterId: row.encounterId };
+        this._event('AOE_LIVE_SMOKE_FAIL', 'warn', smoke.reason, clone(this.lastFailure));
+      }
+    }
+
+    const soak = this._soak();
+    if (soak.pass) {
+      this.stats.soakPasses += 1;
+      this._event('AOE_SOAK_PASS', 'info', soak.reason, soak);
+    } else if (['SOAK_DEATH_OBSERVED', 'SOAK_PARTY_FAILURE', 'SOAK_CONTENT_DRIFT'].includes(soak.reason)) {
+      this.stats.soakResets += 1;
+      this.lastFailure = { at: now, stage: 'SOAK', reason: soak.reason, encounterId: row.encounterId };
+    }
+    return { accepted: true, smoke, soak };
+  }
+
+  status() {
+    const soak = this._soak();
+    return {
+      schemaVersion: 1,
+      mode: AOE_FARMING_CERTIFICATION_MODE,
+      observationOnly: true,
+      gameplayAuthority: false,
+      startedAt: this.startedAt,
+      config: { ...this.config },
+      liveSmoke: {
+        pass: this.stats.liveSmokePasses > 0,
+        passes: this.stats.liveSmokePasses,
+        failures: this.stats.liveSmokeFailures
+      },
+      soak,
+      lastOutcome: clone(this.lastOutcome),
+      lastFailure: clone(this.lastFailure),
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installAoeFarmingCertification(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.aoeFarmingCertification) return runtime.aoeFarmingCertification;
+  runtime.aoeFarmingCertification = new AoeFarmingCertification(runtime, options);
+  return runtime.aoeFarmingCertification;
+}
+
+module.exports = { AoeFarmingCertification, installAoeFarmingCertification, AOE_FARMING_CERTIFICATION_MODE };
 
 },
 "src/autonomy/tactical-party-combat.js": function(require,module,exports){
@@ -34379,6 +34663,8 @@ class TacticalPartyCombat {
       maxAvoidance: clamp(finite(options.maxAvoidance, 0.70), 0.30, 0.95),
       pullExpansionIntervalMs: Math.max(500, finite(options.pullExpansionIntervalMs, 1100)),
       pendingPullTimeoutMs: Math.max(1200, finite(options.pendingPullTimeoutMs, 3000)),
+      agitateMinAdditionalTargets: Math.max(2, Math.min(6, Math.floor(finite(options.agitateMinAdditionalTargets, 2)))),
+      agitateRangePadding: Math.max(0, Math.min(80, finite(options.agitateRangePadding, 15))),
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
     this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
@@ -34394,7 +34680,7 @@ class TacticalPartyCombat {
     this.lastDecision = null;
     this.lastPullExpansionAt = -Infinity;
     this.pendingPull = null;
-    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0 };
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
     this.installed = false;
     this.install();
   }
@@ -34521,22 +34807,34 @@ class TacticalPartyCombat {
     if (!this.encounter || !snapshot || !team) return null;
     const now = this.now();
     if (this.pendingPull) {
-      const observed = (snapshot.entities || []).find((row) => row && String(row.id) === String(this.pendingPull.targetId)
+      const expectedIds = (Array.isArray(this.pendingPull.targetIds) && this.pendingPull.targetIds.length
+        ? this.pendingPull.targetIds
+        : [this.pendingPull.targetId]).filter((id) => id != null).map(String);
+      const alreadyObserved = new Set((this.pendingPull.observedIds || []).map(String));
+      const observed = (snapshot.entities || []).filter((row) => row && expectedIds.includes(String(row.id))
         && row.target != null && (team.names || []).includes(String(row.target))
         && !row.dead && finite(row.hp, 1) > 0);
-      if (observed) {
-        this.stats.pullExpansionObserved += 1;
+      for (const row of observed) alreadyObserved.add(String(row.id));
+      const newlyObserved = Math.max(0, alreadyObserved.size - (this.pendingPull.observedIds || []).length);
+      if (newlyObserved > 0) {
+        this.stats.pullExpansionObserved += newlyObserved;
+        this.pendingPull.observedIds = [...alreadyObserved];
+      }
+      if (expectedIds.length > 0 && expectedIds.every((id) => alreadyObserved.has(id))) {
         this._event('SMART_AOE_PULL_OBSERVED', 'info', 'PENDING_PULL_JOINED_ENCOUNTER', {
-          targetId: String(observed.id),
-          targetType: observed.mtype || null,
+          targetIds: expectedIds.slice(),
+          targetType: this.pendingPull.targetType || null,
+          via: this.pendingPull.via || 'TAG',
           pullOwner: team.leaderName || null
         });
         this.pendingPull = null;
       } else if (now >= finite(this.pendingPull.expiresAt, 0)) {
         this.stats.pullExpansionTimeouts += 1;
         this._event('SMART_AOE_PULL_TIMEOUT', 'warn', 'PULL_AGGRO_NOT_OBSERVED', {
-          targetId: this.pendingPull.targetId,
-          targetType: this.pendingPull.targetType || null
+          targetIds: expectedIds.slice(),
+          observedIds: [...alreadyObserved],
+          targetType: this.pendingPull.targetType || null,
+          via: this.pendingPull.via || 'TAG'
         });
         this.pendingPull = null;
       }
@@ -34692,6 +34990,123 @@ class TacticalPartyCombat {
     return rows;
   }
 
+  _tryAgitatePull(context, team, plan, candidates) {
+    this.stats.agitateEvaluations += 1;
+    const snapshot = context && context.snapshot;
+    const c = snapshot && snapshot.character;
+    if (!snapshot || !c || lower(c.ctype) !== 'warrior' || !team || team.selfName !== team.leaderName) return null;
+    const caps = this._partyCapabilities();
+    const member = caps && (caps.members || []).find((row) => row && String(row.name) === String(c.name));
+    const skill = member && (member.skills || []).find((row) => row && row.id === 'agitate' && row.configuredReady === true);
+    if (!skill) return null;
+
+    const maxDesiredTargets = Math.max(1, Math.min(
+      Math.floor(finite(plan && plan.pullCapacity, 1)),
+      Math.floor(finite(plan && plan.desiredPullSize, 1)),
+      Math.floor(finite(skill.parameters && skill.parameters.maxDesiredTargets, plan && plan.desiredPullSize || 1))
+    ));
+    const engaged = Math.max(0, Math.floor(finite(plan && plan.engagedCount, 0)));
+    const remaining = Math.max(0, maxDesiredTargets - engaged);
+    if (remaining < this.config.agitateMinAdditionalTargets) {
+      this.stats.agitateCapacityBlocks += 1;
+      return null;
+    }
+
+    const game = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+      ? this.runtime.adapter.getGameData() || {}
+      : {};
+    const meta = game.skills && game.skills.agitate || null;
+    if (!meta) return null;
+    if (context.adapter && typeof context.adapter.canUseSkill === 'function' && !context.adapter.canUseSkill('agitate')) return null;
+    const maxMp = Math.max(1, finite(c.max_mp, finite(c.mp, 1)));
+    const reserve = maxMp * finite(this.farmer && this.farmer.skillUsage && this.farmer.skillUsage.mpReserveRatio, 0);
+    if (finite(c.mp, 0) - Math.max(0, finite(meta.mp, 0)) < reserve) {
+      this.stats.agitateResourceBlocks += 1;
+      return null;
+    }
+
+    const range = Math.max(1, finite(meta.range, 320)) + this.config.agitateRangePadding;
+    const existing = new Set((this.encounter && this.encounter.targetIds || []).map(String));
+    const candidateMap = new Map((candidates || []).map((row) => [String(row.candidate && row.candidate.id), row]));
+    const inRadius = (snapshot.entities || []).filter((row) => row && row.mtype && !row.dead && finite(row.hp, 1) > 0 && distance(c, row) <= range);
+    const pullable = [];
+    for (const row of inRadius) {
+      const id = String(row.id);
+      if (existing.has(id)) continue;
+      const candidate = candidateMap.get(id);
+      if (!candidate) {
+        this.stats.agitateUnsafeRadiusBlocks += 1;
+        this._event('SMART_AOE_AGITATE_BLOCKED', 'info', 'AGITATE_RADIUS_CONTAINS_UNSAFE_OR_UNPLANNED_TARGET', {
+          targetId: id,
+          targetType: row.mtype || null,
+          range,
+          maxDesiredTargets
+        });
+        return null;
+      }
+      pullable.push(candidate);
+    }
+
+    if (pullable.length < this.config.agitateMinAdditionalTargets) return null;
+    if (pullable.length > remaining || engaged + pullable.length > maxDesiredTargets) {
+      this.stats.agitateCapacityBlocks += 1;
+      return null;
+    }
+    const result = context.adapter && typeof context.adapter.command === 'function'
+      ? context.adapter.command('use_skill', ['agitate'])
+      : { executed: false, shadow: false, reason: 'ADAPTER_UNAVAILABLE' };
+    if (!result || (!result.executed && !result.shadow)) return null;
+
+    const now = this.now();
+    const ids = pullable.map((row) => String(row.candidate.id));
+    this.lastPullExpansionAt = now;
+    this.pendingPull = {
+      targetId: ids[0],
+      targetIds: ids,
+      observedIds: [],
+      targetType: this.encounter && this.encounter.targetType || null,
+      at: now,
+      expiresAt: now + this.config.pendingPullTimeoutMs,
+      shadow: result.shadow === true,
+      via: 'AGITATE'
+    };
+    this.stats.pullExpansionAttempts += 1;
+    this.stats.pullExpansionCommands += 1;
+    this.stats.agitateCommands += 1;
+    this.stats.agitateTargetsPlanned += ids.length;
+    if (this.farmer) {
+      this.farmer.lastActionAt = now;
+      this.farmer.lastSkillAttemptAt = now;
+    }
+    const engine = this.runtime && this.runtime.partySkillEngine;
+    if (engine) {
+      if (engine.stats) {
+        engine.stats.aoeSkills = finite(engine.stats.aoeSkills, 0) + 1;
+        engine.stats.aoeTargetsPlanned = finite(engine.stats.aoeTargetsPlanned, 0) + ids.length;
+      }
+      engine.lastUse = {
+        at: now, skill: 'agitate', kind: 'aoe-control', reason: 'SMART_AOE_AGITATE_SAFE_PULL',
+        targetId: this.encounter && (this.encounter.primaryTargetId || this.encounter.targetId) || null,
+        targetType: this.encounter && this.encounter.targetType || null,
+        targetIds: ids.slice(), targetCount: ids.length, executed: !!result.executed, shadow: !!result.shadow
+      };
+    }
+    this.lastDecision = {
+      at: now,
+      action: 'SMART_AOE_PULL_AGITATE',
+      reason: 'SAFE_RADIUS_MATCHES_BOUNDED_PULL',
+      primaryTargetId: this.encounter && (this.encounter.primaryTargetId || this.encounter.targetId) || null,
+      targetIds: ids.slice(),
+      targetType: this.encounter && this.encounter.targetType || null,
+      pullOwner: team.leaderName,
+      resultingCount: engaged + ids.length,
+      maxDesiredTargets,
+      shadow: result.shadow === true
+    };
+    this._event('SMART_AOE_AGITATE_PULL', 'info', this.lastDecision.reason, { ...this.lastDecision });
+    return { acted: true, decision: { ...this.lastDecision }, result, candidates: pullable.map((row) => row.candidate) };
+  }
+
   maybeExpandPull(context, primaryTarget = null) {
     const snapshot = context && context.snapshot;
     if (!snapshot || !snapshot.character || !this.encounter) return { acted: false, reason: 'PULL_CONTEXT_UNAVAILABLE' };
@@ -34717,6 +35132,9 @@ class TacticalPartyCombat {
       return { acted: false, reason: 'NO_SAFE_IN_RANGE_PULL_CANDIDATE' };
     }
 
+    const agitate = this._tryAgitatePull(context, team, plan, candidates);
+    if (agitate && agitate.acted) return agitate;
+
     const selected = candidates[0];
     this.stats.pullExpansionAttempts += 1;
     this.lastPullExpansionAt = now;
@@ -34737,7 +35155,10 @@ class TacticalPartyCombat {
     this.stats.pullExpansionCommands += 1;
     this.pendingPull = {
       targetId: String(selected.candidate.id),
+      targetIds: [String(selected.candidate.id)],
+      observedIds: [],
       targetType: selected.candidate.mtype || null,
+      via: 'TAG',
       at: now,
       expiresAt: now + this.config.pendingPullTimeoutMs,
       shadow: result.shadow === true
