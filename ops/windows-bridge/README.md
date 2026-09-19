@@ -172,7 +172,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
+Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Config version 7 adds the read-only local live-knowledge import path on drive D:. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
 
 ## Build
 
@@ -261,3 +261,48 @@ Webfunde werden fail-closed gefiltert:
 - Alt-Kandidaten ohne diesen Nachweis werden beim naechsten Lauf automatisch entfernt.
 
 Neue oder nicht offizielle, aber verifizierte Quellen bleiben Kandidaten und werden nicht automatisch zu bestaetigten Fakten erhoben.
+
+
+## Lokale live verifizierte Wissensdatenbank
+
+Die Bridge unterstuetzt zusaetzlich die spaetere V5-Bot-Wissensdatenbank auf der SSD.
+
+Standard:
+
+```text
+D:\AdventureLand-V5\wissensdatenbank
+```
+
+Der Pfad ist in der Oberflaeche unter **GitHub & Wissenswächter** direkt editierbar. Er muss ein Unterpfad von `D:\` sein; die Laufwerkswurzel selbst ist verboten.
+
+Der Bot ist spaeter alleiniger fachlicher Writer. Die Bridge liest nur:
+
+```text
+manifest.json
+status.json
+aktuell/**/*.json
+```
+
+und spiegelt nach erfolgreicher Validierung nach:
+
+```text
+v5/wissensbasis/live/snapshot/**
+```
+
+Nicht hochgeladen werden `temporaer/**`, `quarantaene/**` oder andere Dateien auf D:.
+
+Der Import ist fail-closed:
+
+- nur `Adventure Land - The Code MMORPG`;
+- nur `LIVE_VERIFIZIERT`;
+- nur `quelle.art=LIVE_SPIEL`;
+- Status vor/nach dem Lesen muss bytegleich `BEREIT` und dieselbe Generation sein;
+- Reparse Points/Junctions/Symlinks werden vor Traversierung verweigert;
+- Pfad-Traversal und unerwartete Dateitypen werden verweigert;
+- Einzeldatei-, Dateianzahl- und Gesamtgroessenlimits sind hart;
+- secret-/token-/password-/credential-/cookie-/session-artige JSON-Felder werden rekursiv verweigert;
+- der lokale D:-Pfad wird nicht nach GitHub geschrieben.
+
+Fehlerhaftes lokales Live-Wissen ersetzt niemals den letzten gueltigen GitHub-Snapshot.
+
+Die Bridge erzeugt keine Gameplay-Fakten und besitzt weiterhin keine Gameplay-Autoritaet.
