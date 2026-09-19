@@ -67,7 +67,46 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     return { scrollName, quantity: Math.max(1, Math.min(cap, quantity || 1)), cap, groups: details };
   }
 
+  mutationRiskKey(type, item, level, index) {
+    return `${String(type || '').toUpperCase()}|${String(item || '')}|${levelOf({ level })}|${Number(index)}`;
+  }
+
+  mutationRiskHoldFor(entry, type) {
+    if (!entry || !(this.mutationRiskHolds instanceof Map)) return null;
+    const now = this.now();
+    for (const [key, row] of this.mutationRiskHolds.entries()) {
+      if (!row || finite(row.expiresAt, 0) <= now) this.mutationRiskHolds.delete(key);
+    }
+    const key = this.mutationRiskKey(type, entry.name, levelOf(entry), entry.index);
+    const hold = this.mutationRiskHolds.get(key) || null;
+    return hold ? clone(hold) : null;
+  }
+
+  setMutationRiskHold(tx, decision = {}) {
+    if (!tx || !(this.mutationRiskHolds instanceof Map)) return null;
+    const input = transactionInputs(tx)[0] || {};
+    const now = this.now();
+    const hold = {
+      at: now,
+      expiresAt: now + Math.max(10000, finite(this.options.mutationRiskHoldMs, 60000)),
+      type: String(tx.type || '').toUpperCase(),
+      item: tx.item,
+      level: levelOf(tx),
+      index: Number(input.index),
+      decision: clone(decision)
+    };
+    this.mutationRiskHolds.set(this.mutationRiskKey(hold.type, hold.item, hold.level, hold.index), hold);
+    return clone(hold);
+  }
+
+  clearMutationRiskHold(tx) {
+    if (!tx || !(this.mutationRiskHolds instanceof Map)) return false;
+    const input = transactionInputs(tx)[0] || {};
+    return this.mutationRiskHolds.delete(this.mutationRiskKey(tx.type, tx.item, levelOf(tx), input.index));
+  }
+
   mutationRetryBlocked(entry, type) {
+    if (this.mutationRiskHoldFor(entry, type)) return true;
     const engine = this.runtime.transactionEngine;
     if (!entry || !engine || typeof engine.list !== 'function') return false;
     return engine.list(500).some((row) => row && row.type === type && row.character === entry.character && Number(row.index) === Number(entry.index) && row.item === entry.name && levelOf(row) === levelOf(entry) && ['FAILED_SAFE', 'ABORTED'].includes(row.state) && /NO_RETRY|OUTCOME_UNCERTAIN/.test(String(row.reason || '')));
