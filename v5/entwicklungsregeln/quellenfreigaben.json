@@ -36,13 +36,13 @@
     },
     {
       "kennung": "AL-OFFICIAL-DOCS-HUB",
-      "letzterBewerteterSha256": "0842abc939295f1f0a8079593a76bbac60895425ca5bd3fdc7b6b8cbbf54fced",
+      "letzterBewerteterSha256": "5453c60f47fbfd79742a753caa44a154147bbfcd4bf8903d0e1551f910513a2f",
       "bewertetAm": "2026-09-19",
-      "bewertungStatus": "R2_SIGNAL_DRIFT_GESICHTET",
+      "bewertungStatus": "R2_SIGNAL_DRIFT_GESICHTET_DYNAMISCH",
       "fuerResearch": true,
       "fuerImplementierung": false,
       "driftWirkung": "NUR_REVIEW_SIGNAL",
-      "begruendung": "Dynamischer Website-/Docs-Hub wurde als Signalsource gesichtet. Er bleibt fuer Implementierung nicht autoritativ und darf keine Contracts allein freigeben."
+      "begruendung": "Erneuter stündlicher Drift betrifft dynamische Website-Werte (u. a. Online-/Serverbelegung). Die Quelle bleibt reine Signalsource, fuer Implementierung nicht autoritativ und darf keine Contracts freigeben."
     },
     {
       "kennung": "AL-OFFICIAL-REPO",
