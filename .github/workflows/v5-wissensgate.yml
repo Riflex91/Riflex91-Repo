@@ -1,0 +1,90 @@
+name: v5-wissensgate
+
+on:
+  pull_request:
+    paths:
+      - 'v5/**'
+      - 'ops/windows-bridge/WissenswaechterDienst.cs'
+      - '.github/workflows/v5-wissensgate.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'v5/**'
+      - 'ops/windows-bridge/WissenswaechterDienst.cs'
+      - '.github/workflows/v5-wissensgate.yml'
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Aenderungen und Wissensdomaenen bestimmen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            BASIS="origin/${{ github.base_ref }}"
+            DATEIEN="$(git diff --name-only "$BASIS"...HEAD)"
+          else
+            BASIS="${{ github.event.before }}"
+            DATEIEN="$(git diff --name-only "$BASIS" HEAD || true)"
+          fi
+
+          echo "$DATEIEN"
+
+          STRENG=0
+          DOMAENEN=""
+
+          fuege_domaene_hinzu() {
+            local d="$1"
+            if [[ ",$DOMAENEN," != *",$d,"* ]]; then
+              DOMAENEN="${DOMAENEN:+$DOMAENEN,}$d"
+            fi
+          }
+
+          while IFS= read -r pfad; do
+            case "$pfad" in
+              v5/laufzeit/*|v5/ausfuehrung/*|v5/persistenz/*|v5/module/*|v5/scheduler/*|v5/lernen/*|v5/host/*)
+                STRENG=1; fuege_domaene_hinzu kern ;;
+              v5/beobachtung/*)
+                STRENG=1; fuege_domaene_hinzu kern; fuege_domaene_hinzu welt ;;
+              v5/merchant/*)
+                STRENG=1; fuege_domaene_hinzu merchant ;;
+              v5/gruppe/*)
+                STRENG=1; fuege_domaene_hinzu gruppe ;;
+              v5/kampf/*)
+                STRENG=1; fuege_domaene_hinzu kampf ;;
+              v5/navigation/*)
+                STRENG=1; fuege_domaene_hinzu navigation ;;
+              v5/welt/*)
+                STRENG=1; fuege_domaene_hinzu welt ;;
+              v5/oberflaeche/*)
+                STRENG=1; fuege_domaene_hinzu oberflaeche ;;
+            esac
+          done <<< "$DATEIEN"
+
+          echo "V5_WISSENSGATE_STRIKT=$STRENG" >> "$GITHUB_ENV"
+          echo "V5_WISSENSGATE_DOMAENEN=$DOMAENEN" >> "$GITHUB_ENV"
+
+          if [[ "$STRENG" == "1" && "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            if ! git merge-base --is-ancestor "origin/${{ github.base_ref }}" HEAD; then
+              echo "Strenge V5-Implementierung muss den aktuellen Base-Branch enthalten." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Strukturierte Wissensbasis pruefen
+        run: node v5/werkzeuge/wissensbasis-pruefen.mjs
+
+      - name: Entwicklungs-Wissensgate pruefen
+        run: node v5/werkzeuge/entwicklungs-wissensgate.mjs

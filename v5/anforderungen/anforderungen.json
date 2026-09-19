@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "stand": "2026-09-19",
   "status": "KANONISCHE_BASISLINE_VOR_RUNTIME",
-  "anzahl": 102,
+  "anzahl": 111,
   "anforderungen": [
     {
       "kennung": "V5-ANF-WISSEN-001",
@@ -1455,6 +1455,136 @@
         "V5-INV-013"
       ],
       "nachweis": "AUTH_BERECHTIGUNGSNACHWEIS"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-013",
+      "titel": "Jede fachliche V5-Entwicklung liest vor Planung den aktuellen Manifest, letzten Waechterlauf, Quellenstatus, relevante Drift, Revalidierungsqueue, Facts und Contracts.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-099"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-035",
+        "V5-INV-037"
+      ],
+      "nachweis": "ENTWICKLUNGS_WISSENSGATE"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-014",
+      "titel": "Der Wissensbasis-Manifest exponiert alle stabilen Pfade der laufenden Wissensdatenbank fuer Entwickler, KI-Assistenten und spaetere Konsumenten.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-105"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-037"
+      ],
+      "nachweis": "MANIFEST_VALIDATOR"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-015",
+      "titel": "Echte V5-Implementierung wird bei Wissensalter ueber 180 Minuten oder fehlerhaften/gekuerzten relevanten offiziellen Quellen blockiert.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-099",
+        "V5-GEF-103"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-036"
+      ],
+      "nachweis": "STRENGER_WISSENSGATE"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-016",
+      "titel": "Aenderung eines relevanten offiziellen Quellenhashes erfordert erneute Bewertung und Revalidierung, bevor betroffene Implementierung freigegeben wird.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-102"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-041"
+      ],
+      "nachweis": "QUELLENFREIGABEN_DRIFT_TEST"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-017",
+      "titel": "Automatisch entdeckte Kandidaten duerfen nur Rechercheaufgaben erzeugen und niemals Fakten, Contracts, Code oder Gameplay automatisch freigeben.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-100"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-038"
+      ],
+      "nachweis": "KANDIDATEN_AUTORITAETS_GUARD"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-018",
+      "titel": "Spaetere Bot-Module beziehen Knowledge ueber einen typisierten read-only WissensZugriffPort und nicht direkt ueber GitHub oder Roh-Snapshots.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-101"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-039"
+      ],
+      "nachweis": "DEPENDENCY_UND_PORT_GUARD"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-019",
+      "titel": "Jeder geplante Workflow referenziert den verwendeten Knowledge-Git-Commit/Quellenhashes; Knowledge-Updates veraendern In-Flight-Transaktionen nicht still.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-104"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-040"
+      ],
+      "nachweis": "WORKFLOW_SNAPSHOT_PINNING_TEST"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-020",
+      "titel": "Vor Merge echter V5-Implementierung enthaelt der Branch den aktuellen main inklusive des letzten Knowledge-Commits.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-102",
+        "V5-GEF-103"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-035",
+        "V5-INV-041"
+      ],
+      "nachweis": "BRANCH_AKTUALITAETS_GUARD"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-021",
+      "titel": "Waechter-Maschinendateien sind schema-validierbar; aenderungsprotokoll.jsonl enthaelt genau ein JSON-Objekt pro Zeile.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-106"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-042"
+      ],
+      "nachweis": "WISSENSBASIS_VALIDATOR"
     }
   ]
 }

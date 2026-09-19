@@ -135,6 +135,54 @@
       "titel": "Runtime-Grundstruktur ist blockiert solange Laufzeit-Bereitschaft nicht FREIGEGEBEN ist",
       "phase": "R2",
       "durchsetzung": "BEREITSCHAFTS_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-023",
+      "titel": "Echte V5-Implementierung darf nur bei gruenem strengen Entwicklungs-Wissensgate geaendert oder gemergt werden",
+      "phase": "R3",
+      "durchsetzung": "V5_WISSENSGATE_STRIKT"
+    },
+    {
+      "kennung": "V5-FIT-024",
+      "titel": "Implementierungsbranch enthaelt vor Merge den aktuellen main inklusive Knowledge-Commits",
+      "phase": "R3",
+      "durchsetzung": "BRANCH_AKTUALITAETS_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-025",
+      "titel": "Kandidaten besitzen null Entwicklungs-/Gameplay-Autoritaet",
+      "phase": "R0",
+      "durchsetzung": "KANDIDATEN_VALIDATOR"
+    },
+    {
+      "kennung": "V5-FIT-026",
+      "titel": "Gameplay-Module duerfen keine Dateien aus wissensbasis/datenbank/aktuell direkt lesen",
+      "phase": "R6",
+      "durchsetzung": "DEPENDENCY_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-027",
+      "titel": "Knowledge-Zugriff der Runtime erfolgt nur ueber read-only WissensZugriffPort",
+      "phase": "R6",
+      "durchsetzung": "PORT_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-028",
+      "titel": "Relevanter Quellenhash darf von letzter Entwicklungsfreigabe nicht unbewertet abweichen",
+      "phase": "R3",
+      "durchsetzung": "QUELLENFREIGABEN_DRIFT_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-029",
+      "titel": "Aenderungsprotokoll ist valides JSONL mit exakt einem Objekt pro Zeile",
+      "phase": "R0",
+      "durchsetzung": "WISSENSBASIS_VALIDATOR"
+    },
+    {
+      "kennung": "V5-FIT-030",
+      "titel": "Wissensbasis-Manifest exponiert die komplette laufende Datenbank und ist einziger Konsumenteneinstieg",
+      "phase": "R0",
+      "durchsetzung": "MANIFEST_GUARD"
     }
   ]
 }

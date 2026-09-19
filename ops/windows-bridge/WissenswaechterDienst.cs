@@ -18,6 +18,7 @@ public sealed record WissenswaechterStatus(
 public sealed class WissenswaechterDienst : IAsyncDisposable
 {
     private const int MaximalerQuellinhaltBytes = 8 * 1024 * 1024;
+    private static readonly JsonSerializerOptions JsonZeilenOptionen = new(BridgeConfig.JsonOptions) { WriteIndented = false };
 
     private readonly BridgeConfig _config;
     private readonly GitHubAnmeldung _githubAnmeldung;
@@ -558,7 +559,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
 
         foreach (var aenderung in aenderungen)
         {
-            var json = JsonSerializer.Serialize(aenderung, BridgeConfig.JsonOptions);
+            var json = JsonSerializer.Serialize(aenderung, JsonZeilenOptionen);
             await writer.WriteLineAsync(json.AsMemory(), cancellationToken);
         }
     }

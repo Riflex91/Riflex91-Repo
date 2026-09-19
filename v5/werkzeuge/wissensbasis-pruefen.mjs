@@ -69,6 +69,10 @@ for (const rel of manifest.sources.rawSnapshots) {
   const rawPath = path.join(kb, rel);
   if (!fs.existsSync(rawPath)) fail(`Fehlender Raw Snapshot: ${rel}`);
 }
+for (const rel of manifest.schemas ?? []) {
+  if (!fs.existsSync(path.join(kb, rel))) fail(`Fehlendes Schema: ${rel}`);
+}
+
 const ext = manifest.externalResearchSnapshot;
 const extPath = path.join(kb, manifest.sources.rawSnapshots[0]);
 const bytes = fs.readFileSync(extPath);
@@ -80,5 +84,76 @@ if (!Array.isArray(revalidation.p0Research) || revalidation.p0Research.some((x) 
   fail('Revalidierungsqueue P0 unvollstaendig.');
 }
 
+const laufend = manifest.laufendeDatenbank;
+if (!laufend) fail('Manifest enthaelt keine laufendeDatenbank.');
+for (const feld of ['letzterLauf','quellenstatus','aenderungsprotokoll','kandidaten','aktuelleSnapshotsVerzeichnis']) {
+  if (!laufend[feld]) fail(`Manifest laufendeDatenbank.${feld} fehlt.`);
+}
+if (laufend.aenderungsprotokollFormat !== 'JSONL_EIN_OBJEKT_PRO_ZEILE') {
+  fail('Aenderungsprotokollformat im Manifest ist nicht eindeutig.');
+}
+
+const letzterLauf = readJson(laufend.letzterLauf);
+const quellenstatus = readJson(laufend.quellenstatus);
+const kandidaten = readJson(laufend.kandidaten);
+
+if (letzterLauf.schemaVersion !== 1) fail('letzter-lauf schemaVersion ungueltig.');
+if (quellenstatus.schemaVersion !== 1 || !Array.isArray(quellenstatus.quellen)) fail('quellenstatus ungueltig.');
+if (kandidaten.schemaVersion !== 2 || !Array.isArray(kandidaten.kandidaten)) fail('kandidaten ungueltig oder nicht auf Schema 2.');
+
+const ueberwachteQuellen = sourcesDoc.sources.filter((s) => s.url && s.type !== 'RESEARCH_SNAPSHOT');
+const erwarteteKennungen = new Set(ueberwachteQuellen.map((s) => s.id));
+const statusKennungen = new Set();
+for (const q of quellenstatus.quellen) {
+  if (!q.kennung || statusKennungen.has(q.kennung)) fail(`Doppelte/ungueltige Quellenstatus-Kennung: ${q.kennung}`);
+  statusKennungen.add(q.kennung);
+  if (!erwarteteKennungen.has(q.kennung)) fail(`Quellenstatus enthaelt nicht registrierte Quelle: ${q.kennung}`);
+  const registriert = sources.get(q.kennung);
+  const offiziell = registriert?.trust === 'OFFICIAL';
+  const gesund = q.httpStatus === 200 && !q.fehler && !q.gekuerzt && !!q.inhaltSha256;
+
+  if (!gesund && offiziell) {
+    fail(`${q.kennung}: offizielle Quelle ist nicht gesund (HTTP=${q.httpStatus}, Fehler=${q.fehler ?? 'keiner'}, gekuerzt=${q.gekuerzt})`);
+  }
+  if (!gesund && !offiziell) {
+    console.warn(`[V5-WISSEN][WARNUNG] ${q.kennung}: Community-Quelle aktuell nicht gesund; keine Entwicklungsautoritaet.`);
+    continue;
+  }
+
+  const snapshot = path.join(kb, laufend.aktuelleSnapshotsVerzeichnis, `${q.kennung}.txt`);
+  if (!fs.existsSync(snapshot)) fail(`${q.kennung}: aktueller Snapshot fehlt`);
+  const snapshotBytes = fs.readFileSync(snapshot);
+  const snapshotHash = crypto.createHash('sha256').update(snapshotBytes).digest('hex');
+  if (snapshotHash !== q.inhaltSha256) fail(`${q.kennung}: Snapshot-Hash passt nicht zum Quellenstatus`);
+}
+for (const id of erwarteteKennungen) {
+  if (!statusKennungen.has(id)) fail(`Ueberwachte Quelle fehlt im Quellenstatus: ${id}`);
+}
+if (letzterLauf.gepruefteQuellen !== quellenstatus.quellen.length) fail('letzter-lauf gepruefteQuellen passt nicht zum Quellenstatus.');
+if (letzterLauf.registrierteQuellen !== quellenstatus.quellen.length) fail('letzter-lauf registrierteQuellen passt nicht zum Quellenstatus.');
+
+for (const kandidat of kandidaten.kandidaten) {
+  if (kandidat.status !== 'KANDIDAT') {
+    fail(`Kandidat besitzt unerlaubten Status: ${kandidat.adresse ?? 'unbekannt'}`);
+  }
+  if (!kandidat.relevanznachweis?.startsWith('ADVENTURE_LAND_')) {
+    fail(`Kandidat besitzt keinen bestaetigten Adventure-Land-Relevanznachweis: ${kandidat.adresse ?? 'unbekannt'}`);
+  }
+}
+
+const protokollPfad = path.join(kb, laufend.aenderungsprotokoll);
+const protokollZeilen = fs.readFileSync(protokollPfad, 'utf8').split(/\r?\n/).filter(Boolean);
+for (let i = 0; i < protokollZeilen.length; i++) {
+  let eintrag;
+  try { eintrag = JSON.parse(protokollZeilen[i]); }
+  catch { fail(`Aenderungsprotokoll ist kein valides JSONL in Zeile ${i + 1}`); }
+  for (const feld of ['kennung','titel','adresse','vertrauen','neuerInhaltSha256','erkanntAm','art']) {
+    if (eintrag[feld] === undefined || eintrag[feld] === null || eintrag[feld] === '') {
+      fail(`Aenderungsprotokoll Zeile ${i + 1}: Pflichtfeld ${feld} fehlt`);
+    }
+  }
+}
+
 console.log(`[V5-WISSEN] OK: ${facts.size} Facts, ${contractIds.size} Action Contracts, ${questionIds.size} offene Fragen, ${sources.size} Quellen.`);
+console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);

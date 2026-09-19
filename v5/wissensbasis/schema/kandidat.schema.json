@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 Wissenswaechter Kandidaten",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kandidaten"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "kandidaten": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "adresse",
+          "titel",
+          "vertrauensklasse",
+          "status",
+          "ersteSichtung",
+          "letzteSichtung",
+          "relevanznachweis"
+        ],
+        "properties": {
+          "adresse": {
+            "type": "string",
+            "minLength": 1
+          },
+          "titel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vertrauensklasse": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "KANDIDAT"
+          },
+          "ersteSichtung": {
+            "type": "string"
+          },
+          "letzteSichtung": {
+            "type": "string"
+          },
+          "suchanfragen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "relevanznachweis": {
+            "type": "string",
+            "pattern": "^ADVENTURE_LAND_"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

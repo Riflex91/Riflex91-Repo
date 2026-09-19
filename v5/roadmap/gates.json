@@ -14,7 +14,10 @@
         "Knowledge-Validator gruen",
         "Drift/Revalidation etabliert",
         "Wissenswaechter-Vertrag festgelegt",
-        "Knowledge-Sync ist gameplay-entkoppelt"
+        "Knowledge-Sync ist gameplay-entkoppelt",
+        "Laufende Waechterdaten ueber Manifest maschinenlesbar exponiert",
+        "Kandidatenautoritaet technisch auf null begrenzt",
+        "Aenderungsprotokoll valides JSONL"
       ]
     },
     {
@@ -48,7 +51,10 @@
         "Wissenswaechter- und Git-Sicherheitsvertrag ratifiziert",
         "Vor-Runtime-Spezifikation ratifiziert",
         "Bereitschaftsvalidator konsistent",
-        "Deutsche Sichttextregel inklusive Monster-Ausnahme verbindlich"
+        "Deutsche Sichttextregel inklusive Monster-Ausnahme verbindlich",
+        "Entwicklungs-Wissensgate ratifiziert",
+        "Quellenfreigaben und Driftwirkung ratifiziert",
+        "WissensZugriffPort und Snapshot-Pinning als Zielvertrag festgelegt"
       ]
     },
     {
@@ -66,7 +72,10 @@
         "Mutierende Capabilities default-off und nur mit typisierter Ausfuehrungsfreigabe",
         "Bypass-Negativtests der Mehrfach-Verriegelung gruen",
         "Knowledge-Sync-Pfadguard + Negativtests",
-        "UI-Sichttextguard + Monster-Ausnahme getestet"
+        "UI-Sichttextguard + Monster-Ausnahme getestet",
+        "Strenger Wissensgate fuer Implementierung in CI",
+        "Relevante Quellenhash-Drift blockiert unbewertete Implementierung",
+        "Direkter Runtime-Zugriff auf Roh-Snapshots architektonisch verboten"
       ]
     },
     {

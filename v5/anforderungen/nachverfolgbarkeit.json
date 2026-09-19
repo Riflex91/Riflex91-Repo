@@ -1454,6 +1454,136 @@
       "tests": [],
       "liveNachweise": [],
       "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-013",
+      "phase": "R2",
+      "gefahren": [
+        "V5-GEF-099"
+      ],
+      "invarianten": [
+        "V5-INV-035",
+        "V5-INV-037"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-014",
+      "phase": "R0",
+      "gefahren": [
+        "V5-GEF-105"
+      ],
+      "invarianten": [
+        "V5-INV-037"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-015",
+      "phase": "R3",
+      "gefahren": [
+        "V5-GEF-099",
+        "V5-GEF-103"
+      ],
+      "invarianten": [
+        "V5-INV-036"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-016",
+      "phase": "R3",
+      "gefahren": [
+        "V5-GEF-102"
+      ],
+      "invarianten": [
+        "V5-INV-041"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-017",
+      "phase": "R0",
+      "gefahren": [
+        "V5-GEF-100"
+      ],
+      "invarianten": [
+        "V5-INV-038"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-018",
+      "phase": "R6",
+      "gefahren": [
+        "V5-GEF-101"
+      ],
+      "invarianten": [
+        "V5-INV-039"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-019",
+      "phase": "R8",
+      "gefahren": [
+        "V5-GEF-104"
+      ],
+      "invarianten": [
+        "V5-INV-040"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-020",
+      "phase": "R3",
+      "gefahren": [
+        "V5-GEF-102",
+        "V5-GEF-103"
+      ],
+      "invarianten": [
+        "V5-INV-035",
+        "V5-INV-041"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
+    },
+    {
+      "anforderungKennung": "V5-ANF-WISSEN-021",
+      "phase": "R0",
+      "gefahren": [
+        "V5-GEF-106"
+      ],
+      "invarianten": [
+        "V5-INV-042"
+      ],
+      "implementierung": [],
+      "tests": [],
+      "liveNachweise": [],
+      "vollstaendig": false
     }
   ]
 }

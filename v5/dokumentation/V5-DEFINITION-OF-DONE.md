@@ -99,3 +99,17 @@ Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aen
 - [ ] V5 erfindet keine eigene Monster-Uebersetzung als angeblich offizielle Bezeichnung.
 - [ ] Unerlaubte englische Rohtext-Leaks = 0.
 - [ ] Fehlende erforderliche Uebersetzungen = 0.
+
+
+## J. Aktueller Wissensstand
+
+- [ ] Vor Planung wurde der aktuelle `v5/wissensbasis/manifest.json` gelesen.
+- [ ] Letzter Waechterlauf und Quellenstatus wurden geprueft.
+- [ ] Relevante Aenderungen seit dem Planungs-/Branchbeginn wurden bewertet.
+- [ ] Revalidierungsqueue und offene Fragen fuer die Domaene wurden geprueft.
+- [ ] Relevante Facts und Action Contracts wurden referenziert.
+- [ ] Kandidaten wurden nicht als Wahrheit oder Freigabe verwendet.
+- [ ] Roh-Snapshots wurden nur als Evidence verwendet, nicht als direkte Runtime-API.
+- [ ] Der verwendete Wissens-Git-Commit beziehungsweise WissensSnapshot ist nachvollziehbar.
+- [ ] Vor Merge wurde der Branch erneut auf aktuellen `main` inklusive Knowledge-Commits gebracht.
+- [ ] Strenger Entwicklungs-Wissensgate ist fuer Implementierung gruen.

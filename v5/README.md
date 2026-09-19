@@ -29,6 +29,7 @@ Vor der ersten Runtime-Implementierung werden:
 - `dokumentation/V5-DEFINITION-OF-DONE.md` – Pflichtkriterien fuer jede Capability.
 - `dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md` – verbindliche deutsche Domaenensprache, deutsche UI und gegenueber V4 verschaerfte Mehrfach-Verriegelung.
 - `dokumentation/WISSENSWAECHTER-VERTRAG.md` – Sicherheitsvertrag fuer automatische Wissensaktualisierung und GitHub-Sync.
+- `dokumentation/ENTWICKLUNGS-WISSENSGATE.md` – Pflichtprozess: aktuelles Wissen vor Planung, Implementierung und Merge.
 - `dokumentation/VOR-RUNTIME-SPEZIFIKATION.md` – letzte Pflichtvorbereitung vor Runtime-Code.
 - `anforderungen/anforderungen.json` – kanonische Anforderungen.
 - `anforderungen/nachverfolgbarkeit.json` – Wissen/Risiko/Invariante/Code/Test/Live-Nachweis.
@@ -38,5 +39,7 @@ Vor der ersten Runtime-Implementierung werden:
 - `fitness/fitness-regeln.json` – Architektur-Fitnessregeln.
 - `bereitschaft/laufzeit-bereitschaft.json` – einziges formales Vor-Runtime-Freigabegate.
 - `roadmap/gates.json` – maschinenlesbarer Roadmap-/Abhaengigkeitszustand.
+- `entwicklungsregeln/wissensnutzung.json` – maschinenlesbare Wissens-/Frische-/Driftregeln.
+- `entwicklungsregeln/quellenfreigaben.json` – bewertete Quellenhash-Baselines; Drift sperrt relevante Implementierung.
 - `wissensbasis/README.md` – Regeln der lebenden Wissensbasis.
 - `wissensbasis/manifest.json` – maschinenlesbarer Einstiegspunkt.
