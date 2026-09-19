@@ -191,8 +191,10 @@ test('Automation catalog exposes sprites and detects object-shaped upgrade/compo
       getGameData() {
         return {
           items: {
-            ring: { name: 'Ring', skin: 'ring_skin', compound: { dex: 1 }, type: 'ring' },
-            sword: { name: 'Sword', skin: 'sword_skin', upgrade: { attack: 1 }, type: 'weapon' }
+            ring: { name: 'Ring', skin: 'ring_skin', compound: { dex: 1 }, type: 'ring', g: 1000, explanation: 'A test ring.' },
+            sword: { name: 'Sword', skin: 'sword_skin', upgrade: { attack: 1 }, type: 'weapon', g: 10000 },
+            scroll0: { name: 'Upgrade Scroll', type: 'uscroll', g: 1 },
+            cscroll0: { name: 'Compound Scroll', type: 'cscroll', g: 10 }
           },
           positions: {
             ring_skin: ['pack_20', 2, 3],
@@ -201,6 +203,8 @@ test('Automation catalog exposes sprites and detects object-shaped upgrade/compo
           imagesets: {
             pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10, rows: 8 }
           },
+          upgrades: { 0: { 1: 0.9999999, 2: 0.98, 3: 0.95, 4: 0.7 } },
+          compounds: { 0: { 1: 0.99, 2: 0.75 } },
           maps: {},
           npcs: {}
         };
@@ -220,6 +224,13 @@ test('Automation catalog exposes sprites and detects object-shaped upgrade/compo
   assert.equal(sword.upgrade, true);
   assert.equal(sword.compound, false);
   assert.equal(sword.sprite.x, 4);
+  assert.equal(ring.description, 'A test ring.');
+  assert.equal(ring.economy.baseGold, 1000);
+  assert.equal(ring.economy.progression, 'COMPOUND');
+  assert.equal(ring.economy.npcSellValues[0].value, 600);
+  assert.equal(ring.economy.baseChances[0].chance, 0.99);
+  assert.equal(sword.economy.progression, 'UPGRADE');
+  assert.equal(sword.economy.baseChances[0].chance, 0.9999999);
 });
 
 test('Automation catalog includes an observed inventory item even when the current G.items source omits it', () => {
