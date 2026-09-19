@@ -353,5 +353,5 @@ test('Farmer loot offers and granted transfers are not blocked by normal ENGAGE 
 });
 
 test('visible release version matches integrated Alpha20.23', () => {
-  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.140');
+  assert.equal(RELEASE_VERSION, '3.0.0-alpha.20.141');
 });

@@ -38,7 +38,7 @@ test('public Alpha20Runtime exposes the hardened combined live gate while remain
   assert.equal(typeof runtime.alpha20LiveGateResultText, 'function');
 
   const status = runtime.alpha20LiveGateStatus();
-  assert.equal(status.release, '3.0.0-alpha.20.140');
+  assert.equal(status.release, '3.0.0-alpha.20.141');
   assert.equal(status.requiredAck, 'ALPHA20_FULL_LIVE_GATE');
   assert.equal(status.running, false);
   assert.equal(status.abortable, true);
