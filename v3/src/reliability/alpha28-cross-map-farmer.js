@@ -163,11 +163,12 @@ class Alpha28CrossMapFarmerProgression {
     const farmer = this.runtime.farmer;
     const material = farmer && farmer.materialObjective;
     if (material && material.expiresAt > this.now() && material.map && material.monster && material.map !== snapshot.character.map) {
+      const materialKind = String(material.kind || 'MATERIAL');
       const existing = this.parent && this.parent[SHARED_OBJECTIVE];
-      if (existing && this._objectiveKind(existing) === 'ELIXIR_MATERIAL' && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
+      if (existing && this._objectiveKind(existing) === materialKind && existing.expiresAt > this.now() && existing.map === material.map && existing.monster === material.monster && String(existing.leaderName) === String(team.leaderName)) return existing;
       const objective = {
-        id: `alpha28-elixir-material-${this.now()}-${material.monster}`,
-        kind: 'ELIXIR_MATERIAL',
+        id: `alpha28-material-${this.now()}-${material.monster}`,
+        kind: materialKind,
         leaderName: team.leaderName,
         partyFingerprint: null,
         map: material.map,
@@ -177,6 +178,12 @@ class Alpha28CrossMapFarmerProgression {
         y: material.y,
         material: material.material || null,
         elixirName: material.elixirName || null,
+        productionObjectiveId: material.objectiveId || null,
+        output: material.output || null,
+        recipient: material.recipient || null,
+        requiredQuantity: material.requiredQuantity || null,
+        expectedHours: material.expectedHours || null,
+        totalExpectedHours: material.totalExpectedHours || null,
         createdAt: this.now(),
         expiresAt: material.expiresAt,
         readiness: null,
@@ -186,7 +193,7 @@ class Alpha28CrossMapFarmerProgression {
       if (this.parent) this.parent[SHARED_OBJECTIVE] = clone(objective);
       this._publishCrossMap(team, objective);
       this.stats.crossMapObjectivesPublished += 1;
-      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'ELIXIR_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
+      this.event('ALPHA28_CROSS_MAP_OBJECTIVE_PUBLISHED', 'warn', 'TEAM_MATERIAL_FARM_TRAVEL_AUTHORIZED', { objective: clone(objective) });
       return objective;
     }
 
