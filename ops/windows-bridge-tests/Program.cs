@@ -24,7 +24,7 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 6, "CONFIG_VERSION_6");
+Assert(BridgeConfig.CurrentConfigVersion == 7, "CONFIG_VERSION_7");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
@@ -43,6 +43,8 @@ Assert(defaults.WissenswaechterIntervallMinuten == 60, "WISSENSWAECHTER_HOURLY")
 Assert(defaults.WissenswaechterWebSucheAktiv, "WISSENSWAECHTER_WEB_SEARCH_DEFAULT_ON");
 Assert(defaults.WissenswaechterMaxQuellenProLauf == 200, "WISSENSWAECHTER_SOURCE_LIMIT");
 Assert(defaults.WissenswaechterMaxKandidaten == 1000, "WISSENSWAECHTER_CANDIDATE_LIMIT");
+Assert(defaults.LiveWissenImportAktiv, "LIVE_WISSEN_IMPORT_DEFAULT_ON");
+Assert(defaults.LiveWissenQuellordner == string.Empty, "LIVE_WISSEN_SOURCE_DEFAULT_EMPTY");
 Assert(CdpBackblazeConfigurator.GlobalConfigName == "AIO_V3_BACKBLAZE_CONFIG", "BACKBLAZE_GLOBAL_NAME");
 Assert(CdpWebDashboardConfigurator.CloudStorageKey == "aio-v3:cloud-control:v1", "WEB_DASHBOARD_CLOUD_STORAGE_KEY");
 Assert(CdpWebDashboardConfigurator.ControlStorageKey == "aio-v3:control-plane-config:v1", "WEB_DASHBOARD_CONTROL_STORAGE_KEY");
@@ -96,6 +98,19 @@ ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 10 }, "WISSENSWA
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 120 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterMaxQuellenProLauf = 0 }, "WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
 ExpectInvalid(defaults with { WissenswaechterMaxKandidaten = 10 }, "WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
+ExpectInvalid(defaults with { LiveWissenQuellordner = @"relative\wissen" }, "LIVE_WISSEN_QUELLORDNER_UNGUELTIG");
+ExpectInvalid(defaults with { LiveWissenQuellordner = @"\\server\freigabe\wissen" }, "LIVE_WISSEN_QUELLORDNER_UNGUELTIG");
+(defaults with { LiveWissenQuellordner = @"D:\AdventureLand\LiveWissen" }).Validate();
+
+Assert(LiveWissenImporteur.IstUnterstuetzteLiveWissenDatei("monster/drops.json"), "LIVE_WISSEN_JSON_ALLOWED");
+Assert(LiveWissenImporteur.IstUnterstuetzteLiveWissenDatei("events/live.jsonl"), "LIVE_WISSEN_JSONL_ALLOWED");
+Assert(!LiveWissenImporteur.IstUnterstuetzteLiveWissenDatei("binary/data.exe"), "LIVE_WISSEN_BINARY_BLOCKED");
+Assert(LiveWissenImporteur.IstSichererRelativerPfad("monster/drops.json"), "LIVE_WISSEN_RELATIVE_PATH_ALLOWED");
+Assert(!LiveWissenImporteur.IstSichererRelativerPfad("../secret.json"), "LIVE_WISSEN_TRAVERSAL_BLOCKED");
+Assert(!LiveWissenImporteur.IstSichererRelativerPfad(".git/config"), "LIVE_WISSEN_GIT_PATH_BLOCKED");
+Assert(LiveWissenImporteur.BerechneZielRelativpfad("monster/drops.json") == "v5/wissensbasis/datenbank/live-verifiziert/aktuell/monster/drops.json", "LIVE_WISSEN_TARGET_MAPPING");
+Assert(!LiveWissenImporteur.EnthaeltMoeglicheGeheimnisse("safe.json", Encoding.UTF8.GetBytes("""{"monster":"goo","hp":120}""")), "LIVE_WISSEN_SAFE_CONTENT_ALLOWED");
+Assert(LiveWissenImporteur.EnthaeltMoeglicheGeheimnisse("secret.json", Encoding.UTF8.GetBytes("""{"token":"abcdefghijklmnop123456"}""")), "LIVE_WISSEN_SECRET_BLOCKED");
 (defaults with
 {
     BackblazeEnabled = true,
@@ -217,6 +232,52 @@ using (var mirrorHttp = new HttpClient())
     Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
     Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");
     Assert(Encoding.UTF8.GetString(payload).Contains("[REDACTED]", StringComparison.Ordinal), "PROBLEM_MIRROR_REDACTION_PRESERVED");
+}
+
+var liveSourceDirectory = Path.Combine(Path.GetTempPath(), "aio-live-wissen-source-" + Guid.NewGuid().ToString("N"));
+var liveRepoDirectory = Path.Combine(Path.GetTempPath(), "aio-live-wissen-repo-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(Path.Combine(liveSourceDirectory, "monster"));
+try
+{
+    var liveFile = Path.Combine(liveSourceDirectory, "monster", "drops.json");
+    var secretFile = Path.Combine(liveSourceDirectory, "secret.json");
+    await File.WriteAllTextAsync(liveFile, """{"monster":"goo","drop":"slime"}""");
+    await File.WriteAllTextAsync(secretFile, """{"token":"abcdefghijklmnop123456"}""");
+    File.SetLastWriteTimeUtc(liveFile, DateTime.UtcNow.AddSeconds(-10));
+    File.SetLastWriteTimeUtc(secretFile, DateTime.UtcNow.AddSeconds(-10));
+
+    var liveConfig = defaults with
+    {
+        LiveWissenImportAktiv = true,
+        LiveWissenQuellordner = liveSourceDirectory
+    };
+    liveConfig.Validate();
+
+    var liveArbeitskopie = new GitArbeitskopie(liveRepoDirectory);
+    var liveImporteur = new LiveWissenImporteur(liveConfig, liveArbeitskopie);
+    var liveResult = await liveImporteur.ImportiereAsync(DateTimeOffset.UtcNow);
+
+    Assert(liveResult.Konfiguriert, "LIVE_WISSEN_IMPORT_CONFIGURED");
+    Assert(liveResult.ImportierteDateien == 1, "LIVE_WISSEN_ONE_IMPORTED");
+    Assert(liveResult.UebersprungeneDateien == 1, "LIVE_WISSEN_SECRET_SKIPPED");
+
+    var importedPath = Path.Combine(
+        liveRepoDirectory,
+        "v5", "wissensbasis", "datenbank", "live-verifiziert", "aktuell", "monster", "drops.json");
+    Assert(File.Exists(importedPath), "LIVE_WISSEN_FILE_MIRRORED");
+
+    var manifestPath = Path.Combine(
+        liveRepoDirectory,
+        "v5", "wissensbasis", "datenbank", "live-verifiziert", "manifest.json");
+    Assert(File.Exists(manifestPath), "LIVE_WISSEN_MANIFEST_CREATED");
+    var liveManifest = await File.ReadAllTextAsync(manifestPath);
+    Assert(!liveManifest.Contains(liveSourceDirectory, StringComparison.OrdinalIgnoreCase), "LIVE_WISSEN_ABSOLUTE_SOURCE_PATH_NOT_UPLOADED");
+    Assert(liveManifest.Contains("LIVE_VERIFIZIERT_DURCH_BOT", StringComparison.Ordinal), "LIVE_WISSEN_VERIFICATION_MARKER");
+}
+finally
+{
+    if (Directory.Exists(liveSourceDirectory)) Directory.Delete(liveSourceDirectory, true);
+    if (Directory.Exists(liveRepoDirectory)) Directory.Delete(liveRepoDirectory, true);
 }
 
 var temporaryDirectory = Path.Combine(Path.GetTempPath(), "aio-windows-bridge-tests-" + Guid.NewGuid().ToString("N"));
