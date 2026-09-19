@@ -31,6 +31,12 @@ static void ExpectInvalidLiveFakt(string json, string expected)
     }
 }
 
+var jsonOptions = new JsonSerializerOptions
+{
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+
 var defaults = new BridgeConfig();
 defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
@@ -157,7 +163,7 @@ if (Directory.Exists(@"D:\"))
                 ["format"] = LiveWissensImportDienst.LokalesFormat,
                 ["spiel"] = LiveWissensImportDienst.KanonischerSpielname,
                 ["aktuellVerzeichnis"] = "aktuell"
-            }, BridgeConfig.JsonOptions));
+            }, jsonOptions));
 
         var generation = 1L;
         var statusBereit = JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -167,7 +173,7 @@ if (Directory.Exists(@"D:\"))
             ["generation"] = generation,
             ["zustand"] = "BEREIT",
             ["aktualisiertAm"] = DateTimeOffset.UtcNow.ToString("O")
-        }, BridgeConfig.JsonOptions);
+        }, jsonOptions);
         await File.WriteAllTextAsync(Path.Combine(liveRoot, "status.json"), statusBereit);
 
         await File.WriteAllTextAsync(
@@ -203,7 +209,7 @@ if (Directory.Exists(@"D:\"))
             ["generation"] = generation + 1,
             ["zustand"] = "SCHREIBT",
             ["aktualisiertAm"] = DateTimeOffset.UtcNow.ToString("O")
-        }, BridgeConfig.JsonOptions);
+        }, jsonOptions);
         await File.WriteAllTextAsync(Path.Combine(liveRoot, "status.json"), statusSchreibt);
         await File.WriteAllTextAsync(
             Path.Combine(liveRoot, "aktuell", "monster", "frog.json"),
