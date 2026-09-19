@@ -337,6 +337,8 @@ class InventoryLedger {
         disposition,
         reasons: reasons.slice(0, 12),
         reservation: classified.reservation || null,
+        economicTargetLevel: Number.isFinite(Number(classified.economicTargetLevel)) ? Math.max(0, Math.floor(Number(classified.economicTargetLevel))) : null,
+        economicDecision: classified.economicDecision ? clone(classified.economicDecision) : null,
         metadataKnown: !!meta,
         metadataType: meta && meta.type || null,
         operatorPermissions: { ...permissions },
