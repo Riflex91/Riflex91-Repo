@@ -227,7 +227,7 @@ export class AdventureLandSkillTechnikLesezugriff {
     const ausruestung = ausruestungBereit(this.spielFenster, skill, gruende);
     const material = materialBereit(this.spielFenster, skill, gruende);
     const mana = manaBereit(this.spielFenster, skill, gruende);
-    const aktionsBereitschaft = this.bereitschaft.liesSkillNutzbarkeit(skill.skillId, aufgenommenAm);
+    const aktionsBereitschaft = this.bereitschaft.liesAktionsBereitschaft(skill.skillId, aufgenommenAm);
     if (aktionsBereitschaft.zustand !== 'bereit') gruende.push(aktionsBereitschaft.grund);
 
     const zustand = kombiniereZustand(
