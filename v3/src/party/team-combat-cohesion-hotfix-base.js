@@ -80,11 +80,14 @@ class TeamCombatCohesionHotfix {
       teamTargetStatesReceived: 0,
       teamTargetStateRejected: 0,
       teamTargetReplicatedFallbacks: 0,
-      teamTargetReplicatedStale: 0
+      teamTargetReplicatedStale: 0,
+      leaderCurrentTargetSelections: 0,
+      materialObjectiveTeamTargetYields: 0
     };
     this.installed = false;
     this._tuneKiting();
     this.teamTargetReplicationInstalled = this._installTeamTargetReplication();
+    this._installMaterialObjectiveTargetGuard();
     this._installTargetSelection();
     this._installCombatMovementGates();
     this._installLocalFarmTeamMovement();
@@ -392,6 +395,33 @@ class TeamCombatCohesionHotfix {
     return targetHp != null && combined > 0 && targetHp > combined * this.maxNewTargetHpVsTeam;
   }
 
+  _installMaterialObjectiveTargetGuard() {
+    if (!this.farmer || typeof this.farmer._moveToMaterialObjective !== 'function'
+      || this.farmer.__teamTargetMaterialObjectiveGuardInstalled) return;
+    const baseMoveToMaterialObjective = this.farmer._moveToMaterialObjective.bind(this.farmer);
+    this.farmer._moveToMaterialObjective = (context) => {
+      const snapshot = context && context.snapshot;
+      if (snapshot && snapshot.character) {
+        const team = this._team(snapshot);
+        const activeTeamCombat = this._activeTeamCombat(context, team);
+        if (activeTeamCombat) {
+          this.stats.materialObjectiveTeamTargetYields += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'MATERIAL_OBJECTIVE_YIELD',
+            reason: 'ACTIVE_TEAM_TARGET_HAS_COMBAT_PRIORITY',
+            leaderName: team.leaderName,
+            targetId: activeTeamCombat.id == null ? null : String(activeTeamCombat.id),
+            targetType: activeTeamCombat.mtype || null
+          };
+          return false;
+        }
+      }
+      return baseMoveToMaterialObjective(context);
+    };
+    this.farmer.__teamTargetMaterialObjectiveGuardInstalled = true;
+  }
+
   _installTargetSelection() {
     if (this.farmer.__teamCohesionTargetSelectionInstalled) return;
     const baseSelect = this.farmer._selectTarget.bind(this.farmer);
@@ -429,6 +459,36 @@ class TeamCombatCohesionHotfix {
             source: 'team-shared-aggro'
           }
         };
+      }
+
+      if (team.selfName === team.leaderName && team.leaderTargetId) {
+        const currentLeaderTarget = (snapshot.entities || []).find((entity) => entity
+          && String(entity.id) === String(team.leaderTargetId));
+        if (currentLeaderTarget && this._candidateAllowed(context, currentLeaderTarget)) {
+          if (typeof this.farmer._setLogicalTeamTarget === 'function') {
+            this.farmer._setLogicalTeamTarget(currentLeaderTarget.id, currentLeaderTarget.mtype, {
+              source: 'team-leader-current-target',
+              leaderName: team.leaderName
+            });
+          }
+          this.stats.leaderCurrentTargetSelections += 1;
+          this.lastDecision = {
+            at: this.now(),
+            action: 'TARGET_LEADER_CONTINUE',
+            reason: 'EXISTING_LEADER_TARGET',
+            leaderName: team.leaderName,
+            targetId: String(currentLeaderTarget.id),
+            targetType: currentLeaderTarget.mtype
+          };
+          return {
+            target: currentLeaderTarget,
+            ranking: {
+              monster: currentLeaderTarget.mtype,
+              score: Number.MAX_SAFE_INTEGER,
+              source: 'team-leader-current-target'
+            }
+          };
+        }
       }
 
       if (team.selfName !== team.leaderName) {
@@ -596,6 +656,7 @@ class TeamCombatCohesionHotfix {
     const targetIds = new Set((Array.isArray(team.members) ? team.members : [])
       .map((member) => member && member.target != null ? String(member.target) : null)
       .filter(Boolean));
+    if (team.leaderTargetId != null) targetIds.add(String(team.leaderTargetId));
     return (snapshot.entities || []).find((entity) => entity
       && entity.mtype
       && !entity.dead
@@ -826,7 +887,9 @@ class TeamCombatCohesionHotfix {
         formationMovementSuppressedDuringActiveSharedCombat: true,
         sharedAggroCombatMayContinueOutsideCohesionRadius: true,
         trustedLeaderTargetReplication: true,
-        replicatedTargetStillRequiresLocalSafety: true
+        replicatedTargetStillRequiresLocalSafety: true,
+        activeTeamTargetPreemptsMaterialObjectiveMovement: true,
+        existingLeaderTargetContinuesBeforeNewTargetSelection: true
       },
       team: team ? {
         names: team.names,

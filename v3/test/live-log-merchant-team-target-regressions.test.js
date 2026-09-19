@@ -410,3 +410,157 @@ test('replicated leader target still fails closed when target is not locally saf
   assert.equal(cohesion.replicatedLeaderTarget, null);
   assert.ok(cohesion.stats.teamTargetReplicatedStale >= 1);
 });
+
+
+test('BANK commit immediately refreshes inventory planning before the next workspace decision', async () => {
+  const ledger = makeLedger([
+    { character: 'Merchant', index: 8, name: 'offering', q: 1, disposition: 'BANK', reasons: ['INVENTORY_PRESSURE'] }
+  ]);
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  controlledMerchant.execute = async () => ({ executed: true, committed: true, reason: 'SERVER_ACK_COMMIT' });
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      items: Array.from({ length: 42 }, (_, index) => index === 8 ? { name: 'offering', q: 1 } : null),
+      isize: 42,
+      gold: 2000000,
+      bank: { items0: Array(42).fill(null) }
+    },
+    parent: { entities: {} }
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant });
+  let refreshes = 0;
+  runtime._planInventoryAndGear = () => { refreshes += 1; return {}; };
+  runtime.merchantBankCatalog = { observe() { return true; } };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  convergence.merchant.ensureStandClosed = async () => true;
+
+  const acted = await convergence.merchant.executeEconomyRequest({
+    type: 'BANK',
+    character: 'Merchant',
+    index: 8,
+    quantity: 1,
+    metadata: { workspaceReserveRecovery: true }
+  });
+
+  assert.equal(acted, true);
+  assert.equal(refreshes, 1);
+  assert.equal(convergence.merchant.status().inventoryPlanRefreshes, 1);
+  assert.equal(convergence.merchant.status().inventoryPlanRefreshFailures, 0);
+});
+
+test('BANK live identity mismatch invalidates stale workspace planning before retry', async () => {
+  const ledger = makeLedger([
+    { character: 'Merchant', index: 8, name: 'offering', q: 1, disposition: 'BANK', reasons: ['INVENTORY_PRESSURE'] }
+  ]);
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  controlledMerchant.execute = async () => ({ executed: false, committed: false, reason: 'LIVE_ITEM_IDENTITY_MISMATCH' });
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      items: Array(42).fill(null),
+      isize: 42,
+      gold: 2000000,
+      bank: { items0: Array(42).fill(null) }
+    },
+    parent: { entities: {} }
+  };
+  const runtime = makeRuntime({ root, ledger, engine, controlledMerchant });
+  let refreshes = 0;
+  runtime._planInventoryAndGear = () => { refreshes += 1; return {}; };
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  convergence.merchant.ensureStandClosed = async () => true;
+
+  const acted = await convergence.merchant.executeEconomyRequest({
+    type: 'BANK',
+    character: 'Merchant',
+    index: 8,
+    quantity: 1,
+    metadata: { workspaceReserveRecovery: true }
+  });
+
+  assert.equal(acted, true);
+  assert.equal(refreshes, 1);
+  assert.equal(convergence.merchant.status().inventoryPlanRefreshes, 1);
+});
+
+test('replicated active team target makes material objective movement yield before it can issue a move', () => {
+  const fixture = teamRuntime();
+  let materialMoves = 0;
+  fixture.farmer._moveToMaterialObjective = () => { materialMoves += 1; return true; };
+
+  // Install a fresh hotfix after exposing the material-objective method.
+  delete fixture.farmer.__teamCohesionTargetSelectionInstalled;
+  delete fixture.farmer.__teamCohesionCombatGateInstalled;
+  delete fixture.farmer.__teamTargetMaterialObjectiveGuardInstalled;
+  fixture.runtime.localFarming.__teamCohesionInstalled = false;
+  fixture.runtime.controlledPartyLogistics.__teamTargetReplicationInstalled = false;
+  const cohesion = new TeamCombatCohesionHotfix(fixture.runtime, { teamTargetTtlMs: 3000 });
+
+  assert.equal(fixture.logistics.receive('My_Warrior', {
+    action: TEAM_TARGET_STATE_ACTION,
+    sender: 'My_Warrior',
+    at: 1000,
+    expiresAt: 4000,
+    targetId: '2651206',
+    targetType: 'tortoise'
+  }), true);
+
+  const yielded = fixture.farmer._moveToMaterialObjective({
+    snapshot: fixture.snapshot,
+    party: fixture.snapshot.party,
+    adapter: fixture.runtime.adapter
+  });
+
+  assert.equal(yielded, false);
+  assert.equal(materialMoves, 0);
+  assert.equal(cohesion.lastDecision.reason, 'ACTIVE_TEAM_TARGET_HAS_COMBAT_PRIORITY');
+  assert.equal(cohesion.stats.materialObjectiveTeamTargetYields, 1);
+});
+
+test('Warrior keeps its existing safe target before material objective or a new target planner can redirect it', () => {
+  const fixture = teamRuntime();
+  fixture.snapshot.character = {
+    ...fixture.snapshot.character,
+    name: 'My_Warrior',
+    ctype: 'warrior',
+    x: 0,
+    y: 0,
+    hp: 1700,
+    max_hp: 1700,
+    mp: 250,
+    max_mp: 250,
+    target: '2651206'
+  };
+  fixture.runtime.lastSnapshot = fixture.snapshot;
+  fixture.runtime.root.character = fixture.snapshot.character;
+  fixture.runtime.root.parent.party.My_Warrior.target = '2651206';
+
+  let baseSelections = 0;
+  fixture.farmer._selectTarget = () => { baseSelections += 1; return null; };
+  fixture.farmer._moveToMaterialObjective = () => true;
+  delete fixture.farmer.__teamCohesionTargetSelectionInstalled;
+  delete fixture.farmer.__teamCohesionCombatGateInstalled;
+  delete fixture.farmer.__teamTargetMaterialObjectiveGuardInstalled;
+  fixture.runtime.localFarming.__teamCohesionInstalled = false;
+  fixture.runtime.controlledPartyLogistics.__teamTargetReplicationInstalled = false;
+
+  const cohesion = new TeamCombatCohesionHotfix(fixture.runtime, { teamTargetTtlMs: 3000 });
+  const context = {
+    snapshot: fixture.snapshot,
+    party: fixture.snapshot.party,
+    adapter: fixture.runtime.adapter
+  };
+
+  assert.equal(fixture.farmer._moveToMaterialObjective(context), false);
+  const selected = fixture.farmer._selectTarget(context);
+  assert.ok(selected);
+  assert.equal(selected.target.id, '2651206');
+  assert.equal(selected.ranking.source, 'team-leader-current-target');
+  assert.equal(baseSelections, 0);
+  assert.equal(cohesion.stats.leaderCurrentTargetSelections, 1);
+});

@@ -535,3 +535,229 @@ test('production controller refuses irreversible mutation when another required 
   assert.equal(controller.status().lastExecution.result.reason, 'PRODUCTION_MUTATION_CHAIN_NOT_COMPLETABLE');
   assert.equal(controller.status().teamMaterialFarmPolicy.mutationExecutions, 0);
 });
+
+
+test('production releases its lease and holds while Merchant workspace reserve is violated', () => {
+  const coordinator = new MerchantTaskCoordinator({ now: () => 1000, defaultLeaseMs: 600000 });
+  const acquired = coordinator.acquire(
+    'PRODUCTION',
+    'EXCHANGE_BATCH',
+    'production:exchange:anniversarygift:anniversarygift',
+    { exchangeItem: 'anniversarygift', target: 'anniversarygift' }
+  );
+  assert.equal(acquired.acquired, true);
+
+  let plannerCalls = 0;
+  const planner = {
+    plan() { plannerCalls += 1; throw new Error('production planning must not run while workspace reserve is violated'); },
+    planMaterialConsolidation: () => null,
+    planExchange: () => null,
+    status: () => ({})
+  };
+  const bankCatalog = {
+    observe: () => true,
+    needsRefresh: () => false,
+    status: () => ({ usable: true, snapshot: { rows: [] } })
+  };
+  const executor = {
+    status: () => ({ enabled: true, busy: false }),
+    execute: async () => ({ executed: false, committed: false, reason: 'NOT_EXPECTED' }),
+    configure: () => {},
+    disable: () => {},
+    reconcile: () => ({})
+  };
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      map: 'main',
+      x: 0,
+      y: 0,
+      gold: 2000000,
+      isize: 42,
+      items: Array.from({ length: 42 }, (_, index) => index < 41 ? { name: 'placeholder', level: 0, q: 1 } : null)
+    },
+    parent: { entities: {} },
+    G: { items: {}, craft: {}, maps: {}, npcs: {}, monsters: {} }
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    merchantTaskCoordinator: coordinator,
+    inventoryLedger: {
+      observe: () => ({}),
+      get: () => null,
+      status: () => ({
+        stale: false,
+        summary: {
+          selfInventory: {
+            capacity: 42,
+            occupied: 41,
+            freeSlots: 1,
+            workspaceSlots: 3,
+            workspaceAvailable: false
+          }
+        }
+      })
+    },
+    controlledPartyLogistics: {
+      clearProductionMaterialObjective: () => true,
+      publishProductionMaterialObjective: () => true
+    },
+    alpha27CombatMerchantConvergence: {
+      merchant: {
+        atomic: { merchantBusy: false, serviceTravelBusy: false },
+        ensureAutonomousAuthorities: () => true,
+        executeEconomyRequest: async () => { throw new Error('mutation must not execute'); }
+      }
+    },
+    _merchantCollectionSessionActive: () => false,
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, { planner, bankCatalog, executor });
+  const decision = controller.cycle();
+
+  assert.equal(decision.state, 'HOLD');
+  assert.equal(decision.reason, 'MERCHANT_WORKSPACE_RESERVE_REQUIRED');
+  assert.equal(decision.workspace.freeSlots, 1);
+  assert.equal(decision.workspace.workspaceSlots, 3);
+  assert.equal(coordinator.current(), null);
+  assert.equal(runtime.productionMaterialMutationDemand, null);
+  assert.equal(plannerCalls, 0);
+  assert.equal(controller.status().workspaceReserveBlocksProduction, true);
+  assert.equal(controller.status().workspaceReserve.violated, true);
+});
+
+
+test('non-retryable Production failure releases its task lease and pauses through quarantine', async () => {
+  let now = 1000;
+  const coordinator = new MerchantTaskCoordinator({ now: () => now, defaultLeaseMs: 600000 });
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      map: 'bank',
+      x: 0,
+      y: 0,
+      gold: 2000000,
+      isize: 42,
+      items: [],
+      bank: { items0: [{ name: 'mat', level: 0, q: 1 }] }
+    },
+    parent: { entities: {} },
+    G: {
+      items: { mat: { type: 'material', g: 100 } },
+      craft: {},
+      maps: {},
+      npcs: {},
+      monsters: {}
+    }
+  };
+  const readyPlan = {
+    id: 'production-nonretryable-1',
+    state: 'READY',
+    reason: 'TEST_READY',
+    target: { output: 'goodbow', recipient: 'R1', slot: 'mainhand', improvement: 50 },
+    nextStep: {
+      kind: ProductionStepKind.BANK_RETRIEVE,
+      name: 'mat',
+      level: 0,
+      pack: 'items0',
+      bankIndex: 0,
+      quantity: 1
+    },
+    steps: [],
+    blockers: [],
+    reservations: {}
+  };
+  const planner = {
+    plan: () => readyPlan,
+    planMaterialConsolidation: () => null,
+    planExchange: () => null,
+    status: () => ({})
+  };
+  const bankCatalog = {
+    observe: () => true,
+    needsRefresh: () => false,
+    status: () => ({ usable: true, snapshot: { rows: [] } })
+  };
+  const executor = {
+    status: () => ({
+      enabled: true,
+      busy: false,
+      failureQuarantineMs: 900000
+    }),
+    execute: async () => ({
+      executed: true,
+      committed: false,
+      reason: 'EXCHANGE_REJECTED:EXCHANGE_NOT_READY',
+      failureClass: 'SERVER_REJECTED',
+      retryable: false,
+      failureDetails: { responseReason: { code: 'EXCHANGE_NOT_READY' } }
+    }),
+    configure: () => {},
+    disable: () => {},
+    reconcile: () => ({})
+  };
+  const runtime = {
+    root,
+    now: () => now,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    merchantTaskCoordinator: coordinator,
+    inventoryLedger: {
+      observe: () => ({}),
+      get: () => null,
+      status: () => ({ stale: false })
+    },
+    controlledPartyLogistics: {
+      clearProductionMaterialObjective: () => true,
+      publishProductionMaterialObjective: () => true
+    },
+    alpha27CombatMerchantConvergence: {
+      merchant: {
+        atomic: { merchantBusy: false, serviceTravelBusy: false },
+        ensureAutonomousAuthorities: () => true,
+        executeEconomyRequest: async () => true
+      }
+    },
+    _merchantCollectionSessionActive: () => false,
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, {
+    planner,
+    bankCatalog,
+    executor,
+    merchantProductionFailureQuarantineMs: 900000
+  });
+
+  const decision = controller.cycle();
+  assert.equal(decision.state, 'READY');
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(coordinator.current(), null);
+  assert.equal(controller.status().lastExecution.result.retryable, false);
+  assert.equal(controller.status().lastExecution.result.failureClass, 'SERVER_REJECTED');
+  assert.ok(controller.status().pausedUntil >= now + 900000);
+  assert.equal(controller.status().failureQuarantineMs, 900000);
+});
