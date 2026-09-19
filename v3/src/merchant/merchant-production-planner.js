@@ -603,13 +603,17 @@ class MerchantProductionPlanner {
     if (!candidates.length) return this._hold(lockedOutput ? 'LOCKED_PRODUCTION_TARGET_COMPLETE_OR_UNAVAILABLE' : 'NO_CRAFTED_GEAR_IMPROVEMENT');
 
     let bestBlocked = null;
+    const blockedCandidates = [];
     for (const candidate of candidates.slice(0, 32)) {
       if (input.contentDrift && typeof input.contentDrift.requiresRevalidation === 'function') {
         try { if (input.contentDrift.requiresRevalidation('items', candidate.output)) continue; } catch (_) { continue; }
       }
       const built = this._buildCandidate(candidate, input);
       if (!bestBlocked) bestBlocked = built;
-      if (!built.ready) continue;
+      if (!built.ready) {
+        blockedCandidates.push(built);
+        continue;
+      }
       const plan = {
         schemaVersion: 1,
         id: this._id(),
@@ -649,7 +653,18 @@ class MerchantProductionPlanner {
       reservations: bestBlocked ? bestBlocked.reservations : {},
       blockers: bestBlocked ? bestBlocked.blockers : [{ reason: 'NO_CANDIDATE' }],
       totalGold: bestBlocked ? bestBlocked.totalGold : 0,
-      goldReserve: this.goldReserve
+      goldReserve: this.goldReserve,
+      blockedCandidates: blockedCandidates.slice(0, 16).map((row) => ({
+        candidate: clone(row.candidate),
+        steps: clone(row.steps),
+        blockers: clone(row.blockers),
+        reservations: clone(row.reservations),
+        totalGold: row.totalGold,
+        availableGold: row.availableGold,
+        goldReserve: row.goldReserve,
+        bankSource: row.bankSource,
+        costStrategy: row.costStrategy
+      }))
     };
     this.lastPlan = plan;
     this.stats.plans += 1;
