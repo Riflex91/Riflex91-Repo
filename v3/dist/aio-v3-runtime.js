@@ -34979,7 +34979,6 @@ class TacticalPartyCombat {
       if (candidate.target != null) continue;
       if (this.config.sameTypePullsOnly && primaryType && candidate.mtype !== primaryType) continue;
       if (this._specialFreshPull(candidate)) continue;
-      if (context.adapter && typeof context.adapter.canAttack === 'function' && !context.adapter.canAttack(candidate.id)) continue;
       const decision = this.canAddTarget(candidate, { snapshot, team, party: context.party || {} });
       if (!decision.allowed) continue;
       rows.push({ candidate, decision });
@@ -35135,7 +35134,14 @@ class TacticalPartyCombat {
     const agitate = this._tryAgitatePull(context, team, plan, candidates);
     if (agitate && agitate.acted) return agitate;
 
-    const selected = candidates[0];
+    const selected = candidates.find((row) => {
+      if (!context.adapter || typeof context.adapter.canAttack !== 'function') return true;
+      try { return context.adapter.canAttack(row.candidate.id) === true; } catch (_) { return false; }
+    });
+    if (!selected) {
+      this.stats.pullExpansionNoCandidate += 1;
+      return { acted: false, reason: 'NO_SAFE_IN_RANGE_PULL_CANDIDATE' };
+    }
     this.stats.pullExpansionAttempts += 1;
     this.lastPullExpansionAt = now;
     const result = context.adapter && typeof context.adapter.command === 'function'
