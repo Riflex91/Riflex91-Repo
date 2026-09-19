@@ -125,7 +125,8 @@ function composeAlpha20_5FarmReadinessRuntime(options = {}) {
       retryBaseMs: options.partyBootstrapRetryBaseMs,
       retryMaxMs: options.partyBootstrapRetryMaxMs,
       maxAttempts: options.partyBootstrapMaxAttempts,
-      breakerMs: options.partyBootstrapBreakerMs
+      breakerMs: options.partyBootstrapBreakerMs,
+      discoverySettleMs: options.partyBootstrapDiscoverySettleMs
     });
     this.partyBootstrapMerchantDiscoveryHotfix = installPartyBootstrapMerchantDiscoveryHotfix(this.partyBootstrap);
     this.partyBootstrapFarmerGate = installPartyBootstrapFarmerGate(this, this.partyBootstrap);

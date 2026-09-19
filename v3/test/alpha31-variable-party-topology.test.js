@@ -313,3 +313,133 @@ test('restart reconciliation is size-consistent and remains fail-closed without 
   assert.equal(ambiguous.operation.state, PartyLifecycleOperationState.FAILED_SAFE);
   assert.equal(ambiguous.operation.reason, 'RESTART_PARTY_STATE_AMBIGUOUS_NO_BLIND_RETRY');
 });
+
+
+function dynamicAccountRoot(localName, localType, accountRows, active = null) {
+  const root = {
+    character: { name: localName, ctype: localType },
+    parent: { party: {}, party_list: [localName] },
+    get_characters: () => accountRows.map((row) => ({ ...row })),
+    get_active_characters: () => active || { [localName]: 'self' }
+  };
+  root.parent.get_characters = root.get_characters;
+  root.parent.get_active_characters = root.get_active_characters;
+  return root;
+}
+
+test('dynamic bootstrap discovers arbitrary owned online classes even when active-character view only sees self', () => {
+  const accountRows = [
+    { name: 'My_Merchant', type: 'merchant', online: 1 },
+    { name: 'My_Mage', type: 'mage', online: 1 },
+    { name: 'My_Warrior', type: 'warrior', online: 1 },
+    { name: 'My_Rogue', type: 'rogue', online: 1 }
+  ];
+  const expected = ['My_Merchant', 'My_Mage', 'My_Rogue', 'My_Warrior'];
+
+  for (const [name, ctype] of [
+    ['My_Merchant', 'merchant'],
+    ['My_Mage', 'mage'],
+    ['My_Warrior', 'warrior'],
+    ['My_Rogue', 'rogue']
+  ]) {
+    const root = dynamicAccountRoot(name, ctype, accountRows);
+    const seeded = [];
+    const lease = {
+      setTrustedNames(names) { this.trusted = names.slice(); },
+      setMerchantName(merchant) { this.merchant = merchant; }
+    };
+    const runtime = {
+      root,
+      now: () => 1000,
+      adapter: { mode: 'active' },
+      characterRegistry: { seedRoster(rows) { seeded.push(rows); } }
+    };
+    const bootstrap = new ControlledPartyBootstrap({
+      runtime,
+      root,
+      controlLease: lease,
+      discoverySettleMs: 0
+    });
+
+    const status = bootstrap.status();
+    assert.equal(status.dynamicRosterReady, true);
+    assert.equal(status.merchantName, 'My_Merchant');
+    assert.deepEqual(status.desiredRoster, expected);
+    assert.deepEqual(bootstrap.trustedRosterNames(), expected);
+    assert.deepEqual(lease.trusted, expected);
+    assert.equal(lease.merchant, 'My_Merchant');
+    assert.equal(bootstrap.farmingGate(name).reason === 'LOCAL_CHARACTER_NOT_IN_TRUSTED_ROSTER', false);
+    assert.ok(seeded.length >= 1);
+    bootstrap.uninstall();
+  }
+});
+
+test('dynamic bootstrap never falls back to legacy Ranger names while account roster is incomplete', () => {
+  let now = 1000;
+  const root = dynamicAccountRoot('My_Mage', 'mage', [
+    { name: 'My_Merchant', type: 'merchant', online: 0 },
+    { name: 'My_Mage', type: 'mage', online: 1 },
+    { name: 'My_Warrior', type: 'warrior', online: 0 },
+    { name: 'My_Rogue', type: 'rogue', online: 0 }
+  ]);
+  const runtime = {
+    root,
+    now: () => now,
+    adapter: { mode: 'active' },
+    characterRegistry: { seedRoster() {} }
+  };
+  const bootstrap = new ControlledPartyBootstrap({
+    runtime,
+    root,
+    discoverySettleMs: 0
+  });
+  bootstrap.resume();
+
+  const status = bootstrap.tick();
+  assert.equal(status.ready, false);
+  assert.equal(status.reason, 'DYNAMIC_ROSTER_WAITING_FOR_MERCHANT');
+  assert.equal(status.desiredRoster.includes('My_Ranger1'), false);
+  assert.equal(status.desiredRoster.includes('My_Ranger2'), false);
+  assert.equal(status.desiredRoster.includes('My_Ranger3'), false);
+  assert.equal(bootstrap.farmingGate('My_Mage').allowed, false);
+  assert.equal(bootstrap.farmingGate('My_Mage').reason, 'DYNAMIC_ROSTER_WAITING_FOR_MERCHANT');
+  bootstrap.cancel();
+});
+
+test('dynamic bootstrap reconverges after an owned character comes online without accepting unsupported classes', () => {
+  let now = 1000;
+  const accountRows = [
+    { name: 'My_Merchant', type: 'merchant', online: 1 },
+    { name: 'My_Mage', type: 'mage', online: 1 },
+    { name: 'My_Warrior', type: 'warrior', online: 0 }
+  ];
+  const root = dynamicAccountRoot('My_Merchant', 'merchant', accountRows);
+  const lease = { setTrustedNames(names) { this.trusted = names.slice(); }, setMerchantName(name) { this.merchant = name; } };
+  const runtime = {
+    root,
+    now: () => now,
+    adapter: { mode: 'active' },
+    characterRegistry: { seedRoster() {} }
+  };
+  const bootstrap = new ControlledPartyBootstrap({
+    runtime,
+    root,
+    controlLease: lease,
+    discoverySettleMs: 0
+  });
+  assert.deepEqual(bootstrap.status().desiredRoster, ['My_Merchant', 'My_Mage']);
+
+  accountRows[2].online = 1;
+  now += 1;
+  bootstrap.tick();
+  assert.deepEqual(bootstrap.status().desiredRoster, ['My_Merchant', 'My_Mage', 'My_Warrior']);
+  assert.equal(bootstrap.status().dynamicRosterReconfigurations, 1);
+
+  accountRows.push({ name: 'Unsupported', type: 'bard', online: 1 });
+  now += 1;
+  const blocked = bootstrap.tick();
+  assert.equal(blocked.ready, false);
+  assert.equal(blocked.reason, 'DYNAMIC_ROSTER_UNSUPPORTED_ONLINE_CHARACTER');
+  assert.deepEqual(bootstrap.trustedRosterNames(), ['My_Merchant', 'My_Mage', 'My_Warrior']);
+  bootstrap.cancel();
+});
