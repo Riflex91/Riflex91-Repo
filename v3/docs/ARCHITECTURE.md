@@ -18,9 +18,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | economy | 12 | 4357 |
 | farmer | 21 | 4529 |
 | game | 3 | 870 |
-| merchant | 10 | 3644 |
+| merchant | 10 | 3939 |
 | ops | 26 | 7611 |
-| party | 35 | 9026 |
+| party | 37 | 9866 |
 | planner | 1 | 66 |
 | reliability | 50 | 17082 |
 | research | 1 | 101 |
@@ -87,7 +87,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | core | 2 |
 | merchant | economy | 1 |
 | merchant | game | 1 |
-| merchant | party | 2 |
+| merchant | party | 5 |
 | merchant | reliability | 1 |
 | ops | (root) | 3 |
 | ops | autonomy | 1 |
