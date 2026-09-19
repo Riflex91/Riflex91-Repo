@@ -125,3 +125,14 @@ Live-Erkennung ist keine Automationsfreigabe: Das Feld `automationValidated` ble
 Die `technischeReadiness` ist in Block 8.6.1 bewusst charakterunabhaengig `unbekannt` und besitzt `aktionsFreigabe: false`. Charakterbezogene Readiness aus Level, Equipment, Material, aktuellem Zustand und SkillPolicy wird erst in Block 8.6.4 abgeleitet.
 
 Der Katalog selbst besitzt immer `spielAutoritaet: false`. Ein zweiter identischer Snapshot nach fachlicher Drift macht den Katalog nicht automatisch wieder produktionsbereit; die Revalidierung muss den exakt aktuellen Fingerprint bestaetigen.
+
+
+## SkillKatalogAudit
+
+Ein `SkillKatalogAudit` bindet den read-only Live-Katalog an eine konkrete Charakter-/Serveridentitaet und dokumentiert, warum ein Audit stattgefunden hat. Ausloeser sind mindestens Runtime-Start, periodische Kontrolle, Connection-Gap/Recovery, Serverwechsel, Charakterwechsel, Level-Aenderung, Skill-Drift und explizite Revalidierung.
+
+Ein Connection-Gap macht einen bereits bekannten Katalog `veraltet`. Nach Recovery wird ein identischer Fingerprint nicht automatisch wieder `bereit`; die Revalidierung muss den exakt aktuellen Fingerprint bestaetigen.
+
+Das `SkillKatalogRevalidierungsProfil` bindet einen bestaetigten Fingerprint an Charakterkennung, Serverregion und Serverkennung. Ein Neustart mit einem alten Profil und einem abweichenden Live-Fingerprint fuehrt fail-closed zu `drift`; eine abweichende Identitaet fuehrt zu `veraltet`.
+
+`produktionsbereit` ist nur eine read-only Konsistenzaussage. Der Audit-Status besitzt immer `aktionsAutoritaet: false` und `automatischerNeustart: false`.
