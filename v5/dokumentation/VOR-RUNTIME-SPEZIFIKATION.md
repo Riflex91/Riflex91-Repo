@@ -26,7 +26,8 @@ Vor dem ersten Runtime-Code muessen fachlich geprueft sein:
 15. Auswahlkriterien fuer Vertical Slice 0;
 16. formales Laufzeit-Bereitschaftsgate;
 17. verbindlicher Entwicklungs-Wissensgate mit Frische-, Quellenhealth- und Driftpruefung;
-18. Zielvertrag fuer die lokale live verifizierte Wissensdatenbank auf `D:\\` und ihren read-only Bridge-Spiegel.
+18. Zielvertrag fuer die lokale live verifizierte Wissensdatenbank auf `D:\\` und ihren read-only Bridge-Spiegel;
+19. ratifizierter Vertrag `LOKALES-SSD-DATENFUNDAMENT.md` fuer die dedizierte 1-TB-SSD, Speicher-Tiering, I/O-Pfade, Budgets, Retention, Volume-Identitaet und Fail-Closed-Verhalten.
 
 ## Persistenz und Migration
 
@@ -42,7 +43,34 @@ Pflicht:
 - Inbox/Outbox oder Claim-Mechanismus fuer kritische Zustellung;
 - Retention/Compaction;
 - Fixtures fuer jede unterstuetzte Schema-Version;
-- Crash-Injection vor/nach kritischen Schreibschritten.
+- Crash-Injection vor/nach kritischen Schreibschritten;
+- Trennung von kritischer synchroner Persistenz und nichtkritischem asynchronem Batch-I/O;
+- bounded Schreibwarteschlangen mit Backpressure;
+- Speicherbudgets pro Datenklasse;
+- standardmaessig mindestens 15 Prozent freie SSD-Sicherheitsreserve;
+- definierte Degradation bei Speicherdruck;
+- Volume-/Datentraegeridentitaet zusaetzlich zum Laufwerksbuchstaben;
+- kein stiller Fallback kritischer Persistenz auf das Systemlaufwerk.
+## Lokales SSD-Datenfundament
+
+Die dedizierte 1-TB-SSD unter der Standardwurzel `D:\\AdventureLand-V5` wird als persistentes Datenfundament behandelt, nicht als Ersatz fuer RAM.
+
+Pflicht-Tiering:
+- HOT/RAM: aktueller World-/Character-State, Scheduler, Locks/Leases, aktive Workflows/Transaktionen und aktuelle Execution-Preconditions;
+- WARM/SSD: Journale, Checkpoints, Evidence, Replay, aktuelle Historien, aggregierte Telemetrie und Learning-Evidence;
+- COLD/SSD: verdichtete historische Replays, Testlaeufe, Zertifizierungsnachweise und Langzeitstatistik.
+
+Hot-Path-Regeln:
+- normale Combat-/Movement-/Scheduler-/Execution-Entscheidungen warten nicht auf nichtkritisches SSD-I/O;
+- grosse Historien werden nicht im Hot Path vollstaendig gelesen;
+- Hintergrund-Aggregatoren erzeugen kompakte RAM-Working-Sets;
+- nichtkritische Aufzeichnung erfolgt asynchron, bounded und batchweise;
+- vor wertveraendernder/irreversibler Mutation bleibt durable Journal-Persistenz synchron verpflichtend.
+
+Speicherdruck-Regeln:
+- Cache/Telemetrie/alte Replay- und Testdaten degradieren vor kritischer Persistenz;
+- ungeklärte Transaction-/Recovery-Evidence wird niemals still geloescht;
+- kann kritische Persistenz nicht mehr garantiert werden, werden neue wertveraendernde Mutationen fail-closed blockiert.
 
 ## Determinismus
 
@@ -70,13 +98,16 @@ CI muss spaeter mindestens verhindern:
 - Knowledge-Sync ausserhalb der Allowlist;
 - Implementierung bei stale/fehlerhaftem oder unbewertet gedriftetem relevanten Wissen;
 - direkter Gameplay-Zugriff auf `wissensbasis/datenbank/aktuell/**`;
-- Verwendung von Kandidaten als Entwicklungs- oder Gameplay-Autoritaet.
-
+- Verwendung von Kandidaten als Entwicklungs- oder Gameplay-Autoritaet;
+- beliebiger Fachmodul-Dateizugriff statt typisierter Speicherports;
+- unbounded SSD-Schreibwarteschlangen;
+- nichtkritisches SSD-I/O, das den Gameplay-Hot-Path blockiert;
+- wertveraendernde Mutation ohne bestaetigten durable Intent.
 Jeder Guard benoetigt ein Negativfixture, das beweist, dass der Guard wirklich fehlschlaegt.
 
 ## Simulator und Testlabor
 
-Der Adventure-Land-Adapter bekommt vor riskanter Domainbreite einen kontrollierbaren Simulator.
+Der Adventure-Land-Adapter bekommt vor riskanter Domainbreite einen kontrollierbaren Simulator. Das Replay-/Aufzeichnungsgrundgeruest beginnt bereits in R3/R4; R11 baut es fuer Operations, Fault Injection und Langzeit-Zertifizierung aus.
 
 Simulierbar mindestens:
 - Erfolg;
@@ -145,6 +176,7 @@ Mindestens getrennt:
 - Navigation;
 - Learning;
 - Persistence;
+- SSD/Storage-I/O;
 - External Host/Bridge.
 
 Ein Fehler reduziert nur die betroffene Autoritaet. Fachfremde sichere Arbeit darf weiterlaufen, sofern ihre eigenen Preconditions weiter bewiesen sind.
@@ -168,8 +200,9 @@ Jeder spaetere Live-Build bindet:
 - Runtime-/Schema-Version;
 - Build-ID;
 - Konfigurationsfingerprint;
-- Knowledge-/Contract-Version.
-
+- Knowledge-/Contract-Version;
+- SSD-Volume-Identitaet und Datenlayout-Version;
+- relevante Persistenz-/Replay-Schema-Versionen.
 Zertifizierungsevidence muss diese Identitaet tragen.
 
 ## Freigaberegel
@@ -193,3 +226,5 @@ Festgelegt sind bereits:
 - Secret-/Path-/Reparse-/Size-Guards;
 - keine Generalisierung einzelner Live-Beobachtungen;
 - keine direkte ExecutionAuthority aus persistiertem Live-Wissen.
+
+Die Live-Wissensdatenbank ist nur ein geschuetzter Teil des groesseren lokalen SSD-Datenfundaments. Die Windows Bridge bleibt weiterhin auf diesen Live-Wissenspfad begrenzt; Runtime-Journale, Replay, Telemetrie, Learning-Daten und Recovery-State werden nicht automatisch nach GitHub gespiegelt.

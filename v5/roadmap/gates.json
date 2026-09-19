@@ -58,7 +58,10 @@
         "Quellenfreigaben und Driftwirkung ratifiziert",
         "WissensZugriffPort und Snapshot-Pinning als Zielvertrag festgelegt",
         "Live-Wissens-SSD-Vertrag ratifiziert",
-        "Konkrete Live-Beobachtung darf nicht automatisch zu globaler Spielregel generalisiert werden"
+        "Konkrete Live-Beobachtung darf nicht automatisch zu globaler Spielregel generalisiert werden",
+        "Lokales SSD-Datenfundament mit HOT/WARM/COLD-Tiering ratifiziert",
+        "Speicherbudgets, mindestens 15 Prozent Standardreserve, Retention und Degradationsregeln festgelegt",
+        "Speicherort/Persistenz verleiht keine Gameplay-Autoritaet"
       ]
     },
     {
@@ -81,7 +84,11 @@
         "Relevante Quellenhash-Drift blockiert unbewertete Implementierung",
         "Direkter Runtime-Zugriff auf Roh-Snapshots architektonisch verboten",
         "Windows-Bridge Live-Wissensimport Negativtests gruen",
-        "Bridge besitzt keine Gameplay-Autoritaet trotz Live-Wissenszugriff"
+        "Bridge besitzt keine Gameplay-Autoritaet trotz Live-Wissenszugriff",
+        "Testlabor/Replay-Grundgeruest vor Execution-Kernel vorhanden",
+        "SSD/Volume-Gesundheit und falsches Volume werden erkannt",
+        "Nichtkritische asynchrone Writer sind bounded und koennen Hot Path nicht unbounded blockieren",
+        "Fachmodule besitzen keinen beliebigen Dateisystemzugriff ausserhalb typisierter Speicherports"
       ]
     },
     {
@@ -94,7 +101,8 @@
       "blocksRuntime": true,
       "exit": [
         "Clock/Random/IDs injizierbar",
-        "Replay deterministisch"
+        "Replay deterministisch",
+        "Deterministisches Replay-/Aufzeichnungsformat definiert"
       ]
     },
     {
@@ -109,7 +117,11 @@
         "Crash/Migration Tests gruen",
         "Kein Blind Resume",
         "LiveWissensSpeicherPort auf D: atomar und crash-sicher",
-        "SCHREIBT/BEREIT-Generation sowie Disk-Full/Access-Denied Tests gruen"
+        "SCHREIBT/BEREIT-Generation sowie Disk-Full/Access-Denied Tests gruen",
+        "Typisierte Ports fuer Journal, Checkpoints, Replay, Telemetrie, Zertifizierungs-Evidence und Speicher-Gesundheit",
+        "Kritischer Intent ist durable bevor wertveraendernde Mutation gesendet werden darf",
+        "Speicherdruck degradiert zuerst nichtkritische Datenklassen",
+        "Kein stiller Fallback kritischer Persistenz auf Systemlaufwerk"
       ]
     },
     {
@@ -125,7 +137,10 @@
         "Drift quarantine faehig",
         "Nur fachlich verifizierte Beobachtungen werden LIVE_VERIFIZIERT persistiert",
         "Persistiertes Live-Wissen bleibt Evidence und ersetzt keine Live-Admission",
-        "GitHub-Live-Snapshot ist bounded und schema/hash-validiert"
+        "GitHub-Live-Snapshot ist bounded und schema/hash-validiert",
+        "Bounded Observation-Evidence kann lokal fuer Replay/Analyse persistiert werden",
+        "Grosse SSD-Historien werden zu kompakten RAM-Working-Sets aggregiert",
+        "Learning-Evidence ist versioniert und besitzt keine Gameplay-Autoritaet"
       ]
     },
     {
@@ -182,7 +197,7 @@
     },
     {
       "id": "R11",
-      "name": "Testlab Replay Observability Operations",
+      "name": "Testlabor-Ausbau Replay Observability Operations",
       "status": "BLOCKED",
       "requires": [
         "R10"
@@ -190,7 +205,9 @@
       "blocksRuntime": true,
       "exit": [
         "Kernel reproduzierbar",
-        "Headless supervisor/alerts bounded"
+        "Headless supervisor/alerts bounded",
+        "SSD-I/O-Latenz, Queue-Tiefe, Backpressure, freier Speicher und Recorder-Drops sind beobachtbar",
+        "Retention/Rotation/Kompression und Replay aus bounded Live-Evidence getestet"
       ]
     },
     {
@@ -281,7 +298,8 @@
       "blocksRuntime": false,
       "exit": [
         "Deterministic fallback",
-        "Learning kann Safety/Authority nicht lockern"
+        "Learning kann Safety/Authority nicht lockern",
+        "Learning nutzt versionierte Datenbasis; Learning-Evidence kann vor R18 gesammelt werden ohne Authority"
       ]
     },
     {
@@ -294,7 +312,11 @@
       "blocksRuntime": false,
       "exit": [
         "1h/24h/72h/7d evidence",
-        "Zero-tolerance metrics eingehalten"
+        "Zero-tolerance metrics eingehalten",
+        "Unbounded SSD growth = 0",
+        "Kritische Persistenzverluste = 0",
+        "Hot-Path-Blockaden durch nichtkritisches SSD-I/O = 0",
+        "Speicherreserve und I/O-Queue-Gesundheit sind Teil der Zertifizierungsevidence"
       ]
     }
   ]

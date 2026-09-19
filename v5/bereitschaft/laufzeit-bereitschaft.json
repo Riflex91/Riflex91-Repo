@@ -63,19 +63,21 @@
     {
       "kennung": "PERSISTENZMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Pflichtmodell ist spezifiziert, konkrete Schemas/Migrationsregeln folgen nach P0/R2.",
+      "grund": "Pflichtmodell ist spezifiziert. Zusaetzlich ist das dedizierte 1-TB-SSD-Datenfundament mit HOT/WARM/COLD-Tiering, typisierten Speicherports, Speicherbudgets, Retention, Volume-Pruefung und fail-closed Verhalten fuer kritische Persistenz festgelegt; konkrete Schemas/Migrationsregeln folgen nach P0/R2.",
       "nachweise": [
-        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
       ]
     },
     {
       "kennung": "TESTSTRATEGIE_BEREIT",
       "erfuellt": false,
-      "grund": "Testleiter/Fitness-/Fault-Strategie ist definiert; konkrete Harnesses und Negativfixtures folgen in R3/R11.",
+      "grund": "Testleiter/Fitness-/Fault-Strategie ist definiert. Das Replay-/Aufzeichnungsgrundgeruest soll bereits in R3/R4 beginnen; der Ausbau mit echten bounded Evidence-Aufzeichnungen, I/O-Faults und Operations-Harness folgt in R11.",
       "nachweise": [
         "v5/fitness/fitness-regeln.json",
         "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
-        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs",
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
       ]
     },
     {
@@ -90,9 +92,10 @@
     {
       "kennung": "BETRIEBSMODELL_BEREIT",
       "erfuellt": false,
-      "grund": "Stop/Notfall/Fehlerdomaenen/Build-Provenance sind spezifiziert; formale R2-Ratifizierung und spaetere Harnesses fehlen.",
+      "grund": "Stop/Notfall/Fehlerdomaenen/Build-Provenance sind spezifiziert. Fuer den lokalen Betrieb sind zusaetzlich SSD-Sicherheitsreserve, Speicherdruck-Degradation, Volume-Identitaet, Backpressure und die Trennung kritischer/nichtkritischer Persistenz festgelegt; formale R2-Ratifizierung und spaetere Harnesses fehlen.",
       "nachweise": [
-        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md"
+        "v5/dokumentation/VOR-RUNTIME-SPEZIFIKATION.md",
+        "v5/dokumentation/LOKALES-SSD-DATENFUNDAMENT.md"
       ]
     }
   ],
@@ -106,6 +109,7 @@
     "Wissenswaechter von direktem main-Push auf unabhaengig geprueften Knowledge-Branch/PR-Pfad haerten",
     "GitHub-Login des Wissenswaechters auf minimale Repository-Rechte begrenzen und nachweisen",
     "Relevante offizielle Quellen nach R1/R2 explizit fuer Implementierung freigeben",
-    "Strengen Entwicklungs-Wissensgate vor erster Runtime-Implementierung erfolgreich nachweisen"
+    "Strengen Entwicklungs-Wissensgate vor erster Runtime-Implementierung erfolgreich nachweisen",
+    "SSD-Datenhaltungsvertrag in R2 ratifizieren und in Anforderungen/Invarianten nachverfolgen"
   ]
 }

@@ -15,6 +15,8 @@ D:\AdventureLand-V5\wissensdatenbank
 
 Die lokale SSD-Datenbank dient als persistente Evidence fuer im echten Adventure-Land-Spiel beobachtete Tatsachen.
 
+Sie ist ein besonders geschuetzter Teil des groesseren lokalen Datenfundaments unter `D:\\AdventureLand-V5`. Der uebergeordnete Vertrag ist `LOKALES-SSD-DATENFUNDAMENT.md`. Der bestehende Standardpfad `D:\\AdventureLand-V5\\wissensdatenbank` bleibt fuer Bridge-Kompatibilitaet unveraendert.
+
 Sie ist nicht identisch mit aktuellem Character-/World-State und besitzt keine direkte ExecutionAuthority.
 
 ## 2. Rollen
@@ -42,6 +44,7 @@ Die Bridge:
 - liest nur einen stabilen `BEREIT`-Snapshot;
 - spiegelt ihn nach `v5/wissensbasis/live/snapshot/**`;
 - laedt ihn gemeinsam mit dem Wissenswaechterlauf nach GitHub;
+- besitzt keinen Zugriff auf Runtime-Journale, Replay-, Telemetrie-, Learning-, Testlabor- oder Recovery-Bereiche des SSD-Datenfundaments;
 - behaelt bei fehlerhaftem/neuem unvollstaendigem lokalen Snapshot den letzten gueltigen GitHub-Snapshot.
 
 ### GitHub
