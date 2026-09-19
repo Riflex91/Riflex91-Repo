@@ -161,3 +161,20 @@ Fuer jede wertveraendernde Capability:
 - [ ] UNRESOLVED fuehrt zu Quarantaene/Operator-Policy.
 - [ ] Restart setzt nicht-terminale Arbeit auf RECONCILE_REQUIRED.
 - [ ] Disabled Action Contracts bleiben Recovery-seitig disabled.
+
+
+## N. Bank-Concurrency
+
+Fuer jede Bank-Capability:
+
+- [ ] Account Coordinator ist alleiniger Authority-Owner.
+- [ ] genau eine `account:bank` Lease je Account.
+- [ ] Lease besitzt Epoch/Fencing und persistierbaren Recovery-State.
+- [ ] Bank-Mount erfolgt nur unter aktiver Lease.
+- [ ] Raw Bank Write braucht Account-Lease plus lokalen `bank`-Channel.
+- [ ] BankSnapshot traegt aktuelle Mount-/Lease-Epoch.
+- [ ] Disconnect/Crash fuehrt zu RECOVERY_PENDING statt Lease-Freigabe.
+- [ ] `bank_opx`/already_in_bank wird als externes Fence behandelt.
+- [ ] Handover ist bei UNKNOWN/PARTIAL/STILL_PENDING/UNRESOLVED verboten.
+- [ ] Shell-Pack-Backend behaelt Lease/Channel bis Terminalresultat + Postcondition.
+- [ ] unmanaged/manual Bankowner fuehrt zu Quarantaene.
