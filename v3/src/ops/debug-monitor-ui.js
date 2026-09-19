@@ -26,6 +26,7 @@ class DebugMonitorUI {
     this.minHeight = Math.max(180, Math.min(600, Number(options.minHeight) || 240));
     this.container = null;
     this.header = null;
+    this.titleNode = null;
     this.body = null;
     this.logBox = null;
     this.copyButton = null;
@@ -686,6 +687,111 @@ class DebugMonitorUI {
     return `${hours > 0 ? `${hours}h ` : ''}${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
+  _statusSnapshot() {
+    const runtime = this.monitor && this.monitor.runtime;
+    try {
+      if (runtime && typeof runtime.status === 'function') return runtime.status() || {};
+    } catch (_) {}
+    try {
+      if (this.monitor && typeof this.monitor.summary === 'function') return this.monitor.summary() || {};
+    } catch (_) {}
+    return {};
+  }
+
+  _visibleVersion(value) {
+    const raw = String(value || '').trim();
+    const majorMinor = raw.match(/^(\d+)\.(\d+)/);
+    const numbers = raw.match(/\d+/g) || [];
+    if (majorMinor) return `${majorMinor[1]}.${majorMinor[2]}-${numbers.length ? numbers[numbers.length - 1] : 'x'}`;
+    return raw || '3.0-x';
+  }
+
+  _taskText(status, character) {
+    const active = status && status.scheduler && Array.isArray(status.scheduler.active) ? status.scheduler.active : [];
+    if (active.length) {
+      const task = active.find((row) => String(row && row.owner || '') === String(character && character.name || '')) || active[0];
+      const raw = String(task && (task.type || task.key || task.owner) || 'Aufgabe');
+      const upper = raw.toUpperCase();
+      const labels = [
+        ['COMPOUND', 'Items kombinieren'],
+        ['UPGRADE', 'Ausrüstung verbessern'],
+        ['BANK', 'Bank verwalten'],
+        ['PRODUCTION', 'Item herstellen'],
+        ['COLLECTION', 'Items einsammeln'],
+        ['RETREAT', 'Sicher zurückziehen'],
+        ['RECOVER', 'Regenerieren'],
+        ['TRAVEL', 'Reisen'],
+        ['LOOT', 'Loot einsammeln'],
+        ['ATTACK', 'Kämpfen'],
+        ['FARM', 'Farmen']
+      ];
+      const label = (labels.find(([key]) => upper.includes(key)) || [null, raw.replace(/[_-]+/g, ' ')])[1];
+      const progress = task && task.progress != null ? safeText(task.progress) : null;
+      return progress && progress !== '[object Object]' ? `${label} · ${progress}` : label;
+    }
+    const farmer = status && status.farmer || {};
+    const state = String(farmer.state || '').toUpperCase();
+    const target = farmer.targetType || farmer.targetId || null;
+    const farmerLabels = {
+      ENGAGE: target ? `Kämpft gegen ${target}` : 'Kämpfen',
+      TRAVEL: target ? `Unterwegs zu ${target}` : 'Zum Farmziel reisen',
+      RECOVER: 'Regenerieren',
+      BLOCKED: farmer.reason ? `Wartet · ${farmer.reason}` : 'Wartet',
+      ASSESS: 'Nächstes Ziel bewerten',
+      LOOT: 'Loot einsammeln',
+      IDLE: 'Bereit'
+    };
+    if (farmer.enabled !== false && farmerLabels[state]) return farmerLabels[state];
+    return status && status.running === false ? 'Bot gestoppt' : 'Bereit / wartet auf Aufgabe';
+  }
+
+  _characterOverview() {
+    const status = this._statusSnapshot();
+    const runtime = this.monitor && this.monitor.runtime;
+    let character = status && status.character || runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || null;
+    try {
+      if (!character) character = this.root && (this.root.character || this.root.parent && this.root.parent.character) || null;
+    } catch (_) {}
+    character = character || {};
+    const inventory = Array.isArray(character.inventory)
+      ? character.inventory
+      : Array.isArray(character.items)
+        ? character.items
+        : runtime && runtime.lastSnapshot && runtime.lastSnapshot.character && Array.isArray(runtime.lastSnapshot.character.inventory)
+          ? runtime.lastSnapshot.character.inventory
+          : [];
+    const occupied = inventory.filter(Boolean).length;
+    const capacityRaw = Number(character.isize);
+    const capacity = Number.isFinite(capacityRaw) && capacityRaw >= 0 ? Math.floor(capacityRaw) : inventory.length;
+    return {
+      status,
+      character,
+      rows: [
+        ['Name', character.name || '—'],
+        ['Level', Number.isFinite(Number(character.level)) ? Math.floor(Number(character.level)) : '—'],
+        ['HP', `${Number.isFinite(Number(character.hp)) ? Math.floor(Number(character.hp)) : '—'} / ${Number.isFinite(Number(character.max_hp)) ? Math.floor(Number(character.max_hp)) : '—'}`],
+        ['MP', `${Number.isFinite(Number(character.mp)) ? Math.floor(Number(character.mp)) : '—'} / ${Number.isFinite(Number(character.max_mp)) ? Math.floor(Number(character.max_mp)) : '—'}`],
+        ['Inventar', `${occupied} / ${capacity}`],
+        ['Aufgabe', this._taskText(status, character)]
+      ]
+    };
+  }
+
+  _renderCharacterOverview() {
+    if (!this.body) return false;
+    const doc = this._doc();
+    if (!doc) return false;
+    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
+    const overview = this._characterOverview();
+    for (const [label, value] of overview.rows) this.body.appendChild(this._row(doc, label, value));
+    return true;
+  }
+
+  _updateTitle(status = this._statusSnapshot()) {
+    if (!this.titleNode) return;
+    this.titleNode.textContent = `AiO v3 - ${this._visibleVersion(status && status.version)}`;
+  }
+
   _eventsText() {
     if (!this.log || typeof this.log.list !== 'function') return 'Keine Events';
     const rows = this.log.list(16);
@@ -700,7 +806,8 @@ class DebugMonitorUI {
     if (!this.container || !this.monitor) return false;
     const doc = this._doc();
     if (!doc) return false;
-    if (this.logBox) this.logBox.textContent = this._eventsText();
+    this._renderCharacterOverview();
+    this._updateTitle();
     this._updateRunButton();
     this._updateSkillsButton();
     if (this.skillsPanelOpen) this._renderSkillsPanel();
@@ -737,8 +844,9 @@ class DebugMonitorUI {
     header.onmousedown = (event) => this._beginDrag(event);
 
     const title = doc.createElement('strong');
-    title.textContent = 'AIO v3 Monitor';
-    this._setStyle(title, { fontSize: '14px', color: '#fff' });
+    this.titleNode = title;
+    title.textContent = 'AiO v3 - 3.0-x';
+    this._setStyle(title, { fontSize: '14px', color: '#fff', whiteSpace: 'nowrap' });
     const buttons = doc.createElement('div');
     this._setStyle(buttons, { display: 'flex', alignItems: 'center', flexShrink: '0' });
     buttons.onmousedown = (event) => {
@@ -766,16 +874,13 @@ class DebugMonitorUI {
     box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
-    this.body.setAttribute('aria-hidden', 'true');
+    this._setStyle(this.body, {
+      margin: '8px 0 0', padding: '9px 10px 5px', background: '#05070a',
+      border: '1px solid #374151', borderRadius: '5px'
+    });
     box.appendChild(this.body);
 
-    this.logBox = doc.createElement('pre');
-    this._setStyle(this.logBox, {
-      margin: '10px 0 0', padding: '8px', maxHeight: '260px', overflow: 'auto', whiteSpace: 'pre-wrap',
-      background: '#05070a', border: '1px solid #374151', borderRadius: '5px', color: '#d1d5db',
-      fontSize: '11px', lineHeight: '1.4'
-    });
-    box.appendChild(this.logBox);
+    this.logBox = null;
 
     this.fallbackArea = doc.createElement('textarea');
     this.fallbackArea.setAttribute('readonly', 'readonly');
@@ -819,6 +924,7 @@ class DebugMonitorUI {
     if (this.container && this.container.parentNode) this.container.parentNode.removeChild(this.container);
     this.container = null;
     this.header = null;
+    this.titleNode = null;
     this.body = null;
     this.logBox = null;
     this.copyButton = null;
