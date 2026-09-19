@@ -23,6 +23,7 @@ const Action = Object.freeze({
   RENDEZVOUS: 'RENDEZVOUS',
   ELIXIR_FARM_OBJECTIVE: 'ELIXIR_FARM_OBJECTIVE',
   PRODUCTION_MATERIAL_OBJECTIVE: 'PRODUCTION_MATERIAL_OBJECTIVE',
+  PRODUCTION_MATERIAL_HANDOFF_READY: 'PRODUCTION_MATERIAL_HANDOFF_READY',
   PRODUCTION_MATERIAL_CLEAR: 'PRODUCTION_MATERIAL_CLEAR'
 });
 
@@ -179,6 +180,7 @@ class ControlledPartyLogistics {
       elixirEquipVerified: 0,
       elixirFarmObjectives: 0,
       productionMaterialObjectives: 0,
+      productionMaterialHandoffReady: 0,
       productionMaterialClears: 0
     };
     this.install();
@@ -453,7 +455,7 @@ class ControlledPartyLogistics {
     const objective = this._isMerchant()
       ? this.lastProductionMaterialObjective
       : this.runtime && this.runtime.farmer && this.runtime.farmer.materialObjective;
-    if (!objective || String(objective.kind || '') !== 'PRODUCTION_MATERIAL' && !this._isMerchant()) return false;
+    if (!objective || (!this._isMerchant() && !['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(objective.kind || '')))) return false;
     if (this._isMerchant() && !objective.material) return false;
     if (Number(objective.expiresAt || 0) <= this.now()) return false;
     return String(objective.material || '') === String(item.name)
@@ -652,7 +654,7 @@ class ControlledPartyLogistics {
       const farmer = this.runtime && this.runtime.farmer;
       if (!farmer) return false;
       const activeMaterial = farmer.materialObjective;
-      if (activeMaterial && activeMaterial.kind === 'PRODUCTION_MATERIAL' && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
+      if (activeMaterial && ['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(activeMaterial.kind || '')) && Number(activeMaterial.expiresAt || 0) > this.now()) return true;
       farmer.materialObjective = {
         kind: 'ELIXIR_MATERIAL',
         monster: cleanName(data.monster),
@@ -705,10 +707,40 @@ class ControlledPartyLogistics {
       return true;
     }
 
+    if (action === Action.PRODUCTION_MATERIAL_HANDOFF_READY) {
+      if (!merchant || from !== merchant || this._isMerchant()) return false;
+      const expiresAt = finite(data.expiresAt);
+      if (expiresAt == null || expiresAt <= this.now()) return false;
+      const farmer = this.runtime && this.runtime.farmer;
+      const material = cleanName(data.material);
+      if (!farmer || !material) return false;
+      const current = farmer.materialObjective;
+      const objectiveId = cleanName(data.objectiveId);
+      if (current && current.objectiveId && objectiveId && current.objectiveId !== objectiveId) return true;
+      farmer.materialObjective = {
+        kind: 'PRODUCTION_MATERIAL_HANDOFF',
+        objectiveId,
+        material,
+        targetMaterial: cleanName(data.targetMaterial),
+        acquisitionKind: cleanName(data.acquisitionKind),
+        level: Math.max(0, Math.floor(finite(data.level, 0))),
+        requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
+        heldByFarmers: Math.max(0, Math.floor(finite(data.heldByFarmers, 0))),
+        output: cleanName(data.output),
+        recipient: cleanName(data.recipient),
+        slot: cleanName(data.slot),
+        handoffReadyAt: finite(data.handoffReadyAt, this.now()),
+        expiresAt
+      };
+      const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+      if (crossMap && typeof crossMap.clearMaterialObjective === 'function') crossMap.clearMaterialObjective('PRODUCTION_MATERIAL', objectiveId);
+      return true;
+    }
+
     if (action === Action.PRODUCTION_MATERIAL_CLEAR) {
       if (!merchant || from !== merchant || this._isMerchant()) return false;
       const farmer = this.runtime && this.runtime.farmer;
-      if (!farmer || !farmer.materialObjective || farmer.materialObjective.kind !== 'PRODUCTION_MATERIAL') return true;
+      if (!farmer || !farmer.materialObjective || !['PRODUCTION_MATERIAL', 'PRODUCTION_MATERIAL_HANDOFF'].includes(String(farmer.materialObjective.kind || ''))) return true;
       const objectiveId = cleanName(data.objectiveId);
       if (objectiveId && farmer.materialObjective.objectiveId && objectiveId !== farmer.materialObjective.objectiveId) return true;
       farmer.materialObjective = null;
@@ -1096,6 +1128,40 @@ class ControlledPartyLogistics {
     return true;
   }
 
+  publishProductionMaterialHandoffReady(objective = {}) {
+    if (!this._isMerchant()) return false;
+    const now = this.now();
+    const previous = this.lastProductionMaterialObjective || {};
+    const objectiveId = cleanName(objective.objectiveId || previous.objectiveId);
+    const material = cleanName(objective.material || previous.material);
+    const expiresAt = finite(objective.expiresAt, finite(previous.expiresAt, now + 15 * 60 * 1000));
+    if (!objectiveId || !material || expiresAt <= now) return false;
+    const normalized = {
+      ...clone(previous),
+      objectiveId,
+      output: cleanName(objective.output || previous.output),
+      recipient: cleanName(objective.recipient || previous.recipient),
+      slot: cleanName(objective.slot || previous.slot),
+      material,
+      targetMaterial: cleanName(objective.targetMaterial || previous.targetMaterial || material),
+      acquisitionKind: cleanName(objective.acquisitionKind || previous.acquisitionKind),
+      level: Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0)))),
+      requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1)))),
+      heldByFarmers: Math.max(0, Math.floor(finite(objective.heldByFarmers, 0))),
+      phase: 'HANDOFF_READY',
+      handoffReadyAt: now,
+      expiresAt
+    };
+    this.lastProductionMaterialObjective = clone(normalized);
+    for (const name of this._trustedNames()) {
+      if (name === this._localName()) continue;
+      Promise.resolve(this._send(name, Action.PRODUCTION_MATERIAL_HANDOFF_READY, normalized)).catch(() => {});
+    }
+    this.stats.productionMaterialHandoffReady += 1;
+    this._event('PRODUCTION_MATERIAL_HANDOFF_READY', 'info', 'TARGET_QUANTITY_HELD_STOP_FARMING_AND_TRANSFER', normalized);
+    return true;
+  }
+
   clearProductionMaterialObjective(reason = 'PRODUCTION_MATERIAL_OBJECTIVE_COMPLETE') {
     if (!this._isMerchant()) return false;
     const previous = this.lastProductionMaterialObjective;
@@ -1361,6 +1427,7 @@ class ControlledPartyLogistics {
         farmerElixirAutoUseAfterExpiry: true,
         elixirFarmObjectiveAutomatic: true,
         productionMaterialObjectiveAutomatic: true,
+        productionMaterialHandoffStopsFarmerCombat: true,
         productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
