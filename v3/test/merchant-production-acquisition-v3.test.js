@@ -477,6 +477,8 @@ test('controller publishes quest input farm with P90 telemetry and persists QUES
   assert.ok(objective.totalP90Hours >= objective.totalExpectedHours);
   assert.equal(objective.decisionQuantile, 'P90');
   assert.equal(controller.status().productionIntent.active.phase, 'QUEST_ACQUISITION');
+  assert.equal(controller.status().teamMaterialFarmPolicy.farmTimeDecisionQuantile, 'P90');
+  assert.equal(controller.status().teamMaterialFarmPolicy.expectedHoursTelemetryOnly, true);
   assert.equal(runtime.merchantExchangeDemands[0].quest, 'shells');
   assert.equal(runtime.merchantExchangeDemands[0].output, 'goodbow');
 });
