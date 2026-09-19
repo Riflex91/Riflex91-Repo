@@ -1062,7 +1062,8 @@
       ],
       "notes": [
         "Derived from AL-ACTION-TRADE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
-        "Action postcondition: trade slot contains intended item/quantity/price and fresh rid"
+        "Action postcondition: trade slot contains intended item/quantity/price and fresh rid",
+        "P0-04: Any replacement/new listing instance receives a new RID; PARTIAL fills of an existing listing do not rotate RID."
       ]
     },
     {
@@ -1122,7 +1123,8 @@
       ],
       "notes": [
         "Derived from AL-ACTION-WISHLIST (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
-        "Action postcondition: wishlist slot reflects intended item/level/quantity/price"
+        "Action postcondition: wishlist slot reflects intended item/level/quantity/price",
+        "P0-04: Any replacement/new listing instance receives a new RID; PARTIAL fills of an existing listing do not rotate RID."
       ]
     },
     {
@@ -1140,29 +1142,29 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "target_entity",
-        "listing_rid",
-        "quantity",
-        "inventory_capacity",
-        "gold"
+        "fresh buyer gold",
+        "fresh buyer inventory",
+        "fresh target entity and listing slot/rid/fingerprint/quantity"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
-          "Never use a stale RID as evidence that a second send is safe."
+          "Under exclusive managed claims on buyer gold/inventory, fresh buyer gold decreased by exactly pinned unit_price * requested_quantity.",
+          "Fresh buyer inventory gained the intended item/fingerprint and exact requested quantity.",
+          "Remote listing state is compatible with the trade, but remote quantity delta is not used as sole proof because other buyers can mutate it."
         ],
         "notApplied": [
-          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
-          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+          "Fresh buyer gold and inventory both positively match the pinned pre-state for this intent.",
+          "No other managed mutation under the same gold/inventory claims occurred; remote listing change alone does not negate NOT_APPLIED."
         ],
         "partial": [
-          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+          "Buyer gold and inventory deltas do not form the exact requested trade settlement, or only one own-side delta is provable.",
+          "Do not infer completion from a matching remote q decrease."
         ],
         "stillPending": [
-          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+          "Only an authoritative transport/server state can prove an in-progress trade; stale target visibility or unchanged RID is not pending proof."
         ],
         "unresolved": [
-          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+          "Own gold/inventory evidence is stale, externally confounded, or insufficient to prove exact applied vs not-applied settlement."
         ]
       },
       "retryPolicy": {
@@ -1190,7 +1192,9 @@
         "Derived from AL-ACTION-TRADE-BUY (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: buyer item delta",
         "Action postcondition: buyer gold delta",
-        "Action postcondition: seller listing/quantity delta"
+        "Action postcondition: seller listing/quantity delta",
+        "P0-04: RID survives partial fills; listing quantity is a mutable observation, not part of the optimistic replacement token.",
+        "P0-04: A remote q decrease may have been caused by another buyer and cannot settle this intent."
       ]
     },
     {
@@ -1208,28 +1212,29 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "target_entity",
-        "listing_rid",
-        "physical_item_match",
-        "quantity"
+        "fresh seller gold",
+        "fresh seller inventory with exact server-selection replay",
+        "fresh target wishlist slot/rid/fingerprint/quantity"
       ],
       "settlementRules": {
         "committed": [
-          "Fresh own gold/inventory state proves the intended trade delta and the listing/RID transition is compatible with that trade.",
-          "Never use a stale RID as evidence that a second send is safe."
+          "Under exclusive managed claims on seller gold/inventory, fresh seller gold increased by the exact expected net amount for pinned price/quantity/tax.",
+          "Fresh inventory proves the exact server-selected physical candidate was removed/decremented by requested quantity.",
+          "Remote wishlist state is compatible with the trade but is supporting evidence only."
         ],
         "notApplied": [
-          "Fresh own gold/inventory state matches the pinned pre-state and fresh listing evidence proves no owned-value transfer occurred.",
-          "If the old RID changed/disappeared due to another actor, replan from current listing truth rather than retry."
+          "Fresh seller gold and the exact server-selected inventory candidate positively match the pinned pre-state.",
+          "No other managed mutation under the same claims occurred; wishlist change by another seller does not prove our trade."
         ],
         "partial": [
-          "Own value/inventory changed but the intended item/gold settlement cannot be fully reconciled."
+          "Seller gold and physical-item deltas do not form one exact requested settlement, or the physical candidate cannot be reconstructed.",
+          "Any evidence that a different physical variant may have been selected forces PARTIAL/UNRESOLVED rather than retry."
         ],
         "stillPending": [
-          "Only if a correlated authoritative trade/backend state explicitly reports in-progress."
+          "Only an authoritative transport/server state can prove an in-progress trade; a still-existing RID is not pending proof."
         ],
         "unresolved": [
-          "Listing drift plus ambiguous own-state deltas prevents proving whether this intent traded."
+          "Own value/inventory evidence is stale, externally confounded, or multiple non-fungible server-eligible candidates prevent exact settlement."
         ]
       },
       "retryPolicy": {
@@ -1257,7 +1262,9 @@
         "Derived from AL-ACTION-TRADE-SELL (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: seller item delta",
         "Action postcondition: seller gold delta",
-        "Action postcondition: buyer inventory delta"
+        "Action postcondition: buyer inventory delta",
+        "P0-04: Server chooses the first matching inventory item; recovery must use the pinned predicted server-selected candidate, not a caller-supplied inventory index.",
+        "P0-04: Wishlist RID survives partial fills and remote q delta alone is not settlement evidence."
       ]
     },
     {
@@ -1573,7 +1580,8 @@
       "notes": [
         "Derived from AL-ACTION-UNEQUIP (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
         "Action postcondition: slot empty",
-        "Action postcondition: unequipped item present in inventory"
+        "Action postcondition: unequipped item present in inventory",
+        "P0-04: On trade slots, recovery distinguishes physical sell-listing removal from virtual b=true wishlist removal."
       ]
     },
     {
