@@ -405,10 +405,133 @@ test('production controller hands an actionable leveled input to Alpha27 under o
   assert.equal(runtime.productionMaterialMutationDemand, null);
   assert.equal(publishedFarmObjective, 0);
   const active = coordinator.current();
-  assert.ok(active);
-  assert.equal(active.owner, 'PRODUCTION');
-  assert.equal(active.kind, 'PRODUCTION_CHAIN');
-  assert.equal(active.key, 'production:chain:goodbow:R1');
+  assert.equal(active, null);
   assert.equal(controller.status().teamMaterialFarmPolicy.mutationExecutions, 1);
   assert.equal(controller.status().teamMaterialFarmPolicy.mutationAuthority, 'ALPHA27_ATOMIC_ONLY');
+});
+
+
+test('production controller refuses irreversible mutation when another required material has no safe acquisition path', () => {
+  let captured = 0;
+  const coordinator = new MerchantTaskCoordinator({ now: () => 1000, defaultLeaseMs: 600000 });
+  const root = {
+    character: {
+      name: 'Merchant',
+      ctype: 'merchant',
+      map: 'main',
+      x: 0,
+      y: 0,
+      gold: 2000000,
+      isize: 42,
+      items: [{ name: 'mat', level: 0 }]
+    },
+    parent: { entities: {} },
+    G: {
+      items: {
+        mat: { type: 'weapon', g: 100, grades: [], upgrade: { attack: 1 } },
+        bfur: { type: 'material', g: 100 },
+        scroll0: { type: 'material', g: 100 }
+      },
+      craft: {},
+      maps: {},
+      npcs: {},
+      monsters: {}
+    }
+  };
+  const blockedCandidate = {
+    candidate: { output: 'goodbow', recipient: 'R1', slot: 'mainhand', improvement: 50 },
+    steps: [
+      {
+        kind: ProductionStepKind.UPGRADE_REQUIRED,
+        name: 'mat',
+        level: 1,
+        fromLevel: 0,
+        targetLevel: 1,
+        quantity: 1,
+        inputQuantity: 1,
+        inputMultiplier: 1,
+        scrollName: 'scroll0'
+      },
+      {
+        kind: ProductionStepKind.FARM_REQUIRED,
+        name: 'bfur',
+        level: 0,
+        quantity: 1,
+        reason: 'NO_BANK_VENDOR_OR_RECIPE_SOURCE'
+      }
+    ],
+    blockers: [
+      { reason: 'MATERIAL_MUTATION_REQUIRED', mutation: 'UPGRADE', name: 'mat', level: 1, fromLevel: 0, targetLevel: 1, quantity: 1, inputQuantity: 1, scrollName: 'scroll0' },
+      { reason: 'MATERIAL_FARM_REQUIRED', name: 'bfur', level: 0, quantity: 1 }
+    ],
+    reservations: {},
+    totalGold: 0
+  };
+  const plan = {
+    id: 'production-unsafe-chain',
+    state: 'BLOCKED',
+    reason: 'NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN',
+    target: blockedCandidate.candidate,
+    steps: blockedCandidate.steps,
+    blockers: blockedCandidate.blockers,
+    blockedCandidates: [blockedCandidate],
+    reservations: {}
+  };
+  const planner = {
+    plan: () => plan,
+    planMaterialConsolidation: () => null,
+    planExchange: () => null,
+    status: () => ({ costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC' })
+  };
+  const bankCatalog = {
+    observe: () => true,
+    needsRefresh: () => false,
+    status: () => ({ usable: true, snapshot: { rows: [] } })
+  };
+  const executor = {
+    status: () => ({ enabled: true, busy: false }),
+    execute: async () => ({ executed: false, committed: false, reason: 'NOT_EXPECTED' }),
+    configure: () => {},
+    disable: () => {},
+    reconcile: () => ({})
+  };
+  const runtime = {
+    root,
+    now: () => 1000,
+    log: { emit() {} },
+    adapter: { mode: 'active', getGameData: () => root.G },
+    globalSupervisor: { status: () => ({ state: 'HEALTHY' }) },
+    characterRegistry: { status: () => ({ characters: [] }) },
+    contentDrift: { requiresRevalidation: () => false },
+    merchantTaskCoordinator: coordinator,
+    inventoryLedger: { observe: () => ({}), get: () => null, status: () => ({ stale: false }) },
+    controlledPartyLogistics: {
+      clearProductionMaterialObjective: () => true,
+      publishProductionMaterialObjective: () => true
+    },
+    alpha27CombatMerchantConvergence: {
+      merchant: {
+        atomic: { merchantBusy: false, serviceTravelBusy: false },
+        ensureAutonomousAuthorities: () => true,
+        executeEconomyRequest: async () => { captured += 1; return true; }
+      }
+    },
+    _merchantCollectionSessionActive: () => false,
+    tick() {},
+    status() { return {}; },
+    exportDiagnostics() { return '{}'; },
+    setMode(mode) { this.adapter.mode = mode; return mode; },
+    stop() {},
+    _liveEnableGate: () => ({ allowed: true })
+  };
+
+  const controller = installMerchantProduction(runtime, { planner, bankCatalog, executor });
+  const decision = controller.cycle();
+
+  assert.equal(decision.state, 'BLOCKED');
+  assert.equal(captured, 0);
+  assert.equal(coordinator.current(), null);
+  assert.equal(runtime.productionMaterialMutationDemand, null);
+  assert.equal(controller.status().lastExecution.result.reason, 'PRODUCTION_MUTATION_CHAIN_NOT_COMPLETABLE');
+  assert.equal(controller.status().teamMaterialFarmPolicy.mutationExecutions, 0);
 });
