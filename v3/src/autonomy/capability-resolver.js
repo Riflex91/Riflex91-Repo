@@ -2,6 +2,7 @@
 
 const { fingerprint } = require('../world/content-drift');
 const { Capability } = require('./skill-semantics');
+const { remoteCapabilityMember, missingRemoteCapabilityMember } = require('./capability-sync');
 
 function finite(value) {
   const number = Number(value);
@@ -314,11 +315,44 @@ class PartyCapabilityResolver {
   resolve(context = {}) {
     const snapshot = context.snapshot;
     if (!snapshot || !snapshot.character) return null;
-    const members = this._memberDescriptors(snapshot, context.registryStatus, context.liveCharacter)
-      .map(({ descriptor, liveCharacter }) => this.characterResolver.resolve(descriptor, {
-        gameData: context.gameData || {},
-        liveCharacter
-      }));
+    const descriptors = this._memberDescriptors(snapshot, context.registryStatus, context.liveCharacter);
+    const remoteMode = context.remoteCapabilities != null;
+    const remoteSource = context.remoteCapabilities instanceof Map
+      ? context.remoteCapabilities
+      : new Map(Object.entries(context.remoteCapabilities || {}));
+    const localCatalogStatus = this.characterResolver.catalog && typeof this.characterResolver.catalog.status === 'function'
+      ? this.characterResolver.catalog.status()
+      : null;
+    const selfName = String(snapshot.character.name || '');
+    const remoteSyncRows = [];
+    const members = descriptors.map(({ descriptor, liveCharacter }) => {
+      const name = String(descriptor && descriptor.name || '');
+      const ctype = String(descriptor && (descriptor.ctype || descriptor.type) || '').toLowerCase();
+      if (!remoteMode || name === selfName || ctype === 'merchant') {
+        const local = this.characterResolver.resolve(descriptor, {
+          gameData: context.gameData || {},
+          liveCharacter
+        });
+        if (name !== selfName && ctype !== 'merchant') remoteSyncRows.push({ name, valid: true, reason: 'LOCAL_COMPATIBILITY_MODE' });
+        return local;
+      }
+      const raw = remoteSource.get(name) || null;
+      const checked = raw
+        ? remoteCapabilityMember(raw, localCatalogStatus, {
+            now: this.now(),
+            maxAgeMs: context.remoteCapabilityTtlMs,
+            expected: { name, ctype, level: descriptor.level }
+          })
+        : { valid: false, reason: 'REMOTE_CAPABILITY_MISSING', member: null, snapshot: null };
+      if (checked.valid && checked.member) {
+        remoteSyncRows.push({ name, valid: true, reason: checked.reason, observedAt: checked.member.observedAt });
+        return checked.member;
+      }
+      remoteSyncRows.push({ name, valid: false, reason: checked.reason });
+      const missing = missingRemoteCapabilityMember(descriptor, checked.reason, this.now());
+      missing.remoteSync = { valid: false, reason: checked.reason, observedAt: checked.snapshot && checked.snapshot.observedAt || null };
+      return missing;
+    });
 
     const detectedCapabilities = {};
     const structuralCapabilities = {};
@@ -351,9 +385,21 @@ class PartyCapabilityResolver {
       aoeAggroControl: Number(enabledCapabilities[Capability.AOE_AGGRO_CONTROL]) > 0
     };
 
+    const remoteExpected = remoteSyncRows.length;
+    const remoteValid = remoteSyncRows.filter((row) => row.valid).length;
+    const remoteSync = {
+      enabled: remoteMode,
+      expected: remoteExpected,
+      valid: remoteValid,
+      invalid: remoteExpected - remoteValid,
+      coverage: remoteExpected ? remoteValid / remoteExpected : 1,
+      catalogAgreement: remoteSyncRows.every((row) => row.valid || row.reason !== 'SKILL_CATALOG_FINGERPRINT_MISMATCH'),
+      rows: remoteSyncRows
+    };
     const basis = {
-      members: members.map((row) => [row.name, row.generation, row.fingerprint]),
-      catalog: members.map((row) => row.catalogGeneration)
+      members: members.map((row) => [row.name, row.generation, row.fingerprint, row.remoteSync && row.remoteSync.reason || null]),
+      catalog: members.map((row) => row.catalogGeneration),
+      remoteSync: remoteSync.rows.map((row) => [row.name, row.valid, row.reason])
     };
     const fp = fingerprint(basis).hash;
     if (fp !== this.lastFingerprint) {
@@ -381,6 +427,7 @@ class PartyCapabilityResolver {
       detectedCapabilities,
       structuralCapabilities,
       enabledCapabilities,
+      remoteSync,
       combat: {
         aoePotential,
         aoeConfigured,
@@ -398,7 +445,8 @@ class PartyCapabilityResolver {
       generation: this.generation,
       catalogReady: false,
       members: [],
-      combat: { aoePotential: false, aoeConfigured: false, support: {} }
+      remoteSync: { enabled: false, expected: 0, valid: 0, invalid: 0, coverage: 1, catalogAgreement: true, rows: [] },
+      combat: { aoePotential: false, aoeConfigured: false, support: {}, configuredSupport: {} }
     };
     return clone(this.last, null);
   }

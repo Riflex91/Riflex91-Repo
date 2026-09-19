@@ -76,11 +76,11 @@ test('control plane enforces locked safety settings and hot-applies bounded sett
   assert.ok(applied.applied.includes('combat.riskThreshold'));
 });
 
-test('tiny 32x24x5 student produces normalized strategy probabilities and learns', () => {
+test('tiny 43x24x5 student produces normalized strategy probabilities and learns', () => {
   const net = new TinyStrategyNetwork();
-  assert.equal(BRAIN_V2_INPUT_NAMES.length, 32);
+  assert.equal(BRAIN_V2_INPUT_NAMES.length, 43);
   assert.equal(BRAIN_V2_ACTIONS.length, 5);
-  const input = Array(32).fill(0.5);
+  const input = Array(BRAIN_V2_INPUT_NAMES.length).fill(0.5);
   const before = net.forward(input).probs;
   assert.ok(Math.abs(before.reduce((a, b) => a + b, 0) - 1) < 1e-9);
   const target = [0, 1, 0, 0, 0];
@@ -96,7 +96,7 @@ test('strategic brain v2 distills deterministic and remote teachers without acti
   const first = brain.observe(context(runtime));
   assert.equal(first.mode, 'shadow');
   assert.equal(first.actionAuthority, false);
-  assert.equal(brain.status().architecture.inputs, 32);
+  assert.equal(brain.status().architecture.inputs, 43);
   assert.equal(brain.status().architecture.hidden, 24);
   assert.equal(brain.status().architecture.outputs, 5);
   assert.equal(brain.ingestTeacher({ action: 'continue', target: 'squigtoad', confidence: 0.92, scores: { continue: 0.85, change_farm_target: 0.05, replan_merchant: 0.04, explore: 0.03, wait: 0.03 }, reason: 'stable', lesson: 'Keep efficient safe farm.' }), true);
