@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "testId": "GT-YYYYMMDD-001",
+  "capturedAt": "YYYY-MM-DDTHH:MM:SSZ",
+  "bot": {
+    "generation": "v3",
+    "releaseVersion": null,
+    "commit": null
+  },
+  "input": {
+    "sources": ["gui-copy-log"],
+    "sanitized": true,
+    "rawCommitted": false
+  },
+  "party": {
+    "fingerprint": null,
+    "members": [
+      {
+        "name": "character-name",
+        "ctype": "class",
+        "level": null,
+        "gearSignature": null,
+        "skillUnlocks": [],
+        "combatMode": null
+      }
+    ]
+  },
+  "context": {
+    "map": null,
+    "monster": null,
+    "event": null,
+    "contentDisposition": null,
+    "durationSeconds": null,
+    "pullSize": null,
+    "notes": null
+  },
+  "metrics": {
+    "xpPerHour": null,
+    "goldPerHour": null,
+    "killsPerHour": null,
+    "deaths": null,
+    "deathsPerHour": null,
+    "retreats": null,
+    "nearDeaths": null,
+    "hpPotions": null,
+    "mpPotions": null,
+    "damageTaken": null,
+    "movementFailures": null,
+    "skillFailures": null,
+    "disconnects": null,
+    "safetyMargin": null
+  },
+  "outcome": {
+    "classification": "UNKNOWN",
+    "learningEligible": null,
+    "brainAccepted": null,
+    "adaptiveRecorded": null,
+    "notes": null
+  },
+  "evidence": {
+    "status": "raw",
+    "quality": "low",
+    "limitations": [],
+    "comparableWith": []
+  },
+  "development": {
+    "v3Relevance": null,
+    "v4Relevance": null,
+    "issueOrPr": []
+  }
+}
