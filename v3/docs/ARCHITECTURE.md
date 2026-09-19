@@ -8,7 +8,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1362 |
+| (root) | 6 | 1367 |
 | autonomy | 32 | 8342 |
 | brain | 4 | 1157 |
 | composition | 2 | 193 |
@@ -22,7 +22,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 26 | 7719 |
 | party | 38 | 10466 |
 | planner | 1 | 66 |
-| reliability | 50 | 17224 |
+| reliability | 50 | 17228 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 281 |

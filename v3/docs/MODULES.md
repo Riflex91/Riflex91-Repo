@@ -6,13 +6,13 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## (root)
 
-**6 Dateien · 1362 Zeilen**
+**6 Dateien · 1367 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/index-production.js` | 76 |
 | `src/index.js` | 491 |
-| `src/production-live-services.js` | 215 |
+| `src/production-live-services.js` | 220 |
 | `src/release-version.js` | 5 |
 | `src/runtime.js` | 566 |
 | `src/version.js` | 9 |
@@ -277,7 +277,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17224 Zeilen**
+**50 Dateien · 17228 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -291,7 +291,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
-| `src/reliability/alpha25-control-center-brain.js` | 524 |
+| `src/reliability/alpha25-control-center-brain.js` | 528 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
