@@ -21,6 +21,7 @@ on:
       - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
       - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
       - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
+      - 'v5/werkzeuge/r4-struktur-pruefen.mjs'
       - '.github/workflows/v5-roadmap.yml'
   push:
     branches:
@@ -44,6 +45,7 @@ on:
       - 'v5/dokumentation/V5-DEUTSCHE-DOMAENENMIGRATION.md'
       - 'v5/dokumentation/V5-R2-STRATEGIEN.md'
       - 'v5/werkzeuge/r2-verfassung-pruefen.mjs'
+      - 'v5/werkzeuge/r4-struktur-pruefen.mjs'
       - '.github/workflows/v5-roadmap.yml'
 
 jobs:
@@ -61,3 +63,9 @@ jobs:
       - name: V5 R3 Grundlage pruefen
         working-directory: v5
         run: node werkzeuge/r3-struktur-pruefen.mjs
+      - name: V5 R4 Determinismus pruefen
+        working-directory: v5
+        run: node werkzeuge/r4-struktur-pruefen.mjs
+      - name: V5 R4 Zustandsmodelle pruefen
+        working-directory: v5
+        run: node werkzeuge/r4-zustandsmodelle-pruefen.mjs
