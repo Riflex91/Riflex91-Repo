@@ -353,6 +353,53 @@ test('inactive production event demand cannot reopen as autonomous exchange clea
   assert.equal(ready.nextStep.questDestination.npc, 'shellnpc');
 });
 
+test('event expiry between exchange planning and task lock fails closed before execution', () => {
+  const gameData = questGameData();
+  gameData.maps.beach.event = 'halloween';
+  gameData.events.halloween = { type: 'seasonal' };
+  const blocked = {
+    id: 'event-quest-ready',
+    state: 'BLOCKED',
+    reason: 'NO_CURRENTLY_EXECUTABLE_PRODUCTION_CHAIN',
+    target: { output: 'goodbow', recipient: 'R1', slot: 'mainhand' },
+    blockedCandidates: [farmCandidate('shard', 2, 'goodbow', 100)],
+    reservations: {}
+  };
+
+  let harness = null;
+  const readyPlan = () => ({
+    id: 'event-quest-exchange',
+    state: 'READY',
+    reason: 'NPC_EXCHANGE_READY',
+    exchangeDemand: harness.runtime.merchantExchangeDemands[0],
+    target: { item: 'shell', destination: 'shells', required: 20, operations: 1 },
+    reservations: {},
+    nextStep: {
+      kind: ProductionStepKind.EXCHANGE,
+      name: 'shell',
+      level: 0,
+      inventoryIndex: 0,
+      quantity: 20,
+      destination: 'shells'
+    }
+  });
+  harness = controllerHarness(gameData, blocked, {
+    serverState: { halloween: { active: true } },
+    characterItems: [{ name: 'shell', level: 0, q: 40 }],
+    planExchange: () => {
+      harness.runtime.root.S = {};
+      return readyPlan();
+    }
+  });
+
+  harness.controller.cycle();
+
+  const status = harness.controller.status();
+  assert.equal(status.lastExecution.result.reason, 'EVENT_SOURCE_BECAME_INACTIVE_BEFORE_EXECUTION');
+  assert.equal(status.productionIntent.active.phase, 'EVENT_WAITING');
+  assert.equal(harness.runtime.merchantExchangeDemands.length, 0);
+});
+
 test('exact production quest input may transfer while unrelated quest items stay protected', () => {
   const logistics = Object.create(ControlledPartyLogistics.prototype);
   logistics.now = () => 1000;
