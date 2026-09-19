@@ -320,7 +320,7 @@ const technikQuelle = await readFile(path.join(wurzel, 'laufzeit/quelle/adventur
 for (const pflicht of [
   'AdventureLandSkillTechnikLesezugriff',
   'AdventureLandKampfBereitschaftLesezugriff',
-  'liesSkillNutzbarkeit',
+  'liesAktionsBereitschaft',
   'waffenTypen',
   'nebenhandTyp',
   'skill.materialien.verbrauch',
@@ -376,7 +376,7 @@ for (const pflicht of [
   'Equipmentverlust blockiert trotz fehlendem Cooldown fail-closed',
   'fehlendes Skill-Material und zu wenig Mana blockieren getrennt sichtbar',
   'generische unbekannte requirements werden nicht geraten',
-  'can_use false bleibt technisch unbekannt',
+  'can_use false bleibt technisch unbekannt wenn die Cooldown-Schnittstelle fehlt',
   'aktiver geteilter Cooldown wird ueber den bestehenden Kampfbereitschaftsleser wiederverwendet',
   'assert.equal(ergebnis.aktionsFreigabe, false)'
 ]) {
