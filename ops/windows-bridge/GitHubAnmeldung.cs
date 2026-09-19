@@ -28,7 +28,7 @@ public sealed class GitHubAnmeldung
                 return new GitHubAnmeldeStatus(false, false, null, Begrenze(version.Fehlerausgabe));
 
             var liste = await FuehreGitAusAsync(
-                ["credential-manager", "github", "list", "--url", "https://github.com"],
+                ["credential-manager", "github", "list"],
                 cancellationToken: cancellationToken,
                 timeout: TimeSpan.FromSeconds(20));
 
@@ -54,7 +54,7 @@ public sealed class GitHubAnmeldung
             throw new InvalidOperationException("GITHUB_CREDENTIAL_MANAGER_NICHT_VERFUEGBAR");
 
         var ergebnis = await FuehreGitAusAsync(
-            ["credential-manager", "github", "login", "--url", "https://github.com", "--browser", "--force"],
+            ["-c", "credential.gitHubAuthModes=browser", "credential-manager", "github", "login"],
             cancellationToken: cancellationToken,
             timeout: TimeSpan.FromMinutes(5));
 
@@ -74,7 +74,7 @@ public sealed class GitHubAnmeldung
             throw new InvalidOperationException("GITHUB_KONTO_FEHLT");
 
         var ergebnis = await FuehreGitAusAsync(
-            ["credential-manager", "github", "logout", konto, "--url", "https://github.com"],
+            ["credential-manager", "github", "logout", konto],
             cancellationToken: cancellationToken,
             timeout: TimeSpan.FromSeconds(30));
 
