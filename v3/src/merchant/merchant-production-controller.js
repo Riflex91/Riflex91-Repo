@@ -323,25 +323,39 @@ function installMerchantProduction(runtime, options = {}) {
     return coordinator.release('PRODUCTION', task.key, reason, details);
   }
 
-  function productionGearTargetSafety(target) {
+  function productionGearTargetSafety(target, plan = null) {
     if (!target || !target.slot) return { safe: true, reason: 'NON_GEAR_OR_MAINTENANCE_TARGET' };
-    const improvement = n(target.improvement);
+    let evidence = target;
+    if (n(evidence.improvement) == null) {
+      const output = String(target.output || target.item || '');
+      const recipient = String(target.recipient || '');
+      const slot = String(target.slot || '');
+      const matched = (Array.isArray(plan && plan.blockedCandidates) ? plan.blockedCandidates : [])
+        .map((row) => row && row.candidate)
+        .find((candidate) => candidate
+          && String(candidate.output || candidate.item || '') === output
+          && String(candidate.recipient || '') === recipient
+          && String(candidate.slot || '') === slot
+          && n(candidate.improvement) != null);
+      if (matched) evidence = matched;
+    }
+    const improvement = n(evidence.improvement);
     if (improvement == null) return { safe: false, reason: 'GEAR_TARGET_IMPROVEMENT_UNVERIFIED' };
     if (improvement <= 0) {
       return {
         safe: false,
         reason: 'GEAR_TARGET_NET_REGRESSION',
         improvement,
-        survivalImprovement: n(target.survivalImprovement),
-        speedImprovement: n(target.speedImprovement),
-        improvementReason: target.improvementReason || null
+        survivalImprovement: n(evidence.survivalImprovement),
+        speedImprovement: n(evidence.speedImprovement),
+        improvementReason: evidence.improvementReason || null
       };
     }
     return { safe: true, reason: 'GEAR_TARGET_NET_POSITIVE', improvement };
   }
 
   function productionMutationPathPreflight(plan, selection) {
-    const targetSafety = productionGearTargetSafety(selection && selection.candidate);
+    const targetSafety = productionGearTargetSafety(selection && selection.candidate, plan);
     if (!targetSafety.safe) return { allowed: false, reason: targetSafety.reason, targetSafety };
 
     const row = selection && selection.row;
@@ -1294,7 +1308,7 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
-    const targetSafety = productionGearTargetSafety(plan && plan.target);
+    const targetSafety = productionGearTargetSafety(plan && plan.target, plan);
     if (plan && plan.target && !targetSafety.safe) {
       clearProductionMutationDemand(targetSafety.reason);
       clearProductionMaterialObjective(targetSafety.reason);
