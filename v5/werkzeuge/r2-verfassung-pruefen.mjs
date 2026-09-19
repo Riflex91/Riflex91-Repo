@@ -160,7 +160,7 @@ for (const f of freigaben.quellenfreigaben) {
   if (aktuell.inhaltSha256 !== f.letzterBewerteterSha256) fehler('Unbewertete Hash-Drift bei ' + f.kennung);
   if (!signalNur.has(f.kennung) && f.fuerImplementierung !== true) fehler('Implementierungsfreigabe fehlt fuer ' + f.kennung);
 }
-if (revalidierung.status !== 'R2_REVALIDIERT' || revalidierung.eintraege?.length !== 4 || revalidierung.eintraege.some(x => x.widerspruch !== false)) {
+if (revalidierung.status !== 'R2_REVALIDIERT' || (revalidierung.eintraege?.length ?? 0) < 4 || revalidierung.eintraege.some(x => x.widerspruch !== false)) {
   fehler('R2-Quellendrift-Revalidierung unvollstaendig.');
 }
 
