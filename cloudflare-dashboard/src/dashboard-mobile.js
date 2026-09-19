@@ -47,14 +47,14 @@ export const MOBILE_SCRIPT = `<script>
   switcher.type='button';switcher.className='view-switch';
   if(top)top.appendChild(switcher);
   var bottom=document.createElement('nav');bottom.className='mobile-bottom-nav';bottom.setAttribute('aria-label','Mobile Navigation');
-  bottom.innerHTML='<button data-mobile-page="overview"><i>◈</i>Übersicht</button><button data-mobile-page="characters"><i>👥</i>Charaktere</button><button data-mobile-page="combat"><i>⚔</i>Kampf</button><button data-mobile-page="brain"><i>🧠</i>Gehirn</button><button data-mobile-more="1"><i>•••</i>Mehr</button>';
+  bottom.innerHTML='<button data-mobile-page="overview"><i>◈</i>Übersicht</button><button data-mobile-page="characters"><i>👥</i>Charaktere</button><button data-mobile-page="automation"><i>⚙</i>Automation</button><button data-mobile-page="brain"><i>🧠</i>Gehirn</button><button data-mobile-more="1"><i>•••</i>Mehr</button>';
   document.body.appendChild(bottom);
   var backdrop=document.createElement('div');backdrop.className='mobile-sheet-backdrop';document.body.appendChild(backdrop);
-  var sheet=document.createElement('div');sheet.className='mobile-more-sheet';sheet.innerHTML='<button data-mobile-page="economy">🧳 Merchant & Economy</button><button data-mobile-page="settings">⚙ Einstellungen</button><button data-mobile-page="events">⚠ Events</button><button data-mobile-page="data">☁ Daten & Datenbanken</button><button class="danger" data-mobile-logout="1">↪ Abmelden</button>';document.body.appendChild(sheet);
+  var sheet=document.createElement('div');sheet.className='mobile-more-sheet';sheet.innerHTML='<button data-mobile-page="economy">🧳 Merchant & Economy</button><button data-mobile-page="settings">⚙ Einstellungen</button><button data-mobile-page="events">⚠ Events</button><button class="danger" data-mobile-logout="1">↪ Abmelden</button>';document.body.appendChild(sheet);
   function closeMore(){sheet.classList.remove('open');backdrop.classList.remove('open')}
   function activePage(){var page=document.querySelector('.page.active');return page&&page.dataset.page||'overview'}
   function syncAuth(){var app=document.getElementById('app'),ready=!!(app&&!app.classList.contains('hidden'));document.body.classList.toggle('mobile-ready',ready);if(!ready)closeMore()}
-  function syncActive(){var page=activePage(),main=['overview','characters','combat','brain'].indexOf(page)>=0;bottom.querySelectorAll('button').forEach(function(b){b.classList.toggle('active',b.dataset.mobilePage===page||(!main&&b.dataset.mobileMore==='1'))})}
+  function syncActive(){var page=activePage(),main=['overview','characters','automation','brain'].indexOf(page)>=0;bottom.querySelectorAll('button').forEach(function(b){b.classList.toggle('active',b.dataset.mobilePage===page||(!main&&b.dataset.mobileMore==='1'))})}
   function go(page){var b=document.querySelector('#nav button[data-page="'+page+'"]');if(b)b.click();closeMore();syncActive();window.scrollTo({top:0,behavior:'smooth'})}
   function setMobile(on){mobile=!!on;document.body.classList.toggle('mobile-ui',mobile);switcher.textContent=mobile?'🖥 Desktop':'📱 Mobil';switcher.title=mobile?'Zur Desktop-Ansicht wechseln':'Mobile Ansicht öffnen';try{localStorage.setItem(STORAGE_KEY,mobile?'mobile':'desktop')}catch(e){}var url=new URL(location.href);url.searchParams.set('view',mobile?'mobile':'desktop');history.replaceState(null,'',url.pathname+url.search+url.hash);if(!mobile)closeMore();syncAuth();syncActive()}
   switcher.addEventListener('click',function(){setMobile(!mobile)});
