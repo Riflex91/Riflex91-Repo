@@ -13,7 +13,10 @@ public sealed record WissenswaechterStatus(
     int GeaenderteQuellen,
     int NeueKandidaten,
     bool Hochgeladen,
-    string? Fehler);
+    string? Fehler,
+    int LiveImportiert = 0,
+    int LiveUebersprungen = 0,
+    string? LiveFehler = null);
 
 public sealed class WissenswaechterDienst : IAsyncDisposable
 {
@@ -137,6 +140,22 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
 
             await _arbeitskopie.BereiteVorAsync(github.Konto, cancellationToken);
 
+            var liveImporteur = new LiveWissenImporteur(_config, _arbeitskopie);
+            var liveErgebnis = await liveImporteur.ImportiereAsync(gestartetAm, cancellationToken);
+
+            MeldeStatus(new WissenswaechterStatus(
+                "IMPORTIERT_LIVE_WISSEN",
+                null,
+                null,
+                0,
+                0,
+                0,
+                false,
+                null,
+                liveErgebnis.ImportierteDateien,
+                liveErgebnis.UebersprungeneDateien,
+                liveErgebnis.Fehler));
+
             var quellen = await LadeQuellenregisterAsync(cancellationToken);
             var alterStatus = await LadeQuellenstatusAsync(cancellationToken);
             var alterStatusNachKennung = alterStatus.Quellen.ToDictionary(
@@ -238,7 +257,14 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 neueKandidaten,
                 quellen.Count,
                 "GITHUB_PUSH_GEPLANT",
-                "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.");
+                "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Bot-Livewissen wird aus dem lokal konfigurierten Ordner importiert; der absolute SSD-Pfad wird nicht ins Repo geschrieben.",
+                liveErgebnis.Konfiguriert,
+                liveErgebnis.GefundeneDateien,
+                liveErgebnis.ImportierteDateien,
+                liveErgebnis.UnveraenderteDateien,
+                liveErgebnis.UebersprungeneDateien,
+                liveErgebnis.ImportierteBytes,
+                liveErgebnis.Fehler);
             await SpeichereJsonAsync(
                 GitArbeitskopie.DatenbankPfad + "/letzter-lauf.json",
                 laufbericht,
@@ -252,7 +278,10 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 geaendert,
                 neueKandidaten,
                 false,
-                null));
+                null,
+                liveErgebnis.ImportierteDateien,
+                liveErgebnis.UebersprungeneDateien,
+                liveErgebnis.Fehler));
 
             var commitNachricht = $"wissen: stuendlicher Adventure-Land-Lauf {gestartetAm:yyyy-MM-dd HH:mm} UTC";
             var hochgeladen = await _arbeitskopie.CommitUndPushAsync(commitNachricht, cancellationToken);
@@ -265,7 +294,10 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 geaendert,
                 neueKandidaten,
                 hochgeladen,
-                null));
+                null,
+                liveErgebnis.ImportierteDateien,
+                liveErgebnis.UebersprungeneDateien,
+                liveErgebnis.Fehler));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -750,5 +782,12 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         int NeueKandidaten,
         int RegistrierteQuellen,
         string UploadStatus,
-        string SicherheitsHinweis);
+        string SicherheitsHinweis,
+        bool LiveImportKonfiguriert,
+        int LiveGefundeneDateien,
+        int LiveImportierteDateien,
+        int LiveUnveraenderteDateien,
+        int LiveUebersprungeneDateien,
+        long LiveImportierteBytes,
+        string? LiveFehler);
 }
