@@ -57,7 +57,8 @@ test('SELL allowlist cannot override protected equipment/quest/exchange/event/ca
     liveCharacter: { name: 'MerchantA', isize: inventory.length, items: inventory.map((row) => ({ name: row.name })) }
   });
 
-  assert.equal(ledger.get('MerchantA', 0).disposition, ItemDisposition.SELL);
+  assert.equal(ledger.get('MerchantA', 0).disposition, ItemDisposition.UNDECIDED);
+  assert.ok(ledger.get('MerchantA', 0).reasons.includes('OPERATOR_SELL_ALLOWLIST_CAPABILITY'));
 
   for (let index = 1; index < inventory.length; index += 1) {
     const row = ledger.get('MerchantA', index);
@@ -113,11 +114,17 @@ test('Controlled Merchant independently rejects forged protected SELL before cal
   assert.equal(executor.status().sellSafety.allowlistCannotOverride, true);
 });
 
-test('explicit per-item operator permission can sell level-0 equipment while hard live locks remain protected', async () => {
+test('processed economic sale requires gear-safe lifecycle and still respects live locks', async () => {
   const engine = new EconomyTransactionEngine();
   const entry = {
-    character: 'MerchantA', index: 0, name: 'partyhat', level: 0, q: 1, disposition: 'SELL',
-    reasons: ['OPERATOR_SELL_ALLOWED'], operatorPermissions: { sell: true }
+    character: 'MerchantA',
+    index: 0,
+    name: 'partyhat',
+    level: 0,
+    q: 1,
+    disposition: 'SELL',
+    reasons: ['AUTONOMOUS_PROCESSED_GEAR_SELL', 'AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL', 'FUTURE_GEAR_EVALUATED_SAFE'],
+    operatorPermissions: { sell: true }
   };
   const ledger = fakeLedger(entry);
   let sellCalls = 0;
@@ -127,16 +134,37 @@ test('explicit per-item operator permission can sell level-0 equipment while har
       gold: 100, rip: false
     },
     parent: { entities: {} },
-    G: { items: { partyhat: { type: 'helmet', g: 1 } } },
+    G: { items: { partyhat: { type: 'helmet', g: 12000, upgrade: { str: 0.2 } } } },
     sell: async () => {
       sellCalls += 1;
       root.character.items[0] = null;
-      root.character.gold += 1;
+      root.character.gold += 7200;
       return { success: true };
     }
   };
-  const planned = engine.plan({ type: 'SELL', character: 'MerchantA', index: 0, quantity: 1 }, { ledger, snapshot: {} });
-  const executor = new ControlledMerchantExecutor({ root, engine, ledger, getMode: () => 'active', getSupervisorStatus: () => ({ state: 'HEALTHY' }), verifyDelayMs: 0 });
+  const runtime = {
+    root,
+    gearProgression: {
+      futureProtectionFor: () => null,
+      futureSellSafetyFor: () => ({ checked: true, protected: false })
+    }
+  };
+  const planned = engine.plan({
+    type: 'SELL',
+    character: 'MerchantA',
+    index: 0,
+    quantity: 1,
+    metadata: { lifecycleProcessedSale: true }
+  }, { ledger, snapshot: {} });
+  const executor = new ControlledMerchantExecutor({
+    runtime,
+    root,
+    engine,
+    ledger,
+    getMode: () => 'active',
+    getSupervisorStatus: () => ({ state: 'HEALTHY' }),
+    verifyDelayMs: 0
+  });
   executor.configure({ enabled: true, sell: true, ack: CONTROLLED_MERCHANT_ACK });
 
   const result = await executor.execute(planned.transaction.id);
@@ -144,10 +172,16 @@ test('explicit per-item operator permission can sell level-0 equipment while har
   assert.equal(sellCalls, 1);
 
   root.character.items[0] = { name: 'partyhat', level: 0, q: 1, l: true };
-  const plannedLocked = engine.plan({ type: 'SELL', character: 'MerchantA', index: 0, quantity: 1 }, { ledger, snapshot: {} });
+  const plannedLocked = engine.plan({
+    type: 'SELL',
+    character: 'MerchantA',
+    index: 0,
+    quantity: 1,
+    metadata: { lifecycleProcessedSale: true }
+  }, { ledger, snapshot: {} });
   const locked = await executor.execute(plannedLocked.transaction.id);
   assert.equal(locked.committed, false);
-  assert.equal(locked.reason, 'SELL_OPERATOR_PERMISSION_HARD_BLOCKED');
+  assert.equal(locked.reason, 'SELL_ITEM_NOT_LOW_RISK');
   assert.ok(locked.sellProtectionReasons.includes('SELL_RAW_LOCKED_ITEM_PROTECTED'));
   assert.equal(sellCalls, 1);
 });
