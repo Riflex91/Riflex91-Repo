@@ -993,7 +993,7 @@ for (const pflicht of [
 const fahrplan = await readFile(path.join(wurzel, dateien[44]), 'utf8');
 for (const pflicht of [
   '8.5.9-Freigabe-Gate implementiert',
-  'Block 9 bleibt bis dahin gesperrt',
+  'Block 8.6 und Block 9 bleiben bis zum bestandenen Soak gesperrt',
   'BLOCK-8-5-FREIGABESTUFEN.md',
   'Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand'
 ]) {

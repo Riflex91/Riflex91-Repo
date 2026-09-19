@@ -283,6 +283,148 @@ Block 8.5 sorgt dafuer, dass vorhandene LeistungsZaehler sauber mit Entscheidung
 - unvollstaendige Zeitabdeckung wird nicht als Nullleistung ausgegeben,
 - keine Leistungsmetrik darf Safety lockern.
 
+# Nachtraeglich priorisierte V3-Erkenntnisse fuer folgende V4-Bloecke
+
+Diese Punkte wurden am 19. September 2026 nach den neuen V3-Arbeiten erneut bewertet. Sie werden **nicht** in den laufenden Block-8.5-Candidate eingebaut. Die Uebernahme beginnt erst nach bestandenem Block-8.5-Soak.
+
+## I. Live Skill Catalog + SkillPolicy – **Block 8.6**
+
+### V3-Beleg
+
+- PR #364
+- `v3/src/autonomy/skill-catalog-service.js`
+- `v3/src/autonomy/skill-policy.js`
+- `v3/src/autonomy/character-combat-profile.js`
+
+### Uebernommene Erkenntnis
+
+Die Gruppenlogik darf nicht nur grobe Rollenwerte kennen. Sie braucht eine live validierte, drift-sichere Wahrheit ueber konkrete Skills, technische Readiness und Nutzerfreigabe.
+
+### V4-Ziel
+
+`BLOCK-8-6-PLAN.md` mit Skill-Katalog, Fingerprint, Revalidation, per-character Policy und skill-spezifischen Slidern.
+
+### Abnahme
+
+Unbekannte Skills fail-closed, Drift/Revalidation, Checkbox-Hard-Block, Slider-Grenzen und reproduzierbare Capability-Ableitung.
+
+## J. Cross-Client Capability Sync – **Block 8.6**
+
+### V3-Beleg
+
+- PR #375
+- `v3/src/autonomy/capability-sync.js`
+
+### Uebernommene Erkenntnis
+
+Remote-Capabilities sind nur dann sicher nutzbar, wenn Senderidentitaet, Freshness, lokaler/remote Katalogzustand und Catalog-Fingerprint zusammenpassen.
+
+### V4-Ziel
+
+Den bestehenden Block-8-Lebensnachweis um einen bounded Capability-Snapshot erweitern. Kein zweites Gruppen-Liveness-Protokoll.
+
+### Abnahme
+
+Missing/Stale/Fingerprint-Mismatch fail-closed; gleiche Klassen bleiben pro Charakter getrennt.
+
+## K. Encounter Lifecycle Outcomes – **Block 10.5 und Block 11**
+
+### V3-Beleg
+
+- PR #377
+- `v3/src/autonomy/encounter-lifecycle.js`
+
+### Uebernommene Erkenntnis
+
+Lernen braucht abgeschlossene, klar attribuierte Begegnungen statt nur lose Zeitfenster. Erfolg, sicherer Abbruch, Tod, Unterbrechung, Content Drift und Gruppenfehler muessen mit den tatsaechlichen Kosten/Ertraegen des Encounters verbunden werden.
+
+### V4-Ziel
+
+Generischer `BegegnungsDatensatz` in Block 10.5; Encounter-Outcomes werden in Block 11 primaere Lernquelle neben EntscheidungsDatensaetzen.
+
+### Abnahme
+
+Ein Encounter besitzt eindeutigen Lifecycle und genau einen finalen Outcome; Restart/Disconnect darf keinen Erfolg erfinden.
+
+## L. Deterministischer Smart AoE Planner – **Block 10.5**
+
+### V3-Beleg
+
+- PR #371
+- `v3/src/autonomy/smart-aoe-planner.js`
+- `v3/src/autonomy/tactical-party-combat.js`
+
+### Uebernommene Erkenntnis
+
+Mehrzielkampf braucht eine explizite State Machine und eine harte Capacity, die aus echten Capabilities und Safety entsteht. Nutzerpraeferenzen duerfen nur innerhalb dieser Grenze wirken.
+
+### V4-Ziel
+
+Deterministischer Encounter-/AoE-Planer mit Leader-only Pull-Erweiterung, Follower-Mirror und fail-closed Content-/Capability-Grenzen.
+
+### Abnahme
+
+Single Target bleibt Capacity 1; AoE preferred kann Hard Safety nicht erhoehen; Follower koennen Pulls nicht erweitern.
+
+## M. Bounded Adaptive Pull Learning – **Block 11**
+
+### V3-Beleg
+
+- PR #374
+- `v3/src/autonomy/adaptive-pull-learning.js`
+
+### Uebernommene Erkenntnis
+
+Lernen darf innerhalb einer deterministischen Safety-Huelle optimieren, aber diese niemals vergroessern. Risiko darf die Pull-Groesse reduzieren; unbekannte hoehere Groesse nur kontrolliert als +1-Probe.
+
+### V4-Ziel
+
+Versionierte Lernprofile aus Encounter-Outcomes, Mindest-Samples/-Zeit/-Confidence, Probe-Cooldown, sofortiger Abbruch bei Risiko sowie Champion/Challenger/Rollback.
+
+### Abnahme
+
+Keine gelernte Empfehlung kann die Hard Capacity ueberschreiten; unbekannter/quarantined Content ist nicht lern- oder probegeeignet.
+
+## N. Zuverlaessige Remote-ACK-Dienstnachrichten – **Block 9**
+
+### V3-Beleg
+
+- offener PR #211
+- stabile Message-IDs, Remote Receive/ACK, bounded Retry/Backoff, Duplicate-Suppression und Negative-ACK.
+
+### Uebernommene Erkenntnis
+
+Ein erfolgreicher `send_cm`-Transportversuch ist nicht gleichbedeutend mit fachlich bestaetigter Verarbeitung auf dem Zielcharakter.
+
+### V4-Ziel
+
+Zustandsveraendernde Merchant-/Bank-Dienstauftraege erhalten vor ihrer Fachlogik ein idempotentes, ACK-faehiges Dienstnachrichtenprotokoll auf dem bestehenden vertrauensgebundenen Kommunikationspfad.
+
+### Abnahme
+
+Verlorene Zustellung, verlorenes ACK, Duplikat und Negative-ACK; keine doppelte fachliche Aktion.
+
+## O. 24/7-Feldzertifizierung und Evidenzkonsistenz – **Block 14 / finale Freigabe**
+
+### V3-Beleg
+
+- gemergter PR #274 mit Canary -> 1h -> 24h -> 72h -> 7d und hashverketteter Evidenz,
+- offener PR #287 fuer die reale Windows-Feldzertifizierung.
+
+Beim Review wurde ausserdem eine reale Statusabweichung sichtbar: PR #274 ist mit Merge `216a564bbf034c6f23a701c53ecb3aacedf31410` abgeschlossen, waehrend `v3/architecture-run.json` auf dem geprueften Main-Stand Step 13 noch als `in_progress` fuehrte. V4 soll solche widerspruechlichen Roadmap-/Freigabestaende maschinell erkennen.
+
+### Uebernommene Erkenntnis
+
+CI oder verstrichene Zeit allein zertifizieren keinen 24/7-Betrieb. Dauer-Gates brauchen lueckenlose, integritaetsgepruefte Gesundheits-/Recovery-Evidenz. Dokumentierter Fortschritt muss mit Git/PR/CI-Realitaet uebereinstimmen.
+
+### V4-Ziel
+
+Append-only SHA-256-hashverkettete Zertifizierungsevidenz, strikte Gate-Reihenfolge und Konsistenzpruefung fuer maschinenlesbaren Roadmap-/Release-Status.
+
+### Abnahme
+
+Sample-Luecke, ungesunder Zustand, offene Recovery, Tamper/Corruption oder Statuswiderspruch -> Gate fail-closed.
+
 # Bewusst verschobene V3-Bereiche
 
 ## Block 9 – Haendler und Bank
