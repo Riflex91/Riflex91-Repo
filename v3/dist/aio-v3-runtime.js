@@ -55015,6 +55015,7 @@ function installMerchantProduction(runtime, options = {}) {
     fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
     materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
     mutationDemandTtlMs: Math.max(30000, Math.min(15 * 60 * 1000, n(options.merchantProductionMutationDemandTtlMs, 5 * 60 * 1000))),
+    intentRecoveryGraceMs: Math.max(5000, Math.min(5 * 60 * 1000, n(options.merchantProductionIntentRecoveryGraceMs, 60000))),
     lastMaterialFarmDecision: null,
     lastMutationDemand: null,
     mutationExecutions: 0,
@@ -55711,6 +55712,49 @@ function installMerchantProduction(runtime, options = {}) {
       };
     }
 
+    const persistedIntent = productionIntent.status();
+    if (persistedIntent.recoveryPending) {
+      const recoveryPlan = evaluate();
+      const activeIntent = persistedIntent.active || {};
+      const freshEvidence = !!(
+        recoveryPlan
+        && (
+          recoveryPlan.target
+          || Array.isArray(recoveryPlan.blockedCandidates) && recoveryPlan.blockedCandidates.length
+          || ['READY', 'BLOCKED'].includes(String(recoveryPlan.state || ''))
+        )
+      );
+      if (!freshEvidence && runtime.now() - n(activeIntent.updatedAt, runtime.now()) < state.intentRecoveryGraceMs) {
+        state.lastIntentRecovery = {
+          at: runtime.now(),
+          reconciled: false,
+          reason: 'WAITING_FOR_FRESH_PRODUCTION_REPLAN_EVIDENCE',
+          targetIdentity: activeIntent.targetIdentity || null
+        };
+        return {
+          state: 'HOLD',
+          reason: 'PRODUCTION_INTENT_WAITING_FOR_FRESH_REPLAN',
+          intentRecovery: clone(state.lastIntentRecovery)
+        };
+      }
+      const intentRecovery = productionIntent.reconcile(recoveryPlan);
+      state.lastIntentRecovery = { at: runtime.now(), ...clone(intentRecovery) };
+      clearProductionMutationDemand('PRODUCTION_INTENT_RECONCILIATION');
+      if (intentRecovery && intentRecovery.continued !== true) {
+        const activeProductionTask = currentTask();
+        if (activeProductionTask && activeProductionTask.owner === 'PRODUCTION') {
+          releaseTask('PRODUCTION_INTENT_RECONCILIATION_FAILED_SAFE', { intentRecovery: clone(intentRecovery) });
+        }
+      }
+      return {
+        state: 'HOLD',
+        reason: intentRecovery && intentRecovery.continued === true
+          ? 'PRODUCTION_INTENT_RECOVERED_REPLAN_VERIFIED'
+          : 'PRODUCTION_INTENT_FAILED_SAFE_REPLAN_CHANGED',
+        intentRecovery: clone(intentRecovery)
+      };
+    }
+
     const task = currentTask();
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
@@ -55733,12 +55777,14 @@ function installMerchantProduction(runtime, options = {}) {
 
     const plan = evaluate();
     if (plan && plan.state === 'READY') {
+      persistIntentForTarget(plan, plan.target, 'READY', { reason: 'PRODUCTION_CHAIN_READY' });
       clearProductionMutationDemand('PRODUCTION_CHAIN_READY');
       clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
     } else if (plan && plan.state === 'BLOCKED') {
       if (scheduleProductionMutation(plan)) return plan;
       clearProductionMutationDemand('NO_ACTIONABLE_PRODUCTION_MUTATION');
-      publishProductionMaterialObjective(plan);
+      const materialHandled = publishProductionMaterialObjective(plan);
+      if (!materialHandled) persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: plan.reason || 'PRODUCTION_CHAIN_BLOCKED' });
     } else {
       clearProductionMutationDemand('PRODUCTION_PLAN_NOT_BLOCKED');
     }
@@ -55790,6 +55836,7 @@ function installMerchantProduction(runtime, options = {}) {
         npcBufferedRange: bufferedInteractionRange(runtime.root, 'npc')
       },
       bankCatalog: bankCatalog.status(),
+      productionIntent: productionIntent.status(),
       roleEligible: isMerchant(),
       autoLiveEnabled: isMerchant(),
       nonMerchantSideEffectsBlocked: true,
@@ -55816,6 +55863,11 @@ function installMerchantProduction(runtime, options = {}) {
         acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
         mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
         mutationDemandTtlMs: state.mutationDemandTtlMs,
+        intentRecoveryGraceMs: state.intentRecoveryGraceMs,
+        persistedProductionIntent: true,
+        restartContinuationRequiresFreshReplanIdentityMatch: true,
+        materialHandoffPausesFarmerCombat: true,
+        lastIntentRecovery: clone(state.lastIntentRecovery),
         lastMutationDemand: clone(state.lastMutationDemand),
         mutationExecutions: state.mutationExecutions,
         mutationHolds: state.mutationHolds,
@@ -55854,6 +55906,7 @@ function installMerchantProduction(runtime, options = {}) {
 
   runtime.merchantProductionPlanner = planner;
   runtime.merchantBankCatalog = bankCatalog;
+  runtime.persistentProductionIntent = productionIntent;
   runtime.controlledMerchantProduction = executor;
   runtime.configureMerchantProduction = configure;
   runtime.disableMerchantProduction = disable;
@@ -55861,7 +55914,7 @@ function installMerchantProduction(runtime, options = {}) {
   runtime.evaluateMerchantProduction = cycle;
   runtime.merchantProductionStatus = status;
 
-  const controller = { planner, executor, bankCatalog, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
+  const controller = { planner, executor, bankCatalog, productionIntent, evaluate, cycle, configure, disable, reconcile, status, ack: CONTROLLED_MERCHANT_PRODUCTION_ACK };
   runtime.__merchantProductionController = controller;
   return controller;
 }
