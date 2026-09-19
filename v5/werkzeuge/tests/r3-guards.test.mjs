@@ -55,3 +55,18 @@ test("Raw Game Write ist spaeter nur im Ausfuehrungsadapter statisch erlaubt", (
   assert.ok(!pruefeQuelltext("ausfuehrung/quelle/adapter/game.ts", 'socket.emit("bank", {});')
     .includes("RAW_GAME_WRITE"));
 });
+
+test("Direkte Systemzeit wird blockiert", () => {
+  erwartet("grundlage/quelle/kern/test.ts", "const jetzt = Date.now();", "DIREKTE_SYSTEMZEIT");
+});
+
+test("Unkontrollierte Zufallsquelle wird blockiert", () => {
+  erwartet("grundlage/quelle/kern/test.ts", "const x = Math.random();", "DIREKTE_UNKONTROLLIERTE_ZUFALLSQUELLE");
+});
+
+test("Determinismusadapter darf spaeter Systemzeit kapseln", () => {
+  assert.ok(!pruefeQuelltext(
+    "grundlage/quelle/determinismus/adapter/system-uhr.ts",
+    "const jetzt = Date.now();",
+  ).includes("DIREKTE_SYSTEMZEIT"));
+});
