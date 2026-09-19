@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.7 implementiert, naechster Implementierungsschritt 8.6.8.**
+Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert, naechster Implementierungsschritt 8.6.9.**
 
-Naechster Implementierungsschritt: **8.6.8 – Replay und Regression**
+Naechster Implementierungsschritt: **8.6.9 – Freigabe**
 
 ## Ziel
 
@@ -193,7 +193,7 @@ Das HUD enthaelt keine neue Fachlogik.
 
 Umsetzungsnachweis: `BLOCK-8-6-7-STATUS-HUD-DIAGNOSE.md`.
 
-## 8.6.8 – Replay und Regression
+## 8.6.8 – Replay und Regression — **IMPLEMENTIERT**
 
 Der bestehende V4-Wiederholungsweg erhaelt reproduzierbare Katalog-/Capability-Eingaben.
 
@@ -208,6 +208,8 @@ Pflichtfaelle:
 - Fingerprint-Mismatch,
 - Connection-Gap und Recovery,
 - gleiche Inputs -> gleiche Capability- und Leaderentscheidung.
+
+Umsetzungsnachweis: `BLOCK-8-6-8-REPLAY-REGRESSION.md`.
 
 ## 8.6.9 – Freigabe
 

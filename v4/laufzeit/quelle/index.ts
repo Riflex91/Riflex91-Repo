@@ -138,6 +138,8 @@ export * from './wiederholung/wiederholungs-maschine.js';
 export * from './wiederholung/wiederholungs-vergleich.js';
 export * from './wiederholung/goldener-wiederholungssatz.js';
 export * from './vertraege/farmen.js';
+export * from './vertraege/capability-wiederholung.js';
+export * from './wiederholung/capability-wiederholung.js';
 export * from './vertraege/capability-status.js';
 export * from './telemetrie/capability-status.js';
 export * from './vertraege/capability-gruppenwahl.js';
