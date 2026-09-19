@@ -8,6 +8,7 @@ export interface SchemaMigration {
 function sortiereMigrationen(
   migrationen: readonly SchemaMigration[],
 ): readonly SchemaMigration[] {
+  if (migrationen.length > 256) throw new Error("ZU_VIELE_SCHEMA_MIGRATIONEN");
   const sortiert = [...migrationen].sort((a, b) => a.vonVersion - b.vonVersion);
   for (let index = 0; index < sortiert.length; index += 1) {
     const migration = sortiert[index];
