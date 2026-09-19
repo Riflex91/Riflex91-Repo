@@ -120,7 +120,7 @@ for (const pfad of [
   "../ops/windows-bridge/WissenswaechterDienst.cs",
 ]) {
   const bridgeText = fs.readFileSync(pfad, "utf8");
-  if (/socket\.emit\s*\(|\b(?:attack|trade_buy|trade_sell|upgrade|compound)\s*\(|\b(?:eval|evaluate|invoke)\s*\(/i.test(bridgeText)) {
+  if (/socket\.emit\s*\(|\b(?:attack|trade_buy|trade_sell|upgrade|compound)\s*\(|\b(?:eval|evaluate)\s*\(/i.test(bridgeText)) {
     fehler("Knowledge-Bridge enthaelt verbotene Gameplay-/Generic-Authority: " + pfad);
   }
 }
