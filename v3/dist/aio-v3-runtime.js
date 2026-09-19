@@ -16016,10 +16016,14 @@ class ControlledMerchantExecutor {
         }
       }
 
-      // Ordinary SELL remains plain-stackable-material-only. The only exception
-      // is a ledger-authorized post-UPGRADE/COMPOUND lifecycle result. Even then
-      // hard protection (quest/event/cash/exchange/soulbound/special/conflict,
-      // locked or special live item) remains fail-closed.
+      // Legacy allowlists remain plain-stackable-material-only. A deliberate
+      // per-item operator permission is stronger: it may override ordinary
+      // metadata/category protection for an exact level-0 item, but it still
+      // cannot bypass unknown/conflicting metadata, a live lock/special flag,
+      // content revalidation, identity/quantity checks, or the Adventure Land API.
+      const operatorExplicitSell = entry.operatorPermissions
+        && entry.operatorPermissions.sell === true
+        && lifecycleReasons.includes('OPERATOR_SELL_ALLOWED');
       const ignorableProcessedReasons = (reason) => (
         reason === 'SELL_TYPE_NOT_LOW_RISK'
         || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
@@ -16027,20 +16031,36 @@ class ControlledMerchantExecutor {
         || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
         || /^SELL_GEAR_SIGNAL_/.test(reason)
       );
-      const blockers = lifecycleProcessedSale
-        ? [...new Set([
-            ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
-            ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
-          ])]
-        : [...new Set([...rawBlockers, ...consensus.blockers])];
+      const operatorMetadataBlocker = (reason) => (
+        reason === 'SELL_METADATA_UNKNOWN'
+        || reason === 'SELL_METADATA_CONFLICT'
+      );
+      let blockers;
+      if (operatorExplicitSell) {
+        const rawOperatorBlockers = rawBlockers.filter((reason) => (
+          reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED' || liveItem.level > 0
+        ));
+        blockers = [...new Set([
+          ...rawOperatorBlockers,
+          ...consensus.blockers.filter(operatorMetadataBlocker)
+        ])];
+      } else if (lifecycleProcessedSale) {
+        blockers = [...new Set([
+          ...rawBlockers.filter((reason) => reason !== 'SELL_RAW_LEVELLED_ITEM_PROTECTED'),
+          ...consensus.blockers.filter((reason) => !ignorableProcessedReasons(reason))
+        ])];
+      } else {
+        blockers = [...new Set([...rawBlockers, ...consensus.blockers])];
+      }
       if (blockers.length) {
         this.stats.sellSafetyRejected += 1;
         return {
           ok: false,
-          reason: 'SELL_ITEM_NOT_LOW_RISK',
+          reason: operatorExplicitSell ? 'SELL_OPERATOR_PERMISSION_HARD_BLOCKED' : 'SELL_ITEM_NOT_LOW_RISK',
           sellProtectionReasons: blockers,
           sellMetadataSources: consensus.sources,
-          lifecycleProcessedSale
+          lifecycleProcessedSale,
+          operatorExplicitSell
         };
       }
       if (typeof this.adapter.canCommand === 'function' && !this.adapter.canCommand('sell')) return { ok: false, reason: 'SELL_API_UNAVAILABLE' };
@@ -40441,6 +40461,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       task = null;
     }
 
+    const explicitOperatorSell = typeof this.planExplicitOperatorSell === 'function' ? this.planExplicitOperatorSell() : null;
+    if (explicitOperatorSell && task && task.owner === 'ALPHA27' && task.kind === 'PROGRESSION_BATCH') {
+      this._taskRelease(task.key, 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH', { item: explicitOperatorSell.item || null, index: explicitOperatorSell.index });
+      task = null;
+    }
+    if (explicitOperatorSell && !task && !this.transactionFamilyOpen('SELL')) {
+      const lock = this._taskAcquire('DISPOSAL', 'alpha27:operator-disposal-sell', { type: 'SELL', source: 'OPERATOR_ITEM_PERMISSION' });
+      if (!lock.acquired) return false;
+      try {
+        this.lastMerchantPlan = { at: this.now(), action: 'EXECUTE', reason: 'OPERATOR_ITEM_PERMISSION_SELL', request: clone(explicitOperatorSell) };
+        return await this.executeEconomyRequest(explicitOperatorSell);
+      } finally {
+        this._taskRelease('alpha27:operator-disposal-sell', 'OPERATOR_SELL_STEP_COMPLETE');
+      }
+    }
+
     // Progression is a batch task because COMPOUND/UPGRADE/SelfGear share the
     // same service area. Do not let Production/Exchange pull the Merchant away
     // between individual mutations.
@@ -41248,6 +41284,28 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         compoundIdentity: picked.identity,
         completeSetsBefore: picked.completeSets,
         fairSelectionCount: picked.previousSelections + 1
+      }
+    };
+  }
+
+  planExplicitOperatorSell() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.list !== 'function') return null;
+    const row = ledger.list(1000).find((entry) => {
+      if (!entry || entry.character !== c.name || entry.disposition !== 'SELL') return false;
+      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      return entry.operatorPermissions && entry.operatorPermissions.sell === true && reasons.includes('OPERATOR_SELL_ALLOWED');
+    });
+    if (!row) return null;
+    return {
+      type: 'SELL',
+      character: c.name,
+      index: row.index,
+      quantity: Math.max(1, finite(row.q, 1)),
+      metadata: {
+        source: 'OPERATOR_ITEM_PERMISSION',
+        operatorExplicitSell: true
       }
     };
   }
@@ -47528,49 +47586,115 @@ function itemNpcCatalog(gameData) {
   return byItem;
 }
 
-function itemAutomationCatalog(runtime, maxItems = 10000) {
-  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
-  for (const source of gameDataSources(runtime)) {
-    Object.assign(gameData.items, source && source.items || {});
-    Object.assign(gameData.maps, source && source.maps || {});
-    Object.assign(gameData.npcs, source && source.npcs || {});
-    Object.assign(gameData.positions, source && source.positions || {});
-    Object.assign(gameData.imagesets, source && source.imagesets || {});
+function observedAutomationItems(runtime, maxItems = 10000) {
+  const observed = new Map();
+  const add = (item, fallbackType = null) => {
+    const name = String(item && item.name || '').trim();
+    if (!name || observed.size >= maxItems) return;
+    const prior = observed.get(name) || {};
+    observed.set(name, {
+      ...prior,
+      name,
+      type: prior.type || item && (item.metadataType || item.type) || fallbackType || null
+    });
+  };
+
+  let registry = null;
+  try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
+  for (const character of registry && Array.isArray(registry.characters) ? registry.characters : []) {
+    for (const item of Array.isArray(character && character.inventory) ? character.inventory : []) add(item);
+    for (const item of Object.values(character && character.gear && typeof character.gear === 'object' ? character.gear : {})) add(item);
   }
+
+  const snapshotCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+  for (const item of Array.isArray(snapshotCharacter && snapshotCharacter.inventory) ? snapshotCharacter.inventory : []) add(item);
+
+  const liveCharacter = liveCharacterOf(runtime);
+  for (const item of Array.isArray(liveCharacter && liveCharacter.items) ? liveCharacter.items : []) add(item);
+  for (const item of Object.values(liveCharacter && liveCharacter.slots && typeof liveCharacter.slots === 'object' ? liveCharacter.slots : {})) add(item);
+
+  try {
+    const rows = runtime && runtime.inventoryLedger && typeof runtime.inventoryLedger.list === 'function'
+      ? runtime.inventoryLedger.list(maxItems)
+      : [];
+    for (const row of rows) add(row, row && row.metadataType);
+  } catch (_) {}
+
+  try {
+    const bankStatus = runtime && runtime.merchantBankCatalog && typeof runtime.merchantBankCatalog.status === 'function'
+      ? runtime.merchantBankCatalog.status()
+      : null;
+    const bankRows = bankStatus && bankStatus.snapshot && Array.isArray(bankStatus.snapshot.rows) ? bankStatus.snapshot.rows : [];
+    for (const row of bankRows) add(row);
+  } catch (_) {}
+
+  return observed;
+}
+
+function itemAutomationCatalog(runtime, maxItems = 10000) {
+  const merged = mergeGameData(runtime);
+  const gameData = { ...merged, maps: {}, npcs: {} };
+  for (const source of gameDataSources(runtime)) {
+    for (const [mapId, map] of Object.entries(source && source.maps || {})) {
+      if (!map || typeof map !== 'object' || Array.isArray(map)) continue;
+      const existing = gameData.maps[mapId];
+      gameData.maps[mapId] = existing ? { ...map, ...existing } : { ...map };
+    }
+    for (const [npcId, npc] of Object.entries(source && source.npcs || {})) {
+      if (!npc || typeof npc !== 'object' || Array.isArray(npc)) continue;
+      const existing = gameData.npcs[npcId];
+      gameData.npcs[npcId] = existing ? { ...npc, ...existing } : { ...npc };
+    }
+  }
+
+  const observed = observedAutomationItems(runtime, maxItems);
+  const ids = new Set(Object.keys(gameData.items || {}));
+  for (const id of observed.keys()) {
+    if (ids.size >= maxItems) break;
+    ids.add(id);
+  }
+
   const npcByItem = itemNpcCatalog(gameData);
+  const inventorySprites = itemSpriteCatalog(runtime, maxItems);
   const rows = [];
-  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
-    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
-    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
-    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
-    const skin = def.skin_c || def.skin || null;
+  for (const id of [...ids].slice(0, maxItems)) {
+    const observedRow = observed.get(id) || {};
+    const def = gameData.items && gameData.items[id];
+    const meta = def && typeof def === 'object' && !Array.isArray(def) ? def : {};
+    const classes = [].concat(meta.class || meta.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(meta.level != null ? meta.level : meta.req != null ? meta.req : meta.requirement);
+    const skin = meta.skin_c || meta.skin || inventorySprites[id] && inventorySprites[id].skin || null;
     rows.push({
       id,
-      name: def.name || id,
-      type: def.type || null,
-      wtype: def.wtype || null,
+      name: meta.name || observedRow.name || id,
+      type: meta.type || observedRow.type || null,
+      wtype: meta.wtype || null,
       level: Number.isFinite(level) ? level : null,
-      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      grade: Number.isFinite(Number(meta.grade)) ? Number(meta.grade) : null,
       classes,
       npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
-      upgrade: !!def.upgrade,
-      compound: !!def.compound,
-      exchange: !!(def.exchange || def.e),
-      quest: !!(def.quest || def.q),
-      cash: !!def.cash,
-      soulbound: !!def.soulbound,
-      special: !!def.special,
-      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
+      upgrade: !!meta.upgrade,
+      compound: !!meta.compound,
+      exchange: !!(meta.exchange || meta.e),
+      quest: !!(meta.quest || meta.q),
+      cash: !!meta.cash,
+      soulbound: !!meta.soulbound,
+      special: !!meta.special,
+      goldValue: Number.isFinite(Number(meta.g)) ? Number(meta.g) : null,
       skin,
-      sprite: spriteMeta(gameData, skin)
+      sprite: spriteMeta(gameData, skin) || inventorySprites[id] || null,
+      observed: observed.has(id)
     });
   }
   rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
   return rows;
 }
 
+const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 2;
+
 function installAdventureLandItemSprites(runtime, cloud) {
-  if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (Number(cloud.__adventureLandItemSurfaceVersion || 0) >= ADVENTURE_LAND_ITEM_SURFACE_VERSION) return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
   cloud._runtimeSnapshot = () => {
     const snapshot = originalRuntimeSnapshot();
@@ -47586,6 +47710,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
     return snapshot;
   };
   cloud.__adventureLandItemSpritesInstalled = true;
+  cloud.__adventureLandItemSurfaceVersion = ADVENTURE_LAND_ITEM_SURFACE_VERSION;
   return true;
 }
 
