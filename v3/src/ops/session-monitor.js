@@ -17,6 +17,27 @@ function sessionId(now) {
   return `session-${Number(now()).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function eventDigest(rows = []) {
+  const priority = [];
+  const groups = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row) continue;
+    const severity = String(row.severity || 'info').toLowerCase();
+    const key = [row.component || '-', row.event || '-', row.reason || '-'].join('|');
+    const current = groups.get(key) || { component: row.component || null, event: row.event || null, reason: row.reason || null, severity, count: 0, firstAt: row.ts || row.at || null, lastAt: null };
+    current.count += 1;
+    current.lastAt = row.ts || row.at || current.lastAt;
+    if (['error', 'fatal', 'critical', 'warn', 'warning'].includes(severity) || /FAIL|ERROR|DEATH|RETREAT|DISCONNECT|CIRCUIT|QUARANTINE|ROLLBACK|DRIFT/i.test(String(row.event || row.reason || ''))) {
+      priority.push(row);
+    }
+    groups.set(key, current);
+  }
+  return {
+    priority: priority.slice(-120),
+    repeated: [...groups.values()].filter((row) => row.count > 1).sort((a, b) => b.count - a.count).slice(0, 80)
+  };
+}
+
 class SessionMonitor {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -135,6 +156,16 @@ class SessionMonitor {
     const travelPlans = runtime.safeTravel && typeof runtime.safeTravel.list === 'function' ? runtime.safeTravel.list(this.maxTravel) : [];
     const performance = runtime.performance && typeof runtime.performance.status === 'function' ? safeCall(() => runtime.performance.status(), null) : null;
     const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? safeCall(() => runtime.characterRegistry.status(), null) : null;
+    const brain = runtime.strategicBrainV2 && typeof runtime.strategicBrainV2.status === 'function'
+      ? safeCall(() => runtime.strategicBrainV2.status(), null)
+      : runtime.brain && typeof runtime.brain.status === 'function' ? safeCall(() => runtime.brain.status(), null) : null;
+    const adaptivePull = runtime.adaptivePullLearner && typeof runtime.adaptivePullLearner.status === 'function' ? safeCall(() => runtime.adaptivePullLearner.status(), null) : null;
+    const encounterLifecycle = runtime.encounterLifecycle && typeof runtime.encounterLifecycle.status === 'function'
+      ? safeCall(() => runtime.encounterLifecycle.status(), null)
+      : runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounterLifecycle && typeof runtime.tacticalPartyCombat.encounterLifecycle.status === 'function'
+        ? safeCall(() => runtime.tacticalPartyCombat.encounterLifecycle.status(), null) : null;
+    const partyPerformance = runtime.partyPerformance && typeof runtime.partyPerformance.status === 'function' ? safeCall(() => runtime.partyPerformance.status(128), null) : null;
+    const digest = eventDigest(eventLog);
     return {
       schemaVersion: MONITOR_SCHEMA_VERSION,
       kind: 'aio-v3-session-log',
@@ -146,6 +177,15 @@ class SessionMonitor {
       summary: this.summary(),
       status: clone(status),
       performance: clone(performance),
+      brain: clone(brain),
+      learning: {
+        partyFingerprint: clone(runtime.currentPartyFingerprint || null),
+        encounterFingerprint: clone(runtime.currentEncounterFingerprint || null),
+        adaptivePull: clone(adaptivePull),
+        encounterLifecycle: clone(encounterLifecycle),
+        partyPerformance: clone(partyPerformance)
+      },
+      diagnosticSignals: clone(digest),
       characterRegistry: clone(registry),
       inventory: { status: clone(status.inventory || null), entries: clone(inventoryEntries) },
       gearProgression: { status: clone(status.gearProgression || null), goals: clone(gearGoals) },
