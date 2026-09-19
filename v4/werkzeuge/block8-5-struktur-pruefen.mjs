@@ -1294,7 +1294,7 @@ for (const pflicht of [
 
 const candidateDeploymentNachweis = await readFile(path.join(wurzel, dateien[54]), 'utf8');
 for (const pflicht of [
-  'Deployment und oeffentliche HTTPS-Verifikation fuer den exakten Candidate bestaetigt',
+  'Deployment/HTTPS fuer den exakten Candidate bestaetigt',
   '88185523c81687dc16f9647ca5e7568c5e2c228c',
   '35402650432',
   '105785689083',
