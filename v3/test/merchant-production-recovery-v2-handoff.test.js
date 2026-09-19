@@ -299,6 +299,8 @@ test('production controller converts aggregate Farmer-held material into handoff
   assert.equal(controller.status().productionIntent.active.progress.transferPending, true);
 });
 
+// Final integration guard: persisted intent reconciliation must finish before
+// any post-restart production action is allowed to resume.
 test('controller restart reconciles persisted target before any fresh production action', () => {
   let now = 1000;
   const storage = memoryStorage();
