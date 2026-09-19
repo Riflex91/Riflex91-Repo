@@ -95,17 +95,6 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         {
             await FuehreEinzelnenLaufAusAsync(cancellationToken);
 
-            var naechsterLauf = DateTimeOffset.Now.AddMinutes(_config.WissenswaechterIntervallMinuten);
-            MeldeStatus(new WissenswaechterStatus(
-                "WARTET",
-                DateTimeOffset.Now,
-                naechsterLauf,
-                0,
-                0,
-                0,
-                false,
-                null));
-
             await Task.Delay(
                 TimeSpan.FromMinutes(_config.WissenswaechterIntervallMinuten),
                 cancellationToken);
