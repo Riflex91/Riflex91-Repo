@@ -1,4 +1,4 @@
-# V5 Master-Roadmap v2
+# V5 Master-Roadmap v3
 
 **Status:** ACTIVE MASTER PLAN  
 **Stand:** 2026-09-19  
@@ -39,6 +39,7 @@ Aktueller Wissensstand:
 - Action Contracts: 60 erfasst, 52 source-verifiziert, 8 live-only und deshalb fuer Automation gesperrt.
 - P0-01 ist IN_PROGRESS; P0-02 bis P0-07 sind offen.
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
+- Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
 **Konsequenz:** Noch kein V5-Gameplay-Runtime-Code.
 
@@ -61,6 +62,31 @@ Knowledge / Definitions
 ```
 
 Definition, Beobachtung, Reconciliation, Planung und Execution duerfen nicht in einer God-Class verschmelzen.
+
+### 2.1 Lokales Datenfundament und Speicher-Tiering
+
+Der Vertrag `LOKALES-SSD-DATENFUNDAMENT.md` ist verbindlich.
+
+Grundmodell:
+
+```text
+HOT  = RAM: aktueller World/Character State, Scheduler, Locks, aktive Workflows/Transaktionen
+WARM = SSD: Journale, Checkpoints, Evidence, Replay, aktuelle Historien, aggregierte Telemetrie
+COLD = SSD verdichtet: alte Replays, Testlaeufe, Zertifizierung, Langzeitstatistik
+```
+
+Regeln:
+- CPU/RAM bleiben fuer Entscheidungen und zeitkritische Runtime-Arbeit zustaendig; die SSD ersetzt kein Arbeitsgedaechtnis.
+- normale Combat-, Movement-, Scheduling- und Execution-Entscheidungen duerfen keinen SSD-Roundtrip benoetigen;
+- nichtkritische Persistenz laeuft ueber bounded asynchrone Writer mit Batching, Backpressure und Telemetrie;
+- kritische Intents muessen vor irreversibler/wertveraendernder Mutation durable persistiert sein;
+- grosse Historien bleiben auf SSD; Hintergrund-Aggregatoren publizieren kompakte Working Sets in RAM;
+- Speicherort oder Persistenz verleihen niemals Gameplay-Autoritaet;
+- mindestens 15 Prozent SSD-Sicherheitsreserve bleiben standardmaessig frei; Datenklassen erhalten eigene konfigurierbare Budgets;
+- bei Speicherdruck werden zuerst Cache, Rohtelemetrie, alte Replays/Testdaten und Cold Data reduziert; ungeklärte Journale werden niemals still geloescht;
+- kann kritische Persistenz nicht mehr garantiert werden, werden neue wertveraendernde Mutationen fail-closed gesperrt;
+- `D:\\` ist nur Standard-Laufwerksbuchstabe; produktiv wird zusaetzlich eine persistente Volume-/Datentraegeridentitaet geprueft;
+- die Windows Bridge bleibt auf den konfigurierten Live-Wissenspfad begrenzt und spiegelt keine Runtime-, Replay-, Telemetrie- oder Learning-Massendaten nach GitHub.
 
 ## 3. Globale Stop-Regeln
 
@@ -85,7 +111,8 @@ Eine neue Phase oder neue Live-Autoritaet ist gesperrt, wenn mindestens eines gi
 - der strenge Entwicklungs-Wissensgate ist fuer echte Implementierung nicht gruen;
 - der letzte Wissenswaechterlauf ist fuer Implementierung aelter als 180 Minuten;
 - eine fuer die Domaene relevante offizielle Quelle ist unbewertet gedriftet, fehlerhaft oder gekuerzt;
-- der Implementierungsbranch enthaelt nicht den aktuellen `main` inklusive letzter Knowledge-Commits.
+- der Implementierungsbranch enthaelt nicht den aktuellen `main` inklusive letzter Knowledge-Commits;
+- kritische Persistenz kann wegen SSD-/Dateisystemfehler, falschem Volume oder zu geringem Reserveplatz nicht durable garantiert werden.
 
 ## R0 – Lebende Wissensbasis
 
@@ -174,7 +201,8 @@ Lieferobjekte:
 - Entwicklungs-Wissensgate und bewertete Quellenhash-Baselines ratifiziert;
 - Zugriffspfad `manifest -> laufende Datenbank -> strukturierte Wissensbasis -> Evidence` verbindlich;
 - spaeterer read-only `WissensZugriffPort` und WissensSnapshot-Pinning festgelegt;
-- ADR-Regeln.
+- ADR-Regeln;
+- lokales SSD-Datenfundament mit HOT/WARM/COLD-Tiering, Speicherbudgets, Retention, Volume-Identitaet und I/O-Backpressure ratifiziert.
 
 Mindestens neue V5-Regeln:
 - Action Channel ist eine Ressource.
@@ -185,6 +213,9 @@ Mindestens neue V5-Regeln:
 - jede langlebige Nachricht besitzt Protocol-Version, ID, TTL und Dedupe-Semantik.
 - Drift kann Capability automatisch auf QUARANTINED setzen.
 - jede Live-Capability besitzt Disable-/Rollback-Pfad.
+- Speicherort/Persistenz ist niemals Authority.
+- Nichtkritisches SSD-I/O darf den Gameplay-Hot-Path nicht blockieren.
+- Kritische Mutation darf erst nach bestaetigter durable Intent-Persistenz gesendet werden.
 
 Exit Gate:
 - keine ungeklärte Kernownership;
@@ -197,7 +228,8 @@ Exit Gate:
 - 100-%-Deutsch-Regel fuer uebersetzungspflichtige Sichttexte ist verbindlich; Monster-Ausnahme ist exakt definiert;
 - formale Vor-Runtime-Artefakte sind konsistent und der Bereitschaftsvalidator ist gruen;
 - Kandidaten besitzen nachweislich keine Entwicklungs-/Gameplay-Autoritaet;
-- laufende Waechterdateien sind schema-/maschinenlesbar und das Aenderungsprotokoll ist echtes JSONL.
+- laufende Waechterdateien sind schema-/maschinenlesbar und das Aenderungsprotokoll ist echtes JSONL;
+- SSD-Datenklassen, Retention, Budgets, Sicherheitsreserve, Degradationsregeln und falsches-Volume-Verhalten sind verbindlich festgelegt.
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 
@@ -222,8 +254,11 @@ Bauen:
 - ADR-/Schema-/Knowledge-Pruefungen;
 - Entwicklungs-Wissensgate in CI;
 - Quellenhash-Drift-Gate;
-- Guard gegen direkten Runtime-Zugriff auf Roh-Snapshots.
-
+- Guard gegen direkten Runtime-Zugriff auf Roh-Snapshots;
+- Testlabor-/Replay-Grundgeruest mit deterministischem Aufzeichnungsformat;
+- Host-seitige SSD-/Volume-Erkennung und Speicher-Gesundheitsprobe;
+- bounded asynchrone Writer-Grundlage fuer nichtkritische Aufzeichnungen;
+- Guards gegen beliebige Fachmodul-Dateizugriffe ausserhalb typisierter Speicherports.
 Host-Regel:
 - Host startet/stoppt/ueberwacht Prozesse und transportiert Daten.
 - Host besitzt keine Gameplay-Policy.
@@ -234,8 +269,9 @@ Exit Gate:
 - neue V5-Runtime-Bezeichner halten die deutsche Domaenensprache ein;
 - mutierende Capabilities sind default-off und nicht ohne typisierte Freigabe erreichbar;
 - leere V5 Runtime kann headless starten/stoppen ohne Gameplay Writes;
-- strenger Wissensgate blockiert stale/gedriftete/unfreigegebene Wissensgrundlagen.
-
+- strenger Wissensgate blockiert stale/gedriftete/unfreigegebene Wissensgrundlagen;
+- falsches/fehlendes SSD-Volume und unterschrittene kritische Speicherreserve werden erkannt;
+- asynchrone Writer koennen den Hot Path nicht unbounded rueckstauen.
 ## R4 – Deterministischer Core
 
 Bauen:
@@ -248,7 +284,8 @@ Bauen:
 - PriorityClass;
 - Deadline/TTL/Freshness Primitive;
 - bounded collections;
-- deterministic serialization.
+- deterministic serialization;
+- deterministisches Replay-/Aufzeichnungsformat fuer fruehe Evidence.
 
 Regel:
 - keine Fachlogik verwendet direkt `Date.now()` / `Math.random()`, wenn Determinismus relevant ist.
@@ -259,7 +296,14 @@ Exit Gate:
 ## R5 – Persistenz, Journal und Schema-Evolution
 
 Bauen:
-- PersistencePort;
+- `PersistenzPort`;
+- `TransaktionsJournalPort`;
+- `CheckpointSpeicherPort`;
+- `LiveWissensSpeicherPort`;
+- `ReplaySpeicherPort`;
+- `TelemetrieSpeicherPort`;
+- `ZertifizierungsEvidencePort`;
+- `SpeicherGesundheitsPort`;
 - schema-versionierte Records;
 - migrations;
 - corrupt/oversized/unreadable fail-closed;
@@ -269,18 +313,25 @@ Bauen:
 - outbox/inbox fuer kritische externe Zustellung;
 - retention/compaction;
 - crash-safe write order;
-- `LiveWissensSpeicherPort` fuer die lokale SSD-Datenbank auf `D:\\AdventureLand-V5\\wissensdatenbank`;
+- bestehender `LiveWissensSpeicherPort` fuer die lokale SSD-Datenbank auf `D:\\AdventureLand-V5\\wissensdatenbank`;
 - atomarer `SCHREIBT -> BEREIT`-Generationswriter fuer Live-Wissen;
-- bounded Dateianzahl/Dateigroesse und Disk-Full-/Zugriffsfehlerbehandlung.
-
+- bounded Dateianzahl/Dateigroesse und Disk-Full-/Zugriffsfehlerbehandlung;
+- Datenklassenbudgets, Rotation, Retention, Kompression und Deduplizierung;
+- standardmaessig mindestens 15 Prozent freie SSD-Sicherheitsreserve;
+- priorisierte I/O-Klassen: kritische Persistenz vor Evidence, Replay, Telemetrie und Cache;
+- asynchrones Batch-I/O fuer nichtkritische Daten mit bounded Queue und Backpressure;
+- Volume-Identitaetspruefung statt blindem Vertrauen auf Laufwerksbuchstaben;
+- kein stiller Fallback kritischer Persistenz auf das Windows-Systemlaufwerk.
 Pflicht:
 `persist intent -> send action -> observe -> commit/reconcile`
 
 Exit Gate:
 - Crash an jedem Persistenzpunkt ist fault-injected;
 - Migration forward/backward/unsupported-version getestet;
-- kein blind resume.
-
+- kein blind resume;
+- Journal-durable-before-action ist fault-injected;
+- Speicherdruck degradiert nichtkritische Recorder vor kritischer Persistenz;
+- Disk Full/Access Denied/I/O-Fehler/falsches Volume koennen keine wertveraendernde Mutation ohne sicheren Intent zulassen.
 ## R6 – Observation, Evidence und Reconciled World Truth
 
 Bauen:
@@ -294,8 +345,10 @@ Bauen:
 - Item Identity Resolver;
 - Entity Resolver;
 - Drift Monitor;
-- Reconciled World Truth.
-
+- Reconciled World Truth;
+- bounded lokale Roh-/Observation-Evidence fuer Replay und spaetere Analyse;
+- Hintergrund-Aggregation grosser SSD-Historien zu kompakten RAM-Working-Sets;
+- versionierte Learning-Evidence ohne Gameplay-Autoritaet.
 Regeln:
 - Inventory Slot ist keine langlebige Identitaet.
 - Entity-Objekt ist keine langlebige Identitaet.
@@ -303,8 +356,9 @@ Regeln:
 
 Exit Gate:
 - stale Snapshot kann keine Mutation autorisieren;
-- G-/MCP-Drift kann betroffene Capability quarantainen.
-
+- G-/MCP-Drift kann betroffene Capability quarantainen;
+- normale Observation/Planning-Hot-Paths benoetigen keine Vollscans grosser SSD-Historien;
+- persistierte Roh-Evidence und LIVE_VERIFIZIERT bleiben technisch und semantisch getrennt.
 ## R7 – Module, Capabilities, Ports und Authority
 
 Bauen:
@@ -414,7 +468,9 @@ Exit Gate:
 - Disconnect nach moeglicher Mutation fuer jede Action-Familie fault-injected;
 - duplicate irreversible effects = 0.
 
-## R11 – Testlabor, Replay, Observability und Operations
+## R11 – Testlabor-Ausbau, Replay, Observability und Operations
+
+Das in R3/R4 begonnene Testlabor wird hier zum vollstaendigen Operations- und Zertifizierungsinstrument ausgebaut.
 
 Bauen:
 - deterministic simulator;
@@ -429,8 +485,10 @@ Bauen:
 - persistent critical-alert spool;
 - health/readiness;
 - headless supervisor;
-- crash/restart harness.
-
+- crash/restart harness;
+- SSD-I/O-Metriken fuer Latenz, Durchsatz, Queue-Tiefe, Backpressure, freien Speicher und Recorder-Drops;
+- Retention-/Rotation-/Kompressions-Harness;
+- Replay aus echten bounded Observation-Aufzeichnungen.
 Teststufen:
 Static -> Unit -> Property -> Model -> Replay -> Fault -> Integration -> Shadow -> Controlled Live -> Soak.
 
@@ -589,6 +647,8 @@ Learning darf:
 
 optimieren.
 
+Die dafuer benoetigten Rohdaten und versionierten Learning-Evidence duerfen bereits ab R6 bounded auf SSD gesammelt werden. R18 fuehrt erst die adaptive Optimierung ein; Datensammlung allein verleiht keinerlei Authority.
+
 Learning darf niemals:
 - Safety lockern;
 - Authority vergeben;
@@ -625,8 +685,11 @@ Globale Null-Toleranz-Metriken:
 - unresolved transactions am Zertifizierungsende = 0 oder explizit FAILED_SAFE/OPERATOR_REQUIRED;
 - invariant violations = 0;
 - silent sample gaps = 0;
-- unbounded memory/history growth = 0.
-
+- unbounded memory/history growth = 0;
+- unbounded SSD growth = 0;
+- kritische Persistenzverluste = 0;
+- Hot-Path-Blockaden durch nichtkritisches SSD-I/O = 0;
+- Zertifizierung dokumentiert Speicherreserve, I/O-Queue-Gesundheit und Retention-Verhalten.
 Erst danach gilt V5 als 24/7-freigegeben.
 
 ## 4. Pflicht-Definition-of-Done fuer jede neue Capability
