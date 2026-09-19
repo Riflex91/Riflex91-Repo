@@ -8,11 +8,14 @@ public partial class MainWindow : Window
     private readonly SecureTokenStore _tokenStore = new();
     private readonly SecureDashboardWriteKeyStore _dashboardKeyStore = new();
     private readonly SecureBackblazeCredentialStore _backblazeCredentialStore = new();
+    private readonly GitHubAnmeldung _githubAnmeldung = new();
     private BridgeConfig _config = new();
     private string? _token;
     private string? _dashboardWriteKey;
     private BackblazeCredentials? _backblazeCredentials;
     private TelemetryBridgeService? _bridge;
+    private WissenswaechterDienst? _wissenswaechter;
+    private string? _githubKonto;
     private bool _initializing = true;
     private bool _changingSignal;
 
@@ -56,6 +59,9 @@ public partial class MainWindow : Window
             LoadBackblazeControlsFromConfig();
             UpdateBackblazeCredentialStatus();
 
+            WissenswaechterToggle.IsChecked = _config.WissenswaechterAktiv;
+            await AktualisiereGitHubStatusAsync();
+
             TelemetryToggle.IsChecked = _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token);
             if (_config.TelemetryEnabled && !SecureTokenStore.IsValidToken(_token))
             {
@@ -80,10 +86,18 @@ public partial class MainWindow : Window
         await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled || _config.BackblazeEnabled);
         if (_config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token))
             await StartBridgeAsync();
+
+        if (_config.WissenswaechterAktiv && !string.IsNullOrWhiteSpace(_githubKonto))
+            await StarteWissenswaechterAsync();
     }
 
     private async void MainWindow_Closed(object? sender, EventArgs e)
     {
+        if (_wissenswaechter is not null)
+        {
+            _wissenswaechter.StatusGeaendert -= OnWissenswaechterStatus;
+            await _wissenswaechter.DisposeAsync();
+        }
         if (_bridge is not null) await _bridge.DisposeAsync();
         _httpClient.Dispose();
     }
@@ -618,6 +632,189 @@ public partial class MainWindow : Window
         if (!keyPresent) DashboardErrorText.Text = string.Empty;
     }
 
+
+    private async Task AktualisiereGitHubStatusAsync()
+    {
+        var status = await _githubAnmeldung.LiesStatusAsync();
+        _githubKonto = status.Angemeldet ? status.Konto : null;
+
+        if (!status.Verfuegbar)
+        {
+            GitHubStateText.Text = "GIT CREDENTIAL MANAGER FEHLT";
+            GitHubAccountText.Text = status.Fehler ?? "Git for Windows mit Git Credential Manager installieren.";
+            WissenswaechterStateText.Text = "WARTET AUF GITHUB";
+            return;
+        }
+
+        if (!status.Angemeldet || string.IsNullOrWhiteSpace(status.Konto))
+        {
+            GitHubStateText.Text = "NICHT ANGEMELDET";
+            GitHubAccountText.Text = "Einmalig per Browser bei GitHub anmelden.";
+            WissenswaechterStateText.Text = _config.WissenswaechterAktiv ? "WARTET AUF GITHUB" : "DEAKTIVIERT";
+            return;
+        }
+
+        GitHubStateText.Text = "ANGEMELDET";
+        GitHubAccountText.Text = status.Konto;
+        if (_config.WissenswaechterAktiv && (_wissenswaechter is null || !_wissenswaechter.IstAktiv))
+            WissenswaechterStateText.Text = "BEREIT";
+    }
+
+    private async Task StarteWissenswaechterAsync()
+    {
+        if (!_config.WissenswaechterAktiv) return;
+
+        if (string.IsNullOrWhiteSpace(_githubKonto))
+        {
+            await AktualisiereGitHubStatusAsync();
+            if (string.IsNullOrWhiteSpace(_githubKonto))
+            {
+                WissenswaechterStateText.Text = "WARTET AUF GITHUB";
+                return;
+            }
+        }
+
+        if (_wissenswaechter is null)
+        {
+            _wissenswaechter = new WissenswaechterDienst(_config, _githubAnmeldung);
+            _wissenswaechter.StatusGeaendert += OnWissenswaechterStatus;
+        }
+
+        await _wissenswaechter.StarteAsync();
+        WissenswaechterStateText.Text = "GESTARTET";
+    }
+
+    private async Task StoppeWissenswaechterAsync()
+    {
+        if (_wissenswaechter is not null)
+            await _wissenswaechter.StoppeAsync();
+
+        WissenswaechterStateText.Text = _config.WissenswaechterAktiv
+            ? "WARTET AUF GITHUB"
+            : "DEAKTIVIERT";
+        WissenswaechterNextRunText.Text = "—";
+    }
+
+    private void OnWissenswaechterStatus(WissenswaechterStatus status)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            WissenswaechterStateText.Text = status.Zustand switch
+            {
+                "PRUEFT_GITHUB" => "PRÜFT GITHUB",
+                "SYNCHRONISIERT_REPO" => "SYNCHRONISIERT REPO",
+                "PRUEFT_QUELLEN" => "PRÜFT QUELLEN",
+                "SUCHT_IM_WEB" => "SUCHT NEUE QUELLEN",
+                "LAEDT_HOCH" => "LÄDT DATENBANK HOCH",
+                "AKTUELL" => "AKTUELL",
+                "KEINE_AENDERUNGEN" => "KEINE ÄNDERUNGEN",
+                "GESTOPPT" => "GESTOPPT",
+                "FEHLER" => "FEHLER",
+                _ => status.Zustand
+            };
+
+            WissenswaechterLastRunText.Text = status.LetzterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
+            WissenswaechterNextRunText.Text = status.NaechsterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
+
+            WissenswaechterDetailText.Text = status.Fehler is not null
+                ? "Fehler: " + Bounded(status.Fehler)
+                : $"Geprüft: {status.GepruefteQuellen} · geändert: {status.GeaenderteQuellen} · neue Kandidaten: {status.NeueKandidaten} · Upload: {(status.Hochgeladen ? "ja" : "nein")}";
+        });
+    }
+
+    private async void GitHubLogin_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            GitHubStateText.Text = "ANMELDUNG LÄUFT …";
+            var status = await _githubAnmeldung.MeldeAnAsync();
+            _githubKonto = status.Konto;
+            GitHubStateText.Text = "ANGEMELDET";
+            GitHubAccountText.Text = status.Konto ?? string.Empty;
+
+            if (_config.WissenswaechterAktiv)
+                await StarteWissenswaechterAsync();
+        }
+        catch (Exception error)
+        {
+            GitHubStateText.Text = "FEHLER";
+            GitHubAccountText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void GitHubLogout_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await StoppeWissenswaechterAsync();
+
+            if (string.IsNullOrWhiteSpace(_githubKonto))
+                await AktualisiereGitHubStatusAsync();
+
+            if (!string.IsNullOrWhiteSpace(_githubKonto))
+                await _githubAnmeldung.MeldeAbAsync(_githubKonto);
+
+            _githubKonto = null;
+            GitHubStateText.Text = "NICHT ANGEMELDET";
+            GitHubAccountText.Text = "Abgemeldet.";
+            WissenswaechterStateText.Text = _config.WissenswaechterAktiv ? "WARTET AUF GITHUB" : "DEAKTIVIERT";
+        }
+        catch (Exception error)
+        {
+            GitHubStateText.Text = "FEHLER";
+            GitHubAccountText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void WissenswaechterToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+
+        try
+        {
+            var aktiv = WissenswaechterToggle.IsChecked == true;
+            _config = _config with { WissenswaechterAktiv = aktiv };
+            await _config.SaveAsync();
+            UpdateToggleLabels();
+
+            if (aktiv)
+                await StarteWissenswaechterAsync();
+            else
+                await StoppeWissenswaechterAsync();
+        }
+        catch (Exception error)
+        {
+            WissenswaechterStateText.Text = "FEHLER";
+            WissenswaechterDetailText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void WissenswaechterJetzt_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_githubKonto))
+            {
+                await AktualisiereGitHubStatusAsync();
+                if (string.IsNullOrWhiteSpace(_githubKonto))
+                    throw new InvalidOperationException("GITHUB_ANMELDUNG_FEHLT");
+            }
+
+            if (_wissenswaechter is null)
+            {
+                _wissenswaechter = new WissenswaechterDienst(_config, _githubAnmeldung);
+                _wissenswaechter.StatusGeaendert += OnWissenswaechterStatus;
+            }
+
+            await _wissenswaechter.FuehreAktualisierungJetztAusAsync();
+        }
+        catch (Exception error)
+        {
+            WissenswaechterStateText.Text = "FEHLER";
+            WissenswaechterDetailText.Text = Bounded(error.Message);
+        }
+    }
+
     private void SetSignalToggle(bool enabled, bool controlEnabled, string? detail)
     {
         _changingSignal = true;
@@ -635,6 +832,8 @@ public partial class MainWindow : Window
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
         if (BackblazeToggle is not null)
             BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
+        if (WissenswaechterToggle is not null)
+            WissenswaechterToggle.Content = WissenswaechterToggle.IsChecked == true ? "WISSENSWÄCHTER AN" : "WISSENSWÄCHTER AUS";
     }
 
     private static string DashboardStateLabel(string state) => state switch
