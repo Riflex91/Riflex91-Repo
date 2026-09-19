@@ -1,6 +1,6 @@
 'use strict';
 
-// Final integrity gate: generated runtime bundle must remain stable on this user-authored PR head.
+// Final integrity gate: generated runtime bundle must remain stable on this user-authored PR head.\n// Fresh-main final integrity gate: PR #388 must pass without another generated runtime change.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
