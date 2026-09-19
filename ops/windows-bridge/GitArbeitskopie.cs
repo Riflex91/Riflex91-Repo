@@ -6,6 +6,7 @@ public sealed class GitArbeitskopie
     public const string ZielBranch = "main";
     public const string WissensbasisPfad = "v5/wissensbasis";
     public const string DatenbankPfad = WissensbasisPfad + "/datenbank";
+    public const string LiveWissenPfad = WissensbasisPfad + "/live";
 
     private readonly string _wurzel;
 

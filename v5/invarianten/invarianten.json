@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 42,
-    "gesamt": 97
+    "neuV5": 50,
+    "gesamt": 105
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -881,6 +881,78 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "Lebende Wissensdatenbank muss Entwicklung und spaetere Runtime sicher steuern"
+    },
+    {
+      "kennung": "V5-INV-043",
+      "herkunft": "V5_NEU",
+      "aussage": "Der V5-Bot ist alleiniger fachlicher Writer der lokalen SSD-Live-Wissensdatenbank; die Windows Bridge erzeugt keine Gameplay-Fakten.",
+      "geplanteDurchsetzung": "LiveWissensSpeicherPort + Bridge Read-only Import",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-044",
+      "herkunft": "V5_NEU",
+      "aussage": "Nur ein vor und nach dem Lesen bytegleiches BEREIT-Statusdokument derselben Generation darf nach GitHub gespiegelt werden.",
+      "geplanteDurchsetzung": "Generation-/Snapshot-Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-045",
+      "herkunft": "V5_NEU",
+      "aussage": "LIVE_VERIFIZIERT entsteht ausschliesslich aus echter Spielbeobachtung plus fachlichem Verifier.",
+      "geplanteDurchsetzung": "Typed Verifier + Evidence Contract",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-046",
+      "herkunft": "V5_NEU",
+      "aussage": "Der Bridge-Live-Import besitzt eine enge Datei-Allowlist: manifest.json, status.json und aktuell/**/*.json.",
+      "geplanteDurchsetzung": "Import-Allowlist",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-047",
+      "herkunft": "V5_NEU",
+      "aussage": "Lokaler Live-Wissensimport bleibt innerhalb eines D:-Unterpfads und verweigert Reparse Points, Traversal, unerwartete Dateitypen, Oversize und Geheimnisfelder.",
+      "geplanteDurchsetzung": "Windows-Path-/Schema-/Secret-Guards",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-048",
+      "herkunft": "V5_NEU",
+      "aussage": "Persistiertes Live-Wissen ist PlanningEvidence und keine unmittelbare ExecutionAuthority; Mutation braucht erneut frische Live-Admission.",
+      "geplanteDurchsetzung": "Authority Separation",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-049",
+      "herkunft": "V5_NEU",
+      "aussage": "Konkrete Live-Beobachtung darf nicht automatisch zu globaler Definition, Formel oder Action Contract generalisiert werden.",
+      "geplanteDurchsetzung": "Evidence-Promotion-Policy",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
+    },
+    {
+      "kennung": "V5-INV-050",
+      "herkunft": "V5_NEU",
+      "aussage": "GitHub-Livewissen ist bounded und enthaelt keine hochfrequente Rohtelemetrie.",
+      "geplanteDurchsetzung": "Retention-/Size-Guards",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Lokale live verifizierte Wissensdatenbank muss sicher persistiert und gespiegelt werden"
     }
   ]
 }

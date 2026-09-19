@@ -48,16 +48,18 @@ Die Knowledge Base informiert Entscheidungen. Gameplay-Autoritaet entsteht erst 
 
 ## Windows-Bridge-Wissenswaechter
 
-Der automatische Wissenswaechter der Windows Bridge besitzt eine harte Bereichsgrenze:
+Der automatische Wissenswaechter der Windows Bridge besitzt eine harte **Git-Bereichsgrenze**:
 
 ```text
 v5/wissensbasis/**
 ```
 
-Fuer den Waechter gilt:
+Fuer Git gilt:
 
 - **Lesen:** ausschliesslich innerhalb von `v5/wissensbasis/**`.
 - **Schreiben:** ausschliesslich innerhalb von `v5/wissensbasis/**`.
+
+Zusaetzlich darf die Bridge fuer den Live-Wissensimport genau den in der App konfigurierten Unterpfad auf `D:\` **read-only** lesen. Dieser lokale Pfad ist kein Git-Bereich und darf niemals als allgemeiner Dateisystemzugriff verstanden werden.
 - **Git-Arbeitsbaum:** Sparse Checkout materialisiert nur `v5/wissensbasis/**`.
 - **Commit-Pruefung:** vor jedem Commit und nach jedem Rebase werden alle geaenderten Pfade erneut gegen diese Grenze geprueft.
 - **Kein Force-Push:** Konflikte oder unerwartete Pfade fuehren zum sicheren Abbruch.
@@ -110,3 +112,22 @@ v5/entwicklungsregeln/wissensnutzung.json
 - unmittelbar vor Game Writes gewinnt weiterhin frische Live Truth.
 
 Spaetere Runtime-Module greifen nicht direkt auf GitHub-TXT-Dateien zu. Sie verwenden einen validierten, read-only `WissensZugriffPort` mit einem versionierten `WissensSnapshot`.
+
+
+### Live-Wissen vom V5-Bot
+
+Der spaetere V5-Bot persistiert fachlich verifizierte echte Spielbeobachtungen lokal auf der SSD. Standardpfad:
+
+```text
+D:\AdventureLand-V5\wissensdatenbank
+```
+
+Der GitHub-Spiegel liegt getrennt unter:
+
+```text
+v5/wissensbasis/live/snapshot/**
+```
+
+Der vollstaendige Vertrag steht in `v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md`.
+
+Live-Wissen ist besonders starke Evidence fuer den **konkret beobachteten Zustand**, darf aber nicht automatisch zu einer allgemeinen Spielregel verallgemeinert werden und bleibt ohne frische Runtime-Admission keine ExecutionAuthority.

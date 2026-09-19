@@ -51,6 +51,39 @@
         "string",
         "null"
       ]
+    },
+    "liveWissenStatus": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "liveWissenGeneration": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "liveWissenDateien": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "liveWissenBytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "liveWissenSnapshotSha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "liveWissenHinweis": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": true

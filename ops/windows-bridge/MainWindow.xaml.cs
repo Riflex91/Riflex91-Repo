@@ -60,6 +60,10 @@ public partial class MainWindow : Window
             UpdateBackblazeCredentialStatus();
 
             WissenswaechterToggle.IsChecked = _config.WissenswaechterAktiv;
+            LiveWissenspfadBox.Text = _config.LiveWissensdatenbankPfad;
+            LiveWissenStateText.Text = Directory.Exists(_config.LiveWissensdatenbankPfad)
+                ? "LOKALE DATENBANK GEFUNDEN"
+                : "WARTET AUF V5-BOT";
             await AktualisiereGitHubStatusAsync();
 
             TelemetryToggle.IsChecked = _config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token);
@@ -703,6 +707,7 @@ public partial class MainWindow : Window
             {
                 "PRUEFT_GITHUB" => "PRÜFT GITHUB",
                 "SYNCHRONISIERT_REPO" => "SYNCHRONISIERT REPO",
+                "IMPORTIERT_LIVE_WISSEN" => "PRÜFT LIVE-WISSEN",
                 "PRUEFT_QUELLEN" => "PRÜFT QUELLEN",
                 "SUCHT_IM_WEB" => "SUCHT NEUE QUELLEN",
                 "LAEDT_HOCH" => "LÄDT DATENBANK HOCH",
@@ -716,9 +721,21 @@ public partial class MainWindow : Window
             WissenswaechterLastRunText.Text = status.LetzterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
             WissenswaechterNextRunText.Text = status.NaechsterLauf?.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") ?? "—";
 
+            LiveWissenStateText.Text = status.LiveWissenZustand switch
+            {
+                "IMPORTIERT" => $"LIVE-WISSEN IMPORTIERT · Generation {status.LiveWissenGeneration?.ToString() ?? "?"} · {status.LiveWissenDateien} Dateien",
+                "WARTET_AUF_BOT" => "WARTET AUF V5-BOT",
+                "WARTET_AUF_STABILEN_SNAPSHOT" => "WARTET AUF STABILEN BOT-SNAPSHOT",
+                "DEAKTIVIERT" => "LIVE-WISSENSIMPORT DEAKTIVIERT",
+                "PRUEFT" => "PRÜFT LOKALE LIVE-DATEN",
+                "FEHLER" => "LIVE-WISSEN FEHLERHAFT · ALTER SNAPSHOT BLEIBT ERHALTEN",
+                null => LiveWissenStateText.Text,
+                _ => status.LiveWissenZustand
+            };
+
             WissenswaechterDetailText.Text = status.Fehler is not null
                 ? "Fehler: " + Bounded(status.Fehler)
-                : $"Geprüft: {status.GepruefteQuellen} · geändert: {status.GeaenderteQuellen} · neue Kandidaten: {status.NeueKandidaten} · Upload: {(status.Hochgeladen ? "ja" : "nein")}";
+                : $"Geprüft: {status.GepruefteQuellen} · geändert: {status.GeaenderteQuellen} · neue Kandidaten: {status.NeueKandidaten} · Live-Dateien: {status.LiveWissenDateien} · Upload: {(status.Hochgeladen ? "ja" : "nein")}";
         });
     }
 
@@ -763,6 +780,40 @@ public partial class MainWindow : Window
         {
             GitHubStateText.Text = "FEHLER";
             GitHubAccountText.Text = Bounded(error.Message);
+        }
+    }
+
+    private async void LiveWissenspfadSpeichern_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var normalisiert = BridgeConfig.NormalisiereLiveWissenspfad(LiveWissenspfadBox.Text);
+            var neueKonfiguration = _config with
+            {
+                LiveWissensimportAktiv = true,
+                LiveWissensdatenbankPfad = normalisiert
+            };
+            neueKonfiguration.Validate();
+            await neueKonfiguration.SaveAsync();
+            _config = neueKonfiguration;
+            LiveWissenspfadBox.Text = normalisiert;
+            LiveWissenStateText.Text = Directory.Exists(normalisiert)
+                ? "PFAD GESPEICHERT · LOKALE DATENBANK GEFUNDEN"
+                : "PFAD GESPEICHERT · WARTET AUF V5-BOT";
+
+            if (_wissenswaechter is not null)
+            {
+                _wissenswaechter.StatusGeaendert -= OnWissenswaechterStatus;
+                await _wissenswaechter.DisposeAsync();
+                _wissenswaechter = null;
+            }
+
+            if (_config.WissenswaechterAktiv && !string.IsNullOrWhiteSpace(_githubKonto))
+                await StarteWissenswaechterAsync();
+        }
+        catch (Exception error)
+        {
+            LiveWissenStateText.Text = "FEHLER · " + Bounded(error.Message);
         }
     }
 

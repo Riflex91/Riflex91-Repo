@@ -113,3 +113,16 @@ Diese Checkliste gilt fuer **jede** neue mutierende Capability und fuer jede Aen
 - [ ] Der verwendete Wissens-Git-Commit beziehungsweise WissensSnapshot ist nachvollziehbar.
 - [ ] Vor Merge wurde der Branch erneut auf aktuellen `main` inklusive Knowledge-Commits gebracht.
 - [ ] Strenger Entwicklungs-Wissensgate ist fuer Implementierung gruen.
+
+
+## K. Live-Wissensdatenbank
+
+- [ ] Falls die Capability persistierbares Live-Wissen erzeugt, schreibt sie ausschliesslich ueber den `LiveWissensSpeicherPort`.
+- [ ] `LIVE_VERIFIZIERT` wird erst nach fachlichem Verifier gesetzt.
+- [ ] Lokaler Writer verwendet atomare Writes und `SCHREIBT -> BEREIT` derselben Generation.
+- [ ] Restart waehrend jeder Schreibphase ist getestet.
+- [ ] Disk Full, Access Denied, korrupte JSON-Datei und Clock-Anomalie sind getestet.
+- [ ] Keine Secrets/Credentials koennen in Live-Wissen serialisiert werden.
+- [ ] Ein konkreter Live-Fakt wird nicht unzulaessig als allgemeine Spielregel interpretiert.
+- [ ] GitHub-Spiegel ist nicht Teil der unmittelbaren Mutationserlaubnis.
+- [ ] Hochfrequente Rohtelemetrie bleibt ausserhalb des GitHub-Live-Snapshots.

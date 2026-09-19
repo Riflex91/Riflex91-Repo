@@ -1,5 +1,5 @@
 {
-  "configVersion": 6,
+  "configVersion": 7,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest",
@@ -27,5 +27,10 @@
   "backblazeBucket": "al-aio-bot",
   "backblazePrefix": "v4",
   "backblazeKeyIdEnvironmentVariable": "AIO_V4_BACKBLAZE_KEY_ID",
-  "backblazeApplicationKeyEnvironmentVariable": "AIO_V4_BACKBLAZE_APPLICATION_KEY"
+  "backblazeApplicationKeyEnvironmentVariable": "AIO_V4_BACKBLAZE_APPLICATION_KEY",
+  "liveWissensimportAktiv": true,
+  "liveWissensdatenbankPfad": "D:\\AdventureLand-V5\\wissensdatenbank",
+  "liveWissensMaxDateienProLauf": 5000,
+  "liveWissensMaxDateiBytes": 524288,
+  "liveWissensMaxGesamtBytesProLauf": 67108864
 }

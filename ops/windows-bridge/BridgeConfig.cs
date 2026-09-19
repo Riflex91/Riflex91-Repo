@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 6;
+    public const int CurrentConfigVersion = 7;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
@@ -26,6 +26,12 @@ public sealed record BridgeConfig
     public bool WissenswaechterWebSucheAktiv { get; init; } = true;
     public int WissenswaechterMaxQuellenProLauf { get; init; } = 200;
     public int WissenswaechterMaxKandidaten { get; init; } = 1000;
+
+    public bool LiveWissensimportAktiv { get; init; } = true;
+    public string LiveWissensdatenbankPfad { get; init; } = @"D:\AdventureLand-V5\wissensdatenbank";
+    public int LiveWissensMaxDateienProLauf { get; init; } = 5000;
+    public int LiveWissensMaxDateiBytes { get; init; } = 512 * 1024;
+    public long LiveWissensMaxGesamtBytesProLauf { get; init; } = 64L * 1024 * 1024;
 
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
@@ -146,6 +152,14 @@ public sealed record BridgeConfig
         if (WissenswaechterMaxKandidaten is < 50 or > 5000)
             throw new InvalidOperationException("WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
 
+        _ = NormalisiereLiveWissenspfad(LiveWissensdatenbankPfad);
+        if (LiveWissensMaxDateienProLauf is < 1 or > 20000)
+            throw new InvalidOperationException("LIVE_WISSEN_DATEILIMIT_UNGUELTIG");
+        if (LiveWissensMaxDateiBytes is < 16 * 1024 or > 5 * 1024 * 1024)
+            throw new InvalidOperationException("LIVE_WISSEN_DATEIGROESSE_UNGUELTIG");
+        if (LiveWissensMaxGesamtBytesProLauf is < 1024 * 1024 or > 512L * 1024 * 1024)
+            throw new InvalidOperationException("LIVE_WISSEN_GESAMTGROESSE_UNGUELTIG");
+
         ValidateBackblaze();
     }
 
@@ -189,6 +203,31 @@ public sealed record BridgeConfig
             || BackblazePrefix.Any(char.IsControl)
             || BackblazePrefix.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Any(part => part == ".."))
             throw new InvalidOperationException("BACKBLAZE_PREFIX_INVALID");
+    }
+
+    public static string NormalisiereLiveWissenspfad(string wert)
+    {
+        if (string.IsNullOrWhiteSpace(wert) || wert.Any(char.IsControl))
+            throw new InvalidOperationException("LIVE_WISSEN_PFAD_UNGUELTIG");
+
+        string voll;
+        try
+        {
+            voll = Path.TrimEndingDirectorySeparator(Path.GetFullPath(wert.Trim()));
+        }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            throw new InvalidOperationException("LIVE_WISSEN_PFAD_UNGUELTIG", error);
+        }
+
+        var wurzel = Path.GetPathRoot(voll);
+        if (string.IsNullOrWhiteSpace(wurzel)
+            || !string.Equals(wurzel, @"D:\", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("LIVE_WISSEN_MUSS_AUF_D_LIEGEN");
+        if (string.Equals(voll, Path.TrimEndingDirectorySeparator(wurzel), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("LIVE_WISSEN_D_LAUFWERKSWURZEL_VERBOTEN");
+
+        return voll;
     }
 
     private static void ValidateHttps(string value, string error)

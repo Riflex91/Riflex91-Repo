@@ -17,7 +17,9 @@
         "Knowledge-Sync ist gameplay-entkoppelt",
         "Laufende Waechterdaten ueber Manifest maschinenlesbar exponiert",
         "Kandidatenautoritaet technisch auf null begrenzt",
-        "Aenderungsprotokoll valides JSONL"
+        "Aenderungsprotokoll valides JSONL",
+        "Lokaler D:-Live-Wissensimport-Vertrag festgelegt",
+        "Bridge-Live-Importpfad/Schema/Secret/Reparse-Gates definiert"
       ]
     },
     {
@@ -54,7 +56,9 @@
         "Deutsche Sichttextregel inklusive Monster-Ausnahme verbindlich",
         "Entwicklungs-Wissensgate ratifiziert",
         "Quellenfreigaben und Driftwirkung ratifiziert",
-        "WissensZugriffPort und Snapshot-Pinning als Zielvertrag festgelegt"
+        "WissensZugriffPort und Snapshot-Pinning als Zielvertrag festgelegt",
+        "Live-Wissens-SSD-Vertrag ratifiziert",
+        "Konkrete Live-Beobachtung darf nicht automatisch zu globaler Spielregel generalisiert werden"
       ]
     },
     {
@@ -75,7 +79,9 @@
         "UI-Sichttextguard + Monster-Ausnahme getestet",
         "Strenger Wissensgate fuer Implementierung in CI",
         "Relevante Quellenhash-Drift blockiert unbewertete Implementierung",
-        "Direkter Runtime-Zugriff auf Roh-Snapshots architektonisch verboten"
+        "Direkter Runtime-Zugriff auf Roh-Snapshots architektonisch verboten",
+        "Windows-Bridge Live-Wissensimport Negativtests gruen",
+        "Bridge besitzt keine Gameplay-Autoritaet trotz Live-Wissenszugriff"
       ]
     },
     {
@@ -101,7 +107,9 @@
       "blocksRuntime": true,
       "exit": [
         "Crash/Migration Tests gruen",
-        "Kein Blind Resume"
+        "Kein Blind Resume",
+        "LiveWissensSpeicherPort auf D: atomar und crash-sicher",
+        "SCHREIBT/BEREIT-Generation sowie Disk-Full/Access-Denied Tests gruen"
       ]
     },
     {
@@ -114,7 +122,10 @@
       "blocksRuntime": true,
       "exit": [
         "Stale state autorisiert keine Mutation",
-        "Drift quarantine faehig"
+        "Drift quarantine faehig",
+        "Nur fachlich verifizierte Beobachtungen werden LIVE_VERIFIZIERT persistiert",
+        "Persistiertes Live-Wissen bleibt Evidence und ersetzt keine Live-Admission",
+        "GitHub-Live-Snapshot ist bounded und schema/hash-validiert"
       ]
     },
     {

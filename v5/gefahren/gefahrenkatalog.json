@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 106,
+  "anzahl": 115,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -1512,6 +1512,140 @@
       "strategie": "Schemas + Knowledge-Validator + echtes JSONL",
       "betroffenePhasen": [
         "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-107",
+      "titel": "Bot schreibt Live-Wissen an falschen oder nicht persistenten Ort statt auf die konfigurierte SSD-Datenbank",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 3,
+      "risikowert": 36,
+      "status": "OFFEN",
+      "strategie": "Typisierter LiveWissensSpeicherPort mit D:-Default, Pfadstatus und Restart-Test",
+      "betroffenePhasen": [
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-108",
+      "titel": "Bridge importiert einen halb geschriebenen oder generationstechnisch inkonsistenten Live-Wissenssnapshot",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "SCHREIBT/BEREIT-Generation, Status-vorher/nachher bytegleich",
+      "betroffenePhasen": [
+        "R0",
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-109",
+      "titel": "Planerannahme oder ungepruefte Beobachtung wird als LIVE_VERIFIZIERT persistiert",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Nur fachliche Verifier duerfen LIVE_VERIFIZIERT erzeugen",
+      "betroffenePhasen": [
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-110",
+      "titel": "Windows Bridge spiegelt temporaere, quarantinierte oder fachfremde SSD-Dateien nach GitHub",
+      "kategorie": "SECURITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 4,
+      "risikowert": 40,
+      "status": "OFFEN",
+      "strategie": "Enge Import-Allowlist und eigener live/snapshot-Zielpfad",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-111",
+      "titel": "Lokaler Import folgt Junction/Symlink/Traversal ausserhalb der erlaubten SSD-Wissensdatenbank",
+      "kategorie": "SECURITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "D:-Pfadnormalisierung, Reparse-Verbot vor Traversierung, relative Pfadguards",
+      "betroffenePhasen": [
+        "R0"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-112",
+      "titel": "Secret, Token, Cookie oder Credential landet ueber Live-Wissen im oeffentlichen Repository",
+      "kategorie": "SECURITY",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Rekursiver Geheimnisfeld-Guard plus Negativtests",
+      "betroffenePhasen": [
+        "R0",
+        "R3",
+        "R6"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-113",
+      "titel": "Persistiertes GitHub-Livewissen wird als aktuelle Mutationserlaubnis benutzt",
+      "kategorie": "AUTHORITY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "WissensZugriffPort read-only + Live-Admission unmittelbar vor Write",
+      "betroffenePhasen": [
+        "R6",
+        "R9"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-114",
+      "titel": "Einzelne Live-Beobachtung wird unzulaessig zu allgemeiner Spielregel oder Action Contract verallgemeinert",
+      "kategorie": "WISSEN",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Evidence-Promotion-Gate mit Quellen-/Wiederholungsanforderungen",
+      "betroffenePhasen": [
+        "R6",
+        "R2"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-115",
+      "titel": "GitHub wird mit hochfrequenter Rohtelemetrie oder unbounded Live-Historie aufgeblasen",
+      "kategorie": "PERSISTENZ",
+      "schweregrad": 4,
+      "eintritt": 4,
+      "entdeckbarkeit": 3,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Nur aktueller bounded Snapshot; Rohtelemetrie bleibt in separaten bounded Pfaden",
+      "betroffenePhasen": [
+        "R6",
+        "R19"
       ]
     }
   ]

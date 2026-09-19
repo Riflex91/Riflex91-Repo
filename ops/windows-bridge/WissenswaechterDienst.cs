@@ -13,7 +13,10 @@ public sealed record WissenswaechterStatus(
     int GeaenderteQuellen,
     int NeueKandidaten,
     bool Hochgeladen,
-    string? Fehler);
+    string? Fehler,
+    string? LiveWissenZustand = null,
+    int LiveWissenDateien = 0,
+    long? LiveWissenGeneration = null);
 
 public sealed class WissenswaechterDienst : IAsyncDisposable
 {
@@ -138,6 +141,35 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
 
             await _arbeitskopie.BereiteVorAsync(github.Konto, cancellationToken);
 
+            LiveWissensImportErgebnis liveImport;
+            try
+            {
+                MeldeStatus(new WissenswaechterStatus(
+                    "IMPORTIERT_LIVE_WISSEN",
+                    null,
+                    null,
+                    0,
+                    0,
+                    0,
+                    false,
+                    null,
+                    "PRUEFT",
+                    0,
+                    null));
+                var liveImporter = new LiveWissensImportDienst(_config, _arbeitskopie);
+                liveImport = await liveImporter.ImportiereAsync(cancellationToken);
+            }
+            catch (Exception liveFehler) when (liveFehler is not OperationCanceledException)
+            {
+                liveImport = new LiveWissensImportErgebnis(
+                    "FEHLER",
+                    null,
+                    0,
+                    0,
+                    null,
+                    LiveImportFehlercode(liveFehler));
+            }
+
             var quellen = await LadeQuellenregisterAsync(cancellationToken);
             var alterStatus = await LadeQuellenstatusAsync(cancellationToken);
             var alterStatusNachKennung = alterStatus.Quellen.ToDictionary(
@@ -239,7 +271,13 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 neueKandidaten,
                 quellen.Count,
                 "GITHUB_PUSH_GEPLANT",
-                "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.");
+                "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.",
+                liveImport.Zustand,
+                liveImport.Generation,
+                liveImport.Dateien,
+                liveImport.Bytes,
+                liveImport.SnapshotSha256,
+                liveImport.Hinweis);
             await SpeichereJsonAsync(
                 GitArbeitskopie.DatenbankPfad + "/letzter-lauf.json",
                 laufbericht,
@@ -266,7 +304,10 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 geaendert,
                 neueKandidaten,
                 hochgeladen,
-                null));
+                null,
+                liveImport.Zustand,
+                liveImport.Dateien,
+                liveImport.Generation));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -666,6 +707,18 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         }
     }
 
+    private static string LiveImportFehlercode(Exception error)
+    {
+        var meldung = error.Message ?? string.Empty;
+        if (meldung.StartsWith("LIVE_", StringComparison.Ordinal))
+        {
+            var trennstelle = meldung.IndexOf(':');
+            return trennstelle > 0 ? meldung[..trennstelle] : Begrenze(meldung);
+        }
+
+        return "LIVE_WISSEN_IMPORT_FEHLER";
+    }
+
     private static string Begrenze(string? wert, int maximal = 512)
     {
         var text = string.IsNullOrWhiteSpace(wert) ? "UNBEKANNTER_FEHLER" : wert.Trim();
@@ -751,5 +804,11 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         int NeueKandidaten,
         int RegistrierteQuellen,
         string UploadStatus,
-        string SicherheitsHinweis);
+        string SicherheitsHinweis,
+        string LiveWissenStatus,
+        long? LiveWissenGeneration,
+        int LiveWissenDateien,
+        long LiveWissenBytes,
+        string? LiveWissenSnapshotSha256,
+        string? LiveWissenHinweis);
 }

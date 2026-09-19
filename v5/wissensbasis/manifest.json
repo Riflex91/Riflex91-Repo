@@ -33,7 +33,10 @@
     "schema/letzter-lauf.schema.json",
     "schema/quellenstatus.schema.json",
     "schema/kandidat.schema.json",
-    "schema/aenderungs-eintrag.schema.json"
+    "schema/aenderungs-eintrag.schema.json",
+    "schema/live-manifest.schema.json",
+    "schema/live-status.schema.json",
+    "schema/live-fakt.schema.json"
   ],
   "legacyIndex": "legacy/V3-V4-QUELLEN.md",
   "counts": {
@@ -69,5 +72,16 @@
     "runtimeZielport": "WissensZugriffPort",
     "kandidatenBesitzenAutoritaet": false,
     "rohSnapshotsBesitzenGameplayAutoritaet": false
+  },
+  "liveWissen": {
+    "status": "VORBEREITET_WARTET_AUF_V5_RUNTIME",
+    "githubBereich": "live",
+    "snapshotPfad": "live/snapshot",
+    "lokalerStandardpfad": "D:\\AdventureLand-V5\\wissensdatenbank",
+    "bridgeImport": "STUENDLICH_UND_MANUELL",
+    "manifestSchema": "schema/live-manifest.schema.json",
+    "statusSchema": "schema/live-status.schema.json",
+    "faktSchema": "schema/live-fakt.schema.json",
+    "autoritaet": "LIVE_EVIDENCE_KEINE_DIREKTE_EXECUTION_AUTHORITY"
   }
 }
