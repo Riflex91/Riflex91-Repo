@@ -19,13 +19,20 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
   <section class="page" data-page="automation">
     <div class="pagehead"><div><h1>Automation</h1><p>Alle bekannten Adventure-Land-Items und Materialien suchen, filtern und pro Aktion freigeben oder sperren.</p></div><span class="pill" id="automationCount">0 Items</span></div>
     <div class="automation-toolbar">
-      <input id="automationSearch" placeholder="Item oder Material suchen …">
+      <input id="automationSearch" placeholder="Name, ID, Typ, NPC oder Material suchen …">
       <select id="automationType"><option value="">Alle Typen</option></select>
       <select id="automationClass"><option value="">Alle Klassen</option><option>warrior</option><option>paladin</option><option>priest</option><option>ranger</option><option>rogue</option><option>mage</option><option>merchant</option></select>
       <select id="automationNpc"><option value="">Alle NPCs</option></select>
       <input id="automationLevelMin" type="number" min="0" placeholder="Level min">
       <input id="automationLevelMax" type="number" min="0" placeholder="Level max">
       <select id="automationCapability"><option value="">Alle Fähigkeiten</option><option value="upgrade">Verbesserbar</option><option value="compound">Kombinierbar</option><option value="npc">Beim NPC</option><option value="protected">Geschützt/Spezial</option></select>
+    </div>
+    <div class="automation-viewbar">
+      <div><b>Ansicht</b><span class="sub">Atlas = kompakte Adventure-Land-Referenz · Details = vollständige Metadaten</span></div>
+      <div class="automation-view-toggle" role="group" aria-label="Automation Ansicht">
+        <button type="button" data-automation-view="atlas" aria-pressed="true">Atlas</button>
+        <button type="button" data-automation-view="details" aria-pressed="false">Details</button>
+      </div>
     </div>
     <div class="automation-policy">
       <label for="automationMaxCompound"><span>Max. Compound / Combine-Level</span><input id="automationMaxCompound" type="number" min="0" max="10" step="1"></label>
