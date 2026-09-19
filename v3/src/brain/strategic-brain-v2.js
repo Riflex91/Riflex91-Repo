@@ -645,8 +645,9 @@ class StrategicBrainV2 {
     if (this.lastEncounterOutcome) rows.push(this.lastEncounterOutcome);
     if (this.runtime && this.runtime.lastEncounterOutcome) rows.push(this.runtime.lastEncounterOutcome);
     try {
-      if (this.runtime && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') {
-        rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
+      if (this.runtime && this.runtime.partyTelemetry) {
+        if (typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function') rows.push(...this.runtime.partyTelemetry.encounterOutcomeList());
+        else if (typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
       }
     } catch (_) {}
     const clean = rows.filter((row) => row && row.encounterId && Number.isFinite(Number(row.endedAt)));
