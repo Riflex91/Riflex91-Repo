@@ -2,14 +2,18 @@
 
 function number(value) { return Number.isFinite(Number(value)) ? Number(value) : 0; }
 
-function potionCount(inventory) {
-  let total = 0;
+function potionCounts(inventory) {
+  const totals = { hpPotions: 0, mpPotions: 0, total: 0 };
   for (const item of inventory || []) {
     if (!item || !/^(hpot|mpot)/i.test(String(item.name || ''))) continue;
-    total += Math.max(0, number(item.q) || 1);
+    const quantity = Math.max(0, number(item.q) || 1);
+    if (/^hpot/i.test(String(item.name || ''))) totals.hpPotions += quantity;
+    else if (/^mpot/i.test(String(item.name || ''))) totals.mpPotions += quantity;
   }
-  return total;
+  totals.total = totals.hpPotions + totals.mpPotions;
+  return totals;
 }
+function potionCount(inventory) { return potionCounts(inventory).total; }
 
 function levelRequirement(gameData, level) {
   const levels = gameData && gameData.levels;
@@ -64,6 +68,8 @@ class PerformanceTracker {
       kills: 0,
       deaths: 0,
       potions: 0,
+      hpPotions: 0,
+      mpPotions: 0,
       damageTaken: 0,
       monsterHpLost: 0,
       targetSamples: {},
@@ -104,9 +110,13 @@ class PerformanceTracker {
     if (!prevC.rip && currC.rip) w.deaths += 1;
     if (number(prevC.hp) > number(currC.hp)) w.damageTaken += number(prevC.hp) - number(currC.hp);
 
-    const beforePotions = potionCount(prevC.inventory);
-    const afterPotions = potionCount(currC.inventory);
-    if (beforePotions > afterPotions) w.potions += beforePotions - afterPotions;
+    const beforePotions = potionCounts(prevC.inventory);
+    const afterPotions = potionCounts(currC.inventory);
+    const hpUsed = Math.max(0, beforePotions.hpPotions - afterPotions.hpPotions);
+    const mpUsed = Math.max(0, beforePotions.mpPotions - afterPotions.mpPotions);
+    if (hpUsed) w.hpPotions += hpUsed;
+    if (mpUsed) w.mpPotions += mpUsed;
+    if (hpUsed || mpUsed) w.potions += hpUsed + mpUsed;
 
     const prevEntities = this._entityMap(previous);
     const currEntities = this._entityMap(current);
@@ -155,6 +165,8 @@ class PerformanceTracker {
       killsPerHour: hours > 0 ? window.kills / hours : 0,
       deathsPerHour: hours > 0 ? window.deaths / hours : 0,
       potionsPerHour: hours > 0 ? window.potions / hours : 0,
+      hpPotionsPerHour: hours > 0 ? window.hpPotions / hours : 0,
+      mpPotionsPerHour: hours > 0 ? window.mpPotions / hours : 0,
       damageTakenPerHour: hours > 0 ? window.damageTaken / hours : 0,
       monsterHpLostPerHour: hours > 0 ? window.monsterHpLost / hours : 0
     };
@@ -196,6 +208,8 @@ class PerformanceTracker {
           kills: completed.kills,
           deaths: completed.deaths,
           potions: completed.potions,
+          hpPotions: completed.hpPotions,
+          mpPotions: completed.mpPotions,
           damageTaken: completed.damageTaken,
           monsterHpLost: completed.monsterHpLost,
           rates: completed.rates
@@ -212,6 +226,8 @@ class PerformanceTracker {
         kills: completed.kills,
         deaths: completed.deaths,
         potions: completed.potions,
+        hpPotions: completed.hpPotions,
+        mpPotions: completed.mpPotions,
         damageTaken: completed.damageTaken,
         monsterHpLost: completed.monsterHpLost
       });
@@ -252,6 +268,8 @@ class PerformanceTracker {
       kills: this.window.kills,
       deaths: this.window.deaths,
       potions: this.window.potions,
+      hpPotions: this.window.hpPotions,
+      mpPotions: this.window.mpPotions,
       damageTaken: this.window.damageTaken,
       monsterHpLost: this.window.monsterHpLost,
       rates: this._rates(this.window, Math.max(0, (this.now() - this.window.startedAt) / 1000))
@@ -260,4 +278,4 @@ class PerformanceTracker {
   }
 }
 
-module.exports = { PerformanceTracker, xpDelta, potionCount };
+module.exports = { PerformanceTracker, xpDelta, potionCount, potionCounts };
