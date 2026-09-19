@@ -313,3 +313,20 @@ Festgelegt sind bereits:
 - keine direkte ExecutionAuthority aus persistiertem Live-Wissen.
 
 Die Live-Wissensdatenbank ist nur ein geschuetzter Teil des groesseren lokalen SSD-Datenfundaments. Die Windows Bridge bleibt weiterhin auf diesen Live-Wissenspfad begrenzt; Runtime-Journale, Replay, Telemetrie, Learning-Daten und Recovery-State werden nicht automatisch nach GitHub gespiegelt.
+
+## Call-Cost- und Rate-Limit-Vertrag
+
+Der Vertrag `P0-07-CALL-COST-RATE-LIMITS.md` und `wissensbasis/vertraege/call-budget.json` ist vor Runtime-Code verbindlich.
+
+Pflicht:
+- ein character-globales `character:socket_call_budget` ueber alle Action-Channels;
+- Server-Evidence 200 gewichtete Punkte / 4000 ms, aber konservatives V5-Planbudget initial 100 / 4000 ms;
+- positive Reserve wird nicht normal verplant;
+- statische CC-Werte sind nicht automatisch vollstaendige Request-Gesamtkosten;
+- unbekannte/interne Zusatzkosten werden konservativ reserviert;
+- mutierende FIFO-Channels maximal ein managed In-Flight-Request;
+- `limitdc` nach moeglichem Send => UNKNOWN/Reobserve/Reconcile, niemals Blind-Retry;
+- Client-Safeties bleiben aktiv;
+- MCP/HTTP-Rate-Limits, Deferred Queue Guard und Mainframe-CPU bleiben getrennte Typen;
+- `ccreport` wird nur diagnostisch/kalibrierend und bounded genutzt;
+- Cost-/Limit-Drift sperrt betroffene Automation bis zur Revalidierung.
