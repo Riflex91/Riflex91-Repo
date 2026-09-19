@@ -4,7 +4,8 @@ public sealed class GitArbeitskopie
 {
     public const string RepositoryUrl = "https://github.com/Riflex91/Riflex91-Repo.git";
     public const string ZielBranch = "main";
-    public const string DatenbankPfad = "v5/wissensbasis/datenbank";
+    public const string WissensbasisPfad = "v5/wissensbasis";
+    public const string DatenbankPfad = WissensbasisPfad + "/datenbank";
 
     private readonly string _wurzel;
 
@@ -55,6 +56,20 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromMinutes(2)), "GIT_FETCH_FEHLGESCHLAGEN");
 
+        // Der Waechter arbeitet mit Sparse Checkout. Im Arbeitsbaum ist ausschliesslich
+        // v5/wissensbasis sichtbar; andere Repo-Bereiche werden nicht ausgecheckt.
+        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
+            ["sparse-checkout", "init", "--cone"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(30)), "GIT_SPARSE_CHECKOUT_INIT_FEHLGESCHLAGEN");
+
+        VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
+            ["sparse-checkout", "set", WissensbasisPfad],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(30)), "GIT_SPARSE_CHECKOUT_SET_FEHLGESCHLAGEN");
+
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["checkout", "-B", ZielBranch, $"origin/{ZielBranch}"],
             _wurzel,
@@ -66,6 +81,8 @@ public sealed class GitArbeitskopie
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_RESET_FEHLGESCHLAGEN");
+
+        await VerifiziereArbeitsbereichAsync(cancellationToken);
 
         var benutzername = githubKonto.Trim();
         var email = $"{benutzername}@users.noreply.github.com";
@@ -81,6 +98,24 @@ public sealed class GitArbeitskopie
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(15)), "GIT_EMAIL_KONFIGURATION_FEHLGESCHLAGEN");
+    }
+
+    public string LoeseWissensbasisPfadAuf(string relativerPfad)
+    {
+        if (!IstErlaubterWissensbasisPfad(relativerPfad))
+            throw new InvalidOperationException("WISSENSBASIS_PFAD_NICHT_ERLAUBT");
+
+        var kombiniert = Path.Combine(
+            _wurzel,
+            relativerPfad.Replace('/', Path.DirectorySeparatorChar));
+        var voll = Path.GetFullPath(kombiniert);
+        var erlaubteWurzel = Path.GetFullPath(Path.Combine(_wurzel, WissensbasisPfad));
+
+        if (!voll.StartsWith(erlaubteWurzel + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(voll, erlaubteWurzel, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("WISSENSBASIS_PFAD_AUSBRUCH_VERHINDERT");
+
+        return voll;
     }
 
     public string LoeseDatenbankPfadAuf(string relativerPfad)
@@ -99,6 +134,20 @@ public sealed class GitArbeitskopie
             throw new InvalidOperationException("DATENBANK_PFAD_AUSBRUCH_VERHINDERT");
 
         return voll;
+    }
+
+    public static bool IstErlaubterWissensbasisPfad(string? relativerPfad)
+    {
+        if (string.IsNullOrWhiteSpace(relativerPfad)) return false;
+
+        var normalisiert = relativerPfad.Replace('\\', '/').Trim('/');
+        if (normalisiert.Contains("../", StringComparison.Ordinal)
+            || normalisiert.EndsWith("/..", StringComparison.Ordinal)
+            || normalisiert == "..")
+            return false;
+
+        return string.Equals(normalisiert, WissensbasisPfad, StringComparison.Ordinal)
+            || normalisiert.StartsWith(WissensbasisPfad + "/", StringComparison.Ordinal);
     }
 
     public static bool IstErlaubterDatenbankPfad(string? relativerPfad)
@@ -180,6 +229,23 @@ public sealed class GitArbeitskopie
             TimeSpan.FromMinutes(2)), "GIT_PUSH_FEHLGESCHLAGEN");
 
         return true;
+    }
+
+    private async Task VerifiziereArbeitsbereichAsync(CancellationToken cancellationToken)
+    {
+        var sparse = await GitHubAnmeldung.FuehreGitAusAsync(
+            ["sparse-checkout", "list"],
+            _wurzel,
+            cancellationToken,
+            TimeSpan.FromSeconds(20));
+        VerlangeErfolg(sparse, "GIT_SPARSE_CHECKOUT_LISTE_FEHLGESCHLAGEN");
+
+        var pfade = ZerlegePfade(sparse.Ausgabe).ToArray();
+        if (pfade.Length != 1 || !string.Equals(
+                pfade[0].Replace('\\', '/').Trim('/'),
+                WissensbasisPfad,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException("WISSENSWAECHTER_ARBEITSBEREICH_UNGUELTIG");
     }
 
     private async Task VerifiziereGestagetePfadeAsync(CancellationToken cancellationToken)
