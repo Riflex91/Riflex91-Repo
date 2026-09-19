@@ -22,6 +22,27 @@ const facts = new Map();
 const validStatus = new Set(['ACTIVE','NEEDS_REVALIDATION','SUPERSEDED','CONTRADICTED','RETIRED']);
 const validVolatility = new Set(['LOW','MEDIUM','HIGH','UNKNOWN']);
 
+const contractStatusZaehler = contractList.reduce((acc, contract) => {
+  acc[contract.status] = (acc[contract.status] ?? 0) + 1;
+  return acc;
+}, {});
+
+if (manifest.counts?.actionContracts !== contractList.length) {
+  fail(`Manifest actionContracts passt nicht zur Contract-Matrix: ${manifest.counts?.actionContracts} != ${contractList.length}`);
+}
+if (manifest.counts?.sourceVerifiedActionContracts !== (contractStatusZaehler.VERIFIED_SOURCE_SNAPSHOT ?? 0)) {
+  fail('Manifest sourceVerifiedActionContracts passt nicht zur Contract-Matrix.');
+}
+if (manifest.counts?.liveDeployedVerifiedActionContracts !== (contractStatusZaehler.VERIFIED_LIVE_DEPLOYED_CONTRACT ?? 0)) {
+  fail('Manifest liveDeployedVerifiedActionContracts passt nicht zur Contract-Matrix.');
+}
+if (manifest.counts?.explicitlyDisabledActionContracts !== (contractStatusZaehler.EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT ?? 0)) {
+  fail('Manifest explicitlyDisabledActionContracts passt nicht zur Contract-Matrix.');
+}
+if (manifest.counts?.liveDocOnlyActionContracts !== (contractStatusZaehler.LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT ?? 0)) {
+  fail('Manifest liveDocOnlyActionContracts passt nicht zur Contract-Matrix.');
+}
+
 for (const fact of factList) {
   if (!fact.id || facts.has(fact.id)) fail(`Ungueltige/doppelte Fact-ID: ${fact.id}`);
   if (!validStatus.has(fact.status)) fail(`${fact.id}: ungueltiger Status ${fact.status}`);
@@ -35,15 +56,22 @@ for (const fact of factList) {
 const contractList = contractDocs.flatMap((d) => d.contracts ?? []);
 const contractIds = new Set();
 const contractFunctions = new Set();
-const validContractStatus = new Set(['VERIFIED_SOURCE_SNAPSHOT','LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT','PARTIAL_RESEARCH']);
+const validContractStatus = new Set(['VERIFIED_SOURCE_SNAPSHOT','VERIFIED_LIVE_DEPLOYED_CONTRACT','EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT','LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT','PARTIAL_RESEARCH']);
 for (const contract of contractList) {
   if (!contract.id || contractIds.has(contract.id)) fail(`Ungueltige/doppelte Contract-ID: ${contract.id}`);
   if (!contract.publicFunction || contractFunctions.has(contract.publicFunction)) fail(`Ungueltige/doppelte Public Function: ${contract.publicFunction}`);
   if (!validContractStatus.has(contract.status)) fail(`${contract.id}: ungueltiger Contract-Status ${contract.status}`);
   if (!Array.isArray(contract.sourceRefs) || contract.sourceRefs.length === 0) fail(`${contract.id}: keine SourceRefs`);
   for (const ref of contract.sourceRefs) if (!sources.has(ref.sourceId)) fail(`${contract.id}: unbekannte Source ${ref.sourceId}`);
-  if (contract.status === 'LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT' && contract.unknownOutcomePolicy !== 'DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED') {
-    fail(`${contract.id}: Live-only Contract darf nicht zur Automation freigegeben sein`);
+  if ((contract.status === 'LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT' || contract.status === 'EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT')
+      && contract.unknownOutcomePolicy !== 'DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED') {
+    fail(`${contract.id}: ungeklaerter/deaktivierter Contract darf nicht zur Automation freigegeben sein`);
+  }
+  if (contract.status === 'VERIFIED_LIVE_DEPLOYED_CONTRACT' && contract.client?.requestId === 'UNKNOWN') {
+    fail(`${contract.id}: live-verifizierter Contract darf keine unbekannte Request-ID-Semantik behalten`);
+  }
+  if (contract.client?.requestId !== true && contract.client?.requestId !== false && contract.client?.requestId !== 'UNKNOWN') {
+    fail(`${contract.id}: requestId muss true, false oder UNKNOWN sein`);
   }
   contractIds.add(contract.id);
   contractFunctions.add(contract.publicFunction);
