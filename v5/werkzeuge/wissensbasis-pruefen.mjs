@@ -162,7 +162,7 @@ if (!fs.existsSync(path.join(kb, 'live', 'README.md'))) {
   fail('Live-Wissensvertrag README fehlt.');
 }
 
-const geheimnisFragmente = ['password','passwort','token','secret','credential','applicationkey','accesskey','authorization','cookie','session'];
+const geheimnisFragmente = ['password','passwort','token','secret','credential','applicationkey','accesskey','authorization','cookie','session','localpath','lokalerpfad','filesystempath','dateipfad'];
 const pruefeKeineGeheimnisse = (wert, pfad = '
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
@@ -226,10 +226,22 @@ if (fs.existsSync(liveSnapshot)) {
 
   const sammleJson = (ordner) => fs.readdirSync(ordner, { withFileTypes: true }).flatMap(eintrag => {
     const voll = path.join(ordner, eintrag.name);
+    if (eintrag.isSymbolicLink()) fail(`Live-Snapshot enthaelt Symlink: ${path.relative(liveSnapshot, voll)}`);
     if (eintrag.isDirectory()) return sammleJson(voll);
-    if (eintrag.isFile() && eintrag.name.toLowerCase().endsWith('.json')) return [voll];
-    return [];
+    if (!eintrag.isFile()) fail(`Live-Snapshot enthaelt unbekannten Dateityp: ${path.relative(liveSnapshot, voll)}`);
+    if (!eintrag.name.toLowerCase().endsWith('.json')) {
+      fail(`Live-Snapshot aktuell enthaelt Nicht-JSON-Datei: ${path.relative(liveSnapshot, voll)}`);
+    }
+    return [voll];
   });
+
+  for (const eintrag of fs.readdirSync(liveSnapshot, { withFileTypes: true })) {
+    const erlaubt = new Set(['manifest.json','status.json','import.json','aktuell']);
+    if (!erlaubt.has(eintrag.name)) {
+      fail(`Live-Snapshot enthaelt unerwarteten Root-Eintrag: ${eintrag.name}`);
+    }
+    if (eintrag.isSymbolicLink()) fail(`Live-Snapshot enthaelt Root-Symlink: ${eintrag.name}`);
+  }
 
   const dateien = sammleJson(liveAktuell).sort((a, b) => {
     const ar = path.relative(liveAktuell, a).replace(/\\/g, '/');
