@@ -4,6 +4,10 @@ import { SETTINGS_SCHEMA_VERSION, SETTINGS_SCHEMA, SETTINGS_BY_KEY, defaultSetti
 const DEFAULT_PUSH_ORIGINS = ['https://adventure.land', 'https://www.adventure.land'];
 const MAX_JSON_BYTES = 512 * 1024;
 const AUTOMATION_CATALOG_MAX_JSON_BYTES = 2 * 1024 * 1024;
+const ADVENTURE_LAND_DATA_URL = 'https://adventure.land/data.js';
+const OFFICIAL_AUTOMATION_DATA_MAX_BYTES = 12 * 1024 * 1024;
+const OFFICIAL_AUTOMATION_CATALOG_REFRESH_MS = 6 * 60 * 60 * 1000;
+let officialAutomationCatalogCache = null;
 const BRAIN_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
 const INPUT_NEURONS_PER_TOKEN = 4625 / 1_000_000;
 const OUTPUT_NEURONS_PER_TOKEN = 30475 / 1_000_000;
@@ -24,6 +28,75 @@ async function requireAdmin(request, env) { return secretMatches(request.headers
 async function readJson(request, max = MAX_JSON_BYTES) { const len = number(request.headers.get('content-length'), 0); if (len > max) throw Object.assign(new Error('payload too large'), { status: 413 }); const raw = await request.text(); if (raw.length > max) throw Object.assign(new Error('payload too large'), { status: 413 }); try { return JSON.parse(raw); } catch (_) { throw Object.assign(new Error('invalid JSON'), { status: 400 }); } }
 export function redactDeep(value, depth = 0, key = '') { if (depth > 8) return null; if (Array.isArray(value)) { const limit = key === 'automationCatalog' ? 5000 : 300; return value.slice(0, limit).map(x => redactDeep(x, depth + 1, '')); } if (!value || typeof value !== 'object') return value; const out = {}; for (const [k, v] of Object.entries(value)) { if (/(write.?key|read.?key|admin.?key|authorization|api.?key|secret|token)/i.test(k)) { out[k] = '[REDACTED]'; continue; } out[k] = redactDeep(v, depth + 1, k); } return out; }
 export function sanitizeAutomationCatalogPayload(body) { const raw = Array.isArray(body && body.catalog) ? body.catalog : []; const wrapped = redactDeep({ automationCatalog: raw }); const catalog = Array.isArray(wrapped && wrapped.automationCatalog) ? wrapped.automationCatalog : []; return { catalogVersion: Math.max(0, number(body && body.catalogVersion, 0)), catalogCount: catalog.length, declaredCount: Math.max(0, number(body && body.catalogCount, catalog.length)), catalog }; }
+export function parseAdventureLandDataJs(source) {
+  const raw = String(source == null ? '' : source).trim();
+  if (!raw.startsWith('var G=')) throw new Error('Adventure Land data.js format invalid');
+  let payload = raw.slice(6).trim();
+  if (payload.endsWith(';')) payload = payload.slice(0, -1).trim();
+  const parsed = JSON.parse(payload);
+  if (!parsed || typeof parsed !== 'object' || !parsed.items || typeof parsed.items !== 'object') throw new Error('Adventure Land item data missing');
+  return parsed;
+}
+export function officialAutomationCatalogFromGameData(gameData) {
+  const rows = [];
+  for (const [id, def] of Object.entries(gameData && gameData.items || {})) {
+    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+    const classes = [].concat(def.class || def.classes || []).map(value => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
+    const baseGold = Number(def.g);
+    rows.push({
+      id,
+      name: def.name || id,
+      type: def.type || null,
+      wtype: def.wtype || null,
+      level: Number.isFinite(level) ? level : null,
+      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      classes,
+      npc: [],
+      upgrade: !!def.upgrade,
+      compound: !!def.compound,
+      exchange: !!(def.exchange || def.e),
+      quest: !!(def.quest || def.q),
+      cash: !!def.cash,
+      soulbound: !!def.soulbound,
+      special: !!def.special,
+      goldValue: Number.isFinite(baseGold) ? baseGold : null,
+      description: def.explanation || def.description || null,
+      grades: Array.isArray(def.grades) ? def.grades.slice(0, 6) : [],
+      itemGrade: Number.isFinite(Number(def.igrade)) ? Number(def.igrade) : 0,
+      economy: { baseGold: Number.isFinite(baseGold) ? baseGold : null, progression: def.upgrade ? 'UPGRADE' : def.compound ? 'COMPOUND' : null, npcSellValues: [], baseChances: [] },
+      skin: def.skin_c || def.skin || null,
+      sprite: null,
+      official: true
+    });
+  }
+  rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+  return rows;
+}
+export function mergeAutomationCatalogRows(officialRows, storedRows) {
+  const merged = new Map();
+  for (const row of Array.isArray(officialRows) ? officialRows : []) {
+    const id = text(row && row.id, 160); if (id) merged.set(id, { ...row, id });
+  }
+  for (const row of Array.isArray(storedRows) ? storedRows : []) {
+    const id = text(row && row.id, 160); if (!id) continue;
+    merged.set(id, { ...(merged.get(id) || {}), ...row, id });
+  }
+  return [...merged.values()].sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+}
+async function loadOfficialAutomationCatalog() {
+  const now = Date.now();
+  if (officialAutomationCatalogCache && now - officialAutomationCatalogCache.fetchedAt < OFFICIAL_AUTOMATION_CATALOG_REFRESH_MS) return officialAutomationCatalogCache;
+  const response = await fetch(ADVENTURE_LAND_DATA_URL, { headers: { accept: 'application/javascript' }, cf: { cacheEverything: true, cacheTtl: Math.floor(OFFICIAL_AUTOMATION_CATALOG_REFRESH_MS / 1000) } });
+  if (!response.ok) throw new Error('Adventure Land data.js HTTP ' + response.status);
+  const raw = await response.text();
+  if (raw.length > OFFICIAL_AUTOMATION_DATA_MAX_BYTES) throw new Error('Adventure Land data.js too large');
+  const gameData = parseAdventureLandDataJs(raw);
+  const items = officialAutomationCatalogFromGameData(gameData);
+  if (items.length <= 300) throw new Error('Adventure Land official item catalog unexpectedly capped');
+  officialAutomationCatalogCache = { items, gameVersion: gameData.version || null, fetchedAt: now };
+  return officialAutomationCatalogCache;
+}
 function eventTime(e, fallback) { const raw = e && (e.at || e.ts || e.time || e.createdAt); const n = Number(raw); if (Number.isFinite(n) && n > 1e12) return n; const parsed = Date.parse(String(raw || '')); return Number.isFinite(parsed) ? parsed : fallback; }
 function eventKey(e, i, fallback) { return text(e && (e.seq != null ? e.seq : e.id) || `${fallback}-${i}-${e && e.component || 'x'}-${e && e.event || 'event'}`, 160); }
 function tokenEstimate(s) { return Math.ceil(String(s || '').length / 3.6); }
@@ -92,12 +165,49 @@ async function handleAutomationCatalogPost(request, env) {
 }
 
 async function handleAutomationCatalogGet(request, env) {
-  if (!(await requireRead(request, env))) return json({ ok: false, error: 'unauthorized' }, 401); await ensureDb(env);
+  if (!(await requireRead(request, env))) return json({ ok: false, error: 'unauthorized' }, 401);
   const url = new URL(request.url), account = safeAccount(url.searchParams.get('account') || 'default');
-  const row = await env.DB.prepare('SELECT character,catalog_version,catalog_count,declared_count,payload,received_at FROM v3_automation_catalog WHERE account=? ORDER BY received_at DESC LIMIT 1').bind(account).first();
-  if (!row) return json({ ok: true, account, catalog: null });
-  let items = []; try { items = JSON.parse(row.payload || '[]'); } catch (_) {}
-  return json({ ok: true, account, catalog: { character: row.character, version: number(row.catalog_version), count: number(row.catalog_count), declaredCount: number(row.declared_count), receivedAt: number(row.received_at), items: Array.isArray(items) ? items : [] } });
+  let row = null, storedItems = [], databaseAvailable = true, databaseError = null;
+  try {
+    await ensureDb(env);
+    row = await env.DB.prepare('SELECT character,catalog_version,catalog_count,declared_count,payload,received_at FROM v3_automation_catalog WHERE account=? ORDER BY received_at DESC LIMIT 1').bind(account).first();
+    if (row) { try { storedItems = JSON.parse(row.payload || '[]'); } catch (_) { storedItems = []; } }
+    if (!Array.isArray(storedItems)) storedItems = [];
+  } catch (error) {
+    databaseAvailable = false;
+    databaseError = text(error && error.message || error, 240);
+  }
+
+  const storedDeclared = number(row && row.declared_count, storedItems.length);
+  const storedVersion = number(row && row.catalog_version, 0);
+  const storedComplete = storedItems.length > 300 && storedVersion >= 3 && (!storedDeclared || storedDeclared <= storedItems.length);
+  let official = null, officialError = null;
+  if (!storedComplete) {
+    try { official = await loadOfficialAutomationCatalog(); }
+    catch (error) { officialError = text(error && error.message || error, 240); }
+  }
+
+  const items = mergeAutomationCatalogRows(official && official.items, storedItems);
+  if (!items.length) return json({ ok: true, account, catalog: null, database: { available: databaseAvailable, error: databaseError }, official: { available: false, error: officialError } });
+  const source = official && storedItems.length ? 'official+merchant' : official ? 'official' : 'merchant';
+  const complete = !!official || storedComplete;
+  return json({
+    ok: true,
+    account,
+    catalog: {
+      character: row && row.character || null,
+      version: complete ? Math.max(4, storedVersion) : storedVersion,
+      count: items.length,
+      declaredCount: complete ? items.length : storedDeclared,
+      receivedAt: Math.max(number(row && row.received_at), number(official && official.fetchedAt)),
+      source,
+      complete,
+      officialGameVersion: official && official.gameVersion || null,
+      items
+    },
+    database: { available: databaseAvailable, error: databaseError },
+    official: { available: !!official, error: officialError, fetchedAt: official && official.fetchedAt || null }
+  });
 }
 
 async function handleRuntime(request, env) {
