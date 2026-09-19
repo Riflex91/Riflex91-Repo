@@ -18,7 +18,8 @@ const datei = {
   schemaVersion: 1,
   relativerPfad: "aktuell/monster/frog.json",
   sha256: hashA,
-  kanonischerInhalt: '{"schemaVersion":1,"wert":"ok"}',
+  kanonischerInhalt:
+    '{"beobachtetAm":"2026-09-20T00:00:00Z","domaene":"MONSTER","kennung":"monster.frog.hp","quelle":{"art":"LIVE_SPIEL","methode":"monster-hp-verifier-v1"},"schemaVersion":1,"spiel":"Adventure Land - The Code MMORPG","status":"LIVE_VERIFIZIERT","verifiziertAm":"2026-09-20T00:00:01Z","wert":{"hp":100}}',
 };
 const snapshot = {
   schemaVersion: 1,
