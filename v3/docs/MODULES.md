@@ -114,7 +114,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**12 Dateien · 4268 Zeilen**
+**12 Dateien · 4303 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -125,7 +125,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 565 |
+| `src/economy/gear-progression.js` | 600 |
 | `src/economy/inventory-ledger.js` | 394 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
@@ -171,16 +171,16 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2537 Zeilen**
+**9 Dateien · 2672 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
-| `src/merchant/controlled-merchant-production-executor.js` | 168 |
+| `src/merchant/controlled-merchant-production-executor.js` | 182 |
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 367 |
-| `src/merchant/merchant-production-planner.js` | 594 |
+| `src/merchant/merchant-production-controller.js` | 390 |
+| `src/merchant/merchant-production-planner.js` | 692 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
@@ -269,7 +269,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 16287 Zeilen**
+**50 Dateien · 16830 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -286,20 +286,20 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha25-control-center-brain.js` | 364 |
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
-| `src/reliability/alpha27-atomic-core.js` | 48 |
-| `src/reliability/alpha27-atomic-economy.js` | 291 |
+| `src/reliability/alpha27-atomic-core.js` | 50 |
+| `src/reliability/alpha27-atomic-economy.js` | 502 |
 | `src/reliability/alpha27-atomic-ledger.js` | 191 |
 | `src/reliability/alpha27-atomic-service.js` | 338 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
-| `src/reliability/alpha27-atomic-transactions.js` | 204 |
-| `src/reliability/alpha27-bank-recovery.js` | 390 |
-| `src/reliability/alpha27-combat-merchant-convergence.js` | 310 |
+| `src/reliability/alpha27-atomic-transactions.js` | 231 |
+| `src/reliability/alpha27-bank-recovery.js` | 493 |
+| `src/reliability/alpha27-combat-merchant-convergence.js` | 328 |
 | `src/reliability/alpha27-combat-ownership.js` | 295 |
-| `src/reliability/alpha27-merchant-autonomy.js` | 758 |
+| `src/reliability/alpha27-merchant-autonomy.js` | 790 |
 | `src/reliability/alpha27-merchant-constants.js` | 6 |
 | `src/reliability/alpha27-merchant-core.js` | 103 |
 | `src/reliability/alpha27-merchant-legacy-ownership-guard.js` | 119 |
-| `src/reliability/alpha27-merchant-planning.js` | 620 |
+| `src/reliability/alpha27-merchant-planning.js` | 675 |
 | `src/reliability/alpha27-merchant-service.js` | 188 |
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
@@ -310,7 +310,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |
 | `src/reliability/alpha31-party-role-liveness-hotfix.js` | 663 |
 | `src/reliability/alpha32-navigation-merchant-recovery.js` | 495 |
-| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 2176 |
+| `src/reliability/alpha33-mark-orbit-merchant-delivery.js` | 2193 |
 | `src/reliability/economy-equipment-autonomy-v2.js` | 52 |
 | `src/reliability/economy-v2-market-history.js` | 64 |
 | `src/reliability/economy-v2-planning.js` | 58 |
@@ -319,7 +319,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/merchant-self-gear.js` | 387 |
 | `src/reliability/p0-potion-bundle-delta-fix.js` | 154 |
 | `src/reliability/p0-potion-hardcap-4500.js` | 132 |
-| `src/reliability/p0-potion-policy-4500.js` | 874 |
+| `src/reliability/p0-potion-policy-4500.js` | 952 |
 | `src/reliability/p0-regroup-supply-recovery.js` | 640 |
 | `src/reliability/pre-farming-reliability.js` | 501 |
 | `src/reliability/team-cohesion-deadlock-hotfix.js` | 534 |
