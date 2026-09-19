@@ -13,7 +13,13 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
     ledger._baseDisposition = (row, gameData, contentDrift, counts, reservationRemaining) => {
       const safeCounts = counts && typeof counts.get === 'function' ? counts : new Map();
       const base = baseDisposition(row, gameData, contentDrift, safeCounts, reservationRemaining);
-      if (!base || base.disposition !== 'UNDECIDED') return base;
+      const provisionalLegacySell = !!(
+        base
+        && base.disposition === 'SELL'
+        && Array.isArray(base.reasons)
+        && base.reasons.includes('OPERATOR_SELL_ALLOWLIST')
+      );
+      if (!base || (base.disposition !== 'UNDECIDED' && !provisionalLegacySell)) return base;
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
@@ -210,7 +216,17 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
             ? ledger._resolveSellBlockers(row, meta, gameData || gameDataOf(this.runtime), contentDrift || this.runtime.contentDrift)
             : [];
         } catch (_) { economicSellBlockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
-        if (!economicSellBlockers.length && (underKeepValue || permission('sell') === true)) {
+        // Upgrade/compound/category signals were already resolved by the
+        // completed gear check and expected-value decision. Keep genuinely
+        // protected content (quest/event/cash/soulbound/special/etc.) hard.
+        economicSellBlockers = economicSellBlockers.filter((reason) => !(
+          reason === 'SELL_TYPE_NOT_LOW_RISK'
+          || reason === 'SELL_NOT_PLAIN_STACKABLE_MATERIAL'
+          || reason === 'SELL_COMPOUND_ITEM_PROTECTED'
+          || reason === 'SELL_UPGRADE_ITEM_PROTECTED'
+          || /^SELL_GEAR_SIGNAL_/.test(reason)
+        ));
+        if (!economicSellBlockers.length && (underKeepValue || permission('sell') === true || provisionalLegacySell)) {
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
