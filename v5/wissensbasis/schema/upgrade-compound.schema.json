@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v5-upgrade-compound.schema.json",
+  "title": "V5 Adventure Land Upgrade/Compound Semantics",
+  "type": "object",
+  "required": [
+    "schemaVersion","researchId","status","sourceSnapshot",
+    "shared","upgrade","compound","recovery","invariants"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "researchId": { "const": "V5-P0-05" },
+    "status": { "const": "DONE" },
+    "sourceSnapshot": { "type": "object" },
+    "shared": { "type": "object" },
+    "upgrade": { "type": "object" },
+    "compound": { "type": "object" },
+    "recovery": { "type": "object" },
+    "invariants": { "type": "array", "minItems": 10, "items": { "type": "string" } }
+  }
+}
