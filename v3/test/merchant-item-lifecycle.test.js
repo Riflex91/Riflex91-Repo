@@ -107,6 +107,48 @@ test('stale persisted gear goals do not reserve new live inventory', () => {
   assert.equal(result.status.lastEvaluation.persistedGoals, 1);
 });
 
+test('Party Hat sell permission waits for gear answer and then uses expected value instead of forcing sale', () => {
+  const ledger = new InventoryLedger({ itemPermissions: { partyhat: { sell: true } } });
+  const gameData = {
+    items: {
+      partyhat: {
+        type: 'helmet',
+        g: 12000,
+        upgrade: { str: 0.2, int: 0.2, dex: 0.2, vit: 0.1 }
+      },
+      scroll0: { type: 'uscroll', g: 1000 }
+    },
+    monsters: {},
+    maps: {}
+  };
+  const runtime = makeRuntime({ ledger, gameData });
+  new Alpha27CombatMerchantConvergence(runtime, { maxUpgradeLevel: 3, keepValue: 1000000 });
+
+  runtime.gearProgression.futureProtectionFor = () => null;
+  runtime.gearProgression.futureSellSafetyFor = () => null;
+  const unknown = ledger._baseDisposition(
+    { character: 'Merchant', index: 0, name: 'partyhat', level: 0, q: 1 },
+    gameData,
+    runtime.contentDrift,
+    new Map([['partyhat:0', 1]])
+  );
+  assert.equal(unknown.disposition, 'KEEP');
+  assert.ok(unknown.reasons.includes('FUTURE_GEAR_EVALUATION_REQUIRED'));
+
+  runtime.gearProgression.futureSellSafetyFor = () => ({ checked: true, protected: false });
+  const decided = ledger._baseDisposition(
+    { character: 'Merchant', index: 0, name: 'partyhat', level: 0, q: 1 },
+    gameData,
+    runtime.contentDrift,
+    new Map([['partyhat:0', 1]])
+  );
+  assert.equal(decided.disposition, 'SELL');
+  assert.ok(decided.reasons.includes('AUTONOMOUS_ECONOMIC_EXPECTED_VALUE_SELL'));
+  assert.equal(decided.economicDecision.action, 'SELL');
+  assert.equal(decided.economicDecision.directSellGold, 7200);
+  assert.equal(decided.economicDecision.targetLevel, 0);
+});
+
 test('Alpha27 lifecycle classifies progression before BANK and disposes only processed low-value results', () => {
   const ledger = makeLedger([]);
   const gameData = {
