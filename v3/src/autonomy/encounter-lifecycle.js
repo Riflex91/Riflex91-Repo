@@ -108,14 +108,19 @@ class EncounterLifecycle {
     const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'hpPotions', 'mpPotions', 'damageTaken', 'monsterHpLost'];
     for (const row of this._performanceRows()) {
       if (!row || !row.id || finite(row.startedAt) < this.current.startedAt - 1000) continue;
-      const previous = this.performanceCursors.get(String(row.id)) || {};
+      const cursorKey = String(row.id);
+      const previous = this.performanceCursors.get(cursorKey);
+      if (!previous) {
+        this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+        continue;
+      }
       for (const key of keys) {
         const value = finite(row[key]);
         const before = finite(previous[key]);
         const delta = key === 'gold' ? value - before : Math.max(0, value - before);
         if (delta) this.current.metrics[key] += delta;
       }
-      this.performanceCursors.set(String(row.id), Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+      this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
     }
   }
 
