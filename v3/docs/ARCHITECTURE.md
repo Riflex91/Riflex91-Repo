@@ -18,11 +18,11 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | economy | 12 | 4303 |
 | farmer | 21 | 4506 |
 | game | 3 | 870 |
-| merchant | 9 | 2787 |
+| merchant | 9 | 2830 |
 | ops | 26 | 7614 |
 | party | 35 | 8922 |
 | planner | 1 | 66 |
-| reliability | 50 | 16867 |
+| reliability | 50 | 16923 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 281 |
