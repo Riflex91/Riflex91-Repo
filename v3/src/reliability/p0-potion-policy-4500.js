@@ -8,6 +8,10 @@ const POTION_TARGET_COUNT = 4500;
 const POTION_SERVICE_CHAIN_TIMEOUT_MS = 130000;
 const POTION_REQUEST_BELOW = 200;
 const POTION_LOW_WATERMARK = POTION_REQUEST_BELOW - 1;
+// Opportunistic top-ups are only piggybacked on an already-active Farmer route.
+// Counts above 4000 are intentionally left alone; 4500 is the refill target,
+// not a reason to create Merchant travel.
+const POTION_OPPORTUNISTIC_BELOW = 4000;
 // Compatibility export only. 4500 is the farmer target, never a fixed delivery size.
 const POTION_DELIVERY_QUANTITY = POTION_TARGET_COUNT;
 // Reserve means newly purchased reserve. Existing stock is reused and may remain for the next farmer.
@@ -182,6 +186,19 @@ function batchDeliveriesForReport(report) {
     { family: 'hp', itemName: 'hpot0', quantity: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'hp')) },
     { family: 'mp', itemName: 'mpot0', quantity: Math.max(0, POTION_TARGET_COUNT - farmerCount(report, 'mp')) }
   ].filter((row) => row.quantity > 0 && row.quantity <= MAX_DYNAMIC_DELIVERY);
+}
+
+function opportunisticDeliveriesForReport(report) {
+  return [
+    { family: 'hp', itemName: 'hpot0', count: farmerCount(report, 'hp') },
+    { family: 'mp', itemName: 'mpot0', count: farmerCount(report, 'mp') }
+  ].filter((row) => row.count < POTION_OPPORTUNISTIC_BELOW)
+    .map((row) => ({
+      family: row.family,
+      itemName: row.itemName,
+      quantity: Math.max(0, POTION_TARGET_COUNT - row.count)
+    }))
+    .filter((row) => row.quantity > 0 && row.quantity <= MAX_DYNAMIC_DELIVERY);
 }
 
 function buildBatchTargets(input, planner, triggerName = null) {
@@ -858,52 +875,69 @@ function opportunisticPotionInput(runtime) {
 }
 
 function startOpportunisticPotionService(runtime, names = [], reason = 'PLANNED_FARMER_ROUTE') {
+  // Kept as a compatibility surface, but deliberately never starts a travel
+  // chain. Opportunistic supply is piggyback-only and is executed at the
+  // destination of an already-active Farmer route.
+  const wanted = new Set((Array.isArray(names) ? names : [names]).map(String).filter(Boolean));
+  return {
+    started: false,
+    reason: wanted.size ? 'OPPORTUNISTIC_POTION_SERVICE_PIGGYBACK_ONLY' : 'NO_ROUTE_FARMERS',
+    routeReason: String(reason || 'PLANNED_FARMER_ROUTE')
+  };
+}
+
+async function deliverOpportunisticPotionNearby(runtime, names = [], reason = 'PLANNED_FARMER_ROUTE') {
   const planner = runtime && runtime.merchantServicePlanner;
-  if (!runtime || !planner) return { started: false, reason: 'MERCHANT_SERVICE_PLANNER_UNAVAILABLE' };
+  const service = runtime && runtime.controlledMerchantService;
+  if (!runtime || !planner || !service || typeof service.execute !== 'function') {
+    return { attempted: false, reason: 'MERCHANT_SERVICE_EXECUTOR_UNAVAILABLE', results: [] };
+  }
   const state = potionServiceChainState(runtime);
-  if (state.active) return { started: false, reason: 'POTION_SERVICE_CHAIN_ALREADY_ACTIVE', chainId: state.active.id };
+  if (state.active) return { attempted: false, reason: 'CRITICAL_POTION_CHAIN_ACTIVE', results: [] };
 
   const wanted = new Set((Array.isArray(names) ? names : [names]).map(String).filter(Boolean));
-  if (!wanted.size) return { started: false, reason: 'NO_ROUTE_FARMERS' };
+  if (!wanted.size) return { attempted: false, reason: 'NO_ROUTE_FARMERS', results: [] };
   const input = opportunisticPotionInput(runtime);
-  const fresh = freshSafeFarmerReports(input, planner).filter((row) => wanted.has(String(row.name || '')));
-  const lastReleaseAt = finite(state.lastRelease && state.lastRelease.maxSourceReportAt, 0);
-  const targets = fresh
-    .filter((report) => finite(report.at, 0) > lastReleaseAt)
-    .map((report) => ({
-      name: String(report.name),
-      sourceReportAt: finite(report.at),
-      target: reportTarget(report),
-      deliveries: batchDeliveriesForReport(report),
-      minPotionCount: Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp')),
-      distance: Infinity
-    }))
-    .filter((row) => row.deliveries.length)
-    .slice(0, MAX_BATCH_FARMERS);
-  if (!targets.length) return { started: false, reason: 'ROUTE_FARMERS_ALREADY_SUPPLIED_OR_TELEMETRY_STALE' };
+  const reports = freshSafeFarmerReports(input, planner)
+    .filter((row) => wanted.has(String(row.name || '')));
+  const results = [];
 
-  const metadata = {
-    p0PotionBundle: true,
-    p0PotionPolicy4500: true,
-    adaptivePotionDelivery: true,
-    p0PotionBatch: true,
-    opportunisticRouteService: true,
-    routeReason: String(reason || 'PLANNED_FARMER_ROUTE'),
-    batchPolicy: 'PLANNED_FARMER_ROUTE_TOPS_ROUTE_TARGETS_TO_4500'
-  };
-  const seedPlan = {
-    target: clone(targets[0].target),
-    metadata
-  };
-  const chain = startPotionServiceBatch(runtime, planner, seedPlan, targets, metadata, fresh.length);
-  if (!chain) return { started: false, reason: 'OPPORTUNISTIC_POTION_BATCH_START_REJECTED' };
-  state.stats.opportunisticRouteStarts = (state.stats.opportunisticRouteStarts || 0) + 1;
+  for (const report of reports) {
+    const deliveries = opportunisticDeliveriesForReport(report);
+    if (!deliveries.length) continue;
+    const plan = {
+      schemaVersion: 1,
+      id: `potion-piggyback-${planner.now().toString(36)}-${String(report.name || '')}`,
+      at: planner.now(),
+      kind: MerchantServicePlanKind.SERVICE_DELIVERY,
+      reason: 'OPPORTUNISTIC_ROUTE_POTION_DELIVERY_READY',
+      target: reportTarget(report),
+      sourceReportAt: finite(report.at),
+      deliveries: clone(deliveries),
+      delivery: clone(deliveries[0]),
+      metadata: {
+        p0PotionBundle: true,
+        p0PotionPolicy4500: true,
+        adaptivePotionDelivery: true,
+        opportunisticRouteService: true,
+        piggybackOnly: true,
+        routeReason: String(reason || 'PLANNED_FARMER_ROUTE'),
+        farmerTarget: POTION_TARGET_COUNT,
+        opportunisticBelow: POTION_OPPORTUNISTIC_BELOW
+      }
+    };
+    const result = await service.execute(plan);
+    results.push({ name: String(report.name), deliveries: clone(deliveries), result: clone(result) });
+  }
+
+  const committed = results.filter((row) => row.result && row.result.committed === true).length;
+  if (committed) state.stats.opportunisticRouteStarts = (state.stats.opportunisticRouteStarts || 0) + committed;
   publishPotionServiceChain(runtime);
   return {
-    started: true,
-    reason: 'OPPORTUNISTIC_POTION_BATCH_STARTED',
-    chainId: chain.id,
-    targets: targets.map((row) => ({ name: row.name, deliveries: clone(row.deliveries), sourceReportAt: row.sourceReportAt }))
+    attempted: results.length > 0,
+    committed,
+    reason: results.length ? 'OPPORTUNISTIC_ROUTE_POTION_DELIVERY_ATTEMPTED' : 'ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD',
+    results
   };
 }
 
@@ -916,7 +950,9 @@ function installP0PotionPolicy4500(runtime) {
   runtime.p0PotionPolicy4500 = {
     mode: P0_POTION_POLICY_4500_MODE,
     startOpportunisticService: (names, reason) => startOpportunisticPotionService(runtime, names, reason),
+    deliverOpportunisticNearby: (names, reason) => deliverOpportunisticPotionNearby(runtime, names, reason),
     farmerTarget: POTION_TARGET_COUNT,
+    opportunisticBelow: POTION_OPPORTUNISTIC_BELOW,
     potionRequestBelow: POTION_REQUEST_BELOW,
     lowWatermark: POTION_LOW_WATERMARK,
     merchantPotionReserve: MERCHANT_POTION_RESERVE,
@@ -926,6 +962,7 @@ function installP0PotionPolicy4500(runtime) {
     maxBatchFarmers: MAX_BATCH_FARMERS,
     aggregatePurchaseBeforeDeliveryRound: true,
     opportunisticFarmerRouteBundling: true,
+    opportunisticRouteTravelAllowed: false,
     buyOnlyCurrentDeliveryDeficit: false,
     noPurchasedReserve: true,
     existingStockMayRemainForNextFarmer: true,
@@ -946,6 +983,7 @@ module.exports = {
   POTION_DELIVERY_QUANTITY,
   POTION_REQUEST_BELOW,
   POTION_LOW_WATERMARK,
+  POTION_OPPORTUNISTIC_BELOW,
   MERCHANT_POTION_RESERVE,
   POTION_SERVICE_CHAIN_TIMEOUT_MS,
   installP0PotionPolicy4500
