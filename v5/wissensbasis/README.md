@@ -38,7 +38,7 @@ Snapshots dienen Planung, Regression, Dokumentation, Fallback/Diagnose und Chang
 4. Driftstatus setzen;
 5. gegen aktuelle offizielle/Live-Quelle revalidieren;
 6. Fact bestaetigen oder superseden;
-7. betroffene Action Contracts aktualisieren oder bei ungeklaerter Live-Semantik auf `LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT` sperren;
+7. betroffene Action Contracts aktualisieren; deployte Live-Contracts als `VERIFIED_LIVE_DEPLOYED_CONTRACT` kennzeichnen oder bei ungeklaerter Semantik explizit mit `EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT` / `LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT` sperren;
 8. offene Fragen und Architekturfolgen aktualisieren;
 9. Validator ausfuehren;
 10. PR mit nachvollziehbarer Evidence.

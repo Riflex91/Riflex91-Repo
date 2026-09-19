@@ -3,12 +3,16 @@
   "researchId": "V5-P0-01",
   "snapshot": {
     "retrievedAt": "2026-09-19",
-    "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+    "officialRepoCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "liveDeployedRunnerUrl": "https://adventure.land/js/runner_functions.js",
+    "liveDeployedVerifiedAt": "2026-09-19"
   },
   "summary": {
     "total": 60,
-    "sourceVerified": 52,
-    "liveDocOnly": 8
+    "sourceVerified": 53,
+    "liveDeployedVerified": 6,
+    "explicitlyDisabledPendingExactContract": 1,
+    "liveDocOnly": 0
   },
   "contracts": [
     {
@@ -2946,39 +2950,49 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-BET-WHEEL",
       "publicFunction": "bet_wheel",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "gold",
+        "tavern_wheel_state"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "bet",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:wheel",
+        "requestId": true,
+        "wrapperNotes": "Live deployed runner generates randomStr(30), emits {type:'wheel', side, gold, request_id}, and waits for game_response with matching request_id and place='wheel'. Default timeout 60000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "bet",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:gold",
+        "tavern:wheel_action"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "character_gold",
+        "wheel_side",
+        "wheel_active_spin"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "ACTIVE_SPIN_EXCLUSION"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching game_response has place=wheel and the exact request_id",
+        "result classifies won/side/result/slice/wager/payout/net/edge",
+        "fresh character gold reconciles the wager/payout before any new wager intent"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Live docs state side is sun or moon; server enforces wager range 10000..100000000000.",
+        "A losing spin resolves normally with won=false; timeout/failure does not authorize retry without reconciliation."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -2994,39 +3008,55 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-POKER-JOIN",
       "publicFunction": "poker_join",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "gold",
+        "poker_stack",
+        "poker_seat_state"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "poker",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:poker",
+        "requestId": true,
+        "wrapperNotes": "Live deployed poker_request adds randomStr(30) request_id, emits socket event 'poker' with event='join', and waits for game_response matching request_id and place='poker'. Default timeout 10000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "poker",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:poker_seat",
+        "character:gold",
+        "tavern:poker_table",
+        "tavern:poker_stack"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "character_gold",
+        "poker_table",
+        "poker_seat",
+        "poker_hand_state"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "ACCOUNT_SINGLE_SEAT",
+        "VALUE_MOVES_OUT_OF_PURSE"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching game_response has place=poker and exact request_id",
+        "fresh poker table confirms expected seat/stack/buyin/blinds state",
+        "fresh purse gold and poker stack reconcile the buy-in or rebuy"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Production is ahead of the public GitHub source snapshot; public function/client response contract is verified from the currently deployed official runner and live docs.",
+        "Live docs require proximity to a free stool, buy-in of 40..200 big blinds, one seat per account, and reject rebuys during a hand.",
+        "Gold leaves the purse while seated and is returned on cash-out."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3042,39 +3072,55 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-POKER-ACT",
       "publicFunction": "poker_act",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "poker_stack",
+        "poker_pot",
+        "poker_hand_state"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "poker",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:poker",
+        "requestId": true,
+        "wrapperNotes": "Live deployed poker_request adds randomStr(30) request_id, emits socket event 'poker' with event='act', and waits for game_response matching request_id and place='poker'. Default timeout 10000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "poker",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:poker_seat",
+        "tavern:poker_hand",
+        "tavern:poker_turn",
+        "tavern:poker_stack"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "poker_table",
+        "poker_hand_state",
+        "acting_seat",
+        "deadline",
+        "can_raise",
+        "poker_stack"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "TURN_STATE_DRIFT",
+        "STACK_VALUE_CHANGE"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching game_response has place=poker and exact request_id",
+        "response action/amount/stack/pot is reconciled against a fresh poker table state before any follow-up act"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Production is ahead of the public GitHub source snapshot; public function/client response contract is verified from the currently deployed official runner and live docs.",
+        "Allowed actions: fold, check, call, bet, raise, allin. For bet/raise amount is total current-street bet; call with nothing to call becomes check."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3090,39 +3136,55 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-POKER-LEAVE",
       "publicFunction": "poker_leave",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "gold",
+        "poker_stack",
+        "poker_seat_state"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "poker",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:poker",
+        "requestId": true,
+        "wrapperNotes": "Live deployed poker_request adds randomStr(30) request_id, emits socket event 'poker' with event='leave', and waits for game_response matching request_id and place='poker'. Default timeout 10000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "poker",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:poker_seat",
+        "character:gold",
+        "tavern:poker_table",
+        "tavern:poker_stack"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "poker_table",
+        "poker_hand_state",
+        "poker_seat",
+        "character_gold"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "DEFERRED_CASHOUT",
+        "DISCONNECT_AUTO_CASHOUT"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching response either reports leaving=true or reports returned gold",
+        "if leaving=true, transaction remains unsettled until fresh table state confirms seat removal/cash-out and purse gold reflects settlement",
+        "after disconnect, reconcile delayed automatic cash-out before any new join/leave value intent"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Production is ahead of the public GitHub source snapshot; public function/client response contract is verified from the currently deployed official runner and live docs.",
+        "Between hands cash-out is immediate; during a hand leave is deferred until the hand finishes.",
+        "Live docs state a disconnected seat retains its stack until automatic cash-out after five minutes."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3138,39 +3200,47 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-POKER-SIT-IN",
       "publicFunction": "poker_sit_in",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "poker_seat_state"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "poker",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:poker",
+        "requestId": true,
+        "wrapperNotes": "Live deployed poker_request adds randomStr(30) request_id, emits socket event 'poker' with event='sit_in', and waits for game_response matching request_id and place='poker'. Default timeout 10000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "poker",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:poker_seat",
+        "tavern:poker_table"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "poker_table",
+        "poker_seat",
+        "poker_stack"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "SEAT_STATE_DRIFT"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching game_response has place=poker and exact request_id",
+        "fresh poker table confirms own seat out=false and sufficient stack remains"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Production is ahead of the public GitHub source snapshot; public function/client response contract is verified from the currently deployed official runner and live docs.",
+        "Live docs require at least one big blind on the seat; otherwise a new buy-in is required."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3186,39 +3256,52 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-POKER-SIT-OUT",
       "publicFunction": "poker_sit_out",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_LIVE_DEPLOYED_CONTRACT",
       "family": "tavern_game",
       "effectDomains": [
-        "gold_or_game_stake",
-        "game_state"
+        "poker_seat_state",
+        "gold",
+        "poker_stack"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "transportEvent": "poker",
+        "correlationType": "REQUEST_ID",
+        "correlationChannel": "game_response:poker",
+        "requestId": true,
+        "wrapperNotes": "Live deployed poker_request adds randomStr(30) request_id, emits socket event 'poker' with event='sit_out', and waits for game_response matching request_id and place='poker'. Default timeout 10000ms."
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "handlerEvent": "poker",
+        "executionModel": "LIVE_DEPLOYED_REQUEST_RESPONSE",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "account:poker_seat",
+        "tavern:poker_table",
+        "tavern:poker_stack"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "poker_table",
+        "poker_seat",
+        "poker_stack",
+        "character_gold"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "UNKNOWN_AFTER_TIMEOUT",
+        "DELAYED_AUTO_CASHOUT"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "matching game_response has place=poker and exact request_id and reports out=true",
+        "fresh poker table confirms own seat out=true",
+        "if sit-out persists, later automatic cash-out is reconciled before any new value-changing poker intent"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Production is ahead of the public GitHub source snapshot; public function/client response contract is verified from the currently deployed official runner and live docs.",
+        "Live docs state a seat sitting out for five minutes is automatically cashed out."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3234,39 +3317,54 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-CAVE-BUY",
       "publicFunction": "cave_buy",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "EXPLICITLY_DISABLED_PENDING_EXACT_CONTRACT",
       "family": "cave_economy",
       "effectDomains": [
         "cave_currency",
-        "inventory"
+        "party_member_inventory",
+        "cave_shop_state"
       ],
       "client": {
         "transportEvent": null,
         "correlationType": "UNKNOWN",
         "correlationChannel": null,
-        "requestId": false,
-        "wrapperNotes": null
+        "requestId": "UNKNOWN",
+        "wrapperNotes": "Public live wrapper is cave_buy(room) => parent.cave_request('buy',{room}). The internal cave_request transport/correlation/timeout implementation is not exposed by the official CODE docs/live public runner source."
       },
       "server": {
         "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
-        "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
+        "executionModel": "UNKNOWN_LIVE_INTERNAL_HELPER",
+        "sourceSnapshotCommit": null
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "resourceDomains": [
+        "party:cave_gold",
+        "party:original_member_inventory",
+        "cave:merchant_room"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "cave_session",
+        "cave_gold",
+        "merchant_room",
+        "original_party_roster",
+        "recipient_inventory"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT",
+        "INTERNAL_HELPER_CONTRACT_UNEXPOSED",
+        "SHARED_PARTY_CURRENCY",
+        "RANDOM_RECIPIENT",
+        "ONE_SHOT_SHOP_ITEM"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "automation disabled until cave_request transport/correlation/timeout contract is verified",
+        "when eventually enabled, cave-gold delta, sold shop state and exact random recipient inventory must all reconcile"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Live docs verify cave_buy(room), merchant proximity within 160 pixels, shared cave-gold payment, random original-party recipient, result fields recipient/item/gold spent/currency=cave_gold, and one-shot sale.",
+        "Exact internal parent.cave_request implementation could not be obtained from the official public CODE documentation/live public runner assets; no transport semantics are guessed."
       ],
       "volatility": "HIGH",
       "sourceRefs": [
@@ -3282,46 +3380,49 @@
       "schemaVersion": 1,
       "id": "AL-ACTION-DESTROY-ITEM",
       "publicFunction": "destroy_item",
-      "status": "LIVE_DOC_ONLY_NEEDS_EXACT_CONTRACT",
+      "status": "VERIFIED_SOURCE_SNAPSHOT",
       "family": "item_destruction",
       "effectDomains": [
         "inventory"
       ],
       "client": {
-        "transportEvent": null,
-        "correlationType": "UNKNOWN",
-        "correlationChannel": null,
+        "transportEvent": "destroy",
+        "correlationType": "FIFO_DEFERRED",
+        "correlationChannel": "destroy",
         "requestId": false,
         "wrapperNotes": null
       },
       "server": {
-        "handlerEvent": null,
-        "executionModel": "UNKNOWN_LIVE",
+        "handlerEvent": "destroy",
+        "executionModel": "ATOMIC_HANDLER",
         "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4"
       },
       "valueRisk": "HIGH",
       "idempotency": "NON_IDEMPOTENT",
-      "unknownOutcomePolicy": "DO_NOT_AUTOMATE_UNTIL_CONTRACT_VERIFIED",
-      "resourceDomains": [],
+      "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
+      "resourceDomains": [
+        "character:inventory"
+      ],
       "liveRevalidation": [
-        "LIVE_MCP_CONTRACT_REQUIRED"
+        "inventory_item_identity"
       ],
       "dangerFlags": [
-        "PRODUCTION_AHEAD_OF_REPO_SNAPSHOT"
+        "DESTRUCTIVE",
+        "INVENTORY_INDEX_DRIFT"
       ],
       "postconditions": [
-        "DO_NOT_DEFINE_UNTIL_LIVE_CONTRACT_VERIFIED"
+        "destroyed item/quantity no longer exists at the re-resolved physical inventory identity"
       ],
       "notes": [
-        "Present in current live public function catalog but absent from the checked 2026-09-11 runner snapshot; exact live MCP contract must be captured before automation."
+        "Backward-compatible alias: official runner_compat.js defines destroy_item(i) as return destroy(i)."
       ],
-      "volatility": "HIGH",
+      "volatility": "MEDIUM",
       "sourceRefs": [
         {
-          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
+          "sourceId": "AL-SRC-RUNNER"
         },
         {
-          "sourceId": "AL-OFFICIAL-NOTES"
+          "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
         }
       ]
     }

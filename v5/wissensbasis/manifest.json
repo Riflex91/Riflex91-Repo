@@ -44,8 +44,10 @@
     "openQuestions": 38,
     "registeredSources": 22,
     "actionContracts": 60,
-    "sourceVerifiedActionContracts": 52,
-    "liveDocOnlyActionContracts": 8
+    "sourceVerifiedActionContracts": 53,
+    "liveDocOnlyActionContracts": 0,
+    "liveDeployedVerifiedActionContracts": 6,
+    "explicitlyDisabledActionContracts": 1
   },
   "externalResearchSnapshot": {
     "date": "2026-09-19",
@@ -83,5 +85,13 @@
     "statusSchema": "schema/live-status.schema.json",
     "faktSchema": "schema/live-fakt.schema.json",
     "autoritaet": "LIVE_EVIDENCE_KEINE_DIREKTE_EXECUTION_AUTHORITY"
+  },
+  "actionContractResearch": {
+    "status": "P0_01_DONE",
+    "liveDeployedRunner": "https://adventure.land/js/runner_functions.js",
+    "verifiedAt": "2026-09-19",
+    "disabledActions": [
+      "cave_buy"
+    ]
   }
 }
