@@ -29,6 +29,22 @@ Vor dem ersten Runtime-Code muessen fachlich geprueft sein:
 18. Zielvertrag fuer die lokale live verifizierte Wissensdatenbank auf `D:\\` und ihren read-only Bridge-Spiegel;
 19. ratifizierter Vertrag `LOKALES-SSD-DATENFUNDAMENT.md` fuer die dedizierte 1-TB-SSD, Speicher-Tiering, I/O-Pfade, Budgets, Retention, Volume-Identitaet und Fail-Closed-Verhalten.
 
+## Recovery-/UNKNOWN-Vertrag
+
+Der Vertrag `P0-02-RECOVERY-UNKNOWN-MATRIX.md` und die maschinenlesbare Matrix `wissensbasis/vertraege/recovery-contracts.json` sind vor Runtime-Code verbindlich.
+
+Pflicht:
+- jede wertveraendernde Action besitzt genau einen Recovery Contract;
+- UNKNOWN ist persistierter fachlicher Zustand;
+- Timeout/Disconnect/fehlende Antwort beweisen kein NOT_APPLIED;
+- NOT_APPLIED braucht positive frische Evidence;
+- nach moeglichem Send ist Same-Intent-Retry verboten;
+- PARTIAL wird als neuer Remainder-Diff geplant, nicht durch Wiederholung des Originalrequests;
+- STILL_PENDING erlaubt nur Warten/Reobserve;
+- UNRESOLVED sperrt Send und fuehrt zu Quarantaene/Operator-Policy;
+- nicht-terminale persistierte Arbeit startet nach Restart als RECONCILE_REQUIRED;
+- explizit deaktivierte Actions bleiben auch Recovery-seitig deaktiviert.
+
 ## Persistenz und Migration
 
 Pflicht:
