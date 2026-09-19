@@ -70,16 +70,54 @@ test('missing upgrade scroll is safely purchased with reserve protection before 
   assert.equal(convergence.stats.scrollPurchases, 1);
 });
 
-test('real compound() uses exactly three reserved inputs and commits after verified delta', async () => {
+test('real compound() checks authoritative chance, then uses exactly three reserved inputs once', async () => {
   const { convergence, engine, ledger, root } = mutationFixture('COMPOUND');
-  let calls = 0;
+  let chanceCalls = 0;
+  let mutationCalls = 0;
   const base = root.compound;
-  root.compound = async (...args) => { calls += 1; assert.deepEqual(args, [0, 1, 2, 3]); return base(...args); };
+  root.compound = async (...args) => {
+    if (args[args.length - 1] === true) {
+      chanceCalls += 1;
+      return base(...args);
+    }
+    mutationCalls += 1;
+    assert.deepEqual(args, [0, 1, 2, 3]);
+    return base(...args);
+  };
   const planned = engine.planAtomic({ type: 'COMPOUND', character: 'Merchant', indices: [0, 1, 2] }, { ledger });
   const result = await convergence._executeAtomic(planned.transaction.id);
   assert.equal(result.committed, true);
   assert.equal(result.outcome, 'SUCCESS');
-  assert.equal(calls, 1);
+  assert.equal(chanceCalls, 1);
+  assert.equal(mutationCalls, 1);
+  assert.equal(convergence.stats.mutationChanceChecks, 1);
+  assert.equal(engine.reservations.size, 0);
+});
+
+test('authoritative low upgrade chance releases the transaction without risking the item', async () => {
+  const { convergence, engine, ledger, root } = mutationFixture('UPGRADE', { chance: 0.05 });
+  let chanceCalls = 0;
+  let mutationCalls = 0;
+  const base = root.upgrade;
+  root.upgrade = async (...args) => {
+    if (args[args.length - 1] === true) {
+      chanceCalls += 1;
+      return base(...args);
+    }
+    mutationCalls += 1;
+    return base(...args);
+  };
+  const planned = engine.planAtomic({ type: 'UPGRADE', character: 'Merchant', indices: [0] }, { ledger });
+  const result = await convergence._executeAtomic(planned.transaction.id);
+  assert.equal(result.committed, false);
+  assert.equal(result.released, true);
+  assert.equal(result.reason, 'MUTATION_RISK_EXCEEDS_POLICY');
+  assert.equal(chanceCalls, 1);
+  assert.equal(mutationCalls, 0);
+  assert.equal(root.character.items[0].name, 'sword');
+  assert.equal(root.character.items[0].level, 0);
+  assert.equal(convergence.stats.realUpgradesAttempted, 0);
+  assert.equal(convergence.stats.mutationRiskHolds, 1);
   assert.equal(engine.reservations.size, 0);
 });
 
