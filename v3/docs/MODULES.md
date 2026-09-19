@@ -58,14 +58,14 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## brain
 
-**4 Dateien · 1096 Zeilen**
+**4 Dateien · 1101 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/brain/feature-encoder.js` | 91 |
 | `src/brain/replay-buffer.js` | 48 |
 | `src/brain/shadow-brain.js` | 202 |
-| `src/brain/strategic-brain-v2.js` | 755 |
+| `src/brain/strategic-brain-v2.js` | 760 |
 
 ## composition
 
@@ -172,7 +172,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**9 Dateien · 2672 Zeilen**
+**9 Dateien · 2787 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -180,8 +180,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 390 |
-| `src/merchant/merchant-production-planner.js` | 692 |
+| `src/merchant/merchant-production-controller.js` | 488 |
+| `src/merchant/merchant-production-planner.js` | 709 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
@@ -221,7 +221,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**34 Dateien · 8326 Zeilen**
+**35 Dateien · 8870 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -238,7 +238,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 97 |
 | `src/party/controlled-party-bootstrap-base.js` | 734 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1247 |
+| `src/party/controlled-party-logistics.js` | 1413 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 93 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -254,6 +254,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/party-persistence-quota-hotfix.js` | 382 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
+| `src/party/production-material-acquisition.js` | 378 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
 | `src/party/telemetry-bridge.js` | 150 |
@@ -270,7 +271,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 16834 Zeilen**
+**50 Dateien · 16856 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -281,7 +282,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha20-23-idle-deadlock-recovery.js` | 216 |
 | `src/reliability/alpha20-33-combat-logistics-regression-hotfix.js` | 385 |
 | `src/reliability/alpha21-liveness-guards.js` | 345 |
-| `src/reliability/alpha21-progression-intelligence.js` | 430 |
+| `src/reliability/alpha21-progression-intelligence.js` | 432 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
 | `src/reliability/alpha25-control-center-brain.js` | 364 |
@@ -305,7 +306,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 402 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 422 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |

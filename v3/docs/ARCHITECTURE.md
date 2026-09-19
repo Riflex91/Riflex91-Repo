@@ -10,7 +10,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | --- | ---: | ---: |
 | (root) | 6 | 1362 |
 | autonomy | 32 | 8244 |
-| brain | 4 | 1096 |
+| brain | 4 | 1101 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
 | control | 5 | 1047 |
@@ -18,11 +18,11 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | economy | 12 | 4303 |
 | farmer | 21 | 4506 |
 | game | 3 | 870 |
-| merchant | 9 | 2672 |
+| merchant | 9 | 2787 |
 | ops | 26 | 7614 |
-| party | 34 | 8326 |
+| party | 35 | 8870 |
 | planner | 1 | 66 |
-| reliability | 50 | 16834 |
+| reliability | 50 | 16856 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
@@ -87,7 +87,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | core | 2 |
 | merchant | economy | 1 |
 | merchant | game | 1 |
-| merchant | party | 1 |
+| merchant | party | 2 |
 | merchant | reliability | 1 |
 | ops | (root) | 3 |
 | ops | autonomy | 1 |
@@ -95,7 +95,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | core | 1 |
 | ops | party | 2 |
 | ops | world | 1 |
-| party | autonomy | 1 |
+| party | autonomy | 2 |
 | party | core | 1 |
 | party | economy | 1 |
 | party | game | 7 |
