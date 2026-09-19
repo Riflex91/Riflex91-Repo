@@ -50,11 +50,24 @@ function parseJournal(text: string | undefined): readonly TransaktionsJournalEin
     }
 
     const e = wert as Record<string, unknown>;
+    const erlaubteArten = [
+      "INTENT",
+      "SERVER_ERGEBNIS",
+      "POSTCONDITION",
+      "COMMIT",
+      "UNBEKANNT",
+      "ABBRUCH",
+      "SICHER_FEHLGESCHLAGEN",
+    ] as const;
+
     if (e.schemaVersion !== 1
         || typeof e.journalId !== "string"
         || typeof e.transaktionsId !== "string"
+        || typeof e.sequenz !== "number"
         || !Number.isSafeInteger(e.sequenz)
         || typeof e.art !== "string"
+        || !(erlaubteArten as readonly string[]).includes(e.art)
+        || typeof e.zeitMs !== "number"
         || !Number.isFinite(e.zeitMs)
         || e.inhalt === null
         || typeof e.inhalt !== "object"
@@ -154,10 +167,21 @@ export class DateibasierterCheckpointSpeicher implements CheckpointSpeicherPort 
       erlaubteSchemaVersionen: [1],
     });
 
+    const erlaubteStatus = [
+      "NICHT_TERMINAL",
+      "ABGESCHLOSSEN",
+      "ABGEBROCHEN",
+      "SICHER_FEHLGESCHLAGEN",
+      "BEDIENER_ERFORDERLICH",
+    ] as const;
+
     if (typeof wert.workflowId !== "string"
         || typeof wert.checkpointId !== "string"
         || typeof wert.status !== "string"
+        || !(erlaubteStatus as readonly string[]).includes(wert.status)
+        || typeof wert.sequenz !== "number"
         || !Number.isSafeInteger(wert.sequenz)
+        || typeof wert.zeitMs !== "number"
         || !Number.isFinite(wert.zeitMs)
         || !("zustand" in wert)) {
       throw new Error("CHECKPOINT_FORMAT_UNGUELTIG");
@@ -248,8 +272,12 @@ export class DateibasierterKritischerZustellungsSpeicher implements KritischeZus
   public async markiereZugestelltDurable(
     zustellId: string,
   ): Promise<DurableBestaetigung> {
+    const outboxPfad = this.#outboxPfad(zustellId);
+    if ((await this.#dateisystem.liesText(outboxPfad)) === undefined) {
+      throw new Error("OUTBOX_UNBEKANNT");
+    }
     await this.#dateisystem.erstelleExklusivDurable(
-      this.#outboxPfad(zustellId) + ".zugestellt",
+      outboxPfad + ".zugestellt",
       kanonischSerialisieren({ schemaVersion: 1, zustellId, zugestellt: true }) + "\n",
     );
     return Object.freeze({
