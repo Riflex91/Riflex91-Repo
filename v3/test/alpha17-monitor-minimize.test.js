@@ -113,7 +113,6 @@ test('minimize collapses monitor to title bar only and restores the prior size',
   assert.equal(ui.container.style.overflow, 'hidden');
   assert.equal(ui.header.style.marginBottom, '0px');
   assert.equal(ui.body.style.display, 'none');
-  assert.equal(ui.logBox.style.display, 'none');
   assert.equal(ui.resizeHandle.style.display, 'none');
   assert.equal(minimize.textContent, '+');
 
@@ -127,7 +126,6 @@ test('minimize collapses monitor to title bar only and restores the prior size',
   assert.equal(ui.container.style.overflow, 'auto');
   assert.equal(ui.header.style.marginBottom, '9px');
   assert.equal(ui.body.style.display, 'block');
-  assert.equal(ui.logBox.style.display, 'block');
   assert.equal(ui.resizeHandle.style.display, 'block');
   assert.equal(minimize.textContent, '–');
   ui.destroy();

@@ -27,6 +27,11 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
       <input id="automationLevelMax" type="number" min="0" placeholder="Level max">
       <select id="automationCapability"><option value="">Alle Fähigkeiten</option><option value="upgrade">Verbesserbar</option><option value="compound">Kombinierbar</option><option value="npc">Beim NPC</option><option value="protected">Geschützt/Spezial</option></select>
     </div>
+    <div class="automation-policy">
+      <label for="automationMaxCompound"><span>Max. Compound / Combine-Level</span><input id="automationMaxCompound" type="number" min="0" max="10" step="1"></label>
+      <button class="btn" id="saveAutomationMaxCompound">Compound-Limit speichern</button>
+      <span class="sub">Gilt global für automatische Compounds · Hard Cap +10</span>
+    </div>
     <div class="notice">Rechtsklick auf ein Item öffnet dieselben Regeln wie im Charakter-Inventar: Auto / Erlauben / Verbieten für Verkaufen, Bank, Kombinieren und Verbessern.</div>
     <div id="automationGrid" class="automation-grid"></div>
   </section>

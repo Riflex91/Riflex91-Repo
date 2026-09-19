@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   adventureLandAssetUrl,
   itemSpriteCatalog,
+  itemAutomationCatalog,
   equipmentShadeCatalog,
   installAdventureLandItemSprites,
   installAlpha25ControlCenterBrain
@@ -182,6 +183,43 @@ test('equipment shade catalog mirrors Adventure Land empty slot artwork without 
   assert.equal(shades.mainhand.x, 2);
   assert.equal(shades.ring1.skin, 'shade_ring');
   assert.equal(shades.ring2.skin, 'shade_ring');
+});
+
+test('Automation catalog exposes sprites and detects object-shaped upgrade/compound metadata', () => {
+  const runtime = {
+    adapter: {
+      getGameData() {
+        return {
+          items: {
+            ring: { name: 'Ring', skin: 'ring_skin', compound: { dex: 1 }, type: 'ring' },
+            sword: { name: 'Sword', skin: 'sword_skin', upgrade: { attack: 1 }, type: 'weapon' }
+          },
+          positions: {
+            ring_skin: ['pack_20', 2, 3],
+            sword_skin: ['pack_20', 4, 5]
+          },
+          imagesets: {
+            pack_20: { file: '/images/tiles/items.png', size: 20, columns: 10, rows: 8 }
+          },
+          maps: {},
+          npcs: {}
+        };
+      }
+    }
+  };
+
+  const catalog = itemAutomationCatalog(runtime);
+  const ring = catalog.find((row) => row.id === 'ring');
+  const sword = catalog.find((row) => row.id === 'sword');
+
+  assert.equal(ring.compound, true);
+  assert.equal(ring.upgrade, false);
+  assert.equal(ring.sprite.file, 'https://adventure.land/images/tiles/items.png');
+  assert.equal(ring.sprite.x, 2);
+  assert.equal(ring.sprite.y, 3);
+  assert.equal(sword.upgrade, true);
+  assert.equal(sword.compound, false);
+  assert.equal(sword.sprite.x, 4);
 });
 
 test('runtime snapshot wrapper adds sprites, equipment shades and exact inventory size', () => {
