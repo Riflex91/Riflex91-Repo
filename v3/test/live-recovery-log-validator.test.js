@@ -96,7 +96,7 @@ function passingSet() {
 test('numeric alpha versions compare by release numbers', () => {
   assert.equal(compareNumericVersions('3.0.0-alpha.20.55', DEFAULT_MINIMUM_VERSION), -1);
   assert.equal(compareNumericVersions(DEFAULT_MINIMUM_VERSION, DEFAULT_MINIMUM_VERSION), 0);
-  assert.equal(compareNumericVersions('3.0.0-alpha.20.136', DEFAULT_MINIMUM_VERSION), 1);
+  assert.equal(compareNumericVersions('3.0.0-alpha.20.137', DEFAULT_MINIMUM_VERSION), 1);
 });
 
 test('passes only after both follower regroups complete, combat resumes, and merchant commits restock', () => {
