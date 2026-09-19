@@ -64,17 +64,17 @@ test('central ledger processes low-risk progression before bank fallback', () =>
       material: { g: 10 },
       sword: { g: 10, upgrade: { attack: 1 }, grades: [] },
       ring: { g: 10, type: 'ring', compound: { dex: 1 }, grades: [] },
-      scroll0: { g: 1000 },
-      cscroll0: { g: 1000 },
-      rare: { g: 20000 },
-      scroll0: { g: 100 }
+      scroll0: { g: 1 },
+      cscroll0: { g: 1 },
+      rare: { g: 20000 }
     },
     monsters: {}, maps: {}
   };
   const runtime = makeRuntime({ ledger, gameData });
   new Alpha27CombatMerchantConvergence(runtime, { keepValue: 1000 });
-  // Economic +3 processing is allowed only after an explicit fresh Farmer
-  // future-value evaluation proves the item has no useful path by +5.
+  // Economic processing is allowed only after a fresh gear-value evaluation
+  // proves the physical item has no useful party path. Cheap scrolls make the
+  // expected-value model prefer progression in this fixture.
   runtime.gearProgression.futureProtectionFor = () => null;
   runtime.gearProgression.futureSellSafetyFor = () => ({ checked: true, protected: false });
   const counts = new Map([['ring:0', 3]]);
