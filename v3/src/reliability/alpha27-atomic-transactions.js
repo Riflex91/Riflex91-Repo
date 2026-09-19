@@ -37,23 +37,10 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const meta = gd.items && gd.items[row.name];
       if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
       const grade = gradeForLevel(meta, levelOf(row));
-      let wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
-      if (type === 'UPGRADE') {
-        const level = levelOf(row);
-        const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
-        let protection = null;
-        try {
-          const gear = this.runtime.gearProgression;
-          protection = gear && typeof gear.futureProtectionFor === 'function'
-            ? gear.futureProtectionFor(c.name, row.index, row.name, level)
-            : null;
-        } catch (_) {}
-        if (protection && Math.floor(finite(protection.targetLevel, 0)) === 5 && level < 5) {
-          wantedScroll = level < 3 ? 'scroll0' : 'scroll1';
-        } else if (reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3') && level < 3) {
-          wantedScroll = 'scroll0';
-        }
-      }
+      // Adventure Land decides the compatible scroll from the item's actual
+      // grade thresholds (G.items[name].grades). Target level is a progression
+      // goal, not a scroll-class override.
+      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
       if (wantedScroll !== scrollName || grade >= 4) continue;
       const key = `${type}|${row.name}|${levelOf(row)}`;
       const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
@@ -66,12 +53,17 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const operations = group.type === 'COMPOUND' ? Math.floor(group.count / 3) : group.count;
       if (operations <= 0) continue;
       const budget = this.mutationAttemptBudget({ type: group.type, character: c.name, item: group.item, level: group.level });
-      const actionable = Math.min(operations, Math.max(0, budget.remaining));
-      if (actionable <= 0) continue;
-      quantity += actionable;
-      details.push({ ...group, operations, actionable, mutationBudget: budget });
+      // Buying scrolls is a low-risk procurement action. Size the purchase for
+      // the visible work backlog, not only the number of mutations allowed in
+      // this exact rate-limit window, so one vendor trip can service the next
+      // several minutes of compound/upgrade work.
+      const planned = operations;
+      const immediateActionable = Math.min(operations, Math.max(0, budget.remaining));
+      if (planned <= 0) continue;
+      quantity += planned;
+      details.push({ ...group, operations, planned, immediateActionable, mutationBudget: budget });
     }
-    const cap = Math.max(1, Math.min(100, Math.floor(finite(this.options.merchantScrollBatchMax, 40))));
+    const cap = Math.max(1, Math.min(200, Math.floor(finite(this.options.merchantScrollBatchMax, 80))));
     return { scrollName, quantity: Math.max(1, Math.min(cap, quantity || 1)), cap, groups: details };
   }
 
@@ -166,18 +158,13 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         }
       }
 
-      let scroll = `scroll${grade}`;
+      const scroll = `scroll${grade}`;
       const farmerPlus5 = !!(
         goal
         && String(goal.character || '') !== String(tx.character || '')
         && Math.floor(finite(goal.targetLevel, 0)) === 5
       );
-      if (farmerPlus5) {
-        if (levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
-        scroll = levelOf(tx) < 3 ? 'scroll0' : 'scroll1';
-      } else if (economicLifecycle && !selfGear) {
-        scroll = 'scroll0';
-      }
+      if (farmerPlus5 && levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
       return {
         ok: true,
         inputs,
@@ -188,7 +175,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         value,
         grade,
         scroll,
-        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE'
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE',
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
       };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
