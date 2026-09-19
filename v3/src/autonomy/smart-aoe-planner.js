@@ -45,6 +45,7 @@ class SmartAoePlanner {
   constructor(options = {}) {
     this.now = options.now || (() => Date.now());
     this.log = options.log || null;
+    this.adaptivePullLearner = options.adaptivePullLearner || null;
     this.config = {
       hardMaxPull: Math.max(2, Math.min(12, finite(options.hardMaxPull, 8))),
       genericAoeCapacity: Math.max(2, Math.min(6, finite(options.genericAoeCapacity, 3))),
@@ -144,7 +145,25 @@ class SmartAoePlanner {
     const skills = this._aoeSkills(partyCapabilities);
     const resources = this._resourceState(team);
     const capacity = this._hardCapacity(mode, partyCapabilities, skills);
-    const desiredPullSize = this._desiredSize(mode, capacity, skills);
+    const deterministicDesiredPullSize = this._desiredSize(mode, capacity, skills);
+    let desiredPullSize = deterministicDesiredPullSize;
+    let adaptivePull = null;
+    if (this.adaptivePullLearner && typeof this.adaptivePullLearner.recommend === 'function' && mode !== CombatMode.SINGLE_TARGET) {
+      try {
+        adaptivePull = this.adaptivePullLearner.recommend({
+          ...(input.learningContext || {}),
+          combatMode: mode,
+          hardCapacity: capacity,
+          deterministicDesiredSize: deterministicDesiredPullSize
+        });
+        if (adaptivePull && Number.isFinite(Number(adaptivePull.recommendedSize))) {
+          desiredPullSize = Math.max(1, Math.min(capacity, Math.floor(Number(adaptivePull.recommendedSize))));
+        }
+      } catch (error) {
+        adaptivePull = { applied: false, reason: 'ADAPTIVE_PULL_ERROR', error: String(error && error.message || error) };
+        desiredPullSize = deterministicDesiredPullSize;
+      }
+    }
     const engagedCount = engagedTargets.length;
     const averageEnemyHpRatio = engagedCount
       ? engagedTargets.reduce((sum, row) => sum + ratio(row.hp, row.max_hp || row.hp, 1), 0) / engagedCount
@@ -217,7 +236,9 @@ class SmartAoePlanner {
       hardSafetyReady,
       mayAddTarget,
       pullCapacity: capacity,
+      deterministicDesiredPullSize,
       desiredPullSize,
+      adaptivePull,
       engagedCount,
       averageEnemyHpRatio,
       aggregateProjectedDamageRatio,
@@ -265,8 +286,10 @@ class SmartAoePlanner {
       lastPlan: this.lastPlan ? {
         ...this.lastPlan,
         resources: { ...this.lastPlan.resources },
-        aoeSkills: this.lastPlan.aoeSkills.map((row) => ({ ...row }))
+        aoeSkills: this.lastPlan.aoeSkills.map((row) => ({ ...row })),
+        adaptivePull: this.lastPlan.adaptivePull ? JSON.parse(JSON.stringify(this.lastPlan.adaptivePull)) : null
       } : null,
+      adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
       stats: { ...this.stats }
     };
   }

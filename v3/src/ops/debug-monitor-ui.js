@@ -428,7 +428,16 @@ class DebugMonitorUI {
       generation: catalog.generation,
       rows,
       enabled: rows.filter((row) => row.enabled).length,
-      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name)
+      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name),
+      adaptivePull: runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounter && runtime.tacticalPartyCombat.encounter.aoe
+        ? {
+            engagedCount: runtime.tacticalPartyCombat.encounter.aoe.engagedCount,
+            desiredPullSize: runtime.tacticalPartyCombat.encounter.aoe.desiredPullSize,
+            deterministicDesiredPullSize: runtime.tacticalPartyCombat.encounter.aoe.deterministicDesiredPullSize,
+            pullCapacity: runtime.tacticalPartyCombat.encounter.aoe.pullCapacity,
+            reason: runtime.tacticalPartyCombat.encounter.aoe.adaptivePull && runtime.tacticalPartyCombat.encounter.aoe.adaptivePull.reason || 'DETERMINISTIC_BASELINE'
+          }
+        : null
     };
   }
 
@@ -571,6 +580,22 @@ class DebugMonitorUI {
     modeRow.appendChild(modeLabel);
     modeRow.appendChild(modeSelect);
     this.skillsPanel.appendChild(modeRow);
+
+    const adaptiveRow = doc.createElement('div');
+    this._setStyle(adaptiveRow, { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '8px', marginBottom: '8px' });
+    const adaptiveLabel = doc.createElement('span');
+    adaptiveLabel.textContent = 'Adaptive Pull';
+    this._setStyle(adaptiveLabel, { color: '#9ca3af', fontSize: '10px' });
+    const adaptiveValue = doc.createElement('span');
+    if (state.adaptivePull) {
+      adaptiveValue.textContent = `Ziel ${state.adaptivePull.desiredPullSize}/${state.adaptivePull.pullCapacity} · aktiv ${state.adaptivePull.engagedCount} · ${state.adaptivePull.reason}`;
+    } else {
+      adaptiveValue.textContent = 'noch keine aktive Encounter-Evidenz';
+    }
+    this._setStyle(adaptiveValue, { color: '#d1d5db', fontSize: '10px', overflowWrap: 'anywhere' });
+    adaptiveRow.appendChild(adaptiveLabel);
+    adaptiveRow.appendChild(adaptiveValue);
+    this.skillsPanel.appendChild(adaptiveRow);
 
     const actions = doc.createElement('div');
     this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });

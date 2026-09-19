@@ -31,7 +31,13 @@ class TacticalPartyCombat {
       pendingPullTimeoutMs: Math.max(1200, finite(options.pendingPullTimeoutMs, 3000)),
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
-    this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({ ...(options.smartAoe || {}), now: this.now, log: this.log });
+    this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
+    this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({
+      ...(options.smartAoe || {}),
+      now: this.now,
+      log: this.log,
+      adaptivePullLearner: this.adaptivePullLearner
+    });
     this.encounter = null;
     this.lastEvaluation = null;
     this.lastDecision = null;
@@ -186,12 +192,23 @@ class TacticalPartyCombat {
     }
     const targets = this._encounterEntities(snapshot, team);
     const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
+    const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
+      ? this.runtime._currentMembers(snapshot)
+      : (team.members || []);
     const aoe = this.smartAoePlanner.evaluate({
       mode: this._combatMode(snapshot, team),
       team,
       partyCapabilities: this._partyCapabilities(),
       engagedTargets: targets,
-      evaluations
+      evaluations,
+      learningContext: {
+        snapshot,
+        currentMembers,
+        monster: this.encounter.targetType || targets[0] && targets[0].mtype || null,
+        encounterFingerprint: this.runtime.currentEncounterFingerprint || null,
+        partyFingerprint: this.runtime.currentPartyFingerprint || null,
+        isLeader: team.selfName === team.leaderName
+      }
     });
     const primaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
     this.encounter.targetIds = targets.map((row) => String(row.id));
@@ -497,6 +514,7 @@ class TacticalPartyCombat {
       config: { ...this.config },
       encounter: this.encounter ? JSON.parse(JSON.stringify(this.encounter)) : null,
       smartAoePlanner: this.smartAoePlanner.status(),
+      adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
       pendingPull: this.pendingPull ? { ...this.pendingPull } : null,
       lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,

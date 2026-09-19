@@ -109,6 +109,7 @@ const { SkillControlType, Capability, SKILL_SEMANTICS } = require('./autonomy/sk
 const { SkillPolicy, SKILL_POLICY_MODE } = require('./autonomy/skill-policy');
 const { CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode } = require('./autonomy/combat-modes');
 const { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE } = require('./autonomy/smart-aoe-planner');
+const { AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION } = require('./autonomy/adaptive-pull-learning');
 const { StrategicFeatureEncoder, FEATURE_SCHEMA_VERSION, FEATURE_NAMES } = require('./brain/feature-encoder');
 const { BoundedReplayBuffer } = require('./brain/replay-buffer');
 const { ShadowStrategicBrain, BrainQualityState } = require('./brain/shadow-brain');
@@ -130,7 +131,7 @@ const { TargetSafety, BUILT_IN_TARGET_EXCLUSIONS } = require('./farmer/target-sa
 const { ContentSafetyGate, ContentDisposition } = require('./farmer/content-safety');
 const { partyProfile, capabilitiesFor } = require('./party/capabilities');
 const { CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE } = require('./party/character-registry');
-const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint } = require('./party/fingerprints');
+const { FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint } = require('./party/fingerprints');
 const { PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION } = require('./party/performance-store');
 const { PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS } = require('./party/orchestrator');
 const { PaladinAuraPolicy, AURAS } = require('./party/paladin-aura-policy');
@@ -310,6 +311,17 @@ function install(root = globalThis, options = {}) {
           return runtime.characterCombatProfiles.setCombatMode(character, mode);
         },
         tactical: () => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.status ? runtime.tacticalPartyCombat.status() : null,
+        adaptivePullLearning: () => runtime.adaptivePullLearner && runtime.adaptivePullLearner.status ? runtime.adaptivePullLearner.status() : null,
+        adaptivePullProfiles: (hardCapacity = 8) => {
+          if (!runtime.adaptivePullLearner || !runtime.lastSnapshot || !runtime.currentPartyFingerprint) return { rows: [], reason: 'LEARNING_CONTEXT_UNAVAILABLE' };
+          return runtime.adaptivePullLearner.profiles({
+            snapshot: runtime.lastSnapshot,
+            currentMembers: typeof runtime._currentMembers === 'function' ? runtime._currentMembers(runtime.lastSnapshot) : [],
+            encounterFingerprint: runtime.currentEncounterFingerprint,
+            partyFingerprint: runtime.currentPartyFingerprint,
+            hardCapacity
+          });
+        },
         canAddTarget: (target, context = {}) => runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.canAddTarget
           ? runtime.tacticalPartyCombat.canAddTarget(target, context)
           : { allowed: false, reason: 'TACTICAL_PARTY_COMBAT_UNAVAILABLE' }
@@ -528,9 +540,10 @@ module.exports = {
   CharacterCombatProfileStore, CHARACTER_COMBAT_PROFILE_SCHEMA_VERSION, CHARACTER_COMBAT_PROFILE_KEY,
   CharacterCapabilityResolver, PartyCapabilityResolver, SkillControlType, Capability, SKILL_SEMANTICS, SkillPolicy, SKILL_POLICY_MODE,
   CombatMode, COMBAT_MODE_LABELS, normalizeCombatMode, SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE,
+  AdaptivePullLearner, installAdaptivePullLearner, ADAPTIVE_PULL_LEARNING_MODE, ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
   FarmerController, FarmerState, TargetPolicy, TargetSafety, BUILT_IN_TARGET_EXCLUSIONS,
   ContentSafetyGate, ContentDisposition, partyProfile, capabilitiesFor, CharacterRegistry, REGISTRY_SCHEMA_VERSION, REGISTRY_MODE, SOURCE_CONFIDENCE,
-  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
+  FINGERPRINT_SCHEMA_VERSION, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, PartyPerformanceStore, PARTY_PERFORMANCE_SCHEMA_VERSION,
   PartyOrchestrator, COMBAT_CLASSES, DEFAULT_WEIGHTS, PaladinAuraPolicy, AURAS, PartyTelemetryBridge, TELEMETRY_PROTOCOL,
   PartyTransitionController, TransitionState, PartyControlLease, PARTY_CONTROL_PROTOCOL, PARTY_CONTROL_TYPE, PartyControlAction,
   PartyLifecycleStore, PartyLifecycleState, PARTY_LIFECYCLE_SCHEMA_VERSION, PARTY_LIFECYCLE_MODE,
@@ -10629,7 +10642,7 @@ class Alpha12Runtime extends Alpha11Runtime {
     composeAlpha12Runtime.call(this, options);
   }
   start() { const started = super.start(); this.backgroundExecution.start(); return started; }
-  stop() { this.partyPerformance.save({ force: true }); return super.stop(); }
+  stop() { if (this.adaptivePullLearner && typeof this.adaptivePullLearner.save === 'function') this.adaptivePullLearner.save(); this.partyPerformance.save({ force: true }); return super.stop(); }
   _contentDisposition(mtype) { if (!mtype || !this.world || typeof this.world.fact !== 'function') return 'UNKNOWN'; const fact = this.world.fact('monster-policy', mtype, 'contentSafetyDisposition'); return fact && fact.value || 'UNKNOWN'; }
   _currentMembers(snapshot) {
     if (!snapshot || !snapshot.character) return []; const names = new Set([snapshot.character.name]); for (const member of snapshot.party || []) if (member && member.name) names.add(member.name); const status = this.characterRegistry.status(); const byName = new Map(status.characters.map((row) => [row.name, row])); const result = [];
@@ -10648,7 +10661,22 @@ class Alpha12Runtime extends Alpha11Runtime {
     if (!currentFingerprint || !encounter || !encounter.monster || !encounter.monster.mtype) return; const now = this.now(); const elapsedMs = this.lastPerformanceSampleAt == null ? 0 : now - this.lastPerformanceSampleAt; this.lastPerformanceSampleAt = now; if (elapsedMs < 1000 || elapsedMs > 60000) return; const names = currentMembers.map((row) => row.name); const aggregate = this.partyTelemetry.aggregate(names); const local = this.partyTelemetry.buildLocalReport(this);
     if (local && !aggregate.reports.some((row) => row.name === local.name)) { aggregate.freshReports += 1; for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) aggregate[key] += local.rates[key]; aggregate.minHpRatio = aggregate.minHpRatio == null ? local.hpRatio : Math.min(aggregate.minHpRatio, local.hpRatio); aggregate.minMpRatio = aggregate.minMpRatio == null ? local.mpRatio : Math.min(aggregate.minMpRatio, local.mpRatio); if (local.safety.retreat) aggregate.retreats += 1; if (local.safety.emergency) aggregate.emergencies += 1; if (local.safety.movementCircuitOpen) aggregate.movementCircuits += 1; aggregate.skillFailureBackoffs += local.safety.skillFailureBackoffs; }
     if (aggregate.freshReports <= 0) return; const hours = elapsedMs / 3600000; const progressNorm = clamp01(Math.log1p(Math.max(0, aggregate.xpPerHour)) / Math.log(6000001)); const safetyMargin = aggregate.minHpRatio == null ? 0.5 : aggregate.minHpRatio; const score = clamp01(safetyMargin * 0.6 + progressNorm * 0.4 - Math.min(0.5, aggregate.deathsPerHour * 0.35));
-    this.partyPerformance.record(encounter.key, currentFingerprint.key, { seconds: elapsedMs / 1000, xp: aggregate.xpPerHour * hours, gold: aggregate.goldPerHour * hours, kills: aggregate.killsPerHour * hours, deaths: aggregate.deathsPerHour * hours, hpPotions: aggregate.potionsPerHour * hours, damage: 0, retreats: aggregate.retreats, nearDeaths: aggregate.minHpRatio != null && aggregate.minHpRatio < 0.25 ? 1 : 0, movementFailures: aggregate.movementCircuits, skillFailures: aggregate.skillFailureBackoffs, safetyMargin, score }); this.partyPerformance.save();
+    this.partyPerformance.record(encounter.key, currentFingerprint.key, { seconds: elapsedMs / 1000, xp: aggregate.xpPerHour * hours, gold: aggregate.goldPerHour * hours, kills: aggregate.killsPerHour * hours, deaths: aggregate.deathsPerHour * hours, hpPotions: aggregate.potionsPerHour * hours, damage: 0, retreats: aggregate.retreats, nearDeaths: aggregate.minHpRatio != null && aggregate.minHpRatio < 0.25 ? 1 : 0, movementFailures: aggregate.movementCircuits, skillFailures: aggregate.skillFailureBackoffs, safetyMargin, score });
+    if (this.adaptivePullLearner && typeof this.adaptivePullLearner.recordTelemetryWindow === 'function') {
+      try {
+        this.adaptivePullLearner.recordTelemetryWindow({
+          snapshot,
+          currentMembers,
+          encounterFingerprint: encounter,
+          partyFingerprint: currentFingerprint,
+          aggregate,
+          elapsedMs
+        });
+      } catch (error) {
+        this.log.emit({ component: 'adaptive-pull-learning', event: 'ADAPTIVE_PULL_SAMPLE_FAILED', severity: 'warn', reason: 'TELEMETRY_RECORD_ERROR', data: { message: String(error && error.message || error) } });
+      }
+    }
+    this.partyPerformance.save();
   }
   _maybeApplyAura(snapshot, encounter, risk, currentMembers) {
     const localName = snapshot.character.name; const local = currentMembers.find((row) => row.name === localName); const paladin = currentMembers.find((row) => row.ctype === 'paladin') || null; const recommendation = this.auraPolicy.recommend({ paladin, encounter, risk }); this.lastAuraRecommendation = recommendation; if (!recommendation.aura || !local || local.ctype !== 'paladin' || paladin.name !== local.name) return; if (!this.auraAutomationEnabled || this.adapter.mode !== 'active' || recommendation.canSwitch === false) return; if (this.auraPolicy.lastAura === recommendation.aura) return; const result = this.adapter.command('use_skill', ['paladin_aura', recommendation.aura]); this.lastAuraExecution = { at: this.now(), aura: recommendation.aura, result: { executed: !!result.executed, reason: result.reason || null, shadow: !!result.shadow } }; if (result.executed) { this.auraPolicy.noteApplied(recommendation.aura); this.log.emit({ component: 'party-aura', event: 'PALADIN_AURA_CHANGED', data: { aura: recommendation.aura, reason: recommendation.reason } }); }
@@ -10732,6 +10760,27 @@ function dominantMonster(snapshot) {
   }
   return [...rows.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 }
+function createPullLearningFingerprint(context = {}) {
+  const snapshot = context.snapshot || {};
+  const c = snapshot.character || {};
+  const gameData = context.gameData || {};
+  const mtype = context.monster || dominantMonster(snapshot) || null;
+  const metadata = monsterMetadata(gameData, mtype);
+  const levels = (context.currentMembers || [])
+    .map((row) => Number(row && row.level) || 0)
+    .filter((value) => value > 0);
+  const avgLevel = levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : Number(c.level) || 0;
+  const detail = {
+    schemaVersion: FINGERPRINT_SCHEMA_VERSION,
+    map: c.map || null,
+    monster: metadata,
+    partyLevelBand: context.partyLevelBand == null ? Math.floor(avgLevel / 10) * 10 : context.partyLevelBand,
+    event: context.event || null,
+    contentDisposition: context.contentDisposition || null
+  };
+  return { ...detail, key: `pullctx::${hash(stableStringify(detail))}` };
+}
+
 function createEncounterFingerprint(context = {}) {
   const snapshot = context.snapshot || {};
   const c = snapshot.character || {};
@@ -10746,7 +10795,7 @@ function createEncounterFingerprint(context = {}) {
   const key = `enc::${hash(stableStringify(detail))}`;
   return { ...detail, key };
 }
-module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, dominantMonster, monsterMetadata };
+module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, dominantMonster, monsterMetadata };
 
 },
 "src/party/performance-store.js": function(require,module,exports){
@@ -31455,6 +31504,7 @@ module.exports = {
 const { installAlpha2019AccountTransportHotfix } = require('../party/alpha20-19-account-transport-hotfix');
 const { patchAlpha2019LogisticsStabilization } = require('../party/alpha20-19-logistics-stabilization');
 const { patchAdaptiveFarmIntelligence } = require('../autonomy/adaptive-farm-intelligence');
+const { installAdaptivePullLearner } = require('../autonomy/adaptive-pull-learning');
 const { installTacticalPartyCombat } = require('../autonomy/tactical-party-combat');
 const { installAdvancedPartyMovement } = require('../autonomy/advanced-party-movement');
 const { installPartySkillEngine } = require('../autonomy/party-skill-engine');
@@ -31474,6 +31524,7 @@ class IntegratedPartyControl {
     this.adaptiveFarmPatched = components.adaptiveFarmPatched === true;
     this.alpha21Liveness = components.alpha21Liveness || null;
     this.progressionIntelligence = components.progressionIntelligence || null;
+    this.adaptivePullLearner = components.adaptivePullLearner || null;
     this.tacticalPartyCombat = components.tacticalPartyCombat || null;
     this.advancedPartyMovement = components.advancedPartyMovement || null;
     this.partySkillEngine = components.partySkillEngine || null;
@@ -31502,6 +31553,7 @@ class IntegratedPartyControl {
       },
       alpha20_16: farm && typeof farm.status === 'function' ? farm.status().alpha20_16 || null : { prototypePatched: this.adaptiveFarmPatched, awaitingFarmAreaInstance: true },
       alpha20_17: this.tacticalPartyCombat && this.tacticalPartyCombat.status ? this.tacticalPartyCombat.status() : null,
+      adaptivePullLearning: this.adaptivePullLearner && this.adaptivePullLearner.status ? this.adaptivePullLearner.status() : null,
       alpha20_18: this.advancedPartyMovement && this.advancedPartyMovement.status ? this.advancedPartyMovement.status() : null,
       alpha20_19: {
         transportPrototypePatched: this.transportPatched,
@@ -31528,13 +31580,14 @@ function installIntegratedPartyControl(runtime, options = {}) {
   const adaptiveFarmPatched = patchAdaptiveFarmIntelligence();
   const alpha21Liveness = patchAlpha21LivenessGuards();
   const progressionIntelligence = installAlpha21ProgressionIntelligence(runtime, options.progressionIntelligence || {});
-  const tacticalPartyCombat = installTacticalPartyCombat(runtime, options.tacticalPartyCombat || {});
+  const adaptivePullLearner = installAdaptivePullLearner(runtime, options.adaptivePullLearning || {});
+  const tacticalPartyCombat = installTacticalPartyCombat(runtime, { ...(options.tacticalPartyCombat || {}), adaptivePullLearner });
   runtime.tacticalPartyCombat = tacticalPartyCombat;
   const advancedPartyMovement = installAdvancedPartyMovement(runtime, options.advancedPartyMovement || {});
   runtime.advancedPartyMovement = advancedPartyMovement;
   const partySkillEngine = installPartySkillEngine(runtime, options.partySkillEngine || {});
   runtime.partySkillEngine = partySkillEngine;
-  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
+  const controller = new IntegratedPartyControl(runtime, { transportPatched, logisticsPatched, adaptiveFarmPatched, alpha21Liveness, progressionIntelligence, adaptivePullLearner, tacticalPartyCombat, advancedPartyMovement, partySkillEngine });
   runtime.integratedPartyControl = controller;
   return controller;
 }
@@ -32414,6 +32467,792 @@ module.exports = {
 };
 
 },
+"src/autonomy/adaptive-pull-learning.js": function(require,module,exports){
+'use strict';
+
+const { CombatMode } = require('./combat-modes');
+const { SmartAoeState } = require('./smart-aoe-planner');
+const { createPullLearningFingerprint } = require('../party/fingerprints');
+
+const ADAPTIVE_PULL_LEARNING_MODE = 'bounded-adaptive-pull-learning-v1';
+const ADAPTIVE_PULL_STATE_SCHEMA_VERSION = 1;
+const DEFAULT_STORAGE_KEY = 'AIO_V3_ADAPTIVE_PULL_LEARNING_V1';
+
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+function clamp(value, lo, hi) {
+  return Math.max(lo, Math.min(hi, value));
+}
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+class AdaptivePullLearner {
+  constructor(runtime, options = {}) {
+    if (!runtime) throw new Error('runtime required');
+    this.runtime = runtime;
+    this.root = options.root || runtime.root || globalThis;
+    this.now = options.now || runtime.now || (() => Date.now());
+    this.log = options.log || runtime.log || null;
+    this.performance = options.performanceStore || runtime.partyPerformance || null;
+    this.storage = options.storage || null;
+    this.storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+    this.enabled = options.enabled !== false;
+    this.config = {
+      minSamples: Math.max(4, Math.min(100, finite(options.minSamples, 12))),
+      minCombatSeconds: Math.max(20, Math.min(3600, finite(options.minCombatSeconds, 60))),
+      minConfidence: clamp(finite(options.minConfidence, 0.45), 0.1, 0.95),
+      minSafetyMargin: clamp(finite(options.minSafetyMargin, 0.40), 0.15, 0.9),
+      maxDeathsPerHour: Math.max(0, finite(options.maxDeathsPerHour, 0.50)),
+      maxRetreatsPerHour: Math.max(0, finite(options.maxRetreatsPerHour, 1.50)),
+      maxNearDeathsPerHour: Math.max(0, finite(options.maxNearDeathsPerHour, 3.0)),
+      minXpGainRatio: clamp(finite(options.minXpGainRatio, 0.05), 0, 0.5),
+      strongSamples: Math.max(8, Math.min(200, finite(options.strongSamples, 24))),
+      strongCombatSeconds: Math.max(60, Math.min(7200, finite(options.strongCombatSeconds, 180))),
+      strongConfidence: clamp(finite(options.strongConfidence, 0.65), 0.2, 0.98),
+      strongSafetyMargin: clamp(finite(options.strongSafetyMargin, 0.65), 0.3, 0.95),
+      probeDurationMs: Math.max(5000, Math.min(120000, finite(options.probeDurationMs, 30000))),
+      probeCooldownMs: Math.max(60000, Math.min(24 * 60 * 60 * 1000, finite(options.probeCooldownMs, 10 * 60 * 1000)))
+    };
+    this.state = new Map();
+    this.loaded = false;
+    this.lastRecommendation = null;
+    this.stats = {
+      records: 0,
+      recordSkips: 0,
+      recommendations: 0,
+      learnedSelections: 0,
+      riskReductions: 0,
+      probesStarted: 0,
+      probeWindows: 0,
+      probeCooldownBlocks: 0,
+      persistenceLoads: 0,
+      persistenceSaves: 0,
+      persistenceFailures: 0
+    };
+    this.load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'adaptive-pull-learning', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    if (this.root && typeof this.root.get === 'function' && typeof this.root.set === 'function') {
+      return { get: (key) => this.root.get(key), set: (key, value) => this.root.set(key, value) };
+    }
+    const ls = this.root && this.root.localStorage;
+    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
+      return { get: (key) => ls.getItem(key), set: (key, value) => ls.setItem(key, value) };
+    }
+    return null;
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.storageKey);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || data.schemaVersion !== ADAPTIVE_PULL_STATE_SCHEMA_VERSION || !Array.isArray(data.contexts)) {
+        throw new Error('unsupported adaptive pull state schema');
+      }
+      for (const row of data.contexts) {
+        if (!row || !row.key) continue;
+        this.state.set(String(row.key), {
+          key: String(row.key),
+          lastProbeAt: Math.max(0, finite(row.lastProbeAt, 0)),
+          probeSize: row.probeSize == null ? null : Math.max(1, Math.floor(finite(row.probeSize, 1))),
+          probeUntil: Math.max(0, finite(row.probeUntil, 0)),
+          lastRecommendedSize: row.lastRecommendedSize == null ? null : Math.max(1, Math.floor(finite(row.lastRecommendedSize, 1))),
+          updatedAt: Math.max(0, finite(row.updatedAt, 0))
+        });
+      }
+      this.stats.persistenceLoads += 1;
+      return true;
+    } catch (error) {
+      this.state.clear();
+      this.stats.persistenceFailures += 1;
+      this._event('ADAPTIVE_PULL_STATE_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  save() {
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      backend.set(this.storageKey, JSON.stringify({
+        schemaVersion: ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
+        savedAt: this.now(),
+        contexts: [...this.state.values()]
+      }));
+      this.stats.persistenceSaves += 1;
+      return true;
+    } catch (error) {
+      this.stats.persistenceFailures += 1;
+      this._event('ADAPTIVE_PULL_STATE_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', { message: String(error && error.message || error) });
+      return false;
+    }
+  }
+
+  _context(snapshot, currentMembers, monster = null, encounterFingerprint = null) {
+    const gameData = this.runtime.adapter && typeof this.runtime.adapter.getGameData === 'function'
+      ? this.runtime.adapter.getGameData() || {}
+      : {};
+    const resolvedMonster = monster
+      || encounterFingerprint && encounterFingerprint.monster && encounterFingerprint.monster.mtype
+      || null;
+    return createPullLearningFingerprint({
+      snapshot,
+      gameData,
+      monster: resolvedMonster,
+      currentMembers,
+      contentDisposition: encounterFingerprint && encounterFingerprint.contentDisposition || null,
+      event: encounterFingerprint && encounterFingerprint.event || null,
+      partyLevelBand: encounterFingerprint && encounterFingerprint.partyLevelBand
+    });
+  }
+
+  _pullKey(baseKey, size) {
+    return `${String(baseKey)}::pull=${Math.max(1, Math.floor(finite(size, 1)))}`;
+  }
+
+  _contextState(baseKey, partyKey) {
+    const key = `${baseKey}::${partyKey}`;
+    if (!this.state.has(key)) this.state.set(key, {
+      key,
+      lastProbeAt: 0,
+      probeSize: null,
+      probeUntil: 0,
+      lastRecommendedSize: null,
+      updatedAt: this.now()
+    });
+    return this.state.get(key);
+  }
+
+  _profile(baseKey, partyKey, size) {
+    if (!this.performance || typeof this.performance.profile !== 'function') return null;
+    return this.performance.profile(this._pullKey(baseKey, size), partyKey);
+  }
+
+  _profileView(profile, size) {
+    if (!profile) return null;
+    const hours = Math.max(0, finite(profile.combatSeconds, 0)) / 3600;
+    const nearDeathsPerHour = hours > 0 ? finite(profile.nearDeaths, 0) / hours : 0;
+    const reliable = finite(profile.samples, 0) >= this.config.minSamples
+      && finite(profile.combatSeconds, 0) >= this.config.minCombatSeconds
+      && finite(profile.confidence, 0) >= this.config.minConfidence;
+    const sustainable = reliable
+      && finite(profile.deathsPerHour, 0) <= this.config.maxDeathsPerHour
+      && finite(profile.retreatsPerHour, 0) <= this.config.maxRetreatsPerHour
+      && nearDeathsPerHour <= this.config.maxNearDeathsPerHour
+      && (profile.avgSafetyMargin == null || finite(profile.avgSafetyMargin, 0) >= this.config.minSafetyMargin);
+    const strongSafe = sustainable
+      && finite(profile.samples, 0) >= this.config.strongSamples
+      && finite(profile.combatSeconds, 0) >= this.config.strongCombatSeconds
+      && finite(profile.confidence, 0) >= this.config.strongConfidence
+      && finite(profile.deaths, 0) <= 0
+      && finite(profile.retreats, 0) <= 0
+      && finite(profile.nearDeaths, 0) <= 0
+      && (profile.avgSafetyMargin == null || finite(profile.avgSafetyMargin, 0) >= this.config.strongSafetyMargin);
+    return {
+      size,
+      samples: finite(profile.samples, 0),
+      combatSeconds: finite(profile.combatSeconds, 0),
+      xpPerHour: Math.max(0, finite(profile.xpPerHour, 0)),
+      deathsPerHour: Math.max(0, finite(profile.deathsPerHour, 0)),
+      retreatsPerHour: Math.max(0, finite(profile.retreatsPerHour, 0)),
+      nearDeathsPerHour,
+      avgSafetyMargin: profile.avgSafetyMargin == null ? null : finite(profile.avgSafetyMargin, 0),
+      confidence: clamp(finite(profile.confidence, 0), 0, 1),
+      reliable,
+      sustainable,
+      strongSafe
+    };
+  }
+
+  profiles(context = {}) {
+    const hardCapacity = Math.max(1, Math.floor(finite(context.hardCapacity, 1)));
+    const base = this._context(context.snapshot, context.currentMembers || [], context.monster, context.encounterFingerprint);
+    const partyKey = context.partyKey || context.partyFingerprint && context.partyFingerprint.key || null;
+    if (!base || !base.key || !partyKey) return { base, partyKey, rows: [] };
+    const rows = [];
+    for (let size = 1; size <= hardCapacity; size += 1) {
+      const view = this._profileView(this._profile(base.key, partyKey, size), size);
+      if (view) rows.push(view);
+    }
+    return { base, partyKey, rows };
+  }
+
+  recordTelemetryWindow(context = {}) {
+    if (!this.enabled || !this.performance || typeof this.performance.record !== 'function') {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const snapshot = context.snapshot;
+    const tactical = this.runtime.tacticalPartyCombat;
+    const encounter = tactical && tactical.encounter;
+    const plan = encounter && encounter.aoe;
+    if (!snapshot || !snapshot.character || !encounter || !plan) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const team = this.runtime.teamCombatCohesionHotfix && typeof this.runtime.teamCombatCohesionHotfix._team === 'function'
+      ? this.runtime.teamCombatCohesionHotfix._team(snapshot)
+      : null;
+    if (!team || team.selfName !== team.leaderName) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    if (![SmartAoeState.AOE_BURN, SmartAoeState.HOLD_PULL, SmartAoeState.ABORT_PULL].includes(plan.state)) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const contentDisposition = context.encounterFingerprint && context.encounterFingerprint.contentDisposition || null;
+    if (contentDisposition === 'UNKNOWN' || contentDisposition === 'QUARANTINED') {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const partyFingerprint = context.partyFingerprint;
+    if (!partyFingerprint || !partyFingerprint.key) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const pullSize = Math.max(1, Math.floor(finite(plan.engagedCount, (encounter.targetIds || []).length || 1)));
+    const base = this._context(snapshot, context.currentMembers || [], encounter.targetType, context.encounterFingerprint);
+    if (!base || !base.key) {
+      this.stats.recordSkips += 1;
+      return null;
+    }
+    const aggregate = context.aggregate || {};
+    const elapsedMs = Math.max(1000, finite(context.elapsedMs, 0));
+    const hours = elapsedMs / 3600000;
+    const safetyMargin = aggregate.minHpRatio == null ? 0.5 : clamp(finite(aggregate.minHpRatio, 0.5), 0, 1);
+    const progressNorm = clamp(Math.log1p(Math.max(0, finite(aggregate.xpPerHour, 0))) / Math.log(6000001), 0, 1);
+    const abortPenalty = plan.state === SmartAoeState.ABORT_PULL ? 0.25 : 0;
+    const score = clamp(safetyMargin * 0.65 + progressNorm * 0.35 - Math.min(0.6, finite(aggregate.deathsPerHour, 0) * 0.35) - abortPenalty, 0, 1);
+    const sample = {
+      seconds: elapsedMs / 1000,
+      xp: Math.max(0, finite(aggregate.xpPerHour, 0)) * hours,
+      gold: finite(aggregate.goldPerHour, 0) * hours,
+      kills: Math.max(0, finite(aggregate.killsPerHour, 0)) * hours,
+      deaths: Math.max(0, finite(aggregate.deathsPerHour, 0)) * hours,
+      hpPotions: Math.max(0, finite(aggregate.potionsPerHour, 0)) * hours,
+      retreats: plan.state === SmartAoeState.ABORT_PULL ? 1 : (finite(aggregate.retreats, 0) > 0 ? 1 : 0),
+      nearDeaths: safetyMargin < 0.25 ? 1 : 0,
+      movementFailures: Math.max(0, finite(aggregate.movementCircuits, 0)),
+      skillFailures: Math.max(0, finite(aggregate.skillFailureBackoffs, 0)),
+      safetyMargin,
+      score
+    };
+    const profile = this.performance.record(this._pullKey(base.key, pullSize), partyFingerprint.key, sample);
+    this.stats.records += 1;
+    this._event('ADAPTIVE_PULL_SAMPLE_RECORDED', 'info', plan.state, {
+      context: base.key,
+      party: partyFingerprint.key,
+      pullSize,
+      score,
+      safetyMargin,
+      xpPerHour: finite(aggregate.xpPerHour, 0),
+      profile: profile ? { samples: profile.samples, confidence: profile.confidence, xpPerHour: profile.xpPerHour } : null
+    });
+    return { base, partyKey: partyFingerprint.key, pullSize, sample, profile };
+  }
+
+  recommend(context = {}) {
+    this.stats.recommendations += 1;
+    const deterministicDesired = Math.max(1, Math.floor(finite(context.deterministicDesiredSize, 1)));
+    const hardCapacity = Math.max(1, Math.floor(finite(context.hardCapacity, deterministicDesired)));
+    const mode = context.combatMode || CombatMode.SMART_AUTO;
+    const fallback = {
+      applied: false,
+      reason: 'DETERMINISTIC_BASELINE',
+      recommendedSize: Math.min(hardCapacity, deterministicDesired),
+      deterministicDesiredSize: deterministicDesired,
+      hardCapacity,
+      profiles: []
+    };
+    if (!this.enabled || mode === CombatMode.SINGLE_TARGET || hardCapacity <= 1 || context.isLeader === false) {
+      this.lastRecommendation = fallback;
+      return clone(fallback, null);
+    }
+
+    const contentDisposition = context.encounterFingerprint && context.encounterFingerprint.contentDisposition || null;
+    if (contentDisposition === 'UNKNOWN' || contentDisposition === 'QUARANTINED') {
+      const result = { ...fallback, reason: 'CONTENT_NOT_VALIDATED_FOR_LEARNING' };
+      this.lastRecommendation = result;
+      return clone(result, null);
+    }
+
+    const data = this.profiles({
+      snapshot: context.snapshot,
+      currentMembers: context.currentMembers || [],
+      monster: context.monster,
+      encounterFingerprint: context.encounterFingerprint,
+      partyFingerprint: context.partyFingerprint,
+      partyKey: context.partyKey,
+      hardCapacity
+    });
+    if (!data.base || !data.base.key || !data.partyKey) {
+      const result = { ...fallback, reason: 'LEARNING_CONTEXT_UNAVAILABLE' };
+      this.lastRecommendation = result;
+      return clone(result, null);
+    }
+
+    const views = data.rows;
+    const reliable = views.filter((row) => row.reliable);
+    const sustainable = reliable.filter((row) => row.sustainable);
+    const baselineRisk = reliable.find((row) => row.size === Math.min(hardCapacity, deterministicDesired) && !row.sustainable) || null;
+
+    let recommendedSize = Math.min(hardCapacity, deterministicDesired);
+    let reason = 'DETERMINISTIC_BASELINE';
+    let applied = false;
+
+    if (sustainable.length) {
+      const ordered = sustainable.slice().sort((a, b) => a.size - b.size);
+      let best = ordered[0];
+      for (const candidate of ordered.slice(1)) {
+        const required = best.xpPerHour * (1 + this.config.minXpGainRatio);
+        if (candidate.xpPerHour >= required) best = candidate;
+      }
+      recommendedSize = Math.min(hardCapacity, best.size);
+      reason = 'SUSTAINABLE_XP_OPTIMUM';
+      applied = recommendedSize !== deterministicDesired;
+      if (applied) this.stats.learnedSelections += 1;
+
+      if (baselineRisk) {
+        const safer = sustainable.filter((row) => row.size < deterministicDesired)
+          .sort((a, b) => b.xpPerHour - a.xpPerHour || a.size - b.size)[0];
+        recommendedSize = recommendedSize < deterministicDesired
+          ? recommendedSize
+          : (safer ? safer.size : Math.max(1, deterministicDesired - 1));
+        reason = 'RISK_EVIDENCE_REDUCED_PULL';
+        applied = true;
+        this.stats.riskReductions += 1;
+      }
+    } else if (baselineRisk) {
+      recommendedSize = Math.max(1, deterministicDesired - 1);
+      reason = 'RISK_EVIDENCE_REDUCED_PULL';
+      applied = true;
+      this.stats.riskReductions += 1;
+    }
+
+    const state = this._contextState(data.base.key, data.partyKey);
+    const now = this.now();
+    const activeProbeProfile = state.probeSize == null ? null : views.find((row) => row.size === state.probeSize) || null;
+    const probeRisk = activeProbeProfile && activeProbeProfile.reliable && !activeProbeProfile.sustainable;
+    if (state.probeSize != null && (now > state.probeUntil || baselineRisk || probeRisk)) {
+      const cancellationReason = baselineRisk || probeRisk ? 'RISK_EVIDENCE' : 'PROBE_WINDOW_EXPIRED';
+      state.probeSize = null;
+      state.probeUntil = 0;
+      state.updatedAt = now;
+      this.save();
+      if (cancellationReason === 'RISK_EVIDENCE') {
+        this._event('ADAPTIVE_PULL_PROBE_CANCELLED', 'warn', cancellationReason, {
+          context: data.base.key,
+          party: data.partyKey
+        });
+      }
+    }
+
+    const knownAtRecommended = views.find((row) => row.size === recommendedSize) || null;
+    const nextSize = Math.min(hardCapacity, recommendedSize + 1);
+    const nextProfile = views.find((row) => row.size === nextSize) || null;
+    const canProbe = nextSize > recommendedSize
+      && knownAtRecommended && knownAtRecommended.strongSafe
+      && (!nextProfile || !nextProfile.reliable)
+      && now - finite(state.lastProbeAt, 0) >= this.config.probeCooldownMs
+      && !baselineRisk;
+
+    if (state.probeSize != null && now <= state.probeUntil && state.probeSize <= hardCapacity) {
+      recommendedSize = state.probeSize;
+      reason = 'BOUNDED_EXPLORATION_WINDOW';
+      applied = true;
+      this.stats.probeWindows += 1;
+    } else if (canProbe) {
+      state.lastProbeAt = now;
+      state.probeSize = nextSize;
+      state.probeUntil = now + this.config.probeDurationMs;
+      state.updatedAt = now;
+      recommendedSize = nextSize;
+      reason = 'BOUNDED_EXPLORATION_START';
+      applied = true;
+      this.stats.probesStarted += 1;
+      this.save();
+      this._event('ADAPTIVE_PULL_PROBE_STARTED', 'warn', 'STRONG_SAFE_EVIDENCE', {
+        context: data.base.key,
+        party: data.partyKey,
+        from: nextSize - 1,
+        to: nextSize,
+        until: state.probeUntil
+      });
+    } else if (nextSize > recommendedSize && knownAtRecommended && knownAtRecommended.strongSafe
+      && now - finite(state.lastProbeAt, 0) < this.config.probeCooldownMs) {
+      this.stats.probeCooldownBlocks += 1;
+    }
+
+    recommendedSize = Math.max(1, Math.min(hardCapacity, Math.floor(recommendedSize)));
+    state.lastRecommendedSize = recommendedSize;
+    state.updatedAt = now;
+    const result = {
+      applied,
+      reason,
+      recommendedSize,
+      deterministicDesiredSize: deterministicDesired,
+      hardCapacity,
+      contextKey: data.base.key,
+      partyKey: data.partyKey,
+      probe: state.probeSize == null ? null : { size: state.probeSize, until: state.probeUntil, lastProbeAt: state.lastProbeAt },
+      profiles: views
+    };
+    this.lastRecommendation = result;
+    return clone(result, null);
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: ADAPTIVE_PULL_LEARNING_MODE,
+      enabled: this.enabled,
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      boundedRecommendationAuthority: true,
+      hardSafetyOverrideAuthority: false,
+      deterministicCapacityRemainsAuthoritative: true,
+      config: { ...this.config },
+      lastRecommendation: clone(this.lastRecommendation, null),
+      contexts: this.state.size,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+function installAdaptivePullLearner(runtime, options = {}) {
+  if (!runtime) throw new Error('runtime required');
+  if (runtime.adaptivePullLearner) return runtime.adaptivePullLearner;
+  const learner = new AdaptivePullLearner(runtime, options);
+  runtime.adaptivePullLearner = learner;
+  return learner;
+}
+
+module.exports = {
+  AdaptivePullLearner,
+  installAdaptivePullLearner,
+  ADAPTIVE_PULL_LEARNING_MODE,
+  ADAPTIVE_PULL_STATE_SCHEMA_VERSION
+};
+
+},
+"src/autonomy/smart-aoe-planner.js": function(require,module,exports){
+'use strict';
+
+const { CombatMode, normalizeCombatMode } = require('./combat-modes');
+const { Capability } = require('./skill-semantics');
+
+const SMART_AOE_PLANNER_MODE = 'deterministic-smart-aoe-planner-v1';
+
+const SmartAoeState = Object.freeze({
+  RECOVER: 'RECOVER',
+  BUILD_PULL: 'BUILD_PULL',
+  HOLD_PULL: 'HOLD_PULL',
+  AOE_BURN: 'AOE_BURN',
+  FINISH: 'FINISH',
+  ABORT_PULL: 'ABORT_PULL'
+});
+
+function finite(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clamp(value, lo, hi) {
+  return Math.max(lo, Math.min(hi, value));
+}
+
+function ratio(value, max, fallback = 1) {
+  const denominator = finite(max, 0);
+  if (denominator <= 0) return fallback;
+  return clamp(finite(value, 0) / denominator, 0, 1);
+}
+
+function liveRows(rows) {
+  return (rows || []).filter((row) => row && !row.dead && !row.rip && finite(row.hp, 1) > 0);
+}
+
+function skillHasAoeCapability(skill) {
+  const caps = new Set(skill && skill.capabilities || []);
+  return caps.has(Capability.MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.RANGED_MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.VARIABLE_MULTI_TARGET_DAMAGE)
+    || caps.has(Capability.AOE_DAMAGE);
+}
+
+class SmartAoePlanner {
+  constructor(options = {}) {
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.adaptivePullLearner = options.adaptivePullLearner || null;
+    this.config = {
+      hardMaxPull: Math.max(2, Math.min(12, finite(options.hardMaxPull, 8))),
+      genericAoeCapacity: Math.max(2, Math.min(6, finite(options.genericAoeCapacity, 3))),
+      minBuildHpRatio: clamp(finite(options.minBuildHpRatio, 0.82), 0.50, 0.99),
+      minBuildMpRatio: clamp(finite(options.minBuildMpRatio, 0.45), 0.05, 0.95),
+      emergencyHpRatio: clamp(finite(options.emergencyHpRatio, 0.35), 0.10, 0.70),
+      emergencyMpRatio: clamp(finite(options.emergencyMpRatio, 0.08), 0, 0.40),
+      maxAggregateProjectedDamageRatio: clamp(finite(options.maxAggregateProjectedDamageRatio, 0.95), 0.40, 2.0),
+      finishAverageHpRatio: clamp(finite(options.finishAverageHpRatio, 0.22), 0.05, 0.60)
+    };
+    this.lastPlan = null;
+    this.stats = {
+      evaluations: 0,
+      singleTargetPlans: 0,
+      recoverPlans: 0,
+      buildPlans: 0,
+      holdPlans: 0,
+      burnPlans: 0,
+      finishPlans: 0,
+      abortPlans: 0,
+      candidateAllows: 0,
+      candidateBlocks: 0
+    };
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'smart-aoe-planner', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _aoeSkills(partyCapabilities) {
+    const rows = [];
+    for (const member of partyCapabilities && partyCapabilities.members || []) {
+      for (const skill of member && member.skills || []) {
+        if (!skill || skill.configuredReady !== true || !skillHasAoeCapability(skill)) continue;
+        const minTargets = Math.max(1, Math.floor(finite(skill.parameters && skill.parameters.minTargets, 2)));
+        const capacity = skill.targetCapacity == null
+          ? this.config.genericAoeCapacity
+          : Math.max(1, Math.floor(finite(skill.targetCapacity, 1)));
+        rows.push({
+          character: member.name,
+          ctype: member.ctype,
+          skill: skill.id,
+          minTargets,
+          capacity,
+          capabilities: (skill.capabilities || []).slice()
+        });
+      }
+    }
+    return rows.sort((a, b) => b.capacity - a.capacity || a.minTargets - b.minTargets || a.skill.localeCompare(b.skill));
+  }
+
+  _resourceState(team) {
+    const members = team && team.members || [];
+    const hpRatios = members.map((row) => ratio(row.hp, row.max_hp, 1));
+    const mpRatios = members.map((row) => ratio(row.mp, row.max_mp, 1));
+    return {
+      minHpRatio: hpRatios.length ? Math.min(...hpRatios) : 0,
+      avgHpRatio: hpRatios.length ? hpRatios.reduce((a, b) => a + b, 0) / hpRatios.length : 0,
+      minMpRatio: mpRatios.length ? Math.min(...mpRatios) : 0,
+      avgMpRatio: mpRatios.length ? mpRatios.reduce((a, b) => a + b, 0) / mpRatios.length : 0
+    };
+  }
+
+  _hardCapacity(mode, partyCapabilities, skills) {
+    if (mode === CombatMode.SINGLE_TARGET) return 1;
+    if (!partyCapabilities || partyCapabilities.catalogReady !== true) return 1;
+    if (!partyCapabilities.combat || partyCapabilities.combat.aoeConfigured !== true) return 1;
+    if (!skills.length) return 1;
+
+    let capacity = Math.max(...skills.map((row) => row.capacity));
+    const support = partyCapabilities.combat.configuredSupport || partyCapabilities.combat.support || {};
+    const sustain = support.groupSustain === true || support.partyHeal === true;
+    const control = support.aoeControl === true || support.aoeAggroControl === true;
+
+    if (!sustain && !control) capacity = Math.min(capacity, 2);
+    else if (!sustain || !control) capacity = Math.min(capacity, 3);
+
+    return Math.max(1, Math.min(this.config.hardMaxPull, capacity));
+  }
+
+  _desiredSize(mode, capacity, skills) {
+    if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) return 1;
+    const thresholds = skills.map((row) => row.minTargets).filter((value) => value > 1 && value <= capacity);
+    if (!thresholds.length) return Math.min(capacity, 2);
+    if (mode === CombatMode.AOE_PREFERRED) return Math.min(capacity, Math.max(...thresholds));
+    return Math.min(capacity, Math.min(...thresholds));
+  }
+
+  evaluate(input = {}) {
+    this.stats.evaluations += 1;
+    const mode = normalizeCombatMode(input.mode, CombatMode.SMART_AUTO);
+    const team = input.team || null;
+    const partyCapabilities = input.partyCapabilities || null;
+    const engagedTargets = liveRows(input.engagedTargets);
+    const evaluations = input.evaluations || [];
+    const skills = this._aoeSkills(partyCapabilities);
+    const resources = this._resourceState(team);
+    const capacity = this._hardCapacity(mode, partyCapabilities, skills);
+    const deterministicDesiredPullSize = this._desiredSize(mode, capacity, skills);
+    let desiredPullSize = deterministicDesiredPullSize;
+    let adaptivePull = null;
+    if (this.adaptivePullLearner && typeof this.adaptivePullLearner.recommend === 'function' && mode !== CombatMode.SINGLE_TARGET) {
+      try {
+        adaptivePull = this.adaptivePullLearner.recommend({
+          ...(input.learningContext || {}),
+          combatMode: mode,
+          hardCapacity: capacity,
+          deterministicDesiredSize: deterministicDesiredPullSize
+        });
+        if (adaptivePull && Number.isFinite(Number(adaptivePull.recommendedSize))) {
+          desiredPullSize = Math.max(1, Math.min(capacity, Math.floor(Number(adaptivePull.recommendedSize))));
+        }
+      } catch (error) {
+        adaptivePull = { applied: false, reason: 'ADAPTIVE_PULL_ERROR', error: String(error && error.message || error) };
+        desiredPullSize = deterministicDesiredPullSize;
+      }
+    }
+    const engagedCount = engagedTargets.length;
+    const averageEnemyHpRatio = engagedCount
+      ? engagedTargets.reduce((sum, row) => sum + ratio(row.hp, row.max_hp || row.hp, 1), 0) / engagedCount
+      : 1;
+    const aggregateProjectedDamageRatio = evaluations.reduce((sum, row) => sum + Math.max(0, finite(row && row.projectedDamageRatio, 0)), 0);
+
+    const hardSafetyReady = !!(team && team.complete && team.alive && team.sameMap && team.positionsKnown && team.cohesive);
+    const emergency = resources.minHpRatio <= this.config.emergencyHpRatio
+      || resources.minMpRatio <= this.config.emergencyMpRatio
+      || aggregateProjectedDamageRatio > this.config.maxAggregateProjectedDamageRatio;
+    const buildResourcesReady = resources.minHpRatio >= this.config.minBuildHpRatio
+      && resources.minMpRatio >= this.config.minBuildMpRatio
+      && team && team.healthReady !== false && team.manaReady !== false;
+
+    let state = SmartAoeState.RECOVER;
+    let reason = 'NO_ACTIVE_ENCOUNTER';
+    let mayAddTarget = false;
+
+    if (!hardSafetyReady) {
+      state = engagedCount > 0 ? SmartAoeState.ABORT_PULL : SmartAoeState.RECOVER;
+      reason = 'PARTY_SAFETY_NOT_READY';
+    } else if (emergency && engagedCount > 0) {
+      state = SmartAoeState.ABORT_PULL;
+      reason = 'EMERGENCY_RESOURCE_OR_DAMAGE_RISK';
+    } else if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) {
+      state = engagedCount > 0 ? SmartAoeState.FINISH : SmartAoeState.RECOVER;
+      reason = mode === CombatMode.SINGLE_TARGET ? 'SINGLE_TARGET_MODE' : 'AOE_CAPABILITY_UNAVAILABLE';
+      this.stats.singleTargetPlans += 1;
+    } else if (engagedCount === 0) {
+      if (buildResourcesReady) {
+        state = SmartAoeState.BUILD_PULL;
+        reason = 'READY_FOR_FIRST_TARGET';
+        mayAddTarget = true;
+      } else {
+        state = SmartAoeState.RECOVER;
+        reason = 'RESOURCES_BELOW_BUILD_THRESHOLD';
+      }
+    } else if (engagedCount > capacity) {
+      state = SmartAoeState.ABORT_PULL;
+      reason = 'ENGAGED_COUNT_EXCEEDS_HARD_CAPACITY';
+    } else if (engagedCount === 1 && averageEnemyHpRatio <= this.config.finishAverageHpRatio) {
+      state = SmartAoeState.FINISH;
+      reason = 'PRIMARY_TARGET_NEAR_FINISH';
+    } else if (engagedCount < desiredPullSize && buildResourcesReady) {
+      state = SmartAoeState.BUILD_PULL;
+      reason = 'BELOW_DESIRED_PULL_SIZE';
+      mayAddTarget = true;
+    } else if (engagedCount >= 2 && partyCapabilities && partyCapabilities.combat && partyCapabilities.combat.aoeConfigured) {
+      state = SmartAoeState.AOE_BURN;
+      reason = engagedCount >= desiredPullSize ? 'DESIRED_PULL_ESTABLISHED' : 'MULTI_TARGET_ALREADY_ENGAGED';
+    } else {
+      state = SmartAoeState.HOLD_PULL;
+      reason = buildResourcesReady ? 'HOLD_CURRENT_ENGAGEMENT' : 'NO_MORE_TARGETS_UNTIL_RECOVERED';
+    }
+
+    if (state === SmartAoeState.RECOVER) this.stats.recoverPlans += 1;
+    else if (state === SmartAoeState.BUILD_PULL) this.stats.buildPlans += 1;
+    else if (state === SmartAoeState.HOLD_PULL) this.stats.holdPlans += 1;
+    else if (state === SmartAoeState.AOE_BURN) this.stats.burnPlans += 1;
+    else if (state === SmartAoeState.FINISH) this.stats.finishPlans += 1;
+    else if (state === SmartAoeState.ABORT_PULL) this.stats.abortPlans += 1;
+
+    const plan = {
+      schemaVersion: 1,
+      mode: SMART_AOE_PLANNER_MODE,
+      at: this.now(),
+      combatMode: mode,
+      state,
+      reason,
+      hardSafetyReady,
+      mayAddTarget,
+      pullCapacity: capacity,
+      deterministicDesiredPullSize,
+      desiredPullSize,
+      adaptivePull,
+      engagedCount,
+      averageEnemyHpRatio,
+      aggregateProjectedDamageRatio,
+      resources,
+      aoeSkills: skills,
+      partyCapabilityGeneration: partyCapabilities && partyCapabilities.generation || null
+    };
+    this.lastPlan = plan;
+    return { ...plan, resources: { ...resources }, aoeSkills: skills.map((row) => ({ ...row })) };
+  }
+
+  evaluateCandidate(plan, evaluation) {
+    const current = plan || this.lastPlan;
+    if (!current || current.mayAddTarget !== true || current.state !== SmartAoeState.BUILD_PULL) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'PLANNER_NOT_BUILDING_PULL' };
+    }
+    if (current.engagedCount >= current.pullCapacity) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'PULL_CAPACITY_REACHED' };
+    }
+    if (!evaluation || evaluation.allowed !== true) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: evaluation && evaluation.reason || 'TARGET_EVALUATION_REJECTED' };
+    }
+    const projected = current.aggregateProjectedDamageRatio + Math.max(0, finite(evaluation.projectedDamageRatio, 0));
+    if (projected > this.config.maxAggregateProjectedDamageRatio) {
+      this.stats.candidateBlocks += 1;
+      return { allowed: false, reason: 'AGGREGATE_PROJECTED_DAMAGE_TOO_HIGH', projectedDamageRatio: projected };
+    }
+    this.stats.candidateAllows += 1;
+    return {
+      allowed: true,
+      reason: 'WITHIN_DYNAMIC_PULL_CAPACITY',
+      projectedDamageRatio: projected,
+      resultingCount: current.engagedCount + 1
+    };
+  }
+
+  status() {
+    return {
+      schemaVersion: 1,
+      mode: SMART_AOE_PLANNER_MODE,
+      config: { ...this.config },
+      lastPlan: this.lastPlan ? {
+        ...this.lastPlan,
+        resources: { ...this.lastPlan.resources },
+        aoeSkills: this.lastPlan.aoeSkills.map((row) => ({ ...row })),
+        adaptivePull: this.lastPlan.adaptivePull ? JSON.parse(JSON.stringify(this.lastPlan.adaptivePull)) : null
+      } : null,
+      adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
+      stats: { ...this.stats }
+    };
+  }
+}
+
+module.exports = { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE };
+
+},
 "src/autonomy/tactical-party-combat.js": function(require,module,exports){
 'use strict';
 
@@ -32448,7 +33287,13 @@ class TacticalPartyCombat {
       pendingPullTimeoutMs: Math.max(1200, finite(options.pendingPullTimeoutMs, 3000)),
       sameTypePullsOnly: options.sameTypePullsOnly !== false
     };
-    this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({ ...(options.smartAoe || {}), now: this.now, log: this.log });
+    this.adaptivePullLearner = options.adaptivePullLearner || runtime.adaptivePullLearner || null;
+    this.smartAoePlanner = options.smartAoePlanner || new SmartAoePlanner({
+      ...(options.smartAoe || {}),
+      now: this.now,
+      log: this.log,
+      adaptivePullLearner: this.adaptivePullLearner
+    });
     this.encounter = null;
     this.lastEvaluation = null;
     this.lastDecision = null;
@@ -32603,12 +33448,23 @@ class TacticalPartyCombat {
     }
     const targets = this._encounterEntities(snapshot, team);
     const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
+    const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
+      ? this.runtime._currentMembers(snapshot)
+      : (team.members || []);
     const aoe = this.smartAoePlanner.evaluate({
       mode: this._combatMode(snapshot, team),
       team,
       partyCapabilities: this._partyCapabilities(),
       engagedTargets: targets,
-      evaluations
+      evaluations,
+      learningContext: {
+        snapshot,
+        currentMembers,
+        monster: this.encounter.targetType || targets[0] && targets[0].mtype || null,
+        encounterFingerprint: this.runtime.currentEncounterFingerprint || null,
+        partyFingerprint: this.runtime.currentPartyFingerprint || null,
+        isLeader: team.selfName === team.leaderName
+      }
     });
     const primaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
     this.encounter.targetIds = targets.map((row) => String(row.id));
@@ -32914,6 +33770,7 @@ class TacticalPartyCombat {
       config: { ...this.config },
       encounter: this.encounter ? JSON.parse(JSON.stringify(this.encounter)) : null,
       smartAoePlanner: this.smartAoePlanner.status(),
+      adaptivePullLearning: this.adaptivePullLearner && typeof this.adaptivePullLearner.status === 'function' ? this.adaptivePullLearner.status() : null,
       pendingPull: this.pendingPull ? { ...this.pendingPull } : null,
       lastEvaluation: this.lastEvaluation ? { ...this.lastEvaluation } : null,
       lastDecision: this.lastDecision ? { ...this.lastDecision } : null,
@@ -32924,284 +33781,6 @@ class TacticalPartyCombat {
 
 function installTacticalPartyCombat(runtime, options = {}) { return new TacticalPartyCombat(runtime, options); }
 module.exports = { TacticalPartyCombat, installTacticalPartyCombat, TACTICAL_PARTY_COMBAT_MODE };
-
-},
-"src/autonomy/smart-aoe-planner.js": function(require,module,exports){
-'use strict';
-
-const { CombatMode, normalizeCombatMode } = require('./combat-modes');
-const { Capability } = require('./skill-semantics');
-
-const SMART_AOE_PLANNER_MODE = 'deterministic-smart-aoe-planner-v1';
-
-const SmartAoeState = Object.freeze({
-  RECOVER: 'RECOVER',
-  BUILD_PULL: 'BUILD_PULL',
-  HOLD_PULL: 'HOLD_PULL',
-  AOE_BURN: 'AOE_BURN',
-  FINISH: 'FINISH',
-  ABORT_PULL: 'ABORT_PULL'
-});
-
-function finite(value, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function clamp(value, lo, hi) {
-  return Math.max(lo, Math.min(hi, value));
-}
-
-function ratio(value, max, fallback = 1) {
-  const denominator = finite(max, 0);
-  if (denominator <= 0) return fallback;
-  return clamp(finite(value, 0) / denominator, 0, 1);
-}
-
-function liveRows(rows) {
-  return (rows || []).filter((row) => row && !row.dead && !row.rip && finite(row.hp, 1) > 0);
-}
-
-function skillHasAoeCapability(skill) {
-  const caps = new Set(skill && skill.capabilities || []);
-  return caps.has(Capability.MULTI_TARGET_DAMAGE)
-    || caps.has(Capability.RANGED_MULTI_TARGET_DAMAGE)
-    || caps.has(Capability.VARIABLE_MULTI_TARGET_DAMAGE)
-    || caps.has(Capability.AOE_DAMAGE);
-}
-
-class SmartAoePlanner {
-  constructor(options = {}) {
-    this.now = options.now || (() => Date.now());
-    this.log = options.log || null;
-    this.config = {
-      hardMaxPull: Math.max(2, Math.min(12, finite(options.hardMaxPull, 8))),
-      genericAoeCapacity: Math.max(2, Math.min(6, finite(options.genericAoeCapacity, 3))),
-      minBuildHpRatio: clamp(finite(options.minBuildHpRatio, 0.82), 0.50, 0.99),
-      minBuildMpRatio: clamp(finite(options.minBuildMpRatio, 0.45), 0.05, 0.95),
-      emergencyHpRatio: clamp(finite(options.emergencyHpRatio, 0.35), 0.10, 0.70),
-      emergencyMpRatio: clamp(finite(options.emergencyMpRatio, 0.08), 0, 0.40),
-      maxAggregateProjectedDamageRatio: clamp(finite(options.maxAggregateProjectedDamageRatio, 0.95), 0.40, 2.0),
-      finishAverageHpRatio: clamp(finite(options.finishAverageHpRatio, 0.22), 0.05, 0.60)
-    };
-    this.lastPlan = null;
-    this.stats = {
-      evaluations: 0,
-      singleTargetPlans: 0,
-      recoverPlans: 0,
-      buildPlans: 0,
-      holdPlans: 0,
-      burnPlans: 0,
-      finishPlans: 0,
-      abortPlans: 0,
-      candidateAllows: 0,
-      candidateBlocks: 0
-    };
-  }
-
-  _event(event, severity = 'info', reason = null, data = {}) {
-    if (!this.log || typeof this.log.emit !== 'function') return;
-    try { this.log.emit({ component: 'smart-aoe-planner', event, severity, reason, data }); } catch (_) {}
-  }
-
-  _aoeSkills(partyCapabilities) {
-    const rows = [];
-    for (const member of partyCapabilities && partyCapabilities.members || []) {
-      for (const skill of member && member.skills || []) {
-        if (!skill || skill.configuredReady !== true || !skillHasAoeCapability(skill)) continue;
-        const minTargets = Math.max(1, Math.floor(finite(skill.parameters && skill.parameters.minTargets, 2)));
-        const capacity = skill.targetCapacity == null
-          ? this.config.genericAoeCapacity
-          : Math.max(1, Math.floor(finite(skill.targetCapacity, 1)));
-        rows.push({
-          character: member.name,
-          ctype: member.ctype,
-          skill: skill.id,
-          minTargets,
-          capacity,
-          capabilities: (skill.capabilities || []).slice()
-        });
-      }
-    }
-    return rows.sort((a, b) => b.capacity - a.capacity || a.minTargets - b.minTargets || a.skill.localeCompare(b.skill));
-  }
-
-  _resourceState(team) {
-    const members = team && team.members || [];
-    const hpRatios = members.map((row) => ratio(row.hp, row.max_hp, 1));
-    const mpRatios = members.map((row) => ratio(row.mp, row.max_mp, 1));
-    return {
-      minHpRatio: hpRatios.length ? Math.min(...hpRatios) : 0,
-      avgHpRatio: hpRatios.length ? hpRatios.reduce((a, b) => a + b, 0) / hpRatios.length : 0,
-      minMpRatio: mpRatios.length ? Math.min(...mpRatios) : 0,
-      avgMpRatio: mpRatios.length ? mpRatios.reduce((a, b) => a + b, 0) / mpRatios.length : 0
-    };
-  }
-
-  _hardCapacity(mode, partyCapabilities, skills) {
-    if (mode === CombatMode.SINGLE_TARGET) return 1;
-    if (!partyCapabilities || partyCapabilities.catalogReady !== true) return 1;
-    if (!partyCapabilities.combat || partyCapabilities.combat.aoeConfigured !== true) return 1;
-    if (!skills.length) return 1;
-
-    let capacity = Math.max(...skills.map((row) => row.capacity));
-    const support = partyCapabilities.combat.configuredSupport || partyCapabilities.combat.support || {};
-    const sustain = support.groupSustain === true || support.partyHeal === true;
-    const control = support.aoeControl === true || support.aoeAggroControl === true;
-
-    if (!sustain && !control) capacity = Math.min(capacity, 2);
-    else if (!sustain || !control) capacity = Math.min(capacity, 3);
-
-    return Math.max(1, Math.min(this.config.hardMaxPull, capacity));
-  }
-
-  _desiredSize(mode, capacity, skills) {
-    if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) return 1;
-    const thresholds = skills.map((row) => row.minTargets).filter((value) => value > 1 && value <= capacity);
-    if (!thresholds.length) return Math.min(capacity, 2);
-    if (mode === CombatMode.AOE_PREFERRED) return Math.min(capacity, Math.max(...thresholds));
-    return Math.min(capacity, Math.min(...thresholds));
-  }
-
-  evaluate(input = {}) {
-    this.stats.evaluations += 1;
-    const mode = normalizeCombatMode(input.mode, CombatMode.SMART_AUTO);
-    const team = input.team || null;
-    const partyCapabilities = input.partyCapabilities || null;
-    const engagedTargets = liveRows(input.engagedTargets);
-    const evaluations = input.evaluations || [];
-    const skills = this._aoeSkills(partyCapabilities);
-    const resources = this._resourceState(team);
-    const capacity = this._hardCapacity(mode, partyCapabilities, skills);
-    const desiredPullSize = this._desiredSize(mode, capacity, skills);
-    const engagedCount = engagedTargets.length;
-    const averageEnemyHpRatio = engagedCount
-      ? engagedTargets.reduce((sum, row) => sum + ratio(row.hp, row.max_hp || row.hp, 1), 0) / engagedCount
-      : 1;
-    const aggregateProjectedDamageRatio = evaluations.reduce((sum, row) => sum + Math.max(0, finite(row && row.projectedDamageRatio, 0)), 0);
-
-    const hardSafetyReady = !!(team && team.complete && team.alive && team.sameMap && team.positionsKnown && team.cohesive);
-    const emergency = resources.minHpRatio <= this.config.emergencyHpRatio
-      || resources.minMpRatio <= this.config.emergencyMpRatio
-      || aggregateProjectedDamageRatio > this.config.maxAggregateProjectedDamageRatio;
-    const buildResourcesReady = resources.minHpRatio >= this.config.minBuildHpRatio
-      && resources.minMpRatio >= this.config.minBuildMpRatio
-      && team && team.healthReady !== false && team.manaReady !== false;
-
-    let state = SmartAoeState.RECOVER;
-    let reason = 'NO_ACTIVE_ENCOUNTER';
-    let mayAddTarget = false;
-
-    if (!hardSafetyReady) {
-      state = engagedCount > 0 ? SmartAoeState.ABORT_PULL : SmartAoeState.RECOVER;
-      reason = 'PARTY_SAFETY_NOT_READY';
-    } else if (emergency && engagedCount > 0) {
-      state = SmartAoeState.ABORT_PULL;
-      reason = 'EMERGENCY_RESOURCE_OR_DAMAGE_RISK';
-    } else if (mode === CombatMode.SINGLE_TARGET || capacity <= 1) {
-      state = engagedCount > 0 ? SmartAoeState.FINISH : SmartAoeState.RECOVER;
-      reason = mode === CombatMode.SINGLE_TARGET ? 'SINGLE_TARGET_MODE' : 'AOE_CAPABILITY_UNAVAILABLE';
-      this.stats.singleTargetPlans += 1;
-    } else if (engagedCount === 0) {
-      if (buildResourcesReady) {
-        state = SmartAoeState.BUILD_PULL;
-        reason = 'READY_FOR_FIRST_TARGET';
-        mayAddTarget = true;
-      } else {
-        state = SmartAoeState.RECOVER;
-        reason = 'RESOURCES_BELOW_BUILD_THRESHOLD';
-      }
-    } else if (engagedCount > capacity) {
-      state = SmartAoeState.ABORT_PULL;
-      reason = 'ENGAGED_COUNT_EXCEEDS_HARD_CAPACITY';
-    } else if (engagedCount === 1 && averageEnemyHpRatio <= this.config.finishAverageHpRatio) {
-      state = SmartAoeState.FINISH;
-      reason = 'PRIMARY_TARGET_NEAR_FINISH';
-    } else if (engagedCount < desiredPullSize && buildResourcesReady) {
-      state = SmartAoeState.BUILD_PULL;
-      reason = 'BELOW_DESIRED_PULL_SIZE';
-      mayAddTarget = true;
-    } else if (engagedCount >= 2 && partyCapabilities && partyCapabilities.combat && partyCapabilities.combat.aoeConfigured) {
-      state = SmartAoeState.AOE_BURN;
-      reason = engagedCount >= desiredPullSize ? 'DESIRED_PULL_ESTABLISHED' : 'MULTI_TARGET_ALREADY_ENGAGED';
-    } else {
-      state = SmartAoeState.HOLD_PULL;
-      reason = buildResourcesReady ? 'HOLD_CURRENT_ENGAGEMENT' : 'NO_MORE_TARGETS_UNTIL_RECOVERED';
-    }
-
-    if (state === SmartAoeState.RECOVER) this.stats.recoverPlans += 1;
-    else if (state === SmartAoeState.BUILD_PULL) this.stats.buildPlans += 1;
-    else if (state === SmartAoeState.HOLD_PULL) this.stats.holdPlans += 1;
-    else if (state === SmartAoeState.AOE_BURN) this.stats.burnPlans += 1;
-    else if (state === SmartAoeState.FINISH) this.stats.finishPlans += 1;
-    else if (state === SmartAoeState.ABORT_PULL) this.stats.abortPlans += 1;
-
-    const plan = {
-      schemaVersion: 1,
-      mode: SMART_AOE_PLANNER_MODE,
-      at: this.now(),
-      combatMode: mode,
-      state,
-      reason,
-      hardSafetyReady,
-      mayAddTarget,
-      pullCapacity: capacity,
-      desiredPullSize,
-      engagedCount,
-      averageEnemyHpRatio,
-      aggregateProjectedDamageRatio,
-      resources,
-      aoeSkills: skills,
-      partyCapabilityGeneration: partyCapabilities && partyCapabilities.generation || null
-    };
-    this.lastPlan = plan;
-    return { ...plan, resources: { ...resources }, aoeSkills: skills.map((row) => ({ ...row })) };
-  }
-
-  evaluateCandidate(plan, evaluation) {
-    const current = plan || this.lastPlan;
-    if (!current || current.mayAddTarget !== true || current.state !== SmartAoeState.BUILD_PULL) {
-      this.stats.candidateBlocks += 1;
-      return { allowed: false, reason: 'PLANNER_NOT_BUILDING_PULL' };
-    }
-    if (current.engagedCount >= current.pullCapacity) {
-      this.stats.candidateBlocks += 1;
-      return { allowed: false, reason: 'PULL_CAPACITY_REACHED' };
-    }
-    if (!evaluation || evaluation.allowed !== true) {
-      this.stats.candidateBlocks += 1;
-      return { allowed: false, reason: evaluation && evaluation.reason || 'TARGET_EVALUATION_REJECTED' };
-    }
-    const projected = current.aggregateProjectedDamageRatio + Math.max(0, finite(evaluation.projectedDamageRatio, 0));
-    if (projected > this.config.maxAggregateProjectedDamageRatio) {
-      this.stats.candidateBlocks += 1;
-      return { allowed: false, reason: 'AGGREGATE_PROJECTED_DAMAGE_TOO_HIGH', projectedDamageRatio: projected };
-    }
-    this.stats.candidateAllows += 1;
-    return {
-      allowed: true,
-      reason: 'WITHIN_DYNAMIC_PULL_CAPACITY',
-      projectedDamageRatio: projected,
-      resultingCount: current.engagedCount + 1
-    };
-  }
-
-  status() {
-    return {
-      schemaVersion: 1,
-      mode: SMART_AOE_PLANNER_MODE,
-      config: { ...this.config },
-      lastPlan: this.lastPlan ? {
-        ...this.lastPlan,
-        resources: { ...this.lastPlan.resources },
-        aoeSkills: this.lastPlan.aoeSkills.map((row) => ({ ...row }))
-      } : null,
-      stats: { ...this.stats }
-    };
-  }
-}
-
-module.exports = { SmartAoePlanner, SmartAoeState, SMART_AOE_PLANNER_MODE };
 
 },
 "src/autonomy/advanced-party-movement.js": function(require,module,exports){
@@ -50382,7 +50961,16 @@ class DebugMonitorUI {
       generation: catalog.generation,
       rows,
       enabled: rows.filter((row) => row.enabled).length,
-      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name)
+      combatMode: runtime.characterCombatProfiles.getCombatMode(character.name),
+      adaptivePull: runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounter && runtime.tacticalPartyCombat.encounter.aoe
+        ? {
+            engagedCount: runtime.tacticalPartyCombat.encounter.aoe.engagedCount,
+            desiredPullSize: runtime.tacticalPartyCombat.encounter.aoe.desiredPullSize,
+            deterministicDesiredPullSize: runtime.tacticalPartyCombat.encounter.aoe.deterministicDesiredPullSize,
+            pullCapacity: runtime.tacticalPartyCombat.encounter.aoe.pullCapacity,
+            reason: runtime.tacticalPartyCombat.encounter.aoe.adaptivePull && runtime.tacticalPartyCombat.encounter.aoe.adaptivePull.reason || 'DETERMINISTIC_BASELINE'
+          }
+        : null
     };
   }
 
@@ -50525,6 +51113,22 @@ class DebugMonitorUI {
     modeRow.appendChild(modeLabel);
     modeRow.appendChild(modeSelect);
     this.skillsPanel.appendChild(modeRow);
+
+    const adaptiveRow = doc.createElement('div');
+    this._setStyle(adaptiveRow, { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '8px', marginBottom: '8px' });
+    const adaptiveLabel = doc.createElement('span');
+    adaptiveLabel.textContent = 'Adaptive Pull';
+    this._setStyle(adaptiveLabel, { color: '#9ca3af', fontSize: '10px' });
+    const adaptiveValue = doc.createElement('span');
+    if (state.adaptivePull) {
+      adaptiveValue.textContent = `Ziel ${state.adaptivePull.desiredPullSize}/${state.adaptivePull.pullCapacity} · aktiv ${state.adaptivePull.engagedCount} · ${state.adaptivePull.reason}`;
+    } else {
+      adaptiveValue.textContent = 'noch keine aktive Encounter-Evidenz';
+    }
+    this._setStyle(adaptiveValue, { color: '#d1d5db', fontSize: '10px', overflowWrap: 'anywhere' });
+    adaptiveRow.appendChild(adaptiveLabel);
+    adaptiveRow.appendChild(adaptiveValue);
+    this.skillsPanel.appendChild(adaptiveRow);
 
     const actions = doc.createElement('div');
     this._setStyle(actions, { display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' });
@@ -51150,7 +51754,7 @@ function buildServiceGroups(runtime) {
   return Object.freeze({
     gameStability: serviceGroup(runtime, [
       'adapter', 'scheduler', 'world', 'persistence', 'knowledgeAging',
-      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy'
+      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy', 'adaptivePullLearner'
     ]),
     merchantEconomyTravel: serviceGroup(runtime, [
       'inventoryLedger', 'gearProgression', 'transactionEngine', 'controlledMerchant',
