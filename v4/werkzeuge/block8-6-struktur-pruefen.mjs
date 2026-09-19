@@ -48,6 +48,10 @@ const dateien = [
   'werkzeuge/block8-6-schatten-paket.js',
   'laufzeit/tests/block8-6-schatten-paket.test.mjs',
   'dokumentation/BLOCK-8-6-9-SCHATTEN-PAKET.md',
+  'werkzeuge/block8-6-live-paket-bauen.mjs',
+  'werkzeuge/block8-6-live-paket.js',
+  'laufzeit/tests/block8-6-live-paket.test.mjs',
+  'dokumentation/BLOCK-8-6-9-LIVE-PAKET.md',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.json',
   'dokumentation/BLOCK-8-6-9-RELEASE-CANDIDATE.md',
   'dokumentation/BLOCK-8-6-9-CANDIDATE-DEPLOYMENT-NACHWEIS.md',
@@ -1102,8 +1106,8 @@ for (const pflicht of [
 }
 
 const packageJson = JSON.parse(await readFile(path.join(wurzel, 'package.json'), 'utf8'));
-if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen') {
-  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-, Release-Bindungs- und Schattenpaketpruefung anbieten.');
+if (packageJson.scripts?.['block8-6-struktur:pruefen'] !== 'node werkzeuge/block8-6-struktur-pruefen.mjs && npm run block8-6-candidate:pruefen && npm run block8-6-release-bindung:pruefen && npm run block8-6-schatten-paket:pruefen && npm run block8-6-live-paket:pruefen') {
+  throw new Error('package.json muss den Block-8.6-Strukturguard inklusive Candidate-, Release-Bindungs-, Schatten- und Livepaketpruefung anbieten.');
 }
 if (packageJson.scripts?.['block8-6-release-bindung:pruefen'] !== 'node werkzeuge/block8-6-release-bindung-pruefen.mjs') {
   throw new Error('package.json muss die Block-8.6-Release-Bindungspruefung anbieten.');
@@ -1114,6 +1118,31 @@ if (packageJson.scripts?.['block8-6-schatten-paket:bauen'] !== 'node werkzeuge/b
 if (packageJson.scripts?.['block8-6-schatten-paket:pruefen'] !== 'node werkzeuge/block8-6-schatten-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-schatten-paket.js') {
   throw new Error('package.json muss die source-locked Block-8.6-Schattenpaket-Pruefung anbieten.');
 }
+if (packageJson.scripts?.['block8-6-live-paket:bauen'] !== 'node werkzeuge/block8-6-live-paket-bauen.mjs') {
+  throw new Error('package.json muss den Block-8.6-Livepaket-Build anbieten.');
+}
+if (packageJson.scripts?.['block8-6-live-paket:pruefen'] !== 'node werkzeuge/block8-6-live-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-6-live-paket.js') {
+  throw new Error('package.json muss die source-locked Block-8.6-Livepaket-Pruefung anbieten.');
+}
+
+const livePaket = await readFile(path.join(wurzel, 'werkzeuge/block8-6-live-paket.js'), 'utf8');
+for (const pflicht of [
+  'ca0dfee7685563c8b6003469300c8fd08777b053',
+  'b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5',
+  'block8-6-schatten-1789822653521',
+  'BLOCK8-6-KONTROLLIERT-LIVE:block8-6-schatten-1789822653521',
+  "vertrauensNamen: Object.freeze(['My_Ranger1', 'My_Ranger2'])",
+  "modus: 'live'",
+  'runtime.starte()',
+  'warteAufProduktionsheartbeat(runtime)',
+  "titel: '2 · Kontrolliert live'",
+  'nachCap.senden.versuche === 1',
+  'nachCap.senden.erfolge === 1',
+  'nachCap.senden.fehler === 0'
+]) {
+  if (!livePaket.includes(pflicht)) throw new Error('Block-8.6-Livepaket fehlt: ' + pflicht);
+}
+
 
 const schattenPaket = await readFile(path.join(wurzel, 'werkzeuge/block8-6-schatten-paket.js'), 'utf8');
 for (const pflicht of [
@@ -1137,4 +1166,4 @@ if (!String(packageJson.scripts?.pruefen ?? '').includes('npm run block8-6-struk
   throw new Error('npm run pruefen muss den Block-8.6-Strukturguard ausfuehren.');
 }
 
-console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate und real bestandener Schatten; kontrolliert live/Soak bleiben offen.');
+console.log('Block 8.6.1 bis 8.6.9 geprueft: Capability Truth bis Replay, exakt gebundener/deployed Candidate, real bestandener Schatten und source-locked Livepaket; real kontrolliert live/Soak bleiben offen.');
