@@ -298,6 +298,12 @@ class Alpha25ControlCenterBrain {
       if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
     });
 
+    apply('economy.itemPermissions', (value) => {
+      const ledger = this.runtime.inventoryLedger;
+      if (ledger && typeof ledger.setItemPermissions === 'function') ledger.setItemPermissions(value);
+      if (this.runtime.lastSnapshot && typeof this.runtime._planInventoryAndGear === 'function') this.runtime._planInventoryAndGear();
+    });
+
     const economy = this.runtime.economyEquipmentAutonomyV2;
     if (economy && economy.marketHistory) {
       apply('economy.marketMaxTrackedItems', (value) => { economy.marketHistory.maxItems = Math.max(16, Math.min(256, Number(value) || 96)); });
