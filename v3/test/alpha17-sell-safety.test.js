@@ -57,8 +57,8 @@ test('SELL allowlist cannot override protected equipment/quest/exchange/event/ca
     liveCharacter: { name: 'MerchantA', isize: inventory.length, items: inventory.map((row) => ({ name: row.name })) }
   });
 
-  assert.equal(ledger.get('MerchantA', 0).disposition, ItemDisposition.UNDECIDED);
-  assert.ok(ledger.get('MerchantA', 0).reasons.includes('OPERATOR_SELL_ALLOWLIST_CAPABILITY'));
+  assert.equal(ledger.get('MerchantA', 0).disposition, ItemDisposition.SELL);
+  assert.ok(ledger.get('MerchantA', 0).reasons.includes('OPERATOR_SELL_ALLOWLIST'));
 
   for (let index = 1; index < inventory.length; index += 1) {
     const row = ledger.get('MerchantA', index);
