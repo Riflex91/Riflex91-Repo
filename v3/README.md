@@ -4,7 +4,7 @@
 
 Adventure Land AiO Bot v3 alpha: adaptive Merchant-coordinated party lifecycle with bounded development, promotion hysteresis and controlled Paladin aura authority.
 
-**Version:** `3.0.0-alpha.20.145` · **Node.js:** `>=20` · **Quellmodule:** 238 · **Tests:** 205 · **Source-Zeilen:** 68056
+**Version:** `3.0.0-alpha.20.146` · **Node.js:** `>=20` · **Quellmodule:** 238 · **Tests:** 205 · **Source-Zeilen:** 68132
 
 > Diese Datei wird deterministisch aus dem Repository erzeugt. Technische Fakten sollten im Code oder in den Quelldateien geändert werden, nicht direkt hier.
 
@@ -33,7 +33,7 @@ npm run docs:generate
 | Kennzahl | Wert |
 | --- | ---: |
 | Source-Dateien | 238 |
-| Source-Zeilen | 68056 |
+| Source-Zeilen | 68132 |
 | Testdateien | 205 |
 | Top-Level-Source-Bereiche | 20 |
 | Alpha-Abschlussdokumente | 13 |

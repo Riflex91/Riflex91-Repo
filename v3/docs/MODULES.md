@@ -278,7 +278,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17587 Zeilen**
+**50 Dateien · 17663 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -289,7 +289,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha20-23-idle-deadlock-recovery.js` | 216 |
 | `src/reliability/alpha20-33-combat-logistics-regression-hotfix.js` | 385 |
 | `src/reliability/alpha21-liveness-guards.js` | 345 |
-| `src/reliability/alpha21-progression-intelligence.js` | 432 |
+| `src/reliability/alpha21-progression-intelligence.js` | 478 |
 | `src/reliability/alpha23-combat-stability-hotfix.js` | 40 |
 | `src/reliability/alpha24-adaptive-range-risk-logistics-hotfix.js` | 520 |
 | `src/reliability/alpha25-control-center-brain.js` | 528 |
@@ -313,7 +313,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha27-merchant-travel-intelligence.js` | 393 |
 | `src/reliability/alpha27-utils.js` | 149 |
 | `src/reliability/alpha28-brain-cloud.js` | 116 |
-| `src/reliability/alpha28-cross-map-farmer.js` | 422 |
+| `src/reliability/alpha28-cross-map-farmer.js` | 452 |
 | `src/reliability/alpha28-ledger-farmer-fixes.js` | 204 |
 | `src/reliability/alpha28-live-authority-liveness.js` | 181 |
 | `src/reliability/alpha28-merchant-transfers.js` | 227 |

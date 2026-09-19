@@ -22,7 +22,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | ops | 26 | 7719 |
 | party | 39 | 11027 |
 | planner | 1 | 66 |
-| reliability | 50 | 17587 |
+| reliability | 50 | 17663 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 281 |
@@ -110,7 +110,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | reliability | game | 1 |
 | reliability | merchant | 7 |
 | reliability | ops | 1 |
-| reliability | party | 8 |
+| reliability | party | 10 |
 | reliability | world | 2 |
 | stability | (root) | 2 |
 | stability | core | 2 |
