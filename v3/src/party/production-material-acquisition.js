@@ -554,26 +554,43 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
         deferredSource: clone(deferredSource)
       };
     }
-    if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
-      const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
-      materials.push({
-        ...clone(step),
-        alreadyOnFarmers,
-        remainingToFarm,
-        source,
-        awaitingTransfer: true,
-        handoffMaterial: source.material,
-        handoffLevel: 0,
-        handoffQuantity,
-        heldByFarmers: finite(source.alreadyOnFarmers, 0)
-      });
-      continue;
+    if (isExchangeBackedSource(source) && finite(source.farmQuantity, 0) <= 0) {
+      if (finite(source.alreadyOnFarmers, 0) > 0) {
+        const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
+        materials.push({
+          ...clone(step),
+          alreadyOnFarmers,
+          remainingToFarm,
+          source,
+          awaitingTransfer: true,
+          handoffMaterial: source.material,
+          handoffLevel: 0,
+          handoffQuantity,
+          heldByFarmers: finite(source.alreadyOnFarmers, 0)
+        });
+        continue;
+      }
+      if (finite(source.alreadyOnMerchantOrBank, 0) > 0) {
+        materials.push({
+          ...clone(step),
+          alreadyOnFarmers,
+          remainingToFarm,
+          source,
+          exchangeReady: true
+        });
+        continue;
+      }
     }
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
   if (materials.every((row) => row.awaitingTransfer === true)) {
-    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials };
+    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials, target: clone(blockedCandidate.candidate) };
+  }
+  if (materials.every((row) => row.exchangeReady === true || row.awaitingTransfer === true)
+    && materials.some((row) => row.exchangeReady === true)
+    && !materials.some((row) => row.awaitingTransfer === true)) {
+    return { eligible: false, reason: 'EXCHANGE_INPUT_READY_ON_MERCHANT', materials, target: clone(blockedCandidate.candidate) };
   }
 
   const totalExpectedHours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.expectedHours, Infinity) : 0), 0);
