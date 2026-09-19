@@ -1,10 +1,11 @@
-export const DASHBOARD_FRAGMENT_4 = `function automationCatalog(){
+export const DASHBOARD_FRAGMENT_4 = `function automationCatalogSource(){
   const chars=overview&&overview.characters||[];
   const merchant=chars.find(row=>String(row.status&&row.status.character&&row.status.character.ctype||'').toLowerCase()==='merchant');
   const candidates=[merchant].concat(chars).filter(Boolean);
-  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return list}
-  return []
+  for(const row of candidates){const list=row.status&&row.status.automationCatalog;if(Array.isArray(list)&&list.length)return {row,status:row.status||{},list}}
+  return {row:null,status:{},list:[]}
 }
+function automationCatalog(){return automationCatalogSource().list}
 function itemPermissionsValue(){
   const vals=settings&&settings.settings&&settings.settings.values||{};
   const raw=dirty['economy.itemPermissions']!==undefined?dirty['economy.itemPermissions']:vals['economy.itemPermissions'];
@@ -30,7 +31,9 @@ function renderAutomation(){
   const compoundLimitEl=$('automationMaxCompound'),compoundLimit=settingValue('economy.maxCompound',1),compoundSave=$('saveAutomationMaxCompound');
   if(compoundLimitEl&&document.activeElement!==compoundLimitEl)compoundLimitEl.value=String(compoundLimit);
   if(compoundSave){compoundSave.disabled=!adminKey;compoundSave.title=adminKey?'Maximales automatisches Compound-/Combine-Level speichern':'ADMIN_KEY erforderlich'}
-  const all=automationCatalog(),types=[...new Set(all.map(x=>String(x.type||'')).filter(Boolean))].sort(),npcs=[...new Set(all.flatMap(x=>(x.npc||[]).map(n=>String(n&&n.npc||'')).filter(Boolean)))].sort();
+  const catalogSource=automationCatalogSource(),all=catalogSource.list,catalogStatus=catalogSource.status||{},catalogVersion=Number(catalogStatus.automationCatalogVersion)||0,declaredCount=Number(catalogStatus.automationCatalogCount),catalogHealth=$('automationCatalogHealth'),complete=Number.isFinite(declaredCount)&&declaredCount===all.length&&catalogVersion>=3;
+  if(catalogHealth){catalogHealth.className='notice'+(complete?'':' warn');catalogHealth.textContent=all.length?(complete?'Item-Datenbank v'+catalogVersion+' vollständig synchronisiert · '+all.length+' Items':'Item-Datenbank unvollständig/veraltet · '+all.length+(Number.isFinite(declaredCount)?' / '+declaredCount:'')+' Items · Merchant-Snapshot wird aktualisiert'):'Item-Datenbank noch nicht vom Merchant synchronisiert.'}
+  const types=[...new Set(all.map(x=>String(x.type||'')).filter(Boolean))].sort(),npcs=[...new Set(all.flatMap(x=>(x.npc||[]).map(n=>String(n&&n.npc||'')).filter(Boolean)))].sort();
   fillAutomationSelect('automationType',types,'Alle Typen');fillAutomationSelect('automationNpc',npcs,'Alle NPCs');
   const q=String($('automationSearch')&&$('automationSearch').value||'').trim().toLowerCase(),type=$('automationType')&&$('automationType').value||'',ct=$('automationClass')&&$('automationClass').value||'',npc=$('automationNpc')&&$('automationNpc').value||'',cap=$('automationCapability')&&$('automationCapability').value||'',minRaw=$('automationLevelMin')&&$('automationLevelMin').value,maxRaw=$('automationLevelMax')&&$('automationLevelMax').value,min=minRaw===''?null:Number(minRaw),max=maxRaw===''?null:Number(maxRaw);
   const rows=all.filter(item=>{
