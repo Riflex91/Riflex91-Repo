@@ -1,0 +1,29 @@
+name: v5-roadmap
+
+on:
+  pull_request:
+    paths:
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
+      - 'v5/roadmap/**'
+      - 'v5/werkzeuge/roadmap-pruefen.mjs'
+      - '.github/workflows/v5-roadmap.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
+      - 'v5/dokumentation/V5-DEFINITION-OF-DONE.md'
+      - 'v5/roadmap/**'
+      - 'v5/werkzeuge/roadmap-pruefen.mjs'
+      - '.github/workflows/v5-roadmap.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node v5/werkzeuge/roadmap-pruefen.mjs
