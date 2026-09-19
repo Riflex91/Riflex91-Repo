@@ -44,3 +44,26 @@ Snapshots dienen Planung, Regression, Dokumentation, Fallback/Diagnose und Chang
 10. PR mit nachvollziehbarer Evidence.
 
 Die Knowledge Base informiert Entscheidungen. Gameplay-Autoritaet entsteht erst durch frische Admission-/Live-State-Pruefungen im Runtime-Kern.
+
+
+## Windows-Bridge-Wissenswaechter
+
+Der automatische Wissenswaechter der Windows Bridge besitzt eine harte Bereichsgrenze:
+
+```text
+v5/wissensbasis/**
+```
+
+Fuer den Waechter gilt:
+
+- **Lesen:** ausschliesslich innerhalb von `v5/wissensbasis/**`.
+- **Schreiben:** ausschliesslich innerhalb von `v5/wissensbasis/**`.
+- **Git-Arbeitsbaum:** Sparse Checkout materialisiert nur `v5/wissensbasis/**`.
+- **Commit-Pruefung:** vor jedem Commit und nach jedem Rebase werden alle geaenderten Pfade erneut gegen diese Grenze geprueft.
+- **Kein Force-Push:** Konflikte oder unerwartete Pfade fuehren zum sicheren Abbruch.
+- **Takt:** automatischer Lauf einmal pro Stunde; ein manueller Lauf darf jederzeit zusaetzlich gestartet werden.
+- **GitHub-Anmeldung:** erfolgt ueber Git Credential Manager und Browser-OAuth; Zugangsdaten werden nicht in der Bridge-Konfiguration gespeichert.
+
+Der Unterordner `datenbank/` ist der Standard-Ablageort fuer automatisch erzeugte Snapshots, Statusdaten, Kandidaten und Aenderungsprotokolle. Er ist **keine weitergehende Sicherheitsgrenze**: Die verbindliche Lese- und Schreibgrenze des Waechters ist die gesamte `v5/wissensbasis/**`.
+
+Informationen aus Community- oder unbekannten Quellen werden nicht automatisch zu bestaetigten Spiel-Fakten. Sie bleiben Kandidaten/Evidence, bis die vorhandenen Vertrauens- und Revalidierungsregeln sie bestaetigen.
