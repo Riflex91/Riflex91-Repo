@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V5 lokale Live-Wissensdatenbank Manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "format",
+    "spiel",
+    "aktuellVerzeichnis"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "format": {
+      "const": "ADVENTURE_LAND_V5_LIVE_WISSEN"
+    },
+    "spiel": {
+      "const": "Adventure Land - The Code MMORPG"
+    },
+    "aktuellVerzeichnis": {
+      "const": "aktuell"
+    }
+  },
+  "additionalProperties": true
+}
