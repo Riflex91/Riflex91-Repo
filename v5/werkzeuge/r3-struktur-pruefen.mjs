@@ -40,6 +40,7 @@ for (const pfad of [
   "grundlage/quelle/persistenz/speicher-port.ts",
   "grundlage/quelle/persistenz/begrenzter-asynchroner-schreiber.ts",
   "grundlage/quelle/nachrichten/nachrichten-umschlag.ts",
+  "grundlage/quelle/testlabor/replay-aufzeichnung.ts",
   "architektur/host-api-allowlist.json",
   "werkzeuge/r3-statische-guards.mjs",
   "werkzeuge/r3-build-provenienz.mjs",
