@@ -40,7 +40,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -64,7 +65,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -92,7 +104,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -116,7 +129,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -143,7 +167,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -168,7 +193,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -197,7 +233,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -224,7 +261,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -253,7 +301,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -280,7 +329,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -309,7 +369,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -336,7 +397,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -365,7 +437,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -392,7 +465,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -421,7 +505,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -448,7 +533,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -477,7 +573,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:bank_lease",
-        "account:currency"
+        "account:currency",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character",
@@ -506,7 +603,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -564,7 +672,22 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": false,
+        "resource": null,
+        "scope": "DELEGATED_TO_CONCRETE_ACTION",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": null,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Der delegierte konkrete Socket-Request bestimmt Budget und Recovery.",
+        "delegatedTo": [
+          "buy_with_shells",
+          "buy_with_gold"
+        ]
+      }
     },
     {
       "schemaVersion": 1,
@@ -593,7 +716,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "vendor_reachability",
@@ -621,7 +745,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -650,7 +785,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:shells",
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "account_currency",
@@ -677,7 +813,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -708,7 +855,8 @@
       "resourceDomains": [
         "character:gold",
         "character:inventory",
-        "market:listing"
+        "market:listing",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "listing_rid",
@@ -740,7 +888,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -771,7 +930,8 @@
       "resourceDomains": [
         "character:gold",
         "character:inventory",
-        "market:listing"
+        "market:listing",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "listing_rid",
@@ -803,7 +963,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -832,7 +1003,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -858,7 +1030,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -887,7 +1070,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:trade_slots"
+        "character:trade_slots",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -925,7 +1109,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": 3,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -952,7 +1147,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:trade_slots"
+        "character:trade_slots",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "trade_slot",
@@ -986,7 +1182,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1018,7 +1225,8 @@
       "resourceDomains": [
         "character:gold",
         "character:inventory",
-        "market:listing"
+        "market:listing",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "target_entity",
@@ -1065,7 +1273,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1098,7 +1317,8 @@
       "resourceDomains": [
         "character:inventory",
         "character:gold",
-        "market:buy_listing"
+        "market:buy_listing",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "target_entity",
@@ -1147,7 +1367,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1177,7 +1408,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:trade_slots"
+        "character:trade_slots",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1202,7 +1434,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": 3,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1229,7 +1472,8 @@
       "idempotency": "CONDITIONALLY_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "market:giveaway"
+        "market:giveaway",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "target_entity",
@@ -1253,7 +1497,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1282,7 +1537,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:equipment"
+        "character:equipment",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1307,7 +1563,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": 3,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1336,7 +1603,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:equipment"
+        "character:equipment",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identities",
@@ -1363,7 +1631,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": "CC.equip * (0.5 + data.length / 2); Basiskosten und weitere interne Kosten separat.",
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1393,7 +1672,8 @@
       "resourceDomains": [
         "character:inventory",
         "character:equipment",
-        "character:trade_slots"
+        "character:trade_slots",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_capacity",
@@ -1422,7 +1702,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": 6,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1450,7 +1741,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1475,7 +1767,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": 3,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1502,7 +1805,8 @@
       "idempotency": "CONDITIONALLY_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_slots"
@@ -1526,7 +1830,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1554,7 +1869,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1578,7 +1894,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1605,7 +1932,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity"
@@ -1629,7 +1957,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1658,7 +1997,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1702,7 +2042,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1732,7 +2083,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1760,7 +2112,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1789,7 +2152,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1816,7 +2180,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1845,7 +2220,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1872,7 +2248,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1901,7 +2288,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity",
@@ -1928,7 +2316,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -1967,7 +2366,8 @@
         "item:target",
         "item:scroll",
         "item:offering",
-        "character:q:upgrade"
+        "character:q:upgrade",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "physical_item_identity",
@@ -2032,7 +2432,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2073,7 +2484,8 @@
         "item:input3",
         "item:scroll",
         "item:offering",
-        "character:q:compound"
+        "character:q:compound",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "three_physical_item_identities",
@@ -2128,7 +2540,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2159,7 +2582,8 @@
       "resourceDomains": [
         "character:inventory",
         "character:gold",
-        "recipe:inputs"
+        "recipe:inputs",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "recipe_definition",
@@ -2204,7 +2628,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2235,7 +2670,8 @@
       "resourceDomains": [
         "character:inventory",
         "character:gold",
-        "recipe:inputs"
+        "recipe:inputs",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "recipe_definition",
@@ -2282,7 +2718,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2319,7 +2766,8 @@
       "resourceDomains": [
         "character:inventory",
         "item:exchange_input",
-        "character:q:exchange"
+        "character:q:exchange",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "physical_item_identity",
@@ -2366,7 +2814,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2395,7 +2854,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "item:token"
+        "item:token",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "token_quantity",
@@ -2434,7 +2894,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2464,7 +2935,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "world:chest"
+        "world:chest",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "chest_exists",
@@ -2487,7 +2959,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": "call_modifier(open_chest)=0.1 kann fuer interne add_call_cost-Pfade gelten; eingehender Request behaelt Basiskosten.",
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2515,7 +2998,8 @@
       "idempotency": "CONDITIONALLY_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:stand"
+        "character:stand",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "stand_item",
@@ -2539,7 +3023,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2567,7 +3062,8 @@
       "idempotency": "CONDITIONALLY_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:stand"
+        "character:stand",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "stand_item",
@@ -2591,7 +3087,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2620,7 +3127,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:gold",
-        "transfer:recipient"
+        "transfer:recipient",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "recipient_entity",
@@ -2649,7 +3157,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2678,7 +3197,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "transfer:recipient"
+        "transfer:recipient",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "recipient_entity",
@@ -2707,7 +3227,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2736,7 +3267,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:cosmetic_inventory",
-        "transfer:recipient"
+        "transfer:recipient",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "recipient_entity",
@@ -2765,7 +3297,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2796,7 +3339,8 @@
       "resourceDomains": [
         "character:gold",
         "character:inventory",
-        "mail:recipient"
+        "mail:recipient",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "gold",
@@ -2827,7 +3371,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2856,7 +3411,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:inventory",
-        "mail:item_claim"
+        "mail:item_claim",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "mail_claim",
@@ -2883,7 +3439,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2912,7 +3479,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:gold"
+        "character:gold",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "gold",
@@ -2937,7 +3505,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -2967,7 +3546,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:gold",
-        "character:q:slots"
+        "character:q:slots",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "gold",
@@ -2994,7 +3574,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3024,7 +3615,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:gold",
-        "tavern:bet"
+        "tavern:bet",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "gold",
@@ -3050,7 +3642,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3079,7 +3682,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:shells",
-        "server:blessing"
+        "server:blessing",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "shell_balance",
@@ -3105,7 +3709,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3132,7 +3747,8 @@
       "idempotency": "CONDITIONALLY_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:cosmetics"
+        "character:cosmetics",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "owned_cosmetics"
@@ -3150,7 +3766,18 @@
         {
           "sourceId": "AL-SRC-SERVER"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3179,7 +3806,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "character:gold",
-        "tavern:wheel_action"
+        "tavern:wheel_action",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character_gold",
@@ -3208,7 +3836,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3240,7 +3879,8 @@
         "account:poker_seat",
         "character:gold",
         "tavern:poker_table",
-        "tavern:poker_stack"
+        "tavern:poker_stack",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "character_gold",
@@ -3272,7 +3912,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3304,7 +3955,8 @@
         "account:poker_seat",
         "tavern:poker_hand",
         "tavern:poker_turn",
-        "tavern:poker_stack"
+        "tavern:poker_stack",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "poker_table",
@@ -3336,7 +3988,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3368,7 +4031,8 @@
         "account:poker_seat",
         "character:gold",
         "tavern:poker_table",
-        "tavern:poker_stack"
+        "tavern:poker_stack",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "poker_table",
@@ -3400,7 +4064,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3428,7 +4103,8 @@
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
         "account:poker_seat",
-        "tavern:poker_table"
+        "tavern:poker_table",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "poker_table",
@@ -3456,7 +4132,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3487,7 +4174,8 @@
       "resourceDomains": [
         "account:poker_seat",
         "tavern:poker_table",
-        "tavern:poker_stack"
+        "tavern:poker_stack",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "poker_table",
@@ -3517,7 +4205,18 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     },
     {
       "schemaVersion": 1,
@@ -3580,7 +4279,19 @@
         {
           "sourceId": "AL-OFFICIAL-NOTES"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": "UNKNOWN",
+        "resource": null,
+        "scope": "AUTOMATION_DISABLED_PENDING_EXACT_CONTRACT",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": null,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Keine Automation ohne exakten Transport-/Recovery-Contract.",
+        "automationDisabled": true
+      }
     },
     {
       "schemaVersion": 1,
@@ -3607,7 +4318,8 @@
       "idempotency": "NON_IDEMPOTENT",
       "unknownOutcomePolicy": "RECONCILE_NO_BLIND_RETRY",
       "resourceDomains": [
-        "character:inventory"
+        "character:inventory",
+        "character:socket_call_budget"
       ],
       "liveRevalidation": [
         "inventory_item_identity"
@@ -3630,7 +4342,27 @@
         {
           "sourceId": "AL-OFFICIAL-CODE-FUNCTIONS"
         }
-      ]
+      ],
+      "callBudget": {
+        "directSocketEvent": true,
+        "resource": "character:socket_call_budget",
+        "scope": "CHARACTER_GLOBAL",
+        "sharedAcrossChannels": true,
+        "incomingBaseCostMin": 1,
+        "configuredCcEvidence": null,
+        "dynamicCostEvidence": null,
+        "unknownInternalReserveRequired": true,
+        "limitDcPolicy": "Nach moeglichem Send wertveraendernder Action: UNKNOWN -> REOBSERVE -> RECONCILE; kein Same-Intent-Retry."
+      }
     }
-  ]
+  ],
+  "callBudgetResearch": {
+    "status": "P0_07_DONE",
+    "resource": "character:socket_call_budget",
+    "serverWindowMs": 4000,
+    "serverLimit": 200,
+    "v5PlannedBudget": 100,
+    "reserve": 100,
+    "directSocketContracts": 58
+  }
 }
