@@ -13503,6 +13503,7 @@ class InventoryLedger {
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
     const specificKey = `${row.character}|${stackKey(row.name, row.level)}`;
@@ -13511,6 +13512,7 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }
 
@@ -39381,6 +39383,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       const meta = gameData && gameData.items && row && row.name ? gameData.items[row.name] : null;
       if (!row || !row.name || !meta || typeof meta !== 'object') return base;
       const name = String(row.name);
+      const permission = (action) => typeof ledger._permission === 'function' ? ledger._permission(name, action) : null;
       if (/^(hpot|mpot|scroll|cscroll)/i.test(name)) return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_SERVICE_RESOURCE'] };
       if (meta.quest || meta.q || meta.event || meta.cash || meta.cash_item || meta.soulbound || meta.soul_bound || meta.exchange || meta.e) {
         return { disposition: 'KEEP', reasons: [...(base.reasons || []), 'AUTONOMOUS_PROTECTED_METADATA'] };
@@ -39427,6 +39430,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       if (!futureFarmerProtection && productionDemandActive) {
         const family = String(productionDemand.family || '').toUpperCase();
         if (family === 'UPGRADE'
+          && permission('upgrade') !== false
           && meta.upgrade
           && level < this.options.maxUpgradeLevel
           && grade < 4
@@ -39439,6 +39443,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (family === 'COMPOUND'
+          && permission('compound') !== false
           && meta.compound
           && level < this.options.maxCompoundLevel
           && grade < 4
@@ -39459,7 +39464,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       }
 
       if (futureFarmerProtection) {
-        if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
+        if (permission('compound') !== false && meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
             ? {
                 disposition: 'RESERVE_COMPOUND',
@@ -39472,7 +39477,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
                 futureFarmerProtection: clone(futureFarmerProtection)
               };
         }
-        if (meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
+        if (permission('upgrade') !== false && meta.upgrade && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.upgradeValueCap) {
           return {
             disposition: 'RESERVE_UPGRADE',
             reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_PROGRESSION', 'AUTONOMOUS_UPGRADE_CONTINUATION'],
@@ -39490,7 +39495,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // exposes compound/upgrade metadata as objects, not necessarily boolean true.
       // A complete compound set is actionable now; an incomplete level-0 set is
       // retained until a third copy arrives instead of being hidden in the bank.
-      if (meta.compound) {
+      if (meta.compound && permission('compound') !== false) {
         if (same >= 3 && level < this.options.maxCompoundLevel && grade < 4 && (value != null && value <= this.options.compoundValueCap)) {
           return {
             disposition: 'RESERVE_COMPOUND',
@@ -39510,6 +39515,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
               reasons: [...baseReasons, 'FUTURE_FARMER_GEAR_EVALUATION_REQUIRED', 'PROCESSED_GEAR_SELL_FAIL_CLOSED']
             };
           }
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_COMPOUND_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39524,7 +39530,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
       // sale gate to dispose of low-value results. Re-evaluation is required
       // after every observed level change, so a newly useful item immediately
       // leaves this fallback and moves into the Farmer +5 progression path.
-      if (meta.upgrade) {
+      if (meta.upgrade && permission('upgrade') !== false) {
         if (!futureSellSafety || futureSellSafety.checked !== true) {
           return {
             disposition: 'KEEP',
@@ -39545,6 +39551,7 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           };
         }
         if (level >= economicTargetLevel && level > 0 && grade < 4 && underKeepValue) {
+          if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED', 'AUTONOMOUS_UPGRADE_RESULT'] };
           this.stats.autoLedgerSellClassifications += 1;
           return {
             disposition: 'SELL',
@@ -39560,14 +39567,16 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
           : [];
       } catch (_) { blockers = ['SELL_SAFETY_RESOLVER_FAILED']; }
       const bank = level > 0 || meta.upgrade || meta.compound || blockers.length > 0 || (value != null && value >= this.options.keepValue);
-      if (bank) {
+      if (bank && permission('bank') !== false) {
         this.stats.autoLedgerBankClassifications += 1;
         return {
           disposition: 'BANK',
           reasons: [...baseReasons, blockers.length ? 'AUTONOMOUS_SELL_SAFETY_BANK' : meta.upgrade || meta.compound ? 'AUTONOMOUS_PROGRESSION_ITEM_BANK' : level > 0 ? 'AUTONOMOUS_LEVELED_ITEM_BANK' : 'AUTONOMOUS_VALUE_KEEP_BANK', ...blockers]
         };
       }
+      if (bank && permission('bank') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_BANK_DENIED'] };
       if (level === 0 && blockers.length === 0) {
+        if (permission('sell') === false) return { disposition: 'KEEP', reasons: [...baseReasons, 'OPERATOR_SELL_DENIED'] };
         this.stats.autoLedgerSellClassifications += 1;
         return { disposition: 'SELL', reasons: [...baseReasons, 'AUTONOMOUS_LOW_RISK_SURPLUS'] };
       }
@@ -47027,7 +47036,7 @@ function itemNpcCatalog(gameData) {
   return byItem;
 }
 
-function itemAutomationCatalog(runtime, maxItems = 3000) {
+function itemAutomationCatalog(runtime, maxItems = 10000) {
   const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
   for (const source of gameDataSources(runtime)) {
     Object.assign(gameData.items, source && source.items || {});
@@ -47148,6 +47157,12 @@ class Alpha25ControlCenterBrain {
       if (alpha27 && alpha27.options) alpha27.options.maxCompoundLevel = limit;
       const synchronized = synchronizeLegacyCompoundPolicy(this.runtime, limit);
       if (alpha27) alpha27.legacyCompoundPolicySynchronized = synchronized;
+    });
+
+    apply('economy.itemPermissions', (value) => {
+      const ledger = this.runtime.inventoryLedger;
+      if (ledger && typeof ledger.setItemPermissions === 'function') ledger.setItemPermissions(value);
+      if (this.runtime.lastSnapshot && typeof this.runtime._planInventoryAndGear === 'function') this.runtime._planInventoryAndGear();
     });
 
     const economy = this.runtime.economyEquipmentAutonomyV2;
@@ -53427,6 +53442,27 @@ function sessionId(now) {
   return `session-${Number(now()).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function eventDigest(rows = []) {
+  const priority = [];
+  const groups = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row) continue;
+    const severity = String(row.severity || 'info').toLowerCase();
+    const key = [row.component || '-', row.event || '-', row.reason || '-'].join('|');
+    const current = groups.get(key) || { component: row.component || null, event: row.event || null, reason: row.reason || null, severity, count: 0, firstAt: row.ts || row.at || null, lastAt: null };
+    current.count += 1;
+    current.lastAt = row.ts || row.at || current.lastAt;
+    if (['error', 'fatal', 'critical', 'warn', 'warning'].includes(severity) || /FAIL|ERROR|DEATH|RETREAT|DISCONNECT|CIRCUIT|QUARANTINE|ROLLBACK|DRIFT/i.test(String(row.event || row.reason || ''))) {
+      priority.push(row);
+    }
+    groups.set(key, current);
+  }
+  return {
+    priority: priority.slice(-120),
+    repeated: [...groups.values()].filter((row) => row.count > 1).sort((a, b) => b.count - a.count).slice(0, 80)
+  };
+}
+
 class SessionMonitor {
   constructor(options = {}) {
     this.root = options.root || globalThis;
@@ -53545,6 +53581,16 @@ class SessionMonitor {
     const travelPlans = runtime.safeTravel && typeof runtime.safeTravel.list === 'function' ? runtime.safeTravel.list(this.maxTravel) : [];
     const performance = runtime.performance && typeof runtime.performance.status === 'function' ? safeCall(() => runtime.performance.status(), null) : null;
     const registry = runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? safeCall(() => runtime.characterRegistry.status(), null) : null;
+    const brain = runtime.strategicBrainV2 && typeof runtime.strategicBrainV2.status === 'function'
+      ? safeCall(() => runtime.strategicBrainV2.status(), null)
+      : runtime.brain && typeof runtime.brain.status === 'function' ? safeCall(() => runtime.brain.status(), null) : null;
+    const adaptivePull = runtime.adaptivePullLearner && typeof runtime.adaptivePullLearner.status === 'function' ? safeCall(() => runtime.adaptivePullLearner.status(), null) : null;
+    const encounterLifecycle = runtime.encounterLifecycle && typeof runtime.encounterLifecycle.status === 'function'
+      ? safeCall(() => runtime.encounterLifecycle.status(), null)
+      : runtime.tacticalPartyCombat && runtime.tacticalPartyCombat.encounterLifecycle && typeof runtime.tacticalPartyCombat.encounterLifecycle.status === 'function'
+        ? safeCall(() => runtime.tacticalPartyCombat.encounterLifecycle.status(), null) : null;
+    const partyPerformance = runtime.partyPerformance && typeof runtime.partyPerformance.status === 'function' ? safeCall(() => runtime.partyPerformance.status(128), null) : null;
+    const digest = eventDigest(eventLog);
     return {
       schemaVersion: MONITOR_SCHEMA_VERSION,
       kind: 'aio-v3-session-log',
@@ -53556,6 +53602,15 @@ class SessionMonitor {
       summary: this.summary(),
       status: clone(status),
       performance: clone(performance),
+      brain: clone(brain),
+      learning: {
+        partyFingerprint: clone(runtime.currentPartyFingerprint || null),
+        encounterFingerprint: clone(runtime.currentEncounterFingerprint || null),
+        adaptivePull: clone(adaptivePull),
+        encounterLifecycle: clone(encounterLifecycle),
+        partyPerformance: clone(partyPerformance)
+      },
+      diagnosticSignals: clone(digest),
       characterRegistry: clone(registry),
       inventory: { status: clone(status.inventory || null), entries: clone(inventoryEntries) },
       gearProgression: { status: clone(status.gearProgression || null), goals: clone(gearGoals) },
@@ -54356,53 +54411,9 @@ class DebugMonitorUI {
   refresh() {
     if (!this.container || !this.monitor) return false;
     const doc = this._doc();
-    if (!doc || !this.body) return false;
-    const summary = this.monitor.summary();
-    while (this.body.firstChild) this.body.removeChild(this.body.firstChild);
-    const char = summary.character || {};
-    const sup = summary.supervisor || {};
-    const economy = summary.economy || {};
-    const travel = summary.travel || {};
-    const inventory = summary.inventory || {};
-    const controlledEconomy = economy.controlled || {};
-    const controlledTravel = travel.controlled || {};
-    const runStatus = this._runStatus();
-    let runtimeStatus = null;
-    try { runtimeStatus = this.monitor.runtime && typeof this.monitor.runtime.status === 'function' ? this.monitor.runtime.status() : null; } catch (_) {}
-    const merchantService = runtimeStatus && runtimeStatus.merchantService || null;
-    const controlledService = merchantService && merchantService.controlled || {};
-    const serviceExecution = merchantService && merchantService.lastExecution || controlledService.lastAction || null;
-    const serviceKind = serviceExecution && (serviceExecution.kind || serviceExecution.planKind || serviceExecution.action) || '—';
-    const serviceRaw = Number(controlledService.stats && controlledService.stats.rawActions) || 0;
-    const serviceCircuit = controlledService.circuit && controlledService.circuit.open ? 'OPEN' : 'ok';
-    const standOpen = !!(this.root && this.root.character && this.root.character.stand);
-    const sessionDuration = Math.max(0, Number(summary.generatedAt || 0) - Number(summary.startedAt || 0));
-    const runLabel = runStatus
-      ? `${runStatus.state}${runStatus.state === 'STOPPED_BLOCKED' && runStatus.blockers.length ? ` · ${runStatus.blockers.slice(0, 2).join(', ')}` : ''}`
-      : (summary.running ? 'RUNNING' : 'STOPPED');
-    const serviceLabel = !merchantService ? '—' : controlledService.enabled
-      ? `AN · Stand:${controlledService.allowStand ? 'on' : 'off'}${standOpen ? '/offen' : '/zu'} · Delivery:${controlledService.allowDelivery ? 'on' : 'off'}${controlledService.busy ? ' · BUSY' : ''}`
-      : `AUS · Stand:${standOpen ? 'offen' : 'zu'}`;
-
-    const rows = [
-      ['Version / Modus', `${summary.version || '—'} / ${summary.mode || '—'}`],
-      ['Bot', runLabel],
-      ['Session', this._formatDuration(sessionDuration)],
-      ['Charakter', `${char.name || '—'} (${char.ctype || '—'}) L${char.level || 0}`],
-      ['Map', `${char.map || '—'} @ ${Math.round(char.x || 0)}, ${Math.round(char.y || 0)}`],
-      ['Supervisor', `${sup.state || '—'}${sup.reasons && sup.reasons.length ? ` · ${sup.reasons.slice(0, 2).join(', ')}` : ''}`],
-      ['Merchant live', controlledEconomy.enabled ? `AN · SELL:${controlledEconomy.sellEnabled ? 'on' : 'off'} BANK:${controlledEconomy.bankEnabled ? 'on' : 'off'}` : 'AUS'],
-      ['Merchant Service', serviceLabel],
-      ['Service Aktion', merchantService ? `${serviceKind} · Raw ${serviceRaw} · Circuit ${serviceCircuit}` : '—'],
-      ['Travel live', controlledTravel.enabled ? `AN${controlledTravel.busy ? ' · BUSY' : ''}` : 'AUS'],
-      ['Transaktionen', `aktiv ${economy.activeTransactions || 0} · recovery ${economy.recoveringTransactions || 0}`],
-      ['Travel', `aktiv ${travel.active || 0} · Circuit ${travel.circuit && travel.circuit.open ? 'OPEN' : 'ok'}`],
-      ['Inventar', `Einträge ${inventory.totalEntries || 0}${inventory.stale ? ' · STALE' : ''}`],
-      ['Log', `Fehler ${summary.recentSignals.errors || 0} · Warn ${summary.recentSignals.warnings || 0}`]
-    ];
-    for (const [label, value] of rows) this.body.appendChild(this._row(doc, label, value));
+    if (!doc) return false;
     if (this.logBox) this.logBox.textContent = this._eventsText();
-    this._updateRunButton(runStatus);
+    this._updateRunButton();
     this._updateSkillsButton();
     if (this.skillsPanelOpen) this._renderSkillsPanel();
     return true;
@@ -54467,6 +54478,7 @@ class DebugMonitorUI {
     box.appendChild(this.skillsPanel);
 
     this.body = doc.createElement('div');
+    this.body.setAttribute('aria-hidden', 'true');
     box.appendChild(this.body);
 
     this.logBox = doc.createElement('pre');
