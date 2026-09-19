@@ -172,7 +172,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## merchant
 
-**10 Dateien · 3644 Zeilen**
+**10 Dateien · 3939 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -180,8 +180,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/merchant/controlled-merchant-service-executor.js` | 534 |
 | `src/merchant/merchant-mluck-policy.js` | 112 |
 | `src/merchant/merchant-mluck-service.js` | 286 |
-| `src/merchant/merchant-production-controller.js` | 971 |
-| `src/merchant/merchant-production-planner.js` | 813 |
+| `src/merchant/merchant-production-controller.js` | 1212 |
+| `src/merchant/merchant-production-planner.js` | 867 |
 | `src/merchant/merchant-service-planner.js` | 244 |
 | `src/merchant/merchant-task-coordinator.js` | 124 |
 | `src/merchant/persistent-bank-catalog.js` | 108 |
@@ -222,11 +222,12 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**35 Dateien · 9026 Zeilen**
+**37 Dateien · 9866 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
 | `src/party/account-character-transport.js` | 280 |
+| `src/party/acquisition-source-evidence.js` | 262 |
 | `src/party/alpha20-15-combat-logistics-hotfix.js` | 368 |
 | `src/party/alpha20-15-logistics-fairness-hotfix.js` | 40 |
 | `src/party/alpha20-19-account-transport-hotfix.js` | 191 |
@@ -239,7 +240,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/controlled-paladin-aura-executor.js` | 97 |
 | `src/party/controlled-party-bootstrap-base.js` | 734 |
 | `src/party/controlled-party-bootstrap.js` | 110 |
-| `src/party/controlled-party-logistics.js` | 1489 |
+| `src/party/controlled-party-logistics.js` | 1563 |
 | `src/party/elixir-policy.js` | 225 |
 | `src/party/fingerprints.js` | 93 |
 | `src/party/lifecycle-store.js` | 289 |
@@ -255,7 +256,8 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/party-persistence-quota-hotfix.js` | 382 |
 | `src/party/party-topology.js` | 99 |
 | `src/party/performance-store.js` | 51 |
-| `src/party/production-material-acquisition.js` | 406 |
+| `src/party/probabilistic-farm-time.js` | 173 |
+| `src/party/production-material-acquisition.js` | 737 |
 | `src/party/team-combat-cohesion-hotfix-base.js` | 599 |
 | `src/party/team-combat-cohesion-hotfix.js` | 242 |
 | `src/party/telemetry-bridge.js` | 202 |
