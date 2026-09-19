@@ -204,9 +204,10 @@ public sealed class GitArbeitskopie
             cancellationToken,
             TimeSpan.FromMinutes(1)), "GIT_COMMIT_FEHLGESCHLAGEN");
 
-        // Der Waechter darf jederzeit schreiben. Wenn main waehrend des Laufs weiterlief,
-        // werden fremde Commits zuerst integriert. Nur Datenbankdateien befinden sich in
-        // unserem Commit; Konflikte werden fail-closed behandelt und nie mit force gepusht.
+        // Der Waechter darf jederzeit innerhalb von v5/wissensbasis schreiben.
+        // Wenn main waehrend des Laufs weiterlief, werden fremde Commits zuerst integriert.
+        // Vor und nach dem Rebase wird fail-closed verifiziert, dass der eigene Commit
+        // keine Datei ausserhalb der Wissensbasis enthaelt. Force-Push ist verboten.
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
             ["fetch", "origin", ZielBranch],
             _wurzel,
