@@ -28,12 +28,30 @@
     {
       "id": "V5-P0-02",
       "title": "Recovery-Semantik je Action inklusive UNKNOWN Outcome",
-      "status": "IN_PROGRESS"
+      "status": "DONE",
+      "progress": {
+        "updatedAt": "2026-09-19",
+        "actionRecoveryContracts": 60,
+        "verifiedRecoveryPolicies": 59,
+        "disabledWithActionContract": 1,
+        "disabledActions": [
+          "cave_buy"
+        ],
+        "sameIntentRetryAfterPossibleSend": "NEVER",
+        "outcomes": [
+          "COMMITTED",
+          "NOT_APPLIED",
+          "PARTIAL",
+          "STILL_PENDING",
+          "UNRESOLVED"
+        ],
+        "note": "Every P0-01 action has exactly one recovery contract. UNKNOWN requires reconciliation; NOT_APPLIED needs positive evidence; only a new intent after fresh admission may follow."
+      }
     },
     {
       "id": "V5-P0-03",
       "title": "Bank-Concurrency mehrerer eigener Characters",
-      "status": "OPEN"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "V5-P0-04",
