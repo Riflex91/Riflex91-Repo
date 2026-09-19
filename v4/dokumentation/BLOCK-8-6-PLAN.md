@@ -1,6 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **naechster Entwicklungsblock; Block-8.5-Soak bestanden, Implementierung darf beginnen.**
+Status: **Block 8.6 aktiv; 8.6.1 implementiert, naechster Implementierungsschritt 8.6.2.**
+
+Naechster Implementierungsschritt: **8.6.2 – Audit, Drift und Recovery-Revalidierung**
 
 ## Ziel
 
@@ -27,7 +29,7 @@ Die folgenden V3-Arbeiten dienen als Erfahrungsquelle, nicht als Copy/Paste-Code
 - PR #375 – Cross-Client Capabilities in StrategicBrainV2,
 - PR #348 – Bedarf an deterministischer Combat-Leaderwahl; die konkrete statische Klassenprioritaet wird **nicht** uebernommen.
 
-## 8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle
+## 8.6.1 – Skill-Katalog-Vertrag und Live-Lesequelle — **IMPLEMENTIERT**
 
 Gemeinsam umgesetzt:
 
@@ -38,6 +40,8 @@ Gemeinsam umgesetzt:
 - `automationValidated`,
 - Katalogzustand mindestens `bereit`, `veraltet`, `drift`, `blockiert`,
 - stabile Fingerprints ueber die fuer Automatisierung relevanten Skill-Eigenschaften.
+
+Umsetzungsnachweis: `BLOCK-8-6-1-SKILL-KATALOG.md`.
 
 Abnahme:
 
