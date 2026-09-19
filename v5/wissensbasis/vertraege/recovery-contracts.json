@@ -2186,30 +2186,35 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "physical_item_identity",
-        "clevel",
-        "scroll",
-        "offering",
-        "service_reachability",
-        "character_q"
+        "fresh inventory with exact target/scroll/offering identities and quantities",
+        "character.q.upgrade",
+        "upgrade placeholder payload",
+        "target stat_type/level/grace/properties",
+        "massproduction/massproductionpp conditions",
+        "fresh server/game response if available"
       ],
       "settlementRules": {
         "committed": [
-          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
-          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+          "q.upgrade is absent, the attributable placeholder is resolved, and the exact path-specific terminal target state is proven.",
+          "All expected consumable/condition deltas are reconciled: scroll quantity, optional offering, and massproduction condition when used.",
+          "A terminal upgrade_fail is accepted as COMMITTED only after inventory proves the correct failure variant: destruction for ordinary uscroll failure, preservation for scroll4/material-offering failure.",
+          "Stat-scroll and offering-only paths are committed from stat/grace/property postconditions rather than a supposed level increment."
         ],
         "notApplied": [
-          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
-          "Lack of a reward alone is never proof of NOT_APPLIED."
+          "Fresh positive evidence proves the exact target, scroll/offering quantities, relevant conditions and target properties all still match the pinned pre-state.",
+          "No attributable q.upgrade or placeholder exists and no server-side path-specific mutation is visible."
         ],
         "partial": [
-          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+          "Consumables/conditions changed or placeholder/input changed, but the terminal target item/loss/stat/grace state cannot yet be reconciled.",
+          "Any path ambiguity between destructive and preserving upgrade failure is PARTIAL/UNRESOLVED, never a retry condition."
         ],
         "stillPending": [
-          "The action-specific q state or placeholder is still present and attributable to this intent."
+          "An attributable q.upgrade and placeholder remain live; this means the action was accepted and may already have a preselected outcome.",
+          "Keep all target/scroll/offering/inventory resource claims; do not start a second upgrade."
         ],
         "unresolved": [
-          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+          "q/placeholder is gone but exact target identity, preservation/destruction, stat/grace result, or consumed resources cannot be proven.",
+          "Reconnect without enough inventory evidence never converts UNKNOWN to NOT_APPLIED."
         ]
       },
       "retryPolicy": {
@@ -2234,10 +2239,10 @@
         "postcondition_evidence"
       ],
       "notes": [
-        "Derived from AL-ACTION-UPGRADE (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
-        "Action postcondition: q.upgrade cleared",
-        "Action postcondition: placeholder resolved",
-        "Action postcondition: target result and scroll/offering deltas reconciled"
+        "P0-05: placeholder/q begins only after mutation-start; same-intent retry is forbidden.",
+        "P0-05: scroll4 and material-offering failures preserve the target despite upgrade_fail.",
+        "P0-05: pscroll and offering-only success require path-specific postconditions and must not be interpreted as level+1.",
+        "P0-05: preview chance is evidence for planning only; terminal inventory is settlement authority."
       ]
     },
     {
@@ -2255,30 +2260,36 @@
         "POSTCONDITION_CONTRADICTION"
       ],
       "reobserveSources": [
-        "three_physical_item_identities",
-        "clevel",
-        "scroll",
-        "offering",
-        "service_reachability",
-        "character_q"
+        "fresh inventory for all three pinned input identities",
+        "character.q.compound",
+        "compound placeholder payload",
+        "first-slot terminal output or absence",
+        "scroll/offering quantities",
+        "massproduction/massproductionpp conditions",
+        "fresh server/game response if available"
       ],
       "settlementRules": {
         "committed": [
-          "The action-specific q/placeholder is no longer active and fresh terminal inventory/value state satisfies the action-contract postconditions.",
-          "Consumed inputs, resulting item/reward, and any failure/loss outcome are reconciled as one terminal domain result."
+          "q.compound is absent and first-slot placeholder is resolved.",
+          "Success: exactly one reconciled terminal output exists and the second/third pinned physical inputs remain consumed.",
+          "Failure: all three pinned physical inputs are absent/lost.",
+          "Scroll/offering/condition deltas match the accepted attempt; booster output level/extra/expiry is read from the final item."
         ],
         "notApplied": [
-          "Fresh evidence proves all pinned inputs/currency/items remain unchanged and no action-specific q/placeholder exists.",
-          "Lack of a reward alone is never proof of NOT_APPLIED."
+          "Fresh positive evidence proves all three exact input items, scroll/offering quantities and relevant conditions still match the pinned pre-state.",
+          "No attributable q.compound or placeholder exists."
         ],
         "partial": [
-          "Inputs/value were consumed or transformed but terminal output/reward/loss cannot yet be reconciled."
+          "Any consumable or one/more inputs were consumed/removed but terminal success-output versus three-item-loss cannot yet be proven.",
+          "A first-slot placeholder plus already-null second/third slots is an expected in-flight state and remains non-retryable."
         ],
         "stillPending": [
-          "The action-specific q state or placeholder is still present and attributable to this intent."
+          "An attributable q.compound exists with first-slot placeholder; server outcome branch may already be selected.",
+          "Keep all three item claims and consumable claims; do not reconstruct/retry the original triple."
         ],
         "unresolved": [
-          "The q/placeholder disappeared but terminal inputs/outputs cannot be reconciled unambiguously."
+          "q/placeholder is gone but final output/loss of the exact three identities cannot be reconstructed unambiguously.",
+          "Missing response or reconnect alone is never NOT_APPLIED proof."
         ]
       },
       "retryPolicy": {
@@ -2303,10 +2314,9 @@
         "postcondition_evidence"
       ],
       "notes": [
-        "Derived from AL-ACTION-COMPOUND (VERIFIED_SOURCE_SNAPSHOT) and its verified effect/postcondition model.",
-        "Action postcondition: q.compound cleared",
-        "Action postcondition: placeholder resolved",
-        "Action postcondition: three inputs/result and consumables reconciled"
+        "P0-05: real compound removes input2/input3 at start and replaces input1 with placeholder before timer completion.",
+        "P0-05: normal failure destroys all three inputs; success returns one output.",
+        "P0-05: booster offering proc can add multiple extra levels, so final item observation is authoritative."
       ]
     },
     {
