@@ -4,6 +4,7 @@ const { ControlPlaneConfig } = require('../control/control-plane-config');
 const { CloudControlPlane } = require('../control/cloud-control-plane');
 const { StrategicBrainV2 } = require('../brain/strategic-brain-v2');
 const { boundedOptions, synchronizeLegacyUpgradePolicy, synchronizeLegacyCompoundPolicy } = require('./alpha27-combat-merchant-convergence');
+const { itemEconomyCatalog } = require('../economy/item-economic-evaluator');
 
 const ALPHA25_MODE = 'alpha25-control-center-brain-v2';
 const PROGRESSION_SETTING_KEYS = Object.freeze(['economy.maxUpgrade', 'economy.maxCompound']);
@@ -40,7 +41,7 @@ function gameDataSources(runtime) {
 }
 
 function mergeGameData(runtime) {
-  const merged = { items: {}, positions: {}, imagesets: {} };
+  const merged = { items: {}, positions: {}, imagesets: {}, upgrades: {}, compounds: {} };
   for (const source of gameDataSources(runtime)) {
     for (const [name, def] of Object.entries(source && source.items || {})) {
       if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
@@ -55,6 +56,13 @@ function mergeGameData(runtime) {
       if (!pack || typeof pack !== 'object' || Array.isArray(pack)) continue;
       const existing = merged.imagesets[packName];
       merged.imagesets[packName] = existing ? { ...pack, ...existing } : { ...pack };
+    }
+    for (const section of ['upgrades', 'compounds']) {
+      for (const [grade, table] of Object.entries(source && source[section] || {})) {
+        if (!table || typeof table !== 'object' || Array.isArray(table)) continue;
+        const existing = merged[section][grade];
+        merged[section][grade] = existing ? { ...table, ...existing } : { ...table };
+      }
     }
   }
   return merged;
@@ -270,6 +278,10 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
       soulbound: !!meta.soulbound,
       special: !!meta.special,
       goldValue: Number.isFinite(Number(meta.g)) ? Number(meta.g) : null,
+      description: meta.explanation || meta.description || null,
+      grades: Array.isArray(meta.grades) ? meta.grades.slice(0, 6) : [],
+      itemGrade: Number.isFinite(Number(meta.igrade)) ? Number(meta.igrade) : 0,
+      economy: itemEconomyCatalog(gameData, id, 10),
       skin,
       sprite: spriteMeta(gameData, skin) || inventorySprites[id] || null,
       observed: observed.has(id)
@@ -279,7 +291,7 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
   return rows;
 }
 
-const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 2;
+const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 3;
 
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
