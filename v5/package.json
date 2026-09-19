@@ -12,9 +12,9 @@
     "format:pruefen": "node werkzeuge/r3-stil-pruefen.mjs",
     "guards:test": "node --test werkzeuge/tests/r3-guards.test.mjs",
     "host:test": "node --test werkzeuge/tests/r3-speicher-gesundheit.test.mjs",
-    "laufzeit:test": "npm run bauen && node --test laufzeit/tests/*.test.mjs",
-    "testen": "npm run guards:test && npm run host:test && npm run laufzeit:test",
-    "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs"
+    "testen": "npm run guards:test && npm run host:test && npm run grundlage:test",
+    "r3:pruefen": "npm run typen:pruefen && npm run lint && npm run testen && node werkzeuge/r3-struktur-pruefen.mjs",
+    "grundlage:test": "npm run bauen && node --test grundlage/tests/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3"
