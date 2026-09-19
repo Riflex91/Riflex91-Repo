@@ -151,3 +151,18 @@ Der kanonische Vertrag fuer Sell Listings, Wishlists, RID, Partial Fills und die
 v5/wissensbasis/vertraege/trade-lifecycle.json
 
 Besonders wichtig: RID bleibt bei Partial Fill stabil und ist keine Quantity-Version. Bei trade_sell bestimmt der Server das erste passende physische Inventarobjekt.
+
+
+## P0-05 Upgrade / Compound
+
+Der kanonische maschinenlesbare Vertrag fuer Upgrade-/Compound-Chancen, Sonderpfade, q/Placeholder und Recovery liegt unter:
+
+v5/wissensbasis/vertraege/upgrade-compound.json
+
+Wichtig:
+- calculate=true ist eine nicht-mutierende Server-Preview;
+- q/Placeholder bedeutet accepted in-flight;
+- der Outcome-Zweig kann bereits vor Timerende feststehen;
+- upgrade_fail ist pfadabhaengig und beweist keinen Itemverlust;
+- Compound-Failure verbraucht alle drei Inputs;
+- finaler Inventory-State ist die Settlement-Autoritaet.
