@@ -44,6 +44,7 @@ class Alpha27BankRecovery {
     this.nextProbeAt = -Infinity;
     this.lastCandidate = null;
     this.lastAction = null;
+    this.batchSession = null;
     this.stats = {
       bankTravels: 0,
       scans: 0,
@@ -52,6 +53,10 @@ class Alpha27BankRecovery {
       retrievesAttempted: 0,
       retrievesCommitted: 0,
       retrievesFailedSafe: 0,
+      batchesStarted: 0,
+      batchesCompleted: 0,
+      batchRowsPlanned: 0,
+      batchRowsCommitted: 0,
       reconciliations: 0,
       skippedProtected: 0,
       skippedHighValue: 0,
@@ -217,6 +222,49 @@ class Alpha27BankRecovery {
     return candidates;
   }
 
+  _batchCapacity(pressure) {
+    const maxRows = Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12)));
+    const usableSlots = Math.max(0, Math.floor(finite(pressure && pressure.free, 0) - finite(pressure && pressure.workspaceSlots, 0)));
+    return Math.max(0, Math.min(maxRows, usableSlots));
+  }
+
+  _startBatch(candidates, pressure) {
+    const capacity = this._batchCapacity(pressure);
+    const selected = (Array.isArray(candidates) ? candidates : []).slice(0, capacity);
+    if (!selected.length) return null;
+    const now = this.now();
+    this.batchSession = {
+      id: `bank-batch-${now.toString(36)}`,
+      startedAt: now,
+      updatedAt: now,
+      plannedRows: selected.length,
+      remainingRows: selected.length,
+      committedRows: 0,
+      identities: selected.map((candidate) => `${candidate.row.name}:${candidate.row.level}`)
+    };
+    this.stats.batchesStarted += 1;
+    this.stats.batchRowsPlanned += selected.length;
+    this._event('ALPHA27_BANK_RECOVERY_BATCH_STARTED', 'info', 'BANK_WORK_BLOCK_PLANNED', {
+      batch: clone(this.batchSession),
+      pressure: clone(pressure)
+    });
+    return this.batchSession;
+  }
+
+  _finishBatch(reason = 'BANK_WORK_BLOCK_DRAINED') {
+    const session = this.batchSession;
+    if (!session) return null;
+    this.batchSession = null;
+    this.stats.batchesCompleted += 1;
+    const completed = { ...clone(session), endedAt: this.now(), reason };
+    this._event('ALPHA27_BANK_RECOVERY_BATCH_COMPLETED', 'info', reason, completed);
+    return completed;
+  }
+
+  hasActiveBatch() {
+    return !!(this.batchSession && Math.max(0, finite(this.batchSession.remainingRows, 0)) > 0);
+  }
+
   plan() {
     const c = characterOf(this.runtime);
     if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return null;
@@ -245,14 +293,26 @@ class Alpha27BankRecovery {
     if (pressure.free < pressure.minimumFreeForRetrieve) {
       this.stats.skippedWorkspace += 1;
       this.lastCandidate = null;
+      if (this.batchSession) this._finishBatch('BANK_WORKSPACE_FLOOR_REACHED');
       return { action: 'HOLD', reason: 'BANK_RECOVERY_WORKSPACE_FLOOR', pressure };
     }
 
     const candidates = this._recoverableRows();
-    const picked = candidates[0] || null;
-    if (!picked) {
+    if (!candidates.length) {
       this.stats.emptyScans += 1;
       this.lastCandidate = null;
+      if (this.batchSession) this._finishBatch('BANK_RECOVERY_CANDIDATES_DRAINED');
+      return null;
+    }
+    if (!this.batchSession) this._startBatch(candidates, pressure);
+    if (!this.hasActiveBatch()) {
+      this._finishBatch('BANK_WORK_BLOCK_DRAINED');
+      return null;
+    }
+
+    const picked = candidates[0] || null;
+    if (!picked) {
+      this._finishBatch('BANK_RECOVERY_CANDIDATES_DRAINED');
       return null;
     }
     this.stats.candidates += 1;
@@ -261,7 +321,8 @@ class Alpha27BankRecovery {
       action: 'RETRIEVE',
       reason: picked.kind,
       pressure,
-      candidate: clone(picked)
+      candidate: clone(picked),
+      batch: clone(this.batchSession)
     };
   }
 
@@ -334,6 +395,13 @@ class Alpha27BankRecovery {
       const result = await this.executor.execute(operation, step);
       if (result && result.committed === true) {
         this.stats.retrievesCommitted += 1;
+        if (this.batchSession) {
+          this.batchSession.committedRows += 1;
+          this.batchSession.remainingRows = Math.max(0, this.batchSession.remainingRows - 1);
+          this.batchSession.updatedAt = this.now();
+          this.stats.batchRowsCommitted += 1;
+          if (this.batchSession.remainingRows <= 0) this._finishBatch('BANK_WORK_BLOCK_TARGET_REACHED');
+        }
         this.nextProbeAt = this.now();
         if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
       } else if (result && result.executed === true) {
@@ -368,8 +436,11 @@ class Alpha27BankRecovery {
     return {
       mode: ALPHA27_BANK_RECOVERY_MODE,
       enabled: true,
-      strategy: 'BANK_PROBE -> BOUNDED_RETRIEVE -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
+      strategy: 'BANK_PROBE -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
       bankSnapshotRequiredForRetrieve: true,
+      batchRecovery: true,
+      batchMaxRows: Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12))),
+      activeBatch: clone(this.batchSession),
       outsideBankProbeIntervalMs: this.probeIntervalMs,
       nextProbeAt: Number.isFinite(this.nextProbeAt) ? this.nextProbeAt : null,
       lastProbeAt: Number.isFinite(this.lastProbeAt) ? this.lastProbeAt : null,
