@@ -259,9 +259,27 @@ public sealed class LiveWissensImportDienst
 
             var backup = ziel + ".alt";
             if (Directory.Exists(backup)) Directory.Delete(backup, recursive: true);
-            if (Directory.Exists(ziel)) Directory.Move(ziel, backup);
-            Directory.Move(staging, ziel);
-            if (Directory.Exists(backup)) Directory.Delete(backup, recursive: true);
+
+            var alterSnapshotVerschoben = false;
+            try
+            {
+                if (Directory.Exists(ziel))
+                {
+                    Directory.Move(ziel, backup);
+                    alterSnapshotVerschoben = true;
+                }
+
+                Directory.Move(staging, ziel);
+
+                if (Directory.Exists(backup))
+                    Directory.Delete(backup, recursive: true);
+            }
+            catch
+            {
+                if (!Directory.Exists(ziel) && alterSnapshotVerschoben && Directory.Exists(backup))
+                    Directory.Move(backup, ziel);
+                throw;
+            }
         }
         finally
         {
