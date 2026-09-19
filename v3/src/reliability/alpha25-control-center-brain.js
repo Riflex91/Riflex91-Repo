@@ -190,6 +190,7 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
     if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
     const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
     const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
+    const skin = def.skin_c || def.skin || null;
     rows.push({
       id,
       name: def.name || id,
@@ -199,15 +200,16 @@ function itemAutomationCatalog(runtime, maxItems = 10000) {
       grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
       classes,
       npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
-      upgrade: def.upgrade === true,
-      compound: def.compound === true,
+      upgrade: !!def.upgrade,
+      compound: !!def.compound,
       exchange: !!(def.exchange || def.e),
       quest: !!(def.quest || def.q),
       cash: !!def.cash,
       soulbound: !!def.soulbound,
       special: !!def.special,
       goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
-      skin: def.skin_c || def.skin || null
+      skin,
+      sprite: spriteMeta(gameData, skin)
     });
   }
   rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
