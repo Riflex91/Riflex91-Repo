@@ -38879,6 +38879,20 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     const meta = gd.items && gd.items[tx.item];
     if (!meta) return { ok: false, reason: 'ITEM_METADATA_UNKNOWN' };
     const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+    const productionLifecycle = !!(tx.metadata && tx.metadata.productionMaterialAcquisition === true);
+    const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
+    const productionDemandValid = !!(
+      productionLifecycle
+      && productionDemand
+      && finite(productionDemand.expiresAt, 0) > this.now()
+      && String(productionDemand.family || '').toUpperCase() === String(tx.type || '').toUpperCase()
+      && String(productionDemand.item || '') === String(tx.item || '')
+      && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === levelOf(tx)
+      && Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1))) === levelOf(tx) + 1
+      && String(productionDemand.output || '') === String(tx.metadata && tx.metadata.output || '')
+      && String(productionDemand.recipient || '') === String(tx.metadata && tx.metadata.recipient || '')
+    );
+    if (productionLifecycle && !productionDemandValid) return { ok: false, reason: 'PRODUCTION_MUTATION_DEMAND_MISMATCH' };
     if (tx.type === 'UPGRADE') {
       if (!meta.upgrade) return { ok: false, reason: 'ITEM_NOT_UPGRADEABLE' };
       if (levelOf(tx) >= this.options.maxUpgradeLevel) return { ok: false, reason: 'UPGRADE_LEVEL_RISK_CAP' };
@@ -38889,9 +38903,12 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const goal = goals.find((row) => row && row.sourceCharacter === tx.character && row.item === tx.item && levelOf({ level: row.observedLevel }) === levelOf(tx) && finite(row.targetLevel, 0) > levelOf(tx));
       const economicLifecycle = !!(tx.metadata && tx.metadata.economicLifecycle === true);
       const requestedTarget = Math.max(0, Math.floor(finite(tx.metadata && tx.metadata.targetLevel, levelOf(tx) + 1)));
-      if (!goal && !economicLifecycle && !selfGear) return { ok: false, reason: 'LIVE_GEAR_GOAL_REQUIRED' };
+      if (!goal && !economicLifecycle && !selfGear && !productionLifecycle) return { ok: false, reason: 'LIVE_GEAR_GOAL_OR_PRODUCTION_DEMAND_REQUIRED' };
       if (goal && tx.metadata && tx.metadata.targetLevel != null && requestedTarget !== Math.floor(finite(goal.targetLevel, requestedTarget))) {
         return { ok: false, reason: 'GEAR_GOAL_TARGET_MISMATCH' };
+      }
+      if (!goal && productionLifecycle && !selfGear && !economicLifecycle) {
+        if (!productionDemandValid || requestedTarget !== levelOf(tx) + 1) return { ok: false, reason: 'PRODUCTION_UPGRADE_SCOPE_INVALID' };
       }
       if (!goal && economicLifecycle && !selfGear) {
         if (levelOf(tx) >= 3 || requestedTarget !== 3) return { ok: false, reason: 'ECONOMIC_UPGRADE_SCOPE_INVALID' };
@@ -38915,6 +38932,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         meta,
         goal: goal || null,
         economicLifecycle,
+        productionLifecycle,
         selfGear,
         value,
         grade,
@@ -38929,7 +38947,7 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
     if (grade >= 4) return { ok: false, reason: 'COMPOUND_ITEM_EXALTED' };
     if (value > this.options.compoundValueCap) return { ok: false, reason: 'COMPOUND_VALUE_RISK_CAP' };
     if (!inputs.every((row) => row.item === inputs[0].item && levelOf(row) === levelOf(inputs[0]))) return { ok: false, reason: 'COMPOUND_INPUT_IDENTITY_MISMATCH' };
-    return { ok: true, inputs, meta, selfGear, value, grade, scroll: `cscroll${grade}` };
+    return { ok: true, inputs, meta, productionLifecycle, selfGear, value, grade, scroll: `cscroll${grade}` };
   }
 }
 
@@ -39166,6 +39184,54 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         futureSellSafety = null;
       }
 
+      const productionDemand = this.runtime && this.runtime.productionMaterialMutationDemand;
+      const productionDemandActive = !!(
+        productionDemand
+        && finite(productionDemand.expiresAt, 0) > this.now()
+        && String(productionDemand.item || '') === name
+        && Math.max(0, Math.floor(finite(productionDemand.fromLevel, -1))) === level
+        && Math.max(0, Math.floor(finite(productionDemand.targetLevel, -1))) === level + 1
+      );
+
+      // A production mutation demand is intentionally weaker than a Farmer gear
+      // reservation. Exact/future Farmer protection keeps ownership. Otherwise
+      // the demanded recipe input may enter the same Alpha27 mutation authority
+      // used for normal autonomous progression; no second raw mutation path is
+      // introduced.
+      if (!futureFarmerProtection && productionDemandActive) {
+        const family = String(productionDemand.family || '').toUpperCase();
+        if (family === 'UPGRADE'
+          && meta.upgrade
+          && level < this.options.maxUpgradeLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.upgradeValueCap) {
+          return {
+            disposition: 'RESERVE_UPGRADE',
+            reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_UPGRADE_INPUT'],
+            productionMutationDemand: clone(productionDemand)
+          };
+        }
+        if (family === 'COMPOUND'
+          && meta.compound
+          && level < this.options.maxCompoundLevel
+          && grade < 4
+          && value != null
+          && value <= this.options.compoundValueCap) {
+          return same >= 3
+            ? {
+                disposition: 'RESERVE_COMPOUND',
+                reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_COMPOUND_INPUT'],
+                productionMutationDemand: clone(productionDemand)
+              }
+            : {
+                disposition: 'KEEP',
+                reasons: [...baseReasons, 'PRODUCTION_MATERIAL_MUTATION_DEMAND', 'PRODUCTION_RECIPE_COMPOUND_ACCUMULATION'],
+                productionMutationDemand: clone(productionDemand)
+              };
+        }
+      }
+
       if (futureFarmerProtection) {
         if (meta.compound && level < Math.max(level + 1, finite(futureFarmerProtection.targetLevel, level + 1)) && grade < 4 && value != null && value <= this.options.compoundValueCap) {
           return same >= 3
@@ -39290,6 +39356,8 @@ class Alpha27AtomicLedger extends Alpha27AtomicCore {
         unknownItemsFailClosed: true,
         protectedItemsNeverAutoSold: true,
         progressionReservationsPreemptDisposition: true,
+        productionMutationDemandSupported: true,
+        productionMutationDemandCannotOverrideFarmerProtection: true,
         lowRiskKnownSurplusAutoSell: true,
         valuableOrProgressionItemsAutoBank: false,
         progressionLifecycleBeforeBank: true,
@@ -41650,6 +41718,8 @@ const ProductionStepKind = Object.freeze({
   BUY: 'BUY',
   CRAFT: 'CRAFT',
   EXCHANGE: 'EXCHANGE',
+  UPGRADE_REQUIRED: 'UPGRADE_REQUIRED',
+  COMPOUND_REQUIRED: 'COMPOUND_REQUIRED',
   FARM_REQUIRED: 'FARM_REQUIRED'
 });
 
@@ -41679,6 +41749,39 @@ function itemQuantity(items, name, level = 0) {
     total += Math.max(1, Math.floor(finite(item.q, 1)));
   }
   return total;
+}
+
+function gradeForLevel(meta, level) {
+  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
+  const current = Math.max(0, Math.floor(finite(level, 0)));
+  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
+    const threshold = Number(grades[index]);
+    if (Number.isFinite(threshold) && current >= threshold) return index + 1;
+  }
+  return 0;
+}
+
+function mutationDescriptor(gameData, name, targetLevel) {
+  const level = Math.max(0, Math.floor(finite(targetLevel, 0)));
+  if (level <= 0) return null;
+  const meta = gameData && gameData.items && gameData.items[name];
+  if (!meta || typeof meta !== 'object') return null;
+  const family = meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null;
+  if (!family) return null;
+  const fromLevel = level - 1;
+  const grade = gradeForLevel(meta, fromLevel);
+  if (grade >= 4) return null;
+  const scrollName = `${family === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
+  const scrollMeta = gameData && gameData.items && gameData.items[scrollName];
+  const scrollUnitCost = Math.max(0, Math.floor(finite(scrollMeta && (scrollMeta.g != null ? scrollMeta.g : scrollMeta.gold), 0)));
+  return {
+    family,
+    fromLevel,
+    targetLevel: level,
+    inputMultiplier: family === 'COMPOUND' ? 3 : 1,
+    scrollName,
+    scrollUnitCost
+  };
 }
 
 function recipeFor(gameData, name) {
@@ -41906,8 +42009,23 @@ class MerchantProductionPlanner {
     const estimateSource = (name, level, quantity, depth = 0, path = new Set()) => {
       const need = Math.max(1, Math.floor(finite(quantity, 1)));
       const key = itemKey(name, level);
-      if (depth > this.maxDepth || path.has(key) || level !== 0) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+      if (depth > this.maxDepth || path.has(key)) return { cost: Infinity, strategy: 'UNAVAILABLE' };
       const itemMeta = gameData.items && gameData.items[name] || {};
+      if (level > 0) {
+        const mutation = mutationDescriptor(gameData, name, level);
+        if (!mutation) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+        const nextPath = new Set(path); nextPath.add(key);
+        const inputQuantity = need * mutation.inputMultiplier;
+        const lower = estimateSource(name, mutation.fromLevel, inputQuantity, depth + 1, nextPath);
+        if (!Number.isFinite(lower.cost)) return { cost: Infinity, strategy: 'UNAVAILABLE' };
+        return {
+          cost: lower.cost + mutation.scrollUnitCost * need,
+          strategy: mutation.family,
+          mutation,
+          inputQuantity,
+          lower
+        };
+      }
       const unitCost = Math.max(0, Math.floor(finite(itemMeta.g, 0)));
       const vendor = (vendors.get(name) || [])[0] || null;
       const vendorCost = vendor && unitCost > 0 && need <= this.maxBuyQuantity ? unitCost * need : Infinity;
@@ -41988,6 +42106,52 @@ class MerchantProductionPlanner {
       }
       if (need <= 0) return true;
 
+      if (level > 0) {
+        const mutation = mutationDescriptor(gameData, name, level);
+        if (!mutation) {
+          blockers.push({ reason: 'LEVELED_MATERIAL_MUTATION_UNSUPPORTED', name, level, quantity: need });
+          return false;
+        }
+        const nextPath = new Set(path); nextPath.add(key);
+        const beforeSteps = steps.length;
+        const inputQuantity = need * mutation.inputMultiplier;
+        if (!acquire(name, mutation.fromLevel, inputQuantity, depth + 1, nextPath)) return false;
+
+        // If lower-level acquisition scheduled BANK/BUY/CRAFT work, execute and
+        // replan before reserving a mutation. That keeps mutations bound to
+        // inputs that are actually present in the live Merchant inventory.
+        if (steps.length > beforeSteps) return true;
+
+        const stepKind = mutation.family === 'COMPOUND'
+          ? ProductionStepKind.COMPOUND_REQUIRED
+          : ProductionStepKind.UPGRADE_REQUIRED;
+        steps.push({
+          kind: stepKind,
+          name,
+          level,
+          fromLevel: mutation.fromLevel,
+          targetLevel: mutation.targetLevel,
+          quantity: need,
+          inputQuantity,
+          inputMultiplier: mutation.inputMultiplier,
+          scrollName: mutation.scrollName,
+          estimatedScrollUnitCost: mutation.scrollUnitCost,
+          reason: 'LEVELED_RECIPE_MATERIAL_MUTATION_REQUIRED'
+        });
+        blockers.push({
+          reason: 'MATERIAL_MUTATION_REQUIRED',
+          mutation: mutation.family,
+          name,
+          level,
+          fromLevel: mutation.fromLevel,
+          targetLevel: mutation.targetLevel,
+          quantity: need,
+          inputQuantity,
+          scrollName: mutation.scrollName
+        });
+        return false;
+      }
+
       if (level === 0) {
         const quote = estimateSource(name, level, need, depth, path);
         if (quote.strategy === 'BUY') {
@@ -42025,7 +42189,11 @@ class MerchantProductionPlanner {
 
     const availableGold = Math.max(0, Math.floor(finite(character.gold, 0)));
     if (availableGold - totalGold < this.goldReserve) blockers.push({ reason: 'GOLD_RESERVE_WOULD_BE_BREACHED', availableGold, totalGold, goldReserve: this.goldReserve });
-    const executableSteps = steps.filter((step) => step.kind !== ProductionStepKind.FARM_REQUIRED);
+    const executableSteps = steps.filter((step) => ![
+      ProductionStepKind.FARM_REQUIRED,
+      ProductionStepKind.UPGRADE_REQUIRED,
+      ProductionStepKind.COMPOUND_REQUIRED
+    ].includes(step.kind));
     const ready = blockers.length === 0;
     return {
       ready,
@@ -42038,7 +42206,7 @@ class MerchantProductionPlanner {
       availableGold,
       goldReserve: this.goldReserve,
       bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1'
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE'
     };
   }
 
@@ -42326,8 +42494,10 @@ class MerchantProductionPlanner {
       maxBuyQuantity: this.maxBuyQuantity,
       candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
-      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'FARM_REQUIRED'],
+      leveledRecipeMaterials: true,
+      mutationFamilies: ['UPGRADE', 'COMPOUND'],
       autonomousExchangeableSurplus: true,
       anniversarySliceConsolidation: true,
       anniversarySliceConsolidationOutput: 'sixcake',
@@ -42344,6 +42514,8 @@ module.exports = {
   recipeFor,
   itemKey,
   itemQuantity,
+  gradeForLevel,
+  mutationDescriptor,
   bankRows,
   vendorIndex
 };
@@ -54495,7 +54667,11 @@ function installMerchantProduction(runtime, options = {}) {
     maxTeamFarmHours: Math.max(0.25, n(options.merchantProductionMaxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
     fallbackKillsPerHour: Math.max(1, n(options.merchantProductionFallbackKillsPerHour, DEFAULT_FALLBACK_KILLS_PER_HOUR)),
     materialObjectiveTtlMs: Math.max(60000, Math.min(60 * 60 * 1000, n(options.merchantProductionMaterialObjectiveTtlMs, 15 * 60 * 1000))),
-    lastMaterialFarmDecision: null
+    mutationDemandTtlMs: Math.max(30000, Math.min(15 * 60 * 1000, n(options.merchantProductionMutationDemandTtlMs, 5 * 60 * 1000))),
+    lastMaterialFarmDecision: null,
+    lastMutationDemand: null,
+    mutationExecutions: 0,
+    mutationHolds: 0
   };
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
@@ -54701,6 +54877,240 @@ function installMerchantProduction(runtime, options = {}) {
     }).finally(() => { state.executionPending = false; });
     return true;
   }
+  function mutationCandidateForPlan(plan) {
+    if (!plan || plan.state !== 'BLOCKED') return null;
+    const rows = Array.isArray(plan.blockedCandidates) && plan.blockedCandidates.length
+      ? plan.blockedCandidates
+      : plan.target
+        ? [{ candidate: plan.target, steps: plan.steps || [], blockers: plan.blockers || [] }]
+        : [];
+    for (const row of rows) {
+      if (!row || !row.candidate) continue;
+      const blockers = Array.isArray(row.blockers) ? row.blockers : [];
+      const hardBlocker = blockers.find((blocker) => blocker && ![
+        'MATERIAL_MUTATION_REQUIRED',
+        'MATERIAL_FARM_REQUIRED'
+      ].includes(String(blocker.reason || '')));
+      if (hardBlocker) continue;
+      const step = (Array.isArray(row.steps) ? row.steps : []).find((candidateStep) => candidateStep && [
+        ProductionStepKind.UPGRADE_REQUIRED,
+        ProductionStepKind.COMPOUND_REQUIRED
+      ].includes(candidateStep.kind));
+      if (!step) continue;
+      return { candidate: clone(row.candidate), step: clone(step) };
+    }
+    return null;
+  }
+
+  function clearProductionMutationDemand(reason = 'PRODUCTION_MUTATION_NO_LONGER_REQUIRED') {
+    runtime.productionMaterialMutationDemand = null;
+    state.lastMutationDemand = {
+      at: runtime.now(),
+      active: false,
+      reason
+    };
+    return true;
+  }
+
+  function setProductionMutationDemand(plan, selection) {
+    const step = selection && selection.step;
+    const candidate = selection && selection.candidate;
+    if (!step || !candidate) return null;
+    const family = step.kind === ProductionStepKind.COMPOUND_REQUIRED ? 'COMPOUND'
+      : step.kind === ProductionStepKind.UPGRADE_REQUIRED ? 'UPGRADE'
+        : null;
+    if (!family) return null;
+    const demand = {
+      schemaVersion: 1,
+      kind: 'PRODUCTION_MATERIAL_MUTATION',
+      family,
+      item: String(step.name || ''),
+      fromLevel: Math.max(0, Math.floor(n(step.fromLevel, Math.max(0, n(step.level, 1) - 1)))),
+      targetLevel: Math.max(1, Math.floor(n(step.targetLevel, step.level))),
+      output: String(candidate.output || ''),
+      recipient: String(candidate.recipient || ''),
+      slot: candidate.slot || null,
+      quantity: Math.max(1, Math.floor(n(step.quantity, 1))),
+      inputQuantity: Math.max(1, Math.floor(n(step.inputQuantity, family === 'COMPOUND' ? 3 : 1))),
+      scrollName: step.scrollName || null,
+      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      createdAt: runtime.now(),
+      expiresAt: runtime.now() + state.mutationDemandTtlMs
+    };
+    runtime.productionMaterialMutationDemand = demand;
+    state.lastMutationDemand = { at: runtime.now(), active: true, reason: 'PRODUCTION_MUTATION_REQUIRED', demand: clone(demand), planId: plan && plan.id || null };
+    return demand;
+  }
+
+  function refreshInventoryLedgerForMutationDemand() {
+    const ledger = runtime.inventoryLedger;
+    const c = character();
+    if (!ledger || typeof ledger.observe !== 'function' || !c) return false;
+    let registry = null;
+    try { registry = runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : null; } catch (_) { registry = null; }
+    const characters = Array.isArray(registry && registry.characters) ? registry.characters.map((row) => clone(row)) : [];
+    const liveInventory = (Array.isArray(c.items) ? c.items : []).map((item, index) => item ? { ...clone(item), index } : null).filter(Boolean);
+    const liveRow = {
+      ...(characters.find((row) => row && String(row.name || '') === String(c.name || '')) || {}),
+      name: c.name,
+      ctype: c.ctype || c.type,
+      stateConfidence: 1,
+      inventory: liveInventory
+    };
+    const merged = characters.filter((row) => row && String(row.name || '') !== String(c.name || ''));
+    merged.push(liveRow);
+    let gameData = {};
+    try { gameData = runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {}; } catch (_) { gameData = {}; }
+    try {
+      ledger.observe({
+        observedAt: runtime.now(),
+        registry: { ...(registry || {}), characters: merged },
+        gameData,
+        contentDrift: runtime.contentDrift,
+        liveCharacter: c
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function mutationInputIndices(demand) {
+    const c = character();
+    const ledger = runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.get !== 'function' || !demand) return [];
+    const required = String(demand.family || '') === 'COMPOUND' ? 3 : 1;
+    const expectedDisposition = String(demand.family || '') === 'COMPOUND' ? 'RESERVE_COMPOUND' : 'RESERVE_UPGRADE';
+    const out = [];
+    const items = Array.isArray(c.items) ? c.items : [];
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (!item || String(item.name || '') !== String(demand.item || '')) continue;
+      if (Math.max(0, Math.floor(n(item.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
+      if (item.locked || item.l || item.special || item.p) continue;
+      let entry = null;
+      try { entry = ledger.get(c.name, index); } catch (_) { entry = null; }
+      if (!entry || String(entry.name || '') !== String(demand.item || '')) continue;
+      if (Math.max(0, Math.floor(n(entry.level, 0))) !== Math.max(0, Math.floor(n(demand.fromLevel, 0)))) continue;
+      if (String(entry.disposition || '') !== expectedDisposition) continue;
+      out.push(index);
+      if (out.length >= required) break;
+    }
+    return out;
+  }
+
+  function scheduleProductionMutation(plan) {
+    if (!plan || plan.state !== 'BLOCKED' || state.executionPending || collectionBusy()) return false;
+    if (runtime.now() < state.pausedUntil) return false;
+    const selection = mutationCandidateForPlan(plan);
+    if (!selection) return false;
+    const lockPlan = { ...clone(plan), target: clone(selection.candidate) };
+    const lock = acquireTask(lockPlan, 'PRODUCTION_CHAIN');
+    if (!lock.acquired) return false;
+
+    clearProductionMaterialObjective('PRODUCTION_MUTATION_STEP_READY');
+    const demand = setProductionMutationDemand(plan, selection);
+    if (!demand) {
+      releaseTask('PRODUCTION_MUTATION_DEMAND_INVALID');
+      return false;
+    }
+
+    const convergence = runtime.alpha27CombatMerchantConvergence;
+    const merchant = convergence && convergence.merchant;
+    if (!merchant || typeof merchant.executeEconomyRequest !== 'function') {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: selection.step.kind, result: { executed: false, committed: false, reason: 'ALPHA27_MUTATION_AUTHORITY_UNAVAILABLE' } };
+      clearProductionMutationDemand('ALPHA27_MUTATION_AUTHORITY_UNAVAILABLE');
+      releaseTask('PRODUCTION_MUTATION_AUTHORITY_UNAVAILABLE');
+      return true;
+    }
+    try {
+      if (typeof merchant.ensureAutonomousAuthorities === 'function') merchant.ensureAutonomousAuthorities();
+    } catch (_) {}
+    if (!refreshInventoryLedgerForMutationDemand()) {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = { at: runtime.now(), planId: plan.id, kind: selection.step.kind, result: { executed: false, committed: false, reason: 'PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED' } };
+      clearProductionMutationDemand('PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED');
+      releaseTask('PRODUCTION_MUTATION_LEDGER_REFRESH_FAILED');
+      return true;
+    }
+
+    const indices = mutationInputIndices(demand);
+    const requiredInputs = demand.family === 'COMPOUND' ? 3 : 1;
+    if (indices.length < requiredInputs) {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: { executed: false, committed: false, reason: 'PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED', requiredInputs, authorizedInputs: indices.length }
+      };
+      clearProductionMutationDemand('PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED');
+      releaseTask('PRODUCTION_MUTATION_INPUT_NOT_LEDGER_AUTHORIZED');
+      return true;
+    }
+
+    const request = {
+      type: demand.family,
+      character: character().name,
+      index: indices[0],
+      indices,
+      metadata: {
+        source: 'MERCHANT_PRODUCTION_ACQUISITION_V2',
+        lifecycle: 'PRODUCTION_MATERIAL_ACQUISITION',
+        productionMaterialAcquisition: true,
+        output: demand.output,
+        recipient: demand.recipient,
+        targetLevel: demand.targetLevel,
+        fromLevel: demand.fromLevel,
+        requiredRecipeQuantity: demand.quantity,
+        acquisitionGraph: demand.acquisitionGraph,
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
+      }
+    };
+
+    state.executionPending = true;
+    state.mutationExecutions += 1;
+    Promise.resolve(merchant.executeEconomyRequest(request)).then((acted) => {
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: acted === true,
+          committed: null,
+          reason: acted === true ? 'ALPHA27_PRODUCTION_MUTATION_EXECUTED_REPLAN_REQUIRED' : 'ALPHA27_PRODUCTION_MUTATION_NOT_EXECUTED',
+          request: clone(request)
+        }
+      };
+      if (acted !== true) {
+        state.mutationHolds += 1;
+        state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      }
+    }).catch((error) => {
+      state.mutationHolds += 1;
+      state.pausedUntil = runtime.now() + state.failureCooldownMs;
+      state.lastExecution = {
+        at: runtime.now(),
+        planId: plan.id,
+        kind: selection.step.kind,
+        result: {
+          executed: false,
+          committed: false,
+          reason: 'UNHANDLED_PRODUCTION_MUTATION_ERROR',
+          error: error && typeof error === 'object' ? { reason: error.reason || error.code || error.message || 'STRUCTURED_ERROR', message: error.message || null } : String(error)
+        }
+      };
+    }).finally(() => {
+      clearProductionMutationDemand('PRODUCTION_MUTATION_ATTEMPT_COMPLETE_REPLAN');
+      state.executionPending = false;
+    });
+    return true;
+  }
+
   function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
     const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
     const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
@@ -54791,6 +55201,9 @@ function installMerchantProduction(runtime, options = {}) {
     if (task && task.owner !== 'PRODUCTION') {
       return { state: 'HOLD', reason: 'MERCHANT_TASK_OWNED_BY_OTHER_SUBSYSTEM', task: clone(task) };
     }
+    if (state.executionPending) {
+      return { state: 'HOLD', reason: 'MERCHANT_PRODUCTION_EXECUTION_PENDING', task: clone(task) };
+    }
     if (ensureBankCatalog()) return { state: 'HOLD', reason: 'BANK_CATALOG_REFRESH_IN_PROGRESS' };
 
     const active = currentTask();
@@ -54805,8 +55218,16 @@ function installMerchantProduction(runtime, options = {}) {
     }
 
     const plan = evaluate();
-    if (plan && plan.state === 'READY') clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
-    else if (plan && plan.state === 'BLOCKED') publishProductionMaterialObjective(plan);
+    if (plan && plan.state === 'READY') {
+      clearProductionMutationDemand('PRODUCTION_CHAIN_READY');
+      clearProductionMaterialObjective('PRODUCTION_CHAIN_READY');
+    } else if (plan && plan.state === 'BLOCKED') {
+      if (scheduleProductionMutation(plan)) return plan;
+      clearProductionMutationDemand('NO_ACTIONABLE_PRODUCTION_MUTATION');
+      publishProductionMaterialObjective(plan);
+    } else {
+      clearProductionMutationDemand('PRODUCTION_PLAN_NOT_BLOCKED');
+    }
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
@@ -54841,7 +55262,7 @@ function installMerchantProduction(runtime, options = {}) {
     executor.configure({ enabled: config.enabled === true, ack: config.ack, allowBuy: config.allowBuy === true, allowBank: config.allowBank === true, allowCraft: config.allowCraft === true, allowExchange: config.allowExchange === true });
     return status();
   }
-  function disable(reason = 'OPERATOR_DISABLED') { executor.disable(reason); return status(); }
+  function disable(reason = 'OPERATOR_DISABLED') { clearProductionMutationDemand(reason); executor.disable(reason); return status(); }
   function reconcile() { return executor.reconcile(); }
   function status() {
     return {
@@ -54877,6 +55298,13 @@ function installMerchantProduction(runtime, options = {}) {
         gearBenefitPrimary: true,
         characterLevelUsedForStrengthRanking: false,
         exchangeBackedMaterialAcquisition: true,
+        leveledRecipeMaterialAcquisition: true,
+        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+        mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
+        mutationDemandTtlMs: state.mutationDemandTtlMs,
+        lastMutationDemand: clone(state.lastMutationDemand),
+        mutationExecutions: state.mutationExecutions,
+        mutationHolds: state.mutationHolds,
         lastDecision: clone(state.lastMaterialFarmDecision)
       },
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
