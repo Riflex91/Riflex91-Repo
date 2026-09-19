@@ -259,3 +259,9 @@ Die Entwicklungsquelle fuer vom Bot live bestaetigte Beobachtungen ist der von d
 Der lokale Primaerpfad `D:\AdventureLand-V5\wissensdatenbank` wird von Entwicklungswerkzeugen nicht direkt vorausgesetzt. Dadurch bleibt die Entwicklung reproduzierbar ueber GitHub, waehrend der laufende Bot lokal schneller persistieren kann.
 
 Fuer Runtime gilt spaeter: In-Memory/Reconciled Live Truth > lokaler persistierter Live-Fakt > GitHub-Spiegel, jeweils nur innerhalb ihres exakten Freshness-/Scope-Vertrags. Keine dieser Evidenzebenen ersetzt die Mutation Admission.
+
+
+## R2-Ratifizierung
+
+**R2-Status:** RATIFIZIERT am 2026-09-19.  
+Dieser Vertrag ist Bestandteil der V5-Verfassung. Die Ratifizierung ist eine Architektur-/Vorbereitungsfreigabe und **keine Gameplay-Runtime-Freigabe**. Technische Umsetzung und Live-Nachweise folgen ausschliesslich in den dafuer vorgesehenen Roadmap-Phasen.
