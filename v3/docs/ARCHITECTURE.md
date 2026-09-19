@@ -8,9 +8,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Bereich | Dateien | Codezeilen |
 | --- | ---: | ---: |
-| (root) | 6 | 1357 |
-| autonomy | 30 | 7354 |
-| brain | 4 | 999 |
+| (root) | 6 | 1359 |
+| autonomy | 31 | 7817 |
+| brain | 4 | 1096 |
 | composition | 2 | 193 |
 | content | 3 | 447 |
 | control | 5 | 1047 |
@@ -20,9 +20,9 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | game | 3 | 870 |
 | merchant | 9 | 2525 |
 | ops | 26 | 7614 |
-| party | 33 | 8124 |
+| party | 33 | 8164 |
 | planner | 1 | 66 |
-| reliability | 50 | 16140 |
+| reliability | 50 | 16163 |
 | research | 1 | 101 |
 | stability | 3 | 731 |
 | telemetry | 1 | 263 |
@@ -42,7 +42,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 
 | Von | Nach | statische Referenzen |
 | --- | --- | ---: |
-| (root) | autonomy | 28 |
+| (root) | autonomy | 29 |
 | (root) | brain | 3 |
 | (root) | composition | 1 |
 | (root) | control | 1 |
@@ -68,7 +68,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | autonomy | farmer | 9 |
 | autonomy | merchant | 3 |
 | autonomy | ops | 5 |
-| autonomy | party | 20 |
+| autonomy | party | 22 |
 | autonomy | reliability | 2 |
 | autonomy | stability | 2 |
 | autonomy | travel | 3 |
@@ -101,7 +101,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | party | world | 1 |
 | planner | core | 1 |
 | reliability | (root) | 1 |
-| reliability | autonomy | 8 |
+| reliability | autonomy | 9 |
 | reliability | brain | 1 |
 | reliability | control | 4 |
 | reliability | economy | 3 |
