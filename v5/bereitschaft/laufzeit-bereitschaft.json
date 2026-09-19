@@ -7,14 +7,16 @@
     {
       "kennung": "WISSEN_BEREIT",
       "erfuellt": false,
-      "grund": "Lebende Wissensbasis und erster stündlicher Wächterlauf existieren. Manifest, laufende Datenbank, Quellenhash-Baselines und Entwicklungs-Wissensgate sind integriert. Offen bleiben R1/R2-Revalidierung, Runtime-Freigaben der relevanten Quellen sowie die bereits dokumentierten Git-Sync-/Least-Privilege-Haertungen.",
+      "grund": "Lebende Web-/Repo-Wissensbasis, stündlicher Wächter, Manifest, Quellenhash-Baselines und Entwicklungs-Wissensgate sind integriert. Der Vertrag fuer die lokale live verifizierte SSD-Wissensdatenbank und den Bridge-Spiegel ist festgelegt; der Bot-Writer selbst wird erst nach Runtime-Freigabe in R5/R6 implementiert. Offen bleiben R1/R2-Revalidierung sowie die bereits dokumentierten Git-Sync-/Least-Privilege-Haertungen.",
       "nachweise": [
         "v5/wissensbasis/README.md",
         "v5/dokumentation/WISSENSWAECHTER-VERTRAG.md",
         "v5/dokumentation/ENTWICKLUNGS-WISSENSGATE.md",
         "v5/entwicklungsregeln/wissensnutzung.json",
         "v5/entwicklungsregeln/quellenfreigaben.json",
-        "v5/werkzeuge/entwicklungs-wissensgate.mjs"
+        "v5/werkzeuge/entwicklungs-wissensgate.mjs",
+        "v5/dokumentation/LIVE-WISSEN-SSD-VERTRAG.md",
+        "v5/wissensbasis/live/README.md"
       ]
     },
     {
