@@ -58406,7 +58406,9 @@ class ProductionGraphSoakAuditor {
     this.capacity = Math.max(100, Math.min(10000, Math.floor(finite(options.capacity, 1000) || 1000)));
     this.samples = 0;
     this.violations = [];
+    this.committedCapacity = Math.max(100, Math.min(50000, Math.floor(finite(options.committedCapacity, 10000) || 10000)));
     this.seenCommitted = new Set();
+    this.committedOrder = [];
     this.activeTargetIdentity = null;
     this.maxTrackedCommitted = 0;
   }
@@ -58439,7 +58441,14 @@ class ProductionGraphSoakAuditor {
       const key = String(action.idempotencyKey || action.operationId || '');
       if (!key) this._violate('IRREVERSIBLE_ACTION_WITHOUT_IDEMPOTENCY_KEY', sample, { kind: action.kind });
       else if (this.seenCommitted.has(key)) this._violate('DUPLICATE_IRREVERSIBLE_COMMIT', sample, { key, kind: action.kind });
-      else this.seenCommitted.add(key);
+      else {
+        this.seenCommitted.add(key);
+        this.committedOrder.push(key);
+        while (this.committedOrder.length > this.committedCapacity) {
+          const oldest = this.committedOrder.shift();
+          this.seenCommitted.delete(oldest);
+        }
+      }
     }
     this.maxTrackedCommitted = Math.max(this.maxTrackedCommitted, this.seenCommitted.size);
 
@@ -58484,7 +58493,8 @@ class ProductionGraphSoakAuditor {
       violationCount: this.violations.length,
       violations: this.violations.slice(-100).map(clone),
       committedKeysTracked: this.seenCommitted.size,
-      bounded: this.violations.length <= this.capacity
+      committedCapacity: this.committedCapacity,
+      bounded: this.violations.length <= this.capacity && this.seenCommitted.size <= this.committedCapacity
     };
   }
 }
