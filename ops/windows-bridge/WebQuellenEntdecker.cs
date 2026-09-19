@@ -19,16 +19,16 @@ public sealed class WebQuellenEntdecker
 
     public static readonly string[] Suchanfragen =
     [
-        ""Adventure Land - The Code MMORPG"",
-        ""Adventure Land" MMORPG "adventure.land"",
-        ""Adventure Land" "The Code MMORPG" update",
-        ""Adventure Land" "adventure.land" skills monsters items",
-        ""Adventure Land" "adventure.land" API CODE",
-        ""Adventure Land" "adventure.land" patch notes",
-        "site:github.com "Adventure Land" "adventure.land"",
-        "site:github.com "Adventure Land - The Code MMORPG"",
-        "site:steamcommunity.com/app/777150 "Adventure Land"",
-        "site:adventure.land "Adventure Land""
+        "\"Adventure Land - The Code MMORPG\"",
+        "\"Adventure Land\" MMORPG \"adventure.land\"",
+        "\"Adventure Land\" \"The Code MMORPG\" update",
+        "\"Adventure Land\" \"adventure.land\" skills monsters items",
+        "\"Adventure Land\" \"adventure.land\" API CODE",
+        "\"Adventure Land\" \"adventure.land\" patch notes",
+        "site:github.com \"Adventure Land\" \"adventure.land\"",
+        "site:github.com \"Adventure Land - The Code MMORPG\"",
+        "site:steamcommunity.com/app/777150 \"Adventure Land\"",
+        "site:adventure.land \"Adventure Land\""
     ];
 
     private readonly HttpClient _httpClient;
