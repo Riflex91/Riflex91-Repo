@@ -67,3 +67,12 @@ test('Automation item icons reuse the character inventory sprite renderer', () =
   assert.match(DASHBOARD_HTML, /function alSpriteMeta/);
   assert.match(DASHBOARD_HTML, /function automationIcon\(item\)\{return item\.sprite\?[^\n]*alSpriteMeta\(item\.sprite,false\)/);
 });
+
+
+test('character view renders online and delayed characters before offline characters', () => {
+  assert.match(DASHBOARD_HTML, /function characterConnectionState\(row\)/);
+  assert.match(DASHBOARD_HTML, /function charactersOnlineFirst\(rows\)/);
+  assert.match(DASHBOARD_HTML, /offline:characterConnectionState\(row\)==='offline'\?1:0/);
+  assert.match(DASHBOARD_HTML, /displayChars=charactersOnlineFirst\(chars\)/);
+  assert.match(DASHBOARD_HTML, /displayChars\.map\(charCard\)/);
+});
