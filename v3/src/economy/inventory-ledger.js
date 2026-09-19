@@ -208,6 +208,7 @@ class InventoryLedger {
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
     const specificKey = `${row.character}|${stackKey(row.name, row.level)}`;
@@ -216,6 +217,7 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
+      if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }
 
