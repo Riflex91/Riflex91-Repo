@@ -20,6 +20,10 @@ for (const pfad of [
   "grundlage/tests/r6-wissen.test.mjs",
   "architektur/adr/ADR-005-R6-EVIDENCE-WORKING-SETS.md",
   "architektur/adr/ADR-006-R6-DEUTSCHER-ANZEIGEKATALOG.md",
+  "architektur/adr/ADR-007-R6-VERIFIER-PUBLIKATION.md",
+  "grundlage/tests/r6-publikation.test.mjs",
+  "grundlage/quelle/wissen/beobachtungs-evidence-ablage.ts",
+  "grundlage/quelle/wissen/live-wissens-publizierer.ts",
   "grundlage/tests/r6-evidence.test.mjs",
   "grundlage/quelle/wissen/wissens-promotion.ts",
   "grundlage/quelle/wissen/learning-evidence.ts",
@@ -135,6 +139,21 @@ if (!anzeige.includes('kategorie === "FAEHIGKEIT"') || !anzeige.includes("SKILL_
   fehler("Skill-Anzeigekatalog erzwingt Name/Beschreibung nicht.");
 }
 
+const publizierer = fs.readFileSync("grundlage/quelle/wissen/live-wissens-publizierer.ts", "utf8");
+if (!publizierer.includes("LiveWissensPublizierer")
+    || !publizierer.includes("LIVE_WISSEN_NUR_VERIFIZIERTE_FAKTEN")
+    || !publizierer.includes('"LIVE_VERIFIZIERT"')
+    || !publizierer.includes('"LIVE_SPIEL"')) {
+  fehler("Fachlich verifizierte Live-Wissenspublikation unvollstaendig.");
+}
+
+const evidenceAblage = fs.readFileSync("grundlage/quelle/wissen/beobachtungs-evidence-ablage.ts", "utf8");
+if (!evidenceAblage.includes("BeobachtungsEvidenceAblage")
+    || !evidenceAblage.includes("BEOBACHTUNGS_EVIDENCE")
+    || !evidenceAblage.includes("PersistenzPort")) {
+  fehler("Typisierter Observation-Evidence-Persistenzpfad unvollstaendig.");
+}
+
 const index = fs.readFileSync("grundlage/quelle/index.ts", "utf8");
 for (const exportPfad of [
   "./wissen/typen.js","./wissen/snapshot.js","./wissen/wissens-zugriff-port.js",
@@ -142,6 +161,7 @@ for (const exportPfad of [
   "./wissen/beobachtungs-evidence.js","./wissen/ram-arbeitsmenge.js",
   "./wissen/learning-evidence.js","./wissen/wissens-promotion.js",
   "./anzeige/anzeigekatalog.js",
+  "./wissen/live-wissens-publizierer.js","./wissen/beobachtungs-evidence-ablage.js",
 ]) {
   if (!index.includes(exportPfad)) fehler("Index-Export fehlt: " + exportPfad);
 }

@@ -30,6 +30,9 @@ const nachweis = {
     "grundlage/quelle/anzeige/anzeigekatalog.ts",
     "grundlage/tests/r6-anzeigekatalog.test.mjs",
     "anzeigetexte/katalog.schema.json",
+    "grundlage/quelle/wissen/live-wissens-publizierer.ts",
+    "grundlage/quelle/wissen/beobachtungs-evidence-ablage.ts",
+    "grundlage/tests/r6-publikation.test.mjs",
     "werkzeuge/r6-struktur-pruefen.mjs",
   ],
 };

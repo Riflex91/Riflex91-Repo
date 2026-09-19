@@ -115,3 +115,18 @@ test("Gameplay-Modul darf den read-only WissensZugriffPort importieren", () => {
     'import type { WissensZugriffPort } from "../../grundlage/quelle/wissen/wissens-zugriff-port.js";',
   ).includes("WISSENSZUGRIFF_PORT_BYPASS"));
 });
+
+test("direkter Live-Wissenswriter ausserhalb der fachlichen Publizierer-Grenze wird blockiert", () => {
+  erwartet(
+    "kampf/quelle/planer.ts",
+    'import type { LiveWissensSpeicherPort } from "../../grundlage/quelle/persistenz/ports.js";',
+    "LIVE_WISSENS_WRITER_BYPASS",
+  );
+});
+
+test("fachlicher Live-Wissenspublizierer darf den typisierten Speicherport verwenden", () => {
+  assert.ok(!pruefeQuelltext(
+    "grundlage/quelle/wissen/live-wissens-publizierer.ts",
+    'import type { LiveWissensSpeicherPort } from "../persistenz/ports.js";',
+  ).includes("LIVE_WISSENS_WRITER_BYPASS"));
+});

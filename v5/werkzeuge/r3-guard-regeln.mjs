@@ -70,6 +70,15 @@ export function pruefeQuelltext(relativerPfad, quelltext) {
     fehler.push("WISSENSZUGRIFF_PORT_BYPASS");
   }
 
+  const istLiveWissensWriterGrenze =
+    pfad.startsWith("grundlage/quelle/persistenz/")
+    || pfad === "grundlage/quelle/wissen/live-wissens-publizierer.ts";
+  if (!istLiveWissensWriterGrenze
+      && (/\bLiveWissens(?:SpeicherPort|Dateispeicher)\b/.test(quelltext)
+        || /\.schreibeGenerationDurable\s*\(/.test(quelltext))) {
+    fehler.push("LIVE_WISSENS_WRITER_BYPASS");
+  }
+
   const istHotPath = [
     "kampf/quelle/",
     "bewegung/quelle/",

@@ -42,3 +42,5 @@ export * from "./wissen/ram-arbeitsmenge.js";
 export * from "./wissen/learning-evidence.js";
 export * from "./wissen/wissens-promotion.js";
 export * from "./anzeige/anzeigekatalog.js";
+export * from "./wissen/live-wissens-publizierer.js";
+export * from "./wissen/beobachtungs-evidence-ablage.js";
