@@ -107,7 +107,9 @@ test('level +6 upgrade buys and uses the minimum compatible Legendary scroll bef
     root.character.items[1] = { name, level: 0, q: quantity };
     return { success: true };
   };
-  root.upgrade = async (itemIndex, scrollIndex) => {
+  root.upgrade = async (...args) => {
+    if (args[args.length - 1] === true) return { success: true, chance: 0.99 };
+    const [itemIndex, scrollIndex] = args;
     assert.deepEqual([itemIndex, scrollIndex], [0, 1]);
     root.character.items[0] = { name: 'sword', level: 7 };
     root.character.items[1] = null;
