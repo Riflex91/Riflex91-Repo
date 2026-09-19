@@ -181,13 +181,13 @@ public sealed class GitArbeitskopie
             throw new InvalidOperationException("GIT_COMMIT_NACHRICHT_FEHLT");
 
         VerlangeErfolg(await GitHubAnmeldung.FuehreGitAusAsync(
-            ["add", "--", DatenbankPfad],
+            ["add", "--", WissensbasisPfad],
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30)), "GIT_ADD_FEHLGESCHLAGEN");
 
         var diff = await GitHubAnmeldung.FuehreGitAusAsync(
-            ["diff", "--cached", "--quiet", "--", DatenbankPfad],
+            ["diff", "--cached", "--quiet", "--", WissensbasisPfad],
             _wurzel,
             cancellationToken,
             TimeSpan.FromSeconds(30));
@@ -268,8 +268,8 @@ public sealed class GitArbeitskopie
 
         foreach (var pfad in ZerlegePfade(liste.Ausgabe))
         {
-            if (!IstErlaubterDatenbankPfad(pfad))
-                throw new InvalidOperationException("GIT_STAGE_AUSSERHALB_DATENBANK:" + pfad);
+            if (!IstErlaubterWissensbasisPfad(pfad))
+                throw new InvalidOperationException("GIT_STAGE_AUSSERHALB_WISSENSBASIS:" + pfad);
         }
     }
 
@@ -284,8 +284,8 @@ public sealed class GitArbeitskopie
 
         foreach (var pfad in ZerlegePfade(liste.Ausgabe))
         {
-            if (!IstErlaubterDatenbankPfad(pfad))
-                throw new InvalidOperationException("GIT_COMMIT_AUSSERHALB_DATENBANK:" + pfad);
+            if (!IstErlaubterWissensbasisPfad(pfad))
+                throw new InvalidOperationException("GIT_COMMIT_AUSSERHALB_WISSENSBASIS:" + pfad);
         }
     }
 
