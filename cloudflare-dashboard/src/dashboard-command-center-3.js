@@ -27,13 +27,6 @@ export const DASHBOARD_FRAGMENT_3 = `  <p>Verbinde dich mit dem v3-Dashboard. De
       <input id="automationLevelMax" type="number" min="0" placeholder="Level max">
       <select id="automationCapability"><option value="">Alle Fähigkeiten</option><option value="upgrade">Verbesserbar</option><option value="compound">Kombinierbar</option><option value="npc">Beim NPC</option><option value="protected">Geschützt/Spezial</option></select>
     </div>
-    <div class="automation-viewbar">
-      <div><b>Ansicht</b><span class="sub">Atlas = kompakte Adventure-Land-Referenz · Details = vollständige Metadaten</span></div>
-      <div class="automation-view-toggle" role="group" aria-label="Automation Ansicht">
-        <button type="button" data-automation-view="atlas" aria-pressed="true">Atlas</button>
-        <button type="button" data-automation-view="details" aria-pressed="false">Details</button>
-      </div>
-    </div>
     <div class="automation-policy">
       <label for="automationMaxCompound"><span>Max. Compound / Combine-Level</span><input id="automationMaxCompound" type="number" min="0" max="10" step="1"></label>
       <button class="btn" id="saveAutomationMaxCompound">Compound-Limit speichern</button>
