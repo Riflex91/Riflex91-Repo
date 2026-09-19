@@ -17,6 +17,7 @@ const bankConcurrency = manifest.bankConcurrency ? readJson(manifest.bankConcurr
 const tradeLifecycle = manifest.tradeLifecycle ? readJson(manifest.tradeLifecycle) : null;
 const upgradeCompound = manifest.upgradeCompound ? readJson(manifest.upgradeCompound) : null;
 const exchangeCraft = manifest.exchangeCraft ? readJson(manifest.exchangeCraft) : null;
+const callBudget = manifest.callBudget ? readJson(manifest.callBudget) : null;
 const revalidation = readJson(manifest.revalidation);
 
 const sources = new Map(sourcesDoc.sources.map((s) => [s.id, s]));
@@ -81,6 +82,91 @@ for (const contract of contractList) {
   contractIds.add(contract.id);
   contractFunctions.add(contract.publicFunction);
 }
+
+
+if (!callBudget
+    || callBudget.schemaVersion !== 1
+    || callBudget.researchId !== 'V5-P0-07'
+    || callBudget.status !== 'DONE') {
+  fail('P0-07 Call-Budget-Vertrag fehlt oder ist ungueltig.');
+}
+if (callBudget.gameSocket?.windowMs !== 4000 || callBudget.gameSocket?.serverLimit !== 200) {
+  fail('P0-07 Serverfenster/Serverlimit muessen 4000ms/200 sein.');
+}
+if (callBudget.v5Policy?.plannedWeightedBudgetPerWindow >= callBudget.gameSocket.serverLimit) {
+  fail('P0-07 V5-Planbudget muss strikt unter dem Serverlimit liegen.');
+}
+if (!(callBudget.v5Policy?.reservePerWindow > 0)) {
+  fail('P0-07 positive Call-Budget-Reserve fehlt.');
+}
+if (callBudget.v5Policy?.globalAcrossActionChannels !== true
+    || callBudget.gameSocket?.scope !== 'CHARACTER_GLOBAL_ACROSS_ALL_ACTION_CHANNELS'
+    || callBudget.gameSocket?.resource !== 'character:socket_call_budget') {
+  fail('P0-07 Socket-Budget ist nicht character-global modelliert.');
+}
+if (callBudget.deferredQueues?.technicalMaxEntries !== 3200
+    || callBudget.deferredQueues?.managedMutatingFifoMaxInFlight !== 1
+    || callBudget.deferredQueues?.queueOverflowDistinctFromLimitDc !== true) {
+  fail('P0-07 Deferred-/FIFO-Regeln sind ungueltig.');
+}
+if (callBudget.clientSafeties?.enabled !== true || callBudget.clientSafeties?.disableForThroughput !== false) {
+  fail('P0-07 Client-Safeties muessen aktiviert bleiben.');
+}
+if (callBudget.externalApi?.separateFromGameSocket !== true
+    || callBudget.externalApi?.algorithm !== 'TOKEN_BUCKET'
+    || callBudget.externalApi?.limits?.standard?.perMinute !== 120
+    || callBudget.externalApi?.limits?.standard?.burst !== 30
+    || callBudget.externalApi?.limits?.bulkGameData?.perMinute !== 12
+    || callBudget.externalApi?.limits?.bulkGameData?.burst !== 4
+    || callBudget.externalApi?.limits?.bankReads?.perMinute !== 12
+    || callBudget.externalApi?.limits?.bankReads?.burst !== 4
+    || callBudget.externalApi?.limits?.bankReads?.sharedWith !== 'bulkGameData'
+    || callBudget.externalApi?.limits?.progression?.perMinute !== 6
+    || callBudget.externalApi?.limits?.progression?.burst !== 2
+    || callBudget.externalApi?.limits?.writes?.perMinute !== 30
+    || callBudget.externalApi?.limits?.writes?.burst !== 10
+    || callBudget.externalApi?.on429?.respectRetryAfter !== true
+    || callBudget.externalApi?.on429?.immediateAggressiveRetry !== false) {
+  fail('P0-07 MCP/API-Limits sind unvollstaendig oder mit dem Game-Socket vermischt.');
+}
+if (callBudget.mainframeCpu?.separateFromGameSocket !== true
+    || callBudget.mainframeCpu?.metric !== 'WORKER_CPU_PERCENT_OF_FIXED_BUDGET') {
+  fail('P0-07 Mainframe CPU muss vom Game-Socket-Aufrufbudget getrennt bleiben.');
+}
+if (callBudget.gameSocket?.limitBehavior?.disconnectReason !== 'limitdc'
+    || !String(callBudget.gameSocket?.limitBehavior?.possibleWriteAfterSend ?? '').includes('UNKNOWN')
+    || !String(callBudget.gameSocket?.limitBehavior?.possibleWriteAfterSend ?? '').includes('niemals Same-Intent-Blind-Retry')) {
+  fail('P0-07 limitdc-Recovery darf kein Blind-Retry erlauben.');
+}
+if (callBudget.gameSocket?.diagnostic?.ccreport?.schedulerPolling !== false) {
+  fail('P0-07 ccreport darf kein Scheduler-Tick-Polling sein.');
+}
+if (!Array.isArray(callBudget.invariants) || callBudget.invariants.length < 12) {
+  fail('P0-07 Call-Budget-Invarianten unvollstaendig.');
+}
+
+for (const contract of contractList) {
+  const direct = !!contract.client?.transportEvent;
+  if (direct) {
+    if (!contract.resourceDomains?.includes('character:socket_call_budget')) {
+      fail(`P0-07 ${contract.publicFunction}: character-globales Socket-Budget fehlt`);
+    }
+    if (contract.callBudget?.directSocketEvent !== true
+        || contract.callBudget?.resource !== 'character:socket_call_budget'
+        || contract.callBudget?.scope !== 'CHARACTER_GLOBAL'
+        || contract.callBudget?.sharedAcrossChannels !== true
+        || contract.callBudget?.unknownInternalReserveRequired !== true) {
+      fail(`P0-07 ${contract.publicFunction}: Call-Budget-Evidence unvollstaendig`);
+    }
+    if (!contract.dangerFlags?.includes('GLOBAL_SOCKET_CALL_BUDGET_SHARED')
+        || !contract.dangerFlags?.includes('LIMITDC_AFTER_SEND_CAN_BE_UNKNOWN')) {
+      fail(`P0-07 ${contract.publicFunction}: Budget-/limitdc-Gefahr fehlt`);
+    }
+  }
+}
+const p007 = revalidation.p0Research?.find((x) => x.id === 'V5-P0-07');
+if (p007?.status !== 'DONE') fail('P0-07 Revalidierungsqueue ist nicht DONE.');
+if (manifest.callBudgetResearch?.status !== 'P0_07_DONE') fail('P0-07 Manifeststatus fehlt.');
 
 const recoveryList = recoveryDocs.flatMap((d) => d.actions ?? []);
 const recoveryIds = new Set();
@@ -580,6 +666,7 @@ console.log(`[V5-WISSEN] Bank-Concurrency: ${bankConcurrency.serverModel.concurr
 console.log(`[V5-WISSEN] Trade-Lifecycle: RID partial=${tradeLifecycle.ridSemantics.rotatesOnPartialFill ? 'ROTATES' : 'STABLE'}, raw RID=${tradeLifecycle.ridSemantics.v5RequiresRidField ? 'REQUIRED' : 'OPTIONAL'}.`);
 console.log(`[V5-WISSEN] Upgrade/Compound: preview=${upgradeCompound.shared.preview.consumesNothing ? 'READ_ONLY' : 'MUTATING'}, q=${upgradeCompound.recovery.criticalBoundary ? 'TRANSACTION_BOUNDARY' : 'UNKNOWN'}.`);
 console.log(`[V5-WISSEN] Exchange/Craft: plannedOverflow=${exchangeCraft.v5Policy.noPlannedOverflow ? 'FORBIDDEN' : 'ALLOWED'}, duplicateIngredients=${exchangeCraft.craft.normalCraft.currentRecipeDuplicateIngredientNames}.`);
+console.log(`[V5-WISSEN] Call-Budget: ${callBudget.v5Policy.plannedWeightedBudgetPerWindow}/${callBudget.gameSocket.windowMs}ms geplant, Serverlimit=${callBudget.gameSocket.serverLimit}, Reserve=${callBudget.v5Policy.reservePerWindow}.`);
 console.log(`[V5-WISSEN] Waechter: ${quellenstatus.quellen.length} Quellen, ${kandidaten.kandidaten.length} Kandidaten, ${protokollZeilen.length} Aenderungseintraege.`);
 console.log(`[V5-WISSEN] Live-Wissen: ${fs.existsSync(liveSnapshot) ? liveDateien + ' validierte Dateien' : 'vorbereitet, noch kein Bot-Snapshot'}.`);
 console.log(`[V5-WISSEN] Raw Research SHA256: ${hash}`);
