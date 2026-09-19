@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "laufzeitPfadKennung": "block8.6-capability-runtime",
+  "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+  "releaseSha": "ca0dfee7685563c8b6003469300c8fd08777b053",
+  "candidateVersion": "1.0.0",
+  "candidateBytes": 396471,
+  "candidateSha256": "b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5",
+  "candidateUrl": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.js",
+  "paketVersion": "1.0.0",
+  "runnerVersion": "1.0.0",
+  "nachweis": {
+    "schemaVersion": 1,
+    "laufzeitPfadKennung": "block8.6-capability-runtime",
+    "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+    "stufe": "schatten",
+    "nachweisKennung": "block8-6-schatten-1789822653521:schatten",
+    "ergebnis": "bestanden",
+    "durchgefuehrtAm": 1789822656778,
+    "deterministisch": false,
+    "spielAktionAusgefuehrt": false,
+    "begrenzt": false,
+    "telemetrieNachweis": false,
+    "recoveryNachweis": false,
+    "gesamtauswertungBestanden": false
+  },
+  "reportEvidence": {
+    "source": "chat_paste",
+    "dateiname": "Eingefügter Text(20260919-125742).txt",
+    "bytes": 678718,
+    "sha256": "77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217",
+    "erstelltAm": "2026-09-19T12:57:39.627Z",
+    "laufKennung": "block8-6-schatten-1789822653521",
+    "status": "PASS"
+  },
+  "runtimeEvidence": {
+    "runtimeVersion": "1.1.5",
+    "aktivFreigegeben": false,
+    "empfangInstalliert": false,
+    "lebensnachweisAutomatikAktiv": false,
+    "heartbeatVersuche": 0,
+    "heartbeatErfolge": 0,
+    "heartbeatFehler": 0
+  },
+  "capabilityEvidence": {
+    "capabilityVersion": "1.0.0",
+    "aktivFreigegeben": false,
+    "remoteBeobachtungInstalliert": false,
+    "capabilityEmpfangInstalliert": false,
+    "beobachteteLebensnachweise": 0,
+    "empfangeneCapabilitySnapshots": 0,
+    "sendeVersuche": 0,
+    "sendeErfolge": 0,
+    "sendeFehler": 0,
+    "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
+    "capabilityFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d",
+    "lokalerSnapshotFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d"
+  },
+  "schattenUebergabe": {
+    "schemaVersion": 1,
+    "laufKennung": "block8-6-schatten-1789822653521",
+    "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+    "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
+    "capabilityFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d",
+    "nachweis": {
+      "schemaVersion": 1,
+      "laufzeitPfadKennung": "block8.6-capability-runtime",
+      "aenderungsKennung": "git:ca0dfee7685563c8b6003469300c8fd08777b053",
+      "stufe": "schatten",
+      "nachweisKennung": "block8-6-schatten-1789822653521:schatten",
+      "ergebnis": "bestanden",
+      "durchgefuehrtAm": 1789822656778,
+      "deterministisch": false,
+      "spielAktionAusgefuehrt": false,
+      "begrenzt": false,
+      "telemetrieNachweis": false,
+      "recoveryNachweis": false,
+      "gesamtauswertungBestanden": false
+    }
+  },
+  "auswertungErwartet": {
+    "offlineReplay": "bestanden",
+    "deploymentHttps": "bestanden",
+    "schatten": "bestanden",
+    "naechsteStufe": "kontrolliert_live",
+    "freigabeVollstaendig": false,
+    "block9Freigegeben": false
+  }
+}

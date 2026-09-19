@@ -49,12 +49,12 @@
   },
   "deploymentPerformed": true,
   "publicHttpsVerified": true,
-  "adventureLandShadowVerified": false,
+  "adventureLandShadowVerified": true,
   "adventureLandControlledLiveVerified": false,
   "adventureLandSoakVerified": false,
   "block86Completed": false,
   "block9Freigegeben": false,
-  "nextOperationalStep": "adventure_land_shadow",
+  "nextOperationalStep": "adventure_land_controlled_live",
   "deploymentEvidence": {
     "workflow": "release-v4-block8-6-candidate-immutable",
     "runId": 35441831873,
@@ -70,5 +70,19 @@
     "publicSha256Url": "https://aio-bot-dashboard.hansijuergenlul.workers.dev/v4/releases/ca0dfee7685563c8b6003469300c8fd08777b053/aio-v4-runtime.sha256",
     "conclusion": "success",
     "completedAt": "2026-09-19T12:05:07Z"
+  },
+  "shadowEvidence": {
+    "source": "chat_paste",
+    "reportFile": "Eingefügter Text(20260919-125742).txt",
+    "reportBytes": 678718,
+    "reportSha256": "77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217",
+    "reportCreatedAt": "2026-09-19T12:57:39.627Z",
+    "performedAt": 1789822656778,
+    "laufKennung": "block8-6-schatten-1789822653521",
+    "paketVersion": "1.0.0",
+    "runnerVersion": "1.0.0",
+    "katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268",
+    "capabilityFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d",
+    "evidenceFile": "BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json"
   }
 }

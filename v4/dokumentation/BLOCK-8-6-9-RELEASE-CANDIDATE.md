@@ -1,6 +1,6 @@
 # Block 8.6.9 – gebundener Release-Candidate
 
-Status: **finaler Block-8.6-Candidate technisch gebunden, immutable veröffentlicht und öffentlich per HTTPS verifiziert; Schatten, kontrolliert live und Soak sind noch offen. Block 9 bleibt gesperrt.**
+Status: **finaler Block-8.6-Candidate technisch gebunden, immutable veröffentlicht, öffentlich per HTTPS verifiziert und realer Schatten bestanden; kontrolliert live und Soak sind noch offen. Block 9 bleibt gesperrt.**
 
 ## Exakter Candidate
 
@@ -59,7 +59,7 @@ Aktueller Gate-Stand:
 
 - `deploymentPerformed=true`
 - `publicHttpsVerified=true`
-- `adventureLandShadowVerified=false`
+- `adventureLandShadowVerified=true`
 - `adventureLandControlledLiveVerified=false`
 - `adventureLandSoakVerified=false`
 - `block86Completed=false`
@@ -171,11 +171,54 @@ Der detaillierte kanonische Nachweis steht in:
 
 Damit sind `deploymentPerformed=true` und `publicHttpsVerified=true` technisch belegt. Dieser Nachweis erweitert keine Spielautorität und ersetzt nicht Schatten, kontrolliert live oder Soak.
 
+## Realer Adventure-Land-Schattennachweis
+
+Der reale Schattenlauf wurde mit dem source-locked Block-8.6-Schattenpaket fuer exakt denselben immutable Candidate bestanden.
+
+Kanonische Evidenz:
+
+`BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json`
+
+Gebundener Bericht:
+
+- Quelle: Chat-Paste
+- Datei: `Eingefügter Text(20260919-125742).txt`
+- 678718 Bytes
+- SHA-256 `77f911e5c27bf9c960c66a7cff41ad87f09e30d087af175963e7cb45e9ede217`
+- Bericht erstellt: `2026-09-19T12:57:39.627Z`
+- Laufkennung: `block8-6-schatten-1789822653521`
+- Durchgefuehrt am: `1789822656778`
+- Paket-Version: `1.0.0`
+- Runner-Version: `1.0.0`
+
+Der Bericht bestaetigt fuer exakt `ca0dfee7685563c8b6003469300c8fd08777b053`:
+
+- Candidate-SHA-256 `b5d39ac692157ec98c9c77cc7d4afca0b39a0b67abbabbcc31b863a6b0f77ea5`
+- Candidate-Groesse **396471 Bytes**
+- Ergebnis **PASS**
+- Runner-Stufe `schatten` mit `pass=true`
+- keine Runner-Fehler
+- `spielAktionAusgefuehrt=false`
+- Runtime 1.1.5 weiterhin `aktivFreigegeben=false`
+- CM-Empfang nicht installiert
+- Heartbeat-Automatik nicht aktiv
+- **0 Heartbeat-Sendeversuche / 0 Erfolge / 0 Fehler**
+- Capability-Laufzeit 1.0.0 weiterhin `aktivFreigegeben=false`
+- keine Remote-Beobachtung
+- kein Capability-Empfang
+- **0 Capability-Sendeversuche / 0 Erfolge / 0 Fehler**
+- Katalog-Fingerprint `2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268`
+- lokaler Snapshot- und Capability-Fingerprint `20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d`
+- Schattenuebergabe exakt an `git:ca0dfee7685563c8b6003469300c8fd08777b053` gebunden
+
+Die im Bericht sichtbaren `SKILL_NICHT_VALIDIERT`-Diagnosen sind erwartete fail-closed Blockierungen nicht explizit validierter Skills und kein Schattenfehler.
+
+Damit ist `adventureLandShadowVerified=true` technisch belegt. Kontrolliert live und Soak bleiben sequenziell gesperrt.
+
 ## Was dieser Schritt bewusst nicht behauptet
 
 Dieser Stand bedeutet noch nicht:
 
-- realer Schatten bestanden,
 - kontrolliert live bestanden,
 - Soak bestanden,
 - Block 8.6 abgeschlossen,
@@ -183,6 +226,6 @@ Dieser Stand bedeutet noch nicht:
 
 ## Nächster Schritt
 
-Deployment und öffentlicher HTTPS-Preflight sind für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` bestanden. Als nächste sequenzielle reale Freigabestufe folgt der **Adventure-Land-Schattenlauf** mit exakt diesem immutable Candidate.
+Deployment, öffentlicher HTTPS-Preflight und realer Adventure-Land-Schatten sind für exakt `ca0dfee7685563c8b6003469300c8fd08777b053` bestanden. Als nächste sequenzielle reale Freigabestufe folgt **kontrolliert live** mit derselben Schattenuebergabe.
 
-Kontrolliert live bleibt bis zum bestandenen Schattennachweis gesperrt; der Soak bleibt bis zum bestandenen kontrollierten Live-Nachweis gesperrt.
+Der Soak bleibt bis zum bestandenen kontrollierten Live-Nachweis gesperrt.
