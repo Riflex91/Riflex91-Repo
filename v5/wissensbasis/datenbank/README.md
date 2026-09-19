@@ -14,7 +14,9 @@ Typische automatisch erzeugte Inhalte:
 - `kandidaten.json` – neu entdeckte, noch nicht bestaetigte Quellen;
 - `aenderungsprotokoll.jsonl` – erkannte Inhaltsaenderungen;
 - `letzter-lauf.json` – Zusammenfassung des letzten Wissenslaufs;
-- `aktuell/**` – aktuelle Snapshots ueberwachter Textquellen.
+- `aktuell/**` – aktuelle Snapshots ueberwachter Textquellen;
+- `live-verifiziert/manifest.json` – Manifest der vom lokalen Bot-Liveordner importierten Dateien;
+- `live-verifiziert/aktuell/**` – rekursiver Spiegel der vom Bot gespeicherten Live-Wissensdateien.
 
 Community- und unbekannte Quellen bleiben Kandidaten/Evidence, bis sie nach den Regeln der Wissensbasis revalidiert wurden.
 
