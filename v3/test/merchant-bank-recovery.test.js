@@ -141,6 +141,9 @@ test('bank recovery travels to bank only when the bounded probe is due', async (
   const bank = { items0: [] };
   const fx = recoveryFixture({ inventory: [], bank, items: {}, map: 'main', now: 1000 });
   fx.root.character.bank = null;
+  fx.runtime.merchantBankCatalog = {
+    status: () => ({ usable: false, snapshot: null })
+  };
   const recovery = new Alpha27BankRecovery(fx.runtime, fx.atomic, fx.shared);
 
   const first = recovery.plan();
