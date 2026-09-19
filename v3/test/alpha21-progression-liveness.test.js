@@ -239,6 +239,7 @@ test('progression candidates remain fail-closed and use approved world content o
   assert.ok(!rows.some((row) => row.monster === 'dangerousUnknown'));
 });
 
+// Regression: active progression authority is exact-party scoped; historical performance remains reusable.
 test('Alpha21 does not reuse a strong-party objective after same-class members are replaced or weakened', () => {
   let members = [
     { name: 'WarriorA', ctype: 'warrior', level: 80, gear: { mainhand: { name: 'blade', level: 7 } }, skillUnlocks: ['cleave'] },
