@@ -260,7 +260,7 @@ Der finale Nachweisstand steht in `BLOCK-8-ABSCHLUSSSTATUS.md` und `BLOCK-8-ABSC
 
 ## Block 8.5 – Instrumentierung, Ingame-HUD-Basis und Recovery-Vereinheitlichung
 
-Status: **Schritte 8.5.1 bis 8.5.8 implementiert; 8.5.9-Freigabe-Gate implementiert, operative Schatten-/Live-/Soak-Freigabe fuer den finalen Block-8.5-Aenderungsstand noch offen. Block 9 bleibt bis dahin gesperrt.**
+Status: **Schritte 8.5.1 bis 8.5.8 implementiert; 8.5.9-Freigabe-Gate implementiert. Deployment/HTTPS, Offline, Schatten und kontrolliert live sind fuer den finalen Block-8.5-Candidate bestanden; nur der reale 10-Minuten-Soak ist noch offen. Block 8.6 und Block 9 bleiben bis zum bestandenen Soak gesperrt.**
 
 Ziel: Die bereits vorhandenen V4-Faehigkeiten werden vor Haendler-, Bank- und Wirtschaftslogik einheitlich beobachtbar, erklaerbar, sicher bedienbar und wiederanlauffaehig gemacht.
 
@@ -295,7 +295,59 @@ Abschlusspruefung:
 - Schliessen oder Fehler des HUD veraendert die laufende Bot-Logik nicht
 - Reconnect, Neustart, veraltete Daten und unterbrochene Arbeit besitzen einen getesteten sicheren Recovery-Pfad
 - alle bestehenden Block-1-bis-8-Pruefungen bleiben gruen
-- vor Beginn von Block 9 werden Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand nachgewiesen; das read-only Freigabe-Gate darf keine Stufe ueberspringen
+- vor Beginn von Block 8.6 werden Offline, Schattenbetrieb, begrenzter kontrollierter Live-Test und Soak fuer denselben finalen Aenderungsstand nachgewiesen; das read-only Freigabe-Gate darf keine Stufe ueberspringen
+
+## Block 8.6 – Live Skill Catalog und Capability Truth
+
+Ziel: Jede spaetere Gruppen-, Kampf- und Lernentscheidung basiert auf den **tatsaechlich beobachteten, validierten und vom Nutzer freigegebenen Skills** statt auf geratenen Klassenannahmen oder nur groben Rollenwerten.
+
+V3-Bezug:
+
+- PR #364: Live Skill Catalog, SkillPolicy und konfigurierbare Skill-Steuerung,
+- PR #375: Cross-Client Capability Sync in Party und strategische Auswertung.
+
+Diese V3-Implementierungen werden nicht kopiert. Uebernommen werden ihre Datenqualitaets- und Sicherheitsprinzipien.
+
+Gemeinsam umgesetzt werden:
+
+- Adventure Lands live beobachtete Skill-Daten bilden die technische Source of Truth fuer den lokalen Skill-Katalog,
+- versionierter Katalogzustand mit Generation und stabilem Fingerprint,
+- Audit bei Runtime-Start, Recovery, Server-, Charakter- und relevanten Level-/Skill-Aenderungen sowie periodisch,
+- Verbindungsunterbrechung setzt den Katalog auf veraltet; Recovery verlangt Revalidierung,
+- Skill-Drift wird erst nach bestaetigter Revalidierung wieder als produktionsbereit behandelt,
+- unbekannte oder neue Skills werden sichtbar, bleiben aber bis zur ausdruecklichen V4-Validierung fail-closed,
+- persistente per-character SkillPolicy mit harter Ein/Aus-Freigabe,
+- skill-spezifische Slider und Parameter wie HP-Schwelle, Mindestziele, MP-Budget oder weitere fachlich sinnvolle Grenzwerte,
+- technische Readiness fuer Level, Klasse, MP, Cooldown, Ausruestung, Material und Reichweite,
+- `CharakterFaehigkeiten` werden aus validierten Skills und Nutzerkonfiguration abgeleitet,
+- die bestehenden Gruppenfaehigkeiten `heilen`, `schaden`, `aggro`, `schutz`, `unterstuetzung` werden aus diesen konkreten Character-Capabilities gespeist statt manuell geraten,
+- vorhandener Block-8-Gruppen-Lebensnachweis wird um einen bounded Capability-Snapshot erweitert; es entsteht **kein zweites Gruppen-Liveness-Protokoll**,
+- Remote-Capabilities werden nur bei frischen Daten, passender Identitaet/Klasse, lokal und remote bereitem Katalog sowie passendem Catalog-Fingerprint vertraut,
+- Missing, stale oder Fingerprint-Mismatch wird fail-closed behandelt,
+- gleiche Klassen bleiben strikt pro Charakter getrennt,
+- Leader-/Aufgabenwahl wird deterministisch aus aktuellen Capabilities, Safety und Freshness abgeleitet; Charaktername/Kennung dient nur als Tie-Breaker,
+- SkillPolicy bleibt die letzte harte Sperre fuer jede automatische `use_skill`-Ausfuehrung.
+
+Bewusst **noch nicht** Bestandteil von Block 8.6:
+
+- kein Smart-AoE-Pull-Planer,
+- kein adaptives Pull-Learning,
+- keine automatische Strategieanpassung,
+- keine Erweiterung der Adventure-Land-Aktionsautoritaet.
+
+Abschlusspruefung:
+
+- Ranger-, Priest-, Warrior- und weitere vorhandene Klassen-Skills werden aus Live-Daten korrekt erkannt,
+- bekannte Multi-Target-/AoE-Skills inklusive Range/Target-Capacity und Slider werden korrekt klassifiziert,
+- unbekannter neuer Skill bleibt trotz Erkennung `automationValidated=false`,
+- Checkbox AUS blockiert die Skill-Ausfuehrung hart,
+- Slider werden begrenzt, persistiert und reproduzierbar ausgewertet,
+- Connection-Gap -> veraltet -> Recovery-Revalidierung wird getestet,
+- Catalog-Drift kann nicht mit nur einem ungeprueften Snapshot produktionsbereit werden,
+- zwei Charaktere derselben Klasse mit unterschiedlichen Skill-Einstellungen bleiben getrennt,
+- Remote-Capability mit stale Daten oder Fingerprint-Mismatch wird nicht fuer Gruppenplanung verwendet,
+- bestehende Block-8-Safety-, Liveness- und Block-8.5-Recovery-Grenzen bleiben unveraendert,
+- vor Block 9 durchlaeuft Block 8.6 dieselben Freigabestufen offline -> Schatten -> kontrolliert live -> Soak.
 
 ## Block 9 – Haendlerdienste und Bank
 
@@ -303,6 +355,9 @@ Ziel: Gegenstaende koennen nachvollziehbar zwischen Charakteren und Bank bewegt 
 
 Gemeinsam umgesetzt werden:
 
+- zuverlaessiges Dienstnachrichten-Protokoll auf dem bestehenden vertrauensgebundenen Kommunikationspfad mit stabiler Nachrichtenkennung, Remote-ACK nach Validierung/Verarbeitung, bounded Retry/Backoff, Duplicate-Suppression und Negative-ACK,
+- ein Adventure-Land-`send_cm`-Sendeerfolg allein gilt bei zustandsveraendernden Dienstauftraegen nicht als fachliche Zustellbestaetigung,
+- wiederholte oder nach Timeout erneut gesendete Dienstnachrichten duerfen keine Aktion doppelt ausfuehren,
 - Dienstauftraege
 - Weg zum anfragenden Charakter
 - Gegenstaende empfangen und zurueckgeben
@@ -313,6 +368,10 @@ Gemeinsam umgesetzt werden:
 
 Abschlusspruefung:
 
+- Send Attempt, Remote Receive, Validierung und fachliches ACK sind getrennt beobachtbar,
+- verlorene erste Zustellung und verlorenes ACK werden bounded wiederholt,
+- ein Duplikat wird genau einmal verarbeitet und darf trotzdem erneut bestaetigt werden,
+- Negative-ACK oder fehlendes ACK endet fail-safe statt mit angenommener Zustellung,
 - jeder Dienstauftrag besitzt einen nachvollziehbaren Anfang und Abschluss
 - Neustarts mitten in einem Dienstauftrag werden getestet
 - keine doppelte Besitzannahme eines Gegenstands
@@ -339,14 +398,52 @@ Abschlusspruefung:
 - keine unbeabsichtigte Gegenstandsvernichtung
 - frisch beschaffte Arbeitsgegenstaende werden nicht versehentlich wieder eingelagert
 
+## Block 10.5 – Encounter Lifecycle und fortgeschrittener Gruppenkampf
+
+Ziel: Mehrzielkampf und AoE werden als nachvollziehbarer, deterministischer Encounter geplant und gemessen, bevor Lernen die Strategie beeinflussen darf.
+
+V3-Bezug:
+
+- PR #371: Smart AoE Pull Execution und Multi-Target Skill Orchestration,
+- PR #377: Leader-owned Encounter Lifecycle Outcomes.
+
+Gemeinsam umgesetzt werden:
+
+- generischer versionierter `BegegnungsDatensatz` mit eindeutiger Encounter-Kennung,
+- Leader-owned Lifecycle mindestens `erstellt`, `aufbau`, `aktiv`, `abschluss`, `geloest`, `abgebrochen`,
+- Outcomes mindestens `erfolg`, `sicher_abgebrochen`, `tod`, `unterbrochen`, `content_drift`, `gruppenfehler`,
+- Zuordnung von XP, Gold, Kills, Toden, Rueckzuegen, Near-Deaths, Potions, Schaden, Skill-Ausfuehrungen, Bewegungs- und Skillfehlern zum konkreten Encounter,
+- stabiler Encounter-/Party-/Content-Fingerprint fuer Wiederholung und spaeteres Lernen,
+- Combat Modes mindestens Single Target, Smart Auto und AoE bevorzugt,
+- deterministische Smart-AoE-State-Machine mit Recovery, Pull-Aufbau, Halten, AoE-Burn, Finish und sicherem Abbruch,
+- harte Pull-Capacity ausschliesslich aus validierten Block-8.6-Capabilities, Gruppen-Safety, Ressourcen und Schadensprojektion,
+- Skill-Slider wie Mindestziele oder MP-Budget beeinflussen die gewuenschte Ausfuehrung nur **innerhalb** der harten Capacity,
+- nur ein autoritativer Leader darf einen Pull erweitern; Follower spiegeln den Encounter read-only,
+- maximal ein neuer sicherer Pull-Kandidat pro Erweiterungsschritt und erneute Beobachtung echter Aggro/Engagement-Evidenz vor dem naechsten Schritt,
+- keine automatische unbounded Aggro-/Mass-Pull-Autoritaet,
+- unbekannter/quarantined Content blockiert adaptive oder aggressive Erweiterung.
+
+Abschlusspruefung:
+
+- Single Target bleibt harte Capacity 1,
+- AoE bevorzugt kann keine Safety-/Capacity-Grenze erhoehen,
+- fehlende/stale Capabilities reduzieren Capacity fail-closed,
+- Follower koennen einen Pull nicht erweitern,
+- frische Boss-/Special-Ziele gelangen nicht unbeabsichtigt in Routine-Pulls,
+- ein Encounter besitzt genau einen nachvollziehbaren Anfang, Lifecycle und finalen Outcome,
+- ein Neustart/Disconnect erzeugt keinen erfundenen Erfolg, sondern einen eindeutigen unterbrochenen/abgebrochenen Zustand,
+- dieselben Replay-Daten ergeben denselben deterministischen Encounter-Plan,
+- Encounter-Outcomes sind vollstaendig genug, um spaeter als primaere Block-11-Lernquelle zu dienen.
+
 ## Block 11 – Lernen, Schattenentscheidungen und kontrollierte Versuche
 
 Ziel: V4 darf aus Erfahrungen besser werden, ohne Sicherheitsgrenzen oder Produktionslogik unkontrolliert selbst zu veraendern.
 
 Gemeinsam umgesetzt werden:
 
-- die EntscheidungsDatensaetze aus Block 4 und 8.5 bilden die primaere nachvollziehbare Lernquelle
-- Situation -> Moeglichkeiten -> Entscheidung -> erwartetes Ergebnis -> tatsaechliches Ergebnis
+- die EntscheidungsDatensaetze aus Block 4 und 8.5 sowie die Encounter-Outcomes aus Block 10.5 bilden die primaeren nachvollziehbaren Lernquellen,
+- Lernfeatures verwenden die in Block 8.6 validierten lokalen und Remote-Capabilities statt Klassenannahmen,
+- Situation -> Capabilities -> Moeglichkeiten -> Entscheidung -> erwartetes Ergebnis -> tatsaechliches Ergebnis -> Encounter-Outcome
 - Erfahrungsablage
 - versionierte Lerndatensaetze als reproduzierbare Ableitung aus Rohdaten
 - neue Strategien werden zuerst offline bewertet und danach als Schattenentscheidung parallel zur produktiven Entscheidung berechnet
@@ -356,6 +453,12 @@ Gemeinsam umgesetzt werden:
 - Vergleich bestehender und neuer Strategie
 - Mindestmenge an Belegen vor einer Aenderung
 - Ruecknahme schlechter Strategien
+- bounded Adaptive Pull Learning: gelernte Empfehlungen duerfen die deterministische Hard Capacity niemals erhoehen oder umgehen
+- Risiko-Evidenz darf die gewuenschte Pull-Groesse reduzieren
+- unbekannte hoehere Pull-Groesse darf nur als begrenzte +1-Probe nach starker sicherer Evidenz, Mindest-Samples, Mindest-Beobachtungszeit und Cooldown getestet werden
+- laufende Probe wird bei Risiko-Evidenz sofort beendet
+- Champion/Challenger-Prinzip mit Mindestbelegen, reproduzierbarer Offline-/Shadow-Evaluation und Rueckfall auf den letzten freigegebenen Stand
+- Lernen besitzt keine direkte Adventure-Land-Aktionsautoritaet; jede spaetere Aktion durchlaeuft weiterhin deterministische Safety, SkillPolicy, Bedien-/Aktionssteuerung und Freigabestufen
 - `SpeicherLernZyklus` mit den Phasen Sammeln, Vorbereiten, Lernen, Pruefen, Bereinigen und Notfall
 - Rohdatenfreigabe nur nach bestaetigter Datensatzbildung, erfolgreichem Lernen, bestandener Evaluation und dauerhafter Wissensspeicherung
 - Schutz goldener Wiederholungen, seltener Situationen und wichtiger Vorfaelle vor normaler Bereinigung
@@ -489,6 +592,8 @@ Abschlusspruefung:
 - Serverausfall
 - Neustart waehrend einer Aktualisierung
 - erfolgreicher automatischer Rueckfall auf die letzte funktionierende Fassung
+- maschinenlesbarer Release-/Roadmap-Status wird gegen Git-, PR- und CI-Evidenz abgeglichen; dokumentierter Fortschritt darf einem nachweislich gemergten oder nicht gemergten Stand nicht widersprechen
+- 24/7-Zertifizierung akzeptiert keine reine Zeitbehauptung: Sample-Luecken, offene Recovery-Zustaende, ungesunde Intervalle oder beschaedigte Evidenz lassen das Gate fail-closed
 
 # Abschliessende Freigabekampagne
 
@@ -508,9 +613,10 @@ V4 ersetzt V3 erst nach dieser Reihenfolge:
 12. Supabase-, Cloudflare-, Objektspeicher- und Dienstgrenzentest bis unmittelbar vor das sichere V4-Budget, ohne den Sicherheitspuffer anzutasten
 13. Speicher-Lern-Zyklus bis in die Notfallstufe testen; unverarbeitete Daten duerfen dabei nicht automatisch geloescht werden
 14. Update-, Rueckfall- und Serverausfalltest
-15. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag, begrenzten Puffern und eingehaltenen Dienstbudgets
-16. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
-17. menschliche Entscheidung ueber die Abloesung von V3
+15. gestufte reale 24/7-Zertifizierung mit maschinenlesbarer, append-only SHA-256-hashverketteter Evidenz: Canary -> 1h -> 24h -> 72h -> 7d; CI, simulierte Zeit oder reine Prozess-Laufzeit duerfen keinen realen Gate ersetzen
+16. 7 Tage ununterbrochener Dauertest mit genau einem automatischen Bericht pro geplantem Versandtag, begrenzten Puffern und eingehaltenen Dienstbudgets
+17. Vergleich mit der aktuellen Produktionsversion anhand Sicherheit, Stillstaenden, Todesfaellen, Erfahrung pro Stunde und Gold pro Stunde
+18. menschliche Entscheidung ueber die Abloesung von V3
 
 # Entscheidungsregel fuer spaetere Planung
 
