@@ -55,11 +55,26 @@ function installMerchantProduction(runtime, options = {}) {
 
   function taskCoordinator() { return runtime.merchantTaskCoordinator || null; }
   function currentTask() { const c = taskCoordinator(); return c && typeof c.current === 'function' ? c.current() : null; }
+  function exchangeTaskIdentity(plan) {
+    if (!plan) return null;
+    const demand = plan.exchangeDemand || null;
+    const next = plan.nextStep || null;
+    const item = demand && demand.item || (next && next.kind === ProductionStepKind.EXCHANGE ? next.name : null);
+    const target = demand && demand.target || plan.target && plan.target.item || null;
+    if (!item || !target) return null;
+    return {
+      key: `production:exchange:${String(item)}:${String(target)}`,
+      item: String(item),
+      target: String(target)
+    };
+  }
   function productionTaskKey(plan) {
     if (!plan) return null;
-    if (plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE) {
-      return `production:exchange:${String(plan.nextStep.name || '')}:${String(plan.exchangeDemand && plan.exchangeDemand.target || plan.target && plan.target.item || '')}`;
-    }
+    // An exchange demand is one logical batch even while its next executable
+    // step is BANK_RETRIEVE/BUY/etc. Keep the same coordinator key across all
+    // preparation steps and the final EXCHANGE so the task never blocks itself.
+    const exchange = exchangeTaskIdentity(plan);
+    if (exchange) return exchange.key;
     const output = plan.target && (plan.target.output || plan.target.item) || null;
     const recipient = plan.target && plan.target.recipient || null;
     return output ? `production:chain:${String(output)}:${String(recipient || '')}` : null;
@@ -69,10 +84,11 @@ function installMerchantProduction(runtime, options = {}) {
     if (!coordinator || typeof coordinator.acquire !== 'function') return { acquired: true, task: null };
     const key = productionTaskKey(plan);
     if (!key) return { acquired: false, reason: 'PRODUCTION_TASK_KEY_UNAVAILABLE', task: coordinator.current() };
-    const metadata = plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE
-      ? { exchangeItem: plan.nextStep.name, target: plan.exchangeDemand && plan.exchangeDemand.target || null }
+    const exchange = exchangeTaskIdentity(plan);
+    const metadata = exchange
+      ? { exchangeItem: exchange.item, target: exchange.target }
       : { output: plan.target && plan.target.output || null, recipient: plan.target && plan.target.recipient || null, slot: plan.target && plan.target.slot || null };
-    return coordinator.acquire('PRODUCTION', kind || (plan.nextStep && plan.nextStep.kind === ProductionStepKind.EXCHANGE ? 'EXCHANGE_BATCH' : 'PRODUCTION_CHAIN'), key, metadata);
+    return coordinator.acquire('PRODUCTION', kind || (exchange ? 'EXCHANGE_BATCH' : 'PRODUCTION_CHAIN'), key, metadata);
   }
   function releaseTask(reason = 'PRODUCTION_TASK_COMPLETE', details = {}) {
     const coordinator = taskCoordinator();
