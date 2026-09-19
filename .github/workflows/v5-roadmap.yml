@@ -58,3 +58,6 @@ jobs:
         run: node v5/werkzeuge/roadmap-pruefen.mjs
       - name: V5 R2 Verfassung pruefen
         run: node v5/werkzeuge/r2-verfassung-pruefen.mjs
+      - name: V5 R3 Grundlage pruefen
+        working-directory: v5
+        run: node werkzeuge/r3-struktur-pruefen.mjs
