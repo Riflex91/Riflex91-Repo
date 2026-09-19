@@ -1380,6 +1380,73 @@ test('planned Farmer collection route keeps ownership and never defers to standa
   assert.equal(hotfix.status().policies.plannedFarmerRouteNeverCreatesStandalonePotionTravel, true);
 });
 
+test('active Farmer collection only attempts potion piggyback after reaching the Farmer', async () => {
+  let piggybackCalls = 0;
+  let travelCalls = 0;
+  const candidate = {
+    names: ['My_Ranger1'],
+    targetName: 'My_Ranger1',
+    pickupEntryCount: 5,
+    pickupQuantity: 20,
+    map: 'main',
+    x: 20,
+    y: 0
+  };
+  const merchant = {
+    atomic: {
+      namedServiceTravel: async () => { travelCalls += 1; return { ok: true }; }
+    },
+    lastMerchantPlan: null
+  };
+  const runtime = {
+    now: () => 180000,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 20, y: 0, items: [], isize: 42 },
+      parent: { entities: {} }
+    },
+    p0PotionPolicy4500: {
+      deliverOpportunisticNearby: async (names, reason) => {
+        piggybackCalls += 1;
+        assert.deepEqual(names, ['My_Ranger1']);
+        assert.equal(reason, 'FARMER_COLLECTION_ROUTE');
+        return { attempted: false, committed: 0, reason: 'ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD', results: [] };
+      }
+    },
+    controlledPartyLogistics: {
+      config: { rendezvousDistance: 260, maxTransferDistance: 380 }
+    }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  hotfix._merchantRendezvousCandidate = () => candidate;
+  hotfix.collectionRoute = {
+    id: 'collection-piggyback',
+    startedAt: 179000,
+    updatedAt: 179000,
+    lastProgressAt: 179000,
+    lastPickupQuantity: 20,
+    drainedSince: null,
+    stage: 'COLLECT',
+    potionPiggybackAttempted: false,
+    potionPiggybackResult: null,
+    farmers: ['My_Ranger1'],
+    targetMap: 'main',
+    targetX: 20,
+    targetY: 0
+  };
+
+  const handled = await hotfix._driveMerchantRendezvous(merchant);
+
+  assert.equal(handled, true);
+  assert.equal(travelCalls, 0, 'piggyback must not create travel when already at the Farmer');
+  assert.equal(piggybackCalls, 1);
+  assert.equal(hotfix.collectionRoute.potionPiggybackAttempted, true);
+  assert.equal(hotfix.collectionRoute.potionPiggybackResult.reason, 'ROUTE_FARMERS_ABOVE_OPPORTUNISTIC_THRESHOLD');
+
+  await hotfix._driveMerchantRendezvous(merchant);
+  assert.equal(piggybackCalls, 1, 'one collection route must not repeatedly retry the same opportunistic top-up');
+});
+
 test('production live services wires Alpha33 before same-version early return', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/production-live-services.js'), 'utf8');
   assert.match(source, /installAlpha33MarkOrbitMerchantDelivery/);
