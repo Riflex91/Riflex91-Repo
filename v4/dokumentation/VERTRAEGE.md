@@ -136,3 +136,18 @@ Ein Connection-Gap macht einen bereits bekannten Katalog `veraltet`. Nach Recove
 Das `SkillKatalogRevalidierungsProfil` bindet einen bestaetigten Fingerprint an Charakterkennung, Serverregion und Serverkennung. Ein Neustart mit einem alten Profil und einem abweichenden Live-Fingerprint fuehrt fail-closed zu `drift`; eine abweichende Identitaet fuehrt zu `veraltet`.
 
 `produktionsbereit` ist nur eine read-only Konsistenzaussage. Der Audit-Status besitzt immer `aktionsAutoritaet: false` und `automatischerNeustart: false`.
+
+
+## SkillPolicy
+
+Eine `SkillPolicy` ist die versionierte, pro `charakterKennung` getrennte Nutzerkonfiguration fuer validierte Skills.
+
+Neue Skill-Einstellungen starten immer mit `freigegeben=false`. `SkillPolicy AUS` ist eine harte Sperre und darf weder durch Sliderwerte noch durch Planner oder spaeteres Lernen uebergangen werden.
+
+Nur Skills aus einem `bereit`en Live-`SkillKatalog` mit `automationValidated=true`, passender Klasse und erfuellter Level-Voraussetzung sind aktuell konfigurierbar.
+
+Skill-spezifische Controls besitzen feste Min-/Max-/Schritt-Grenzen. Unbekannte Controls sowie ungueltige historische Werte sperren die aktuelle Automatikfreigabe fail-closed. Multi-Target-Controls koennen ihr Maximum aus der validierten `zielKapazitaet` ableiten.
+
+Die Persistenz verwendet `SKILL_POLICY_SCHEMA_VERSION = 1` und den vorhandenen `SchluesselWertSpeicher`. Eine Aenderung wird erst aktiv, nachdem der komplette neue Zustand erfolgreich persistiert wurde.
+
+Katalog-`drift`, `veraltet` oder `blockiert` loescht historische Nutzerwerte nicht, entzieht aber die aktuelle Policy-Freigabe. Auch eine positive Policy-Entscheidung besitzt immer `aktionsAutoritaet: false`.
