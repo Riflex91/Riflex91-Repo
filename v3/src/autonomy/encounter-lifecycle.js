@@ -334,13 +334,18 @@ class EncounterLifecycle {
     else if (outcome === EncounterOutcome.CONTENT_DRIFT) this.stats.contentDrift += 1;
     else if (outcome === EncounterOutcome.PARTY_FAILURE) this.stats.partyFailures += 1;
 
-    let adaptiveRecord = null; let brainOutcome = null;
+    let adaptiveRecord = null; let brainOutcome = null; let aoeCertification = null;
     try {
       if (this.runtime.adaptivePullLearner && typeof this.runtime.adaptivePullLearner.recordEncounterOutcome === 'function') {
         adaptiveRecord = this.runtime.adaptivePullLearner.recordEncounterOutcome(final);
         if (adaptiveRecord) this.stats.adaptiveRecords += 1;
       }
       if (this.runtime.partyPerformance && typeof this.runtime.partyPerformance.save === 'function') this.runtime.partyPerformance.save();
+    } catch (_) {}
+    try {
+      if (this.runtime.aoeFarmingCertification && typeof this.runtime.aoeFarmingCertification.recordOutcome === 'function') {
+        aoeCertification = this.runtime.aoeFarmingCertification.recordOutcome(final);
+      }
     } catch (_) {}
     try {
       const brain = this.runtime.strategicBrainV2 || this.runtime.brain;
@@ -357,7 +362,7 @@ class EncounterLifecycle {
       encounterId: final.encounterId, outcome: final.outcome, durationSeconds: final.durationSeconds, monster: final.monster,
       maxEngaged: final.maxEngaged, xp: final.xp, gold: final.gold, deaths: final.deaths, retreats: final.retreats,
       nearDeaths: final.nearDeaths, safetyMargin: final.safetyMargin, score: final.score,
-      adaptiveRecorded: !!adaptiveRecord, brainAccepted: !!(brainOutcome && brainOutcome.accepted)
+      adaptiveRecorded: !!adaptiveRecord, brainAccepted: !!(brainOutcome && brainOutcome.accepted), aoeCertification: aoeCertification ? { accepted: aoeCertification.accepted === true, smoke: aoeCertification.smoke || null, soak: aoeCertification.soak || null } : null
     });
     return clone(final);
   }
