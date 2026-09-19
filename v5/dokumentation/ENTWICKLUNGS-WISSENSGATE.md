@@ -45,6 +45,12 @@ Konsumenten duerfen keine dieser Pfade erraten. Sie lesen sie ueber den Manifest
 
 ## 3. Autoritaetsstufen
 
+### Stufe A0 – live verifizierte Bot-Evidence
+
+Der GitHub-Spiegel unter `v5/wissensbasis/live/snapshot/**` ist die staerkste Evidence fuer **den exakt beobachteten konkreten Zustand** zu Zeitpunkt/Server/Map/Scope des Facts.
+
+Er ist nicht automatisch die staerkste Quelle fuer allgemeine Definitionen, Formeln oder Action Contracts. Eine einzelne Beobachtung darf nicht zu einer universellen Spielregel generalisiert werden.
+
 ### Stufe A – frische offizielle Evidence
 
 Aktuelle offizielle Live-/MCP-/CODE-Dokumentation, offizieller Source und offizielle Game-Daten.
@@ -244,3 +250,12 @@ Das Aenderungsprotokoll muss technisch echtes JSONL sein: **genau ein kompaktes 
 ## 14. Leitsatz
 
 **Kein V5-Code gegen Erinnerung entwickeln. Immer gegen den aktuellen, validierten Wissensstand entwickeln – und vor jedem irreversiblen Write trotzdem die Live-Welt erneut beweisen.**
+
+
+## 15. Lokale SSD-Live-Wissensquelle
+
+Die Entwicklungsquelle fuer vom Bot live bestaetigte Beobachtungen ist der von der Bridge gespiegeltete Bereich `v5/wissensbasis/live/snapshot/**`.
+
+Der lokale Primaerpfad `D:\AdventureLand-V5\wissensdatenbank` wird von Entwicklungswerkzeugen nicht direkt vorausgesetzt. Dadurch bleibt die Entwicklung reproduzierbar ueber GitHub, waehrend der laufende Bot lokal schneller persistieren kann.
+
+Fuer Runtime gilt spaeter: In-Memory/Reconciled Live Truth > lokaler persistierter Live-Fakt > GitHub-Spiegel, jeweils nur innerhalb ihres exakten Freshness-/Scope-Vertrags. Keine dieser Evidenzebenen ersetzt die Mutation Admission.
