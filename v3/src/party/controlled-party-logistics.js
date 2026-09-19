@@ -680,6 +680,8 @@ class ControlledPartyLogistics {
       const objectiveId = cleanName(data.objectiveId);
       if (objectiveId && farmer.materialObjective.objectiveId && objectiveId !== farmer.materialObjective.objectiveId) return true;
       farmer.materialObjective = null;
+      const crossMap = this.runtime && this.runtime.alpha28LiveAuthorityLiveness && this.runtime.alpha28LiveAuthorityLiveness.crossMap;
+      if (crossMap && typeof crossMap.clearMaterialObjective === 'function') crossMap.clearMaterialObjective('PRODUCTION_MATERIAL', objectiveId);
       return true;
     }
 
