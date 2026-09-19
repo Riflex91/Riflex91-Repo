@@ -37,3 +37,7 @@ export * from "./wissen/wissens-zugriff-port.js";
 export * from "./wissen/verifier.js";
 export * from "./wissen/abgleich.js";
 export * from "./wissen/drift-quarantaene.js";
+export * from "./wissen/beobachtungs-evidence.js";
+export * from "./wissen/ram-arbeitsmenge.js";
+export * from "./wissen/learning-evidence.js";
+export * from "./wissen/wissens-promotion.js";

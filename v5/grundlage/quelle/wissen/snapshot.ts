@@ -43,6 +43,7 @@ function validiereDatei(
   datei: WissensSnapshotDatei,
   hashPruefer: HashPrueferPort,
   grenzen: WissensSnapshotGrenzen,
+  quelle: WissensSnapshot["quelle"],
 ): WissensSnapshotDatei {
   if (datei.schemaVersion !== 1) throw new Error("WISSEN_SNAPSHOT_DATEI_SCHEMA_UNTERSTUETZT_NICHT");
   validierePfad(datei.relativerPfad);
@@ -65,6 +66,23 @@ function validiereDatei(
   }
   if (kanonischSerialisieren(parsed) !== datei.kanonischerInhalt) {
     throw new Error("WISSEN_SNAPSHOT_DATEI_NICHT_KANONISCH");
+  }
+  if (quelle === "GITHUB_LIVE_SPIEGEL" && datei.relativerPfad.startsWith("aktuell/")) {
+    const objekt = parsed as Record<string, unknown>;
+    const liveQuelle = objekt.quelle;
+    if (objekt.spiel !== "Adventure Land - The Code MMORPG"
+        || objekt.status !== "LIVE_VERIFIZIERT"
+        || liveQuelle === null
+        || typeof liveQuelle !== "object"
+        || Array.isArray(liveQuelle)
+        || (liveQuelle as Record<string, unknown>).art !== "LIVE_SPIEL") {
+      throw new Error("GITHUB_LIVE_SPIEGEL_NUR_VERIFIZIERTE_LIVE_FAKTEN");
+    }
+  }
+  if (quelle === "GITHUB_LIVE_SPIEGEL"
+      && !datei.relativerPfad.startsWith("aktuell/")
+      && !["manifest.json", "status.json", "import.json"].includes(datei.relativerPfad)) {
+    throw new Error("GITHUB_LIVE_SPIEGEL_ARTEFAKT_NICHT_ERLAUBT");
   }
   if (!hashPruefer.istSha256Gueltig(datei.kanonischerInhalt, datei.sha256)) {
     throw new Error("WISSEN_SNAPSHOT_DATEI_HASH_FALSCH");
@@ -103,7 +121,7 @@ export function pinneWissensSnapshot(
   if (snapshot.dateien.length > grenzen.maximaleDateien) throw new Error("WISSEN_SNAPSHOT_ZU_VIELE_DATEIEN");
 
   const dateien = Object.freeze(snapshot.dateien.map(datei =>
-    validiereDatei(datei, hashPruefer, grenzen)));
+    validiereDatei(datei, hashPruefer, grenzen, snapshot.quelle)));
   validiereEindeutigePfade(dateien);
 
   const hashGrundlage = kanonischSerialisieren({

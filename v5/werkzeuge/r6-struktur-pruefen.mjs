@@ -18,6 +18,12 @@ for (const pfad of [
   "grundlage/quelle/wissen/abgleich.ts",
   "grundlage/quelle/wissen/drift-quarantaene.ts",
   "grundlage/tests/r6-wissen.test.mjs",
+  "architektur/adr/ADR-005-R6-EVIDENCE-WORKING-SETS.md",
+  "grundlage/tests/r6-evidence.test.mjs",
+  "grundlage/quelle/wissen/wissens-promotion.ts",
+  "grundlage/quelle/wissen/learning-evidence.ts",
+  "grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+  "grundlage/quelle/wissen/beobachtungs-evidence.ts",
   "architektur/adr/ADR-004-R6-WISSEN-WELTWAHRHEIT.md",
 ]) {
   if (!fs.existsSync(pfad)) fehler("Pflichtartefakt fehlt: " + pfad);
@@ -74,10 +80,47 @@ if (!drift.includes('"QUARANTAENE"') || !drift.includes("automatischeFreigabe: f
   fehler("Drift-Quarantaenevertrag unvollstaendig.");
 }
 
+const evidence = fs.readFileSync("grundlage/quelle/wissen/beobachtungs-evidence.ts", "utf8");
+if (!evidence.includes("BegrenzteBeobachtungsHistorie")
+    || !evidence.includes('"WARM_SSD"')
+    || !evidence.includes("maximaleGesamtZeichen")
+    || !evidence.includes("verworfenWegenGrenze")) {
+  fehler("Bounded Observation-Evidence unvollstaendig.");
+}
+
+const arbeitsmenge = fs.readFileSync("grundlage/quelle/wissen/ram-arbeitsmenge.ts", "utf8");
+if (!arbeitsmenge.includes("verdichteZuRamArbeitsmenge")
+    || !arbeitsmenge.includes('"HOT_RAM"')
+    || !arbeitsmenge.includes("verworfeneKennungenWegenGrenze")
+    || !arbeitsmenge.includes("ausfuehrungsAutoritaet: false")) {
+  fehler("Kompakte RAM-Working-Set-Aggregation unvollstaendig.");
+}
+
+const learning = fs.readFileSync("grundlage/quelle/wissen/learning-evidence.ts", "utf8");
+if (!learning.includes("learningEvidenceVersion: 1")
+    || !learning.includes("gameplayAutoritaet: false")
+    || !learning.includes("automatischePromotion: false")
+    || !learning.includes("mutationAutorisiert: false")) {
+  fehler("Learning-Evidence-Versionierung/Authority-Trennung unvollstaendig.");
+}
+
+const promotion = fs.readFileSync("grundlage/quelle/wissen/wissens-promotion.ts", "utf8");
+if (!promotion.includes("EINZELNER_LIVE_FAKT_DARF_NICHT_GENERALISIERT_WERDEN")
+    || !promotion.includes("automatischePromotion: false")) {
+  fehler("Wissens-Promotion-Guard unvollstaendig.");
+}
+
+if (!snapshot.includes("GITHUB_LIVE_SPIEGEL_NUR_VERIFIZIERTE_LIVE_FAKTEN")
+    || !snapshot.includes("GITHUB_LIVE_SPIEGEL_ARTEFAKT_NICHT_ERLAUBT")) {
+  fehler("GitHub-Live-Snapshot blockiert Rohtelemetrie/unerlaubte Artefakte nicht.");
+}
+
 const index = fs.readFileSync("grundlage/quelle/index.ts", "utf8");
 for (const exportPfad of [
   "./wissen/typen.js","./wissen/snapshot.js","./wissen/wissens-zugriff-port.js",
   "./wissen/verifier.js","./wissen/abgleich.js","./wissen/drift-quarantaene.js",
+  "./wissen/beobachtungs-evidence.js","./wissen/ram-arbeitsmenge.js",
+  "./wissen/learning-evidence.js","./wissen/wissens-promotion.js",
 ]) {
   if (!index.includes(exportPfad)) fehler("Index-Export fehlt: " + exportPfad);
 }

@@ -7,7 +7,7 @@ const bereitschaft = lies("bereitschaft/laufzeit-bereitschaft.json");
 const nachweis = {
   schemaVersion: 1,
   phase: "R6",
-  slice: "WISSENSZUGRIFF_SNAPSHOT_VERIFIER_WELTWAHRHEIT",
+  slice: "WISSENSZUGRIFF_VERIFIER_EVIDENCE_WORKING_SET_LEARNING",
   headSha: process.env.GITHUB_SHA ?? null,
   runtimeGate: bereitschaft.status,
   gameplayAutoritaet: false,
@@ -22,6 +22,11 @@ const nachweis = {
     "grundlage/quelle/wissen/abgleich.ts",
     "grundlage/quelle/wissen/drift-quarantaene.ts",
     "grundlage/tests/r6-wissen.test.mjs",
+    "grundlage/tests/r6-evidence.test.mjs",
+    "grundlage/quelle/wissen/wissens-promotion.ts",
+    "grundlage/quelle/wissen/learning-evidence.ts",
+    "grundlage/quelle/wissen/ram-arbeitsmenge.ts",
+    "grundlage/quelle/wissen/beobachtungs-evidence.ts",
     "werkzeuge/r6-struktur-pruefen.mjs",
   ],
 };
