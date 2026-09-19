@@ -175,7 +175,7 @@ function itemNpcCatalog(gameData) {
   return byItem;
 }
 
-function itemAutomationCatalog(runtime, maxItems = 3000) {
+function itemAutomationCatalog(runtime, maxItems = 10000) {
   const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
   for (const source of gameDataSources(runtime)) {
     Object.assign(gameData.items, source && source.items || {});
