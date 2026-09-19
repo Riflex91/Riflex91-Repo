@@ -37,7 +37,7 @@ Aktueller Wissensstand:
 - V5 Knowledge Base: 38 Facts, 38 offene Fragen.
 - Von 38 offenen Fragen: 24 P0, 7 P1, 7 P2.
 - Action Contracts: 60 erfasst; 53 gegen den offiziellen Repo-Snapshot verifiziert, 6 gegen den aktuell deployten offiziellen Live-Clientcontract verifiziert, 1 (`cave_buy`) wegen nicht öffentlich belegbarer interner Transportsemantik explizit für Automation gesperrt.
-- P0-01 bis P0-06 sind DONE; P0-07 ist IN_PROGRESS.
+- P0-01 bis P0-07 sind DONE.
 - Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
 - Fuer V5 steht eine dedizierte 1-TB-SSD als lokales Adventure-Land-Datenfundament zur Verfuegung; Standardwurzel ist `D:\\AdventureLand-V5`.
 
@@ -135,7 +135,7 @@ Exit Gate:
 
 ## R1 – Research Closure vor Runtime
 
-**Status:** IN_PROGRESS.
+**Status:** DONE.
 
 ### R1.1 P0 – vor finalen Core Contracts
 
@@ -155,7 +155,7 @@ Exit Gate:
 - P0-04: DONE – RID schützt Listing-Replacement, rotiert aber nicht bei Partial Fill; `trade_sell` nutzt serverseitige physische Itemauswahl.
 - P0-05: DONE – Upgrade/Compound sind mehrphasige Werttransaktionen; q/Placeholder bedeutet accepted in-flight, Outcome kann vor Timerende feststehen, `upgrade_fail` ist pfadabhängig und Compound-Failure verliert alle drei Inputs.
 - P0-06: DONE – Outputspace ist Transaction Safety; Exchange besitzt Multi-Domain-/rekursive Rewards, Craft getrennte Normal-/Anniversary-Pfade und Dismantle einen speziellen Drei-Output-Compound-Pfad.
-- P0-07: IN_PROGRESS.
+- P0-07: DONE – character-globales gewichtetes Socket-Budget, 200/4000-ms-Servergrenze, konservatives 100/4000-ms-V5-Planbudget, Deferred-/Safeties-/MCP-/CPU-Trennung und limitdc-Recovery sind formalisiert.
 
 ### P0-05 Upgrade/Compound
 - `calculate=true` ist serverseitige Preview ohne Mutation;
@@ -177,6 +177,17 @@ Exit Gate:
 - Anniversary Craft ist ein separater trusted Multi-Stack-Pfad;
 - Leveled-Compound-Dismantle erzeugt drei Level-1-Kopien und wird von V5 strenger als vom Server gegen Lock/Value geschuetzt;
 - probabilistische Dismantle-Ausgaben werden fuer Outputspace konservativ als moegliche Outputs behandelt.
+
+### P0-07 Call Cost / Rate Limits
+- `character:socket_call_budget` ist global ueber alle Action-Channels eines Characters;
+- Server-Evidence: 200 gewichtete Punkte / 4000 ms; V5-Policy initial 100 / 4000 ms plus 100 Reserve;
+- Requestkosten sind gewichtet und koennen statische, dynamische und interne Zusatzkosten enthalten;
+- mutierende FIFO-Channels: maximal ein managed In-Flight-Request je Channel;
+- `limitdc` nach moeglichem Send => UNKNOWN/Reconcile statt Blind-Retry;
+- Client-Safeties bleiben aktiviert;
+- externe MCP-Token-Buckets und Mainframe-Worker-CPU bleiben getrennte Ressourcen/Metriken;
+- `ccreport` ist Diagnose-Evidence, kein Scheduler-Tick-Polling;
+- Cost-Drift blockiert betroffene Automation bis zur Revalidierung.
 
 P0 Exit Gate:
 - jede wertveraendernde Public Function hat einen verifizierten Contract oder bleibt explizit disabled;
