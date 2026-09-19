@@ -31331,9 +31331,23 @@ class ControlledPartyLogistics {
     // Progression/equipment signals therefore must not block the handoff. Only
     // genuinely character-bound/special-purpose metadata stays on the Farmer.
     // An explicitly requested production material may bypass generic event/
-    // exchange protection, but never true binding/quest/special restrictions.
+    // exchange protection. A quest-tagged item is transferable only for the
+    // exact active production QUEST_EXCHANGE edge and only when its quest key
+    // matches the current objective. No generic quest-item authority is opened.
     const productionMaterial = this._productionMaterialMatch(item);
-    const absoluteSignals = ['quest', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
+    const objective = this._isMerchant()
+      ? this.lastProductionMaterialObjective
+      : this.runtime && this.runtime.farmer && this.runtime.farmer.materialObjective;
+    const exactProductionQuestInput = !!(
+      productionMaterial
+      && objective
+      && String(objective.acquisitionKind || '').includes('QUEST')
+      && objective.quest
+      && String(meta.quest || '') === String(objective.quest)
+    );
+    const absoluteSignals = exactProductionQuestInput
+      ? ['cash', 'soulbound', 'offering', 'throw', 'ignore']
+      : ['quest', 'cash', 'soulbound', 'offering', 'throw', 'ignore'];
     const conditionalSignals = productionMaterial ? [] : ['exchange', 'event'];
     const hardSignals = absoluteSignals.concat(conditionalSignals);
     const hardBlockers = hardSignals.filter((key) => meta[key] === true || (meta[key] != null && meta[key] !== false && meta[key] !== 0 && meta[key] !== ''));
@@ -31341,7 +31355,14 @@ class ControlledPartyLogistics {
 
     const level = Math.max(0, Math.floor(finite(item.level, 0)));
     if (productionMaterial) {
-      return { ok: true, name, level, quantity: Math.max(1, Math.floor(finite(item.q, 1))), metadataType: meta.type || null, merchantLifecycle: 'REQUESTED_PRODUCTION_MATERIAL' };
+      return {
+        ok: true,
+        name,
+        level,
+        quantity: Math.max(1, Math.floor(finite(item.q, 1))),
+        metadataType: meta.type || null,
+        merchantLifecycle: exactProductionQuestInput ? 'REQUESTED_PRODUCTION_QUEST_INPUT' : 'REQUESTED_PRODUCTION_MATERIAL'
+      };
     }
     const gearTypes = new Set(['weapon', 'helmet', 'coat', 'pants', 'shoes', 'gloves', 'ring', 'earring', 'amulet', 'belt', 'shield', 'quiver', 'cape', 'orb', 'source']);
     const processableGear = !!(meta.upgrade || meta.compound || gearTypes.has(String(meta.type || '').toLowerCase()));
@@ -31547,6 +31568,9 @@ class ControlledPartyLogistics {
         requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
         exchangeRequired: finite(data.exchangeRequired),
         exchangeRewardPerOperation: finite(data.exchangeRewardPerOperation),
+        expectedExchangeOperations: finite(data.expectedExchangeOperations),
+        p50ExchangeOperations: finite(data.p50ExchangeOperations),
+        p90ExchangeOperations: finite(data.p90ExchangeOperations),
         output: cleanName(data.output),
         recipient: cleanName(data.recipient),
         slot: cleanName(data.slot),
@@ -31555,10 +31579,24 @@ class ControlledPartyLogistics {
         y: finite(data.y),
         spawnIndex: finite(data.spawnIndex),
         expectedHours: finite(data.expectedHours),
+        p50Hours: finite(data.p50Hours),
+        p90Hours: finite(data.p90Hours),
         totalExpectedHours: finite(data.totalExpectedHours),
+        totalP50Hours: finite(data.totalP50Hours),
+        totalP90Hours: finite(data.totalP90Hours),
+        probabilityConfidence: finite(data.probabilityConfidence),
+        timeModel: cleanName(data.timeModel),
+        decisionQuantile: cleanName(data.decisionQuantile),
         maxTeamFarmHours: finite(data.maxTeamFarmHours),
         utilityPerFarmHour: finite(data.utilityPerFarmHour),
         evidence: cleanName(data.evidence),
+        quest: cleanName(data.quest),
+        questDestination: clone(data.questDestination || null),
+        eventKey: cleanName(data.eventKey),
+        eventType: cleanName(data.eventType),
+        eventEndsAt: finite(data.eventEndsAt),
+        eventEvidence: cleanName(data.eventEvidence),
+        graphNode: clone(data.graphNode || null),
         expiresAt
       };
       return true;
@@ -31583,6 +31621,14 @@ class ControlledPartyLogistics {
         level: Math.max(0, Math.floor(finite(data.level, 0))),
         requiredQuantity: Math.max(1, Math.floor(finite(data.requiredQuantity, 1))),
         heldByFarmers: Math.max(0, Math.floor(finite(data.heldByFarmers, 0))),
+        probabilityConfidence: finite(data.probabilityConfidence),
+        timeModel: cleanName(data.timeModel),
+        quest: cleanName(data.quest),
+        questDestination: clone(data.questDestination || null),
+        eventKey: cleanName(data.eventKey),
+        eventType: cleanName(data.eventType),
+        eventEndsAt: finite(data.eventEndsAt),
+        graphNode: clone(data.graphNode || null),
         output: cleanName(data.output),
         recipient: cleanName(data.recipient),
         slot: cleanName(data.slot),
@@ -31951,16 +31997,33 @@ class ControlledPartyLogistics {
       requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, 1))),
       exchangeRequired: finite(objective.exchangeRequired),
       exchangeRewardPerOperation: finite(objective.exchangeRewardPerOperation),
+      expectedExchangeOperations: finite(objective.expectedExchangeOperations),
+      p50ExchangeOperations: finite(objective.p50ExchangeOperations),
+      p90ExchangeOperations: finite(objective.p90ExchangeOperations),
       monster: cleanName(objective.monster),
       map: cleanName(objective.map),
       x: finite(objective.x),
       y: finite(objective.y),
       spawnIndex: finite(objective.spawnIndex),
       expectedHours: finite(objective.expectedHours),
+      p50Hours: finite(objective.p50Hours),
+      p90Hours: finite(objective.p90Hours),
       totalExpectedHours: finite(objective.totalExpectedHours),
+      totalP50Hours: finite(objective.totalP50Hours),
+      totalP90Hours: finite(objective.totalP90Hours),
+      probabilityConfidence: finite(objective.probabilityConfidence),
+      timeModel: cleanName(objective.timeModel),
+      decisionQuantile: cleanName(objective.decisionQuantile),
       maxTeamFarmHours: finite(objective.maxTeamFarmHours),
       utilityPerFarmHour: finite(objective.utilityPerFarmHour),
       evidence: cleanName(objective.evidence),
+      quest: cleanName(objective.quest),
+      questDestination: clone(objective.questDestination || null),
+      eventKey: cleanName(objective.eventKey),
+      eventType: cleanName(objective.eventType),
+      eventEndsAt: finite(objective.eventEndsAt),
+      eventEvidence: cleanName(objective.eventEvidence),
+      graphNode: clone(objective.graphNode || null),
       createdAt: now,
       expiresAt: finite(objective.expiresAt, now + 15 * 60 * 1000)
     };
@@ -32013,6 +32076,14 @@ class ControlledPartyLogistics {
       level: Math.max(0, Math.floor(finite(objective.level, finite(previous.level, 0)))),
       requiredQuantity: Math.max(1, Math.floor(finite(objective.requiredQuantity, finite(previous.requiredQuantity, 1)))),
       heldByFarmers: Math.max(0, Math.floor(finite(objective.heldByFarmers, 0))),
+      probabilityConfidence: finite(objective.probabilityConfidence, finite(previous.probabilityConfidence)),
+      timeModel: cleanName(objective.timeModel || previous.timeModel),
+      quest: cleanName(objective.quest || previous.quest),
+      questDestination: clone(objective.questDestination || previous.questDestination || null),
+      eventKey: cleanName(objective.eventKey || previous.eventKey),
+      eventType: cleanName(objective.eventType || previous.eventType),
+      eventEndsAt: finite(objective.eventEndsAt, finite(previous.eventEndsAt)),
+      graphNode: clone(objective.graphNode || previous.graphNode || null),
       phase: 'HANDOFF_READY',
       handoffReadyAt: now,
       expiresAt
@@ -32294,6 +32365,9 @@ class ControlledPartyLogistics {
         elixirFarmObjectiveAutomatic: true,
         productionMaterialObjectiveAutomatic: true,
         productionMaterialHandoffStopsFarmerCombat: true,
+        exactProductionQuestInputTransfer: true,
+        genericQuestItemTransfer: false,
+        productionMaterialProbabilisticTimeModel: true,
         productionMaterialTeamPolicy: 'ALL_FARMERS_SAME_OBJECTIVE',
         farmerLootPolicy: 'merchant-central-processing-nonbound-items',
         farmerProgressionGearTransfer: true,
@@ -42052,6 +42126,7 @@ module.exports = { Alpha27BankRecovery, ALPHA27_BANK_RECOVERY_MODE };
 'use strict';
 
 const { scoreItem, scoreImprovement, candidateSlots } = require('../economy/gear-progression');
+const { questDestination, eventEntryActive } = require('../party/acquisition-source-evidence');
 
 const MERCHANT_PRODUCTION_PLANNER_MODE = 'deterministic-merchant-production-planner';
 
@@ -42549,7 +42624,7 @@ class MerchantProductionPlanner {
       availableGold,
       goldReserve: this.goldReserve,
       bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE'
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC'
     };
   }
 
@@ -42564,9 +42639,14 @@ class MerchantProductionPlanner {
       : [];
     const bankPool = bank.length ? bank : catalogRows;
     const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
-    const explicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+    const rawExplicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
       .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    const explicitDemands = rawExplicitDemands
+      .filter((row) => !row.eventKey || eventEntryActive(input.eventState || {}, row.eventKey, this.now()));
     const demandByItem = new Map(explicitDemands.map((row) => [String(row.item), row]));
+    const reservedExplicitExchangeItems = new Set(rawExplicitDemands
+      .filter((row) => String(row.reason || '') === 'PRODUCTION_MATERIAL' || row.eventKey)
+      .map((row) => String(row.item)));
 
     // Anything that Adventure Land itself marks with a positive exchange
     // requirement (G.items[name].e) is legitimate autonomous cleanup work once
@@ -42575,7 +42655,7 @@ class MerchantProductionPlanner {
     for (const item of inventory) if (item && item.name && levelOf(item) === 0) exchangeableNames.add(String(item.name));
     for (const row of bankPool) if (row && row.name && row.level === 0) exchangeableNames.add(String(row.name));
     for (const name of exchangeableNames) {
-      if (demandByItem.has(name)) continue;
+      if (demandByItem.has(name) || reservedExplicitExchangeItems.has(name)) continue;
       const meta = gameData.items && gameData.items[name];
       const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
       if (!meta || required <= 0) continue;
@@ -42612,12 +42692,37 @@ class MerchantProductionPlanner {
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(item.name, 0)], 0)));
       const local = Math.max(1, Math.floor(finite(item.q, 1)));
       const usable = Math.max(0, local - reserved);
-      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      const productionDemand = !!(demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL');
+      const demandedQuest = productionDemand && demand.quest ? String(demand.quest) : null;
+      const metaQuest = meta.quest ? String(meta.quest) : null;
+      if (productionDemand && demandedQuest && demandedQuest !== metaQuest) continue;
+      const quest = demandedQuest || metaQuest;
+      const questTarget = quest ? questDestination(gameData, quest) : null;
+      if (productionDemand && quest && !questTarget) continue;
+      const destination = quest || 'exchange';
+      const exchangeReason = demand && demand.eventKey && quest
+        ? 'EVENT_QUEST_EXCHANGE_REQUIREMENT_SATISFIED'
+        : demand && demand.eventKey
+          ? 'EVENT_EXCHANGE_REQUIREMENT_SATISFIED'
+          : quest
+            ? 'QUEST_EXCHANGE_REQUIREMENT_SATISFIED'
+            : 'EXCHANGE_REQUIREMENT_SATISFIED';
       if (usable >= required) {
         candidates.push({
           name: String(item.name), index, required, available: usable,
-          operations: Math.floor(usable / required), destination,
-          step: { kind: ProductionStepKind.EXCHANGE, name: String(item.name), level: 0, inventoryIndex: index, quantity: required, destination, reason: 'EXCHANGE_REQUIREMENT_SATISFIED' }
+          operations: Math.floor(usable / required), destination, quest, questDestination: clone(questTarget),
+          step: {
+            kind: ProductionStepKind.EXCHANGE,
+            name: String(item.name),
+            level: 0,
+            inventoryIndex: index,
+            quantity: required,
+            destination,
+            quest,
+            questDestination: clone(questTarget),
+            eventKey: demand && demand.eventKey || null,
+            reason: exchangeReason
+          }
         });
         continue;
       }
@@ -42640,10 +42745,29 @@ class MerchantProductionPlanner {
       const local = itemQuantity(inventory, row.name, 0);
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
       if (Math.max(0, local - reserved) >= required) continue;
-      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      const productionDemand = !!(demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL');
+      const demandedQuest = productionDemand && demand.quest ? String(demand.quest) : null;
+      const metaQuest = meta.quest ? String(meta.quest) : null;
+      if (productionDemand && demandedQuest && demandedQuest !== metaQuest) continue;
+      const quest = demandedQuest || metaQuest;
+      const questTarget = quest ? questDestination(gameData, quest) : null;
+      if (productionDemand && quest && !questTarget) continue;
+      const destination = quest || 'exchange';
       candidates.push({
         name: row.name, required, available: Math.max(0, local - reserved), operations: Math.floor(row.quantity / required), destination,
-        step: { kind: ProductionStepKind.BANK_RETRIEVE, name: row.name, level: 0, quantity: row.quantity, pack: row.pack, bankIndex: row.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+        quest, questDestination: clone(questTarget),
+        step: {
+          kind: ProductionStepKind.BANK_RETRIEVE,
+          name: row.name,
+          level: 0,
+          quantity: row.quantity,
+          pack: row.pack,
+          bankIndex: row.index,
+          quest,
+          questDestination: clone(questTarget),
+          eventKey: demand && demand.eventKey || null,
+          reason: quest ? 'QUEST_EXCHANGE_MATERIAL_IN_BANK' : 'EXCHANGE_MATERIAL_IN_BANK'
+        }
       });
     }
 
@@ -42665,7 +42789,7 @@ class MerchantProductionPlanner {
       blockers: [],
       totalGold: 0,
       goldReserve: this.goldReserve,
-      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN',
+      costStrategy: 'QUEST_EVENT_EXCHANGE_EXACT_REQUIREMENT_V3',
       exchangeDemand: clone(demandByItem.get(chosen.name) || null)
     };
     return clone(plan);
@@ -42837,9 +42961,13 @@ class MerchantProductionPlanner {
       maxBuyQuantity: this.maxBuyQuantity,
       candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
-      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'FARM_REQUIRED'],
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'QUEST_OR_EVENT_ACQUISITION', 'FARM_REQUIRED'],
       leveledRecipeMaterials: true,
+      questExchangeAcquisition: true,
+      eventGatedAcquisition: true,
+      probabilisticFarmTime: true,
+      farmTimeDecisionQuantile: 'P90',
       mutationFamilies: ['UPGRADE', 'COMPOUND'],
       autonomousExchangeableSurplus: true,
       anniversarySliceConsolidation: true,
@@ -42861,6 +42989,271 @@ module.exports = {
   mutationDescriptor,
   bankRows,
   vendorIndex
+};
+
+},
+"src/party/acquisition-source-evidence.js": function(require,module,exports){
+'use strict';
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clean(value) {
+  const text = String(value == null ? '' : value).trim();
+  return text || null;
+}
+
+function clone(value) {
+  try { return value == null ? value : JSON.parse(JSON.stringify(value)); } catch (_) { return null; }
+}
+
+function questDestination(gameData, quest) {
+  const key = clean(quest);
+  if (!key) return null;
+  const direct = gameData && gameData.quests && gameData.quests[key];
+  if (direct && typeof direct === 'object') {
+    const map = clean(direct.map || direct.in);
+    const x = finite(direct.x);
+    const y = finite(direct.y);
+    if (map && x != null && y != null) {
+      return {
+        quest: key,
+        npc: clean(direct.id),
+        map,
+        x,
+        y,
+        evidence: 'G_QUESTS_COORDINATE'
+      };
+    }
+  }
+
+  const maps = gameData && gameData.maps || {};
+  const npcs = gameData && gameData.npcs || {};
+  for (const [mapName, map] of Object.entries(maps)) {
+    for (const row of Array.isArray(map && map.npcs) ? map.npcs : []) {
+      const npcId = Array.isArray(row) ? row[0] : row && (row.id || row.name);
+      if (!npcId) continue;
+      const def = npcs[npcId] || {};
+      if (String(def.quest || '') !== key) continue;
+      let x = null;
+      let y = null;
+      if (Array.isArray(row)) {
+        x = finite(row[1]);
+        y = finite(row[2]);
+      } else if (row && typeof row === 'object') {
+        const pos = Array.isArray(row.position) ? row.position : null;
+        x = finite(row.x, pos ? finite(pos[0]) : null);
+        y = finite(row.y, pos ? finite(pos[1]) : null);
+      }
+      if (x == null || y == null) continue;
+      return {
+        quest: key,
+        npc: String(npcId),
+        map: String(mapName),
+        x,
+        y,
+        evidence: 'G_NPC_QUEST_MAPPING'
+      };
+    }
+  }
+  return null;
+}
+
+function serverEventState(runtime) {
+  const root = runtime && runtime.root || {};
+  return root.S || root.parent && root.parent.S || {};
+}
+
+function normalizeEventEnd(value) {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === 'string') {
+    const date = Date.parse(value);
+    if (Number.isFinite(date)) return date;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return null;
+    value = numeric;
+  }
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // Adventure Land state commonly uses epoch seconds, while local state often
+  // uses epoch milliseconds. Values below year-2001 milliseconds are treated as seconds.
+  return n < 100000000000 ? n * 1000 : n;
+}
+
+function eventEntryActive(eventState, eventKey, now = Date.now()) {
+  const key = clean(eventKey);
+  if (!key || !eventState || typeof eventState !== 'object') return false;
+  const row = eventState[key];
+  if (!row) return false;
+  if (row === true || row === 1) return true;
+  if (typeof row !== 'object') return !!row;
+  if (row.active === false || row.live === false) return false;
+  if (row.active === true || row.live === true) return true;
+  const endsAt = normalizeEventEnd(row.end != null ? row.end
+    : row.endsAt != null ? row.endsAt
+      : row.endAt != null ? row.endAt
+        : row.end_time != null ? row.end_time
+          : row.expiresAt);
+  if (endsAt != null) return endsAt > now;
+  // Presence of a structured S[event] object is itself live server evidence for
+  // Adventure Land seasonal/daily events when no explicit inactive flag exists.
+  return true;
+}
+
+function eventStatus(runtime, eventKey) {
+  const key = clean(eventKey);
+  if (!key) return null;
+  let gameData = {};
+  try {
+    gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+      ? runtime.adapter.getGameData() || {}
+      : {};
+  } catch (_) {}
+  const meta = gameData.events && gameData.events[key] || null;
+  const state = serverEventState(runtime);
+  const raw = state && state[key];
+  const now = runtime && typeof runtime.now === 'function' ? runtime.now() : Date.now();
+  let endsAt = null;
+  if (raw && typeof raw === 'object') {
+    endsAt = normalizeEventEnd(raw.end != null ? raw.end
+      : raw.endsAt != null ? raw.endsAt
+        : raw.endAt != null ? raw.endAt
+          : raw.end_time != null ? raw.end_time
+            : raw.expiresAt);
+  }
+  return {
+    eventKey: key,
+    known: !!meta || Object.prototype.hasOwnProperty.call(state || {}, key),
+    active: eventEntryActive(state, key, now),
+    endsAt,
+    eventType: clean(meta && meta.type),
+    eventDurationSeconds: finite(meta && meta.duration),
+    evidence: Object.prototype.hasOwnProperty.call(state || {}, key)
+      ? 'LIVE_SERVER_EVENT_STATE'
+      : meta
+        ? 'G_EVENTS_ONLY'
+        : 'UNVERIFIED'
+  };
+}
+
+function registeredEventSource(runtime, material, monster, map) {
+  const registry = runtime && runtime.productionAcquisitionEventSources;
+  const rows = Array.isArray(registry)
+    ? registry
+    : registry && typeof registry === 'object'
+      ? Object.entries(registry).map(([eventKey, row]) => ({ eventKey, ...(row || {}) }))
+      : [];
+  return rows.find((row) => row
+    && (!row.material || String(row.material) === String(material || ''))
+    && (!row.monster || String(row.monster) === String(monster || ''))
+    && (!row.map || String(row.map) === String(map || ''))
+    && clean(row.eventKey || row.event)) || null;
+}
+
+function sourceEventDescriptor(runtime, gameData, {
+  material = null,
+  targetMaterial = null,
+  monster = null,
+  map = null
+} = {}) {
+  const itemMeta = gameData && gameData.items && gameData.items[material] || {};
+  const targetMeta = gameData && gameData.items && gameData.items[targetMaterial] || {};
+  const monsterMeta = gameData && gameData.monsters && gameData.monsters[monster] || {};
+  const mapMeta = gameData && gameData.maps && gameData.maps[map] || {};
+  const registered = registeredEventSource(runtime, material, monster, map);
+
+  const candidates = [
+    registered && (registered.eventKey || registered.event),
+    typeof itemMeta.event === 'string' ? itemMeta.event : null,
+    typeof targetMeta.event === 'string' ? targetMeta.event : null,
+    typeof monsterMeta.event === 'string' ? monsterMeta.event : null,
+    typeof mapMeta.event === 'string' ? mapMeta.event : null
+  ].map(clean).filter(Boolean);
+  const eventKey = candidates[0] || null;
+  const eventMarked = !!registered
+    || itemMeta.event === true
+    || targetMeta.event === true
+    || monsterMeta.event === true
+    || mapMeta.event === true
+    || !!eventKey;
+
+  if (!eventMarked) {
+    return {
+      required: false,
+      verified: true,
+      active: true,
+      eventKey: null,
+      eventType: null,
+      endsAt: null,
+      evidence: 'NOT_EVENT_GATED'
+    };
+  }
+  if (!eventKey) {
+    return {
+      required: true,
+      verified: false,
+      active: false,
+      eventKey: null,
+      eventType: null,
+      endsAt: null,
+      evidence: 'EVENT_FLAG_WITHOUT_DETERMINISTIC_EVENT_KEY',
+      reason: 'EVENT_SOURCE_UNVERIFIED'
+    };
+  }
+
+  const status = eventStatus(runtime, eventKey);
+  return {
+    required: true,
+    verified: !!(status && status.known),
+    active: !!(status && status.active),
+    eventKey,
+    eventType: status && status.eventType || null,
+    endsAt: status && status.endsAt || null,
+    evidence: status && status.evidence || 'UNVERIFIED',
+    reason: status && status.known
+      ? status.active ? 'EVENT_SOURCE_ACTIVE' : 'EVENT_SOURCE_INACTIVE'
+      : 'EVENT_SOURCE_UNVERIFIED',
+    registration: clone(registered)
+  };
+}
+
+function isExchangeBackedSource(source) {
+  return !!(source && String(source.kind || '').includes('EXCHANGE'));
+}
+
+function isQuestBackedSource(source) {
+  return !!(source && String(source.kind || '').includes('QUEST'));
+}
+
+function isEventBackedSource(source) {
+  return !!(source && String(source.kind || '').includes('EVENT'));
+}
+
+function sourceKind({ quest = false, event = false, direct = false } = {}) {
+  if (direct) return event ? 'EVENT_DIRECT_MATERIAL_DROP' : 'DIRECT_MATERIAL_DROP';
+  if (quest && event) return 'EVENT_QUEST_EXCHANGE_MATERIAL_DROP';
+  if (quest) return 'QUEST_EXCHANGE_MATERIAL_DROP';
+  if (event) return 'EVENT_EXCHANGE_MATERIAL_DROP';
+  return 'EXCHANGE_MATERIAL_DROP';
+}
+
+module.exports = {
+  questDestination,
+  serverEventState,
+  eventEntryActive,
+  eventStatus,
+  sourceEventDescriptor,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource,
+  sourceKind,
+  normalizeEventEnd
 };
 
 },
@@ -55107,7 +55500,15 @@ const { ControlledMerchantProductionExecutor, CONTROLLED_MERCHANT_PRODUCTION_ACK
 const { PersistentBankCatalog } = require('./persistent-bank-catalog');
 const { PersistentProductionIntent } = require('./persistent-production-intent');
 const { bufferedInteractionRange, interactionMaxRange, INTERACTION_SAFETY_FACTOR } = require('../reliability/alpha27-atomic-service');
-const { chooseProductionTeamFarmObjective, DEFAULT_MAX_TEAM_FARM_HOURS, DEFAULT_FALLBACK_KILLS_PER_HOUR } = require('../party/production-material-acquisition');
+const {
+  chooseProductionTeamFarmObjective,
+  DEFAULT_MAX_TEAM_FARM_HOURS,
+  DEFAULT_FALLBACK_KILLS_PER_HOUR,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource
+} = require('../party/production-material-acquisition');
+const { PROBABILISTIC_FARM_TIME_MODEL } = require('../party/probabilistic-farm-time');
 
 const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 
@@ -55174,6 +55575,35 @@ function installMerchantProduction(runtime, options = {}) {
     lastIntentRecovery: null
   };
 
+  function productionTargetForPlan(plan) {
+    const demand = plan && plan.exchangeDemand;
+    if (demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL' && demand.output) {
+      return {
+        output: String(demand.output),
+        recipient: demand.recipient || null,
+        slot: demand.slot || null
+      };
+    }
+    return plan && plan.target || null;
+  }
+
+  function productionPhaseForStep(plan, step) {
+    const demand = plan && plan.exchangeDemand;
+    if (demand && String(demand.reason || '') === 'PRODUCTION_MATERIAL') {
+      if (step && step.kind === ProductionStepKind.EXCHANGE) {
+        if (demand.eventKey && demand.quest) return 'EVENT_QUEST_EXECUTING';
+        if (demand.quest) return 'QUEST_EXECUTING';
+        if (demand.eventKey) return 'EVENT_EXCHANGE_EXECUTING';
+      }
+      if (step && step.kind === ProductionStepKind.BANK_RETRIEVE) {
+        if (demand.eventKey && demand.quest) return 'EVENT_QUEST_READY';
+        if (demand.quest) return 'QUEST_READY';
+        if (demand.eventKey) return 'EVENT_EXCHANGE_READY';
+      }
+    }
+    return `EXECUTING_${String(step && step.kind || 'STEP')}`;
+  }
+
   function persistIntentForTarget(plan, target, phase, details = {}) {
     if (!plan || !target || !target.output) return false;
     return productionIntent.ensureForPlan(
@@ -55189,13 +55619,14 @@ function installMerchantProduction(runtime, options = {}) {
   }
 
   function updateIntentAfterExecution(plan, step, result) {
-    if (!plan || !plan.target || !plan.target.output) return false;
-    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(plan.target.output || '')) {
+    const target = productionTargetForPlan(plan);
+    if (!plan || !target || !target.output) return false;
+    if (result && result.committed === true && step && step.kind === ProductionStepKind.CRAFT && String(step.name || '') === String(target.output || '')) {
       return productionIntent.complete('FINAL_PRODUCTION_OUTPUT_VERIFIED');
     }
     return productionIntent.update('REPLAN_REQUIRED', {
       reason: result && result.committed === true ? 'PRODUCTION_STEP_COMMITTED_REPLAN' : result && result.reason || 'PRODUCTION_STEP_RESULT_REPLAN',
-      plan,
+      plan: { ...clone(plan), target: clone(target) },
       lastExecution: { at: runtime.now(), kind: step && step.kind || null, item: step && step.name || null, result: clone(result) }
     });
   }
@@ -55269,6 +55700,7 @@ function installMerchantProduction(runtime, options = {}) {
       bankCatalog: bankCatalog.status(),
       productionTaskTarget,
       exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
+      eventState: clone(runtime.root && (runtime.root.S || runtime.root.parent && runtime.root.parent.S) || {}),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
       anniversaryActive: !!(
@@ -55363,8 +55795,21 @@ function installMerchantProduction(runtime, options = {}) {
     const lock = acquireTask(plan);
     if (!lock.acquired) return false;
     const step = plan.nextStep;
-    persistIntentForTarget(plan, plan.target, `EXECUTING_${String(step.kind || 'STEP')}`, {
-      reason: 'PRODUCTION_STEP_SCHEDULED',
+    const intentTarget = productionTargetForPlan(plan);
+    persistIntentForTarget({ ...clone(plan), target: clone(intentTarget) }, intentTarget, productionPhaseForStep(plan, step), {
+      reason: plan.exchangeDemand && plan.exchangeDemand.reason === 'PRODUCTION_MATERIAL'
+        ? 'PRODUCTION_ACQUISITION_STEP_SCHEDULED'
+        : 'PRODUCTION_STEP_SCHEDULED',
+      material: plan.exchangeDemand && plan.exchangeDemand.reason === 'PRODUCTION_MATERIAL'
+        ? {
+          material: plan.exchangeDemand.item,
+          targetMaterial: plan.exchangeDemand.target,
+          acquisitionKind: plan.exchangeDemand.sourceKind || null,
+          quest: plan.exchangeDemand.quest || null,
+          eventKey: plan.exchangeDemand.eventKey || null,
+          graphNode: clone(plan.exchangeDemand.graphNode || null)
+        }
+        : undefined,
       lastExecution: state.lastExecution
     });
     state.executionPending = true;
@@ -55464,7 +55909,7 @@ function installMerchantProduction(runtime, options = {}) {
       quantity: Math.max(1, Math.floor(n(step.quantity, 1))),
       inputQuantity: Math.max(1, Math.floor(n(step.inputQuantity, family === 'COMPOUND' ? 3 : 1))),
       scrollName: step.scrollName || null,
-      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+      acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
       createdAt: runtime.now(),
       expiresAt: runtime.now() + state.mutationDemandTtlMs
     };
@@ -55605,7 +56050,7 @@ function installMerchantProduction(runtime, options = {}) {
       index: indices[0],
       indices,
       metadata: {
-        source: 'MERCHANT_PRODUCTION_ACQUISITION_V2',
+        source: 'MERCHANT_PRODUCTION_ACQUISITION_V3',
         lifecycle: 'PRODUCTION_MATERIAL_ACQUISITION',
         productionMaterialAcquisition: true,
         output: demand.output,
@@ -55662,15 +56107,41 @@ function installMerchantProduction(runtime, options = {}) {
     return true;
   }
 
-  function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null) {
+  function sourceExpiry(source = null, requested = null) {
+    let expiresAt = Number(requested) || runtime.now() + state.materialObjectiveTtlMs;
+    const eventEndsAt = Number(source && source.eventEndsAt);
+    if (Number.isFinite(eventEndsAt) && eventEndsAt > 0) expiresAt = Math.min(expiresAt, eventEndsAt);
+    return expiresAt;
+  }
+
+  function setProductionExchangeDemand(source = null, targetMaterial = null, expiresAt = null, target = null) {
     const existing = Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [];
     const retained = existing.filter((row) => row && String(row.reason || '') !== 'PRODUCTION_MATERIAL');
-    if (source && source.kind === 'EXCHANGE_MATERIAL_DROP' && source.material) {
+    if (source && isExchangeBackedSource(source) && source.material) {
+      const finalExpiry = sourceExpiry(source, expiresAt);
+      if (finalExpiry <= runtime.now()) {
+        runtime.merchantExchangeDemands = retained;
+        return false;
+      }
       retained.push({
         item: String(source.material),
         target: String(source.targetMaterial || targetMaterial || ''),
         reason: 'PRODUCTION_MATERIAL',
-        expiresAt: Number(expiresAt) || runtime.now() + state.materialObjectiveTtlMs
+        sourceKind: source.kind || null,
+        quest: source.quest || null,
+        questDestination: clone(source.questDestination || null),
+        eventKey: source.eventKey || null,
+        eventType: source.eventType || null,
+        eventEndsAt: source.eventEndsAt || null,
+        probabilityConfidence: source.probabilityConfidence == null ? null : source.probabilityConfidence,
+        timeModel: source.timeModel || PROBABILISTIC_FARM_TIME_MODEL,
+        p50ExchangeOperations: source.p50ExchangeOperations || null,
+        p90ExchangeOperations: source.p90ExchangeOperations || null,
+        graphNode: clone(source.graphNode || null),
+        output: target && target.output || null,
+        recipient: target && target.recipient || null,
+        slot: target && target.slot || null,
+        expiresAt: finalExpiry
       });
     }
     runtime.merchantExchangeDemands = retained;
@@ -55682,6 +56153,13 @@ function installMerchantProduction(runtime, options = {}) {
     const logistics = runtime.controlledPartyLogistics;
     if (!logistics || typeof logistics.clearProductionMaterialObjective !== 'function') return false;
     return logistics.clearProductionMaterialObjective(reason);
+  }
+
+  function acquisitionPhase(source, suffix = 'ACQUISITION') {
+    if (isEventBackedSource(source) && isQuestBackedSource(source)) return `EVENT_QUEST_${suffix}`;
+    if (isEventBackedSource(source)) return `EVENT_${suffix}`;
+    if (isQuestBackedSource(source)) return `QUEST_${suffix}`;
+    return suffix === 'ACQUISITION' ? 'FARMING_MATERIAL' : suffix;
   }
 
   function publishProductionMaterialObjective(plan) {
@@ -55698,8 +56176,10 @@ function installMerchantProduction(runtime, options = {}) {
       fallbackKillsPerHour: state.fallbackKillsPerHour
     });
     state.lastMaterialFarmDecision = { at: runtime.now(), ...clone(decision) };
+
     if (!decision.selected || !decision.selected.nextMaterial || !decision.selected.nextMaterial.source) {
-      const awaitingTransfer = (decision.evaluated || []).find((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
+      const evaluated = decision.evaluated || [];
+      const awaitingTransfer = evaluated.find((row) => row && row.reason === 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER');
       if (awaitingTransfer) {
         const materials = Array.isArray(awaitingTransfer.materials) ? awaitingTransfer.materials : [];
         const previous = logistics.lastProductionMaterialObjective || null;
@@ -55708,18 +56188,18 @@ function installMerchantProduction(runtime, options = {}) {
           && Math.max(0, Math.floor(n(row.handoffLevel, row.level))) === Math.max(0, Math.floor(n(previous.level, 0))));
         const material = preferred || materials.find((row) => row && row.awaitingTransfer === true);
         if (!material) return true;
+        const source = material.source || null;
         const handoffMaterial = String(material.handoffMaterial || material.name || '');
         const handoffLevel = Math.max(0, Math.floor(n(material.handoffLevel, material.level)));
         const handoffQuantity = Math.max(1, Math.floor(n(material.handoffQuantity, material.quantity)));
         const heldByFarmers = Math.max(handoffQuantity, Math.floor(n(material.heldByFarmers, material.alreadyOnFarmers)));
-        const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
-        const source = material.source || null;
-        setProductionExchangeDemand(source && source.kind === 'EXCHANGE_MATERIAL_DROP' ? source : null, material.name, expiresAt);
+        const expiresAt = sourceExpiry(source);
         const handoffPlan = { ...clone(plan), target: clone(awaitingTransfer.target || {
           output: awaitingTransfer.output,
           recipient: awaitingTransfer.recipient,
           slot: awaitingTransfer.slot
         }) };
+        setProductionExchangeDemand(source, material.name, expiresAt, handoffPlan.target);
         persistIntentForTarget(handoffPlan, handoffPlan.target, 'MATERIAL_READY_FOR_HANDOFF', {
           reason: 'TARGET_QUANTITY_HELD_BY_FARMERS',
           material: {
@@ -55728,13 +56208,21 @@ function installMerchantProduction(runtime, options = {}) {
             level: handoffLevel,
             requiredQuantity: handoffQuantity,
             heldByFarmers,
-            acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP'
+            acquisitionKind: source && source.kind || 'DIRECT_MATERIAL_DROP',
+            quest: source && source.quest || null,
+            questDestination: clone(source && source.questDestination || null),
+            eventKey: source && source.eventKey || null,
+            eventEndsAt: source && source.eventEndsAt || null,
+            graphNode: clone(source && source.graphNode || null)
           },
           progress: {
             requiredQuantity: handoffQuantity,
             heldByFarmers,
             remainingToFarm: 0,
-            transferPending: true
+            transferPending: true,
+            p50Hours: source && source.p50Hours || 0,
+            p90Hours: source && source.p90Hours || 0,
+            probabilityConfidence: source && source.probabilityConfidence != null ? source.probabilityConfidence : null
           }
         });
         if (typeof logistics.publishProductionMaterialHandoffReady !== 'function') return true;
@@ -55749,40 +56237,133 @@ function installMerchantProduction(runtime, options = {}) {
           level: handoffLevel,
           requiredQuantity: handoffQuantity,
           heldByFarmers,
+          quest: source && source.quest || null,
+          questDestination: clone(source && source.questDestination || null),
+          eventKey: source && source.eventKey || null,
+          eventType: source && source.eventType || null,
+          eventEndsAt: source && source.eventEndsAt || null,
+          timeModel: source && source.timeModel || PROBABILISTIC_FARM_TIME_MODEL,
+          probabilityConfidence: source && source.probabilityConfidence != null ? source.probabilityConfidence : null,
+          graphNode: clone(source && source.graphNode || null),
           expiresAt
         });
       }
+
+      const exchangeReady = evaluated.find((row) => row && row.reason === 'EXCHANGE_INPUT_READY_ON_MERCHANT');
+      if (exchangeReady) {
+        const material = (exchangeReady.materials || []).find((row) => row && row.exchangeReady && row.source);
+        if (material && material.source) {
+          const source = material.source;
+          const target = exchangeReady.target || {
+            output: exchangeReady.output,
+            recipient: exchangeReady.recipient,
+            slot: exchangeReady.slot
+          };
+          const expiresAt = sourceExpiry(source);
+          setProductionExchangeDemand(source, material.name, expiresAt, target);
+          persistIntentForTarget({ ...clone(plan), target: clone(target) }, target, acquisitionPhase(source, 'READY'), {
+            reason: 'EXCHANGE_INPUT_ALREADY_ON_MERCHANT',
+            material: {
+              material: source.material,
+              targetMaterial: material.name,
+              acquisitionKind: source.kind,
+              quest: source.quest || null,
+              questDestination: clone(source.questDestination || null),
+              eventKey: source.eventKey || null,
+              eventEndsAt: source.eventEndsAt || null,
+              graphNode: clone(source.graphNode || null)
+            },
+            progress: {
+              transferPending: false,
+              exchangeReady: true,
+              p50ExchangeOperations: source.p50ExchangeOperations || null,
+              p90ExchangeOperations: source.p90ExchangeOperations || null
+            }
+          });
+          if (typeof logistics.clearProductionMaterialObjective === 'function') {
+            logistics.clearProductionMaterialObjective('PRODUCTION_EXCHANGE_INPUT_READY_ON_MERCHANT');
+          }
+          return true;
+        }
+      }
+
+      const deferred = evaluated.find((row) => row && ['EVENT_SOURCE_INACTIVE', 'EVENT_SOURCE_UNVERIFIED', 'QUEST_SOURCE_DESTINATION_UNVERIFIED'].includes(String(row.reason || '')));
+      if (deferred) {
+        const target = deferred.target || {
+          output: deferred.output,
+          recipient: deferred.recipient,
+          slot: deferred.slot
+        };
+        const phase = String(deferred.reason || '').startsWith('EVENT_') ? 'EVENT_WAITING' : 'QUEST_WAITING_VALIDATION';
+        persistIntentForTarget({ ...clone(plan), target: clone(target) }, target, phase, {
+          reason: deferred.reason,
+          material: {
+            deferredSource: clone(deferred.deferredSource || null),
+            acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC'
+          },
+          progress: { executableNow: false, permanentBlock: false }
+        });
+        clearProductionMaterialObjective(deferred.reason);
+        return true;
+      }
+
       persistIntentForTarget(plan, plan.target, 'BLOCKED', { reason: 'NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH' });
       clearProductionMaterialObjective('NO_KNOWN_PRODUCTION_MATERIAL_FARM_PATH');
       return false;
     }
+
     const selected = decision.selected;
     const material = selected.nextMaterial;
     const source = material.source;
-    const expiresAt = runtime.now() + state.materialObjectiveTtlMs;
-    setProductionExchangeDemand(source, material.name, expiresAt);
-    const farmMaterial = source.kind === 'EXCHANGE_MATERIAL_DROP' ? source.material : material.name;
-    const farmQuantity = source.kind === 'EXCHANGE_MATERIAL_DROP'
+    const expiresAt = sourceExpiry(source);
+    if (expiresAt <= runtime.now()) {
+      persistIntentForTarget({ ...clone(plan), target: clone(selected.target) }, selected.target, 'EVENT_WAITING', {
+        reason: 'EVENT_SOURCE_EXPIRED_BEFORE_OBJECTIVE_PUBLISH',
+        material: { source: clone(source) },
+        progress: { executableNow: false, permanentBlock: false }
+      });
+      clearProductionMaterialObjective('EVENT_SOURCE_EXPIRED_BEFORE_OBJECTIVE_PUBLISH');
+      return true;
+    }
+
+    setProductionExchangeDemand(source, material.name, expiresAt, selected.target);
+    const exchangeBacked = isExchangeBackedSource(source);
+    const farmMaterial = exchangeBacked ? source.material : material.name;
+    const farmQuantity = exchangeBacked
       ? Math.max(1, Math.floor(n(source.farmQuantity, n(source.requiredPerExchange, 1))))
       : Math.max(1, Math.floor(n(material.remainingToFarm, material.quantity)));
+    const farmLevel = exchangeBacked ? 0 : material.level;
     const farmPlan = { ...clone(plan), target: clone(selected.target) };
-    persistIntentForTarget(farmPlan, selected.target, 'FARMING_MATERIAL', {
+    const phase = acquisitionPhase(source, 'ACQUISITION');
+    persistIntentForTarget(farmPlan, selected.target, phase, {
       reason: selected.reason,
       material: {
         material: farmMaterial,
         targetMaterial: material.name,
-        level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+        level: farmLevel,
         requiredQuantity: farmQuantity,
         acquisitionKind: source.kind,
         monster: source.monster,
-        map: source.map
+        map: source.map,
+        quest: source.quest || null,
+        questDestination: clone(source.questDestination || null),
+        eventKey: source.eventKey || null,
+        eventType: source.eventType || null,
+        eventEndsAt: source.eventEndsAt || null,
+        graphNode: clone(source.graphNode || null)
       },
       progress: {
         requiredQuantity: farmQuantity,
         heldByFarmers: Math.max(0, Math.floor(n(source.alreadyOnFarmers, material.alreadyOnFarmers))),
         remainingToFarm: Math.max(0, Math.floor(n(source.farmQuantity, material.remainingToFarm))),
         expectedHours: source.expectedHours,
-        totalExpectedHours: selected.totalExpectedHours
+        p50Hours: source.p50Hours,
+        p90Hours: source.p90Hours,
+        totalExpectedHours: selected.totalExpectedHours,
+        totalP50Hours: selected.totalP50Hours,
+        totalP90Hours: selected.totalP90Hours,
+        probabilityConfidence: selected.probabilityConfidence,
+        decisionQuantile: 'P90'
       }
     });
     return logistics.publishProductionMaterialObjective({
@@ -55793,20 +56374,37 @@ function installMerchantProduction(runtime, options = {}) {
       material: farmMaterial,
       targetMaterial: material.name,
       acquisitionKind: source.kind,
-      level: source.kind === 'EXCHANGE_MATERIAL_DROP' ? 0 : material.level,
+      level: farmLevel,
       requiredQuantity: farmQuantity,
       exchangeRequired: source.requiredPerExchange || null,
       exchangeRewardPerOperation: source.rewardPerExchange || null,
+      expectedExchangeOperations: source.expectedExchangeOperations || null,
+      p50ExchangeOperations: source.p50ExchangeOperations || null,
+      p90ExchangeOperations: source.p90ExchangeOperations || null,
       monster: source.monster,
       map: source.map,
       x: source.x,
       y: source.y,
       spawnIndex: source.spawnIndex,
       expectedHours: source.expectedHours,
+      p50Hours: source.p50Hours,
+      p90Hours: source.p90Hours,
       totalExpectedHours: selected.totalExpectedHours,
+      totalP50Hours: selected.totalP50Hours,
+      totalP90Hours: selected.totalP90Hours,
+      probabilityConfidence: selected.probabilityConfidence,
+      timeModel: source.timeModel || PROBABILISTIC_FARM_TIME_MODEL,
+      decisionQuantile: 'P90',
       maxTeamFarmHours: selected.maxTeamFarmHours,
       utilityPerFarmHour: selected.utilityPerFarmHour,
       evidence: source.evidence,
+      quest: source.quest || null,
+      questDestination: clone(source.questDestination || null),
+      eventKey: source.eventKey || null,
+      eventType: source.eventType || null,
+      eventEndsAt: source.eventEndsAt || null,
+      eventEvidence: source.eventEvidence || null,
+      graphNode: clone(source.graphNode || null),
       expiresAt
     });
   }
@@ -56010,8 +56608,14 @@ function installMerchantProduction(runtime, options = {}) {
         gearBenefitPrimary: true,
         characterLevelUsedForStrengthRanking: false,
         exchangeBackedMaterialAcquisition: true,
+        questExchangeMaterialAcquisition: true,
+        eventGatedMaterialAcquisition: true,
+        inactiveEventsDeferredNotPermanentlyBlocked: true,
         leveledRecipeMaterialAcquisition: true,
-        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
+        acquisitionGraph: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
+        farmTimeModel: PROBABILISTIC_FARM_TIME_MODEL,
+        farmTimeDecisionQuantile: 'P90',
+        expectedHoursTelemetryOnly: true,
         mutationAuthority: 'ALPHA27_ATOMIC_ONLY',
         mutationDemandTtlMs: state.mutationDemandTtlMs,
         intentRecoveryGraceMs: state.intentRecoveryGraceMs,
@@ -56460,10 +57064,19 @@ module.exports = {
 "src/party/production-material-acquisition.js": function(require,module,exports){
 'use strict';
 
-const { directDropChance, rewardChanceForExchange } = require('./elixir-policy');
+const { directDropChance, rewardChanceForExchange, flattenDropTable } = require('./elixir-policy');
 const { spawnType, spawnCenter, contentDisposition, isApprovedDisposition } = require('../autonomy/local-farm-planner');
+const { probabilisticFarmTime, probabilisticOperations, PROBABILISTIC_FARM_TIME_MODEL } = require('./probabilistic-farm-time');
+const {
+  questDestination,
+  sourceEventDescriptor,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource,
+  sourceKind
+} = require('./acquisition-source-evidence');
 
-const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v1';
+const PRODUCTION_MATERIAL_ACQUISITION_MODE = 'team-production-material-acquisition-v3';
 const DEFAULT_MAX_TEAM_FARM_HOURS = 12;
 const DEFAULT_FALLBACK_KILLS_PER_HOUR = 20;
 
@@ -56488,18 +57101,26 @@ function currentPartyFingerprintKey(runtime) {
   return null;
 }
 
-function bestMeasuredKillsPerHour(runtime, monster) {
+function bestMeasuredKillRate(runtime, monster) {
   const world = runtime && runtime.world;
   if (!world) return null;
   const fingerprint = currentPartyFingerprintKey(runtime);
   if (fingerprint && typeof world.performanceFor === 'function') {
     try {
       const current = world.performanceFor(monster, fingerprint);
-      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) return finite(current.killsPerHour, 0);
+      if (current && finite(current.seconds, 0) >= 60 && finite(current.killsPerHour, 0) > 0) {
+        return {
+          killsPerHour: finite(current.killsPerHour, 0),
+          seconds: finite(current.seconds, 0),
+          kills: finite(current.kills, 0),
+          fingerprint,
+          evidence: 'MEASURED_CURRENT_TEAM_KILLS_PER_HOUR'
+        };
+      }
     } catch (_) {}
     // Do not borrow kill rates from a different party composition. The whole
-    // farmer team acts together, so unknown current-team throughput must fall
-    // back to the conservative estimate instead.
+    // Farmer team acts together, so unknown current-team throughput falls back
+    // to the conservative estimate instead.
     return null;
   }
   if (!(world.performance instanceof Map)) return null;
@@ -56507,11 +57128,21 @@ function bestMeasuredKillsPerHour(runtime, monster) {
     .filter((row) => row && row.monster === monster && finite(row.seconds, 0) >= 60)
     .map((row) => {
       const hours = finite(row.seconds, 0) / 3600;
-      return { kph: hours > 0 ? finite(row.kills, 0) / hours : 0, seconds: finite(row.seconds, 0) };
+      return {
+        killsPerHour: hours > 0 ? finite(row.kills, 0) / hours : 0,
+        seconds: finite(row.seconds, 0),
+        kills: finite(row.kills, 0),
+        evidence: 'MEASURED_TEAM_KILLS_PER_HOUR'
+      };
     })
-    .filter((row) => row.kph > 0)
-    .sort((a, b) => b.seconds - a.seconds || b.kph - a.kph);
-  return rows.length ? rows[0].kph : null;
+    .filter((row) => row.killsPerHour > 0)
+    .sort((a, b) => b.seconds - a.seconds || b.killsPerHour - a.killsPerHour);
+  return rows[0] || null;
+}
+
+function bestMeasuredKillsPerHour(runtime, monster) {
+  const row = bestMeasuredKillRate(runtime, monster);
+  return row ? row.killsPerHour : null;
 }
 
 function partyHeldQuantity(runtime, name, level = 0) {
@@ -56612,35 +57243,90 @@ function bestDirectMaterialFarmSource(runtime, material, quantity, options = {})
     if (!(yieldPerKill > 0)) continue;
     const spawns = knownSpawns(gameData, monster);
     if (!spawns.length) continue;
-    const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
-    const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+    const measured = bestMeasuredKillRate(runtime, monster);
+    const killsPerHour = measured ? measured.killsPerHour : fallbackKillsPerHour;
     const unitsPerHour = yieldPerKill * killsPerHour;
     if (!(unitsPerHour > 0)) continue;
     for (const spawn of spawns) {
       if (!sourceSafe(runtime, monster, spawn)) continue;
-      candidates.push({
-        kind: 'DIRECT_MATERIAL_DROP',
+      const event = sourceEventDescriptor(runtime, gameData, {
         material: name,
+        targetMaterial: name,
+        monster,
+        map: spawn.map
+      });
+      if (event.required && (!event.verified || !event.active)) continue;
+      const time = probabilisticFarmTime({
+        requiredUnits: need,
+        unitsPerHour,
+        measured: !!measured,
+        sampleSeconds: measured && measured.seconds || 0,
+        evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR'
+      });
+      candidates.push({
+        kind: sourceKind({ direct: true, event: event.required }),
+        material: name,
+        targetMaterial: name,
         quantity: need,
         monster,
         yieldPerKill,
         killsPerHour,
-        measuredKillsPerHour,
-        evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+        measuredKillsPerHour: measured ? measured.killsPerHour : null,
+        measuredSampleSeconds: measured ? measured.seconds : 0,
+        evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
         unitsPerHour,
-        expectedHours: need / unitsPerHour,
+        expectedHours: time.expectedHours,
+        p50Hours: time.p50Hours,
+        p90Hours: time.p90Hours,
+        probabilityConfidence: time.confidence,
+        timeModel: time.model,
+        decisionQuantile: time.decisionQuantile,
+        rareDrop: time.rareDrop,
+        eventKey: event.eventKey,
+        eventType: event.eventType,
+        eventEndsAt: event.endsAt,
+        eventEvidence: event.evidence,
+        graphNode: {
+          kind: event.required ? 'EVENT_FARM' : 'FARM_DROP',
+          eventKey: event.eventKey,
+          material: name,
+          monster,
+          map: spawn.map,
+          quantity: need,
+          time: clone(time)
+        },
         ...spawn
       });
     }
   }
 
-  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+  candidates.sort((a, b) => finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || a.expectedHours - b.expectedHours
     || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
     || b.unitsPerHour - a.unitsPerHour
     || a.monster.localeCompare(b.monster)
     || a.map.localeCompare(b.map)
     || a.spawnIndex - b.spawnIndex);
   return candidates[0] || null;
+}
+
+function exchangeRewardProfile(gameData, exchangeItem, desiredMaterial) {
+  const table = gameData && gameData.drops && gameData.drops[exchangeItem];
+  const rows = flattenDropTable(gameData, table);
+  const targetRows = rows.filter((row) => row && String(row.name || '') === String(desiredMaterial || ''));
+  const probability = Math.min(1, targetRows.reduce((sum, row) => sum + Math.max(0, finite(row.chance, 0)), 0));
+  const expectedUnits = targetRows.reduce((sum, row) =>
+    sum + Math.max(0, finite(row.chance, 0)) * Math.max(1, finite(row.quantity, 1)), 0);
+  const quantities = [...new Set(targetRows.map((row) => Math.max(1, finite(row.quantity, 1))))];
+  const deterministic = probability >= 0.999999 && targetRows.length > 0 && quantities.length === 1;
+  return {
+    probability,
+    expectedUnits,
+    deterministic,
+    unitsPerSuccess: probability > 0 ? expectedUnits / probability : 0,
+    deterministicUnitsPerOperation: deterministic ? quantities[0] : null
+  };
 }
 
 function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}) {
@@ -56659,11 +57345,35 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
     if (requiredPerExchange <= 0) continue;
     const rewardPerExchange = rewardChanceForExchange(gameData, exchangeItem, desired);
     if (!(rewardPerExchange > 0)) continue;
-    const expectedExchangeOperations = need / rewardPerExchange;
+
+    const quest = meta && meta.quest ? String(meta.quest) : null;
+    const questTarget = quest ? questDestination(gameData, quest) : null;
+    // A quest-tagged exchange is executable only when the live G data maps the
+    // quest key to a concrete NPC location. Never downgrade it to generic Xyn.
+    if (quest && !questTarget) continue;
+
+    const rewardProfile = exchangeRewardProfile(gameData, exchangeItem, desired);
+    const operations = rewardProfile.deterministic
+      ? {
+        model: PROBABILISTIC_FARM_TIME_MODEL,
+        expectedOperations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        p50Operations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        p90Operations: Math.ceil(need / Math.max(1, rewardProfile.deterministicUnitsPerOperation)),
+        deterministic: true,
+        decisionQuantile: 'P90'
+      }
+      : probabilisticOperations({
+        requiredRewards: need,
+        rewardUnitsPerOperation: rewardPerExchange
+      });
+    const expectedExchangeOperations = operations.expectedOperations;
+    const p50ExchangeOperations = operations.p50Operations;
+    const p90ExchangeOperations = operations.p90Operations;
     const expectedInputUnits = Math.max(requiredPerExchange, Math.ceil(expectedExchangeOperations * requiredPerExchange));
+    const riskAdjustedInputUnits = Math.max(requiredPerExchange, p90ExchangeOperations * requiredPerExchange);
     const alreadyOnFarmers = partyHeldQuantity(runtime, exchangeItem, 0);
     const alreadyOnMerchantOrBank = merchantHeldQuantity(runtime, exchangeItem, 0);
-    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
+    const farmInputUnits = Math.max(0, riskAdjustedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
 
     const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
     for (const monster of Object.keys(monsters)) {
@@ -56671,8 +57381,8 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
       if (!(inputYieldPerKill > 0)) continue;
       const spawns = knownSpawns(gameData, monster);
       if (!spawns.length) continue;
-      const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
-      const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+      const measured = bestMeasuredKillRate(runtime, monster);
+      const killsPerHour = measured ? measured.killsPerHour : fallbackKillsPerHour;
       const inputUnitsPerHour = inputYieldPerKill * killsPerHour;
       if (!(inputUnitsPerHour > 0)) continue;
       const desiredUnitsPerHour = (inputUnitsPerHour / requiredPerExchange) * rewardPerExchange;
@@ -56680,31 +57390,99 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
 
       for (const spawn of spawns) {
         if (!sourceSafe(runtime, monster, spawn)) continue;
-        candidates.push({
-          kind: 'EXCHANGE_MATERIAL_DROP',
+        const event = sourceEventDescriptor(runtime, gameData, {
           material: exchangeItem,
           targetMaterial: desired,
-          quantity: expectedInputUnits,
+          monster,
+          map: spawn.map
+        });
+        if (event.required && (!event.verified || !event.active)) continue;
+        const time = farmInputUnits > 0
+          ? probabilisticFarmTime({
+            requiredUnits: farmInputUnits,
+            unitsPerHour: inputUnitsPerHour,
+            measured: !!measured,
+            sampleSeconds: measured && measured.seconds || 0,
+            evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR'
+          })
+          : {
+            model: PROBABILISTIC_FARM_TIME_MODEL,
+            expectedHours: 0,
+            p50Hours: 0,
+            p90Hours: 0,
+            confidence: measured ? 0.5 : 0.25,
+            decisionQuantile: 'P90',
+            rareDrop: false
+          };
+        const kind = sourceKind({ quest: !!quest, event: event.required });
+        candidates.push({
+          kind,
+          material: exchangeItem,
+          targetMaterial: desired,
+          quantity: riskAdjustedInputUnits,
+          expectedInputUnits,
+          riskAdjustedInputUnits,
           farmQuantity: farmInputUnits,
           requiredPerExchange,
           rewardPerExchange,
+          rewardProbability: rewardProfile.probability,
+          rewardProfile: clone(rewardProfile),
           expectedExchangeOperations,
+          p50ExchangeOperations,
+          p90ExchangeOperations,
           inputYieldPerKill,
           killsPerHour,
-          measuredKillsPerHour,
-          evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+          measuredKillsPerHour: measured ? measured.killsPerHour : null,
+          measuredSampleSeconds: measured ? measured.seconds : 0,
+          evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
           unitsPerHour: inputUnitsPerHour,
           targetUnitsPerHour: desiredUnitsPerHour,
-          expectedHours: farmInputUnits / inputUnitsPerHour,
+          expectedHours: time.expectedHours,
+          p50Hours: time.p50Hours,
+          p90Hours: time.p90Hours,
+          probabilityConfidence: time.confidence,
+          timeModel: time.model,
+          decisionQuantile: time.decisionQuantile,
+          rareDrop: time.rareDrop,
           alreadyOnFarmers,
           alreadyOnMerchantOrBank,
+          quest,
+          questDestination: clone(questTarget),
+          eventKey: event.eventKey,
+          eventType: event.eventType,
+          eventEndsAt: event.endsAt,
+          eventEvidence: event.evidence,
+          graphNode: {
+            kind: quest && event.required ? 'EVENT_QUEST_EXCHANGE'
+              : quest ? 'QUEST_EXCHANGE'
+                : event.required ? 'EVENT_EXCHANGE'
+                  : 'EXCHANGE',
+            targetMaterial: desired,
+            rewardUnitsPerOperation: rewardPerExchange,
+            rewardProfile: clone(rewardProfile),
+            operations: clone(operations),
+            quest,
+            questDestination: clone(questTarget),
+            eventKey: event.eventKey,
+            input: {
+              kind: event.required ? 'EVENT_FARM' : 'FARM_DROP',
+              material: exchangeItem,
+              quantity: riskAdjustedInputUnits,
+              farmQuantity: farmInputUnits,
+              monster,
+              map: spawn.map,
+              time: clone(time)
+            }
+          },
           ...spawn
         });
       }
     }
   }
 
-  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+  candidates.sort((a, b) => finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || a.expectedHours - b.expectedHours
     || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
     || b.targetUnitsPerHour - a.targetUnitsPerHour
     || a.material.localeCompare(b.material)
@@ -56717,7 +57495,107 @@ function bestMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}
   const exchange = bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options);
   if (!direct) return exchange;
   if (!exchange) return direct;
-  return exchange.expectedHours < direct.expectedHours ? exchange : direct;
+  const rows = [direct, exchange].sort((a, b) =>
+    finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || finite(a.expectedHours, Infinity) - finite(b.expectedHours, Infinity));
+  return rows[0];
+}
+
+function diagnoseUnavailableMaterialSource(runtime, desiredMaterial) {
+  const desired = String(desiredMaterial == null ? '' : desiredMaterial).trim();
+  const gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+    ? runtime.adapter.getGameData() || {}
+    : {};
+  const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+  const diagnoses = [];
+
+  for (const monster of Object.keys(monsters)) {
+    if (!(directDropChance(gameData, monster, desired) > 0)) continue;
+    for (const spawn of knownSpawns(gameData, monster)) {
+      if (!sourceSafe(runtime, monster, spawn)) continue;
+      const event = sourceEventDescriptor(runtime, gameData, {
+        material: desired,
+        targetMaterial: desired,
+        monster,
+        map: spawn.map
+      });
+      if (event.required && !event.verified) diagnoses.push({
+        reason: 'EVENT_SOURCE_UNVERIFIED',
+        material: desired,
+        monster,
+        map: spawn.map,
+        event: clone(event)
+      });
+      else if (event.required && !event.active) diagnoses.push({
+        reason: 'EVENT_SOURCE_INACTIVE',
+        material: desired,
+        monster,
+        map: spawn.map,
+        event: clone(event)
+      });
+    }
+  }
+
+  for (const [exchangeItem, meta] of Object.entries(gameData.items || {})) {
+    const requiredPerExchange = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+    if (requiredPerExchange <= 0 || !(rewardChanceForExchange(gameData, exchangeItem, desired) > 0)) continue;
+    const quest = meta && meta.quest ? String(meta.quest) : null;
+    const questTarget = quest ? questDestination(gameData, quest) : null;
+    if (quest && !questTarget) {
+      diagnoses.push({
+        reason: 'QUEST_SOURCE_DESTINATION_UNVERIFIED',
+        material: desired,
+        exchangeItem,
+        quest,
+        requiredPerExchange
+      });
+      continue;
+    }
+    for (const monster of Object.keys(monsters)) {
+      if (!(directDropChance(gameData, monster, exchangeItem) > 0)) continue;
+      for (const spawn of knownSpawns(gameData, monster)) {
+        if (!sourceSafe(runtime, monster, spawn)) continue;
+        const event = sourceEventDescriptor(runtime, gameData, {
+          material: exchangeItem,
+          targetMaterial: desired,
+          monster,
+          map: spawn.map
+        });
+        if (event.required && !event.verified) diagnoses.push({
+          reason: 'EVENT_SOURCE_UNVERIFIED',
+          material: desired,
+          exchangeItem,
+          quest,
+          questDestination: clone(questTarget),
+          monster,
+          map: spawn.map,
+          event: clone(event)
+        });
+        else if (event.required && !event.active) diagnoses.push({
+          reason: 'EVENT_SOURCE_INACTIVE',
+          material: desired,
+          exchangeItem,
+          quest,
+          questDestination: clone(questTarget),
+          monster,
+          map: spawn.map,
+          event: clone(event)
+        });
+      }
+    }
+  }
+
+  diagnoses.sort((a, b) => {
+    const priority = {
+      EVENT_SOURCE_INACTIVE: 0,
+      QUEST_SOURCE_DESTINATION_UNVERIFIED: 1,
+      EVENT_SOURCE_UNVERIFIED: 2
+    };
+    return finite(priority[a.reason], 99) - finite(priority[b.reason], 99)
+      || String(a.exchangeItem || a.material || '').localeCompare(String(b.exchangeItem || b.material || ''));
+  });
+  return diagnoses[0] || { reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: desired };
 }
 
 function aggregateFarmSteps(steps = []) {
@@ -56762,33 +57640,64 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       continue;
     }
     const source = bestMaterialFarmSource(runtime, step.name, remainingToFarm, options);
-    if (!source) return { eligible: false, reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: { ...clone(step), alreadyOnFarmers, remainingToFarm } };
-    if (source.kind === 'EXCHANGE_MATERIAL_DROP' && finite(source.farmQuantity, 0) <= 0 && finite(source.alreadyOnFarmers, 0) > 0) {
-      const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
-      materials.push({
-        ...clone(step),
-        alreadyOnFarmers,
-        remainingToFarm,
-        source,
-        awaitingTransfer: true,
-        handoffMaterial: source.material,
-        handoffLevel: 0,
-        handoffQuantity,
-        heldByFarmers: finite(source.alreadyOnFarmers, 0)
-      });
-      continue;
+    if (!source) {
+      const deferredSource = diagnoseUnavailableMaterialSource(runtime, step.name);
+      return {
+        eligible: false,
+        reason: deferredSource && deferredSource.reason || 'NO_SAFE_DIRECT_FARM_SOURCE',
+        material: { ...clone(step), alreadyOnFarmers, remainingToFarm },
+        deferredSource: clone(deferredSource)
+      };
+    }
+    if (isExchangeBackedSource(source) && finite(source.farmQuantity, 0) <= 0) {
+      if (finite(source.alreadyOnFarmers, 0) > 0) {
+        const handoffQuantity = Math.max(1, Math.floor(finite(source.quantity, 1) - finite(source.alreadyOnMerchantOrBank, 0)));
+        materials.push({
+          ...clone(step),
+          alreadyOnFarmers,
+          remainingToFarm,
+          source,
+          awaitingTransfer: true,
+          handoffMaterial: source.material,
+          handoffLevel: 0,
+          handoffQuantity,
+          heldByFarmers: finite(source.alreadyOnFarmers, 0)
+        });
+        continue;
+      }
+      if (finite(source.alreadyOnMerchantOrBank, 0) > 0) {
+        materials.push({
+          ...clone(step),
+          alreadyOnFarmers,
+          remainingToFarm,
+          source,
+          exchangeReady: true
+        });
+        continue;
+      }
     }
     materials.push({ ...clone(step), alreadyOnFarmers, remainingToFarm, source });
   }
 
   if (materials.every((row) => row.awaitingTransfer === true)) {
-    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials };
+    return { eligible: false, reason: 'MATERIAL_ALREADY_HELD_BY_FARMERS_AWAIT_TRANSFER', materials, target: clone(blockedCandidate.candidate) };
+  }
+  if (materials.every((row) => row.exchangeReady === true || row.awaitingTransfer === true)
+    && materials.some((row) => row.exchangeReady === true)
+    && !materials.some((row) => row.awaitingTransfer === true)) {
+    return { eligible: false, reason: 'EXCHANGE_INPUT_READY_ON_MERCHANT', materials, target: clone(blockedCandidate.candidate) };
   }
 
   const totalExpectedHours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.expectedHours, Infinity) : 0), 0);
-  if (!Number.isFinite(totalExpectedHours)) return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
+  const totalP50Hours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.p50Hours, Infinity) : 0), 0);
+  const totalP90Hours = materials.reduce((sum, row) => sum + (row.source ? finite(row.source.p90Hours, Infinity) : 0), 0);
+  if (![totalExpectedHours, totalP50Hours, totalP90Hours].every(Number.isFinite)) {
+    return { eligible: false, reason: 'FARM_TIME_ESTIMATE_UNAVAILABLE', materials };
+  }
   const maxTeamFarmHours = Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS));
-  const longPath = totalExpectedHours > maxTeamFarmHours;
+  // 12h remains a prioritization boundary, never a permanent eligibility gate.
+  // P90 is used here so rare-drop variance cannot make a path look deceptively cheap.
+  const longPath = totalP90Hours > maxTeamFarmHours;
 
   const target = blockedCandidate.candidate;
   const benefit = Math.max(
@@ -56797,11 +57706,17 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
       + Math.max(0, finite(target.survivalImprovement, 0))
       + Math.max(0, finite(target.speedImprovement, 0)) * 10
   );
-  const utilityPerFarmHour = benefit / Math.max(0.01, totalExpectedHours);
+  const utilityPerFarmHour = benefit / Math.max(0.01, totalP90Hours);
   const nextMaterial = materials.filter((row) => row.source).sort((a, b) =>
-    finite(b.source && b.source.expectedHours, 0) - finite(a.source && a.source.expectedHours, 0)
+    finite(b.source && b.source.p90Hours, 0) - finite(a.source && a.source.p90Hours, 0)
+    || finite(b.source && b.source.p50Hours, 0) - finite(a.source && a.source.p50Hours, 0)
     || a.name.localeCompare(b.name)
   )[0];
+
+  const confidenceRows = materials.filter((row) => row.source && Number.isFinite(Number(row.source.probabilityConfidence)));
+  const probabilityConfidence = confidenceRows.length
+    ? Math.min(...confidenceRows.map((row) => finite(row.source.probabilityConfidence, 0)))
+    : 1;
 
   return {
     eligible: true,
@@ -56810,6 +57725,11 @@ function estimateBlockedProductionCandidate(runtime, blockedCandidate, options =
     materials,
     nextMaterial,
     totalExpectedHours,
+    totalP50Hours,
+    totalP90Hours,
+    probabilityConfidence,
+    farmTimeModel: PROBABILISTIC_FARM_TIME_MODEL,
+    decisionQuantile: 'P90',
     maxTeamFarmHours,
     longPath,
     priorityTier: longPath ? 1 : 0,
@@ -56825,6 +57745,8 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
     .filter((row) => row.estimate && row.estimate.eligible)
     .sort((a, b) => finite(a.estimate.priorityTier, 0) - finite(b.estimate.priorityTier, 0)
       || b.estimate.utilityPerFarmHour - a.estimate.utilityPerFarmHour
+      || a.estimate.totalP90Hours - b.estimate.totalP90Hours
+      || a.estimate.totalP50Hours - b.estimate.totalP50Hours
       || a.estimate.totalExpectedHours - b.estimate.totalExpectedHours
       || finite(b.estimate.benefit, 0) - finite(a.estimate.benefit, 0)
       || String(a.estimate.target && a.estimate.target.output || '').localeCompare(String(b.estimate.target && b.estimate.target.output || '')));
@@ -56838,7 +57760,13 @@ function chooseProductionTeamFarmObjective(runtime, blockedCandidates = [], opti
       eligible: row.estimate && row.estimate.eligible === true,
       reason: row.estimate && row.estimate.reason || 'UNKNOWN',
       materials: clone(row.estimate && row.estimate.materials || []),
+      deferredSource: clone(row.estimate && row.estimate.deferredSource || null),
       totalExpectedHours: row.estimate && Number.isFinite(row.estimate.totalExpectedHours) ? row.estimate.totalExpectedHours : null,
+      totalP50Hours: row.estimate && Number.isFinite(row.estimate.totalP50Hours) ? row.estimate.totalP50Hours : null,
+      totalP90Hours: row.estimate && Number.isFinite(row.estimate.totalP90Hours) ? row.estimate.totalP90Hours : null,
+      probabilityConfidence: row.estimate && Number.isFinite(row.estimate.probabilityConfidence) ? row.estimate.probabilityConfidence : null,
+      farmTimeModel: row.estimate && row.estimate.farmTimeModel || null,
+      decisionQuantile: row.estimate && row.estimate.decisionQuantile || null,
       maxTeamFarmHours: row.estimate && row.estimate.maxTeamFarmHours || Math.max(0.25, finite(options.maxTeamFarmHours, DEFAULT_MAX_TEAM_FARM_HOURS)),
       longPath: row.estimate && row.estimate.longPath === true,
       priorityTier: row.estimate && Number.isFinite(row.estimate.priorityTier) ? row.estimate.priorityTier : null,
@@ -56852,6 +57780,7 @@ module.exports = {
   DEFAULT_MAX_TEAM_FARM_HOURS,
   DEFAULT_FALLBACK_KILLS_PER_HOUR,
   currentPartyFingerprintKey,
+  bestMeasuredKillRate,
   bestMeasuredKillsPerHour,
   partyHeldQuantity,
   quantityInRows,
@@ -56860,9 +57789,141 @@ module.exports = {
   bestDirectMaterialFarmSource,
   bestExchangeMaterialFarmSource,
   bestMaterialFarmSource,
+  diagnoseUnavailableMaterialSource,
+  isExchangeBackedSource,
+  isQuestBackedSource,
+  isEventBackedSource,
   aggregateFarmSteps,
   estimateBlockedProductionCandidate,
   chooseProductionTeamFarmObjective
+};
+
+},
+"src/party/probabilistic-farm-time.js": function(require,module,exports){
+'use strict';
+
+const PROBABILISTIC_FARM_TIME_MODEL = 'POISSON_GAMMA_WILSON_HILFERTY_V1';
+const Z50 = 0;
+const Z90 = 1.2815515655446004;
+
+function finite(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function gammaQuantileUnitRate(shape, z) {
+  const k = Math.max(0.001, finite(shape, 0.001));
+  // Wilson-Hilferty approximation for a Gamma(k, theta=1) quantile.
+  const base = Math.max(0.000001, 1 - (1 / (9 * k)) + (z / (3 * Math.sqrt(k))));
+  return k * Math.pow(base, 3);
+}
+
+function throughputConfidence({ measured = false, sampleSeconds = 0 } = {}) {
+  if (!measured) return 0.25;
+  const seconds = Math.max(0, finite(sampleSeconds, 0));
+  // One minute is useful but still weak evidence. Around 30 minutes the
+  // throughput estimate is intentionally treated as substantially stronger.
+  return clamp(0.45 + 0.55 * (1 - Math.exp(-seconds / 1800)), 0.45, 0.99);
+}
+
+function uncertaintyMultiplier(confidence, quantile = 'P90') {
+  const c = clamp(finite(confidence, 0.25), 0.05, 0.99);
+  const uncertainty = 1 - c;
+  if (String(quantile).toUpperCase() === 'P50') return 1 + uncertainty * 0.20;
+  return 1 + uncertainty * 0.90;
+}
+
+function probabilisticFarmTime({
+  requiredUnits,
+  unitsPerHour,
+  measured = false,
+  sampleSeconds = 0,
+  evidence = null
+} = {}) {
+  const units = Math.max(0, finite(requiredUnits, 0));
+  const rate = Math.max(0, finite(unitsPerHour, 0));
+  if (!(units > 0) || !(rate > 0)) {
+    return {
+      model: PROBABILISTIC_FARM_TIME_MODEL,
+      requiredUnits: units,
+      unitsPerHour: rate,
+      expectedHours: units > 0 ? Infinity : 0,
+      p50Hours: units > 0 ? Infinity : 0,
+      p90Hours: units > 0 ? Infinity : 0,
+      confidence: measured ? throughputConfidence({ measured, sampleSeconds }) : 0,
+      evidence: evidence || null,
+      measured: measured === true,
+      sampleSeconds: Math.max(0, finite(sampleSeconds, 0))
+    };
+  }
+
+  const confidence = throughputConfidence({ measured, sampleSeconds });
+  const expectedHours = units / rate;
+  const gammaP50 = gammaQuantileUnitRate(units, Z50) / rate;
+  const gammaP90 = gammaQuantileUnitRate(units, Z90) / rate;
+  const p50Hours = Math.max(0, gammaP50 * uncertaintyMultiplier(confidence, 'P50'));
+  // P90 is deliberately not allowed below the mathematical expectation. This
+  // keeps rare/small-count paths conservative for 24/7 scheduling.
+  const p90Hours = Math.max(
+    expectedHours,
+    gammaP90 * uncertaintyMultiplier(confidence, 'P90')
+  );
+
+  return {
+    model: PROBABILISTIC_FARM_TIME_MODEL,
+    requiredUnits: units,
+    unitsPerHour: rate,
+    expectedHours,
+    p50Hours,
+    p90Hours,
+    confidence,
+    evidence: evidence || (measured ? 'MEASURED_THROUGHPUT' : 'CONSERVATIVE_FALLBACK_THROUGHPUT'),
+    measured: measured === true,
+    sampleSeconds: Math.max(0, finite(sampleSeconds, 0)),
+    rareDrop: units <= 3 || rate < 1,
+    decisionQuantile: 'P90'
+  };
+}
+
+function probabilisticOperations({ requiredRewards, rewardUnitsPerOperation } = {}) {
+  const rewards = Math.max(0, finite(requiredRewards, 0));
+  const yieldPerOperation = Math.max(0, finite(rewardUnitsPerOperation, 0));
+  if (!(rewards > 0) || !(yieldPerOperation > 0)) {
+    return {
+      model: PROBABILISTIC_FARM_TIME_MODEL,
+      expectedOperations: rewards > 0 ? Infinity : 0,
+      p50Operations: rewards > 0 ? Infinity : 0,
+      p90Operations: rewards > 0 ? Infinity : 0
+    };
+  }
+  const expectedOperations = rewards / yieldPerOperation;
+  const effectiveShape = Math.max(0.001, expectedOperations);
+  const p50Operations = Math.max(1, Math.ceil(gammaQuantileUnitRate(effectiveShape, Z50)));
+  const p90Operations = Math.max(
+    Math.ceil(expectedOperations),
+    Math.ceil(gammaQuantileUnitRate(effectiveShape, Z90))
+  );
+  return {
+    model: PROBABILISTIC_FARM_TIME_MODEL,
+    expectedOperations,
+    p50Operations,
+    p90Operations,
+    rewardUnitsPerOperation: yieldPerOperation,
+    requiredRewards: rewards,
+    decisionQuantile: 'P90'
+  };
+}
+
+module.exports = {
+  PROBABILISTIC_FARM_TIME_MODEL,
+  probabilisticFarmTime,
+  probabilisticOperations,
+  throughputConfidence,
+  gammaQuantileUnitRate
 };
 
 },
