@@ -400,7 +400,107 @@ function bestMaterialFarmSource(runtime, desiredMaterial, quantity, options = {}
   const exchange = bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, options);
   if (!direct) return exchange;
   if (!exchange) return direct;
-  return exchange.expectedHours < direct.expectedHours ? exchange : direct;
+  const rows = [direct, exchange].sort((a, b) =>
+    finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || finite(a.expectedHours, Infinity) - finite(b.expectedHours, Infinity));
+  return rows[0];
+}
+
+function diagnoseUnavailableMaterialSource(runtime, desiredMaterial) {
+  const desired = String(desiredMaterial == null ? '' : desiredMaterial).trim();
+  const gameData = runtime && runtime.adapter && typeof runtime.adapter.getGameData === 'function'
+    ? runtime.adapter.getGameData() || {}
+    : {};
+  const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
+  const diagnoses = [];
+
+  for (const monster of Object.keys(monsters)) {
+    if (!(directDropChance(gameData, monster, desired) > 0)) continue;
+    for (const spawn of knownSpawns(gameData, monster)) {
+      if (!sourceSafe(runtime, monster, spawn)) continue;
+      const event = sourceEventDescriptor(runtime, gameData, {
+        material: desired,
+        targetMaterial: desired,
+        monster,
+        map: spawn.map
+      });
+      if (event.required && !event.verified) diagnoses.push({
+        reason: 'EVENT_SOURCE_UNVERIFIED',
+        material: desired,
+        monster,
+        map: spawn.map,
+        event: clone(event)
+      });
+      else if (event.required && !event.active) diagnoses.push({
+        reason: 'EVENT_SOURCE_INACTIVE',
+        material: desired,
+        monster,
+        map: spawn.map,
+        event: clone(event)
+      });
+    }
+  }
+
+  for (const [exchangeItem, meta] of Object.entries(gameData.items || {})) {
+    const requiredPerExchange = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+    if (requiredPerExchange <= 0 || !(rewardChanceForExchange(gameData, exchangeItem, desired) > 0)) continue;
+    const quest = meta && meta.quest ? String(meta.quest) : null;
+    const questTarget = quest ? questDestination(gameData, quest) : null;
+    if (quest && !questTarget) {
+      diagnoses.push({
+        reason: 'QUEST_SOURCE_DESTINATION_UNVERIFIED',
+        material: desired,
+        exchangeItem,
+        quest,
+        requiredPerExchange
+      });
+      continue;
+    }
+    for (const monster of Object.keys(monsters)) {
+      if (!(directDropChance(gameData, monster, exchangeItem) > 0)) continue;
+      for (const spawn of knownSpawns(gameData, monster)) {
+        if (!sourceSafe(runtime, monster, spawn)) continue;
+        const event = sourceEventDescriptor(runtime, gameData, {
+          material: exchangeItem,
+          targetMaterial: desired,
+          monster,
+          map: spawn.map
+        });
+        if (event.required && !event.verified) diagnoses.push({
+          reason: 'EVENT_SOURCE_UNVERIFIED',
+          material: desired,
+          exchangeItem,
+          quest,
+          questDestination: clone(questTarget),
+          monster,
+          map: spawn.map,
+          event: clone(event)
+        });
+        else if (event.required && !event.active) diagnoses.push({
+          reason: 'EVENT_SOURCE_INACTIVE',
+          material: desired,
+          exchangeItem,
+          quest,
+          questDestination: clone(questTarget),
+          monster,
+          map: spawn.map,
+          event: clone(event)
+        });
+      }
+    }
+  }
+
+  diagnoses.sort((a, b) => {
+    const priority = {
+      EVENT_SOURCE_INACTIVE: 0,
+      QUEST_SOURCE_DESTINATION_UNVERIFIED: 1,
+      EVENT_SOURCE_UNVERIFIED: 2
+    };
+    return finite(priority[a.reason], 99) - finite(priority[b.reason], 99)
+      || String(a.exchangeItem || a.material || '').localeCompare(String(b.exchangeItem || b.material || ''));
+  });
+  return diagnoses[0] || { reason: 'NO_SAFE_DIRECT_FARM_SOURCE', material: desired };
 }
 
 function aggregateFarmSteps(steps = []) {
