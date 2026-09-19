@@ -2601,14 +2601,18 @@ module.exports = { DiscoveryService };
 
 function number(value) { return Number.isFinite(Number(value)) ? Number(value) : 0; }
 
-function potionCount(inventory) {
-  let total = 0;
+function potionCounts(inventory) {
+  const totals = { hpPotions: 0, mpPotions: 0, total: 0 };
   for (const item of inventory || []) {
     if (!item || !/^(hpot|mpot)/i.test(String(item.name || ''))) continue;
-    total += Math.max(0, number(item.q) || 1);
+    const quantity = Math.max(0, number(item.q) || 1);
+    if (/^hpot/i.test(String(item.name || ''))) totals.hpPotions += quantity;
+    else if (/^mpot/i.test(String(item.name || ''))) totals.mpPotions += quantity;
   }
-  return total;
+  totals.total = totals.hpPotions + totals.mpPotions;
+  return totals;
 }
+function potionCount(inventory) { return potionCounts(inventory).total; }
 
 function levelRequirement(gameData, level) {
   const levels = gameData && gameData.levels;
@@ -2663,6 +2667,8 @@ class PerformanceTracker {
       kills: 0,
       deaths: 0,
       potions: 0,
+      hpPotions: 0,
+      mpPotions: 0,
       damageTaken: 0,
       monsterHpLost: 0,
       targetSamples: {},
@@ -2703,9 +2709,13 @@ class PerformanceTracker {
     if (!prevC.rip && currC.rip) w.deaths += 1;
     if (number(prevC.hp) > number(currC.hp)) w.damageTaken += number(prevC.hp) - number(currC.hp);
 
-    const beforePotions = potionCount(prevC.inventory);
-    const afterPotions = potionCount(currC.inventory);
-    if (beforePotions > afterPotions) w.potions += beforePotions - afterPotions;
+    const beforePotions = potionCounts(prevC.inventory);
+    const afterPotions = potionCounts(currC.inventory);
+    const hpUsed = Math.max(0, beforePotions.hpPotions - afterPotions.hpPotions);
+    const mpUsed = Math.max(0, beforePotions.mpPotions - afterPotions.mpPotions);
+    if (hpUsed) w.hpPotions += hpUsed;
+    if (mpUsed) w.mpPotions += mpUsed;
+    if (hpUsed || mpUsed) w.potions += hpUsed + mpUsed;
 
     const prevEntities = this._entityMap(previous);
     const currEntities = this._entityMap(current);
@@ -2754,6 +2764,8 @@ class PerformanceTracker {
       killsPerHour: hours > 0 ? window.kills / hours : 0,
       deathsPerHour: hours > 0 ? window.deaths / hours : 0,
       potionsPerHour: hours > 0 ? window.potions / hours : 0,
+      hpPotionsPerHour: hours > 0 ? window.hpPotions / hours : 0,
+      mpPotionsPerHour: hours > 0 ? window.mpPotions / hours : 0,
       damageTakenPerHour: hours > 0 ? window.damageTaken / hours : 0,
       monsterHpLostPerHour: hours > 0 ? window.monsterHpLost / hours : 0
     };
@@ -2795,6 +2807,8 @@ class PerformanceTracker {
           kills: completed.kills,
           deaths: completed.deaths,
           potions: completed.potions,
+          hpPotions: completed.hpPotions,
+          mpPotions: completed.mpPotions,
           damageTaken: completed.damageTaken,
           monsterHpLost: completed.monsterHpLost,
           rates: completed.rates
@@ -2811,6 +2825,8 @@ class PerformanceTracker {
         kills: completed.kills,
         deaths: completed.deaths,
         potions: completed.potions,
+        hpPotions: completed.hpPotions,
+        mpPotions: completed.mpPotions,
         damageTaken: completed.damageTaken,
         monsterHpLost: completed.monsterHpLost
       });
@@ -2851,6 +2867,8 @@ class PerformanceTracker {
       kills: this.window.kills,
       deaths: this.window.deaths,
       potions: this.window.potions,
+      hpPotions: this.window.hpPotions,
+      mpPotions: this.window.mpPotions,
       damageTaken: this.window.damageTaken,
       monsterHpLost: this.window.monsterHpLost,
       rates: this._rates(this.window, Math.max(0, (this.now() - this.window.startedAt) / 1000))
@@ -2859,7 +2877,7 @@ class PerformanceTracker {
   }
 }
 
-module.exports = { PerformanceTracker, xpDelta, potionCount };
+module.exports = { PerformanceTracker, xpDelta, potionCount, potionCounts };
 
 },
 "src/research/research.js": function(require,module,exports){
@@ -11454,7 +11472,10 @@ function cleanEncounterOutcome(raw, expectedLeader = null, now = Date.now(), max
     durationSeconds: Math.max(0, finite(raw.durationSeconds) || 0), xp: Math.max(0, finite(raw.xp) || 0), gold: finite(raw.gold) || 0,
     kills: Math.max(0, finite(raw.kills) || 0), deaths: Math.max(0, finite(raw.deaths) || 0),
     retreats: Math.max(0, Math.floor(finite(raw.retreats) || 0)), nearDeaths: Math.max(0, Math.floor(finite(raw.nearDeaths) || 0)),
-    potions: Math.max(0, finite(raw.potions) || 0), skillExecutions: Math.max(0, Math.floor(finite(raw.skillExecutions) || 0)),
+    hpPotions: Math.max(0, finite(raw.hpPotions) || 0), mpPotions: Math.max(0, finite(raw.mpPotions) || 0),
+    potions: Math.max(0, finite(raw.potions) || 0), potionAttribution: cleanText(raw.potionAttribution, 64),
+    killAttribution: cleanText(raw.killAttribution, 64), progressAttribution: cleanText(raw.progressAttribution, 64),
+    skillExecutions: Math.max(0, Math.floor(finite(raw.skillExecutions) || 0)),
     aoeSkillExecutions: Math.max(0, Math.floor(finite(raw.aoeSkillExecutions) || 0)),
     movementFailures: Math.max(0, Math.floor(finite(raw.movementFailures) || 0)), skillFailures: Math.max(0, Math.floor(finite(raw.skillFailures) || 0)),
     safetyMargin: clamp(raw.safetyMargin, 0, 1), adaptiveRecommendation: cleanText(raw.adaptiveRecommendation, 64),
@@ -11479,7 +11500,7 @@ function potionSummary(inventory = []) {
 }
 class PartyTelemetryBridge {
   constructor(options = {}) {
-    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0 }; this.installed = false; this.previousOnCm = null;
+    this.root = options.root || globalThis; this.now = options.now || (() => Date.now()); this.log = options.log || null; this.adapter = options.adapter || new GameAdapter({ root: this.root, parent: this.root && this.root.parent, log: this.log, now: this.now, mode: options.mode === 'shadow' ? 'shadow' : 'active' }); this.merchantName = options.merchantName || null; this.trustedNames = new Set((options.trustedNames || []).map(String)); this.sendIntervalMs = Math.max(2000, Math.min(60000, Number(options.sendIntervalMs) || 5000)); this.movingSendIntervalMs = Math.max(750, Math.min(this.sendIntervalMs, Number(options.movingSendIntervalMs) || 1200)); this.reportTtlMs = Math.max(this.sendIntervalMs * 2, Math.min(5 * 60 * 1000, Number(options.reportTtlMs) || 20000)); this.encounterOutcomeMaxAgeMs = Math.max(2 * 60 * 1000, Math.min(30 * 60 * 1000, Number(options.encounterOutcomeMaxAgeMs) || 10 * 60 * 1000)); this.encounterOutcomeHistoryLimit = Math.max(2, Math.min(16, Number(options.encounterOutcomeHistoryLimit) || 8)); this.capacity = Math.max(4, Math.min(64, Number(options.capacity) || 16)); this.lastSentAt = 0; this.reports = new Map(); this.stats = { sent: 0, peerSent: 0, merchantSent: 0, received: 0, rejected: 0, sendFailures: 0, expired: 0, capabilityReports: 0, encounterOutcomeReports: 0, encounterOutcomeHistoryReports: 0 }; this.installed = false; this.previousOnCm = null;
   }
   _event(event, data = {}, severity = 'info', reason = null) { if (this.log && typeof this.log.emit === 'function') this.log.emit({ component: 'party-telemetry', event, severity, reason, data }); }
   setTrustedNames(names) { this.trustedNames = new Set((names || []).filter(Boolean).map(String)); return [...this.trustedNames].sort(); }
@@ -11493,18 +11514,48 @@ class PartyTelemetryBridge {
     const ctype = String(report.ctype || 'unknown').toLowerCase();
     const level = Math.max(0, finite(report.level) || 0);
     const capabilities = sanitizeCapabilitySnapshot(report.capabilities, { name, ctype, level });
-    const encounterOutcome = cleanEncounterOutcome(report.encounterOutcome, name, this.now(), Math.max(60000, this.reportTtlMs * 6));
+    const historyRaw = Array.isArray(report.encounterOutcomes) ? report.encounterOutcomes : [];
+    const encounterRows = [...historyRaw, report.encounterOutcome]
+      .map((row) => cleanEncounterOutcome(row, name, this.now(), this.encounterOutcomeMaxAgeMs))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
+    const encounterOutcomes = [];
+    const seenEncounterIds = new Set();
+    for (const row of encounterRows) {
+      if (seenEncounterIds.has(row.encounterId)) continue;
+      seenEncounterIds.add(row.encounterId);
+      encounterOutcomes.push(row);
+      if (encounterOutcomes.length >= this.encounterOutcomeHistoryLimit) break;
+    }
+    const encounterOutcome = encounterOutcomes[0] || null;
     const motion = cleanMotion(report.motion || {});
-    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, at };
+    return { protocol: TELEMETRY_PROTOCOL, name, ctype, level, map: report.map == null ? null : String(report.map), x: finite(report.x), y: finite(report.y), targetMonster: report.targetMonster == null ? null : String(report.targetMonster), hpRatio: clamp(report.hpRatio, 0, 1), mpRatio: clamp(report.mpRatio, 0, 1), rip: report.rip === true, active: report.active !== false, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), hpPotionsPerHour: Math.max(0, finite(rates.hpPotionsPerHour) || 0), mpPotionsPerHour: Math.max(0, finite(rates.mpPotionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: Math.max(0, finite(supplies.inventorySize) || 0), inventoryUsed: Math.max(0, finite(supplies.inventoryUsed) || 0), freeSlots: Math.max(0, finite(supplies.freeSlots) || 0), hpPotions: Math.max(0, finite(supplies.hpPotions) || 0), mpPotions: Math.max(0, finite(supplies.mpPotions) || 0), preferredHpPotion: cleanPotionName(supplies.preferredHpPotion, 'hpot'), preferredMpPotion: cleanPotionName(supplies.preferredMpPotion, 'mpot') }, safety: { retreat: safety.retreat === true, emergency: safety.emergency === true, movementCircuitOpen: safety.movementCircuitOpen === true, skillFailureBackoffs: Math.max(0, finite(safety.skillFailureBackoffs) || 0) }, motion, capabilities, encounterOutcome, encounterOutcomes, at };
   }
-  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; return true; }
+  receive(sender, data) { const clean = this._cleanReport(data, sender); if (!clean) { this.stats.rejected += 1; return false; } const previous = this.reports.get(clean.name) || null; clean.motion = deriveMotion(previous, { ...clean, speed: clean.motion && clean.motion.declaredSpeed, moving: clean.motion && clean.motion.moving, kiteActive: clean.motion && clean.motion.kiteActive }); if (!this.reports.has(clean.name) && this.reports.size >= this.capacity) { const oldest = [...this.reports.entries()].sort((a, b) => a[1].at - b[1].at)[0]; if (oldest) this.reports.delete(oldest[0]); } this.reports.set(clean.name, clean); this.stats.received += 1; if (clean.capabilities) this.stats.capabilityReports += 1; if (clean.encounterOutcome) this.stats.encounterOutcomeReports += 1; if (clean.encounterOutcomes && clean.encounterOutcomes.length > 1) this.stats.encounterOutcomeHistoryReports += 1; return true; }
   buildLocalReport(runtime) {
     const c = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character || this._character(); if (!c) return null; const perf = runtime && runtime.performance && runtime.performance.status().current; const rates = perf && perf.rates || {}; const farmer = runtime && typeof runtime.farmerStatus === 'function' ? runtime.farmerStatus() : {}; const movement = runtime && runtime.adapter && typeof runtime.adapter.stabilityStatus === 'function' ? runtime.adapter.stabilityStatus().movement : null; const local = runtime && runtime.localFarming && typeof runtime.localFarming.status === 'function' ? runtime.localFarming.status() : null; const inventory = Array.isArray(c.inventory) ? c.inventory : []; const rawSize = finite(c.isize); const size = Math.max(0, Math.floor(rawSize == null ? inventory.length : rawSize)); const boundedInventory = inventory.slice(0, size); const used = boundedInventory.filter(Boolean).length; const potions = potionSummary(boundedInventory);
-    const encounterOutcome = cleanEncounterOutcome(runtime && (runtime.lastEncounterOutcome || runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome), c.name, this.now(), Math.max(60000, this.reportTtlMs * 6));
+    const rawEncounterHistory = [];
+    try {
+      if (runtime && runtime.encounterLifecycle && Array.isArray(runtime.encounterLifecycle.history)) rawEncounterHistory.push(...runtime.encounterLifecycle.history);
+    } catch (_) {}
+    if (runtime && runtime.lastEncounterOutcome) rawEncounterHistory.push(runtime.lastEncounterOutcome);
+    else if (runtime && runtime.encounterLifecycle && runtime.encounterLifecycle.lastOutcome) rawEncounterHistory.push(runtime.encounterLifecycle.lastOutcome);
+    const encounterOutcomes = [];
+    const localSeen = new Set();
+    for (const row of rawEncounterHistory
+      .map((entry) => cleanEncounterOutcome(entry, c.name, this.now(), this.encounterOutcomeMaxAgeMs))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0))) {
+      if (localSeen.has(row.encounterId)) continue;
+      localSeen.add(row.encounterId);
+      encounterOutcomes.push(row);
+      if (encounterOutcomes.length >= this.encounterOutcomeHistoryLimit) break;
+    }
+    const encounterOutcome = encounterOutcomes[0] || null;
     const lastKite = runtime && runtime.farmer && runtime.farmer.lastKiteMove || farmer && farmer.kiting && farmer.kiting.lastMove || null;
     const kiteActive = !!(lastKite && this.now() - (finite(lastKite.at) || 0) <= Math.max(1500, this.movingSendIntervalMs * 2));
     const motion = { mode: kiteActive ? 'KITE' : c.moving ? 'MOVING' : 'STABLE', moving: c.moving === true || kiteActive, kiteActive, declaredSpeed: Math.max(0, finite(c.speed) || 0) };
-    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, at: this.now() };
+    return { type: 'aio-v3-party-report', protocol: TELEMETRY_PROTOCOL, name: c.name, ctype: c.ctype, level: c.level, map: c.map, x: finite(c.x != null ? c.x : c.real_x), y: finite(c.y != null ? c.y : c.real_y), targetMonster: farmer && farmer.targetType || local && local.currentPlan && local.currentPlan.monster || null, hpRatio: c.max_hp > 0 ? c.hp / c.max_hp : 0, mpRatio: c.max_mp > 0 ? c.mp / c.max_mp : 0, rip: !!c.rip, active: true, rates: { xpPerHour: Math.max(0, finite(rates.xpPerHour) || 0), goldPerHour: finite(rates.goldPerHour) || 0, killsPerHour: Math.max(0, finite(rates.killsPerHour) || 0), deathsPerHour: Math.max(0, finite(rates.deathsPerHour) || 0), potionsPerHour: Math.max(0, finite(rates.potionsPerHour) || 0), hpPotionsPerHour: Math.max(0, finite(rates.hpPotionsPerHour) || 0), mpPotionsPerHour: Math.max(0, finite(rates.mpPotionsPerHour) || 0), damageTakenPerHour: Math.max(0, finite(rates.damageTakenPerHour) || 0) }, supplies: { inventorySize: size, inventoryUsed: used, freeSlots: Math.max(0, size - used), ...potions }, safety: { retreat: !!(runtime && runtime.pendingEmergencyRetreat), emergency: !!(runtime && runtime.lastEmergencyDisengage && this.now() - runtime.lastEmergencyDisengage.at < 10000), movementCircuitOpen: !!(movement && movement.circuitOpen), skillFailureBackoffs: Array.isArray(farmer && farmer.skillUsage && farmer.skillUsage.activeFailureBackoffs) ? farmer.skillUsage.activeFailureBackoffs.length : 0 }, motion, capabilities: buildCapabilitySnapshot(runtime, c), encounterOutcome, encounterOutcomes, at: this.now() };
   }
   tick(runtime) {
     this.prune();
@@ -11567,11 +11618,30 @@ class PartyTelemetryBridge {
       .map((report) => [report.name, { ...report.encounterOutcome, reportAt: report.at }]));
   }
 
-  aggregate(names = []) {
-    this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
-    for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
+  encounterOutcomeList(names = []) {
+    this.prune();
+    const wanted = names.length ? new Set(names.map(String)) : null;
+    const byId = new Map();
+    for (const report of this.reports.values()) {
+      if (!report || (wanted && !wanted.has(report.name))) continue;
+      const rows = Array.isArray(report.encounterOutcomes) && report.encounterOutcomes.length
+        ? report.encounterOutcomes
+        : (report.encounterOutcome ? [report.encounterOutcome] : []);
+      for (const row of rows) {
+        if (!row || !row.encounterId) continue;
+        const existing = byId.get(String(row.encounterId));
+        const candidate = { ...row, reportAt: report.at, reporter: report.name };
+        if (!existing || Number(candidate.reportAt || 0) > Number(existing.reportAt || 0)) byId.set(String(row.encounterId), candidate);
+      }
+    }
+    return [...byId.values()].sort((a, b) => Number(a.endedAt || 0) - Number(b.endedAt || 0) || String(a.encounterId).localeCompare(String(b.encounterId)));
   }
-  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
+
+  aggregate(names = []) {
+    this.prune(); const wanted = names.length ? new Set(names.map(String)) : null; const reports = [...this.reports.values()].filter((report) => !wanted || wanted.has(report.name)); const out = { freshReports: reports.length, xpPerHour: 0, goldPerHour: 0, killsPerHour: 0, deathsPerHour: 0, potionsPerHour: 0, hpPotionsPerHour: 0, mpPotionsPerHour: 0, damageTakenPerHour: 0, minHpRatio: reports.length ? 1 : null, minMpRatio: reports.length ? 1 : null, retreats: 0, emergencies: 0, movementCircuits: 0, skillFailureBackoffs: 0, reports: reports.map((report) => ({ ...report })) };
+    for (const report of reports) { for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'hpPotionsPerHour', 'mpPotionsPerHour', 'damageTakenPerHour']) out[key] += report.rates[key]; out.minHpRatio = Math.min(out.minHpRatio, report.hpRatio); out.minMpRatio = Math.min(out.minMpRatio, report.mpRatio); if (report.safety.retreat) out.retreats += 1; if (report.safety.emergency) out.emergencies += 1; if (report.safety.movementCircuitOpen) out.movementCircuits += 1; out.skillFailureBackoffs += report.safety.skillFailureBackoffs; } return out;
+  }
+  status() { this.prune(); const reports = [...this.reports.values()].sort((a, b) => b.at - a.at); return { protocol: TELEMETRY_PROTOCOL, merchantName: this.merchantName, sendIntervalMs: this.sendIntervalMs, movingSendIntervalMs: this.movingSendIntervalMs, reportTtlMs: this.reportTtlMs, encounterOutcomeMaxAgeMs: this.encounterOutcomeMaxAgeMs, encounterOutcomeHistoryLimit: this.encounterOutcomeHistoryLimit, trustedNames: [...this.trustedNames].sort(), reports, capabilityReports: reports.filter((row) => !!row.capabilities).map((row) => ({ name: row.name, ctype: row.ctype, at: row.at, catalog: row.capabilities.catalog, combatMode: row.capabilities.combatMode, skills: row.capabilities.skills.length })), encounterOutcomes: reports.filter((row) => !!row.encounterOutcome).map((row) => ({ name: row.name, encounterId: row.encounterOutcome.encounterId, outcome: row.encounterOutcome.outcome, endedAt: row.encounterOutcome.endedAt })), stats: { ...this.stats } }; }
 }
 module.exports = { PartyTelemetryBridge, TELEMETRY_PROTOCOL, potionSummary, cleanEncounterOutcome };
 
@@ -33422,6 +33492,7 @@ class AdaptivePullLearner {
       probeCooldownMs: Math.max(60000, Math.min(24 * 60 * 60 * 1000, finite(options.probeCooldownMs, 10 * 60 * 1000)))
     };
     this.state = new Map();
+    this.seenEncounterIds = [];
     this.loaded = false;
     this.lastRecommendation = null;
     this.stats = {
@@ -33429,6 +33500,8 @@ class AdaptivePullLearner {
       recordSkips: 0,
       encounterRecords: 0,
       encounterRecordSkips: 0,
+      encounterDuplicates: 0,
+      encounterDedupePersistenceBlocks: 0,
       recommendations: 0,
       learnedSelections: 0,
       riskReductions: 0,
@@ -33482,10 +33555,14 @@ class AdaptivePullLearner {
           updatedAt: Math.max(0, finite(row.updatedAt, 0))
         });
       }
+      this.seenEncounterIds = Array.isArray(data.seenEncounterIds)
+        ? [...new Set(data.seenEncounterIds.map(String).filter(Boolean))].slice(-256)
+        : [];
       this.stats.persistenceLoads += 1;
       return true;
     } catch (error) {
       this.state.clear();
+      this.seenEncounterIds = [];
       this.stats.persistenceFailures += 1;
       this._event('ADAPTIVE_PULL_STATE_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', { message: String(error && error.message || error) });
       return false;
@@ -33499,7 +33576,8 @@ class AdaptivePullLearner {
       backend.set(this.storageKey, JSON.stringify({
         schemaVersion: ADAPTIVE_PULL_STATE_SCHEMA_VERSION,
         savedAt: this.now(),
-        contexts: [...this.state.values()]
+        contexts: [...this.state.values()],
+        seenEncounterIds: this.seenEncounterIds.slice(-256)
       }));
       this.stats.persistenceSaves += 1;
       return true;
@@ -33840,16 +33918,33 @@ class AdaptivePullLearner {
       this.stats.encounterRecordSkips += 1;
       return null;
     }
+    const encounterId = String(outcome.encounterId);
+    if (this.seenEncounterIds.includes(encounterId)) {
+      this.stats.encounterRecordSkips += 1;
+      this.stats.encounterDuplicates += 1;
+      return null;
+    }
+    this.seenEncounterIds.push(encounterId);
+    if (this.seenEncounterIds.length > 256) this.seenEncounterIds.splice(0, this.seenEncounterIds.length - 256);
+    const backend = this._backend();
+    if (!backend || !this.save()) {
+      this.seenEncounterIds = this.seenEncounterIds.filter((id) => id !== encounterId);
+      this.stats.encounterRecordSkips += 1;
+      this.stats.encounterDedupePersistenceBlocks += 1;
+      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', backend ? 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED' : 'EXACTLY_ONCE_DEDUPE_STORAGE_UNAVAILABLE', { encounterId });
+      return null;
+    }
+
     const pullSize = Math.max(1, Math.min(12, Math.floor(finite(outcome.maxEngaged, outcome.desiredPullSize || 1))));
     const seconds = Math.max(0.001, finite(outcome.durationSeconds, finite(outcome.durationMs, 0) / 1000));
     const sample = {
       seconds,
-      xp: Math.max(0, finite(outcome.xp, 0)),
-      gold: finite(outcome.gold, 0),
-      kills: Math.max(0, finite(outcome.kills, 0)),
+      xp: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.xp, finite(outcome.xp, 0))),
+      gold: finite(outcome.learningMetrics && outcome.learningMetrics.gold, finite(outcome.gold, 0)),
+      kills: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.kills, finite(outcome.kills, 0))),
       deaths: Math.max(0, finite(outcome.deaths, 0)),
-      hpPotions: Math.max(0, finite(outcome.hpPotions, finite(outcome.potions, 0))),
-      mpPotions: Math.max(0, finite(outcome.mpPotions, 0)),
+      hpPotions: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.hpPotions, finite(outcome.hpPotions, finite(outcome.potions, 0)))),
+      mpPotions: Math.max(0, finite(outcome.learningMetrics && outcome.learningMetrics.mpPotions, finite(outcome.mpPotions, 0))),
       retreats: Math.max(0, finite(outcome.retreats, 0)),
       nearDeaths: Math.max(0, finite(outcome.nearDeaths, 0)),
       movementFailures: Math.max(0, finite(outcome.movementFailures, 0)),
@@ -33861,7 +33956,7 @@ class AdaptivePullLearner {
     this.stats.records += 1;
     this.stats.encounterRecords += 1;
     this._event('ADAPTIVE_PULL_ENCOUNTER_RECORDED', 'info', outcome.outcome || null, {
-      encounterId: String(outcome.encounterId),
+      encounterId,
       context: baseKey,
       party: partyKey,
       pullSize,
@@ -33870,7 +33965,7 @@ class AdaptivePullLearner {
       seconds,
       profile: profile ? { samples: profile.samples, confidence: profile.confidence, xpPerHour: profile.xpPerHour } : null
     });
-    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId: String(outcome.encounterId) };
+    return { base: { key: baseKey }, partyKey, pullSize, sample, profile, encounterId };
   }
 
   status() {
@@ -33886,6 +33981,7 @@ class AdaptivePullLearner {
       config: { ...this.config },
       lastRecommendation: clone(this.lastRecommendation, null),
       contexts: this.state.size,
+      seenEncounterIds: this.seenEncounterIds.length,
       stats: { ...this.stats }
     };
   }
@@ -34330,17 +34426,22 @@ class EncounterLifecycle {
 
   _capturePerformance() {
     if (!this.current) return;
-    const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'damageTaken', 'monsterHpLost'];
+    const keys = ['xp', 'gold', 'kills', 'deaths', 'potions', 'hpPotions', 'mpPotions', 'damageTaken', 'monsterHpLost'];
     for (const row of this._performanceRows()) {
       if (!row || !row.id || finite(row.startedAt) < this.current.startedAt - 1000) continue;
-      const previous = this.performanceCursors.get(String(row.id)) || {};
+      const cursorKey = String(row.id);
+      const previous = this.performanceCursors.get(cursorKey);
+      if (!previous) {
+        this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+        continue;
+      }
       for (const key of keys) {
         const value = finite(row[key]);
         const before = finite(previous[key]);
         const delta = key === 'gold' ? value - before : Math.max(0, value - before);
         if (delta) this.current.metrics[key] += delta;
       }
-      this.performanceCursors.set(String(row.id), Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
+      this.performanceCursors.set(cursorKey, Object.fromEntries(keys.map((key) => [key, finite(row[key])])));
     }
   }
 
@@ -34371,10 +34472,13 @@ class EncounterLifecycle {
     const aggregate = this._peerAggregate(team);
     const elapsedHours = Math.max(0, Math.min(30, (now - (this.lastObservedAt || now)) / 1000)) / 3600;
     if (aggregate && elapsedHours > 0) {
-      this.current.metrics.xp += Math.max(0, finite(aggregate.xpPerHour)) * elapsedHours;
-      this.current.metrics.gold += finite(aggregate.goldPerHour) * elapsedHours;
-      this.current.metrics.kills += Math.max(0, finite(aggregate.killsPerHour)) * elapsedHours;
-      this.current.metrics.potions += Math.max(0, finite(aggregate.potionsPerHour)) * elapsedHours;
+      this.current.estimated.xp += Math.max(0, finite(aggregate.xpPerHour)) * elapsedHours;
+      this.current.estimated.gold += finite(aggregate.goldPerHour) * elapsedHours;
+      this.current.estimated.kills += Math.max(0, finite(aggregate.killsPerHour)) * elapsedHours;
+      this.current.estimated.potions += Math.max(0, finite(aggregate.potionsPerHour)) * elapsedHours;
+      this.current.estimated.hpPotions += Math.max(0, finite(aggregate.hpPotionsPerHour)) * elapsedHours;
+      this.current.estimated.mpPotions += Math.max(0, finite(aggregate.mpPotionsPerHour)) * elapsedHours;
+      this.current.observability.peerRateEstimateSeconds += elapsedHours * 3600;
       this.current.observability.maxFreshPeerReports = Math.max(this.current.observability.maxFreshPeerReports, finite(aggregate.freshReports));
     }
     for (const report of aggregate && aggregate.reports || []) {
@@ -34444,8 +34548,9 @@ class EncounterLifecycle {
       selectedReason: tactical.reason || context.reason || null, hardCapacity: 1, desiredPullSize: 1,
       maxEngaged: Math.max(1, (tactical.targetIds || []).length || 1), adaptiveRecommendation: null, adaptiveConfidence: 0,
       metrics: { xp: 0, gold: 0, kills: 0, deaths: 0, retreats: 0, nearDeaths: 0, hpPotions: 0, mpPotions: 0, potions: 0, damageTaken: 0, monsterHpLost: 0, skillExecutions: 0, aoeSkillExecutions: 0, movementFailures: 0, skillFailures: 0, minHpRatio: initial.minHp, minMpRatio: initial.minMp, skills: {} },
+      estimated: { xp: 0, gold: 0, kills: 0, hpPotions: 0, mpPotions: 0, potions: 0 },
       plannerStateTransitions: [{ at: now, state: EncounterLifecycleState.CREATED, plannerState: null, reason: 'ENCOUNTER_SELECTED' }],
-      observability: { expectedPeerReports: Math.max(0, (team.names || []).length - 1), maxFreshPeerReports: 0 }
+      observability: { expectedPeerReports: Math.max(0, (team.names || []).length - 1), maxFreshPeerReports: 0, peerRateEstimateSeconds: 0 }
     };
     tactical.encounterId = id; tactical.lifecycleState = EncounterLifecycleState.CREATED;
     this.performanceCursors.clear(); this.peerState.clear(); this.lastSkillKey = null; this.lastObservedAt = now;
@@ -34510,7 +34615,8 @@ class EncounterLifecycle {
 
   _score(outcome, seconds) {
     const safety = this.current.metrics.minHpRatio == null ? 0.5 : clamp(this.current.metrics.minHpRatio);
-    const xpPerHour = seconds > 0 ? Math.max(0, finite(this.current.metrics.xp)) / (seconds / 3600) : 0;
+    const weightedXp = Math.max(0, finite(this.current.metrics.xp)) + Math.max(0, finite(this.current.estimated && this.current.estimated.xp)) * 0.35;
+    const xpPerHour = seconds > 0 ? weightedXp / (seconds / 3600) : 0;
     const progress = clamp(Math.log1p(xpPerHour) / Math.log(6000001));
     const penalty = outcome === EncounterOutcome.DEATH ? 0.75 : outcome === EncounterOutcome.PARTY_FAILURE ? 0.45 : outcome === EncounterOutcome.SAFE_ABORT ? 0.18 : outcome === EncounterOutcome.INTERRUPTED ? 0.12 : 0;
     return clamp(safety * 0.65 + progress * 0.35 - penalty);
@@ -34525,8 +34631,36 @@ class EncounterLifecycle {
     const now = this.now(); const durationMs = Math.max(0, now - this.current.startedAt); const seconds = durationMs / 1000;
     if (outcome === EncounterOutcome.DEATH) this.current.metrics.deaths = Math.max(1, this.current.metrics.deaths);
     if (outcome === EncounterOutcome.SAFE_ABORT) this.current.metrics.retreats = Math.max(1, this.current.metrics.retreats);
-    if (outcome === EncounterOutcome.SUCCESS) this.current.metrics.kills = Math.max(this.current.metrics.kills, this.current.maxEngaged);
     this._transition(outcome === EncounterOutcome.SUCCESS ? EncounterLifecycleState.RESOLVED : EncounterLifecycleState.ABORTED, tactical && tactical.aoe && tactical.aoe.state || null, context.reason || outcome);
+    const estimated = this.current.estimated || {};
+    const evidenceWeight = 0.35;
+    const exact = {
+      xp: Math.max(0, finite(this.current.metrics.xp)),
+      gold: finite(this.current.metrics.gold),
+      kills: Math.max(0, finite(this.current.metrics.kills)),
+      hpPotions: Math.max(0, finite(this.current.metrics.hpPotions)),
+      mpPotions: Math.max(0, finite(this.current.metrics.mpPotions)),
+      potions: Math.max(0, finite(this.current.metrics.potions))
+    };
+    const peerEstimate = {
+      xp: Math.max(0, finite(estimated.xp)),
+      gold: finite(estimated.gold),
+      kills: Math.max(0, finite(estimated.kills)),
+      hpPotions: Math.max(0, finite(estimated.hpPotions)),
+      mpPotions: Math.max(0, finite(estimated.mpPotions)),
+      potions: Math.max(0, finite(estimated.potions))
+    };
+    const learningMetrics = {
+      xp: rounded(exact.xp + peerEstimate.xp * evidenceWeight, 3),
+      gold: rounded(exact.gold + peerEstimate.gold * evidenceWeight, 3),
+      kills: rounded(exact.kills + peerEstimate.kills * evidenceWeight, 3),
+      hpPotions: rounded(exact.hpPotions + peerEstimate.hpPotions * evidenceWeight, 3),
+      mpPotions: rounded(exact.mpPotions + peerEstimate.mpPotions * evidenceWeight, 3),
+      estimateWeight: evidenceWeight,
+      policy: 'LOCAL_EXACT_PLUS_DISCOUNTED_PEER_RATE_ESTIMATE'
+    };
+    const hasPeerEstimate = Object.values(peerEstimate).some((value) => Math.abs(finite(value)) > 1e-9);
+    const hasSplitPeerPotionEstimate = peerEstimate.hpPotions > 0 || peerEstimate.mpPotions > 0;
     const final = {
       schemaVersion: ENCOUNTER_OUTCOME_SCHEMA_VERSION, mode: ENCOUNTER_LIFECYCLE_MODE,
       encounterId: this.current.encounterId, lifecycleState: this.current.lifecycleState, outcome, reason: context.reason || outcome,
@@ -34534,11 +34668,19 @@ class EncounterLifecycle {
       contentDisposition: this.current.contentDisposition, monster: this.current.monster, map: this.current.map, combatMode: this.current.combatMode,
       hardCapacity: this.current.hardCapacity, desiredPullSize: this.current.desiredPullSize, maxEngaged: this.current.maxEngaged,
       startedAt: this.current.startedAt, endedAt: now, durationMs, durationSeconds: rounded(seconds, 3),
-      xp: rounded(this.current.metrics.xp, 3), gold: rounded(this.current.metrics.gold, 3), kills: rounded(this.current.metrics.kills, 3),
+      xp: rounded(exact.xp + peerEstimate.xp, 3), gold: rounded(exact.gold + peerEstimate.gold, 3), kills: rounded(exact.kills + peerEstimate.kills, 3),
       deaths: rounded(this.current.metrics.deaths, 3), retreats: this.current.metrics.retreats, nearDeaths: this.current.metrics.nearDeaths,
       minHpRatio: this.current.metrics.minHpRatio == null ? null : rounded(this.current.metrics.minHpRatio),
       minMpRatio: this.current.metrics.minMpRatio == null ? null : rounded(this.current.metrics.minMpRatio),
-      hpPotions: rounded(this.current.metrics.potions, 3), mpPotions: 0, potions: rounded(this.current.metrics.potions, 3), potionAttribution: 'COMBINED_TELEMETRY',
+      hpPotions: rounded(exact.hpPotions + peerEstimate.hpPotions, 3), mpPotions: rounded(exact.mpPotions + peerEstimate.mpPotions, 3),
+      potions: rounded(exact.potions + peerEstimate.potions, 3),
+      progressAttribution: hasPeerEstimate ? 'LOCAL_EXACT_PLUS_PEER_RATE_ESTIMATE' : 'LOCAL_EXACT_DELTAS',
+      killAttribution: peerEstimate.kills > 0 ? 'LOCAL_CONFIRMED_PLUS_PEER_RATE_ESTIMATE' : 'LOCAL_CONFIRMED_TRANSITIONS_ONLY',
+      potionAttribution: hasPeerEstimate
+        ? (hasSplitPeerPotionEstimate ? 'LOCAL_EXACT_SPLIT_PLUS_PEER_RATE_ESTIMATE_SPLIT' : 'LOCAL_EXACT_SPLIT_PLUS_PEER_COMBINED_RATE_ESTIMATE')
+        : 'LOCAL_EXACT_SPLIT',
+      learningMetrics,
+      evidence: { exact, peerRateEstimate: peerEstimate, peerEstimateDiscount: evidenceWeight },
       damageTaken: rounded(this.current.metrics.damageTaken, 3), skillExecutions: this.current.metrics.skillExecutions,
       aoeSkillExecutions: this.current.metrics.aoeSkillExecutions, skills: { ...this.current.metrics.skills },
       movementFailures: this.current.metrics.movementFailures, skillFailures: this.current.metrics.skillFailures,
@@ -34846,7 +34988,7 @@ class TacticalPartyCombat {
     this.lastDecision = null;
     this.lastPullExpansionAt = -Infinity;
     this.pendingPull = null;
-    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, primaryPromotions: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
     this.installed = false;
     this.install();
   }
@@ -35005,8 +35147,33 @@ class TacticalPartyCombat {
         this.pendingPull = null;
       }
     }
+    const trackedBeforeRefresh = new Set((this.encounter.targetIds || []).map(String));
+    if (this.encounter.targetId != null) trackedBeforeRefresh.add(String(this.encounter.targetId));
     const targets = this._encounterEntities(snapshot, team);
     const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
+    const previousPrimaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+    if (previousPrimaryId && targets.length && !targets.some((row) => String(row.id) === previousPrimaryId)) {
+      const promotable = targets
+        .map((target, index) => ({ target, evaluation: evaluations[index] }))
+        .filter((row) => trackedBeforeRefresh.has(String(row.target.id)) && row.evaluation && row.evaluation.allowed === true)
+        .sort((a, b) => finite(b.evaluation.partyAggro ? 1 : 0) - finite(a.evaluation.partyAggro ? 1 : 0)
+          || finite(b.evaluation.score, -Infinity) - finite(a.evaluation.score, -Infinity)
+          || String(a.target.id).localeCompare(String(b.target.id)))[0];
+      if (promotable) {
+        this.encounter.primaryTargetId = String(promotable.target.id);
+        this.encounter.targetId = String(promotable.target.id);
+        this.encounter.targetType = promotable.target.mtype || this.encounter.targetType || null;
+        this.encounter.reason = 'SURVIVING_ENCOUNTER_TARGET_PROMOTED';
+        this.stats.primaryPromotions += 1;
+        this._event('ENCOUNTER_PRIMARY_PROMOTED', 'info', 'PRIMARY_RESOLVED_WITH_SURVIVING_TRACKED_TARGETS', {
+          encounterId: this.encounter.encounterId || null,
+          previousPrimaryId,
+          primaryTargetId: this.encounter.primaryTargetId,
+          targetType: this.encounter.targetType,
+          survivingTargetIds: targets.map((row) => String(row.id))
+        });
+      }
+    }
     const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
       ? this.runtime._currentMembers(snapshot)
       : (team.members || []);
@@ -46637,7 +46804,7 @@ class Alpha25ControlCenterBrain {
     installAdventureLandItemSprites(runtime, this.cloud);
     this.lastCycleAt = 0;
     this.progressionPolicyTarget = runtime.alpha27CombatMerchantConvergence || null;
-    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
+    this.stats = { ticks: 0, outcomes: 0, remoteEncounterOutcomes: 0, remoteEncounterOutcomeBatches: 0, remoteEncounterOutcomeSkips: 0, cloudCyclesStarted: 0, cloudCycleErrors: 0, localPatches: 0, remoteExtendedPatches: 0, extendedSettingsApplied: 0, lateProgressionPolicySyncs: 0 };
     this.controlPlane.applyHot(runtime);
     this._applyExtendedSettings();
     if (this.cloud.autoEnableSuggested && this.cloud.status().ready && this.controlPlane.get('cloud.enabled', false) !== true) {
@@ -46707,21 +46874,32 @@ class Alpha25ControlCenterBrain {
     this._syncLateProgressionPolicy();
     let encounterOutcome = null;
     const character = this.runtime && this.runtime.lastSnapshot && this.runtime.lastSnapshot.character;
+    const encounterTelemetry = this.runtime && this.runtime.partyTelemetry;
+    const hasEncounterTelemetry = !!(encounterTelemetry
+      && (typeof encounterTelemetry.encounterOutcomeList === 'function' || typeof encounterTelemetry.encounterOutcomes === 'function'));
     if (character && String(character.ctype || '').toLowerCase() === 'merchant'
-      && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function'
+      && hasEncounterTelemetry
       && this.brain && typeof this.brain.ingestEncounterOutcome === 'function') {
       try {
-        const rows = Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {})
+        const sourceRows = typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function'
+          ? this.runtime.partyTelemetry.encounterOutcomeList()
+          : Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {});
+        const rows = sourceRows
           .filter((row) => row && row.encounterId)
-          .sort((a, b) => Number(b.endedAt || 0) - Number(a.endedAt || 0));
-        if (rows.length) {
-          const accepted = this.brain.ingestEncounterOutcome(rows[0], { remote: true });
+          .sort((a, b) => Number(a.endedAt || 0) - Number(b.endedAt || 0) || String(a.encounterId).localeCompare(String(b.encounterId)));
+        let acceptedInBatch = 0;
+        for (const row of rows) {
+          const accepted = this.brain.ingestEncounterOutcome(row, { remote: true });
           if (accepted && accepted.accepted === true) {
             encounterOutcome = accepted;
+            acceptedInBatch += 1;
             this.stats.remoteEncounterOutcomes += 1;
             if (this.cloud && Array.isArray(this.cloud.pendingFeedback)) this.cloud.pendingFeedback.push(accepted);
+          } else if (accepted && accepted.reason !== 'ENCOUNTER_OUTCOME_DUPLICATE') {
+            this.stats.remoteEncounterOutcomeSkips += 1;
           }
         }
+        if (acceptedInBatch > 0) this.stats.remoteEncounterOutcomeBatches += 1;
       } catch (_) {}
     }
     const outcome = this.brain && typeof this.brain.tickOutcome === 'function' ? this.brain.tickOutcome() : null;
@@ -47701,7 +47879,7 @@ class StrategicBrainV2 {
     this.diary = [];
     this.quality = { state: 'warming', score: 0.5, reason: 'collecting evidence' };
     this.league = { generation: 0, champion: null, championLoss: null, promotions: 0, rollbacks: 0, rejections: 0, lastEvent: null, lastEventAt: 0, lastReason: null };
-    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, encounterOutcomeRewards: 0, encounterOutcomeSkips: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
+    this.stats = { observations: 0, teacherSamples: 0, remoteTeacherSamples: 0, deterministicTeacherSamples: 0, replayTrains: 0, outcomeRewards: 0, encounterOutcomeRewards: 0, encounterOutcomeSkips: 0, genericOutcomeAttributionDeferrals: 0, genericOutcomeAttributionSuppressions: 0, saves: 0, restoreSuccess: 0, restoreErrors: 0, persistenceFailures: 0 };
     this._restore();
     this._diary('learn', '🧠', 'Brain v2 bereit', `${BRAIN_V2_INPUT_NAMES.length}→24→5 Student, Capability/Pull-Kontext, Experience Replay, Outcome-Lernen und Teacher-Distillation aktiv.`, 'neutral');
   }
@@ -47732,7 +47910,11 @@ class StrategicBrainV2 {
       this.league = { ...this.league, ...(state.league || {}) };
       this.diary = Array.isArray(state.diary) ? state.diary.slice(-100) : [];
       this.lastEncounterOutcome = state.lastEncounterOutcome && typeof state.lastEncounterOutcome === 'object' ? safeClone(state.lastEncounterOutcome) : null;
-      if (this.lastEncounterOutcome && this.lastEncounterOutcome.encounterId) this.seenEncounterOutcomes = [String(this.lastEncounterOutcome.encounterId)];
+      const restoredSeen = Array.isArray(state.seenEncounterOutcomes)
+        ? state.seenEncounterOutcomes.map(String).filter(Boolean).slice(-128)
+        : [];
+      if (this.lastEncounterOutcome && this.lastEncounterOutcome.encounterId) restoredSeen.push(String(this.lastEncounterOutcome.encounterId));
+      this.seenEncounterOutcomes = [...new Set(restoredSeen)].slice(-128);
       this.stats.restoreSuccess += 1;
       return true;
     } catch (error) {
@@ -47834,7 +48016,22 @@ class StrategicBrainV2 {
     };
     this.lastObservation = record;
     this.replayBuffer.push({ at: record.at, vector: encoded.vector.slice(), target: target.slice(), source: 'observation', student: record.student, teacher: record.teacher, agreement, loss });
-    if (!this.pendingOutcome) this.pendingOutcome = { startedAt: this.now(), dueAt: this.now() + Math.max(15000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000)), action: student.action, target: teacher.target || '', confidence: student.confidence, baseline: this.captureMetrics() };
+    if (!this.pendingOutcome) {
+      let encounterId = null;
+      try {
+        const activeEncounter = this.runtime && this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.current;
+        encounterId = activeEncounter && activeEncounter.encounterId ? String(activeEncounter.encounterId) : null;
+      } catch (_) {}
+      this.pendingOutcome = {
+        startedAt: this.now(),
+        dueAt: this.now() + Math.max(15000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000)),
+        action: student.action,
+        target: teacher.target || '',
+        confidence: student.confidence,
+        baseline: this.captureMetrics(),
+        encounterId
+      };
+    }
     this._leagueCheck();
     this._save();
     if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_OBSERVATION', data: { student: record.student, teacher: record.teacher, agreement, quality: record.quality.state } });
@@ -47865,6 +48062,25 @@ class StrategicBrainV2 {
   tickOutcome() {
     if (!this.pendingOutcome || this.now() < this.pendingOutcome.dueAt) return null;
     const pending = this.pendingOutcome;
+    if (pending.encounterId) {
+      const encounterId = String(pending.encounterId);
+      if (this.seenEncounterOutcomes.includes(encounterId)) {
+        this.pendingOutcome = null;
+        this.stats.genericOutcomeAttributionSuppressions += 1;
+        if (this.log) this.log.emit({ component: 'brain-v2', event: 'BRAIN_V2_GENERIC_OUTCOME_SUPPRESSED', reason: 'ENCOUNTER_OUTCOME_ALREADY_ATTRIBUTED', data: { encounterId } });
+        return null;
+      }
+      let activeEncounterId = null;
+      try {
+        const active = this.runtime && this.runtime.encounterLifecycle && this.runtime.encounterLifecycle.current;
+        activeEncounterId = active && active.encounterId ? String(active.encounterId) : null;
+      } catch (_) {}
+      if (activeEncounterId === encounterId) {
+        this.pendingOutcome.dueAt = this.now() + Math.max(1000, Math.min(5000, finite(this._cfg('brain.outcomeWindowMs', 60000), 60000) / 6));
+        this.stats.genericOutcomeAttributionDeferrals += 1;
+        return null;
+      }
+    }
     this.pendingOutcome = null;
     const before = pending.baseline || {};
     const after = this.captureMetrics();
@@ -47890,8 +48106,9 @@ class StrategicBrainV2 {
     if (this.lastEncounterOutcome) rows.push(this.lastEncounterOutcome);
     if (this.runtime && this.runtime.lastEncounterOutcome) rows.push(this.runtime.lastEncounterOutcome);
     try {
-      if (this.runtime && this.runtime.partyTelemetry && typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') {
-        rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
+      if (this.runtime && this.runtime.partyTelemetry) {
+        if (typeof this.runtime.partyTelemetry.encounterOutcomeList === 'function') rows.push(...this.runtime.partyTelemetry.encounterOutcomeList());
+        else if (typeof this.runtime.partyTelemetry.encounterOutcomes === 'function') rows.push(...Object.values(this.runtime.partyTelemetry.encounterOutcomes() || {}));
       }
     } catch (_) {}
     const clean = rows.filter((row) => row && row.encounterId && Number.isFinite(Number(row.endedAt)));
@@ -47912,11 +48129,18 @@ class StrategicBrainV2 {
     this.seenEncounterOutcomes.push(encounterId);
     if (this.seenEncounterOutcomes.length > 128) this.seenEncounterOutcomes.splice(0, this.seenEncounterOutcomes.length - 128);
     this.lastEncounterOutcome = safeClone(outcome);
+    const durableStorage = storageOf(this.root);
+    if (!durableStorage || !this._save(true)) {
+      this.seenEncounterOutcomes = this.seenEncounterOutcomes.filter((id) => id !== encounterId);
+      if (this.lastEncounterOutcome && String(this.lastEncounterOutcome.encounterId || '') === encounterId) this.lastEncounterOutcome = null;
+      this.stats.encounterOutcomeSkips += 1;
+      return { accepted: false, reason: durableStorage ? 'ENCOUNTER_OUTCOME_DEDUPE_PERSIST_FAILED' : 'ENCOUNTER_OUTCOME_DEDUPE_STORAGE_UNAVAILABLE', encounterId };
+    }
     const eligible = outcome.learningEligible === true
       && !['CONTENT_DRIFT', 'INTERRUPTED'].includes(String(outcome.outcome || ''));
     if (!eligible) {
       this.stats.encounterOutcomeSkips += 1;
-      this._save();
+      this._save(true);
       return { accepted: false, reason: 'ENCOUNTER_OUTCOME_NOT_LEARNING_ELIGIBLE', encounterId, outcome: String(outcome.outcome || '') };
     }
 
@@ -47950,7 +48174,13 @@ class StrategicBrainV2 {
       trained = true;
     }
 
-    if (meta.remote !== true) this.pendingOutcome = null;
+    if (meta.remote !== true && this.pendingOutcome) {
+      const pendingEncounterId = this.pendingOutcome.encounterId == null ? null : String(this.pendingOutcome.encounterId);
+      if (pendingEncounterId == null || pendingEncounterId === encounterId) {
+        this.pendingOutcome = null;
+        this.stats.genericOutcomeAttributionSuppressions += 1;
+      }
+    }
     if (finite(observation && observation.student && observation.student.confidence, 0) > 0.72 && reward < -0.25) this.overconfidenceFailures += 1;
     else if (reward > 0) this.overconfidenceFailures = Math.max(0, this.overconfidenceFailures - 1);
 
@@ -48014,13 +48244,17 @@ class StrategicBrainV2 {
 
   replay(limit = 32) { return this.replayBuffer.list(limit); }
 
-  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), lastEncounterOutcome: safeClone(this.lastEncounterOutcome), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
+  exportState() { return { schemaVersion: 2, mode: BRAIN_V2_MODE, savedAt: this.now(), network: this.network.snapshot(), samples: this.samples, updates: this.updates, outcomes: this.outcomes, rewardEma: this.rewardEma, lossEma: this.lossEma, agreementEma: this.agreementEma, league: safeClone(this.league), quality: safeClone(this.quality), lastEncounterOutcome: safeClone(this.lastEncounterOutcome), seenEncounterOutcomes: this.seenEncounterOutcomes.slice(-128), diary: this.diary.slice(-Math.max(20, Math.floor(this._cfg('brain.diaryMaxEntries', 100)))) }; }
 
   importState(state) {
     if (!state || Number(state.schemaVersion) !== 2 || !state.network) return false;
     const incomingSamples = Math.max(0, Math.floor(finite(state.samples, 0)));
     if (incomingSamples < this.samples || !this.network.restore(state.network)) return false;
-    this.samples = incomingSamples; this.updates = Math.max(this.updates, Math.floor(finite(state.updates, 0))); this.outcomes = Math.max(this.outcomes, Math.floor(finite(state.outcomes, 0))); this.rewardEma = finite(state.rewardEma, this.rewardEma); this.lossEma = state.lossEma == null ? this.lossEma : finite(state.lossEma); this.agreementEma = state.agreementEma == null ? this.agreementEma : finite(state.agreementEma); this._save(true); return true;
+    this.samples = incomingSamples; this.updates = Math.max(this.updates, Math.floor(finite(state.updates, 0))); this.outcomes = Math.max(this.outcomes, Math.floor(finite(state.outcomes, 0))); this.rewardEma = finite(state.rewardEma, this.rewardEma); this.lossEma = state.lossEma == null ? this.lossEma : finite(state.lossEma); this.agreementEma = state.agreementEma == null ? this.agreementEma : finite(state.agreementEma);
+    if (Array.isArray(state.seenEncounterOutcomes)) {
+      this.seenEncounterOutcomes = [...new Set([...this.seenEncounterOutcomes, ...state.seenEncounterOutcomes.map(String).filter(Boolean)])].slice(-128);
+    }
+    this._save(true); return true;
   }
 
   status() {
@@ -48030,7 +48264,7 @@ class StrategicBrainV2 {
       student: { samples: this.samples, updates: this.updates, outcomes: this.outcomes, lossEma: this.lossEma == null ? null : Number(this.lossEma.toFixed(5)), rewardEma: Number(this.rewardEma.toFixed(5)), agreementEma: this.agreementEma == null ? null : Number(this.agreementEma.toFixed(5)), lastTrainAt: this.lastTrainAt, replay: this.replayBuffer.status() },
       teacher: { remoteAvailable: !!this.remoteTeacher, lastAt: this.remoteTeacherAt, ageMs: this.remoteTeacherAt ? this.now() - this.remoteTeacherAt : null, lastDecision: safeClone(this.remoteTeacher), shouldAsk: this.shouldAskTeacher() }, quality,
       league: { generation: this.league.generation, hasChampion: !!this.league.champion, championLoss: this.league.championLoss, promotions: this.league.promotions, rollbacks: this.league.rollbacks, rejections: this.league.rejections, lastEvent: this.league.lastEvent, lastEventAt: this.league.lastEventAt, lastReason: this.league.lastReason },
-      current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target } : null,
+      current: this.lastObservation, lastRecommendation: this.lastObservation, lastEncounterOutcome: safeClone(this.lastEncounterOutcome), seenEncounterOutcomes: this.seenEncounterOutcomes.length, pendingOutcome: this.pendingOutcome ? { startedAt: this.pendingOutcome.startedAt, dueAt: this.pendingOutcome.dueAt, action: this.pendingOutcome.action, target: this.pendingOutcome.target, encounterId: this.pendingOutcome.encounterId || null } : null,
       diary: { entries: this.diary.slice(-40), total: this.diary.length }, persistence: { key: STORAGE_KEY, disabled: this.persistenceDisabled, lastError: this.persistenceError }, stats: { ...this.stats }, policies: { strategicOnly: true, gearDominantStrengthModel: true, characterLevelStrengthRole: 'MINOR_CONTEXT_ONLY', deterministicCombatSafetyAuthoritative: true, dangerousContentCannotBeOverridden: true, commandCharacterAuthorityWidened: false, cloudFailureSafe: true } };
   }
 }
