@@ -30,6 +30,7 @@ Vor der ersten Runtime-Implementierung werden:
 - `dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md` – verbindliche deutsche Domaenensprache, deutsche UI und gegenueber V4 verschaerfte Mehrfach-Verriegelung.
 - `dokumentation/WISSENSWAECHTER-VERTRAG.md` – Sicherheitsvertrag fuer automatische Wissensaktualisierung und GitHub-Sync.
 - `dokumentation/ENTWICKLUNGS-WISSENSGATE.md` – Pflichtprozess: aktuelles Wissen vor Planung, Implementierung und Merge.
+- `dokumentation/LIVE-WISSEN-SSD-VERTRAG.md` – Bot-Writer-/Bridge-Mirror-Vertrag fuer live verifizierte Wissensdaten auf `D:\\`.
 - `dokumentation/VOR-RUNTIME-SPEZIFIKATION.md` – letzte Pflichtvorbereitung vor Runtime-Code.
 - `anforderungen/anforderungen.json` – kanonische Anforderungen.
 - `anforderungen/nachverfolgbarkeit.json` – Wissen/Risiko/Invariante/Code/Test/Live-Nachweis.
