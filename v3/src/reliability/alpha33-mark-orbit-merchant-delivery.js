@@ -140,6 +140,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     this.trainingRadiusMax = Math.max(this.trainingRadiusMin, Math.min(600, finite(options.trainingRadiusMax, 320)));
     this.farmerStateIntervalMs = Math.max(1200, Math.min(10000, finite(options.farmerStateIntervalMs, 2200)));
     this.farmerPositionFreshMs = Math.max(2000, Math.min(12000, finite(options.farmerPositionFreshMs, 5000)));
+    this.movingTargetDirectFreshMs = Math.max(500, Math.min(2000, finite(options.movingTargetDirectFreshMs, 1200)));
     this.farmerGearGoalFreshMs = Math.max(5000, Math.min(120000, finite(options.farmerGearGoalFreshMs, 30000)));
     this.gearDeliveryIntentTtlMs = Math.max(5000, Math.min(120000, finite(options.gearDeliveryIntentTtlMs, 30000)));
     this.gearDeliveryIntentAckTimeoutMs = Math.max(100, Math.min(5000, finite(options.gearDeliveryIntentAckTimeoutMs, 1200)));
@@ -205,6 +206,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       merchantRendezvousFailed: 0,
       merchantRendezvousAlreadyNear: 0,
       staleFarmerPositionsRejected: 0,
+      staleMovingFarmerTargetsDeferred: 0,
+      movingFarmerAnchorTravels: 0,
+      opportunisticPotionRouteStarts: 0,
       farmerStateRefreshRequests: 0,
       collectionRoutesStarted: 0,
       collectionRoutesCompleted: 0,
@@ -988,6 +992,7 @@ class Alpha33MarkOrbitMerchantDelivery {
     const inventoryFreeSlots = Math.max(0, inventoryCapacity - inventoryOccupied);
     const inventoryPressure = inventoryCapacity > 0 ? inventoryOccupied / inventoryCapacity : 0;
     const pickupItems = pickupItemsView(logistics, inventory);
+    const anchor = this._trainingAnchor(live);
     return {
       runtimeActive: true,
       at: this.now(),
@@ -997,6 +1002,15 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: sc.map || live.map || null,
       x: finite(sc.x != null ? sc.x : (live.real_x != null ? live.real_x : live.x)),
       y: finite(sc.y != null ? sc.y : (live.real_y != null ? live.real_y : live.y)),
+      moving: !!(sc.moving || live.moving),
+      speed: Math.max(0, finite(sc.speed != null ? sc.speed : live.speed, 0)),
+      trainingAnchor: anchor ? {
+        map: sc.map || live.map || null,
+        x: anchor.x,
+        y: anchor.y,
+        radius: anchor.radius,
+        planId: anchor.planId || null
+      } : null,
       rip: !!(sc.rip || live.rip),
       gear,
       pickupItems,
@@ -1063,6 +1077,18 @@ class Alpha33MarkOrbitMerchantDelivery {
     const pickupSince = pickupItems.length > 0
       ? (previousPickupContinuous && previous.pickupSince != null ? finite(previous.pickupSince, now) : now)
       : null;
+    const rawAnchor = data && data.trainingAnchor;
+    const trainingAnchor = rawAnchor
+      && finite(rawAnchor.x) != null
+      && finite(rawAnchor.y) != null
+      ? {
+          map: rawAnchor.map || data && data.map || null,
+          x: finite(rawAnchor.x),
+          y: finite(rawAnchor.y),
+          radius: Math.max(60, finite(rawAnchor.radius, 180)),
+          planId: rawAnchor.planId || null
+        }
+      : null;
     const row = {
       name,
       ctype: data && data.ctype || null,
@@ -1070,6 +1096,9 @@ class Alpha33MarkOrbitMerchantDelivery {
       map: data && data.map || null,
       x: finite(data && data.x),
       y: finite(data && data.y),
+      moving: !!(data && data.moving),
+      speed: Math.max(0, finite(data && data.speed, 0)),
+      trainingAnchor,
       online: true,
       available: !(data && data.rip),
       dead: !!(data && data.rip),
@@ -1201,14 +1230,16 @@ class Alpha33MarkOrbitMerchantDelivery {
     return rows;
   }
 
-  _requestFarmerStateRefresh() {
+  _requestFarmerStateRefresh(forceNames = []) {
     const logistics = this.runtime.controlledPartyLogistics;
     if (!logistics || typeof logistics._send !== 'function' || typeof logistics._trustedNames !== 'function') return false;
     const now = this.now();
     const fresh = new Set(this._freshFarmerRows().map((row) => String(row.name)));
+    const forced = new Set((Array.isArray(forceNames) ? forceNames : [forceNames]).map(String).filter(Boolean));
     let sent = false;
     for (const name of logistics._trustedNames()) {
-      if (!name || name === cleanName(characterOf(this.runtime) && characterOf(this.runtime).name) || fresh.has(String(name))) continue;
+      if (!name || name === cleanName(characterOf(this.runtime) && characterOf(this.runtime).name)) continue;
+      if (!forced.has(String(name)) && fresh.has(String(name))) continue;
       const last = finite(this.farmerStateRefreshAt.get(String(name)), -Infinity);
       if (now - last < this.farmerStateIntervalMs) continue;
       this.farmerStateRefreshAt.set(String(name), now);
@@ -1273,7 +1304,10 @@ class Alpha33MarkOrbitMerchantDelivery {
       observedAt: selected.freshestAt,
       oldestPickupSince: selected.oldestPickupSince,
       maxInventoryPressure: selected.maxInventoryPressure,
-      minInventoryFreeSlots: selected.minInventoryFreeSlots
+      minInventoryFreeSlots: selected.minInventoryFreeSlots,
+      positionAgeMs: Math.max(0, this.now() - Math.min(finite(target.at, 0), finite(target.sourceAt, 0))),
+      moving: target.moving === true,
+      trainingAnchor: target.trainingAnchor ? { ...target.trainingAnchor } : null
     };
   }
 
@@ -1527,6 +1561,20 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _startCollectionRoute(candidate, batchDecision = null) {
     if (!candidate || !candidate.pickupEntryCount) return false;
+
+    // Any planned Farmer trip is also a service opportunity. Start the existing
+    // potion batch owner first so the Merchant buys the complete route demand
+    // before leaving town, then collection resumes on a later cycle.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService(candidate.names || [], 'FARMER_COLLECTION_ROUTE');
+      if (service && service.started === true) {
+        this.stats.opportunisticPotionRouteStarts += 1;
+        this._event('MERCHANT_COLLECTION_ROUTE_DEFERRED_FOR_POTION_BUNDLE', 'info', service.reason, service);
+        return false;
+      }
+    }
+
     this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
@@ -1649,7 +1697,42 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   async _travelToFreshCandidate(merchant, candidate, follow = false) {
     if (!candidate || !merchant || !merchant.atomic || typeof merchant.atomic.namedServiceTravel !== 'function') return false;
-    const destination = { map: candidate.map, x: candidate.x, y: candidate.y };
+    const directAgeMs = Math.max(0, finite(candidate.positionAgeMs, this.now() - finite(candidate.observedAt, this.now())));
+    const anchor = candidate.trainingAnchor
+      && candidate.trainingAnchor.map
+      && finite(candidate.trainingAnchor.x) != null
+      && finite(candidate.trainingAnchor.y) != null
+      ? candidate.trainingAnchor
+      : null;
+
+    // Never launch a long smart_move toward an old kite point. For the initial
+    // approach use the stable farming anchor when available; once inside the
+    // farming area, only follow a truly fresh live position.
+    let destination = null;
+    let targetMode = 'LIVE_POSITION';
+    if (!follow && anchor && (candidate.moving === true || directAgeMs > this.movingTargetDirectFreshMs)) {
+      destination = { map: anchor.map, x: anchor.x, y: anchor.y };
+      targetMode = 'TRAINING_ANCHOR';
+      this.stats.movingFarmerAnchorTravels += 1;
+    } else if (directAgeMs <= this.movingTargetDirectFreshMs) {
+      destination = { map: candidate.map, x: candidate.x, y: candidate.y };
+    } else if (!follow && anchor) {
+      destination = { map: anchor.map, x: anchor.x, y: anchor.y };
+      targetMode = 'TRAINING_ANCHOR';
+      this.stats.movingFarmerAnchorTravels += 1;
+    } else {
+      this.stats.staleMovingFarmerTargetsDeferred += 1;
+      this._requestFarmerStateRefresh(candidate.names || []);
+      merchant.lastMerchantPlan = {
+        at: this.now(),
+        action: 'HOLD',
+        reason: 'WAITING_FOR_TRULY_FRESH_MOVING_FARMER_POSITION',
+        workers: candidate.names ? candidate.names.slice() : [],
+        positionAgeMs: directAgeMs,
+        maxDirectAgeMs: this.movingTargetDirectFreshMs
+      };
+      return false;
+    }
     this.merchantRendezvousBusy = true;
     this.lastMerchantRendezvousAt = this.now();
     this.stats.merchantRendezvousAttempts += 1;
@@ -1659,6 +1742,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       action: 'SERVICE_TRAVEL',
       reason: follow ? 'FOLLOW_FRESH_FARMER_COLLECTION_POSITION' : 'PARTY_LOGISTICS_RENDEZVOUS',
       destination,
+      targetMode,
+      sourcePositionAgeMs: directAgeMs,
       workers: candidate.names.slice(),
       pendingTransfers: candidate.pickupEntryCount
     };
