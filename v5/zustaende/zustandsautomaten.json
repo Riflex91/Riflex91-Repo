@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "stand": "2026-09-19",
-  "status": "VOR_IMPLEMENTIERUNG_ZU_RATIFIZIEREN",
+  "status": "R2_RATIFIZIERT",
   "regel": "Jeder sicherheitskritische Zustand muss in genau einem kanonischen Automaten modelliert oder explizit an einen Automaten delegiert sein. Unbekannte Uebergaenge fail-closed.",
   "anzahl": 13,
   "automaten": [
@@ -104,7 +104,9 @@
       "verbote": [
         "PAUSIERT->LAEUFT ohne neue Freigabe",
         "Restart darf LAEUFT nicht direkt wiederherstellen"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -197,8 +199,11 @@
       "verbote": [
         "ERGEBNIS_UNBEKANNT->GESENDET",
         "Restart->GESENDET",
-        "SERVER_ERGEBNIS_ERHALTEN->ABGESCHLOSSEN ohne erforderliche Postcondition"
-      ]
+        "SERVER_ERGEBNIS_ERHALTEN->ABGESCHLOSSEN ohne erforderliche Postcondition",
+        "GESENDET ohne zuvor durable bestaetigten INTENT_GESPEICHERT"
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -266,7 +271,9 @@
       ],
       "verbote": [
         "AUSWERTUNG darf nicht blind dieselbe irreversible Mutation erneut senden"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -322,7 +329,9 @@
       ],
       "verbote": [
         "Alter Epoche/Fencing-Token darf nach ABGELAUFEN oder ENTZOGEN keine Mutation autorisieren"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -400,8 +409,11 @@
       "verbote": [
         "QUARANTAENE->AKTIV direkt",
         "AUS->AKTIV direkt",
-        "GESPERRT->AKTIV direkt"
-      ]
+        "GESPERRT->AKTIV direkt",
+        "Drift/QUARANTAENE darf nicht durch automatische Optimierung oder Learning direkt freigegeben werden"
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -459,7 +471,9 @@
       ],
       "verbote": [
         "STALE, NICHT_ERREICHBAR oder GETRENNT darf keine neue mutierende Authority erhalten"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -536,7 +550,9 @@
       "verbote": [
         "STOPP_ANGEFORDERT darf In-Flight-Transaktion nicht durch Zustandvergessen beenden",
         "Restart darf nicht direkt LAEUFT setzen"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -614,7 +630,9 @@
       "verbote": [
         "ERFUELLT ohne fachlichen Settlement-Nachweis",
         "Gegenstandsdisposition darf nicht lokal umdefiniert werden"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -701,7 +719,9 @@
       ],
       "verbote": [
         "HERSTELLUNG_BESTAETIGT ist nicht gleich EMPFAENGER_BESTAETIGT"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -781,7 +801,9 @@
       "verbote": [
         "q/Placeholder als normaler Bestand behandeln",
         "ERGEBNIS_UNBEKANNT->erneut senden"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -847,7 +869,9 @@
       "verbote": [
         "Community-Kandidat->AKTIV ohne erforderliche Bestaetigung",
         "WIDERSPRUCH->AKTIV ohne Aufloesung"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -951,7 +975,9 @@
       "verbote": [
         "Rohinhalt direkt synchronisieren",
         "Fehler darf Gameplay beeinflussen"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     },
     {
       "schemaVersion": 1,
@@ -1038,7 +1064,11 @@
         "Direktpush auf Runtime-/Safety-Code",
         "Merge bei rotem CI",
         "Merge von nicht erlaubten Pfaden"
-      ]
+      ],
+      "ratifizierungsStatus": "R2_RATIFIZIERT",
+      "unbekannterUebergang": "FAIL_CLOSED"
     }
-  ]
+  ],
+  "ratifiziertAm": "2026-09-19",
+  "ratifizierungsRegel": "R2 ratifiziert die Zustandsraeume und Verbote als kanonische Vor-Implementierungsmodelle. Technische Implementierung und Fault-Nachweis folgen in den zugeordneten Roadmap-Phasen."
 }
