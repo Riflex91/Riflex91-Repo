@@ -100,6 +100,186 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
     return { executed: false, committed: false, reason };
   }
 
+  _normalizeMutationChance(response) {
+    const raw = response && response.chance != null
+      ? Number(response.chance)
+      : response && response.data && response.data.chance != null
+        ? Number(response.data.chance)
+        : null;
+    if (!Number.isFinite(raw) || raw < 0) return null;
+    if (raw <= 1) return raw;
+    if (raw <= 100) return raw / 100;
+    return null;
+  }
+
+  _mutationReplacementStock(tx) {
+    const inputIndexes = new Set(transactionInputs(tx).map((row) => Number(row.index)));
+    const level = levelOf(tx);
+    let localUnits = 0;
+    for (let index = 0; index < inventoryOf(this.root).length; index += 1) {
+      const item = inventoryOf(this.root)[index];
+      if (!item || inputIndexes.has(index) || String(item.name || '') !== String(tx.item || '') || levelOf(item) < level) continue;
+      if (item.locked || item.l || item.special || item.p) continue;
+      localUnits += Math.max(1, Math.floor(finite(item.q, 1)));
+    }
+
+    let bankUnits = 0;
+    try {
+      const catalog = this.runtime.merchantBankCatalog;
+      const status = catalog && typeof catalog.status === 'function' ? catalog.status() : null;
+      const rows = status && status.usable === true && status.snapshot && Array.isArray(status.snapshot.rows)
+        ? status.snapshot.rows
+        : [];
+      for (const row of rows) {
+        if (!row || String(row.name || '') !== String(tx.item || '') || levelOf(row) < level) continue;
+        bankUnits += Math.max(1, Math.floor(finite(row.quantity, 1)));
+      }
+    } catch (_) {}
+
+    const spareUnits = localUnits + bankUnits;
+    const spareEquivalents = String(tx.type || '').toUpperCase() === 'COMPOUND'
+      ? Math.floor(spareUnits / 3)
+      : spareUnits;
+    return { localUnits, bankUnits, spareUnits, spareEquivalents };
+  }
+
+  _mutationPartyCurrentValue(tx) {
+    const c = characterOf(this.runtime);
+    const gear = this.runtime.gearProgression;
+    if (!c || !gear || typeof gear.list !== 'function') return { usefulNow: false, goals: [] };
+    const inputIndexes = new Set(transactionInputs(tx).map((row) => Number(row.index)));
+    let goals = [];
+    try {
+      goals = gear.list(256).filter((goal) => (
+        goal
+        && String(goal.sourceCharacter || '') === String(tx.character || c.name || '')
+        && String(goal.character || '') !== String(tx.character || c.name || '')
+        && String(goal.item || '') === String(tx.item || '')
+        && levelOf({ level: goal.observedLevel }) === levelOf(tx)
+        && (
+          (goal.sourceIndex != null && inputIndexes.has(Number(goal.sourceIndex)))
+          || goal.sourceIndex == null
+        )
+      ));
+    } catch (_) {
+      goals = [];
+    }
+    const useful = goals.filter((goal) => goal.observedMeaningful === true);
+    useful.sort((a, b) => finite(b.observedSurvivalImprovement, 0) - finite(a.observedSurvivalImprovement, 0)
+      || finite(b.observedImprovement, 0) - finite(a.observedImprovement, 0));
+    return {
+      usefulNow: useful.length > 0,
+      goals: useful.slice(0, 8).map((goal) => ({
+        character: goal.character,
+        slot: goal.slot,
+        currentItem: goal.currentItem || null,
+        currentLevel: finite(goal.currentLevel, 0),
+        observedLevel: finite(goal.observedLevel, 0),
+        observedImprovement: finite(goal.observedImprovement, 0),
+        observedSurvivalImprovement: finite(goal.observedSurvivalImprovement, 0)
+      }))
+    };
+  }
+
+  _mutationRiskThreshold(tx, check, replacement, partyValue) {
+    const spare = Math.max(0, finite(replacement && replacement.spareEquivalents, 0));
+    const base = spare >= 2
+      ? finite(this.options.speculativeMinChanceManySpares, 0.20)
+      : spare >= 1
+        ? finite(this.options.speculativeMinChanceOneSpare, 0.35)
+        : finite(this.options.speculativeMinChanceNoSpare, 0.60);
+    const level = levelOf(tx);
+    const levelPenalty = Math.min(0.30, level * Math.max(0, finite(this.options.mutationRiskLevelStep, 0.05)));
+    const compoundPenalty = String(tx.type || '').toUpperCase() === 'COMPOUND' ? 0.05 : 0;
+    const partyPenalty = partyValue && partyValue.usefulNow === true ? 0.12 : 0;
+    const meta = check && check.meta || {};
+    const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+    const cap = String(tx.type || '').toUpperCase() === 'COMPOUND'
+      ? Math.max(1, finite(this.options.compoundValueCap, 500000))
+      : Math.max(1, finite(this.options.upgradeValueCap, 2000000));
+    const valuePenalty = Math.min(0.08, (value / cap) * 0.08);
+    const minChance = Math.max(0, Math.min(0.995, base + levelPenalty + compoundPenalty + partyPenalty + valuePenalty));
+    return {
+      minChance,
+      base,
+      levelPenalty,
+      compoundPenalty,
+      partyPenalty,
+      valuePenalty,
+      level,
+      spareEquivalents: spare
+    };
+  }
+
+  async mutationRiskDecision(tx, check, scroll) {
+    const replacement = this._mutationReplacementStock(tx);
+    const partyValue = this._mutationPartyCurrentValue(tx);
+    const threshold = this._mutationRiskThreshold(tx, check, replacement, partyValue);
+    const type = String(tx && tx.type || '').toUpperCase();
+    let response = null;
+    let chance = null;
+    let reason = null;
+    try {
+      if (type === 'UPGRADE') {
+        const action = rawFunction(this.root, 'upgrade');
+        if (!action) throw new Error('UPGRADE_API_UNAVAILABLE');
+        const args = action.fn.length >= 5
+          ? [check.inputs[0].index, scroll.index, undefined, 'code', true]
+          : [check.inputs[0].index, scroll.index, undefined, true];
+        response = await this._timeout(
+          action.fn.apply(action.owner, args),
+          'UPGRADE_CHANCE',
+          Math.max(1000, finite(this.options.mutationChanceTimeoutMs, 4000))
+        );
+      } else if (type === 'COMPOUND') {
+        const action = rawFunction(this.root, 'compound');
+        if (!action) throw new Error('COMPOUND_API_UNAVAILABLE');
+        const args = action.fn.length >= 7
+          ? [check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, scroll.index, undefined, 'code', true]
+          : [check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, scroll.index, undefined, true];
+        response = await this._timeout(
+          action.fn.apply(action.owner, args),
+          'COMPOUND_CHANCE',
+          Math.max(1000, finite(this.options.mutationChanceTimeoutMs, 4000))
+        );
+      } else {
+        throw new Error('MUTATION_RISK_UNSUPPORTED_TYPE');
+      }
+      chance = this._normalizeMutationChance(response);
+      if (chance == null) reason = 'MUTATION_CHANCE_UNAVAILABLE';
+    } catch (error) {
+      reason = errorDetails(error).reason || 'MUTATION_CHANCE_UNAVAILABLE';
+    }
+
+    this.stats.mutationChanceChecks = (this.stats.mutationChanceChecks || 0) + 1;
+    const allowed = chance != null && chance >= threshold.minChance;
+    if (!allowed && !reason) reason = 'MUTATION_RISK_EXCEEDS_POLICY';
+    const decision = {
+      at: this.now(),
+      allowed,
+      reason: allowed ? 'MUTATION_RISK_ACCEPTED' : reason,
+      type,
+      item: tx && tx.item || null,
+      level: levelOf(tx),
+      scroll: check && check.scroll || null,
+      chance,
+      minChance: threshold.minChance,
+      threshold,
+      replacement,
+      partyValue,
+      serverAuthoritative: chance != null,
+      chanceResponse: chance == null ? clone(response) : null
+    };
+    this.lastMutationRiskDecision = clone(decision);
+    this._event(
+      'ALPHA27_MUTATION_RISK_DECISION',
+      allowed ? 'info' : 'warn',
+      decision.reason,
+      decision
+    );
+    return decision;
+  }
+
   async executeAtomic(transactionId) {
     const engine = this.runtime.transactionEngine;
     const executor = this.runtime.controlledMerchant;
@@ -132,7 +312,6 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
 
     this.merchantBusy = true;
     executor.busy = true;
-    if (executor.stats) executor.stats.attempts += 1;
     const ensured = await this.ensureScroll(tx, check.scroll);
     if (!ensured.ok) {
       executor.busy = false;
@@ -140,6 +319,29 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason: ensured.reason };
       return { executed: false, committed: false, reason: ensured.reason };
     }
+
+    const risk = await this.mutationRiskDecision(tx, check, ensured.scroll);
+    if (!risk.allowed) {
+      this.stats.mutationRiskHolds = (this.stats.mutationRiskHolds || 0) + 1;
+      const hold = this.setMutationRiskHold(tx, risk);
+      if (engine && typeof engine.cancel === 'function') engine.cancel(tx.id, `RISK_GATE:${risk.reason}`);
+      executor.busy = false;
+      this.merchantBusy = false;
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: tx.id,
+        type: tx.type,
+        result: 'RELEASED',
+        reason: risk.reason,
+        risk: clone(risk),
+        hold
+      };
+      executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_MUTATION_RISK_HELD', 'info', risk.reason, this.lastMerchantAction);
+      return { executed: false, committed: false, released: true, reason: risk.reason, risk: clone(risk), hold };
+    }
+    this.clearMutationRiskHold(tx);
+    if (executor.stats) executor.stats.attempts += 1;
     const beforeItems = inventoryOf(this.root);
     const before = {
       at: this.now(),
@@ -282,6 +484,15 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       merchantBusy: this.merchantBusy,
       serviceTravelBusy: this.serviceTravelBusy,
       lastMerchantAction: clone(this.lastMerchantAction),
+      mutationRisk: {
+        generalGate: true,
+        serverAuthoritativeChanceCalculation: true,
+        riskSensitivityIncreasesWithItemLevel: true,
+        lastDecision: clone(this.lastMutationRiskDecision),
+        activeHolds: this.mutationRiskHolds instanceof Map
+          ? [...this.mutationRiskHolds.values()].filter((row) => row && finite(row.expiresAt, 0) > this.now()).map(clone)
+          : []
+      },
       controlled: this.runtime.controlledMerchant && this.runtime.controlledMerchant.status ? this.runtime.controlledMerchant.status() : null,
       transactions: this.runtime.transactionEngine && this.runtime.transactionEngine.status ? this.runtime.transactionEngine.status() : null
     };
