@@ -197,7 +197,7 @@
                     <DockPanel LastChildFill="False">
                         <StackPanel>
                             <TextBlock Text="GitHub &amp; Wissenswächter" FontSize="20" FontWeight="SemiBold" />
-                            <TextBlock Text="Der Wissenswächter prüft Adventure-Land-Quellen einmal pro Stunde und darf ausschließlich innerhalb von v5/wissensbasis lesen und schreiben."
+                            <TextBlock Text="Der Wissenswächter prüft Adventure-Land-Quellen einmal pro Stunde. Git-Zugriffe bleiben auf v5/wissensbasis/** beschränkt; zusätzlich darf der konfigurierte D:-Live-Wissenspfad read-only eingelesen werden."
                                        Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,18,12" />
                         </StackPanel>
                         <ToggleButton x:Name="WissenswaechterToggle"
