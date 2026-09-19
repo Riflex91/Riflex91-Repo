@@ -67,3 +67,9 @@ Fuer den Waechter gilt:
 Der Unterordner `datenbank/` ist der Standard-Ablageort fuer automatisch erzeugte Snapshots, Statusdaten, Kandidaten und Aenderungsprotokolle. Er ist **keine weitergehende Sicherheitsgrenze**: Die verbindliche Lese- und Schreibgrenze des Waechters ist die gesamte `v5/wissensbasis/**`.
 
 Informationen aus Community- oder unbekannten Quellen werden nicht automatisch zu bestaetigten Spiel-Fakten. Sie bleiben Kandidaten/Evidence, bis die vorhandenen Vertrauens- und Revalidierungsregeln sie bestaetigen.
+
+### Adventure-Land-Relevanzfilter
+
+Der Wissenswaechter darf nur Webkandidaten speichern, deren Bezug zu **Adventure Land - The Code MMORPG** technisch bestaetigt wurde. Suchmaschinen-Query und Trefferposition gelten ausdruecklich nicht als Beweis. Offizielle Adventure-Land-Adressen werden direkt erkannt; andere Treffer muessen einen Vorfilter bestehen und anschliessend im tatsaechlich abgerufenen Seiteninhalt eindeutige Spielmerkmale enthalten. Unklare oder nicht erreichbare Ergebnisse werden fail-closed verworfen.
+
+Jeder neu gespeicherte Kandidat traegt einen `ADVENTURE_LAND_...`-Relevanznachweis. Kandidaten aus aelteren, breiteren Suchlaeufen ohne diesen Nachweis werden automatisch aus der Kandidatenliste entfernt.
