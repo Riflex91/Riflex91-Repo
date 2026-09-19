@@ -263,11 +263,25 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
     if (requiredPerExchange <= 0) continue;
     const rewardPerExchange = rewardChanceForExchange(gameData, exchangeItem, desired);
     if (!(rewardPerExchange > 0)) continue;
-    const expectedExchangeOperations = need / rewardPerExchange;
+
+    const quest = meta && meta.quest ? String(meta.quest) : null;
+    const questTarget = quest ? questDestination(gameData, quest) : null;
+    // A quest-tagged exchange is executable only when the live G data maps the
+    // quest key to a concrete NPC location. Never downgrade it to generic Xyn.
+    if (quest && !questTarget) continue;
+
+    const operations = probabilisticOperations({
+      requiredRewards: need,
+      rewardUnitsPerOperation: rewardPerExchange
+    });
+    const expectedExchangeOperations = operations.expectedOperations;
+    const p50ExchangeOperations = operations.p50Operations;
+    const p90ExchangeOperations = operations.p90Operations;
     const expectedInputUnits = Math.max(requiredPerExchange, Math.ceil(expectedExchangeOperations * requiredPerExchange));
+    const riskAdjustedInputUnits = Math.max(requiredPerExchange, p90ExchangeOperations * requiredPerExchange);
     const alreadyOnFarmers = partyHeldQuantity(runtime, exchangeItem, 0);
     const alreadyOnMerchantOrBank = merchantHeldQuantity(runtime, exchangeItem, 0);
-    const farmInputUnits = Math.max(0, expectedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
+    const farmInputUnits = Math.max(0, riskAdjustedInputUnits - alreadyOnFarmers - alreadyOnMerchantOrBank);
 
     const monsters = gameData && gameData.drops && gameData.drops.monsters || {};
     for (const monster of Object.keys(monsters)) {
@@ -275,8 +289,8 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
       if (!(inputYieldPerKill > 0)) continue;
       const spawns = knownSpawns(gameData, monster);
       if (!spawns.length) continue;
-      const measuredKillsPerHour = bestMeasuredKillsPerHour(runtime, monster);
-      const killsPerHour = measuredKillsPerHour || fallbackKillsPerHour;
+      const measured = bestMeasuredKillRate(runtime, monster);
+      const killsPerHour = measured ? measured.killsPerHour : fallbackKillsPerHour;
       const inputUnitsPerHour = inputYieldPerKill * killsPerHour;
       if (!(inputUnitsPerHour > 0)) continue;
       const desiredUnitsPerHour = (inputUnitsPerHour / requiredPerExchange) * rewardPerExchange;
@@ -284,31 +298,96 @@ function bestExchangeMaterialFarmSource(runtime, desiredMaterial, quantity, opti
 
       for (const spawn of spawns) {
         if (!sourceSafe(runtime, monster, spawn)) continue;
-        candidates.push({
-          kind: 'EXCHANGE_MATERIAL_DROP',
+        const event = sourceEventDescriptor(runtime, gameData, {
           material: exchangeItem,
           targetMaterial: desired,
-          quantity: expectedInputUnits,
+          monster,
+          map: spawn.map
+        });
+        if (event.required && (!event.verified || !event.active)) continue;
+        const time = farmInputUnits > 0
+          ? probabilisticFarmTime({
+            requiredUnits: farmInputUnits,
+            unitsPerHour: inputUnitsPerHour,
+            measured: !!measured,
+            sampleSeconds: measured && measured.seconds || 0,
+            evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR'
+          })
+          : {
+            model: PROBABILISTIC_FARM_TIME_MODEL,
+            expectedHours: 0,
+            p50Hours: 0,
+            p90Hours: 0,
+            confidence: measured ? 0.5 : 0.25,
+            decisionQuantile: 'P90',
+            rareDrop: false
+          };
+        const kind = sourceKind({ quest: !!quest, event: event.required });
+        candidates.push({
+          kind,
+          material: exchangeItem,
+          targetMaterial: desired,
+          quantity: riskAdjustedInputUnits,
+          expectedInputUnits,
+          riskAdjustedInputUnits,
           farmQuantity: farmInputUnits,
           requiredPerExchange,
           rewardPerExchange,
           expectedExchangeOperations,
+          p50ExchangeOperations,
+          p90ExchangeOperations,
           inputYieldPerKill,
           killsPerHour,
-          measuredKillsPerHour,
-          evidence: measuredKillsPerHour ? 'MEASURED_KILLS_PER_HOUR' : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
+          measuredKillsPerHour: measured ? measured.killsPerHour : null,
+          measuredSampleSeconds: measured ? measured.seconds : 0,
+          evidence: measured ? measured.evidence : 'CONSERVATIVE_FALLBACK_KILLS_PER_HOUR',
           unitsPerHour: inputUnitsPerHour,
           targetUnitsPerHour: desiredUnitsPerHour,
-          expectedHours: farmInputUnits / inputUnitsPerHour,
+          expectedHours: time.expectedHours,
+          p50Hours: time.p50Hours,
+          p90Hours: time.p90Hours,
+          probabilityConfidence: time.confidence,
+          timeModel: time.model,
+          decisionQuantile: time.decisionQuantile,
+          rareDrop: time.rareDrop,
           alreadyOnFarmers,
           alreadyOnMerchantOrBank,
+          quest,
+          questDestination: clone(questTarget),
+          eventKey: event.eventKey,
+          eventType: event.eventType,
+          eventEndsAt: event.endsAt,
+          eventEvidence: event.evidence,
+          graphNode: {
+            kind: quest && event.required ? 'EVENT_QUEST_EXCHANGE'
+              : quest ? 'QUEST_EXCHANGE'
+                : event.required ? 'EVENT_EXCHANGE'
+                  : 'EXCHANGE',
+            targetMaterial: desired,
+            rewardUnitsPerOperation: rewardPerExchange,
+            operations: clone(operations),
+            quest,
+            questDestination: clone(questTarget),
+            eventKey: event.eventKey,
+            input: {
+              kind: event.required ? 'EVENT_FARM' : 'FARM_DROP',
+              material: exchangeItem,
+              quantity: riskAdjustedInputUnits,
+              farmQuantity: farmInputUnits,
+              monster,
+              map: spawn.map,
+              time: clone(time)
+            }
+          },
           ...spawn
         });
       }
     }
   }
 
-  candidates.sort((a, b) => a.expectedHours - b.expectedHours
+  candidates.sort((a, b) => finite(a.p90Hours, Infinity) - finite(b.p90Hours, Infinity)
+    || finite(a.p50Hours, Infinity) - finite(b.p50Hours, Infinity)
+    || a.expectedHours - b.expectedHours
     || (b.measuredKillsPerHour != null ? 1 : 0) - (a.measuredKillsPerHour != null ? 1 : 0)
     || b.targetUnitsPerHour - a.targetUnitsPerHour
     || a.material.localeCompare(b.material)
