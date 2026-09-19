@@ -49245,6 +49245,7 @@ module.exports = { CONTROL_SCHEMA_VERSION, CONTROL_STORAGE_KEY: STORAGE_KEY, CON
 
 const CLOUD_STORAGE_KEY = 'aio-v3:cloud-control:v1';
 const LEGACY_V2_STABLE_PREFIX = 'ALBOT27:stable-config:';
+const AUTOMATION_CATALOG_REFRESH_MS = 30 * 60 * 1000;
 const { ACTIVE_CLOUDFLARE_BASE_URL, readCloudRequestBudget, reserveCloudRequest } = require('./cloud-free-tier-budget');
 
 function finite(value, fallback = 0) { if (value == null || value === '') return fallback; const n = Number(value); return Number.isFinite(n) ? n : fallback; }
@@ -49308,6 +49309,8 @@ class CloudControlPlane {
     this.legacyCredentialsMigrated = false;
     this.autoEnableSuggested = false;
     this.lastRuntimePushAt = 0;
+    this.lastAutomationCatalogPushAt = 0;
+    this.lastAutomationCatalogKey = '';
     this.lastConfigPullAt = 0;
     this.lastTeacherAt = 0;
     this.lastSuccessAt = 0;
@@ -49316,7 +49319,7 @@ class CloudControlPlane {
     this.pendingFeedback = [];
     this.remoteRevision = 0;
     this.remoteUpdatedAt = 0;
-    this.stats = { runtimePushes: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0, cloudRequestsReserved: 0, cloudRequestsBlocked: 0 };
+    this.stats = { runtimePushes: 0, automationCatalogPushes: 0, automationCatalogSkips: 0, automationCatalogFailures: 0, configPulls: 0, configChanges: 0, extendedConfigChanges: 0, teacherCalls: 0, teacherBlocked: 0, teacherErrors: 0, feedbackPushes: 0, brainImports: 0, failures: 0, legacyCredentialMigrations: 0, cloudRequestsReserved: 0, cloudRequestsBlocked: 0 };
     this._load();
   }
 
@@ -49431,10 +49434,46 @@ class CloudControlPlane {
     };
   }
 
+  _automationCatalogKey(snapshot, catalog) {
+    const first = catalog[0] && catalog[0].id || '';
+    const last = catalog[catalog.length - 1] && catalog[catalog.length - 1].id || '';
+    return [finite(snapshot && snapshot.automationCatalogVersion, 0), catalog.length, first, last].join(':');
+  }
+
+  async _maybePushAutomationCatalog(character, snapshot, catalog) {
+    if (!isMerchant(this.runtime) || !Array.isArray(catalog) || !catalog.length) return false;
+    const now = this.now();
+    const key = this._automationCatalogKey(snapshot, catalog);
+    const fresh = this.lastAutomationCatalogPushAt > 0 && now - this.lastAutomationCatalogPushAt < AUTOMATION_CATALOG_REFRESH_MS;
+    if (fresh && key === this.lastAutomationCatalogKey) { this.stats.automationCatalogSkips += 1; return false; }
+    try {
+      await this._post('/api/v3/automation-catalog', {
+        account: this.credentials.account,
+        character: character.name,
+        catalogVersion: finite(snapshot && snapshot.automationCatalogVersion, 0),
+        catalogCount: finite(snapshot && snapshot.automationCatalogCount, catalog.length),
+        catalog
+      }, 20000);
+      this.lastAutomationCatalogPushAt = now;
+      this.lastAutomationCatalogKey = key;
+      this.stats.automationCatalogPushes += 1;
+      return true;
+    } catch (error) {
+      this.stats.automationCatalogFailures += 1;
+      if (this.log) this.log.emit({ component: 'cloud-control-plane', event: 'AUTOMATION_CATALOG_PUSH_FAILED', severity: 'warn', reason: text(error && error.message || error, 300), data: { catalogCount: catalog.length, heartbeatUnaffected: true } });
+      return false;
+    }
+  }
+
   async pushRuntime() {
     const c = characterOf(this.runtime); if (!c || !c.name) return false;
-    const result = await this._post('/api/v3/runtime', { account: this.credentials.account, character: c.name, status: this._runtimeSnapshot() });
-    this.stats.runtimePushes += 1; this.lastRuntimePushAt = this.now(); this.lastSuccessAt = this.now(); return result;
+    const snapshot = this._runtimeSnapshot();
+    const automationCatalog = Array.isArray(snapshot && snapshot.automationCatalog) ? snapshot.automationCatalog : [];
+    if (snapshot && Object.prototype.hasOwnProperty.call(snapshot, 'automationCatalog')) delete snapshot.automationCatalog;
+    const result = await this._post('/api/v3/runtime', { account: this.credentials.account, character: c.name, status: snapshot });
+    this.stats.runtimePushes += 1; this.lastRuntimePushAt = this.now(); this.lastSuccessAt = this.now();
+    await this._maybePushAutomationCatalog(c, snapshot, automationCatalog);
+    return result;
   }
 
   async syncState() {
@@ -49502,8 +49541,8 @@ class CloudControlPlane {
       schemaVersion: 2, mode: 'cloudflare-v3-control-plane-v2', enabledBySettings: !!(this.control && this.control.get('cloud.enabled', false)), ready: !!(this.credentials.baseUrl && this.credentials.writeKey && this.fetchFn), explicitGlobalConfig: this.explicitGlobalConfig, legacyCredentialsMigrated: this.legacyCredentialsMigrated, credentialSource: this.credentialSource,
       configured: { baseUrl: this.credentials.baseUrl || null, account: this.credentials.account, writeKeyPresent: !!this.credentials.writeKey },
       freeTierBudget: readCloudRequestBudget({ root: this.root, character: text(characterOf(this.runtime) && characterOf(this.runtime).name || 'unknown', 80) || 'unknown', now: this.now() }),
-      busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
-      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true, cloudRequestsFailClosedAtFreeTierBudget: true, activeCloudflareEndpointDefaultsAutomatically: true }
+      busy: this.busy, lastRuntimePushAt: this.lastRuntimePushAt, lastAutomationCatalogPushAt: this.lastAutomationCatalogPushAt, lastConfigPullAt: this.lastConfigPullAt, lastTeacherAt: this.lastTeacherAt, lastSuccessAt: this.lastSuccessAt, lastError: this.lastError, remoteRevision: this.remoteRevision, remoteUpdatedAt: this.remoteUpdatedAt, pendingFeedback: this.pendingFeedback.length, stats: { ...this.stats },
+      policies: { secretsNeverExposedInStatus: true, onlyMerchantCallsTeacher: true, cloudFailureDoesNotBlockLocalRuntime: true, automationCatalogUsesDedicatedChannel: true, automationCatalogFailureDoesNotBlockHeartbeat: true, remoteSettingsValidatedLocally: true, remoteExtendedSettingsUseLocalApplyPath: true, brainOutcomeEvaluationOwnedByAlpha25: true, brainHasNoDirectExecutorAccess: true, v2DashboardCredentialsCanMigrateLocally: true, cloudRequestsFailClosedAtFreeTierBudget: true, activeCloudflareEndpointDefaultsAutomatically: true }
     };
   }
 }
