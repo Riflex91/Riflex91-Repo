@@ -18,6 +18,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <DockPanel Grid.Row="0" LastChildFill="False">
@@ -191,6 +193,73 @@
             </Border>
 
             <Border Grid.Row="10" Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel LastChildFill="False">
+                        <StackPanel>
+                            <TextBlock Text="GitHub &amp; Wissenswächter" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="Der Wissenswächter prüft Adventure-Land-Quellen einmal pro Stunde und darf ausschließlich in v5/wissensbasis/datenbank schreiben."
+                                       Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,18,12" />
+                        </StackPanel>
+                        <ToggleButton x:Name="WissenswaechterToggle"
+                                      DockPanel.Dock="Right"
+                                      Content="WISSENSWÄCHTER AN"
+                                      Checked="WissenswaechterToggle_Changed"
+                                      Unchecked="WissenswaechterToggle_Changed"
+                                      HorizontalAlignment="Right" Margin="12,0,0,0" />
+                    </DockPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="GitHub-Anmeldung" Style="{StaticResource MutedText}" />
+                            <TextBlock x:Name="GitHubStateText" Text="Wird geprüft …" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0" />
+                            <TextBlock x:Name="GitHubAccountText" Text="" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Bei GitHub anmelden" Click="GitHubLogin_Click" MinWidth="155" />
+                        <Button Grid.Column="4" Content="Abmelden" Click="GitHubLogout_Click" MinWidth="105" />
+                        <Button Grid.Column="6" Content="Jetzt aktualisieren" Click="WissenswaechterJetzt_Click" MinWidth="150" />
+                    </Grid>
+
+                    <Separator Margin="0,16,0,14" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Status" Style="{StaticResource MutedText}" Margin="0,3" />
+                        <TextBlock x:Name="WissenswaechterStateText" Grid.Column="1" Text="Wartet auf Initialisierung …" Margin="0,3" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="1" Text="Letzter Lauf" Style="{StaticResource MutedText}" Margin="0,3" />
+                        <TextBlock x:Name="WissenswaechterLastRunText" Grid.Row="1" Grid.Column="1" Text="—" Margin="0,3" />
+                        <TextBlock Grid.Row="2" Text="Nächster Lauf" Style="{StaticResource MutedText}" Margin="0,3" />
+                        <TextBlock x:Name="WissenswaechterNextRunText" Grid.Row="2" Grid.Column="1" Text="—" Margin="0,3" />
+                        <TextBlock Grid.Row="3" Text="Datenbankbereich" Style="{StaticResource MutedText}" Margin="0,3" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="v5/wissensbasis/datenbank/**" Margin="0,3" />
+                    </Grid>
+
+                    <TextBlock x:Name="WissenswaechterDetailText"
+                               Text="Stündliche Prüfung · bekannte Quellen + Web-Entdeckung · Git-Historie als Versionsverlauf."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                    <TextBlock Text="Sicherheitsgrenze: Vor jedem Commit und nach jedem Rebase wird geprüft, dass wirklich jede vom Wächter geänderte Datei innerhalb des Datenbankbereichs liegt. Force-Push ist verboten."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="12" Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Text="Sichere Supabase-Anmeldung" FontSize="20" FontWeight="SemiBold" />
                     <TextBlock Text="Der Endpunkt und die Bot-ID sind vorkonfiguriert. Ein vorhandener AIO_V3_DEBUG_TELEMETRY_TOKEN wird beim ersten Start automatisch importiert und per Windows-DPAPI geschützt gespeichert."
