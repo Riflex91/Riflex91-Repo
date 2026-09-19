@@ -80,11 +80,12 @@ Eine neue Phase oder neue Live-Autoritaet ist gesperrt, wenn mindestens eines gi
 - Operator-Deny oder Kill-Switch kann umgangen werden;
 - Shadow/Replay zeigt unerwartete Game Writes;
 - Test-, Fault- oder Certification-Evidence fehlt;
-- PR-Head ist nicht exakt verifiziert oder Branch ist hinter aktuellem `main`.
+- PR-Head ist nicht exakt verifiziert oder Branch ist hinter aktuellem `main`;
+- `v5/bereitschaft/laufzeit-bereitschaft.json` meldet nicht `FREIGEGEBEN`, sobald echter V5-Runtime-Code begonnen werden soll.
 
 ## R0 – Lebende Wissensbasis
 
-**Status:** DONE – laufend gepflegt.
+**Status:** DONE – laufend gepflegt. Der automatische Wissenswaechter wird parallel als Host-Erweiterung nach dem verbindlichen Wissenswaechter-Vertrag aufgebaut, ohne Gameplay-Autoritaet.
 
 Ziele:
 - immutable Roh-Snapshots;
@@ -160,6 +161,12 @@ Lieferobjekte:
 - vollstaendige deutsche V5-Domaenensprache gemaess `DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md`;
 - Migrationsplan fuer bestehende eigene englische V5-Schema-/Statusbezeichner vor Runtime-Nutzung;
 - Mehrfach-Verriegelungs-Invarianten fuer riskante Mutationen;
+- 99+ kanonische Anforderungen und Nachverfolgbarkeit ratifiziert;
+- Gefahrenkatalog und Rest-Risiko-Regel ratifiziert;
+- kritische Zustandsautomaten ratifiziert;
+- Wissenswaechter-/Git-Sicherheitsvertrag ratifiziert;
+- Persistenz-, Determinismus-, Security-, Operator-, Fehlerdomaenen- und Simulatorstrategie ratifiziert;
+- formales Laufzeit-Bereitschaftsgate vorbereitet;
 - ADR-Regeln.
 
 Mindestens neue V5-Regeln:
@@ -178,7 +185,10 @@ Exit Gate:
 - alle 30 V3-Fehler haben eine strukturelle Gegenmassnahme in Roadmap/Verfassung;
 - deutsche Domaenensprache und erlaubte externe Ausnahmen sind abschliessend festgelegt;
 - kritische Zustaende sind geschlossene, fail-closed Modelle;
-- Mehrfach-Verriegelung fuer hohe Risiken ist verbindlich.
+- Mehrfach-Verriegelung fuer hohe Risiken ist verbindlich;
+- Wissenswaechter ist als Evidence-System ohne Gameplay-Autoritaet abgegrenzt;
+- 100-%-Deutsch-Regel fuer uebersetzungspflichtige Sichttexte ist verbindlich; Monster-Ausnahme ist exakt definiert;
+- formale Vor-Runtime-Artefakte sind konsistent und der Bereitschaftsvalidator ist gruen.
 
 ## R3 – Repository, Build, Guards und Host-Grenzen
 

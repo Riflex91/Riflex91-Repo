@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "VOR_IMPLEMENTIERUNG_DEFINIERT",
+  "regel": "Jede Fitness-Regel braucht spaeter einen positiven und einen negativen Nachweis; dokumentierte, aber nicht durchgesetzte Architektur gilt nicht als ausreichend.",
+  "regeln": [
+    {
+      "kennung": "V5-FIT-001",
+      "titel": "Keine Raw Adventure-Land Writes ausserhalb ausfuehrung/",
+      "phase": "R3",
+      "durchsetzung": "STATISCHER_IMPORT_UND_SYMBOL_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-002",
+      "titel": "Keine V3/V4-Runtime-Imports in V5-Laufzeit",
+      "phase": "R3",
+      "durchsetzung": "ABHAENGIGKEITS_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-003",
+      "titel": "Keine Monkey-/Prototype-Patches",
+      "phase": "R3",
+      "durchsetzung": "STATISCHER_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-004",
+      "titel": "Keine verbotenen Layer-Abhaengigkeiten",
+      "phase": "R3",
+      "durchsetzung": "LAYER_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-005",
+      "titel": "Genau ein mutierender Owner pro Capability",
+      "phase": "R7",
+      "durchsetzung": "REGISTRY_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-006",
+      "titel": "Mutierende Capabilities sind default-off",
+      "phase": "R7",
+      "durchsetzung": "CAPABILITY_SCHEMA_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-007",
+      "titel": "Riskante Ausfuehrer akzeptieren nur typisierte Ausfuehrungsfreigaben",
+      "phase": "R9",
+      "durchsetzung": "TYP_UND_RUNTIME_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-008",
+      "titel": "Kritische Collections sind bounded",
+      "phase": "R4",
+      "durchsetzung": "BOUNDED_COLLECTION_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-009",
+      "titel": "Fachkern verwendet keine direkte Systemzeit",
+      "phase": "R4",
+      "durchsetzung": "UHRPORT_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-010",
+      "titel": "Fachkern verwendet keine unkontrollierte Zufallsquelle",
+      "phase": "R4",
+      "durchsetzung": "ZUFALLSPORT_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-011",
+      "titel": "Host/Dashboard/Windows Bridge besitzen keine Raw-Gameplay-Autoritaet",
+      "phase": "R3",
+      "durchsetzung": "API_ALLOWLIST_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-012",
+      "titel": "Knowledge-Sync darf nur freigegebene Wissenspfade aendern",
+      "phase": "R0",
+      "durchsetzung": "GIT_PFAD_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-013",
+      "titel": "Knowledge-Sync darf .github/workflows nicht aendern",
+      "phase": "R0",
+      "durchsetzung": "GIT_PFAD_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-014",
+      "titel": "Alle uebersetzungspflichtigen sichtbaren Texte sind deutsch",
+      "phase": "R3",
+      "durchsetzung": "SICHTTEXT_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-015",
+      "titel": "Englische Monster-Namen sind nur erlaubt, wenn keine offizielle deutsche Spielbezeichnung bekannt ist",
+      "phase": "R6",
+      "durchsetzung": "MONSTER_ANZEIGEKATALOG_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-016",
+      "titel": "Keine englischen Adventure-Land-Rohkennungen leaken in normale UI ausser erlaubter Monster-/Eigennamen-Ausnahme",
+      "phase": "R3",
+      "durchsetzung": "UI_ROHTEXT_LEAK_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-017",
+      "titel": "Kritische Zustandsautomaten haben nur deklarierte Uebergaenge",
+      "phase": "R4",
+      "durchsetzung": "ZUSTANDSMODELL_TEST"
+    },
+    {
+      "kennung": "V5-FIT-018",
+      "titel": "UNKNOWN besitzt keinen Blind-Retry-Uebergang",
+      "phase": "R10",
+      "durchsetzung": "ZUSTANDSMODELL_TEST"
+    },
+    {
+      "kennung": "V5-FIT-019",
+      "titel": "Persistierte nichtterminale Arbeit kann nicht direkt als LAEUFT geladen werden",
+      "phase": "R10",
+      "durchsetzung": "RESTART_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-020",
+      "titel": "Jede produktive mutierende Capability referenziert Action Contract, Invariante und Test",
+      "phase": "R9",
+      "durchsetzung": "NACHVERFOLGBARKEITS_GUARD"
+    },
+    {
+      "kennung": "V5-FIT-021",
+      "titel": "Jede V5-Safety-Invariante besitzt mindestens einen geplanten Durchsetzungs-/Nachweisweg",
+      "phase": "R2",
+      "durchsetzung": "INVARIANTEN_VALIDATOR"
+    },
+    {
+      "kennung": "V5-FIT-022",
+      "titel": "Runtime-Grundstruktur ist blockiert solange Laufzeit-Bereitschaft nicht FREIGEGEBEN ist",
+      "phase": "R2",
+      "durchsetzung": "BEREITSCHAFTS_GUARD"
+    }
+  ]
+}

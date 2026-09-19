@@ -401,3 +401,134 @@ Wer den Code liest, soll ohne mentale Uebersetzung erkennen:
 - wie das Ergebnis bewiesen und gegebenenfalls abgeglichen wird.
 
 **V4 ist der Mindeststandard. V5 muss bei Sprache, Verriegelung, Fehlbedienungsresistenz und Fail-Closed-Verhalten strenger sein.**
+
+
+## 12. Vollstaendig deutsche sichtbare Oberflaeche
+
+Fuer V5 gilt zusaetzlich eine **100-%-Deutsch-Regel fuer jede fuer Nutzer oder Bediener sichtbare Ausgabe**.
+
+Das umfasst ohne Ausnahme:
+
+- Skills/Faehigkeiten und ihre Beschreibungen;
+- Charakterklassen;
+- Gegenstaende, Kategorien und Eigenschaften;
+- Monster-Namen nach der besonderen Monsterregel unten;
+- NPC-Rollen und fachliche Bezeichnungen;
+- Buttons;
+- Menues und Untermenues;
+- Textfelder, Beschriftungen und Platzhalter;
+- Tooltips;
+- Tabellenkoepfe und Spalten;
+- Tabs;
+- Dialoge und Bestaetigungsfenster;
+- Statusanzeigen;
+- Workflow-/Transaktionszustaende;
+- Warnungen, Fehler und Hinweise;
+- HUD;
+- Dashboard;
+- Merchant-/Combat-/Party-/Learning-Oberflaechen;
+- Konfigurationsseiten;
+- sichtbare Logs und Diagnoseansichten;
+- Hilfetexte;
+- Freigabe-/Quarantaene-/Recovery-Anzeigen;
+- sichtbare Einheiten-, Ressourcen- und Aktionsnamen.
+
+### 12.1 Externe englische Rohbezeichner werden uebersetzt
+
+Adventure Land kann intern englische oder technische IDs liefern, zum Beispiel:
+
+```text
+quickpunch
+smart_move
+merchant
+ranger
+compound
+upgrade
+```
+
+Diese IDs bleiben fuer API-Kompatibilitaet intern originalgetreu erhalten, werden aber **nicht als sichtbarer V5-Anzeigetext verwendet**.
+
+V5 fuehrt dafuer einen zentralen deutschen Anzeigekatalog:
+
+```text
+externe Kennung -> deutsche Anzeige
+```
+
+Beispielhaft:
+
+```text
+merchant   -> Haendler
+ranger     -> Waldlaeufer
+upgrade    -> Aufwerten
+compound   -> Zusammenfuegen
+quickpunch -> Schneller Schlag
+```
+
+Die konkrete Uebersetzung eines Spielinhalts wird als versioniertes Wissen behandelt und kann bei Inhaltsaenderungen aktualisiert werden.
+
+### 12.2 Kein englischer Fallback – mit einer engen Monster-Ausnahme
+
+Wenn fuer neuen oder geaenderten Content noch keine deutsche Anzeige existiert, darf V5 grundsaetzlich nicht einfach den englischen Rohwert anzeigen.
+
+**Einzige fachliche Ausnahme: Monster-Namen.**
+
+Fuer Monster gilt folgende Reihenfolge:
+
+1. existiert im Spiel selbst eine offizielle deutsche Monsterbezeichnung, muss V5 genau diese deutsche Bezeichnung verwenden;
+2. existiert im Spiel noch keine offizielle deutsche Monsterbezeichnung, darf V5 den originalen Monster-Namen des Spiels sichtbar anzeigen;
+3. sobald Adventure Land spaeter eine offizielle deutsche Monsterbezeichnung bereitstellt, wechselt V5 nach Wissens-Revalidierung auf diese;
+4. V5 erfindet keine eigene deutsche Monster-Uebersetzung als angeblich offizielle Bezeichnung.
+
+Diese Ausnahme gilt **nur fuer Monster-Namen**, nicht fuer Skills, Klassen, Items, Buttons, Status, Menues, Tooltips, Beschreibungen oder andere sichtbare Texte.
+
+Stattdessen wird eine rein deutsche sichere Darstellung verwendet, zum Beispiel:
+
+```text
+UNBEKANNTE_FAEHIGKEIT -> "Unbekannte Faehigkeit"
+UNBEKANNTER_GEGENSTAND -> "Unbekannter Gegenstand"
+UNBEKANNTER_ZUSTAND -> "Unbekannter Zustand"
+MONSTER_OHNE_DEUTSCHE_SPIELBEZEICHNUNG -> originaler Monster-Name des Spiels
+```
+
+Die technische Rohkennung bleibt intern in Evidence/Diagnosedaten verfuegbar, wird aber nicht ungefiltert in die Bedienoberflaeche geleakt.
+
+### 12.3 Zentraler Anzeigenamen- und Textkatalog
+
+Sichtbare Texte duerfen nicht beliebig in Komponenten verteilt werden.
+
+V5 benoetigt einen zentralen, versionierten Katalog fuer:
+
+- feste UI-Texte;
+- Status-/Fehlertexte;
+- Skills;
+- Klassen;
+- Gegenstaende;
+- Monster/NPCs;
+- Events/Quests;
+- Systemaktionen;
+- Tooltips und Beschreibungen.
+
+Dadurch koennen wir automatisiert pruefen, ob die deutsche Abdeckung vollstaendig ist.
+
+### 12.4 100-%-Abdeckung als Freigabegate
+
+Keine UI-/Dashboard-/HUD-/Operator-Funktion gilt als fertig, wenn sichtbare englische V5- oder Adventure-Land-Texte auftreten.
+
+Vor Live-Freigabe muss gelten:
+
+```text
+deutsche_sichttext_abdeckung = 100 % der uebersetzungspflichtigen Sichttexte
+unerlaubte_englische_rohtext_leaks = 0
+fehlende_erforderliche_uebersetzungen = 0
+monster_englisch_ohne_offizielle_deutsche_spielbezeichnung = erlaubt
+```
+
+Neue Adventure-Land-Inhalte duerfen die Abdeckung nicht still verschlechtern. Der Wissenswaechter markiert neu entdeckte, noch nicht uebersetzte sichtbare Inhalte als offene Uebersetzungsaufgabe.
+
+### 12.5 Tests gegen englische Leaks
+
+R3/R11 muessen automatisierte Tests vorsehen, die sichtbare Oberflaechen und Textkataloge auf nicht erlaubte englische Leaks pruefen.
+
+Zulaessig bleiben der Produktname `Adventure Land`, weitere zentral begruendete Eigennamen/Markennamen sowie die oben definierte Monster-Ausnahme. Fuer Monster muss der Anzeigekatalog zusaetzlich speichern, ob eine offizielle deutsche Spielbezeichnung existiert.
+
+**Grundsatz:** Was der Benutzer in V5 sieht, liest sich deutsch. Rohsprache des Spiels ist Implementierungsdetail, keine Oberflaechensprache.

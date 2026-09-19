@@ -1,0 +1,814 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "RATIFIZIERUNG_OFFEN",
+  "zusammenfassung": {
+    "ausV4": 55,
+    "neuV5": 34,
+    "gesamt": 89
+  },
+  "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
+  "invarianten": [
+    {
+      "kennung": "V5-ALT-001",
+      "herkunft": "V4-INV-001",
+      "aussage": "Eine mutierende Capability hat genau einen aktiven Owner.",
+      "geplanteDurchsetzung": "Registry + Start-Guard + Test",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-002",
+      "herkunft": "V4-INV-002",
+      "aussage": "Direkte Adventure-Land-Schreibaufrufe existieren nur in ausfuehrung/.",
+      "geplanteDurchsetzung": "Static Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-003",
+      "herkunft": "V4-INV-003",
+      "aussage": "Fachmodule kennen Game Writes nur über typisierte Ports/Anfragen.",
+      "geplanteDurchsetzung": "Dependency Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-004",
+      "herkunft": "V4-INV-004",
+      "aussage": "Kein Monkey-/Prototype-Patching als Erweiterungsmechanismus.",
+      "geplanteDurchsetzung": "Static Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-005",
+      "herkunft": "V4-INV-005",
+      "aussage": "Runtime Composition erbt nicht von historischen Feature-/Alpha-Runtimes.",
+      "geplanteDurchsetzung": "Composition Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-006",
+      "herkunft": "V4-INV-006",
+      "aussage": "Jede Mutation besitzt einen expliziten Outcome-Verifier.",
+      "geplanteDurchsetzung": "Contract + Runtime Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-007",
+      "herkunft": "V4-INV-007",
+      "aussage": "API-Return/Promise allein darf keinen fachlichen COMMIT erzeugen.",
+      "geplanteDurchsetzung": "Verifier Contract + Tests",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-008",
+      "herkunft": "V4-INV-008",
+      "aussage": "Nicht-terminale persistierte Arbeit wird nach Restart niemals blind fortgesetzt.",
+      "geplanteDurchsetzung": "Persistence Loader",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-009",
+      "herkunft": "V4-INV-009",
+      "aussage": "Restart setzt langlebige Arbeit auf RECONCILE_REQUIRED.",
+      "geplanteDurchsetzung": "Workflow Runtime",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-010",
+      "herkunft": "V4-INV-010",
+      "aussage": "Irreversible/mehrittige Arbeit persistiert vor der ersten Raw Action.",
+      "geplanteDurchsetzung": "Transaction Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-011",
+      "herkunft": "V4-INV-011",
+      "aussage": "Jeder Workflow besitzt Idempotency Key und stabile Workflow-ID.",
+      "geplanteDurchsetzung": "Workflow Schema",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-012",
+      "herkunft": "V4-INV-012",
+      "aussage": "Retries sind bounded: Versuche, Zeit, Backoff und Circuit sind Pflicht.",
+      "geplanteDurchsetzung": "Retry Policy",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-013",
+      "herkunft": "V4-INV-013",
+      "aussage": "Circuits sind fachlich/scoped und dürfen unabhängige Capabilities nicht global sperren.",
+      "geplanteDurchsetzung": "Circuit Registry",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-014",
+      "herkunft": "V4-INV-014",
+      "aussage": "Jede Ressource besitzt genau einen Lock-Owner zur Zeit.",
+      "geplanteDurchsetzung": "Resource Lock Manager",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-015",
+      "herkunft": "V4-INV-015",
+      "aussage": "Preemption ist nur an deklarierten SafePreemptionPoints zulässig.",
+      "geplanteDurchsetzung": "Scheduler",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-016",
+      "herkunft": "V4-INV-016",
+      "aussage": "Eine Transaktion wird nicht mitten in einem unteilbaren Commit abgebrochen.",
+      "geplanteDurchsetzung": "Scheduler + Transaction Phase",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-017",
+      "herkunft": "V4-INV-017",
+      "aussage": "Stop/Shutdown sperrt zuerst neue Arbeit und reconciliert laufende Arbeit bounded.",
+      "geplanteDurchsetzung": "Run Control",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-018",
+      "herkunft": "V4-INV-018",
+      "aussage": "Priorität besteht aus PriorityClass + numerischem Rang; nicht nur aus einer globalen Zahl.",
+      "geplanteDurchsetzung": "Scheduler Contract",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-019",
+      "herkunft": "V4-INV-019",
+      "aussage": "Aging/Fairness verhindert Starvation bei dauerhaft niedrigerer Priorität.",
+      "geplanteDurchsetzung": "Scheduler",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-020",
+      "herkunft": "V4-INV-020",
+      "aussage": "Safety/Notfall darf normale Arbeit preempten; normale Arbeit darf Safety nie preempten.",
+      "geplanteDurchsetzung": "Priority Rules",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-021",
+      "herkunft": "V4-INV-021",
+      "aussage": "Unknown/Quarantined/Changed Content ist fail-closed.",
+      "geplanteDurchsetzung": "Content Safety",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-022",
+      "herkunft": "V4-INV-022",
+      "aussage": "Learning darf harte Safety- oder Authority-Grenzen nicht selbst lockern.",
+      "geplanteDurchsetzung": "Learning Port",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-023",
+      "herkunft": "V4-INV-023",
+      "aussage": "Persistiertes Wissen ist PlanningEvidence, keine ExecutionAuthority.",
+      "geplanteDurchsetzung": "Evidence Types",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-024",
+      "herkunft": "V4-INV-024",
+      "aussage": "Live-Ausführung revalidiert physische/zeitkritische Preconditions unmittelbar vor Admission.",
+      "geplanteDurchsetzung": "Admission Token",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-025",
+      "herkunft": "V4-INV-025",
+      "aussage": "Jede zeitabhängige Evidenz trägt Freshness/ObservedAt/Source.",
+      "geplanteDurchsetzung": "Evidence Schema",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-026",
+      "herkunft": "V4-INV-026",
+      "aussage": "Party-/Character-Ziele sind an aktuelle Identität/Roster-Epoch gebunden.",
+      "geplanteDurchsetzung": "Group Truth",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-027",
+      "herkunft": "V4-INV-027",
+      "aussage": "Physische Item-Reservierung referenziert eine konkrete Item-Identität, nicht nur Name/Level.",
+      "geplanteDurchsetzung": "Inventory Ledger",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-028",
+      "herkunft": "V4-INV-028",
+      "aussage": "Sell/Bank/Upgrade/Compound/Delivery lesen dieselbe zentrale Item-Disposition.",
+      "geplanteDurchsetzung": "Ledger Port",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-029",
+      "herkunft": "V4-INV-029",
+      "aussage": "Kein destruktiver Item-Workflow ohne Workspace-/Capacity-Preflight.",
+      "geplanteDurchsetzung": "Resource Preconditions",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-030",
+      "herkunft": "V4-INV-030",
+      "aussage": "Production endet erst nach verifiziertem Recipient Settlement.",
+      "geplanteDurchsetzung": "Production Workflow",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-031",
+      "herkunft": "V4-INV-031",
+      "aussage": "Bereits verarbeitete irreversible Evidence wird nach Restart dedupliziert.",
+      "geplanteDurchsetzung": "Persistent Cursor",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-032",
+      "herkunft": "V4-INV-032",
+      "aussage": "Runtime besitzt Gameplay-Autorität; Host besitzt nur Prozess-/Browser-Lifecycle und Transport.",
+      "geplanteDurchsetzung": "Capability Boundary",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-033",
+      "herkunft": "V4-INV-033",
+      "aussage": "Host-/Dashboard-Code besitzt keine Gameplay-Policy.",
+      "geplanteDurchsetzung": "Dependency + API Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-034",
+      "herkunft": "V4-INV-034",
+      "aussage": "Host-Restart ist kein Gameplay-Recovery-Nachweis.",
+      "geplanteDurchsetzung": "Host State Machine",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-035",
+      "herkunft": "V4-INV-035",
+      "aussage": "Nach Restart ist Fresh-Run + Live-Reobservation Pflicht.",
+      "geplanteDurchsetzung": "Recovery Contract",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-036",
+      "herkunft": "V4-INV-036",
+      "aussage": "Host-Bridge besitzt kein generisches Remote-evaluate/invoke.",
+      "geplanteDurchsetzung": "Allowlist Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-037",
+      "herkunft": "V4-INV-037",
+      "aussage": "Secrets gelangen nicht in Gameplay-Bundle, Telemetrie oder Alert-Payload.",
+      "geplanteDurchsetzung": "Build/Schema Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-038",
+      "herkunft": "V4-INV-038",
+      "aussage": "Alert-Transport blockiert Gameplay niemals.",
+      "geplanteDurchsetzung": "Async Host Boundary",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-039",
+      "herkunft": "V4-INV-039",
+      "aussage": "Kritische Alerts werden hostseitig persistiert, bevor sie im Bot geclaimt werden.",
+      "geplanteDurchsetzung": "Persist-before-claim",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-040",
+      "herkunft": "V4-INV-040",
+      "aussage": "Queues, Histories und Recorder sind capacity-bounded.",
+      "geplanteDurchsetzung": "Bounded Collection Contract",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-041",
+      "herkunft": "V4-INV-041",
+      "aussage": "Telemetrie/Observation besitzt standardmäßig actionAuthority:false.",
+      "geplanteDurchsetzung": "Capability Contract",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-042",
+      "herkunft": "V4-INV-042",
+      "aussage": "Health/Supervisor darf Recovery-Autorität nur reduzieren oder explizit begrenzt aktivieren; nie Safety umgehen.",
+      "geplanteDurchsetzung": "Recovery Policy",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-043",
+      "herkunft": "V4-INV-043",
+      "aussage": "Ein fehlender Status-/Health-Port wird in sicherheitskritischer Reconciliation nicht als CLEAN interpretiert.",
+      "geplanteDurchsetzung": "Fail-closed Reconcile",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-044",
+      "herkunft": "V4-INV-044",
+      "aussage": "Cross-Modul-Abhängigkeiten erfolgen nur über Verträge/Ports, nicht über fremde Runtime-Objekte.",
+      "geplanteDurchsetzung": "Dependency Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-045",
+      "herkunft": "V4-INV-045",
+      "aussage": "Persistenz ist schema-versioniert und migrationsfähig.",
+      "geplanteDurchsetzung": "Persistence Schema",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-046",
+      "herkunft": "V4-INV-046",
+      "aussage": "Corrupt/oversized/unreadable sicherheitskritischer Persistenzzustand fail-closed.",
+      "geplanteDurchsetzung": "Persistence Guard",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-047",
+      "herkunft": "V4-INV-047",
+      "aussage": "Jede langlebige Operation meldet Phase, Owner, Ressourcen, Deadline, Checkpoint und Abbruchgrund.",
+      "geplanteDurchsetzung": "Workflow Schema",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-048",
+      "herkunft": "V4-INV-048",
+      "aussage": "Kein Plan darf durch kleinen Score-Noise ständig wechseln.",
+      "geplanteDurchsetzung": "Hysteresis/Replan Policy",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-049",
+      "herkunft": "V4-INV-049",
+      "aussage": "Movement/Travel-Return ist kein Arrival-Beweis.",
+      "geplanteDurchsetzung": "Travel Verifier",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-050",
+      "herkunft": "V4-INV-050",
+      "aussage": "Moving-Target-Work benötigt motion-aware Freshness.",
+      "geplanteDurchsetzung": "Freshness Policy",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-051",
+      "herkunft": "V4-INV-051",
+      "aussage": "Raw Game Target ist nicht automatisch fachliche Target-Ownership.",
+      "geplanteDurchsetzung": "Combat Ownership",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-052",
+      "herkunft": "V4-INV-052",
+      "aussage": "Operator Deny überschreibt autonome Fallbacks.",
+      "geplanteDurchsetzung": "Policy Resolution",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-053",
+      "herkunft": "V4-INV-053",
+      "aussage": "Default-Off/ACK-Gates dürfen nicht durch indirekte Module umgangen werden.",
+      "geplanteDurchsetzung": "Capability Admission",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-054",
+      "herkunft": "V4-INV-054",
+      "aussage": "Jede automatische Autorität ist im Status sichtbar und erklärbar.",
+      "geplanteDurchsetzung": "Health/Telemetry Contract",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-ALT-055",
+      "herkunft": "V4-INV-055",
+      "aussage": "Certification Evidence ist unveränderlich/verifizierbar und darf Downtime nicht durch Sample-Gaps verstecken.",
+      "geplanteDurchsetzung": "Certification Chain",
+      "ratifizierungsStatus": "ZU_RATIFIZIEREN",
+      "v5Entscheidung": null,
+      "begruendung": null
+    },
+    {
+      "kennung": "V5-INV-001",
+      "herkunft": "V5_NEU",
+      "aussage": "Alle von uns kontrollierten Runtime-Domaenenbezeichner sind deutsch; externe Namen bleiben an Systemgrenzen.",
+      "geplanteDurchsetzung": "Namensraum-Guard + Review",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-002",
+      "herkunft": "V5_NEU",
+      "aussage": "Eine riskante Mutation besitzt mehrere unabhaengige Verriegelungen; kein einzelner einfacher Fachfehler darf allein bis zum Raw Game Write reichen.",
+      "geplanteDurchsetzung": "Admission + typisierte Freigabe + Execution Guard + Negativtests",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-003",
+      "herkunft": "V5_NEU",
+      "aussage": "Mutierende Capabilities sind standardmaessig AUS und benoetigen explizite Freigabe.",
+      "geplanteDurchsetzung": "Capability Registry + Default-Deny",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-004",
+      "herkunft": "V5_NEU",
+      "aussage": "Der Ausfuehrer akzeptiert fuer riskante Mutationen nur eine typisierte, nicht abgelaufene Ausfuehrungsfreigabe.",
+      "geplanteDurchsetzung": "Typsystem + Runtime Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-005",
+      "herkunft": "V5_NEU",
+      "aussage": "Eine Ausfuehrungsfreigabe ist an Auftrag, Capability, Owner, Ressourcen-Epoche, Preconditions und Ablaufzeit gebunden.",
+      "geplanteDurchsetzung": "Freigabe-Schema + Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-006",
+      "herkunft": "V5_NEU",
+      "aussage": "Langlebige Ressourcen-Leases verwenden Epoche/Fencing; alte Owner koennen nach Lease-Verlust nicht weiter mutieren.",
+      "geplanteDurchsetzung": "Ressourcenverwaltung",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-007",
+      "herkunft": "V5_NEU",
+      "aussage": "Zeit, Zufall, ID- und Sequenzbildung sind fuer fachlich relevante Pfade injizierbar und replay-faehig.",
+      "geplanteDurchsetzung": "Uhr-/Zufalls-/Kennungs-Ports",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-008",
+      "herkunft": "V5_NEU",
+      "aussage": "Kritische Zustandsmaschinen sind geschlossen und exhaustiv; unbekannte neue Zustaende fuehren niemals zu einem ausfuehrenden Default.",
+      "geplanteDurchsetzung": "Typsystem + exhaustive checks",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-009",
+      "herkunft": "V5_NEU",
+      "aussage": "Wissensdrift kann eine betroffene Capability automatisch auf QUARANTAENE setzen.",
+      "geplanteDurchsetzung": "Wissensdrift-Waechter + Capability Registry",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-010",
+      "herkunft": "V5_NEU",
+      "aussage": "Automatisch gesammeltes Internetwissen ist Evidence/Planning-Wissen und niemals unmittelbar Execution Authority.",
+      "geplanteDurchsetzung": "Wissensgrenze + Admission",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-011",
+      "herkunft": "V5_NEU",
+      "aussage": "Der Wissenswaechter darf keine Bot-Runtime-, Safety-, Workflow- oder Host-Codepfade automatisch veraendern.",
+      "geplanteDurchsetzung": "Git-Pfad-Allowlist + CI",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-012",
+      "herkunft": "V5_NEU",
+      "aussage": "Automatische Wissens-Synchronisierung schreibt nur ueber einen dedizierten Wissensbranch/PR-Pfad; Main wird nur nach Pfad-/Schema-/Quellenpruefung aktualisiert.",
+      "geplanteDurchsetzung": "Git-Schutzworkflow",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-013",
+      "herkunft": "V5_NEU",
+      "aussage": "GitHub-Anmeldedaten des Wissenswaechters werden nicht im Repo, in Logs oder Telemetrie gespeichert und lokal verschluesselt.",
+      "geplanteDurchsetzung": "DPAPI + Redaction",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-014",
+      "herkunft": "V5_NEU",
+      "aussage": "Wissensquellen erhalten Autoritaetsklasse, Abrufzeit, Hash und Historie; Community-Hinweise koennen offizielle Wahrheit nicht still ueberschreiben.",
+      "geplanteDurchsetzung": "Wissensschema + Konfliktpruefung",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-015",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Wissensfakt wird bei Aenderung historisiert/superseded und nicht still ueberschrieben.",
+      "geplanteDurchsetzung": "Wissenslebenszyklus",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-016",
+      "herkunft": "V5_NEU",
+      "aussage": "Der Wissenswaechter arbeitet stündlich fuer bekannte Quellen; Quellenentdeckung ist rotierend und separat budgetiert.",
+      "geplanteDurchsetzung": "Zeitplan + Budget",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-017",
+      "herkunft": "V5_NEU",
+      "aussage": "Roh-Webinhalte werden nicht ungeprueft als Repository-Wahrheit oder ausfuehrbarer Inhalt gespeichert.",
+      "geplanteDurchsetzung": "Inhaltsnormalisierung + Speichergrenze",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-018",
+      "herkunft": "V5_NEU",
+      "aussage": "Keine V5-Runtime-Implementierung beginnt, bevor der formale Laufzeit-Bereitschaftsstatus FREIGEGEBEN ist.",
+      "geplanteDurchsetzung": "Readiness Guard + CI",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-019",
+      "herkunft": "V5_NEU",
+      "aussage": "Jede produktive Capability ist rueckverfolgbar von Wissen/Anforderung ueber Invariante und Test bis zum Live-Nachweis.",
+      "geplanteDurchsetzung": "Nachverfolgbarkeitsmatrix",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-020",
+      "herkunft": "V5_NEU",
+      "aussage": "Jede Safety-Invariante besitzt mindestens einen Durchsetzungs- oder Nachweisweg; rein dokumentierte Safety gilt nicht als abgeschlossen.",
+      "geplanteDurchsetzung": "Invarianten-Validator",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-021",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Bediener kann Autoritaet reduzieren oder stoppen, aber harte Safety-Invarianten nicht umgehen.",
+      "geplanteDurchsetzung": "Bediener-Richtlinie",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-022",
+      "herkunft": "V5_NEU",
+      "aussage": "Dashboard und Windows Bridge besitzen keine direkte Gameplay-Autoritaet.",
+      "geplanteDurchsetzung": "Host-/Bridge-Grenze",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-023",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Fehler in einer Domaene reduziert nur die noetige Failure Domain und stoppt nicht automatisch sichere, unabhaengige Domaenen.",
+      "geplanteDurchsetzung": "Fehlerdomaenen-Steuerung",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-024",
+      "herkunft": "V5_NEU",
+      "aussage": "Schema-Upgrades sind vor Einsatz migrations-, rollback- und inkompatibilitaetsgetestet.",
+      "geplanteDurchsetzung": "Persistenz-Migrationsgate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-025",
+      "herkunft": "V5_NEU",
+      "aussage": "Build, Git-SHA, Dependency-Lock, Schema-Version und Laufzeitkonfiguration sind in Zertifizierungs-Evidence eindeutig gebunden.",
+      "geplanteDurchsetzung": "Build-Provenance",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-026",
+      "herkunft": "V5_NEU",
+      "aussage": "Safety-kritischer Code wird neben normalen Tests auch durch Negativ-, Fault-, Property- und soweit sinnvoll Mutation-Tests abgesichert.",
+      "geplanteDurchsetzung": "Teststrategie",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-027",
+      "herkunft": "V5_NEU",
+      "aussage": "Kein neuer oder geaenderter Knowledge-Fact wird still in eine laufende irreversible Transaktion injiziert.",
+      "geplanteDurchsetzung": "Workflow-Snapshot + Freshness/Replan",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-028",
+      "herkunft": "V5_NEU",
+      "aussage": "Wissensaktualisierung und Gameplay-Laufzeit sind entkoppelt; Ausfall des Wissenswaechters stoppt oder steuert laufendes Gameplay nicht.",
+      "geplanteDurchsetzung": "Asynchrone Grenze",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-029",
+      "herkunft": "V5_NEU",
+      "aussage": "Bei widerspruechlichen hochautoritativen Quellen wird der betroffene Wissensbereich auf WIDERSPRUCH gesetzt und nicht automatisch als bestaetigt publiziert.",
+      "geplanteDurchsetzung": "Widerspruchspruefung",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-030",
+      "herkunft": "V5_NEU",
+      "aussage": "Die erste mutierende V5-Vertikalscheibe verwendet eine geringriskante, gut beobachtbare und reversible/leicht ausgleichbare Action; kein Bank-, Trade-, Upgrade-, Compound- oder Transferpfad.",
+      "geplanteDurchsetzung": "Vertical-Slice Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vor Runtime-Start eingefuehrte V5-Haertung"
+    },
+    {
+      "kennung": "V5-INV-031",
+      "herkunft": "V5_NEU",
+      "aussage": "Jeder fuer Nutzer oder Bediener sichtbare V5-Text ist deutsch; einzige Inhaltsausnahme: Monster-Namen duerfen original angezeigt werden, solange das Spiel selbst keine offizielle deutsche Monsterbezeichnung bereitstellt.",
+      "geplanteDurchsetzung": "Zentraler Anzeigekatalog + UI-Sprachguard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Vollstaendig deutsche V5-Oberflaeche"
+    },
+    {
+      "kennung": "V5-INV-032",
+      "herkunft": "V5_NEU",
+      "aussage": "Fehlende Uebersetzung darf niemals auf den englischen Rohwert zurueckfallen; Ausnahme sind ausschliesslich Monster-Namen ohne offizielle deutsche Spielbezeichnung.",
+      "geplanteDurchsetzung": "Anzeigekatalog + Missing-Translation Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Kein englischer Leak bei neuem Content"
+    },
+    {
+      "kennung": "V5-INV-033",
+      "herkunft": "V5_NEU",
+      "aussage": "Sichtbare Skill-, Klassen-, Item-, NPC-, Event-, Quest-, Status- und Aktionsnamen sowie Monster-Anzeigen stammen aus einem zentralen versionierten Anzeigekatalog; Monster speichern zusaetzlich die offizielle deutsche Spielbezeichnung oder die erlaubte Originalname-Ausnahme.",
+      "geplanteDurchsetzung": "Anzeigekatalog + Knowledge Sync",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Konsistente deutsche Fachsprache"
+    },
+    {
+      "kennung": "V5-INV-034",
+      "herkunft": "V5_NEU",
+      "aussage": "Live-Freigabe verlangt 100 Prozent deutsche Abdeckung aller uebersetzungspflichtigen Sichttexte und null unerlaubte englische Rohtext-Leaks; originale Monster-Namen ohne offizielle deutsche Spielbezeichnung sind explizit zulaessig.",
+      "geplanteDurchsetzung": "UI-Sprachabdeckungs-Test + Release Gate",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Benutzerforderung: alles Sichtbare deutsch"
+    }
+  ]
+}

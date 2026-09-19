@@ -12,7 +12,9 @@
       "blocksRuntime": false,
       "exit": [
         "Knowledge-Validator gruen",
-        "Drift/Revalidation etabliert"
+        "Drift/Revalidation etabliert",
+        "Wissenswaechter-Vertrag festgelegt",
+        "Knowledge-Sync ist gameplay-entkoppelt"
       ]
     },
     {
@@ -41,7 +43,12 @@
         "30 V3-Fehler abgedeckt",
         "Layer/Ownership konfliktfrei",
         "Deutsche V5-Domaenensprache verbindlich und bestehende eigene Runtime-Schemata migrationsbereit",
-        "Mehrfach-Verriegelung fuer hohe Risiken als Invariante festgeschrieben"
+        "Mehrfach-Verriegelung fuer hohe Risiken als Invariante festgeschrieben",
+        "Kanonische Anforderungen/Gefahren/Zustandsautomaten ratifiziert",
+        "Wissenswaechter- und Git-Sicherheitsvertrag ratifiziert",
+        "Vor-Runtime-Spezifikation ratifiziert",
+        "Bereitschaftsvalidator konsistent",
+        "Deutsche Sichttextregel inklusive Monster-Ausnahme verbindlich"
       ]
     },
     {
@@ -57,7 +64,9 @@
         "Headless no-write runtime",
         "Namensraum-Guard fuer deutsche V5-Runtime-Bezeichner soweit statisch pruefbar",
         "Mutierende Capabilities default-off und nur mit typisierter Ausfuehrungsfreigabe",
-        "Bypass-Negativtests der Mehrfach-Verriegelung gruen"
+        "Bypass-Negativtests der Mehrfach-Verriegelung gruen",
+        "Knowledge-Sync-Pfadguard + Negativtests",
+        "UI-Sichttextguard + Monster-Ausnahme getestet"
       ]
     },
     {

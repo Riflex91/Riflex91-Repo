@@ -1,0 +1,1460 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-19",
+  "status": "KANONISCHE_BASISLINE_VOR_RUNTIME",
+  "anzahl": 102,
+  "anforderungen": [
+    {
+      "kennung": "V5-ANF-WISSEN-001",
+      "titel": "Wissen wird mit stabiler Kennung, Quelle, Abrufzeit, Hash, Vertrauen und Driftstatus gespeichert.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-001"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-014",
+        "V5-INV-015"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-002",
+      "titel": "Alte Fakten bleiben historisch erhalten; Aenderungen werden explizit superseded/archiviert.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-002"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-015"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-003",
+      "titel": "Community- und unbekannte Quellen koennen offizielle Fakten nicht automatisch ueberschreiben.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-003"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-014",
+        "V5-INV-029"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-004",
+      "titel": "Bekannte hochrelevante Quellen werden standardmaessig einmal pro Stunde geprueft.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-004"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-016"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-005",
+      "titel": "Neue Quellen werden rotierend entdeckt und nach Autoritaet bewertet.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-003"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-014",
+        "V5-INV-016"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-006",
+      "titel": "Automatische Wissensupdates duerfen nur erlaubte Wissenspfade veraendern.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-005"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-011",
+        "V5-INV-012"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-007",
+      "titel": "Automatisch gesammeltes Wissen ist niemals unmittelbare Ausfuehrungsautoritaet.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-006"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-010",
+        "V5-ALT-023"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-008",
+      "titel": "Widerspruechliche hochautoritative Quellen erzeugen einen expliziten Widerspruchszustand.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-007"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-029"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-009",
+      "titel": "Wissensdrift kann betroffene Capabilities in Quarantaene versetzen.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-008"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-009"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-010",
+      "titel": "Wissenswaechter-Ausfall beeinflusst laufendes Gameplay nicht.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-009"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-028"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-001",
+      "titel": "Alle von uns kontrollierten Runtime-Domaenenbegriffe sind deutsch.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-010"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-001"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-002",
+      "titel": "Jede mutierende Capability besitzt genau einen aktiven Owner.",
+      "phase": "R7",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-011"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-001"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-003",
+      "titel": "Direkte Adventure-Land-Schreibaufrufe existieren nur in der Ausfuehrungsschicht.",
+      "phase": "R9",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-012"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-002",
+        "V5-ALT-003"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-004",
+      "titel": "Module kommunizieren nur ueber typisierte Ports und Verträge.",
+      "phase": "R7",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-013"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-044"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-005",
+      "titel": "Monkey-/Prototype-Patches und historische Runtime-Vererbung sind verboten.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-014"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-004",
+        "V5-ALT-005"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-006",
+      "titel": "Definition Truth, Observation und Reconciled Truth sind getrennte Typen/Schichten.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-015"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-009"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-007",
+      "titel": "Action Channels werden als Scheduler-Ressourcen serialisiert.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-016"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-002"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-008",
+      "titel": "Langlebige Ressourcen verwenden Lease-Epoche/Fencing.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-017"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-006"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-009",
+      "titel": "Kritische Zustandsmaschinen sind geschlossen und exhaustiv.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-018"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-008"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-010",
+      "titel": "Jede Capability ist von Wissen bis Live-Nachweis rueckverfolgbar.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-019"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-019"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-011",
+      "titel": "Keine V5-Runtime-Implementierung beginnt ohne formale Laufzeitbereitschaft.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-020"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-018"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-ARCH-012",
+      "titel": "V3/V4 werden nur nach expliziter Migrationsentscheidung portiert.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-021"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-005"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-001",
+      "titel": "Mutierende Capabilities sind standardmaessig deaktiviert.",
+      "phase": "R7",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-022"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-003"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-002",
+      "titel": "Riskante Ausfuehrung benoetigt typisierte, nicht abgelaufene Freigabe.",
+      "phase": "R9",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-023"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-004",
+        "V5-INV-005"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-003",
+      "titel": "Riskante Mutationen besitzen mehrere unabhaengige Verriegelungen.",
+      "phase": "R9",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-024"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-002"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-004",
+      "titel": "Live-Preconditions werden unmittelbar vor jeder Mutation revalidiert.",
+      "phase": "R9",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-025"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-024"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-005",
+      "titel": "Unbekannter, geaenderter oder quarantinierter Content ist fail-closed.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-026"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-021"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-006",
+      "titel": "Learning kann Safety oder Authority niemals lockern.",
+      "phase": "R18",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-027"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-022"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-007",
+      "titel": "Operator-Deny hat Vorrang vor autonomen Fallbacks.",
+      "phase": "R7",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-028"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-052",
+        "V5-INV-021"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-008",
+      "titel": "Host, Dashboard und Windows Bridge besitzen keine Gameplay-Policy oder Raw-Write-Autoritaet.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-029"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-032",
+        "V5-ALT-033",
+        "V5-ALT-036",
+        "V5-INV-022"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-009",
+      "titel": "Fehlende sicherheitskritische Health-Daten werden nicht als gesund interpretiert.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-030"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-043"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-010",
+      "titel": "Keine sicherheitskritische Funktion besitzt gefaehrliche stille Defaultwerte.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-031"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-002"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-011",
+      "titel": "Stop sperrt zuerst neue Arbeit und behandelt In-Flight-Transaktionen kontrolliert.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-032"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-017",
+        "V5-ALT-029"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-012",
+      "titel": "Safety-/Notfallarbeit kann normale Arbeit preempten, nie umgekehrt.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-033"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-020"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-013",
+      "titel": "Secrets gelangen nicht in Repo, Gameplay-Bundle, Telemetrie oder Alerts.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-034"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-037",
+        "V5-INV-013"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-014",
+      "titel": "Fehler werden auf die kleinstmoegliche Fehlerdomaene begrenzt.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-035"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-023"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-SICH-015",
+      "titel": "Kein Knowledge-/Config-Update darf eine laufende irreversible Transaktion still umdeuten.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-036"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-027"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-001",
+      "titel": "Persistenz ist schema-versioniert und migrationsfaehig.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-037"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-045",
+        "V5-INV-024"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-002",
+      "titel": "Corrupt/oversized/unreadable kritische Persistenz fail-closed.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-038"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-046"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-003",
+      "titel": "Irreversible Arbeit persistiert Intent vor der ersten Raw Action.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-039"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-010"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-004",
+      "titel": "Nichtterminale Arbeit wird nach Restart nie blind fortgesetzt.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-040"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-008",
+        "V5-ALT-009"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-005",
+      "titel": "Irreversible Evidence wird nach Restart persistent dedupliziert.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-041"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-031"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-006",
+      "titel": "Persistenzmigrationen werden vor Live-Einsatz vorwaerts, rueckwaerts und inkompatibel getestet.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-042"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-024"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-007",
+      "titel": "Kritische externe Zustellung nutzt persistente Inbox/Outbox oder aequivalenten Claim-Mechanismus.",
+      "phase": "R5",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-043"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-039"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-PERSIST-008",
+      "titel": "Queues, Histories und Recorder sind hart begrenzt.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-044"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-040"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-DET-001",
+      "titel": "Fachlich relevante Zeit stammt aus einem injizierbaren Uhr-Port.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-045"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-DET-002",
+      "titel": "Fachlich relevante Zufallsentscheidungen stammen aus einem injizierbaren Zufalls-Port.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-046"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-DET-003",
+      "titel": "Kennungen und Sequenzen sind replay-faehig deterministisch erzeugbar.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-047"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-DET-004",
+      "titel": "Gleiche Evidence + Clock + Seed erzeugt denselben Plan/Eventstrom.",
+      "phase": "R4",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-048"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TRANS-001",
+      "titel": "API-/Promise-Erfolg allein erzeugt keinen fachlichen Commit.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-049"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TRANS-002",
+      "titel": "UNKNOWN ist eigener Zustand und fuehrt zu Beobachtung/Abgleich statt Blind-Retry.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-050"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-002"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TRANS-003",
+      "titel": "Partial Completion wird explizit diff-basiert reconciliiert.",
+      "phase": "R10",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-051"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-006"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TRANS-004",
+      "titel": "Retries haben Versuchs-, Zeit-, Backoff- und Circuit-Grenzen.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-052"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-012",
+        "V5-ALT-013"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TRANS-005",
+      "titel": "Preemption ist nur an deklarierten sicheren Punkten erlaubt.",
+      "phase": "R8",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-053"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-015",
+        "V5-ALT-016"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-001",
+      "titel": "Jeder Corepfad besitzt Unit- und Negativtests.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-054"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-002",
+      "titel": "Scheduler/Locks/State Machines besitzen Property-/Model-Tests.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-055"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-003",
+      "titel": "Crash/Disconnect/Timeout/Partial-Completion werden fault-injected.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-056"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-004",
+      "titel": "Safety-kritischer Code wird soweit sinnvoll Mutation-Tests unterzogen.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-057"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-005",
+      "titel": "Replay ist deterministisch und golden-fixture-faehig.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-058"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-007"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-006",
+      "titel": "Architektur-Fitness-Tests verhindern verbotene Abhaengigkeiten und Writes.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-059"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-020"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-007",
+      "titel": "Shadow muss null unerwartete Game Writes beweisen.",
+      "phase": "R12",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-060"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-030"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-TEST-008",
+      "titel": "Controlled Live startet minimal und mit geringriskanter Action.",
+      "phase": "R12",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-061"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-030"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-001",
+      "titel": "Build ist an Git-SHA, Dependency-Lock, Schema-Version und Konfiguration gebunden.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-062"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-025"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-002",
+      "titel": "Dashboard-Ausfall beeinflusst Gameplay nicht.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-063"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-038"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-003",
+      "titel": "Kritische Alerts werden vor Claim persistent gemacht.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-064"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-039"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-004",
+      "titel": "Jede automatische Autoritaet ist im Status sichtbar und erklaerbar.",
+      "phase": "R11",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-065"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-054"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-005",
+      "titel": "Zertifizierungsevidence ist unveraenderlich und erkennt Sample-Gaps.",
+      "phase": "R19",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-066"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-055"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-006",
+      "titel": "24/7-Freigabe erfolgt stufenweise ueber Shadow, Controlled Live, Canary, 1h, 24h, 72h, 7d.",
+      "phase": "R19",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-067"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-055"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-007",
+      "titel": "Laufzeitbereitschaft wird maschinenlesbar mit zehn Pflichtbereichen gefuehrt.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-020"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-018"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-OPS-008",
+      "titel": "Bedieneraktionen sind auditierbar und koennen keine Safety umgehen.",
+      "phase": "R7",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-028"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-021"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-001",
+      "titel": "Alle Item-verbrauchenden Merchantfunktionen lesen dieselbe zentrale Gegenstandsdisposition.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-068"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-028"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-002",
+      "titel": "Physische Itemreservierung verwendet konkrete Identitaet statt nur Name/Level.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-069"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-027"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-003",
+      "titel": "Destruktive Itemworkflows besitzen Workspace-/Capacity-Preflight.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-070"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-029"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-004",
+      "titel": "Bankoperationen besitzen accountweite Ownership/Lease.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-071"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-006"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-005",
+      "titel": "Marktaktionen verwenden frische Listing-/RID-Evidence.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-072"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-024"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-006",
+      "titel": "Production endet erst nach final verifiziertem Empfaengersettlement.",
+      "phase": "R15",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-073"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-030"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-007",
+      "titel": "Upgrade/Compound/Exchange behandeln q/Placeholder als laufende Transaktion.",
+      "phase": "R15",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-074"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-006"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MERCHANT-008",
+      "titel": "Merchant-Scheduler verhindert Starvation durch Prioritaetsklassen und Aging.",
+      "phase": "R13",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-075"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-018",
+        "V5-ALT-019"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MULTI-001",
+      "titel": "Character-Kommunikation ist versioniert, dedupliziert, TTL-begrenzt und workflow-korreliert.",
+      "phase": "R14",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-076"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-008"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MULTI-002",
+      "titel": "Party-/Character-Ziele sind an aktuelle Roster-Epoche gebunden.",
+      "phase": "R14",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-077"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MULTI-003",
+      "titel": "Stale Character erhaelt keine neue Authority.",
+      "phase": "R14",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-078"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-006"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MULTI-004",
+      "titel": "Verlorene, doppelte und umsortierte Nachrichten werden fault-injected.",
+      "phase": "R14",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-079"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-MULTI-005",
+      "titel": "Account Coordinator und Character Agent besitzen getrennte Verantwortungen.",
+      "phase": "R14",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-080"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-001"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WORLD-001",
+      "titel": "Movement Return ist kein Arrival-Beweis.",
+      "phase": "R16",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-081"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-049"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WORLD-002",
+      "titel": "Moving Targets benoetigen bewegungsbezogene Freshness.",
+      "phase": "R16",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-082"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-050"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WORLD-003",
+      "titel": "Raw Target ist nicht automatisch fachliche Target-Ownership.",
+      "phase": "R16",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-083"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-051"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-WORLD-004",
+      "titel": "Event-/Quest-Drift zwischen Planung und Action sperrt oder replanned die Aktion.",
+      "phase": "R17",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-084"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-009"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-LERN-001",
+      "titel": "Learning darf nur Vorschlaege/Scoring innerhalb harter Grenzen optimieren.",
+      "phase": "R18",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-027"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-022"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-LERN-002",
+      "titel": "Es existiert immer ein sicherer deterministischer Betrieb ohne Learning.",
+      "phase": "R18",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-085"
+      ],
+      "invariantenKennungen": [
+        "V5-ALT-022"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-LERN-003",
+      "titel": "Learning darf weder Operator-Deny noch Quarantaene noch Budgets umgehen.",
+      "phase": "R18",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-086"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-021"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-LERN-004",
+      "titel": "Neue Lernmodelle werden Canary/Champion-Challenger-artig isoliert freigegeben.",
+      "phase": "R18",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-087"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-026"
+      ],
+      "nachweis": "TEST_UND_REVIEW"
+    },
+    {
+      "kennung": "V5-ANF-UI-001",
+      "titel": "Jede sichtbare V5-Oberflaeche verwendet deutsche Texte; originale Monster-Namen sind nur erlaubt, solange das Spiel selbst keine offizielle deutsche Monsterbezeichnung bereitstellt.",
+      "phase": "R2",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-089"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-031",
+        "V5-INV-034"
+      ],
+      "nachweis": "UI_SPRACHABDECKUNG_TEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-002",
+      "titel": "Adventure-Land-Skills werden in V5 mit deutschem Anzeigenamen und deutscher Beschreibung dargestellt.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-090"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-031",
+        "V5-INV-033"
+      ],
+      "nachweis": "ANZEIGEKATALOG_TEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-003",
+      "titel": "Klassen, Gegenstaende, NPCs, Events, Quests, Aktionen und sichtbare Statuswerte besitzen deutsche Anzeigenamen; Monster verwenden die offizielle deutsche Spielbezeichnung, falls vorhanden, sonst den originalen Monster-Namen.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-091"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-033"
+      ],
+      "nachweis": "ANZEIGEKATALOG_TEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-004",
+      "titel": "Buttons, Menues, Tabs, Textfelder, Platzhalter, Tooltips, Tabellen, Dialoge, HUD, Dashboard und Konfiguration sind vollstaendig deutsch.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-089"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-031",
+        "V5-INV-034"
+      ],
+      "nachweis": "UI_SNAPSHOT_UND_STRING_GUARD"
+    },
+    {
+      "kennung": "V5-ANF-UI-005",
+      "titel": "Fehlende Uebersetzungen verwenden keinen englischen Rohwert als sichtbaren Fallback; Ausnahme sind Monster-Namen ohne offizielle deutsche Spielbezeichnung.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-092"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-032"
+      ],
+      "nachweis": "NEGATIVTEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-006",
+      "titel": "Neue vom Wissenswaechter entdeckte sichtbare Spielinhalte erzeugen eine deutsche Uebersetzungsaufgabe und koennen bis zur Uebersetzung mit deutschem Platzhalter dargestellt werden.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-093"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-032",
+        "V5-INV-033"
+      ],
+      "nachweis": "WISSENSDRIFT_TEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-007",
+      "titel": "Normale Bedienoberflaechen zeigen keine externen technischen Rohkennungen; diese bleiben nur in maschinenlesbarer Evidence oder expliziten Entwicklerexporten.",
+      "phase": "R3",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-094"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-031"
+      ],
+      "nachweis": "UI_LEAK_TEST"
+    },
+    {
+      "kennung": "V5-ANF-UI-008",
+      "titel": "Release-Gate verlangt 100 Prozent deutsche Abdeckung aller uebersetzungspflichtigen Sichttexte und null unerlaubte englische Rohtext-Leaks; die definierte Monster-Ausnahme gilt nicht als Leak.",
+      "phase": "R19",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-095"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-034"
+      ],
+      "nachweis": "RELEASE_GATE"
+    },
+    {
+      "kennung": "V5-ANF-UI-009",
+      "titel": "Der Monster-Anzeigekatalog bevorzugt eine offizielle deutsche Spielbezeichnung und verwendet nur bei deren Fehlen den originalen Monster-Namen; bei spaeterer offizieller Uebersetzung wird nach Revalidierung umgestellt.",
+      "phase": "R6",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-096"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-031",
+        "V5-INV-033"
+      ],
+      "nachweis": "MONSTER_ANZEIGEKATALOG_TEST"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-011",
+      "titel": "Automatische Wissensaktualisierung darf main nicht direkt ohne serverseitiges Pruef-/Freigabegate beschreiben; Zielpfad ist dedizierter Knowledge-Branch plus PR/CI.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-097"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-012"
+      ],
+      "nachweis": "GIT_SYNC_NEGATIVTEST_UND_PR_GATE"
+    },
+    {
+      "kennung": "V5-ANF-WISSEN-012",
+      "titel": "GitHub-Autorisierung des Wissenswaechters besitzt nachweislich nur minimal erforderliche Rechte und ist auf das erlaubte Repository begrenzt.",
+      "phase": "R0",
+      "prioritaet": "MUSS",
+      "status": "OFFEN",
+      "risikoKennungen": [
+        "V5-GEF-098"
+      ],
+      "invariantenKennungen": [
+        "V5-INV-013"
+      ],
+      "nachweis": "AUTH_BERECHTIGUNGSNACHWEIS"
+    }
+  ]
+}
