@@ -116,6 +116,8 @@ test('Automation exposes the full item-policy workflow and inventory right-click
   assert.match(DASHBOARD_HTML, /economy\.itemPermissions/);
   assert.match(DASHBOARD_HTML, /Item-Datenbank/);
   assert.match(DASHBOARD_HTML, /NPC \+0/);
+  // SELL in Automation is a capability grant: gear evaluation and economy
+  // still decide whether and when the item is finally sold.
   assert.match(DASHBOARD_HTML, /kein Sofortverkauf/);
   assert.match(DASHBOARD_HTML, /Verkaufsfreigabe nicht aufgehoben|Verkaufsfreigabe/);
 });
