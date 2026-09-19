@@ -10,6 +10,57 @@ const MERCHANT_PRODUCTION_CONTROLLER_MODE = 'merchant-production-controller-v1';
 function n(value, fallback = null) { const x = Number(value); return Number.isFinite(x) ? x : fallback; }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
+function deriveAutonomousExchangeDemands(input = {}) {
+  const now = n(input.now, Date.now());
+  const character = input.character || {};
+  const gameData = input.gameData || {};
+  const contentDrift = input.contentDrift || null;
+  const explicit = (Array.isArray(input.explicitDemands) ? input.explicitDemands : [])
+    .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > now))
+    .map((row) => clone(row));
+  const byItem = new Map(explicit.map((row) => [String(row.item), row]));
+  const ledgerRows = Array.isArray(input.ledgerRows) ? input.ledgerRows : [];
+  const bankRows = Array.isArray(input.bankRows) ? input.bankRows : [];
+  const inventory = Array.isArray(character.items) ? character.items : [];
+  const names = new Set();
+
+  for (const row of ledgerRows) {
+    if (row && row.character === character.name && row.disposition === 'EXCHANGE' && row.name) names.add(String(row.name));
+  }
+  for (const row of bankRows) {
+    const meta = row && gameData.items && gameData.items[row.name];
+    if (row && row.name && row.level === 0 && meta && Number(meta.e) > 0) names.add(String(row.name));
+  }
+
+  const quantity = (rows, name, bank = false) => rows.reduce((sum, row) => {
+    if (!row || String(row.name || '') !== name || Number(row.level || 0) !== 0) return sum;
+    return sum + Math.max(1, Math.floor(n(bank ? row.quantity : row.q, 1)));
+  }, 0);
+
+  for (const name of [...names].sort()) {
+    if (byItem.has(name)) continue;
+    const meta = gameData.items && gameData.items[name];
+    const required = Math.max(0, Math.floor(n(meta && meta.e, 0)));
+    if (!meta || required <= 0 || meta.cash || meta.soulbound || meta.offering || meta.throw || meta.ignore) continue;
+    if (contentDrift && typeof contentDrift.requiresRevalidation === 'function') {
+      try { if (contentDrift.requiresRevalidation('items', name)) continue; } catch (_) { continue; }
+    }
+    const local = quantity(inventory, name, false);
+    const bank = quantity(bankRows, name, true);
+    if (local + bank < required) continue;
+    byItem.set(name, {
+      item: name,
+      target: meta.quest ? String(meta.quest) : 'exchange',
+      reason: local >= required ? 'AUTONOMOUS_LEDGER_EXCHANGE' : 'AUTONOMOUS_BANK_EXCHANGE',
+      required,
+      available: local + bank,
+      expiresAt: now + 60000,
+      autonomous: true
+    });
+  }
+  return [...byItem.values()];
+}
+
 function installMerchantProduction(runtime, options = {}) {
   if (!runtime) throw new Error('runtime required');
   if (runtime.__merchantProductionController) return runtime.__merchantProductionController;
@@ -117,13 +168,27 @@ function installMerchantProduction(runtime, options = {}) {
     bankCatalog.observe(c);
     const task = currentTask();
     const productionTaskTarget = task && task.owner === 'PRODUCTION' ? clone(task.metadata || {}) : null;
+    const gameData = runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {};
+    const bankStatus = bankCatalog.status();
+    const ledgerRows = runtime.inventoryLedger && typeof runtime.inventoryLedger.list === 'function'
+      ? runtime.inventoryLedger.list(1000)
+      : [];
+    const exchangeDemands = deriveAutonomousExchangeDemands({
+      now: runtime.now(),
+      character: c,
+      gameData,
+      contentDrift: runtime.contentDrift,
+      explicitDemands: Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : [],
+      ledgerRows,
+      bankRows: bankStatus && bankStatus.usable && bankStatus.snapshot && Array.isArray(bankStatus.snapshot.rows) ? bankStatus.snapshot.rows : []
+    });
     return {
       character: c,
-      bankCatalog: bankCatalog.status(),
+      bankCatalog: bankStatus,
       productionTaskTarget,
-      exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
+      exchangeDemands,
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
-      gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
+      gameData,
       contentDrift: runtime.contentDrift,
       inCombat: inCombat(),
       economyEmergency: typeof runtime._alpha20EconomyEmergency === 'function' ? runtime._alpha20EconomyEmergency() : false,
@@ -321,6 +386,8 @@ function installMerchantProduction(runtime, options = {}) {
       failureCooldownMs: state.failureCooldownMs,
       taskCoordinator: taskCoordinator() && typeof taskCoordinator().status === 'function' ? taskCoordinator().status() : null,
       nonPreemptiveTaskOwner: 'PRODUCTION',
+      autonomousExchangeDemand: true,
+      autonomousBankMaterialRecovery: true,
       explicitAckRequired: CONTROLLED_MERCHANT_PRODUCTION_ACK
     };
   }
@@ -364,4 +431,4 @@ function installMerchantProduction(runtime, options = {}) {
   return controller;
 }
 
-module.exports = { installMerchantProduction, MERCHANT_PRODUCTION_CONTROLLER_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK };
+module.exports = { installMerchantProduction, MERCHANT_PRODUCTION_CONTROLLER_MODE, CONTROLLED_MERCHANT_PRODUCTION_ACK, deriveAutonomousExchangeDemands };
