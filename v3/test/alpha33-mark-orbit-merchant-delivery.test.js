@@ -1336,6 +1336,52 @@ test('Alpha33 Farmer pickup telemetry excludes temporarily rejected loot', () =>
   assert.ok(payload.inventoryPressure > 0 && payload.inventoryPressure < 0.1);
 });
 
+test('planned Farmer collection route starts potion bundle before taking rendezvous lock', () => {
+  let acquireCalls = 0;
+  const started = [];
+  const runtime = {
+    now: () => 170000,
+    log: quietLog(),
+    root: {
+      character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0, items: [], isize: 42 },
+      parent: { entities: {} }
+    },
+    p0PotionPolicy4500: {
+      startOpportunisticService(names, reason) {
+        started.push({ names: names.slice(), reason });
+        return { started: true, reason: 'OPPORTUNISTIC_POTION_BATCH_STARTED', chainId: 'potion-route-1' };
+      }
+    },
+    merchantTaskCoordinator: {
+      acquire() {
+        acquireCalls += 1;
+        return { acquired: true };
+      }
+    }
+  };
+  const hotfix = new Alpha33MarkOrbitMerchantDelivery(runtime);
+  const candidate = {
+    names: ['My_Ranger1', 'My_Ranger2'],
+    pickupEntryCount: 5,
+    pickupQuantity: 30,
+    map: 'main',
+    x: 100,
+    y: 100
+  };
+
+  const startedRoute = hotfix._startCollectionRoute(candidate, { ready: true, reason: 'PICKUP_ENTRY_BATCH' });
+
+  assert.equal(startedRoute, false);
+  assert.equal(hotfix.collectionRoute, null);
+  assert.equal(acquireCalls, 0, 'collection must not take the rendezvous lock before potion service');
+  assert.deepEqual(started, [{
+    names: ['My_Ranger1', 'My_Ranger2'],
+    reason: 'FARMER_COLLECTION_ROUTE'
+  }]);
+  assert.equal(hotfix.stats.opportunisticPotionRouteStarts, 1);
+  assert.equal(hotfix.status().policies.plannedFarmerRouteBundlesPotionServiceFirst, true);
+});
+
 test('production live services wires Alpha33 before same-version early return', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/production-live-services.js'), 'utf8');
   assert.match(source, /installAlpha33MarkOrbitMerchantDelivery/);

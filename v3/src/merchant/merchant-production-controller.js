@@ -124,6 +124,12 @@ function installMerchantProduction(runtime, options = {}) {
       exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
+      anniversaryActive: !!(
+        runtime.root
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S)
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S).anniversary
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S).anniversary.active
+      ),
       contentDrift: runtime.contentDrift,
       inCombat: inCombat(),
       economyEmergency: typeof runtime._alpha20EconomyEmergency === 'function' ? runtime._alpha20EconomyEmergency() : false,
@@ -141,7 +147,11 @@ function installMerchantProduction(runtime, options = {}) {
 
   function evaluate() {
     if (!isMerchant()) return null;
-    state.lastPlan = planner.plan(input());
+    const currentInput = input();
+    const lockedOutput = currentInput.productionTaskTarget && currentInput.productionTaskTarget.output;
+    state.lastPlan = String(lockedOutput || '') === 'sixcake'
+      ? (planner.planMaterialConsolidation(currentInput) || planner.plan(currentInput))
+      : planner.plan(currentInput);
     return clone(state.lastPlan);
   }
 
@@ -220,6 +230,13 @@ function installMerchantProduction(runtime, options = {}) {
         state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
         return;
       }
+      if (step.kind === ProductionStepKind.CRAFT && step.recipe && step.recipe.quest) {
+        const travel = await travelNamed(step.recipe.quest);
+        if (!travel || travel.ok !== true) {
+          state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.reason || 'CRAFT_QUEST_NPC_TRAVEL_FAILED', travel: clone(travel) } };
+          return;
+        }
+      }
       if (step.kind === ProductionStepKind.EXCHANGE) {
         const travel = await travelNamed(step.destination || 'exchange');
         if (!travel || travel.ok !== true) {
@@ -269,6 +286,12 @@ function installMerchantProduction(runtime, options = {}) {
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
+      const consolidationPlan = planner.planMaterialConsolidation(input());
+      if (consolidationPlan) {
+        state.lastPlan = clone(consolidationPlan);
+        schedule(consolidationPlan);
+        return clone(consolidationPlan);
+      }
       const exchangePlan = planner.planExchange(input(), plan.reservations || {});
       if (exchangePlan) {
         state.lastPlan = clone(exchangePlan);

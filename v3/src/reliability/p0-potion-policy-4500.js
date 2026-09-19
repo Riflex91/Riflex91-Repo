@@ -831,6 +831,82 @@ function installStatusPolicy(runtime) {
   return true;
 }
 
+function opportunisticPotionInput(runtime) {
+  const c = characterOf(runtime) || {};
+  let reports = [];
+  try {
+    const status = runtime.partyTelemetry && typeof runtime.partyTelemetry.status === 'function'
+      ? runtime.partyTelemetry.status()
+      : null;
+    reports = Array.isArray(status && status.reports) ? status.reports : [];
+  } catch (_) {
+    reports = [];
+  }
+  return {
+    merchant: {
+      name: c.name || null,
+      ctype: c.ctype || null,
+      map: c.map || null,
+      x: finite(c.real_x != null ? c.real_x : c.x),
+      y: finite(c.real_y != null ? c.real_y : c.y),
+      inventory: inventoryOf(runtime)
+    },
+    reports,
+    standOpen: !!c.stand,
+    deliveryDistance: runtime.controlledMerchantService && finite(runtime.controlledMerchantService.maxDeliveryDistance, 400)
+  };
+}
+
+function startOpportunisticPotionService(runtime, names = [], reason = 'PLANNED_FARMER_ROUTE') {
+  const planner = runtime && runtime.merchantServicePlanner;
+  if (!runtime || !planner) return { started: false, reason: 'MERCHANT_SERVICE_PLANNER_UNAVAILABLE' };
+  const state = potionServiceChainState(runtime);
+  if (state.active) return { started: false, reason: 'POTION_SERVICE_CHAIN_ALREADY_ACTIVE', chainId: state.active.id };
+
+  const wanted = new Set((Array.isArray(names) ? names : [names]).map(String).filter(Boolean));
+  if (!wanted.size) return { started: false, reason: 'NO_ROUTE_FARMERS' };
+  const input = opportunisticPotionInput(runtime);
+  const fresh = freshSafeFarmerReports(input, planner).filter((row) => wanted.has(String(row.name || '')));
+  const lastReleaseAt = finite(state.lastRelease && state.lastRelease.maxSourceReportAt, 0);
+  const targets = fresh
+    .filter((report) => finite(report.at, 0) > lastReleaseAt)
+    .map((report) => ({
+      name: String(report.name),
+      sourceReportAt: finite(report.at),
+      target: reportTarget(report),
+      deliveries: batchDeliveriesForReport(report),
+      minPotionCount: Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp')),
+      distance: Infinity
+    }))
+    .filter((row) => row.deliveries.length)
+    .slice(0, MAX_BATCH_FARMERS);
+  if (!targets.length) return { started: false, reason: 'ROUTE_FARMERS_ALREADY_SUPPLIED_OR_TELEMETRY_STALE' };
+
+  const metadata = {
+    p0PotionBundle: true,
+    p0PotionPolicy4500: true,
+    adaptivePotionDelivery: true,
+    p0PotionBatch: true,
+    opportunisticRouteService: true,
+    routeReason: String(reason || 'PLANNED_FARMER_ROUTE'),
+    batchPolicy: 'PLANNED_FARMER_ROUTE_TOPS_ROUTE_TARGETS_TO_4500'
+  };
+  const seedPlan = {
+    target: clone(targets[0].target),
+    metadata
+  };
+  const chain = startPotionServiceBatch(runtime, planner, seedPlan, targets, metadata, fresh.length);
+  if (!chain) return { started: false, reason: 'OPPORTUNISTIC_POTION_BATCH_START_REJECTED' };
+  state.stats.opportunisticRouteStarts = (state.stats.opportunisticRouteStarts || 0) + 1;
+  publishPotionServiceChain(runtime);
+  return {
+    started: true,
+    reason: 'OPPORTUNISTIC_POTION_BATCH_STARTED',
+    chainId: chain.id,
+    targets: targets.map((row) => ({ name: row.name, deliveries: clone(row.deliveries), sourceReportAt: row.sourceReportAt }))
+  };
+}
+
 function installP0PotionPolicy4500(runtime) {
   if (!runtime) throw new Error('runtime required');
   installPlannerPolicy(runtime);
@@ -839,6 +915,7 @@ function installP0PotionPolicy4500(runtime) {
   installStatusPolicy(runtime);
   runtime.p0PotionPolicy4500 = {
     mode: P0_POTION_POLICY_4500_MODE,
+    startOpportunisticService: (names, reason) => startOpportunisticPotionService(runtime, names, reason),
     farmerTarget: POTION_TARGET_COUNT,
     potionRequestBelow: POTION_REQUEST_BELOW,
     lowWatermark: POTION_LOW_WATERMARK,
@@ -848,6 +925,7 @@ function installP0PotionPolicy4500(runtime) {
     topUpAllFreshFarmersTo: POTION_TARGET_COUNT,
     maxBatchFarmers: MAX_BATCH_FARMERS,
     aggregatePurchaseBeforeDeliveryRound: true,
+    opportunisticFarmerRouteBundling: true,
     buyOnlyCurrentDeliveryDeficit: false,
     noPurchasedReserve: true,
     existingStockMayRemainForNextFarmer: true,

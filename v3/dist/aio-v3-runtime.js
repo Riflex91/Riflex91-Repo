@@ -13984,27 +13984,50 @@ class GearProgressionEvaluator {
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
-          // Upgradeable feeder gear is only considered "future Farmer gear" if
-          // it becomes meaningful by +5. That gives the executor a bounded,
-          // explicit risk horizon instead of protecting arbitrary +6..+12 hopes.
+          // Keep the Farmer's safe baseline goal bounded at +5. Mutation
+          // execution is still stepwise and risk-gated one level at a time.
           const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
-            ? FARMER_UPGRADE_MAX_LEVEL
+            ? Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL)
             : this.maxProbeLevel;
           const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
           if (!meaningful) continue;
+
+          // Score the item exactly as it exists now as well as the first future
+          // level that would be meaningful. This lets the mutation risk gate ask
+          // the same question at +0, +1, +5, +8, ...: "is the safe item already
+          // useful to the party, and is another roll worth risking it?"
+          const observedScore = scoreItem(candidate.meta, observedLevel, character.ctype);
+          const observedDelta = scoreImprovement(current.score, observedScore, character.ctype, this.minImprovementRatio);
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
-          // Farmer upgrade gear is a bounded progression path, not an
-          // incremental delivery path. Once an upgradeable item is meaningful
-          // now OR becomes meaningful by +5, finish that exact physical item to
-          // the established Farmer +5 cap before it may become delivery-ready.
+
+          // The goal is the stable Farmer baseline (+5), while execution remains
+          // one mutation at a time. Keeping those concepts separate lets the
+          // risk gate re-evaluate every +level without shrinking the actual goal.
           const projectedFarmerUpgrade = isFarmerTarget
             && !!candidate.meta.upgrade
             && observedLevel < FARMER_UPGRADE_MAX_LEVEL
             && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
-          const progressionTargetLevel = projectedFarmerUpgrade ? FARMER_UPGRADE_MAX_LEVEL : meaningful.level;
-          const row = { slot, current, meaningful, improvement, survivalImprovement, speedImprovement, progressionTargetLevel };
+          const progressionTargetLevel = projectedFarmerUpgrade
+            ? FARMER_UPGRADE_MAX_LEVEL
+            : meaningful.level;
+          const nextMutationLevel = projectedFarmerUpgrade
+            ? Math.min(progressionTargetLevel, observedLevel + 1)
+            : meaningful.level;
+          const row = {
+            slot,
+            current,
+            meaningful,
+            observedScore,
+            observedDelta,
+            observedMeaningful: observedDelta.meaningful === true,
+            improvement,
+            survivalImprovement,
+            speedImprovement,
+            progressionTargetLevel,
+            nextMutationLevel
+          };
           if (isFarmerTarget
             && progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
@@ -14016,12 +14039,16 @@ class GearProgressionEvaluator {
               item: candidate.item.name,
               observedLevel,
               targetLevel: progressionTargetLevel,
+              nextMutationLevel: row.nextMutationLevel,
               firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
               improvement,
               survivalImprovement,
               upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
+              observedMeaningful: row.observedMeaningful,
+              observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
+              observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
               reason: 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL'
             };
             if (!existingProtection
@@ -14060,6 +14087,13 @@ class GearProgressionEvaluator {
           currentLevel: best.current.level,
           currentScore: best.current.score.total,
           targetScore: best.meaningful.score.total,
+          observedScore: best.observedScore && best.observedScore.total,
+          observedMeaningful: best.observedMeaningful === true,
+          observedImprovement: finite(best.observedDelta && best.observedDelta.improvement, 0),
+          observedSurvivalImprovement: finite(best.observedDelta && best.observedDelta.survivalImprovement, 0),
+          observedSpeedImprovement: finite(best.observedDelta && best.observedDelta.speedImprovement, 0),
+          firstMeaningfulLevel: best.meaningful.level,
+          nextMutationLevel: best.nextMutationLevel,
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
           speedImprovement: best.speedImprovement,
@@ -14225,8 +14259,9 @@ class GearProgressionEvaluator {
       goals: this.goals.size,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
-      futureProtectionMode: 'UPGRADE_TO_PLUS5_AND_COMPOUND_PROBE_TO_MAX_LEVEL',
-      farmerUpgradePotentialMaxLevel: FARMER_UPGRADE_MAX_LEVEL,
+      futureProtectionMode: 'STEPWISE_MUTATION_RISK_MANAGED_TO_MAX_PROBE_LEVEL',
+      farmerUpgradeProgression: 'ONE_LEVEL_THEN_REEVALUATE',
+      farmerUpgradePotentialMaxLevel: this.maxProbeLevel,
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       merchantPrimaryGearStat: 'speed',
@@ -36457,6 +36492,14 @@ function boundedOptions(options = {}) {
     // Upgrade: 3 -> 30, Compound: 2 -> 20.
     maxUpgradeAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxUpgradeAttemptsPerWindow, 30)))),
     maxCompoundAttemptsPerWindow: Math.max(1, Math.min(200, Math.floor(finite(options.maxCompoundAttemptsPerWindow, 20)))),
+    merchantScrollBatchMax: Math.max(1, Math.min(200, Math.floor(finite(options.merchantScrollBatchMax, 80)))),
+    speculativeMinChanceNoSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceNoSpare, 0.60))),
+    speculativeMinChanceOneSpare: Math.max(0, Math.min(1, finite(options.speculativeMinChanceOneSpare, 0.35))),
+    speculativeMinChanceManySpares: Math.max(0, Math.min(1, finite(options.speculativeMinChanceManySpares, 0.20))),
+    mutationChanceTimeoutMs: Math.max(1000, Math.min(10000, finite(options.mutationChanceTimeoutMs, 4000))),
+    mutationRiskHoldMs: Math.max(10000, Math.min(10 * 60 * 1000, finite(options.mutationRiskHoldMs, 60000))),
+    mutationRiskLevelStep: Math.max(0, Math.min(0.15, finite(options.mutationRiskLevelStep, 0.05))),
+    bankRecoveryBatchMaxRows: Math.max(1, Math.min(30, Math.floor(finite(options.bankRecoveryBatchMaxRows, 12)))),
     gearDeliveryDistance: Math.max(50, Math.min(800, finite(options.gearDeliveryDistance, 400))),
     maxUpgradeLevel: Math.max(0, Math.min(7, Math.floor(finite(options.maxUpgradeLevel, 7)))),
     maxCompoundLevel: Math.max(0, Math.min(10, Math.floor(finite(options.maxCompoundLevel, 10)))),
@@ -36594,6 +36637,9 @@ function initialStats() {
     realCompoundsCommitted: 0,
     realCompoundFailedRollsVerified: 0,
     scrollPurchases: 0,
+    mutationChanceChecks: 0,
+    mutationRiskHolds: 0,
+    riskHeldPartyDeliveriesPreferred: 0,
     namedServiceTravels: 0,
     failedSafe: 0
   };
@@ -36689,6 +36735,13 @@ class Alpha27CombatMerchantConvergence {
           mutationAttemptWindowMs: this.options.mutationAttemptWindowMs,
           maxUpgradeAttemptsPerWindow: this.options.maxUpgradeAttemptsPerWindow,
           maxCompoundAttemptsPerWindow: this.options.maxCompoundAttemptsPerWindow,
+          merchantScrollBatchMax: this.options.merchantScrollBatchMax,
+          speculativeMinChanceNoSpare: this.options.speculativeMinChanceNoSpare,
+          speculativeMinChanceOneSpare: this.options.speculativeMinChanceOneSpare,
+          speculativeMinChanceManySpares: this.options.speculativeMinChanceManySpares,
+          mutationRiskHoldMs: this.options.mutationRiskHoldMs,
+          mutationRiskLevelStep: this.options.mutationRiskLevelStep,
+          bankRecoveryBatchMaxRows: this.options.bankRecoveryBatchMaxRows,
           gearDeliveryDistance: this.options.gearDeliveryDistance,
           maxUpgradeLevel: this.options.maxUpgradeLevel,
           maxCompoundLevel: this.options.maxCompoundLevel
@@ -37291,6 +37344,186 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
     return { executed: false, committed: false, reason };
   }
 
+  _normalizeMutationChance(response) {
+    const raw = response && response.chance != null
+      ? Number(response.chance)
+      : response && response.data && response.data.chance != null
+        ? Number(response.data.chance)
+        : null;
+    if (!Number.isFinite(raw) || raw < 0) return null;
+    if (raw <= 1) return raw;
+    if (raw <= 100) return raw / 100;
+    return null;
+  }
+
+  _mutationReplacementStock(tx) {
+    const inputIndexes = new Set(transactionInputs(tx).map((row) => Number(row.index)));
+    const level = levelOf(tx);
+    let localUnits = 0;
+    for (let index = 0; index < inventoryOf(this.root).length; index += 1) {
+      const item = inventoryOf(this.root)[index];
+      if (!item || inputIndexes.has(index) || String(item.name || '') !== String(tx.item || '') || levelOf(item) < level) continue;
+      if (item.locked || item.l || item.special || item.p) continue;
+      localUnits += Math.max(1, Math.floor(finite(item.q, 1)));
+    }
+
+    let bankUnits = 0;
+    try {
+      const catalog = this.runtime.merchantBankCatalog;
+      const status = catalog && typeof catalog.status === 'function' ? catalog.status() : null;
+      const rows = status && status.usable === true && status.snapshot && Array.isArray(status.snapshot.rows)
+        ? status.snapshot.rows
+        : [];
+      for (const row of rows) {
+        if (!row || String(row.name || '') !== String(tx.item || '') || levelOf(row) < level) continue;
+        bankUnits += Math.max(1, Math.floor(finite(row.quantity, 1)));
+      }
+    } catch (_) {}
+
+    const spareUnits = localUnits + bankUnits;
+    const spareEquivalents = String(tx.type || '').toUpperCase() === 'COMPOUND'
+      ? Math.floor(spareUnits / 3)
+      : spareUnits;
+    return { localUnits, bankUnits, spareUnits, spareEquivalents };
+  }
+
+  _mutationPartyCurrentValue(tx) {
+    const c = characterOf(this.runtime);
+    const gear = this.runtime.gearProgression;
+    if (!c || !gear || typeof gear.list !== 'function') return { usefulNow: false, goals: [] };
+    const inputIndexes = new Set(transactionInputs(tx).map((row) => Number(row.index)));
+    let goals = [];
+    try {
+      goals = gear.list(256).filter((goal) => (
+        goal
+        && String(goal.sourceCharacter || '') === String(tx.character || c.name || '')
+        && String(goal.character || '') !== String(tx.character || c.name || '')
+        && String(goal.item || '') === String(tx.item || '')
+        && levelOf({ level: goal.observedLevel }) === levelOf(tx)
+        && (
+          (goal.sourceIndex != null && inputIndexes.has(Number(goal.sourceIndex)))
+          || goal.sourceIndex == null
+        )
+      ));
+    } catch (_) {
+      goals = [];
+    }
+    const useful = goals.filter((goal) => goal.observedMeaningful === true);
+    useful.sort((a, b) => finite(b.observedSurvivalImprovement, 0) - finite(a.observedSurvivalImprovement, 0)
+      || finite(b.observedImprovement, 0) - finite(a.observedImprovement, 0));
+    return {
+      usefulNow: useful.length > 0,
+      goals: useful.slice(0, 8).map((goal) => ({
+        character: goal.character,
+        slot: goal.slot,
+        currentItem: goal.currentItem || null,
+        currentLevel: finite(goal.currentLevel, 0),
+        observedLevel: finite(goal.observedLevel, 0),
+        observedImprovement: finite(goal.observedImprovement, 0),
+        observedSurvivalImprovement: finite(goal.observedSurvivalImprovement, 0)
+      }))
+    };
+  }
+
+  _mutationRiskThreshold(tx, check, replacement, partyValue) {
+    const spare = Math.max(0, finite(replacement && replacement.spareEquivalents, 0));
+    const base = spare >= 2
+      ? finite(this.options.speculativeMinChanceManySpares, 0.20)
+      : spare >= 1
+        ? finite(this.options.speculativeMinChanceOneSpare, 0.35)
+        : finite(this.options.speculativeMinChanceNoSpare, 0.60);
+    const level = levelOf(tx);
+    const levelPenalty = Math.min(0.30, level * Math.max(0, finite(this.options.mutationRiskLevelStep, 0.05)));
+    const compoundPenalty = String(tx.type || '').toUpperCase() === 'COMPOUND' ? 0.05 : 0;
+    const partyPenalty = partyValue && partyValue.usefulNow === true ? 0.12 : 0;
+    const meta = check && check.meta || {};
+    const value = Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0));
+    const cap = String(tx.type || '').toUpperCase() === 'COMPOUND'
+      ? Math.max(1, finite(this.options.compoundValueCap, 500000))
+      : Math.max(1, finite(this.options.upgradeValueCap, 2000000));
+    const valuePenalty = Math.min(0.08, (value / cap) * 0.08);
+    const minChance = Math.max(0, Math.min(0.995, base + levelPenalty + compoundPenalty + partyPenalty + valuePenalty));
+    return {
+      minChance,
+      base,
+      levelPenalty,
+      compoundPenalty,
+      partyPenalty,
+      valuePenalty,
+      level,
+      spareEquivalents: spare
+    };
+  }
+
+  async mutationRiskDecision(tx, check, scroll) {
+    const replacement = this._mutationReplacementStock(tx);
+    const partyValue = this._mutationPartyCurrentValue(tx);
+    const threshold = this._mutationRiskThreshold(tx, check, replacement, partyValue);
+    const type = String(tx && tx.type || '').toUpperCase();
+    let response = null;
+    let chance = null;
+    let reason = null;
+    try {
+      if (type === 'UPGRADE') {
+        const action = rawFunction(this.root, 'upgrade');
+        if (!action) throw new Error('UPGRADE_API_UNAVAILABLE');
+        const args = action.fn.length >= 5
+          ? [check.inputs[0].index, scroll.index, undefined, 'code', true]
+          : [check.inputs[0].index, scroll.index, undefined, true];
+        response = await this._timeout(
+          action.fn.apply(action.owner, args),
+          'UPGRADE_CHANCE',
+          Math.max(1000, finite(this.options.mutationChanceTimeoutMs, 4000))
+        );
+      } else if (type === 'COMPOUND') {
+        const action = rawFunction(this.root, 'compound');
+        if (!action) throw new Error('COMPOUND_API_UNAVAILABLE');
+        const args = action.fn.length >= 7
+          ? [check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, scroll.index, undefined, 'code', true]
+          : [check.inputs[0].index, check.inputs[1].index, check.inputs[2].index, scroll.index, undefined, true];
+        response = await this._timeout(
+          action.fn.apply(action.owner, args),
+          'COMPOUND_CHANCE',
+          Math.max(1000, finite(this.options.mutationChanceTimeoutMs, 4000))
+        );
+      } else {
+        throw new Error('MUTATION_RISK_UNSUPPORTED_TYPE');
+      }
+      chance = this._normalizeMutationChance(response);
+      if (chance == null) reason = 'MUTATION_CHANCE_UNAVAILABLE';
+    } catch (error) {
+      reason = errorDetails(error).reason || 'MUTATION_CHANCE_UNAVAILABLE';
+    }
+
+    this.stats.mutationChanceChecks = (this.stats.mutationChanceChecks || 0) + 1;
+    const allowed = chance != null && chance >= threshold.minChance;
+    if (!allowed && !reason) reason = 'MUTATION_RISK_EXCEEDS_POLICY';
+    const decision = {
+      at: this.now(),
+      allowed,
+      reason: allowed ? 'MUTATION_RISK_ACCEPTED' : reason,
+      type,
+      item: tx && tx.item || null,
+      level: levelOf(tx),
+      scroll: check && check.scroll || null,
+      chance,
+      minChance: threshold.minChance,
+      threshold,
+      replacement,
+      partyValue,
+      serverAuthoritative: chance != null,
+      chanceResponse: chance == null ? clone(response) : null
+    };
+    this.lastMutationRiskDecision = clone(decision);
+    this._event(
+      'ALPHA27_MUTATION_RISK_DECISION',
+      allowed ? 'info' : 'warn',
+      decision.reason,
+      decision
+    );
+    return decision;
+  }
+
   async executeAtomic(transactionId) {
     const engine = this.runtime.transactionEngine;
     const executor = this.runtime.controlledMerchant;
@@ -37323,7 +37556,6 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
 
     this.merchantBusy = true;
     executor.busy = true;
-    if (executor.stats) executor.stats.attempts += 1;
     const ensured = await this.ensureScroll(tx, check.scroll);
     if (!ensured.ok) {
       executor.busy = false;
@@ -37331,6 +37563,29 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       this.lastMerchantAction = { at: this.now(), transactionId: tx.id, type: tx.type, result: 'FAILED_SAFE', reason: ensured.reason };
       return { executed: false, committed: false, reason: ensured.reason };
     }
+
+    const risk = await this.mutationRiskDecision(tx, check, ensured.scroll);
+    if (!risk.allowed) {
+      this.stats.mutationRiskHolds = (this.stats.mutationRiskHolds || 0) + 1;
+      const hold = this.setMutationRiskHold(tx, risk);
+      if (engine && typeof engine.cancel === 'function') engine.cancel(tx.id, `RISK_GATE:${risk.reason}`);
+      executor.busy = false;
+      this.merchantBusy = false;
+      this.lastMerchantAction = {
+        at: this.now(),
+        transactionId: tx.id,
+        type: tx.type,
+        result: 'RELEASED',
+        reason: risk.reason,
+        risk: clone(risk),
+        hold
+      };
+      executor.lastAction = clone(this.lastMerchantAction);
+      this._event('ALPHA27_MERCHANT_MUTATION_RISK_HELD', 'info', risk.reason, this.lastMerchantAction);
+      return { executed: false, committed: false, released: true, reason: risk.reason, risk: clone(risk), hold };
+    }
+    this.clearMutationRiskHold(tx);
+    if (executor.stats) executor.stats.attempts += 1;
     const beforeItems = inventoryOf(this.root);
     const before = {
       at: this.now(),
@@ -37473,6 +37728,15 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       merchantBusy: this.merchantBusy,
       serviceTravelBusy: this.serviceTravelBusy,
       lastMerchantAction: clone(this.lastMerchantAction),
+      mutationRisk: {
+        generalGate: true,
+        serverAuthoritativeChanceCalculation: true,
+        riskSensitivityIncreasesWithItemLevel: true,
+        lastDecision: clone(this.lastMutationRiskDecision),
+        activeHolds: this.mutationRiskHolds instanceof Map
+          ? [...this.mutationRiskHolds.values()].filter((row) => row && finite(row.expiresAt, 0) > this.now()).map(clone)
+          : []
+      },
       controlled: this.runtime.controlledMerchant && this.runtime.controlledMerchant.status ? this.runtime.controlledMerchant.status() : null,
       transactions: this.runtime.transactionEngine && this.runtime.transactionEngine.status ? this.runtime.transactionEngine.status() : null
     };
@@ -37876,23 +38140,10 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const meta = gd.items && gd.items[row.name];
       if (!meta || (type === 'COMPOUND' ? !meta.compound : !meta.upgrade)) continue;
       const grade = gradeForLevel(meta, levelOf(row));
-      let wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
-      if (type === 'UPGRADE') {
-        const level = levelOf(row);
-        const reasons = Array.isArray(row.reasons) ? row.reasons.map(String) : [];
-        let protection = null;
-        try {
-          const gear = this.runtime.gearProgression;
-          protection = gear && typeof gear.futureProtectionFor === 'function'
-            ? gear.futureProtectionFor(c.name, row.index, row.name, level)
-            : null;
-        } catch (_) {}
-        if (protection && Math.floor(finite(protection.targetLevel, 0)) === 5 && level < 5) {
-          wantedScroll = level < 3 ? 'scroll0' : 'scroll1';
-        } else if (reasons.includes('AUTONOMOUS_ECONOMIC_UPGRADE_TO_PLUS3') && level < 3) {
-          wantedScroll = 'scroll0';
-        }
-      }
+      // Adventure Land decides the compatible scroll from the item's actual
+      // grade thresholds (G.items[name].grades). Target level is a progression
+      // goal, not a scroll-class override.
+      const wantedScroll = `${type === 'COMPOUND' ? 'cscroll' : 'scroll'}${grade}`;
       if (wantedScroll !== scrollName || grade >= 4) continue;
       const key = `${type}|${row.name}|${levelOf(row)}`;
       const group = groups.get(key) || { type, item: row.name, level: levelOf(row), count: 0, scroll: wantedScroll };
@@ -37905,16 +38156,60 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
       const operations = group.type === 'COMPOUND' ? Math.floor(group.count / 3) : group.count;
       if (operations <= 0) continue;
       const budget = this.mutationAttemptBudget({ type: group.type, character: c.name, item: group.item, level: group.level });
-      const actionable = Math.min(operations, Math.max(0, budget.remaining));
-      if (actionable <= 0) continue;
-      quantity += actionable;
-      details.push({ ...group, operations, actionable, mutationBudget: budget });
+      // Buying scrolls is a low-risk procurement action. Size the purchase for
+      // the visible work backlog, not only the number of mutations allowed in
+      // this exact rate-limit window, so one vendor trip can service the next
+      // several minutes of compound/upgrade work.
+      const planned = operations;
+      const immediateActionable = Math.min(operations, Math.max(0, budget.remaining));
+      if (planned <= 0) continue;
+      quantity += planned;
+      details.push({ ...group, operations, planned, immediateActionable, mutationBudget: budget });
     }
-    const cap = Math.max(1, Math.min(100, Math.floor(finite(this.options.merchantScrollBatchMax, 40))));
+    const cap = Math.max(1, Math.min(200, Math.floor(finite(this.options.merchantScrollBatchMax, 80))));
     return { scrollName, quantity: Math.max(1, Math.min(cap, quantity || 1)), cap, groups: details };
   }
 
+  mutationRiskKey(type, item, level, index) {
+    return `${String(type || '').toUpperCase()}|${String(item || '')}|${levelOf({ level })}|${Number(index)}`;
+  }
+
+  mutationRiskHoldFor(entry, type) {
+    if (!entry || !(this.mutationRiskHolds instanceof Map)) return null;
+    const now = this.now();
+    for (const [key, row] of this.mutationRiskHolds.entries()) {
+      if (!row || finite(row.expiresAt, 0) <= now) this.mutationRiskHolds.delete(key);
+    }
+    const key = this.mutationRiskKey(type, entry.name, levelOf(entry), entry.index);
+    const hold = this.mutationRiskHolds.get(key) || null;
+    return hold ? clone(hold) : null;
+  }
+
+  setMutationRiskHold(tx, decision = {}) {
+    if (!tx || !(this.mutationRiskHolds instanceof Map)) return null;
+    const input = transactionInputs(tx)[0] || {};
+    const now = this.now();
+    const hold = {
+      at: now,
+      expiresAt: now + Math.max(10000, finite(this.options.mutationRiskHoldMs, 60000)),
+      type: String(tx.type || '').toUpperCase(),
+      item: tx.item,
+      level: levelOf(tx),
+      index: Number(input.index),
+      decision: clone(decision)
+    };
+    this.mutationRiskHolds.set(this.mutationRiskKey(hold.type, hold.item, hold.level, hold.index), hold);
+    return clone(hold);
+  }
+
+  clearMutationRiskHold(tx) {
+    if (!tx || !(this.mutationRiskHolds instanceof Map)) return false;
+    const input = transactionInputs(tx)[0] || {};
+    return this.mutationRiskHolds.delete(this.mutationRiskKey(tx.type, tx.item, levelOf(tx), input.index));
+  }
+
   mutationRetryBlocked(entry, type) {
+    if (this.mutationRiskHoldFor(entry, type)) return true;
     const engine = this.runtime.transactionEngine;
     if (!entry || !engine || typeof engine.list !== 'function') return false;
     return engine.list(500).some((row) => row && row.type === type && row.character === entry.character && Number(row.index) === Number(entry.index) && row.item === entry.name && levelOf(row) === levelOf(entry) && ['FAILED_SAFE', 'ABORTED'].includes(row.state) && /NO_RETRY|OUTCOME_UNCERTAIN/.test(String(row.reason || '')));
@@ -38005,18 +38300,13 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         }
       }
 
-      let scroll = `scroll${grade}`;
+      const scroll = `scroll${grade}`;
       const farmerPlus5 = !!(
         goal
         && String(goal.character || '') !== String(tx.character || '')
         && Math.floor(finite(goal.targetLevel, 0)) === 5
       );
-      if (farmerPlus5) {
-        if (levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
-        scroll = levelOf(tx) < 3 ? 'scroll0' : 'scroll1';
-      } else if (economicLifecycle && !selfGear) {
-        scroll = 'scroll0';
-      }
+      if (farmerPlus5 && levelOf(tx) >= 5) return { ok: false, reason: 'FARMER_UPGRADE_TARGET_REACHED' };
       return {
         ok: true,
         inputs,
@@ -38027,7 +38317,8 @@ class Alpha27AtomicTransactions extends Alpha27AtomicTransactionEngine {
         value,
         grade,
         scroll,
-        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE'
+        upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : economicLifecycle && !selfGear ? 'ECONOMIC_TO_PLUS3' : 'DEFAULT_GRADE',
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
       };
     }
     if (!meta.compound) return { ok: false, reason: 'ITEM_NOT_COMPOUNDABLE' };
@@ -38436,6 +38727,8 @@ class Alpha27AtomicCore {
     this.merchantBusy = false;
     this.serviceTravelBusy = false;
     this.lastMerchantAction = null;
+    this.mutationRiskHolds = new Map();
+    this.lastMutationRiskDecision = null;
     this.patchInventoryLedger();
     this.patchTransactionEngine();
     this.patchControlledMerchant();
@@ -38998,6 +39291,17 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
     if (this.reconcileRecovering()) return true;
     let supplyPlan = this.criticalPartySupplyPlan();
+    const taskBeforeSupply = this._taskCurrent();
+    if (supplyPlan
+      && ['RESTOCK_REQUIRED', 'SERVICE_TRAVEL', 'SERVICE_DELIVERY'].includes(String(supplyPlan.kind || ''))
+      && taskBeforeSupply
+      && taskBeforeSupply.owner === 'ALPHA27'
+      && taskBeforeSupply.kind === 'BANK_RECOVERY') {
+      this._taskRelease(taskBeforeSupply.key, 'CRITICAL_PARTY_SUPPLY_PREEMPTS_BANK_WORK');
+      if (this.bankRecovery && typeof this.bankRecovery._finishBatch === 'function') {
+        this.bankRecovery._finishBatch('CRITICAL_PARTY_SUPPLY_PREEMPT');
+      }
+    }
     const active = this.activeTransaction();
     if (active) {
       if (supplyPlan && active.state === 'RESERVED') {
@@ -39027,6 +39331,25 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
 
     let task = this._taskCurrent();
     let progressionAttemptedThisCycle = false;
+
+    // Once a Bank work block starts, keep it latched until the planned rows are
+    // retrieved or the bank explicitly hands control back for processing.
+    if (task && task.owner === 'ALPHA27' && task.kind === 'BANK_RECOVERY' && this.bankRecovery) {
+      const recoveryPlan = this.bankRecovery.plan();
+      if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
+        this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+        const acted = await this.bankRecovery.execute(recoveryPlan);
+        if (acted) return true;
+      }
+      if (recoveryPlan && recoveryPlan.action === 'HOLD' && recoveryPlan.keepTask === true) {
+        this.lastMerchantPlan = { at: this.now(), action: 'HOLD', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+        return false;
+      }
+      this._taskRelease(task.key, recoveryPlan && recoveryPlan.reason || 'BANK_RECOVERY_WORK_BLOCK_COMPLETE', {
+        recovery: clone(recoveryPlan)
+      });
+      task = null;
+    }
 
     // A collection session owns the Merchant until the inventory is actually
     // full or every nearby Farmer has been drained for the settle window.
@@ -39080,6 +39403,22 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
         }
       }
 
+      // Periodic bank service outranks ordinary progression when due. One
+      // acquire covers travel, bank visibility and the bounded retrieve batch,
+      // preventing bank<->upgrade ping-pong between individual items.
+      if (this.bankRecovery) {
+        const recoveryPlan = this.bankRecovery.plan();
+        if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
+          const lock = this._taskAcquire('BANK_RECOVERY', 'alpha27:bank-recovery', { action: recoveryPlan.action, reason: recoveryPlan.reason });
+          if (lock.acquired) {
+            this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
+            const acted = await this.bankRecovery.execute(recoveryPlan);
+            if (acted) return true;
+            this._taskRelease('alpha27:bank-recovery', 'BANK_RECOVERY_NO_PROGRESS', { recovery: clone(recoveryPlan) });
+          }
+        }
+      }
+
       const progression = progressionAttemptedThisCycle
         ? { acquired: false, reason: 'PROGRESSION_ALREADY_ATTEMPTED_THIS_CYCLE' }
         : this._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
@@ -39109,20 +39448,6 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       if (!lock.acquired) return false;
       try { return await this.executeEconomyRequest(lowRiskRequest); }
       finally { this._taskRelease('alpha27:disposal-sell', 'SELL_STEP_COMPLETE'); }
-    }
-
-    if (this.bankRecovery) {
-      const recoveryPlan = this.bankRecovery.plan();
-      if (recoveryPlan && recoveryPlan.action !== 'HOLD') {
-        const lock = this._taskAcquire('BANK_RECOVERY', 'alpha27:bank-recovery', { action: recoveryPlan.action, reason: recoveryPlan.reason });
-        if (!lock.acquired) return false;
-        this.lastMerchantPlan = { at: this.now(), action: 'BANK_RECOVERY', reason: recoveryPlan.reason, recovery: clone(recoveryPlan) };
-        try {
-          if (await this.bankRecovery.execute(recoveryPlan)) return true;
-        } finally {
-          this._taskRelease('alpha27:bank-recovery', 'BANK_RECOVERY_STEP_COMPLETE');
-        }
-      }
     }
 
     if (lowRiskRequest && lowRiskRequest.type === 'BANK' && !this.transactionFamilyOpen('BANK')) {
@@ -39168,7 +39493,7 @@ class Alpha27MerchantAutonomy extends Alpha27MerchantPlanning {
       economyBeforeNonCriticalGearDelivery: false,
       gearDeliveryLifecycleOrder: ['TARGETED_COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY'],
       itemLifecycleOrder: ['COMPOUND', 'UPGRADE', 'GEAR_DELIVERY', 'SELL', 'BANK'],
-      bankRecoveryLifecycle: ['BANK_PROBE', 'BANK_RETRIEVE', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
+      bankRecoveryLifecycle: ['BANK_PROBE', 'BATCH_RETRIEVE_WORK_BLOCK', 'COMPOUND_OR_UPGRADE', 'GEAR_DELIVERY_OR_SELL', 'BANK_FALLBACK'],
       bankRecovery: this.bankRecovery ? this.bankRecovery.status() : null,
       collectionSession: this.collectionStatus(),
       collectionSessionPreemptsEconomy: true,
@@ -39481,7 +39806,8 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     } catch (_) { projectedGoal = null; }
     if (!projectedGoal) return { hold: true, reason: 'GEAR_FINALIZATION_PROJECTED_GOAL_PENDING', targetLevel };
 
-    const farmerPlus5 = String(projectedGoal.character || '') !== String(c.name || '') && targetLevel === 5;
+    const farmerPlus5 = String(projectedGoal.character || '') !== String(c.name || '')
+      && Math.floor(finite(projectedGoal.targetLevel, 0)) === 5;
     return {
       request: {
         type: 'UPGRADE',
@@ -39496,7 +39822,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetSlot: projectedGoal.slot,
           lifecycle: 'FARMER_GEAR_DELIVERY_FINALIZATION',
           upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
-          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT',
+          scrollPolicy: 'ITEM_GRADE_DEFAULT',
           targetedGearFinalization: true
         }
       },
@@ -39508,11 +39834,40 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const selected = candidate || this.gearDeliveryCandidate();
     if (!selected || !selected.goal || !selected.item) return { state: 'NONE', reason: 'NO_READY_GEAR_DELIVERY', candidate: null };
     this.gearDeliveryFinalizationStats.checks += 1;
+
     const gd = gameDataOf(this.runtime);
     const meta = gd.items && gd.items[selected.item.name];
     if (!meta || typeof meta !== 'object') {
       this.gearDeliveryFinalizationStats.holds += 1;
       return { state: 'HOLD', reason: 'GEAR_FINALIZATION_METADATA_UNKNOWN', candidate: selected };
+    }
+
+    // The current item may already be a real Farmer upgrade at any +level.
+    // When the authoritative mutation risk gate rejects the next roll, deliver
+    // this safe improvement instead of retrying or waiting for a magic +5 line.
+    if (selected.goal.observedMeaningful === true && this.atomic && typeof this.atomic.mutationRiskHoldFor === 'function') {
+      const family = meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null;
+      const riskHold = family ? this.atomic.mutationRiskHoldFor({
+        character: characterOf(this.runtime) && characterOf(this.runtime).name,
+        index: selected.item.index,
+        name: selected.item.name,
+        level: levelOf(selected.item)
+      }, family) : null;
+      if (riskHold) {
+        this.stats.riskHeldPartyDeliveriesPreferred = (this.stats.riskHeldPartyDeliveriesPreferred || 0) + 1;
+        this.gearDeliveryFinalizationStats.ready += 1;
+        this._gearFinalizationRecord('READY', 'RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE', selected, {
+          targetLevel: levelOf(selected.item),
+          riskHold
+        });
+        return {
+          state: 'READY',
+          reason: 'RISK_GATE_PREFERS_SAFE_CURRENT_PARTY_UPGRADE',
+          candidate: selected,
+          targetLevel: levelOf(selected.item),
+          riskHold
+        };
+      }
     }
 
     if (meta.upgrade) {
@@ -39566,7 +39921,13 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const trusted = new Set();
     try { for (const name of this.runtime.partyBootstrap && this.runtime.partyBootstrap.trustedRosterNames ? this.runtime.partyBootstrap.trustedRosterNames() || [] : []) trusted.add(String(name)); } catch (_) {}
     const rows = gear.list(256)
-      .filter((goal) => goal && goal.sourceCharacter === c.name && goal.character && goal.character !== c.name && !goal.projectedUpgradeRequired && trusted.has(String(goal.character)))
+      .filter((goal) => {
+        if (!goal || goal.sourceCharacter !== c.name || !goal.character || goal.character === c.name || !trusted.has(String(goal.character))) return false;
+        // A projected next mutation may still be desirable, but a current item
+        // that already improves the Farmer must remain deliverable if the risk
+        // gate rejects the next roll.
+        return !goal.projectedUpgradeRequired || goal.observedMeaningful === true;
+      })
       .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0) || finite(b.improvement, 0) - finite(a.improvement, 0));
     for (const goal of rows) {
       const goalId = String(goal.id || '');
@@ -39590,8 +39951,27 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
   async deliverGearGoal() {
     const candidate = this.gearDeliveryCandidate();
     if (!candidate) return false;
-    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const { goal, item } = candidate;
+
+    // A gear delivery is already a Farmer-bound trip. Let the potion service
+    // planner pre-buy and deliver this Farmer's HP/MP deficit on the same route
+    // before the Merchant commits to travel.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService([goal.character], 'FARMER_GEAR_DELIVERY_ROUTE');
+      if (service && service.started === true) {
+        this.lastMerchantPlan = {
+          at: this.now(),
+          action: 'SERVICE_BUNDLE',
+          reason: 'GEAR_ROUTE_PREBUNDLED_POTIONS',
+          targetName: goal.character,
+          potionService: clone(service)
+        };
+        return true;
+      }
+    }
+
+    if (!await this.ensureStandClosed('GEAR_DELIVERY_PREEMPT')) return true;
     const parent = this.root && this.root.parent || this.root;
     const target = Object.values(parent && parent.entities || {}).find((row) => row && !row.mtype && String(row.name || '') === String(goal.character)) || null;
     const c = characterOf(this.runtime);
@@ -39685,7 +40065,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
           targetCharacter: goal.character,
           lifecycle: 'PARTY_GEAR_GOAL',
           upgradeLifecycle: farmerPlus5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'PARTY_GEAR_GOAL',
-          scrollPolicy: farmerPlus5 ? 'LEVEL_0_3_SCROLL0_LEVEL_3_5_SCROLL1' : 'ITEM_GRADE_DEFAULT'
+          scrollPolicy: 'ITEM_GRADE_DEFAULT'
         }
       };
     }
@@ -39720,7 +40100,7 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
         targetLevel: 3,
         targetCharacter: null,
         upgradeLifecycle: 'ECONOMIC_TO_PLUS3',
-        scrollPolicy: 'SCROLL0_ONLY'
+        scrollPolicy: 'ITEM_GRADE_DEFAULT'
       }
     };
   }
@@ -40206,6 +40586,9 @@ class Alpha27BankRecovery {
     this.nextProbeAt = -Infinity;
     this.lastCandidate = null;
     this.lastAction = null;
+    this.batchSession = null;
+    this.bankVisibilityWaitUntil = -Infinity;
+    this.nextBatchAt = -Infinity;
     this.stats = {
       bankTravels: 0,
       scans: 0,
@@ -40214,6 +40597,10 @@ class Alpha27BankRecovery {
       retrievesAttempted: 0,
       retrievesCommitted: 0,
       retrievesFailedSafe: 0,
+      batchesStarted: 0,
+      batchesCompleted: 0,
+      batchRowsPlanned: 0,
+      batchRowsCommitted: 0,
       reconciliations: 0,
       skippedProtected: 0,
       skippedHighValue: 0,
@@ -40379,6 +40766,50 @@ class Alpha27BankRecovery {
     return candidates;
   }
 
+  _batchCapacity(pressure) {
+    const maxRows = Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12)));
+    const usableSlots = Math.max(0, Math.floor(finite(pressure && pressure.free, 0) - finite(pressure && pressure.workspaceSlots, 0)));
+    return Math.max(0, Math.min(maxRows, usableSlots));
+  }
+
+  _startBatch(candidates, pressure) {
+    const capacity = this._batchCapacity(pressure);
+    const selected = (Array.isArray(candidates) ? candidates : []).slice(0, capacity);
+    if (!selected.length) return null;
+    const now = this.now();
+    this.batchSession = {
+      id: `bank-batch-${now.toString(36)}`,
+      startedAt: now,
+      updatedAt: now,
+      plannedRows: selected.length,
+      remainingRows: selected.length,
+      committedRows: 0,
+      identities: selected.map((candidate) => `${candidate.row.name}:${candidate.row.level}`)
+    };
+    this.stats.batchesStarted += 1;
+    this.stats.batchRowsPlanned += selected.length;
+    this._event('ALPHA27_BANK_RECOVERY_BATCH_STARTED', 'info', 'BANK_WORK_BLOCK_PLANNED', {
+      batch: clone(this.batchSession),
+      pressure: clone(pressure)
+    });
+    return this.batchSession;
+  }
+
+  _finishBatch(reason = 'BANK_WORK_BLOCK_DRAINED') {
+    const session = this.batchSession;
+    if (!session) return null;
+    this.batchSession = null;
+    if (reason === 'BANK_WORK_BLOCK_TARGET_REACHED') this.nextBatchAt = this.now() + 60000;
+    this.stats.batchesCompleted += 1;
+    const completed = { ...clone(session), endedAt: this.now(), reason };
+    this._event('ALPHA27_BANK_RECOVERY_BATCH_COMPLETED', 'info', reason, completed);
+    return completed;
+  }
+
+  hasActiveBatch() {
+    return !!(this.batchSession && Math.max(0, finite(this.batchSession.remainingRows, 0)) > 0);
+  }
+
   plan() {
     const c = characterOf(this.runtime);
     if (!c || String(c.ctype || c.type || '').toLowerCase() !== 'merchant') return null;
@@ -40386,7 +40817,21 @@ class Alpha27BankRecovery {
     const recovering = this.executor.activeOperation && !['COMMITTED', 'ABORTED', 'FAILED_SAFE'].includes(String(this.executor.activeOperation.state || ''));
 
     if (!c.bank || typeof c.bank !== 'object') {
-      if (recovering || this.now() >= this.nextProbeAt) {
+      if (this.now() < this.bankVisibilityWaitUntil) {
+        return {
+          action: 'HOLD',
+          reason: 'BANK_RECOVERY_WAITING_FOR_BANK_VISIBILITY',
+          keepTask: true,
+          pressure
+        };
+      }
+      // Do not invent a Bank trip merely because this module exists. In live
+      // runtime the persistent catalog is the evidence that Bank work is a real
+      // responsibility; stripped-down contexts/tests without a catalog must
+      // leave unrelated SELL/production work alone.
+      const catalog = this.runtime.merchantBankCatalog;
+      const catalogAvailable = !!(catalog && typeof catalog.status === 'function');
+      if (recovering || (catalogAvailable && this.now() >= this.nextProbeAt)) {
         return {
           action: 'TRAVEL_BANK',
           reason: recovering ? 'BANK_RECOVERY_RECONCILIATION_REQUIRES_BANK' : 'BANK_RECOVERY_PROBE_DUE',
@@ -40397,9 +40842,20 @@ class Alpha27BankRecovery {
       return null;
     }
 
+    this.bankVisibilityWaitUntil = -Infinity;
     this.stats.scans += 1;
     this.lastProbeAt = this.now();
     this.nextProbeAt = this.now() + this.probeIntervalMs;
+
+    if (!this.batchSession && this.now() < this.nextBatchAt) {
+      return {
+        action: 'HOLD',
+        reason: 'BANK_WORK_BLOCK_READY_FOR_PROCESSING',
+        keepTask: false,
+        pressure,
+        retryAt: this.nextBatchAt
+      };
+    }
 
     if (recovering) {
       return { action: 'RECONCILE', reason: 'BANK_RECOVERY_OPERATION_RECOVERING', pressure };
@@ -40407,14 +40863,26 @@ class Alpha27BankRecovery {
     if (pressure.free < pressure.minimumFreeForRetrieve) {
       this.stats.skippedWorkspace += 1;
       this.lastCandidate = null;
+      if (this.batchSession) this._finishBatch('BANK_WORKSPACE_FLOOR_REACHED');
       return { action: 'HOLD', reason: 'BANK_RECOVERY_WORKSPACE_FLOOR', pressure };
     }
 
     const candidates = this._recoverableRows();
-    const picked = candidates[0] || null;
-    if (!picked) {
+    if (!candidates.length) {
       this.stats.emptyScans += 1;
       this.lastCandidate = null;
+      if (this.batchSession) this._finishBatch('BANK_RECOVERY_CANDIDATES_DRAINED');
+      return null;
+    }
+    if (!this.batchSession) this._startBatch(candidates, pressure);
+    if (!this.hasActiveBatch()) {
+      this._finishBatch('BANK_WORK_BLOCK_DRAINED');
+      return null;
+    }
+
+    const picked = candidates[0] || null;
+    if (!picked) {
+      this._finishBatch('BANK_RECOVERY_CANDIDATES_DRAINED');
       return null;
     }
     this.stats.candidates += 1;
@@ -40423,7 +40891,8 @@ class Alpha27BankRecovery {
       action: 'RETRIEVE',
       reason: picked.kind,
       pressure,
-      candidate: clone(picked)
+      candidate: clone(picked),
+      batch: clone(this.batchSession)
     };
   }
 
@@ -40439,8 +40908,10 @@ class Alpha27BankRecovery {
       const ok = result === true || !!(result && result.ok === true);
       if (ok) {
         this.stats.bankTravels += 1;
-        // Bank data can appear a tick after smart_move resolves. Give the client a
-        // short visibility window before another outside-bank probe is permitted.
+        // Bank data can appear a tick after smart_move resolves. Keep the bank
+        // work task latched through this visibility window so progression cannot
+        // pull the Merchant away before the batch is planned.
+        this.bankVisibilityWaitUntil = this.now() + 5000;
         this.nextProbeAt = this.now() + 5000;
       }
       this.lastAction = { at: this.now(), result: ok ? 'TRAVELLED' : 'FAILED_SAFE', reason: plan.reason, travel: clone(result) };
@@ -40496,6 +40967,13 @@ class Alpha27BankRecovery {
       const result = await this.executor.execute(operation, step);
       if (result && result.committed === true) {
         this.stats.retrievesCommitted += 1;
+        if (this.batchSession) {
+          this.batchSession.committedRows += 1;
+          this.batchSession.remainingRows = Math.max(0, this.batchSession.remainingRows - 1);
+          this.batchSession.updatedAt = this.now();
+          this.stats.batchRowsCommitted += 1;
+          if (this.batchSession.remainingRows <= 0) this._finishBatch('BANK_WORK_BLOCK_TARGET_REACHED');
+        }
         this.nextProbeAt = this.now();
         if (this.runtime.merchantBankCatalog && typeof this.runtime.merchantBankCatalog.observe === 'function') this.runtime.merchantBankCatalog.observe(characterOf(this.runtime));
       } else if (result && result.executed === true) {
@@ -40530,8 +41008,13 @@ class Alpha27BankRecovery {
     return {
       mode: ALPHA27_BANK_RECOVERY_MODE,
       enabled: true,
-      strategy: 'BANK_PROBE -> BOUNDED_RETRIEVE -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
+      strategy: 'BANK_PROBE -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
       bankSnapshotRequiredForRetrieve: true,
+      batchRecovery: true,
+      batchMaxRows: Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12))),
+      activeBatch: clone(this.batchSession),
+      bankVisibilityWaitUntil: Number.isFinite(this.bankVisibilityWaitUntil) ? this.bankVisibilityWaitUntil : null,
+      nextBatchAt: Number.isFinite(this.nextBatchAt) ? this.nextBatchAt : null,
       outsideBankProbeIntervalMs: this.probeIntervalMs,
       nextProbeAt: Number.isFinite(this.nextProbeAt) ? this.nextProbeAt : null,
       lastProbeAt: Number.isFinite(this.lastProbeAt) ? this.lastProbeAt : null,
@@ -40612,6 +41095,8 @@ function recipeFor(gameData, name) {
     output: String(name),
     outputQuantity: Math.max(1, Math.floor(finite(raw.q, finite(raw.quantity, 1)))),
     cost: Math.max(0, Math.floor(finite(raw.cost, 0))),
+    quest: raw.quest == null ? null : String(raw.quest),
+    specialOutput: raw.output && typeof raw.output === 'object' ? clone(raw.output) : null,
     items
   };
 }
@@ -40965,11 +41450,39 @@ class MerchantProductionPlanner {
       : [];
     const bankPool = bank.length ? bank : catalogRows;
     const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
-    const demands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
-      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()))
-      .filter((row) => !lockedExchangeItem || String(row.item) === lockedExchangeItem);
-    if (!demands.length) return null;
-    const demandByItem = new Map(demands.map((row) => [String(row.item), row]));
+    const explicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+    const demandByItem = new Map(explicitDemands.map((row) => [String(row.item), row]));
+
+    // Anything that Adventure Land itself marks with a positive exchange
+    // requirement (G.items[name].e) is legitimate autonomous cleanup work once
+    // a complete exchange unit exists. Production reservations remain protected.
+    const exchangeableNames = new Set();
+    for (const item of inventory) if (item && item.name && levelOf(item) === 0) exchangeableNames.add(String(item.name));
+    for (const row of bankPool) if (row && row.name && row.level === 0) exchangeableNames.add(String(row.name));
+    for (const name of exchangeableNames) {
+      if (demandByItem.has(name)) continue;
+      const meta = gameData.items && gameData.items[name];
+      const required = Math.max(0, Math.floor(finite(meta && meta.e, 0)));
+      if (!meta || required <= 0) continue;
+      const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(name, 0)], 0)));
+      const local = itemQuantity(inventory, name, 0);
+      const bankAvailable = bankPool.reduce((sum, row) => sum + (row && row.name === name && row.level === 0 ? Math.max(0, Math.floor(finite(row.quantity, 0))) : 0), 0);
+      if (Math.max(0, local + bankAvailable - reserved) < required) continue;
+      demandByItem.set(name, {
+        item: name,
+        target: null,
+        reason: 'AUTONOMOUS_EXCHANGEABLE_SURPLUS',
+        autonomous: true,
+        required,
+        discoveredAt: this.now()
+      });
+    }
+
+    if (lockedExchangeItem) {
+      for (const name of [...demandByItem.keys()]) if (String(name) !== lockedExchangeItem) demandByItem.delete(name);
+    }
+    if (!demandByItem.size) return null;
     const candidates = [];
 
     for (let index = 0; index < inventory.length; index += 1) {
@@ -41042,6 +41555,71 @@ class MerchantProductionPlanner {
       exchangeDemand: clone(demandByItem.get(chosen.name) || null)
     };
     return clone(plan);
+  }
+
+  planMaterialConsolidation(input = {}) {
+    const character = input.character || {};
+    if (String(character.ctype || character.type || '').toLowerCase() !== 'merchant') return null;
+    if (input.anniversaryActive !== true) return null;
+    const gameData = input.gameData || {};
+    const recipe = recipeFor(gameData, 'sixcake');
+    if (!recipe || String(recipe.quest || '') !== 'anniversary_baker') return null;
+
+    // Six cake is the canonical consolidation for the six Anniversary slices.
+    // Build through the normal material graph so ingredients already stored in
+    // bank are retrieved in the same production chain.
+    const candidate = {
+      output: 'sixcake',
+      recipe,
+      recipient: null,
+      slot: null,
+      reason: 'ANNIVERSARY_SLICE_CONSOLIDATION'
+    };
+    const built = this._buildCandidate(candidate, input);
+    if (!built || !built.ready) return null;
+
+    // Require at least one slice to be actually owned already; do not turn this
+    // maintenance path into a speculative vendor/crafting acquisition tree.
+    const sliceNames = new Set(['slice_strawberry','slice_citrus','slice_honey','slice_mint','slice_blueberry','slice_nightberry']);
+    const inventory = Array.isArray(character.items) ? character.items : [];
+    const bank = bankRows(character.bank);
+    const catalogRows = !character.bank && input.bankCatalog && input.bankCatalog.usable === true && input.bankCatalog.snapshot && Array.isArray(input.bankCatalog.snapshot.rows)
+      ? input.bankCatalog.snapshot.rows
+      : [];
+    const ownedSlices = [...inventory, ...bank, ...catalogRows].filter((row) => row && sliceNames.has(String(row.name || '')));
+    if (!ownedSlices.length) return null;
+
+    // All six ingredients must be supplied by LOCAL/BANK steps. If the graph
+    // introduced BUY/recursive CRAFT acquisition, this is not cleanup anymore.
+    const disallowed = built.steps.some((step) => step && [ProductionStepKind.BUY, ProductionStepKind.FARM_REQUIRED].includes(step.kind));
+    if (disallowed) return null;
+    const rootCraft = built.steps[built.steps.length - 1];
+    if (!rootCraft || rootCraft.kind !== ProductionStepKind.CRAFT || rootCraft.name !== 'sixcake') return null;
+
+    return {
+      schemaVersion: 1,
+      id: this._id(),
+      at: this.now(),
+      state: 'READY',
+      reason: 'ANNIVERSARY_SLICE_CONSOLIDATION_READY',
+      actionAuthority: false,
+      liveExecutionAllowed: false,
+      target: {
+        output: 'sixcake',
+        recipient: null,
+        slot: null,
+        maintenance: true,
+        quest: 'anniversary_baker'
+      },
+      steps: built.steps,
+      nextStep: built.executableSteps[0] || null,
+      reservations: built.reservations,
+      blockers: [],
+      totalGold: built.totalGold,
+      goldReserve: built.goldReserve,
+      bankSource: built.bankSource,
+      costStrategy: 'OWNED_MATERIAL_CONSOLIDATION_V1'
+    };
   }
 
   plan(input = {}) {
@@ -41131,6 +41709,9 @@ class MerchantProductionPlanner {
       explicitTargets: this.explicitTargets.slice(),
       costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V1',
       sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'FARM_REQUIRED'],
+      autonomousExchangeableSurplus: true,
+      anniversarySliceConsolidation: true,
+      anniversarySliceConsolidationOutput: 'sixcake',
       lastPlan: clone(this.lastPlan),
       stats: clone(this.stats)
     };
@@ -41252,10 +41833,16 @@ class ControlledMerchantProductionExecutor {
     }
     if (kind === ProductionStepKind.CRAFT) {
       if (!this.allowCraft) return { ok: false, reason: 'CRAFT_AUTHORITY_DISABLED' };
-      const api = this._api('auto_craft'), recipe = recipeFor(this._gameData(), name); if (!api) return { ok: false, reason: 'AUTO_CRAFT_API_UNAVAILABLE' }; if (!recipe) return { ok: false, reason: 'CRAFT_RECIPE_UNAVAILABLE' };
+      const recipe = recipeFor(this._gameData(), name);
+      if (!recipe) return { ok: false, reason: 'CRAFT_RECIPE_UNAVAILABLE' };
+      const anniversaryQuest = String(recipe.quest || '') === 'anniversary_baker';
+      const eventState = this.root && (this.root.S || this.root.parent && this.root.parent.S) || {};
+      if (anniversaryQuest && !(eventState.anniversary && eventState.anniversary.active)) return { ok: false, reason: 'ANNIVERSARY_WORKSHOP_CLOSED' };
+      const api = anniversaryQuest ? this._api('anniversary_craft') : this._api('auto_craft');
+      if (!api) return { ok: false, reason: anniversaryQuest ? 'ANNIVERSARY_CRAFT_API_UNAVAILABLE' : 'AUTO_CRAFT_API_UNAVAILABLE' };
       for (const req of recipe.items) if (itemQuantity(this._inventory(), req.name, req.level) < req.quantity) return { ok: false, reason: 'CRAFT_MATERIALS_MISSING' };
       if (n(c.gold, 0) - recipe.cost < this.goldReserve) return { ok: false, reason: 'GOLD_RESERVE_WOULD_BE_BREACHED' };
-      return { ok: true, api, name, level: 0, recipe };
+      return { ok: true, api, name, level: 0, recipe, craftMode: anniversaryQuest ? 'ANNIVERSARY_CRAFT' : 'AUTO_CRAFT' };
     }
     if (kind === ProductionStepKind.EXCHANGE) {
       if (!this.allowExchange) return { ok: false, reason: 'EXCHANGE_AUTHORITY_DISABLED' };
@@ -41302,7 +41889,15 @@ class ControlledMerchantProductionExecutor {
         const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, check.level) <= beforeInv - check.quantity);
         return this._finish(step, ok, ok ? 'EXCHANGE_INPUT_DELTA_VERIFIED' : 'EXCHANGE_INPUT_DELTA_VERIFICATION_FAILED', { consumedQuantity: check.quantity, reward: response && response.reward || null });
       }
-      const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1))); if (!this._start(plan, step, { action: 'auto_craft', expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' }; this._transition('EXECUTING', 'AUTO_CRAFT_STARTING'); this.stats.crafts += 1; await this._timeout(check.api[0].call(check.api[1], check.name), 'AUTO_CRAFT'); this._transition('VERIFYING', 'AUTO_CRAFT_RETURNED'); const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out); return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_VERIFICATION_FAILED', { outputQuantity: out });
+      const out = Math.max(1, Math.floor(n(check.recipe.outputQuantity, 1)));
+      const craftAction = check.craftMode === 'ANNIVERSARY_CRAFT' ? 'anniversary_craft' : 'auto_craft';
+      if (!this._start(plan, step, { action: craftAction, expectedInventory: beforeInv + out })) return { executed: false, committed: false, reason: 'PERSIST_BEFORE_ACTION_FAILED' };
+      this._transition('EXECUTING', check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT_STARTING' : 'AUTO_CRAFT_STARTING');
+      this.stats.crafts += 1;
+      await this._timeout(check.api[0].call(check.api[1], check.name), check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT' : 'AUTO_CRAFT');
+      this._transition('VERIFYING', check.craftMode === 'ANNIVERSARY_CRAFT' ? 'ANNIVERSARY_CRAFT_RETURNED' : 'AUTO_CRAFT_RETURNED');
+      const ok = await this._verify(() => itemQuantity(this._inventory(), check.name, 0) >= beforeInv + out);
+      return this._finish(step, ok, ok ? 'CRAFT_OUTPUT_VERIFIED' : 'CRAFT_OUTPUT_DELTA_VERIFICATION_FAILED', { outputQuantity: out, craftMode: check.craftMode });
     } catch (error) { return this._finish(step, false, String(error && error.message || error || 'PRODUCTION_ACTION_FAILED')); }
     finally { this.busy = false; }
   }
@@ -41310,7 +41905,7 @@ class ControlledMerchantProductionExecutor {
   reconcile() {
     const op = this.activeOperation; if (!op || TERMINAL.has(op.state)) return { reconciled: false, reason: 'NO_RECOVERING_PRODUCTION_OPERATION' }; if (op.state !== 'RECOVERING') return { reconciled: false, reason: 'PRODUCTION_OPERATION_NOT_RECOVERING' };
     const inv = itemQuantity(this._inventory(), op.item, op.level), bank = this._bankQty(op.item, op.level); let ok = false;
-    if (op.action === 'buy' || op.action === 'auto_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
+    if (op.action === 'buy' || op.action === 'auto_craft' || op.action === 'anniversary_craft') ok = inv >= n(op.expectedInventory, Infinity); else if (op.action === 'exchange') ok = inv <= n(op.expectedInventoryMax, -1); else if (op.action === 'bank_retrieve') ok = inv >= n(op.expectedInventory, Infinity) && bank <= n(op.expectedBank, -1); else if (op.action === 'bank_store') ok = inv <= n(op.expectedInventory, -1) && bank >= n(op.expectedBank, Infinity);
     this._transition(ok ? 'COMMITTED' : 'FAILED_SAFE', ok ? 'RESTART_RECONCILIATION_VERIFIED' : 'RESTART_OUTCOME_UNCERTAIN_NO_RETRY'); if (ok) { this.stats.recovered += 1; this.stats.committed += 1; } else this.stats.failedSafe += 1; return { reconciled: true, committed: ok, reason: this.activeOperation.reason };
   }
 
@@ -53324,6 +53919,12 @@ function installMerchantProduction(runtime, options = {}) {
       exchangeDemands: (Array.isArray(runtime.merchantExchangeDemands) ? runtime.merchantExchangeDemands : []).filter((row) => row && (!row.expiresAt || row.expiresAt > runtime.now())),
       registry: runtime.characterRegistry && runtime.characterRegistry.status ? runtime.characterRegistry.status() : { characters: [] },
       gameData: runtime.adapter && runtime.adapter.getGameData ? runtime.adapter.getGameData() || {} : {},
+      anniversaryActive: !!(
+        runtime.root
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S)
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S).anniversary
+        && (runtime.root.S || runtime.root.parent && runtime.root.parent.S).anniversary.active
+      ),
       contentDrift: runtime.contentDrift,
       inCombat: inCombat(),
       economyEmergency: typeof runtime._alpha20EconomyEmergency === 'function' ? runtime._alpha20EconomyEmergency() : false,
@@ -53341,7 +53942,11 @@ function installMerchantProduction(runtime, options = {}) {
 
   function evaluate() {
     if (!isMerchant()) return null;
-    state.lastPlan = planner.plan(input());
+    const currentInput = input();
+    const lockedOutput = currentInput.productionTaskTarget && currentInput.productionTaskTarget.output;
+    state.lastPlan = String(lockedOutput || '') === 'sixcake'
+      ? (planner.planMaterialConsolidation(currentInput) || planner.plan(currentInput))
+      : planner.plan(currentInput);
     return clone(state.lastPlan);
   }
 
@@ -53420,6 +54025,13 @@ function installMerchantProduction(runtime, options = {}) {
         state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel.ok ? 'VENDOR_TRAVEL_COMPLETED_REPLAN_REQUIRED' : travel.reason, travel: clone(travel) } };
         return;
       }
+      if (step.kind === ProductionStepKind.CRAFT && step.recipe && step.recipe.quest) {
+        const travel = await travelNamed(step.recipe.quest);
+        if (!travel || travel.ok !== true) {
+          state.lastExecution = { at: runtime.now(), planId: plan.id, kind: step.kind, result: { executed: false, committed: false, reason: travel && travel.reason || 'CRAFT_QUEST_NPC_TRAVEL_FAILED', travel: clone(travel) } };
+          return;
+        }
+      }
       if (step.kind === ProductionStepKind.EXCHANGE) {
         const travel = await travelNamed(step.destination || 'exchange');
         if (!travel || travel.ok !== true) {
@@ -53469,6 +54081,12 @@ function installMerchantProduction(runtime, options = {}) {
     if (schedule(plan)) return plan;
 
     if (plan && plan.state !== 'READY' && !collectionBusy() && !state.executionPending) {
+      const consolidationPlan = planner.planMaterialConsolidation(input());
+      if (consolidationPlan) {
+        state.lastPlan = clone(consolidationPlan);
+        schedule(consolidationPlan);
+        return clone(consolidationPlan);
+      }
       const exchangePlan = planner.planExchange(input(), plan.reservations || {});
       if (exchangePlan) {
         state.lastPlan = clone(exchangePlan);
@@ -56048,6 +56666,82 @@ function installStatusPolicy(runtime) {
   return true;
 }
 
+function opportunisticPotionInput(runtime) {
+  const c = characterOf(runtime) || {};
+  let reports = [];
+  try {
+    const status = runtime.partyTelemetry && typeof runtime.partyTelemetry.status === 'function'
+      ? runtime.partyTelemetry.status()
+      : null;
+    reports = Array.isArray(status && status.reports) ? status.reports : [];
+  } catch (_) {
+    reports = [];
+  }
+  return {
+    merchant: {
+      name: c.name || null,
+      ctype: c.ctype || null,
+      map: c.map || null,
+      x: finite(c.real_x != null ? c.real_x : c.x),
+      y: finite(c.real_y != null ? c.real_y : c.y),
+      inventory: inventoryOf(runtime)
+    },
+    reports,
+    standOpen: !!c.stand,
+    deliveryDistance: runtime.controlledMerchantService && finite(runtime.controlledMerchantService.maxDeliveryDistance, 400)
+  };
+}
+
+function startOpportunisticPotionService(runtime, names = [], reason = 'PLANNED_FARMER_ROUTE') {
+  const planner = runtime && runtime.merchantServicePlanner;
+  if (!runtime || !planner) return { started: false, reason: 'MERCHANT_SERVICE_PLANNER_UNAVAILABLE' };
+  const state = potionServiceChainState(runtime);
+  if (state.active) return { started: false, reason: 'POTION_SERVICE_CHAIN_ALREADY_ACTIVE', chainId: state.active.id };
+
+  const wanted = new Set((Array.isArray(names) ? names : [names]).map(String).filter(Boolean));
+  if (!wanted.size) return { started: false, reason: 'NO_ROUTE_FARMERS' };
+  const input = opportunisticPotionInput(runtime);
+  const fresh = freshSafeFarmerReports(input, planner).filter((row) => wanted.has(String(row.name || '')));
+  const lastReleaseAt = finite(state.lastRelease && state.lastRelease.maxSourceReportAt, 0);
+  const targets = fresh
+    .filter((report) => finite(report.at, 0) > lastReleaseAt)
+    .map((report) => ({
+      name: String(report.name),
+      sourceReportAt: finite(report.at),
+      target: reportTarget(report),
+      deliveries: batchDeliveriesForReport(report),
+      minPotionCount: Math.min(farmerCount(report, 'hp'), farmerCount(report, 'mp')),
+      distance: Infinity
+    }))
+    .filter((row) => row.deliveries.length)
+    .slice(0, MAX_BATCH_FARMERS);
+  if (!targets.length) return { started: false, reason: 'ROUTE_FARMERS_ALREADY_SUPPLIED_OR_TELEMETRY_STALE' };
+
+  const metadata = {
+    p0PotionBundle: true,
+    p0PotionPolicy4500: true,
+    adaptivePotionDelivery: true,
+    p0PotionBatch: true,
+    opportunisticRouteService: true,
+    routeReason: String(reason || 'PLANNED_FARMER_ROUTE'),
+    batchPolicy: 'PLANNED_FARMER_ROUTE_TOPS_ROUTE_TARGETS_TO_4500'
+  };
+  const seedPlan = {
+    target: clone(targets[0].target),
+    metadata
+  };
+  const chain = startPotionServiceBatch(runtime, planner, seedPlan, targets, metadata, fresh.length);
+  if (!chain) return { started: false, reason: 'OPPORTUNISTIC_POTION_BATCH_START_REJECTED' };
+  state.stats.opportunisticRouteStarts = (state.stats.opportunisticRouteStarts || 0) + 1;
+  publishPotionServiceChain(runtime);
+  return {
+    started: true,
+    reason: 'OPPORTUNISTIC_POTION_BATCH_STARTED',
+    chainId: chain.id,
+    targets: targets.map((row) => ({ name: row.name, deliveries: clone(row.deliveries), sourceReportAt: row.sourceReportAt }))
+  };
+}
+
 function installP0PotionPolicy4500(runtime) {
   if (!runtime) throw new Error('runtime required');
   installPlannerPolicy(runtime);
@@ -56056,6 +56750,7 @@ function installP0PotionPolicy4500(runtime) {
   installStatusPolicy(runtime);
   runtime.p0PotionPolicy4500 = {
     mode: P0_POTION_POLICY_4500_MODE,
+    startOpportunisticService: (names, reason) => startOpportunisticPotionService(runtime, names, reason),
     farmerTarget: POTION_TARGET_COUNT,
     potionRequestBelow: POTION_REQUEST_BELOW,
     lowWatermark: POTION_LOW_WATERMARK,
@@ -56065,6 +56760,7 @@ function installP0PotionPolicy4500(runtime) {
     topUpAllFreshFarmersTo: POTION_TARGET_COUNT,
     maxBatchFarmers: MAX_BATCH_FARMERS,
     aggregatePurchaseBeforeDeliveryRound: true,
+    opportunisticFarmerRouteBundling: true,
     buyOnlyCurrentDeliveryDeficit: false,
     noPurchasedReserve: true,
     existingStockMayRemainForNextFarmer: true,
@@ -57641,7 +58337,8 @@ class Alpha33MarkOrbitMerchantDelivery {
       collectionUnavailableCompletions: 0,
       collectionRoutesPreemptedForCriticalSupply: 0,
       collectionRoutesSuspendedForCriticalSupply: 0,
-      collectionRoutesResumedAfterCriticalSupply: 0
+      collectionRoutesResumedAfterCriticalSupply: 0,
+      opportunisticPotionRouteStarts: 0
     };
     this.lastGearHold = null;
     this.lastMerchantRendezvous = null;
@@ -59006,6 +59703,21 @@ class Alpha33MarkOrbitMerchantDelivery {
 
   _startCollectionRoute(candidate, batchDecision = null) {
     if (!candidate || !candidate.pickupEntryCount) return false;
+
+    // A collection trip is already a planned Farmer visit. Before taking the
+    // RENDEZVOUS lock, let the existing potion service chain top up those same
+    // Farmers and aggregate the required shop purchase. This avoids a second
+    // Merchant trip while preserving Alpha27 as the sole supply-chain owner.
+    const potionPolicy = this.runtime.p0PotionPolicy4500;
+    if (potionPolicy && typeof potionPolicy.startOpportunisticService === 'function') {
+      const service = potionPolicy.startOpportunisticService(candidate.names || [], 'FARMER_COLLECTION_ROUTE');
+      if (service && service.started === true) {
+        this.stats.opportunisticPotionRouteStarts += 1;
+        this._event('MERCHANT_COLLECTION_ROUTE_DEFERRED_FOR_POTION_BUNDLE', 'info', service.reason, service);
+        return false;
+      }
+    }
+
     this.collectionCapacityBlockedIndexes.clear();
     const coordinator = this._collectionCoordinator();
     const lock = coordinator && typeof coordinator.acquire === 'function'
@@ -59481,6 +60193,7 @@ class Alpha33MarkOrbitMerchantDelivery {
         collectionReturnsToEconomyAfterDrainedSettle: true,
         criticalPartySupplyPreemptsCollectionRoute: true,
         criticalPartySupplySuspendsAndResumesCollection: true,
+        plannedFarmerRouteBundlesPotionServiceFirst: true,
         rejectedOrTimedOutLootIsExcludedFromPickupTelemetry: true,
         merchantCapacityPreparedFromTotalFarmerPickupDemand: true,
         merchantCollectionMaximizesSafeFreeSlotsBeforeDeparture: false,
