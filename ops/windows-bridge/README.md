@@ -172,7 +172,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 5 removes the old FTPS/bplaced settings from `settings.json`. Loading an older Bridge config migrates it to version 5; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
+Config version 5 removed the old FTPS/bplaced settings from `settings.json`. Config version 6 adds the Wissenswaechter settings with a fixed 60-minute interval and the V5 Wissensbasis scope. Loading an older Bridge config migrates it to the current version; obsolete FTPS fields are not written back. The old FTP library and FTPS credential store are no longer part of the Windows Bridge project.
 
 ## Build
 
