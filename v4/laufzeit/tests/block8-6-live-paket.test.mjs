@@ -30,7 +30,8 @@ test('Block 8.6.9 Livepaket bindet Candidate und bestandene Schattenuebergabe ex
   assert.ok(source.includes('"nachweisKennung": "block8-6-schatten-1789822653521:schatten"'));
   assert.ok(source.includes('"ergebnis": "bestanden"'));
   assert.ok(source.includes('"spielAktionAusgefuehrt": false'));
-  assert.equal(source.includes('[Zirkulaere Referenz]'), false);
+  assert.ok(source.includes('"katalogFingerprint": "2299d0025c1e85725c2a75601832009aa2b78afa56a9f8a771d17528416c5268"'));
+  assert.ok(source.includes('"capabilityFingerprint": "20c2cf00b529b2b6c281a2ca349d14a501d4b49d24353122eeadb547bbd4038d"'));
 });
 
 test('Block 8.6.9 Livepaket begrenzt Vertrauensraum auf die beiden Ranger', async () => {
