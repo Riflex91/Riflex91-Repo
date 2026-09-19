@@ -1,6 +1,6 @@
 # Block 8.5 – Kontrolliertes Live-/Soak-Komplettpaket
 
-Status: **source-locked Live-Paket vorbereitet; realer kontrollierter Live-Nachweis noch nicht ausgefuehrt.**
+Status: **source-locked Live-Paket verwendet; realer kontrollierter Live-Nachweis bestanden.**
 
 ## Voraussetzung
 
@@ -8,8 +8,8 @@ Die 8.5.9-Reihenfolge steht jetzt auf:
 
 - Offline: **bestanden**
 - Schatten: **bestanden**
-- Kontrolliert live: **offen**
-- Soak: **blockiert**
+- Kontrolliert live: **bestanden**
+- Soak: **offen**
 - Block 9: **gesperrt**
 
 Der reale Schattenlauf ist kanonisch in:
@@ -99,7 +99,7 @@ Fuer den kontrollierten Live-Nachweis:
 
 7. Nach PASS **Gesamtbericht kopieren** und als neuen Freigabenachweis sichern.
 
-Den Soak-Knopf noch nicht eigenstaendig starten, bevor der kontrollierte Live-Bericht kanonisch geprueft und dokumentiert wurde.
+Der kontrollierte Live-Bericht ist inzwischen kanonisch geprueft und dokumentiert. Fuer Soak wird bewusst das separate `block8-5-soak-paket.js` in einer frischen Sitzung verwendet; der alte Live-Kontext muss nicht weiterlaufen.
 
 ## Fail-safe
 
@@ -127,3 +127,8 @@ CI verlangt bytegenaue Uebereinstimmung des Pakets mit:
 - Freigabe-Runner,
 - kanonischem Schatten-Freigabenachweis,
 - Live-Launcher.
+
+
+## Reales Ergebnis
+
+Der kontrollierte Live-Lauf unter `block8-5-schatten-1789775266269` ist bestanden und in `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json` kanonisch gebunden. Naechster Schritt ist das separate 10-Minuten-Soak-Paket.

@@ -34,11 +34,13 @@
     "block8-live-test-gui:pruefen": "node werkzeuge/block8-live-test-gui-struktur-pruefen.mjs && node --check werkzeuge/adventure-land-test-gui.js && node --check werkzeuge/block8-produktions-live-test-gui.js && node --check werkzeuge/block8-live-test-paket.js && node werkzeuge/block8-live-test-paket-bauen.mjs --pruefen",
     "block8-10-minuten-gruppentest:pruefen": "node werkzeuge/block8-10-minuten-gruppentest-struktur-pruefen.mjs && node --check werkzeuge/block8-10-minuten-gruppentest-gui.js && node --check werkzeuge/block8-10-minuten-gruppentest-paket.js && node werkzeuge/block8-10-minuten-paket-bauen.mjs --pruefen",
     "block8-10-minuten-gruppentest:bauen": "node werkzeuge/block8-10-minuten-paket-bauen.mjs",
-    "block8-5-struktur:pruefen": "node werkzeuge/block8-5-struktur-pruefen.mjs && node --check werkzeuge/block8-5-ingame-hud.js && node --check werkzeuge/block8-5-ingame-hud-bedienung.js && node --check werkzeuge/block8-5-freigabestufen-live-test.js && node werkzeuge/block8-5-runtime-1-1-5-release-kandidat-pruefen.mjs && node werkzeuge/block8-5-v4-runtime-release-workflow-pruefen.mjs && npm run block8-5-schatten-paket:pruefen && npm run block8-5-live-paket:pruefen",
+    "block8-5-struktur:pruefen": "node werkzeuge/block8-5-struktur-pruefen.mjs && node --check werkzeuge/block8-5-ingame-hud.js && node --check werkzeuge/block8-5-ingame-hud-bedienung.js && node --check werkzeuge/block8-5-freigabestufen-live-test.js && node werkzeuge/block8-5-runtime-1-1-5-release-kandidat-pruefen.mjs && node werkzeuge/block8-5-v4-runtime-release-workflow-pruefen.mjs && npm run block8-5-schatten-paket:pruefen && npm run block8-5-live-paket:pruefen && npm run block8-5-soak-paket:pruefen",
     "block8-5-schatten-paket:bauen": "node werkzeuge/block8-5-schatten-paket-bauen.mjs",
     "block8-5-schatten-paket:pruefen": "node werkzeuge/block8-5-schatten-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-schatten-paket.js",
     "block8-5-live-paket:bauen": "node werkzeuge/block8-5-live-paket-bauen.mjs",
-    "block8-5-live-paket:pruefen": "node werkzeuge/block8-5-live-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-live-paket.js"
+    "block8-5-live-paket:pruefen": "node werkzeuge/block8-5-live-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-live-paket.js",
+    "block8-5-soak-paket:bauen": "node werkzeuge/block8-5-soak-paket-bauen.mjs",
+    "block8-5-soak-paket:pruefen": "node werkzeuge/block8-5-soak-paket-bauen.mjs --pruefen && node --check werkzeuge/block8-5-soak-paket.js"
   },
   "devDependencies": {
     "@types/node": "22.20.2",

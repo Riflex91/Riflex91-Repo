@@ -61,8 +61,10 @@ for (const feld of ['deploymentPerformed', 'publicHttpsVerified']) {
 if (manifest.adventureLandShadowVerified !== true) {
   throw new Error('Release-Candidate muss den real bestandenen Adventure-Land-Schattennachweis tragen.');
 }
+if (manifest.adventureLandControlledLiveVerified !== true) {
+  throw new Error('Release-Candidate muss den real bestandenen kontrollierten Adventure-Land-Live-Nachweis tragen.');
+}
 for (const feld of [
-  'adventureLandControlledLiveVerified',
   'adventureLandSoakVerified',
   'block9Freigegeben'
 ]) {
@@ -84,6 +86,22 @@ for (const [feld, erwartet] of Object.entries({
 })) {
   if (manifest.shadowEvidence[feld] !== erwartet) {
     throw new Error(`Release-Candidate shadowEvidence besitzt unerwarteten Wert fuer ${feld}.`);
+  }
+}
+
+if (!manifest.controlledLiveEvidence || typeof manifest.controlledLiveEvidence !== 'object') {
+  throw new Error('Release-Candidate braucht den kanonisch gebundenen kontrollierten Live-Nachweis.');
+}
+for (const [feld, erwartet] of Object.entries({
+  source: 'chat_paste',
+  reportCreatedAt: '2026-09-19T00:04:55.339Z',
+  performedAt: 1789776285337,
+  laufKennung: 'block8-5-schatten-1789775266269',
+  runnerVersion: '1.1.0',
+  evidenceFile: 'BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json'
+})) {
+  if (manifest.controlledLiveEvidence[feld] !== erwartet) {
+    throw new Error(`Release-Candidate controlledLiveEvidence besitzt unerwarteten Wert fuer ${feld}.`);
   }
 }
 
@@ -148,5 +166,5 @@ if (build.sha256 !== manifest.sha256) {
 }
 
 console.log(
-  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment/HTTPS und realer Adventure-Land-Schattennachweis sind bestaetigt, kontrolliert live und Soak bleiben offen.`
+  `Runtime-1.1.5 Release-Candidate reproduzierbar: ${build.module} Module, ${build.bytes} Bytes, SHA-256 ${build.sha256}; Deployment/HTTPS, Schatten und kontrolliert live sind bestaetigt; Soak bleibt offen und Block 9 gesperrt.`
 );

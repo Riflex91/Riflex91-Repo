@@ -1,6 +1,6 @@
 # Block 8.5 – Runtime 1.1.5 Release-Candidate
 
-Status: **Release-Candidate reproduzierbar gebunden; Deployment/HTTPS und realer Adventure-Land-Schattennachweis bestaetigt; kontrolliert live und Soak noch offen.**
+Status: **Release-Candidate reproduzierbar gebunden; Deployment/HTTPS, Schatten und kontrolliert live bestaetigt; nur Soak noch offen.**
 
 ## Zweck
 
@@ -114,29 +114,30 @@ Der detaillierte Nachweis steht in:
 
 ## Reale Adventure-Land-Nachweise
 
-Der reale strikte Schattenlauf ist bestanden und kanonisch dokumentiert in:
+Der reale strikte Schattenlauf und der kontrollierte Live-Lauf sind bestanden und kanonisch dokumentiert in:
 
 `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json`
+
+`BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`
 
 Damit gilt im Manifest jetzt korrekt:
 
 - `adventureLandShadowVerified: true`
-- `adventureLandControlledLiveVerified: false`
+- `adventureLandControlledLiveVerified: true`
 - `adventureLandSoakVerified: false`
 - `block9Freigegeben: false`
 
-Der Schattenbericht ist zusaetzlich ueber Dateigroesse und SHA-256 gebunden. Diese Felder sind reine Nachweisdokumentation und keine Runtime-Schalter.
+Der Schattenbericht ist ueber Dateigroesse und SHA-256 gebunden. Der Live-Bericht wurde direkt im Chat bereitgestellt und wird ohne erfundenen Datei-Hash ueber seine exakten fachlichen Felder gebunden.
 
-Als naechste reale Stufe ist kontrolliert live offen. Das source-locked Paket `block8-5-live-paket.js` bindet den bestandenen Schattennachweis und den unveraenderten immutable Candidate.
+Als letzte reale Stufe ist Soak offen. Das source-locked Paket `block8-5-soak-paket.js` bindet beide bestandenen Vorstufen und den unveraenderten immutable Candidate.
 
 ## Block-9-Grenze
 
 Auch ein erfolgreiches Runtime-Deployment allein reicht nicht fuer Block 9.
 
-Nach Deployment, Offline und Schatten fehlen weiterhin die operativen Stufen:
+Nach Deployment, Offline, Schatten und kontrolliert live fehlt nur noch die operative Stufe:
 
-1. kontrolliert live,
-2. Soak.
+1. Soak.
 
 Erst wenn das sequenzielle 8.5.9-Freigabe-Gate fuer denselben Aenderungsstand alle vier Stufen inklusive Offline als bestanden bewertet, darf:
 

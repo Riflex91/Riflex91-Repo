@@ -1,6 +1,6 @@
 # Block 8.5 – Freigabestufen · Adventure-Land-Nachweisrunner
 
-Status: **Runner implementiert; Candidate Deployment/HTTPS, Offline und realer Schattenlauf sind bestanden. Kontrolliert live ist die naechste offene Stufe; Soak bleibt blockiert.**
+Status: **Runner implementiert; Candidate Deployment/HTTPS, Offline, Schatten und kontrolliert live sind bestanden. Soak ist die letzte offene Stufe.**
 
 ## Zweck
 
@@ -43,7 +43,7 @@ Der Runner laedt oder veroeffentlicht selbst keine Runtime.
 
 Der exakte Build-/Release-Nachweis fuer Runtime 1.1.5 liegt vor. Der reale Schattenlauf gegen diesen immutable Candidate ist inzwischen bestanden und kanonisch dokumentiert.
 
-Auch die Freigabestufe `offline` ist fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Zusammen mit `BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json` ist damit `kontrolliert_live` die naechste zulaessige Stufe; Soak bleibt bis zu einem bestandenen Live-Nachweis blockiert.
+Offline, Schatten und kontrolliert live sind fuer `git:88185523c81687dc16f9647ca5e7568c5e2c228c` kanonisch bestanden. Der reale Live-Nachweis steht in `BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json`; damit ist `soak` die naechste und letzte offene Stufe.
 
 ## Konfiguration
 
@@ -276,8 +276,8 @@ prueft unter anderem:
 
 Der Runner ist vorbereitet und offline abgesichert.
 
-Der reale Schattenlauf ist **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true`; kontrolliert live und Soak bleiben `false`.
+Der reale Schattenlauf und der kontrollierte Live-Lauf sind **bestanden**. Das Candidate-Manifest setzt deshalb `adventureLandShadowVerified: true` und `adventureLandControlledLiveVerified: true`; Soak bleibt `false`.
 
-Fuer die naechste Stufe steht `block8-5-live-paket.js` bereit. Das Paket bindet die vollstaendige kanonische Schattenuebergabe und entsperrt kontrolliert live erst nach mindestens einem bestaetigten Produktionsheartbeat.
+Der historische Runner 1.1.0 bleibt unveraendert als reproduzierbare Basis des bestandenen Live-Berichts. Fuer die letzte Stufe steht deshalb ein separates source-locked `block8-5-soak-paket.js` bereit, das den kanonischen Schatten- und Live-Nachweis importiert.
 
-Block 9 bleibt bis zum realen kontrollierten Live- und Soak-Nachweis gesperrt.
+Block 9 bleibt bis zum realen Soak-Nachweis gesperrt.

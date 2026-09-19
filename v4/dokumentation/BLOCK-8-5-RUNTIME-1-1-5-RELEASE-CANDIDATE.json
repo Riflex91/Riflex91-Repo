@@ -10,7 +10,7 @@
   "deploymentPerformed": true,
   "publicHttpsVerified": true,
   "adventureLandShadowVerified": true,
-  "adventureLandControlledLiveVerified": false,
+  "adventureLandControlledLiveVerified": true,
   "adventureLandSoakVerified": false,
   "block9Freigegeben": false,
   "laufzeitPfadKennung": "block8.5-basisbedienung-runtime",
@@ -32,5 +32,13 @@
     "performedAt": 1789775267498,
     "laufKennung": "block8-5-schatten-1789775266269",
     "evidenceFile": "BLOCK-8-5-SCHATTEN-FREIGABE-NACHWEIS.json"
+  },
+  "controlledLiveEvidence": {
+    "source": "chat_paste",
+    "reportCreatedAt": "2026-09-19T00:04:55.339Z",
+    "performedAt": 1789776285337,
+    "laufKennung": "block8-5-schatten-1789775266269",
+    "runnerVersion": "1.1.0",
+    "evidenceFile": "BLOCK-8-5-KONTROLLIERT-LIVE-FREIGABE-NACHWEIS.json"
   }
 }
