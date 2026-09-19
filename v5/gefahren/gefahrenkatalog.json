@@ -3,7 +3,7 @@
   "stand": "2026-09-19",
   "methode": "FMEA_AEHNLICH",
   "regel": "Hohe Risikowerte reduzieren nicht die Pflicht zur Behandlung niedrigerer Safety-Risiken; jede Gefahr braucht vor betroffener Live-Autoritaet eine wirksame Gegenmassnahme.",
-  "anzahl": 122,
+  "anzahl": 130,
   "gefahren": [
     {
       "kennung": "V5-GEF-001",
@@ -1758,6 +1758,138 @@
         "R7",
         "R10",
         "R14"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-123",
+      "titel": "Raw trade_buy/trade_sell wird ohne RID gesendet und umgeht damit den serverseitigen Replacement-Guard",
+      "kategorie": "MARKT",
+      "schweregrad": 5,
+      "eintritt": 2,
+      "entdeckbarkeit": 5,
+      "risikowert": 50,
+      "status": "OFFEN",
+      "strategie": "Execution-Adapter erzwingt nichtleere frisch beobachtete RID",
+      "betroffenePhasen": [
+        "R9",
+        "R13",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-124",
+      "titel": "Bot behandelt gleiche RID nach Partial Fill als Beweis fuer unveraenderte Restmenge",
+      "kategorie": "MARKT",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 4,
+      "risikowert": 80,
+      "status": "OFFEN",
+      "strategie": "Quantity separat vor jedem neuen Intent live revalidieren",
+      "betroffenePhasen": [
+        "R6",
+        "R9",
+        "R13",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-125",
+      "titel": "Nach insufficient quantity verkleinert der Bot denselben Trade-Intent automatisch",
+      "kategorie": "MARKT",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Feste Intent-Menge; kleinere Menge nur durch neuen Plan/Intent",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-126",
+      "titel": "Remote Listing-q-Delta wird nach UNKNOWN faelschlich dem eigenen Trade zugerechnet",
+      "kategorie": "RECOVERY",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 5,
+      "risikowert": 75,
+      "status": "OFFEN",
+      "strategie": "Own gold/inventory als primaere Settlement-Evidence; Remote-q nur sekundaer",
+      "betroffenePhasen": [
+        "R10",
+        "R13",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-127",
+      "titel": "trade_sell verkauft ein anderes physisches Item als vom Planner beabsichtigt",
+      "kategorie": "MARKT",
+      "schweregrad": 5,
+      "eintritt": 4,
+      "entdeckbarkeit": 5,
+      "risikowert": 100,
+      "status": "OFFEN",
+      "strategie": "Exakten Server-Inventory-Scan unmittelbar vor Send reproduzieren; nicht-fungible Ambiguitaet blockiert",
+      "betroffenePhasen": [
+        "R7",
+        "R9",
+        "R13",
+        "R15"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-128",
+      "titel": "RID wird als global eindeutige Listing-ID oder Idempotency-Key behandelt",
+      "kategorie": "MARKT",
+      "schweregrad": 4,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 48,
+      "status": "OFFEN",
+      "strategie": "Composite ListingAnchor + getrennte Transaction-ID",
+      "betroffenePhasen": [
+        "R4",
+        "R6",
+        "R9",
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-129",
+      "titel": "Wishlist wird in-place ersetzt und ein alter Plan arbeitet mit dem neuen Listing weiter",
+      "kategorie": "MARKT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "RID/Fingerprint Drift invalidiert Plan und ActionRequest",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R13"
+      ]
+    },
+    {
+      "kennung": "V5-GEF-130",
+      "titel": "Getrennte FIFO-Channels fuer Listing/Buy/Sell erlauben eigene Gold-/Inventory-Races ohne globale Resource Claims",
+      "kategorie": "MARKT",
+      "schweregrad": 5,
+      "eintritt": 3,
+      "entdeckbarkeit": 4,
+      "risikowert": 60,
+      "status": "OFFEN",
+      "strategie": "Scheduler claims character:gold/inventory und Listing-Ressource kanalübergreifend",
+      "betroffenePhasen": [
+        "R8",
+        "R9",
+        "R13",
+        "R15"
       ]
     }
   ]
