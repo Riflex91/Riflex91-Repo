@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Riflex91/Riflex91-Repo/evidence/group-tests/schema/group-test-v1.schema.json",
+  "title": "Adventure Land AIO Group Test v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "testId",
+    "capturedAt",
+    "bot",
+    "input",
+    "party",
+    "context",
+    "metrics",
+    "outcome",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "testId": { "type": "string", "minLength": 1 },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "bot": {
+      "type": "object",
+      "required": ["generation"],
+      "properties": {
+        "generation": { "enum": ["v3", "v4"] },
+        "releaseVersion": { "type": ["string", "null"] },
+        "commit": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "input": {
+      "type": "object",
+      "required": ["sources"],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["gui-copy-log", "session-export", "diagnostics", "brain-status", "adaptive-pull-profiles", "other"]
+          }
+        },
+        "sanitized": { "type": "boolean" },
+        "rawCommitted": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "party": {
+      "type": "object",
+      "required": ["members"],
+      "properties": {
+        "fingerprint": { "type": ["string", "null"] },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "ctype"],
+            "properties": {
+              "name": { "type": "string" },
+              "ctype": { "type": "string" },
+              "level": { "type": ["number", "null"] },
+              "gearSignature": { "type": ["string", "null"] },
+              "skillUnlocks": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "combatMode": { "type": ["string", "null"] }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "map": { "type": ["string", "null"] },
+        "monster": { "type": ["string", "null"] },
+        "event": { "type": ["string", "null"] },
+        "contentDisposition": { "type": ["string", "null"] },
+        "durationSeconds": { "type": ["number", "null"], "minimum": 0 },
+        "pullSize": { "type": ["number", "null"], "minimum": 1 },
+        "notes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "xpPerHour": { "type": ["number", "null"] },
+        "goldPerHour": { "type": ["number", "null"] },
+        "killsPerHour": { "type": ["number", "null"] },
+        "deaths": { "type": ["number", "null"], "minimum": 0 },
+        "deathsPerHour": { "type": ["number", "null"], "minimum": 0 },
+        "retreats": { "type": ["number", "null"], "minimum": 0 },
+        "nearDeaths": { "type": ["number", "null"], "minimum": 0 },
+        "hpPotions": { "type": ["number", "null"], "minimum": 0 },
+        "mpPotions": { "type": ["number", "null"], "minimum": 0 },
+        "damageTaken": { "type": ["number", "null"], "minimum": 0 },
+        "movementFailures": { "type": ["number", "null"], "minimum": 0 },
+        "skillFailures": { "type": ["number", "null"], "minimum": 0 },
+        "disconnects": { "type": ["number", "null"], "minimum": 0 },
+        "safetyMargin": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object",
+      "required": ["classification"],
+      "properties": {
+        "classification": {
+          "enum": ["SUCCESS", "SAFE_ABORT", "DEATH", "INTERRUPTED", "CONTENT_DRIFT", "PARTY_FAILURE", "UNKNOWN"]
+        },
+        "learningEligible": { "type": ["boolean", "null"] },
+        "brainAccepted": { "type": ["boolean", "null"] },
+        "adaptiveRecorded": { "type": ["boolean", "null"] },
+        "notes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["status", "quality"],
+      "properties": {
+        "status": { "enum": ["raw", "provisional", "confirmed", "superseded"] },
+        "quality": { "enum": ["low", "medium", "high"] },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "comparableWith": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "development": {
+      "type": "object",
+      "properties": {
+        "v3Relevance": { "type": ["string", "null"] },
+        "v4Relevance": { "type": ["string", "null"] },
+        "issueOrPr": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
