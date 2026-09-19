@@ -291,12 +291,8 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
 
     private async Task<List<RegistrierteQuelle>> LadeQuellenregisterAsync(CancellationToken cancellationToken)
     {
-        var pfad = Path.Combine(
-            _arbeitskopie.Wurzel,
-            "v5",
-            "wissensbasis",
-            "quellen",
-            "quellen.json");
+        var pfad = _arbeitskopie.LoeseWissensbasisPfadAuf(
+            GitArbeitskopie.WissensbasisPfad + "/quellen/quellen.json");
 
         if (!File.Exists(pfad))
             throw new InvalidOperationException("QUELLENREGISTER_FEHLT");
