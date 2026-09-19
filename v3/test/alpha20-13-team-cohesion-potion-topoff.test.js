@@ -213,6 +213,85 @@ test('resource topoff avoids wasting a known MP potion on a tiny mana deficit', 
   assert.equal(hotfix.status().stats.overhealAvoided, 1);
 });
 
+test('recovery state bypasses potion utilization floor for a low-max-MP Warrior', () => {
+  let used = null;
+  const root = {
+    character: { name: 'My_Warrior', ctype: 'warrior' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = {
+    state: 'RECOVER',
+    stateReason: 'MP_BELOW_RECOVERY_THRESHOLD',
+    config: { recoverHpRatio: 0.75, recoverMpRatio: 0.22 },
+    lastPotionAt: 0,
+    _maybePotion() {}
+  };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, minPotionUtilization: 0.5 }
+  );
+  const snap = {
+    character: character('My_Warrior', {
+      ctype: 'warrior',
+      hp: 579,
+      max_hp: 624,
+      mp: 10,
+      max_mp: 55,
+      inventory: inventory({ hp: 4498, mp: 4500 })
+    })
+  };
+
+  assert.equal(hotfix.topOff(snap), true);
+  assert.equal(used, 'use_mp');
+  assert.equal(hotfix.status().lastUse.action, 'use_mp');
+  assert.equal(hotfix.status().lastUse.recoveryRequired, true);
+  assert.equal(hotfix.status().lastUse.restoreAmount, 300);
+  assert.ok(hotfix.status().lastUse.utilization < 0.5);
+  assert.equal(hotfix.status().stats.recoveryUtilizationBypasses, 1);
+  assert.equal(hotfix.status().stats.mpRequests, 1);
+});
+
+test('normal topoff still avoids the same wasteful potion outside RECOVER', () => {
+  let used = null;
+  const root = {
+    character: { name: 'My_Warrior', ctype: 'warrior' },
+    parent: {},
+    G: { items: { mpot0: { type: 'pot', gives: [['mp', 300]] }, hpot0: { type: 'pot', gives: [['hp', 200]] } } },
+    can_use: () => true,
+    use: (token) => { used = token; }
+  };
+  const adapter = new GameAdapter({ root, parent: root.parent, mode: 'active' });
+  const farmer = {
+    state: 'SELECT_TARGET',
+    config: { recoverHpRatio: 0.75, recoverMpRatio: 0.22 },
+    lastPotionAt: 0,
+    _maybePotion() {}
+  };
+  const hotfix = installFarmerResourceTopoffHotfix(
+    { root, adapter, farmer, now: () => 10000, log: { emit() {} } },
+    { targetRatio: 1, minPotionUtilization: 0.5 }
+  );
+  const snap = {
+    character: character('My_Warrior', {
+      ctype: 'warrior',
+      hp: 579,
+      max_hp: 624,
+      mp: 10,
+      max_mp: 55,
+      inventory: inventory({ hp: 4498, mp: 4500 })
+    })
+  };
+
+  assert.equal(hotfix.topOff(snap), false);
+  assert.equal(used, null);
+  assert.equal(hotfix.status().lastUse.reason, 'POTION_OVERHEAL_AVOIDED');
+  assert.equal(hotfix.status().stats.recoveryUtilizationBypasses, 0);
+});
+
 test('resource topoff tries viable HP when preferred MP would be wasteful', () => {
   let used = null;
   const root = {

@@ -29292,6 +29292,7 @@ class FarmerResourceTopoffHotfix {
       alreadyToppedOff: 0,
       potionUnavailable: 0,
       overhealAvoided: 0,
+      recoveryUtilizationBypasses: 0,
       cooldownProbeSkips: 0,
       preciseAdapterUses: 0,
       commandFailures: 0
@@ -29438,7 +29439,15 @@ class FarmerResourceTopoffHotfix {
         ? Math.min(1, candidateDeficit / candidateRestoreAmount)
         : null;
       const candidateCriticalHp = candidateAction === 'use_hp' && hpRatio <= this.criticalHpRatio;
+      const recoveryState = String(this.farmer && this.farmer.state || '') === 'RECOVER';
+      const recoverHpRatio = Number(this.farmer && this.farmer.config && this.farmer.config.recoverHpRatio);
+      const recoverMpRatio = Number(this.farmer && this.farmer.config && this.farmer.config.recoverMpRatio);
+      const candidateRecoveryRequired = recoveryState && (
+        (candidateAction === 'use_hp' && Number.isFinite(recoverHpRatio) && hpRatio < recoverHpRatio)
+        || (candidateAction === 'use_mp' && Number.isFinite(recoverMpRatio) && mpRatio < recoverMpRatio)
+      );
       const viable = candidateCriticalHp
+        || candidateRecoveryRequired
         || candidateUtilization == null
         || candidateUtilization >= this.minPotionUtilization;
       const candidate = {
@@ -29449,9 +29458,13 @@ class FarmerResourceTopoffHotfix {
         deficit: candidateDeficit,
         restoreAmount: candidateRestoreAmount,
         utilization: candidateUtilization,
-        criticalHp: candidateCriticalHp
+        criticalHp: candidateCriticalHp,
+        recoveryRequired: candidateRecoveryRequired
       };
       if (viable) {
+        if (candidateRecoveryRequired && candidateUtilization != null && candidateUtilization < this.minPotionUtilization) {
+          this.stats.recoveryUtilizationBypasses += 1;
+        }
         selected = candidate;
         break;
       }
@@ -29470,7 +29483,7 @@ class FarmerResourceTopoffHotfix {
       return false;
     }
 
-    const { action, resource, deficit, restoreAmount, utilization } = selected;
+    const { action, resource, deficit, restoreAmount, utilization, recoveryRequired } = selected;
 
     if (this.adapter && this.adapter.mode === 'active' && !this._canUse(action)) {
       this.lastAttemptAt = now;
@@ -29506,6 +29519,7 @@ class FarmerResourceTopoffHotfix {
       deficit,
       restoreAmount,
       utilization,
+      recoveryRequired: !!recoveryRequired,
       minPotionUtilization: this.minPotionUtilization
     };
     const severity = result.executed || result.shadow || result.reason === 'POTION_COOLDOWN' ? 'info' : 'warn';
@@ -29534,6 +29548,7 @@ class FarmerResourceTopoffHotfix {
       precisePotionSelection: true,
       metadataAwareOverhealProtection: true,
       criticalHpBypassesUtilizationFloor: true,
+      recoveryStateBypassesUtilizationFloor: true,
       requiresHpAndMpSupplyForTeamCombat: true,
       lastUse: this.lastUse ? { ...this.lastUse } : null,
       lastSupply: this.lastSupply ? { ...this.lastSupply } : null,
