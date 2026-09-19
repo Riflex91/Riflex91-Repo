@@ -154,6 +154,66 @@ function equipmentShadeCatalog(runtime) {
   return catalog;
 }
 
+function itemNpcCatalog(gameData) {
+  const byItem = new Map();
+  const add = (item, npc, map) => {
+    const name = String(item || '').trim();
+    if (!name) return;
+    const rows = byItem.get(name) || [];
+    const key = `${String(npc || 'npc')}|${String(map || '')}`;
+    if (!rows.some((row) => row.key === key)) rows.push({ key, npc: String(npc || 'npc'), map: map || null });
+    byItem.set(name, rows);
+  };
+  for (const [mapId, map] of Object.entries(gameData && gameData.maps || {})) {
+    for (const raw of Array.isArray(map && (map.npcs || map.NPCs)) ? (map.npcs || map.NPCs) : []) {
+      const npcId = Array.isArray(raw) ? raw[0] : raw && (raw.id || raw.npc);
+      const def = gameData && gameData.npcs && gameData.npcs[npcId] || {};
+      const stock = [].concat(def.items || def.sells || []);
+      for (const row of stock) add(Array.isArray(row) ? row[0] : row && row.name || row, npcId, mapId);
+    }
+  }
+  return byItem;
+}
+
+function itemAutomationCatalog(runtime, maxItems = 3000) {
+  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
+  for (const source of gameDataSources(runtime)) {
+    Object.assign(gameData.items, source && source.items || {});
+    Object.assign(gameData.maps, source && source.maps || {});
+    Object.assign(gameData.npcs, source && source.npcs || {});
+    Object.assign(gameData.positions, source && source.positions || {});
+    Object.assign(gameData.imagesets, source && source.imagesets || {});
+  }
+  const npcByItem = itemNpcCatalog(gameData);
+  const rows = [];
+  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
+    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
+    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
+    rows.push({
+      id,
+      name: def.name || id,
+      type: def.type || null,
+      wtype: def.wtype || null,
+      level: Number.isFinite(level) ? level : null,
+      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      classes,
+      npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
+      upgrade: def.upgrade === true,
+      compound: def.compound === true,
+      exchange: !!(def.exchange || def.e),
+      quest: !!(def.quest || def.q),
+      cash: !!def.cash,
+      soulbound: !!def.soulbound,
+      special: !!def.special,
+      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
+      skin: def.skin_c || def.skin || null
+    });
+  }
+  rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+  return rows;
+}
+
 function installAdventureLandItemSprites(runtime, cloud) {
   if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
@@ -163,6 +223,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
       snapshot.itemSprites = itemSpriteCatalog(runtime);
       snapshot.equipmentShades = equipmentShadeCatalog(runtime);
       const liveCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+      if (liveCharacter && String(liveCharacter.ctype || '').toLowerCase() === 'merchant') snapshot.automationCatalog = itemAutomationCatalog(runtime);
       if (snapshot.character && Number.isFinite(Number(liveCharacter && liveCharacter.isize))) {
         snapshot.character.isize = Math.max(0, Math.floor(Number(liveCharacter.isize)));
       }
@@ -371,5 +432,6 @@ module.exports = {
   adventureLandAssetUrl,
   itemSpriteCatalog,
   equipmentShadeCatalog,
+  itemAutomationCatalog,
   installAdventureLandItemSprites
 };
