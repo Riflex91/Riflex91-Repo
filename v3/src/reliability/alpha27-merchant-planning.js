@@ -476,7 +476,11 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const gear = this.runtime.gearProgression;
     const gd = gameDataOf(this.runtime);
     if (!c || !ledger || !gear || typeof gear.list !== 'function') return null;
-    const goals = gear.list(200).filter((goal) => goal && goal.sourceCharacter === c.name && goal.projectedUpgradeRequired && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0));
+    const goals = gear.list(200).filter((goal) => goal
+      && goal.sourceCharacter === c.name
+      && goal.projectedUpgradeRequired
+      && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0)
+      && goal.targetOffline !== true);
     for (const goal of goals) {
       const entry = ledger.list(1000).find((row) => row && row.character === c.name && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && EXPECTED_DISPOSITIONS.UPGRADE.has(String(row.disposition || '')));
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
@@ -678,7 +682,26 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       };
     }
     const bank = rows.find((row) => row.disposition === 'BANK');
-    if (bank) return { type: 'BANK', character: c.name, index: bank.index, quantity: Math.max(1, finite(bank.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
+    if (bank) {
+      const reasons = Array.isArray(bank.reasons) ? bank.reasons.map(String) : [];
+      const offlinePartyGearReserve = reasons.includes('OFFLINE_PARTY_GEAR_RESERVE');
+      return {
+        type: 'BANK',
+        character: c.name,
+        index: bank.index,
+        quantity: Math.max(1, finite(bank.q, 1)),
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          offlinePartyGearReserve,
+          bankUntilPartyReturn: offlinePartyGearReserve,
+          targetCharacter: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetCharacter || null : null,
+          targetSlot: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetSlot || null : null,
+          gearGoalIds: offlinePartyGearReserve && bank.reservation && Array.isArray(bank.reservation.goalIds)
+            ? bank.reservation.goalIds.slice(0, 32)
+            : []
+        }
+      };
+    }
     return null;
   }
 }

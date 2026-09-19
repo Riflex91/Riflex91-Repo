@@ -51,6 +51,14 @@ class FarmerResourceTopoffHotfix {
     this.targetRatio = Math.max(0.90, Math.min(1, options.targetRatio == null ? 1 : Number(options.targetRatio)));
     this.criticalHpRatio = Math.max(0.40, Math.min(0.90, Number(options.criticalHpRatio) || 0.72));
     this.minPotionUtilization = Math.max(0.25, Math.min(1, Number(options.minPotionUtilization) || 0.50));
+    const configuredUseHpRatio = finite(this.farmer && this.farmer.config && this.farmer.config.useHpRatio);
+    const configuredUseMpRatio = finite(this.farmer && this.farmer.config && this.farmer.config.useMpRatio);
+    // Capture the Farmer FSM's real operational trigger before this hotfix
+    // widens useHpRatio/useMpRatio to targetRatio so top-off evaluation runs.
+    // Small resource pools still need a potion when they cross the combat
+    // trigger even if a large potion can never reach the normal utilization floor.
+    this.operationalUseHpRatio = configuredUseHpRatio == null ? null : Math.max(0, Math.min(1, configuredUseHpRatio));
+    this.operationalUseMpRatio = configuredUseMpRatio == null ? null : Math.max(0, Math.min(1, configuredUseMpRatio));
     this.cooldownMs = Math.max(600, Math.min(3000, Number(options.cooldownMs) || 650));
     this.lastAttemptAt = -Infinity;
     this.lastUse = null;
@@ -64,6 +72,7 @@ class FarmerResourceTopoffHotfix {
       potionUnavailable: 0,
       overhealAvoided: 0,
       recoveryUtilizationBypasses: 0,
+      operationalThresholdUtilizationBypasses: 0,
       cooldownProbeSkips: 0,
       preciseAdapterUses: 0,
       commandFailures: 0
@@ -76,6 +85,8 @@ class FarmerResourceTopoffHotfix {
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
       minPotionUtilization: this.minPotionUtilization,
+      operationalUseHpRatio: this.operationalUseHpRatio,
+      operationalUseMpRatio: this.operationalUseMpRatio,
       cooldownMs: this.cooldownMs
     });
   }
@@ -217,8 +228,13 @@ class FarmerResourceTopoffHotfix {
         (candidateAction === 'use_hp' && Number.isFinite(recoverHpRatio) && hpRatio < recoverHpRatio)
         || (candidateAction === 'use_mp' && Number.isFinite(recoverMpRatio) && mpRatio < recoverMpRatio)
       );
+      const operationalRatio = candidateAction === 'use_hp' ? this.operationalUseHpRatio : this.operationalUseMpRatio;
+      const observedRatio = candidateAction === 'use_hp' ? hpRatio : mpRatio;
+      const candidateOperationalThresholdRequired = Number.isFinite(operationalRatio)
+        && observedRatio < operationalRatio;
       const viable = candidateCriticalHp
         || candidateRecoveryRequired
+        || candidateOperationalThresholdRequired
         || candidateUtilization == null
         || candidateUtilization >= this.minPotionUtilization;
       const candidate = {
@@ -230,11 +246,15 @@ class FarmerResourceTopoffHotfix {
         restoreAmount: candidateRestoreAmount,
         utilization: candidateUtilization,
         criticalHp: candidateCriticalHp,
-        recoveryRequired: candidateRecoveryRequired
+        recoveryRequired: candidateRecoveryRequired,
+        operationalThresholdRequired: candidateOperationalThresholdRequired,
+        operationalThresholdRatio: Number.isFinite(operationalRatio) ? operationalRatio : null
       };
       if (viable) {
         if (candidateRecoveryRequired && candidateUtilization != null && candidateUtilization < this.minPotionUtilization) {
           this.stats.recoveryUtilizationBypasses += 1;
+        } else if (candidateOperationalThresholdRequired && candidateUtilization != null && candidateUtilization < this.minPotionUtilization) {
+          this.stats.operationalThresholdUtilizationBypasses += 1;
         }
         selected = candidate;
         break;
@@ -254,7 +274,16 @@ class FarmerResourceTopoffHotfix {
       return false;
     }
 
-    const { action, resource, deficit, restoreAmount, utilization, recoveryRequired } = selected;
+    const {
+      action,
+      resource,
+      deficit,
+      restoreAmount,
+      utilization,
+      recoveryRequired,
+      operationalThresholdRequired,
+      operationalThresholdRatio
+    } = selected;
 
     if (this.adapter && this.adapter.mode === 'active' && !this._canUse(action)) {
       this.lastAttemptAt = now;
@@ -291,6 +320,8 @@ class FarmerResourceTopoffHotfix {
       restoreAmount,
       utilization,
       recoveryRequired: !!recoveryRequired,
+      operationalThresholdRequired: !!operationalThresholdRequired,
+      operationalThresholdRatio,
       minPotionUtilization: this.minPotionUtilization
     };
     const severity = result.executed || result.shadow || result.reason === 'POTION_COOLDOWN' ? 'info' : 'warn';
@@ -315,11 +346,14 @@ class FarmerResourceTopoffHotfix {
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
       minPotionUtilization: this.minPotionUtilization,
+      operationalUseHpRatio: this.operationalUseHpRatio,
+      operationalUseMpRatio: this.operationalUseMpRatio,
       cooldownMs: this.cooldownMs,
       precisePotionSelection: true,
       metadataAwareOverhealProtection: true,
       criticalHpBypassesUtilizationFloor: true,
       recoveryStateBypassesUtilizationFloor: true,
+      operationalResourceThresholdBypassesUtilizationFloor: true,
       requiresHpAndMpSupplyForTeamCombat: true,
       lastUse: this.lastUse ? { ...this.lastUse } : null,
       lastSupply: this.lastSupply ? { ...this.lastSupply } : null,

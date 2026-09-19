@@ -13247,6 +13247,7 @@ module.exports = { GlobalSupervisor, HealthState };
 const { Alpha13Runtime } = require('./alpha13-runtime');
 const { InventoryLedger } = require('../economy/inventory-ledger');
 const { GearProgressionEvaluator } = require('../economy/gear-progression');
+const { MerchantPartyHistory } = require('../party/merchant-party-history');
 
 const ALPHA14_VERSION = '3.0.0-alpha.14.0';
 
@@ -13266,6 +13267,15 @@ this.log.version = ALPHA14_VERSION;
       minImprovementRatio: options.gearMinImprovementRatio
     });
     this.gearProgression.load();
+
+    this.merchantPartyHistory = options.merchantPartyHistory || new MerchantPartyHistory({
+      root: this.root,
+      storage: options.merchantPartyHistoryStorage || options.storage,
+      now: this.now,
+      log: this.log,
+      capacity: options.merchantPartyHistoryCapacity,
+      saveIntervalMs: options.merchantPartyHistorySaveIntervalMs
+    });
 
     this.inventoryLedger = options.inventoryLedger || new InventoryLedger({
       now: this.now,
@@ -13295,7 +13305,52 @@ class Alpha14Runtime extends Alpha13Runtime {
   }
 
   _planInventoryAndGear() {
-    const registry = this.characterRegistry.status();
+    const liveRegistry = this.characterRegistry.status();
+    const liveCharacter = this.root && this.root.character;
+    const merchantActive = liveCharacter && String(liveCharacter.ctype || liveCharacter.type || '').toLowerCase() === 'merchant';
+    let registry = liveRegistry;
+
+    if (merchantActive && this.merchantPartyHistory) {
+      const partyNames = [
+        liveCharacter && liveCharacter.name,
+        ...(Array.isArray(this.lastSnapshot && this.lastSnapshot.party)
+          ? this.lastSnapshot.party.map((row) => typeof row === 'string' ? row : row && row.name)
+          : [])
+      ].filter(Boolean);
+      let trustedNames = [];
+      try {
+        trustedNames = this.partyBootstrap && typeof this.partyBootstrap.trustedRosterNames === 'function'
+          ? this.partyBootstrap.trustedRosterNames() || []
+          : [];
+      } catch (_) {
+        trustedNames = [];
+      }
+      this.merchantPartyHistory.observe({
+        merchantName: liveCharacter.name,
+        partyNames,
+        trustedNames,
+        registry: liveRegistry
+      });
+      const remembered = this.merchantPartyHistory.planningRows({
+        currentPartyNames: partyNames,
+        registry: liveRegistry
+      });
+      if (remembered.length) {
+        const planningByName = new Map(
+          (liveRegistry.characters || [])
+            .filter((row) => row && row.name)
+            .map((row) => [String(row.name), row])
+        );
+        // Replace stale/non-party observations only in the planning view. The
+        // authoritative live CharacterRegistry remains untouched.
+        for (const row of remembered) planningByName.set(String(row.name), row);
+        registry = {
+          ...liveRegistry,
+          characters: [...planningByName.values()]
+        };
+      }
+    }
+
     const gameData = this.adapter.getGameData() || {};
     const gear = this.gearProgression.evaluate({
       registry,
@@ -13304,16 +13359,17 @@ class Alpha14Runtime extends Alpha13Runtime {
     });
     this.inventoryLedger.setProgressionReservations(gear.reservations);
     const ledger = this.inventoryLedger.observe({
-      registry,
+      registry: liveRegistry,
       gameData,
       contentDrift: this.contentDrift,
-      liveCharacter: this.root && this.root.character,
+      liveCharacter,
       observedAt: this.lastSnapshot && this.lastSnapshot.observedAt
     });
     this.lastInventoryPlanningResult = {
       at: this.now(),
       ledger: ledger.summary,
-      gear: gear.status.lastEvaluation
+      gear: gear.status.lastEvaluation,
+      rememberedPartyMembers: this.merchantPartyHistory ? this.merchantPartyHistory.status().rememberedMembers : 0
     };
     return this.lastInventoryPlanningResult;
   }
@@ -13329,6 +13385,7 @@ class Alpha14Runtime extends Alpha13Runtime {
 
   stop() {
     if (this.gearProgression) this.gearProgression.save({ force: true });
+    if (this.merchantPartyHistory) this.merchantPartyHistory.save({ force: true });
     return super.stop();
   }
 
@@ -13338,7 +13395,8 @@ class Alpha14Runtime extends Alpha13Runtime {
       ...base,
       version: ALPHA14_VERSION,
       inventory: this.inventoryLedger.status(),
-      gearProgression: this.gearProgression.status()
+      gearProgression: this.gearProgression.status(),
+      merchantPartyHistory: this.merchantPartyHistory ? this.merchantPartyHistory.status() : null
     };
   }
 
@@ -13353,6 +13411,7 @@ class Alpha14Runtime extends Alpha13Runtime {
       status: this.gearProgression.status(),
       goals: this.gearProgression.list(200)
     };
+    base.context.merchantPartyHistory = this.merchantPartyHistory ? this.merchantPartyHistory.status() : null;
     return JSON.stringify(base, null, 2);
   }
 }
@@ -13508,7 +13567,12 @@ class InventoryLedger {
         quantity,
         sourceCharacter: normalizeName(row.sourceCharacter),
         sourceIndex: Number.isInteger(Number(row.sourceIndex)) ? Number(row.sourceIndex) : null,
-        goalIds: Array.isArray(row.goalIds) ? row.goalIds.map(String).slice(0, 32) : []
+        goalIds: Array.isArray(row.goalIds) ? row.goalIds.map(String).slice(0, 32) : [],
+        targetCharacter: normalizeName(row.targetCharacter),
+        targetSlot: row.targetSlot == null ? null : String(row.targetSlot),
+        targetOffline: row.targetOffline === true,
+        bankUntilPartyReturn: row.bankUntilPartyReturn === true,
+        lastTargetPartyAt: finite(row.lastTargetPartyAt, null)
       };
       if (normalized.sourceCharacter && normalized.sourceIndex != null) {
         this.progressionReservationSlots.set(itemKey(normalized.sourceCharacter, normalized.sourceIndex), normalized);
@@ -13573,6 +13637,20 @@ class InventoryLedger {
 
     const exactProgression = this.progressionReservationSlots.get(itemKey(row.character, row.index));
     if (exactProgression && exactProgression.name === row.name && exactProgression.level === row.level) {
+      if (exactProgression.bankUntilPartyReturn === true && exactProgression.targetOffline === true) {
+        if (this._permission(row.name, 'bank') === false) {
+          return {
+            disposition: ItemDisposition.KEEP,
+            reasons: ['OPERATOR_BANK_DENIED', 'OFFLINE_PARTY_GEAR_RESERVE'],
+            reservation: clone(exactProgression)
+          };
+        }
+        return {
+          disposition: ItemDisposition.BANK,
+          reasons: ['OFFLINE_PARTY_GEAR_RESERVE', 'BANK_UNTIL_TRUSTED_PARTY_RETURN'],
+          reservation: clone(exactProgression)
+        };
+      }
       if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_EXACT_ITEM'], reservation: clone(exactProgression) };
     }
@@ -13582,6 +13660,20 @@ class InventoryLedger {
     if (countKey && reservationRemaining.get(countKey) > 0) {
       reservationRemaining.set(countKey, reservationRemaining.get(countKey) - 1);
       const progression = this.progressionReservationCounts.get(countKey);
+      if (progression && progression.bankUntilPartyReturn === true && progression.targetOffline === true) {
+        if (this._permission(row.name, 'bank') === false) {
+          return {
+            disposition: ItemDisposition.KEEP,
+            reasons: ['OPERATOR_BANK_DENIED', 'OFFLINE_PARTY_GEAR_RESERVE'],
+            reservation: clone(progression)
+          };
+        }
+        return {
+          disposition: ItemDisposition.BANK,
+          reasons: ['OFFLINE_PARTY_GEAR_RESERVE', 'BANK_UNTIL_TRUSTED_PARTY_RETURN'],
+          reservation: clone(progression)
+        };
+      }
       if (this._permission(row.name, 'upgrade') === false) return { disposition: ItemDisposition.KEEP, reasons: ['OPERATOR_UPGRADE_DENIED', 'ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
       return { disposition: ItemDisposition.RESERVE_PROGRESSION, reasons: ['ACTIVE_GEAR_GOAL_QUANTITY_ALLOCATED'], reservation: clone(progression) };
     }
@@ -14248,6 +14340,7 @@ class GearProgressionEvaluator {
     let blockedUnknownContent = 0;
 
     for (const character of characters) {
+      const targetOffline = character && character.rememberedOffline === true;
       for (const candidate of candidates) {
         const evaluationKey = Number.isInteger(Number(candidate.item && candidate.item.index))
           ? `${candidate.sourceCharacter}:${Number(candidate.item.index)}`
@@ -14333,6 +14426,9 @@ class GearProgressionEvaluator {
               firstMeaningfulLevel: meaningful.level,
               targetCharacter: character.name,
               targetSlot: slot,
+              targetOffline,
+              bankUntilPartyReturn: targetOffline,
+              lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
               improvement,
               survivalImprovement,
               upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
@@ -14392,6 +14488,9 @@ class GearProgressionEvaluator {
           priority: String(character.ctype || '').toLowerCase() === 'merchant' && best.speedImprovement > 0
             ? 'MERCHANT_MOBILITY'
             : best.survivalImprovement > 0 ? 'SURVIVABILITY_OR_MIXED' : 'FARMING_EFFICIENCY',
+          targetOffline,
+          bankUntilPartyReturn: targetOffline,
+          lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
           actionAuthority: false,
           firstSeenAt: existing ? existing.firstSeenAt : now,
           lastSeenAt: now
@@ -14402,7 +14501,14 @@ class GearProgressionEvaluator {
     }
 
     for (const [id, goal] of this.goals.entries()) {
-      if (!seenGoalIds.has(id) && now - finite(goal.lastSeenAt, now) > 24 * 60 * 60 * 1000) this.goals.delete(id);
+      // Gear explicitly reserved for a remembered offline party member survives
+      // ordinary 24h goal aging. It is released by a fresh online evaluation
+      // after that character rejoins, or by bounded goal-capacity pruning.
+      if (!seenGoalIds.has(id)
+        && goal.bankUntilPartyReturn !== true
+        && now - finite(goal.lastSeenAt, now) > 24 * 60 * 60 * 1000) {
+        this.goals.delete(id);
+      }
     }
     this._prune();
     this.stats.blockedUnknownContent += blockedUnknownContent;
@@ -14414,7 +14520,10 @@ class GearProgressionEvaluator {
     const usedPhysicalItems = new Set();
     const usedTargetSlots = new Set();
     const ctypeByName = new Map(characters.filter(Boolean).map((row) => [String(row.name || ''), String(row.ctype || row.type || '').toLowerCase()]));
-    const compareGoal = (a, b) => b.survivalImprovement - a.survivalImprovement || b.improvement - a.improvement || a.id.localeCompare(b.id);
+    const compareGoal = (a, b) => Number(a.targetOffline === true) - Number(b.targetOffline === true)
+      || b.survivalImprovement - a.survivalImprovement
+      || b.improvement - a.improvement
+      || a.id.localeCompare(b.id);
     const compareMerchantGoal = (a, b) => finite(b.speedImprovement, 0) - finite(a.speedImprovement, 0)
       || b.improvement - a.improvement
       || b.survivalImprovement - a.survivalImprovement
@@ -14464,7 +14573,12 @@ class GearProgressionEvaluator {
         quantity: 1,
         sourceCharacter: goal.sourceCharacter,
         sourceIndex: goal.sourceIndex,
-        goalIds: [goal.id]
+        goalIds: [goal.id],
+        targetCharacter: goal.character,
+        targetSlot: goal.slot,
+        targetOffline: goal.targetOffline === true,
+        bankUntilPartyReturn: goal.bankUntilPartyReturn === true,
+        lastTargetPartyAt: goal.lastTargetPartyAt == null ? null : goal.lastTargetPartyAt
       });
     }
     this.lastEvaluation = {
@@ -14476,6 +14590,8 @@ class GearProgressionEvaluator {
       physicalAssignments: currentGoals.length,
       farmerAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) !== 'merchant').length,
       merchantAssignments: currentGoals.filter((goal) => ctypeByName.get(String(goal.character || '')) === 'merchant').length,
+      offlinePartyAssignments: currentGoals.filter((goal) => goal && goal.targetOffline === true).length,
+      bankUntilPartyReturnAssignments: currentGoals.filter((goal) => goal && goal.bankUntilPartyReturn === true).length,
       farmerTargetShare: 0.8,
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
@@ -14554,6 +14670,8 @@ class GearProgressionEvaluator {
       farmerUpgradePotentialMaxLevel: this.maxProbeLevel,
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
+      rememberedOfflinePartyGearPlanning: true,
+      offlinePartyGearPolicy: 'BANK_UNTIL_TRUSTED_PARTY_RETURN',
       merchantPrimaryGearStat: 'speed',
       merchantSpeedPriority: 'WEIGHTED_PRIMARY_WITH_NET_REGRESSION_GUARD',
       merchantSpeedWeight: CLASS_WEIGHTS.merchant.speed,
@@ -14573,6 +14691,297 @@ module.exports = {
   scoreItem,
   scoreImprovement,
   candidateSlots
+};
+
+},
+"src/party/merchant-party-history.js": function(require,module,exports){
+'use strict';
+
+const MERCHANT_PARTY_HISTORY_SCHEMA_VERSION = 1;
+const MERCHANT_PARTY_HISTORY_MODE = 'persistent-trusted-party-history-v1';
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clone(value, fallback = null) {
+  if (value == null) return fallback;
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; }
+}
+
+function normalizeName(value) {
+  const name = String(value == null ? '' : value).trim();
+  return name || null;
+}
+
+function normalizeClass(value) {
+  const ctype = String(value == null ? '' : value).trim().toLowerCase();
+  return ctype || null;
+}
+
+function uniqueNames(values) {
+  return [...new Set((Array.isArray(values) ? values : []).map(normalizeName).filter(Boolean))];
+}
+
+function normalizeGear(gear, maxSlots = 32) {
+  if (!gear || typeof gear !== 'object' || Array.isArray(gear)) return {};
+  const out = {};
+  for (const slot of Object.keys(gear).sort().slice(0, maxSlots)) {
+    const item = gear[slot];
+    if (!item || typeof item !== 'object' || !item.name) continue;
+    out[slot] = {
+      name: String(item.name),
+      level: Math.max(0, Math.floor(finite(item.level, 0))),
+      locked: !!(item.locked || item.l),
+      special: !!(item.special || item.p)
+    };
+  }
+  return out;
+}
+
+class MerchantPartyHistory {
+  constructor(options = {}) {
+    this.root = options.root || globalThis;
+    this.storage = options.storage || null;
+    this.now = options.now || (() => Date.now());
+    this.log = options.log || null;
+    this.key = options.key || 'aio-v3-merchant-party-history-v1';
+    this.capacity = Math.max(4, Math.min(128, Math.floor(finite(options.capacity, 32))));
+    this.saveIntervalMs = Math.max(5000, Math.min(5 * 60 * 1000, Math.floor(finite(options.saveIntervalMs, 30000))));
+    this.records = new Map();
+    this.loaded = false;
+    this.lastSavedAt = null;
+    this.stats = {
+      observations: 0,
+      remembered: 0,
+      updated: 0,
+      rejectedUntrusted: 0,
+      rejectedMissingIdentity: 0,
+      loads: 0,
+      loadErrors: 0,
+      saves: 0,
+      saveErrors: 0,
+      evicted: 0
+    };
+    this.load();
+  }
+
+  _event(event, severity = 'info', reason = null, data = {}) {
+    if (!this.log || typeof this.log.emit !== 'function') return;
+    try { this.log.emit({ component: 'merchant-party-history', event, severity, reason, data }); } catch (_) {}
+  }
+
+  _backend() {
+    if (this.storage && typeof this.storage.get === 'function' && typeof this.storage.set === 'function') return this.storage;
+    const ls = this.root && this.root.localStorage;
+    if (ls && typeof ls.getItem === 'function' && typeof ls.setItem === 'function') {
+      return {
+        get: (key) => ls.getItem(key),
+        set: (key, value) => { ls.setItem(key, value); return true; }
+      };
+    }
+    return null;
+  }
+
+  load() {
+    if (this.loaded) return false;
+    this.loaded = true;
+    const backend = this._backend();
+    if (!backend) return false;
+    try {
+      const raw = backend.get(this.key);
+      if (!raw) return false;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!data || Number(data.schemaVersion) !== MERCHANT_PARTY_HISTORY_SCHEMA_VERSION || !Array.isArray(data.records)) {
+        throw new Error('unsupported merchant party history schema');
+      }
+      for (const row of data.records) {
+        const name = normalizeName(row && row.name);
+        const ctype = normalizeClass(row && row.ctype);
+        if (!name || !ctype) continue;
+        this.records.set(name, {
+          name,
+          ctype,
+          level: Math.max(0, Math.floor(finite(row.level, 0))),
+          gear: normalizeGear(row.gear),
+          firstPartyAt: Math.max(0, finite(row.firstPartyAt, 0)),
+          lastPartyAt: Math.max(0, finite(row.lastPartyAt, 0)),
+          lastGearAt: Math.max(0, finite(row.lastGearAt, 0)),
+          observations: Math.max(1, Math.floor(finite(row.observations, 1)))
+        });
+      }
+      this._prune();
+      this.stats.loads += 1;
+      return true;
+    } catch (error) {
+      this.records.clear();
+      this.stats.loadErrors += 1;
+      this._event('MERCHANT_PARTY_HISTORY_RESTORE_FAILED', 'warn', 'CORRUPT_OR_UNSUPPORTED_DATA', {
+        message: String(error && error.message || error)
+      });
+      return false;
+    }
+  }
+
+  _prune() {
+    if (this.records.size <= this.capacity) return;
+    const rows = [...this.records.values()].sort((a, b) => finite(a.lastPartyAt, 0) - finite(b.lastPartyAt, 0));
+    while (this.records.size > this.capacity && rows.length) {
+      const victim = rows.shift();
+      this.records.delete(victim.name);
+      this.stats.evicted += 1;
+      this._event('MERCHANT_PARTY_HISTORY_EVICTED', 'warn', 'HISTORY_CAPACITY', { name: victim.name });
+    }
+  }
+
+  save(options = {}) {
+    const backend = this._backend();
+    if (!backend) return false;
+    const now = this.now();
+    if (options.force !== true && this.lastSavedAt != null && now - this.lastSavedAt < this.saveIntervalMs) return false;
+    try {
+      const payload = {
+        schemaVersion: MERCHANT_PARTY_HISTORY_SCHEMA_VERSION,
+        savedAt: now,
+        records: [...this.records.values()].map((row) => clone(row))
+      };
+      backend.set(this.key, JSON.stringify(payload));
+      this.lastSavedAt = now;
+      this.stats.saves += 1;
+      return true;
+    } catch (error) {
+      this.stats.saveErrors += 1;
+      this._event('MERCHANT_PARTY_HISTORY_SAVE_FAILED', 'warn', 'PERSISTENCE_WRITE_ERROR', {
+        message: String(error && error.message || error)
+      });
+      return false;
+    }
+  }
+
+  observe(context = {}) {
+    const merchantName = normalizeName(context.merchantName);
+    const partyNames = uniqueNames(context.partyNames).filter((name) => name !== merchantName);
+    const trusted = new Set(uniqueNames(context.trustedNames));
+    const status = context.registry && typeof context.registry.status === 'function'
+      ? context.registry.status()
+      : context.registry;
+    const registryRows = Array.isArray(status && status.characters) ? status.characters : [];
+    const byName = new Map(registryRows.filter(Boolean).map((row) => [normalizeName(row.name), row]));
+    const now = this.now();
+    let changed = false;
+
+    for (const name of partyNames) {
+      this.stats.observations += 1;
+      if (!trusted.size || !trusted.has(name)) {
+        this.stats.rejectedUntrusted += 1;
+        continue;
+      }
+      const observed = byName.get(name);
+      const ctype = normalizeClass(observed && (observed.ctype || observed.type));
+      if (!observed || !ctype) {
+        this.stats.rejectedMissingIdentity += 1;
+        continue;
+      }
+
+      const previous = this.records.get(name);
+      const observedGear = normalizeGear(observed.gear);
+      const useObservedGear = Object.keys(observedGear).length > 0;
+      const record = {
+        name,
+        ctype,
+        level: Math.max(0, Math.floor(finite(observed.level, previous && previous.level || 0))),
+        gear: useObservedGear ? observedGear : clone(previous && previous.gear, {}),
+        firstPartyAt: previous ? previous.firstPartyAt : now,
+        lastPartyAt: now,
+        lastGearAt: useObservedGear ? now : previous ? previous.lastGearAt : 0,
+        observations: previous ? previous.observations + 1 : 1
+      };
+      this.records.set(name, record);
+      if (previous) this.stats.updated += 1;
+      else {
+        this.stats.remembered += 1;
+        this._event('MERCHANT_PARTY_MEMBER_REMEMBERED', 'info', 'TRUSTED_PARTY_MEMBER_OBSERVED', {
+          name,
+          ctype,
+          level: record.level
+        });
+      }
+      changed = true;
+    }
+
+    this._prune();
+    if (changed) this.save();
+    return changed;
+  }
+
+  list() {
+    return [...this.records.values()]
+      .sort((a, b) => b.lastPartyAt - a.lastPartyAt || a.name.localeCompare(b.name))
+      .map((row) => clone(row));
+  }
+
+  get(name) {
+    const record = this.records.get(normalizeName(name));
+    return record ? clone(record) : null;
+  }
+
+  planningRows(context = {}) {
+    const currentParty = new Set(uniqueNames(context.currentPartyNames));
+    const status = context.registry && typeof context.registry.status === 'function'
+      ? context.registry.status()
+      : context.registry;
+    const liveRows = Array.isArray(status && status.characters) ? status.characters : [];
+    const liveNames = new Set(liveRows.filter(Boolean).map((row) => normalizeName(row.name)).filter(Boolean));
+    const now = this.now();
+    const out = [];
+
+    for (const record of this.records.values()) {
+      if (currentParty.has(record.name)) continue;
+      // Only synthesize a planning row when the character is not currently in
+      // the Merchant's active party. Never reuse stale inventory as physical
+      // authority; remembered rows intentionally expose an empty inventory.
+      out.push({
+        name: record.name,
+        ctype: record.ctype,
+        level: record.level,
+        gear: clone(record.gear, {}),
+        inventory: [],
+        online: false,
+        presence: 'REMEMBERED_OFFLINE',
+        available: false,
+        availability: 'UNAVAILABLE',
+        rememberedOffline: true,
+        rememberedPartyMember: true,
+        lastPartyAt: record.lastPartyAt,
+        stateConfidence: liveNames.has(record.name) ? 0.65 : 0.6,
+        firstObservedAt: record.firstPartyAt,
+        lastSeenAt: record.lastPartyAt,
+        lastUpdatedAt: record.lastPartyAt,
+        observationAgeMs: Math.max(0, now - record.lastPartyAt)
+      });
+    }
+    return out;
+  }
+
+  status() {
+    return {
+      schemaVersion: MERCHANT_PARTY_HISTORY_SCHEMA_VERSION,
+      mode: MERCHANT_PARTY_HISTORY_MODE,
+      actionAuthority: false,
+      directGameplayActionAccess: false,
+      capacity: this.capacity,
+      rememberedMembers: this.records.size,
+      members: this.list(),
+      stats: clone(this.stats)
+    };
+  }
+}
+
+module.exports = {
+  MerchantPartyHistory,
+  MERCHANT_PARTY_HISTORY_SCHEMA_VERSION,
+  MERCHANT_PARTY_HISTORY_MODE
 };
 
 },
@@ -29280,6 +29689,14 @@ class FarmerResourceTopoffHotfix {
     this.targetRatio = Math.max(0.90, Math.min(1, options.targetRatio == null ? 1 : Number(options.targetRatio)));
     this.criticalHpRatio = Math.max(0.40, Math.min(0.90, Number(options.criticalHpRatio) || 0.72));
     this.minPotionUtilization = Math.max(0.25, Math.min(1, Number(options.minPotionUtilization) || 0.50));
+    const configuredUseHpRatio = finite(this.farmer && this.farmer.config && this.farmer.config.useHpRatio);
+    const configuredUseMpRatio = finite(this.farmer && this.farmer.config && this.farmer.config.useMpRatio);
+    // Capture the Farmer FSM's real operational trigger before this hotfix
+    // widens useHpRatio/useMpRatio to targetRatio so top-off evaluation runs.
+    // Small resource pools still need a potion when they cross the combat
+    // trigger even if a large potion can never reach the normal utilization floor.
+    this.operationalUseHpRatio = configuredUseHpRatio == null ? null : Math.max(0, Math.min(1, configuredUseHpRatio));
+    this.operationalUseMpRatio = configuredUseMpRatio == null ? null : Math.max(0, Math.min(1, configuredUseMpRatio));
     this.cooldownMs = Math.max(600, Math.min(3000, Number(options.cooldownMs) || 650));
     this.lastAttemptAt = -Infinity;
     this.lastUse = null;
@@ -29293,6 +29710,7 @@ class FarmerResourceTopoffHotfix {
       potionUnavailable: 0,
       overhealAvoided: 0,
       recoveryUtilizationBypasses: 0,
+      operationalThresholdUtilizationBypasses: 0,
       cooldownProbeSkips: 0,
       preciseAdapterUses: 0,
       commandFailures: 0
@@ -29305,6 +29723,8 @@ class FarmerResourceTopoffHotfix {
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
       minPotionUtilization: this.minPotionUtilization,
+      operationalUseHpRatio: this.operationalUseHpRatio,
+      operationalUseMpRatio: this.operationalUseMpRatio,
       cooldownMs: this.cooldownMs
     });
   }
@@ -29446,8 +29866,13 @@ class FarmerResourceTopoffHotfix {
         (candidateAction === 'use_hp' && Number.isFinite(recoverHpRatio) && hpRatio < recoverHpRatio)
         || (candidateAction === 'use_mp' && Number.isFinite(recoverMpRatio) && mpRatio < recoverMpRatio)
       );
+      const operationalRatio = candidateAction === 'use_hp' ? this.operationalUseHpRatio : this.operationalUseMpRatio;
+      const observedRatio = candidateAction === 'use_hp' ? hpRatio : mpRatio;
+      const candidateOperationalThresholdRequired = Number.isFinite(operationalRatio)
+        && observedRatio < operationalRatio;
       const viable = candidateCriticalHp
         || candidateRecoveryRequired
+        || candidateOperationalThresholdRequired
         || candidateUtilization == null
         || candidateUtilization >= this.minPotionUtilization;
       const candidate = {
@@ -29459,11 +29884,15 @@ class FarmerResourceTopoffHotfix {
         restoreAmount: candidateRestoreAmount,
         utilization: candidateUtilization,
         criticalHp: candidateCriticalHp,
-        recoveryRequired: candidateRecoveryRequired
+        recoveryRequired: candidateRecoveryRequired,
+        operationalThresholdRequired: candidateOperationalThresholdRequired,
+        operationalThresholdRatio: Number.isFinite(operationalRatio) ? operationalRatio : null
       };
       if (viable) {
         if (candidateRecoveryRequired && candidateUtilization != null && candidateUtilization < this.minPotionUtilization) {
           this.stats.recoveryUtilizationBypasses += 1;
+        } else if (candidateOperationalThresholdRequired && candidateUtilization != null && candidateUtilization < this.minPotionUtilization) {
+          this.stats.operationalThresholdUtilizationBypasses += 1;
         }
         selected = candidate;
         break;
@@ -29483,7 +29912,16 @@ class FarmerResourceTopoffHotfix {
       return false;
     }
 
-    const { action, resource, deficit, restoreAmount, utilization, recoveryRequired } = selected;
+    const {
+      action,
+      resource,
+      deficit,
+      restoreAmount,
+      utilization,
+      recoveryRequired,
+      operationalThresholdRequired,
+      operationalThresholdRatio
+    } = selected;
 
     if (this.adapter && this.adapter.mode === 'active' && !this._canUse(action)) {
       this.lastAttemptAt = now;
@@ -29520,6 +29958,8 @@ class FarmerResourceTopoffHotfix {
       restoreAmount,
       utilization,
       recoveryRequired: !!recoveryRequired,
+      operationalThresholdRequired: !!operationalThresholdRequired,
+      operationalThresholdRatio,
       minPotionUtilization: this.minPotionUtilization
     };
     const severity = result.executed || result.shadow || result.reason === 'POTION_COOLDOWN' ? 'info' : 'warn';
@@ -29544,11 +29984,14 @@ class FarmerResourceTopoffHotfix {
       targetRatio: this.targetRatio,
       criticalHpRatio: this.criticalHpRatio,
       minPotionUtilization: this.minPotionUtilization,
+      operationalUseHpRatio: this.operationalUseHpRatio,
+      operationalUseMpRatio: this.operationalUseMpRatio,
       cooldownMs: this.cooldownMs,
       precisePotionSelection: true,
       metadataAwareOverhealProtection: true,
       criticalHpBypassesUtilizationFloor: true,
       recoveryStateBypassesUtilizationFloor: true,
+      operationalResourceThresholdBypassesUtilizationFloor: true,
       requiresHpAndMpSupplyForTeamCombat: true,
       lastUse: this.lastUse ? { ...this.lastUse } : null,
       lastSupply: this.lastSupply ? { ...this.lastSupply } : null,
@@ -42283,7 +42726,11 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     const gear = this.runtime.gearProgression;
     const gd = gameDataOf(this.runtime);
     if (!c || !ledger || !gear || typeof gear.list !== 'function') return null;
-    const goals = gear.list(200).filter((goal) => goal && goal.sourceCharacter === c.name && goal.projectedUpgradeRequired && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0));
+    const goals = gear.list(200).filter((goal) => goal
+      && goal.sourceCharacter === c.name
+      && goal.projectedUpgradeRequired
+      && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0)
+      && goal.targetOffline !== true);
     for (const goal of goals) {
       const entry = ledger.list(1000).find((row) => row && row.character === c.name && row.name === goal.item && levelOf(row) === levelOf({ level: goal.observedLevel }) && EXPECTED_DISPOSITIONS.UPGRADE.has(String(row.disposition || '')));
       if (!entry || this.atomic.mutationRetryBlocked(entry, 'UPGRADE')) continue;
@@ -42485,7 +42932,26 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
       };
     }
     const bank = rows.find((row) => row.disposition === 'BANK');
-    if (bank) return { type: 'BANK', character: c.name, index: bank.index, quantity: Math.max(1, finite(bank.q, 1)), metadata: { source: 'ALPHA27_AUTONOMOUS_PLANNER' } };
+    if (bank) {
+      const reasons = Array.isArray(bank.reasons) ? bank.reasons.map(String) : [];
+      const offlinePartyGearReserve = reasons.includes('OFFLINE_PARTY_GEAR_RESERVE');
+      return {
+        type: 'BANK',
+        character: c.name,
+        index: bank.index,
+        quantity: Math.max(1, finite(bank.q, 1)),
+        metadata: {
+          source: 'ALPHA27_AUTONOMOUS_PLANNER',
+          offlinePartyGearReserve,
+          bankUntilPartyReturn: offlinePartyGearReserve,
+          targetCharacter: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetCharacter || null : null,
+          targetSlot: offlinePartyGearReserve && bank.reservation ? bank.reservation.targetSlot || null : null,
+          gearGoalIds: offlinePartyGearReserve && bank.reservation && Array.isArray(bank.reservation.goalIds)
+            ? bank.reservation.goalIds.slice(0, 32)
+            : []
+        }
+      };
+    }
     return null;
   }
 }
@@ -42855,7 +43321,9 @@ class Alpha27BankRecovery {
       skippedProtected: 0,
       skippedHighValue: 0,
       skippedIncompleteCompoundSet: 0,
-      skippedWorkspace: 0
+      skippedWorkspace: 0,
+      offlineGearReservationsHeld: 0,
+      offlineGearReturnsPlanned: 0
     };
     this.executor = new ControlledMerchantProductionExecutor({
       root: this.root,
@@ -42912,6 +43380,58 @@ class Alpha27BankRecovery {
     }
   }
 
+  _currentTrustedPartyNames() {
+    const partyNames = new Set(
+      (Array.isArray(this.runtime.lastSnapshot && this.runtime.lastSnapshot.party)
+        ? this.runtime.lastSnapshot.party
+        : [])
+        .map((row) => typeof row === 'string' ? row : row && row.name)
+        .filter(Boolean)
+        .map(String)
+    );
+    const trusted = new Set();
+    try {
+      for (const name of this.runtime.partyBootstrap && typeof this.runtime.partyBootstrap.trustedRosterNames === 'function'
+        ? this.runtime.partyBootstrap.trustedRosterNames() || []
+        : []) trusted.add(String(name));
+    } catch (_) {}
+    if (!trusted.size) return new Set();
+    return new Set([...partyNames].filter((name) => trusted.has(name)));
+  }
+
+  _offlineGearReservationState(row, excludedGoalIds = new Set()) {
+    const c = characterOf(this.runtime);
+    const gear = this.runtime.gearProgression;
+    if (!c || !row || !gear || typeof gear.list !== 'function') return null;
+    let goals = [];
+    try {
+      goals = gear.list(512).filter((goal) => goal
+        && goal.bankUntilPartyReturn === true
+        && String(goal.sourceCharacter || '') === String(c.name || '')
+        && String(goal.item || '') === String(row.name || '')
+        && levelOf({ level: goal.observedLevel }) === levelOf(row)
+        && goal.character
+        && String(goal.character) !== String(c.name || ''));
+    } catch (_) {
+      return null;
+    }
+    if (!goals.length) return null;
+    const currentParty = this._currentTrustedPartyNames();
+    const returning = goals
+      .filter((goal) => currentParty.has(String(goal.character))
+        && !excludedGoalIds.has(String(goal.id || '')))
+      .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0)
+        || finite(b.improvement, 0) - finite(a.improvement, 0)
+        || String(a.id || '').localeCompare(String(b.id || '')))[0] || null;
+    return {
+      reserved: true,
+      releasable: !!returning,
+      returningGoal: returning ? clone(returning) : null,
+      goalIds: goals.map((goal) => String(goal.id || '')).filter(Boolean).slice(0, 32),
+      targetNames: [...new Set(goals.map((goal) => String(goal.character || '')).filter(Boolean))].slice(0, 32)
+    };
+  }
+
   _recoverableRows() {
     const c = characterOf(this.runtime);
     if (!c || !c.bank || typeof c.bank !== 'object') return [];
@@ -42926,6 +43446,7 @@ class Alpha27BankRecovery {
     }
 
     const candidates = [];
+    const allocatedOfflineReturnGoalIds = new Set();
     for (const row of bank) {
       const raw = c.bank && Array.isArray(c.bank[row.pack]) ? c.bank[row.pack][row.index] : null;
       const meta = gd.items && gd.items[row.name];
@@ -42934,6 +43455,32 @@ class Alpha27BankRecovery {
         continue;
       }
       const level = levelOf(row);
+      const offlineReservation = this._offlineGearReservationState(row, allocatedOfflineReturnGoalIds);
+      if (offlineReservation && offlineReservation.reserved === true) {
+        if (!offlineReservation.releasable) {
+          this.stats.offlineGearReservationsHeld += 1;
+          continue;
+        }
+        this.stats.offlineGearReturnsPlanned += 1;
+        if (offlineReservation.returningGoal && offlineReservation.returningGoal.id) {
+          allocatedOfflineReturnGoalIds.add(String(offlineReservation.returningGoal.id));
+        }
+        candidates.push({
+          kind: 'OFFLINE_PARTY_GEAR_RETURN',
+          priority: -10,
+          backlog: 1,
+          row,
+          localCount: quantity(local, row.name, level),
+          bankCount: bankCounts.get(itemKey(row.name, level)) || 0,
+          neededForSet: 1,
+          value: Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0)),
+          targetName: offlineReservation.returningGoal && offlineReservation.returningGoal.character || null,
+          targetSlot: offlineReservation.returningGoal && offlineReservation.returningGoal.slot || null,
+          gearGoalId: offlineReservation.returningGoal && offlineReservation.returningGoal.id || null,
+          offlineReservation
+        });
+        continue;
+      }
       const grade = gradeForLevel(meta, level);
       if (grade >= 4) {
         this.stats.skippedProtected += 1;
@@ -43258,8 +43805,9 @@ class Alpha27BankRecovery {
     return {
       mode: ALPHA27_BANK_RECOVERY_MODE,
       enabled: true,
-      strategy: 'BANK_PROBE -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
+      strategy: 'BANK_PROBE -> OFFLINE_PARTY_GEAR_RETURN -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
       bankSnapshotRequiredForRetrieve: true,
+      offlinePartyGearPolicy: 'HOLD_IN_BANK_UNTIL_TRUSTED_PARTY_RETURN',
       batchRecovery: true,
       batchMaxRows: Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12))),
       activeBatch: clone(this.batchSession),

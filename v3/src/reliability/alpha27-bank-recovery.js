@@ -63,7 +63,9 @@ class Alpha27BankRecovery {
       skippedProtected: 0,
       skippedHighValue: 0,
       skippedIncompleteCompoundSet: 0,
-      skippedWorkspace: 0
+      skippedWorkspace: 0,
+      offlineGearReservationsHeld: 0,
+      offlineGearReturnsPlanned: 0
     };
     this.executor = new ControlledMerchantProductionExecutor({
       root: this.root,
@@ -120,6 +122,58 @@ class Alpha27BankRecovery {
     }
   }
 
+  _currentTrustedPartyNames() {
+    const partyNames = new Set(
+      (Array.isArray(this.runtime.lastSnapshot && this.runtime.lastSnapshot.party)
+        ? this.runtime.lastSnapshot.party
+        : [])
+        .map((row) => typeof row === 'string' ? row : row && row.name)
+        .filter(Boolean)
+        .map(String)
+    );
+    const trusted = new Set();
+    try {
+      for (const name of this.runtime.partyBootstrap && typeof this.runtime.partyBootstrap.trustedRosterNames === 'function'
+        ? this.runtime.partyBootstrap.trustedRosterNames() || []
+        : []) trusted.add(String(name));
+    } catch (_) {}
+    if (!trusted.size) return new Set();
+    return new Set([...partyNames].filter((name) => trusted.has(name)));
+  }
+
+  _offlineGearReservationState(row, excludedGoalIds = new Set()) {
+    const c = characterOf(this.runtime);
+    const gear = this.runtime.gearProgression;
+    if (!c || !row || !gear || typeof gear.list !== 'function') return null;
+    let goals = [];
+    try {
+      goals = gear.list(512).filter((goal) => goal
+        && goal.bankUntilPartyReturn === true
+        && String(goal.sourceCharacter || '') === String(c.name || '')
+        && String(goal.item || '') === String(row.name || '')
+        && levelOf({ level: goal.observedLevel }) === levelOf(row)
+        && goal.character
+        && String(goal.character) !== String(c.name || ''));
+    } catch (_) {
+      return null;
+    }
+    if (!goals.length) return null;
+    const currentParty = this._currentTrustedPartyNames();
+    const returning = goals
+      .filter((goal) => currentParty.has(String(goal.character))
+        && !excludedGoalIds.has(String(goal.id || '')))
+      .sort((a, b) => finite(b.survivalImprovement, 0) - finite(a.survivalImprovement, 0)
+        || finite(b.improvement, 0) - finite(a.improvement, 0)
+        || String(a.id || '').localeCompare(String(b.id || '')))[0] || null;
+    return {
+      reserved: true,
+      releasable: !!returning,
+      returningGoal: returning ? clone(returning) : null,
+      goalIds: goals.map((goal) => String(goal.id || '')).filter(Boolean).slice(0, 32),
+      targetNames: [...new Set(goals.map((goal) => String(goal.character || '')).filter(Boolean))].slice(0, 32)
+    };
+  }
+
   _recoverableRows() {
     const c = characterOf(this.runtime);
     if (!c || !c.bank || typeof c.bank !== 'object') return [];
@@ -134,6 +188,7 @@ class Alpha27BankRecovery {
     }
 
     const candidates = [];
+    const allocatedOfflineReturnGoalIds = new Set();
     for (const row of bank) {
       const raw = c.bank && Array.isArray(c.bank[row.pack]) ? c.bank[row.pack][row.index] : null;
       const meta = gd.items && gd.items[row.name];
@@ -142,6 +197,32 @@ class Alpha27BankRecovery {
         continue;
       }
       const level = levelOf(row);
+      const offlineReservation = this._offlineGearReservationState(row, allocatedOfflineReturnGoalIds);
+      if (offlineReservation && offlineReservation.reserved === true) {
+        if (!offlineReservation.releasable) {
+          this.stats.offlineGearReservationsHeld += 1;
+          continue;
+        }
+        this.stats.offlineGearReturnsPlanned += 1;
+        if (offlineReservation.returningGoal && offlineReservation.returningGoal.id) {
+          allocatedOfflineReturnGoalIds.add(String(offlineReservation.returningGoal.id));
+        }
+        candidates.push({
+          kind: 'OFFLINE_PARTY_GEAR_RETURN',
+          priority: -10,
+          backlog: 1,
+          row,
+          localCount: quantity(local, row.name, level),
+          bankCount: bankCounts.get(itemKey(row.name, level)) || 0,
+          neededForSet: 1,
+          value: Math.max(0, finite(meta.g != null ? meta.g : meta.gold, 0)),
+          targetName: offlineReservation.returningGoal && offlineReservation.returningGoal.character || null,
+          targetSlot: offlineReservation.returningGoal && offlineReservation.returningGoal.slot || null,
+          gearGoalId: offlineReservation.returningGoal && offlineReservation.returningGoal.id || null,
+          offlineReservation
+        });
+        continue;
+      }
       const grade = gradeForLevel(meta, level);
       if (grade >= 4) {
         this.stats.skippedProtected += 1;
@@ -466,8 +547,9 @@ class Alpha27BankRecovery {
     return {
       mode: ALPHA27_BANK_RECOVERY_MODE,
       enabled: true,
-      strategy: 'BANK_PROBE -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
+      strategy: 'BANK_PROBE -> OFFLINE_PARTY_GEAR_RETURN -> BATCH_RETRIEVE_WORK_BLOCK -> NORMAL_COMPOUND_UPGRADE -> GEAR_DELIVERY_OR_SELL',
       bankSnapshotRequiredForRetrieve: true,
+      offlinePartyGearPolicy: 'HOLD_IN_BANK_UNTIL_TRUSTED_PARTY_RETURN',
       batchRecovery: true,
       batchMaxRows: Math.max(1, Math.floor(finite(this.options.bankRecoveryBatchMaxRows, 12))),
       activeBatch: clone(this.batchSession),
