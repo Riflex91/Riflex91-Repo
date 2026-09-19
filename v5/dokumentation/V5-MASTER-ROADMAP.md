@@ -1,65 +1,649 @@
-# V5 Master-Roadmap
+# V5 Master-Roadmap v2
 
-**Status:** BASELINE – wird nach Abschluss der P0-Research-Luecken finalisiert.
+**Status:** ACTIVE MASTER PLAN  
+**Stand:** 2026-09-19  
+**Ziel:** Ein langfristig wartbarer, modularer, erweiterbarer und sicher recoverbarer 24/7-Autonomie-Bot fuer Adventure Land.
+
+## 0. Grundsatz
+
+Das Ziel ist nicht, Fehler magisch auszuschliessen. Das Ziel ist ein System, in dem Fehler:
+
+1. moeglichst vor der Ausfuehrung verhindert werden;
+2. sofort erkannt werden;
+3. keine fachfremden Bereiche mitreissen;
+4. keine irreversiblen Doppelaktionen erzeugen;
+5. reproduzierbar erklaert werden koennen;
+6. nach Restart/Disconnect sicher reconciliiert werden;
+7. durch Guards, Tests und Zertifizierung nicht unbemerkt wiederkehren.
+
+**Keine Phase wird nur deshalb freigegeben, weil "es funktioniert".** Sie wird erst freigegeben, wenn ihre Invarianten beweisbar eingehalten werden.
+
+## 1. Ausgangslage
+
+Aktueller Wissensstand:
+
+- V3: 535 auditierte Dateien, 205 Tests als Fehler-/Verhaltenswissen.
+- V3-Fehlerkatalog: 30 strukturelle Fehlerklassen.
+- V4: 55 Architektur-Invarianten als Mindestbasis.
+- V5 Knowledge Base: 38 Facts, 38 offene Fragen.
+- Von 38 offenen Fragen: 24 P0, 7 P1, 7 P2.
+- Action Contracts: 60 erfasst, 52 source-verifiziert, 8 live-only und deshalb fuer Automation gesperrt.
+- P0-01 ist IN_PROGRESS; P0-02 bis P0-07 sind offen.
+- Adventure Land kann Production vor dem oeffentlichen Source-Snapshot bewegen; Live-MCP/Live-Daten haben fuer Contract-Revalidierung Vorrang.
+
+**Konsequenz:** Noch kein V5-Gameplay-Runtime-Code.
+
+## 2. Unveraenderbare Architekturform
+
+```text
+Knowledge / Definitions
+  -> Observed Evidence
+  -> Reconciled World Truth
+  -> Demand / Goal
+  -> Planning
+  -> Workflow
+  -> Scheduler
+  -> Authority + Resource + Action-Channel Admission
+  -> Transaction Intent / Journal
+  -> Execution Adapter
+  -> Server Result
+  -> Postcondition Observation
+  -> Commit | Unknown | Reconcile | Failed-Safe
+```
+
+Definition, Beobachtung, Reconciliation, Planung und Execution duerfen nicht in einer God-Class verschmelzen.
+
+## 3. Globale Stop-Regeln
+
+Eine neue Phase oder neue Live-Autoritaet ist gesperrt, wenn mindestens eines gilt:
+
+- offene P0-Frage betrifft den geplanten Contract;
+- verwendeter Action Contract ist nicht verifiziert;
+- ein Source-/Live-Drift ist ungeklaert;
+- direkte Game Writes existieren ausserhalb der Execution Adapter;
+- eine mutierende Capability besitzt mehr als einen Owner;
+- Persistenzmigration ist nicht getestet;
+- ein irreversibler Side Effect besitzt keinen Journal-/Verifier-/Reconcile-Contract;
+- Retry ist unbounded;
+- ein Workflow kann an unsicherer Stelle preempted werden;
+- Recovery kann nur durch "noch einmal senden" funktionieren;
+- ein kritischer Queue-/History-/Recorder-Pfad ist unbounded;
+- Operator-Deny oder Kill-Switch kann umgangen werden;
+- Shadow/Replay zeigt unerwartete Game Writes;
+- Test-, Fault- oder Certification-Evidence fehlt;
+- PR-Head ist nicht exakt verifiziert oder Branch ist hinter aktuellem `main`.
 
 ## R0 – Lebende Wissensbasis
 
-V3-, V4- und externe Adventure-Land-Erkenntnisse dauerhaft, maschinenlesbar, versioniert und revalidierbar im Repository halten.
+**Status:** DONE – laufend gepflegt.
 
-## R1 – P0 Research schliessen
+Ziele:
+- immutable Roh-Snapshots;
+- stabile Wissens-IDs;
+- Source Provenance;
+- Confidence/Volatility;
+- Revalidation;
+- Supersede statt stilles Ueberschreiben;
+- offene Fragen;
+- maschinenlesbare Contracts.
 
-Vor Merchant-Orchestrator und finalen V5-Kernvertraegen:
+Exit Gate:
+- Knowledge-Validator gruen;
+- Drift-/Revalidation-Prozess dokumentiert;
+- Live Truth darf stale Snapshot fuer Execution ueberstimmen.
 
-1. Action-Contract-Matrix aller wertverandernden Public Functions;
-2. Recovery-Semantik je Action;
-3. Bank-Concurrency eigener Characters;
-4. Trade-Listing-Lifecycle, RID und Partial Sale;
-5. Upgrade-/Compound-Formeln und Resultcodes;
-6. Exchange-/Craft-Sonderfaelle;
+## R1 – Research Closure vor Runtime
+
+**Status:** IN_PROGRESS.
+
+### R1.1 P0 – vor finalen Core Contracts
+
+1. Action-Contract-Matrix vervollstaendigen.
+2. Recovery-Semantik je Action inklusive UNKNOWN.
+3. Bank-Concurrency eigener Characters.
+4. Trade Listing Lifecycle, RID, Partial Sale.
+5. Upgrade-/Compound-Formeln, Resultcodes, Restart-/Disconnect-Semantik.
+6. Exchange-/Craft-Sonderfaelle und Outputspace.
 7. Request-/Call-Cost-/Rate-Limit-Modell.
 
-Ergebnisse werden als neue Evidence/Facts in der Wissensbasis gespeichert, nicht nur als Chattext.
+P0 Exit Gate:
+- jede wertveraendernde Public Function hat einen verifizierten Contract oder bleibt explizit disabled;
+- jede verifizierte Action besitzt Recovery-Klasse und Postcondition;
+- keine "unknown live" Action wird automatisiert;
+- offene P0-Fragen blockieren nicht mehr die Kernvertraege.
 
-## R2 – V5-Verfassung
+### R1.2 P1A – vor Multi-Character Merchant
 
-Verbindliche Invarianten fuer Safety, Runtime-vs-Host, Single Owner, Definition/Observation/Reconciliation, Unknown Outcome, Persist-before-action, Bounded Retry, Live Revalidation, Explainability und austauschbare Module.
+- CM delivery/retry;
+- server-local constraints;
+- Character liveness/freshness;
+- Restart/Reload-Verhalten der Kommunikationspfade.
 
-## R3 – Kernvertraege
+### R1.3 P1B – vor autonomem Party/Combat
 
-Fact/Evidence, Demand/Goal, Workflow, Transaction, ActionRequest/ActionResult, ResourceClaim/Lease, ExecutionChannel, Postcondition, ReconciliationResult, Capability und Health.
+- Party freshness/liveness;
+- Skill-/Cooldown-Matrix live;
+- Aggro/Threat/CC;
+- death/respawn/rejoin;
+- Group-composition capability calculation.
 
-## R4 – Scheduler + Transaction/Reconciliation Kernel
+### R1.4 P2 – vor World Autonomy
 
-PriorityClass, Aging/Fairness/Deadlines, Safe Preemption, deterministische Locks, accountweite/character-lokale Ressourcen, Action-Channel-Serialisierung, persistentes Journal, UNKNOWN -> Reconcile und scoped Retry/Circuits/Budgets.
+- vollstaendiger Mapgraph;
+- Spawn-Packs;
+- Event State Machines;
+- Quests;
+- Rare/Boss Discovery;
+- Server Hopping;
+- PvP/Hardcore Policies.
 
-## R5 – Observation / World Truth
+## R2 – V5-Verfassung + V3/V4-Migrationsmatrix
 
-`G` als Definition Truth; Live Character/Entity/Party/Server/Event/Inventory/Bank Evidence; Freshness/TTL/Version; Re-resolve physischer Item- und Entity-Referenzen.
+Noch kein Gameplay-Code.
 
-## R6 – Execution Kernel
+Lieferobjekte:
+- alle 55 V4-Invarianten einzeln re-ratifizieren oder begruendet verschaerfen;
+- neue V5-Invarianten fuer Action Channels, UNKNOWN, Drift, Fencing, Determinismus und Protocol Versioning;
+- V3/V4-Komponentenmatrix: `PORTIEREN | UMBAUEN | NEU_BAUEN | NUR_WISSENSQUELLE | VERWERFEN`;
+- Modul-/Port-/Layer-Abhaengigkeitsgraph;
+- Threat-/Failure-Modell;
+- Naming/Schema/Versioning-Konventionen;
+- ADR-Regeln.
 
-Nur Execution Adapter kennen rohe Adventure-Land-Mutationen. Jede mutierende Capability besitzt Admission, Action Contract, Server Result, Postcondition und Reconciliation Contract.
+Mindestens neue V5-Regeln:
+- Action Channel ist eine Ressource.
+- UNKNOWN ist kein normales FAILURE.
+- Lange Leases brauchen Epoch/Fencing Token.
+- keine Definition- und Live-Truth im selben State-Modell.
+- Clock und Randomness sind injizierbar/deterministisch.
+- jede langlebige Nachricht besitzt Protocol-Version, ID, TTL und Dedupe-Semantik.
+- Drift kann Capability automatisch auf QUARANTINED setzen.
+- jede Live-Capability besitzt Disable-/Rollback-Pfad.
 
-## R7 – Recovery vor Featurebreite
+Exit Gate:
+- keine ungeklärte Kernownership;
+- keine zyklische Layer-Abhaengigkeit;
+- alle 30 V3-Fehler haben eine strukturelle Gegenmassnahme in Roadmap/Verfassung.
 
-Fault-Injection fuer Disconnect nach Send, Placeholder/q, Partial `equip_batch`, Inventory Index Drift, stale RID, Bankmutation, CM-Teilzustellung, Prozessrestart und corrupt/inkompatible Persistenz.
+## R3 – Repository, Build, Guards und Host-Grenzen
 
-## R8 – Merchant als erste grosse Domaene
+Noch keine Gameplay-Autoritaet.
 
-Demand Inbox -> Inventory Ledger -> Supply/Delivery -> Inventory/Bank -> Buy/Sell -> Collection -> Stand/Market -> Gear -> Upgrade/Compound -> Exchange/Craft -> Production.
+Bauen:
+- V5 Source Layout;
+- TypeScript strict;
+- Lint/format/build;
+- Dependency Guards;
+- no-direct-game-write Guard;
+- no-monkey-patch Guard;
+- no-V3/V4-runtime-import Guard;
+- secrets Guard;
+- bounded-collection Guard;
+- Host/Runtime API Allowlist;
+- Feature/Capability Flags default-off;
+- CI auf exaktem Head;
+- ADR-/Schema-/Knowledge-Pruefungen.
 
-## R9 – Multi-Character / Party
+Host-Regel:
+- Host startet/stoppt/ueberwacht Prozesse und transportiert Daten.
+- Host besitzt keine Gameplay-Policy.
+- kein generisches remote `eval`.
 
-Group Truth, CM-Protokoll, Party Lifecycle, Liveness/Freshness, accountweite Ressourcen und Capability-basierte Gruppenkomposition.
+Exit Gate:
+- Guards schlagen in absichtlichen Negativtests sicher fehl;
+- leere V5 Runtime kann headless starten/stoppen ohne Gameplay Writes.
 
-## R10 – Combat / Farming / World Autonomy
+## R4 – Deterministischer Core
 
-Combat Safety, Target Ownership, Travel/Map Graph, Events, Quests, Rare/Boss Discovery, Serverwechsel und PvP/Hardcore Policies.
+Bauen:
+- `ClockPort`;
+- `RandomnessPort`;
+- ID-/Sequence-Generator;
+- typed Result/Failure/Unknown;
+- Correlation/Causation IDs;
+- immutable Domain Events;
+- PriorityClass;
+- Deadline/TTL/Freshness Primitive;
+- bounded collections;
+- deterministic serialization.
 
-## R11 – Learning
+Regel:
+- keine Fachlogik verwendet direkt `Date.now()` / `Math.random()`, wenn Determinismus relevant ist.
 
-Learning darf Vorschlaege/Scoring verbessern, aber keine Safety-, Authority-, Budget- oder Recovery-Invarianten lockern.
+Exit Gate:
+- gleiche Inputs + gleiche Clock/Seed -> identischer Plan/Eventstrom.
 
-## R12 – 24/7-Zertifizierung
+## R5 – Persistenz, Journal und Schema-Evolution
 
-Replay, Fault Injection, Shadow, Controlled Live, Canary, 1h, 24h, 72h, 7d und spaeter 30d.
+Bauen:
+- PersistencePort;
+- schema-versionierte Records;
+- migrations;
+- corrupt/oversized/unreadable fail-closed;
+- append-only Transaction Journal;
+- persistent workflow checkpoints;
+- processed-evidence/dedupe cursor;
+- outbox/inbox fuer kritische externe Zustellung;
+- retention/compaction;
+- crash-safe write order.
+
+Pflicht:
+`persist intent -> send action -> observe -> commit/reconcile`
+
+Exit Gate:
+- Crash an jedem Persistenzpunkt ist fault-injected;
+- Migration forward/backward/unsupported-version getestet;
+- kein blind resume.
+
+## R6 – Observation, Evidence und Reconciled World Truth
+
+Bauen:
+- Definition Truth Adapter;
+- Character Observation;
+- Entity Observation;
+- Inventory Observation;
+- Bank Observation;
+- Party/Server/Event Observation;
+- Evidence Schema mit Source/ObservedAt/Freshness/Confidence/Version;
+- Item Identity Resolver;
+- Entity Resolver;
+- Drift Monitor;
+- Reconciled World Truth.
+
+Regeln:
+- Inventory Slot ist keine langlebige Identitaet.
+- Entity-Objekt ist keine langlebige Identitaet.
+- Persisted knowledge ist Planning Evidence, keine Execution Authority.
+
+Exit Gate:
+- stale Snapshot kann keine Mutation autorisieren;
+- G-/MCP-Drift kann betroffene Capability quarantainen.
+
+## R7 – Module, Capabilities, Ports und Authority
+
+Bauen:
+- Module Registry;
+- Capability Registry;
+- READ/PLAN/MUTATE Modes;
+- Single Owner fuer jede mutierende Capability;
+- typed Ports;
+- lifecycle/health;
+- activation/deactivation;
+- versioned provider replacement;
+- Operator Policy;
+- Kill Switch.
+
+Exit Gate:
+- doppelter mutierender Provider wird technisch verhindert;
+- Module koennen ersetzt werden, ohne fremde Implementierung zu patchen.
+
+## R8 – Workflow Scheduler und Resource Manager
+
+Bauen:
+- Workflow Contract;
+- explizite Phasen;
+- PriorityClass + numeric priority;
+- Deadline;
+- Aging/Fairness;
+- Safe Preemption;
+- deterministic Lock Ordering;
+- Leases + Fencing;
+- Resource locality;
+- blocked-until/backoff;
+- scoped Circuits;
+- retry/action budgets.
+
+Ressourcen mindestens:
+- account;
+- character;
+- movement;
+- inventory;
+- equipment;
+- bank;
+- gold/currency;
+- trade slot/RID;
+- action channel;
+- item handle;
+- party lifecycle;
+- production intent.
+
+Exit Gate:
+- kein Lock-Stealing;
+- keine unsafe Preemption;
+- Deadlock-/Starvation-Property-Tests gruen.
+
+## R9 – Admission und Execution Kernel
+
+Nur hier duerfen rohe Adventure-Land-Mutationen entstehen.
+
+Vor jeder Action:
+1. Capability verfuegbar?
+2. Owner korrekt?
+3. Workflow aktiv?
+4. Deadline/Freshness gueltig?
+5. Live Preconditions frisch?
+6. Locks/Fencing gueltig?
+7. Circuit/Budget erlaubt?
+8. Operator Policy erlaubt?
+9. Content Contract verifiziert?
+10. Idempotency/Journal vorbereitet?
+
+Bauen:
+- Action Channel Serialization;
+- ActionContract Registry;
+- Execution Adapter pro Familie;
+- typed Server Result;
+- Timeout/Disconnect -> UNKNOWN;
+- keine Domain-Policy im Adapter.
+
+Exit Gate:
+- direct write guard = 0 Ausnahmen ausser Execution;
+- 100% mutierende Adapter besitzen Contract + Verifier + Recovery Class.
+
+## R10 – Reconciliation und Recovery Kernel
+
+Bauen:
+- Reconcile Contract;
+- Restart Loader;
+- UNKNOWN state machine;
+- Postcondition evaluators;
+- domain settlement;
+- partial completion handling;
+- operator-required path;
+- bounded recovery;
+- stop/shutdown protocol.
+
+Erlaubte Ergebnisse:
+- COMMITTED;
+- ABORTED;
+- REPLAN_ALLOWED;
+- FAILED_SAFE;
+- OPERATOR_REQUIRED.
+
+Verboten:
+- `timeout -> retry same mutation`;
+- `restart -> resume RUNNING`.
+
+Exit Gate:
+- Disconnect nach moeglicher Mutation fuer jede Action-Familie fault-injected;
+- duplicate irreversible effects = 0.
+
+## R11 – Testlabor, Replay, Observability und Operations
+
+Bauen:
+- deterministic simulator;
+- golden replay fixtures;
+- property-based tests;
+- model/state-machine tests;
+- fault injection;
+- structured telemetry;
+- decision trace;
+- metrics;
+- bounded logs/history;
+- persistent critical-alert spool;
+- health/readiness;
+- headless supervisor;
+- crash/restart harness.
+
+Teststufen:
+Static -> Unit -> Property -> Model -> Replay -> Fault -> Integration -> Shadow -> Controlled Live -> Soak.
+
+Exit Gate:
+- jeder Kernelpfad ist reproduzierbar;
+- jede Action erklaert Why/Owner/Evidence/Locks/Expected Outcome;
+- GUI-Ausfall beeinflusst Gameplay nicht.
+
+## R12 – Vertical Slice 0
+
+Erster minimaler End-to-End-Pfad.
+
+Reihenfolge:
+1. read-only observation;
+2. plan;
+3. workflow;
+4. locks;
+5. journal;
+6. eine reversible/gering riskante Action;
+7. server result;
+8. postcondition;
+9. commit;
+10. restart reconciliation;
+11. shadow;
+12. controlled live.
+
+Noch kein breiter Merchant/Combat.
+
+Exit Gate:
+- kompletter Architekturpfad ohne Sonderumgehung;
+- Replay deterministisch;
+- Fault Injection gruen;
+- null unerwartete Game Writes.
+
+## R13 – Merchant Core A: Single-Character Economy
+
+Merchant bleibt erste grosse Domaene.
+
+Bauen in dieser Reihenfolge:
+1. Inventory Ledger / Disposition;
+2. Workspace/Capacity Manager;
+3. Gold-/Budget Ledger;
+4. Merchant Demand Inbox;
+5. Merchant Workflow Provider;
+6. Bank observe/plan;
+7. Bank store/retrieve/consolidate;
+8. NPC buy/sell;
+9. Stand state/listings;
+10. Market observation;
+11. Player-market buy/sell nach P0-04.
+
+Keine Operation entscheidet selbst, was ein Item "bedeutet". Alle lesen zentrale Disposition/Reservation.
+
+Exit Gate:
+- Inventory/Bank invariants = 0 Verletzungen;
+- kein falscher Verkauf;
+- kein Doppeltrade;
+- kein Starvation;
+- Restart waehrend jeder Merchant-Phase reconciliert.
+
+## R14 – Multi-Character Coordination Foundation
+
+Voraussetzung: R1.2 abgeschlossen.
+
+Bauen:
+- Account Coordinator;
+- Character Agent Protocol;
+- CM Envelope mit protocol_version/message_id/TTL/workflow_id/reply_to;
+- inbox dedupe;
+- ack/settlement;
+- liveness;
+- roster epoch;
+- server-local constraints;
+- Party Truth Grundmodell.
+
+Exit Gate:
+- duplicate/out-of-order/delayed/lost CM fault-injected;
+- stale Character darf keine neue Authority erhalten.
+
+## R15 – Merchant Core B: Supply, Gear und Production
+
+Bauen:
+- Supply Delivery;
+- Collection;
+- Rendezvous;
+- Gear Allocation;
+- Gear Delivery;
+- Upgrade;
+- Compound;
+- Exchange;
+- Craft;
+- Production Graph;
+- final Recipient Settlement;
+- event-/quest-gated production mit Freshness.
+
+Regel:
+`CRAFT_COMMITTED != PRODUCTION_COMMITTED`
+
+Exit Gate:
+- Production endet nur nach finaler Empfaengerverifikation;
+- q/placeholder/restart Fault Tests gruen;
+- kein duplicate transfer/mutation.
+
+## R16 – Party, Combat, Farming und Navigation
+
+Voraussetzung: R1.3 abgeschlossen.
+
+Bauen:
+- Movement Owner;
+- Travel Workflow + Arrival Predicate;
+- anti-stuck bounded recovery;
+- Combat Target Ownership;
+- Skill Capability Truth;
+- Combat Safety;
+- Party Lifecycle;
+- Group Capability Calculation;
+- Farmer Objective/Lease;
+- death/respawn/rejoin.
+
+Exit Gate:
+- kein stale target action;
+- kein Movement Thrash;
+- Party/Roster Drift wird erkannt;
+- Safety preemptet normale Arbeit, niemals umgekehrt.
+
+## R17 – World Autonomy
+
+Voraussetzung: R1.4 abgeschlossen.
+
+Bauen:
+- Map Graph;
+- Spawn Pack Model;
+- Event State Machines;
+- Quest State Machines;
+- Rare/Boss Discovery;
+- server hopping policy;
+- PvP/Hardcore policy;
+- content discovery/quarantine.
+
+Exit Gate:
+- Event-/Quest-Drift zwischen Plan und Action wird abgefangen;
+- Unknown Content fail-closed;
+- Serverwechsel beruecksichtigt aktuelle Mode-/Fatigue-Regeln.
+
+## R18 – Learning und Optimierung
+
+Erst nach stabiler deterministischer Basis.
+
+Learning darf:
+- scoring;
+- route choice;
+- market ranking;
+- target preference;
+- timing suggestions;
+- demand forecasts
+
+optimieren.
+
+Learning darf niemals:
+- Safety lockern;
+- Authority vergeben;
+- Retry-Grenzen erhoehen;
+- unknown content freigeben;
+- Operator Deny ueberstimmen;
+- irreversible Mutation ohne deterministischen Guard ausloesen.
+
+Exit Gate:
+- deterministic fallback existiert immer;
+- learning-off liefert sicheren Betrieb.
+
+## R19 – 24/7-Zertifizierung
+
+Jede Stufe benoetigt unveraenderliche Evidence.
+
+Ladder:
+- simulator/replay;
+- fault suite;
+- shadow;
+- controlled live;
+- canary;
+- 1h;
+- 24h;
+- 72h;
+- 7d;
+- spaeter 30d.
+
+Globale Null-Toleranz-Metriken:
+- unexpected game writes = 0;
+- duplicate irreversible effects = 0;
+- unsafe preemptions = 0;
+- unverified action usage = 0;
+- unresolved transactions am Zertifizierungsende = 0 oder explizit FAILED_SAFE/OPERATOR_REQUIRED;
+- invariant violations = 0;
+- silent sample gaps = 0;
+- unbounded memory/history growth = 0.
+
+Erst danach gilt V5 als 24/7-freigegeben.
+
+## 4. Pflicht-Definition-of-Done fuer jede neue Capability
+
+Jede Capability braucht vor Merge/Live-Freigabe:
+
+- Knowledge-/Fact-/Contract-Referenz;
+- Owner und Port;
+- Preconditions/Freshness;
+- Ressourcen/Locks;
+- Workflow/Action Contract;
+- Persist-before-action, wenn irreversibel;
+- Server Result Classification;
+- fachliche Postcondition;
+- UNKNOWN/Reconcile Path;
+- Retry/Circuit/Budget;
+- Operator-/Safety-Policy;
+- Telemetrie/Explainability;
+- Unit + Property + Replay + Fault Tests;
+- Shadow;
+- Controlled-Live Gate;
+- Disable/Rollback Path;
+- Dokumentation und Schema-Version.
+
+## 5. V3-Fehlerabdeckung
+
+| V3-Fehler | Primaere V5-Gegenmassnahme |
+|---|---|
+| 001 Return != Commit | R9/R10 |
+| 002 Blind Resume | R5/R10 |
+| 003 Merchant Starvation | R8/R13 |
+| 004 Hotfix-Kaskaden | R2/R3/R7 |
+| 005 Stale Party Identity | R14/R16 |
+| 006 Pending Offer Deadlock | R8/R14 |
+| 007 Movement Thrash | R8/R16 |
+| 008 Kein Workspace | R13/R15 |
+| 009 Quota Retry Storm | R5/R8 |
+| 010 Runtime startet sich selbst neu | R3/R11 |
+| 011 Stale Moving Target | R6/R16 |
+| 012 Production zu frueh fertig | R15 |
+| 013 Duplicate nach Restart | R5/R10 |
+| 014 Persistierter Katalog als Authority | R0/R6 |
+| 015 Unknown Content freigegeben | R0/R6/R17 |
+| 016 Mehrere Service Owner | R7 |
+| 017 Partial Multi-Item Delivery | R10/R15 |
+| 018 Globaler Circuit | R8 |
+| 019 Raw Target statt Owned Target | R16 |
+| 020 Plan Drift | R6/R9 |
+| 021 Item nur Name/Level | R6/R13 |
+| 022 Bank/Compound Fairness | R8/R13/R15 |
+| 023 Alert verloren | R5/R11 |
+| 024 Host Bridge zu maechtig | R3 |
+| 025 Restart als Recovery | R10/R11 |
+| 026 Safety gelockert fuer Liveness | R2/R7/R8 |
+| 027 Unbounded Telemetry | R4/R11 |
+| 028 Event Drift | R6/R17 |
+| 029 Operator Stop in Transaction | R7/R10 |
+| 030 Altpfad Regression | R2/R3 |
+
+## 6. Entwicklungsregel
+
+**Keine Abkuerzung ueber eine Phase.**
+
+Wenn eine spaetere Domaene eine fehlende Primitive braucht, wird die Primitive im richtigen Core-Owner ergaenzt und dort getestet. Es entsteht kein fachlicher Hotfix-Layer.
+
+V3 und V4 bleiben Wissens-/Test-/Designquellen. V5 uebernimmt Semantik nur nach expliziter Migrationsentscheidung.
