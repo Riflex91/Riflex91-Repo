@@ -13356,6 +13356,8 @@ class InventoryLedger {
     this.sellAllowlist = asSet(options.sellAllowlist);
     this.bankAllowlist = asSet(options.bankAllowlist);
     this.exchangeAllowlist = asSet(options.exchangeAllowlist);
+    this.itemPermissions = new Map();
+    this.setItemPermissions(options.itemPermissions || {});
     this.sellSafetyResolver = typeof options.sellSafetyResolver === 'function' ? options.sellSafetyResolver : null;
     this.progressionReservations = new Map();
     this.progressionReservationSlots = new Map();
@@ -13384,6 +13386,43 @@ class InventoryLedger {
   setSellSafetyResolver(resolver) {
     this.sellSafetyResolver = typeof resolver === 'function' ? resolver : null;
     return this.sellSafetyResolver !== null;
+  }
+
+  setItemPermissions(value = {}) {
+    this.itemPermissions.clear();
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    for (const [name, row] of Object.entries(source).slice(0, 512)) {
+      const normalizedName = normalizeName(name);
+      if (!normalizedName || !row || typeof row !== 'object' || Array.isArray(row)) continue;
+      const permissions = {};
+      for (const action of ['sell', 'bank', 'compound', 'upgrade']) {
+        if (typeof row[action] === 'boolean') permissions[action] = row[action];
+      }
+      if (Object.keys(permissions).length) this.itemPermissions.set(normalizedName, permissions);
+    }
+    return this.itemPermissionSnapshot();
+  }
+
+  itemPermissionSnapshot() {
+    return Object.fromEntries([...this.itemPermissions.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, row]) => [name, { ...row }]));
+  }
+
+  _permission(name, action) {
+    const row = this.itemPermissions.get(String(name || ''));
+    return row && typeof row[action] === 'boolean' ? row[action] : null;
+  }
+
+  _operatorDisposition(row, meta, same) {
+    const permissions = this.itemPermissions.get(String(row && row.name || '')) || {};
+    if (permissions.compound === true && meta && meta.compound && same >= 3) {
+      return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['OPERATOR_COMPOUND_ALLOWED'] };
+    }
+    if (permissions.upgrade === true && meta && meta.upgrade) {
+      return { disposition: ItemDisposition.RESERVE_UPGRADE, reasons: ['OPERATOR_UPGRADE_ALLOWED'] };
+    }
+    if (permissions.bank === true) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWED'] };
+    if (permissions.sell === true) return { disposition: ItemDisposition.SELL, reasons: ['OPERATOR_SELL_ALLOWED'], explicitSellOverride: true };
+    return null;
   }
 
   setProgressionReservations(reservations) {
@@ -13455,7 +13494,10 @@ class InventoryLedger {
   _baseDisposition(row, gameData, contentDrift, counts, reservationRemaining = new Map()) {
     const reasons = [];
     const meta = gameData && gameData.items && gameData.items[row.name];
-    if (row.locked || row.special) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
+    const same = counts.get(stackKey(row.name, row.level)) || 0;
+    const hasProtectedFlag = row.locked || row.special;
+    const hasExplicitAllow = ['sell', 'bank', 'compound', 'upgrade'].some((action) => this._permission(row.name, action) === true);
+    if (hasProtectedFlag && !hasExplicitAllow) return { disposition: ItemDisposition.KEEP, reasons: [row.locked ? 'ITEM_LOCKED' : 'ITEM_SPECIAL'] };
     if (!meta || typeof meta !== 'object') return { disposition: ItemDisposition.UNDECIDED, reasons: ['ITEM_METADATA_UNKNOWN'] };
     if (this._contentUnsafe(contentDrift, row.name)) return { disposition: ItemDisposition.UNDECIDED, reasons: ['CONTENT_REVALIDATION_REQUIRED'] };
 
@@ -13476,12 +13518,17 @@ class InventoryLedger {
     if (/^hpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_HP_POTION_RESERVE'] };
     if (/^mpot/.test(lower)) return { disposition: ItemDisposition.RESERVE_GROUP, reasons: ['GROUP_MP_POTION_RESERVE'] };
 
-    const same = counts.get(stackKey(row.name, row.level)) || 0;
-    if (meta.compound && same >= 3) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
+    const operator = this._operatorDisposition(row, meta, same);
+    if (operator) {
+      if (hasProtectedFlag) operator.reasons.push(row.locked ? 'PROTECTED_ITEM_OPERATOR_OVERRIDE' : 'SPECIAL_ITEM_OPERATOR_OVERRIDE');
+      return operator;
+    }
+
+    if (meta.compound && same >= 3 && this._permission(row.name, 'compound') !== false) return { disposition: ItemDisposition.RESERVE_COMPOUND, reasons: ['COMPOUND_SET_AVAILABLE'] };
 
     if (this.exchangeAllowlist.has(row.name)) return { disposition: ItemDisposition.EXCHANGE, reasons: ['OPERATOR_EXCHANGE_ALLOWLIST'] };
-    if (this.bankAllowlist.has(row.name)) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
-    if (this.sellAllowlist.has(row.name)) {
+    if (this.bankAllowlist.has(row.name) && this._permission(row.name, 'bank') !== false) return { disposition: ItemDisposition.BANK, reasons: ['OPERATOR_BANK_ALLOWLIST'] };
+    if (this.sellAllowlist.has(row.name) && this._permission(row.name, 'sell') !== false) {
       const blockers = this._resolveSellBlockers(row, meta, gameData, contentDrift);
       if (blockers.length) {
         return {
@@ -13572,6 +13619,7 @@ class InventoryLedger {
         else mpReserved += row.q;
       }
       const meta = gameData && gameData.items && gameData.items[row.name];
+      const permissions = this.itemPermissions.get(row.name) || {};
       const entry = {
         schemaVersion: INVENTORY_LEDGER_SCHEMA_VERSION,
         key: itemKey(row.character, row.index),
@@ -13582,6 +13630,9 @@ class InventoryLedger {
         reservation: classified.reservation || null,
         metadataKnown: !!meta,
         metadataType: meta && meta.type || null,
+        operatorPermissions: { ...permissions },
+        protected: row.locked || row.special,
+        protectionReason: row.locked ? 'ITEM_LOCKED' : row.special ? 'ITEM_SPECIAL' : null,
         actionAuthority: false
       };
       this.entries.set(entry.key, entry);
@@ -13670,6 +13721,7 @@ class InventoryLedger {
         sellAllowlist: [...this.sellAllowlist].sort(),
         bankAllowlist: [...this.bankAllowlist].sort(),
         exchangeAllowlist: [...this.exchangeAllowlist].sort(),
+        itemPermissions: this.itemPermissionSnapshot(),
         defaultDisposition: ItemDisposition.UNDECIDED,
         sellSafetyResolver: this.sellSafetyResolver ? 'ENABLED' : 'DISABLED',
         sellSafety: sellSafetyStatus(),
