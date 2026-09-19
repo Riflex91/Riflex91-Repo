@@ -1,6 +1,7 @@
 'use strict';
 
 const { scoreItem, scoreImprovement, candidateSlots } = require('../economy/gear-progression');
+const { questDestination, eventEntryActive } = require('../party/acquisition-source-evidence');
 
 const MERCHANT_PRODUCTION_PLANNER_MODE = 'deterministic-merchant-production-planner';
 
@@ -498,7 +499,7 @@ class MerchantProductionPlanner {
       availableGold,
       goldReserve: this.goldReserve,
       bankSource: character.bank ? 'LIVE_BANK' : catalogRows.length ? 'PERSISTED_BANK_CATALOG' : 'UNAVAILABLE',
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE'
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC'
     };
   }
 
@@ -514,7 +515,8 @@ class MerchantProductionPlanner {
     const bankPool = bank.length ? bank : catalogRows;
     const lockedExchangeItem = input.productionTaskTarget && input.productionTaskTarget.exchangeItem ? String(input.productionTaskTarget.exchangeItem) : null;
     const explicitDemands = (Array.isArray(input.exchangeDemands) ? input.exchangeDemands : [])
-      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()));
+      .filter((row) => row && row.item && (!row.expiresAt || row.expiresAt > this.now()))
+      .filter((row) => !row.eventKey || eventEntryActive(input.eventState || {}, row.eventKey, this.now()));
     const demandByItem = new Map(explicitDemands.map((row) => [String(row.item), row]));
 
     // Anything that Adventure Land itself marks with a positive exchange
@@ -561,12 +563,36 @@ class MerchantProductionPlanner {
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(item.name, 0)], 0)));
       const local = Math.max(1, Math.floor(finite(item.q, 1)));
       const usable = Math.max(0, local - reserved);
-      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      const demandedQuest = demand && demand.quest ? String(demand.quest) : null;
+      const metaQuest = meta.quest ? String(meta.quest) : null;
+      if (demandedQuest && demandedQuest !== metaQuest) continue;
+      const quest = demandedQuest || metaQuest;
+      const questTarget = quest ? questDestination(gameData, quest) : null;
+      if (quest && !questTarget) continue;
+      const destination = quest || 'exchange';
+      const exchangeReason = demand && demand.eventKey && quest
+        ? 'EVENT_QUEST_EXCHANGE_REQUIREMENT_SATISFIED'
+        : demand && demand.eventKey
+          ? 'EVENT_EXCHANGE_REQUIREMENT_SATISFIED'
+          : quest
+            ? 'QUEST_EXCHANGE_REQUIREMENT_SATISFIED'
+            : 'EXCHANGE_REQUIREMENT_SATISFIED';
       if (usable >= required) {
         candidates.push({
           name: String(item.name), index, required, available: usable,
-          operations: Math.floor(usable / required), destination,
-          step: { kind: ProductionStepKind.EXCHANGE, name: String(item.name), level: 0, inventoryIndex: index, quantity: required, destination, reason: 'EXCHANGE_REQUIREMENT_SATISFIED' }
+          operations: Math.floor(usable / required), destination, quest, questDestination: clone(questTarget),
+          step: {
+            kind: ProductionStepKind.EXCHANGE,
+            name: String(item.name),
+            level: 0,
+            inventoryIndex: index,
+            quantity: required,
+            destination,
+            quest,
+            questDestination: clone(questTarget),
+            eventKey: demand && demand.eventKey || null,
+            reason: exchangeReason
+          }
         });
         continue;
       }
@@ -589,10 +615,28 @@ class MerchantProductionPlanner {
       const local = itemQuantity(inventory, row.name, 0);
       const reserved = Math.max(0, Math.floor(finite(protectedReservations[itemKey(row.name, 0)], 0)));
       if (Math.max(0, local - reserved) >= required) continue;
-      const destination = meta.quest ? String(meta.quest) : 'exchange';
+      const demandedQuest = demand && demand.quest ? String(demand.quest) : null;
+      const metaQuest = meta.quest ? String(meta.quest) : null;
+      if (demandedQuest && demandedQuest !== metaQuest) continue;
+      const quest = demandedQuest || metaQuest;
+      const questTarget = quest ? questDestination(gameData, quest) : null;
+      if (quest && !questTarget) continue;
+      const destination = quest || 'exchange';
       candidates.push({
         name: row.name, required, available: Math.max(0, local - reserved), operations: Math.floor(row.quantity / required), destination,
-        step: { kind: ProductionStepKind.BANK_RETRIEVE, name: row.name, level: 0, quantity: row.quantity, pack: row.pack, bankIndex: row.index, reason: 'EXCHANGE_MATERIAL_IN_BANK' }
+        quest, questDestination: clone(questTarget),
+        step: {
+          kind: ProductionStepKind.BANK_RETRIEVE,
+          name: row.name,
+          level: 0,
+          quantity: row.quantity,
+          pack: row.pack,
+          bankIndex: row.index,
+          quest,
+          questDestination: clone(questTarget),
+          eventKey: demand && demand.eventKey || null,
+          reason: quest ? 'QUEST_EXCHANGE_MATERIAL_IN_BANK' : 'EXCHANGE_MATERIAL_IN_BANK'
+        }
       });
     }
 
@@ -614,7 +658,7 @@ class MerchantProductionPlanner {
       blockers: [],
       totalGold: 0,
       goldReserve: this.goldReserve,
-      costStrategy: 'EXCHANGE_EXACT_REQUIREMENT_V2_DEMAND_DRIVEN',
+      costStrategy: 'QUEST_EVENT_EXCHANGE_EXACT_REQUIREMENT_V3',
       exchangeDemand: clone(demandByItem.get(chosen.name) || null)
     };
     return clone(plan);
@@ -786,9 +830,13 @@ class MerchantProductionPlanner {
       maxBuyQuantity: this.maxBuyQuantity,
       candidateScanLimit: this.candidateScanLimit,
       explicitTargets: this.explicitTargets.slice(),
-      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V2_MUTATION_AWARE',
-      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'FARM_REQUIRED'],
+      costStrategy: 'LEAST_GOLD_SOURCE_GRAPH_V3_QUEST_EVENT_PROBABILISTIC',
+      sourcePriority: ['LOCAL_ZERO_COST', 'BANK_ZERO_GOLD_COST', 'MIN(VENDOR_GOLD,CULLED_RECIPE_GRAPH)', 'UPGRADE_OR_COMPOUND_REQUIRED', 'QUEST_OR_EVENT_ACQUISITION', 'FARM_REQUIRED'],
       leveledRecipeMaterials: true,
+      questExchangeAcquisition: true,
+      eventGatedAcquisition: true,
+      probabilisticFarmTime: true,
+      farmTimeDecisionQuantile: 'P90',
       mutationFamilies: ['UPGRADE', 'COMPOUND'],
       autonomousExchangeableSurplus: true,
       anniversarySliceConsolidation: true,
