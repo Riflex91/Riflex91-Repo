@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  BegrenzteReplayAufzeichnung,
   BegrenzterAsynchronerSchreiber,
   FaehigkeitsSchalter,
   LeereV5Grundlage,
@@ -101,4 +102,77 @@ test("asynchroner Writer besitzt harte Queue-Grenze und Backpressure", async () 
 
   assert.deepEqual(geschrieben, ["eins", "zwei"]);
   assert.equal(writer.ausstehend, 0);
+});
+
+test("Mehrfach-Verriegelung blockiert jede einzeln fehlende Safety-Schicht", () => {
+  const basis = {
+    schemaVersion: 1,
+    freigabeId: "f-2",
+    auftragId: "a-2",
+    faehigkeit: "MARKT_SCHREIBEN",
+    owner: "ACCOUNT_COORDINATOR",
+    ressourcenEpoche: 9,
+    ausgestelltAmMs: 900,
+    gueltigBisMs: 1100,
+    operatorErlaubt: true,
+    vorbedingungenBestaetigt: true,
+    ressourcenBestaetigt: true,
+    kanalBestaetigt: true,
+    budgetBestaetigt: true,
+    intentDurable: true,
+  };
+  const erwartet = {
+    auftragId: "a-2",
+    faehigkeit: "MARKT_SCHREIBEN",
+    owner: "ACCOUNT_COORDINATOR",
+    ressourcenEpoche: 9,
+    jetztMs: 1000,
+  };
+
+  const faelle = [
+    ["operatorErlaubt", "OPERATOR_DENY"],
+    ["vorbedingungenBestaetigt", "VORBEDINGUNGEN_FEHLEN"],
+    ["ressourcenBestaetigt", "RESSOURCEN_FEHLEN"],
+    ["kanalBestaetigt", "ACTION_KANAL_FEHLT"],
+    ["budgetBestaetigt", "BUDGET_FEHLT"],
+    ["intentDurable", "DURABLE_INTENT_FEHLT"],
+  ];
+
+  for (const [feld, grund] of faelle) {
+    const pruefung = pruefeAusfuehrungsFreigabe({ ...basis, [feld]: false }, erwartet);
+    assert.deepEqual(pruefung, { erlaubt: false, grund });
+  }
+
+  assert.deepEqual(pruefeAusfuehrungsFreigabe(basis, erwartet), { erlaubt: true });
+});
+
+test("Replay-Aufzeichnung ist deterministisch gepinnt und bounded", () => {
+  const baueQuellen = () => {
+    let id = 0;
+    let zeit = 100;
+    return {
+      jetztMs: () => zeit++,
+      naechsteId: () => "id-" + (++id),
+      zufall01: () => 0.25,
+    };
+  };
+  const kopf = {
+    schemaVersion: 1,
+    buildGitSha: "a".repeat(40),
+    wissensSnapshotSha256: "b".repeat(64),
+    konfigurationSha256: "c".repeat(64),
+  };
+
+  const eins = new BegrenzteReplayAufzeichnung(kopf, baueQuellen(), 2);
+  const zwei = new BegrenzteReplayAufzeichnung(kopf, baueQuellen(), 2);
+
+  for (const recorder of [eins, zwei]) {
+    assert.equal(recorder.zeichneAuf("PLAN", { wert: 1 }), true);
+    assert.equal(recorder.zeichneAuf("ENTSCHEIDUNG", { wert: 2 }), true);
+    assert.equal(recorder.zeichneAuf("ZU_VIEL", { wert: 3 }), false);
+  }
+
+  assert.deepEqual(eins.snapshot(), zwei.snapshot());
+  assert.equal(eins.snapshot().eintraege.length, 2);
+  assert.equal(eins.snapshot().verworfenWegenGrenze, 1);
 });
