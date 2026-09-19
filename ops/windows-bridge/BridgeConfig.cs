@@ -221,7 +221,8 @@ public sealed record BridgeConfig
         }
 
         var wurzel = Path.GetPathRoot(voll);
-        if (!string.Equals(wurzel, @"D:\", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(wurzel)
+            || !string.Equals(wurzel, @"D:\", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("LIVE_WISSEN_MUSS_AUF_D_LIEGEN");
         if (string.Equals(voll, Path.TrimEndingDirectorySeparator(wurzel), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("LIVE_WISSEN_D_LAUFWERKSWURZEL_VERBOTEN");
