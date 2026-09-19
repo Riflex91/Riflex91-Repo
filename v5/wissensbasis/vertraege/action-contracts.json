@@ -1924,10 +1924,14 @@
       "family": "item_improvement",
       "effectDomains": [
         "inventory",
+        "target_item",
         "scroll",
         "offering",
         "item_level_or_loss",
-        "character_q"
+        "item_grace_or_stat",
+        "character_q",
+        "massproduction_condition",
+        "server_grace_accumulators"
       ],
       "client": {
         "transportEvent": "upgrade",
@@ -1957,20 +1961,52 @@
         "scroll",
         "offering",
         "service_reachability",
-        "character_q"
+        "character_q",
+        "exact_target_item_identity",
+        "target_level",
+        "target_grade",
+        "target_grace",
+        "scroll_type_grade_quantity",
+        "offering_identity_grade_or_offering_strength",
+        "massproduction_conditions",
+        "player_p_item_num_if_observable"
       ],
       "dangerFlags": [
         "PLACEHOLDER_Q",
         "NON_IDEMPOTENT",
         "ITEM_LOSS_POSSIBLE",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "CONSUMABLES_SPENT_BEFORE_TIMER_COMPLETES",
+        "OUTCOME_PRESELECTED_BEFORE_Q_COMPLETES",
+        "PATH_DEPENDENT_UPGRADE_FAIL",
+        "SCROLL4_FAILURE_PRESERVES_ITEM",
+        "MATERIAL_OFFERING_FAILURE_PRESERVES_ITEM",
+        "STAT_SCROLL_NOT_LEVEL_UPGRADE",
+        "OFFERING_ONLY_NOT_LEVEL_UPGRADE",
+        "SERVER_ROLL_SLOT_ADJUSTMENT",
+        "PREVIEW_NOT_EXECUTION_AUTHORITY"
       ],
       "postconditions": [
-        "q.upgrade cleared",
-        "placeholder resolved",
-        "target result and scroll/offering deltas reconciled"
+        "q.upgrade is cleared and attributable placeholder is gone",
+        "scroll/offering quantities and massproduction conditions match the selected path",
+        "normal uscroll success: exact target identity is present at new level",
+        "ordinary uscroll failure: exact target identity is absent/lost unless scroll grade 3.6 preservation rule applies",
+        "scroll4 failed roll: exact target item is restored/preserved despite upgrade_fail",
+        "pscroll success: exact target item is present with requested stat_type; level is not inferred from generic response",
+        "primordial type-offering-only: exact target item remains with increased grace and no level increase",
+        "material-offering-only: exact target remains; shiny property appears only on successful proc, while failed proc may still return upgrade_fail",
+        "any server grace/accounting changes relevant to subsequent probability are treated as changed state"
       ],
-      "notes": [],
+      "notes": [
+        "calculate=true is preview-only: validation/chance result without consumable/q/placeholder mutation.",
+        "For normal uscroll the server consumes the scroll before the q timer completes; offering, if present, is also consumed before terminal settlement.",
+        "The server chooses/stores the random outcome branch before q completion. Placeholder means accepted in-flight transaction, not undecided roll.",
+        "scroll4 has grade 3.6 and preserves the target item on a failed roll while still producing upgrade_fail.",
+        "pscroll requires [1,10,100,1000,9999,...] scroll quantity by item grade and changes stat_type rather than level.",
+        "No-scroll normal type='offering' performs a guaranteed grace infusion; material definitions with an 'offering' numeric field use a separate level-0 shiny-proc path.",
+        "Source contains a target-slot result adjustment when data.item_num equals player.p.item_num; preview threshold alone is not treated as effective probability.",
+        "Terminal business result must be interpreted by path + inventory postcondition, not response.success alone."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
@@ -1995,8 +2031,11 @@
         "three_input_items",
         "scroll",
         "offering",
-        "result_or_loss",
-        "character_q"
+        "result_or_three_item_loss",
+        "item_grace",
+        "character_q",
+        "massproduction_condition",
+        "server_grace_accumulators"
       ],
       "client": {
         "transportEvent": "compound",
@@ -2028,20 +2067,42 @@
         "scroll",
         "offering",
         "service_reachability",
-        "character_q"
+        "character_q",
+        "three_exact_physical_item_identities",
+        "same_name_level",
+        "current_grade",
+        "input_grace_values",
+        "scroll_type_grade",
+        "offering_type_grade",
+        "massproduction_conditions"
       ],
       "dangerFlags": [
         "PLACEHOLDER_Q",
         "MULTI_ITEM_DESTRUCTIVE",
         "ITEM_LOSS_POSSIBLE",
-        "UNKNOWN_AFTER_DISCONNECT"
+        "UNKNOWN_AFTER_DISCONNECT",
+        "SCROLL_SPENT_BEFORE_TIMER_COMPLETES",
+        "SECOND_AND_THIRD_INPUTS_REMOVED_AT_START",
+        "OUTCOME_PRESELECTED_BEFORE_Q_COMPLETES",
+        "BOOSTER_RECURSIVE_EXTRA_LEVEL_PROC",
+        "PREVIEW_NOT_EXECUTION_AUTHORITY"
       ],
       "postconditions": [
-        "q.compound cleared",
-        "placeholder resolved",
-        "three inputs/result and consumables reconciled"
+        "q.compound is cleared and first-slot placeholder is resolved",
+        "compound scroll and optional offering deltas match the selected attempt",
+        "success: exactly one reconciled output item exists at the first input slot with terminal level/properties; the other two physical inputs remain consumed",
+        "failure: all three exact physical input identities are absent/lost",
+        "massproduction condition consumption matches the actual timed path",
+        "booster success: final level/extra/expiry is read from the terminal item because offering can recursively add extra levels"
       ],
-      "notes": [],
+      "notes": [
+        "calculate=true returns the server-side chance without consuming the scroll/offering or creating q/placeholder.",
+        "Real execution consumes the compound scroll before terminal completion; offering is consumed before q creation when present.",
+        "At action start item0 becomes placeholder and item1/item2 are set null; success/failure branch is already stored in player.p before the timer completes.",
+        "Partial physical consumption is therefore an expected intermediate state, not permission to retry.",
+        "Booster compounds have near-certain base success and, with offering, a recursive 12% then halving extra-level proc.",
+        "Normal failed compound consumes all three input items."
+      ],
       "volatility": "HIGH",
       "sourceRefs": [
         {
