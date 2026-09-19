@@ -175,49 +175,115 @@ function itemNpcCatalog(gameData) {
   return byItem;
 }
 
-function itemAutomationCatalog(runtime, maxItems = 10000) {
-  const gameData = { items: {}, maps: {}, npcs: {}, positions: {}, imagesets: {} };
-  for (const source of gameDataSources(runtime)) {
-    Object.assign(gameData.items, source && source.items || {});
-    Object.assign(gameData.maps, source && source.maps || {});
-    Object.assign(gameData.npcs, source && source.npcs || {});
-    Object.assign(gameData.positions, source && source.positions || {});
-    Object.assign(gameData.imagesets, source && source.imagesets || {});
+function observedAutomationItems(runtime, maxItems = 10000) {
+  const observed = new Map();
+  const add = (item, fallbackType = null) => {
+    const name = String(item && item.name || '').trim();
+    if (!name || observed.size >= maxItems) return;
+    const prior = observed.get(name) || {};
+    observed.set(name, {
+      ...prior,
+      name,
+      type: prior.type || item && (item.metadataType || item.type) || fallbackType || null
+    });
+  };
+
+  let registry = null;
+  try { registry = runtime && runtime.characterRegistry && typeof runtime.characterRegistry.status === 'function' ? runtime.characterRegistry.status() : null; } catch (_) {}
+  for (const character of registry && Array.isArray(registry.characters) ? registry.characters : []) {
+    for (const item of Array.isArray(character && character.inventory) ? character.inventory : []) add(item);
+    for (const item of Object.values(character && character.gear && typeof character.gear === 'object' ? character.gear : {})) add(item);
   }
+
+  const snapshotCharacter = runtime && runtime.lastSnapshot && runtime.lastSnapshot.character;
+  for (const item of Array.isArray(snapshotCharacter && snapshotCharacter.inventory) ? snapshotCharacter.inventory : []) add(item);
+
+  const liveCharacter = liveCharacterOf(runtime);
+  for (const item of Array.isArray(liveCharacter && liveCharacter.items) ? liveCharacter.items : []) add(item);
+  for (const item of Object.values(liveCharacter && liveCharacter.slots && typeof liveCharacter.slots === 'object' ? liveCharacter.slots : {})) add(item);
+
+  try {
+    const rows = runtime && runtime.inventoryLedger && typeof runtime.inventoryLedger.list === 'function'
+      ? runtime.inventoryLedger.list(maxItems)
+      : [];
+    for (const row of rows) add(row, row && row.metadataType);
+  } catch (_) {}
+
+  try {
+    const bankStatus = runtime && runtime.merchantBankCatalog && typeof runtime.merchantBankCatalog.status === 'function'
+      ? runtime.merchantBankCatalog.status()
+      : null;
+    const bankRows = bankStatus && bankStatus.snapshot && Array.isArray(bankStatus.snapshot.rows) ? bankStatus.snapshot.rows : [];
+    for (const row of bankRows) add(row);
+  } catch (_) {}
+
+  return observed;
+}
+
+function itemAutomationCatalog(runtime, maxItems = 10000) {
+  const merged = mergeGameData(runtime);
+  const gameData = { ...merged, maps: {}, npcs: {} };
+  for (const source of gameDataSources(runtime)) {
+    for (const [mapId, map] of Object.entries(source && source.maps || {})) {
+      if (!map || typeof map !== 'object' || Array.isArray(map)) continue;
+      const existing = gameData.maps[mapId];
+      gameData.maps[mapId] = existing ? { ...map, ...existing } : { ...map };
+    }
+    for (const [npcId, npc] of Object.entries(source && source.npcs || {})) {
+      if (!npc || typeof npc !== 'object' || Array.isArray(npc)) continue;
+      const existing = gameData.npcs[npcId];
+      gameData.npcs[npcId] = existing ? { ...npc, ...existing } : { ...npc };
+    }
+  }
+
+  const observed = observedAutomationItems(runtime, maxItems);
+  const ids = new Set(Object.keys(gameData.items || {}));
+  for (const id of observed.keys()) {
+    if (ids.size >= maxItems) break;
+    ids.add(id);
+  }
+
   const npcByItem = itemNpcCatalog(gameData);
+  const inventorySprites = itemSpriteCatalog(runtime, maxItems);
   const rows = [];
-  for (const [id, def] of Object.entries(gameData.items || {}).slice(0, maxItems)) {
-    if (!def || typeof def !== 'object' || Array.isArray(def)) continue;
-    const classes = [].concat(def.class || def.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
-    const level = Number(def.level != null ? def.level : def.req != null ? def.req : def.requirement);
-    const skin = def.skin_c || def.skin || null;
+  for (const id of [...ids].slice(0, maxItems)) {
+    const observedRow = observed.get(id) || {};
+    const def = gameData.items && gameData.items[id];
+    const meta = def && typeof def === 'object' && !Array.isArray(def) ? def : {};
+    const classes = [].concat(meta.class || meta.classes || []).map((value) => String(value || '').toLowerCase()).filter(Boolean);
+    const level = Number(meta.level != null ? meta.level : meta.req != null ? meta.req : meta.requirement);
+    const skin = meta.skin_c || meta.skin || inventorySprites[id] && inventorySprites[id].skin || null;
     rows.push({
       id,
-      name: def.name || id,
-      type: def.type || null,
-      wtype: def.wtype || null,
+      name: meta.name || observedRow.name || id,
+      type: meta.type || observedRow.type || null,
+      wtype: meta.wtype || null,
       level: Number.isFinite(level) ? level : null,
-      grade: Number.isFinite(Number(def.grade)) ? Number(def.grade) : null,
+      grade: Number.isFinite(Number(meta.grade)) ? Number(meta.grade) : null,
       classes,
       npc: (npcByItem.get(id) || []).map(({ npc, map }) => ({ npc, map })),
-      upgrade: !!def.upgrade,
-      compound: !!def.compound,
-      exchange: !!(def.exchange || def.e),
-      quest: !!(def.quest || def.q),
-      cash: !!def.cash,
-      soulbound: !!def.soulbound,
-      special: !!def.special,
-      goldValue: Number.isFinite(Number(def.g)) ? Number(def.g) : null,
+      upgrade: !!meta.upgrade,
+      compound: !!meta.compound,
+      exchange: !!(meta.exchange || meta.e),
+      quest: !!(meta.quest || meta.q),
+      cash: !!meta.cash,
+      soulbound: !!meta.soulbound,
+      special: !!meta.special,
+      goldValue: Number.isFinite(Number(meta.g)) ? Number(meta.g) : null,
       skin,
-      sprite: spriteMeta(gameData, skin)
+      sprite: spriteMeta(gameData, skin) || inventorySprites[id] || null,
+      observed: observed.has(id)
     });
   }
   rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
   return rows;
 }
 
+const ADVENTURE_LAND_ITEM_SURFACE_VERSION = 2;
+
 function installAdventureLandItemSprites(runtime, cloud) {
-  if (!cloud || cloud.__adventureLandItemSpritesInstalled || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (!cloud || typeof cloud._runtimeSnapshot !== 'function') return false;
+  if (Number(cloud.__adventureLandItemSurfaceVersion || 0) >= ADVENTURE_LAND_ITEM_SURFACE_VERSION) return false;
   const originalRuntimeSnapshot = cloud._runtimeSnapshot.bind(cloud);
   cloud._runtimeSnapshot = () => {
     const snapshot = originalRuntimeSnapshot();
@@ -233,6 +299,7 @@ function installAdventureLandItemSprites(runtime, cloud) {
     return snapshot;
   };
   cloud.__adventureLandItemSpritesInstalled = true;
+  cloud.__adventureLandItemSurfaceVersion = ADVENTURE_LAND_ITEM_SURFACE_VERSION;
   return true;
 }
 

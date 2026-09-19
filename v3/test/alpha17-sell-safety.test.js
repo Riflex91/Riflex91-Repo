@@ -113,6 +113,45 @@ test('Controlled Merchant independently rejects forged protected SELL before cal
   assert.equal(executor.status().sellSafety.allowlistCannotOverride, true);
 });
 
+test('explicit per-item operator permission can sell level-0 equipment while hard live locks remain protected', async () => {
+  const engine = new EconomyTransactionEngine();
+  const entry = {
+    character: 'MerchantA', index: 0, name: 'partyhat', level: 0, q: 1, disposition: 'SELL',
+    reasons: ['OPERATOR_SELL_ALLOWED'], operatorPermissions: { sell: true }
+  };
+  const ledger = fakeLedger(entry);
+  let sellCalls = 0;
+  const root = {
+    character: {
+      name: 'MerchantA', ctype: 'merchant', isize: 1, items: [{ name: 'partyhat', level: 0, q: 1 }],
+      gold: 100, rip: false
+    },
+    parent: { entities: {} },
+    G: { items: { partyhat: { type: 'helmet', g: 1 } } },
+    sell: async () => {
+      sellCalls += 1;
+      root.character.items[0] = null;
+      root.character.gold += 1;
+      return { success: true };
+    }
+  };
+  const planned = engine.plan({ type: 'SELL', character: 'MerchantA', index: 0, quantity: 1 }, { ledger, snapshot: {} });
+  const executor = new ControlledMerchantExecutor({ root, engine, ledger, getMode: () => 'active', getSupervisorStatus: () => ({ state: 'HEALTHY' }), verifyDelayMs: 0 });
+  executor.configure({ enabled: true, sell: true, ack: CONTROLLED_MERCHANT_ACK });
+
+  const result = await executor.execute(planned.transaction.id);
+  assert.equal(result.committed, true);
+  assert.equal(sellCalls, 1);
+
+  root.character.items[0] = { name: 'partyhat', level: 0, q: 1, l: true };
+  const plannedLocked = engine.plan({ type: 'SELL', character: 'MerchantA', index: 0, quantity: 1 }, { ledger, snapshot: {} });
+  const locked = await executor.execute(plannedLocked.transaction.id);
+  assert.equal(locked.committed, false);
+  assert.equal(locked.reason, 'SELL_OPERATOR_PERMISSION_HARD_BLOCKED');
+  assert.ok(locked.sellProtectionReasons.includes('SELL_RAW_LOCKED_ITEM_PROTECTED'));
+  assert.equal(sellCalls, 1);
+});
+
 test('Controlled Merchant still permits an explicitly allowlisted low-risk material and verifies its exact identity delta', async () => {
   const engine = new EconomyTransactionEngine();
   const ledger = fakeLedger({

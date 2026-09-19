@@ -222,6 +222,21 @@ test('Automation catalog exposes sprites and detects object-shaped upgrade/compo
   assert.equal(sword.sprite.x, 4);
 });
 
+test('Automation catalog includes an observed inventory item even when the current G.items source omits it', () => {
+  const runtime = {
+    lastSnapshot: { character: { name: 'MerchantA', ctype: 'merchant', inventory: [{ index: 0, name: 'partyhat', level: 0, q: 1 }] } },
+    adapter: { getGameData: () => ({ items: {}, positions: {}, imagesets: {}, maps: {}, npcs: {} }) },
+    characterRegistry: { status: () => ({ characters: [{ name: 'MerchantA', inventory: [{ index: 0, name: 'partyhat', level: 0, q: 1 }], gear: {} }] }) },
+    inventoryLedger: { list: () => [{ name: 'partyhat', metadataType: 'helmet' }] }
+  };
+
+  const catalog = itemAutomationCatalog(runtime);
+  const partyhat = catalog.find((row) => row.id === 'partyhat');
+  assert.ok(partyhat);
+  assert.equal(partyhat.type, 'helmet');
+  assert.equal(partyhat.observed, true);
+});
+
 test('runtime snapshot wrapper adds sprites, equipment shades and exact inventory size', () => {
   const runtime = {
     lastSnapshot: { character: { name: 'R1', isize: 49 } },

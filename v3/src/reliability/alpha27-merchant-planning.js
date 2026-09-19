@@ -606,6 +606,28 @@ class Alpha27MerchantPlanning extends Alpha27MerchantService {
     };
   }
 
+  planExplicitOperatorSell() {
+    const c = characterOf(this.runtime);
+    const ledger = this.runtime.inventoryLedger;
+    if (!c || !ledger || typeof ledger.list !== 'function') return null;
+    const row = ledger.list(1000).find((entry) => {
+      if (!entry || entry.character !== c.name || entry.disposition !== 'SELL') return false;
+      const reasons = Array.isArray(entry.reasons) ? entry.reasons.map(String) : [];
+      return entry.operatorPermissions && entry.operatorPermissions.sell === true && reasons.includes('OPERATOR_SELL_ALLOWED');
+    });
+    if (!row) return null;
+    return {
+      type: 'SELL',
+      character: c.name,
+      index: row.index,
+      quantity: Math.max(1, finite(row.q, 1)),
+      metadata: {
+        source: 'OPERATOR_ITEM_PERMISSION',
+        operatorExplicitSell: true
+      }
+    };
+  }
+
   planSellOrBank() {
     const c = characterOf(this.runtime);
     const ledger = this.runtime.inventoryLedger;

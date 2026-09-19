@@ -85,6 +85,79 @@ test('central ledger processes low-risk progression before bank fallback', () =>
   assert.equal(classify('unknown'), 'UNDECIDED');
 });
 
+test('explicit operator SELL preempts an active progression batch before any progression action', async () => {
+  const engine = makeEngine();
+  const controlledMerchant = makeControlledMerchant();
+  const root = {
+    character: { name: 'Merchant', ctype: 'merchant', gold: 2000000, target: null, items: [{ name: 'partyhat', level: 0, q: 1 }], isize: 42, map: 'main' },
+    parent: { entities: {} }
+  };
+  const ledger = makeLedger([{
+    character: 'Merchant',
+    index: 0,
+    name: 'partyhat',
+    level: 0,
+    q: 1,
+    disposition: 'SELL',
+    reasons: ['OPERATOR_SELL_ALLOWED'],
+    operatorPermissions: { sell: true }
+  }]);
+  const runtime = makeRuntime({
+    root,
+    ledger,
+    engine,
+    controlledMerchant,
+    gameData: { items: { partyhat: { type: 'helmet', g: 1 } }, monsters: {}, maps: {} }
+  });
+  const convergence = new Alpha27CombatMerchantConvergence(runtime);
+  const merchant = convergence.merchant;
+
+  merchant.atomic.merchantActive = () => true;
+  merchant.atomic.supervisorAllowed = () => true;
+  merchant.atomic.merchantInCombat = () => false;
+  merchant.atomic.serviceTravelBusy = false;
+  merchant.atomic.merchantBusy = false;
+  merchant.ensureAutonomousAuthorities = () => true;
+  merchant.reconcileRecovering = () => false;
+  merchant.criticalPartySupplyPlan = () => null;
+  merchant.restockPartyPotions = async () => false;
+  merchant._updateCollectionSession = () => ({ active: false, snapshot: { freeSlots: 41, farmers: [], transferable: 0, activeGrants: 0 } });
+  merchant.bankRecovery.plan = () => ({ action: 'HOLD', reason: 'NOT_DUE' });
+
+  let progressionCalls = 0;
+  merchant.progressOrDeliverFarmerGear = async () => { progressionCalls += 1; return false; };
+  merchant.planCompound = () => { progressionCalls += 1; return null; };
+  merchant.planUpgrade = () => { progressionCalls += 1; return null; };
+
+  const releases = [];
+  const baseRelease = merchant._taskRelease.bind(merchant);
+  merchant._taskRelease = (key, reason, details) => {
+    releases.push({ key, reason });
+    return baseRelease(key, reason, details);
+  };
+
+  const acquired = merchant._taskAcquire('PROGRESSION_BATCH', 'alpha27:progression-batch', { serviceArea: 'newupgrade' });
+  assert.equal(acquired.acquired, true);
+
+  let executedRequest = null;
+  merchant.executeEconomyRequest = async (request) => {
+    executedRequest = { ...request, metadata: { ...(request.metadata || {}) } };
+    return true;
+  };
+
+  const acted = await merchant.cycle();
+
+  assert.equal(acted, true);
+  assert.equal(progressionCalls, 0);
+  assert.ok(executedRequest);
+  assert.equal(executedRequest.type, 'SELL');
+  assert.equal(executedRequest.index, 0);
+  assert.equal(executedRequest.metadata.source, 'OPERATOR_ITEM_PERMISSION');
+  assert.equal(executedRequest.metadata.operatorExplicitSell, true);
+  assert.ok(releases.some((row) => row.key === 'alpha27:progression-batch' && row.reason === 'OPERATOR_SELL_PREEMPTS_PROGRESSION_BATCH'));
+  assert.equal(merchant._taskCurrent(), null);
+});
+
 test('central ledger respects explicit operator denials before autonomous fallbacks', () => {
   const denied = {
     material: { sell: false },
