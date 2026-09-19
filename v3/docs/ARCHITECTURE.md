@@ -18,7 +18,7 @@ Diese Sicht ist **statisch und syntaktisch**. Sie wird aus der aktuellen Struktu
 | economy | 12 | 4377 |
 | farmer | 21 | 4529 |
 | game | 3 | 870 |
-| merchant | 11 | 4481 |
+| merchant | 11 | 4833 |
 | ops | 26 | 7719 |
 | party | 37 | 9866 |
 | planner | 1 | 66 |
