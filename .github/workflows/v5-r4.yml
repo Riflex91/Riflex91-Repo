@@ -12,6 +12,12 @@ on:
       - 'v5/werkzeuge/tests/r3-guards.test.mjs'
       - 'v5/werkzeuge/r4-*.mjs'
       - '.github/workflows/v5-r4.yml'
+      - 'v5/architektur/adr/**'
+      - 'v5/roadmap/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anforderungen/**'
+      - 'v5/fitness/**'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
   push:
     branches:
       - main
@@ -25,6 +31,12 @@ on:
       - 'v5/werkzeuge/tests/r3-guards.test.mjs'
       - 'v5/werkzeuge/r4-*.mjs'
       - '.github/workflows/v5-r4.yml'
+      - 'v5/architektur/adr/**'
+      - 'v5/roadmap/**'
+      - 'v5/bereitschaft/**'
+      - 'v5/anforderungen/**'
+      - 'v5/fitness/**'
+      - 'v5/dokumentation/V5-MASTER-ROADMAP.md'
 
 permissions:
   contents: read
