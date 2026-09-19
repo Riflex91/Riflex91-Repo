@@ -238,7 +238,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 neueKandidaten,
                 quellen.Count,
                 "GITHUB_PUSH_GEPLANT",
-                "Automatische Funde sind Evidence/Kandidaten. Community-Funde werden nicht automatisch zu bestaetigten Fakten.");
+                "Automatische Funde werden nur nach bestaetigtem Bezug zu Adventure Land - The Code MMORPG gespeichert. Community-Funde werden nicht automatisch zu bestaetigten Fakten.");
             await SpeichereJsonAsync(
                 GitArbeitskopie.DatenbankPfad + "/letzter-lauf.json",
                 laufbericht,
@@ -429,21 +429,30 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
             {
                 var json = await File.ReadAllTextAsync(vollPfad, cancellationToken);
                 dokument = JsonSerializer.Deserialize<KandidatenDokument>(json, BridgeConfig.JsonOptions)
-                    ?? new KandidatenDokument(1, []);
+                    ?? new KandidatenDokument(2, []);
             }
             catch
             {
-                dokument = new KandidatenDokument(1, []);
+                dokument = new KandidatenDokument(2, []);
             }
         }
         else
         {
-            dokument = new KandidatenDokument(1, []);
+            dokument = new KandidatenDokument(2, []);
         }
 
-        var nachAdresse = dokument.Kandidaten.ToDictionary(
-            kandidat => kandidat.Adresse,
-            StringComparer.OrdinalIgnoreCase);
+        // Kandidaten ohne den von der aktuellen Erkennung erzeugten Spielnachweis
+        // werden fail-closed verworfen. Damit verschwinden auch Altlasten aus
+        // frueheren, zu breiten Suchlaeufen automatisch.
+        var nachAdresse = dokument.Kandidaten
+            .Where(kandidat =>
+                !string.IsNullOrWhiteSpace(kandidat.Relevanznachweis)
+                && kandidat.Relevanznachweis.StartsWith(
+                    "ADVENTURE_LAND_",
+                    StringComparison.Ordinal))
+            .ToDictionary(
+                kandidat => kandidat.Adresse,
+                StringComparer.OrdinalIgnoreCase);
         var neue = 0;
 
         foreach (var fund in funde)
@@ -457,6 +466,7 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                     LetzteSichtung = zeitpunkt,
                     Titel = fund.Titel,
                     Vertrauensklasse = fund.Vertrauensklasse,
+                    Relevanznachweis = fund.Relevanznachweis,
                     Suchanfragen = vorhanden.Suchanfragen
                         .Append(fund.Suchanfrage)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -474,11 +484,12 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
                 "KANDIDAT",
                 zeitpunkt,
                 zeitpunkt,
-                [fund.Suchanfrage]);
+                [fund.Suchanfrage],
+                fund.Relevanznachweis);
         }
 
         var aktualisiert = new KandidatenDokument(
-            1,
+            2,
             nachAdresse.Values
                 .OrderByDescending(k => k.LetzteSichtung)
                 .Take(_config.WissenswaechterMaxKandidaten)
@@ -726,7 +737,8 @@ public sealed class WissenswaechterDienst : IAsyncDisposable
         string Status,
         DateTimeOffset ErsteSichtung,
         DateTimeOffset LetzteSichtung,
-        IReadOnlyList<string> Suchanfragen);
+        IReadOnlyList<string> Suchanfragen,
+        string? Relevanznachweis = null);
 
     private sealed record WissenslaufBericht(
         int SchemaVersion,
