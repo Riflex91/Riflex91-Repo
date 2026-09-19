@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-04",
+  "status": "DONE",
+  "sourceSnapshot": {
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "files": [
+      "js/runner_functions.js",
+      "js/functions.js",
+      "node/server.js",
+      "node/server_functions.js"
+    ],
+    "liveClientUrls": [
+      "https://adventure.land/js/runner_functions.js",
+      "https://adventure.land/js/functions.js"
+    ],
+    "liveClientVerifiedAt": "2026-09-19"
+  },
+  "listingLifecycle": {
+    "sellListing": {
+      "publicFunction": "trade",
+      "clientPath": "trade -> parent.trade -> deferred channel equip -> socket event equip",
+      "creation": {
+        "requiresTradeSlotCurrentlyAllowed": true,
+        "requiresSlotEmpty": true,
+        "ridGeneration": "randomStr(4)",
+        "priceClamp": {
+          "min": 1,
+          "max": 99999999999
+        },
+        "stackable": "Requested q is moved from inventory into a new trade-slot item. The remaining inventory stack stays in inventory.",
+        "nonStackable": "The physical inventory item is moved into the trade slot and receives price/rid."
+      },
+      "replacement": "Direct replacement is rejected with slot_occuppied. Existing sell listing must be removed/filled before a new listing can occupy the slot.",
+      "removal": {
+        "transport": "unequip",
+        "rule": "Trade slot is cleared; non-buy-listing item is returned to inventory.",
+        "requiresInventorySpaceForSellListing": true
+      }
+    },
+    "buyListing": {
+      "publicFunction": "wishlist",
+      "clientPath": "wishlist -> parent.wishlist -> deferred channel trade_wishlist -> socket event trade_wishlist",
+      "creation": {
+        "virtualListing": true,
+        "ridGeneration": "randomStr(4)",
+        "priceClamp": {
+          "min": 1,
+          "max": 99999999999
+        },
+        "quantityClamp": {
+          "min": 1,
+          "max": 9999
+        },
+        "upgradeOrCompoundQuantityMax": 99,
+        "levelClampForUpgradeOrCompound": {
+          "min": 0,
+          "max": 12
+        }
+      },
+      "replacement": "An existing buy listing (b=true) in the same slot may be overwritten directly. The replacement receives a new rid.",
+      "removal": {
+        "transport": "unequip",
+        "rule": "Trade slot is cleared; because b=true the virtual wishlist item is not moved into inventory."
+      }
+    },
+    "slotAvailability": {
+      "serverFunction": "get_trade_slots",
+      "withoutStandButTradesShown": [
+        "trade1",
+        "trade2",
+        "trade3",
+        "trade4"
+      ],
+      "standDefaultCount": 16,
+      "merchantLevel70OrCstandCount": 24,
+      "merchantLevel80Count": 30,
+      "rule": "Listing creation rechecks get_trade_slots(player) at mutation time."
+    }
+  },
+  "ridSemantics": {
+    "generatedOn": [
+      "new sell listing",
+      "new/replaced wishlist",
+      "giveaway listing"
+    ],
+    "tokenLength": 4,
+    "publicTradeBuySellWrappersAlwaysSupplyObservedRid": true,
+    "serverCheck": "Server rejects item_gone when data.rid is present and differs from the current slot rid.",
+    "serverRequiresRidField": false,
+    "v5RequiresRidField": true,
+    "rotatesOnPartialFill": false,
+    "rotatesOnNewOrReplacementListing": true,
+    "fullFillResult": "slot becomes null; old rid is no longer valid because the listing no longer exists.",
+    "meaning": "Optimistic slot-replacement guard, not a transaction id, not an idempotency key, not a quantity version and not a globally unique listing identity.",
+    "v5ListingAnchor": [
+      "target_character_id",
+      "trade_slot",
+      "rid",
+      "side",
+      "item_name",
+      "level_if_relevant",
+      "unit_price"
+    ],
+    "mutableObservation": [
+      "quantity"
+    ],
+    "rule": "Every new trade intent must use a fresh listing observation and must pin both rid and listing fingerprint."
+  },
+  "partialFillSemantics": {
+    "requestIsAllOrFailForRequestedQuantity": true,
+    "noAutomaticServerDownsize": true,
+    "buyFailureWhenRequestedExceedsRemaining": "insufficient_q",
+    "sellFailureWhenRequestedExceedsWishlist": "dont_have_enough",
+    "partialFillDefinition": "Requested q is smaller than the current listing q; exactly requested q transfers and the listing remains.",
+    "remainingQuantityMutation": "listing.q -= requested q",
+    "ridAfterPartialFill": "UNCHANGED",
+    "priceAfterPartialFill": "UNCHANGED",
+    "fullFill": "listing slot becomes null",
+    "consequence": "A stale quantity can coexist with a still-matching rid. RID alone cannot prove quantity freshness."
+  },
+  "tradeBuy": {
+    "publicFunction": "trade_buy",
+    "localDeferredChannel": "trade_buy",
+    "targetRequirements": [
+      "seller exists on same server",
+      "seller is not npc/invisible",
+      "seller and buyer are not in bank",
+      "within B.dist",
+      "same map",
+      "not self"
+    ],
+    "listingChecks": [
+      "slot is trade slot",
+      "listing exists",
+      "provided rid equals current rid",
+      "listing is not placeholder",
+      "listing is a sell listing (b/giveaway rejected)",
+      "requested q <= current q",
+      "buyer has enough gold",
+      "buyer inventory can accept requested q"
+    ],
+    "serverMutationOrder": [
+      "buyer gold debited",
+      "buyer trade history appended",
+      "seller gold credited net of seller tax",
+      "seller trade history appended",
+      "tax added to server gold",
+      "seller listing removed or q decremented",
+      "item added to buyer inventory",
+      "resend buyer/seller",
+      "success_response"
+    ],
+    "settlementRule": "Own buyer gold + own buyer inventory are primary settlement evidence. Remote listing delta is supporting evidence only because other buyers may mutate the same listing."
+  },
+  "tradeSell": {
+    "publicFunction": "trade_sell",
+    "localDeferredChannel": "trade_sell",
+    "targetRequirements": [
+      "buyer exists on same server",
+      "buyer is not npc/invisible",
+      "buyer and seller are not in bank",
+      "within B.dist",
+      "not self"
+    ],
+    "listingChecks": [
+      "slot is trade slot",
+      "wishlist exists",
+      "provided rid equals current rid",
+      "wishlist b=true",
+      "requested q <= current wishlist q",
+      "buyer has enough gold",
+      "buyer can accept item"
+    ],
+    "serverItemSelection": {
+      "clientSpecifiesInventoryIndex": false,
+      "scanDirection": "inventory index 0 upward",
+      "selectionPredicate": [
+        "item exists",
+        "item.name == wishlist.name",
+        "(item.q || 1) >= requested q",
+        "item.level == wishlist.level",
+        "item is not locked"
+      ],
+      "afterSelectionRejectIfBlocked": true,
+      "notComparedBySelection": [
+        "arbitrary special/provenance fields not named in the predicate",
+        "caller-intended inventory identity"
+      ],
+      "v5Rule": "Immediately before send, reproduce the server scan against the fresh inventory and prove that the exact server-selected physical item is permitted by policy. If multiple server-eligible variants are not fungible under policy, deny/replan."
+    },
+    "serverMutationOrder": [
+      "seller gold credited net of seller tax",
+      "seller trade history appended",
+      "buyer gold debited",
+      "buyer trade history appended",
+      "tax added to server gold",
+      "wishlist removed or q decremented",
+      "seller physical inventory item removed/decremented",
+      "item added to buyer inventory",
+      "resend seller/buyer",
+      "success_response"
+    ],
+    "settlementRule": "Own seller inventory + own seller gold are primary settlement evidence. Wishlist quantity alone can never prove that this seller executed the trade because another seller may fill the same wishlist."
+  },
+  "concurrency": {
+    "serverExecution": "trade_buy and trade_sell handlers are synchronous in the server source and re-read the current target slot/quantity before mutating it.",
+    "targetLocality": "Target player is resolved from the current server-process players map; market interaction requires a live nearby target.",
+    "implication": "Concurrent requests to one live listing are processed against the then-current listing state; a later request observes the prior handler's remove/decrement.",
+    "noOversellByStaleQuantity": "Server checks current q for every request and either transfers exactly requested q or rejects.",
+    "externalMutationStillPossibleBetweenObservationAndSend": true,
+    "ridDoesNotFencePartialQuantityChange": true,
+    "recoveryWarning": "A remote listing q decrease after UNKNOWN is not proof that our request committed, because another actor can cause the same q decrease."
+  },
+  "v5Policy": {
+    "listingObservationRequiredImmediatelyBeforeIntent": true,
+    "executionAdmissionFields": [
+      "target identity and liveness",
+      "slot",
+      "rid",
+      "side b/non-b",
+      "item name",
+      "level if relevant",
+      "unit price",
+      "fresh remaining quantity",
+      "distance/map",
+      "own gold/inventory capacity",
+      "exact requested quantity"
+    ],
+    "rawTradeBuySellRequiresNonEmptyRid": true,
+    "quantityPolicy": "Requested quantity is immutable within one intent. Never convert a server rejection into an automatic smaller quantity on the same intent.",
+    "continuationPolicy": "For multi-fill goals, each follow-up fill is a new intent from a new live listing observation.",
+    "ownResourceClaims": [
+      "character:gold",
+      "character:inventory"
+    ],
+    "remoteListingResource": "market:target_character:slot:rid",
+    "unknownSettlement": "Do not infer commit from remote listing quantity alone. Reconcile own value/inventory under exclusive managed resource claims; remote listing is secondary evidence.",
+    "listingReplacementPolicy": "Any new rid or fingerprint change invalidates the planned intent and requires a full replan."
+  },
+  "invariants": [
+    "trade_buy and trade_sell raw writes always carry a non-empty freshly observed rid even though the server handler conditionally checks rid only when supplied.",
+    "RID is an optimistic replacement guard, never an idempotency key or transaction identifier.",
+    "RID does not rotate on partial fill; remaining quantity must be freshly observed independently.",
+    "One trade intent requests one exact quantity; the server either applies that requested quantity or rejects it.",
+    "A server rejection for insufficient remaining quantity creates a replan opportunity, never an automatic downsized retry.",
+    "Every follow-up partial fill is a new intent from fresh listing truth.",
+    "Listing identity is scoped by target + slot + rid + side/item/level/price fingerprint; rid alone is not treated as globally unique.",
+    "A remote listing quantity delta alone cannot settle an UNKNOWN trade because other players can mutate the same listing.",
+    "trade_sell reproduces the server's inventory scan immediately before send and proves the selected physical item is allowed.",
+    "trade_sell is denied when multiple server-eligible physical variants are not fungible under the configured value policy.",
+    "Sell-listing replacement requires removal/full fill first; wishlist replacement may overwrite b=true and creates a new rid.",
+    "Listing creation/removal and trade execution use their documented local FIFO channels but still require V5 resource admission across channels."
+  ]
+}
