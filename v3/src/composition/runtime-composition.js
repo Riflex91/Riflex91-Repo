@@ -86,7 +86,7 @@ function buildServiceGroups(runtime) {
   return Object.freeze({
     gameStability: serviceGroup(runtime, [
       'adapter', 'scheduler', 'world', 'persistence', 'knowledgeAging',
-      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy'
+      'stability', 'globalSupervisor', 'contentDrift', 'skillCatalog', 'skillPolicy', 'adaptivePullLearner'
     ]),
     merchantEconomyTravel: serviceGroup(runtime, [
       'inventoryLedger', 'gearProgression', 'transactionEngine', 'controlledMerchant',

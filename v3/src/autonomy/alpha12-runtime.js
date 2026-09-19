@@ -27,7 +27,7 @@ class Alpha12Runtime extends Alpha11Runtime {
     composeAlpha12Runtime.call(this, options);
   }
   start() { const started = super.start(); this.backgroundExecution.start(); return started; }
-  stop() { this.partyPerformance.save({ force: true }); return super.stop(); }
+  stop() { if (this.adaptivePullLearner && typeof this.adaptivePullLearner.save === 'function') this.adaptivePullLearner.save(); this.partyPerformance.save({ force: true }); return super.stop(); }
   _contentDisposition(mtype) { if (!mtype || !this.world || typeof this.world.fact !== 'function') return 'UNKNOWN'; const fact = this.world.fact('monster-policy', mtype, 'contentSafetyDisposition'); return fact && fact.value || 'UNKNOWN'; }
   _currentMembers(snapshot) {
     if (!snapshot || !snapshot.character) return []; const names = new Set([snapshot.character.name]); for (const member of snapshot.party || []) if (member && member.name) names.add(member.name); const status = this.characterRegistry.status(); const byName = new Map(status.characters.map((row) => [row.name, row])); const result = [];
@@ -46,7 +46,22 @@ class Alpha12Runtime extends Alpha11Runtime {
     if (!currentFingerprint || !encounter || !encounter.monster || !encounter.monster.mtype) return; const now = this.now(); const elapsedMs = this.lastPerformanceSampleAt == null ? 0 : now - this.lastPerformanceSampleAt; this.lastPerformanceSampleAt = now; if (elapsedMs < 1000 || elapsedMs > 60000) return; const names = currentMembers.map((row) => row.name); const aggregate = this.partyTelemetry.aggregate(names); const local = this.partyTelemetry.buildLocalReport(this);
     if (local && !aggregate.reports.some((row) => row.name === local.name)) { aggregate.freshReports += 1; for (const key of ['xpPerHour', 'goldPerHour', 'killsPerHour', 'deathsPerHour', 'potionsPerHour', 'damageTakenPerHour']) aggregate[key] += local.rates[key]; aggregate.minHpRatio = aggregate.minHpRatio == null ? local.hpRatio : Math.min(aggregate.minHpRatio, local.hpRatio); aggregate.minMpRatio = aggregate.minMpRatio == null ? local.mpRatio : Math.min(aggregate.minMpRatio, local.mpRatio); if (local.safety.retreat) aggregate.retreats += 1; if (local.safety.emergency) aggregate.emergencies += 1; if (local.safety.movementCircuitOpen) aggregate.movementCircuits += 1; aggregate.skillFailureBackoffs += local.safety.skillFailureBackoffs; }
     if (aggregate.freshReports <= 0) return; const hours = elapsedMs / 3600000; const progressNorm = clamp01(Math.log1p(Math.max(0, aggregate.xpPerHour)) / Math.log(6000001)); const safetyMargin = aggregate.minHpRatio == null ? 0.5 : aggregate.minHpRatio; const score = clamp01(safetyMargin * 0.6 + progressNorm * 0.4 - Math.min(0.5, aggregate.deathsPerHour * 0.35));
-    this.partyPerformance.record(encounter.key, currentFingerprint.key, { seconds: elapsedMs / 1000, xp: aggregate.xpPerHour * hours, gold: aggregate.goldPerHour * hours, kills: aggregate.killsPerHour * hours, deaths: aggregate.deathsPerHour * hours, hpPotions: aggregate.potionsPerHour * hours, damage: 0, retreats: aggregate.retreats, nearDeaths: aggregate.minHpRatio != null && aggregate.minHpRatio < 0.25 ? 1 : 0, movementFailures: aggregate.movementCircuits, skillFailures: aggregate.skillFailureBackoffs, safetyMargin, score }); this.partyPerformance.save();
+    this.partyPerformance.record(encounter.key, currentFingerprint.key, { seconds: elapsedMs / 1000, xp: aggregate.xpPerHour * hours, gold: aggregate.goldPerHour * hours, kills: aggregate.killsPerHour * hours, deaths: aggregate.deathsPerHour * hours, hpPotions: aggregate.potionsPerHour * hours, damage: 0, retreats: aggregate.retreats, nearDeaths: aggregate.minHpRatio != null && aggregate.minHpRatio < 0.25 ? 1 : 0, movementFailures: aggregate.movementCircuits, skillFailures: aggregate.skillFailureBackoffs, safetyMargin, score });
+    if (this.adaptivePullLearner && typeof this.adaptivePullLearner.recordTelemetryWindow === 'function') {
+      try {
+        this.adaptivePullLearner.recordTelemetryWindow({
+          snapshot,
+          currentMembers,
+          encounterFingerprint: encounter,
+          partyFingerprint: currentFingerprint,
+          aggregate,
+          elapsedMs
+        });
+      } catch (error) {
+        this.log.emit({ component: 'adaptive-pull-learning', event: 'ADAPTIVE_PULL_SAMPLE_FAILED', severity: 'warn', reason: 'TELEMETRY_RECORD_ERROR', data: { message: String(error && error.message || error) } });
+      }
+    }
+    this.partyPerformance.save();
   }
   _maybeApplyAura(snapshot, encounter, risk, currentMembers) {
     const localName = snapshot.character.name; const local = currentMembers.find((row) => row.name === localName); const paladin = currentMembers.find((row) => row.ctype === 'paladin') || null; const recommendation = this.auraPolicy.recommend({ paladin, encounter, risk }); this.lastAuraRecommendation = recommendation; if (!recommendation.aura || !local || local.ctype !== 'paladin' || paladin.name !== local.name) return; if (!this.auraAutomationEnabled || this.adapter.mode !== 'active' || recommendation.canSwitch === false) return; if (this.auraPolicy.lastAura === recommendation.aura) return; const result = this.adapter.command('use_skill', ['paladin_aura', recommendation.aura]); this.lastAuraExecution = { at: this.now(), aura: recommendation.aura, result: { executed: !!result.executed, reason: result.reason || null, shadow: !!result.shadow } }; if (result.executed) { this.auraPolicy.noteApplied(recommendation.aura); this.log.emit({ component: 'party-aura', event: 'PALADIN_AURA_CHANGED', data: { aura: recommendation.aura, reason: recommendation.reason } }); }

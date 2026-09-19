@@ -55,6 +55,27 @@ function dominantMonster(snapshot) {
   }
   return [...rows.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 }
+function createPullLearningFingerprint(context = {}) {
+  const snapshot = context.snapshot || {};
+  const c = snapshot.character || {};
+  const gameData = context.gameData || {};
+  const mtype = context.monster || dominantMonster(snapshot) || null;
+  const metadata = monsterMetadata(gameData, mtype);
+  const levels = (context.currentMembers || [])
+    .map((row) => Number(row && row.level) || 0)
+    .filter((value) => value > 0);
+  const avgLevel = levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : Number(c.level) || 0;
+  const detail = {
+    schemaVersion: FINGERPRINT_SCHEMA_VERSION,
+    map: c.map || null,
+    monster: metadata,
+    partyLevelBand: context.partyLevelBand == null ? Math.floor(avgLevel / 10) * 10 : context.partyLevelBand,
+    event: context.event || null,
+    contentDisposition: context.contentDisposition || null
+  };
+  return { ...detail, key: `pullctx::${hash(stableStringify(detail))}` };
+}
+
 function createEncounterFingerprint(context = {}) {
   const snapshot = context.snapshot || {};
   const c = snapshot.character || {};
@@ -69,4 +90,4 @@ function createEncounterFingerprint(context = {}) {
   const key = `enc::${hash(stableStringify(detail))}`;
   return { ...detail, key };
 }
-module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, dominantMonster, monsterMetadata };
+module.exports = { FINGERPRINT_SCHEMA_VERSION, stableStringify, hash, createPartyFingerprint, createEncounterFingerprint, createPullLearningFingerprint, dominantMonster, monsterMetadata };
