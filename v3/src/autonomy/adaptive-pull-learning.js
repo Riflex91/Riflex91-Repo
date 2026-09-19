@@ -483,11 +483,11 @@ class AdaptivePullLearner {
     this.seenEncounterIds.push(encounterId);
     if (this.seenEncounterIds.length > 256) this.seenEncounterIds.splice(0, this.seenEncounterIds.length - 256);
     const backend = this._backend();
-    if (backend && !this.save()) {
+    if (!backend || !this.save()) {
       this.seenEncounterIds = this.seenEncounterIds.filter((id) => id !== encounterId);
       this.stats.encounterRecordSkips += 1;
       this.stats.encounterDedupePersistenceBlocks += 1;
-      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED', { encounterId });
+      this._event('ADAPTIVE_PULL_ENCOUNTER_BLOCKED', 'warn', backend ? 'EXACTLY_ONCE_DEDUPE_PERSISTENCE_FAILED' : 'EXACTLY_ONCE_DEDUPE_STORAGE_UNAVAILABLE', { encounterId });
       return null;
     }
 
