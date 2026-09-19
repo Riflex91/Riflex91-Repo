@@ -4,8 +4,8 @@
   "status": "RATIFIZIERUNG_OFFEN",
   "zusammenfassung": {
     "ausV4": 55,
-    "neuV5": 57,
-    "gesamt": 112
+    "neuV5": 65,
+    "gesamt": 120
   },
   "regel": "Alle 55 V4-Invarianten muessen in R2 explizit UEBERNEHMEN, VERSCHAERFEN oder ERSETZEN erhalten. Keine darf still entfallen.",
   "invarianten": [
@@ -1016,6 +1016,78 @@
       "ratifizierungsStatus": "V5_VERBINDLICH",
       "v5Entscheidung": "UEBERNEHMEN",
       "begruendung": "Der Server kann zunaechst in_progress bestaetigen und erst spaeter bank_new_pack/bank_new_pack_failed liefern."
+    },
+    {
+      "kennung": "V5-INV-058",
+      "herkunft": "V5_NEU",
+      "aussage": "Jeder rohe trade_buy-/trade_sell-Write enthaelt eine nichtleere, unmittelbar zuvor beobachtete RID.",
+      "geplanteDurchsetzung": "Execution-Adapter Market Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server prueft RID nur wenn das Feld vorhanden ist; V5 darf den Optimistic-Concurrency-Guard nicht durch Weglassen umgehen."
+    },
+    {
+      "kennung": "V5-INV-059",
+      "herkunft": "V5_NEU",
+      "aussage": "RID ist weder Idempotency-Key noch Quantity-Version; Partial Fills veraendern q ohne RID-Rotation.",
+      "geplanteDurchsetzung": "ListingSnapshot + Market Contract Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "P0-04 belegt stabile RID bei Partial Fill."
+    },
+    {
+      "kennung": "V5-INV-060",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Player-Market-Intent besitzt eine feste Menge; jeder Folge-Fill entsteht als neuer Intent aus frischer Listing Truth.",
+      "geplanteDurchsetzung": "Planner-/Transaction-Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server erfuellt exakt q oder lehnt ab; automatische Mengenreduktion waere eine neue wirtschaftliche Entscheidung."
+    },
+    {
+      "kennung": "V5-INV-061",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Remote-Listing-Quantity-Delta allein darf einen UNKNOWN trade_buy/trade_sell niemals als COMMITTED klassifizieren.",
+      "geplanteDurchsetzung": "Reconciliation Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Andere Spieler koennen dieselbe Listing-Menge mit unveraenderter RID reduzieren."
+    },
+    {
+      "kennung": "V5-INV-062",
+      "herkunft": "V5_NEU",
+      "aussage": "Vor trade_sell reproduziert V5 unmittelbar vor Send die serverseitige Inventarauswahl und autorisiert exakt das vom Server zuerst gewaehlte physische Item.",
+      "geplanteDurchsetzung": "Market Execution Admission",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Der Server erhaelt keinen Inventarslot und scannt ab Index 0."
+    },
+    {
+      "kennung": "V5-INV-063",
+      "herkunft": "V5_NEU",
+      "aussage": "trade_sell wird verweigert, wenn mehrere server-eligible physische Varianten unter der V5-Value-Policy nicht fungibel sind.",
+      "geplanteDurchsetzung": "ItemIdentity-/ValuePolicy-Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Name/Level reichen serverseitig fuer die Auswahl; weitere wertrelevante Merkmale koennen vom Planner abweichen."
+    },
+    {
+      "kennung": "V5-INV-064",
+      "herkunft": "V5_NEU",
+      "aussage": "Ein Market-Listing wird mindestens durch Target, Slot, RID, Side, Item, Level und Preis gepinnt; Quantity bleibt separat frisch zu revalidieren.",
+      "geplanteDurchsetzung": "ListingSnapshot Contract",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "RID allein ist kein globaler Listing-Identifier und keine Mengenrevision."
+    },
+    {
+      "kennung": "V5-INV-065",
+      "herkunft": "V5_NEU",
+      "aussage": "Listing-Replacement oder RID-/Fingerprint-Drift invalidiert einen geplanten Trade vollstaendig und fuehrt zu Replan statt Send.",
+      "geplanteDurchsetzung": "Admission Drift Guard",
+      "ratifizierungsStatus": "V5_VERBINDLICH",
+      "v5Entscheidung": "UEBERNEHMEN",
+      "begruendung": "Neue/replazierte Listings erhalten eine neue RID; stale Planung darf nicht gegen neue Markttruth ausgefuehrt werden."
     }
   ]
 }
