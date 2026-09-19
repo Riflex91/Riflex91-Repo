@@ -91,8 +91,15 @@ test('official Adventure Land data parser builds searchable Party Hat metadata w
   const gameData = {
     version: 123,
     items: {
-      sword: { name: 'Sword', type: 'weapon', wtype: 'sword', g: 1000, upgrade: { attack: 1 } },
-      partyhat: { name: 'Party Hat', type: 'helmet', g: 12000, upgrade: { armor: 1 }, explanation: 'A festive hat' }
+      sword: { name: 'Sword', type: 'weapon', wtype: 'sword', g: 1000, upgrade: { attack: 1 }, skin: 'sword' },
+      partyhat: { name: 'Party Hat', type: 'helmet', g: 12000, upgrade: { armor: 1 }, explanation: 'A festive hat', skin: 'partyhat' }
+    },
+    positions: {
+      sword: ['', 2, 3],
+      partyhat: ['', 11, 0]
+    },
+    imagesets: {
+      pack_20: { size: 20, rows: 64, columns: 16, file: '/images/tiles/items/pack_20vt8.png' }
     }
   };
   const parsed = parseAdventureLandDataJs('var G=' + JSON.stringify(gameData) + ';');
@@ -102,6 +109,15 @@ test('official Adventure Land data parser builds searchable Party Hat metadata w
   assert.equal(partyhat.name, 'Party Hat');
   assert.equal(partyhat.type, 'helmet');
   assert.equal(partyhat.economy.baseGold, 12000);
+  assert.deepEqual(partyhat.sprite, {
+    skin: 'partyhat',
+    file: 'https://adventure.land/images/tiles/items/pack_20vt8.png',
+    x: 11,
+    y: 0,
+    size: 20,
+    columns: 16,
+    rows: 64
+  });
 });
 
 test('official catalog fills items missing from a legacy 300-row runtime catalog', () => {
@@ -110,6 +126,25 @@ test('official catalog fills items missing from a legacy 300-row runtime catalog
   const merged = mergeAutomationCatalogRows(official, legacy);
   assert.equal(merged.length, 301);
   assert.ok(merged.some(row => row.id === 'partyhat' && row.name === 'Party Hat'));
+});
+
+
+test('merchant metadata cannot erase an official inventory-compatible sprite', () => {
+  const sprite = {
+    skin: 'partyhat',
+    file: 'https://adventure.land/images/tiles/items/pack_20vt8.png',
+    x: 11,
+    y: 0,
+    size: 20,
+    columns: 16,
+    rows: 64
+  };
+  const merged = mergeAutomationCatalogRows(
+    [{ id: 'partyhat', name: 'Party Hat', skin: 'partyhat', sprite, official: true }],
+    [{ id: 'partyhat', name: 'Party Hat', skin: 'partyhat', sprite: null, observed: true }]
+  );
+  assert.deepEqual(merged[0].sprite, sprite);
+  assert.equal(merged[0].observed, true);
 });
 
 test('Automation endpoint falls back to official game data when D1 only has the legacy 300-row cap', { concurrency: false }, async () => {
