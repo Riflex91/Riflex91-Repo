@@ -15,6 +15,7 @@ const {
 } = require('../src/party/production-material-acquisition');
 const {
   probabilisticFarmTime,
+  probabilisticOperations,
   PROBABILISTIC_FARM_TIME_MODEL
 } = require('../src/party/probabilistic-farm-time');
 
@@ -182,6 +183,20 @@ test('probabilistic farm time keeps expected telemetry but uses conservative P90
   assert.ok(fallback.p90Hours > measured.p90Hours);
   assert.ok(measured.confidence > fallback.confidence);
   assert.equal(fallback.decisionQuantile, 'P90');
+});
+
+test('rare exchange reward probability receives a materially larger P90 operation budget', () => {
+  const estimate = probabilisticOperations({
+    requiredRewards: 1,
+    rewardUnitsPerOperation: 0.1,
+    successProbability: 0.1,
+    unitsPerSuccess: 1
+  });
+
+  assert.equal(estimate.expectedOperations, 10);
+  assert.ok(estimate.p90Operations >= 22);
+  assert.ok(estimate.p90Operations > estimate.expectedOperations * 2);
+  assert.equal(estimate.decisionQuantile, 'P90');
 });
 
 test('P90 can prefer a slightly slower measured source over a lower-mean fallback source', () => {
