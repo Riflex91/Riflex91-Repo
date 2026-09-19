@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "researchId": "V5-P0-05",
+  "status": "DONE",
+  "sourceSnapshot": {
+    "officialRepo": "kaansoral/adventureland_mongodb",
+    "commit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "files": [
+      "node/server.js",
+      "js/functions.js",
+      "js/runner_functions.js",
+      "js/game.js",
+      "js/old_common_functions.js",
+      "design/upgrades.js",
+      "design/items.js",
+      "docs/functions/upgrade.html",
+      "docs/functions/compound.html"
+    ],
+    "liveClientUrls": [
+      "https://adventure.land/js/functions.js",
+      "https://adventure.land/js/runner_functions.js"
+    ],
+    "liveClientVerifiedAt": "2026-09-19"
+  },
+  "shared": {
+    "preview": {
+      "requestField": "calculate",
+      "behavior": "Server runs validation and computes the server-side chance, then returns before consumables/q/placeholder mutation.",
+      "consumesNothing": true,
+      "startsQ": false,
+      "createsPlaceholder": false,
+      "policy": "Planning may use preview as fresh server evidence, but execution must still revalidate the exact physical inputs immediately before the real send."
+    },
+    "correlation": {
+      "type": "FIFO_DEFERRED",
+      "channels": {
+        "upgrade": "upgrade",
+        "compound": "compound"
+      },
+      "requestId": false,
+      "implication": "At most one managed in-flight request per respective channel; FIFO result correlation is not safe under parallel writes."
+    },
+    "gradeFunction": {
+      "formula": "grade=4 if level>=grades[3], else 3 if >=grades[2], else 2 if >=grades[1], else 1 if >=grades[0], else 0; default grades=[9,10,11,12]",
+      "maxGrade": 4
+    },
+    "acceptedExecutionBoundary": [
+      "Server validates all supplied physical indexes and compatibility.",
+      "On accepted real execution, required consumables are consumed before the timed q phase completes.",
+      "A q entry and placeholder represent an accepted multi-phase mutation, not a harmless UI state.",
+      "Outcome state is precomputed/stored in player.p before the q timer expires."
+    ],
+    "massproduction": {
+      "effects": [
+        "massproduction halves duration and is consumed",
+        "massproductionpp divides duration by ten and is consumed"
+      ],
+      "policy": "These character conditions are part of the action effect domain and must be included in pre/post-state evidence if present."
+    }
+  },
+  "upgrade": {
+    "publicFunction": "upgrade(item_num, scroll_num, offering_num, only_calculate)",
+    "clientTransport": "parent.upgrade -> deferred channel 'upgrade' -> socket 'upgrade'",
+    "rejectsOrFailuresBeforeAcceptedMutation": [
+      "cant_in_bank",
+      "in_progress",
+      "distance",
+      "no_item",
+      "offering",
+      "no_scroll",
+      "mismatch",
+      "not_upgradeable",
+      "scroll",
+      "max_level",
+      "locked",
+      "scroll_quantity",
+      "exception"
+    ],
+    "baseProbabilityTable": {
+      "source": "design/upgrades.js",
+      "igrade0": {
+        "1": 0.9999999,
+        "2": 0.98,
+        "3": 0.95,
+        "4": 0.7,
+        "5": 0.6,
+        "6": 0.4,
+        "7": 0.25,
+        "8": 0.15,
+        "9": 0.07,
+        "10": 0.024,
+        "11": 0.14,
+        "12": 0.11
+      },
+      "igrade1": {
+        "1": 0.99998,
+        "2": 0.97,
+        "3": 0.94,
+        "4": 0.68,
+        "5": 0.58,
+        "6": 0.38,
+        "7": 0.24,
+        "8": 0.14,
+        "9": 0.066,
+        "10": 0.018,
+        "11": 0.13,
+        "12": 0.1
+      },
+      "igrade2": {
+        "1": 0.97,
+        "2": 0.94,
+        "3": 0.92,
+        "4": 0.64,
+        "5": 0.52,
+        "6": 0.32,
+        "7": 0.232,
+        "8": 0.13,
+        "9": 0.062,
+        "10": 0.015,
+        "11": 0.12,
+        "12": 0.09
+      }
+    },
+    "normalUpgradeScroll": {
+      "scrollType": "uscroll",
+      "compatibility": "current item grade must be <= scroll grade; grade 4 is max_level. scroll4 has grade 3.6 and is therefore compatible through grade 3.",
+      "base": "oprobability = probability = D.upgrades[item_def.igrade][new_level]",
+      "graceRaw": "max(0, min(new_level+1, item.grace + min(3,player.p.ugrace[new_level]/4.5) + item_def.igrace) + min(6,S.ugrace[new_level]/3.0) + player.p.ograce/3.2)",
+      "graceProbability": "grace = probability*graceRaw/new_level + graceRaw/1000",
+      "higherGradeScroll": "if scroll.grade > item grade && new_level<=10: probability=probability*1.2+0.01; high=true; real execution also adds 0.4 item grace",
+      "offeringModifiers": [
+        "offering.grade > grade+1: probability=probability*1.7 + grace*4; high=true; item grace increase 3",
+        "offering.grade > grade: probability=probability*1.5 + grace*1.2; high=true; item grace increase 1",
+        "offering.grade == grade: probability=probability*1.4 + grace; item grace increase 0.4",
+        "offering.grade == grade-1: probability=probability*1.15 + grace/3.2; item grace increase 0.2",
+        "otherwise: probability=probability*1.08 + grace/4; item grace increase 0.1"
+      ],
+      "noOfferingModifier": "grace=max(0,grace/4.8 - 0.4/((new_level-0.999)^2)); probability += grace",
+      "caps": [
+        "if high: probability <= min(oprobability+0.36, oprobability*3)",
+        "otherwise: probability <= min(oprobability+0.24, oprobability*2)"
+      ],
+      "additionalStateChanges": [
+        "real higher-grade scroll path may add item.grace += 0.4",
+        "real offering path adds item.grace by offering tier",
+        "real execution has independent 2.5% bonus-grace roll adding 1 item grace",
+        "success/failure updates player/server grace accumulators and player.p.ograce"
+      ],
+      "serverRollAdjustment": {
+        "condition": "data.item_num == player.p.item_num and independent random < 0.6",
+        "behavior": "result=max(Math.random()/10000, result*0.975-0.012)",
+        "playerItemNumOrigin": "server_functions assigns player.p.item_num a random integer 0..41 when undefined",
+        "consequence": "The returned preview chance is the probability threshold, but this additional roll transformation can change effective success probability for the selected inventory slot."
+      },
+      "timing": "500 * new_level * sqrt(new_level) * tmult milliseconds; tmult=1/1.5/2 from original grade 0/1/2; hardcore forces 500ms; massproduction modifiers then apply according to source order.",
+      "realStartMutationOrder": [
+        "consume one upgrade scroll",
+        "compute probability/result and mutate applicable grace state",
+        "consume one offering when present",
+        "persist player.p.u_type/u_roll/u_item|u_itemx|u_fail/u_level",
+        "create character.q.upgrade",
+        "replace target inventory slot with placeholder"
+      ],
+      "failureSemantics": {
+        "ordinaryScroll": "Failure stores original item in u_itemx; terminal q completion clears placeholder, so target item is destroyed.",
+        "ultimateScroll4": "Because scroll grade is 3.6, failed roll stores original item in u_item plus u_fail=true; terminal response is upgrade_fail but the target item is restored/preserved.",
+        "resultWarning": "success:false does not always mean target item was destroyed; postcondition must inspect the actual inventory."
+      },
+      "successSemantics": "Target item level becomes new_level before q completes; terminal completion restores it into the placeholder slot and emits upgrade_success."
+    },
+    "statScroll": {
+      "scrollType": "pscroll",
+      "compatibility": "item must support stat and current grade <= pscroll grade",
+      "requiredQuantityByGrade": [
+        1,
+        10,
+        100,
+        1000,
+        9999,
+        9999,
+        9999
+      ],
+      "chance": 0.99999,
+      "offeringEffect": "If an offering is supplied, it is consumed, item.grace += 1, and success is forced regardless of the 0.99999 roll.",
+      "mutation": "item.stat_type becomes scroll_def.stat before the q timer completes",
+      "timing": "2000 * tmult^2 milliseconds, then massproduction modifiers",
+      "terminalPrimaryResponse": "upgrade_success_stat",
+      "terminalAdditionalResponse": "Server also queues generic upgrade_success for a successful stat path; the FIFO deferred is expected to be resolved by the earlier stat-specific response.",
+      "failure": "Without offering, the rare failed roll destroys the target item."
+    },
+    "offeringOnly": {
+      "primordialTypeOffering": {
+        "behavior": "No scroll + normal type='offering': guaranteed non-level-changing grace infusion.",
+        "chance": 1,
+        "effect": "consume offering, item.grace += 0.5, u_type='offering', target item preserved",
+        "timing": "1000ms before massproduction modifiers",
+        "terminalPrimaryResponse": "upgrade_offering_success",
+        "terminalAdditionalResponse": "Server also queues generic upgrade_success; domain settlement is item-preserved + grace change, not a level increment."
+      },
+      "materialOffering": {
+        "allowedOnlyAtLevelZero": true,
+        "sourceItems": "Items with item definition field offering (e.g. ingot/nugget offering strengths), distinct from type='offering'.",
+        "chanceFormula": [
+          "chance starts at 0.16",
+          "if material offering strength > original item grade OR strength==2 and item value<=20,000,000: chance=0.32",
+          "chance *= [2.8,1.6,1][original item grade]",
+          "offering strength < original item grade => invalid offering"
+        ],
+        "outcome": "consume material offering; target replaced by placeholder; roll success sets item.p='shiny'; failed roll preserves the target item but marks u_fail=true, so terminal response is upgrade_fail.",
+        "timing": "2000ms before massproduction modifiers",
+        "consequence": "upgrade_fail here means shiny proc failed, not that the target item was destroyed."
+      }
+    },
+    "terminalResponses": {
+      "success": [
+        "upgrade_success",
+        "upgrade_success_stat",
+        "upgrade_offering_success"
+      ],
+      "expectedRollFailure": [
+        "upgrade_fail"
+      ],
+      "preview": [
+        "upgrade_chance"
+      ],
+      "note": "Domain settlement is determined from the specific path plus fresh inventory/grace/stat evidence, never from response.success alone."
+    }
+  },
+  "compound": {
+    "publicFunction": "compound(item0,item1,item2,scroll_num,offering_num,only_calculate)",
+    "clientTransport": "parent.compound -> deferred channel 'compound' -> socket 'compound'",
+    "validation": [
+      "exactly three distinct integer inventory indexes",
+      "three physical items exist",
+      "not in bank and in service range unless computer",
+      "same item name and same level",
+      "item definition compound=true",
+      "current grade < 4",
+      "cscroll type and scroll grade >= item grade",
+      "none of the three items locked",
+      "offering, if supplied, must be type='offering'"
+    ],
+    "baseProbabilityTable": {
+      "source": "design/upgrades.js",
+      "igrade0": {
+        "1": 0.99,
+        "2": 0.75,
+        "3": 0.4,
+        "4": 0.25,
+        "5": 0.2,
+        "6": 0.1,
+        "7": 0.08,
+        "8": 0.05,
+        "9": 0.05,
+        "10": 0.05
+      },
+      "igrade1": {
+        "1": 0.9,
+        "2": 0.7,
+        "3": 0.4,
+        "4": 0.2,
+        "5": 0.15,
+        "6": 0.08,
+        "7": 0.05,
+        "8": 0.05,
+        "9": 0.05,
+        "10": 0.03
+      },
+      "igrade2": {
+        "1": 0.8,
+        "2": 0.6,
+        "3": 0.32,
+        "4": 0.16,
+        "5": 0.1,
+        "6": 0.05,
+        "7": 0.03,
+        "8": 0.03,
+        "9": 0.03,
+        "10": 0.02
+      }
+    },
+    "probabilityGradeSelection": "igrade starts as def.igrade; when current level>=3 it is recalculated at level-2 using calculate_item_grade(def,{level:itemLevel-2}).",
+    "higherGradeScroll": "if scroll.grade > current grade: probability=probability*1.1+0.001; grace_bonus +=0.4 on real execution; high=(scroll.grade-grade)",
+    "offeringGrace": "grace=0.027*(sum(item.grace)+0.5+player.p.ograce)",
+    "offeringModifiers": [
+      "offering.grade > grade+1: probability=probability*1.64 + grace*2; high=true; grace increase 3",
+      "offering.grade > grade: probability=probability*1.48 + grace; high=true; grace increase 1",
+      "offering.grade == grade: probability=probability*1.36 + min(0.81,grace); grace increase 0.5",
+      "offering.grade == grade-1: probability=probability*1.15 + min(0.475,grace)/max(itemLevel-2,1); grace increase 0.2",
+      "otherwise: probability=probability*1.08 + min(0.225,grace)/max(itemLevel-1,1); grace increase 0.1"
+    ],
+    "noOffering": "grace=0.007*(sum(item.grace)+player.p.ograce); probability += min(0.175,grace)/max(itemLevel-1,1); real output item grace starts from max of input graces",
+    "realGraceMerge": "On real execution, item0 grace first aggregates input grace when offering is present or max input grace when absent, then item0.grace = item0.grace/6.4 + grace_bonus.",
+    "cap": "For non-booster items probability <= min(oprobability*(3 + (high ? high*0.6 : 0)), oprobability + 0.2 + (high ? high*0.05 : 0)).",
+    "boosterSpecialCase": {
+      "baseSuccessProbability": 0.9999999999999,
+      "offeringProcStart": 0.12,
+      "extraLevelLoop": "while offering && random<proc: extra++, level++, proc/=2",
+      "durationMerge": "Three booster durations are combined; active expiries are converted to remaining seconds and output expiry becomes future_s(totalSeconds/3) when any input was active.",
+      "consequence": "Preview reports near-certain base compound success but does not enumerate the random recursive extra-level proc outcome."
+    },
+    "timing": "10000ms; hardcore 1200ms; massproduction halves; massproductionpp divides by ten.",
+    "realStartMutationOrder": [
+      "consume one compound scroll",
+      "compute base probability/result",
+      "consume offering if supplied and update grace inputs",
+      "persist player.p.c_roll and c_item|c_itemx",
+      "create character.q.compound",
+      "replace first input slot with placeholder",
+      "remove second and third input slots immediately"
+    ],
+    "successSemantics": [
+      "item0 level becomes new_level before q completes",
+      "one output item survives in first slot at terminal completion",
+      "two other inputs remain consumed",
+      "selected properties/provenance may be merged",
+      "booster may gain extra levels via recursive offering proc"
+    ],
+    "failureSemantics": [
+      "all three physical input items are lost",
+      "first slot placeholder is cleared at q completion",
+      "second and third slots were already null from action start"
+    ],
+    "terminalResponses": {
+      "success": "compound_success",
+      "failure": "compound_fail",
+      "preview": "compound_chance",
+      "clientSemantics": "Normal failed compound is a resolved business outcome with success=false rather than a validation rejection."
+    }
+  },
+  "recovery": {
+    "criticalBoundary": "Once q/placeholder exists, consumables and/or input items have already been mutated and the server has already selected the stored outcome branch.",
+    "placeholderMeaning": "Accepted in-flight transaction; not proof that the random result is still undecided.",
+    "stillPending": "character.q.<action> plus attributable placeholder exists and terminal inventory has not yet replaced/cleared it.",
+    "committedUpgrade": [
+      "q.upgrade cleared",
+      "placeholder cleared/replaced",
+      "scroll/offering/condition deltas reconciled",
+      "path-specific final target state reconciled: leveled item, preserved scroll4/material-offering failure item, stat mutation, grace infusion, or destroyed target"
+    ],
+    "committedCompound": [
+      "q.compound cleared",
+      "first-slot placeholder resolved",
+      "all three input identities/slots accounted for",
+      "scroll/offering/condition deltas reconciled",
+      "success output or three-item loss reconciled"
+    ],
+    "notApplied": "Only positive evidence that no accepted mutation occurred: pinned physical inputs/consumables/conditions all remain unchanged and no attributable q/placeholder exists.",
+    "crashOrDisconnect": "UNKNOWN -> REOBSERVE -> RECONCILE; never resend the same attempt.",
+    "responseRule": "A terminal Promise response is useful evidence but cannot replace postcondition reconciliation, especially because upgrade_fail has path-dependent preservation/destruction semantics and stale responses may not resolve the active deferred."
+  },
+  "invariants": [
+    "Preview mode never authorizes execution by itself; exact physical inputs are revalidated immediately before real send.",
+    "An accepted real upgrade/compound is considered mutation-started once consumables/q/placeholder state changes; no same-intent retry follows timeout/disconnect.",
+    "Placeholder is a transaction marker, not proof that the random outcome remains undecided.",
+    "Upgrade and compound retain separate FIFO action channels and may not be parallelized within the same channel.",
+    "Normal upgrade failure may destroy the target, but scroll4 failure preserves it; response success=false alone cannot classify item loss.",
+    "Material-offering shiny failure preserves the target despite upgrade_fail.",
+    "Offering-only primordial grace infusion does not increase item level even though the server may also queue generic upgrade_success.",
+    "Stat-scroll success changes stat_type rather than item level; postcondition is path-specific.",
+    "Compound failure consumes all three physical input items.",
+    "Compound success yields one output and consumes exactly two additional equal inputs plus scroll/offering as applicable.",
+    "All upgrade/compound physical item identities, consumables, q state and massproduction conditions are resource-claimed until terminal settlement.",
+    "Server-reported preview chance is stored with the exact source/inputs; it is not treated as a timeless formula result.",
+    "Upgrade actual roll has a source-verified target-slot adjustment tied to player.p.item_num; effective outcome probability must not be inferred solely from the displayed threshold when that condition may apply.",
+    "Booster compound extra levels are a post-success random proc and must be reconciled from the final item rather than predicted as a single deterministic level.",
+    "No planner may infer NOT_APPLIED from missing terminal response, missing output, or reconnect alone."
+  ]
+}
