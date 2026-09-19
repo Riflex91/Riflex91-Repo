@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-19",
+  "currentPhase": "R1",
+  "principle": "No phase may be skipped; failures must be prevented, detected, contained, reconciled and explained.",
+  "phases": [
+    {
+      "id": "R0",
+      "name": "Lebende Wissensbasis",
+      "status": "DONE",
+      "requires": [],
+      "blocksRuntime": false,
+      "exit": [
+        "Knowledge-Validator gruen",
+        "Drift/Revalidation etabliert"
+      ]
+    },
+    {
+      "id": "R1",
+      "name": "Research Closure",
+      "status": "IN_PROGRESS",
+      "requires": [
+        "R0"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "P0 research geschlossen oder Functions explizit disabled",
+        "Recovery/Postconditions je wertrelevanter Action"
+      ]
+    },
+    {
+      "id": "R2",
+      "name": "V5-Verfassung und Migrationsmatrix",
+      "status": "BLOCKED",
+      "requires": [
+        "R1"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "55 V4-Invarianten re-ratifiziert",
+        "30 V3-Fehler abgedeckt",
+        "Layer/Ownership konfliktfrei"
+      ]
+    },
+    {
+      "id": "R3",
+      "name": "Repo Build Guards Host-Grenzen",
+      "status": "BLOCKED",
+      "requires": [
+        "R2"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Static Guards + Negativtests",
+        "Headless no-write runtime"
+      ]
+    },
+    {
+      "id": "R4",
+      "name": "Deterministischer Core",
+      "status": "BLOCKED",
+      "requires": [
+        "R3"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Clock/Random/IDs injizierbar",
+        "Replay deterministisch"
+      ]
+    },
+    {
+      "id": "R5",
+      "name": "Persistenz Journal Schema-Evolution",
+      "status": "BLOCKED",
+      "requires": [
+        "R4"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Crash/Migration Tests gruen",
+        "Kein Blind Resume"
+      ]
+    },
+    {
+      "id": "R6",
+      "name": "Observation Evidence World Truth",
+      "status": "BLOCKED",
+      "requires": [
+        "R5"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Stale state autorisiert keine Mutation",
+        "Drift quarantine faehig"
+      ]
+    },
+    {
+      "id": "R7",
+      "name": "Module Capabilities Ports Authority",
+      "status": "BLOCKED",
+      "requires": [
+        "R6"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Single Owner technisch erzwungen",
+        "Operator Deny/Kill Switch erzwungen"
+      ]
+    },
+    {
+      "id": "R8",
+      "name": "Workflow Scheduler Resources",
+      "status": "BLOCKED",
+      "requires": [
+        "R7"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "No lock stealing",
+        "Starvation/Deadlock/Preemption Properties gruen"
+      ]
+    },
+    {
+      "id": "R9",
+      "name": "Admission Execution Kernel",
+      "status": "BLOCKED",
+      "requires": [
+        "R8"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Alle Writes nur Execution",
+        "Mutating Action hat Contract/Verifier/Recovery"
+      ]
+    },
+    {
+      "id": "R10",
+      "name": "Reconciliation Recovery Kernel",
+      "status": "BLOCKED",
+      "requires": [
+        "R9"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Fault Disconnect Tests gruen",
+        "Duplicate irreversible effects = 0"
+      ]
+    },
+    {
+      "id": "R11",
+      "name": "Testlab Replay Observability Operations",
+      "status": "BLOCKED",
+      "requires": [
+        "R10"
+      ],
+      "blocksRuntime": true,
+      "exit": [
+        "Kernel reproduzierbar",
+        "Headless supervisor/alerts bounded"
+      ]
+    },
+    {
+      "id": "R12",
+      "name": "Vertical Slice 0",
+      "status": "BLOCKED",
+      "requires": [
+        "R11"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "End-to-end ohne Bypass",
+        "Shadow + Controlled Live bestanden"
+      ]
+    },
+    {
+      "id": "R13",
+      "name": "Merchant Core A",
+      "status": "BLOCKED",
+      "requires": [
+        "R12"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "Ledger/Bank/Economy invariants gruen",
+        "Restart reconciliation gruen"
+      ]
+    },
+    {
+      "id": "R14",
+      "name": "Multi-Character Coordination",
+      "status": "BLOCKED",
+      "requires": [
+        "R13"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "P1A geschlossen",
+        "CM duplicate/out-of-order/loss Fault Tests gruen"
+      ]
+    },
+    {
+      "id": "R15",
+      "name": "Merchant Core B Production",
+      "status": "BLOCKED",
+      "requires": [
+        "R14"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "Recipient settlement Pflicht",
+        "q/placeholder/restart Fault Tests gruen"
+      ]
+    },
+    {
+      "id": "R16",
+      "name": "Party Combat Farming Navigation",
+      "status": "BLOCKED",
+      "requires": [
+        "R15"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "P1B geschlossen",
+        "No stale target/movement thrash"
+      ]
+    },
+    {
+      "id": "R17",
+      "name": "World Autonomy",
+      "status": "BLOCKED",
+      "requires": [
+        "R16"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "P2 geschlossen",
+        "Unknown content fail-closed"
+      ]
+    },
+    {
+      "id": "R18",
+      "name": "Learning Optimierung",
+      "status": "BLOCKED",
+      "requires": [
+        "R17"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "Deterministic fallback",
+        "Learning kann Safety/Authority nicht lockern"
+      ]
+    },
+    {
+      "id": "R19",
+      "name": "24/7 Zertifizierung",
+      "status": "BLOCKED",
+      "requires": [
+        "R18"
+      ],
+      "blocksRuntime": false,
+      "exit": [
+        "1h/24h/72h/7d evidence",
+        "Zero-tolerance metrics eingehalten"
+      ]
+    }
+  ]
+}
