@@ -23,6 +23,7 @@ Vor der ersten Runtime-Implementierung werden:
 - `dokumentation/ADR-0001-V5-NEUSTART.md` – Architekturentscheidung V5.
 - `dokumentation/V5-MASTER-ROADMAP.md` – verbindliche Entwicklungsreihenfolge mit Gates.
 - `dokumentation/V5-DEFINITION-OF-DONE.md` – Pflichtkriterien fuer jede Capability.
+- `dokumentation/DEUTSCHE_NAMEN_UND_NARRENSICHERHEIT.md` – verbindliche deutsche Domaenensprache und gegenueber V4 verschaerfte Mehrfach-Verriegelung.
 - `roadmap/gates.json` – maschinenlesbarer Roadmap-/Abhaengigkeitszustand.
 - `wissensbasis/README.md` – Regeln der lebenden Wissensbasis.
 - `wissensbasis/manifest.json` – maschinenlesbarer Einstiegspunkt.
