@@ -47,7 +47,7 @@ class TacticalPartyCombat {
     this.lastDecision = null;
     this.lastPullExpansionAt = -Infinity;
     this.pendingPull = null;
-    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
+    this.stats = { evaluations: 0, routineAllowed: 0, unsafeRejected: 0, specialPullBlocks: 0, targetLocks: 0, betterTargetSwitches: 0, sharedAggroSwitches: 0, followerReassessmentBlocks: 0, encounterRefreshes: 0, primaryPromotions: 0, pullCandidateAllows: 0, pullCandidateBlocks: 0, pullExpansionAttempts: 0, pullExpansionCommands: 0, pullExpansionObserved: 0, pullExpansionTimeouts: 0, pullExpansionNoCandidate: 0, agitateEvaluations: 0, agitateCommands: 0, agitateTargetsPlanned: 0, agitateUnsafeRadiusBlocks: 0, agitateCapacityBlocks: 0, agitateResourceBlocks: 0 };
     this.installed = false;
     this.install();
   }
@@ -208,6 +208,29 @@ class TacticalPartyCombat {
     }
     const targets = this._encounterEntities(snapshot, team);
     const evaluations = targets.map((target) => this.evaluateTarget(target, team, snapshot));
+    const previousPrimaryId = String(this.encounter.primaryTargetId || this.encounter.targetId || '');
+    if (previousPrimaryId && targets.length && !targets.some((row) => String(row.id) === previousPrimaryId)) {
+      const promotable = targets
+        .map((target, index) => ({ target, evaluation: evaluations[index] }))
+        .filter((row) => row.evaluation && row.evaluation.allowed === true)
+        .sort((a, b) => finite(b.evaluation.partyAggro ? 1 : 0) - finite(a.evaluation.partyAggro ? 1 : 0)
+          || finite(b.evaluation.score, -Infinity) - finite(a.evaluation.score, -Infinity)
+          || String(a.target.id).localeCompare(String(b.target.id)))[0];
+      if (promotable) {
+        this.encounter.primaryTargetId = String(promotable.target.id);
+        this.encounter.targetId = String(promotable.target.id);
+        this.encounter.targetType = promotable.target.mtype || this.encounter.targetType || null;
+        this.encounter.reason = 'SURVIVING_ENCOUNTER_TARGET_PROMOTED';
+        this.stats.primaryPromotions += 1;
+        this._event('ENCOUNTER_PRIMARY_PROMOTED', 'info', 'PRIMARY_RESOLVED_WITH_SURVIVING_TRACKED_TARGETS', {
+          encounterId: this.encounter.encounterId || null,
+          previousPrimaryId,
+          primaryTargetId: this.encounter.primaryTargetId,
+          targetType: this.encounter.targetType,
+          survivingTargetIds: targets.map((row) => String(row.id))
+        });
+      }
+    }
     const currentMembers = this.runtime && typeof this.runtime._currentMembers === 'function'
       ? this.runtime._currentMembers(snapshot)
       : (team.members || []);
